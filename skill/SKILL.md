@@ -64,6 +64,7 @@ and run every command from the repo root as `${KB} <command>`:
 
 ```
 ${KB} init [track...]               # scaffold docs/kanban/ (tracks default to feature bug research)
+                                    # re-run to repair an older board: adds missing config.md, modules.md, memory paths
 ${KB} create [--count N]            # allocate N ids (default 1), prints them
 ${KB} create --title ".." --track <track> [--priority high|med|low] [--roi high|med|low] \
              [--blocked-by 1,2] [--related 3] [--modules skill,site] [--question ".."] [--slug ..]
@@ -243,8 +244,9 @@ The set exists at two levels: `docs/kanban/memory/<module>/` for one module, the
 root for the umbrella project. **Pick one copy by the card's `modules:` field and use only
 that one** — the named module's (both, if it names two), else the root's. Never write a
 note to both: the root is the whole project's memory, not a mirror of the modules. A
-module's folder appears on its first write — `${KB} memory-init <module>` (idempotent);
-never pre-create it.
+module's folder is scaffolded by `${KB} memory-init <module>` (idempotent) as soon as the
+module is known — `init` does it for every module already on the map, the update flow does
+it for the rest, and any flow about to write a note runs it first.
 
 ## Auto-pruning
 

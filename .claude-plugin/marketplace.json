@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "The kanban skill — a file-based task board Claude runs for you.",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "plugins": [
     {

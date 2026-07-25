@@ -1,22 +1,19 @@
 # Updating the skill
 
-Pull a newer version of the kanban skill into a project that already has it. `${KB}`
-below is the script invocation from SKILL.md's "The script" section.
+Pull a newer version of the kanban skill into a project that already has it. `${KB}` below
+is the script invocation from SKILL.md's "The script" section.
 
-**The one rule: `docs/kanban/` — board data and `config.md` — is yours; the skill folder
-(`SKILL.md`, `kanban.mjs`, `references/`) is upstream's and gets overwritten wholesale.
-Nothing is merged, and an update never writes under `docs/kanban/` beyond adding a
-brand-new config field.**
+**The one rule: `docs/kanban/` is yours; the skill folder (`SKILL.md`, `kanban.mjs`,
+`references/`) is upstream's and gets overwritten wholesale. Never merge the two.**
 
 ## Plugin install (skill lives in the plugin cache)
-
-Refresh the marketplace and re-install, then do **Config check** below; nothing in your
-repo changes:
 
 ```
 /plugin marketplace update kanban
 /plugin install kanban@kanban
 ```
+
+Then run both checks below.
 
 ## Copied install (skill lives in `.claude/skills/kanban/`)
 
@@ -47,17 +44,33 @@ repo changes:
      > .claude/skills/kanban/.version
    ```
 
-## Config check (both channels)
+Then run both checks below.
 
-Compare the shipped blank template against your filled-in config:
+## Config check (both channels)
 
 ```
 diff <skill folder>/config.md docs/kanban/config.md
 ```
 
-Filled-in values vs `{{PLACEHOLDERS}}` is expected noise. You're only looking for a
-whole new setting. If upstream added one, add just that line to `docs/kanban/config.md`
-and ask the user only for the new value. Otherwise leave the config untouched.
+Ignore filled-in values vs `{{PLACEHOLDERS}}`. If upstream added a whole new setting, add
+that one line to `docs/kanban/config.md` and ask the user only for the new value.
+Otherwise leave the config untouched.
+
+## Scaffold check (both channels)
+
+1. Add what an older version never wrote — it reports what it added:
+
+   ```
+   ${KB} init
+   ```
+
+2. If it seeded a blank `docs/kanban/modules.md`, fill it in per `references/module-map.md`.
+
+3. Re-run `${KB} init` to create a memory path for every module on the map. (For one
+   module added later: `${KB} memory-init <module>`.)
+
+Leave the root notes and the cards alone — don't move notes into the module paths, and
+don't hand-add `modules:` lines to cards.
 
 ## Verify
 

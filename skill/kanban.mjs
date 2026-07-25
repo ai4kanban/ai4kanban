@@ -40,7 +40,7 @@ import { fileURLToPath } from 'node:url'
 // from the manifests. `version` prints this; the install/update prompt also writes a
 // `.version` stamp (source SHA + date) next to the script for `git log` deltas — printed
 // here too when present.
-const SKILL_VERSION = '0.2.0'
+const SKILL_VERSION = '0.3.0'
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
 // The board lives at <repo>/docs/kanban. Every command runs from the repo root (SKILL.md
@@ -623,6 +623,22 @@ before proposing so you don't re-suggest them.
 `,
 }
 
+// The blank module map. `init` seeds it, the module-map flow fills it in from the repo.
+// It ships empty on purpose: only someone who has read the repo can name its parts, and
+// a made-up line here would validate a card's --modules tag against a lie. An empty map
+// still parses — moduleNames() reads it as "no modules yet", so --modules is a hard error
+// naming what's known, which is the prompt to add the line.
+const MODULES_TEMPLATE = `# Modules
+
+What this project is made of — one line per module, each led by its **bolded name**, then
+what it is and the paths it covers. A module is a part of the product that grows on its
+own, judged by meaning, not by folder.
+
+If a line here disagrees with the repo you just read, fix the line.
+
+_(not filled in yet — build the map from the repo before tagging a card.)_
+`
+
 function boardReadme(tracks) {
   const sections = ['## Blockers', '', '_(none)_', '']
   for (const t of tracks) sections.push(`## ${t}`, '', '_(none)_', '')
@@ -649,6 +665,17 @@ function writeConfigIfMissing() {
   return true
 }
 
+// Seed the blank module map. Same contract as the config: idempotent, and it never
+// touches a map that's already there, so a filled-in map survives a re-run — that's what
+// makes it safe for `init` to double as the repair step for a board made before the map
+// existed.
+function writeModulesIfMissing() {
+  if (fs.existsSync(MODULES_MD)) return false
+  fs.mkdirSync(KANBAN, { recursive: true })
+  fs.writeFileSync(MODULES_MD, MODULES_TEMPLATE)
+  return true
+}
+
 function cmdInit(args) {
   const tracks = args.length ? args : DEFAULT_TRACKS
   for (const t of tracks) {
@@ -657,14 +684,34 @@ function cmdInit(args) {
     }
   }
   if (fs.existsSync(KANBAN)) {
-    // An existing board still needs docs/kanban/config.md if it predates the move out of
-    // the skill folder — add it, but never touch a config that's already filled in.
-    const added = writeConfigIfMissing()
+    // Re-running `init` is the repair step for a board made by an older version: it adds
+    // whatever that version never wrote — docs/kanban/config.md if the board predates the
+    // move out of the skill folder, modules.md if it predates the module map — and never
+    // touches either one once it's filled in.
+    const added = [writeConfigIfMissing() && rel(CONFIG), writeModulesIfMissing() && rel(MODULES_MD)].filter(Boolean)
+    // Every module already on the map gets its memory path here, so a board whose map is
+    // filled in is fully repaired by this one command. A map seeded blank a line above
+    // names nothing yet — those paths are made once the map is written.
+    const scaffolded = []
+    for (const m of moduleNames() || []) {
+      // A hand-written map can carry a name no folder can take. Warn and skip rather than
+      // die: one odd line shouldn't stop the rest of the repair.
+      if (!MODULE_NAME_RE.test(m)) {
+        warn(`skipping module "${m}" — a name needs letters, digits, and dashes to be a folder`)
+        continue
+      }
+      const done = scaffoldMemoryPath(m)
+      if (done) scaffolded.push(done)
+    }
     console.log(
-      added
-        ? `board already exists at ${rel(KANBAN)}/ — added the missing ${rel(CONFIG)} (safe to re-run)`
-        : `board already exists at ${rel(KANBAN)}/ — nothing to do (safe to re-run)`,
+      added.length
+        ? `board already exists at ${rel(KANBAN)}/ — added the missing ${added.join(', ')} (safe to re-run)`
+        : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
     )
+    for (const s of scaffolded) console.log(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
+    if (added.includes(rel(MODULES_MD))) {
+      console.log(`  next: fill in ${rel(MODULES_MD)} (see "The module map"), then re-run init for the memory paths`)
+    }
     return
   }
   fs.mkdirSync(path.join(TODO, 'blockers'), { recursive: true })
@@ -674,22 +721,24 @@ function cmdInit(args) {
     fs.writeFileSync(path.join(KANBAN, name), body)
   }
   writeConfigIfMissing()
+  writeModulesIfMissing()
   writeNextId(1)
   console.log(`initialised board at ${rel(KANBAN)}/`)
   console.log(`  tracks: ${tracks.join(', ')}`)
-  console.log(`  next: fill the Configuration in ${rel(CONFIG)}, then \`create\` your first task`)
+  console.log(`  next: fill the Configuration in ${rel(CONFIG)} and the map in ${rel(MODULES_MD)},`)
+  console.log(`        then \`create\` your first task`)
 }
 
-// Lazily scaffold a module's memory path with the five-file set. A module has no folder
-// until its first write; the writing flow (propose, reject, redesign, resolve)
-// runs this first, then writes into the file it needs. Idempotent: creates only what's
-// missing, so it's safe to call before every write. Keyed by the module's bolded name in
-// modules.md — passed verbatim as the folder name.
-function cmdMemoryInit(module) {
-  if (!module) die('memory-init needs a module name (its bolded name in modules.md)')
-  if (!/^[a-z0-9][a-z0-9-]*$/i.test(module)) {
-    die(`bad module name "${module}" — use letters, digits, and dashes (a folder name)`)
-  }
+// A module name doubles as a folder name under memory/, so it's held to the same shape as
+// a track's.
+const MODULE_NAME_RE = /^[a-z0-9][a-z0-9-]*$/i
+
+// Scaffold one module's memory path with the five-file set. Idempotent: creates only
+// what's missing, so it's safe to call whenever a module's name is known — `init` calls
+// it for the whole map, and a flow about to write a note calls it first. Keyed by the
+// module's bolded name in modules.md, passed verbatim as the folder name. Returns what it
+// created so callers can report; `null` means the path was already complete.
+function scaffoldMemoryPath(module) {
   const dir = path.join(KANBAN, 'memory', module)
   const existed = fs.existsSync(dir)
   fs.mkdirSync(dir, { recursive: true })
@@ -701,9 +750,19 @@ function cmdMemoryInit(module) {
       made.push(name)
     }
   }
-  if (!existed) console.log(`created memory path ${rel(dir)}/ with the five-file set`)
-  else if (made.length) console.log(`filled in missing files in ${rel(dir)}/: ${made.join(', ')}`)
-  else console.log(`${rel(dir)}/ already has the full set — nothing to do`)
+  if (!existed) return { dir, made, fresh: true }
+  return made.length ? { dir, made, fresh: false } : null
+}
+
+function cmdMemoryInit(module) {
+  if (!module) die('memory-init needs a module name (its bolded name in modules.md)')
+  if (!MODULE_NAME_RE.test(module)) {
+    die(`bad module name "${module}" — use letters, digits, and dashes (a folder name)`)
+  }
+  const done = scaffoldMemoryPath(module)
+  if (!done) console.log(`${rel(path.join(KANBAN, 'memory', module))}/ already has the full set — nothing to do`)
+  else if (done.fresh) console.log(`created memory path ${rel(done.dir)}/ with the five-file set`)
+  else console.log(`filled in missing files in ${rel(done.dir)}/: ${done.made.join(', ')}`)
 }
 
 // ---- commands --------------------------------------------------------------
