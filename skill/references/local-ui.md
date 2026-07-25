@@ -4,6 +4,10 @@ An optional Next.js app that shows the board and drives the work from buttons in
 terminal. The board works fully without it; set it up only when you want the buttons. The
 markdown files in `docs/kanban/` stay the single source of truth.
 
+**This page is setup only — how to get it running.** Using it (what each button does, group
+tasks, the Configuration dialog) is documented with the app itself:
+<https://www.npmjs.com/package/kanban-skill-ui>, or `kanban-ui/README.md` in its repo.
+
 ## Run it
 
 From your repo root (the folder that holds `docs/kanban/`):
@@ -25,40 +29,6 @@ release, run it once as `npx kanban-skill-ui@latest`; later plain `npx kanban-sk
 reuse that. (Prefer a permanent command? `npm install -g kanban-skill-ui`, then run
 `kanban-skill-ui`, and `npm update -g kanban-skill-ui` to upgrade.)
 
-## Configure the agent command
-
-The gear icon in the header opens the **Configuration** dialog. Settings save to
-`docs/kanban/ui.config.json` — that file lives next to the board, so `npx` always serves
-the latest UI and an update never touches your settings.
-
-The one setting that matters at install time is the agent command. Each button spawns an
-agent in the repo root, set with the `command` key:
-
-```json
-{ "command": "claude -p" }
-```
-
-The default is `claude -p` (a Claude Code subscription). Point `command` at another agent to
-swap it.
-
-The same dialog has an **Auto-refine** toggle. Turn it on and the UI server refines cards
-for you in the background: about once a minute it picks the highest-priority card that still
-needs refining and runs one refine on it, one card at a time, answering the questions it's
-confident about and leaving the real judgment calls for you. There is no manual "Refine"
-button — refine only ever happens here, so with the toggle off no card is refined. The
-toggle saves `autoRefine` to `ui.config.json`. See "Auto-refine" in `SKILL.md`.
-
-## Run it from source (contributors)
-
-Only if you're changing the UI itself. Build, then start the production server (not
-`next dev` — run the app the way it ships):
-
-```
-cd kanban-ui
-npm install                 # first time only
-npm run build
-PORT=7420 npm run start     # http://localhost:7420
-```
-
-To reproduce the exact `npx` package (standalone server): `npm run build:standalone` then
-`node bin/kanban-ui.mjs`.
+Nothing else to set up: the app keeps its own settings next to the board, and creates them
+when it first needs them. What those settings are, and what the buttons do, is in the app's
+guide (linked above).

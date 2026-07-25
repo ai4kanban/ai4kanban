@@ -22,7 +22,7 @@ const LOG_POLL_MS = 1200; // how often the live log tail refreshes
 export interface StartedSession {
   sessionId: string;
   label: string;
-  // reject/archive remove the card — on success we navigate home, not refresh.
+  // reject/archive take the card off the board — on success we navigate home, not refresh.
   removes: boolean;
 }
 

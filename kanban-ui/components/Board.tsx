@@ -101,7 +101,10 @@ export function BoardView({
                   // and its file removed, so the files on disk only cover the OPEN
                   // subtasks and would undercount done work. The root's `## Todo`
                   // stays accurate across archives, so it drives the bar.
-                  const isGroup = (card.subtasks?.length ?? 0) > 0;
+                  // Group-ness is the reader's flag (the folder has a root.md),
+                  // not a subtask count — the count drops to zero once every
+                  // subtask is finished, and the chip would vanish right then.
+                  const isGroup = card.isGroup;
                   // The one live session on this card (any tab), if any. It drives
                   // the action-named badge that stands in for the saved-stage pill.
                   const liveSession = runningSessionForCard(sessions, card.id);

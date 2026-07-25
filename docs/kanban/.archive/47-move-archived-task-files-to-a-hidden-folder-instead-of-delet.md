@@ -3,7 +3,7 @@ title: Move archived task files to a hidden folder instead of deleting them
 track: skill
 priority: med
 roi: med
-status: ready
+status: implementing
 blocked_by: []
 related: []
 modules: [skill]
@@ -22,12 +22,12 @@ Today `cmdRemove` in `kanban.mjs` deletes the card with `fs.rmSync` (a file, or 
 - Update the command's console output to say "moved to <hidden folder>" instead of "removed".
 
 ## Todo
-- [ ] Add a helper that ensures the hidden archive folder exists.
-- [ ] Change the archive path in `cmdRemove` to move the file/folder there instead of `fs.rmSync`.
-- [ ] Update the console message for archive to report the new location.
-- [ ] Update `kanban.mjs` help/header comments so archive is described as "move to hidden folder", not "remove".
-- [ ] Check the local UI and any references that describe archive as deletion, and update them.
-- [ ] Add the hidden folder to `.gitignore` or not — decide with open question 1 (kept in git = readable history).
+- [x] Add a helper that ensures the hidden archive folder exists.
+- [x] Change the archive path in `cmdRemove` to move the file/folder there instead of `fs.rmSync`.
+- [x] Update the console message for archive to report the new location.
+- [x] Update `kanban.mjs` help/header comments so archive is described as "move to hidden folder", not "remove".
+- [x] Check the local UI and any references that describe archive as deletion, and update them.
+- [x] Add the hidden folder to `.gitignore` or not — decide with open question 1 (kept in git = readable history).
 
 ## Decided by the agent
 
@@ -44,9 +44,9 @@ Today `cmdRemove` in `kanban.mjs` deletes the card with `fs.rmSync` (a file, or 
 
 The concrete version of the plan's last two todos. Todo 6 is answered above: no `.gitignore` entry.
 
-- [ ] Stop with a clear error if `.archive/` already holds that id, instead of overwriting.
-- [ ] Add `.archive/` to the layout tree in `skill/SKILL.md`, and say no flow reads it. Line 52's "there is no separate archive" is about the memory set — keep that true.
-- [ ] Fix the two "removes the card file" lines in `skill/SKILL.md`: the `archive` entry in the command list, and "Finish a task". Leave the `reject` line as it is.
-- [ ] Fix the archive dialog text in the local UI — it still says the note goes into `archive.md` (that file is gone) and that the card is removed.
-- [ ] Update `docs/guides/daily-loop.md` — "Finish a task" says archive removes the card.
-- [ ] Update the landing copy in `web/public/index.md` ("compresses it into the archive, removes the card"). Doc only; the matching line in the landing page code waits for the user's go-ahead.
+- [x] Stop with a clear error if `.archive/` already holds that id, instead of overwriting.
+- [x] Add `.archive/` to the layout tree in `skill/SKILL.md`, and say no flow reads it. Line 52's "there is no separate archive" is about the memory set — keep that true.
+- [x] Fix the two "removes the card file" lines in `skill/SKILL.md`: the `archive` entry in the command list, and "Finish a task". Leave the `reject` line as it is.
+- [x] Fix the archive dialog text in the local UI — it still says the note goes into `archive.md` (that file is gone) and that the card is removed.
+- [x] Update `docs/guides/daily-loop.md` — "Finish a task" says archive removes the card.
+- [x] Update the landing copy in `web/public/index.md` ("compresses it into the archive, removes the card"). Doc only; the matching line in the landing page code waits for the user's go-ahead.

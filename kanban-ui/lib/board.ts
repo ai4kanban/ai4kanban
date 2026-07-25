@@ -15,6 +15,29 @@ function countTodos(body: string): { total: number; done: number } {
   return { total: matches.length, done };
 }
 
+// A group root's subtask lines: the todo lines that carry a `#<subid>` ref. That
+// ref is how `kanban.mjs` finds the line, so it is what makes a line a subtask —
+// the root's own stray todos (a leftover doc-update line) carry none and are left
+// out, since the gate is "all subtasks resolved", not "all todos done".
+//
+// Resolved means the subtask is finished either way: `archive` ticks the box to
+// `[x]`, `reject` strikes the text with `~~…~~` and leaves the box `[ ]`. A
+// rejected subtask never becomes `[x]`, so a struck line has to count or one
+// rejection would block the root's Archive forever. This is why it can't reuse
+// `countTodos` — that one's plain done/total drives every card's progress bar and
+// must keep reading a struck-but-unticked line as unfinished.
+function countSubtaskLines(body: string): { total: number; resolved: number } {
+  let total = 0;
+  let resolved = 0;
+  for (const line of body.split("\n")) {
+    const m = line.match(/^[ \t]*[-*]\s+\[( |x|X)\]\s*(.*)$/);
+    if (!m || !/#\d+/.test(m[2])) continue;
+    total++;
+    if (/[xX]/.test(m[1]) || /~~[\s\S]*~~/.test(m[2])) resolved++;
+  }
+  return { total, resolved };
+}
+
 // Read one card file into a Card. Returns null if it has no id or no frontmatter.
 function readCard(file: string, relFromTodo: string): Card | null {
   const id = idPrefix(path.basename(relFromTodo));
@@ -49,6 +72,7 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     modules: meta.modules,
     body: body.replace(/^\n+/, "").replace(/\s+$/, ""),
     todos: countTodos(body),
+    isGroup: false, // readGroup flips this on the one card that is a root
   };
 }
 
@@ -66,6 +90,12 @@ function readGroup(folderName: string): { root: Card; subCards: Card[] } | null 
   const groupDir = path.join(todoDir(), folderName);
   const root = readCard(path.join(groupDir, "root.md"), path.join(folderName, "root.md"));
   if (!root) return null;
+  // Group-ness comes from the folder shape (it has a root.md), not from the
+  // subtask count below: a finished subtask's file is removed, so a group whose
+  // subtasks are all done reads as zero subtasks and would stop looking like a
+  // group right when it becomes archiveable.
+  root.isGroup = true;
+  root.subtaskLines = countSubtaskLines(root.body);
 
   const subCards: Card[] = [];
   const recurse = (dir: string, rel: string) => {

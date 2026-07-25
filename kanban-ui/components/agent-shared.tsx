@@ -73,7 +73,7 @@ export function RunningBadge({
 }) {
   return (
     <span
-      className="nb-chip inline-flex items-center gap-1.5"
+      className="nb-chip inline-flex items-center gap-1.5 whitespace-nowrap"
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
@@ -98,7 +98,9 @@ export function RunningBadge({
 export const RUNNING_VERB: Record<AgentAction, string> = {
   implement: "implementing",
   edit: "editing",
-  "auto-refine": "auto-refining",
+  // "refining", not "auto-refining" — refine is only ever automatic, so the
+  // prefix says nothing and the longer word wraps the card's badge onto two lines.
+  "auto-refine": "refining",
   resolve: "resolving",
   reject: "rejecting",
   archive: "archiving",
@@ -114,6 +116,17 @@ const MONO_TEXT = {
   fontFamily: "var(--font-mono)",
   fontSize: 12,
 } as const;
+
+// How long a finished session ran, in the coarsest unit that still tells you
+// something: seconds under a minute, minutes and seconds under an hour, hours and
+// minutes above. Agent runs are minutes-long, so this is nearly always "4m 12s".
+function formatDuration(ms: number): string {
+  const total = Math.max(0, Math.round(ms / 1000));
+  if (total < 60) return `${total}s`;
+  const mins = Math.floor(total / 60);
+  if (mins < 60) return `${mins}m ${total % 60}s`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+}
 
 // A tailing view of one session's captured output (task #14). Shows the last few
 // KB; auto-scrolls to the newest line unless the user has scrolled up to read
@@ -155,6 +168,13 @@ export function SessionLog({
   const unknown = !running && session.outcomeUnknown;
   // No word while running — the pulse dot already signals progress.
   const state = running ? "" : unknown ? "finished" : session.ok ? "done" : `exited ${session.code ?? "?"}`;
+  // How long it took, next to the outcome: "done · 4m 12s". An `unknown` session
+  // ended out of our sight and was only noticed on the next pid poll — that's an
+  // upper bound, not a measurement, so it's marked "~".
+  const took =
+    running || session.durationMs === undefined
+      ? ""
+      : `${unknown ? "~" : ""}${formatDuration(session.durationMs)}`;
 
   // Live/passed/failed/unknown indicator, shared by both layouts.
   const indicator = running ? (
@@ -213,7 +233,12 @@ export function SessionLog({
       <span className="nb-tag">session log</span>
       <span className="ml-auto flex items-center gap-1.5">
         {indicator}
-        {state && <span className="text-[11px] text-nb-ink-soft">{state}</span>}
+        {state && (
+          <span className="text-[11px] text-nb-ink-soft">
+            {state}
+            {took && <span className="ml-1.5 tabular-nums opacity-80">{took}</span>}
+          </span>
+        )}
       </span>
     </div>
   );
@@ -424,7 +449,7 @@ export function ActionDialog({
     return (
       <Dialog title={`Archive #${dialog.card.id}`} onClose={onClose}>
         <p className={INTRO}>
-          All todos are done. The agent writes the &ldquo;what you can now do&rdquo; note into archive.md and removes the card.
+          All todos are done. The agent writes the &ldquo;what you can now do&rdquo; note into readme.md and moves the card off the board into .archive/.
         </p>
         <textarea className={INPUT} rows={3} placeholder="Optional note for the agent…" value={text} onChange={(e) => setText(e.target.value)} />
         <DialogButtons
@@ -662,11 +687,11 @@ function ResolveDialog({
           const { tag, text } = parseQuestion(q);
           return (
           <div key={i} className="flex flex-col gap-1.5">
-            <label className="flex items-start gap-2 text-[13px] font-[700] leading-snug text-nb-ink">
-              <span className="mt-px shrink-0">
-                <QuestionTagBadge tag={tag} />
-              </span>
-              <span className="min-w-0 flex-1">{text}</span>
+            {/* Marker inline ahead of the question, not in a column beside it — see
+                the same call in CardPage's open questions. */}
+            <label className="block text-[13px] font-[700] leading-[19px] text-nb-ink">
+              <QuestionTagBadge tag={tag} />
+              {text}
             </label>
             <textarea
               className={INPUT}

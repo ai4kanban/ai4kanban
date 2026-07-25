@@ -70,8 +70,9 @@ genuinely can't infer a value — otherwise pick sensible defaults and tell me w
        npx kanban-skill-ui        # http://localhost:7420, localhost only
 
    If I say yes, run it for me (or hand me the command) and point me at the skill's
-   `references/local-ui.md` for options like `--port`, `--board`, and configuring which
-   agent the buttons spawn via `docs/kanban/ui.config.json`.
+   `references/local-ui.md` for setup options like `--port` and `--board`, and at the app's
+   own guide (https://www.npmjs.com/package/kanban-skill-ui) for what the buttons do and
+   how to change which agent they spawn.
 
 To pull a newer version of the skill later, follow the skill's `references/update.md` — the
 setup leaves it in place, so updating never needs anything fetched from upstream first.

@@ -49,7 +49,7 @@ Once installed, drive it in plain language:
 | "/kanban add a task: …" | reviews the idea, writes a card, adds it to the index |
 | "/kanban refine #4" | reviews card #4, then pushes it one stage toward concrete |
 | "/kanban review the board" | checks cards for clarity, duplication, done-ness |
-| "/kanban #4 is done" | compresses it into the archive, removes the card |
+| "/kanban #4 is done" | notes what shipped, moves the card off the board |
 | "/kanban #4 was a bad idea" | records why in rejected.md so it's never re-proposed |
 
 ## 03 · Board UI — A local board you can open in the browser

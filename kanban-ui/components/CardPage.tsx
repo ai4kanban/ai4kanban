@@ -42,14 +42,20 @@ function visibleActions(card: Card): Set<CardButton> {
   const hasQuestions = card.questions.length > 0;
   const { total, done } = card.todos;
   const allDone = total > 0 && done === total; // zero-todo cards never count as done
-  const isGroup = (card.subtasks?.length ?? 0) > 0; // a group root is implemented by finishing its subtasks
+  // A group root is implemented by finishing its subtasks, and it is done when
+  // every subtask line on the root is resolved — done or rejected (#44). Its own
+  // todo boxes don't gate it: a rejected subtask leaves an unticked box behind,
+  // which would keep the root un-archiveable forever. A root that never got a
+  // subtask line isn't archiveable by this gate — close that one with Reject.
+  const sub = card.subtaskLines;
+  const groupDone = !!sub && sub.total > 0 && sub.resolved === sub.total;
   const buttons = new Set<CardButton>();
-  if (!allDone && !isGroup) buttons.add("implement"); // Implement — unless all todos are checked, and never on a group root
+  if (!allDone && !card.isGroup) buttons.add("implement"); // Implement — unless all todos are checked, and never on a group root
   buttons.add("edit"); // Edit — always
   // No manual Refine: refine is only ever automatic now — the background
   // auto-refine dispatcher (#43) refines `todo`, question-free cards on its own.
   if (hasQuestions) buttons.add("resolve"); // Resolve — has open questions
-  if (allDone) buttons.add("archive"); // Archive — all todos checked
+  if (card.isGroup ? groupDone : allDone) buttons.add("archive"); // Archive — every subtask resolved, or all todos checked
   buttons.add("reject"); // Reject — always
   return buttons;
 }
@@ -83,9 +89,9 @@ export function CardPage({
   const [dialog, setDialog] = useState<DialogState>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // A session this tab started just finished. Reject/archive remove the card, so
-  // we go back to the board (the inline SessionLog can't show output for a card
-  // that no longer exists); the rest re-read the card in place and the inline
+  // A session this tab started just finished. Reject/archive take the card off the
+  // board, so we go back to it (the inline SessionLog can't show output for a card
+  // that's no longer there); the rest re-read the card in place and the inline
   // SessionLog shows the agent's final message.
   const onFinish = useCallback(
     (session: SessionView, started: StartedSession) => {
@@ -340,18 +346,20 @@ export function CardPage({
 
         {card.questions.length > 0 && (
           <div className="nb-outline mb-3 p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
-            <div className="nb-tag mb-1">
+            <div className="nb-tag mb-2">
               <span style={{ color: "var(--color-nb-accent)" }}>?</span> open questions
             </div>
-            <ul className="flex flex-col gap-1.5 text-[13px]">
+            {/* The marker leads the question inline rather than sitting in its own
+                column: questions here run several lines, and a marker column holds
+                that width open for all of them — a blank gutter beside every line
+                but the first. Inline, the text wraps back under the marker. */}
+            <ul className="flex flex-col gap-2.5 text-[13px] leading-[19px]">
               {card.questions.map((q, i) => {
                 const { tag, text } = parseQuestion(q);
                 return (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="mt-px shrink-0">
-                      <QuestionTagBadge tag={tag} />
-                    </span>
-                    <span className="min-w-0 flex-1">{text}</span>
+                  <li key={i}>
+                    <QuestionTagBadge tag={tag} />
+                    {text}
                   </li>
                 );
               })}

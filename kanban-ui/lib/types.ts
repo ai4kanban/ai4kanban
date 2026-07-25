@@ -4,7 +4,7 @@ export type Level = "high" | "med" | "low";
 
 /** The stage a card rests in, saved on the card so it survives a UI restart.
  *  In order: `todo` (raw), `ready` (plan concrete, no open questions, someone
- *  could start now), `implementing`. `reject`/`archive` remove the card, so they
+ *  could start now), `implementing`. `reject`/`archive` take the card off the board, so they
  *  are not statuses — a live session's action is tracked in the session
  *  registry, not here. */
 export type CardStatus = "todo" | "ready" | "implementing";
@@ -46,8 +46,19 @@ export interface Card extends CardMeta {
   /** The card body below the frontmatter (markdown). */
   body: string;
   todos: { total: number; done: number };
+  /** True when this card is a group root — a `<id>-<slug>/` folder holding a
+   *  `root.md`. Read from that folder shape, never from the subtask count: a
+   *  finished subtask's file is removed, so a group with everything done has no
+   *  subtask files left and would otherwise stop reading as a group. */
+  isGroup: boolean;
+  /** For a group root: the subtask lines in its `## Todo` (the ones carrying a
+   *  `#<subid>` ref), and how many are resolved — ticked `[x]` (done) or struck
+   *  `~~…~~` (rejected). The root file keeps this true after the subtask files
+   *  are gone, so it is what says a group is finished. Absent on a plain card. */
+  subtaskLines?: { total: number; resolved: number };
   /** For a group root (`<id>-<slug>/root.md`): its subtasks, in id order.
-   *  Absent on a plain card. */
+   *  Absent on a plain card. Only the OPEN ones — a done or rejected subtask has
+   *  no file left, so this shrinks as the group progresses. */
   subtasks?: Subtask[];
   /** For a subtask nested in a group folder: a link back up to the group root.
    *  Absent on a standalone card or a root. */
@@ -101,6 +112,11 @@ export interface SessionView {
   status: "running" | "done" | "error";
   startedAt: number;
   endedAt?: number;
+  /** How long the session ran, in ms. Terminal sessions only. Normally just
+   *  `endedAt - startedAt`; when that pair didn't survive (a session read back
+   *  from its log alone) it's recovered from the line the registry writes into
+   *  the log at close, so a finished session can always say how long it took. */
+  durationMs?: number;
   /** The text the user typed for this session — a create's description, an
    *  action's notes, or a reject's reason. Shown in the global sessions panel
    *  (#21); absent when the session carried no note. */

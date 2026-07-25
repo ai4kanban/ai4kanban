@@ -46,11 +46,14 @@ archives finished ones and flags the rest.
 Say **"#4 is done"**. The skill updates the published doc the change touched (via the
 card's doc todos) and adds one line to `readme.md` — a link to that doc, or a short
 plain-words note when no doc covers the behavior yet — then runs `kanban.mjs archive 4`
-to remove the card and record the metric.
+to take the card off the board and record the metric.
 
 ```bash
 node .claude/skills/kanban/kanban.mjs archive 4
 ```
+
+The card file isn't deleted — it moves to `docs/kanban/.archive/`, which stays in git. So
+you can still read a finished card, or diff it, long after it left the board.
 
 ## Reject an idea
 

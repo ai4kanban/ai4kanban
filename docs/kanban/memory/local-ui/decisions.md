@@ -18,8 +18,14 @@ re-ask a settled call.
   nothing refines.
 - The dispatcher refines one card at a time, highest priority first, and only while the
   switch is on.
-- It never answers a card's open questions on its own — it skips a card that has them.
-  Answering questions stays with the Resolve flow.
+- It answers a card's open questions itself, except the ones tagged `[user]`. It skips a
+  card whose questions are all `[user]` — that one waits for the human.
+
+## What a run leaves behind
+
+- A run never commits. It leaves its changes in the working tree and the user reads
+  `git diff` and commits. No branches, no worktrees, no pull requests — that is the model
+  we point at vibe-kanban for.
 
 ## Continuing a run
 
@@ -34,3 +40,16 @@ re-ask a settled call.
 - The Archive button appears on a group root once every subtask is resolved — done or
   rejected. A group whose subtasks were all rejected is closed with Reject instead.
 - The root card shows each subtask's outcome, and done looks different from rejected.
+- "Implement group" is one run owned by the root that keeps working until every subtask is
+  done or rejected. Only Claude Code can do this; another connector falls back to one long
+  run given the same instructions.
+- A group run locks the root and every subtask. One log, shown on the root and on each
+  subtask it covers — there is no separate log per subtask. Per-subtask progress is the
+  root's subtask list ticking over while the run goes.
+
+## Where the UI is documented
+
+- `kanban-ui/README.md` is the user-facing guide: what the buttons do, the Configuration
+  dialog, group tasks. Any card that changes visible UI behavior updates that file.
+- The skill's `references/local-ui.md` covers installation only — how to run it, the
+  options, updating. It never describes using the UI.

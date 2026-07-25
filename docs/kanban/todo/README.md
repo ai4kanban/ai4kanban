@@ -13,13 +13,15 @@ _(none)_
 
 - [#22 Open-questions notification center in the header](features/22-open-questions-notification-center-in-the-header.md)
 - [#28 Continue a run's conversation instead of copying its id](features/28-continue-a-run-s-conversation-instead-of-copying-its-id.md)
-- [#44 Make a group task archiveable once all its subtasks are done](features/44-make-a-group-task-archiveable-once-all-its-subtasks-are-done.md)
 - [#45 Implement a whole group task in one goal-mode agent run](features/45-implement-a-whole-group-task-in-one-goal-mode-agent-run.md)
+- [#48 Run each implement in its own git worktree and merge it back to main](features/48-run-each-implement-in-its-own-git-worktree-and-merge-it-back.md)
+- [#49 Stop a running agent from the UI](features/49-stop-a-running-agent-from-the-ui.md)
+- [#50 Show what a run changed in the working tree](features/50-show-what-a-run-changed-in-the-working-tree.md)
+- [#51 Show what auto-refine is doing and why it is idle](features/51-show-what-auto-refine-is-doing-and-why-it-is-idle.md)
 
 ## skill
 
-- [#16 Autonomy levels: a global config for how far agents go alone](skill/16-autonomy-levels-a-global-config-for-how-far-agents-go-alone.md)
-- [#47 Move archived task files to a hidden folder instead of deleting them](skill/47-move-archived-task-files-to-a-hidden-folder-instead-of-delet.md)
+- [#16 auto-implement: let the agent build a ready card on its own](skill/16-auto-implement-let-the-agent-build-a-ready-card-on-its-own.md)
 
 ## docs
 

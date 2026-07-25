@@ -28,18 +28,18 @@ ${KB} tag <id> <n> agent     # mark question n as answered by the agent
 Never pause to ask the user.
 
 1. **Skip the `[user]` questions.**
-2. **Answer each untagged question — one fresh subagent per question, in sequence.** The
-   agent that raised a question must not answer it; a fresh context judges it objectively.
-   Hand the subagent the card and that one question. It researches and decides the way
-   `references/resolve.md` says, then:
+2. **Raise all questions first.** Do `references/refine.md` step 1 — but don't stop at
+   the user. Add every new question untagged (`${KB} update <id> --question "..."`).
+3. **Answer the whole batch in one fresh subagent.** The agent that raised the questions
+   must not answer them; a fresh context judges them objectively. Hand the subagent the
+   card and every untagged question at once. It researches and decides the way
+   `references/resolve.md` says, then for each question:
    - **Answerable** → it writes the answer into `## Decided by the agent` (below); mark
      the question `${KB} tag <id> <n> agent`.
    - **A real judgment call** → it does not guess. Mark it `${KB} tag <id> <n> user`.
 
-   Go one at a time, in order, so each subagent sees the answers written before it.
-3. **Review and raise questions.** Do `references/refine.md` step 1 — but don't stop at
-   the user. Add any new question untagged (`${KB} update <id> --question "..."`), then go
-   back to step 2 for it.
+   If answering surfaces new questions, add them untagged and run one more subagent for
+   that batch — never one subagent per question.
 4. **Settle the frontmatter.** When no untagged questions remain, keep only the `[user]`
    ones: `${KB} update <id> --question "[user] ..."` for each (the flag replaces the whole
    list, tag included), or `--clear-questions` if none are left.

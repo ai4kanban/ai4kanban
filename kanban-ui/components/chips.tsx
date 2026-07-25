@@ -191,34 +191,43 @@ export function ModuleChip({ module }: { module: string }) {
 // `agent` is one the auto-refine loop answers itself (sky — shown mid-answer,
 // then cleared once recorded); an untagged question is freshly raised and not yet
 // triaged (a quiet wash). The colour carries the meaning at a glance.
-const QUESTION_TAG: Record<QuestionTag, { label: string; icon: IconType; soft: string; ink: string }> = {
+//
+// Borderless, like RoiTag: every question list this marks already sits inside a
+// frame of its own (the card page's peach questions panel, the resolve dialog's
+// labels), and a filled pill in there reads as a box pasted on a box — worse, the
+// accent-soft `user` chip all but vanished against the accent-soft panel. Icon +
+// coloured label carries the same meaning without the second surface. The line
+// box matches the 13px question text beside it so the marker centres on its first
+// line instead of floating above it.
+//
+// It's an inline leader, not a column: both call sites drop it in front of the
+// question text so the text wraps back under it. A marker column would reserve the
+// widest label's width down the whole question, squeezing multi-line questions into
+// a narrow column beside an empty gutter. Hence the trailing margin here — every
+// caller wants the same gap to the text it leads.
+const QUESTION_TAG: Record<QuestionTag, { label: string; icon: IconType; ink: string }> = {
   user: {
     label: "needs you",
     icon: FiUser,
-    soft: "var(--color-nb-accent-soft)",
     ink: "var(--color-nb-accent-deep)",
   },
   agent: {
     label: "agent",
     icon: FiCpu,
-    soft: "var(--color-nb-sky-soft)",
     ink: "var(--color-nb-sky-ink)",
   },
 };
 
+const UNTAGGED = { label: "new", icon: FiHelpCircle, ink: "var(--color-nb-ink-soft)" };
+
 export function QuestionTagBadge({ tag }: { tag: QuestionTag | null }) {
-  if (!tag) {
-    return (
-      <span className="nb-chip" style={{ background: "var(--color-nb-wash)", color: "var(--color-nb-ink-soft)" }}>
-        <FiHelpCircle aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
-        new
-      </span>
-    );
-  }
-  const c = QUESTION_TAG[tag];
+  const c = tag ? QUESTION_TAG[tag] : UNTAGGED;
   const Icon = c.icon;
   return (
-    <span className="nb-chip" style={{ background: c.soft, color: c.ink }}>
+    <span
+      className="mr-1.5 inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[10.5px] font-[700] uppercase leading-[18px] tracking-[0.04em]"
+      style={{ color: c.ink }}
+    >
       <Icon aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
       {c.label}
     </span>

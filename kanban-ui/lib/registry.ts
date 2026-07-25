@@ -99,6 +99,30 @@ const TAIL_BYTES = 16 * 1024; // last few KB of the log read from disk for the U
 // The events are rendered tool/turn lines, so this bracketed token won't collide.
 const RESULT_MARKER = "<<<kanban:result>>>";
 
+// How long the session ran, written into the log the moment it ends (`<marker>
+// 161234`, in ms). The registry normally answers this from `endedAt - startedAt`,
+// but that pair lives in .sessions.json, which keeps only the newest sessions —
+// the log file is the durable record, so the elapsed time is stamped there too
+// and getSession() can recover it from a log whose registry entry is thinner than
+// the file. Stripped back out before the log is shown, so it never reads as agent
+// output.
+const DURATION_MARKER = "<<<kanban:duration>>>";
+
+function durationLine(session: Session, endedAt: number): string {
+  return `\n${DURATION_MARKER} ${Math.max(0, endedAt - session.startedAt)}\n`;
+}
+
+// Same line, for the paths that don't own the log's write stream (a session
+// reaped by pid poll after a UI restart). Best-effort: a missing log just means
+// the duration rests in .sessions.json alone.
+function stampDuration(session: Session, endedAt: number): void {
+  try {
+    fs.appendFileSync(session.logPath, durationLine(session, endedAt));
+  } catch {
+    // no log file (never spawned, or pruned) — nothing to stamp
+  }
+}
+
 interface Session {
   // The session's unique id and the registry map key. For a claude agent it's
   // also Claude Code's own session id — we generate it and pass it through as
@@ -327,7 +351,10 @@ function reapAdopted(s: RegistryState): void {
       r.status = "done";
       r.code = null; // exit code is unknown across a restart
       r.outcomeUnknown = true; // finished out of our sight — no pass/fail to show
+      // We only know it ended by the time we noticed, so this duration is an
+      // upper bound — the UI marks it approximate (see outcomeUnknown).
       r.endedAt = Date.now();
+      stampDuration(r, r.endedAt);
       clearSessionStatus(r);
       changed = true;
     }
@@ -380,7 +407,25 @@ function readLogTail(logPath: string, maxBytes = TAIL_BYTES): string | null {
 // message, so a session re-adopted after a restart folds the events away the
 // same as an in-session run. Returns just { tail } when there's no separable
 // message (a live session, or a custom command with no recognizable structure).
-function splitLogResult(logText: string): { tail: string; result?: string } {
+function splitLogResult(logText: string): { tail: string; result?: string; durationMs?: number } {
+  // Pull the duration stamp out first: it's bookkeeping, not agent output, so it
+  // must not reach the view — and left in place it would land after the last tool
+  // line and the legacy fallback below would read it as the final message.
+  let durationMs: number | undefined;
+  const kept: string[] = [];
+  for (const line of logText.split("\n")) {
+    if (line.startsWith(DURATION_MARKER)) {
+      const ms = Number(line.slice(DURATION_MARKER.length).trim());
+      if (Number.isFinite(ms)) durationMs = ms;
+      continue;
+    }
+    kept.push(line);
+  }
+  const split = splitBody(kept.join("\n"));
+  return durationMs === undefined ? split : { ...split, durationMs };
+}
+
+function splitBody(logText: string): { tail: string; result?: string } {
   // Exact path — a log written after the marker landed: everything after the
   // marker is the final message, everything before it is the events. lastIndexOf
   // so a marker-like token in the events can't beat the real one appended last.
@@ -585,6 +630,11 @@ async function launch(s: RegistryState, session: Session, prompt: string): Promi
   });
   child.on("close", (code) => {
     append(renderer.flush());
+    // Stamp the elapsed time through the same stream (not an appendFileSync
+    // after log.end(), which would race the stream's pending flush), and hand the
+    // exact instant to finish() so the file and the registry agree.
+    const endedAt = Date.now();
+    log.write(durationLine(session, endedAt));
     // The final message is kept off the tail (the UI shows it in its own
     // panel and folds the events away) but written to the log file — behind a
     // marker line — so the file alone is the complete, durable record and a
@@ -595,7 +645,7 @@ async function launch(s: RegistryState, session: Session, prompt: string): Promi
       log.write(`\n${RESULT_MARKER}\n${final}\n`);
     }
     log.end();
-    finish(s, session, { ok: code === 0, code });
+    finish(s, session, { ok: code === 0, code, endedAt });
     release();
   });
 }
@@ -603,13 +653,15 @@ async function launch(s: RegistryState, session: Session, prompt: string): Promi
 function finish(
   s: RegistryState,
   session: Session,
-  res: { ok: boolean; code: number | null; error?: string },
+  res: { ok: boolean; code: number | null; error?: string; endedAt?: number },
 ): void {
   session.status = res.ok ? "done" : "error";
   session.ok = res.ok;
   session.code = res.code;
   if (res.error) session.error = res.error;
-  session.endedAt = Date.now();
+  // `endedAt` comes from the caller when it already stamped that instant into the
+  // log, so the two records can't drift apart.
+  session.endedAt = res.endedAt ?? Date.now();
   clearSessionStatus(session);
   // Prune old logs first, then persist — so the saved "last session log" records
   // only ever point at files that still exist (task #14).
@@ -628,6 +680,9 @@ function toView(r: Session, withTail: boolean): SessionView {
     status: r.status,
     startedAt: r.startedAt,
     endedAt: r.endedAt,
+    // How long it took — the one number the UI shows next to "done". A running
+    // session has no duration yet; its pulse dot carries it instead.
+    durationMs: r.status !== "running" && r.endedAt ? r.endedAt - r.startedAt : undefined,
     input: r.input,
     resumable: r.resumable,
     ok: r.ok,
@@ -676,9 +731,14 @@ export function getSession(sessionId: string): SessionView | null {
     // recover it from the marker in the log so the UI folds the events away, the
     // same as an in-session run. A live session has no marker yet, so this is a
     // no-op.
-    const { tail, result } = splitLogResult(raw);
+    const { tail, result, durationMs } = splitLogResult(raw);
     view.tail = tail;
     if (result && r.status !== "running") view.result = result;
+    // The registry's own timestamps win when it has them; the stamp in the log is
+    // the fallback for a session whose endedAt didn't survive.
+    if (view.durationMs === undefined && durationMs !== undefined && r.status !== "running") {
+      view.durationMs = durationMs;
+    }
   }
   return view;
 }

@@ -8,8 +8,9 @@
 //   update  — rewrite a card's frontmatter (priority/roi/links/questions, move track, rename)
 //   tag     — set/clear the [user]/[agent] tag on one open question (auto-refine triage)
 //   migrate — convert old bold-header cards to the frontmatter meta format
-//   archive — remove a finished task's file/folder + its README entry, record "completed"
-//   reject  — same removal, record "rejected"
+//   archive — move a finished task's file/folder into docs/kanban/.archive/, strip its
+//             README entry, record "completed"
+//   reject  — same, but delete the file/folder, record "rejected"
 //   run     — record one run of a recurring task (+1 completed); keep the card
 //
 // It is the ONLY sanctioned writer of a card's frontmatter — Write/Edit are for the body
@@ -23,8 +24,8 @@
 //   node kanban.mjs update <id> [opts]                  rewrite a card's frontmatter / move / rename
 //   node kanban.mjs tag <id> <n> <user|agent|none>      set/clear the tag on the nth open question
 //   node kanban.mjs migrate [--dry-run]                 convert old bold-header cards to frontmatter
-//   node kanban.mjs archive <id>                        finish task <id> (file/folder + README + metric)
-//   node kanban.mjs reject  <id>                        reject task <id> (file/folder + README + metric)
+//   node kanban.mjs archive <id>                        finish task <id> (move card to .archive/ + README + metric)
+//   node kanban.mjs reject  <id>                        reject task <id> (delete card + README + metric)
 //   node kanban.mjs run     <id>                        record one run of recurring task <id> (+1 completed, card kept)
 //   node kanban.mjs peek                                print the current next-id (no bump)
 //   node kanban.mjs metrics                             print the metrics CSV
@@ -50,6 +51,7 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = process.cwd()
 const KANBAN = path.join(REPO_ROOT, 'docs', 'kanban')
 const TODO = path.join(KANBAN, 'todo')
+const ARCHIVE = path.join(KANBAN, '.archive')
 const NEXT_ID = path.join(KANBAN, 'next-id')
 const README = path.join(TODO, 'README.md')
 const METRICS = path.join(KANBAN, 'metrics.csv')
@@ -294,9 +296,9 @@ function validLevel(v, name) {
 
 // The stages a card can rest in, in order: `todo` (raw), `ready` (plan concrete,
 // no open questions, someone could start now), `implementing`. `reject`/`archive`
-// remove the card, so they are not statuses — a live run's action is tracked in
-// the UI registry, not here. A missing status reads as `todo`, so cards written
-// before this field still parse.
+// take the card off the board, so they are not statuses — a live run's action is
+// tracked in the UI registry, not here. A missing status reads as `todo`, so cards
+// written before this field still parse.
 const STATUSES = ['todo', 'ready', 'implementing']
 
 function validStatus(v) {
@@ -974,10 +976,27 @@ function cmdMigrate(args) {
   console.log(`\n${dry ? '(dry run) ' : ''}${changed} card(s) ${dry ? 'to migrate' : 'migrated'}, ${skipped} already frontmatter`)
 }
 
+// Where a finished card goes. It sits next to `todo/`, not inside it: everything that
+// walks the board reads every folder under `todo/` without skipping dot-names, so an
+// archive folder there would show up as a track column and finished cards would look
+// open. Flat — no track subfolders — because ids are never reused so names never
+// collide, and each card still names its track in its own frontmatter. Nothing reads
+// this folder; it is a git history store, not part of the memory set.
+function archiveDest(found) {
+  const dest = path.join(ARCHIVE, path.basename(found.target))
+  // Only reachable if someone moved a file here by hand. Never overwrite finished work.
+  if (fs.existsSync(dest)) die(`${rel(dest)} already exists — move it aside first, then archive again`)
+  return dest
+}
+
 function cmdRemove(id, metric) {
   if (!Number.isInteger(id)) die('need a numeric task id')
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`)
+  // Archive keeps the card (moved out of todo/), reject deletes it. Resolve the
+  // destination before anything is written, so a name clash fails with the board
+  // untouched rather than half-updated.
+  const dest = metric === 'completed' ? archiveDest(found) : null
   const removedRefs = stripReadmeRefs(found)
   // A subtask's fate is reflected in its group's root.md ## Todo, so the tracking card
   // stays accurate after the subtask file is gone: archive ticks it done, reject strikes
@@ -989,11 +1008,18 @@ function cmdRemove(id, metric) {
     if (markSubtask(groupRoot, id, action)) marked = action
     else warn(`#${id} isn't listed in ${rel(groupRoot)} ## Todo — nothing to ${action === 'tick' ? 'tick off' : 'strike out'}.`)
   }
-  if (found.kind === 'group') fs.rmSync(found.target, { recursive: true, force: true })
-  else fs.rmSync(found.target)
+  if (dest) {
+    fs.mkdirSync(ARCHIVE, { recursive: true })
+    fs.renameSync(found.target, dest)
+  } else if (found.kind === 'group') {
+    fs.rmSync(found.target, { recursive: true, force: true })
+  } else {
+    fs.rmSync(found.target)
+  }
   bumpMetric(metric)
   const what = found.kind === 'group' ? `folder ${found.rel}/` : `file ${found.rel}`
-  console.log(`${metric === 'completed' ? 'archived' : 'rejected'} #${id}: removed ${what}`)
+  if (dest) console.log(`archived #${id}: moved ${what} → ${rel(dest)}${found.kind === 'group' ? '/' : ''}`)
+  else console.log(`rejected #${id}: removed ${what}`)
   if (removedRefs.length) console.log(`  dropped ${removedRefs.length} README entry(ies)`)
   else console.log('  no README entry (subtask or untracked)')
   if (marked) console.log(`  ${marked === 'tick' ? 'ticked' : 'struck'} #${id} in ${rel(groupRoot)}`)
@@ -1218,8 +1244,9 @@ Usage: node ${rel(SELF)} <command> [args]
                        hand a question to the human without rewriting the list.
   migrate [--dry-run]  convert old bold-header cards to frontmatter; missing meta falls
                        back to empty / med. Skips cards that already have frontmatter.
-  archive <id>         finish task <id>: remove its file/folder + README entry, count completed
-  reject  <id>         reject task <id>: same removal, count rejected
+  archive <id>         finish task <id>: move its file/folder into docs/kanban/.archive/,
+                       strip its README entry, count completed
+  reject  <id>         reject task <id>: same, but delete the file/folder, count rejected
   run     <id>         record one run of recurring task <id>: +1 completed, card kept (no archive)
   peek                 print the current next-id (no bump)
   version              print the installed skill version (+ source stamp if present)

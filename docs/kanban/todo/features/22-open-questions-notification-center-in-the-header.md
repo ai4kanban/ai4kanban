@@ -65,5 +65,5 @@ single read-only notification center.
       polling loop.
 - [ ] Handle the empty state — when no card has open questions, show a short
       "nothing to resolve" message in the panel and no badge.
-- [ ] Update `skill/references/local-ui.md` to describe the open-questions center.
+- [ ] Update `kanban-ui/README.md` to describe the open-questions center.
 </content>
