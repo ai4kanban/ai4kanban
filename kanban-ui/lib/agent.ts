@@ -1,6 +1,5 @@
 import fs from "node:fs";
-import path from "node:path";
-import { repoRoot } from "./paths";
+import { uiConfigPath } from "./paths";
 import type { AgentAction, AgentInfo } from "./types";
 
 // --- the one place the agent command is configured --------------------------
@@ -11,7 +10,7 @@ import type { AgentAction, AgentInfo } from "./types";
 // args) and spawned WITHOUT a shell — the prompt is always a separate argv entry,
 // so it never needs escaping and can't be shell-injected.
 function resolveCommand(): { command: string; isDefault: boolean } {
-  const configFile = path.join(repoRoot(), "docs", "kanban", "ui.config.json");
+  const configFile = uiConfigPath();
   try {
     if (fs.existsSync(configFile)) {
       const cfg = JSON.parse(fs.readFileSync(configFile, "utf8"));
@@ -77,6 +76,7 @@ export interface AgentRequest {
   notes?: string; // implement, edit, refine, resolve, archive
   reason?: string; // reject
   description?: string; // create
+  module?: string; // propose: the focus module (a name from modules.md)
   andImplement?: boolean; // resolve: keep going and implement once the questions settle
 }
 
@@ -88,6 +88,7 @@ export function buildPrompt(req: AgentRequest): string {
       return [
         `/kanban. Implement task ${req.id} ${named}.`,
         req.notes ? `Extra notes: ${req.notes}` : "",
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ]
         .filter(Boolean)
         .join(" ");
@@ -95,12 +96,14 @@ export function buildPrompt(req: AgentRequest): string {
       return [
         `/kanban. Reject task ${req.id} ${named}. Reason: ${req.reason || "(none given)"}.`,
         `Follow the skill's reject flow.`,
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(" ");
     case "archive":
       return [
         `/kanban. Archive task ${req.id} ${named}.`,
         `Follow the skill's archive flow.`,
         req.notes ? `Extra notes: ${req.notes}` : "",
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ]
         .filter(Boolean)
         .join(" ");
@@ -109,17 +112,30 @@ export function buildPrompt(req: AgentRequest): string {
         `/kanban. Revise task ${req.id} ${named}: "${req.notes || ""}".`,
         `Only revise the card — don't implement it, and don't archive, or reject it.`,
         `You can create new subtasks if it's a group task and the intent is to do so.`,
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(" ");
     case "create":
       return [
         `/kanban. Add task(s) from this requirement: "${req.description || ""}".`,
         `Follow the skill's add-task flow. Create task only, don't implement it.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
+      ]
+        .filter(Boolean)
+        .join(" ");
+    case "propose":
+      return [
+        `/kanban. Propose 3 new tasks following \`references/propose.md\`.`,
+        req.module
+          ? `Focus on the "${req.module}" module — read its memory set and propose all 3 tasks inside it.`
+          : `Pick one focus module yourself (per references/propose.md) and propose all 3 tasks inside it.`,
+        `Create the cards only, don't implement them.`,
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(" ");
     case "refine":
       return [
         `/kanban. Refine task ${req.id} ${named}: move it one step forward following \`references/refine.md\`.`,
         req.notes ? `Extra notes: ${req.notes}` : "",
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ]
         .filter(Boolean)
         .join(" ");
@@ -130,6 +146,7 @@ export function buildPrompt(req: AgentRequest): string {
           ? `Then, if resolving settles every question and nothing genuine is left for me to decide, go straight on to implement the task following the skill's implement flow — one continuous session. But if any real judgment call stays open, stop there and report it: don't implement on a guess.`
           : "",
         req.notes ? `Extra notes: ${req.notes}` : "",
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ]
         .filter(Boolean)
         .join(" ");

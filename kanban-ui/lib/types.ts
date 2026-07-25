@@ -82,6 +82,7 @@ export type AgentAction =
   | "archive"
   | "edit"
   | "create"
+  | "propose"
   | "refine"
   | "resolve";
 

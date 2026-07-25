@@ -1,4 +1,5 @@
 {
-  "//": "Configures the agent connector for the board UI (kanban-skill-ui). Every card button spawns this command in the repo root with the generated prompt appended as the final argument. Default is a plain `claude -p` (Claude Code subscription, no extra args, no env vars). Point `command` at a different agent to swap it. The prompt is always passed as a separate argv entry, never through a shell, so it needs no escaping. This lives in the project so it survives an `npx kanban-skill-ui` run, where the UI package itself sits in the npm cache.",
-  "command": "claude -p"
+  "//": "Configures the board UI (kanban-skill-ui) and carries the auto-refine switch. `command` is the agent connector: every card button spawns this command in the repo root with the generated prompt appended as the final argument. Default is a plain `claude -p` (Claude Code subscription, no extra args, no env vars). Point `command` at a different agent to swap it. The prompt is always passed as a separate argv entry, never through a shell, so it needs no escaping. `autoRefine` (boolean, default off; a missing key or file also counts as off) is the global auto-refine switch you flip from the UI's Configuration dialog: when on, the agent refines cards and answers its own safe questions without asking you. This lives in the project so it survives an `npx kanban-skill-ui` run, where the UI package itself sits in the npm cache.",
+  "command": "claude -p",
+  "autoRefine": true
 }

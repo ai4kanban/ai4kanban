@@ -28,9 +28,15 @@ Set up the kanban skill for this project. Read
 https://kanbanskill.cc/INSTALL_PROMPT.txt and follow it.
 ```
 
-The agent copies the skill into `.claude/skills/kanban/`, reads your codebase to fill in
-the configuration, scaffolds the board under `docs/kanban/`, and proposes your first three
-tasks. From then on you just talk to the board.
+The agent gets the skill into your project, reads your codebase to fill in the
+configuration, scaffolds the board under `docs/kanban/`, and proposes your first three
+tasks. Both your config and your board live in `docs/kanban/` — the skill folder holds only
+generic code. From then on you just talk to the board.
+
+Prefer plugins? `/plugin marketplace add dist0com/kanban-skill` then
+`/plugin install kanban@kanban` makes the skill available; from there, `kanban init` plus
+filling in `docs/kanban/config.md` is the whole setup — nothing to copy in. The install
+prompt above walks either path.
 
 If your agent can't fetch URLs, open [`INSTALL_PROMPT.txt`](web/public/INSTALL_PROMPT.txt) and paste
 its contents instead — same result. The only requirement is Node.js 18+ — the script has
@@ -76,9 +82,8 @@ Update the kanban skill in this project. Read
 .claude/skills/kanban/references/update.md and follow it.
 ```
 
-Updates overwrite only the generic files (`SKILL.md`, `kanban.mjs`, the references). Your
-config (`.claude/skills/kanban/config.md`) and your board (`docs/kanban/`) are never
-touched.
+Updates overwrite only the generic skill folder (`SKILL.md`, `kanban.mjs`, the references).
+Your config and your board both live in `docs/kanban/`, so they're never touched.
 
 ## License
 

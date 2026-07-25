@@ -10,7 +10,6 @@ import {
   FiEdit2,
   FiHelpCircle,
   FiPlay,
-  FiTrendingUp,
   FiXCircle,
 } from "react-icons/fi";
 import { patchCardAction } from "@/app/actions";
@@ -32,7 +31,7 @@ import { latestSessionForCard, runningCardIds, runningSessionForCard, type Start
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
 
-type CardButton = "implement" | "edit" | "refine" | "resolve" | "archive" | "reject";
+type CardButton = "implement" | "edit" | "resolve" | "archive" | "reject";
 
 // The one place that maps a card's state to the buttons that fit it (task #29).
 // Inputs are the whole card state: `status`, open questions, todo progress. Each
@@ -46,7 +45,8 @@ function visibleActions(card: Card): Set<CardButton> {
   const buttons = new Set<CardButton>();
   if (!allDone && !isGroup) buttons.add("implement"); // Implement — unless all todos are checked, and never on a group root
   buttons.add("edit"); // Edit — always
-  if (card.status === "todo" && !hasQuestions && !allDone) buttons.add("refine"); // Refine — todo, no questions, unfinished todos
+  // No manual Refine: refine is only ever automatic now — the background
+  // auto-refine dispatcher (#43) refines `todo`, question-free cards on its own.
   if (hasQuestions) buttons.add("resolve"); // Resolve — has open questions
   if (allDone) buttons.add("archive"); // Archive — all todos checked
   buttons.add("reject"); // Reject — always
@@ -70,11 +70,13 @@ export function CardPage({
   openIds,
   agent,
   projectRoot,
+  autoRefine,
 }: {
   card: Card;
   openIds: number[];
   agent: AgentInfo;
   projectRoot: string;
+  autoRefine: boolean;
 }) {
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -136,7 +138,7 @@ export function CardPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-nb-cream">
-      <Header agent={agent} projectRoot={projectRoot} />
+      <Header agent={agent} projectRoot={projectRoot} autoRefine={autoRefine} onError={setError} />
 
       <main className="mx-auto w-full max-w-[840px] px-6 py-6">
         {error && (
@@ -184,12 +186,6 @@ export function CardPage({
             <Button variant="ghost" size="sm" disabled={busy} onClick={() => setDialog({ kind: "edit", card })}>
               <FiEdit2 className="text-[15px]" aria-hidden />
               Edit
-            </Button>
-          )}
-          {actions.has("refine") && (
-            <Button variant="ghost" size="sm" disabled={busy} onClick={() => setDialog({ kind: "refine", card })}>
-              <FiTrendingUp className="text-[15px]" aria-hidden />
-              Refine
             </Button>
           )}
           {actions.has("resolve") && (

@@ -6,6 +6,7 @@ import { GITHUB_URL } from "./content";
 const comparisons: { href: string; title: string }[] = [
   { href: "/vs-github-issues", title: "vs GitHub Issues" },
   { href: "/vs-hermes-kanban", title: "vs Hermes Agent Kanban" },
+  { href: "/vs-vibe-kanban", title: "vs Vibe Kanban" },
 ];
 
 function CompareMenu() {

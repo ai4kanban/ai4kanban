@@ -12,17 +12,16 @@ _(none)_
 ## features
 
 - [#22 Open-questions notification center in the header](features/22-open-questions-notification-center-in-the-header.md)
-- [#25 Show on the board which cards you can't start yet](features/25-show-on-the-board-which-cards-you-can-t-start-yet.md)
 - [#27 Auto-refresh every open view when a background run finishes](features/27-auto-refresh-every-open-view-when-a-background-run-finishes.md)
 - [#28 Continue a run's conversation instead of copying its id](features/28-continue-a-run-s-conversation-instead-of-copying-its-id.md)
-- [#38 Fold propose into the create-task dialog, with a module picker](features/38-fold-propose-into-the-create-task-dialog-with-a-module-picke.md)
-- [#39 Show a card's modules in the local UI](features/39-show-a-card-s-modules-in-the-local-ui.md)
+- [#44 Make a group task archiveable once all its subtasks are done](features/44-make-a-group-task-archiveable-once-all-its-subtasks-are-done.md)
+- [#45 Implement a whole group task in one goal-mode agent run](features/45-implement-a-whole-group-task-in-one-goal-mode-agent-run.md)
 
 ## skill
 
 - [#6 Keep the board's config in the project, not in SKILL.md](skill/06-project-local-config.md)
 - [#16 Autonomy levels: a global config for how far agents go alone](skill/16-autonomy-levels-a-global-config-for-how-far-agents-go-alone.md)
-- [#31 Advanced memory: a structured memory layer for planning](31-advanced-memory/root.md)
+- [#40 Auto-refine: loop rough ideas into ready tasks on their own](40-auto-refine/root.md)
 
 ## docs
 
@@ -31,5 +30,6 @@ _(none)_
 ## distribution
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
-- [#5 Position against Vibe Kanban and target the winnable keywords](distribution/05-vibe-kanban-positioning.md)
 - [#30 Translate the site into Chinese, Spanish, Japanese, and French](distribution/30-translate-the-site-into-chinese-spanish-japanese-and-french.md)
+- [#5 Research the Vibe Kanban comparison and build its vs page](distribution/5-vibe-kanban-vs-page.md)
+- [#46 Add a /translate-sync command to keep the site's four translations current](distribution/46-add-a-translate-sync-command-to-keep-the-site-s-four-transla.md)

@@ -14,12 +14,12 @@ one yourself — the one where memory says users stumble most.
 Once you have a focus module, its memory set lives at `docs/kanban/memory/<module>/` (keyed
 by its bolded name in `modules.md`) — the five files described in "The memory set" in
 `SKILL.md`. Read that path, not the whole board, so the notes you work from are that
-module's: `readme.md` for current status (and shipped behavior not yet documented),
+module's: `readme.md` for what already shipped (links to the published docs),
 `goal.md` for its direction, `decisions.md` for settled answers you needn't re-open, and
-`redesign.md` / `rejected.md` to avoid wrong designs and re-proposals. To see what already
-shipped, read the module's **published docs** — shipped behavior is recorded there, not in
-memory. A module with no folder yet has no notes. With no focus module or no module map,
-read the umbrella set at `docs/kanban/` instead.
+`redesign.md` / `rejected.md` to avoid wrong designs and re-proposals. For a shipped
+behavior's detail, follow `readme.md`'s links into the module's **published docs** — the
+docs are the record, memory only indexes them. A module with no folder yet has no notes.
+With no focus module or no module map, read the umbrella set at `docs/kanban/` instead.
 
 **List the cards already tagged with the focus module.** Grep the board for cards whose
 `modules:` field names it — `grep -rl 'modules:.*<module>' docs/kanban/todo/` — and read
@@ -43,12 +43,5 @@ All inside the focus; none already on the board, already shipped (in the publish
 `references/task-review.md`). Write each
 with the "Add a task" flow in `SKILL.md`.
 
-## 4. Record
-
-Overwrite the focus module's `readme.md` (`docs/kanban/memory/<module>/readme.md`) with the
-current status so the next loop skips re-reading: where users stumbled (keep the gap, drop
-the details), a review watermark per source, and this loop's focus so the next one rotates.
-If the module has no folder yet, run `node .claude/skills/kanban/kanban.mjs memory-init
-<module>` first to create its set. For umbrella-wide work with no focus module, or a project
-with no module map, write the umbrella `readme.md` at `docs/kanban/readme.md` instead. Prune
-stale notes.
+A propose run writes no memory. `readme.md` is the finish flow's record — a scan reads
+it and leaves it alone.

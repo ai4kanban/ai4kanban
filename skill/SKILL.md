@@ -8,11 +8,16 @@ The task board lives in `docs/kanban/`. Read it before suggesting or adding work
 
 ## Configuration
 
-**Read `config.md` first** — it carries your project's settings: name, tracks, planning
-sources, reference docs, optional preset. Install fills it in; until then its defaults
-apply. It's the only file here an update leaves untouched — everything else (`SKILL.md`,
-`kanban.mjs`, `references/`) is upstream-owned and overwritten wholesale (see "Updating
-the skill"). "Your tracks / planning sources / reference docs" below mean `config.md`.
+**Read `docs/kanban/config.md` first** — it carries your project's settings: name, tracks,
+planning sources, reference docs, optional preset. `kanban init` seeds it; install fills it
+in; until then its defaults apply. It lives with your board, so an update leaves it
+untouched — the skill folder (`SKILL.md`, `kanban.mjs`, `references/`) is upstream-owned and
+overwritten wholesale (see "Updating the skill"). "Your tracks / planning sources / reference
+docs" below mean this file.
+
+If `docs/kanban/config.md` is missing but a filled `config.md` sits in this skill folder
+(from an older install where the config lived there), move it to `docs/kanban/config.md`
+once, then continue — the skill folder now ships only a blank template.
 
 ## Writing style
 
@@ -32,33 +37,30 @@ docs/kanban/
 │   ├── blockers/   hard blockers; they gate the next milestone — clear them first
 │   ├── <track>/    one folder per track (see Configuration), one card per file
 │   └── recurring/  jobs on a cadence (see "Recurring task") — never archived
-│   the five-file memory set (see "The memory set") — the umbrella copy at the board root:
-├── readme.md       current status — watermarks, last focus, open gaps; refreshed each scan.
-│                   Also the holding pen for shipped behavior no published doc covers yet
-├── goal.md         the project's direction, in the user's words — user-owned
-├── decisions.md    settled answers to cards' open questions — the resolve flow appends here
-├── rejected.md     ideas we said no to, by product area — one line each: the idea and why
-├── redesign.md     design mistakes, by product area — the mistake, then the design we want
-├── memory/<module>/  a module's own copy of the five-file set, keyed by its name in
-│                   modules.md, made lazily on the first write (see "The memory set")
+├── readme.md, goal.md, decisions.md, rejected.md, redesign.md
+│                   the five-file memory set, umbrella copy — see "The memory set"
+├── memory/<module>/  a module's own copy of the set — see "The memory set"
 ├── modules.md      one line per module — install writes it, propose reads it (see "The
 │                   module map")
+├── config.md       your project's settings (see Configuration) — seeded by init, yours to fill
 ├── next-id         the next free task id — NEVER edit by hand; only the script writes it
 └── metrics.csv     one row per day: completed, created, rejected — script-kept; never touch
 ```
 
 Before proposing, read the published docs (your reference docs), `readme.md`, and
-`rejected.md` so you don't re-suggest shipped or rejected work — shipped behavior lives
-in the docs (`readme.md` is the holding pen), not in a separate archive. Before writing
+`rejected.md` so you don't re-suggest shipped or rejected work — `readme.md` indexes what
+shipped and the published docs carry the detail; there is no separate archive. Before writing
 or reviewing a card, read `redesign.md` so a new card doesn't repeat a wrong plan.
 
 ## The script
 
-`.claude/skills/kanban/kanban.mjs` is the **only** sanctioned way to scaffold the board,
+`kanban.mjs`, in this skill's folder, is the **only** sanctioned way to scaffold the board,
 create, update, migrate, archive, or reject a task. It allocates ids, writes a card's
 **frontmatter**, moves/removes task files, keeps the README index, and records the daily
-metric. Set `KB="node .claude/skills/kanban/kanban.mjs"` once and run every command from
-the repo root as `${KB} <command>`:
+metric. Point `KB` at it using this skill's base folder — the path the harness gives you
+when the skill loads (a copied install is `.claude/skills/kanban/`; a plugin install is the
+plugin's read-only cache), e.g. `KB="node .claude/skills/kanban/kanban.mjs"`. Set it once
+and run every command from the repo root as `${KB} <command>`:
 
 ```
 ${KB} init [track...]               # scaffold docs/kanban/ (tracks default to feature bug research)
@@ -101,36 +103,26 @@ inside it** — work nobody has planned yet. Full guide in `references/propose.m
 
 ## Add a task
 
-Add a task from an idea: resolve the modules it touches and read their memory, review the
-idea, scaffold the card with the script (tagging those modules with `--modules`), have a
-subagent write the body, review it, then refine once. Never drop a task without asking the
-user a question first. Full guide in `references/add-task.md`.
+Add a task from an idea. Full guide in `references/add-task.md`.
 
 ## Review a task
 
-Follow `references/task-review.md`. Reviewing multiple? One subagent per card, in parallel.
+Follow `references/task-review.md`.
 
 ## Refine
 
-Take one task and move it one step forward — from vague to concrete. A refine is two
-substeps: **review** the card (missing steps, missed edge cases, over-complication,
-actionability — yielding open questions for the user and revisions you decide yourself),
-then **rewrite** it (push one stage only, apply the revisions, split off side ideas, stop
-at the code level). A refine that ends with a concrete plan and no open questions marks
-the card `ready` — the pill the user scans for to pick what to implement next. Full guide
-in `references/refine.md`.
-
-A card with unresolved `questions` in its frontmatter can't be refined — resolve the
-questions first.
+Take one task and move it one step forward — from vague to concrete. A card with
+unresolved `questions` in its frontmatter can't be refined — resolve them first. Full
+guide in `references/refine.md`.
 
 ## Resolve open questions
 
 When a card carries open `questions`, resolving them is the only way to move it forward.
-Research each one, decide it yourself when the evidence settles it, ask the user when it's
-a judgment call, write the answers into the card, and clear the list with the script.
-Append each user-facing decision, in minimal plain words, to `decisions.md` — board-root
-copy, plus the copy of any module the card names (see "The memory set") — so a later loop
-doesn't re-ask; internal details stay on the card. Full guide in `references/resolve.md`.
+Full guide in `references/resolve.md`.
+
+## Auto-refine
+
+Loop refining a task until all questions answerable by agent itself are resolved. Full guide in `references/auto-refine.md`.
 
 ## Group task
 
@@ -149,19 +141,19 @@ The root and each subtask take their own ids — allocate them together with
 
 ## Finish a task
 
-One-shot tasks only — a recurring card is never finished this way; each run uses
-`${KB} run <id>` and keeps the card (see "Recurring task").
+One-shot tasks only — a recurring card is never finished this way. (See "## Recurring task").
 
-Record what shipped where the record belongs — the published doc, not a separate archive:
+Record what shipped as one line in `readme.md` — the copy of the module the card names,
+else the board-root copy (see "The memory set"):
 
 1. **Only user-facing behavior.** If the change is internal-only (nothing a user can see
    or do), record nothing — don't keep an internal note.
-2. **A published doc covers it → the doc is the record.** The card already carries todos to
-   update the docs it touches ("Document a change"); make sure they're done — no second path.
-3. **No published doc yet → hold it in `readme.md`** — the copy of the module the card
-   names, else the board-root copy (see "The memory set"). Plain words — **what the user
-   can now do**, no task ids, file names, or other code detail. Drop the entry once a
-   published doc covers the behavior; a leftover copy or link is the second copy we avoid.
+2. **A published doc covers it → the line is a link to that doc's path.** The doc carries
+   the detail (if the card has todos about "Document a change" — make sure they're done);
+   `readme.md` just points at it. Don't restate what the doc says.
+3. **No published doc yet → a short line in plain words** — what the user can now do, no
+   task ids, file names, or other code detail. Replace it with a link once a doc covers
+   the behavior.
 
 Then run `${KB} archive <id>` — it removes the card file (or the whole folder for a group
 root), strips its README entry, and records the completion.
@@ -187,19 +179,7 @@ right, not what went wrong. Format:
 
 ## The tracks
 
-Your tracks (Configuration) are the buckets a task lives in, each with a rough share of
-effort. Balance new work across them instead of pouring everything into one. The default
-tracks:
-
-- **feature (60%)** — build what moves the product forward. Stay at MVP; build when it
-  scales hand-work, strengthens the product, or is strongly demanded by users.
-- **bug (25%)** — fix what's broken or rough. A blocker bug goes in `blockers/`.
-- **research (15%)** — learn before you build: spikes, benchmarks, checking that a
-  direction is worth the effort before committing deep.
-
-Swap these for your project's real tracks during install. For a solo product launch, the
-`indie-hacker` preset (`references/presets/indie-hacker.md`) replaces them with
-growth / validation / building.
+A track is the bucket a task lives in — one folder per track under `todo/`. Your tracks are listed in `docs/kanban/config.md` (Configuration), set during install.
 
 ## Recurring task
 
@@ -247,40 +227,23 @@ same run. To write or rebuild it, follow `references/module-map.md`.
 
 ## The memory set
 
-The project's memory is a **fixed set of five files**, held at two levels. Every memory path
-— the board root and each module's own path — holds the same five:
+The project's memory is a **fixed set of five files**:
 
-- **`readme.md`** — current status: watermarks (when each source was last reviewed), the
-  last focus, the open gaps. Also the **holding pen** for shipped user-facing behavior no
-  published doc covers yet (see "Finish a task"). The agent overwrites it during a scan.
-- **`goal.md`** — the direction, in the user's words. One short statement. The user owns it;
-  the agent seeds a template but never invents the goal.
-- **`decisions.md`** — settled answers to cards' open questions, appended by the resolve
-  flow so a later loop doesn't re-ask.
+- **`readme.md`** — shipped user-facing work, one line each: a link to the published doc
+  that covers it, or a short plain-words note until one does (see "Finish a task").
+- **`goal.md`** — the direction, in the user's words. The user owns it; the agent seeds a
+  template but never invents the goal.
+- **`decisions.md`** — settled answers to cards' open questions, so a later loop
+  doesn't re-ask.
 - **`redesign.md`** — design mistakes to avoid.
 - **`rejected.md`** — ideas we turned down, and why.
 
-Shipped work is **not** in the set: the published doc is its record (see "Finish a task"),
-with `readme.md` holding anything not yet documented.
-
-**Two levels, side by side.** The umbrella copy (board root) covers work that spans the
-whole project; `init` writes all five there. Each module named in the map (keyed by its
-bolded name in `modules.md`) gets its own copy under `docs/kanban/memory/<module>/`, so
-one part's notes don't bury the rest. Module copies sit **beside** the umbrella copy —
-they never replace it.
-
-**Lazy creation.** A module with no notes yet has no folder. The whole set appears at once
-the first time something writes to that module's memory — run
-`${KB} memory-init <module>` to scaffold it (idempotent), then write. Never pre-create the
-set for every listed module.
-
-**Which copy a write lands in.** The card's `modules:` field decides: a card that names a
-module writes that module's copy (both, if it names two — `memory-init` first); a card
-with no module, or an umbrella-wide change, writes the board-root copy. Every flow that
-writes memory — finish, reject, redesign, resolve, and propose — follows this rule.
-
-**Propose reads the focus.** When propose picks a focus module, it reads that module's
-set, not the whole board. With no focus module or no module map, it reads the umbrella set.
+The set exists at two levels: the board root holds the whole-project copy, and
+`docs/kanban/memory/<module>/` holds one module's own copy, so one part's notes don't
+bury the rest. Before reading or writing memory, pick the copy by the card's `modules:`
+field — a named module means that module's copy (both, if it names two); no module means
+the board-root copy. A module's folder doesn't exist until its first write — scaffold it
+then with `${KB} memory-init <module>` (idempotent); never pre-create it.
 
 ## Auto-pruning
 

@@ -13,16 +13,15 @@ behind settled decisions. Merge lines that say the same thing. Rewrite, don't ju
 On top of that, per file:
 
 - `rejected.md` — one line per idea: what not to propose and why. "Already done" is a
-  shipped fact, not a rejection — it belongs in the published doc (or `readme.md` as a
-  holding pen until a doc covers it), not here; drop it from `rejected.md`.
+  shipped fact, not a rejection — it belongs in the published doc (with a `readme.md`
+  line pointing at it), not here; drop it from `rejected.md`.
 - `redesign.md` — one line per entry: the mistake, then the design to use. Drop an
   entry once that design is the obvious default.
-- `readme.md` — keep watermarks (one line per source), open gaps (with task id), the
-  last focus so the next loop rotates, and the **holding pen** — shipped user-facing
-  behavior no published doc covers yet. Drop a gap whose task is done or rejected
-  (`rejected.md` already holds a rejection). **Trim a holding-pen entry only after you
-  have confirmed a published doc covers that behavior** — search the docs first. If the
-  doc exists, drop the entry (the doc is the record). If no doc exists, keep it:
-  `readme.md` is the only record of that behavior until we document it.
+- `readme.md` — one line per shipped user-facing behavior. Where a published doc covers
+  it, the line is just a link to that doc's path. **Replace a prose entry with a link
+  only after you have confirmed the doc covers that behavior** — search the docs first;
+  no doc yet means the prose line stays: `readme.md` is the only record until we
+  document it. Anything else — watermarks, a last focus, open gaps, internal detail —
+  doesn't belong here; drop it.
 - `decisions.md` — one line per live decision: the question's gist, then the answer.
   Drop it once the question no longer arises or `redesign.md` states it as a rule.

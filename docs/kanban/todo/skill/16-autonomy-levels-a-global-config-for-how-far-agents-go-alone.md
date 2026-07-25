@@ -3,8 +3,9 @@ title: "Autonomy levels: a global config for how far agents go alone"
 track: skill
 priority: low
 roi: med
+status: todo
 blocked_by: []
-related: [6]
+related: [6, 40]
 modules: []
 questions:
   - Are we ready to ship any autonomy level now, or park this until we've run more supervised loops? We still lack experience with agents deciding alone.

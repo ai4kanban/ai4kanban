@@ -7,7 +7,7 @@ import { getBoard } from "@/app/actions";
 import type { AgentInfo, Board } from "@/lib/types";
 import { Header } from "./Header";
 import { RUNNING_VERB, RunningBadge, SessionLogOverlay } from "./agent-shared";
-import { GroupChip, ModuleChip, PriorityChip, RoiTag, StatusPill, TodoProgress } from "./chips";
+import { GroupChip, PriorityChip, RoiTag, StatusPill, TodoProgress } from "./chips";
 import { runningSessionForCard, useAgentSessions, useSessionLog } from "./sessions";
 
 export function BoardView({
@@ -15,11 +15,13 @@ export function BoardView({
   initialError,
   agent,
   projectRoot,
+  autoRefine,
 }: {
   initialBoard: Board | null;
   initialError: string | null;
   agent: AgentInfo;
   projectRoot: string;
+  autoRefine: boolean;
 }) {
   const [board, setBoard] = useState<Board | null>(initialBoard);
   const [error, setError] = useState<string | null>(initialError);
@@ -55,7 +57,7 @@ export function BoardView({
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-nb-cream">
-      <Header agent={agent} projectRoot={projectRoot} />
+      <Header agent={agent} projectRoot={projectRoot} autoRefine={autoRefine} onError={setError} />
 
       {error && (
         <div className="mx-6 mt-4 nb-panel-sm p-3 text-[13px]" style={{ background: "var(--color-nb-peach-soft)" }}>
@@ -142,9 +144,6 @@ export function BoardView({
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                       <PriorityChip value={card.priority} />
                       <RoiTag value={card.roi} />
-                      {card.modules.map((m) => (
-                        <ModuleChip key={m} module={m} />
-                      ))}
                     </div>
                   </Link>
                   );

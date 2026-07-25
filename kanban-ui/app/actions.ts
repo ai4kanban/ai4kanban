@@ -6,7 +6,10 @@
 
 import { buildPrompt, type AgentRequest } from "@/lib/agent";
 import { readBoard } from "@/lib/board";
+import { setAutoRefine } from "@/lib/config";
+import { ensureDispatcher } from "@/lib/dispatcher";
 import { patchCard, type CardPatch } from "@/lib/edit";
+import { readModules } from "@/lib/modules";
 import { getSession, listSessions, startSession, type StartResult } from "@/lib/registry";
 import type { Board, SessionView } from "@/lib/types";
 
@@ -14,14 +17,24 @@ export async function getBoard(): Promise<Board> {
   return readBoard();
 }
 
-const ACTIONS = new Set(["implement", "reject", "archive", "edit", "create", "refine", "resolve"]);
+// The module names from docs/kanban/modules.md, for the create dialog's picker
+// (#38). Same shape as getBoard: a server action the client calls directly.
+export async function getModules(): Promise<string[]> {
+  return readModules();
+}
+
+const ACTIONS = new Set(["implement", "reject", "archive", "edit", "create", "refine", "resolve", "propose"]);
+
+// create and propose touch no existing card (create makes one, propose makes
+// three), so they carry no `id` — every other action needs one.
+const CARDLESS = new Set(["create", "propose"]);
 
 // Start an agent and return immediately with a sessionId (or a lock message). The
 // request never waits for the child — the client polls listSessionsAction() to
 // see the session's progress and outcome.
 export async function startAgentAction(req: AgentRequest): Promise<StartResult> {
   if (!req || !ACTIONS.has(req.action)) throw new Error("unknown action");
-  if (req.action !== "create" && !Number.isInteger(req.id)) {
+  if (!CARDLESS.has(req.action) && !Number.isInteger(req.id)) {
     throw new Error("action needs a card id");
   }
   const prompt = buildPrompt(req);
@@ -29,7 +42,11 @@ export async function startAgentAction(req: AgentRequest): Promise<StartResult> 
 }
 
 // The shared session registry, for the UI's poll. Every tab reads the same picture.
+// The UI polls this continuously, so it's also where we make sure the background
+// auto-refine dispatcher (#43) is running — idempotent, so a poll from any tab
+// keeps it alive for the life of the UI server.
 export async function listSessionsAction(): Promise<SessionView[]> {
+  ensureDispatcher();
   return listSessions();
 }
 
@@ -46,4 +63,11 @@ export async function patchCardAction(
   patch: CardPatch,
 ): Promise<{ ok: boolean; error?: string }> {
   return patchCard(id, patch);
+}
+
+// Flip the global auto-refine switch (#41), persisted to docs/kanban/ui.config.json.
+// Returns { ok:false, error } on a parse/write failure so the toggle can revert
+// and surface the message; keeps the agent `command` untouched.
+export async function setAutoRefineAction(on: boolean): Promise<{ ok: boolean; error?: string }> {
+  return setAutoRefine(Boolean(on));
 }

@@ -14,8 +14,9 @@
 // component just starts the session and hands it to the panel.
 
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
+import { getModules } from "@/app/actions";
 import type { SessionView } from "@/lib/types";
 import { ActionDialog, type AgentReq } from "./agent-shared";
 import { Button } from "./button";
@@ -25,6 +26,20 @@ export function CreateTask() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The module names for the dialog's picker, read from modules.md server-side.
+  // Fetched once when the dialog first opens (the board's modules rarely change
+  // within a session), so a closed Create button costs nothing.
+  const [modules, setModules] = useState<string[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    getModules()
+      .then((m) => alive && setModules(m))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [open]);
 
   // A create session this tab started finished — re-open the sessions panel on it
   // so the result/errors are never lost, and re-read the server component so the
@@ -38,9 +53,12 @@ export function CreateTask() {
   );
 
   const { sessions, start } = useAgentSessions(onFinish);
-  // A create is a single global action (the server refuses a second), so disable
-  // the button while one is live.
-  const creating = sessions.some((r) => r.status === "running" && r.action === "create");
+  // Create and propose are both single global actions (the server refuses a
+  // second of either) and share this one button, so disable it while either is
+  // live.
+  const creating = sessions.some(
+    (r) => r.status === "running" && (r.action === "create" || r.action === "propose"),
+  );
 
   // Start a non-blocking session. A lock refusal ("a task is already being
   // created") comes back as an error message.
@@ -84,7 +102,12 @@ export function CreateTask() {
       )}
 
       {open && (
-        <ActionDialog dialog={{ kind: "create" }} onClose={() => setOpen(false)} onRun={startSession} />
+        <ActionDialog
+          dialog={{ kind: "create" }}
+          modules={modules}
+          onClose={() => setOpen(false)}
+          onRun={startSession}
+        />
       )}
     </div>
   );

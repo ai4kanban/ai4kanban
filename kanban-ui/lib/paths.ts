@@ -45,3 +45,9 @@ export function readmePath(): string {
 export function archivePath(): string {
   return path.join(kanbanDir(), "archive.md");
 }
+export function modulesPath(): string {
+  return path.join(kanbanDir(), "modules.md");
+}
+export function uiConfigPath(): string {
+  return path.join(kanbanDir(), "ui.config.json");
+}

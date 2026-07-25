@@ -2,26 +2,29 @@ Set up the kanban skill for this project.
 
 You can reach this two ways, and both finish here:
   - run this prompt directly, or
-  - after adding the plugin marketplace — `/plugin marketplace add dist0com/kanban-skill` then
+  - add the plugin marketplace — `/plugin marketplace add dist0com/kanban-skill` then
     `/plugin install kanban@kanban` — which makes the skill available to browse but does
     NOT configure a board.
 Either way the board still needs a per-project setup, and that is what this prompt does.
-The Configuration lives in your repo, so this keeps an editable copy under
-`.claude/skills/kanban/` rather than relying on the shared, read-only plugin cache.
+Your settings live with the board at `docs/kanban/config.md`, not inside the skill folder,
+so once the skill is available `/plugin install` plus scaffolding the board is the whole
+setup — nothing gets copied or edited in the (possibly read-only) skill folder.
 
 Do the following, in order. Ask me at most 3 short questions total, and only where you
 genuinely can't infer a value — otherwise pick sensible defaults and tell me what you chose.
 
-1. Get the skill into the project. If `.claude/skills/kanban/SKILL.md` does not already
-   exist, copy it in:
+1. Get the skill available.
+   - If you added it as a plugin (`/plugin install kanban@kanban`), it's already available —
+     skip to step 2.
+   - Otherwise, if `.claude/skills/kanban/SKILL.md` does not already exist, copy it in:
 
        git clone https://github.com/dist0com/kanban-skill /tmp/kanban-skill
        mkdir -p .claude/skills
        cp -R /tmp/kanban-skill/skill .claude/skills/kanban
 
-2. Read `.claude/skills/kanban/SKILL.md`, then `.claude/skills/kanban/config.md` — the
-   Configuration block with its {{PLACEHOLDERS}}. `config.md` is the only file you fill in;
-   the rest of the skill is generic and stays as-is.
+2. Read the skill's `SKILL.md`. Note how its "The script" section says to run the script —
+   `node` plus `kanban.mjs` in the skill's base folder (a copied install is
+   `.claude/skills/kanban/kanban.mjs`). Use that form for every command below.
 
 3. Analyze this repository to infer the config values: the project name and one-line goal
    (from the README / package metadata), what natural tracks the work splits into
@@ -29,33 +32,35 @@ genuinely can't infer a value — otherwise pick sensible defaults and tell me w
    planning sources to scan (code dirs, docs/, roadmap), and any reference docs worth
    keeping in sync (user guides, changelog, roadmap).
 
-4. If this is a solo product you're launching, offer the indie-hacker preset
-   (`.claude/skills/kanban/references/presets/indie-hacker.md`) instead of the default
-   tracks.
+4. If this is a solo product you're launching, offer the indie-hacker preset (the skill's
+   `references/presets/indie-hacker.md`) instead of the default tracks.
 
-5. Edit `.claude/skills/kanban/config.md` in place: replace every {{PLACEHOLDER}} with the
-   chosen value. Leave `SKILL.md` and the rest of the skill untouched.
-
-6. Scaffold the board with the script, passing the tracks you chose in step 3:
+5. Scaffold the board with the script, passing the tracks you chose in step 3:
 
        node .claude/skills/kanban/kanban.mjs init <track1> <track2> ...
 
    This creates `docs/kanban/` with `todo/README.md`, a `todo/blockers/` folder and one
-   folder per track, `next-id` set to `1`, and the umbrella memory set — `readme.md`,
-   `goal.md`, `decisions.md`, `redesign.md`, `rejected.md`. It's safe to
-   re-run — it does nothing if a board exists.
+   folder per track, `next-id` set to `1`, the umbrella memory set — `readme.md`, `goal.md`,
+   `decisions.md`, `redesign.md`, `rejected.md` — and a blank `config.md`. It's safe to
+   re-run — on an existing board it only adds `config.md` if it's missing.
 
-7. Write the module map. Follow `.claude/skills/kanban/references/module-map.md` to write
+6. Fill in the configuration. Open `docs/kanban/config.md` and replace every {{PLACEHOLDER}}
+   with the value you chose in step 3. That is the only file you fill in; the rest of the
+   skill is generic and stays as-is.
+
+7. Write the module map. Follow the skill's `references/module-map.md` to write
    `docs/kanban/modules.md` — a plain list of what parts this project is made of. Reuse the
    repo analysis you already did in step 3; don't scan again. Print the finished map so I
    see it once. The propose flow reads this map to pick a focus area.
 
-8. Stamp the installed version so later updates know where they're starting from:
+8. If you copied the skill in (step 1), stamp the installed version so later updates know
+   where they're starting from (skip this for a plugin install — its cache is read-only):
 
        printf 'sha: %s\ndate: %s\n' "$(git -C /tmp/kanban-skill rev-parse HEAD)" "$(date +%F)" > .claude/skills/kanban/.version
 
-9. Run `node .claude/skills/kanban/kanban.mjs peek` to confirm the script finds the board,
-   then propose the first 3 tasks so I have something to start from.
+9. Run the script's `peek` command (e.g. `node .claude/skills/kanban/kanban.mjs peek`) to
+   confirm it finds the board, then propose the first 3 tasks so I have something to start
+   from.
 
 10. Recommend the local board UI and ask if I want it — don't silently skip it. It's the
    nicest way to use the board: a local Next.js app that shows every track and drives the
@@ -64,10 +69,9 @@ genuinely can't infer a value — otherwise pick sensible defaults and tell me w
 
        npx kanban-skill-ui        # http://localhost:7420, localhost only
 
-   If I say yes, run it for me (or hand me the command) and point me at
-   `.claude/skills/kanban/references/local-ui.md` for options like `--port`, `--board`, and
-   configuring which agent the buttons spawn via `docs/kanban/ui.config.json`.
+   If I say yes, run it for me (or hand me the command) and point me at the skill's
+   `references/local-ui.md` for options like `--port`, `--board`, and configuring which
+   agent the buttons spawn via `docs/kanban/ui.config.json`.
 
-To pull a newer version of the skill later, follow
-`.claude/skills/kanban/references/update.md` — the install copies it in, so updating never
-needs anything fetched from upstream first.
+To pull a newer version of the skill later, follow the skill's `references/update.md` — the
+setup leaves it in place, so updating never needs anything fetched from upstream first.

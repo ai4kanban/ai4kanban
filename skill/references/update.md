@@ -1,82 +1,70 @@
 # Updating the skill
 
-Pull a newer version of the kanban skill into a project that already has it. This file
-ships with the skill, so it's already here — just follow the steps; nothing needs to be
-fetched first.
+Pull a newer version of the kanban skill into a project that already has it. `${KB}`
+below is the script invocation from SKILL.md's "The script" section.
 
-**The one rule: `config.md` (your settings) and `docs/kanban/` (your board data) are
-yours; every other file in `.claude/skills/kanban/` is upstream's and gets overwritten
-wholesale. Nothing is ever merged.**
+**The one rule: `docs/kanban/` — board data and `config.md` — is yours; the skill folder
+(`SKILL.md`, `kanban.mjs`, `references/`) is upstream's and gets overwritten wholesale.
+Nothing is merged, and an update never writes under `docs/kanban/` beyond adding a
+brand-new config field.**
 
-## Steps
+## Plugin install (skill lives in the plugin cache)
 
-1. **Clone upstream** to a temp dir:
+Refresh the marketplace and re-install, then do **Config check** below; nothing in your
+repo changes:
+
+```
+/plugin marketplace update kanban
+/plugin install kanban@kanban
+```
+
+## Copied install (skill lives in `.claude/skills/kanban/`)
+
+1. **Clone upstream:**
 
    ```
    git clone https://github.com/dist0com/kanban-skill /tmp/kanban-skill-update
    ```
 
-2. **Show what changed.** `node .claude/skills/kanban/kanban.mjs version` prints the
-   `.version` stamp — the source SHA the current copy came from. Summarise the delta in
-   plain language before writing anything:
+2. **Show what changed.** `${KB} version` prints the stamped source SHA. Summarise the
+   delta in plain language before writing anything (no stamp? describe the notable
+   recent changes instead):
 
    ```
    git -C /tmp/kanban-skill-update log --oneline <stamped-sha>..HEAD -- skill kanban-ui
    ```
 
-   No stamp (installed before versioning)? Describe the notable recent changes instead.
-
-3. **Overwrite the generic files, skipping `config.md`:**
+3. **Overwrite the skill folder wholesale:**
 
    ```
-   cp /tmp/kanban-skill-update/skill/kanban.mjs .claude/skills/kanban/kanban.mjs
-   cp /tmp/kanban-skill-update/skill/SKILL.md   .claude/skills/kanban/SKILL.md
-   cp -R /tmp/kanban-skill-update/skill/references/. .claude/skills/kanban/references/
+   cp -R /tmp/kanban-skill-update/skill/. .claude/skills/kanban/
    ```
 
-4. **Reconcile `config.md` only if the template gained a field:**
-
-   ```
-   diff /tmp/kanban-skill-update/skill/config.md .claude/skills/kanban/config.md
-   ```
-
-   If upstream added a new setting (a new `{{PLACEHOLDER}}` or bullet), add just that
-   line and ask the user only for the new value. Otherwise leave `config.md` untouched.
-
-5. **The board UI updates itself from npm** — it runs via `npx kanban-skill-ui`, so
-   there's nothing in the project to update. To pick up a new release run
-   `npx kanban-skill-ui@latest` once. Its only per-project state,
-   `docs/kanban/ui.config.json`, is board data and is never touched.
-
-6. **Build the module map if it's missing.** If `docs/kanban/modules.md` doesn't exist,
-   write it by following `references/module-map.md`. If it exists, leave it — readers
-   keep it current.
-
-7. **Re-stamp and verify:**
+4. **Re-stamp:**
 
    ```
    printf 'sha: %s\ndate: %s\n' "$(git -C /tmp/kanban-skill-update rev-parse HEAD)" "$(date +%F)" \
      > .claude/skills/kanban/.version
-   node .claude/skills/kanban/kanban.mjs peek
-   node .claude/skills/kanban/kanban.mjs version
    ```
 
-8. **Hand the diff to the user** — tell them to review `git diff` before committing. An
-   update never writes to `docs/kanban/`; any change there means something went wrong.
+## Config check (both channels)
 
-The update is idempotent — safe to re-run. It doesn't need the plugin path: even after
-`/plugin install`, the editable copy under `.claude/skills/kanban/` is what runs.
-
-## Updating a copied `kanban-ui/` source (contributors only)
-
-Most projects run `npx kanban-skill-ui` and hold no copy. Only if the project keeps a
-`kanban-ui/` source folder (someone hacking on the UI itself), re-copy it:
+Compare the shipped blank template against your filled-in config:
 
 ```
-rsync -a --delete --exclude node_modules --exclude .next \
-  /tmp/kanban-skill-update/kanban-ui/ kanban-ui/
-cd kanban-ui && npm install
+diff <skill folder>/config.md docs/kanban/config.md
 ```
 
-If `rsync` isn't available, `cp -R` the source in and re-drop `node_modules`/`.next`
-before `npm install`.
+Filled-in values vs `{{PLACEHOLDERS}}` is expected noise. You're only looking for a
+whole new setting. If upstream added one, add just that line to `docs/kanban/config.md`
+and ask the user only for the new value. Otherwise leave the config untouched.
+
+## Verify
+
+```
+${KB} peek
+${KB} version
+```
+
+Tell the user to review `git diff` before committing. The update is idempotent. The
+board UI needs no update — `npx kanban-skill-ui@latest` picks up a new release.

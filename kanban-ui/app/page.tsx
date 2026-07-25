@@ -1,6 +1,7 @@
 import { BoardView } from "@/components/Board";
 import { agentInfo } from "@/lib/agent";
 import { readBoard } from "@/lib/board";
+import { readAutoRefine } from "@/lib/config";
 import { repoRoot } from "@/lib/paths";
 import type { Board } from "@/lib/types";
 
@@ -22,6 +23,7 @@ export default function Page() {
       initialError={initialError}
       agent={agentInfo()}
       projectRoot={repoRoot()}
+      autoRefine={readAutoRefine()}
     />
   );
 }

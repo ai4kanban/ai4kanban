@@ -19,10 +19,11 @@ import type { AgentAction, CardStatus, SessionView } from "./types";
 // bundles. Pinning the state to globalThis keeps it a true singleton so two
 // bundles can't hold two registries (and two locks).
 
-// create / archive / reject all rewrite shared files through the skill script
-// (next-id, the README index, metrics.csv). Run two at once and they corrupt
-// each other even on different cards — so these serialize behind one lock.
-const INDEX_ACTIONS = new Set<AgentAction>(["create", "archive", "reject"]);
+// create / propose / archive / reject all rewrite shared files through the skill
+// script (next-id, the README index, metrics.csv). Run two at once and they
+// corrupt each other even on different cards — so these serialize behind one
+// lock. Propose allocates several ids in one run, so it belongs here too.
+const INDEX_ACTIONS = new Set<AgentAction>(["create", "propose", "archive", "reject"]);
 
 // Actions that may run only one at a time across the whole board. A create has
 // no card yet, so the per-card lock can't catch a duplicate — and the registry
@@ -32,7 +33,7 @@ const INDEX_ACTIONS = new Set<AgentAction>(["create", "archive", "reject"]);
 // guard checks. This is the "single global create" rule — no separate lock file
 // needed, the registry (persisted to .sessions.json) is already the source of
 // truth.
-const SINGLETON_ACTIONS = new Set<AgentAction>(["create"]);
+const SINGLETON_ACTIONS = new Set<AgentAction>(["create", "propose"]);
 
 // Past-tense verb for the "already running" message, e.g. "#5 is already being
 // implemented".
@@ -42,6 +43,7 @@ const VERB: Record<AgentAction, string> = {
   archive: "archived",
   edit: "edited",
   create: "created",
+  propose: "proposed",
   refine: "refined",
   resolve: "resolved",
 };

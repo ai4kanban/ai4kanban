@@ -6,10 +6,10 @@ Once the board exists, you drive it in plain language. Here's the rhythm.
 
 Ask **"what's next?"**. The skill:
 
-1. Reads the board, your published docs (where shipped work is recorded), `readme.md`, and
+1. Reads the board, your published docs (where shipped work is recorded), `readme.md`
+   (the index of shipped work — one line per behavior, linking to its doc), and
    `rejected.md` so it won't repeat work.
-2. Scans a few of your planning sources that changed since the last loop (it tracks a
-   watermark per source in `readme.md`).
+2. Scans your planning sources for real gaps.
 3. Proposes **three new tasks** from real gaps — not a pick from the existing pile.
 
 You approve, tweak, or drop each. Approved ones become cards.
@@ -43,10 +43,10 @@ archives finished ones and flags the rest.
 
 ## Finish a task
 
-Say **"#4 is done"**. The skill records the user-facing behavior where it belongs — the
-published doc the change touched (via the card's doc todos), or `readme.md` as a holding pen
-until a doc covers it (what the user can now do, in plain words — no ids or code detail) —
-then runs `kanban.mjs archive 4` to remove the card and record the metric.
+Say **"#4 is done"**. The skill updates the published doc the change touched (via the
+card's doc todos) and adds one line to `readme.md` — a link to that doc, or a short
+plain-words note when no doc covers the behavior yet — then runs `kanban.mjs archive 4`
+to remove the card and record the metric.
 
 ```bash
 node .claude/skills/kanban/kanban.mjs archive 4

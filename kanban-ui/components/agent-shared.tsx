@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiCheck, FiCopy } from "react-icons/fi";
+import { FiCheck, FiCopy, FiZap } from "react-icons/fi";
 import { useDraft, useDraftList } from "@/lib/draft";
 import type { AgentAction, Card, SessionView } from "@/lib/types";
 import { Button } from "./button";
@@ -29,12 +29,22 @@ const INPUT =
 // ink-soft meta text under the bold ink title.
 const INTRO = "mb-3 text-[13px] leading-relaxed text-nb-ink-soft";
 
+// The create dialog's focus-module chips: the nb-chip shape a step up from the
+// board's 10.5px meta chips — these are tap targets, not passive labels. ON is
+// the row's single ember mark; DIM is the disabled look the not-in-effect side
+// wears (auto-pick ↔ the module names) — still clickable, hover wakes it.
+const MODULE_CHIP =
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] px-2.5 py-[5px] text-[12px] font-[700] uppercase leading-none tracking-[0.04em] transition-[color,background-color,opacity]";
+const MODULE_CHIP_ON = "bg-nb-accent-soft text-nb-accent-deep";
+const MODULE_CHIP_DIM = "bg-nb-wash text-nb-ink-soft opacity-45 hover:opacity-100 hover:text-nb-ink";
+
 export interface AgentReq {
   action: AgentAction;
   id?: number;
   notes?: string;
   reason?: string;
   description?: string;
+  module?: string;
   title?: string;
   andImplement?: boolean;
 }
@@ -44,7 +54,6 @@ export type DialogState =
   | { kind: "reject"; card: Card }
   | { kind: "archive"; card: Card }
   | { kind: "edit"; card: Card }
-  | { kind: "refine"; card: Card }
   | { kind: "resolve"; card: Card }
   | { kind: "create" }
   | null;
@@ -92,6 +101,7 @@ export const RUNNING_VERB: Record<AgentAction, string> = {
   reject: "rejecting",
   archive: "archiving",
   create: "creating",
+  propose: "proposing",
 };
 
 // The live tail is the agent's event stream — tool calls and turn text — so it
@@ -274,9 +284,8 @@ export function HandoffButton({ sessionId }: { sessionId: string }) {
       // panels, so it wears the ink frame + press shadow like everything else.
       // Labeled "Copy ID" because the behavior IS a clipboard copy — the resume
       // happens later, in the CLI. The copied state tints ember; the frame stays.
-      className={`shrink-0 gap-1 rounded-[7px] px-2 py-1 text-[11px] font-[700] ${
-        copied ? "bg-nb-accent-soft text-nb-accent-deep" : ""
-      }`}
+      className={`shrink-0 gap-1 rounded-[7px] px-2 py-1 text-[11px] font-[700] ${copied ? "bg-nb-accent-soft text-nb-accent-deep" : ""
+        }`}
     >
       {copied ? <FiCheck className="text-[12px]" aria-hidden /> : <FiCopy className="text-[12px]" aria-hidden />}
       {copied ? "Copied" : "Copy ID"}
@@ -301,15 +310,19 @@ export function SessionLogOverlay({ session, onClose }: { session: SessionView |
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // A create session touches no card, so it has no `#id — action` handle: name it
-  // by what it's doing instead. Every other session is tied to a card and reads
-  // `#5 — refine`.
+  // A create or propose session touches no card, so it has no `#id — action`
+  // handle: name it by what it's doing instead. Every other session is tied to a
+  // card and reads `#5 — refine`.
   const title = !session
     ? "session log"
     : session.cardId === null
-      ? session.status === "running"
-        ? "Creating task"
-        : "Create task"
+      ? session.action === "propose"
+        ? session.status === "running"
+          ? "Proposing tasks"
+          : "Propose tasks"
+        : session.status === "running"
+          ? "Creating task"
+          : "Create task"
       : `#${session.cardId} — ${session.action}`;
 
   if (!mounted) return null;
@@ -343,10 +356,14 @@ export function ActionDialog({
   dialog,
   onClose,
   onRun,
+  modules = [],
 }: {
   dialog: Exclude<DialogState, null>;
   onClose: () => void;
   onRun: (req: AgentReq, label: string) => void;
+  // The module names for the create dialog's picker (from modules.md, read
+  // server-side). Only the create kind uses it; the per-card dialogs ignore it.
+  modules?: string[];
 }) {
   // Persist the draft per action + card so an accidental close keeps the text
   // (resolve keeps its own list-shaped draft in ResolveDialog below). `run`
@@ -371,7 +388,7 @@ export function ActionDialog({
         {notReady && (
           <p className="mb-3 rounded-[8px] bg-nb-accent-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-accent-deep">
             This card isn&apos;t marked <strong>ready</strong> yet — its plan may still be
-            rough. Refine it to ready first, or implement anyway.
+            rough. Let auto-refine take it to ready first, or implement anyway.
           </p>
         )}
         <textarea className={INPUT} rows={4} placeholder="Optional extra notes for the agent…" value={text} onChange={(e) => setText(e.target.value)} />
@@ -441,39 +458,156 @@ export function ActionDialog({
     );
   }
 
-  if (dialog.kind === "refine") {
-    return (
-      <Dialog title={`Refine #${dialog.card.id}`} onClose={onClose}>
-        <p className={INTRO}>
-          The agent moves the card one step forward: it reviews the plan, then rewrites it one
-          stage — no further. Anything it can&apos;t decide is saved as an open question for you.
-        </p>
-        <textarea className={INPUT} rows={3} placeholder="Optional note to steer the refine…" value={text} onChange={(e) => setText(e.target.value)} />
-        <DialogButtons
-          onClose={onClose}
-          confirmLabel="Refine"
-          onConfirm={() => run({ action: "refine", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Refine #${dialog.card.id}`)}
-        />
-      </Dialog>
-    );
-  }
-
   if (dialog.kind === "resolve") {
     return <ResolveDialog card={dialog.card} onClose={onClose} onRun={onRun} />;
   }
 
-  // create
+  // create — its own component so the propose toggle + module pick are clean,
+  // unconditional hooks (like ResolveDialog).
+  return <CreateDialog modules={modules} onClose={onClose} onRun={onRun} />;
+}
+
+// The Create-task dialog, which also folds in propose (#38). They're two modes
+// of making new cards — not a create with an option bolted on — so a tab strip
+// (design.md's tab-strip pattern: hairline rule, bold-ink active tab over a
+// short ember underline) switches the dialog's whole shape:
+//   • Describe — a textarea for what you want; the agent runs add-task and
+//     infers the modules itself (references/add-task.md step 1).
+//   • Propose — no textarea (there's nothing to describe); the agent walks one
+//     module as a user and proposes 3 new tasks (references/propose.md). The
+//     focus module is picked from a chip row that shows every module at a
+//     glance, with "agent picks" as the default chip.
+function CreateDialog({
+  modules,
+  onClose,
+  onRun,
+}: {
+  modules: string[];
+  onClose: () => void;
+  onRun: (req: AgentReq, label: string) => void;
+}) {
+  const [text, setText, clearDraft] = useDraft("create");
+  const [mode, setMode] = useState<"describe" | "propose">("describe");
+  const [module, setModule] = useState("");
+  const propose = mode === "propose";
+  const run = (req: AgentReq, label: string) => {
+    clearDraft();
+    onRun(req, label);
+  };
+
+  const TABS = [
+    { key: "describe", label: "Describe a task" },
+    { key: "propose", label: "Propose 3 tasks" },
+  ] as const;
+
   return (
     <Dialog title="Create task" onClose={onClose} width={600}>
+      {/* The mode strip. Hairline under both tabs; the active tab's ember
+          underline laps the hairline (bottom-[-1px]) and is the strip's only
+          strong mark, per design.md. */}
+      <div className="mb-4 flex gap-5 border-b border-nb-ink/12" role="tablist">
+        {TABS.map((t) => {
+          const active = mode === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setMode(t.key)}
+              className={`relative cursor-pointer pb-2 text-[13.5px] tracking-[-0.01em] transition-colors ${active ? "font-[800] text-nb-ink" : "font-[600] text-nb-ink-soft hover:text-nb-ink"
+                }`}
+            >
+              {t.label}
+              {active && (
+                <span
+                  className="absolute inset-x-0 bottom-[-1px] h-[2px] rounded-full bg-nb-accent"
+                  aria-hidden
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       <p className={INTRO}>
-        Describe what you want. The agent turns it into one or more cards using the add-task flow.
+        {propose
+          ? "The agent walks one module of the product as a user and proposes 3 new tasks inside it — nothing to describe."
+          : "Describe what you want. The agent turns it into one or more cards and figures out which modules they touch."}
       </p>
-      <textarea className={INPUT} rows={5} placeholder="What do you want to happen?" value={text} onChange={(e) => setText(e.target.value)} />
+
+      {propose ? (
+        // The focus-module chips — every module visible at a glance, one tap to
+        // focus. "Auto-pick" (the AI default, led by a zap mark) sits apart from
+        // the module names behind a hairline divider so it doesn't read as a
+        // module itself. The two sides are an either/or: whichever isn't in
+        // effect dims to a disabled look, but stays clickable — that's how you
+        // switch. No module map → no row; the agent picks anyway.
+        modules.length > 0 && (
+          <div>
+            <span className="mb-2 block text-[12px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
+              Focus module
+            </span>
+            {/* What the pick does — a quiet one-liner so the row isn't a bare
+                list of names. */}
+            <p className="mb-2 text-[12px] leading-relaxed text-nb-ink-soft">
+              Pick the part of the product you want new tasks in — all 3 land inside it. Leave it
+              on “auto-pick” and the agent chooses the part that needs work most.
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setModule("")}
+                aria-pressed={module === ""}
+                className={`${MODULE_CHIP} ${module === "" ? MODULE_CHIP_ON : MODULE_CHIP_DIM}`}
+              >
+                <FiZap className="text-[12px]" aria-hidden />
+                auto-pick
+              </button>
+              <span aria-hidden className="mx-1 h-[18px] w-px bg-nb-ink/15" />
+              {modules.map((m) => {
+                const selected = module === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setModule(m)}
+                    aria-pressed={selected}
+                    className={`${MODULE_CHIP} ${
+                      selected
+                        ? MODULE_CHIP_ON
+                        : module === ""
+                          ? MODULE_CHIP_DIM
+                          : "bg-nb-wash text-nb-ink-soft hover:text-nb-ink"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )
+      ) : (
+        <textarea
+          className={INPUT}
+          rows={5}
+          autoFocus
+          placeholder="What do you want to happen?"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+      )}
+
       <DialogButtons
         onClose={onClose}
-        confirmLabel="Create task"
-        disabled={!text.trim()}
-        onConfirm={() => run({ action: "create", description: text.trim() }, "Create task")}
+        confirmLabel={propose ? "Propose 3 tasks" : "Create task"}
+        disabled={!propose && !text.trim()}
+        onConfirm={() =>
+          propose
+            ? run({ action: "propose", module: module || undefined }, "Propose tasks")
+            : run({ action: "create", description: text.trim() }, "Create task")
+        }
       />
     </Dialog>
   );

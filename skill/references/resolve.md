@@ -11,11 +11,8 @@ recommendation; never guess on these.
 
 Write each answer into the card body. Then append the **user-facing** decisions to
 `decisions.md` — calls the user made or would care about. Internal details stay in the card body only. Rewrite each entry minimal and plain — one line: the question, then the
-answer. Append it to the board-root `docs/kanban/decisions.md`; if the card's
-`modules:` frontmatter names modules, also to each one's own
-`docs/kanban/memory/<module>/decisions.md` — a module with no memory folder yet needs
-`node .claude/skills/kanban/kanban.mjs memory-init <module>` first to create it. Then
-update the frontmatter:
+answer. Append to the board-root copy plus the copy of any module the card names (see
+"The memory set" in SKILL.md). Then update the frontmatter:
 
 - all answered → `node .claude/skills/kanban/kanban.mjs update <id> --clear-questions`
 - some remain → `update <id> --question "..."` listing only the unanswered ones (the

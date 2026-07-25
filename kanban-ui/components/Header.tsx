@@ -1,17 +1,29 @@
 import Link from "next/link";
 import { FiFolder } from "react-icons/fi";
 import type { AgentInfo } from "@/lib/types";
-import { AgentBadge } from "./AgentBadge";
+import { Configuration } from "./Configuration";
 import { CreateTask } from "./CreateTask";
 import { Sessions } from "./sessions";
 
 // Shared header for the board and the card detail page — identical on both: the
-// brand links home (the board), and the Create-task action and agent badge sit
-// on the right. Create task is self-contained (see CreateTask) so both pages get
-// it without threading any session state through the header. `projectRoot` is the
-// repo the server is driving (holds docs/kanban/) — shown as a small badge so you
-// can tell at a glance which board this is.
-export function Header({ agent, projectRoot }: { agent: AgentInfo; projectRoot: string }) {
+// brand links home (the board), and the Create-task action and Configuration gear
+// sit on the right. Create task is self-contained (see CreateTask) so both pages
+// get it without threading any session state through the header. `projectRoot` is
+// the repo the server is driving (holds docs/kanban/) — shown as a small badge so
+// you can tell at a glance which board this is. `autoRefine` seeds the
+// Configuration dialog's switch; `onError` lets a save failure surface where the
+// page already shows errors, across its top.
+export function Header({
+  agent,
+  projectRoot,
+  autoRefine,
+  onError,
+}: {
+  agent: AgentInfo;
+  projectRoot: string;
+  autoRefine: boolean;
+  onError?: (msg: string) => void;
+}) {
   return (
     <header
       className="sticky top-0 z-20 flex items-center justify-between px-6 py-3.5 backdrop-blur-sm"
@@ -41,7 +53,7 @@ export function Header({ agent, projectRoot }: { agent: AgentInfo; projectRoot: 
       </div>
       <div className="flex items-center gap-3">
         <Sessions />
-        <AgentBadge info={agent} />
+        <Configuration agent={agent} autoRefine={autoRefine} onError={onError} />
         <CreateTask />
       </div>
     </header>

@@ -2,7 +2,7 @@
 // Kanban board bookkeeping. The ONLY sanctioned writer of docs/kanban/next-id.
 //
 // Handles the id-touching moves so the board stays consistent:
-//   init    — scaffold a fresh docs/kanban/ board (folders + the umbrella memory set)
+//   init    — scaffold a fresh docs/kanban/ board (folders, the umbrella memory set, config.md)
 //   memory-init — lazily scaffold a module's memory path with the five-file set
 //   create  — allocate task id(s); with --title, also write the card's frontmatter + index it
 //   update  — rewrite a card's frontmatter (priority/roi/links/questions, move track, rename)
@@ -15,7 +15,7 @@
 // only. It also keeps docs/kanban/metrics.csv (one row per day: completed, created, rejected).
 //
 // Usage:
-//   node kanban.mjs init [track...]                     scaffold docs/kanban/ (default tracks: feature bug research)
+//   node kanban.mjs init [track...]                     scaffold docs/kanban/ (folders, umbrella memory set, config.md)
 //   node kanban.mjs memory-init <module>                lazily scaffold memory/<module>/ with the five-file set
 //   node kanban.mjs create [--count N]                  allocate N ids (default 1), print them
 //   node kanban.mjs create --title T --track K [opts]   scaffold one card (frontmatter + body template + index)
@@ -40,13 +40,19 @@ import { fileURLToPath } from 'node:url'
 const SKILL_VERSION = '0.2.0'
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
-const REPO_ROOT = path.resolve(SCRIPT_DIR, '..', '..', '..')
+// The board lives at <repo>/docs/kanban. Every command runs from the repo root (SKILL.md
+// says so), so the working directory IS the repo root — this holds whether the script is a
+// copy under .claude/skills/kanban/ or read-only in a plugin cache. Deriving the root from
+// cwd (not from where this file sits) is what lets `/plugin install` + `kanban init` work
+// with nothing copied into the project.
+const REPO_ROOT = process.cwd()
 const KANBAN = path.join(REPO_ROOT, 'docs', 'kanban')
 const TODO = path.join(KANBAN, 'todo')
 const NEXT_ID = path.join(KANBAN, 'next-id')
 const README = path.join(TODO, 'README.md')
 const METRICS = path.join(KANBAN, 'metrics.csv')
 const MODULES_MD = path.join(KANBAN, 'modules.md')
+const CONFIG = path.join(KANBAN, 'config.md')
 
 function die(msg) {
   console.error(`kanban: ${msg}`)
@@ -462,6 +468,10 @@ function parseFrontmatter(text) {
   return { meta, body: lines.slice(i + 1).join('\n') }
 }
 
+// A todo item in any accepted form: `- [ ]`, `- []`, `- [x]`, `* [X]`, … — the shape
+// counts, not the literal string.
+const TODO_ITEM = /^[ \t]*[-*+][ \t]*\[[ xX]?\]/m
+
 function defaultBody() {
   return [
     '<one short line: what to do and why it matters.>',
@@ -470,7 +480,7 @@ function defaultBody() {
     '- <the concrete steps>',
     '',
     '## Todo',
-    '- [ ] <first step>',
+    '- [ ] every task must have todos — replace this line with the real steps.',
     '',
   ].join('\n')
 }
@@ -547,13 +557,12 @@ const DEFAULT_TRACKS = ['feature', 'bug', 'research']
 // `memory/<module>/`. Each starter is a short header that tells the next reader what the
 // file is for; the flows fill in the rest over time. Plain language, to match the skill.
 const MEMORY_SET = {
-  'readme.md': `# Status
+  'readme.md': `# Shipped
 
-Where this stands now, refreshed each planning scan: watermarks (when each source was last
-reviewed), the last focus, and the open gaps between the goal and today. The agent
-overwrites this during a scan.
+User-facing work that has shipped, one line each — a link to the published doc that
+covers it, or a plain-words note.
 
-_(not written yet — the next scan fills it in.)_
+_(nothing recorded yet — the first finished task fills it in.)_
 `,
   'goal.md': `# Goal
 
@@ -592,6 +601,19 @@ Blockers gate the next milestone; clear them first. Everything else sits under a
 ${sections.join('\n')}`
 }
 
+// Seed the per-project config at docs/kanban/config.md from the blank template shipped
+// beside this script. The config lives WITH the board (not in the skill folder) so a
+// read-only plugin cache still yields an editable, per-project file. Idempotent: it never
+// overwrites a config that's already there, so a filled-in config survives a re-run.
+function writeConfigIfMissing() {
+  if (fs.existsSync(CONFIG)) return false
+  const template = path.join(SCRIPT_DIR, 'config.md')
+  if (!fs.existsSync(template)) die(`missing config template at ${template}`)
+  fs.mkdirSync(KANBAN, { recursive: true })
+  fs.copyFileSync(template, CONFIG)
+  return true
+}
+
 function cmdInit(args) {
   const tracks = args.length ? args : DEFAULT_TRACKS
   for (const t of tracks) {
@@ -600,7 +622,14 @@ function cmdInit(args) {
     }
   }
   if (fs.existsSync(KANBAN)) {
-    console.log(`board already exists at ${rel(KANBAN)}/ — nothing to do (safe to re-run)`)
+    // An existing board still needs docs/kanban/config.md if it predates the move out of
+    // the skill folder — add it, but never touch a config that's already filled in.
+    const added = writeConfigIfMissing()
+    console.log(
+      added
+        ? `board already exists at ${rel(KANBAN)}/ — added the missing ${rel(CONFIG)} (safe to re-run)`
+        : `board already exists at ${rel(KANBAN)}/ — nothing to do (safe to re-run)`,
+    )
     return
   }
   fs.mkdirSync(path.join(TODO, 'blockers'), { recursive: true })
@@ -609,10 +638,11 @@ function cmdInit(args) {
   for (const [name, body] of Object.entries(MEMORY_SET)) {
     fs.writeFileSync(path.join(KANBAN, name), body)
   }
+  writeConfigIfMissing()
   writeNextId(1)
   console.log(`initialised board at ${rel(KANBAN)}/`)
   console.log(`  tracks: ${tracks.join(', ')}`)
-  console.log('  next: fill the Configuration in config.md, then `create` your first task')
+  console.log(`  next: fill the Configuration in ${rel(CONFIG)}, then \`create\` your first task`)
 }
 
 // Lazily scaffold a module's memory path with the five-file set. A module has no folder
@@ -699,6 +729,7 @@ function cmdCreate(args) {
   const indexed = addReadmeRef(track, start, title, fileRel)
   console.log(start)
   console.log(`  wrote ${rel(file)} — frontmatter is set; fill the body with your editor, leave the frontmatter to the script`)
+  if (!TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
   if (indexed) console.log(`  indexed under "## ${readmeHeadingFor(track)}"`)
   reconcileBoard()
 }
@@ -1097,8 +1128,9 @@ const HELP = `kanban — the only sanctioned writer of docs/kanban/next-id.
 
 Usage: node ${rel(SELF)} <command> [args]
 
-  init [track...]      scaffold docs/kanban/ (folders + the umbrella memory set); tracks
-                       default to feature bug research. Does nothing if a board exists.
+  init [track...]      scaffold docs/kanban/ (folders, the umbrella memory set, and a blank
+                       config.md); tracks default to feature bug research. On an existing
+                       board it only adds config.md if it's missing (safe to re-run).
   memory-init <module> lazily scaffold docs/kanban/memory/<module>/ with the five-file set
                        (readme, goal, decisions, redesign, rejected). Idempotent —
                        run it before the first write to a module's memory.
