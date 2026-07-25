@@ -14,7 +14,8 @@ import { getSessionAction, listSessionsAction, startAgentAction } from "@/app/ac
 import type { SessionView } from "@/lib/types";
 import { type AgentReq, HandoffButton, SessionLog } from "./agent-shared";
 
-const POLL_MS = 1500;
+const POLL_MS = 1500; // while a session is live
+const IDLE_POLL_MS = 5000; // while nothing is running — see the effect below
 const LOG_POLL_MS = 1200; // how often the live log tail refreshes
 
 // A session this tab started, remembered until it finishes so onFinish can fire once.
@@ -36,12 +37,15 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
   // poll and wake the loop when it's dormant. See the effect below.
   const kickRef = useRef<() => void>(() => {});
 
-  // The registry only changes when a session starts or finishes, and sessions
-  // only start from a user action — so a quiet board can't go stale on its own.
-  // Instead of polling forever, we poll only while there's something to watch (a
-  // live session or a session this tab just started) and go dormant otherwise,
-  // waking on tab focus to catch anything another tab did. Idle traffic drops to
-  // zero.
+  // A quiet board CAN go stale on its own: the auto-refine dispatcher (#43)
+  // starts sessions from a server-side timer, with no user action in any tab. So
+  // an idle tab must keep polling — an idle loop that goes dormant would never
+  // witness a background refine start, finish, or rewrite the card, and the
+  // running-set diffs in Board/CardPage would have no transition to fire on.
+  // What we vary is the cadence, not whether we poll: fast while something is
+  // live, slow while idle. A hidden tab still stops entirely and wakes on focus
+  // (useOnTabFocus re-reads unconditionally), so a backgrounded board costs
+  // nothing.
   useEffect(() => {
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -62,19 +66,19 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
           }
         }
         setSessions(next);
-        // Keep polling only while a session is live or this tab is awaiting one; a
-        // hidden tab stops entirely and resumes on focus.
-        const busy =
-          next.some((r) => r.status === "running") || mine.current.size > 0;
+        // Live (or awaiting one of ours) → tight loop for the badges and log
+        // tail. Idle → slow loop, so the next background refine is picked up
+        // within seconds of starting.
+        const live = next.some((r) => r.status === "running") || mine.current.size > 0;
         clearTimeout(timer);
-        if (busy && document.visibilityState === "visible") {
-          timer = setTimeout(tick, POLL_MS);
+        if (document.visibilityState === "visible") {
+          timer = setTimeout(tick, live ? POLL_MS : IDLE_POLL_MS);
         }
       } catch {
-        // transient — retry only if we're still awaiting a session of our own
-        if (alive && mine.current.size > 0 && document.visibilityState === "visible") {
+        // transient — back off to the idle cadence and keep the loop alive
+        if (alive && document.visibilityState === "visible") {
           clearTimeout(timer);
-          timer = setTimeout(tick, POLL_MS);
+          timer = setTimeout(tick, IDLE_POLL_MS);
         }
       } finally {
         inFlight = false;
@@ -114,6 +118,26 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
   );
 
   return { sessions, start };
+}
+
+// Run `fn` each time the tab becomes visible again. A hidden tab stops polling,
+// and the running-set diff a view uses to catch finishes only fires on a
+// running→finished change the view actually witnessed while polling. A session
+// that both starts and finishes while the tab is hidden is never witnessed, so
+// on focus that diff finds nothing and the view stays stale. An unconditional
+// re-read on focus is always correct and doesn't depend on witnessing the
+// transition — it also covers a finished session evicted from the kept-30 window
+// before the tab woke. Board and CardPage both use this to re-read on focus.
+export function useOnTabFocus(fn: () => void) {
+  const ref = useRef(fn);
+  ref.current = fn;
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") ref.current();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 }
 
 // Card ids that currently have a running agent (from any tab).

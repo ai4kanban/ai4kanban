@@ -73,7 +73,7 @@ export interface AgentRequest {
   action: AgentAction;
   id?: number;
   title?: string;
-  notes?: string; // implement, edit, refine, resolve, archive
+  notes?: string; // implement, edit, auto-refine, resolve, archive
   reason?: string; // reject
   description?: string; // create
   module?: string; // propose: the focus module (a name from modules.md)
@@ -131,11 +131,12 @@ export function buildPrompt(req: AgentRequest): string {
         `Create the cards only, don't implement them.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(" ");
-    case "refine":
+    case "auto-refine":
       return [
-        `/kanban. Refine task ${req.id} ${named}: move it one step forward following \`references/refine.md\`.`,
+        `/kanban. Auto-refine task ${req.id} ${named} following \`references/auto-refine.md\`: triage and answer its open questions, then move the plan one step forward.`,
+        `For each untagged question, spawn a fresh subagent to answer it objectively; tag the ones only I can decide \`[user]\` (\`kanban tag ${req.id} <n> user\`) and leave them for me.`,
         req.notes ? `Extra notes: ${req.notes}` : "",
-        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
+        `Don't ask me questions with human-in-the-loop — the \`[user]\` tag is how you defer to me.`,
       ]
         .filter(Boolean)
         .join(" ");

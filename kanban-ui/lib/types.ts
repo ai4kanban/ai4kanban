@@ -83,7 +83,7 @@ export type AgentAction =
   | "edit"
   | "create"
   | "propose"
-  | "refine"
+  | "auto-refine"
   | "resolve";
 
 /** A running or finished agent session, as the UI sees it when it polls the

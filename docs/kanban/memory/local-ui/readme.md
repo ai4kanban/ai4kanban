@@ -4,3 +4,4 @@ User-facing work that has shipped, one line each — a link to the published doc
 covers it, or a plain-words note.
 
 - Run the board from a browser with `npx kanban-skill-ui`: `skill/references/local-ui.md`.
+- Flip on the Auto-refine toggle so the UI refines cards in the background: `skill/references/local-ui.md`.

@@ -1,42 +1,28 @@
 # Decisions
 
-Settled answers to cards' open questions — the question, then the answer, once resolved.
-The resolve flow appends here. Read before proposing so you don't re-ask a settled call.
+This module's settled answers to cards' open questions, grouped by topic. Keep only
+**user-facing** calls that still guide future planning — what a user can see, do, or
+would care about. Code detail stays on the card. Read before proposing so you don't
+re-ask a settled call.
 
-## Memory set
+## The memory set
 
-- **How far does "stop maintaining archive.md" go — keep it in the set but unwritten, or
-  remove it entirely?** Remove it entirely (option B, the full clean break). The memory
-  set drops from six files to five; `archive.md` leaves `init`/`memory-init`, propose
-  reads the published docs + `readme.md` instead, and today's `archive.md` lines are
-  migrated into the docs before the files are deleted. This reverses the six-file
-  decision from #31/#36 — a file nothing writes is exactly the leftover we avoid.
+- The set is five files. There is no `archive.md`: a file nothing writes is exactly the
+  leftover we avoid. What shipped is recorded in the published docs, with a `readme.md`
+  line pointing at them.
+- What the agent decided by itself stays on the card, in its own section, so the user can
+  check it. Only a call a future card would need reaches `decisions.md`.
 
-## Auto-refine (#40)
+## Finished cards
 
-- **How does one card's auto-refine loop run — one session or a process per pass?** One
-  session: a single `claude -p` runs the whole loop start to finish, no human in the loop.
-  It answers the questions it's sure of, re-reviews, and keeps going until the only
-  questions left can't be answered easily — those stay on the card as open questions, then
-  the session ends (`ready`, or with open questions for the user).
+- A finished card moves to a `.archive/` folder next to `todo/`, kept in git, so finished
+  work can still be read and diffed. A rejected card is still deleted — `rejected.md`
+  already records why.
+- The archive is not project memory. No flow reads it; `readme.md` plus the published docs
+  stay the only record of shipped work.
 
-## Auto-refine (#42)
+## Auto-refine
 
-- **Which confidence levels may auto-answer a question?** Only `high`, for now. `med` and
-  `low` both wait for the user. Start with a strict bar; widen later only if it proves
-  reliable.
-- **Does an auto-answer get recorded in `decisions.md`, or kept card-only?** Kept on the
-  card. The answer goes onto the card, in its "what the agent decided on its own" part;
-  only a decision that helps future decision-making is appended to `decisions.md`. The
-  card's two-part layout — the plan vs. what the agent added — is how the user sees and
-  checks what the agent decided, so `decisions.md` stays short instead of holding every
-  auto-answer. (This reverses the earlier "record everything, same as the human resolve
-  flow" call.)
-
-## Auto-refine switch (#41)
-
-- **Where does the auto-refine on/off setting live?** `docs/kanban/ui.config.json`,
-  top-level `autoRefine` boolean, off by default (missing = off). The skill's refine/resolve
-  loop reads it before auto-acting. Extends the existing file rather than adding a new one.
-- **Is the auto-refine switch #16's "auto-design"?** Yes, same switch — building #41 settles
-  #16's auto-design. One on/off switch, not the full autonomy ladder.
+- One session drives one card the whole way. It never pauses to ask the user: it answers
+  what it's sure of and ends either `ready` or holding only the questions a human must
+  answer.

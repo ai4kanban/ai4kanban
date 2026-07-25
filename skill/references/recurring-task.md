@@ -50,7 +50,7 @@ exists and works.
 3. **Record the run:**
 
    ```
-   node .claude/skills/kanban/kanban.mjs run <id>
+   ${KB} run <id>
    ```
 
    This adds +1 to `completed` in `metrics.csv` and **keeps the card** — no archive, no

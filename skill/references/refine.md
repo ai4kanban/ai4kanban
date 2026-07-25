@@ -35,8 +35,7 @@ The review's outcome is two lists:
 
 - **Open questions** — decisions that are hard to make without the user: taste,
   priorities, money, product direction. Record them on the card with
-  `node .claude/skills/kanban/kanban.mjs update <id> --question "..."` (repeat the
-  flag for several).
+  `${KB} update <id> --question "..."` (repeat the flag for several).
 - **Revisions** — fixes you can decide yourself. Carry them into the rewrite.
 
 ## 2. Rewrite
@@ -69,7 +68,7 @@ whole plan is easy to start.
 ## 3. Mark it ready (when it's done)
 
 A refine that lands a concrete plan with no open questions has finished the card. Mark
-it `ready` with `node .claude/skills/kanban/kanban.mjs update <id> --status ready` —
+it `ready` with `${KB} update <id> --status ready` —
 only when **both** hold: the plan is concrete (this refine stopped at the code level,
 not one stage short) and the `questions` list is empty, so someone could start
 building now. The user scans for the `ready` pill to pick what to implement next.

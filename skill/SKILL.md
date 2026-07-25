@@ -161,7 +161,7 @@ root), strips its README entry, and records the completion.
 ## Reject an idea
 
 Rejecting is rare. When you (or the user) turn down an idea, add a short line to
-`rejected.md` — the board-root copy, plus the copy of any module the idea's card names
+`rejected.md` — the copy of the module the idea's card names, else the board-root copy
 (see "The memory set") — under the topic that fits; start a new topic heading if none
 fits. Format: `- **<idea name>** — <why we said no, one line>.`
 
@@ -171,8 +171,8 @@ folder), strips its README entry, and records the rejection.
 ## Record a redesign
 
 When the user corrects a card that missed a requirement or got the design wrong, add a
-short entry to `redesign.md` — the board-root copy, plus the copy of any module the card
-names (see "The memory set") — under the topic that fits; start a new topic heading if
+short entry to `redesign.md` — the copy of the module the card names, else the board-root
+copy (see "The memory set") — under the topic that fits; start a new topic heading if
 none fits. This is a guide for the next card, not a record of the fix — say what to do
 right, not what went wrong. Format:
 `- ❌ **<mistake>** → ✅ <what the design should be instead, one line>.`
@@ -233,17 +233,18 @@ The project's memory is a **fixed set of five files**:
   that covers it, or a short plain-words note until one does (see "Finish a task").
 - **`goal.md`** — the direction, in the user's words. The user owns it; the agent seeds a
   template but never invents the goal.
-- **`decisions.md`** — settled answers to cards' open questions, so a later loop
-  doesn't re-ask.
+- **`decisions.md`** — settled answers to cards' open questions, one line each. Only
+  **user-facing calls that help future planning**; code detail (which file, function,
+  flag) stays on the card.
 - **`redesign.md`** — design mistakes to avoid.
 - **`rejected.md`** — ideas we turned down, and why.
 
-The set exists at two levels: the board root holds the whole-project copy, and
-`docs/kanban/memory/<module>/` holds one module's own copy, so one part's notes don't
-bury the rest. Before reading or writing memory, pick the copy by the card's `modules:`
-field — a named module means that module's copy (both, if it names two); no module means
-the board-root copy. A module's folder doesn't exist until its first write — scaffold it
-then with `${KB} memory-init <module>` (idempotent); never pre-create it.
+The set exists at two levels: `docs/kanban/memory/<module>/` for one module, the board
+root for the umbrella project. **Pick one copy by the card's `modules:` field and use only
+that one** — the named module's (both, if it names two), else the root's. Never write a
+note to both: the root is the whole project's memory, not a mirror of the modules. A
+module's folder appears on its first write — `${KB} memory-init <module>` (idempotent);
+never pre-create it.
 
 ## Auto-pruning
 

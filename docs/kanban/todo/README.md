@@ -12,16 +12,14 @@ _(none)_
 ## features
 
 - [#22 Open-questions notification center in the header](features/22-open-questions-notification-center-in-the-header.md)
-- [#27 Auto-refresh every open view when a background run finishes](features/27-auto-refresh-every-open-view-when-a-background-run-finishes.md)
 - [#28 Continue a run's conversation instead of copying its id](features/28-continue-a-run-s-conversation-instead-of-copying-its-id.md)
 - [#44 Make a group task archiveable once all its subtasks are done](features/44-make-a-group-task-archiveable-once-all-its-subtasks-are-done.md)
 - [#45 Implement a whole group task in one goal-mode agent run](features/45-implement-a-whole-group-task-in-one-goal-mode-agent-run.md)
 
 ## skill
 
-- [#6 Keep the board's config in the project, not in SKILL.md](skill/06-project-local-config.md)
 - [#16 Autonomy levels: a global config for how far agents go alone](skill/16-autonomy-levels-a-global-config-for-how-far-agents-go-alone.md)
-- [#40 Auto-refine: loop rough ideas into ready tasks on their own](40-auto-refine/root.md)
+- [#47 Move archived task files to a hidden folder instead of deleting them](skill/47-move-archived-task-files-to-a-hidden-folder-instead-of-delet.md)
 
 ## docs
 

@@ -8,8 +8,10 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiCheck, FiCopy, FiZap } from "react-icons/fi";
 import { useDraft, useDraftList } from "@/lib/draft";
+import { parseQuestion } from "@/lib/questions";
 import type { AgentAction, Card, SessionView } from "@/lib/types";
 import { Button } from "./button";
+import { QuestionTagBadge } from "./chips";
 import { Dialog } from "./Dialog";
 import { Markdown } from "./Markdown";
 
@@ -96,7 +98,7 @@ export function RunningBadge({
 export const RUNNING_VERB: Record<AgentAction, string> = {
   implement: "implementing",
   edit: "editing",
-  refine: "refining",
+  "auto-refine": "auto-refining",
   resolve: "resolving",
   reject: "rejecting",
   archive: "archiving",
@@ -651,17 +653,20 @@ function ResolveDialog({
   return (
     <Dialog title={`Resolve #${card.id}`} onClose={onClose}>
       <p className={INTRO}>
-        Answer any open questions you already know. The agent researches the rest and decides what
-        the evidence settles, writing every answer into the card. Real judgment calls stay open for
-        you. <strong>Resolve &amp; implement</strong> keeps the same session going and builds the
-        task — but only if nothing genuine is left for you to decide.
+        Answer what you know; the agent researches the rest and writes it to the card. Real judgment
+        calls stay open for you. <strong>Resolve &amp; implement</strong> also builds the task, but
+        only if nothing's left for you to decide.
       </p>
       <div className="flex flex-col gap-3.5">
-        {card.questions.map((q, i) => (
+        {card.questions.map((q, i) => {
+          const { tag, text } = parseQuestion(q);
+          return (
           <div key={i} className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-[700] leading-snug text-nb-ink">
-              <span className="mr-1.5 text-nb-accent-deep">?</span>
-              {q}
+            <label className="flex items-start gap-2 text-[13px] font-[700] leading-snug text-nb-ink">
+              <span className="mt-px shrink-0">
+                <QuestionTagBadge tag={tag} />
+              </span>
+              <span className="min-w-0 flex-1">{text}</span>
             </label>
             <textarea
               className={INPUT}
@@ -671,7 +676,8 @@ function ResolveDialog({
               onChange={(e) => setAnswer(i, e.target.value)}
             />
           </div>
-        ))}
+          );
+        })}
       </div>
       <div className="mt-4 flex flex-wrap justify-end gap-2.5">
         <Button variant="ghost" onClick={onClose}>Cancel</Button>
@@ -688,7 +694,7 @@ function ResolveDialog({
 // the agent resolves every question on its own just as before.
 function composeAnswers(questions: string[], answers: string[]): string | undefined {
   const answered = questions
-    .map((q, i) => ({ q, a: answers[i]?.trim() }))
+    .map((q, i) => ({ q: parseQuestion(q).text, a: answers[i]?.trim() }))
     .filter((x) => x.a);
   if (answered.length === 0) return undefined;
   return [

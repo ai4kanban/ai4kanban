@@ -9,12 +9,13 @@ settles it, noting the decision and reason in the card body. Ask the user when i
 judgment call — taste, priorities, money, product direction — with options and a
 recommendation; never guess on these.
 
-Write each answer into the card body. Then append the **user-facing** decisions to
-`decisions.md` — calls the user made or would care about. Internal details stay in the card body only. Rewrite each entry minimal and plain — one line: the question, then the
-answer. Append to the board-root copy plus the copy of any module the card names (see
-"The memory set" in SKILL.md). Then update the frontmatter:
+Write each answer into the card body. Then append to `decisions.md` only the answers that
+clear its bar — user-facing calls that help future planning, one plain line each, under
+the topic that fits. Everything else stays on the card. Append to the copy of the module
+the card names, else the board-root copy — one copy only, never both (see "The memory set"
+in SKILL.md). Then update the frontmatter:
 
-- all answered → `node .claude/skills/kanban/kanban.mjs update <id> --clear-questions`
+- all answered → `${KB} update <id> --clear-questions`
 - some remain → `update <id> --question "..."` listing only the unanswered ones (the
   flag replaces the whole list).
 

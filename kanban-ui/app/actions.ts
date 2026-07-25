@@ -23,7 +23,10 @@ export async function getModules(): Promise<string[]> {
   return readModules();
 }
 
-const ACTIONS = new Set(["implement", "reject", "archive", "edit", "create", "refine", "resolve", "propose"]);
+// The actions a client button can start. `auto-refine` is NOT here on purpose:
+// it only ever runs from the background dispatcher (lib/dispatcher.ts), which
+// calls startSession directly, so no client can trigger it.
+const ACTIONS = new Set(["implement", "reject", "archive", "edit", "create", "resolve", "propose"]);
 
 // create and propose touch no existing card (create makes one, propose makes
 // three), so they carry no `id` — every other action needs one.

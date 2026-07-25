@@ -44,13 +44,13 @@ const VERB: Record<AgentAction, string> = {
   edit: "edited",
   create: "created",
   propose: "proposed",
-  refine: "refined",
+  "auto-refine": "auto-refined",
   resolve: "resolved",
 };
 
 // A session's action maps to the saved stage it puts the card in while it runs.
-// Only implement sets a status — the rest (edit/refine/resolve refine the card,
-// create/archive/reject touch no resting card) leave the stage alone.
+// Only implement sets a status — the rest (edit/auto-refine/resolve refine the
+// card, create/archive/reject touch no resting card) leave the stage alone.
 const SESSION_STATUS: Partial<Record<AgentAction, CardStatus>> = {
   implement: "implementing",
 };

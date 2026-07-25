@@ -8,7 +8,8 @@ import type { AgentInfo, Board } from "@/lib/types";
 import { Header } from "./Header";
 import { RUNNING_VERB, RunningBadge, SessionLogOverlay } from "./agent-shared";
 import { GroupChip, PriorityChip, RoiTag, StatusPill, TodoProgress } from "./chips";
-import { runningSessionForCard, useAgentSessions, useSessionLog } from "./sessions";
+import { parseQuestion } from "@/lib/questions";
+import { runningSessionForCard, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 export function BoardView({
   initialBoard,
@@ -55,6 +56,12 @@ export function BoardView({
     if (finished) refresh();
   }, [sessions, refresh]);
 
+  // On tab focus, re-read the board once, unconditionally. A hidden tab stops
+  // polling, so a session that both started and finished while it was hidden
+  // leaves the running-set diff above with nothing to witness. A fresh read on
+  // focus is always correct regardless of what the diff saw.
+  useOnTabFocus(refresh);
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-nb-cream">
       <Header agent={agent} projectRoot={projectRoot} autoRefine={autoRefine} onError={setError} />
@@ -84,7 +91,7 @@ export function BoardView({
                 </h2>
                 <span className="text-[12px] text-nb-ink-soft">{col.cards.length}</span>
               </div>
-              <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overflow-x-hidden pr-1">
+              <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overflow-x-hidden pl-px pr-1 pt-px pb-1">
                 {col.cards.length === 0 && (
                   <p className="text-[12px] italic text-nb-ink-soft">no open cards</p>
                 )}
@@ -123,16 +130,35 @@ export function BoardView({
                         ) : (
                           <StatusPill status={card.status} />
                         )}
-                        {card.questions.length > 0 && (
-                          <span
-                            tabIndex={0}
-                            className="nb-tip inline-flex"
-                            data-tip={`${card.questions.length} open question${card.questions.length === 1 ? "" : "s"} — resolve before refining`}
-                            style={{ color: "var(--color-nb-accent)" }}
-                          >
-                            <FiHelpCircle aria-hidden style={{ width: 14, height: 14 }} />
-                          </span>
-                        )}
+                        {card.questions.length > 0 &&
+                          (() => {
+                            const total = card.questions.length;
+                            const userCount = card.questions.filter(
+                              (q) => parseQuestion(q).tag === "user",
+                            ).length;
+                            // A `[user]` question waits on the human (accent); the
+                            // rest auto-refine still works on its own (quieter).
+                            const tip =
+                              `${total} open question${total === 1 ? "" : "s"}` +
+                              (userCount > 0
+                                ? ` · ${userCount} need${userCount === 1 ? "s" : ""} you`
+                                : "");
+                            return (
+                              <span
+                                tabIndex={0}
+                                className="nb-tip inline-flex"
+                                data-tip={tip}
+                                style={{
+                                  color:
+                                    userCount > 0
+                                      ? "var(--color-nb-accent)"
+                                      : "var(--color-nb-ink-soft)",
+                                }}
+                              >
+                                <FiHelpCircle aria-hidden style={{ width: 14, height: 14 }} />
+                              </span>
+                            );
+                          })()}
                         {card.todos.total > 0 && (
                           <TodoProgress done={card.todos.done} total={card.todos.total} />
                         )}

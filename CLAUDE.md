@@ -1,5 +1,11 @@
 # Quick Dev Notes
 
+## Skill docs don't know their caller
+
+A skill doesn't care who calls it. Files under `skill/` never mention the local-UI
+dispatcher, `ui.config.json`, or `claude -p` — how a skill gets invoked is the caller's
+concern, documented on the caller's side.
+
 ## Pre-commit Checks
 - **Python**: `uv run pre-commit run --all-files`
 - **JavaScript/Typescript**: `cd web && pnpm typecheck && pnpm run lint`

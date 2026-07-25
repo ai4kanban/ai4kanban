@@ -1,47 +1,60 @@
 # Auto-refine
 
-The agent refines a card **and answers its own open questions** — the ones it's sure
-about — instead of stopping at the user every time. It wraps the normal
-`references/refine.md` review/rewrite with a confidence-gated answer loop; real judgment
-still waits for the human.
+Refine a card **and answer its own open questions** — the ones the agent is sure about —
+instead of stopping at the user every time. It wraps `references/refine.md` with a
+confidence-gated answer loop; real judgment still waits for the human.
+
+One session drives one card to one of two rests: `ready`, or holding only `[user]`
+questions (calls only the human can make).
+
+## Question tags
+
+Each open question in the card's `questions` frontmatter carries a tag saying who owns it:
+
+- **`[user]`** — a judgment call the agent must not guess: taste, priorities, money,
+  product direction.
+- **`[agent]`** — answered by the agent; the answer lives in the card body.
+- **untagged** — freshly raised, not yet triaged. These are what a pass works through.
+
+Set tags with the script — never hand-edit frontmatter:
+
+```
+${KB} tag <id> <n> user      # hand question n (1-based) to the human
+${KB} tag <id> <n> agent     # mark question n as answered by the agent
+```
 
 ## The loop
 
-One card's whole loop runs in **one session** and never pauses to ask the
-user. Repeat this pass until the card is done:
+Never pause to ask the user.
 
-1. **Resolve leftover questions first.** The card may arrive with `questions` from a
-   last loop. Tag and auto-answer them (steps 3 and 4) before any review — answers
-   change what the review sees. One already tagged `[user]` stays as-is: it waits on
-   the user, not on a re-rate.
-2. **Review and raise questions.** Do the review in `references/refine.md` step 1 — but
-   don't stop at the user. It yields open questions and revisions you decide yourself.
-3. **Tag every untagged question** `[agent]` or `[user]`. `[agent]` means you're sure
-   you can answer it well alone — a deliberately high bar. Anything with real judgment
-   in it — taste, priorities, money, product direction — is `[user]` and waits for the
-   human.
-4. **Auto-answer the `[agent]` ones — one subagent per question, in parallel.** Each gets
-   the card and its one question, researches and decides the way `references/resolve.md`
-   says, and writes the answer into the card's `## Decided by the agent` part (below).
-   If the research shows it's really a judgment call, it re-tags the question `[user]`
-   instead of guessing.
-5. **Update the frontmatter.** `${KB} update <id> --question "[user] ..."` listing only
-   the questions still open — tag included, so the next loop knows who each one waits
-   on — or `--clear-questions` if none are.
-6. **Re-review.** A new answer can raise new questions, so go back to step 2. A question
-   you already decided is written on the card, so you won't raise it again.
+1. **Skip the `[user]` questions.**
+2. **Answer each untagged question — one fresh subagent per question, in sequence.** The
+   agent that raised a question must not answer it; a fresh context judges it objectively.
+   Hand the subagent the card and that one question. It researches and decides the way
+   `references/resolve.md` says, then:
+   - **Answerable** → it writes the answer into `## Decided by the agent` (below); mark
+     the question `${KB} tag <id> <n> agent`.
+   - **A real judgment call** → it does not guess. Mark it `${KB} tag <id> <n> user`.
 
-Two ways one session ends — never a third:
+   Go one at a time, in order, so each subagent sees the answers written before it.
+3. **Review and raise questions.** Do `references/refine.md` step 1 — but don't stop at
+   the user. Add any new question untagged (`${KB} update <id> --question "..."`), then go
+   back to step 2 for it.
+4. **Settle the frontmatter.** When no untagged questions remain, keep only the `[user]`
+   ones: `${KB} update <id> --question "[user] ..."` for each (the flag replaces the whole
+   list, tag included), or `--clear-questions` if none are left.
+
+Then end, one of two ways — never a third:
 
 - **No questions left** → rewrite the plan one stage forward (`references/refine.md`
   step 2), then mark it `ready` (`${KB} update <id> --status ready`).
 - **Only `[user]` questions left** → rewrite with what you could decide, leave those
-  questions on the card, don't mark it `ready`, and end the session.
+  questions on the card, don't mark it `ready`.
 
 ## The two-part card
 
-Keep what the agent added apart from the human's plan, so anyone can see — and check —
-exactly what the agent decided:
+Keep what the agent added apart from the human's plan, so anyone can check exactly what
+the agent decided:
 
 1. **The plan** — the summary line, `## Scope`, and `## Todo`: the human's original input.
 2. **`## Decided by the agent`** — every auto-answer and every unasked-for refinement.
@@ -50,5 +63,5 @@ exactly what the agent decided:
 ## What reaches decisions.md
 
 Auto-answers stay **on the card**. Append to `decisions.md` only a decision a future loop
-or a new card would need, so it stays a short memory, not a dump of every auto-answer.
-How and where to append is `references/resolve.md`'s rule — follow it.
+or a new card would need. How and where to append is `references/resolve.md`'s rule —
+follow it.

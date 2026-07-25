@@ -23,5 +23,7 @@ On top of that, per file:
   no doc yet means the prose line stays: `readme.md` is the only record until we
   document it. Anything else — watermarks, a last focus, open gaps, internal detail —
   doesn't belong here; drop it.
-- `decisions.md` — one line per live decision: the question's gist, then the answer.
-  Drop it once the question no longer arises or `redesign.md` states it as a rule.
+- `decisions.md` — one line per live decision, in plain user-facing words. Drop anything
+  that fails its bar in SKILL.md ("The memory set"): a call about code detail, or one the
+  published docs now cover. Drop a decision once the question no longer arises or
+  `redesign.md` states it as a rule.

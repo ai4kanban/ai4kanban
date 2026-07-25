@@ -1,7 +1,8 @@
 "use client";
 
-import { FiBox, FiCheckCircle, FiChevronDown, FiFlag, FiLayers, FiPlayCircle } from "react-icons/fi";
+import { FiBox, FiCheckCircle, FiChevronDown, FiCpu, FiFlag, FiHelpCircle, FiLayers, FiPlayCircle, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
+import type { QuestionTag } from "@/lib/questions";
 import type { CardStatus } from "@/lib/types";
 
 // Meaning-coded chips + level selects, all built from the design language's
@@ -181,6 +182,45 @@ export function ModuleChip({ module }: { module: string }) {
     >
       <FiBox aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
       {module}
+    </span>
+  );
+}
+
+// Who owns an open question — parsed from its `[user]`/`[agent]` tag. `user` is a
+// judgment call waiting on the human (accent, so it stands out on the card);
+// `agent` is one the auto-refine loop answers itself (sky — shown mid-answer,
+// then cleared once recorded); an untagged question is freshly raised and not yet
+// triaged (a quiet wash). The colour carries the meaning at a glance.
+const QUESTION_TAG: Record<QuestionTag, { label: string; icon: IconType; soft: string; ink: string }> = {
+  user: {
+    label: "needs you",
+    icon: FiUser,
+    soft: "var(--color-nb-accent-soft)",
+    ink: "var(--color-nb-accent-deep)",
+  },
+  agent: {
+    label: "agent",
+    icon: FiCpu,
+    soft: "var(--color-nb-sky-soft)",
+    ink: "var(--color-nb-sky-ink)",
+  },
+};
+
+export function QuestionTagBadge({ tag }: { tag: QuestionTag | null }) {
+  if (!tag) {
+    return (
+      <span className="nb-chip" style={{ background: "var(--color-nb-wash)", color: "var(--color-nb-ink-soft)" }}>
+        <FiHelpCircle aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+        new
+      </span>
+    );
+  }
+  const c = QUESTION_TAG[tag];
+  const Icon = c.icon;
+  return (
+    <span className="nb-chip" style={{ background: c.soft, color: c.ink }}>
+      <Icon aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+      {c.label}
     </span>
   );
 }

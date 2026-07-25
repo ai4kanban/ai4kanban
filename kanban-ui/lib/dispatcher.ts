@@ -1,6 +1,7 @@
 import { buildPrompt, type AgentRequest } from "./agent";
 import { readBoard } from "./board";
 import { readAutoRefine } from "./config";
+import { parseQuestion } from "./questions";
 import { listSessions, startSession } from "./registry";
 import type { Card } from "./types";
 
@@ -26,17 +27,24 @@ function byRefineOrder(a: Card, b: Card): number {
   return level(a.priority) - level(b.priority) || level(a.roi) - level(b.roi) || a.id - b.id;
 }
 
-// A card the dispatcher should refine: the same cards the old manual Refine
-// button showed — `todo`, no open questions, with unfinished todos. A card with
-// open questions is skipped (an auto-refine session ends either `ready` or
-// holding human-only questions, so skipping question-cards both leaves those
-// questions for the user AND stops the dispatcher re-picking a card it just
-// refined — no spin). A card with every todo checked is done, not refinable.
+// A card the dispatcher should auto-refine: `todo`, with unfinished todos, and
+// not already settled on the user. Auto-refine keeps working a card until every
+// open question is `[user]` — a judgment call it can't decide alone — so it picks
+// a card that has no questions (a plain refine) OR at least one question still
+// untagged (freshly raised, needs triage) or `[agent]` (mid-answer). A card whose
+// every question is `[user]` is left for the human — this is what stops the
+// dispatcher re-picking a card it can't move, so there's no spin. A card with
+// every todo checked is done, not refinable.
 function needsRefine(card: Card): boolean {
   if (card.status !== "todo") return false;
-  if (card.questions.length > 0) return false;
   const { total, done } = card.todos;
   if (total > 0 && done === total) return false; // all todos checked — archive, don't refine
+  if (
+    card.questions.length > 0 &&
+    card.questions.every((q) => parseQuestion(q).tag === "user")
+  ) {
+    return false; // nothing left but human-only questions — wait on the user
+  }
   return true;
 }
 
@@ -47,9 +55,9 @@ function tick(): void {
     if (!readAutoRefine()) return; // switch off — nothing auto-runs
 
     const sessions = listSessions();
-    // One refine at a time: with the manual button gone every refine session is
-    // the dispatcher's own, so one already running means this tick waits.
-    if (sessions.some((s) => s.status === "running" && s.action === "refine")) return;
+    // One auto-refine at a time: every auto-refine session is the dispatcher's
+    // own, so one already running means this tick waits.
+    if (sessions.some((s) => s.status === "running" && s.action === "auto-refine")) return;
     // A card already in any live session is skipped (startSession's per-card lock
     // would refuse it anyway) so we move on to the next candidate.
     const busy = new Set(
@@ -62,7 +70,7 @@ function tick(): void {
       .sort(byRefineOrder)[0];
     if (!next) return;
 
-    const req: AgentRequest = { action: "refine", id: next.id, title: next.title };
+    const req: AgentRequest = { action: "auto-refine", id: next.id, title: next.title };
     startSession(req, buildPrompt(req));
   } catch {
     // swallow — keep the timer alive for the next tick

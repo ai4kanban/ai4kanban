@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FiArchive,
   FiChevronRight,
@@ -25,9 +25,10 @@ import {
   RunningBadge,
   SessionLog,
 } from "./agent-shared";
-import { LevelSelect, ModuleChip, StatusPill, TodoProgress, TrackChip } from "./chips";
+import { LevelSelect, ModuleChip, QuestionTagBadge, StatusPill, TodoProgress, TrackChip } from "./chips";
+import { parseQuestion } from "@/lib/questions";
 import { Markdown } from "./Markdown";
-import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useSessionLog } from "./sessions";
+import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
 
@@ -95,6 +96,27 @@ export function CardPage({
   );
 
   const { sessions, start } = useAgentSessions(onFinish);
+
+  // Re-read the card in place whenever any session finishes — from this tab or
+  // another. The onFinish above only covers sessions this tab started; a session
+  // from the board view or another tab can rewrite the card while this page is
+  // open, so give the page the same running-set diff Board uses. (Own-session
+  // reject/archive still navigate home via onFinish; this only adds the in-place
+  // refresh for the rest.)
+  const refresh = useCallback(() => router.refresh(), [router]);
+  const prevRunning = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const now = new Set(sessions.filter((r) => r.status === "running").map((r) => r.sessionId));
+    let finished = false;
+    for (const id of prevRunning.current) if (!now.has(id)) finished = true;
+    prevRunning.current = now;
+    if (finished) refresh();
+  }, [sessions, refresh]);
+
+  // On tab focus, re-read the card once, unconditionally — so a session that ran
+  // entirely while the tab was hidden can't leave this page stale (the diff above
+  // never witnessed it running). A fresh read is always correct.
+  useOnTabFocus(refresh);
 
   // A live session on this card (from any tab) blocks a second one and shows a badge.
   const busy = runningCardIds(sessions).has(card.id);
@@ -321,10 +343,18 @@ export function CardPage({
             <div className="nb-tag mb-1">
               <span style={{ color: "var(--color-nb-accent)" }}>?</span> open questions
             </div>
-            <ul className="list-disc pl-5 text-[13px]">
-              {card.questions.map((q, i) => (
-                <li key={i}>{q}</li>
-              ))}
+            <ul className="flex flex-col gap-1.5 text-[13px]">
+              {card.questions.map((q, i) => {
+                const { tag, text } = parseQuestion(q);
+                return (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="mt-px shrink-0">
+                      <QuestionTagBadge tag={tag} />
+                    </span>
+                    <span className="min-w-0 flex-1">{text}</span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

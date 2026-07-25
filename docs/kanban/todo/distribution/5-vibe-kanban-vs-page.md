@@ -8,7 +8,7 @@ blocked_by: []
 related: [2]
 modules: [site]
 questions:
-  - The page copy was written by a prior run that skipped the card's 'get the table reviewed' gate (and it still carries the fork mentions the framing decision forbids). Do you want to review/approve the finished page copy — hero, the 'where Vibe wins' section, decision columns — before it ships, or is trimming the fork mentions the only thing left before this is done?
+  - "[user] Do you want to personally sign off on the finished vs-vibe-kanban page copy (hero, 'where Vibe wins', decision columns) before it ships, or should the agent ship it once the fork mentions are trimmed, the honesty/framing review passes, and typecheck/lint pass?"
 ---
 
 The `vs-vibe-kanban` page is **already built** (see "What already shipped"). This card is
@@ -55,14 +55,33 @@ The page and its parts are written and wired in — staged in git, not yet commi
 - [x] Write the comparison as `web/public/vs-vibe-kanban.md`.
 - [x] Build the route and components from the table.
 - [x] Add the page to the header nav (sitemap auto-discovers it).
-- [ ] Remove every "community fork" mention — it breaks the resolved "don't point readers
-  elsewhere" rule. Four spots: the last item in `decisionVibe` in `vs-vibe-content.ts`,
-  `VkSummary.tsx`, `VkPurpose.tsx`, and the matching lines in `web/public/vs-vibe-kanban.md`.
-  Replace each with the plain "our skill isn't that engine, and stop there" line — no nudge
-  to a fork.
+- [ ] Remove every community-fork mention — it breaks the resolved "don't point readers
+  elsewhere" rule. Confirmed spots: `vs-vibe-content.ts` line 144 (the last `decisionVibe`
+  item), `VkSummary.tsx` line 15, `VkPurpose.tsx` line 61, and the mirror lines in
+  `web/public/vs-vibe-kanban.md` (18, 67, 119). The rendered page comes from the `.tsx`
+  components; the `.md` is a hand-synced source, so edit both. Cut each to the honest point —
+  "our skill isn't that engine" — with no fork nudge.
+- [ ] Trim any claim that goes past the approved shutdown facts. `VkSummary.tsx` (and the
+  matching `.md` lines) say paid plans were "cancelled and refunded" and cloud features were
+  "retired" — that is beyond the fact set framing decision #1 approved. Verify each against
+  the card's research or cut it back to the approved facts; don't ship an unverified specific.
 - [ ] Read the finished page against the two framing decisions and check the copy is honest
   and matches the source table.
 - [ ] Typecheck and lint the web build (`cd web && pnpm typecheck && pnpm run lint`).
+
+## Decided by the agent
+- Is trimming the fork mentions the only thing left? No. Two other Todo items remain: the
+  honesty/framing review pass and `pnpm typecheck && pnpm run lint`. The fork lines are real
+  framing-decision violations, not optional polish.
+- Fork inventory (verified): `vs-vibe-content.ts:144`, `VkSummary.tsx:15`, `VkPurpose.tsx:61`,
+  and `vs-vibe-kanban.md:18,67,119`. No fork mention in the route file or anywhere else.
+- Is the copy otherwise honest and matched to the source table? Yes. The "10 dimensions"
+  claim matches the table's 10 rows, the component matrix matches the `.md` table row-for-row,
+  and the "where Vibe wins" / decision columns state Vibe's parallel-agent and review
+  strengths plainly — consistent with both resolved framing decisions. One exception: the
+  "cancelled and refunded / cloud retired" line goes past the approved facts (now its own Todo).
+- Does the user want to sign off on the copy before it ships? Left for the user — a
+  product/positioning call, tagged `[user]`.
 
 ## Out of scope
 - Reworking the README or home-page copy for keywords like `claude code kanban` or

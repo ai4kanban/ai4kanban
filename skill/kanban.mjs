@@ -6,6 +6,7 @@
 //   memory-init — lazily scaffold a module's memory path with the five-file set
 //   create  — allocate task id(s); with --title, also write the card's frontmatter + index it
 //   update  — rewrite a card's frontmatter (priority/roi/links/questions, move track, rename)
+//   tag     — set/clear the [user]/[agent] tag on one open question (auto-refine triage)
 //   migrate — convert old bold-header cards to the frontmatter meta format
 //   archive — remove a finished task's file/folder + its README entry, record "completed"
 //   reject  — same removal, record "rejected"
@@ -20,6 +21,7 @@
 //   node kanban.mjs create [--count N]                  allocate N ids (default 1), print them
 //   node kanban.mjs create --title T --track K [opts]   scaffold one card (frontmatter + body template + index)
 //   node kanban.mjs update <id> [opts]                  rewrite a card's frontmatter / move / rename
+//   node kanban.mjs tag <id> <n> <user|agent|none>      set/clear the tag on the nth open question
 //   node kanban.mjs migrate [--dry-run]                 convert old bold-header cards to frontmatter
 //   node kanban.mjs archive <id>                        finish task <id> (file/folder + README + metric)
 //   node kanban.mjs reject  <id>                        reject task <id> (file/folder + README + metric)
@@ -468,6 +470,36 @@ function parseFrontmatter(text) {
   return { meta, body: lines.slice(i + 1).join('\n') }
 }
 
+// ---- question tags ---------------------------------------------------------
+//
+// An open question may lead with a tag token — `[user] ...` or `[agent] ...` —
+// saying who owns it: the human (a judgment call it can't decide) or the agent
+// (one auto-refine answers itself). No token means untagged: freshly raised, not
+// yet triaged. The tag lives in the string; parseQuestion splits it off,
+// formatQuestion puts it back. Kept in step with parseQuestion in
+// kanban-ui/lib/questions.ts.
+const QUESTION_TAGS = ['user', 'agent']
+
+function parseQuestion(raw) {
+  const m = String(raw).match(/^\[(user|agent)\]\s+([\s\S]*)$/)
+  return m ? { tag: m[1], text: m[2] } : { tag: null, text: String(raw) }
+}
+
+function formatQuestion(tag, text) {
+  return tag ? `[${tag}] ${text}` : text
+}
+
+// Warn (don't fail) when a question leads with a `[...]` token that isn't a known
+// tag — almost always a typo like `[users]` that would silently read as text.
+function warnBadQuestionTags(questions) {
+  for (const q of questions) {
+    const m = String(q).match(/^\[([^\]]+)\]\s/)
+    if (m && !QUESTION_TAGS.includes(m[1].toLowerCase())) {
+      warn(`question tag "[${m[1]}]" isn't recognised — use [user] or [agent] (or no tag). Stored as literal text.`)
+    }
+  }
+}
+
 // A todo item in any accepted form: `- [ ]`, `- []`, `- [x]`, `* [X]`, … — the shape
 // counts, not the literal string.
 const TODO_ITEM = /^[ \t]*[-*+][ \t]*\[[ xX]?\]/m
@@ -573,8 +605,9 @@ _(not filled in yet — the user writes this.)_
 `,
   'decisions.md': `# Decisions
 
-Settled answers to cards' open questions — the question, then the answer, once resolved.
-The resolve flow appends here. Read before proposing so you don't re-ask a settled call.
+Settled answers to cards' open questions, grouped by topic. Keep only **user-facing**
+calls that guide future planning — what a user can see, do, or would care about.
+Internal detail stays on the card.
 `,
   'redesign.md': `# Redesign
 
@@ -715,6 +748,7 @@ function cmdCreate(args) {
   const related = flags.related !== undefined ? parseIdList(flags.related, 'related', start) : []
   const modules = flags.modules !== undefined ? validModules(parseModuleList(flags.modules)) : []
   const questions = flags.question !== undefined ? (Array.isArray(flags.question) ? flags.question : [flags.question]).map(String) : []
+  warnBadQuestionTags(questions)
   const slug = slugify(flags.slug !== undefined ? flags.slug : title)
   const fileRel = path.join(track, `${start}-${slug}.md`)
   const file = path.join(TODO, fileRel)
@@ -789,6 +823,7 @@ function cmdUpdate(args) {
   }
   if (flags.question !== undefined) {
     meta.questions = (Array.isArray(flags.question) ? flags.question : [flags.question]).map(String)
+    warnBadQuestionTags(meta.questions)
     changes.push('questions')
   }
 
@@ -843,6 +878,35 @@ function cmdUpdate(args) {
     addReadmeRef(curTrack, id, meta.title, curRel)
   }
   console.log(`updated #${id}: ${changes.join(', ') || '(nothing changed)'}`)
+}
+
+// Set (or clear) the tag on one open question, so the auto-refine loop can hand a
+// question to the human without rewriting the whole list. `n` is the question's
+// 1-based position; `tag` is user | agent | none (none strips any tag). Reads and
+// rewrites the frontmatter through the same path as `update`, so byte layout and
+// group-root handling stay identical.
+function cmdTag(args) {
+  const [idRaw, nRaw, tagRaw] = args
+  const id = Number(idRaw)
+  if (!Number.isInteger(id)) die('need a numeric task id: tag <id> <n> <user|agent|none>')
+  const n = Number(nRaw)
+  if (!Number.isInteger(n) || n < 1) die('need a 1-based question number: tag <id> <n> <user|agent|none>')
+  const tag = String(tagRaw || '').toLowerCase()
+  if (tag !== 'none' && !QUESTION_TAGS.includes(tag)) {
+    die(`tag must be one of ${QUESTION_TAGS.join(' | ')} | none (got "${tagRaw}")`)
+  }
+  const found = locate(id)
+  if (!found) die(`no task with id ${id} under ${rel(TODO)}`)
+  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+  const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+  if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
+  if (n > meta.questions.length) {
+    die(`#${id} has ${meta.questions.length} open question(s) — there's no question ${n} to tag.`)
+  }
+  const { text } = parseQuestion(meta.questions[n - 1])
+  meta.questions[n - 1] = formatQuestion(tag === 'none' ? null : tag, text)
+  fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
+  console.log(`tagged #${id} question ${n} as ${tag === 'none' ? '(untagged)' : `[${tag}]`}: ${text}`)
 }
 
 // ---- migrate old cards to frontmatter --------------------------------------
@@ -1091,6 +1155,8 @@ function main() {
       return cmdCreate(rest)
     case 'update':
       return cmdUpdate(rest)
+    case 'tag':
+      return cmdTag(rest)
     case 'migrate':
       return cmdMigrate(rest)
     case 'archive':
@@ -1122,7 +1188,7 @@ function main() {
   }
 }
 
-const COMMANDS = ['init', 'memory-init', 'create', 'update', 'migrate', 'archive', 'reject', 'run', 'peek', 'version', 'metrics', 'help']
+const COMMANDS = ['init', 'memory-init', 'create', 'update', 'tag', 'migrate', 'archive', 'reject', 'run', 'peek', 'version', 'metrics', 'help']
 
 const HELP = `kanban — the only sanctioned writer of docs/kanban/next-id.
 
@@ -1145,7 +1211,11 @@ Usage: node ${rel(SELF)} <command> [args]
   update <id> [opts]   rewrite a card's frontmatter (same opts as create, plus
                        --status todo|ready|implementing and --clear-questions).
                        --track moves the card + fixes the index; --slug renames it.
-                       Body is left untouched.
+                       Body is left untouched. A question may carry a leading
+                       [user]/[agent] tag saying who owns it.
+  tag <id> <n> <t>     set the tag on the nth open question (1-based): user | agent
+                       | none (none strips it). Used by the auto-refine loop to
+                       hand a question to the human without rewriting the list.
   migrate [--dry-run]  convert old bold-header cards to frontmatter; missing meta falls
                        back to empty / med. Skips cards that already have frontmatter.
   archive <id>         finish task <id>: remove its file/folder + README entry, count completed

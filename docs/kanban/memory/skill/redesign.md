@@ -5,6 +5,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Project memory
 
+- ❌ **Write a note to the board-root set *and* the module's set** → ✅ pick one copy by
+  the card's modules and write only there. The root set is the umbrella project's own
+  memory, not a mirror of the modules; copying module notes up buries what the root is for.
 - ❌ **Assume one top-level folder is one module** → ✅ a module can span several folders
   and two modules can share one, so no code maps a file path back to a module. Only the
   module's name is machine-read; where it lives is prose, a reference for the reader.
