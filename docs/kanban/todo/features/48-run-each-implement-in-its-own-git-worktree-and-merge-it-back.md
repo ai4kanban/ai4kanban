@@ -11,14 +11,6 @@ questions:
   - "[user] When does the work merge into main — as soon as the run finishes, or only after you read the diff and click Archive?"
   - "[user] A run never commits today; a worktree merge needs commits. May the agent commit inside its own worktree, and who writes the commit message?"
   - "[user] What should happen when the merge into main conflicts — keep the worktree and tell the user, or something else?"
-  - "[agent] Which runs get a worktree — only implement, or every action that writes files (refine, resolve, propose, archive), since those rewrite the same cards and README?"
-  - "[agent] The board itself (docs/kanban/) is in git. Do card and README writes stay on main so the UI sees them at once, while only code goes in the worktree?"
-  - "[agent] A new worktree only holds the last commit, so it does not have the user's uncommitted code edits. Does the run build on the last commit alone, or must the worktree carry the current working tree?"
-  - "[agent] .claude/ is gitignored and the skill folder is an untracked symlink, so a fresh worktree has no kanban.mjs and no /kanban skill. How does a run inside a worktree reach them?"
-  - "[agent] Where does the worktree live — inside the repo or outside it?"
-  - "[agent] The worktree carries its own old copy of docs/kanban/ that the agent can see and edit by mistake. Remove it from the worktree, or just declare it off-limits and guard the merge?"
-  - "[agent] A worktree has no node_modules, so a run cannot typecheck or lint its own work there. How does a run in a worktree check what it built?"
-  - The run is spawned with cwd in the worktree, but the board it must write is outside that folder. What makes the repo-root board reachable and writable for that run?
 ---
 
 Give each implement run its own git worktree so two runs never write the same files, and
@@ -51,22 +43,43 @@ merge the work back into main when the task is done.
   and whether it merged into main or is waiting.
 - If the merge does not go through, the card page says so and the worktree stays, so the
   user can go in and finish it by hand.
+- If their code is dirty when they click, the run says so in its log and works in the repo
+  root like today. A second Implement while that one is going is refused with a plain
+  message: the working tree is busy, commit or stash and try again.
+- Clicking Implement again on a card that already has a worktree picks up the same folder
+  and branch. Nothing in it is thrown away.
 
 ## Todo
 
-- [ ] Answer the open questions — the merge point, commits, and conflicts decide the rest.
-- [ ] Add a small worktree helper in `kanban-ui/lib/`: create, look up, and remove a
-      worktree for a card id.
-- [ ] Spawn implement runs with `cwd` set to the card's worktree instead of the repo root.
-- [ ] Handle a repo that is not clean or has no main branch — say why in the run log, and
-      fall back to the repo root rather than failing silently.
-- [ ] Decide and build where board writes go (see the open question), so the UI never reads
-      a stale board while a run is live.
-- [ ] Merge back at the point the open question settles, then remove the worktree.
+- [ ] Get the user's call on the three questions left — when the merge happens, whether the
+      agent may commit in its own worktree, and what a conflict does. They decide the rest.
+- [ ] Add a small worktree helper in `kanban-ui/lib/`: look a card's worktree up, make one
+      when it is missing, and remove it. Reuse always beats rebuild — never force a delete
+      over work that is still in there.
+- [ ] Make a new worktree at `.worktrees/<id>-<slug>/` on its own branch, leave
+      `docs/kanban/` out of it, and link in the skill folder and both `node_modules`
+      folders so the run has the `/kanban` skill and can typecheck what it wrote.
+- [ ] Add `.worktrees/` to `.gitignore` — without it the repo reads dirty and every run
+      falls back to the repo root.
+- [ ] Spawn implement runs with `cwd` in the card's worktree, and give the run write access
+      to the repo root as well, or every board write it makes is refused.
+- [ ] Put the repo root path in the implement prompt in full, and say every board command
+      and card edit happens there — the script reads the board from the folder it runs in.
+- [ ] Give a group run one worktree named after the root card, and show that path on the
+      root and on every subtask page.
+- [ ] Handle a repo that is not clean or has no main branch — say why in the run log and
+      fall back to the repo root rather than failing silently. Refuse a second implement
+      run while a fallback run is live, with a message saying to commit or stash.
+- [ ] Fall back to the repo root the same way when the configured agent is not Claude Code,
+      and say that reason in the run log.
+- [ ] Make archive and reject remove the card's worktree only when it is clean. When work is
+      left in it, keep it and write the branch and the full path into the run log, because
+      the card page is about to disappear.
+- [ ] Merge back at the point the user settles, from the repo root, run by the UI and not by
+      the agent — then remove the worktree.
 - [ ] Report the merge result on the card page — branch, path, merged or waiting.
 - [ ] Leave the worktree in place on a failed merge, and never delete a worktree that still
       has uncommitted changes.
-- [ ] Add the worktree folder to `.gitignore` if it sits inside the repo.
 - [ ] Update `kanban-ui/README.md` — where a run's code now lives and how it gets
       into main.
 - [ ] Fix the Vibe Kanban comparison copy (`web/public/vs-vibe-kanban.md` and the matching
@@ -177,3 +190,116 @@ merge the work back into main when the task is done.
   this repo — there is no `pnpm` and no `typecheck` script, and `npm run lint` stops on a
   question because there is no eslint config, which would hang an unattended run. Tell the run
   to use `npx tsc --noEmit`.
+
+- **Give the run the repo root in full, and let it write there** — the prompt names the repo
+  root path and says every board command and every card edit happens in that folder, and the
+  spawn adds that folder to what the run is allowed to write.
+  Both halves are needed, and both were tested. The script takes the board from the folder it
+  is run in and nowhere else, so with the working folder in the worktree every board command
+  died with "missing docs/kanban/next-id" — the same error whether the script was named by a
+  short path or a full one. Putting the repo root in front of the command fixed it: the same
+  command then read card 48 fine. The failure is loud, not silent, which is good: a run that
+  forgets can't quietly write a second board.
+  Writing is the half that is easy to miss. A run whose folder is the worktree is writing
+  outside it when it touches the board. Tested: with edits allowed only inside the run's own
+  folder, a write to a file in the repo root was refused with "requested permissions to write
+  to ..., but you haven't granted it yet". Naming the repo root as an extra allowed folder made
+  the same write pass. This never came up before because today the board is inside the run's
+  folder.
+  No new setting on the script. It has no board-path option, and giving it one would make the
+  skill care who called it. The prompt and the spawn are enough.
+  One trap: the allow-a-folder flag takes a list, so the prompt must not sit right after it —
+  tested, the prompt was eaten as a folder name.
+
+- **One worktree, named after the root** — a group run is one process with one working folder,
+  so one worktree is all it can have. It is named and branched after the root card id.
+  The root already owns the run: one session, one log, one badge, and the run locks the root
+  and every subtask (#45). The root id is the only id all of them share, and a subtask card
+  already lives inside the root's folder on the board.
+  Each subtask page shows that same worktree path, the same way it already shows the same log.
+
+- **Reuse the worktree, never rebuild it** — look the card's worktree up first and only make one
+  when it is missing. A re-run is a continue: same folder, same branch, left exactly as it is.
+  It is not reset and not rebased behind the user's back.
+  The reason is the work inside it. A run does not commit today, so the normal leftover is
+  uncommitted edits, and throwing those away is the one thing this card must not do.
+  Git agrees — tested. Making it again with the same branch fails ("a branch named ... already
+  exists"), and even at a fresh path git refuses ("already checked out at ..."). Removing it
+  fails too while it holds changes ("contains modified or untracked files, use --force"). So
+  "start fresh" can only mean forcing a delete over the user's work.
+  The run log says it is reusing the worktree and which commit it was made from, so an old base
+  is visible rather than a surprise at merge time.
+
+- **The UI runs the merge** — the agent may commit inside its own worktree (still an open
+  question above); putting the work into main is the UI's step, not the run's.
+  Three reasons. Main is checked out in the repo root, not in the worktree, so the merge happens
+  outside the folder the run works in. A run can end failed, or be stopped (#49), and a run that
+  was killed never reaches a merge step of its own — the UI is the only side that always sees a
+  run end, since it closes the log, stamps the duration and puts the card's stage back. And the
+  merge is one plain git command with no judgment in it, which is the kind of thing the UI
+  already runs itself.
+  Only the timing waits on the user (the first question). The owner is the same either way: if
+  the merge happens when the run ends, the UI does it as the session closes; if it happens at
+  Archive, the UI does it around the archive run.
+
+- **Refuse the second run, don't share the root again** — while one run is falling back to the
+  repo root, a second implement run is refused with a plain message: the working tree is busy,
+  commit or stash and try again.
+  It has to be refused, because it would always be a second fallback: the first run makes the
+  tree dirtier as it works, so the second one can never pass the clean check either. That is the
+  exact mixing this card exists to stop.
+  Waiting is worse than refusing. Nothing says when the tree will be clean, so a queued run
+  would sit on the card showing "implementing" with an empty log for as long as the user leaves
+  it dirty. Refusing is also what the UI already does — a second run on a card, or a second
+  create, gets a message straight back.
+  Nothing gets stuck. The user's way out is one commit or one stash, and then the worktree path
+  works again. Background runs cope on their own: the dispatcher skips a card it can't start and
+  tries again the next minute.
+
+- **No worktree manager in this card** — out of scope. Each worktree belongs to one card, and
+  that card's page already shows its path and whether the work merged, so the board is the list.
+  The pile does not grow on its own: a worktree goes when its work merges, and when its card is
+  archived or rejected with nothing uncommitted left in it. What survives is a card still on the
+  board whose work did not merge, which is the one case the card page is there to report.
+  Looking inside a worktree is card #50's job — it reads a run's changed files from the run's
+  worktree. A panel here would say the same thing twice.
+  It also fits the house rules: this card's scope says the pages keep their shape, and extra
+  browsing panels have been turned down before. Anything truly stray is one `git worktree list`
+  away, and we never force-delete a worktree that still holds work.
+
+- **An archived or rejected card leaves its worktree alone** — the folder and its branch stay
+  when anything is still uncommitted in there. Archive and reject only remove a worktree that
+  is clean.
+  The reason is that the work is nowhere else. Uncommitted files live in that folder only —
+  git holds no copy, and the branch is still sitting on the same commit as main when the run
+  committed nothing (tested). Deleting the folder loses the work for good, and a rejected card
+  is often the case where the user still wants to read what the agent wrote.
+  Git already works this way: `git worktree remove` refuses a folder with modified or untracked
+  files and tells you to pass `--force` — tested. We never pass it.
+  Nothing points at it once the card is gone, so the last run says it out loud: before it
+  finishes, the archive or reject run checks the card's worktree, and if work is left it writes
+  the branch name and the full worktree path into its log, so the user reads it on the spot and
+  the runs panel keeps it.
+  After that, git is the index. `git worktree list` still names the folder and the branch, and
+  the folder name carries the card id. Ids are never reused (`next-id` only counts up), so a
+  leftover can never clash with a later card.
+  Leaving it costs nothing. `.worktrees/` is gitignored, so the repo root's `git status` stays
+  clean, and `git worktree prune` does not touch it because the folder is still there — tested.
+  It waits until the user deals with it.
+
+- **Only a Claude Code command gets a worktree** — any other configured command runs in the repo
+  root, exactly like today.
+  A run in a worktree still has to write the board in the repo root, and that needs the
+  "allow this extra folder" flag, which is a Claude Code flag. Without it the write is refused.
+  So a worktree for another connector would buy a run that cannot tick a todo or update its own
+  card — worse than today, not better.
+  This follows the rule the code already uses, it is not a new one. `kanban-ui/lib/agent.ts` adds
+  its flags only when the binary is `claude`, and never pushes a Claude-only flag onto a
+  configured command; the resume handoff is gated the same way, and another connector simply does
+  not get the button. `decisions.md` says the same for the group run: only Claude Code can do it,
+  another connector falls back.
+  The fallback already exists on this card. Dirty code also drops the run back to the repo root
+  with a line in the run log. This is the same line with a different reason: no worktree because
+  the configured agent is not Claude Code.
+  One doc line changes with it: `kanban-ui/README.md` says today the agent "runs in your repo
+  root", which stays true for every connector except a Claude Code implement run.

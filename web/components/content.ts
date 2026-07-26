@@ -1,4 +1,4 @@
-export const GITHUB_URL = "https://github.com/dist0com/kanban-skill";
+export const GITHUB_URL = "https://github.com/dist0com/ai4kanban";
 
 export const features: { icon: string; title: string; body: string }[] = [
   {

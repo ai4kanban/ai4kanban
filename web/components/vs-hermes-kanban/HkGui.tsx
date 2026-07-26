@@ -65,7 +65,7 @@ export function HkGui() {
         <GuiCard
           tag="🗂️"
           heading="Kanban skill — local board"
-          src="https://cdn.kanbanskill.cc/kanban-skill-ui-v2.jpg"
+          src="https://cdn.ai4kanban.dev/kanban-skill-ui-v2.jpg"
           alt="The kanban skill's local web board — a light board with Blockers, UI, Skill, Docs, and Distribution columns and a Create task button."
         >
           A local web board over the Markdown files. Card actions —{" "}

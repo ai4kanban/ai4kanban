@@ -10,7 +10,7 @@ export function Install() {
         commands):
       </p>
       <CodeBlock>{`Set up the kanban skill for this project. Read
-https://kanbanskill.cc/INSTALL_PROMPT.txt
+https://ai4kanban.dev/INSTALL_PROMPT.txt
 and follow it.`}</CodeBlock>
       <p className="text-muted">
         The agent copies the skill into{" "}

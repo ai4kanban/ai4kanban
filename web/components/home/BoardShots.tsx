@@ -11,12 +11,12 @@ type Mode = "board" | "detail";
 
 const SHOTS: Record<Mode, { src: string; alt: string; label: string }> = {
   board: {
-    src: "https://cdn.kanbanskill.cc/kanban-skill-ui-v2.jpg",
+    src: "https://cdn.ai4kanban.dev/kanban-skill-ui-v2.jpg",
     alt: "The kanban skill's local web board — Blockers, UI, Skill, Docs, and Distribution columns of Markdown cards with #ids, priority and ROI badges, and subtask progress bars.",
     label: "Board view",
   },
   detail: {
-    src: "https://cdn.kanbanskill.cc/kanban-skill-ui-detail-v2.jpg",
+    src: "https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v2.jpg",
     alt: "A task detail page in the local board — title, Implement / Review / Edit / Reject actions, a metadata row for track, priority, ROI, todos and blockers, and the full card body.",
     label: "Card detail",
   },

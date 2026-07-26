@@ -1,6 +1,6 @@
 # Kanban Skill
 
-![Kanban Skill](https://cdn.kanbanskill.cc/og-image.jpg)
+![Kanban Skill](https://cdn.ai4kanban.dev/og-image.jpg)
 
 **A local, agentic task board in Markdown.**
 
@@ -25,7 +25,7 @@ From your project root, tell Claude Code (or any coding agent that can run shell
 
 ```
 Set up the kanban skill for this project. Read
-https://kanbanskill.cc/INSTALL_PROMPT.txt and follow it.
+https://ai4kanban.dev/INSTALL_PROMPT.txt and follow it.
 ```
 
 The agent gets the skill into your project, reads your codebase to fill in the
@@ -33,7 +33,7 @@ configuration, scaffolds the board under `docs/kanban/`, and proposes your first
 tasks. Both your config and your board live in `docs/kanban/` — the skill folder holds only
 generic code. From then on you just talk to the board.
 
-Prefer plugins? `/plugin marketplace add dist0com/kanban-skill` then
+Prefer plugins? `/plugin marketplace add dist0com/ai4kanban` then
 `/plugin install kanban@kanban` makes the skill available; from there, `kanban init` plus
 filling in `docs/kanban/config.md` is the whole setup — nothing to copy in. The install
 prompt above walks either path.
@@ -64,12 +64,12 @@ A local board over the same Markdown files — read a card in full and act on it
 click instead of a prompt:
 
 ```bash
-npx kanban-skill-ui        # http://localhost:7420
+npx ai4kanban-ui        # http://localhost:7420
 ```
 
-![The board view in the web UI](https://cdn.kanbanskill.cc/kanban-skill-ui-v2.jpg)
+![The board view in the web UI](https://cdn.ai4kanban.dev/kanban-skill-ui-v2.jpg)
 
-![Card detail view in the web UI](https://cdn.kanbanskill.cc/kanban-skill-ui-detail-v2.jpg)
+![Card detail view in the web UI](https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v2.jpg)
 
 Localhost only — no hosting, no login. See [kanban-ui/](kanban-ui/README.md) for options.
 

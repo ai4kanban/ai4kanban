@@ -11,8 +11,8 @@ questions: []
 ---
 
 Don't depend on one channel. The site question is settled — the landing page is live
-at kanbanskill.cc. The LobeHub listing is also requested (2026-07-21): we submitted
-the skill repo, https://github.com/dist0com/kanban-skill, and now wait on their
+at ai4kanban.dev. The LobeHub listing is also requested (2026-07-21): we submitted
+the skill repo, https://github.com/dist0com/ai4kanban, and now wait on their
 review — nothing more to do for that step. What's left: the awesome-list PR, the
 directory checks, and the `PUBLISHING.md` updates. skills.sh and the official
 directory are already submitted, also waiting on review.
@@ -27,7 +27,7 @@ directory are already submitted, also waiting on review.
   hand-curated list (1000+ skills, covers Claude Code, Codex, Cursor, Gemini CLI —
   fits our portable SKILL.md). A human-reviewed spot there carries more trust than a
   scraped page. It can take weeks to merge; fine, it runs in the background.
-- **Site: done.** kanbanskill.cc is live on Cloudflare Pages with the custom domain.
+- **Site: done.** ai4kanban.dev is live on Cloudflare Pages with the custom domain.
 
 ## Watch out
 - Several other kanban skills already sit on these directories (MCP Market, SkillsMP,
@@ -37,12 +37,12 @@ directory are already submitted, also waiting on review.
 ## Todo
 - [x] Shortlist a second marketplace and check its submission rules.
 - [x] Submit the repo to LobeHub's skills directory. (Done 2026-07-21: requested the
-      listing for https://github.com/dist0com/kanban-skill; waiting on their review,
+      listing for https://github.com/dist0com/ai4kanban; waiting on their review,
       nothing else to do for now.)
 - [ ] Open a PR adding the repo to VoltAgent/awesome-agent-skills.
 - [ ] Check claudemarketplaces.com, SkillsMP, and MCP Market for the repo; submit
       wherever auto-indexing missed it.
 - [ ] Record every live listing in the Channel 3 table in `PUBLISHING.md`, so
       releases ping them.
-- [x] Decide site vs. no site, and where it lives. (Done: kanbanskill.cc is live.)
+- [x] Decide site vs. no site, and where it lives. (Done: ai4kanban.dev is live.)
 - [ ] Update the "A website" section in `PUBLISHING.md` to record the site decision.

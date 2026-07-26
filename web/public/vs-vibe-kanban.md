@@ -131,4 +131,4 @@ company attached — and that's exactly what the kanban skill is.
 
 ---
 
-Install the kanban skill · https://github.com/dist0com/kanban-skill
+Install the kanban skill · https://github.com/dist0com/ai4kanban

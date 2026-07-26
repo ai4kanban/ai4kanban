@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 };
 
 const SHOTS = {
-  board: "https://cdn.kanbanskill.cc/kanban-skill-ui-v2.jpg",
-  detail: "https://cdn.kanbanskill.cc/kanban-skill-ui-detail-v2.jpg",
+  board: "https://cdn.ai4kanban.dev/kanban-skill-ui-v2.jpg",
+  detail: "https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v2.jpg",
 };
 
 // One browser-chromed screenshot. Both shots crop to the same body height so the

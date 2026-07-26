@@ -42,13 +42,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Send *.pages.dev visitors to the custom domain. Raw inline script so
-            it runs during HTML parse (no flash, no dependency on the JS bundle).
-            Guarded on hostname so it never loops on kanbanskill.cc or localhost.
-            Canonical tags handle SEO; this just shepherds human visitors. */}
+        {/* Send *.pages.dev and the old kanbanskill.cc domain to the current one.
+            Raw inline script so it runs during HTML parse (no flash, no dependency
+            on the JS bundle). Guarded on hostname so it never loops on
+            ai4kanban.dev or localhost. Canonical tags handle SEO; this just
+            shepherds human visitors. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `if(location.hostname.endsWith(".pages.dev")){location.replace("https://kanbanskill.cc"+location.pathname+location.search+location.hash)}`,
+            __html: `if(location.hostname.endsWith(".pages.dev")||location.hostname.endsWith("kanbanskill.cc")){location.replace("https://ai4kanban.dev"+location.pathname+location.search+location.hash)}`,
           }}
         />
       </head>

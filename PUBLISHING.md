@@ -25,7 +25,7 @@ either copy the skill folder in by hand (see the README) or install it as a plug
 Already wired up. Users run:
 
 ```
-/plugin marketplace add dist0com/kanban-skill
+/plugin marketplace add dist0com/ai4kanban
 /plugin install kanban@kanban
 ```
 
@@ -51,7 +51,7 @@ which ships in every Claude Code install. Third parties can submit through their
 directory submission form; plugins must meet quality and security review.
 
 - [ ] Read the contribution / submission guidelines on that repo.
-- [ ] Submit `dist0com/kanban-skill` via the form.
+- [ ] Submit `dist0com/ai4kanban` via the form.
 - [ ] Address review feedback.
 
 ## Channel 3 — third-party directories (index public repos)
@@ -61,7 +61,7 @@ having a clean public repo with a good README and the manifests above.
 
 | Directory | URL | How to get listed |
 | --- | --- | --- |
-| skills.sh (Vercel Agent Skills) | https://skills.sh | Auto-indexes public repos with a `SKILL.md` or `.claude-plugin/marketplace.json`. Install: `npx skills add dist0com/kanban-skill`. Submission rules: https://skills.sh/docs |
+| skills.sh (Vercel Agent Skills) | https://skills.sh | Auto-indexes public repos with a `SKILL.md` or `.claude-plugin/marketplace.json`. Install: `npx skills add dist0com/ai4kanban`. Submission rules: https://skills.sh/docs |
 | Claude Marketplaces | https://claudemarketplaces.com | Indexes public repos daily; submit if not auto-picked |
 | LobeHub Skills | https://lobehub.com/skills | Submission / sync from GitHub |
 | SkillsMP | https://skillsmp.com | Submission / sync from GitHub |
@@ -84,8 +84,8 @@ follows it (name + description frontmatter), so the skill is portable beyond Cla
 
 ## Channel 5 — the board UI on npm
 
-The optional local board UI ships as its own npm package, **`kanban-skill-ui`**, so anyone
-with a `docs/kanban/` board runs it with one command — `npx kanban-skill-ui` — instead of
+The optional local board UI ships as its own npm package, **`ai4kanban-ui`**, so anyone
+with a `docs/kanban/` board runs it with one command — `npx ai4kanban-ui` — instead of
 copying the source. It's a Next.js app built with `output: 'standalone'`, so the published
 tarball is a prebuilt server (nothing compiles on the user's machine).
 
@@ -107,9 +107,12 @@ cd kanban-ui
 npm publish        # prepublishOnly builds the standalone server first
 ```
 
-Then smoke-test from any repo that has a board: `npx kanban-skill-ui`. First publish is
-public and unscoped; the name `kanban-skill-ui` must never be renamed once live (breaks
-everyone's `npx`).
+Then smoke-test from any repo that has a board: `npx ai4kanban-ui`. It is public and
+unscoped. Don't rename it again — a rename breaks everyone's `npx`.
+
+The package was called `kanban-skill-ui` until the 2026-07-26 rename. That name is
+retired: run `npm deprecate kanban-skill-ui "renamed to ai4kanban-ui"` once, then leave
+it alone. There is no alias package and no shim.
 
 ## A website (optional)
 
@@ -132,6 +135,6 @@ Whatever the choice, the landing content is the README's pitch plus the two inst
 3. README and guides reflect any behavior change.
 4. `npm publish` the board UI from `kanban-ui/` (Channel 5) — its `prepublishOnly` runs
    `sync-version.mjs --check` first, so a version-drifted UI is refused; smoke-test
-   `npx kanban-skill-ui`. The UI shares the one version, so publish it every release.
+   `npx ai4kanban-ui`. The UI shares the one version, so publish it every release.
 5. Push to `main` **with tags** (`git push --tags`); directories that auto-sync pick it up.
    Ping the ones that don't.

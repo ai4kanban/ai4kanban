@@ -1,6 +1,6 @@
-# kanban-skill-ui
+# ai4kanban-ui
 
-The local board UI for the [kanban skill](https://kanbanskill.cc/). It shows every track in
+The local board UI for the [kanban skill](https://ai4kanban.dev/). It shows every track in
 a browser and drives the work from buttons: each button spawns an agent in your repo that
 does the kanban work for you — propose, refine, implement, archive.
 
@@ -8,7 +8,7 @@ The markdown files in `docs/kanban/` stay the single source of truth. The UI onl
 writes those files, so nothing here is locked in.
 
 ```
-npx kanban-skill-ui        # http://localhost:7420, localhost only
+npx ai4kanban-ui        # http://localhost:7420, localhost only
 ```
 
 Installing it, pointing it at a board elsewhere, changing the port, updating: the skill's

@@ -10,15 +10,15 @@ content — no navigation, styling, or scripts.
 
 ## Pages
 
-- [Home — your task board in Markdown, right next to your code](https://kanbanskill.cc/index.md): What the skill is, how to install it in one prompt, driving the board in plain language, the local board UI, the indie-hacker preset, and Markdown project management (recurring tasks, group tasks, project memory, metrics).
-- [Kanban skill vs. GitHub Issues](https://kanbanskill.cc/vs-github-issues.md): A head-to-head across storage, token cost, agent ergonomics, teams, and transparency — a local Markdown scratch-board vs. a shared, public system of record, and when to use each.
-- [Kanban skill vs. Hermes Agent Kanban](https://kanbanskill.cc/vs-hermes-kanban.md): Two overlapping agent kanban boards — plain diffable files that run on any agent (even Hermes) vs. a durable, shared SQLite queue many named agents claim tasks from. Covers harness support, memory vs. audit, autonomy level, dashboards, and trade-offs.
+- [Home — your task board in Markdown, right next to your code](https://ai4kanban.dev/index.md): What the skill is, how to install it in one prompt, driving the board in plain language, the local board UI, the indie-hacker preset, and Markdown project management (recurring tasks, group tasks, project memory, metrics).
+- [Kanban skill vs. GitHub Issues](https://ai4kanban.dev/vs-github-issues.md): A head-to-head across storage, token cost, agent ergonomics, teams, and transparency — a local Markdown scratch-board vs. a shared, public system of record, and when to use each.
+- [Kanban skill vs. Hermes Agent Kanban](https://ai4kanban.dev/vs-hermes-kanban.md): Two overlapping agent kanban boards — plain diffable files that run on any agent (even Hermes) vs. a durable, shared SQLite queue many named agents claim tasks from. Covers harness support, memory vs. audit, autonomy level, dashboards, and trade-offs.
 
 ## Recipes
 
-- [Daily kanban maintenance](https://kanbanskill.cc/recipes/daily-kanban-maintenance.md): A recurring upkeep task — each pass proposes new work, prunes stale cards, and keeps priorities short, so the board stays sharp on its own.
-- [Competitor analysis loop](https://kanbanskill.cc/recipes/competitor-analysis-loop.md): A recurring competitor-intelligence task powered by dist0 — pull the competitors people name in your Reddit signal, study each real one deeply, and file build/grow/offer ideas as cards.
+- [Daily kanban maintenance](https://ai4kanban.dev/recipes/daily-kanban-maintenance.md): A recurring upkeep task — each pass proposes new work, prunes stale cards, and keeps priorities short, so the board stays sharp on its own.
+- [Competitor analysis loop](https://ai4kanban.dev/recipes/competitor-analysis-loop.md): A recurring competitor-intelligence task powered by dist0 — pull the competitors people name in your Reddit signal, study each real one deeply, and file build/grow/offer ideas as cards.
 
 ## More
 
-- [GitHub repository](https://github.com/dist0com/kanban-skill): Source, install prompt, and the skill files.
+- [GitHub repository](https://github.com/dist0com/ai4kanban): Source, install prompt, and the skill files.

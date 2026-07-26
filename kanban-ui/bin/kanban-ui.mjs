@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Launch the prebuilt board UI straight from the npm cache.
 //
-//   npx kanban-skill-ui               # run from your repo root
-//   npx kanban-skill-ui --board .     # or point it at the repo
-//   npx kanban-skill-ui --port 4000
+//   npx ai4kanban-ui               # run from your repo root
+//   npx ai4kanban-ui --board .     # or point it at the repo
+//   npx ai4kanban-ui --port 4000
 //
 // The package ships a self-contained Next server (.next/standalone/server.js,
 // output: 'standalone'), so there's nothing to compile here. The server reads
@@ -22,9 +22,9 @@ const server = path.join(pkgDir, ".next", "standalone", "server.js");
 function help() {
   process.stdout.write(
     [
-      "kanban-skill-ui — run the local kanban board UI",
+      "ai4kanban-ui — run the local kanban board UI",
       "",
-      "Usage: npx kanban-skill-ui [options]",
+      "Usage: npx ai4kanban-ui [options]",
       "",
       "Options:",
       "  -b, --board <dir>   repo that holds docs/kanban/ (default: current dir)",
@@ -48,7 +48,7 @@ for (let i = 0; i < argv.length; i++) {
     help();
     process.exit(0);
   } else {
-    process.stderr.write(`kanban-skill-ui: unknown option "${a}"\n\n`);
+    process.stderr.write(`ai4kanban-ui: unknown option "${a}"\n\n`);
     help();
     process.exit(1);
   }
@@ -57,22 +57,22 @@ board = path.resolve(board || process.cwd());
 
 if (!fs.existsSync(server)) {
   process.stderr.write(
-    `kanban-skill-ui: prebuilt server not found at ${server}\n` +
+    `ai4kanban-ui: prebuilt server not found at ${server}\n` +
       "The package should ship it; try reinstalling (npm cache clean --force).\n",
   );
   process.exit(1);
 }
 if (!fs.existsSync(path.join(board, "docs", "kanban", "todo"))) {
   process.stderr.write(
-    `kanban-skill-ui: no docs/kanban/todo/ found at or above ${board}\n` +
+    `ai4kanban-ui: no docs/kanban/todo/ found at or above ${board}\n` +
       "Run it from your repo root, or pass --board <dir>.\n",
   );
   // Keep going — lib/paths.ts still walks up and gives the same error if truly missing.
 }
 
 process.stdout.write(
-  `kanban-skill-ui: board ${board}\n` +
-    `kanban-skill-ui: http://localhost:${port}\n`,
+  `ai4kanban-ui: board ${board}\n` +
+    `ai4kanban-ui: http://localhost:${port}\n`,
 );
 
 const child = spawn(process.execPath, [server], {

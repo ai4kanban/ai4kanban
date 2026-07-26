@@ -9,8 +9,6 @@ related: [16]
 modules: [local-ui]
 questions:
   - "[user] The background timer only starts once a browser tab calls the server. Should this card just say that in plain words, or also fix it so the timer runs from server start?"
-  - "[agent] Where does this live — inside the Configuration dialog under the switch, or as its own quiet line in the header?"
-  - "[agent] Does it show only the last auto-refine and the next pick, or a short list of the recent ones?"
 ---
 
 Show what the auto-refine switch is actually doing, so a user who turns it on can tell it is working and why it sometimes does nothing.
@@ -48,3 +46,37 @@ Card #16 adds an auto-implement switch to the same dialog. Write this status so 
 - [ ] Write the off state and the each-reason lines in plain words a first-time user gets in one pass.
 - [ ] Keep it on the existing poll — no new timer or fetch loop.
 - [ ] Update `kanban-ui/README.md` — the Auto-refine section should say what the status tells the user.
+
+## Decided by the agent
+
+- **Where it lives** — inside the Configuration dialog, right under the auto-refine switch,
+  where the switch's caption already sits. Not the header: `redesign.md` says a global
+  setting never gets its own header control.
+- **How much it shows** — the current refine, the last one, and the next pick. No list of
+  recent refines. The global runs panel already browses past runs, and a second history list
+  was rejected before.
+- **"A refine is already running" is not an idle reason** — that is the "refining right now"
+  line. Only a tick that picks nothing needs a reason.
+- **"Every card is busy" is a real reason** — the dispatcher also skips a card already locked
+  by another run, so an empty pick can mean the work is taken, not missing. It gets its own
+  line.
+- **When it does not know the last refine** — it says nothing about it. The runs list keeps
+  30 runs; once an auto-refine ages out, the fact is gone. No new store to remember it, and
+  no guess.
+- **The stopped-run reason belongs to #49** — that card adds the rule that a stopped run
+  holds a card back, so it adds the line too. This card only has to make the empty-pick path
+  return its reason from one place, so a new rule drops a line in without a rework.
+- **The "no tab open" case can never be a shown reason** — reading the status needs a tab,
+  and opening the board is itself what starts the timer. If we only explain it in words, it
+  has to be a standing sentence ("refining runs only while the board is open"), not a
+  detected state. Whoever answers the open question above should know that.
+
+### The lines it shows
+- On, refining: "Refining #NN — <title>."
+- On, idle, work waiting: "Next up: #NN — <title>."
+- On, idle, nothing to pick — one of:
+  - "Every card is waiting on you." (every card's open questions are all `[user]`)
+  - "No card needs refining." (nothing left with unfinished todos)
+  - "Every card that needs refining is already running." (candidates are locked by other runs)
+- Plus, when it is known: "Last refined #NN — <title>, <time>."
+- Off: "Nothing is refined while this is off."

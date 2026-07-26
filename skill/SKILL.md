@@ -212,7 +212,7 @@ Full guide in `references/recurring-task.md`.
 ## Run the board locally
 
 Optional: a small local UI to drive the board from buttons instead of the terminal. Run
-it from your repo root with `npx kanban-skill-ui` (localhost only). Full guide in
+it from your repo root with `npx ai4kanban-ui` (localhost only). Full guide in
 `references/local-ui.md`.
 
 ## Updating the skill and local UI

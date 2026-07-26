@@ -1,17 +1,17 @@
 {
-  "name": "kanban-skill-ui",
+  "name": "ai4kanban-ui",
   "version": "0.3.0",
   "description": "Local kanban board UI — run it on your machine to see the board and spawn agents (claude -p) to do the kanban work. Files in docs/kanban/ stay the source of truth.",
   "keywords": ["kanban", "claude", "claude-code", "agent", "markdown", "board", "ui"],
   "license": "Apache-2.0",
-  "homepage": "https://kanbanskill.cc/",
+  "homepage": "https://ai4kanban.dev/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dist0com/kanban-skill.git",
+    "url": "git+https://github.com/dist0com/ai4kanban.git",
     "directory": "kanban-ui"
   },
   "bin": {
-    "kanban-skill-ui": "bin/kanban-ui.mjs"
+    "ai4kanban-ui": "bin/kanban-ui.mjs"
   },
   "files": [
     "bin/",

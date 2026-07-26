@@ -11,7 +11,7 @@ import { uiConfigPath } from "./paths";
 // Stamped onto a freshly created ui.config.json so a hand-opened file still
 // explains itself. Kept in sync with the checked-in docs/kanban/ui.config.json.
 const CONFIG_NOTE =
-  "Configures the board UI (kanban-skill-ui) and carries the auto-refine switch. " +
+  "Configures the board UI (ai4kanban-ui) and carries the auto-refine switch. " +
   "`command` is the agent connector spawned by every card button (default `claude -p`). " +
   "`autoRefine` (boolean, default off) is the global auto-refine switch you flip from the " +
   "UI's Configuration dialog: when on, the agent refines cards and answers its own safe " +

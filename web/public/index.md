@@ -8,7 +8,7 @@ backlog lives as plain Markdown files in `docs/kanban/` — in git, diffable,
 readable by you and the agent. No database, no MCP. Just talk to the board.
 
 - Install in one prompt
-- View on GitHub: https://github.com/dist0com/kanban-skill
+- View on GitHub: https://github.com/dist0com/ai4kanban
 
 ## Why it's different
 
@@ -31,7 +31,7 @@ commands):
 
 ```
 Set up the kanban skill for this project. Read
-https://kanbanskill.cc/INSTALL_PROMPT.txt
+https://ai4kanban.dev/INSTALL_PROMPT.txt
 and follow it.
 ```
 
@@ -180,4 +180,4 @@ next to the work — no dashboard, no separate tool.
 
 ---
 
-Install the kanban skill · https://github.com/dist0com/kanban-skill
+Install the kanban skill · https://github.com/dist0com/ai4kanban

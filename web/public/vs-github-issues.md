@@ -135,4 +135,4 @@ kanban skill as the private surface their agent drives every day.
 
 ---
 
-Install the kanban skill · https://github.com/dist0com/kanban-skill
+Install the kanban skill · https://github.com/dist0com/ai4kanban

@@ -20,12 +20,39 @@ re-ask a settled call.
   switch is on.
 - It answers a card's open questions itself, except the ones tagged `[user]`. It skips a
   card whose questions are all `[user]` — that one waits for the human.
+- The switch shows a read-only status under it in the Configuration dialog: what it is
+  refining now, what it refined last, what it would pick next, and — when it would pick
+  nothing — the one-line reason why. It never shows a list of recent refines; the runs panel
+  is the place to browse runs.
+- The status never invents a fact it cannot see. If the last auto-refine has aged out of the
+  kept runs, it says nothing about it rather than guessing.
 
 ## What a run leaves behind
 
 - A run never commits. It leaves its changes in the working tree and the user reads
   `git diff` and commits. No branches, no worktrees, no pull requests — that is the model
   we point at vibe-kanban for.
+
+## Seeing what changed
+
+- The UI shows **uncommitted changes**, not "what this run changed". Nothing records which
+  files a run wrote, so the view names the folder it read and shows that folder as it is
+  right now. Never claim a file list belongs to one run.
+- Every run gets that view, not only implement. A refine or resolve run writes card files,
+  and those are changes worth reading too.
+- The view is read-only in the strict sense: it never writes to git, so it can't disturb
+  what the user has staged. It also never keeps a frozen copy — an old run shows today's
+  files.
+
+## Stopping a run
+
+- Any running run can be stopped from the UI, whoever started it — a background auto-refine
+  run and a create/propose/archive/reject too.
+- Stopped is its own outcome. Done, failed and stopped are three different things; a stopped
+  run is not a failure.
+- Stop ends the agent only. A build or test the agent started is left to finish on its own.
+- Stopping a background refine holds: the dispatcher does not pick that card again while its
+  newest run is a stopped one.
 
 ## Continuing a run
 

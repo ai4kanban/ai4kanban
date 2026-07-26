@@ -20,7 +20,7 @@ Then run both checks below.
 1. **Clone upstream:**
 
    ```
-   git clone https://github.com/dist0com/kanban-skill /tmp/kanban-skill-update
+   git clone https://github.com/dist0com/ai4kanban /tmp/ai4kanban-update
    ```
 
 2. **Show what changed.** `${KB} version` prints the stamped source SHA. Summarise the
@@ -28,19 +28,19 @@ Then run both checks below.
    recent changes instead):
 
    ```
-   git -C /tmp/kanban-skill-update log --oneline <stamped-sha>..HEAD -- skill kanban-ui
+   git -C /tmp/ai4kanban-update log --oneline <stamped-sha>..HEAD -- skill kanban-ui
    ```
 
 3. **Overwrite the skill folder wholesale:**
 
    ```
-   cp -R /tmp/kanban-skill-update/skill/. .claude/skills/kanban/
+   cp -R /tmp/ai4kanban-update/skill/. .claude/skills/kanban/
    ```
 
 4. **Re-stamp:**
 
    ```
-   printf 'sha: %s\ndate: %s\n' "$(git -C /tmp/kanban-skill-update rev-parse HEAD)" "$(date +%F)" \
+   printf 'sha: %s\ndate: %s\n' "$(git -C /tmp/ai4kanban-update rev-parse HEAD)" "$(date +%F)" \
      > .claude/skills/kanban/.version
    ```
 
@@ -80,4 +80,4 @@ ${KB} version
 ```
 
 Tell the user to review `git diff` before committing. The update is idempotent. The
-board UI needs no update — `npx kanban-skill-ui@latest` picks up a new release.
+board UI needs no update — `npx ai4kanban-ui@latest` picks up a new release.
