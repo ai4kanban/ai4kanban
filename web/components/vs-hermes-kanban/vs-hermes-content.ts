@@ -1,8 +1,8 @@
-// Content for the /vs-hermes-kanban/ page — kanban skill vs. Hermes Agent Kanban.
+// Content for the /vs-hermes-kanban/ page — ai4kanban vs. Hermes Agent Kanban.
 // Kept apart from the home page's content.ts and the GitHub comparison's
 // vs-content.ts so each page evolves on its own.
 //
-// Framing (important): compare like for like — the kanban skill on a harness
+// Framing (important): compare like for like — ai4kanban on a harness
 // (e.g. Claude Code) vs. the Hermes Kanban feature on the Hermes runtime. Both
 // harnesses already give you parallel subagents, worktree isolation, fan-out /
 // pipeline / voting, human-in-the-loop, transcripts, and a dashboard, so those

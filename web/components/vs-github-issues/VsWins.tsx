@@ -46,12 +46,12 @@ export function VsWins() {
     <section className="mt-24">
       <SectionHeading num="03" eyebrow="Trade-offs" title="Where each one wins" />
       <p className="text-ink">
-        Neither is strictly better. The kanban skill optimizes for one agent
+        Neither is strictly better. ai4kanban optimizes for one agent
         moving fast; GitHub Issues optimizes for many people staying in sync.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-8 sm:grid-cols-2">
-        <WinColumn heading="Kanban skill" tag="🗂️" items={kanbanWins} />
+        <WinColumn heading="AI4Kanban" tag="🗂️" items={kanbanWins} />
         <WinColumn
           heading="GitHub Issues"
           tag={<FaGithub className="text-ink" aria-hidden="true" />}

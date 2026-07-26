@@ -7,7 +7,7 @@ export function VsSummary() {
     <section className="mt-24">
       <SectionHeading num="01" eyebrow="The short version" title="So why not just use GitHub Issues?" />
       <p className="text-ink">
-        You can. Almost everything the kanban skill does, you could do with GitHub
+        You can. Almost everything ai4kanban does, you could do with GitHub
         Issues plus the{" "}
         <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[0.9em] text-ink">
           gh
@@ -23,7 +23,7 @@ export function VsSummary() {
           <span className="font-semibold text-ink">more tokens</span>,{" "}
           <span className="font-semibold text-ink">higher latency</span>, and{" "}
           <span className="font-semibold text-ink">heavier prompting</span> to get
-          the agent to reach for it at all. The kanban skill trades GitHub&apos;s
+          the agent to reach for it at all. ai4kanban trades GitHub&apos;s
           reach for local speed — and for a solo builder driving an agent, speed is
           usually the thing in short supply.
         </p>

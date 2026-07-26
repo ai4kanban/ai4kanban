@@ -5,7 +5,7 @@ import { panelStatic } from "../styles";
 export function BoardTable() {
   return (
     <section id="board" className="mt-24 scroll-mt-20">
-      <SectionHeading num="02" eyebrow="Usage" title="Using the kanban skill in Claude Code" />
+      <SectionHeading num="02" eyebrow="Usage" title="Using AI4Kanban in Claude Code" />
       <p className="text-ink">Once installed, drive it in plain language:</p>
 
       <div className={`${panelStatic} mt-5 overflow-hidden bg-code`}>

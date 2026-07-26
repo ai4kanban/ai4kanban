@@ -57,7 +57,7 @@ export function HkMemory() {
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <MemoryCard
           tag="🗂️"
-          heading="Kanban skill"
+          heading="AI4Kanban"
           verdict="Remembers conclusions, forgets the rest."
           body={
             <>

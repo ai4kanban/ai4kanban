@@ -1,4 +1,4 @@
-# Kanban skill
+# AI4Kanban
 
 > A Claude Code skill that runs a kanban board from plain Markdown files in your
 > repo — versioned in git, no database, no MCP. Claude proposes the next work,
@@ -11,8 +11,8 @@ content — no navigation, styling, or scripts.
 ## Pages
 
 - [Home — your task board in Markdown, right next to your code](https://ai4kanban.dev/index.md): What the skill is, how to install it in one prompt, driving the board in plain language, the local board UI, the indie-hacker preset, and Markdown project management (recurring tasks, group tasks, project memory, metrics).
-- [Kanban skill vs. GitHub Issues](https://ai4kanban.dev/vs-github-issues.md): A head-to-head across storage, token cost, agent ergonomics, teams, and transparency — a local Markdown scratch-board vs. a shared, public system of record, and when to use each.
-- [Kanban skill vs. Hermes Agent Kanban](https://ai4kanban.dev/vs-hermes-kanban.md): Two overlapping agent kanban boards — plain diffable files that run on any agent (even Hermes) vs. a durable, shared SQLite queue many named agents claim tasks from. Covers harness support, memory vs. audit, autonomy level, dashboards, and trade-offs.
+- [AI4Kanban vs. GitHub Issues](https://ai4kanban.dev/vs-github-issues.md): A head-to-head across storage, token cost, agent ergonomics, teams, and transparency — a local Markdown scratch-board vs. a shared, public system of record, and when to use each.
+- [AI4Kanban vs. Hermes Agent Kanban](https://ai4kanban.dev/vs-hermes-kanban.md): Two overlapping agent kanban boards — plain diffable files that run on any agent (even Hermes) vs. a durable, shared SQLite queue many named agents claim tasks from. Covers harness support, memory vs. audit, autonomy level, dashboards, and trade-offs.
 
 ## Recipes
 

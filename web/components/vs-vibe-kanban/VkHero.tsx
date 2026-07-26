@@ -9,13 +9,13 @@ export function VkHero() {
         Comparison
       </p>
       <h1 className="text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl">
-        Kanban skill vs.
+        AI4Kanban vs.
         <br />
         Vibe Kanban
       </h1>
       <p className="mx-auto mt-5 max-w-2xl text-lg text-muted">
         Vibe Kanban is a cockpit for running many coding agents in parallel — and
-        the company behind it, Bloop, shut down in April 2026. The kanban skill is
+        the company behind it, Bloop, shut down in April 2026. ai4kanban is
         a planning board your agent edits as plain files in your repo. They fix
         different bottlenecks. Here&apos;s the honest difference, and what actually
         carries over.
@@ -27,7 +27,7 @@ export function VkHero() {
             <span className="text-lg" aria-hidden="true">
               🗂️
             </span>
-            <span className="font-semibold text-ink">Kanban skill</span>
+            <span className="font-semibold text-ink">AI4Kanban</span>
           </div>
           <p className="text-sm text-muted">
             Plain Markdown in your repo. A planning board your agent edits.

@@ -1,6 +1,6 @@
 # ai4kanban-ui
 
-The local board UI for the [kanban skill](https://ai4kanban.dev/). It shows every track in
+The local board UI for [ai4kanban](https://ai4kanban.dev/). It shows every track in
 a browser and drives the work from buttons: each button spawns an agent in your repo that
 does the kanban work for you — propose, refine, implement, archive.
 

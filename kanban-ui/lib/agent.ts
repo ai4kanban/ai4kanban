@@ -64,7 +64,7 @@ export function agentInfo(): AgentInfo {
 }
 
 // --- prompts: one place that turns a card action into agent instructions ----
-// Every prompt tells the agent to use this repo's kanban skill. The skill's
+// Every prompt tells the agent to use this repo's ai4kanban skill. The skill's
 // script lives behind a symlink, so id-touching moves (create/archive/reject)
 // must run it with `node --preserve-symlinks-main .claude/skills/kanban/kanban.mjs`.
 const SCRIPT = "node --preserve-symlinks-main .claude/skills/kanban/kanban.mjs";

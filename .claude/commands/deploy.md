@@ -1,5 +1,5 @@
 ---
-description: Build the static export and deploy the kanban skill landing page to Cloudflare Pages
+description: Build the static export and deploy the ai4kanban landing page to Cloudflare Pages
 ---
 
 Deploy the latest version of this site to Cloudflare Pages (Direct Upload — no Git).

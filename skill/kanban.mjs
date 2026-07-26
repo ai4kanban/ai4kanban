@@ -1096,7 +1096,7 @@ function isRecurringCard(found) {
 // `.version` (written by the install/update prompt) adds the source SHA + date it came from,
 // so an update can `git log <sha>..HEAD` to summarise what changed.
 function cmdVersion() {
-  console.log(`kanban skill ${SKILL_VERSION}`)
+  console.log(`ai4kanban ${SKILL_VERSION}`)
   const stamp = path.join(SCRIPT_DIR, '.version')
   if (fs.existsSync(stamp)) {
     console.log(fs.readFileSync(stamp, 'utf8').trim())

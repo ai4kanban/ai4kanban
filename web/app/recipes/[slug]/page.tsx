@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     openGraph: {
       type: "article",
       url,
-      siteName: "Kanban skill",
+      siteName: "AI4Kanban",
       title: `${recipe.title} — a kanban recipe`,
       description: recipe.tagline,
       images: [OG_IMAGE],

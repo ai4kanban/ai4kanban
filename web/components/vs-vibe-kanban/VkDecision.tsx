@@ -48,7 +48,7 @@ export function VkDecision() {
       <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
         <Guide
           tag="🗂️"
-          heading="Reach for the kanban skill when"
+          heading="Reach for ai4kanban when"
           items={decisionKanban}
           highlight
         />
@@ -70,7 +70,7 @@ export function VkDecision() {
         <p className="mt-4 text-lg leading-relaxed text-ink">
           They fix different bottlenecks. Vibe Kanban is an{" "}
           <span className="font-semibold">orchestration cockpit</span> for running
-          many agents; the kanban skill is a{" "}
+          many agents; ai4kanban is a{" "}
           <span className="font-semibold">planning board</span> one agent edits in
           your repo. If you loved Vibe Kanban&apos;s board for lining up work, the
           skill gives you that as plain files that outlast any company. If you
@@ -79,14 +79,14 @@ export function VkDecision() {
         </p>
         <p className="mt-4 text-[0.95rem] text-muted">
           Since Bloop shut down, the board is the part worth carrying forward with
-          no company attached — and that&apos;s exactly what the kanban skill is.
+          no company attached — and that&apos;s exactly what ai4kanban is.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <a
             href="/#install"
             className="rounded-lg border-2 border-accent bg-accent px-5 py-2.5 text-[0.95rem] font-semibold text-white no-underline shadow-[4px_4px_0_0_#1f6feb] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#1f6feb]"
           >
-            Install the kanban skill
+            Install ai4kanban
           </a>
           <a
             href={GITHUB_URL}

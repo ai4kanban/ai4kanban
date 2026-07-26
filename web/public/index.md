@@ -1,4 +1,4 @@
-# Kanban skill — your task board in Markdown, right next to your code
+# AI4Kanban — your task board in Markdown, right next to your code
 
 > A Claude Code skill that runs a kanban board from plain Markdown files in your
 > repo — versioned in git, no database, no MCP.
@@ -30,7 +30,7 @@ From your project root, tell Claude Code (or any agent that can run shell
 commands):
 
 ```
-Set up the kanban skill for this project. Read
+Set up ai4kanban for this project. Read
 https://ai4kanban.dev/INSTALL_PROMPT.txt
 and follow it.
 ```
@@ -39,7 +39,7 @@ The agent copies the skill into `.claude/skills/kanban/`, reads your codebase to
 fill in the configuration, scaffolds the board, and proposes your first three
 tasks.
 
-## 02 · Usage — Using the kanban skill in Claude Code
+## 02 · Usage — Using ai4kanban in Claude Code
 
 Once installed, drive it in plain language:
 
@@ -180,4 +180,4 @@ next to the work — no dashboard, no separate tool.
 
 ---
 
-Install the kanban skill · https://github.com/dist0com/ai4kanban
+Install ai4kanban · https://github.com/dist0com/ai4kanban

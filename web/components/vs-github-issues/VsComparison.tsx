@@ -79,7 +79,7 @@ function Row({
         {dimension}
       </div>
       <div className="grid divide-y-2 divide-border sm:grid-cols-2 sm:divide-x-2 sm:divide-y-0">
-        <Cell label="Kanban skill" text={kanban} state={s.kanban} />
+        <Cell label="AI4Kanban" text={kanban} state={s.kanban} />
         <Cell label="GitHub Issues" text={issues} state={s.issues} />
       </div>
     </div>
@@ -89,7 +89,7 @@ function Row({
 export function VsComparison() {
   return (
     <section className="mt-24">
-      <SectionHeading num="02" eyebrow="Head to head" title="Kanban skill vs. GitHub Issues" />
+      <SectionHeading num="02" eyebrow="Head to head" title="AI4Kanban vs. GitHub Issues" />
       <p className="text-ink">
         Fourteen dimensions. A{" "}
         <FiCheck
@@ -98,7 +98,7 @@ export function VsComparison() {
         />{" "}
         is a clear win; a{" "}
         <span className="font-medium">dash</span> is a deliberate trade-off that
-        just comes down to what you need. The kanban skill takes the{" "}
+        just comes down to what you need. ai4kanban takes the{" "}
         <span className="font-medium">speed and locality</span> rows; GitHub
         Issues takes the{" "}
         <span className="font-medium">scale and collaboration</span> ones.

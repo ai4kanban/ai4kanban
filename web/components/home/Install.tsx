@@ -9,7 +9,7 @@ export function Install() {
         From your project root, tell Claude Code (or any agent that can run shell
         commands):
       </p>
-      <CodeBlock>{`Set up the kanban skill for this project. Read
+      <CodeBlock>{`Set up ai4kanban for this project. Read
 https://ai4kanban.dev/INSTALL_PROMPT.txt
 and follow it.`}</CodeBlock>
       <p className="text-muted">

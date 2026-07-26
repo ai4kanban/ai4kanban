@@ -46,7 +46,7 @@ export function HkWins() {
     <section className="mt-24">
       <SectionHeading num="07" eyebrow="Trade-offs" title="Where each one wins" />
       <p className="text-ink">
-        Neither is strictly better. The kanban skill optimizes for a lean,
+        Neither is strictly better. ai4kanban optimizes for a lean,
         file-based board with no infra of its own; Hermes Kanban optimizes for a
         durable, shared work queue that many agents run against, unattended.
         Harness features — parallel runs, orchestration, a dashboard — are on both
@@ -54,7 +54,7 @@ export function HkWins() {
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-8 sm:grid-cols-2">
-        <WinColumn heading="Kanban skill" tag="🗂️" items={kanbanWins} />
+        <WinColumn heading="AI4Kanban" tag="🗂️" items={kanbanWins} />
         <WinColumn heading="Hermes Kanban" tag={<HermesMark className="h-6 w-6" />} items={hermesWins} />
       </div>
     </section>

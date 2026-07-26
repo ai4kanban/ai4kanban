@@ -45,7 +45,7 @@ export function HkSummary() {
       <SectionHeading num="01" eyebrow="The short version" title="So why not just use Hermes Kanban?" />
       <p className="text-ink">
         Fair question — the two overlap a lot. Both are kanban boards agents plan
-        and work from, so think of the kanban skill as{" "}
+        and work from, so think of ai4kanban as{" "}
         <span className="font-semibold text-ink">a lightweight alternative to Hermes Kanban</span>:
         the same board idea, minus the bundled runtime. The difference is
         what&apos;s underneath.
@@ -54,7 +54,7 @@ export function HkSummary() {
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <DiffCard
           tag="🗂️"
-          heading="Kanban skill — a board made of files"
+          heading="AI4Kanban — a board made of files"
           items={[
             "Plain Markdown in your repo — every task and plan change is a reviewable diff.",
             "No infrastructure: nothing to install, nothing to keep running.",
@@ -74,7 +74,7 @@ export function HkSummary() {
 
       <div className={`${panelStatic} mt-5 bg-code p-6`}>
         <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-          When to use the kanban skill
+          When to use ai4kanban
         </p>
         <p className="text-[0.95rem] text-muted">
           Pick the skill when you want the board{" "}

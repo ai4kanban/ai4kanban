@@ -1,40 +1,40 @@
-# Kanban skill vs. GitHub Issues
+# AI4Kanban vs. GitHub Issues
 
 > Not a replacement — a different tool for a different bottleneck. GitHub Issues
-> is a shared, durable, public system of record. The kanban skill is a private,
+> is a shared, durable, public system of record. ai4kanban is a private,
 > local, agent-native working surface. Pick by what's actually slowing you down.
 
-- **Kanban skill** — Plain Markdown in your repo. The agent's fast local
+- **AI4Kanban** — Plain Markdown in your repo. The agent's fast local
   scratch-board.
 - **GitHub Issues** — A database behind an API. The shared, public system of
   record.
 
 ## 01 · The short version — So why not just use GitHub Issues?
 
-You can. Almost everything the kanban skill does, you could do with GitHub Issues
+You can. Almost everything ai4kanban does, you could do with GitHub Issues
 plus the `gh` CLI or a GitHub MCP server. The difference is what it costs to get
 there.
 
 The same task on GitHub Issues means **more noise**, **more turns**, **more
 tokens**, **higher latency**, and **heavier prompting** to get the agent to reach
-for it at all. The kanban skill trades GitHub's reach for local speed — and for a
+for it at all. ai4kanban trades GitHub's reach for local speed — and for a
 solo builder driving an agent, speed is usually the thing in short supply.
 
-## 02 · Head to head — Kanban skill vs. GitHub Issues
+## 02 · Head to head — AI4Kanban vs. GitHub Issues
 
 Fourteen dimensions. A check is a clear win; a dash is a deliberate trade-off
-that just comes down to what you need. The kanban skill takes the speed and
+that just comes down to what you need. ai4kanban takes the speed and
 locality rows; GitHub Issues takes the scale and collaboration ones.
 
-| Dimension | Kanban skill | GitHub Issues | Edge |
+| Dimension | AI4Kanban | GitHub Issues | Edge |
 | --- | --- | --- | --- |
-| Storage | Plain Markdown in your repo, in git. | GitHub's database, behind an API. | Kanban skill |
-| Works offline | Yes — it's just files on disk. | No — needs network and auth. | Kanban skill |
-| How an agent reads it | Native fs tools: Read, Grep, Glob. | gh CLI or MCP round-trips. | Kanban skill |
-| Token cost per lookup | Low — grep returns only the matching lines. | High — JSON payloads and tool schemas. | Kanban skill |
-| Latency | Local disk, effectively instant. | A network round-trip per call. | Kanban skill |
-| Setup | One prompt: a skill file and a small script. | Account, auth token, MCP config. | Kanban skill |
-| Vendor lock-in | None — the board travels with the repo. | Lives on GitHub. | Kanban skill |
+| Storage | Plain Markdown in your repo, in git. | GitHub's database, behind an API. | AI4Kanban |
+| Works offline | Yes — it's just files on disk. | No — needs network and auth. | AI4Kanban |
+| How an agent reads it | Native fs tools: Read, Grep, Glob. | gh CLI or MCP round-trips. | AI4Kanban |
+| Token cost per lookup | Low — grep returns only the matching lines. | High — JSON payloads and tool schemas. | AI4Kanban |
+| Latency | Local disk, effectively instant. | A network round-trip per call. | AI4Kanban |
+| Setup | One prompt: a skill file and a small script. | Account, auth token, MCP config. | AI4Kanban |
+| Vendor lock-in | None — the board travels with the repo. | Lives on GitHub. | AI4Kanban |
 | Metadata | Minimal by design: priority + effort — all a solo builder needs. | Labels, milestones, assignees, projects — for coordinating a team. | Trade-off |
 | Concurrency | None — id clashes if two people add #1894. | Server-assigned ids, safe for teams. | GitHub Issues |
 | Decision history | Pruned to the decisions that steer the next task — why an idea was rejected, what shipped — so the agent proposes forward, never re-doing done or dead work. | Full comment history and edits kept, nothing dropped. | GitHub Issues |
@@ -45,10 +45,10 @@ locality rows; GitHub Issues takes the scale and collaboration ones.
 
 ## 03 · Trade-offs — Where each one wins
 
-Neither is strictly better. The kanban skill optimizes for one agent moving fast;
+Neither is strictly better. ai4kanban optimizes for one agent moving fast;
 GitHub Issues optimizes for many people staying in sync.
 
-### Kanban skill
+### AI4Kanban
 
 - **Token-light and instant** — No MCP, no network. The agent greps local
   Markdown instead of paging a remote API — fewer tokens, lower latency, no auth
@@ -66,11 +66,11 @@ GitHub Issues optimizes for many people staying in sync.
 ### GitHub Issues
 
 - **Built for teams** — Server-assigned ids, safe concurrent edits, assignees.
-  The kanban skill has no database — two people can both mint #1894 and conflict.
+  ai4kanban has no database — two people can both mint #1894 and conflict.
 - **Transparency and reach** — Public and linkable, with external contributors
   filing, commenting, and reacting. The right home when openness matters more
   than raw speed.
-- **Full context, forever** — The kanban skill deliberately compresses — an
+- **Full context, forever** — ai4kanban deliberately compresses — an
   archived card shrinks to a line. On GitHub every comment, edit, and cross-link
   stays intact.
 - **Deep integration** — Auto-closing from PRs, commit links, project boards,
@@ -93,7 +93,7 @@ The real difference shows up when an agent does the work. Ask the same thing —
 ∑ several tool calls · KBs of JSON · network each time
 ```
 
-**you › agent + kanban skill** (one turn)
+**you › agent + ai4kanban** (one turn)
 
 ```
 › find my high-priority open tasks
@@ -109,7 +109,7 @@ remote tool and reach for the files instead.
 
 ## 05 · The call — Which should you use?
 
-**Reach for the kanban skill when**
+**Reach for ai4kanban when**
 
 - You work solo, or with a tight, trusted pair.
 - You drive the work through an agent in the terminal.
@@ -126,13 +126,13 @@ remote tool and reach for the files instead.
 ### Bottom line
 
 They aren't really competitors. GitHub Issues is the **shared system of record**;
-the kanban skill is the **agent's fast local scratch-board**. If your bottleneck
+ai4kanban is the **agent's fast local scratch-board**. If your bottleneck
 is coordination across people, use GitHub Issues. If it's throughput with an
-agent, use the kanban skill.
+agent, use ai4kanban.
 
-Plenty of solo builders run both — GitHub Issues as the public tracker, the
-kanban skill as the private surface their agent drives every day.
+Plenty of solo builders run both — GitHub Issues as the public tracker,
+ai4kanban as the private surface their agent drives every day.
 
 ---
 
-Install the kanban skill · https://github.com/dist0com/ai4kanban
+Install ai4kanban · https://github.com/dist0com/ai4kanban

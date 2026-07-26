@@ -136,7 +136,7 @@ merge the work back into main when the task is done.
   the folder it is run in, and board commands run in the repo root, so the run keeps using the
   repo root's copy, like today.
   The `/kanban` skill does break. A fresh worktree has `.claude/commands/` (that one file is
-  tracked) but no `.claude/skills/`, so the agent starts with no kanban skill — tested.
+  tracked) but no `.claude/skills/`, so the agent starts with no ai4kanban skill — tested.
   Fix: when the worktree is made, add one symlink `<worktree>/.claude/skills/kanban` pointing at
   the repo root's skill folder. `.claude/` is gitignored, so `git status` in the worktree stays
   empty and the link dies with the worktree. Tested: the skill loads again.

@@ -79,7 +79,7 @@ function Row({
         {dimension}
       </div>
       <div className="grid divide-y-2 divide-border sm:grid-cols-2 sm:divide-x-2 sm:divide-y-0">
-        <Cell label="Kanban skill" text={kanban} state={s.kanban} />
+        <Cell label="AI4Kanban" text={kanban} state={s.kanban} />
         <Cell label="Hermes Kanban" text={hermes} state={s.hermes} />
       </div>
     </div>
@@ -89,7 +89,7 @@ function Row({
 export function HkComparison() {
   return (
     <section className="mt-24">
-      <SectionHeading num="03" eyebrow="Head to head" title="Kanban skill vs. Hermes Kanban" />
+      <SectionHeading num="03" eyebrow="Head to head" title="AI4Kanban vs. Hermes Kanban" />
       <p className="text-ink">
         A{" "}
         <FiCheck

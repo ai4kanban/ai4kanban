@@ -1,4 +1,4 @@
-// Content for the /vs/ page — kanban skill vs. GitHub Issues.
+// Content for the /vs/ page — ai4kanban vs. GitHub Issues.
 // Kept apart from the home page's content.ts so the two pages evolve
 // independently.
 
@@ -128,7 +128,7 @@ export const issuesWins: { icon: string; title: string; body: string }[] = [
   {
     icon: "👥",
     title: "Built for teams",
-    body: "Server-assigned ids, safe concurrent edits, assignees. The kanban skill has no database — two people can both mint #1894 and conflict.",
+    body: "Server-assigned ids, safe concurrent edits, assignees. ai4kanban has no database — two people can both mint #1894 and conflict.",
   },
   {
     icon: "🌐",
@@ -138,7 +138,7 @@ export const issuesWins: { icon: string; title: string; body: string }[] = [
   {
     icon: "🗂️",
     title: "Full context, forever",
-    body: "The kanban skill deliberately compresses — an archived card shrinks to a line. On GitHub every comment, edit, and cross-link stays intact.",
+    body: "ai4kanban deliberately compresses — an archived card shrinks to a line. On GitHub every comment, edit, and cross-link stays intact.",
   },
   {
     icon: "🔗",

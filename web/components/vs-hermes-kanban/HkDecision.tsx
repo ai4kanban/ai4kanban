@@ -50,7 +50,7 @@ export function HkDecision() {
       <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
         <Guide
           tag="🗂️"
-          heading="Reach for the kanban skill when"
+          heading="Reach for ai4kanban when"
           items={decisionKanban}
           highlight
         />
@@ -71,13 +71,13 @@ export function HkDecision() {
         </div>
         <p className="mt-4 text-lg leading-relaxed text-ink">
           They overlap more than the names suggest — both are agent kanban boards.
-          The split is what&apos;s bundled: the kanban skill is a{" "}
+          The split is what&apos;s bundled: ai4kanban is a{" "}
           <span className="font-semibold">file-based board with automation left to your harness</span>;
           Hermes Agent Kanban is that board{" "}
           <span className="font-semibold">wrapped in a durable, shared work queue</span>.
           If you want one board many agents share, surviving crashes, use Hermes.
           If you want a lean board in your repo you extend only when you need to,
-          use the kanban skill.
+          use ai4kanban.
         </p>
         <p className="mt-4 text-[0.95rem] text-muted">
           They can even sit side by side — the skill as the lightweight place you
@@ -89,7 +89,7 @@ export function HkDecision() {
             href="/#install"
             className="rounded-lg border-2 border-accent bg-accent px-5 py-2.5 text-[0.95rem] font-semibold text-white no-underline shadow-[4px_4px_0_0_#1f6feb] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#1f6feb]"
           >
-            Install the kanban skill
+            Install ai4kanban
           </a>
           <a
             href={GITHUB_URL}

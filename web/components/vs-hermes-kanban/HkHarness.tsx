@@ -59,7 +59,7 @@ const BOARDS: {
   sub: string;
   supports: (name: string) => boolean;
 }[] = [
-  { tag: "🗂️", label: "Kanban skill", sub: "any file-reading agent", supports: () => true },
+  { tag: "🗂️", label: "AI4Kanban", sub: "any file-reading agent", supports: () => true },
   {
     tag: <HermesMark className="h-4 w-4" />,
     label: "Hermes Kanban",

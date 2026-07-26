@@ -9,5 +9,5 @@ export const OG_IMAGE = {
   url: "https://cdn.ai4kanban.dev/og-image.jpg",
   width: 4800,
   height: 2520,
-  alt: "Kanban skill — your task board in Markdown, right next to your code.",
+  alt: "AI4Kanban — your task board in Markdown, right next to your code.",
 };

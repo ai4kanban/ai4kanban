@@ -1,4 +1,4 @@
-Set up the kanban skill for this project.
+Set up ai4kanban for this project.
 
 You can reach this two ways, and both finish here:
   - run this prompt directly, or

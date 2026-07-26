@@ -50,7 +50,7 @@ export function VsDecision() {
       <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
         <Guide
           tag="🗂️"
-          heading="Reach for the kanban skill when"
+          heading="Reach for ai4kanban when"
           items={decisionKanban}
           highlight
         />
@@ -71,22 +71,22 @@ export function VsDecision() {
         </div>
         <p className="mt-4 text-lg leading-relaxed text-ink">
           They aren&apos;t really competitors. GitHub Issues is the{" "}
-          <span className="font-semibold">shared system of record</span>; the
-          kanban skill is the{" "}
+          <span className="font-semibold">shared system of record</span>;
+          ai4kanban is the{" "}
           <span className="font-semibold">agent&apos;s fast local scratch-board</span>.
           If your bottleneck is coordination across people, use GitHub Issues. If
-          it&apos;s throughput with an agent, use the kanban skill.
+          it&apos;s throughput with an agent, use ai4kanban.
         </p>
         <p className="mt-4 text-[0.95rem] text-muted">
           Plenty of solo builders run both — GitHub Issues as the public tracker,
-          the kanban skill as the private surface their agent drives every day.
+          ai4kanban as the private surface their agent drives every day.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <a
             href="/#install"
             className="rounded-lg border-2 border-accent bg-accent px-5 py-2.5 text-[0.95rem] font-semibold text-white no-underline shadow-[4px_4px_0_0_#1f6feb] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#1f6feb]"
           >
-            Install the kanban skill
+            Install ai4kanban
           </a>
           <a
             href={GITHUB_URL}

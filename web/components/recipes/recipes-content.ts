@@ -1,6 +1,6 @@
 // The recipes catalog. A recipe is a ready-made recurring task — a job you run on
 // a cadence that never archives; each pass is a run, and the card sharpens over
-// time until it needs no human (see the kanban skill's recurring-task guide).
+// time until it needs no human (see ai4kanban's recurring-task guide).
 // For now every recipe is a recurring task; other kinds may come later.
 import { BASE_URL } from "@/lib/site";
 
@@ -12,7 +12,7 @@ export const SITE_ORIGIN = BASE_URL;
 export type RecipeStep = { art: string; title: string; body: string };
 
 // A brand-affiliated recipe leans on an outside product to run — you need that
-// product's account/API key, not just the kanban skill. When set, the card and
+// product's account/API key, not just ai4kanban. When set, the card and
 // landing page carry the brand's logo and a "requires <brand>" note so the
 // dependency is obvious before anyone tries to run it.
 export type RecipeBrand = {

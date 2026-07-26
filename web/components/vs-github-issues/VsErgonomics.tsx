@@ -81,7 +81,7 @@ export function VsErgonomics() {
           footer="several tool calls · KBs of JSON · network each time"
         />
         <Transcript
-          title="you › agent + kanban skill"
+          title="you › agent + ai4kanban"
           chip="one turn"
           chipClass="bg-accent/15 text-accent"
           lines={ergoKanban}

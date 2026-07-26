@@ -91,9 +91,9 @@ export function RecipeLanding({
         {/* Prerequisite note */}
         <div className={`${panelStatic} mt-8 bg-code p-5`}>
           <p className="text-sm text-muted">
-            <span className="font-semibold text-ink">Prerequisite:</span> the{" "}
+            <span className="font-semibold text-ink">Prerequisite:</span>{" "}
             <a href="/#install" className="text-accent no-underline hover:underline">
-              kanban skill
+              ai4kanban
             </a>{" "}
             installed in your repo. New here? Install the skill first, then paste
             the prompt above.

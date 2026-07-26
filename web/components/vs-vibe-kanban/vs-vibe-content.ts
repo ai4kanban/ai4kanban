@@ -1,4 +1,4 @@
-// Content for the /vs-vibe-kanban/ page — kanban skill vs. Vibe Kanban.
+// Content for the /vs-vibe-kanban/ page — ai4kanban vs. Vibe Kanban.
 // Kept apart from the other vs pages' content so each evolves independently.
 //
 // The honest framing this page is built on: Vibe Kanban is an agent-
@@ -110,7 +110,7 @@ export const vibeWins: { icon: string; title: string; body: string }[] = [
   {
     icon: "⚡",
     title: "Runs many agents at once",
-    body: "Its whole reason to exist: fan work out to several coding agents in parallel, each isolated in its own git branch and worktree so they never collide. The kanban skill doesn't run agents at all.",
+    body: "Its whole reason to exist: fan work out to several coding agents in parallel, each isolated in its own git branch and worktree so they never collide. ai4kanban doesn't run agents at all.",
   },
   {
     icon: "🔎",

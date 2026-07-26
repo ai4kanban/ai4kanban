@@ -1,4 +1,4 @@
-# Publishing the kanban skill
+# Publishing AI4Kanban
 
 How this skill gets in front of people. Written against the Claude Code plugin/skill
 ecosystem as of mid-2026 — it's young and moving fast, so verify specifics against the

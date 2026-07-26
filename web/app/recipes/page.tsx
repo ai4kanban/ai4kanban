@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "/recipes",
-    siteName: "Kanban skill",
+    siteName: "AI4Kanban",
     title: "Recipes — ready-made recurring tasks for your kanban board",
     description:
       "Ready-made recurring tasks you add to your board in one prompt. Claude pulls the recipe by URL and runs it on the cadence you choose.",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "CollectionPage",
-  name: "Kanban skill recipes",
+  name: "AI4Kanban recipes",
   description:
     "Ready-made recurring tasks you add to your kanban board in one prompt.",
   url: `${BASE_URL}/recipes`,

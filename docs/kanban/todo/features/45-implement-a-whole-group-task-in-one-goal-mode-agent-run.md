@@ -43,7 +43,7 @@ Add one action on a group root that hands the whole subtask graph to a single ag
 
 ## Decided by the agent
 - **Is there a real goal mode?** Yes. Claude Code has `/goal <condition>`: it keeps working until the condition holds, and it runs non-interactively. The connector already spawns `claude -p ... --output-format stream-json --verbose`, which is the shape goal mode needs. So this is one goal-mode run whose condition is "every subtask on this root is done or rejected".
-- **What the run is told.** The whole prompt string becomes the goal condition, capped at 4000 characters, so the usual `/kanban.` prefix cannot lead it. The condition names the root card file, says to follow `blocked_by` order, and points at the kanban skill by name.
+- **What the run is told.** The whole prompt string becomes the goal condition, capped at 4000 characters, so the usual `/kanban.` prefix cannot lead it. The condition names the root card file, says to follow `blocked_by` order, and points at ai4kanban by name.
 - **Non-Claude connectors.** Only Claude Code has this. If the configured command is not `claude`, the action falls back to one long plain run given the same instructions. Never send `/goal` to a command that is not Claude Code.
 - **It needs #44 first.** The condition has to be checkable from files — every subtask line in the root's `## Todo` ticked or struck. That rule is card #44's, so this card is now blocked by it.
 - **The root owns the run.** One session, one log, one running badge, the same as any other run. A group run is not a new kind of session.

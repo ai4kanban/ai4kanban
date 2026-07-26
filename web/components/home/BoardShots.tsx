@@ -12,7 +12,7 @@ type Mode = "board" | "detail";
 const SHOTS: Record<Mode, { src: string; alt: string; label: string }> = {
   board: {
     src: "https://cdn.ai4kanban.dev/kanban-skill-ui-v2.jpg",
-    alt: "The kanban skill's local web board — Blockers, UI, Skill, Docs, and Distribution columns of Markdown cards with #ids, priority and ROI badges, and subtask progress bars.",
+    alt: "ai4kanban's local web board — Blockers, UI, Skill, Docs, and Distribution columns of Markdown cards with #ids, priority and ROI badges, and subtask progress bars.",
     label: "Board view",
   },
   detail: {

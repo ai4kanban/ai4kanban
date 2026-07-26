@@ -1,6 +1,6 @@
 # Board
 
-Open tasks for the kanban skill. One card per file. Ids are global and never reused —
+Open tasks for ai4kanban. One card per file. Ids are global and never reused —
 the number at the front of a filename is the task id.
 
 Blockers gate the next milestone; clear them first. Everything else sits under a track.

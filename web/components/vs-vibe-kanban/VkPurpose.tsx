@@ -42,7 +42,7 @@ export function VkPurpose() {
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <PurposePanel
           tag="🗂️"
-          name="Kanban skill — the plan"
+          name="AI4Kanban — the plan"
           is="A board your agent reads and edits as plain Markdown in your repo. You save a rough idea, a refine loop sharpens it into a ready task, and you approve before code is written. The work lives in git, next to the code it changes."
           isnt="It does not run agents, spin up worktrees, or diff their output — your harness does that. It's the map, not the engine."
         />
@@ -55,10 +55,10 @@ export function VkPurpose() {
       </div>
 
       <p className="mt-5 text-sm text-muted">
-        Plenty of people ran Vibe Kanban for its board alone. If that was you, the
-        kanban skill is a lighter home for it — files in git, nothing to keep
+        Plenty of people ran Vibe Kanban for its board alone. If that was you,
+        ai4kanban is a lighter home for it — files in git, nothing to keep
         running. If you ran it to drive agents in parallel, keep an eye on the
-        community forks; the kanban skill won&apos;t replace that engine.
+        community forks; ai4kanban won&apos;t replace that engine.
       </p>
     </section>
   );

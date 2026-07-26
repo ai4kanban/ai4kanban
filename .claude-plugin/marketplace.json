@@ -5,7 +5,7 @@
     "url": "https://github.com/dist0com"
   },
   "metadata": {
-    "description": "The kanban skill — a file-based task board Claude runs for you.",
+    "description": "AI4Kanban — a file-based task board Claude runs for you.",
     "version": "0.3.0"
   },
   "plugins": [

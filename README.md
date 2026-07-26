@@ -1,6 +1,6 @@
-# Kanban Skill
+# AI4Kanban
 
-![Kanban Skill](https://cdn.ai4kanban.dev/og-image.jpg)
+![AI4Kanban](https://cdn.ai4kanban.dev/og-image.jpg)
 
 **A local, agentic task board in Markdown.**
 
@@ -24,7 +24,7 @@ local, in git, no database, no MCP.
 From your project root, tell Claude Code (or any coding agent that can run shell commands):
 
 ```
-Set up the kanban skill for this project. Read
+Set up ai4kanban for this project. Read
 https://ai4kanban.dev/INSTALL_PROMPT.txt and follow it.
 ```
 
@@ -78,7 +78,7 @@ Localhost only — no hosting, no login. See [kanban-ui/](kanban-ui/README.md) f
 One prompt — the update guide ships with the skill, so there's nothing to fetch first:
 
 ```
-Update the kanban skill in this project. Read
+Update ai4kanban in this project. Read
 .claude/skills/kanban/references/update.md and follow it.
 ```
 

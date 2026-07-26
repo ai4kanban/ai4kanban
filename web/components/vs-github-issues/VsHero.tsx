@@ -10,13 +10,13 @@ export function VsHero() {
         Comparison
       </p>
       <h1 className="text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl">
-        Kanban skill vs.
+        AI4Kanban vs.
         <br />
         GitHub Issues
       </h1>
       <p className="mx-auto mt-5 max-w-2xl text-lg text-muted">
         Not a replacement — a different tool for a different bottleneck. GitHub
-        Issues is a shared, durable, public system of record. The kanban skill is
+        Issues is a shared, durable, public system of record. ai4kanban is
         a private, local, agent-native working surface. Pick by what&apos;s
         actually slowing you down.
       </p>
@@ -27,7 +27,7 @@ export function VsHero() {
             <span className="text-lg" aria-hidden="true">
               🗂️
             </span>
-            <span className="font-semibold text-ink">Kanban skill</span>
+            <span className="font-semibold text-ink">AI4Kanban</span>
           </div>
           <p className="text-sm text-muted">
             Plain Markdown in your repo. The agent&apos;s fast local scratch-board.

@@ -10,22 +10,22 @@ import { VsDecision } from "@/components/vs-github-issues/VsDecision";
 import { BASE_URL, OG_IMAGE } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Kanban skill vs. GitHub Issues — a different tool for a different job",
+  title: "AI4Kanban vs. GitHub Issues — a different tool for a different job",
   description:
-    "How the file-based kanban skill compares to GitHub Issues: local Markdown vs. a remote API, token cost, agent ergonomics, teams, and when to use each.",
+    "How ai4kanban's file-based board compares to GitHub Issues: local Markdown vs. a remote API, token cost, agent ergonomics, teams, and when to use each.",
   alternates: { canonical: "/vs-github-issues" },
   openGraph: {
     type: "article",
     url: "/vs-github-issues",
-    siteName: "Kanban skill",
-    title: "Kanban skill vs. GitHub Issues",
+    siteName: "AI4Kanban",
+    title: "AI4Kanban vs. GitHub Issues",
     description:
       "Not a replacement — a different tool for a different bottleneck. A head-to-head on speed, tokens, agents, and teams.",
     images: [OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kanban skill vs. GitHub Issues",
+    title: "AI4Kanban vs. GitHub Issues",
     description:
       "Not a replacement — a different tool for a different bottleneck. A head-to-head on speed, tokens, agents, and teams.",
     images: [OG_IMAGE.url],
@@ -35,9 +35,9 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Article",
-  headline: "Kanban skill vs. GitHub Issues",
+  headline: "AI4Kanban vs. GitHub Issues",
   description:
-    "How the file-based kanban skill compares to GitHub Issues across storage, token cost, agent ergonomics, teams, and transparency.",
+    "How ai4kanban's file-based board compares to GitHub Issues across storage, token cost, agent ergonomics, teams, and transparency.",
   url: `${BASE_URL}/vs-github-issues`,
 };
 

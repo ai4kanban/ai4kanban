@@ -10,22 +10,22 @@ import { VkDecision } from "@/components/vs-vibe-kanban/VkDecision";
 import { BASE_URL, OG_IMAGE } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Kanban skill vs. Vibe Kanban — a planning board vs. an agent cockpit",
+  title: "AI4Kanban vs. Vibe Kanban — a planning board vs. an agent cockpit",
   description:
-    "Vibe Kanban shut down when Bloop wound down in April 2026. How the file-based kanban skill compares: a lightweight planning board in your repo vs. a cockpit that runs many coding agents in parallel — and what carries over.",
+    "Vibe Kanban shut down when Bloop wound down in April 2026. How ai4kanban's file-based board compares: a lightweight planning board in your repo vs. a cockpit that runs many coding agents in parallel — and what carries over.",
   alternates: { canonical: "/vs-vibe-kanban" },
   openGraph: {
     type: "article",
     url: "/vs-vibe-kanban",
-    siteName: "Kanban skill",
-    title: "Kanban skill vs. Vibe Kanban",
+    siteName: "AI4Kanban",
+    title: "AI4Kanban vs. Vibe Kanban",
     description:
       "Vibe Kanban's company shut down. A planning board in your repo vs. an agent-orchestration cockpit — the honest difference, and what carries over.",
     images: [OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kanban skill vs. Vibe Kanban",
+    title: "AI4Kanban vs. Vibe Kanban",
     description:
       "Vibe Kanban's company shut down. A planning board in your repo vs. an agent-orchestration cockpit — the honest difference, and what carries over.",
     images: [OG_IMAGE.url],
@@ -35,9 +35,9 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Article",
-  headline: "Kanban skill vs. Vibe Kanban",
+  headline: "AI4Kanban vs. Vibe Kanban",
   description:
-    "How the file-based kanban skill compares to Vibe Kanban: a lightweight planning board in your repo vs. a cockpit that orchestrates many coding agents in parallel, after Bloop's April 2026 shutdown.",
+    "How ai4kanban's file-based board compares to Vibe Kanban: a lightweight planning board in your repo vs. a cockpit that orchestrates many coding agents in parallel, after Bloop's April 2026 shutdown.",
   url: `${BASE_URL}/vs-vibe-kanban`,
 };
 

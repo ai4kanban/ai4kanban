@@ -1,6 +1,6 @@
 # Configuration
 
-This file adapts the kanban skill to your project. `kanban init` seeds it here at
+This file adapts ai4kanban to your project. `kanban init` seeds it here at
 `docs/kanban/config.md`; the install step fills in the `{{PLACEHOLDERS}}` below from your
 repo. Until they're filled, the default in each note applies.
 

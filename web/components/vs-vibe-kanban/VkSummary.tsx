@@ -2,7 +2,7 @@ import { SectionHeading } from "../SectionHeading";
 import { panelStatic } from "../styles";
 
 // The shutdown is why people are here — lead with it, honestly, then say what
-// carries over to the kanban skill and what doesn't.
+// carries over to ai4kanban and what doesn't.
 export function VkSummary() {
   return (
     <section className="mt-24">
@@ -20,13 +20,13 @@ export function VkSummary() {
         <p className="text-[0.95rem] text-muted">
           If what you valued in Vibe Kanban was the{" "}
           <span className="font-semibold text-ink">board</span> — a calm place to
-          line up and sharpen work for your coding agent — the kanban skill gives
+          line up and sharpen work for your coding agent — ai4kanban gives
           you that as plain files in git, with no company that can shut down and no
           server to keep alive. If what you valued was the{" "}
           <span className="font-semibold text-ink">
             engine that runs many agents in parallel
           </span>
-          , be warned: the kanban skill is not that, and we&apos;d rather tell you
+          , be warned: ai4kanban is not that, and we&apos;d rather tell you
           now than lose you three sections in.
         </p>
       </div>

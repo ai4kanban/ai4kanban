@@ -79,7 +79,7 @@ function Row({
         {dimension}
       </div>
       <div className="grid divide-y-2 divide-border sm:grid-cols-2 sm:divide-x-2 sm:divide-y-0">
-        <Cell label="Kanban skill" text={kanban} state={s.kanban} />
+        <Cell label="AI4Kanban" text={kanban} state={s.kanban} />
         <Cell label="Vibe Kanban" text={vibe} state={s.vibe} />
       </div>
     </div>
@@ -89,7 +89,7 @@ function Row({
 export function VkComparison() {
   return (
     <section className="mt-24">
-      <SectionHeading num="02" eyebrow="Head to head" title="Kanban skill vs. Vibe Kanban" />
+      <SectionHeading num="02" eyebrow="Head to head" title="AI4Kanban vs. Vibe Kanban" />
       <p className="text-ink">
         Ten dimensions. A{" "}
         <FiCheck
@@ -97,7 +97,7 @@ export function VkComparison() {
           aria-label="check"
         />{" "}
         is a clear win; a <span className="font-medium">dash</span> is a deliberate
-        trade-off that comes down to what you need. The kanban skill takes the{" "}
+        trade-off that comes down to what you need. ai4kanban takes the{" "}
         <span className="font-medium">lightness and planning</span> rows; Vibe
         Kanban takes the{" "}
         <span className="font-medium">parallel-agent and review</span> ones — its

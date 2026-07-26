@@ -33,7 +33,7 @@ const STOPS: {
     level: "Semi autonomy",
     term: "Agent-assisted",
     tag: "🗂️",
-    heading: "Kanban skill",
+    heading: "AI4Kanban",
     detail: (
       <>
         Each <code className="rounded bg-code px-1 py-0.5 text-[0.9em]">refine</code>{" "}
@@ -95,7 +95,7 @@ export function HkAutonomy() {
       <p className="text-ink">
         Hermes Kanban promises{" "}
         <span className="font-semibold">&ldquo;drop a one-liner, walk away&rdquo;</span>{" "}
-        — full autonomy. The kanban skill is{" "}
+        — full autonomy. ai4kanban is{" "}
         <span className="font-semibold">agent-assisted</span>, and it starts
         earlier than plan mode: you save a half-formed idea to the board,{" "}
         <code className="rounded bg-code px-1 py-0.5 text-[0.9em]">refine</code>{" "}

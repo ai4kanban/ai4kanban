@@ -44,13 +44,13 @@ export function VkWins() {
     <section className="mt-24">
       <SectionHeading num="04" eyebrow="Trade-offs" title="Where each one wins" />
       <p className="text-ink">
-        Neither is strictly better. The kanban skill optimizes for a lean,
+        Neither is strictly better. ai4kanban optimizes for a lean,
         file-based board that outlives any tool; Vibe Kanban optimizes for running
         and reviewing many agents at once.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-8 sm:grid-cols-2">
-        <WinColumn heading="Kanban skill" tag="🗂️" items={kanbanWins} />
+        <WinColumn heading="AI4Kanban" tag="🗂️" items={kanbanWins} />
         <WinColumn heading="Vibe Kanban" tag="🎛️" items={vibeWins} />
       </div>
     </section>

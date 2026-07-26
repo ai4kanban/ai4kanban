@@ -114,13 +114,13 @@ export function HkHero() {
         Comparison
       </p>
       <h1 className="text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl">
-        Kanban skill vs.
+        AI4Kanban vs.
         <br />
         Hermes Agent Kanban
       </h1>
       <p className="mx-auto mt-5 max-w-2xl text-lg text-muted">
         Two agent-facing kanban boards with a lot of overlap. The difference is
-        where the board sits in the stack: the kanban skill is a lean{" "}
+        where the board sits in the stack: ai4kanban is a lean{" "}
         <em>board layer</em> you run any agent on top of; Hermes Agent Kanban
         fuses that board into its own runtime.
       </p>
@@ -132,7 +132,7 @@ export function HkHero() {
             <span className="text-lg" aria-hidden="true">
               🗂️
             </span>
-            <span className="font-semibold text-ink">Kanban skill</span>
+            <span className="font-semibold text-ink">AI4Kanban</span>
           </div>
           <p className="text-sm text-muted">
             A plain-Markdown board in your repo. The runtime, execution, and even

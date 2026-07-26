@@ -1,6 +1,6 @@
 # Updating the skill
 
-Pull a newer version of the kanban skill into a project that already has it. `${KB}` below
+Pull a newer version of ai4kanban into a project that already has it. `${KB}` below
 is the script invocation from SKILL.md's "The script" section.
 
 **The one rule: `docs/kanban/` is yours; the skill folder (`SKILL.md`, `kanban.mjs`,
