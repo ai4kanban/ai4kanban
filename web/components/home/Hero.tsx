@@ -9,18 +9,19 @@ export function Hero() {
           A Claude Code skill
         </p>
         <h1 className="text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl">
-          Your task board in Markdown,
+          AI project management
           <br />
-          right next to your code.
+          that grows with you.
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg text-muted">
-          Claude proposes the next work, writes the cards, and archives what&apos;s
-          done. Your backlog lives as plain Markdown files in{" "}
+          Give it a vague idea. The agent breaks it down, answers what it can
+          on its own, asks you the rest — and keeps at it in the background
+          until every detail is clear enough to build. The board is plain
+          Markdown in{" "}
           <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[0.9em] text-ink">
             docs/kanban/
           </code>{" "}
-          — in git, diffable, readable by you and the agent. No database, no
-          MCP. Just talk to the board.
+          — in git, no database, no MCP.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <a

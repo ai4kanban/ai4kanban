@@ -1,25 +1,47 @@
 export const GITHUB_URL = "https://github.com/dist0com/ai4kanban";
 
+// The "What it does" checklist from the README — everything here is built and
+// working today.
 export const features: { icon: string; title: string; body: string }[] = [
   {
-    icon: "📄",
-    title: "Plain Markdown, in your repo",
-    body: "Every card is a Markdown file under docs/kanban/. Diffable, reviewable, versioned with your code — not locked in a SaaS.",
+    icon: "🧩",
+    title: "Breaks work down",
+    body: "The agent reads an idea and splits it into subtasks. An unrelated ask tangled in gets pulled out as a task of its own.",
   },
   {
-    icon: "💬",
-    title: "Steered in plain language",
-    body: 'Say "/kanban what\'s next?" or "/kanban #4 is done." Claude reads the board and your sources, then proposes, writes, and archives for you.',
+    icon: "🔁",
+    title: "Clarifies in a loop",
+    body: "The agent starts by questioning the idea. Whatever memory and common sense can settle, it settles on its own; the rest comes to you. It keeps looping until it runs out of questions.",
   },
   {
-    icon: "⚡",
-    title: "No database, no MCP",
-    body: "Just a skill file and a small Node script. The board is plain Markdown any agent can read, so Cursor or Codex can drive it too — nothing to install, host, or pay for, and it keeps working offline.",
+    icon: "⏰",
+    title: "Runs 24/7",
+    body: "Breakdown and clarification keep running in the background until the idea becomes a clear spec.",
   },
   {
-    icon: "🚀",
-    title: "Built for solo founders",
-    body: "Keep marketing, building, docs, and research side by side in one repo — so the model can compose across everything you have.",
+    icon: "🔍",
+    title: "Every decision is traceable",
+    body: "You can always see how a spec took shape, step by step.",
+  },
+  {
+    icon: "💡",
+    title: "Proposes its own tasks",
+    body: "The agent pitches features drawn from each module's memory. Veto one and that's recorded — it won't pitch that kind of idea again.",
+  },
+  {
+    icon: "🧠",
+    title: "Self-evolving",
+    body: "Each time you step in, that call is recorded and steers the agent's later decisions. Memory is organized by project module.",
+  },
+  {
+    icon: "🧭",
+    title: "Orders the work",
+    body: "It doesn't just split tasks — it identifies dependencies and weighs ROI against effort, so work runs in the right order.",
+  },
+  {
+    icon: "📦",
+    title: "Owns the whole lifecycle",
+    body: "Its job doesn't end once the spec is clear. It runs a task's entire life — proposed, clarified, built, archived — so the board always shows where the project really stands.",
   },
 ];
 

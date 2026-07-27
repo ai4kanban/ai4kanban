@@ -39,7 +39,7 @@ export function Header() {
   return (
     <header className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-3 px-6 py-5 sm:flex-row">
       <a href="/" className="text-lg font-bold text-ink no-underline">
-        🗂️ kanban <span className="font-normal text-muted">skill</span>
+        🗂️ AI4Kanban
       </a>
       <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[0.95rem] text-muted">
         <a href="/#install" className="transition-colors hover:text-ink">

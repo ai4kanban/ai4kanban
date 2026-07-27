@@ -4,9 +4,17 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
-  title: "AI4Kanban — a local task board in Markdown, next to your code",
+  title: "AI4Kanban — AI project management that grows with you",
   description:
-    "A Claude Code skill that runs a kanban board for you — your backlog lives as plain Markdown files in git. No database, no MCP.",
+    "AI project management for Claude Code. Give it a vague idea — the agent breaks it down and clarifies it in a loop until it's clear enough to build. Plain Markdown, in git.",
+  keywords: [
+    "AI project management",
+    "Claude Code skill",
+    "agentic project management",
+    "markdown kanban board",
+    "AI task management",
+    "local-first kanban",
+  ],
   alternates: {
     canonical: "/",
   },
@@ -14,16 +22,16 @@ export const metadata: Metadata = {
     type: "website",
     url: "/",
     siteName: "AI4Kanban",
-    title: "AI4Kanban — a local task board in Markdown, next to your code",
+    title: "AI4Kanban — AI project management that grows with you",
     description:
-      "Claude proposes the next work, writes the cards, and archives what's done. You steer the backlog in plain language, straight from your terminal.",
+      "Give it a vague idea. The agent breaks it down, answers what it can on its own, asks you the rest — and keeps at it in the background until every detail is clear enough to build.",
     images: [OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI4Kanban — a local task board in Markdown, next to your code",
+    title: "AI4Kanban — AI project management that grows with you",
     description:
-      "Claude proposes the next work, writes the cards, and archives what's done. You steer the backlog in plain language, straight from your terminal.",
+      "Give it a vague idea. The agent breaks it down, answers what it can on its own, asks you the rest — and keeps at it in the background until every detail is clear enough to build.",
     images: [OG_IMAGE.url],
   },
   verification: {

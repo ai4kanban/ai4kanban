@@ -14,10 +14,8 @@ const jsonLd = {
   "@type": "SoftwareApplication",
   name: "AI4Kanban",
   description:
-    "A Claude Code skill that runs a kanban board from plain Markdown files in your repo — versioned in git, no database, no MCP.",
+    "AI project management that runs as a Claude Code skill. Give it a vague idea — the agent breaks it down and clarifies it in a loop until it's clear enough to build. The board is plain Markdown in your repo — versioned in git, no database, no MCP.",
   url: BASE_URL,
-  applicationCategory: "DeveloperApplication",
-  operatingSystem: "macOS, Linux, Windows",
   offers: {
     "@type": "Offer",
     price: "0",

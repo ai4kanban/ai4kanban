@@ -1,8 +1,34 @@
 # Goal
 
-The direction, in the user's own words — where this is headed. One short statement. The
-user owns this file; the agent seeds it but does not invent the goal.
+AI project management that grows with you.
 
-- The skill is a reusable, project-agnostic port of dist0's internal kanban skill. Configuration
-  makes it fit any repo; presets carry the opinionated extras.
-- Stay file-based and git-diffable. No database, no server.
+AI4Kanban的目标是一个自进化的AI *项目经理*：给它一个模糊想法，它会自主解读、拆解、循环澄清，直到每个需求细节都被明确。
+
+- [x] 自主拆解：agent解读需求，将其拆解为多个子任务；夹带的无关需求会被拆出，作为独立任务。
+- [x] 循环澄清：agent首先对需求自主提问；凡是凭记忆和常识能解答的，直接决策，否则请人类介入澄清。此流程不断重复，直到agent对需求提不出更多疑问。
+- [x] 7x24：拆解与澄清在后台持续进行，直到需求明确。
+- [x] 决策可追溯：人类随时能看到需求是如何一步步被细化的。
+- [x] 自主提需求：agent基于各模块的记忆提出功能提案。人类的否决会被记录，令agent此后不再提出同类提案。
+- [x] 自进化：每次人工介入都会被记录，作为后续自主决策的参照。记忆按项目模块分别组织。
+- [x] 依赖和优先级管理：agent不仅拆解任务，还负责排定优先级——识别任务间的依赖，权衡价值与成本，确保任务以正确的顺序执行。
+- [x] 交付闭环：AI4Kanban的职责不止于把需求澄清，而是覆盖任务的完整生命周期——提出、澄清、执行、归档。看板始终反映项目的真实进展。
+
+AI4Kanban为小微团队而设计：用看板管理工作，把人从具体实施中解脱出来，去关注每项工作对用户的价值，而非coding agent的执行细节。得益于新模型的能力，当前的coding agent已经能高完成度地把明确的需求翻译成代码；但如果需求本身不明确，它只会在错误的假设上做错误的开发。AI4Kanban依靠持续积累的记忆，在你提出模糊想法时沿着过去的决策轨迹自主判断，最终产出可落地的明确需求。
+
+----
+
+- [ ] Harness无关：任何Harness都可以使用，包括但不限于Claude Code、Codex、Cursor。
+- [x] 本地优先：看板任务默认存储为本地Markdown文件，无需MCP，无需数据库，节约token。一切以纯文本留存于git，可审查、可diff、可回滚。
+- [x] 开箱即用：一条prompt完成安装与升级；AI4Kanban专为项目管理打造，配置极简。
+- [x] 两种使用模式：既可通过skill在命令行内管理看板，也可在本地UI中操作。
+
+人类项目经理用看板管理工作，agent也应如此。AI4Kanban不以聊天窗作为交互方式，而以看板为中心。
+
+----
+
+- [ ] 可插拔存储（近期）：看板任务可存储到Obsidian、Notion、GitHub Issues等。
+- [ ] 可插拔Harness（近期）：看板任务可交由Claude Code、Codex、Cursor等执行。
+- [ ] Git worktree（近期）：任务在各自的worktree中并行执行，互不干扰。
+- [ ] 定时任务/Webhook（近期）：按计划或经Webhook自动从外部导入需求。
+- [ ] 阻塞任务管理（近期）：对长期搁置的任务做激进处理——拆分、改写，或直接否决。
+- [ ] 团队协作（中期）

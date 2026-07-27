@@ -45,16 +45,16 @@ export default function OgImage() {
           A Claude Code skill
         </span>
         <h1 className="text-[54px] font-bold leading-[1.05] tracking-tight text-ink">
-          Your task board in Markdown, right next to your code.
+          AI project management that grows with you.
         </h1>
         <p className="mt-6 text-[22px] leading-snug text-muted">
-          Claude writes the cards and archives what&apos;s done. You steer in
-          plain language. No database, no MCP.
+          Give it a vague idea — it breaks it down, clarifies in a loop, and
+          remembers every decision. Plain Markdown, in your repo.
         </p>
         <div className="mt-10 flex items-center gap-2.5 text-[26px] font-bold text-ink">
           <span aria-hidden="true">🗂️</span>
           <span>
-            kanban <span className="font-normal text-muted">skill</span>
+            ai4kanban<span className="font-normal text-muted">.dev</span>
           </span>
         </div>
       </div>
