@@ -7,46 +7,66 @@ import { VsComparison } from "@/components/vs-github-issues/VsComparison";
 import { VsWins } from "@/components/vs-github-issues/VsWins";
 import { VsErgonomics } from "@/components/vs-github-issues/VsErgonomics";
 import { VsDecision } from "@/components/vs-github-issues/VsDecision";
-import { BASE_URL, OG_IMAGE } from "@/lib/site";
+import { pageMetadata } from "@/lib/metadata";
+import {
+  APP_ID,
+  article,
+  jsonLd,
+  pageUrl,
+  softwareApplication,
+  webPage,
+} from "@/lib/schema";
 
-export const metadata: Metadata = {
-  title: "AI4Kanban vs. GitHub Issues — a different tool for a different job",
-  description:
-    "How ai4kanban's file-based board compares to GitHub Issues: local Markdown vs. a remote API, token cost, agent ergonomics, teams, and when to use each.",
-  alternates: { canonical: "/vs-github-issues" },
-  openGraph: {
-    type: "article",
-    url: "/vs-github-issues",
-    siteName: "AI4Kanban",
-    title: "AI4Kanban vs. GitHub Issues",
-    description:
-      "Not a replacement — a different tool for a different bottleneck. A head-to-head on speed, tokens, agents, and teams.",
-    images: [OG_IMAGE],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "AI4Kanban vs. GitHub Issues",
-    description:
-      "Not a replacement — a different tool for a different bottleneck. A head-to-head on speed, tokens, agents, and teams.",
-    images: [OG_IMAGE.url],
-  },
-};
+const PATH = "/vs-github-issues";
+const TITLE = "AI4Kanban vs. GitHub Issues — a different tool for a different job";
+const SHORT_TITLE = "AI4Kanban vs. GitHub Issues";
+const DESCRIPTION =
+  "How ai4kanban's file-based board compares to GitHub Issues: local Markdown vs. a remote API, token cost, agent ergonomics, teams, and when to use each.";
+const SOCIAL =
+  "Not a replacement — a different tool for a different bottleneck. A head-to-head on speed, tokens, agents, and teams.";
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Article",
-  headline: "AI4Kanban vs. GitHub Issues",
-  description:
-    "How ai4kanban's file-based board compares to GitHub Issues across storage, token cost, agent ergonomics, teams, and transparency.",
-  url: `${BASE_URL}/vs-github-issues`,
-};
+export const metadata: Metadata = pageMetadata({
+  path: PATH,
+  title: TITLE,
+  socialTitle: SHORT_TITLE,
+  description: DESCRIPTION,
+  social: SOCIAL,
+  type: "article",
+});
+
+const RIVAL_ID = `${pageUrl(PATH)}#github-issues`;
+
+// `datePublished` is when the page shipped; bump `dateModified` when the
+// argument changes, not for copy tweaks.
+const schema = jsonLd(
+  webPage(PATH, TITLE, DESCRIPTION),
+  article({
+    path: PATH,
+    headline: SHORT_TITLE,
+    description: DESCRIPTION,
+    datePublished: "2026-07-15",
+    dateModified: "2026-07-26",
+    about: [{ "@id": APP_ID }, { "@id": RIVAL_ID }],
+  }),
+  softwareApplication({
+    id: APP_ID,
+    name: "AI4Kanban",
+    url: pageUrl(""),
+    free: true,
+  }),
+  softwareApplication({
+    id: RIVAL_ID,
+    name: "GitHub Issues",
+    operatingSystem: "Web",
+  }),
+);
 
 export default function VsPage() {
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: schema }}
       />
       <Header />
       <main className="mx-auto max-w-4xl px-6 pb-8">

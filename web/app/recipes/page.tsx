@@ -4,46 +4,47 @@ import { Footer } from "@/components/Footer";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { recipes } from "@/components/recipes/recipes-content";
 import { panelStatic } from "@/components/styles";
-import { BASE_URL, OG_IMAGE } from "@/lib/site";
+import { pageMetadata } from "@/lib/metadata";
+import { itemList, jsonLd, pageUrl, webPage } from "@/lib/schema";
 
-export const metadata: Metadata = {
-  title: "Recipes — ready-made recurring tasks for your kanban board",
-  description:
-    "Ready-made recurring tasks you add to your board in one prompt. Claude pulls the recipe by URL and runs it on the cadence you choose — starting with daily kanban maintenance.",
-  alternates: { canonical: "/recipes" },
-  openGraph: {
-    type: "website",
-    url: "/recipes",
-    siteName: "AI4Kanban",
-    title: "Recipes — ready-made recurring tasks for your kanban board",
-    description:
-      "Ready-made recurring tasks you add to your board in one prompt. Claude pulls the recipe by URL and runs it on the cadence you choose.",
-    images: [OG_IMAGE],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Recipes — ready-made recurring tasks for your kanban board",
-    description:
-      "Ready-made recurring tasks you add to your board in one prompt. Claude pulls the recipe by URL and runs it on the cadence you choose.",
-    images: [OG_IMAGE.url],
-  },
-};
+const PATH = "/recipes";
+const TITLE = "Recipes — ready-made recurring tasks for your kanban board";
+const DESCRIPTION =
+  "Ready-made recurring tasks you add to your board in one prompt. Claude pulls the recipe by URL and runs it on the cadence you choose — starting with daily kanban maintenance.";
+const SOCIAL =
+  "Ready-made recurring tasks you add to your board in one prompt. Claude pulls the recipe by URL and runs it on the cadence you choose.";
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "CollectionPage",
-  name: "AI4Kanban recipes",
-  description:
-    "Ready-made recurring tasks you add to your kanban board in one prompt.",
-  url: `${BASE_URL}/recipes`,
-};
+export const metadata: Metadata = pageMetadata({
+  path: PATH,
+  title: TITLE,
+  description: DESCRIPTION,
+  social: SOCIAL,
+});
+
+// The page is a catalog, so the entity it's really about is the list itself.
+const catalog = itemList(
+  PATH,
+  recipes.map((r) => ({
+    url: pageUrl(`/recipes/${r.slug}`),
+    name: r.title,
+    description: r.tagline,
+  })),
+);
+
+const schema = jsonLd(
+  {
+    ...webPage(PATH, TITLE, DESCRIPTION, "CollectionPage"),
+    mainEntity: { "@id": catalog["@id"] },
+  },
+  catalog,
+);
 
 export default function RecipesPage() {
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: schema }}
       />
       <Header />
       <main className="mx-auto max-w-4xl px-6 pb-8">

@@ -1,39 +1,24 @@
 import type { Metadata } from "next";
-import { BASE_URL, OG_IMAGE } from "@/lib/site";
+import {
+  HOME_DESCRIPTION,
+  HOME_SOCIAL,
+  HOME_TITLE,
+  pageMetadata,
+} from "@/lib/metadata";
+import { BASE_URL } from "@/lib/site";
 import "./globals.css";
 
+// No `keywords`: <meta name="keywords"> has been ignored by Google since 2009
+// and is read as a spam signal elsewhere. What the site is about is carried by
+// the title, the description, and the JSON-LD entity in app/page.tsx.
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
-  title: "AI4Kanban — AI project management that grows with you",
-  description:
-    "AI project management for Claude Code. Give it a vague idea — the agent breaks it down and clarifies it in a loop until it's clear enough to build. Plain Markdown, in git.",
-  keywords: [
-    "AI project management",
-    "Claude Code skill",
-    "agentic project management",
-    "markdown kanban board",
-    "AI task management",
-    "local-first kanban",
-  ],
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    type: "website",
-    url: "/",
-    siteName: "AI4Kanban",
-    title: "AI4Kanban — AI project management that grows with you",
-    description:
-      "Give it a vague idea. The agent breaks it down, answers what it can on its own, asks you the rest — and keeps at it in the background until every detail is clear enough to build.",
-    images: [OG_IMAGE],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "AI4Kanban — AI project management that grows with you",
-    description:
-      "Give it a vague idea. The agent breaks it down, answers what it can on its own, asks you the rest — and keeps at it in the background until every detail is clear enough to build.",
-    images: [OG_IMAGE.url],
-  },
+  ...pageMetadata({
+    path: "",
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    social: HOME_SOCIAL,
+  }),
   verification: {
     google: "QVTStPZuK-LT8pPMpHaVrFmpfTGz1Q-zqmdKpkTK8d0",
     other: {

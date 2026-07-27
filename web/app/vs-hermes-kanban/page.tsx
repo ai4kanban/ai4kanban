@@ -10,46 +10,61 @@ import { HkAutonomy } from "@/components/vs-hermes-kanban/HkAutonomy";
 import { HkGui } from "@/components/vs-hermes-kanban/HkGui";
 import { HkWins } from "@/components/vs-hermes-kanban/HkWins";
 import { HkDecision } from "@/components/vs-hermes-kanban/HkDecision";
-import { BASE_URL, OG_IMAGE } from "@/lib/site";
+import { pageMetadata } from "@/lib/metadata";
+import {
+  APP_ID,
+  article,
+  jsonLd,
+  pageUrl,
+  softwareApplication,
+  webPage,
+} from "@/lib/schema";
 
-export const metadata: Metadata = {
-  title: "AI4Kanban vs. Hermes Agent Kanban — a lean file-based board vs. a durable runtime",
-  description:
-    "How ai4kanban's file-based board compares to Nous Research's Hermes Agent Kanban: two overlapping agent kanban boards — plain diffable files that run on any agent (even Hermes) vs. a durable, shared SQLite queue many named agents claim tasks from.",
-  alternates: { canonical: "/vs-hermes-kanban" },
-  openGraph: {
-    type: "article",
-    url: "/vs-hermes-kanban",
-    siteName: "AI4Kanban",
-    title: "AI4Kanban vs. Hermes Agent Kanban",
-    description:
-      "Two overlapping agent kanban boards. ai4kanban is a lean, file-based board that runs on any agent (even Hermes); Hermes bundles the same board with a durable, shared queue many named agents work.",
-    images: [OG_IMAGE],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "AI4Kanban vs. Hermes Agent Kanban",
-    description:
-      "Two overlapping agent kanban boards. ai4kanban is a lean, file-based board that runs on any agent (even Hermes); Hermes bundles the same board with a durable, shared queue many named agents work.",
-    images: [OG_IMAGE.url],
-  },
-};
+const PATH = "/vs-hermes-kanban";
+const TITLE =
+  "AI4Kanban vs. Hermes Agent Kanban — a lean file-based board vs. a durable runtime";
+const SHORT_TITLE = "AI4Kanban vs. Hermes Agent Kanban";
+const DESCRIPTION =
+  "How ai4kanban's file-based board compares to Nous Research's Hermes Agent Kanban: two overlapping agent kanban boards — plain diffable files that run on any agent (even Hermes) vs. a durable, shared SQLite queue many named agents claim tasks from.";
+const SOCIAL =
+  "Two overlapping agent kanban boards. ai4kanban is a lean, file-based board that runs on any agent (even Hermes); Hermes bundles the same board with a durable, shared queue many named agents work.";
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Article",
-  headline: "AI4Kanban vs. Hermes Agent Kanban",
-  description:
-    "How ai4kanban's file-based board compares to Hermes Agent Kanban: two overlapping agent kanban boards — plain diffable files that run on any agent (even Hermes) vs. a durable, shared SQLite queue many named agents claim tasks from.",
-  url: `${BASE_URL}/vs-hermes-kanban`,
-};
+export const metadata: Metadata = pageMetadata({
+  path: PATH,
+  title: TITLE,
+  socialTitle: SHORT_TITLE,
+  description: DESCRIPTION,
+  social: SOCIAL,
+  type: "article",
+});
+
+const RIVAL_ID = `${pageUrl(PATH)}#hermes-agent-kanban`;
+
+const schema = jsonLd(
+  webPage(PATH, TITLE, DESCRIPTION),
+  article({
+    path: PATH,
+    headline: SHORT_TITLE,
+    description: DESCRIPTION,
+    datePublished: "2026-07-19",
+    dateModified: "2026-07-26",
+    about: [{ "@id": APP_ID }, { "@id": RIVAL_ID }],
+  }),
+  softwareApplication({
+    id: APP_ID,
+    name: "AI4Kanban",
+    url: pageUrl(""),
+    free: true,
+  }),
+  softwareApplication({ id: RIVAL_ID, name: "Hermes Agent Kanban" }),
+);
 
 export default function VsHermesPage() {
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: schema }}
       />
       <Header />
       <main className="mx-auto max-w-4xl px-6 pb-8">

@@ -6,7 +6,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { RecipeLanding } from "@/components/recipes/RecipeLanding";
 import { getRecipe, recipes } from "@/components/recipes/recipes-content";
-import { BASE_URL, OG_IMAGE } from "@/lib/site";
+import { pageMetadata } from "@/lib/metadata";
+import { ORG_ID, jsonLd, pageUrl, webPage } from "@/lib/schema";
 
 // Pre-render one static page per recipe (required for `output: export`).
 export function generateStaticParams() {
@@ -15,31 +16,19 @@ export function generateStaticParams() {
 
 type Params = { params: Promise<{ slug: string }> };
 
+const recipeTitle = (title: string) => `${title} — a kanban recipe`;
+
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const recipe = getRecipe(slug);
   if (!recipe) return {};
 
-  const url = `/recipes/${recipe.slug}`;
-  return {
-    title: `${recipe.title} — a kanban recipe`,
+  return pageMetadata({
+    path: `/recipes/${recipe.slug}`,
+    title: recipeTitle(recipe.title),
     description: recipe.tagline,
-    alternates: { canonical: url },
-    openGraph: {
-      type: "article",
-      url,
-      siteName: "AI4Kanban",
-      title: `${recipe.title} — a kanban recipe`,
-      description: recipe.tagline,
-      images: [OG_IMAGE],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: `${recipe.title} — a kanban recipe`,
-      description: recipe.tagline,
-      images: [OG_IMAGE.url],
-    },
-  };
+    type: "article",
+  });
 }
 
 // Read the card's Markdown from public/ at build time — single source of truth
@@ -56,25 +45,39 @@ export default async function RecipePage({ params }: Params) {
 
   const markdown = readCard(recipe.mdFile);
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: recipe.title,
-    description: recipe.summary,
-    url: `${BASE_URL}/recipes/${recipe.slug}`,
-    step: recipe.does.map((s, i) => ({
-      "@type": "HowToStep",
-      position: i + 1,
-      name: s.title,
-      text: s.body,
-    })),
-  };
+  const route = `/recipes/${recipe.slug}`;
+  const url = pageUrl(route);
+
+  // Google retired HowTo rich results, so this earns no snippet — it stays
+  // because it's what the page actually is, and it's how an AI reading the page
+  // learns the steps of a run in order.
+  const schema = jsonLd(
+    {
+      ...webPage(route, recipeTitle(recipe.title), recipe.tagline),
+      mainEntity: { "@id": `${url}#howto` },
+    },
+    {
+      "@type": "HowTo",
+      "@id": `${url}#howto`,
+      name: recipe.title,
+      description: recipe.summary,
+      url,
+      publisher: { "@id": ORG_ID },
+      mainEntityOfPage: { "@id": `${url}#webpage` },
+      step: recipe.does.map((s, i) => ({
+        "@type": "HowToStep",
+        position: i + 1,
+        name: s.title,
+        text: s.body,
+      })),
+    },
+  );
 
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: schema }}
       />
       <Header />
       <RecipeLanding recipe={recipe} markdown={markdown} />
