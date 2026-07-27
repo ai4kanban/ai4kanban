@@ -1,24 +1,20 @@
 import { CodeBlock } from "../CodeBlock";
+import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
+import type { SiteCopy } from "@/i18n/types";
 
-export function Install() {
+export function Install({ c }: { c: SiteCopy }) {
+  const t = c.home.install;
   return (
     <section id="install" className="mt-24 scroll-mt-20">
-      <SectionHeading num="01" eyebrow="Setup" title="Install in one prompt" />
-      <p className="text-ink">
-        From your project root, tell Claude Code (or any agent that can run shell
-        commands):
-      </p>
-      <CodeBlock>{`Set up ai4kanban for this project. Read
+      <SectionHeading num="01" {...t.heading} />
+      <p className="text-ink">{t.lead}</p>
+      {/* The prompt itself stays English — it's what the agent reads. */}
+      <CodeBlock labels={c.shared.code}>{`Set up ai4kanban for this project. Read
 https://ai4kanban.dev/INSTALL_PROMPT.txt
 and follow it.`}</CodeBlock>
       <p className="text-muted">
-        The agent copies the skill into{" "}
-        <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[0.9em] text-ink">
-          .claude/skills/kanban/
-        </code>
-        , reads your codebase to fill in the configuration, scaffolds the board, and
-        proposes your first three tasks.
+        <Rich>{t.note}</Rich>
       </p>
     </section>
   );

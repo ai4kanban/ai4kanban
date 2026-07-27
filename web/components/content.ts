@@ -1,124 +1,145 @@
+// Structure for the landing page — everything that *isn't* words.
+//
+// The words moved to `i18n/en.ts` (and its four translations). What stays here
+// is the ordering and the language-independent bits each row carries: an emoji,
+// a file name, a track weight. Copy is joined to these by key.
+import type {
+  BoardRowKey,
+  FeatureKey,
+  InputSourceKey,
+  LadderKey,
+  LearnFileKey,
+  LoopStageKey,
+  RecurringExampleKey,
+  SoloTrackKey,
+  UiActionKey,
+} from "@/i18n/types";
+
 export const GITHUB_URL = "https://github.com/dist0com/ai4kanban";
 
 // The "What it does" checklist from the README — everything here is built and
 // working today.
-export const features: { icon: string; title: string; body: string }[] = [
-  {
-    icon: "🧩",
-    title: "Breaks work down",
-    body: "The agent reads an idea and splits it into subtasks. An unrelated ask tangled in gets pulled out as a task of its own.",
-  },
-  {
-    icon: "🔁",
-    title: "Clarifies in a loop",
-    body: "The agent starts by questioning the idea. Whatever memory and common sense can settle, it settles on its own; the rest comes to you. It keeps looping until it runs out of questions.",
-  },
-  {
-    icon: "⏰",
-    title: "Runs 24/7",
-    body: "Breakdown and clarification keep running in the background until the idea becomes a clear spec.",
-  },
-  {
-    icon: "🔍",
-    title: "Every decision is traceable",
-    body: "You can always see how a spec took shape, step by step.",
-  },
-  {
-    icon: "💡",
-    title: "Proposes its own tasks",
-    body: "The agent pitches features drawn from each module's memory. Veto one and that's recorded — it won't pitch that kind of idea again.",
-  },
-  {
-    icon: "🧠",
-    title: "Self-evolving",
-    body: "Each time you step in, that call is recorded and steers the agent's later decisions. Memory is organized by project module.",
-  },
-  {
-    icon: "🧭",
-    title: "Orders the work",
-    body: "It doesn't just split tasks — it identifies dependencies and weighs ROI against effort, so work runs in the right order.",
-  },
-  {
-    icon: "📦",
-    title: "Owns the whole lifecycle",
-    body: "Its job doesn't end once the spec is clear. It runs a task's entire life — proposed, clarified, built, archived — so the board always shows where the project really stands.",
-  },
+export const featureOrder: FeatureKey[] = [
+  "breakDown",
+  "clarify",
+  "alwaysOn",
+  "traceable",
+  "proposes",
+  "selfEvolving",
+  "orders",
+  "lifecycle",
 ];
 
-export const boardRows: { say: string; does: string }[] = [
-  { say: '"/kanban what\'s next?"', does: "reads the board + your sources, proposes 3 new tasks" },
-  { say: '"/kanban add a task: …"', does: "reviews the idea, writes a card, adds it to the index" },
-  { say: '"/kanban refine #4"', does: "reviews card #4, then pushes it one stage toward concrete" },
-  { say: '"/kanban review the board"', does: "checks cards for clarity, duplication, done-ness" },
-  { say: '"/kanban #4 is done"', does: "compresses it into the archive, removes the card" },
-  { say: '"/kanban #4 was a bad idea"', does: "records why in rejected.md so it's never re-proposed" },
+export const featureIcons: Record<FeatureKey, string> = {
+  breakDown: "🧩",
+  clarify: "🔁",
+  alwaysOn: "⏰",
+  traceable: "🔍",
+  proposes: "💡",
+  selfEvolving: "🧠",
+  orders: "🧭",
+  lifecycle: "📦",
+};
+
+export const boardRowOrder: BoardRowKey[] = [
+  "whatsNext",
+  "addTask",
+  "refine",
+  "review",
+  "done",
+  "badIdea",
 ];
 
 // The local board UI: each card carries buttons that hand the work to an agent,
-// so common moves don't have to be re-typed into the chat every time. Kept as
-// short one-liners — the buttons are self-explanatory once you see the board.
-export const uiActions: { icon: string; label: string; body: string }[] = [
-  { icon: "🔨", label: "Implement", body: "hand the card to Claude to build" },
-  { icon: "✏️", label: "Edit", body: "revise the card, don't run it" },
-  { icon: "📈", label: "Refine", body: "push a stuck card one step on" },
-  { icon: "❓", label: "Resolve", body: "answer the card's open questions" },
-  { icon: "📦", label: "Archive", body: "file a finished card away" },
-  { icon: "❌", label: "Reject", body: "drop a card and note why" },
+// so common moves don't have to be re-typed into the chat every time.
+export const uiActionOrder: UiActionKey[] = [
+  "implement",
+  "edit",
+  "refine",
+  "resolve",
+  "archive",
+  "reject",
 ];
 
-// Recurring-task automation ladder: each run pushes a step up a rung.
-export const ladderSteps: { tag: string; label: string }[] = [
-  { tag: "[ask]", label: "you do it by hand" },
-  { tag: "[agent]", label: "Claude does it for you" },
-  { tag: "[script]", label: "a command runs it, no human" },
-];
+export const uiActionIcons: Record<UiActionKey, string> = {
+  implement: "🔨",
+  edit: "✏️",
+  refine: "📈",
+  resolve: "❓",
+  archive: "📦",
+  reject: "❌",
+};
+
+// Recurring-task automation ladder: each run pushes a step up a rung. The tags
+// are the literal markers used in a card, so they stay English everywhere.
+export const ladderOrder: LadderKey[] = ["ask", "agent", "script"];
+
+export const ladderTags: Record<LadderKey, string> = {
+  ask: "[ask]",
+  agent: "[agent]",
+  script: "[script]",
+};
 
 // Concrete recurring jobs — the kind you'd put on a daily or weekly loop.
-export const recurringExamples: { label: string; body: string }[] = [
-  { label: "Competitor tracking", body: "See what rivals shipped or changed, and flag anything worth a response." },
-  { label: "Social listening", body: "Pull fresh posts from Reddit or Slack and surface the ones that matter." },
-  { label: "Board review", body: "Sweep the backlog for stale, duplicate, or already-done cards." },
+export const recurringExampleOrder: RecurringExampleKey[] = [
+  "competitors",
+  "listening",
+  "boardReview",
 ];
 
 // The three sources the board pulls from when it proposes new work.
-export const inputSources: { label: string; body: string }[] = [
-  {
-    label: "Your project",
-    body: "Codebase, board, docs, team chat — it connects what's already here into work worth doing.",
-  },
-  {
-    label: "The outside",
-    body: "Reddit, Slack, your CRM. Recurring jobs pull in fresh signal and drop the findings on the board.",
-  },
-  {
-    label: "You",
-    body: "Your own steer and feedback, kept in the board so a good call is never lost or asked twice.",
-  },
+export const inputSourceOrder: InputSourceKey[] = [
+  "project",
+  "outside",
+  "you",
 ];
 
-// The indie-hacker preset: growth-weighted tracks for a solo launch.
-export const soloTracks: { name: string; weight: string; body: string }[] = [
-  {
-    name: "growth",
-    weight: "50%",
-    body: "Get in front of users — posts, outreach, launches. Claude suggests methods worth trying and drafts them.",
-  },
-  {
-    name: "validation",
-    weight: "30%",
-    body: "Check the market wants it before you build deep. Post an honest question, share a trial, save the verdict.",
-  },
-  {
-    name: "building",
-    weight: "20%",
-    body: "Stay at MVP. Build when it scales your work, strengthens the product, or users clearly ask for it.",
-  },
+// The indie-hacker preset: growth-weighted tracks for a solo launch. The track
+// names are the folder names under `todo/`, so they aren't translated.
+export const soloTrackOrder: SoloTrackKey[] = [
+  "growth",
+  "validation",
+  "building",
 ];
+
+export const soloTrackWeights: Record<SoloTrackKey, string> = {
+  growth: "50%",
+  validation: "30%",
+  building: "20%",
+};
+
+// The three stages of one loop. Propose reads the four files; Learn writes them
+// back — so the next Propose builds on what happened instead of repeating it.
+export const loopStageOrder: LoopStageKey[] = ["propose", "decide", "learn"];
+
+export const loopStageNumbers: Record<LoopStageKey, string> = {
+  propose: "1",
+  decide: "2",
+  learn: "3",
+};
+
+// How the board keeps itself from repeating work across loops — one file each.
+export const learnFileOrder: LearnFileKey[] = [
+  "memory",
+  "archive",
+  "rejected",
+  "redesign",
+];
+
+export const learnFileNames: Record<LearnFileKey, string> = {
+  memory: "memory.md",
+  archive: "archive.md",
+  rejected: "rejected.md",
+  redesign: "redesign.md",
+};
 
 // ── Quickview terminal snapshot ──────────────────────────────────────────────
 // Data behind the Hero's interactive task tree. Every row carries both a task
 // name and its on-disk file path, so the same tree can render either way — the
 // two views the card stack flips between.
+//
+// This is a literal capture of a real board in a terminal, so it stays English
+// in every language, same as the code blocks and the Markdown mirrors.
 export type QvTask = {
   id: number;
   task: string; // human task name (default view)
@@ -206,35 +227,3 @@ export const quickview: {
     },
   ],
 };
-
-// The three stages of one loop. Propose reads the four files; Learn writes them
-// back — so the next Propose builds on what happened instead of repeating it.
-export const loopStages: { step: string; label: string; body: string }[] = [
-  { step: "1", label: "Propose", body: "Pulls from three sources for work that isn't already shipped or shelved:" },
-  { step: "2", label: "You decide", body: "Ship it, skip it, or fix the plan. A few words back to Claude is enough." },
-  { step: "3", label: "Learn", body: "Folds the outcome and your feedback into the hub, so the next round starts sharper." },
-];
-
-// How the board keeps itself from repeating work across loops.
-export const learnItems: { file: string; title: string; body: string }[] = [
-  {
-    file: "memory.md",
-    title: "Memory",
-    body: "Notes from each scan carry to the next, with a watermark per source — so it re-reads only what changed.",
-  },
-  {
-    file: "archive.md",
-    title: "Archive",
-    body: "Shipped work shrinks to a plain line. It reads this before proposing, so it won't re-suggest what's done.",
-  },
-  {
-    file: "rejected.md",
-    title: "Rejected",
-    body: "Ideas you turned down are kept with the reason, so it never floats them at you again.",
-  },
-  {
-    file: "redesign.md",
-    title: "Redesign",
-    body: "A design mistake you corrected becomes a note, so the next card doesn't repeat the wrong plan.",
-  },
-];

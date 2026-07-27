@@ -1,7 +1,9 @@
 // Daily throughput, one row per day in metrics.csv, drawn as four lines.
 // Colors are the dataviz categorical dark slots, validated for CVD on the code
 // surface (#0a0e14): total=yellow, completed=aqua, created=blue, rejected=red.
+import { Rich } from "../Rich";
 import { panelStatic } from "../styles";
+import type { HomeCopy, ThroughputSeriesKey } from "@/i18n/types";
 
 type Row = { d: string; created: number; completed: number; rejected: number };
 
@@ -20,12 +22,12 @@ const rows: Row[] = [
   { d: "07-13", created: 1, completed: 5, rejected: 0 },
 ];
 
-const series = [
-  { key: "total", label: "Total", color: "#c98500", width: 2.5 },
-  { key: "completed", label: "Completed", color: "#199e70", width: 2 },
-  { key: "created", label: "Created", color: "#3987e5", width: 2 },
-  { key: "rejected", label: "Rejected", color: "#e66767", width: 2 },
-] as const;
+const series: { key: ThroughputSeriesKey; color: string; width: number }[] = [
+  { key: "total", color: "#c98500", width: 2.5 },
+  { key: "completed", color: "#199e70", width: 2 },
+  { key: "created", color: "#3987e5", width: 2 },
+  { key: "rejected", color: "#e66767", width: 2 },
+];
 
 // Chart geometry (viewBox units; the SVG scales to its container width).
 const W = 720;
@@ -43,19 +45,18 @@ const x = (i: number) =>
   PAD.l + (i * (W - PAD.l - PAD.r)) / (data.length - 1);
 const y = (v: number) => PAD.t + (1 - v / Y_MAX) * (H - PAD.t - PAD.b);
 
-function line(key: (typeof series)[number]["key"]) {
+function line(key: ThroughputSeriesKey) {
   return data.map((p, i) => `${x(i)},${y(p[key])}`).join(" ");
 }
 
-export function ThroughputChart() {
+export function ThroughputChart({
+  c,
+}: {
+  c: HomeCopy["advanced"]["metrics"]["chart"];
+}) {
   return (
     <figure className={`${panelStatic} mt-4 bg-code p-5`}>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="w-full"
-        role="img"
-        aria-label="Daily throughput over twelve days: total, completed, created, and rejected tasks."
-      >
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={c.aria}>
         {/* horizontal gridlines + y ticks */}
         {Y_TICKS.map((t) => (
           <g key={t}>
@@ -122,19 +123,14 @@ export function ThroughputChart() {
                 fill="#c3c2b7"
                 fontSize={12}
               >
-                {s.label}
+                {c.series[s.key]}
               </text>
             </g>
           );
         })}
       </svg>
       <figcaption className="mt-3 text-sm text-muted">
-        One row per day in{" "}
-        <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[0.9em] text-ink">
-          metrics.csv
-        </code>{" "}
-        — completed, created, rejected, and their total. The script keeps it up to
-        date; you never touch it.
+        <Rich>{c.caption}</Rich>
       </figcaption>
     </figure>
   );

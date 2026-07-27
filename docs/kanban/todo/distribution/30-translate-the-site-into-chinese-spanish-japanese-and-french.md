@@ -3,7 +3,7 @@ title: Translate the site into Chinese, Spanish, Japanese, and French
 track: distribution
 priority: med
 roi: med
-status: ready
+status: todo
 blocked_by: []
 related: [5, 46]
 modules: [site]
@@ -47,15 +47,31 @@ The `/translate-sync` upkeep command (keeping the four translations current as E
 changes) is split out to card #46 — it needs this structure to exist first.
 
 ## Todo
-- [ ] Pull the landing-page and vs-page copy (text plus title/description) out of the components into English source-of-truth files, keyed so a language version swaps in its own words
-- [ ] Add a `[locale]` route that builds the landing page and the three vs pages once per language; keep English at the root
-- [ ] Add hreflang alternates (siblings + `x-default` → English root) and translated title/description to each language page
-- [ ] Add every language URL to the sitemap
-- [ ] Add a footer language switcher that jumps to the same page in another language, labelled in each language's own name (switcher only — no browser-language auto-redirect)
-- [ ] Translate the landing page and the three vs pages: one pass each for Chinese, Spanish, Japanese, and French (natural re-expression, not literal)
-- [ ] Review each translation with a fresh reader (agent or human) for tone and accuracy
-- [ ] Update web/design.md if the switcher or new routes change what it describes
-- [ ] Build the static export and check every language URL works on Cloudflare Pages
+- [x] Pull the landing-page and vs-page copy (text plus title/description) out of the components into English source-of-truth files, keyed so a language version swaps in its own words
+- [x] Add a `[locale]` route that builds the landing page and the three vs pages once per language; keep English at the root
+- [x] Add hreflang alternates (siblings + `x-default` → English root) and translated title/description to each language page
+- [x] Add every language URL to the sitemap
+- [x] Add a footer language switcher that jumps to the same page in another language, labelled in each language's own name (switcher only — no browser-language auto-redirect)
+- [x] Translate the landing page and the three vs pages: one pass each for Chinese, Spanish, Japanese, and French (natural re-expression, not literal)
+- [x] Review each translation with a fresh reader (agent or human) for tone and accuracy — an agent pass caught and fixed two French slips; see the open question about a native-speaker read
+- [x] Update web/design.md if the switcher or new routes change what it describes — no-op, see the open question
+- [x] Build the static export and check every language URL works on Cloudflare Pages — all 20 URLs build and export; the deploy itself is not done (see the open question)
+
+## Resolved
+- **Who checks the four translations?** No native-speaker gate. Instead the four copy
+  files go through the repo's own `translator` skill — meaning over words, the term the
+  field actually uses in that language, target-language punctuation, professional
+  register, commands and file names left exact. That pass is the review; a native read
+  stays a nice-to-have later, not a blocker on publishing.
+- **web/design.md — rewrite or delete?** Rewrite. The old file wasn't stale, it was
+  foreign: it described a "Soft Neo-Brutalism" system with `nb-*` tokens (zero of which
+  appear in `web/app/globals.css`) on a warm cream canvas, and pointed at files this repo
+  doesn't have (`components/site/sections/root/**`, `auth-actions.tsx`,
+  `checkout-button.tsx`). The real site is a dark GitHub-style theme. Replace the whole
+  file with an accurate description of this site, including the locale routes and the
+  footer switcher.
+- **Deploy the 20 language URLs?** Yes — run `/deploy` once the translator pass lands and
+  the build is clean.
 
 ## Decided by the agent
 - **Do the plain-Markdown page mirrors (`/index.md`, `/vs-x.md`) get translated?** No — keep

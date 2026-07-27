@@ -18,10 +18,12 @@ _(none)_
 - [#49 Stop a running agent from the UI](features/49-stop-a-running-agent-from-the-ui.md)
 - [#50 Show what a run changed in the working tree](features/50-show-what-a-run-changed-in-the-working-tree.md)
 - [#51 Show what auto-refine is doing and why it is idle](features/51-show-what-auto-refine-is-doing-and-why-it-is-idle.md)
+- [#53 Show a bar that prompts the user to write the goal when it is weak](features/53-show-a-bar-that-prompts-the-user-to-write-the-goal-when-it-i.md)
 
 ## skill
 
 - [#16 auto-implement: let the agent build a ready card on its own](skill/16-auto-implement-let-the-agent-build-a-ready-card-on-its-own.md)
+- [#52 Track how clear goal.md is with a reviewed: strong|weak field](skill/52-track-how-clear-goal-md-is-with-a-reviewed-strong-weak-field.md)
 
 ## docs
 

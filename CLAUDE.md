@@ -13,3 +13,7 @@ concern, documented on the caller's side.
 ## Long conversation
 
 If the current session is long and all about a plan, when we finalize the plan, write a HANDOFF.md file so we can implement it in a fresh session.
+
+## Git worktree
+
+Don't use worktree/branching. Keep everything in the main branch.

@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import { FiCheck, FiX } from "react-icons/fi";
 import { SiClaudecode, SiCursor } from "react-icons/si";
+import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { HermesMark } from "./HermesMark";
 import { panelStatic } from "../styles";
+import type { VsHermesCopy } from "@/i18n/types";
 
 // The harness-compatibility split as a single support matrix: one logo bar of
 // agents as column headers, then a check/cross row per board. The vertical
@@ -51,26 +53,22 @@ const AGENTS: { name: string; icon: (className: string) => ReactNode }[] = [
   { name: "Hermes", icon: (c) => <HermesMark className={c} /> },
 ];
 
-// The two boards, as data — desktop renders them as matrix rows, mobile as
-// stacked chip groups, but the support rule lives in one place either way.
-const BOARDS: {
+const GRID = "grid grid-cols-[minmax(5.5rem,1.3fr)_repeat(5,1fr)] items-center";
+
+type Board = {
   tag: ReactNode;
   label: string;
   sub: string;
   supports: (name: string) => boolean;
-}[] = [
-  { tag: "🗂️", label: "AI4Kanban", sub: "any file-reading agent", supports: () => true },
-  {
-    tag: <HermesMark className="h-4 w-4" />,
-    label: "Hermes Kanban",
-    sub: "Hermes only",
-    supports: (name) => name === "Hermes",
-  },
-];
+};
 
-const GRID = "grid grid-cols-[minmax(5.5rem,1.3fr)_repeat(5,1fr)] items-center";
-
-function Mark({ supported }: { supported: boolean }) {
+function Mark({
+  supported,
+  labels,
+}: {
+  supported: boolean;
+  labels: { supported: string; notSupported: string };
+}) {
   return (
     <span
       className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full ${
@@ -78,29 +76,38 @@ function Mark({ supported }: { supported: boolean }) {
       }`}
     >
       {supported ? (
-        <FiCheck className="h-4 w-4 text-growth" aria-label="supported" />
+        <FiCheck className="h-4 w-4 text-growth" aria-label={labels.supported} />
       ) : (
-        <FiX className="h-4 w-4 text-[#f85149]/60" aria-label="not supported" />
+        <FiX
+          className="h-4 w-4 text-[#f85149]/60"
+          aria-label={labels.notSupported}
+        />
       )}
     </span>
   );
 }
 
-function BoardRow({ tag, label, sub, supports }: (typeof BOARDS)[number]) {
+function BoardRow({
+  board,
+  labels,
+}: {
+  board: Board;
+  labels: { supported: string; notSupported: string };
+}) {
   return (
     <div className={`${GRID} px-2 py-3.5 sm:px-4`}>
       <div className="pr-2">
         <div className="flex items-center gap-1.5">
           <span className="text-sm" aria-hidden="true">
-            {tag}
+            {board.tag}
           </span>
-          <span className="text-sm font-semibold text-ink">{label}</span>
+          <span className="text-sm font-semibold text-ink">{board.label}</span>
         </div>
-        <p className="mt-0.5 text-xs text-muted">{sub}</p>
+        <p className="mt-0.5 text-xs text-muted">{board.sub}</p>
       </div>
       {AGENTS.map((a) => (
-        <div key={a.name} className={supports(a.name) ? "" : "opacity-70"}>
-          <Mark supported={supports(a.name)} />
+        <div key={a.name} className={board.supports(a.name) ? "" : "opacity-70"}>
+          <Mark supported={board.supports(a.name)} labels={labels} />
         </div>
       ))}
     </div>
@@ -111,19 +118,25 @@ function BoardRow({ tag, label, sub, supports }: (typeof BOARDS)[number]) {
 // becomes a heading plus a wrap of agent chips — green + check when supported,
 // dimmed + cross when not. The skill's all-green vs. Hermes Kanban's lone-green
 // carries the same one-difference argument the matrix makes.
-function BoardChips({ tag, label, sub, supports }: (typeof BOARDS)[number]) {
+function BoardChips({
+  board,
+  labels,
+}: {
+  board: Board;
+  labels: { supported: string; notSupported: string };
+}) {
   return (
     <div className="px-3 py-4">
       <div className="flex flex-wrap items-baseline gap-x-1.5">
         <span className="text-sm" aria-hidden="true">
-          {tag}
+          {board.tag}
         </span>
-        <span className="text-sm font-semibold text-ink">{label}</span>
-        <span className="text-xs text-muted">· {sub}</span>
+        <span className="text-sm font-semibold text-ink">{board.label}</span>
+        <span className="text-xs text-muted">· {board.sub}</span>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {AGENTS.map((a) => {
-          const ok = supports(a.name);
+          const ok = board.supports(a.name);
           return (
             <span
               key={a.name}
@@ -136,9 +149,9 @@ function BoardChips({ tag, label, sub, supports }: (typeof BOARDS)[number]) {
               {a.icon("h-4 w-4")}
               <span>{a.name}</span>
               {ok ? (
-                <FiCheck className="h-3.5 w-3.5 text-growth" aria-label="supported" />
+                <FiCheck className="h-3.5 w-3.5 text-growth" aria-label={labels.supported} />
               ) : (
-                <FiX className="h-3.5 w-3.5 text-[#f85149]/60" aria-label="not supported" />
+                <FiX className="h-3.5 w-3.5 text-[#f85149]/60" aria-label={labels.notSupported} />
               )}
             </span>
           );
@@ -148,17 +161,29 @@ function BoardChips({ tag, label, sub, supports }: (typeof BOARDS)[number]) {
   );
 }
 
-export function HkHarness() {
+export function HkHarness({
+  c,
+  labels,
+}: {
+  c: VsHermesCopy["harness"];
+  labels: { ours: string; theirs: string };
+}) {
+  const marks = { supported: c.supported, notSupported: c.notSupported };
+  const boards: Board[] = [
+    { tag: "🗂️", label: labels.ours, sub: c.oursSub, supports: () => true },
+    {
+      tag: <HermesMark className="h-4 w-4" />,
+      label: labels.theirs,
+      sub: c.theirsSub,
+      supports: (name) => name === "Hermes",
+    },
+  ];
+
   return (
     <section className="mt-24">
-      <SectionHeading num="02" eyebrow="Harness support" title="Which agents can run the board?" />
+      <SectionHeading num="02" {...c.heading} />
       <p className="text-ink">
-        The clearest single difference. The skill&apos;s board is plain files, so{" "}
-        <span className="font-semibold">any agent that can read a repo can run it</span>{" "}
-        — including Hermes itself. Hermes Kanban&apos;s board sits behind the
-        runtime&apos;s{" "}
-        <code className="rounded bg-code px-1 py-0.5 text-[0.85em]">kanban_*</code>{" "}
-        tools, so only Hermes can.
+        <Rich code="plain">{c.lead}</Rich>
       </p>
 
       <div className={`${panelStatic} mt-6 overflow-hidden`}>
@@ -175,23 +200,20 @@ export function HkHarness() {
               </div>
             ))}
           </div>
-          {BOARDS.map((b) => (
-            <BoardRow key={b.label} {...b} />
+          {boards.map((b) => (
+            <BoardRow key={b.label} board={b} labels={marks} />
           ))}
         </div>
 
         {/* Phone — stacked chip groups, one per board. */}
         <div className="divide-y-2 divide-border sm:hidden">
-          {BOARDS.map((b) => (
-            <BoardChips key={b.label} {...b} />
+          {boards.map((b) => (
+            <BoardChips key={b.label} board={b} labels={marks} />
           ))}
         </div>
       </div>
 
-      <p className="mt-3 text-sm text-muted">
-        …and the skill&apos;s row keeps going — Windsurf, OpenCode, Gemini CLI,
-        anything that reads files. Hermes Kanban has no way in for other agents.
-      </p>
+      <p className="mt-3 text-sm text-muted">{c.note}</p>
     </section>
   );
 }

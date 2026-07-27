@@ -2,8 +2,13 @@
 
 import { useState, type ReactNode } from "react";
 import { quickview, type QvMore, type QvTask } from "../content";
+import type { HomeCopy } from "@/i18n/types";
 
 type Mode = "task" | "file";
+
+// The tree itself is a literal capture of a real board in a terminal, so its
+// rows stay English in every language — only the caption and the flip labels
+// around it are translated.
 
 // Terminal syntax palette — its own colors, distinct from the site's blue accent
 // so the tree reads like a real capture from the CLI.
@@ -180,15 +185,11 @@ function TerminalCard({ mode }: { mode: Mode }) {
   );
 }
 
-const LABEL: Record<Mode, string> = {
-  task: "Task names",
-  file: "File paths",
-};
-
 // How far the back card peeks out from behind the front one (px).
 const PEEK = 56;
 
-export function Quickview() {
+export function Quickview({ c }: { c: HomeCopy["quickview"] }) {
+  const label: Record<Mode, string> = { task: c.taskView, file: c.fileView };
   const [front, setFront] = useState<Mode>("task");
   const back: Mode = front === "task" ? "file" : "task";
   // Paint back-to-front so the front card wins the stacking order naturally.
@@ -217,11 +218,10 @@ export function Quickview() {
               key={mode}
               type="button"
               onClick={() => setFront(mode)}
-              aria-label={
-                isFront
-                  ? `${LABEL[mode]} view (front)`
-                  : `Flip to ${LABEL[mode]} view`
-              }
+              aria-label={(isFront ? c.frontAria : c.flipAria).replace(
+                "{view}",
+                label[mode],
+              )}
               aria-pressed={isFront}
               className="group absolute left-0 top-0 origin-top-left text-left transition-transform duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
               style={{
@@ -249,9 +249,7 @@ export function Quickview() {
         })}
       </div>
 
-      <p className="mt-8 text-center text-sm text-muted">
-        The board, rendered in your terminal — the same files that live in git.
-      </p>
+      <p className="mt-8 text-center text-sm text-muted">{c.caption}</p>
     </div>
   );
 }

@@ -144,7 +144,7 @@ export function buildPrompt(req: AgentRequest): string {
       return [
         `/kanban. Resolve the open questions on task ${req.id} ${named} following \`references/resolve.md\`.`,
         req.andImplement
-          ? `Then, if resolving settles every question and nothing genuine is left for me to decide, go straight on to implement the task following the skill's implement flow — one continuous session. But if any real judgment call stays open, stop there and report it: don't implement on a guess.`
+          ? `Then, if resolving settles every question and nothing genuine is left for me to decide, go straight on to implementing the task — one continuous session. But if any real judgment call stays open, stop there and report it: don't implement on a guess.`
           : "",
         req.notes ? `Extra notes: ${req.notes}` : "",
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,

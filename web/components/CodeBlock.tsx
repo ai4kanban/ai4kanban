@@ -3,7 +3,22 @@
 import { useState } from "react";
 import { FiCheck, FiCopy } from "react-icons/fi";
 
-export function CodeBlock({ children }: { children: string }) {
+// The button's four labels come in as props: this is a client component, so it
+// can't reach the copy module the way a server component does.
+export type CodeBlockLabels = {
+  copy: string;
+  copied: string;
+  copyAria: string;
+  copiedAria: string;
+};
+
+export function CodeBlock({
+  children,
+  labels,
+}: {
+  children: string;
+  labels: CodeBlockLabels;
+}) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -37,18 +52,20 @@ export function CodeBlock({ children }: { children: string }) {
       <button
         type="button"
         onClick={copy}
-        aria-label={copied ? "Copied" : "Copy to clipboard"}
+        aria-label={copied ? labels.copiedAria : labels.copyAria}
         className="absolute right-3 top-3 flex items-center gap-1.5 rounded-lg border-2 border-border bg-code px-2.5 py-1.5 text-xs font-medium text-muted opacity-0 transition-all duration-150 hover:border-accent/50 hover:text-ink focus-visible:opacity-100 focus-visible:outline-none active:scale-95 group-hover:opacity-100 cursor-pointer"
       >
         {copied ? (
           <>
             <CheckIcon />
-            <span className="text-green-600 dark:text-green-500">Copied</span>
+            <span className="text-green-600 dark:text-green-500">
+              {labels.copied}
+            </span>
           </>
         ) : (
           <>
             <CopyIcon />
-            <span>Copy</span>
+            <span>{labels.copy}</span>
           </>
         )}
       </button>

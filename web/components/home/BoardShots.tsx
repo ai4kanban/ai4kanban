@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { panelStatic } from "../styles";
+import type { HomeCopy } from "@/i18n/types";
 
 // The two board views, stacked as a flip deck like the Hero's Quickview: the
 // front shot sits top-left, the other peeks out from behind — click it to bring
@@ -9,22 +10,13 @@ import { panelStatic } from "../styles";
 
 type Mode = "board" | "detail";
 
-const SHOTS: Record<Mode, { src: string; alt: string; label: string }> = {
-  board: {
-    src: "https://cdn.ai4kanban.dev/kanban-skill-ui-v2.jpg",
-    alt: "ai4kanban's local web board — Blockers, UI, Skill, Docs, and Distribution columns of Markdown cards with #ids, priority and ROI badges, and subtask progress bars.",
-    label: "Board view",
-  },
-  detail: {
-    src: "https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v2.jpg",
-    alt: "A task detail page in the local board — title, Implement / Review / Edit / Reject actions, a metadata row for track, priority, ROI, todos and blockers, and the full card body.",
-    label: "Card detail",
-  },
+const SRC: Record<Mode, string> = {
+  board: "https://cdn.ai4kanban.dev/kanban-skill-ui-v2.jpg",
+  detail: "https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v2.jpg",
 };
 
 // One browser-framed screenshot on localhost.
-function Frame({ mode }: { mode: Mode }) {
-  const shot = SHOTS[mode];
+function Frame({ mode, alt }: { mode: Mode; alt: string }) {
   return (
     <div className={`${panelStatic} overflow-hidden bg-code shadow-[8px_8px_0_0_#010409]`}>
       <div className="flex items-center gap-1.5 border-b-2 border-border px-3 py-1.5">
@@ -33,7 +25,8 @@ function Frame({ mode }: { mode: Mode }) {
         <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
         <span className="ml-2 font-mono text-[0.7rem] text-muted">localhost:7420</span>
       </div>
-      <img src={shot.src} alt={shot.alt} loading="lazy" className="w-full" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={SRC[mode]} alt={alt} loading="lazy" className="w-full" />
     </div>
   );
 }
@@ -41,7 +34,7 @@ function Frame({ mode }: { mode: Mode }) {
 // How far the back card peeks out from behind the front one (px).
 const PEEK = 56;
 
-export function BoardShots() {
+export function BoardShots({ c }: { c: HomeCopy["ui"] }) {
   const [front, setFront] = useState<Mode>("board");
   const back: Mode = front === "board" ? "detail" : "board";
   // Paint back-to-front so the front card wins the stacking order naturally.
@@ -54,19 +47,21 @@ export function BoardShots() {
     >
       {/* Invisible sizer establishes the container height; real cards float on top. */}
       <div aria-hidden className="pointer-events-none invisible">
-        <Frame mode={front} />
+        <Frame mode={front} alt={c.shots[front].alt} />
       </div>
 
       {order.map((mode) => {
         const isFront = mode === front;
+        const label = c.shots[mode].label;
         return (
           <button
             key={mode}
             type="button"
             onClick={() => setFront(mode)}
-            aria-label={
-              isFront ? `${SHOTS[mode].label} (front)` : `Flip to ${SHOTS[mode].label}`
-            }
+            aria-label={(isFront ? c.frontAria : c.flipAria).replace(
+              "{view}",
+              label,
+            )}
             aria-pressed={isFront}
             className="group absolute left-0 top-0 origin-top-left text-left transition-transform duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
             style={{
@@ -79,7 +74,7 @@ export function BoardShots() {
             }}
             tabIndex={isFront ? -1 : 0}
           >
-            <Frame mode={mode} />
+            <Frame mode={mode} alt={c.shots[mode].alt} />
             {/* Dim the back card; fades as it comes forward, lightens on hover. */}
             <span
               aria-hidden

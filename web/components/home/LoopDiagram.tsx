@@ -1,5 +1,6 @@
-import { inputSources, loopStages } from "../content";
+import { inputSourceOrder, loopStageNumbers, loopStageOrder } from "../content";
 import { panelStatic } from "../styles";
+import type { HomeCopy } from "@/i18n/types";
 
 // Geometry for a real circle: three stage bubbles sit 120° apart on one ring,
 // with an arrowhead on each arc between them so the whole thing reads as a cycle.
@@ -14,15 +15,19 @@ const polar = (deg: number, radius: number) => {
 };
 
 // Bubbles start at 12 o'clock (-90°) and step clockwise.
-const nodes = loopStages.map((s, i) => ({ ...s, ...polar(-90 + i * 120, R) }));
+const nodes = loopStageOrder.map((key, i) => ({
+  key,
+  ...polar(-90 + i * 120, R),
+}));
 
 // Arrowheads land on the mid-arc between each pair, rotated to point clockwise.
-const arrows = loopStages.map((_, i) => {
+const arrows = loopStageOrder.map((_, i) => {
   const deg = -30 + i * 120;
   return { ...polar(deg, R), rot: deg + 90 };
 });
 
-export function LoopDiagram() {
+export function LoopDiagram({ c }: { c: HomeCopy["advanced"]["memory"] }) {
+  const t = c.loop;
   return (
     <div
       className={`${panelStatic} mt-6 grid grid-cols-1 items-center gap-6 bg-code p-6 sm:grid-cols-2 sm:items-stretch sm:gap-8`}
@@ -31,7 +36,7 @@ export function LoopDiagram() {
         viewBox="0 0 360 360"
         className="mx-auto block h-auto w-full max-w-[320px] font-sans sm:self-center"
         role="img"
-        aria-label="The loop: propose, then you decide, then learn — then it starts over."
+        aria-label={t.aria}
       >
         {/* The ring */}
         <circle
@@ -68,12 +73,12 @@ export function LoopDiagram() {
           fontSize="11"
           fill="var(--color-muted)"
         >
-          reads &amp; writes
+          {t.centerCaption}
         </text>
 
         {/* Stage bubbles */}
         {nodes.map((n) => (
-          <g key={n.label}>
+          <g key={n.key}>
             <circle
               cx={n.x}
               cy={n.y}
@@ -91,7 +96,7 @@ export function LoopDiagram() {
               fontWeight="600"
               fill="var(--color-accent)"
             >
-              step {n.step}
+              {t.stepLabel} {loopStageNumbers[n.key]}
             </text>
             <text
               x={n.x}
@@ -101,7 +106,7 @@ export function LoopDiagram() {
               fontWeight="600"
               fill="var(--color-ink)"
             >
-              {n.label}
+              {t.stages[n.key].label}
             </text>
           </g>
         ))}
@@ -109,22 +114,27 @@ export function LoopDiagram() {
 
       {/* What happens at each stage — beside the circle on desktop, below on mobile */}
       <ol className="mt-5 space-y-3 border-t-2 border-border pt-5 sm:my-2 sm:flex sm:flex-col sm:justify-center sm:border-l-2 sm:border-t-0 sm:pl-8 sm:pt-0">
-        {loopStages.map((s) => (
-          <li key={s.label} className="flex gap-3">
+        {loopStageOrder.map((key) => (
+          <li key={key} className="flex gap-3">
             <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-border bg-accent/20 font-mono text-[0.7rem] font-semibold text-accent">
-              {s.step}
+              {loopStageNumbers[key]}
             </span>
             <div className="text-sm text-muted">
               <p>
-                <span className="font-semibold text-ink">{s.label}.</span> {s.body}
+                <span className="font-semibold text-ink">
+                  {t.stages[key].label}.
+                </span>{" "}
+                {t.stages[key].body}
               </p>
               {/* The three sources live under Propose, where they belong */}
-              {s.step === "1" && (
+              {key === "propose" && (
                 <ul className="mt-2 list-disc space-y-1.5 pl-5 marker:text-accent">
-                  {inputSources.map((src) => (
-                    <li key={src.label}>
-                      <span className="font-medium text-ink">{src.label}</span> —{" "}
-                      {src.body}
+                  {inputSourceOrder.map((src) => (
+                    <li key={src}>
+                      <span className="font-medium text-ink">
+                        {t.sources[src].label}
+                      </span>{" "}
+                      — {t.sources[src].body}
                     </li>
                   ))}
                 </ul>

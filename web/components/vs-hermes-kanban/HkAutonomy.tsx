@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 import { FiCheck, FiX } from "react-icons/fi";
+import { autonomyStops } from "./vs-hermes-content";
+import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { HermesMark } from "./HermesMark";
 import { panelStatic } from "../styles";
+import type { VsHermesCopy, VsHermesStopKey } from "@/i18n/types";
 
 // The autonomy spectrum: three stops from "you plan everything" (a traditional
 // board) to "agent plans everything" (Hermes's "drop a one-liner, walk away").
@@ -10,58 +13,22 @@ import { panelStatic } from "../styles";
 // each card leads with the product — logo + name — over one sentence, with the
 // coined term for the approach as its eyebrow.
 
-const STOPS: {
-  left: string;
-  level: string;
-  term: string;
-  tag: ReactNode;
-  heading: string;
-  detail: ReactNode;
-  ours?: boolean;
-}[] = [
-  {
-    left: "16.67%",
-    level: "No autonomy",
-    term: "Human-driven",
-    tag: "📋",
-    heading: "Traditional kanban",
-    detail:
-      "You think of every task and break it down — Trello or Jira just records it.",
-  },
-  {
-    left: "50%",
-    level: "Semi autonomy",
-    term: "Agent-assisted",
-    tag: "🗂️",
-    heading: "AI4Kanban",
-    detail: (
-      <>
-        Each <code className="rounded bg-code px-1 py-0.5 text-[0.9em]">refine</code>{" "}
-        digs into the missing pieces and fills in requirements. You review
-        before anything is built.
-      </>
-    ),
-    ours: true,
-  },
-  {
-    left: "83.33%",
-    level: "Full autonomy",
-    term: "Fire-and-forget",
-    tag: <HermesMark className="h-5 w-5" />,
-    heading: "Hermes Kanban",
-    detail: (
-      <>
-        One line in, a task tree out — decomposed and worked unattended until
-        done. Claude Code&apos;s{" "}
-        <code className="rounded bg-code px-1 py-0.5 text-[0.9em]">/goal</code>{" "}
-        makes the same bet.
-      </>
-    ),
-  },
-];
+const STOP_TAG: Record<VsHermesStopKey, ReactNode> = {
+  traditional: "📋",
+  kanban: "🗂️",
+  hermes: <HermesMark className="h-5 w-5" />,
+};
 
 // Eyebrow (the coined term) → logo + product name → one sentence.
-function StopCard({ term, tag, heading, detail, ours }: (typeof STOPS)[number]) {
+function StopCard({
+  stopKey,
+  copy,
+  ours,
+}: {
+  stopKey: VsHermesStopKey;
+  copy: VsHermesCopy["autonomy"]["stops"][VsHermesStopKey];
+  ours?: boolean;
+}) {
   return (
     <div
       className={
@@ -75,32 +42,27 @@ function StopCard({ term, tag, heading, detail, ours }: (typeof STOPS)[number]) 
           ours ? "text-accent" : "text-muted"
         }`}
       >
-        {term}
+        {copy.term}
       </p>
       <div className="mt-2 flex items-center gap-2">
         <span className="text-lg" aria-hidden="true">
-          {tag}
+          {STOP_TAG[stopKey]}
         </span>
-        <h3 className="text-lg font-semibold text-ink">{heading}</h3>
+        <h3 className="text-lg font-semibold text-ink">{copy.heading}</h3>
       </div>
-      <p className="mt-2.5 text-sm text-muted">{detail}</p>
+      <p className="mt-2.5 text-sm text-muted">
+        <Rich code="plain">{copy.detail}</Rich>
+      </p>
     </div>
   );
 }
 
-export function HkAutonomy() {
+export function HkAutonomy({ c }: { c: VsHermesCopy["autonomy"] }) {
   return (
     <section className="mt-24">
-      <SectionHeading num="05" eyebrow="Autonomy level" title="How much autonomy does the agent get?" />
+      <SectionHeading num="05" {...c.heading} />
       <p className="text-ink">
-        Hermes Kanban promises{" "}
-        <span className="font-semibold">&ldquo;drop a one-liner, walk away&rdquo;</span>{" "}
-        — full autonomy. ai4kanban is{" "}
-        <span className="font-semibold">agent-assisted</span>, and it starts
-        earlier than plan mode: you save a half-formed idea to the board,{" "}
-        <code className="rounded bg-code px-1 py-0.5 text-[0.9em]">refine</code>{" "}
-        turns it into concrete requirements, and you approve before any code is
-        written.
+        <Rich code="plain">{c.lead}</Rich>
       </p>
 
       {/* Desktop: a slider-style gradient bar — dim on the left, full accent on
@@ -108,19 +70,17 @@ export function HkAutonomy() {
           bg-ringed knob with its autonomy amount as a tick label below. */}
       <div className="mt-8 hidden sm:block">
         <div className="mb-2 flex items-center justify-between font-mono text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted">
-          <span>You plan everything</span>
-          <span className="text-accent">Agent plans, you approve</span>
-          <span>Agent plans everything</span>
+          <span>{c.scaleLeft}</span>
+          <span className="text-accent">{c.scaleMiddle}</span>
+          <span>{c.scaleRight}</span>
         </div>
         <div className="relative mb-14 h-2.5">
           <div className="absolute inset-0 rounded-full border border-border bg-gradient-to-r from-elev via-accent/30 to-accent/90" />
-          {STOPS.map((s) => (
-            <span key={s.left} aria-hidden="true">
+          {autonomyStops.map((s) => (
+            <span key={s.key} aria-hidden="true">
               <span
-                className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-bg ${
-                  s.ours
-                    ? "h-4 w-4 bg-accent ring-2 ring-accent"
-                    : "h-4 w-4 bg-muted"
+                className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-bg ${
+                  s.ours ? "bg-accent ring-2 ring-accent" : "bg-muted"
                 }`}
                 style={{ left: s.left }}
               />
@@ -130,14 +90,19 @@ export function HkAutonomy() {
                 }`}
                 style={{ left: s.left }}
               >
-                {s.level}
+                {c.stops[s.key].level}
               </span>
             </span>
           ))}
         </div>
         <div className="grid grid-cols-3 gap-4">
-          {STOPS.map((s) => (
-            <StopCard key={s.heading} {...s} />
+          {autonomyStops.map((s) => (
+            <StopCard
+              key={s.key}
+              stopKey={s.key}
+              copy={c.stops[s.key]}
+              ours={s.ours}
+            />
           ))}
         </div>
       </div>
@@ -150,58 +115,50 @@ export function HkAutonomy() {
           aria-hidden="true"
         />
         <p className="font-mono text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted">
-          You plan everything ↓
+          {c.scaleLeft} ↓
         </p>
         <div className="mt-3 space-y-4">
-          {STOPS.map((s) => (
-            <div key={s.heading}>
+          {autonomyStops.map((s) => (
+            <div key={s.key}>
               <p
                 className={`mb-1.5 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.15em] ${
                   s.ours ? "text-accent" : "text-muted"
                 }`}
               >
-                {s.level}
+                {c.stops[s.key].level}
               </p>
-              <StopCard {...s} />
+              <StopCard stopKey={s.key} copy={c.stops[s.key]} ours={s.ours} />
             </div>
           ))}
         </div>
         <p className="mt-3 text-right font-mono text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted">
-          ↑ Agent plans everything
+          ↑ {c.scaleRight}
         </p>
       </div>
 
       {/* The whole argument for the middle, as one glanceable contrast. */}
       <div className={`${panelStatic} mt-6 overflow-hidden`}>
         <div className="border-b-2 border-border bg-code px-4 py-2 font-mono text-xs font-semibold uppercase tracking-[0.15em] text-ink">
-          Worst case, per level
+          {c.worstCaseLabel}
         </div>
         <div className="grid divide-y-2 divide-border sm:grid-cols-2 sm:divide-x-2 sm:divide-y-0">
           <div className="flex items-start gap-2.5 px-4 py-3.5">
             <FiX className="mt-0.5 h-4 w-4 shrink-0 text-[#f85149]/70" aria-hidden="true" />
             <p className="text-sm text-muted">
-              <span className="font-semibold text-ink">Fire-and-forget:</span>{" "}
-              a small early misunderstanding grows into a whole tree of wrong
-              tasks — built, tokens spent.
+              <Rich>{c.worstCaseTheirs}</Rich>
             </p>
           </div>
           <div className="flex items-start gap-2.5 bg-accent/[0.07] px-4 py-3.5">
             <FiCheck className="mt-0.5 h-4 w-4 shrink-0 text-growth" aria-hidden="true" />
             <p className="text-sm text-muted">
-              <span className="font-semibold text-ink">Agent-assisted:</span>{" "}
-              a wrong Markdown card — caught when you review it, before
-              anything is built.
+              <Rich>{c.worstCaseOurs}</Rich>
             </p>
           </div>
         </div>
       </div>
 
       <p className="mt-5 text-sm text-muted">
-        One refine fills in missing steps, splits side ideas into their own
-        cards, ticks off todos that already landed, and leaves the taste calls
-        to you as questions. When none are left, the card flips to{" "}
-        <span className="font-medium text-ink">ready</span> — read it, then
-        build it.
+        <Rich>{c.note}</Rich>
       </p>
     </section>
   );

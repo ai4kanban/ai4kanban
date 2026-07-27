@@ -1,0 +1,957 @@
+// English copy — the source of truth for the whole site.
+//
+// The other four languages mirror this file key for key. When you change a
+// sentence here, the translations don't break the build (they're still valid
+// strings), so re-run the translation pass for the keys you touched. Adding or
+// removing a key *does* break the build in every language, which is the point.
+//
+// Inline markup follows `components/Rich.tsx`: `code`, **bold**, *italic*, \n.
+import type { SiteCopy } from "./types";
+
+const en: SiteCopy = {
+  shared: {
+    nav: {
+      install: "Install",
+      usage: "Using it",
+      boardUi: "Board UI",
+      features: "Features",
+      recipes: "Recipes",
+      compare: "Compare",
+      compareMore: "More comparisons soon…",
+      github: "GitHub ↗",
+    },
+    footer: {
+      license: "Apache License 2.0",
+      origin: "Generalized from a skill built for",
+    },
+    code: {
+      copy: "Copy",
+      copied: "Copied",
+      copyAria: "Copy to clipboard",
+      copiedAria: "Copied",
+    },
+    language: { label: "Language" },
+    vs: "vs",
+    bottomLine: "Bottom line",
+    cta: { install: "Install ai4kanban", github: "View on GitHub ↗" },
+  },
+
+  home: {
+    meta: {
+      title: "AI4Kanban — AI project management that grows with you",
+      description:
+        "AI project management for Claude Code. Give it a vague idea — the agent breaks it down and clarifies it in a loop until it's clear enough to build. Plain Markdown, in git.",
+      social:
+        "Give it a vague idea. The agent breaks it down, answers what it can on its own, asks you the rest — and keeps at it in the background until every detail is clear enough to build.",
+    },
+    hero: {
+      badge: "A Claude Code skill",
+      title: "AI project management\nthat grows with you.",
+      lead: "Give it a vague idea. The agent breaks it down, answers what it can on its own, asks you the rest — and keeps at it in the background until every detail is clear enough to build. The board is plain Markdown in `docs/kanban/` — in git, no database, no MCP.",
+      ctaInstall: "Install in one prompt",
+      ctaGithub: "View on GitHub",
+    },
+    quickview: {
+      caption:
+        "The board, rendered in your terminal — the same files that live in git.",
+      taskView: "Task names",
+      fileView: "File paths",
+      frontAria: "{view} view (front)",
+      flipAria: "Flip to {view} view",
+    },
+    features: {
+      breakDown: {
+        title: "Breaks work down",
+        body: "The agent reads an idea and splits it into subtasks. An unrelated ask tangled in gets pulled out as a task of its own.",
+      },
+      clarify: {
+        title: "Clarifies in a loop",
+        body: "The agent starts by questioning the idea. Whatever memory and common sense can settle, it settles on its own; the rest comes to you. It keeps looping until it runs out of questions.",
+      },
+      alwaysOn: {
+        title: "Runs 24/7",
+        body: "Breakdown and clarification keep running in the background until the idea becomes a clear spec.",
+      },
+      traceable: {
+        title: "Every decision is traceable",
+        body: "You can always see how a spec took shape, step by step.",
+      },
+      proposes: {
+        title: "Proposes its own tasks",
+        body: "The agent pitches features drawn from each module's memory. Veto one and that's recorded — it won't pitch that kind of idea again.",
+      },
+      selfEvolving: {
+        title: "Self-evolving",
+        body: "Each time you step in, that call is recorded and steers the agent's later decisions. Memory is organized by project module.",
+      },
+      orders: {
+        title: "Orders the work",
+        body: "It doesn't just split tasks — it identifies dependencies and weighs ROI against effort, so work runs in the right order.",
+      },
+      lifecycle: {
+        title: "Owns the whole lifecycle",
+        body: "Its job doesn't end once the spec is clear. It runs a task's entire life — proposed, clarified, built, archived — so the board always shows where the project really stands.",
+      },
+    },
+    featuresNote:
+      "AI4Kanban is built for small teams. Today's coding agents already turn a clear spec into working code — hand them a vague idea, though, and they'll build the wrong thing on top of the wrong assumptions. AI4Kanban remembers your past decisions and draws on them to turn the same vague idea into a spec concrete enough to build.",
+    install: {
+      heading: { eyebrow: "Setup", title: "Install in one prompt" },
+      lead: "From your project root, tell Claude Code (or any agent that can run shell commands):",
+      note: "The agent copies the skill into `.claude/skills/kanban/`, reads your codebase to fill in the configuration, scaffolds the board, and proposes your first three tasks.",
+    },
+    board: {
+      heading: { eyebrow: "Usage", title: "Using AI4Kanban in Claude Code" },
+      lead: "Once installed, drive it in plain language:",
+      terminal: "you › claude",
+      rows: {
+        whatsNext: {
+          say: '"/kanban what\'s next?"',
+          does: "reads the board + your sources, proposes 3 new tasks",
+        },
+        addTask: {
+          say: '"/kanban add a task: …"',
+          does: "reviews the idea, writes a card, adds it to the index",
+        },
+        refine: {
+          say: '"/kanban refine #4"',
+          does: "reviews card #4, then pushes it one stage toward concrete",
+        },
+        review: {
+          say: '"/kanban review the board"',
+          does: "checks cards for clarity, duplication, done-ness",
+        },
+        done: {
+          say: '"/kanban #4 is done"',
+          does: "compresses it into the archive, removes the card",
+        },
+        badIdea: {
+          say: '"/kanban #4 was a bad idea"',
+          does: "records why in rejected.md so it's never re-proposed",
+        },
+      },
+    },
+    ui: {
+      heading: {
+        eyebrow: "Board UI",
+        title: "A local board you can open in the browser",
+      },
+      lead: "Prefer to look instead of ask? One command opens a board over the same Markdown files — read a task in full without hunting for its file in your IDE tree, and act on it with a click instead of re-typing the same prompt into the chat.",
+      optional:
+        "It's optional — the install step ships nothing extra. When you want it, just ask Claude:",
+      started:
+        "Claude starts the prebuilt server for you — localhost only, nothing to compile.",
+      actionsLead: "Each card's buttons hand a move to an agent, no chat needed:",
+      actions: {
+        implement: {
+          label: "Implement",
+          body: "hand the card to Claude to build",
+        },
+        edit: { label: "Edit", body: "revise the card, don't run it" },
+        refine: { label: "Refine", body: "push a stuck card one step on" },
+        resolve: { label: "Resolve", body: "answer the card's open questions" },
+        archive: { label: "Archive", body: "file a finished card away" },
+        reject: { label: "Reject", body: "drop a card and note why" },
+      },
+      shots: {
+        board: {
+          label: "Board view",
+          alt: "ai4kanban's local web board — Blockers, UI, Skill, Docs, and Distribution columns of Markdown cards with #ids, priority and ROI badges, and subtask progress bars.",
+        },
+        detail: {
+          label: "Card detail",
+          alt: "A task detail page in the local board — title, Implement / Review / Edit / Reject actions, a metadata row for track, priority, ROI, todos and blockers, and the full card body.",
+        },
+      },
+      frontAria: "{view} (front)",
+      flipAria: "Flip to {view}",
+    },
+    presets: {
+      heading: { eyebrow: "Presets", title: "The indie-hacker preset" },
+      lead: "Building all day while nobody's watching is the classic solo-founder trap. This preset splits your time three ways — finding users, checking demand, and building — and Claude keeps new work spread across all three instead of piling it onto one.",
+      tracks: {
+        growth: {
+          body: "Get in front of users — posts, outreach, launches. Claude suggests methods worth trying and drafts them.",
+        },
+        validation: {
+          body: "Check the market wants it before you build deep. Post an honest question, share a trial, save the verdict.",
+        },
+        building: {
+          body: "Stay at MVP. Build when it scales your work, strengthens the product, or users clearly ask for it.",
+        },
+      },
+      note: "The `indie-hacker` preset also adds review gates — a moat test and a trust test — plus a market-validation method for posting to Reddit or X before you build. Swap in your own tracks and weights at install time.",
+    },
+    advanced: {
+      heading: {
+        eyebrow: "Features",
+        title: "Project management in Markdown, not a flat list",
+      },
+      lead: "A flat to-do list is just a list. This one does four things a list can't — recurring work, subtasks for the big jobs, a memory of what's done, and a throughput count.",
+      recurring: {
+        title: "Recurring tasks",
+        body: "Some work is never one-and-done. Keep each as a card in `docs/kanban/todo/recurring/` — a job that never gets archived — and let Claude Code's `/loop` run it on the cadence you pick, like every morning.",
+        examples: {
+          competitors: {
+            label: "Competitor tracking",
+            body: "See what rivals shipped or changed, and flag anything worth a response.",
+          },
+          listening: {
+            label: "Social listening",
+            body: "Pull fresh posts from Reddit or Slack and surface the ones that matter.",
+          },
+          boardReview: {
+            label: "Board review",
+            body: "Sweep the backlog for stale, duplicate, or already-done cards.",
+          },
+        },
+        ladderLead:
+          "Not every job needs the same level of automation. A card can sit at any rung — from one you drive by hand, to one Claude handles for you, to a script that runs on its own:",
+        ladder: {
+          ask: { label: "you do it by hand" },
+          agent: { label: "Claude does it for you" },
+          script: { label: "a command runs it, no human" },
+        },
+        ladderNote:
+          "Push each job as far up as it earns — some stay hands-on, others run themselves.",
+      },
+      group: {
+        title: "Group tasks",
+        body: "A task too big to start tends to just sit there. When one card can't hold it, it becomes a **group task** — its own folder with a tracking `root.md` and one card per piece. Each piece gets its own id and is wired with *Blocked by* and *Related* links, so you always know the next thing to pick up.",
+      },
+      memory: {
+        title: "Project memory",
+        body: "Working the board is a loop. Each round, Claude proposes new work by pulling from three sources, you make the call, and it folds the result into a memory hub — so the next round builds on the last instead of repeating it.",
+        hubLabel: "docs/kanban/ — the hub that holds your feedback",
+        files: {
+          memory: {
+            body: "Notes from each scan carry to the next, with a watermark per source — so it re-reads only what changed.",
+          },
+          archive: {
+            body: "Shipped work shrinks to a plain line. It reads this before proposing, so it won't re-suggest what's done.",
+          },
+          rejected: {
+            body: "Ideas you turned down are kept with the reason, so it never floats them at you again.",
+          },
+          redesign: {
+            body: "A design mistake you corrected becomes a note, so the next card doesn't repeat the wrong plan.",
+          },
+        },
+        loop: {
+          aria: "The loop: propose, then you decide, then learn — then it starts over.",
+          centerCaption: "reads & writes",
+          stepLabel: "step",
+          stages: {
+            propose: {
+              label: "Propose",
+              body: "Pulls from three sources for work that isn't already shipped or shelved:",
+            },
+            decide: {
+              label: "You decide",
+              body: "Ship it, skip it, or fix the plan. A few words back to Claude is enough.",
+            },
+            learn: {
+              label: "Learn",
+              body: "Folds the outcome and your feedback into the hub, so the next round starts sharper.",
+            },
+          },
+          sources: {
+            project: {
+              label: "Your project",
+              body: "Codebase, board, docs, team chat — it connects what's already here into work worth doing.",
+            },
+            outside: {
+              label: "The outside",
+              body: "Reddit, Slack, your CRM. Recurring jobs pull in fresh signal and drop the findings on the board.",
+            },
+            you: {
+              label: "You",
+              body: "Your own steer and feedback, kept in the board so a good call is never lost or asked twice.",
+            },
+          },
+        },
+      },
+      metrics: {
+        title: "Task metrics",
+        body: "Each archived card is one shipped unit, so your velocity is just a number in git next to the work — no dashboard, no separate tool.",
+        chart: {
+          aria: "Daily throughput over twelve days: total, completed, created, and rejected tasks.",
+          series: {
+            total: "Total",
+            completed: "Completed",
+            created: "Created",
+            rejected: "Rejected",
+          },
+          caption:
+            "One row per day in `metrics.csv` — completed, created, rejected, and their total. The script keeps it up to date; you never touch it.",
+        },
+      },
+    },
+  },
+
+  vsGithub: {
+    meta: {
+      title:
+        "AI4Kanban vs. GitHub Issues — a different tool for a different job",
+      socialTitle: "AI4Kanban vs. GitHub Issues",
+      description:
+        "How ai4kanban's file-based board compares to GitHub Issues: local Markdown vs. a remote API, token cost, agent ergonomics, teams, and when to use each.",
+      social:
+        "Not a replacement — a different tool for a different bottleneck. A head-to-head on speed, tokens, agents, and teams.",
+    },
+    hero: {
+      badge: "Comparison",
+      title: "AI4Kanban vs.\nGitHub Issues",
+      lead: "Not a replacement — a different tool for a different bottleneck. GitHub Issues is a shared, durable, public system of record. ai4kanban is a private, local, agent-native working surface. Pick by what's actually slowing you down.",
+      ours: {
+        name: "AI4Kanban",
+        body: "Plain Markdown in your repo. The agent's fast local scratch-board.",
+      },
+      theirs: {
+        name: "GitHub Issues",
+        body: "A database behind an API. The shared, public system of record.",
+      },
+    },
+    summary: {
+      heading: {
+        eyebrow: "The short version",
+        title: "So why not just use GitHub Issues?",
+      },
+      lead: "You can. Almost everything ai4kanban does, you could do with GitHub Issues plus the `gh` CLI or a GitHub MCP server. The difference is what it costs to get there.",
+      panel:
+        "The same task on GitHub Issues means **more noise**, **more turns**, **more tokens**, **higher latency**, and **heavier prompting** to get the agent to reach for it at all. ai4kanban trades GitHub's reach for local speed — and for a solo builder driving an agent, speed is usually the thing in short supply.",
+    },
+    comparison: {
+      heading: {
+        eyebrow: "Head to head",
+        title: "AI4Kanban vs. GitHub Issues",
+      },
+      lead: "Fourteen dimensions. A {check} is a clear win; a **dash** is a deliberate trade-off that just comes down to what you need. ai4kanban takes the **speed and locality** rows; GitHub Issues takes the **scale and collaboration** ones.",
+      ourLabel: "AI4Kanban",
+      theirLabel: "GitHub Issues",
+      rows: {
+        storage: {
+          dimension: "Storage",
+          kanban: "Plain Markdown in your repo, in git.",
+          issues: "GitHub's database, behind an API.",
+        },
+        offline: {
+          dimension: "Works offline",
+          kanban: "Yes — it's just files on disk.",
+          issues: "No — needs network and auth.",
+        },
+        agentReads: {
+          dimension: "How an agent reads it",
+          kanban: "Native fs tools: Read, Grep, Glob.",
+          issues: "gh CLI or MCP round-trips.",
+        },
+        tokenCost: {
+          dimension: "Token cost per lookup",
+          kanban: "Low — grep returns only the matching lines.",
+          issues: "High — JSON payloads and tool schemas.",
+        },
+        latency: {
+          dimension: "Latency",
+          kanban: "Local disk, effectively instant.",
+          issues: "A network round-trip per call.",
+        },
+        setup: {
+          dimension: "Setup",
+          kanban: "One prompt: a skill file and a small script.",
+          issues: "Account, auth token, MCP config.",
+        },
+        lockIn: {
+          dimension: "Vendor lock-in",
+          kanban: "None — the board travels with the repo.",
+          issues: "Lives on GitHub.",
+        },
+        metadata: {
+          dimension: "Metadata",
+          kanban:
+            "Minimal by design: priority + effort — all a solo builder needs.",
+          issues:
+            "Labels, milestones, assignees, projects — for coordinating a team.",
+        },
+        concurrency: {
+          dimension: "Concurrency",
+          kanban: "None — id clashes if two people add #1894.",
+          issues: "Server-assigned ids, safe for teams.",
+        },
+        history: {
+          dimension: "Decision history",
+          kanban:
+            "Pruned to the decisions that steer the next task — why an idea was rejected, what shipped — so the agent proposes forward, never re-doing done or dead work.",
+          issues: "Full comment history and edits kept, nothing dropped.",
+        },
+        closing: {
+          dimension: "Closing out work",
+          kanban: "Archive the task once its items are checked off.",
+          issues: "Auto-closes issues from linked PRs and CI.",
+        },
+        search: {
+          dimension: "Search at scale",
+          kanban: "grep — quick on a small board, unwieldy as it grows.",
+          issues: "Indexed full-text search and saved filters.",
+        },
+        contributors: {
+          dimension: "External contributors",
+          kanban:
+            "Possible, but only by committing to the Markdown — no lightweight filing.",
+          issues: "Anyone can file, comment, and react without a commit.",
+        },
+        transparency: {
+          dimension: "Transparency",
+          kanban:
+            "Every card stays visible in the repo — only the memory hub is pruned to essentials.",
+          issues: "Public and linkable — the open-source default.",
+        },
+      },
+    },
+    wins: {
+      heading: { eyebrow: "Trade-offs", title: "Where each one wins" },
+      lead: "Neither is strictly better. ai4kanban optimizes for one agent moving fast; GitHub Issues optimizes for many people staying in sync.",
+      oursHeading: "AI4Kanban",
+      theirsHeading: "GitHub Issues",
+      ours: {
+        tokenLight: {
+          title: "Token-light and instant",
+          body: "No MCP, no network. The agent greps local Markdown instead of paging a remote API — fewer tokens, lower latency, no auth to refresh mid-task.",
+        },
+        agentsUseIt: {
+          title: "Agents actually use it",
+          body: "Agents are reluctant to search GitHub Issues; they reach for filesystem tools by default. A Markdown board meets them where they already are — less prompting, fewer hallucinated task states.",
+        },
+        offline: {
+          title: "Offline and yours",
+          body: "Plain files in git. Works on a plane, works when GitHub is down. No SaaS dependency, no vendor lock-in — clone the repo and the whole board comes with you.",
+        },
+        memory: {
+          title: "Memory tuned for proposing",
+          body: "It records the decisions that steer the next task: why an idea was rejected, what got shipped, the gap to the goal. So the agent proposes forward — not re-doing done work or re-floating what you killed.",
+        },
+      },
+      theirs: {
+        teams: {
+          title: "Built for teams",
+          body: "Server-assigned ids, safe concurrent edits, assignees. ai4kanban has no database — two people can both mint #1894 and conflict.",
+        },
+        transparency: {
+          title: "Transparency and reach",
+          body: "Public and linkable, with external contributors filing, commenting, and reacting. The right home when openness matters more than raw speed.",
+        },
+        fullContext: {
+          title: "Full context, forever",
+          body: "ai4kanban deliberately compresses — an archived card shrinks to a line. On GitHub every comment, edit, and cross-link stays intact.",
+        },
+        integration: {
+          title: "Deep integration",
+          body: "Auto-closing from PRs, commit links, project boards, labels, milestones, and a whole ecosystem of third-party tools and indexed search at scale.",
+        },
+      },
+    },
+    ergonomics: {
+      heading: { eyebrow: "The crux", title: "Why agents prefer files" },
+      lead: 'The real difference shows up when an agent does the work. Ask the same thing — **"find my high-priority open tasks"** — and the two paths barely rhyme.',
+      issues: {
+        title: "you › agent + GitHub MCP",
+        chip: "many turns",
+        lines: [
+          "find my high-priority open issues",
+          "list_issues(state:open, labels:high)",
+          "4.2 KB JSON — 18 issues, every field",
+          "paginate, filter, summarize…",
+          "auth refresh · rate-limit headers · retries",
+        ],
+        footer: "several tool calls · KBs of JSON · network each time",
+      },
+      kanban: {
+        title: "you › agent + ai4kanban",
+        chip: "one turn",
+        lines: [
+          "find my high-priority open tasks",
+          'grep -rl "Priority: high" docs/kanban/todo',
+          "three file paths",
+          "done — one call, no network",
+        ],
+        footer: "one tool call · a few paths · all local",
+      },
+      note: 'It compounds. Every "what\'s next?", every archive, every board review pays the round-trip tax on GitHub Issues — and models, left to choose, quietly avoid the remote tool and reach for the files instead.',
+    },
+    decision: {
+      heading: { eyebrow: "The call", title: "Which should you use?" },
+      oursHeading: "Reach for ai4kanban when",
+      theirsHeading: "Reach for GitHub Issues when",
+      ours: [
+        "You work solo, or with a tight, trusted pair.",
+        "You drive the work through an agent in the terminal.",
+        "You care about moving forward more than a paper trail.",
+        "You want the board in git — offline and portable.",
+      ],
+      theirs: [
+        "You're building in the open and transparency matters.",
+        "Multiple people manipulate the backlog at once.",
+        "You lean on PR/CI links, project boards, and milestones.",
+        "You need outside contributors to file and discuss.",
+      ],
+      verdict:
+        "They aren't really competitors. GitHub Issues is the **shared system of record**; ai4kanban is the **agent's fast local scratch-board**. If your bottleneck is coordination across people, use GitHub Issues. If it's throughput with an agent, use ai4kanban.",
+      note: "Plenty of solo builders run both — GitHub Issues as the public tracker, ai4kanban as the private surface their agent drives every day.",
+    },
+  },
+
+  vsHermes: {
+    meta: {
+      title:
+        "AI4Kanban vs. Hermes Agent Kanban — a lean file-based board vs. a durable runtime",
+      socialTitle: "AI4Kanban vs. Hermes Agent Kanban",
+      description:
+        "How ai4kanban's file-based board compares to Nous Research's Hermes Agent Kanban: two overlapping agent kanban boards — plain diffable files that run on any agent (even Hermes) vs. a durable, shared SQLite queue many named agents claim tasks from.",
+      social:
+        "Two overlapping agent kanban boards. ai4kanban is a lean, file-based board that runs on any agent (even Hermes); Hermes bundles the same board with a durable, shared queue many named agents work.",
+    },
+    hero: {
+      badge: "Comparison",
+      title: "AI4Kanban vs.\nHermes Agent Kanban",
+      lead: "Two agent-facing kanban boards with a lot of overlap. The difference is where the board sits in the stack: ai4kanban is a lean *board layer* you run any agent on top of; Hermes Agent Kanban fuses that board into its own runtime.",
+      ours: {
+        name: "AI4Kanban",
+        body: "A plain-Markdown board in your repo. The runtime, execution, and even maintenance layer on top — swap the agent, keep the board.",
+      },
+      theirs: {
+        name: "Hermes Agent Kanban",
+        body: "The board, dispatcher, and named agents are one integrated runtime — durable and bundled, but the board doesn't detach from Hermes.",
+      },
+      oursDiagramAlt:
+        "The kanban is a Markdown board at the bottom; the agent runtime, execution and maintenance are a swappable layer stacked on top.",
+      theirsDiagramAlt:
+        "One integrated Hermes runtime with the SQLite board, dispatcher and named agents fused inside it.",
+      taskLayer: "task layer · execution + maintenance",
+      boardLayer: "kanban · Markdown files (git)",
+      runtimeLabel: "Hermes runtime",
+    },
+    summary: {
+      heading: {
+        eyebrow: "The short version",
+        title: "So why not just use Hermes Kanban?",
+      },
+      lead: "Fair question — the two overlap a lot. Both are kanban boards agents plan and work from, so think of ai4kanban as **a lightweight alternative to Hermes Kanban**: the same board idea, minus the bundled runtime. The difference is what's underneath.",
+      oursHeading: "AI4Kanban — a board made of files",
+      theirsHeading: "Hermes Kanban — a board inside a runtime",
+      ours: [
+        "Plain Markdown in your repo — every task and plan change is a reviewable diff.",
+        "No infrastructure: nothing to install, nothing to keep running.",
+        "Execution comes from whatever harness you already use — Claude Code, Codex, Cursor, even Hermes.",
+      ],
+      theirs: [
+        "A durable SQLite queue at ~/.hermes/kanban.db, shared by many named agents and humans.",
+        "A dispatcher hands ready tasks to agents and recovers crashed runs.",
+        "Tied to the Hermes / Nous stack and its kanban_* tools.",
+      ],
+      whenLabel: "When to use ai4kanban",
+      when: "Pick the skill when you want the board **versioned with your code**, when you're staying in a harness you already run, or when you don't want to operate a runtime just to get a task board. Reach for Hermes Kanban when **you already work deeply with Hermes** — its board plugs straight into the dispatcher, named profiles, and chat control you've set up. Both are durable queues in the end; the skill's is files in git, Hermes's is rows in SQLite.",
+    },
+    harness: {
+      heading: {
+        eyebrow: "Harness support",
+        title: "Which agents can run the board?",
+      },
+      lead: "The clearest single difference. The skill's board is plain files, so **any agent that can read a repo can run it** — including Hermes itself. Hermes Kanban's board sits behind the runtime's `kanban_*` tools, so only Hermes can.",
+      oursSub: "any file-reading agent",
+      theirsSub: "Hermes only",
+      supported: "supported",
+      notSupported: "not supported",
+      note: "…and the skill's row keeps going — Windsurf, OpenCode, Gemini CLI, anything that reads files. Hermes Kanban has no way in for other agents.",
+    },
+    comparison: {
+      heading: {
+        eyebrow: "Head to head",
+        title: "AI4Kanban vs. Hermes Kanban",
+      },
+      lead: "A {check} is a clear win; a **dash** is a trade-off. The skill wins on simplicity and portability, Hermes on the durable shared queue and scale — the rest is a draw.",
+      ourLabel: "AI4Kanban",
+      theirLabel: "Hermes Kanban",
+      rows: {
+        whatItIs: {
+          dimension: "What it is",
+          kanban:
+            "A file-based kanban layer — the board is plain Markdown in your repo.",
+          hermes:
+            "A kanban feature of the Hermes agent runtime — a durable SQLite board.",
+        },
+        infrastructure: {
+          dimension: "Infrastructure",
+          kanban:
+            "None of its own — the board is just plain Markdown files in your repo.",
+          hermes: "A running gateway, a SQLite database, and a dispatcher loop.",
+        },
+        whereBoardLives: {
+          dimension: "Where the board lives",
+          kanban:
+            "In your repo, under version control — every task and plan change is a reviewable diff.",
+          hermes:
+            "In a SQLite DB at ~/.hermes/kanban.db; changes go to an event log, not diffs.",
+        },
+        setup: {
+          dimension: "Setup",
+          kanban: "One prompt: a skill file and a small script.",
+          hermes:
+            "Install the Hermes runtime, configure profiles, run the gateway.",
+        },
+        parallelRuns: {
+          dimension: "Parallel & scheduled runs",
+          kanban:
+            "Your harness drives it — Claude Code spawns parallel subagents when you kick things off; scheduled jobs live in a recurring/ folder.",
+          hermes:
+            "The runtime drives it — the dispatcher picks up ready tasks on its own and spawns a worker process per task.",
+        },
+        crashRecovery: {
+          dimension: "Crash recovery",
+          kanban:
+            "No per-task queue — a run that dies mid-task just reruns on the next scheduled tick.",
+          hermes:
+            "A durable queue auto-recovers in-flight work — claim TTLs, heartbeats, stale-claim reclaim, retries.",
+        },
+        decomposition: {
+          dimension: "Task decomposition",
+          kanban:
+            "A card breaks into todos and a task graph — group, blocked-by, related — with deps worked out as it's written.",
+          hermes:
+            "The dispatcher auto-runs an LLM decomposer, fanning a task into a child-task graph routed to specialists.",
+        },
+        reviewMemory: {
+          dimension: "Review & memory",
+          kanban:
+            "Memory is pruned to why-rejected and what-shipped so the agent proposes forward — curated, not a full log.",
+          hermes:
+            "Keeps a full append-only event log and per-attempt run history for audit.",
+        },
+        dashboard: {
+          dimension: "Dashboard GUI",
+          kanban:
+            "A local web board where card actions — implement, review, archive — hand the work to an agent.",
+          hermes:
+            "A live web board with drag-drop and a side drawer, plus control from chat apps.",
+        },
+        scale: {
+          dimension: "Scale & reach",
+          kanban: "A solo board; grep gets unwieldy as it grows.",
+          hermes:
+            "Scales to many agents across many boards — multi-tenant, with control from Discord / Slack / email / SMS.",
+        },
+      },
+    },
+    memory: {
+      heading: {
+        eyebrow: "Memory vs. audit",
+        title: "What each board remembers",
+      },
+      lead: "The essential difference: the skill's memory is an **input to planning** — it exists so the next proposal is smarter. Hermes's log is an **output of execution** — it exists so the past can be replayed.",
+      ours: {
+        heading: "AI4Kanban",
+        verdict: "Remembers conclusions, forgets the rest.",
+        body: "Four small files, **pruned on purpose**: `archive.md` (what shipped), `rejected.md` (what we turned down, and why), `redesign.md` (design mistakes not to repeat), `memory.md` (what past scans learned). The agent reads them all before proposing or writing a card; the full history is git's job.",
+        q: "Why isn't idea X on the board?",
+        a: "One line in `rejected.md` — the idea and why it was turned down. Dead ideas stay dead.",
+      },
+      theirs: {
+        heading: "Hermes Kanban",
+        verdict: "Remembers every event, summarizes nothing.",
+        body: "Every state transition lands in an **append-only log**; every attempt keeps its exit code and full worker output. Built for audit and crash recovery, not for steering the next idea.",
+        q: "What happened to task 42 overnight?",
+        a: "`claimed → crashed → reclaimed → completed`, with per-attempt logs to read.",
+      },
+      note: "Curated memory makes the agent smarter next time; the audit log makes the past reconstructable. Neither substitutes for the other.",
+    },
+    autonomy: {
+      heading: {
+        eyebrow: "Autonomy level",
+        title: "How much autonomy does the agent get?",
+      },
+      lead: 'Hermes Kanban promises **"drop a one-liner, walk away"** — full autonomy. ai4kanban is **agent-assisted**, and it starts earlier than plan mode: you save a half-formed idea to the board, `refine` turns it into concrete requirements, and you approve before any code is written.',
+      stops: {
+        traditional: {
+          level: "No autonomy",
+          term: "Human-driven",
+          heading: "Traditional kanban",
+          detail:
+            "You think of every task and break it down — Trello or Jira just records it.",
+        },
+        kanban: {
+          level: "Semi autonomy",
+          term: "Agent-assisted",
+          heading: "AI4Kanban",
+          detail:
+            "Each `refine` digs into the missing pieces and fills in requirements. You review before anything is built.",
+        },
+        hermes: {
+          level: "Full autonomy",
+          term: "Fire-and-forget",
+          heading: "Hermes Kanban",
+          detail:
+            "One line in, a task tree out — decomposed and worked unattended until done. Claude Code's `/goal` makes the same bet.",
+        },
+      },
+      scaleLeft: "You plan everything",
+      scaleMiddle: "Agent plans, you approve",
+      scaleRight: "Agent plans everything",
+      worstCaseLabel: "Worst case, per level",
+      worstCaseTheirs:
+        "**Fire-and-forget:** a small early misunderstanding grows into a whole tree of wrong tasks — built, tokens spent.",
+      worstCaseOurs:
+        "**Agent-assisted:** a wrong Markdown card — caught when you review it, before anything is built.",
+      note: "One refine fills in missing steps, splits side ideas into their own cards, ticks off todos that already landed, and leaves the taste calls to you as questions. When none are left, the card flips to **ready** — read it, then build it.",
+    },
+    gui: {
+      heading: { eyebrow: "The dashboards", title: "Kanban Board GUI" },
+      lead: "Both ship a web board, but they play different roles. The skill's board is a **control surface for your agent** — card actions kick off runs. Hermes's board is a **live window onto the dispatcher** — it shows what the fleet is doing right now.",
+      ours: {
+        heading: "AI4Kanban — local board",
+        body: "A local web board over the Markdown files. Card actions — *implement, review, archive* — hand the work to an agent, and you watch its log stream back with human-in-the-loop prompts.",
+        alt: "ai4kanban's local web board — a light board with Blockers, UI, Skill, Docs, and Distribution columns and a Create task button.",
+      },
+      theirs: {
+        heading: "Hermes Kanban — live dispatcher view",
+        body: "A live board that tails the event log — drag-drop between columns, a side drawer with run history and exit-status badges, and the same board steerable from Discord, Slack, or SMS.",
+        alt: "Hermes Agent's Kanban dashboard — a dark board with Triage, Todo, Scheduled, and Ready columns and an orchestration toolbar.",
+      },
+    },
+    wins: {
+      heading: { eyebrow: "Trade-offs", title: "Where each one wins" },
+      lead: "Neither is strictly better. ai4kanban optimizes for a lean, file-based board with no infra of its own; Hermes Kanban optimizes for a durable, shared work queue that many agents run against, unattended. Harness features — parallel runs, orchestration, a dashboard — are on both sides, so they aren't listed here.",
+      oursHeading: "AI4Kanban",
+      theirsHeading: "Hermes Kanban",
+      ours: {
+        noInfra: {
+          title: "No infrastructure of its own",
+          body: "No database, no gateway, no daemon. Beyond the agent you already run, the board is plain Markdown files — nothing extra to install or keep alive, works on a plane.",
+        },
+        diffable: {
+          title: "Files you can diff and version",
+          body: "The board lives in the repo and travels with it, under whatever version control you use. Every task and plan change is a reviewable diff — no SQLite outside your project, no event log to query, no lock-in to one agent stack.",
+        },
+        selfPruning: {
+          title: "Memory that self-prunes",
+          body: "It records why an idea was rejected and what got shipped, so the agent proposes forward instead of re-floating dead work. It keeps only what steers the next task, not a full audit log.",
+        },
+        onePrompt: {
+          title: "Installs in one prompt",
+          body: "A skill file and a small script — no profiles to configure, no dispatcher to tune. It meets any file-reading agent where it already is, Hermes included.",
+        },
+      },
+      theirs: {
+        manyAgents: {
+          title: "One board, many named agents",
+          body: "A single durable board that multiple named agents — and humans — claim tasks and hand off work on. The dispatcher polls ready tasks and spawns the assigned agent for each. The skill's board is driven by whatever single harness you're in.",
+        },
+        selfHealing: {
+          title: "Self-healing task queue",
+          body: "The queue tracks each task through crashes: claim TTLs, heartbeats, stale-claim reclaim, retries, and circuit breakers. A worker can die mid-task and the board reclaims and retries it — the skill's files are durable, but a dead run just waits for the next scheduled tick.",
+        },
+        autoDecompose: {
+          title: "Auto-decomposes tasks",
+          body: "Drop in a rough task and the dispatcher's LLM decomposer fans it into a child-task graph, each child routed to a specialist agent — no manual breakdown. The skill splits a card into todos and a hand-tended task graph.",
+        },
+        fleetReach: {
+          title: "Fleet reach and scale",
+          body: "Built for many agents across many boards, multi-tenant, with control from Discord, Telegram, Slack, email, and SMS. The skill is a lean solo board that stays in your repo and terminal.",
+        },
+      },
+    },
+    decision: {
+      heading: { eyebrow: "The call", title: "Which should you use?" },
+      oursHeading: "Reach for ai4kanban when",
+      theirsHeading: "Reach for Hermes Kanban when",
+      ours: [
+        "You want a file-based board — every task and plan change is a reviewable diff.",
+        "You want no infra of its own: plain files, offline, portable, no lock-in.",
+        "You want it agent-agnostic — Claude Code, Cursor, even Hermes itself.",
+        "You're solo and value a lean board over a bundled engine.",
+      ],
+      theirs: [
+        "You already work deeply with Hermes — profiles, gateway, and chat control are set up.",
+        "You want one durable board that many named agents — and people — share.",
+        "You want a queue that auto-recovers in-flight tasks across crashes.",
+        "You want the dispatcher to auto-decompose tasks and route them to specialists.",
+        "You run fleet workloads across many boards and chat platforms.",
+      ],
+      verdict:
+        "They overlap more than the names suggest — both are agent kanban boards. The split is what's bundled: ai4kanban is a **file-based board with automation left to your harness**; Hermes Agent Kanban is that board **wrapped in a durable, shared work queue**. If you want one board many agents share, surviving crashes, use Hermes. If you want a lean board in your repo you extend only when you need to, use ai4kanban.",
+      note: "They can even sit side by side — the skill as the lightweight place you plan and prune in git, Hermes as the durable queue that runs the heavy, shared work once you've decided what it is.",
+    },
+  },
+
+  vsVibe: {
+    meta: {
+      title: "AI4Kanban vs. Vibe Kanban — a planning board vs. an agent cockpit",
+      socialTitle: "AI4Kanban vs. Vibe Kanban",
+      description:
+        "Vibe Kanban shut down when Bloop wound down in April 2026. How ai4kanban's file-based board compares: a lightweight planning board in your repo vs. a cockpit that runs many coding agents in parallel — and what carries over.",
+      social:
+        "Vibe Kanban's company shut down. A planning board in your repo vs. an agent-orchestration cockpit — the honest difference, and what carries over.",
+    },
+    hero: {
+      badge: "Comparison",
+      title: "AI4Kanban vs.\nVibe Kanban",
+      lead: "Vibe Kanban is a cockpit for running many coding agents in parallel — and the company behind it, Bloop, shut down in April 2026. ai4kanban is a planning board your agent edits as plain files in your repo. They fix different bottlenecks. Here's the honest difference, and what actually carries over.",
+      ours: {
+        name: "AI4Kanban",
+        body: "Plain Markdown in your repo. A planning board your agent edits.",
+      },
+      theirs: {
+        name: "Vibe Kanban",
+        body: "A local web app. A cockpit that runs many agents in parallel.",
+      },
+    },
+    summary: {
+      heading: {
+        eyebrow: "The short version",
+        title: "Vibe Kanban shut down — where to now?",
+      },
+      lead: "Bloop, the company behind Vibe Kanban, wound down in April 2026. Paid plans were cancelled and refunded, the cloud features were retired, and the project went fully local. It was left open source under Apache-2.0 — but the original repo has had no new commits since late April 2026, so its future now rides on community forks rather than the team that built it.",
+      panel:
+        "If what you valued in Vibe Kanban was the **board** — a calm place to line up and sharpen work for your coding agent — ai4kanban gives you that as plain files in git, with no company that can shut down and no server to keep alive. If what you valued was the **engine that runs many agents in parallel**, be warned: ai4kanban is not that, and we'd rather tell you now than lose you three sections in.",
+    },
+    comparison: {
+      heading: { eyebrow: "Head to head", title: "AI4Kanban vs. Vibe Kanban" },
+      lead: "Ten dimensions. A {check} is a clear win; a **dash** is a deliberate trade-off that comes down to what you need. ai4kanban takes the **lightness and planning** rows; Vibe Kanban takes the **parallel-agent and review** ones — its real strengths, stated plainly.",
+      ourLabel: "AI4Kanban",
+      theirLabel: "Vibe Kanban",
+      rows: {
+        whatFor: {
+          dimension: "What it's for",
+          kanban:
+            "A planning board your agent edits in the repo — line up and sharpen the work.",
+          vibe: "A cockpit to run many coding agents in parallel and review what they produce.",
+        },
+        orchestration: {
+          dimension: "Parallel-agent orchestration",
+          kanban: "None — you drive one agent; the board doesn't run agents.",
+          vibe: "Its core strength — many agents at once, each in an isolated git worktree.",
+        },
+        review: {
+          dimension: "Review of agent output",
+          kanban: "Not its job — your harness shows the diffs.",
+          vibe: "Built in — inline diff review, live preview, and pull-request handling.",
+        },
+        planning: {
+          dimension: "Planning & refinement",
+          kanban: "A refine loop turns a rough idea into a ready, concrete task.",
+          vibe: "Minimal — the board mostly queues and tracks agent runs.",
+        },
+        onDisk: {
+          dimension: "What it is on disk",
+          kanban: "Plain Markdown in your repo, in git.",
+          vibe: "A local SQLite database in a config directory.",
+        },
+        runsAs: {
+          dimension: "Runs as",
+          kanban: "Just files — no server, nothing to keep alive.",
+          vibe: "A local web app (Rust backend + web UI) you start and keep running.",
+        },
+        setup: {
+          dimension: "Setup",
+          kanban: "One prompt: a skill file and a small script.",
+          vibe: "npx vibe-kanban, plus each agent CLI installed and signed in.",
+        },
+        whichAgents: {
+          dimension: "Which agents run it",
+          kanban:
+            "Any agent that can read files — Claude Code, Codex, Cursor, more.",
+          vibe: "The agent CLIs it wires up — Claude Code, Codex, Gemini, and others.",
+        },
+        lockIn: {
+          dimension: "Vendor lock-in",
+          kanban: "None — the board is files that travel with the repo.",
+          vibe: "Apache-2.0 and self-hosted, and a data export shipped before shutdown.",
+        },
+        maintenance: {
+          dimension: "Who maintains it",
+          kanban: "Actively maintained.",
+          vibe: "Bloop shut down in April 2026; the original repo has since stalled.",
+        },
+      },
+    },
+    purpose: {
+      heading: {
+        eyebrow: "The real difference",
+        title: "Planning board vs. orchestration cockpit",
+      },
+      lead: "The two tools sit at different points in the loop. One is where you decide **what to build**; the other is where you **run the agents that build it**. Mistaking one for the other is how you end up disappointed — so here it is straight.",
+      ours: {
+        name: "AI4Kanban — the plan",
+        is: "A board your agent reads and edits as plain Markdown in your repo. You save a rough idea, a refine loop sharpens it into a ready task, and you approve before code is written. The work lives in git, next to the code it changes.",
+        isnt: "It does not run agents, spin up worktrees, or diff their output — your harness does that. It's the map, not the engine.",
+      },
+      theirs: {
+        name: "Vibe Kanban — the engine",
+        is: "A local web app that runs many coding agents at once, each isolated in its own git worktree, then lets you review their diffs and preview the app in one place. Its value is throughput across parallel agent runs.",
+        isnt: "It isn't built to sharpen a half-formed idea into a plan — the board mostly queues and tracks runs. Refinement is minimal.",
+      },
+      note: "Plenty of people ran Vibe Kanban for its board alone. If that was you, ai4kanban is a lighter home for it — files in git, nothing to keep running. If you ran it to drive agents in parallel, keep an eye on the community forks; ai4kanban won't replace that engine.",
+    },
+    wins: {
+      heading: { eyebrow: "Trade-offs", title: "Where each one wins" },
+      lead: "Neither is strictly better. ai4kanban optimizes for a lean, file-based board that outlives any tool; Vibe Kanban optimizes for running and reviewing many agents at once.",
+      oursHeading: "AI4Kanban",
+      theirsHeading: "Vibe Kanban",
+      ours: {
+        nothingRunning: {
+          title: "Nothing to keep running",
+          body: "The board is plain Markdown in your repo — no web app, no database, no server. Nothing to install past the agent you already run, and nothing that can go offline.",
+        },
+        planning: {
+          title: "Planning, not just queuing",
+          body: "A refine loop digs into the missing pieces and turns a rough idea into a ready, concrete card you approve before any code is written. Vibe Kanban's board mostly queues agent runs.",
+        },
+        outlives: {
+          title: "Outlives any company",
+          body: "No SaaS, no bundled runtime, no repo that can stall. The board is files in git — clone the repo and it comes with you. Bloop shutting down is exactly the risk this avoids.",
+        },
+        anyAgent: {
+          title: "Any agent, any time",
+          body: "It's just files, so any file-reading agent can drive it — Claude Code, Codex, Cursor, whatever you switch to next. You're not tied to one tool's list of supported CLIs.",
+        },
+      },
+      theirs: {
+        parallel: {
+          title: "Runs many agents at once",
+          body: "Its whole reason to exist: fan work out to several coding agents in parallel, each isolated in its own git branch and worktree so they never collide. ai4kanban doesn't run agents at all.",
+        },
+        reviewInPlace: {
+          title: "Execute-and-review in one place",
+          body: "Inline diff review, a built-in browser to preview the app, and pull-request handling — all in the cockpit. You watch and steer agent output without leaving the board.",
+        },
+        boardUi: {
+          title: "A real board UI",
+          body: "A web board built to drive agent runs — spin up a task, watch it work, switch between workspaces. Purpose-built for orchestration, not a plain file you grep.",
+        },
+        support: {
+          title: "Broad agent support",
+          body: "First to market on multi-agent orchestration, with many agent CLIs wired up out of the box — Claude Code, Codex, Gemini, and more.",
+        },
+      },
+    },
+    decision: {
+      heading: { eyebrow: "The call", title: "Which should you use?" },
+      oursHeading: "Reach for ai4kanban when",
+      theirsHeading: "Reach for Vibe Kanban when",
+      ours: [
+        "You want a planning board your agent edits right in the repo.",
+        "You want zero infrastructure — files in git, nothing to run or keep alive.",
+        "You'd rather not tie your board to a product that can shut down.",
+        "You drive one agent at a time and value a clear plan over parallelism.",
+      ],
+      theirs: [
+        "You want to run many coding agents in parallel, each isolated.",
+        "You want inline diff review and live preview in one cockpit.",
+        "Orchestrating and reviewing agent runs is your real bottleneck.",
+        "You're fine depending on a community fork now that Bloop has shut down.",
+      ],
+      verdict:
+        "They fix different bottlenecks. Vibe Kanban is an **orchestration cockpit** for running many agents; ai4kanban is a **planning board** one agent edits in your repo. If you loved Vibe Kanban's board for lining up work, the skill gives you that as plain files that outlast any company. If you loved its parallel-agent engine, the skill isn't that — and we'd rather say so.",
+      note: "Since Bloop shut down, the board is the part worth carrying forward with no company attached — and that's exactly what ai4kanban is.",
+    },
+  },
+};
+
+export default en;

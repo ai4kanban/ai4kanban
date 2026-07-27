@@ -8,6 +8,8 @@ Give it a vague idea. The agent breaks it down, answers what it can<br>
 on its own, asks you the rest — and keeps at it in the background<br>
 until every detail is clear enough to build.
 
+**English** · [简体中文](README-zh.md)
+
 [Website](https://ai4kanban.dev) · [Quick start](#quick-start) · [Roadmap](#roadmap)
 
 <img src="https://cdn.ai4kanban.dev/og-image.jpg" alt="AI4Kanban — AI project management that grows with you" width="720">

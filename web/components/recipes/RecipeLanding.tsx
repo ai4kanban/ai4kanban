@@ -3,6 +3,11 @@ import { RecipeArt } from "./RecipeArt";
 import { SectionHeading } from "../SectionHeading";
 import type { Recipe } from "./recipes-content";
 import { panel, panelStatic } from "../styles";
+import { getCopy } from "@/i18n";
+
+// Recipes are English-only (see `TRANSLATED_PATHS` in lib/i18n.ts), so the copy
+// button's labels come straight from the English copy.
+const CODE_LABELS = getCopy("en").shared.code;
 
 function DownloadButton({ href, label }: { href: string; label: string }) {
   return (
@@ -68,7 +73,7 @@ export function RecipeLanding({
           <p className="mb-2 text-sm font-semibold text-ink">
             Add it to your board
           </p>
-          <CodeBlock>{recipe.installPrompt}</CodeBlock>
+          <CodeBlock labels={CODE_LABELS}>{recipe.installPrompt}</CodeBlock>
           <p className="mt-3 text-sm text-muted">
             Paste that and Claude pulls the card by URL, files it under{" "}
             <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[0.9em] text-ink">
@@ -158,7 +163,7 @@ export function RecipeLanding({
           are all yours to change.
         </p>
         <div className="mt-6">
-          <CodeBlock>{markdown}</CodeBlock>
+          <CodeBlock labels={CODE_LABELS}>{markdown}</CodeBlock>
           <DownloadButton href={recipe.mdFile} label="Download the card (.md)" />
         </div>
       </section>

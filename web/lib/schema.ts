@@ -5,8 +5,14 @@
 // `@id` values are fragment URIs anchored to a canonical URL, which keeps them
 // stable and unique site-wide. `organization` and `website` are defined in full
 // on every page, so no reference is ever left dangling.
+//
+// The Organization, WebSite and SoftwareApplication entities are the same
+// entity in every language, so they keep one `@id` across all five. Only the
+// per-page nodes (WebPage, Article) are language-specific — their `@id` hangs
+// off the localised URL, and they carry that language's `inLanguage`.
 import { BASE_URL, OG_IMAGE } from "./site";
 import { GITHUB_URL } from "@/components/content";
+import { LOCALES, LOCALE_TAGS, localePath, type Locale } from "./i18n";
 
 export const ORG_ID = `${BASE_URL}/#organization`;
 export const SITE_ID = `${BASE_URL}/#website`;
@@ -31,13 +37,14 @@ const organization = {
 };
 
 // No `potentialAction`/SearchAction: the site has no search endpoint, and
-// markup must describe what the page actually does.
+// markup must describe what the page actually does. `inLanguage` lists every
+// language the site is published in — the site as a whole, not this page.
 const website = {
   "@type": "WebSite",
   "@id": SITE_ID,
   name: "AI4Kanban",
   url: BASE_URL,
-  inLanguage: "en",
+  inLanguage: LOCALES.map((l) => LOCALE_TAGS[l]),
   publisher: { "@id": ORG_ID },
 };
 
@@ -49,11 +56,12 @@ const pageImage = {
 };
 
 /**
- * Absolute URL for a route. `""` is the home page, which resolves to the
- * trailing-slash form so it matches the canonical tag Next emits for "/".
+ * Absolute URL for a route in a language. `""` is the home page, which resolves
+ * to the trailing-slash form so it matches the canonical tag Next emits.
  */
-export function pageUrl(path: string): string {
-  return path ? `${BASE_URL}${path}` : `${BASE_URL}/`;
+export function pageUrl(path: string, locale: Locale = "en"): string {
+  const route = localePath(locale, path);
+  return route === "/" ? `${BASE_URL}/` : `${BASE_URL}${route}`;
 }
 
 /**
@@ -64,16 +72,19 @@ export function webPage(
   path: string,
   name: string,
   description: string,
-  type: "WebPage" | "CollectionPage" = "WebPage",
+  {
+    locale = "en" as Locale,
+    type = "WebPage" as "WebPage" | "CollectionPage",
+  } = {},
 ) {
-  const url = pageUrl(path);
+  const url = pageUrl(path, locale);
   return {
     "@type": type,
     "@id": `${url}#webpage`,
     url,
     name,
     description,
-    inLanguage: "en",
+    inLanguage: LOCALE_TAGS[locale],
     isPartOf: { "@id": SITE_ID },
     primaryImageOfPage: pageImage,
   };
@@ -105,6 +116,7 @@ export function itemList(
 
 type ArticleInput = {
   path: string;
+  locale?: Locale;
   /** Google truncates past 110 characters. */
   headline: string;
   description: string;
@@ -116,13 +128,14 @@ type ArticleInput = {
 
 export function article({
   path,
+  locale = "en",
   headline,
   description,
   datePublished,
   dateModified,
   about,
 }: ArticleInput) {
-  const url = pageUrl(path);
+  const url = pageUrl(path, locale);
   return {
     "@type": "Article",
     "@id": `${url}#article`,
@@ -130,6 +143,7 @@ export function article({
     description,
     url,
     image: pageImage,
+    inLanguage: LOCALE_TAGS[locale],
     datePublished,
     dateModified,
     author: { "@id": ORG_ID },
