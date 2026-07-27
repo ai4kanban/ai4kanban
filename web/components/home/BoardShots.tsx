@@ -11,8 +11,8 @@ import type { HomeCopy } from "@/i18n/types";
 type Mode = "board" | "detail";
 
 const SRC: Record<Mode, string> = {
-  board: "https://cdn.ai4kanban.dev/kanban-skill-ui-v2.jpg",
-  detail: "https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v2.jpg",
+  board: "https://cdn.ai4kanban.dev/kanban-skill-ui-v3.jpg",
+  detail: "https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v3.jpg",
 };
 
 // One browser-framed screenshot on localhost.

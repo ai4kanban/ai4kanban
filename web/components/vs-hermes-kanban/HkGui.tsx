@@ -59,7 +59,7 @@ export function HkGui({ c }: { c: VsHermesCopy["gui"] }) {
       <div className="mt-6 grid grid-cols-1 gap-6">
         <GuiCard
           tag="🗂️"
-          src="https://cdn.ai4kanban.dev/kanban-skill-ui-v2.jpg"
+          src="https://cdn.ai4kanban.dev/kanban-skill-ui-v3.jpg"
           {...c.ours}
         />
         <GuiCard

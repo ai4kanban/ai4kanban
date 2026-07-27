@@ -12,7 +12,7 @@ until every detail is clear enough to build.
 
 [Website](https://ai4kanban.dev) · [Quick start](#quick-start) · [Roadmap](#roadmap)
 
-<img src="https://cdn.ai4kanban.dev/og-image.jpg" alt="AI4Kanban — AI project management that grows with you" width="720">
+<img src="https://cdn.ai4kanban.dev/og-image-v2.jpg" alt="AI4Kanban — AI project management that grows with you" width="720">
 
 </div>
 
@@ -108,9 +108,9 @@ click instead of a prompt:
 npx ai4kanban-ui        # http://localhost:7420
 ```
 
-![The board view in the web UI](https://cdn.ai4kanban.dev/kanban-skill-ui-v2.jpg)
+![The board view in the web UI](https://cdn.ai4kanban.dev/kanban-skill-ui-v3.jpg)
 
-![Card detail view in the web UI](https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v2.jpg)
+![Card detail view in the web UI](https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v3.jpg)
 
 Localhost only — no hosting, no login. See [kanban-ui/](kanban-ui/README.md) for options.
 

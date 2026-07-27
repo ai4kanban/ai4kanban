@@ -99,9 +99,9 @@ Agent 会把 skill 装进你的项目，读一遍代码库把配置填好，在 
 npx ai4kanban-ui        # http://localhost:7420
 ```
 
-![Web UI 的看板视图](https://cdn.ai4kanban.dev/kanban-skill-ui-v2.jpg)
+![Web UI 的看板视图](https://cdn.ai4kanban.dev/kanban-skill-ui-v3.jpg)
 
-![Web UI 的卡片详情页](https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v2.jpg)
+![Web UI 的卡片详情页](https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v3.jpg)
 
 只在 localhost 上跑，不用部署，不用登录。更多选项见 [kanban-ui/](kanban-ui/README.md)。
 
