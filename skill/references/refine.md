@@ -1,93 +1,70 @@
 # Refine
 
-Take one task and move it one step forward — from vague to concrete. A refine is two
-substeps, always in order: **review** the card, then **rewrite** it.
+Take one task one step forward — from vague to concrete. First **check** the card, then
+**rewrite it or raise a question**. **Gate:** a card whose `questions` frontmatter isn't
+empty can't be refined — resolve them first (`references/resolve.md`).
 
-**Gate: open questions block a refine.** If the card's `questions` frontmatter is not
-empty, it's waiting on decisions — resolve them first (`references/resolve.md`), then
-refine once the list is empty.
+## 1. Check
 
-## 1. Review
+Each line below is one plain question. Answer yes or no; a no needs one line saying
+what's wrong. Flag real problems, not hypotheticals. The buckets are independent — hand
+each to its own subagent.
 
-Read the card and check these points. Don't overthink — flag real problems, not
-hypotheticals.
+- **Format — is it written like a card?**
+  - **On topic**: does the body do what the title says? Anything else is another task.
+  - **Plain language**: is every line plain and short ("Writing style" in `SKILL.md`)?
+  - **No meta**: free of planning notes and meta-todos ("Card format" in `SKILL.md`)?
+  - **A build plan**: is it split into `## Todo` boxes, one step of real work each?
+- **Value — should this task exist at all?**
+  - **Direction**: does it move the project toward `goal.md` — the copy of the module the
+    card's `modules:` names, else the project-wide one? Work off the direction isn't ours yet.
+  - **Already shipped**: is it built already? Code → search the codebase; content → search
+    where that content lives (your reference docs); research → check past write-ups.
+  - **Duplicate**: does another card already own the idea? Then update it, not this one.
+- **Scope — is the plan the right size for the goal?**
+  - **Goal fit**: would the goal still be met with this piece cut? Then it's scope creep.
+    The goal is the title and its "so the user can ..." line, not what the summary grew
+    into; on topic doesn't mean needed. Common drift: the goal is "find a run's log", the
+    plan builds "a history of all runs".
+  - **Missing updates/verification**: does the plan skip work it implies — tests, a review pass, landing
+    copy? If a user can see the change, it carries doc-update todos so it isn't hidden
+    after it ships (`references/document-feature.md`); none needs a why.
+  - **Over-complication**: is the design more machinery than the value justifies?
+  - **Grouping**: does this card only make sense with another one? Then they're one group.
+- **Design — will the plan work?**
+  - **Actionable**: could someone start on it tomorrow, or is it still a rough idea? If
+    the how isn't obvious, are the options laid out with one recommended?
+  - **Unambiguous**: can it be built without guessing? Code detail isn't needed; an open
+    requirement is.
+  - **Full user flow**: does the design cover the full user flow, not just the piece the title
+    names? For example, auth isn't just login — sign-up and log-out too.
+  - **Edge cases**: does the design hold up on them? Re-check the decisions the card
+    states — written doesn't mean right. E.g. tasks kept in memory are lost on restart.
+- **Status — does the card match what's already built?**
+  - **Stale todos**: is each unchecked todo really still undone? Work lands without the
+    box getting ticked.
+  - **Finished**: are all the todos done **and** the goal met? Then it's not refinable.
 
-1. **Missing steps.** Work the plan implies but never lists: a docs update, tests, a
-   human review pass, a landing-copy update, and the like.
-2. **Missed edge cases and unreliable designs.** Call out design mistakes the card
-   glosses over. Example: a task-management backend designed to keep tasks only in
-   memory loses everything on restart — that's a mistake to point out, not a detail.
-   Also re-check decisions the card already states — written doesn't mean right.
-3. **Goal fit.** The goal is the card's title and its "so the user can ..." line —
-   not whatever the body's summary has grown into over past refines. Test each piece
-   of the plan: would the goal still be met with this piece cut? If yes, it's scope
-   creep — cut it or split it off. On-topic is not the test; needed for the goal is.
-   The common drift: the goal names one thing ("find a run's log"), the plan builds
-   the general version ("a history of all runs"). Trimming a plan back to its goal
-   counts as pushing the card forward.
-4. **Over-complication.** Is the design more machinery than the value justifies? Name
-   what to cut.
-5. **Actionability.** Is the card still a rough idea nobody could start on?
-6. **Stale todos.** Check each unchecked todo against the repo — work sometimes lands
-   without the box getting ticked. Note the ones that are already done.
+## 2. Rewrite, or raise a question
 
-The review's outcome is two lists:
+Every NO turns into exactly one move below; a card with no problems skips them.
+**Never write the review notes into the card** The card holds the plan and nothing else.
+Read the "Card format" and "Writing style" of `SKILL.md`.
 
-- **Open questions** — decisions that are hard to make without the user: taste,
-  priorities, money, product direction. Record them on the card with
-  `${KB} update <id> --question "..."` (repeat the flag for several).
-- **Revisions** — fixes you can decide yourself. Carry them into the rewrite.
-
-## 2. Rewrite
-
-1. **Push the card one stage forward.** Judge where it stands, then take the next
-   step only — one stage, not three:
-   - **A rough idea** → work out if it's worth doing and how. The user value, who
-     it's for, whether we can build it. Land on a clearer shape.
-   - **A decided-on feature** → design the exact user experience. What the user sees,
-     each step they take, what happens on edge cases.
-   - **A research or content task** → find the specific question to answer or the
-     piece's structure, and what we can say that others don't.
-
-   These are examples, not a fixed list. Read the task and decide what "one step
-   forward" means for it.
-2. **Apply the revisions** from the review.
-3. **Refresh the todo list.** Tick off every todo the review found already done. If
-   every box already matches reality, leave the list as is.
-4. **Split off side ideas.** An idea that came up during the refine but isn't needed
-   for the goal (the goal-fit test — on-topic doesn't count) becomes its own card
-   (follow "Add a task" in `SKILL.md`, minding `references/add-task.md`'s rule
-   against near-duplicate splits), not a bullet buried in this one.
-5. **Write the result back into the card body**, in the plain, short language
-   `references/add-task.md` uses — a reader should get each line at a glance.
-
-**Stop at the code level.** Never push further once the plan is concrete. Don't
-mention coding details — what functions to add, what files to touch. Stop when the
-whole plan is easy to start.
-
-## 3. Mark it ready (when it's done)
-
-A refine that lands a concrete plan with no open questions has finished the card. Mark
-it `ready` with `${KB} update <id> --status ready` —
-only when **both** hold: the plan is concrete (this refine stopped at the code level,
-not one stage short) and the `questions` list is empty, so someone could start
-building now. The user scans for the `ready` pill to pick what to implement next.
-
-If the review raised open questions, still rewrite with what you could decide, but
-leave the questions on the card and don't mark it ready — the next refine is blocked
-until they're resolved. (Recording a question with `update <id> --question` on a card
-that was already `ready` drops it back to `todo` on its own.)
-
-## Group tasks
-
-A **group task** is a root card plus its subtask cards in one folder (see "Group task"
-in `SKILL.md`). Root and subtasks are one plan split across files, so refining the
-`root.md` ripples into them.
-
-After you rewrite the root, bring its subtasks in line with the new plan:
-
-- Re-read each subtask card. Refine the ones the change touched so their scope, order,
-  and blocked-by links still match the root.
-- Drop a subtask the plan no longer needs (reject it); add a card for a new piece it
-  now needs (the "Add a task" flow in `SKILL.md`).
-- Keep the root's subtask list and the real subtask cards in sync.
+- **Rewrite.** Fix the issues while maintaining a minimal task spec.
+- **Reject.** A failed Value check. "Reject an idea" in `SKILL.md`: a line in
+  `rejected.md`, then `${KB} reject <id>`. Unsure the value is real? Raise a question.
+- **Add a card.** A side idea, an unplanned, separate concern that doesn't
+  belong to this card. "Add a task" in `SKILL.md`, minding `references/add-task.md`'s rule
+  against near-duplicate splits.
+- **Group.** Cards that only make sense together: "Group task" in `SKILL.md` and "Tightly
+  coupled tasks go in one group" in `references/add-task.md`.
+- **Archive.** Everything done and the goal met: "Finish a task" in `SKILL.md`.
+- **Raise a question** instead of rewriting when the call is the user's (taste, priorities,
+  money, product direction), or a **spec-level** problem is significant and you can't
+  settle it — is this what the user wants, which of two shapes should the feature take,
+  what's the rule in a case the card never names. Record it with `${KB} update <id>
+  --question ".."` (repeat the flag), leave that part alone; small calls, make them.
+- **Mark it ready.** A concrete plan and no open questions finishes the card: `${KB} update
+  <id> --status ready` — only if this refine stopped at the code level, not one stage
+  short. The user scans for the `ready` pill to pick what to build next.

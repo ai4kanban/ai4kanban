@@ -5,9 +5,6 @@ board — tasks in one focus close a gap; scattered ideas just skim the product.
 
 ## 1. Pick the module
 
-Read `docs/kanban/modules.md` and repair any line that
-disagrees with the repo (no map? build it per `references/module-map.md`).
-
 **Ask the user to pick one or more modules from the map.** If they leave it open, pick
 one yourself — the one where memory says users stumble most.
 
@@ -19,7 +16,8 @@ module's: `readme.md` for what already shipped (links to the published docs),
 `redesign.md` / `rejected.md` to avoid wrong designs and re-proposals. For a shipped
 behavior's detail, follow `readme.md`'s links into the module's **published docs** — the
 docs are the record, memory only indexes them. A module with no folder yet has no notes.
-With no focus module or no module map, read the umbrella set at `docs/kanban/` instead.
+With no focus module or no module map, read the project-wide set at `docs/kanban/memory/`
+instead.
 
 **List the cards already tagged with the focus module.** Grep the board for cards whose
 `modules:` field names it — `grep -rl 'modules:.*<module>' docs/kanban/todo/` — and read
@@ -39,8 +37,8 @@ re-proposals.
 ## 3. Propose 3 tasks
 
 All inside the focus; none already on the board, already shipped (in the published docs or
-`readme.md`), or in `rejected.md` (unsure one is already done? run the check in
-`references/task-review.md`). Write each
+`readme.md`), or in `rejected.md` (unsure one is already done? run the Value check in
+`references/refine.md`). Write each
 with the "Add a task" flow in `SKILL.md`.
 
 A propose run writes no memory. `readme.md` is the finish flow's record — a scan reads

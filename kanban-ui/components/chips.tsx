@@ -1,6 +1,6 @@
 "use client";
 
-import { FiBox, FiCheckCircle, FiChevronDown, FiCpu, FiFlag, FiHelpCircle, FiLayers, FiPlayCircle, FiUser } from "react-icons/fi";
+import { FiBox, FiCheckCircle, FiChevronDown, FiFlag, FiHelpCircle, FiLayers, FiPlayCircle, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import type { QuestionTag } from "@/lib/questions";
 import type { CardStatus } from "@/lib/types";
@@ -186,11 +186,10 @@ export function ModuleChip({ module }: { module: string }) {
   );
 }
 
-// Who owns an open question — parsed from its `[user]`/`[agent]` tag. `user` is a
+// Who owns an open question — parsed from its `[user]` tag. `user` is a
 // judgment call waiting on the human (accent, so it stands out on the card);
-// `agent` is one the auto-refine loop answers itself (sky — shown mid-answer,
-// then cleared once recorded); an untagged question is freshly raised and not yet
-// triaged (a quiet wash). The colour carries the meaning at a glance.
+// an untagged question is freshly raised and not yet triaged (a quiet wash).
+// The colour carries the meaning at a glance.
 //
 // Borderless, like RoiTag: every question list this marks already sits inside a
 // frame of its own (the card page's peach questions panel, the resolve dialog's
@@ -210,11 +209,6 @@ const QUESTION_TAG: Record<QuestionTag, { label: string; icon: IconType; ink: st
     label: "needs you",
     icon: FiUser,
     ink: "var(--color-nb-accent-deep)",
-  },
-  agent: {
-    label: "agent",
-    icon: FiCpu,
-    ink: "var(--color-nb-sky-ink)",
   },
 };
 

@@ -19,6 +19,9 @@ _(none)_
 - [#50 Show what a run changed in the working tree](features/50-show-what-a-run-changed-in-the-working-tree.md)
 - [#51 Show what auto-refine is doing and why it is idle](features/51-show-what-auto-refine-is-doing-and-why-it-is-idle.md)
 - [#53 Show a bar that prompts the user to write the goal when it is weak](features/53-show-a-bar-that-prompts-the-user-to-write-the-goal-when-it-i.md)
+- [#56 Let a user read and edit the board in Obsidian](features/56-read-and-edit-the-board-in-obsidian.md)
+- [#57 Let a user choose where the board is stored](57-choose-where-the-board-is-stored/root.md)
+- [#58 Switch between projects from the header instead of restarting the server](features/58-switch-between-projects-from-the-header-instead-of-restartin.md)
 
 ## skill
 
@@ -27,11 +30,8 @@ _(none)_
 
 ## docs
 
-- [#3 Add a worked example to the guides](docs/03-add-worked-example-to-guides.md)
 
 ## distribution
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
-- [#30 Translate the site into Chinese, Spanish, Japanese, and French](distribution/30-translate-the-site-into-chinese-spanish-japanese-and-french.md)
 - [#5 Research the Vibe Kanban comparison and build its vs page](distribution/5-vibe-kanban-vs-page.md)
-- [#46 Add a /translate-sync command to keep the site's four translations current](distribution/46-add-a-translate-sync-command-to-keep-the-site-s-four-transla.md)

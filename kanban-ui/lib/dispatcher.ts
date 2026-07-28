@@ -31,7 +31,7 @@ function byRefineOrder(a: Card, b: Card): number {
 // not already settled on the user. Auto-refine keeps working a card until every
 // open question is `[user]` — a judgment call it can't decide alone — so it picks
 // a card that has no questions (a plain refine) OR at least one question still
-// untagged (freshly raised, needs triage) or `[agent]` (mid-answer). A card whose
+// untagged (freshly raised, needs triage). A card whose
 // every question is `[user]` is left for the human — this is what stops the
 // dispatcher re-picking a card it can't move, so there's no spin. A card with
 // every todo checked is done, not refinable.

@@ -8,6 +8,11 @@ Keep only **user-facing** calls that still guide future planning — what a user
 do, or would care about. Code detail stays on the card. Read before proposing so you
 don't re-ask a settled call.
 
+## What local-first promises
+
+- Local-first is a promise about the default backend — markdown in git — not about every
+  backend a user can pick.
+
 ## How far agents go alone
 
 - The auto-refine switch is the whole of the "auto-design" autonomy idea: one on/off

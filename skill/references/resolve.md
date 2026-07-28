@@ -1,31 +1,54 @@
 # Resolve open questions
 
-A card whose `questions` frontmatter is not empty is waiting on decisions.
+## Try to answer each question yourself
 
 Research first — the module's code, the board, the memory set of any module the card
 names (`docs/kanban/memory/<module>/`), and your reference docs. Many questions are
-already settled, shipped, or rejected once you look. Decide yourself when the evidence
-settles it, noting the decision and reason in the card body. Ask the user when it's a
-judgment call — taste, priorities, money, product direction — with options and a
-recommendation; never guess on these.
+already settled, shipped, or rejected once you look.
 
-Write each answer into the card body. Then append to `memory/<module>/decisions.md` for user-facing calls that help future planning, one plain line each, under
-the topic that fits. Everything else stays on the card. Skip memory recording if it's auto-decided, implementation-level, non-user-facing, or what future planning never needs.
+Judgment calls — taste, priorities, money, product direction — get the same pass:
+the trail of past `decisions.md`, `rejected.md`, `redesign.md`, and `goal.md` often shows the user
+already made this call, or one close enough to decide from.
 
-Then update the frontmatter:
+Decide yourself when the evidence gives you confidence. Note the decision and reason
+under `## Decided by the agent` (read "Card format" in `SKILL.md`).
 
-- all answered → `${KB} update <id> --clear-questions`
-- some remain → `update <id> --question "..."` listing only the unanswered ones (the
-  flag replaces the whole list).
+## Ask the user the rest
 
-Then fold the answers into the plan. An answer sometimes creates work the `## Todo` list
-doesn't cover — append those steps to the end of the list as new unchecked todos. Do this
-even when every box is already ticked: a question raised during or after a build means the
-card isn't finished, so the answers *are* the remaining work. An all-done todo list is
-never a reason to add nothing.
+Ask when the evidence isn't enough. Write the options
+and your recommendation into the question text itself. Keep it plain and short: one
+line the user can answer at a glance.
 
-**The todo list is append-only.** Never edit, delete, or untick a line that's already
-there — a ticked box is a record of what was built, and rewriting it loses that history.
-When an answer undoes or changes earlier work, append a new todo to revert the previous changes instead. The history reads as a sequence of decisions, not a patched-up list.
+> Where should the board live? (a) local files — simple; (b) GitHub Projects — syncs
+> with issues. Recommend (a).
 
-An emptied `questions` list makes the card refinable again — refine it next.
+Run `${KB} tag <id> 1,2,3 user` for these questions.
+
+## Update the frontmatter
+
+- All answered → `${KB} update <id> --clear-questions`
+- Some answered → `${KB} update <id> --drop-question 1,3` — the 1-based numbers of
+  the answered ones. The rest stay untouched, tags included.
+
+## Fold the answers into the card
+
+Rewrite, don't append. Follow SKILL.md's "Card format" and "Writing style": keep the
+card a minimal task spec. Merge answers on the same topic into one entry — not necessarily one
+entry per question. Cut what the spec no longer needs.
+
+An answer sometimes creates work the `## Todo` list doesn't cover — append it as new
+unchecked todos, even when every box is ticked: an open question meant the card wasn't
+finished, so the answers are the remaining work.
+
+## Record lasting decisions
+
+Append the user's calls to `memory/<module>/decisions.md`, under the topic that fits —
+add a topic, or a subtopic under an existing one, when none does.
+
+- **Only what the user decided.** Agent's own calls stay on the card (read "Card format" in
+  `SKILL.md`). This file is what the human settled.
+- **Skip** implementation-level and non-user-facing calls.
+- **One plain line each** — the call, not the reasoning, but still clear to someone
+  planning another card: `A finished card moves to .archive/; a rejected card is deleted.`
+- **A new call replaces the old.** Rewrite the line it contradicts, never leave both. If
+  you can't tell which one the user holds, change nothing and ask with a `[user]` question.

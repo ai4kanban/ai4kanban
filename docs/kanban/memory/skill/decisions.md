@@ -26,3 +26,13 @@ re-ask a settled call.
 - One session drives one card the whole way. It never pauses to ask the user: it answers
   what it's sure of and ends either `ready` or holding only the questions a human must
   answer.
+
+## Storage
+
+- The GitHub Projects backend is wanted but parked — nothing is built until we pick it up.
+- Notion is a later idea; it gets a card when a user asks for it.
+- We require and ship no Obsidian community plugin, so the board shows there as a grouped
+  table, never as drag-and-drop columns.
+- The memory set, `metrics.csv` and `next-id` stay local markdown on every backend — only
+  cards ever move to another backend.
+- One backend per project; the board is never mirrored to a second one.

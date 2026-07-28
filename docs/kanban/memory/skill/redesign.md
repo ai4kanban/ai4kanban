@@ -18,6 +18,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   markdown frontmatter block (`title`, `track`, `priority`, `roi`, `status`, `blocked_by`,
   `related`, `questions`) so programs can parse and write it. Add `questions` for
   decisions a human still owes.
+- ❌ **One feature split into sibling top-level cards** (a shared layer card plus one card
+  per backend, wired together only by `blocked_by` / `related`) → ✅ a group task: a root
+  card that holds the shared plan, the ordering, and the questions that span all the
+  pieces, with each piece as a subtask in its folder. Siblings hide that they are one
+  feature and make the same question get asked on three cards.
 - ❌ **A card's stage lives only in the UI's memory** (lost on restart) → ✅ a `status`
   field in the frontmatter (`todo` / `ready` / `implementing`, default `todo`, a
   missing value reads as `todo`) so the stage is part of the board's record and survives a

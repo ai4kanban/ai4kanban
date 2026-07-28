@@ -2,7 +2,7 @@
 
 Prune every file in the memory set (see "The memory set" in `SKILL.md`) except
 `goal.md` — user-owned, leave it alone. Prune whichever copy you're compressing: the
-umbrella at `docs/kanban/` or a module's at `docs/kanban/memory/<module>/`.
+project-wide one at `docs/kanban/memory/` or a module's at `docs/kanban/memory/<module>/`.
 
 One principle for all files: they exist to stop us re-proposing work, re-making a
 design mistake, or re-asking a settled question. Rewrite each as **topics** — areas of

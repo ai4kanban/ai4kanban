@@ -7,6 +7,8 @@ skill/.version
 # Local UI session registry: live agent sessions + their captured logs (task #12)
 docs/kanban/.sessions.json
 docs/kanban/.sessions/
+# Archived proposals
+docs/kanban/.archive/
 
 keyword-research/
 .env

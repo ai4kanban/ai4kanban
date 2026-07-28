@@ -2,11 +2,11 @@
 // Kanban board bookkeeping. The ONLY sanctioned writer of docs/kanban/next-id.
 //
 // Handles the id-touching moves so the board stays consistent:
-//   init    — scaffold a fresh docs/kanban/ board (folders, the umbrella memory set, config.md)
+//   init    — scaffold a fresh docs/kanban/ board (folders, the project-wide memory set in memory/, config.md)
 //   memory-init — lazily scaffold a module's memory path with the five-file set
 //   create  — allocate task id(s); with --title, also write the card's frontmatter + index it
 //   update  — rewrite a card's frontmatter (priority/roi/links/questions, move track, rename)
-//   tag     — set/clear the [user]/[agent] tag on one open question (auto-refine triage)
+//   tag     — set/clear the [user] tag on one open question (auto-refine triage)
 //   migrate — convert old bold-header cards to the frontmatter meta format
 //   archive — move a finished task's file/folder into docs/kanban/.archive/, strip its
 //             README entry, record "completed"
@@ -17,12 +17,12 @@
 // only. It also keeps docs/kanban/metrics.csv (one row per day: completed, created, rejected).
 //
 // Usage:
-//   node kanban.mjs init [track...]                     scaffold docs/kanban/ (folders, umbrella memory set, config.md)
+//   node kanban.mjs init [track...]                     scaffold docs/kanban/ (folders, memory/, config.md)
 //   node kanban.mjs memory-init <module>                lazily scaffold memory/<module>/ with the five-file set
 //   node kanban.mjs create [--count N]                  allocate N ids (default 1), print them
 //   node kanban.mjs create --title T --track K [opts]   scaffold one card (frontmatter + body template + index)
 //   node kanban.mjs update <id> [opts]                  rewrite a card's frontmatter / move / rename
-//   node kanban.mjs tag <id> <n> <user|agent|none>      set/clear the tag on the nth open question
+//   node kanban.mjs tag <id> <n[,n...]> <user|none>    set/clear the tag on one or more open questions
 //   node kanban.mjs migrate [--dry-run]                 convert old bold-header cards to frontmatter
 //   node kanban.mjs archive <id>                        finish task <id> (move card to .archive/ + README + metric)
 //   node kanban.mjs reject  <id>                        reject task <id> (delete card + README + metric)
@@ -57,6 +57,9 @@ const README = path.join(TODO, 'README.md')
 const METRICS = path.join(KANBAN, 'metrics.csv')
 const MODULES_MD = path.join(KANBAN, 'modules.md')
 const CONFIG = path.join(KANBAN, 'config.md')
+// All memory lives under docs/kanban/memory/: the project-wide set sits in this folder
+// itself, each module's set in a subfolder named after the module.
+const MEMORY = path.join(KANBAN, 'memory')
 
 function die(msg) {
   console.error(`kanban: ${msg}`)
@@ -474,16 +477,15 @@ function parseFrontmatter(text) {
 
 // ---- question tags ---------------------------------------------------------
 //
-// An open question may lead with a tag token — `[user] ...` or `[agent] ...` —
-// saying who owns it: the human (a judgment call it can't decide) or the agent
-// (one auto-refine answers itself). No token means untagged: freshly raised, not
-// yet triaged. The tag lives in the string; parseQuestion splits it off,
-// formatQuestion puts it back. Kept in step with parseQuestion in
-// kanban-ui/lib/questions.ts.
-const QUESTION_TAGS = ['user', 'agent']
+// An open question may lead with a `[user] ...` tag token — a judgment call the
+// human must make. No token means untagged: freshly raised, not yet triaged.
+// There is no tag for an answered question — answering removes it from the list.
+// The tag lives in the string; parseQuestion splits it off, formatQuestion puts
+// it back. Kept in step with parseQuestion in kanban-ui/lib/questions.ts.
+const QUESTION_TAGS = ['user']
 
 function parseQuestion(raw) {
-  const m = String(raw).match(/^\[(user|agent)\]\s+([\s\S]*)$/)
+  const m = String(raw).match(/^\[(user)\]\s+([\s\S]*)$/)
   return m ? { tag: m[1], text: m[2] } : { tag: null, text: String(raw) }
 }
 
@@ -497,9 +499,25 @@ function warnBadQuestionTags(questions) {
   for (const q of questions) {
     const m = String(q).match(/^\[([^\]]+)\]\s/)
     if (m && !QUESTION_TAGS.includes(m[1].toLowerCase())) {
-      warn(`question tag "[${m[1]}]" isn't recognised — use [user] or [agent] (or no tag). Stored as literal text.`)
+      warn(`question tag "[${m[1]}]" isn't recognised — use [user] (or no tag). Stored as literal text.`)
     }
   }
+}
+
+// One or more 1-based question positions (`1` or `1,3`), validated against the
+// card's open-question count.
+function parseQuestionPositions(raw, count, flagName) {
+  const ns = String(raw)
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .map(Number)
+  if (ns.length === 0 || ns.some((n) => !Number.isInteger(n) || n < 1)) {
+    die(`--${flagName} needs one or more 1-based question numbers (e.g. 1 or 1,3)`)
+  }
+  const over = ns.find((n) => n > count)
+  if (over !== undefined) die(`the card has ${count} open question(s) — there's no question ${over}`)
+  return ns
 }
 
 // A todo item in any accepted form: `- [ ]`, `- []`, `- [x]`, `* [X]`, … — the shape
@@ -586,10 +604,11 @@ function repointReadmeLink(id, oldRel, newRel, title) {
 // e.g. `init growth validation building`. Keep in step with the SKILL.md defaults.
 const DEFAULT_TRACKS = ['feature', 'bug', 'research']
 
-// The memory file set — the same five files fill a memory path at either level: the board
-// root (the umbrella memory, covering the whole project) and each module's own path at
-// `memory/<module>/`. Each starter is a short header that tells the next reader what the
-// file is for; the flows fill in the rest over time. Plain language, to match the skill.
+// The memory file set — the same five files fill a memory path at either level:
+// `memory/` itself (the project-wide memory, covering the whole project) and each
+// module's own path at `memory/<module>/`. Each starter is a short header that tells the
+// next reader what the file is for; the flows fill in the rest over time. Plain language,
+// to match the skill.
 const MEMORY_SET = {
   'readme.md': `# Shipped
 
@@ -689,10 +708,12 @@ function cmdInit(args) {
     // move out of the skill folder, modules.md if it predates the module map — and never
     // touches either one once it's filled in.
     const added = [writeConfigIfMissing() && rel(CONFIG), writeModulesIfMissing() && rel(MODULES_MD)].filter(Boolean)
-    // Every module already on the map gets its memory path here, so a board whose map is
-    // filled in is fully repaired by this one command. A map seeded blank a line above
+    // The project-wide memory, then every module already on the map, so a board whose map
+    // is filled in is fully repaired by this one command. A map seeded blank a line above
     // names nothing yet — those paths are made once the map is written.
     const scaffolded = []
+    const project = scaffoldProjectMemory()
+    if (project) scaffolded.push(project)
     for (const m of moduleNames() || []) {
       // A hand-written map can carry a name no folder can take. Warn and skip rather than
       // die: one odd line shouldn't stop the rest of the repair.
@@ -717,9 +738,7 @@ function cmdInit(args) {
   fs.mkdirSync(path.join(TODO, 'blockers'), { recursive: true })
   for (const t of tracks) fs.mkdirSync(path.join(TODO, t), { recursive: true })
   fs.writeFileSync(README, boardReadme(tracks))
-  for (const [name, body] of Object.entries(MEMORY_SET)) {
-    fs.writeFileSync(path.join(KANBAN, name), body)
-  }
+  scaffoldProjectMemory()
   writeConfigIfMissing()
   writeModulesIfMissing()
   writeNextId(1)
@@ -739,7 +758,15 @@ const MODULE_NAME_RE = /^[a-z0-9][a-z0-9-]*$/i
 // module's bolded name in modules.md, passed verbatim as the folder name. Returns what it
 // created so callers can report; `null` means the path was already complete.
 function scaffoldMemoryPath(module) {
-  const dir = path.join(KANBAN, 'memory', module)
+  return scaffoldMemoryDir(path.join(MEMORY, module))
+}
+
+// The same scaffold, one level up: the project-wide set in `memory/` itself.
+function scaffoldProjectMemory() {
+  return scaffoldMemoryDir(MEMORY)
+}
+
+function scaffoldMemoryDir(dir) {
   const existed = fs.existsSync(dir)
   fs.mkdirSync(dir, { recursive: true })
   const made = []
@@ -760,7 +787,7 @@ function cmdMemoryInit(module) {
     die(`bad module name "${module}" — use letters, digits, and dashes (a folder name)`)
   }
   const done = scaffoldMemoryPath(module)
-  if (!done) console.log(`${rel(path.join(KANBAN, 'memory', module))}/ already has the full set — nothing to do`)
+  if (!done) console.log(`${rel(path.join(MEMORY, module))}/ already has the full set — nothing to do`)
   else if (done.fresh) console.log(`created memory path ${rel(done.dir)}/ with the five-file set`)
   else console.log(`filled in missing files in ${rel(done.dir)}/: ${done.made.join(', ')}`)
 }
@@ -829,7 +856,7 @@ function cmdCreate(args) {
   reconcileBoard()
 }
 
-const UPDATE_FLAGS = ['title', 'track', 'priority', 'roi', 'status', 'blocked-by', 'related', 'modules', 'question', 'clear-questions', 'slug']
+const UPDATE_FLAGS = ['title', 'track', 'priority', 'roi', 'status', 'blocked-by', 'related', 'modules', 'question', 'drop-question', 'clear-questions', 'slug']
 
 // Rewrite a card's frontmatter. Also the sanctioned way to move a card between tracks
 // (--track moves the file + fixes the index) or rename it (--slug). Body is untouched.
@@ -880,6 +907,15 @@ function cmdUpdate(args) {
   }
   if (flags['clear-questions']) {
     meta.questions = []
+    changes.push('questions')
+  }
+  if (flags['drop-question'] !== undefined) {
+    if (flags.question !== undefined || flags['clear-questions']) {
+      die('--drop-question cannot combine with --question or --clear-questions — pick one')
+    }
+    const raw = Array.isArray(flags['drop-question']) ? flags['drop-question'].join(',') : flags['drop-question']
+    const ns = parseQuestionPositions(raw, meta.questions.length, 'drop-question')
+    meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
     changes.push('questions')
   }
   if (flags.question !== undefined) {
@@ -941,17 +977,24 @@ function cmdUpdate(args) {
   console.log(`updated #${id}: ${changes.join(', ') || '(nothing changed)'}`)
 }
 
-// Set (or clear) the tag on one open question, so the auto-refine loop can hand a
-// question to the human without rewriting the whole list. `n` is the question's
-// 1-based position; `tag` is user | agent | none (none strips any tag). Reads and
-// rewrites the frontmatter through the same path as `update`, so byte layout and
-// group-root handling stay identical.
+// Set (or clear) the tag on open questions, so the auto-refine loop can hand a
+// batch of questions to the human in one call without rewriting the whole list.
+// `nRaw` is one 1-based position or a comma-separated list (`1,2,3`); `tag` is
+// user | none (none strips any tag). Reads and rewrites the frontmatter
+// through the same path as `update`, so byte layout and group-root handling stay
+// identical.
 function cmdTag(args) {
   const [idRaw, nRaw, tagRaw] = args
   const id = Number(idRaw)
-  if (!Number.isInteger(id)) die('need a numeric task id: tag <id> <n> <user|agent|none>')
-  const n = Number(nRaw)
-  if (!Number.isInteger(n) || n < 1) die('need a 1-based question number: tag <id> <n> <user|agent|none>')
+  if (!Number.isInteger(id)) die('need a numeric task id: tag <id> <n[,n...]> <user|none>')
+  const ns = String(nRaw || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .map(Number)
+  if (ns.length === 0 || ns.some((n) => !Number.isInteger(n) || n < 1)) {
+    die('need one or more 1-based question numbers: tag <id> <n[,n...]> <user|none>')
+  }
   const tag = String(tagRaw || '').toLowerCase()
   if (tag !== 'none' && !QUESTION_TAGS.includes(tag)) {
     die(`tag must be one of ${QUESTION_TAGS.join(' | ')} | none (got "${tagRaw}")`)
@@ -961,13 +1004,17 @@ function cmdTag(args) {
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
   if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
-  if (n > meta.questions.length) {
-    die(`#${id} has ${meta.questions.length} open question(s) — there's no question ${n} to tag.`)
+  const over = ns.find((n) => n > meta.questions.length)
+  if (over !== undefined) {
+    die(`#${id} has ${meta.questions.length} open question(s) — there's no question ${over} to tag.`)
   }
-  const { text } = parseQuestion(meta.questions[n - 1])
-  meta.questions[n - 1] = formatQuestion(tag === 'none' ? null : tag, text)
+  for (const n of ns) {
+    const { text } = parseQuestion(meta.questions[n - 1])
+    meta.questions[n - 1] = formatQuestion(tag === 'none' ? null : tag, text)
+  }
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
-  console.log(`tagged #${id} question ${n} as ${tag === 'none' ? '(untagged)' : `[${tag}]`}: ${text}`)
+  const label = tag === 'none' ? '(untagged)' : `[${tag}]`
+  console.log(`tagged #${id} question${ns.length > 1 ? 's' : ''} ${ns.join(', ')} as ${label}`)
 }
 
 // ---- migrate old cards to frontmatter --------------------------------------
@@ -1279,7 +1326,7 @@ const HELP = `kanban — the only sanctioned writer of docs/kanban/next-id.
 
 Usage: node ${rel(SELF)} <command> [args]
 
-  init [track...]      scaffold docs/kanban/ (folders, the umbrella memory set, and a blank
+  init [track...]      scaffold docs/kanban/ (folders, the project-wide memory set in memory/, and a blank
                        config.md); tracks default to feature bug research. On an existing
                        board it only adds config.md if it's missing (safe to re-run).
   memory-init <module> lazily scaffold docs/kanban/memory/<module>/ with the five-file set
@@ -1294,13 +1341,17 @@ Usage: node ${rel(SELF)} <command> [args]
                        --slug my-slug, --no-body.
                        The script owns the frontmatter — fill only the body by hand.
   update <id> [opts]   rewrite a card's frontmatter (same opts as create, plus
-                       --status todo|ready|implementing and --clear-questions).
-                       --track moves the card + fixes the index; --slug renames it.
-                       Body is left untouched. A question may carry a leading
-                       [user]/[agent] tag saying who owns it.
-  tag <id> <n> <t>     set the tag on the nth open question (1-based): user | agent
-                       | none (none strips it). Used by the auto-refine loop to
-                       hand a question to the human without rewriting the list.
+                       --status todo|ready|implementing, --drop-question n[,n...]
+                       to remove answered questions by 1-based position, and
+                       --clear-questions to remove them all; --question replaces
+                       the whole list). --track moves the card + fixes the index;
+                       --slug renames it. Body is left untouched. A question may
+                       carry a leading [user] tag marking it as the human's
+                       judgment call.
+  tag <id> <n[,n...]> <t>  set the tag on one or more open questions (1-based, e.g.
+                       1 or 1,2,3): user | none (none strips it). Used by the
+                       auto-refine loop to hand questions to the human without
+                       rewriting the list.
   migrate [--dry-run]  convert old bold-header cards to frontmatter; missing meta falls
                        back to empty / med. Skips cards that already have frontmatter.
   archive <id>         finish task <id>: move its file/folder into docs/kanban/.archive/,

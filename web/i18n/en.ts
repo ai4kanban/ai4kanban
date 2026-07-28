@@ -2,8 +2,10 @@
 //
 // The other four languages mirror this file key for key. When you change a
 // sentence here, the translations don't break the build (they're still valid
-// strings), so re-run the translation pass for the keys you touched. Adding or
-// removing a key *does* break the build in every language, which is the point.
+// strings), so commit the change and run `/translate-sync` — it diffs this file
+// from the commit in `synced-commit.txt` and re-expresses whatever moved.
+// Adding or removing a key *does* break the build in every language, which is
+// the point.
 //
 // Inline markup follows `components/Rich.tsx`: `code`, **bold**, *italic*, \n.
 import type { SiteCopy } from "./types";

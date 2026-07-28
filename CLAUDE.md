@@ -6,6 +6,12 @@ A skill doesn't care who calls it. Files under `skill/` never mention the local-
 dispatcher, `ui.config.json`, or `claude -p` — how a skill gets invoked is the caller's
 concern, documented on the caller's side.
 
+## The public site
+
+`web/design.md` describes how the site in `web/` looks and is put together — the color
+tokens, the panel, where the styling goes, the routes, and where the copy lives. Read it
+before changing a page.
+
 ## Pre-commit Checks
 - **Python**: `uv run pre-commit run --all-files`
 - **JavaScript/Typescript**: `cd web && pnpm typecheck && pnpm run lint`

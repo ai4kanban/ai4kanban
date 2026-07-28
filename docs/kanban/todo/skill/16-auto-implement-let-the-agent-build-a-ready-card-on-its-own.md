@@ -98,15 +98,15 @@ that are not startable yet (see "Not in this card").
   leave the card on the board.
 - **What would start an auto-reject** — Nothing today. Every reject is the human's: the
   Reject button is always shown (`visibleActions` in `CardPage.tsx`) and the prompt in
-  `kanban-ui/lib/agent.ts` only carries the reason the user typed. The auto-refine loop can't
-  reach one either — `refine.md` step 1 ends in open questions or revisions, and goal-fit drift
-  is trimmed or split off, never rejected. The only flow that ends in "reject it" is
-  `references/task-review.md` (no business value, or already covered by shipped code or another
-  card), and nothing runs it automatically — there is no Review action in the UI. So this switch
-  needs that check wired into the auto-refine pass, and only its evidence half: "already shipped
-  or a duplicate" can be settled by searching, while the value-and-direction half stays human —
-  `task-review.md` says ask when you can't decide, `add-task.md` says never drop a task without
-  asking, and `reject` deletes the card file for good (`cmdRemove` in `kanban.mjs`).
+  `kanban-ui/lib/agent.ts` only carries the reason the user typed. The auto-refine loop doesn't
+  reach one either — it runs `refine.md` and stops at rewriting or raising questions, and
+  goal-fit drift is trimmed or split off, never rejected. The one flow that ends in "reject it"
+  is refine's Value check (no user is better off, already shipped, or another card owns it),
+  and nothing runs it unattended. So this switch needs that check wired into the auto-refine
+  pass, and only its evidence half: "already shipped or a duplicate" can be settled by
+  searching, while the value-and-direction half stays human — refine says raise a question when
+  you can't decide, `add-task.md` says never drop a task without asking, and `reject` deletes
+  the card file for good (`cmdRemove` in `kanban.mjs`).
 - **Which of the three toggles do we build?** — Only auto-implement, and this card shrinks
   to that. It needs no new machinery: the `implement` action and prompt already exist
   (`kanban-ui/lib/agent.ts`) and the dispatcher already picks a card and starts a run with

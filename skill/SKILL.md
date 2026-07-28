@@ -21,12 +21,30 @@ once, then continue — the skill folder now ships only a blank template.
 
 ## Writing style
 
-Write every card in simple, clear, short language — say what to do and why it matters.
+Write every card in plain, clear, short language — say what to do and why it matters.
 No jargon, no business-speak, no clever phrasing. A non-native reader skimming should
 get it in one pass.
 
 - Bad: "Price it as a monthly retainer for an outcome stream."
 - Good: "Charge $300/month. The user gets a brief each week and a report each month."
+
+## Card format
+
+A card is written for whoever implements the task, not whoever plans it. It says what
+problem the task solves and how — never how the board planned it: no notes on what a
+refine changed, no meta-todos like `- [x] explore codebase and create the task #14`.
+We should maintain a minimal task spec to build it.
+
+The `## Todo` list is the build plan, one step of real work per box. Ticked boxes
+record what was built — never edit, delete, or untick them; to undo earlier work,
+append a reverting todo. A planning/meta line was never build work — delete it on
+sight, ticked or not.
+
+`## Decided by the agent`: A call the agent made on its own goes here.
+The plan — the summary line, `## Scope`, `## Todo` — is the human's input;
+this section is what agent complements, so anyone can see what it decided and overrule it.
+One short line each: the question, then the answer.
+What the **user** decided isn't an agent call — that goes to `decisions.md` (see "The memory set").
 
 ## Layout
 
@@ -37,9 +55,10 @@ docs/kanban/
 │   ├── blockers/   hard blockers; they gate the next milestone — clear them first
 │   ├── <track>/    one folder per track (see Configuration), one card per file
 │   └── recurring/  jobs on a cadence (see "Recurring task") — never archived
-├── readme.md, goal.md, decisions.md, rejected.md, redesign.md
-│                   the five-file memory set, umbrella copy — see "The memory set"
-├── memory/<module>/  a module's own copy of the set — see "The memory set"
+├── memory/         all memory — see "The memory set"
+│   ├── readme.md, goal.md, decisions.md, rejected.md, redesign.md
+│   │               the five-file set for the project as a whole
+│   └── <module>/   a module's own copy of the set
 ├── modules.md      one line per module — install writes it, propose reads it (see "The
 │                   module map")
 ├── config.md       your project's settings (see Configuration) — seeded by init, yours to fill
@@ -47,20 +66,15 @@ docs/kanban/
 └── metrics.csv     one row per day: completed, created, rejected — script-kept; never touch
 ```
 
-Before proposing, read the published docs (your reference docs), `readme.md`, and
-`rejected.md` so you don't re-suggest shipped or rejected work — `readme.md` indexes what
-shipped and the published docs carry the detail; there is no separate archive. Before writing
-or reviewing a card, read `redesign.md` so a new card doesn't repeat a wrong plan.
-
 ## The script
 
 `kanban.mjs`, in this skill's folder, is the **only** sanctioned way to scaffold the board,
 create, update, migrate, archive, or reject a task. It allocates ids, writes a card's
 **frontmatter**, moves/removes task files, keeps the README index, and records the daily
-metric. Point `KB` at it using this skill's base folder — the path the harness gives you
-when the skill loads (a copied install is `.claude/skills/kanban/`; a plugin install is the
-plugin's read-only cache), e.g. `KB="node .claude/skills/kanban/kanban.mjs"`. Set it once
-and run every command from the repo root as `${KB} <command>`:
+metric.
+
+Point `KB="node .claude/skills/kanban/kanban.mjs"`. Set it once and run every command from
+the repo root as `${KB} <command>`:
 
 ```
 ${KB} init [track...]               # scaffold docs/kanban/ (tracks default to feature bug research)
@@ -70,7 +84,8 @@ ${KB} create --title ".." --track <track> [--priority high|med|low] [--roi high|
              [--blocked-by 1,2] [--related 3] [--modules skill,site] [--question ".."] [--slug ..]
                                     # scaffold ONE card: frontmatter + body template + README entry; then fill only the body
 ${KB} update <id> [--priority ..] [--roi ..] [--track ..] [--slug ..] \
-             [--blocked-by ..] [--related ..] [--modules ..] [--question ..] [--clear-questions]
+             [--blocked-by ..] [--related ..] [--modules ..] [--question ..] \
+             [--drop-question 1,3] [--clear-questions]
                                     # rewrite a card's frontmatter; --track moves it, --slug renames
 ${KB} archive <id>                  # finish task <id>
 ${KB} reject  <id>                  # reject task <id>
@@ -79,18 +94,13 @@ ${KB} peek                          # current next-id, no bump
 ${KB} help                          # full usage
 ```
 
-The script validates every value — unknown track, bad priority/roi, invented `#id`, or a
-mistyped flag are hard errors, so a hallucinated field can't slip into a card.
-
 **Never hand-write a card's frontmatter.** Use `create`/`update` for the meta
 (title, track, priority, roi, blocked_by, related, modules, questions); use Write/Edit only
-for the card **body** (summary, scope, todos).
+for the card **body**.
 
-A track says *what kind of effort* a task is; `modules` says *what part of the product* it
-touches. Tag a card with `--modules` (comma-separated names from `docs/kanban/modules.md`);
-optional — a task can touch two modules or none. An unknown name is a hard error listing
-the known names — add a line to `modules.md` first, so a new part of the project gets on
-the map the moment someone works on it.
+Tag a card with `--modules` (see `docs/kanban/modules.md`);
+optional — a task can touch two modules or none. Add a new line to modules.md according to `module-map.md`
+if you find no match.
 
 ## Task id
 
@@ -99,16 +109,12 @@ id 4). Ids are global and never reused; only the script's `create` allocates the
 
 ## Propose new tasks
 
-When the user asks to propose work, pick **one focus area** and propose **3 new tasks
+When the user asks to propose work, pick **one module** and propose **3 new tasks
 inside it** — work nobody has planned yet. Full guide in `references/propose.md`.
 
 ## Add a task
 
 Add a task from an idea. Full guide in `references/add-task.md`.
-
-## Review a task
-
-Follow `references/task-review.md`.
 
 ## Refine
 
@@ -123,11 +129,12 @@ Full guide in `references/resolve.md`.
 
 ## Auto-refine
 
-Loop refining a task until all questions answerable by agent itself are resolved. Full guide in `references/auto-refine.md`.
+Loop refining and clarifying a task until all questions answerable by agent itself are resolved.
+Full guide in `references/auto-refine.md`.
 
 ## Group task
 
-Most tasks are one file. A **group task** is a broad task whose split yields subtasks that
+A **group task** is a broad task whose split yields subtasks that
 *themselves* need splitting — a dividable of a dividable. It lives in its own folder:
 
 ```
@@ -144,37 +151,31 @@ The root and each subtask take their own ids — allocate them together with
 
 One-shot tasks only — a recurring card is never finished this way. (See "## Recurring task").
 
-Record what shipped as one line in `readme.md` — the copy of the module the card names,
-else the board-root copy (see "The memory set"):
+Record user-facing behavior as one line in `readme.md` (see "The memory set").
+Internal-only changes get no line. Write lines like these:
 
-1. **Only user-facing behavior.** If the change is internal-only (nothing a user can see
-   or do), record nothing — don't keep an internal note.
-2. **A published doc covers it → the line is a link to that doc's path.** The doc carries
-   the detail (if the card has todos about "Document a change" — make sure they're done);
-   `readme.md` just points at it. Don't restate what the doc says.
-3. **No published doc yet → a short line in plain words** — what the user can now do, no
-   task ids, file names, or other code detail. Replace it with a link once a doc covers
-   the behavior.
+- ✅ (docs/kanban/memory/skill/readme.md) Updating an installed skill: `skill/references/update.md`.
+  Tip: Points at a published doc if available. Don't restate what the doc says.
+- ✅ (docs/kanban/memory/site/readme.md) The landing page reads in Chinese, Spanish, Japanese, and French at `/zh`, `/es`, `/ja`, `/fr`.
+  Tip: No doc yet, so it says in plain words what the user can now do
+- ❌ (docs/kanban/memory/site/readme.md) The landing site is live on Cloudflare Pages.
+  Tip: Nothing the user can see or do.
 
-Then run `${KB} archive <id>` — it removes the card file (or the whole folder for a group
-root), strips its README entry, and records the completion.
+Then run `${KB} archive <id>` to record the completion.
 
 ## Reject an idea
 
 Rejecting is rare. When you (or the user) turn down an idea, add a short line to
-`rejected.md` — the copy of the module the idea's card names, else the board-root copy
-(see "The memory set") — under the topic that fits; start a new topic heading if none
+`rejected.md` (see "The memory set") — under the topic that fits; start a new topic heading if none
 fits. Format: `- **<idea name>** — <why we said no, one line>.`
 
-If the idea already had a card, run `${KB} reject <id>` — it removes the card file (or
-folder), strips its README entry, and records the rejection.
+Then run `${KB} reject <id>` to remove the card.
 
 ## Record a redesign
 
 When the user corrects a card that missed a requirement or got the design wrong, add a
-short entry to `redesign.md` — the copy of the module the card names, else the board-root
-copy (see "The memory set") — under the topic that fits; start a new topic heading if
-none fits. This is a guide for the next card, not a record of the fix — say what to do
+short entry to `redesign.md` (see "The memory set") — under the topic that fits; start a new topic heading if
+none fits. This is a reference for the next task, not a record of the fix — say what to do
 right, not what went wrong. Format:
 `- ❌ **<mistake>** → ✅ <what the design should be instead, one line>.`
 
@@ -184,35 +185,12 @@ A track is the bucket a task lives in — one folder per track under `todo/`. Yo
 
 ## Recurring task
 
-A **recurring task** is a job we repeat on a cadence (e.g. a weekly report), not a
-one-shot. Its card lives in `todo/recurring/`, sets `track: recurring`, and carries two
-extra sections:
-
-- `## Process` — the distilled, in-order steps of one run. Tag each step by how it runs
-  today: `[script]` a command, `[agent]` an instruction the agent follows, `[ask]` a step
-  that still needs the user. The point is to move steps up the ladder over time
-  (`[ask]` → `[agent]` → `[script]`) until a run needs no human.
-- `## Runs` — points to the per-run open-questions files (below).
-
-**Finishing a run** (not the whole task):
-
-1. Run the job by following `## Process`.
-2. Record it: `${KB} run <id>` — adds +1 to `completed` and **keeps the card** (no
-   archive, no README change). It refuses if the card isn't under `todo/recurring/`.
-3. **Self-improve.** Rewrite `## Process` from what happened so the next run needs less
-   human effort: turn a manual step into an `[agent]` instruction, or an `[agent]` step
-   into a `[script]` step with a real command.
-4. **Log what still needed a human.** For any step the agent couldn't do alone, ask the
-   user and save the answers in `todo/recurring/<id>-<slug>/runs/<YYYY-MM-DD>-open-questions.md`.
-   Before the next run, fold answered questions back into `## Process` and delete them; a
-   run file that empties out means that step is now automatic.
-
-Full guide in `references/recurring-task.md`.
+A recurring task is a job we repeat on a cadence (e.g. a weekly report), not a
+one-shot. Full guide in `references/recurring-task.md`.
 
 ## Run the board locally
 
-Optional: a small local UI to drive the board from buttons instead of the terminal. Run
-it from your repo root with `npx ai4kanban-ui` (localhost only). Full guide in
+A small local UI server to drive the board from buttons instead of the terminal. Full guide in
 `references/local-ui.md`.
 
 ## Updating the skill and local UI
@@ -222,9 +200,7 @@ Pulling a newer version into an installed project: `references/update.md`.
 ## The module map
 
 `docs/kanban/modules.md` lists what parts the project is made of — one line per module.
-Install writes it, and the propose flow reads it to pick a focus area. It stays true by
-one rule: whoever reads it and sees a line disagree with the repo fixes that line in the
-same run. To write or rebuild it, follow `references/module-map.md`.
+To write or rebuild it, follow `references/module-map.md`.
 
 ## The memory set
 
@@ -240,17 +216,18 @@ The project's memory is a **fixed set of five files**:
 - **`redesign.md`** — design mistakes to avoid.
 - **`rejected.md`** — ideas we turned down, and why.
 
-The set exists at two levels: `docs/kanban/memory/<module>/` for one module, the board
-root for the umbrella project. **Pick one copy by the card's `modules:` field and use only
-that one** — the named module's (both, if it names two), else the root's. Never write a
-note to both: the root is the whole project's memory, not a mirror of the modules. A
-module's folder is scaffolded by `${KB} memory-init <module>` (idempotent) as soon as the
-module is known — `init` does it for every module already on the map, the update flow does
-it for the rest, and any flow about to write a note runs it first.
+The set exists at two levels, both under `docs/kanban/memory/`:
+`docs/kanban/memory/<module>/` for one module, `docs/kanban/memory/` itself for the
+project as a whole. **Pick one copy by the card's `modules:` field and use only that
+one** — the named module's (both, if it names two), else the project-wide one. Never write
+a note to both: the project-wide copy is the whole project's memory, not a mirror of the
+modules. A module's folder is scaffolded by `${KB} memory-init <module>` (idempotent) as
+soon as the module is known — `init` does it for every module already on the map, the
+update flow does it for the rest, and any flow about to write a note runs it first.
 
 ## Auto-pruning
 
-To compress the memory set — at the board root and in each module copy — down to
+To compress the memory set — the project-wide copy and each module copy — down to
 planning-useful summaries, follow `references/prune-memory.md`.
 
 ## Document a change

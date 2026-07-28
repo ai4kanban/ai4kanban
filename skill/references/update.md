@@ -69,8 +69,12 @@ Otherwise leave the config untouched.
 3. Re-run `${KB} init` to create a memory path for every module on the map. (For one
    module added later: `${KB} memory-init <module>`.)
 
-Leave the root notes and the cards alone — don't move notes into the module paths, and
-don't hand-add `modules:` lines to cards.
+4. If the five memory files still sit at the board root (`docs/kanban/readme.md`,
+   `goal.md`, `decisions.md`, `redesign.md`, `rejected.md` — an older layout), move them
+   into `docs/kanban/memory/`, overwriting the blank set `init` just seeded there.
+
+Leave the project-wide notes and the cards alone — don't move notes into the module paths,
+and don't hand-add `modules:` lines to cards.
 
 ## Verify
 

@@ -1,32 +1,26 @@
 # Configuration
 
-This file adapts ai4kanban to your project. `kanban init` seeds it here at
-`docs/kanban/config.md`; the install step fills in the `{{PLACEHOLDERS}}` below from your
-repo. Until they're filled, the default in each note applies.
-
-`SKILL.md` reads these values — when it says "your tracks", "your planning sources", or
-"your reference docs", it means what's set here.
-
-**This file lives with your board, at `docs/kanban/config.md`, and carries your project's
-settings — it's yours.** The skill folder (`SKILL.md`, `kanban.mjs`, `references/`) is
-generic and owned by upstream, so an update overwrites it wholesale; this file is never
-touched. See "Updating the skill" in `SKILL.md`.
-
-- **Project** — {{PROJECT_NAME}}: {{PROJECT_GOAL}}
-  _(default: this repository; its goal is whatever the README states.)_
+- **Project** — AI4Kanban: AI project management that grows with you. You give it a vague
+  idea; it breaks the idea down, settles what it can from memory, asks you the rest, and
+  keeps going until the spec is clear enough to build. The board is plain markdown in git.
 - **Tracks** — the buckets a task can live in, with a rough share of effort:
-  {{TRACKS}}
-  _(default: `feature` 60%, `bug` 25%, `research` 15%. A track is just a folder
-  under `docs/kanban/todo/`.)_
+  - `features` 40% — new board behavior a user can see, in the skill or the local UI.
+  - `skill` 30% — the skill itself: `SKILL.md`, `kanban.mjs`, the references, the flows.
+  - `docs` 15% — the user guides in `docs/guides/` and the two READMEs.
+  - `distribution` 15% — the landing site, launch posts, and anything else that puts the
+    project in front of people.
 - **Planning sources** — what to read when proposing new work:
-  {{PLANNING_SOURCES}}
-  _(default: the codebase, `docs/`, and the board itself.)_
+  - the code: `skill/`, `kanban-ui/`, `web/`.
+  - the board itself: `docs/kanban/todo/` and the memory in `docs/kanban/memory/`.
+  - `README.md` for what we promise today, `docs/guides/` for what we teach.
 - **Reference docs** — optional files the skill reads when they exist. Leave blank
   if you don't have them:
-  - roadmap / direction: {{ROADMAP_DOC}}
-  - user-facing docs the work should keep in sync: {{DOCS_DIR}}
-  - anything else worth scanning each loop: {{EXTRA_SOURCES}}
+  - roadmap / direction: `docs/kanban/memory/goal.md`, plus the Roadmap section of `README.md`
+  - user-facing docs the work should keep in sync: `docs/guides/`, `README.md`,
+    `README-zh.md`, and the site copy in `web/`
+  - anything else worth scanning each loop: `CLAUDE.md` (repo conventions), `web/design.md`
+    (how the site is put together), `PUBLISHING.md` (how a release ships)
 - **Preset** — an optional bundle of extra tracks and reviews for a specific kind of
-  project: {{PRESET}}
-  _(default: none. `references/presets/indie-hacker.md` adds growth / validation /
-  building tracks, market-validation, and a moat test for a solo product launch.)_
+  project: none.
+  _(`references/presets/indie-hacker.md` adds growth / validation / building tracks,
+  market-validation, and a moat test for a solo product launch.)_
