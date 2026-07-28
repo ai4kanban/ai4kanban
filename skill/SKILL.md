@@ -56,9 +56,11 @@ docs/kanban/
 │   ├── <track>/    one folder per track (see Configuration), one card per file
 │   └── recurring/  jobs on a cadence (see "Recurring task") — never archived
 ├── memory/         all memory — see "The memory set"
-│   ├── readme.md, goal.md, decisions.md, rejected.md, redesign.md
-│   │               the five-file set for the project as a whole
-│   └── <module>/   a module's own copy of the set
+│   ├── readme.md, decisions.md, rejected.md, redesign.md
+│   │               the four-file set for the project as a whole
+│   ├── goal.md     the long-term goal, horizon, and roadmap — this one file only,
+│   │               never in a module folder
+│   └── <module>/   a module's own copy of the four-file set
 ├── modules.md      one line per module — install writes it, propose reads it (see "The
 │                   module map")
 ├── config.md       your project's settings (see Configuration) — seeded by init, yours to fill
@@ -204,12 +206,10 @@ To write or rebuild it, follow `references/module-map.md`.
 
 ## The memory set
 
-The project's memory is a **fixed set of five files**:
+The project's memory is a **fixed set of four files**:
 
 - **`readme.md`** — shipped user-facing work, one line each: a link to the published doc
   that covers it, or a short plain-words note until one does (see "Finish a task").
-- **`goal.md`** — the direction, in the user's words. The user owns it; the agent seeds a
-  template but never invents the goal.
 - **`decisions.md`** — settled answers to cards' open questions, one line each. Only
   **user-facing calls that help future planning**; code detail (which file, function,
   flag) stays on the card.
@@ -224,6 +224,11 @@ a note to both: the project-wide copy is the whole project's memory, not a mirro
 modules. A module's folder is scaffolded by `${KB} memory-init <module>` (idempotent) as
 soon as the module is known — `init` does it for every module already on the map, the
 update flow does it for the rest, and any flow about to write a note runs it first.
+
+**`goal.md` sits outside the set, at the board root only** — the long-term goal, horizon,
+and roadmap in the user's words; the agent never writes the goal, except a frontmatter line
+`reviewed: strong | good | weak`.
+This field says whether the goal is clear enough to plan from — `weak` only when apparent (missing, still the template, too vague to judge a proposal against).
 
 ## Auto-pruning
 

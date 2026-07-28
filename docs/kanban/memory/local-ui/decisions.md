@@ -18,6 +18,8 @@ re-ask a settled call.
   nothing refines.
 - The dispatcher refines one card at a time, highest priority first, and only while the
   switch is on.
+- The background timer runs from server start. Refining does not wait for a browser tab to
+  open the board.
 - It answers a card's open questions itself, except the ones tagged `[user]`. It skips a
   card whose questions are all `[user]` — that one waits for the human.
 - The switch shows a read-only status under it in the Configuration dialog: what it is
@@ -73,6 +75,18 @@ re-ask a settled call.
 - A group run locks the root and every subtask. One log, shown on the root and on each
   subtask it covers — there is no separate log per subtask. Per-subtask progress is the
   root's subtask list ticking over while the run goes.
+
+## The goal bar
+
+- `goal.md` means the whole direction — the horizon and roadmap included, not just a
+  short-term goal. There is no separate roadmap file; the bar asks for all of it in that
+  one file.
+- The bar can be dismissed; it is a nudge, not a gate.
+
+## The progress view
+
+- Daily progress opens from an icon button in the header, not a strip on the board. It
+  shows a line chart like the site's throughput chart, not numbers alone.
 
 ## Where the UI is documented
 

@@ -1,3 +1,7 @@
+---
+reviewed: strong
+---
+
 # Goal
 
 AI project management that grows with you.

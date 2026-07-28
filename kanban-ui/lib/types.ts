@@ -85,6 +85,10 @@ export interface Board {
   archive: ArchiveGroup[];
   /** Ids of every open card — used to linkify only #<id>s that still exist. */
   openIds: number[];
+  /** True when `memory/goal.md`'s `reviewed:` field says the goal isn't clear
+   *  enough to plan from (a missing file or field reads weak too). Drives the
+   *  goal bar above the board; the board itself works either way. */
+  goalWeak: boolean;
 }
 
 export type AgentAction =

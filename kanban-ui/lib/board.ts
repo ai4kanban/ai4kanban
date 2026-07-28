@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseFrontmatter } from "./frontmatter";
+import { goalReviewed } from "./goal";
 import { archivePath, readmePath, todoDir } from "./paths";
 import type { ArchiveGroup, Board, Card, Column, Subtask } from "./types";
 
@@ -270,5 +271,5 @@ export function readBoard(): Board {
   }));
   // Linkify every open id, subtasks included — not just the cards the columns show.
   const openIds = Array.from(new Set(every.map((card) => card.id)));
-  return { columns, archive: readArchive(), openIds };
+  return { columns, archive: readArchive(), openIds, goalWeak: goalReviewed() === "weak" };
 }

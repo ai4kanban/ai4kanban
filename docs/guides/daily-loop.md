@@ -14,6 +14,12 @@ Ask **"what's next?"**. The skill:
 
 You approve, tweak, or drop each. Approved ones become cards.
 
+Every proposal is judged against `memory/goal.md` — the direction in your own words. The
+skill marks how clear it is in the file's frontmatter (`reviewed: strong | weak`).
+`weak` means the goal is missing or too vague to plan from. The board keeps working
+either way, but proposals are guesses until you write the goal — the skill never writes
+it for you.
+
 ## Add a task
 
 Say **"add a task: <idea>"**. Before writing, the skill reviews the idea (business value,

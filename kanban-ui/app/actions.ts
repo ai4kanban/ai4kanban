@@ -9,6 +9,7 @@ import { readBoard } from "@/lib/board";
 import { setAutoRefine } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
 import { patchCard, type CardPatch } from "@/lib/edit";
+import { readGoalText, writeGoalText } from "@/lib/goal";
 import { readModules } from "@/lib/modules";
 import { getSession, listSessions, startSession, type StartResult } from "@/lib/registry";
 import type { Board, SessionView } from "@/lib/types";
@@ -59,6 +60,20 @@ export async function listSessionsAction(): Promise<SessionView[]> {
 export async function getSessionAction(sessionId: string): Promise<SessionView | null> {
   if (typeof sessionId !== "string" || !sessionId) return null;
   return getSession(sessionId);
+}
+
+// The goal editor behind the goal bar (#53). Reading returns the user's words
+// (template body when goal.md doesn't exist yet); saving writes them back with
+// the frontmatter — the agent's `reviewed:` field — untouched.
+export async function getGoalAction(): Promise<string> {
+  return readGoalText();
+}
+
+export async function saveGoalAction(text: string): Promise<{ ok: boolean; error?: string }> {
+  if (typeof text !== "string" || !text.trim()) {
+    return { ok: false, error: "the goal must not be empty" };
+  }
+  return writeGoalText(text);
 }
 
 export async function patchCardAction(

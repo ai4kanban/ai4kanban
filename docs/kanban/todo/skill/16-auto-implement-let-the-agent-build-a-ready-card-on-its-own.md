@@ -5,7 +5,7 @@ priority: low
 roi: med
 status: todo
 blocked_by: []
-related: [45]
+related: [45, 67]
 modules: [local-ui]
 questions:
   - "[user] An auto-implement loop runs card after card unattended. What stops it — a spend cap per run, a limit on how many cards it may do in a row, or nothing?"
@@ -31,7 +31,8 @@ that are not startable yet (see "Not in this card").
 - A card is eligible when its status is `ready`, it has no open questions, and its todos
   are not all ticked.
 - A card whose last auto-implement run failed, or ended with its todos unchanged, is not
-  picked again. Without this rule the dispatcher retries the same broken card forever.
+  picked again. The failure rule itself is card #67's — this card reuses it, adding only
+  the todos-unchanged check.
 - The run leaves its code uncommitted in the working tree. It does not commit, branch, or
   open a pull request. You read `git diff` and commit, like after any run today.
 - The run does not archive the card. You still review the work and click Archive.

@@ -29,6 +29,18 @@ The header carries three things:
   can be continued with a follow-up prompt; that starts a new run.
 - **Configuration** (the gear) — see below.
 
+### The goal bar
+
+When the agent has judged `memory/goal.md` weak (`reviewed: weak` in its frontmatter — a
+missing file counts too), a bar shows between the header and the columns asking you to
+write the goal. Every proposal the agent makes is judged against that file, so a rough
+answer beats a blank one. **Write the goal** opens a plain text editor on `goal.md` —
+your own words, the agent never drafts it for you; the file holds the whole direction,
+horizon and roadmap included. Saving writes the file and leaves the `reviewed:` field to
+the agent — it re-judges on its next propose or refine pass, and the bar disappears once
+the value turns strong. The ✕ hides the bar for the browser session. The board works the
+same either way; the bar is a nudge, not a gate.
+
 ## A card's buttons
 
 Every button opens one small dialog. You can type a note that goes to the agent, then
@@ -89,6 +101,13 @@ agent command is the `command` key, which you edit in that file:
 
 The default is `claude -p` (a Claude Code subscription). Point `command` at another agent to
 swap it.
+
+When the agent is `claude`, the server runs it with `CLAUDE_CODE_MAX_RETRIES=0`. Claude Code
+normally retries a rate limit with a long backoff, which would leave a run stuck for the best
+part of an hour while the card stays locked. With retries off, a rate limit ends the run right
+away and the board shows it failed. Note this is not a spend control: whether hitting your
+plan's limit spills into paid extra usage is an account setting on claude.ai, not something
+the CLI can turn off.
 
 ## Run it from source
 

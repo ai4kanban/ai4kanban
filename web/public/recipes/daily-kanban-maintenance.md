@@ -34,8 +34,8 @@ Run these in order. Tags: `[script]` · `[ask]`.
 
 2. **Propose new tasks.** Follow the skill's "Propose the next things to do". From the
    changed sources, find user-standpoint gaps not already on the board, in `archive.md`,
-   or in `rejected.md`. Review each candidate against `references/task-review.md` and
-   `redesign.md`; add only those that pass — allocate ids with `kanban.mjs create`, write
+   or in `rejected.md`. Review each candidate against the checks in `references/refine.md`
+   and `redesign.md`; add only those that pass — allocate ids with `kanban.mjs create`, write
    via a subagent given `references/add-task.md`, then re-review. Up to 3, fewer is fine.
    Don't pad the board with weak tasks.
 
@@ -49,8 +49,8 @@ Run these in order. Tags: `[script]` · `[ask]`.
 
 5. **Refine the 6 high tasks — one subagent per card, in parallel.** Skip a card whose
    frontmatter `questions` list isn't empty — it's waiting on your answers, not a refine.
-   Each subagent reads `references/refine.md`, `references/task-review.md`, and
-   `redesign.md`; reviews its card against task-review; then moves it one step forward
+   Each subagent reads `references/refine.md` and `redesign.md`; runs the card through
+   refine's checks; then moves it one step forward
    (vague→concrete, stop at the code level) and writes the advance back into its own card.
    Subagents edit ONLY their own card file — no `kanban.mjs`, and no touching `README.md`,
    `memory.md`, `next-id`, or `metrics.csv` (those race under parallelism). They report

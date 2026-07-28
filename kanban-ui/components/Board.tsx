@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FiHelpCircle } from "react-icons/fi";
 import { getBoard } from "@/app/actions";
 import type { AgentInfo, Board } from "@/lib/types";
+import { GoalBar } from "./GoalBar";
 import { Header } from "./Header";
 import { RUNNING_VERB, RunningBadge, SessionLogOverlay } from "./agent-shared";
 import { GroupChip, PriorityChip, RoiTag, StatusPill, TodoProgress } from "./chips";
@@ -71,6 +72,11 @@ export function BoardView({
           {error}
         </div>
       )}
+
+      {/* The goal nudge (#53), keyed to the agent's judgment of goal.md. It
+          drops out with the next board refresh once the value turns strong —
+          the same refresh that already runs on session finish and tab focus. */}
+      {board?.goalWeak && <GoalBar onSaved={refresh} />}
 
       {!board && !error && (
         <div className="p-10 text-nb-ink-soft">Reading the board…</div>

@@ -16,8 +16,8 @@ each to its own subagent.
   - **No meta**: free of planning notes and meta-todos ("Card format" in `SKILL.md`)?
   - **A build plan**: is it split into `## Todo` boxes, one step of real work each?
 - **Value — should this task exist at all?**
-  - **Direction**: does it move the project toward `goal.md` — the copy of the module the
-    card's `modules:` names, else the project-wide one? Work off the direction isn't ours yet.
+  - **Direction**: does it move the project toward the long-term goal and roadmap in
+    `docs/kanban/memory/goal.md`? Suggest rejection in `questions` on a task that's off-goal.
   - **Already shipped**: is it built already? Code → search the codebase; content → search
     where that content lives (your reference docs); research → check past write-ups.
   - **Duplicate**: does another card already own the idea? Then update it, not this one.

@@ -44,6 +44,25 @@ export function agentArgv(sessionId?: string): string[] {
   return argv;
 }
 
+// The environment a spawned agent runs under: the server's own env plus, for a
+// claude binary, the one variable that makes a rate limit fail instead of wait.
+//
+// By default Claude Code retries a 429 (session/weekly limit, overload) with
+// exponential backoff — up to 10 attempts, each request allowed 10 minutes. In a
+// terminal that's right; here it's wrong. The dispatcher wakes every minute, and
+// a run that's rate-limited would sit holding the card lock for the better part
+// of an hour before it ever reported anything. `CLAUDE_CODE_MAX_RETRIES=0` turns
+// the first 429 into an immediate non-zero exit, so the board learns at once and
+// the card is free again.
+//
+// It is NOT a spend control. Whether hitting your plan's limit spills over into
+// paid extra usage is an account setting on claude.ai (the CLI has no flag for
+// it) — if that's on, turn it off there.
+export function agentEnv(): NodeJS.ProcessEnv {
+  if (!isClaudeAgent()) return process.env;
+  return { ...process.env, CLAUDE_CODE_MAX_RETRIES: "0" };
+}
+
 // True when the configured agent is the Claude Code CLI — the only agent whose
 // session is resumable (`claude --resume <id>`), so the only one the UI offers a
 // handoff for. A custom command still gets a unique session id (the registry

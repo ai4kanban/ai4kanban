@@ -3,7 +3,7 @@
 //
 // Handles the id-touching moves so the board stays consistent:
 //   init    — scaffold a fresh docs/kanban/ board (folders, the project-wide memory set in memory/, config.md)
-//   memory-init — lazily scaffold a module's memory path with the five-file set
+//   memory-init — lazily scaffold a module's memory path with the four-file set (no goal.md)
 //   create  — allocate task id(s); with --title, also write the card's frontmatter + index it
 //   update  — rewrite a card's frontmatter (priority/roi/links/questions, move track, rename)
 //   tag     — set/clear the [user] tag on one open question (auto-refine triage)
@@ -18,7 +18,7 @@
 //
 // Usage:
 //   node kanban.mjs init [track...]                     scaffold docs/kanban/ (folders, memory/, config.md)
-//   node kanban.mjs memory-init <module>                lazily scaffold memory/<module>/ with the five-file set
+//   node kanban.mjs memory-init <module>                lazily scaffold memory/<module>/ with the four-file set
 //   node kanban.mjs create [--count N]                  allocate N ids (default 1), print them
 //   node kanban.mjs create --title T --track K [opts]   scaffold one card (frontmatter + body template + index)
 //   node kanban.mjs update <id> [opts]                  rewrite a card's frontmatter / move / rename
@@ -60,6 +60,8 @@ const CONFIG = path.join(KANBAN, 'config.md')
 // All memory lives under docs/kanban/memory/: the project-wide set sits in this folder
 // itself, each module's set in a subfolder named after the module.
 const MEMORY = path.join(KANBAN, 'memory')
+// The one goal file — board root only, never per module (see PROJECT_MEMORY_SET).
+const GOAL = path.join(MEMORY, 'goal.md')
 
 function die(msg) {
   console.error(`kanban: ${msg}`)
@@ -604,7 +606,7 @@ function repointReadmeLink(id, oldRel, newRel, title) {
 // e.g. `init growth validation building`. Keep in step with the SKILL.md defaults.
 const DEFAULT_TRACKS = ['feature', 'bug', 'research']
 
-// The memory file set — the same five files fill a memory path at either level:
+// The memory file set — the same four files fill a memory path at either level:
 // `memory/` itself (the project-wide memory, covering the whole project) and each
 // module's own path at `memory/<module>/`. Each starter is a short header that tells the
 // next reader what the file is for; the flows fill in the rest over time. Plain language,
@@ -616,13 +618,6 @@ User-facing work that has shipped, one line each — a link to the published doc
 covers it, or a plain-words note.
 
 _(nothing recorded yet — the first finished task fills it in.)_
-`,
-  'goal.md': `# Goal
-
-The direction, in the user's own words — where this is headed. One short statement. The
-user owns this file; the agent seeds it but does not invent the goal.
-
-_(not filled in yet — the user writes this.)_
 `,
   'decisions.md': `# Decisions
 
@@ -639,6 +634,27 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 Ideas we turned down, grouped by topic. One line each: the idea, and why we said no. Read
 before proposing so you don't re-suggest them.
+`,
+}
+
+// `goal.md` is the board root's alone. The project has one direction, and every flow
+// judges a card against that one file — a per-module copy would only split it. So the
+// project-wide path gets these five files; a module path gets the four above.
+// It seeds `reviewed: weak` — a fresh template is not a goal to plan from.
+const PROJECT_MEMORY_SET = {
+  ...MEMORY_SET,
+  'goal.md': `---
+reviewed: weak
+---
+
+# Goal
+
+Where this is headed, in the user's own words: the long-term goal, the horizon it aims
+at, and the roadmap of what comes next, roughly in order. Not this week's work — that's
+the cards on the board. The user owns this file; the agent seeds it but does not invent
+the goal.
+
+_(not filled in yet — the user writes this.)_
 `,
 }
 
@@ -724,12 +740,15 @@ function cmdInit(args) {
       const done = scaffoldMemoryPath(m)
       if (done) scaffolded.push(done)
     }
+    // A board made before the `reviewed:` field gets it here, seeded weak.
+    const goalRepaired = ensureGoalReviewed()
     console.log(
       added.length
         ? `board already exists at ${rel(KANBAN)}/ — added the missing ${added.join(', ')} (safe to re-run)`
-        : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
+        : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length || goalRepaired ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
     )
     for (const s of scaffolded) console.log(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
+    if (goalRepaired) console.log(`  added \`reviewed: weak\` to ${rel(GOAL)} — the agent judges the goal and edits the field`)
     if (added.includes(rel(MODULES_MD))) {
       console.log(`  next: fill in ${rel(MODULES_MD)} (see "The module map"), then re-run init for the memory paths`)
     }
@@ -752,25 +771,27 @@ function cmdInit(args) {
 // a track's.
 const MODULE_NAME_RE = /^[a-z0-9][a-z0-9-]*$/i
 
-// Scaffold one module's memory path with the five-file set. Idempotent: creates only
-// what's missing, so it's safe to call whenever a module's name is known — `init` calls
-// it for the whole map, and a flow about to write a note calls it first. Keyed by the
-// module's bolded name in modules.md, passed verbatim as the folder name. Returns what it
-// created so callers can report; `null` means the path was already complete.
+// Scaffold one module's memory path with the four-file set — no `goal.md`, that one is
+// the board root's alone. Idempotent: creates only what's missing, so it's safe to call
+// whenever a module's name is known — `init` calls it for the whole map, and a flow about
+// to write a note calls it first. Keyed by the module's bolded name in modules.md, passed
+// verbatim as the folder name. Returns what it created so callers can report; `null`
+// means the path was already complete.
 function scaffoldMemoryPath(module) {
-  return scaffoldMemoryDir(path.join(MEMORY, module))
+  return scaffoldMemoryDir(path.join(MEMORY, module), MEMORY_SET)
 }
 
-// The same scaffold, one level up: the project-wide set in `memory/` itself.
+// The same scaffold, one level up: the project-wide set in `memory/` itself — the four
+// files plus `goal.md`.
 function scaffoldProjectMemory() {
-  return scaffoldMemoryDir(MEMORY)
+  return scaffoldMemoryDir(MEMORY, PROJECT_MEMORY_SET)
 }
 
-function scaffoldMemoryDir(dir) {
+function scaffoldMemoryDir(dir, set) {
   const existed = fs.existsSync(dir)
   fs.mkdirSync(dir, { recursive: true })
   const made = []
-  for (const [name, body] of Object.entries(MEMORY_SET)) {
+  for (const [name, body] of Object.entries(set)) {
     const file = path.join(dir, name)
     if (!fs.existsSync(file)) {
       fs.writeFileSync(file, body)
@@ -788,8 +809,50 @@ function cmdMemoryInit(module) {
   }
   const done = scaffoldMemoryPath(module)
   if (!done) console.log(`${rel(path.join(MEMORY, module))}/ already has the full set — nothing to do`)
-  else if (done.fresh) console.log(`created memory path ${rel(done.dir)}/ with the five-file set`)
+  else if (done.fresh) console.log(`created memory path ${rel(done.dir)}/ with the four-file set`)
   else console.log(`filled in missing files in ${rel(done.dir)}/: ${done.made.join(', ')}`)
+}
+
+// ---- goal review -----------------------------------------------------------
+//
+// `goal.md`'s frontmatter carries one machine-readable field: `reviewed: strong | weak`
+// — whether the goal is clear enough to plan from. The agent judges and edits the field
+// itself; this script only seeds it (`init`'s scaffold and repair), never sets a judged
+// value. Reading never fails: a missing file, a missing field, or a bad value all count
+// as `weak`, and the board keeps working either way.
+
+const GOAL_REVIEW_VALUES = ['strong', 'weak']
+
+// The value as written, or null when the file has no valid field — the init repair
+// reads null as "add the field"; everyone else reads it as weak.
+function readGoalReviewFrom(text) {
+  const fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  const line = fm && fm[1].match(/^reviewed:[ \t]*(.+?)[ \t]*$/m)
+  const v = line && unquote(line[1])
+  return GOAL_REVIEW_VALUES.includes(v) ? v : null
+}
+
+// Set the field without disturbing the rest of the file: replace the `reviewed:` line
+// in place, add it to a frontmatter block that lacks it, or open a new block on a file
+// that has none. The goal text itself is never touched.
+function writeGoalReviewInto(text, value) {
+  const fm = text.match(/^---\r?\n([\s\S]*?\r?\n)---/)
+  if (!fm) return `---\nreviewed: ${value}\n---\n\n${text}`
+  const inner = /^reviewed:.*$/m.test(fm[1])
+    ? fm[1].replace(/^reviewed:.*$/m, () => `reviewed: ${value}`)
+    : `reviewed: ${value}\n${fm[1]}`
+  return `---\n${inner}---${text.slice(fm[0].length)}`
+}
+
+// The `reviewed:` field arrived after boards existed. `init`'s repair pass adds it to a
+// goal.md that lacks it — seeded `weak`, exactly what the missing field already reads
+// as — and never touches a value that's set, so a judged goal survives a re-run.
+function ensureGoalReviewed() {
+  if (!fs.existsSync(GOAL)) return false
+  const text = fs.readFileSync(GOAL, 'utf8')
+  if (readGoalReviewFrom(text)) return false
+  fs.writeFileSync(GOAL, writeGoalReviewInto(text, 'weak'))
+  return true
 }
 
 // ---- commands --------------------------------------------------------------
@@ -1329,9 +1392,10 @@ Usage: node ${rel(SELF)} <command> [args]
   init [track...]      scaffold docs/kanban/ (folders, the project-wide memory set in memory/, and a blank
                        config.md); tracks default to feature bug research. On an existing
                        board it only adds config.md if it's missing (safe to re-run).
-  memory-init <module> lazily scaffold docs/kanban/memory/<module>/ with the five-file set
-                       (readme, goal, decisions, redesign, rejected). Idempotent —
-                       run it before the first write to a module's memory.
+  memory-init <module> lazily scaffold docs/kanban/memory/<module>/ with the four-file set
+                       (readme, decisions, redesign, rejected — goal.md lives only at the
+                       board root). Idempotent — run it before the first write to a
+                       module's memory.
   create [--count N]   allocate N task ids (default 1), advance next-id, print them
   create --title T --track K [opts]
                        scaffold ONE card: write its frontmatter + a body template, index it.

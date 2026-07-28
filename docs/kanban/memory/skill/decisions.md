@@ -13,6 +13,12 @@ re-ask a settled call.
 - What the agent decided by itself stays on the card, in its own section, so the user can
   check it. Only a call a future card would need reaches `decisions.md`.
 
+## The goal
+
+- Whether the goal is strong or weak is the agent's common-sense call, not a written
+  rubric. `weak` only when it is apparent — missing, still the template, or too vague to
+  plan from; anything borderline counts as strong.
+
 ## Finished cards
 
 - A finished card moves to a `.archive/` folder next to `todo/`, kept in git, so finished

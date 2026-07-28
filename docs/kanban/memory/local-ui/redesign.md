@@ -22,7 +22,13 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Browse every past run from a card page** (per-card history list) → ✅ per-card stays
   one run, but there's ONE global runs panel in the header (an archive icon) to browse all
   runs — live and past, every action and card — showing each run's input + log. Keep 30.
+- ❌ **A full auto-refine status readout** (current card, last refined, next pick, a reason
+  for every idle state) → ✅ one "Refining #<id>" label beside the switch while a run is
+  live, nothing otherwise. A background switch gets at most one small live indicator.
 - ❌ **A new global setting gets its own labeled control in the header** → ✅ turn the header's
   agent badge into ONE configuration (gear) icon button that opens a single Configuration
   dialog; global settings (auto-refine, the agent connector) live inside it, so the header
   stays one quiet icon instead of growing a control per setting.
+- ❌ **A recurring-task feature that only adds a Run button** → ✅ say how runs start without
+  a click: the server's dispatcher runs due cards on a card-set cadence — scheduling is the
+  server's job, never an in-session loop like Claude Code's `/loop`.

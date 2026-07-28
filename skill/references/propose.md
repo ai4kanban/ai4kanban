@@ -9,11 +9,15 @@ board — tasks in one focus close a gap; scattered ideas just skim the product.
 one yourself — the one where memory says users stumble most.
 
 Once you have a focus module, its memory set lives at `docs/kanban/memory/<module>/` (keyed
-by its bolded name in `modules.md`) — the five files described in "The memory set" in
+by its bolded name in `modules.md`) — the four files described in "The memory set" in
 `SKILL.md`. Read that path, not the whole board, so the notes you work from are that
 module's: `readme.md` for what already shipped (links to the published docs),
-`goal.md` for its direction, `decisions.md` for settled answers you needn't re-open, and
-`redesign.md` / `rejected.md` to avoid wrong designs and re-proposals. For a shipped
+`decisions.md` for settled answers you needn't re-open, and
+`redesign.md` / `rejected.md` to avoid wrong designs and re-proposals. For the long-term
+goal, the horizon, and the roadmap, read `docs/kanban/memory/goal.md` — the board root's
+copy is the only one, and it covers the whole project, not this module. While it's
+open, re-judge its `reviewed:` field and fix a stale value by editing that one line
+(the test is under "The memory set" in `SKILL.md`). For a shipped
 behavior's detail, follow `readme.md`'s links into the module's **published docs** — the
 docs are the record, memory only indexes them. A module with no folder yet has no notes.
 With no focus module or no module map, read the project-wide set at `docs/kanban/memory/`

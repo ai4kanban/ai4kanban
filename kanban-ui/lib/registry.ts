@@ -2,7 +2,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { agentArgv, type AgentRequest, isClaudeAgent } from "./agent";
+import { agentArgv, agentEnv, type AgentRequest, isClaudeAgent } from "./agent";
 import { allCards, findCard } from "./board";
 import { kanbanDir, repoRoot } from "./paths";
 import { createStreamRenderer } from "./stream";
@@ -598,7 +598,7 @@ async function launch(s: RegistryState, session: Session, prompt: string): Promi
   try {
     child = spawn(cmd, [...args, prompt], {
       cwd: repoRoot(),
-      env: process.env,
+      env: agentEnv(),
       shell: false,
       // `claude -p` waits ~3s on a piped stdin, then logs a "no stdin data"
       // warning into our log. Close stdin so the log is only agent output.

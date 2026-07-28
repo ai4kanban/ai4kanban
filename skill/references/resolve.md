@@ -7,8 +7,8 @@ names (`docs/kanban/memory/<module>/`), and your reference docs. Many questions 
 already settled, shipped, or rejected once you look.
 
 Judgment calls — taste, priorities, money, product direction — get the same pass:
-the trail of past `decisions.md`, `rejected.md`, `redesign.md`, and `goal.md` often shows the user
-already made this call, or one close enough to decide from.
+the trail of past `decisions.md`, `rejected.md`, `redesign.md`, and the board root's
+`goal.md` often shows the user already made this call, or one close enough to decide from.
 
 Decide yourself when the evidence gives you confidence. Note the decision and reason
 under `## Decided by the agent` (read "Card format" in `SKILL.md`).
@@ -48,7 +48,9 @@ add a topic, or a subtopic under an existing one, when none does.
 - **Only what the user decided.** Agent's own calls stay on the card (read "Card format" in
   `SKILL.md`). This file is what the human settled.
 - **Skip** implementation-level and non-user-facing calls.
-- **One plain line each** — the call, not the reasoning, but still clear to someone
-  planning another card: `A finished card moves to .archive/; a rejected card is deleted.`
+- **One plain line each**, written as `**<key>**: <call>` — the key is the question the
+  call settles, or a short title for it. Give the call, not the reasoning, but keep it
+  clear to someone planning another card:
+  `**Where does a finished card go?**: to .archive/, kept in git. A rejected card is deleted.`
 - **A new call replaces the old.** Rewrite the line it contradicts, never leave both. If
   you can't tell which one the user holds, change nothing and ask with a `[user]` question.
