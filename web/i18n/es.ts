@@ -274,7 +274,7 @@ const es: SiteCopy = {
       },
       metrics: {
         title: "Métricas de tareas",
-        body: "Cada tarjeta archivada es una unidad entregada, así que tu velocidad es un número más en git, junto al trabajo: sin panel de control y sin otra herramienta aparte.",
+        body: "Cada tarjeta archivada es una unidad entregada, así que tu velocidad es un número más en git, junto al trabajo: sin ninguna herramienta externa que mantener sincronizada.",
         chart: {
           aria: "Rendimiento diario a lo largo de doce días: tareas totales, completadas, creadas y rechazadas.",
           series: {

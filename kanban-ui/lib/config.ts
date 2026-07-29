@@ -1,24 +1,15 @@
 import fs from "node:fs";
 import { uiConfigPath } from "./paths";
 
-// --- the auto-refine switch --------------------------------------------------
-// The global auto-refine setting lives in the same docs/kanban/ui.config.json
-// the UI already reads for the agent `command` (#41). It's one top-level boolean,
-// `autoRefine`, off by default. The Configuration dialog reads it on load and
-// writes it when you flip the switch; the skill's auto-refine flows (#42, #43)
-// read the same key before acting.
-
-// Stamped onto a freshly created ui.config.json so a hand-opened file still
-// explains itself. Kept in sync with the checked-in docs/kanban/ui.config.json.
-const CONFIG_NOTE =
-  "Configures the board UI (ai4kanban-ui) and carries the auto-refine switch. " +
-  "`command` is the agent connector spawned by every card button (default `claude -p`). " +
-  "`autoRefine` (boolean, default off) is the global auto-refine switch you flip from the " +
-  "UI's Configuration dialog: when on, the agent refines cards and answers its own safe " +
-  "questions without asking you.";
+// --- the settings the dialog writes ------------------------------------------
+// Two settings live in docs/kanban/ui.config.json: `harness` (which agent runs
+// every card button — see lib/agent.ts, which owns reading it) and `autoRefine`
+// (#41), one top-level boolean, off by default. The Configuration dialog reads
+// both on load and writes them as you change them; the skill's auto-refine flows
+// (#42, #43) read `autoRefine` before acting.
 
 // Read and parse the whole config object. Throws on a malformed file so a writer
-// never clobbers a user's `command`; a missing file is an empty object.
+// never clobbers a user's settings; a missing file is an empty object.
 function readConfigRaw(): Record<string, unknown> {
   const file = uiConfigPath();
   if (!fs.existsSync(file)) return {};
@@ -38,11 +29,59 @@ export function readAutoRefine(): boolean {
   }
 }
 
-// Flip the switch and persist it, keeping every other key (the agent `command`,
-// the `//` note) untouched. A file that won't parse fails the save instead of
-// overwriting it — losing the user's `command` is worse than a failed toggle. A
-// missing file is created the first time the switch goes on, seeded with the note.
+// Flip the switch and persist it, keeping every other key (the `harness`
+// setting) untouched. A file that won't parse fails the save instead of
+// overwriting it — losing the user's settings is worse than a failed toggle. A
+// missing file is created the first time the switch goes on.
 export function setAutoRefine(on: boolean): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => {
+    cfg.autoRefine = on;
+  });
+}
+
+// Save the harness the user picked in the dialog. Writes the name only — a
+// `harness.command` override is a hand-edit, and it belongs to the harness it
+// was written for, so switching to a different harness drops it rather than
+// running one agent's flags under another's name. Re-picking the harness that's
+// already set keeps it.
+//
+// The pre-#68 top-level `command` key is left exactly where it is. Nothing reads
+// it, and the dialog says so — but this is the user's file, and quietly deleting
+// a line they wrote, as a side effect of clicking an agent, is worse than a
+// notice that stays up until they delete it themselves.
+export function setHarness(name: string): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => {
+    const prev = (cfg.harness ?? {}) as { name?: unknown; command?: unknown; model?: unknown };
+    const same = prev.name === name;
+    const next: Record<string, unknown> = { name };
+    if (same && typeof prev.model === "string") next.model = prev.model;
+    if (same && typeof prev.command === "string") next.command = prev.command;
+    cfg.harness = next;
+  });
+}
+
+// Save the model id typed in the dialog (#71). Writes `harness.model` and
+// nothing else, so the name and a hand-edited `command` survive. An empty field
+// means "use the harness's own default" — that drops the key rather than leaving
+// an empty string behind, because a missing key and a blank one mean the same
+// thing and only one of them reads as deliberate.
+//
+// The id is never checked here. Model ids change faster than we ship, so the
+// harness is the only validator: a bad one makes the run exit non-zero and the
+// error text shows in that session's log.
+export function setHarnessModel(model: string): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => {
+    const harness = { ...((cfg.harness ?? {}) as Record<string, unknown>) };
+    const id = model.trim();
+    if (id) harness.model = id;
+    else delete harness.model;
+    cfg.harness = harness;
+  });
+}
+
+// Read the config, apply one change, write it back — the shared body of every
+// setter. A file that won't parse fails the save instead of overwriting it.
+function writeConfig(change: (cfg: Record<string, unknown>) => void): { ok: boolean; error?: string } {
   const file = uiConfigPath();
   let cfg: Record<string, unknown>;
   try {
@@ -51,8 +90,7 @@ export function setAutoRefine(on: boolean): { ok: boolean; error?: string } {
     const why = e instanceof Error ? e.message : String(e);
     return { ok: false, error: `couldn't save: ${file} won't parse (${why}). Fix the file, then try again.` };
   }
-  if (cfg["//"] === undefined) cfg["//"] = CONFIG_NOTE;
-  cfg.autoRefine = on;
+  change(cfg);
   try {
     fs.writeFileSync(file, JSON.stringify(cfg, null, 2) + "\n");
     return { ok: true };

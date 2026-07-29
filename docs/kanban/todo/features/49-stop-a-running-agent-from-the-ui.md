@@ -5,7 +5,7 @@ priority: med
 roi: med
 status: todo
 blocked_by: []
-related: [28]
+related: []
 modules: [local-ui]
 questions:
   - "[user] A stopped run leaves half-finished edits in the working tree. Does the UI just say so and leave them, or is undoing them part of this card?"

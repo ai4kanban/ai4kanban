@@ -3,6 +3,7 @@ import path from "node:path";
 import { parseFrontmatter } from "./frontmatter";
 import { goalReviewed } from "./goal";
 import { archivePath, readmePath, todoDir } from "./paths";
+import { byPickOrder } from "./pick-order";
 import type { ArchiveGroup, Board, Card, Column, Subtask } from "./types";
 
 const idPrefix = (name: string): number | null => {
@@ -74,7 +75,33 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     body: body.replace(/^\n+/, "").replace(/\s+$/, ""),
     todos: countTodos(body),
     isGroup: false, // readGroup flips this on the one card that is a root
+    openBlockers: [], // filled by attachBlockers once every card has been read
   };
+}
+
+// A recurring card lives under `todo/recurring/` and is never archived — each run
+// bumps the metric and the card stays. So it can't hold another card up: the
+// block would never clear.
+function isRecurring(card: Card): boolean {
+  return card.relPath.split("/")[0] === "recurring";
+}
+
+// Work out what is really blocking each card. A `blocked_by` id counts only when
+// it names a card that is still open — an id no longer on the board was archived
+// or rejected, so that work is done and the block is cleared. A recurring blocker
+// and a card that names itself are skipped: neither can ever clear.
+//
+// Runs over every card at once (subtasks included), so a blocker inside a group
+// folder resolves like any other card.
+function attachBlockers(cards: Card[]): void {
+  const byId = new Map(cards.map((c) => [c.id, c]));
+  for (const card of cards) {
+    card.openBlockers = card.blocked_by
+      .filter((n) => n !== card.id)
+      .map((n) => byId.get(n))
+      .filter((b): b is Card => !!b && !isRecurring(b))
+      .map((b) => ({ id: b.id, title: b.title }));
+  }
 }
 
 // A group folder is `todo/<id>-<slug>/` holding a `root.md` (the tracking card)
@@ -161,6 +188,9 @@ function collectCards(): { board: Card[]; every: Card[] } {
       every.push(...cards);
     }
   }
+  // The two arrays hold the same card objects, so annotating `every` covers the
+  // board cards as well.
+  attachBlockers(every);
   return { board, every };
 }
 
@@ -233,24 +263,6 @@ function readArchive(): ArchiveGroup[] {
   return groups
     .map((g) => ({ ...g, markdown: g.markdown.trim() }))
     .filter((g) => g.markdown.length > 0);
-}
-
-// Pick-order for a column: the best card to start next sorts first. Vetted
-// `ready` cards lead, `implementing` (already in flight) follows, raw `todo`
-// last; then priority, then roi. Unranked (empty/unknown) sorts after ranked.
-const STATUS_RANK: Record<string, number> = { ready: 0, implementing: 1, todo: 2 };
-const LEVEL_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
-
-const rank = (table: Record<string, number>, value: string): number =>
-  table[value] ?? Object.keys(table).length;
-
-function byPickOrder(a: Card, b: Card): number {
-  return (
-    rank(STATUS_RANK, a.status) - rank(STATUS_RANK, b.status) ||
-    rank(LEVEL_RANK, a.priority) - rank(LEVEL_RANK, b.priority) ||
-    rank(LEVEL_RANK, a.roi) - rank(LEVEL_RANK, b.roi) ||
-    a.id - b.id
-  );
 }
 
 export function readBoard(): Board {

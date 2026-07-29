@@ -12,4 +12,13 @@ before proposing so you don't re-suggest them.
   a restart. A browsable list of past runs is more machinery than that goal justifies;
   older logs stay on disk for anyone who digs.
 - **Ready-only focus toggle** — a board toggle to hide every card that isn't `ready` isn't
-  useful; the board is small enough to scan, and hiding cards costs more than it saves.
+  useful; the board is small enough to scan, and hiding cards costs more than it saves. What
+  was rejected is the hiding: a view that shows ready and not-ready side by side (#70) is a
+  different idea and is fine.
+- **A Finished view that browses archived cards** — too little value for the work. An
+  archived card is a plain file next to the board; anyone can read it in their IDE or any
+  file viewer. The UI does not have to be the place you review finished work.
+- **A follow-up prompt box on any finished run** — the Resume button covers the real need:
+  a run that stopped short gets one "continue" turn, no typing. A prompt box on every
+  finished run is the first step toward replicating a full Claude Code chat inside the
+  board, which is not what this UI is for. Worth reconsidering later, as a whole.

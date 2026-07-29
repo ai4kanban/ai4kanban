@@ -22,12 +22,13 @@ re-ask a settled call.
   open the board.
 - It answers a card's open questions itself, except the ones tagged `[user]`. It skips a
   card whose questions are all `[user]` — that one waits for the human.
-- The switch shows a read-only status under it in the Configuration dialog: what it is
-  refining now, what it refined last, what it would pick next, and — when it would pick
-  nothing — the one-line reason why. It never shows a list of recent refines; the runs panel
-  is the place to browse runs.
-- The status never invents a fact it cannot see. If the last auto-refine has aged out of the
-  kept runs, it says nothing about it rather than guessing.
+- The switch shows one read-only label beside it in the Configuration dialog: "Refining
+  #<id>", the card the background run is on right now. When no run is going there is no
+  label at all — no "last refined", no "next up", no idle reason. The runs panel is the
+  place to browse runs.
+- **Does a paused dispatcher say so beside the switch?**: No. Even when a rate limit pauses
+  background refining for hours, the switch stays silent — a failure is a run's business,
+  and the failed run in the runs panel is where its reason is named.
 
 ## What a run leaves behind
 
@@ -58,10 +59,9 @@ re-ask a settled call.
 
 ## Continuing a run
 
-- You can only continue a run that has already finished. Continuing starts a new run and
-  the live view stays a read-only log — nothing is ever typed into a running session.
-- Continue is a small prompt box in the global runs panel, in place of Copy ID. It is not
-  on the card page's run view; there is still no per-card run history.
+- Only a run that **failed** can be continued. A run that passed has nothing to continue, so
+  it shows no button at all. Continuing starts a new run and the live view stays a read-only
+  log — nothing is ever typed into a running session.
 
 ## Group tasks
 
@@ -87,6 +87,25 @@ re-ask a settled call.
 
 - Daily progress opens from an icon button in the header, not a strip on the board. It
   shows a line chart like the site's throughput chart, not numbers alone.
+
+## The queue view
+
+- **Is a queue view the same as the rejected ready-only toggle?**: No. The toggle hid every
+  card that wasn't `ready`; the queue view shows ready and not-ready side by side and hides
+  nothing. A second way to group the whole board is fine — hiding cards is not.
+
+## The memory view
+
+- **Can the UI edit memory?**: No. Every memory file is read-only in the UI — you read a
+  wrong line there and fix it in your own editor. Memory is plain unstructured text the
+  user owns, like their code, and a text box in the board is no better than an IDE. The
+  goal bar stays the one file the UI writes.
+
+## Setting up a board from the UI
+
+- **Does the setup screen ask you for the track list?**: No. The agent reads the repo and
+  proposes the tracks. Setup asks the user nothing at all — not the tracks, not the project
+  name, not the description.
 
 ## Where the UI is documented
 

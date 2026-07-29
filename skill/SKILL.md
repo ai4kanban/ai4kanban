@@ -30,21 +30,26 @@ get it in one pass.
 
 ## Card format
 
-A card is written for whoever implements the task, not whoever plans it. It says what
-problem the task solves and how — never how the board planned it: no notes on what a
-refine changed, no meta-todos like `- [x] explore codebase and create the task #14`.
-We should maintain a minimal task spec to build it.
+A card is a minimal task spec, written for whoever implements the task, not whoever
+plans it.
 
-The `## Todo` list is the build plan, one step of real work per box. Ticked boxes
-record what was built — never edit, delete, or untick them; to undo earlier work,
-append a reverting todo. A planning/meta line was never build work — delete it on
-sight, ticked or not.
-
-`## Decided by the agent`: A call the agent made on its own goes here.
-The plan — the summary line, `## Scope`, `## Todo` — is the human's input;
-this section is what agent complements, so anyone can see what it decided and overrule it.
-One short line each: the question, then the answer.
-What the **user** decided isn't an agent call — that goes to `decisions.md` (see "The memory set").
+- **No meta notes**: say what problem the task solves and what changes for the user — never how
+  the board planned it. No notes on what a refine changed, no meta-todos like `- [x]
+  explore codebase and create the task #14`. A planning line was never build work — delete
+  it on sight, ticked or not.
+- **No coding details**: write the card from a product owner's angle — the effect on the
+  user, not the implementation. Drop steps like `- add an npx tsc check after this
+  feature`; the coding agent handles them well. Keep a step only when it's a project
+  owner's concern, e.g. `- create 2 test cards, click the button, and check the flow
+  end to end`.
+- **`## Todo` is the build plan**: one step of real work per box.
+- **Ticked boxes are history**: they record what was built — never edit, delete, or
+  untick them; to undo earlier work, append a reverting todo.
+- **`## Decided by the agent`**: a call the agent made on its own goes here, one short
+  line each — the question, then the answer. The plan (the summary line, `## Scope`,
+  `## Todo`) is the human's input; this section is what the agent complements, so anyone
+  can see what it decided and overrule it. What the **user** decided isn't an agent call
+  — that goes to `decisions.md` (see "The memory set").
 
 ## Layout
 

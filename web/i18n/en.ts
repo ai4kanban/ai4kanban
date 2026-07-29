@@ -275,7 +275,7 @@ const en: SiteCopy = {
       },
       metrics: {
         title: "Task metrics",
-        body: "Each archived card is one shipped unit, so your velocity is just a number in git next to the work — no dashboard, no separate tool.",
+        body: "Each archived card is one shipped unit, so your velocity is just a number in git next to the work — no external tool to keep in sync.",
         chart: {
           aria: "Daily throughput over twelve days: total, completed, created, and rejected tasks.",
           series: {

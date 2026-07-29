@@ -176,7 +176,7 @@ The hub — `docs/kanban/`, the files that hold your feedback:
 ### Task metrics
 
 Each archived card is one shipped unit, so your velocity is just a number in git
-next to the work — no dashboard, no separate tool.
+next to the work — no external tool to keep in sync.
 
 ---
 

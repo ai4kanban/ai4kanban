@@ -26,6 +26,12 @@ re-ask a settled call.
 - Translated copy is written and reviewed by the repo's `translator` skill, not gated on
   a native-speaker read. A native read is welcome later but never blocks publishing.
 
+## What the copy promises
+
+- **What does "no dashboard, no separate tool" promise?**: no *external* tool — nothing
+  outside your repo to sync with. It never promised the board has no charts, so a view
+  built into the board doesn't break it. Say "no external tool" in the copy.
+
 ## Vibe Kanban comparison
 
 - Say plainly that Vibe Kanban shut down and its repo is stalled. Don't soften it.

@@ -2,10 +2,18 @@ import { execFileSync, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { agentArgv, agentEnv, type AgentRequest, isClaudeAgent } from "./agent";
+import {
+  type ActiveHarness,
+  adoptsSessionId,
+  type AgentRequest,
+  RESUME_PROMPT,
+  resumableHarness,
+  resumeRun,
+  startRun,
+} from "./agent";
 import { allCards, findCard } from "./board";
 import { kanbanDir, repoRoot } from "./paths";
-import { createStreamRenderer } from "./stream";
+import type { StreamRenderer } from "./stream";
 import type { AgentAction, CardStatus, SessionView } from "./types";
 
 // The server-side session registry. One local UI server = one process, so this
@@ -124,13 +132,18 @@ function stampDuration(session: Session, endedAt: number): void {
 }
 
 interface Session {
-  // The session's unique id and the registry map key. For a claude agent it's
-  // also Claude Code's own session id — we generate it and pass it through as
-  // `--session-id`, so the id the UI hands off is the id claude runs under.
+  // The session's unique id and the registry map key — ours, always. Generated
+  // before the child spawns, so every session has one from its first instant,
+  // whatever the harness does about ids of its own (see `resumeId`).
   sessionId: string;
   cardId: number | null;
   action: AgentAction;
-  status: "running" | "done" | "error";
+  // `interrupted` is the fourth state, and it is not a finish: the run was cut
+  // off (the UI died mid-run, the agent ended out of our sight) so we never saw
+  // an exit code. It used to be folded into `done` with an outcomeUnknown flag,
+  // which read as "finished" — a run that never got there. It now stands on its
+  // own: shown as unfinished work, and resumable like a failure.
+  status: "running" | "done" | "error" | "interrupted";
   startedAt: number;
   endedAt?: number;
   pid?: number;
@@ -148,11 +161,26 @@ interface Session {
   // folds the tail away. Unset for a custom (non-streaming) command or a session
   // re-adopted after a restart; the tail is all there is in those cases.
   result?: string;
-  // True when the agent is the Claude Code CLI, so `sessionId` is a real Claude
-  // Code session the UI can offer to resume (`claude --resume <id>`). False for
-  // a custom command — the id is unique but there's nothing to resume.
-  resumable?: boolean;
+  // The harness this session ran under, recorded when it starts. The resume
+  // handoff is built from it, so a finished run keeps showing the command that
+  // resumes IT — changing the setting later can't rewrite history.
+  harness: string;
+  // The session's SECOND id: the one that harness's own CLI resumes by. Set ONLY
+  // when it isn't ours to know — the harness minted its own and reported it out
+  // of its output as it ran (unset until then, and the UI offers no resume in the
+  // meantime), or this run continues an earlier conversation and inherited that
+  // one's id. A run started fresh under a harness that takes our id leaves this
+  // empty: there `sessionId` IS the conversation, and resumeIdOf says so.
+  // `sessionId` stays the key we track the run by in every case.
+  resumeId?: string;
   logPath: string;
+  // The session this one continued, when it was started by Resume — one more
+  // turn of that conversation rather than a fresh run. Persisted, so the mark
+  // survives a restart with the rest of the record. It names a session that is
+  // deliberately GONE: resuming drops the record it took over from, so this is a
+  // mark of where the run came from, not a pointer to something to look up. It is
+  // also what tells resumeIdOf this run's conversation isn't ours to derive.
+  resumedFrom?: string;
   // The card's saved stage the instant before this session overwrote it with
   // `implementing`. Restored when the session ends, so a session on a `ready`
   // card leaves it `ready` again instead of dropping it to `todo`. Only set for
@@ -162,11 +190,6 @@ interface Session {
   // Re-adopted from disk after a UI restart. We are no longer its parent, so we
   // detect its exit by polling the pid instead of a 'close' event.
   adopted?: boolean;
-  // The session was still going when the UI restarted, then ended out of our
-  // sight — we polled its pid, so we never learned the exit code. Shown as
-  // finished with no pass/fail mark (task #14): don't guess an outcome we never
-  // saw.
-  outcomeUnknown?: boolean;
 }
 
 interface RegistryState {
@@ -233,7 +256,9 @@ function persist(s: RegistryState): void {
       pid: r.pid,
       startedAt: r.startedAt,
       input: r.input,
-      resumable: r.resumable,
+      harness: r.harness,
+      resumeId: r.resumeId,
+      resumedFrom: r.resumedFrom,
       logPath: r.logPath,
       priorStatus: r.priorStatus,
     }));
@@ -245,12 +270,13 @@ function persist(s: RegistryState): void {
     startedAt: r.startedAt,
     endedAt: r.endedAt,
     input: r.input,
-    resumable: r.resumable,
+    harness: r.harness,
+    resumeId: r.resumeId,
+    resumedFrom: r.resumedFrom,
     ok: r.ok,
     code: r.code,
     error: r.error,
     logPath: r.logPath,
-    outcomeUnknown: r.outcomeUnknown,
   }));
   try {
     fs.mkdirSync(kanbanDir(), { recursive: true });
@@ -276,17 +302,19 @@ function adoptFromDisk(s: RegistryState): void {
   const live = (data as { live?: unknown[] })?.live;
   const finished = (data as { finished?: unknown[] })?.finished;
 
-  for (const d of (Array.isArray(live) ? live : []) as any[]) {
+  for (const d of (Array.isArray(live) ? live : []) as Partial<Session>[]) {
     if (!d || typeof d.sessionId !== "string" || !pidAlive(d.pid)) continue;
     s.sessions.set(d.sessionId, {
       sessionId: d.sessionId,
       cardId: typeof d.cardId === "number" ? d.cardId : null,
-      action: d.action,
+      action: d.action as AgentAction,
       status: "running",
       startedAt: d.startedAt || Date.now(),
       pid: d.pid,
       input: typeof d.input === "string" ? d.input : undefined,
-      resumable: d.resumable === true,
+      harness: typeof d.harness === "string" ? d.harness : "",
+      resumeId: typeof d.resumeId === "string" ? d.resumeId : undefined,
+      resumedFrom: typeof d.resumedFrom === "string" ? d.resumedFrom : undefined,
       tail: "",
       logPath: d.logPath || path.join(sessionsDir(), `${d.sessionId}.log`),
       priorStatus: d.priorStatus,
@@ -294,26 +322,35 @@ function adoptFromDisk(s: RegistryState): void {
     });
   }
 
-  for (const d of (Array.isArray(finished) ? finished : []) as any[]) {
+  for (const d of (Array.isArray(finished) ? finished : []) as Partial<Session>[]) {
     if (!d || typeof d.sessionId !== "string" || s.sessions.has(d.sessionId)) continue;
     const logPath = typeof d.logPath === "string" ? d.logPath : "";
     if (!logPath || !fs.existsSync(logPath)) continue; // log pruned — drop the record
     s.sessions.set(d.sessionId, {
       sessionId: d.sessionId,
       cardId: typeof d.cardId === "number" ? d.cardId : null,
-      action: d.action,
-      status: d.status === "error" ? "error" : "done",
+      action: d.action as AgentAction,
+      // A saved terminal state comes back as itself; anything unrecognized reads
+      // as `done`, the one state that claims nothing beyond "it ended".
+      status:
+        d.status === "error" || d.status === "interrupted" ? d.status : "done",
       startedAt: d.startedAt || Date.now(),
       endedAt: typeof d.endedAt === "number" ? d.endedAt : undefined,
       input: typeof d.input === "string" ? d.input : undefined,
-      resumable: d.resumable === true,
+      // A session saved before the harness was recorded carries no name, so it
+      // gets no resume handoff — every harness resumes differently, and the one
+      // thing worse than a missing button is a command for the wrong agent. Same
+      // for a run whose harness never reported its own id before we lost sight
+      // of it: no id, no handoff.
+      harness: typeof d.harness === "string" ? d.harness : "",
+      resumeId: typeof d.resumeId === "string" ? d.resumeId : undefined,
+      resumedFrom: typeof d.resumedFrom === "string" ? d.resumedFrom : undefined,
       ok: typeof d.ok === "boolean" ? d.ok : undefined,
       code: d.code ?? null,
       error: typeof d.error === "string" ? d.error : undefined,
       // No in-memory tail/result survives a restart — getSession() reads the log file.
       tail: "",
       logPath,
-      outcomeUnknown: d.outcomeUnknown === true,
     });
   }
 
@@ -344,15 +381,22 @@ function reconcileStatuses(s: RegistryState): void {
 // Adopted sessions have no 'close' event, so reap them by polling the pid.
 // Called on every read so the UI's poll drives the check — no background timer
 // needed.
+//
+// A pid that vanished on us is an INTERRUPTED run, never a finished one. The UI
+// server that spawned it died mid-run; whatever the agent did after that, nobody
+// witnessed the end of it, so there is no exit code, no final message, and no
+// reason to believe the work is complete. Calling that `done` told the user the
+// card had been dealt with when the run had in fact been cut off — so it gets its
+// own terminal state, which reads as unfinished and offers Resume.
 function reapAdopted(s: RegistryState): void {
   let changed = false;
   for (const r of s.sessions.values()) {
     if (r.status === "running" && r.adopted && !pidAlive(r.pid)) {
-      r.status = "done";
+      r.status = "interrupted";
       r.code = null; // exit code is unknown across a restart
-      r.outcomeUnknown = true; // finished out of our sight — no pass/fail to show
+      // `ok` stays unset: we saw neither a pass nor a failure.
       // We only know it ended by the time we noticed, so this duration is an
-      // upper bound — the UI marks it approximate (see outcomeUnknown).
+      // upper bound — the UI marks it approximate.
       r.endedAt = Date.now();
       stampDuration(r, r.endedAt);
       clearSessionStatus(r);
@@ -523,26 +567,18 @@ export function startSession(req: AgentRequest, prompt: string): StartResult {
   reapAdopted(s);
 
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null;
-  if (cardId !== null) {
-    const live = liveSessionForCard(s, cardId);
-    if (live) {
-      return { ok: false, error: `#${cardId} is already being ${VERB[live.action]}` };
-    }
-  }
+  const locked = lockedBy(s, req.action, cardId);
+  if (locked) return { ok: false, error: locked };
 
-  // One-at-a-time actions (create): refuse a second while one is live, across all
-  // tabs. The per-card lock above doesn't cover a create — it has no card id yet.
-  if (SINGLETON_ACTIONS.has(req.action)) {
-    for (const r of s.sessions.values()) {
-      if (r.status === "running" && r.action === req.action) {
-        return { ok: false, error: `a task is already being ${VERB[req.action]}` };
-      }
-    }
-  }
-
-  // Generate the id up front so it's the registry key AND (for a claude agent)
-  // the id we pass to `--session-id` — one id, known before the child spawns.
+  // Generate the id up front so it's the registry key AND (for a harness that
+  // can pin one) the id we hand the CLI — one id, known before the child spawns.
   const sessionId = randomUUID();
+  // The one read of the harness setting for this whole run. Everything the run
+  // needs comes out of it here, at the start — not later, when the child finally
+  // spawns (an index action waits on the lock first, and the user may well have
+  // flipped the picker by then). A run therefore always uses one harness end to
+  // end: its command, its env, its parser, and the name recorded against it.
+  const run = startRun(sessionId);
   const session: Session = {
     sessionId,
     cardId,
@@ -550,15 +586,147 @@ export function startSession(req: AgentRequest, prompt: string): StartResult {
     status: "running",
     startedAt: Date.now(),
     input: sessionInput(req),
-    resumable: isClaudeAgent(),
+    harness: run.name,
+    // No `resumeId` here on purpose. A fresh run under a harness that takes our
+    // id needs none — resumeIdOf derives it — and a harness that mints its own
+    // has nothing to record yet: catchResumeId fills this in the moment its
+    // output reports one.
     tail: "",
     logPath: path.join(sessionsDir(), `${sessionId}.log`),
   };
   s.sessions.set(sessionId, session);
   persist(s);
 
-  void launch(s, session, prompt); // fire and forget
+  void launch(s, session, run, prompt); // fire and forget
   return { ok: true, sessionId };
+}
+
+// The locks every new session passes, whether it's a fresh action or a resumed
+// one: one live session per card, and one live create/propose across the whole
+// board. Returns the message to refuse with, or undefined when the way is clear.
+// Called synchronously at the start, so a double-click or a second tab can't slip
+// two sessions past it.
+function lockedBy(s: RegistryState, action: AgentAction, cardId: number | null): string | undefined {
+  if (cardId !== null) {
+    const live = liveSessionForCard(s, cardId);
+    if (live) return `#${cardId} is already being ${VERB[live.action]}`;
+  }
+  // One-at-a-time actions (create): refuse a second while one is live, across all
+  // tabs. The per-card lock above doesn't cover a create — it has no card id yet.
+  if (SINGLETON_ACTIONS.has(action)) {
+    for (const r of s.sessions.values()) {
+      if (r.status === "running" && r.action === action) {
+        return `a task is already being ${VERB[action]}`;
+      }
+    }
+  }
+  return undefined;
+}
+
+// Send one more turn into a run that failed: same agent, same conversation, and
+// the prompt is just "continue" (see RESUME_PROMPT). It runs as a session of its
+// own — its own id, its own log file, its own process — carrying the failed run's
+// action and card, so the card lock, the `implementing` stage and the index lock
+// all apply exactly as they did the first time.
+//
+// And it REPLACES the run it continues: once it has started, the old session is
+// dropped from the registry and its log file deleted. The two are one piece of
+// work — the same conversation, carried on — so the panel keeps one row for it,
+// the one that is still going, rather than a chain of dead attempts behind it.
+// The cost is that the earlier run's log goes with it: what the agent did before
+// it stopped is no longer readable once you resume. `resumedFrom` survives as the
+// mark that this run began as someone else's.
+//
+// Only a run that stopped short can be resumed — one that failed, or one that was
+// interrupted (its pid vanished when the UI died, so it never reached an end).
+// Both left work unfinished in the same conversation. A passing run has nothing
+// to continue, and a running one is still going; both are refused here as well as
+// hidden in the UI, since the button and the registry are polled a second and a
+// half apart.
+export function resumeSession(sessionId: string): StartResult {
+  const s = state();
+  reapAdopted(s);
+
+  const prev = s.sessions.get(sessionId);
+  if (!prev) return { ok: false, error: "that session is no longer in the registry" };
+  if (prev.status === "running") return { ok: false, error: "that session is still running" };
+  if (!canPickUp(prev)) {
+    return { ok: false, error: "only a failed or interrupted session can be resumed" };
+  }
+  const resumeId = resumeIdOf(prev);
+  if (!resumeId) return { ok: false, error: "that session never reported an id to resume by" };
+  const run = resumeRun(prev.harness, resumeId);
+  if (!run) return { ok: false, error: `the current agent can't resume that session` };
+
+  const locked = lockedBy(s, prev.action, prev.cardId);
+  if (locked) return { ok: false, error: locked };
+
+  const newId = randomUUID();
+  const session: Session = {
+    sessionId: newId,
+    cardId: prev.cardId,
+    action: prev.action,
+    status: "running",
+    startedAt: Date.now(),
+    // No `input`: the note the user typed is already in the conversation being
+    // resumed — repeating it here would read as a second instruction they never
+    // gave. `resumedFrom` is what this run has to say for itself.
+    harness: run.name,
+    resumeId: run.resumeId ?? undefined,
+    resumedFrom: prev.sessionId,
+    tail: "",
+    logPath: path.join(sessionsDir(), `${newId}.log`),
+  };
+  s.sessions.set(newId, session);
+  // The new run has the conversation now, so the old record is dropped here —
+  // after every refusal above, never before one. A resume that couldn't start
+  // leaves the run it would have continued exactly as it was, still offering its
+  // button.
+  forget(s, prev);
+  persist(s);
+
+  void launch(s, session, run, RESUME_PROMPT); // fire and forget, like startSession
+  return { ok: true, sessionId: newId };
+}
+
+// Drop a session from the registry and take its log with it. Only for a session
+// something else has taken over (see resumeSession) — the record and the file are
+// one thing, so leaving the log would strand a file nothing can open, and it would
+// still count against the kept-30 window, aging out logs that ARE reachable.
+function forget(s: RegistryState, r: Session): void {
+  s.sessions.delete(r.sessionId);
+  try {
+    fs.unlinkSync(r.logPath);
+  } catch {
+    // already pruned, or never written — the record is gone either way
+  }
+}
+
+// A run that stopped short of finishing, so there is something left to continue:
+// it failed, or it was interrupted. The one test behind both the Resume button
+// and the refusal above, so the UI and the server can't drift on what's offered.
+function canPickUp(r: Session): boolean {
+  return r.status === "error" || r.status === "interrupted";
+}
+
+// The id this run's conversation is resumed by — the HARNESS's id for it, which
+// is a different thing from `sessionId`, our key for the run. They coincide in one
+// case, and that case is the common one: a run we started fresh under a harness
+// that takes the id we generate (Claude Code pins it with `--session-id`) IS its
+// conversation, so the id needs no recording and a record that never stored one
+// still resumes.
+//
+// The two cases where the id came from somewhere else, and only the field can
+// answer:
+//   • the harness minted its own mid-run and reported it (Codex's `thread_id`) —
+//     until that arrives there is genuinely no id to continue by;
+//   • THIS run is a later turn of an earlier conversation (started by Resume). It
+//     carries that conversation's id, not our new key: `--resume <id>` continues
+//     the old thread and takes no `--session-id` of its own, so deriving from
+//     `sessionId` here would hand the CLI an id it has never seen.
+function resumeIdOf(r: Session): string | undefined {
+  if (adoptsSessionId(r.harness) && !r.resumedFrom) return r.sessionId;
+  return r.resumeId;
 }
 
 function liveSessionForCard(s: RegistryState, cardId: number): Session | undefined {
@@ -568,7 +736,12 @@ function liveSessionForCard(s: RegistryState, cardId: number): Session | undefin
   return undefined;
 }
 
-async function launch(s: RegistryState, session: Session, prompt: string): Promise<void> {
+async function launch(
+  s: RegistryState,
+  session: Session,
+  run: ActiveHarness,
+  prompt: string,
+): Promise<void> {
   // Serialize the shared-file rewrites; other actions spawn straight away.
   const release = INDEX_ACTIONS.has(session.action)
     ? await acquireIndexLock(s)
@@ -593,12 +766,12 @@ async function launch(s: RegistryState, session: Session, prompt: string): Promi
     setCardStatus(session.cardId, startStatus);
   }
 
-  const [cmd, ...args] = agentArgv(session.sessionId);
+  const [cmd, ...args] = run.argv;
   let child;
   try {
     child = spawn(cmd, [...args, prompt], {
       cwd: repoRoot(),
-      env: agentEnv(),
+      env: run.env,
       shell: false,
       // `claude -p` waits ~3s on a piped stdin, then logs a "no stdin data"
       // warning into our log. Close stdin so the log is only agent output.
@@ -614,15 +787,19 @@ async function launch(s: RegistryState, session: Session, prompt: string): Promi
   session.pid = child.pid;
   persist(s);
 
-  // stdout is the agent's NDJSON event stream (see agentArgv) — render it to
-  // readable lines as it arrives. stderr is plain text and passes through.
-  const renderer = createStreamRenderer();
+  // stdout is the agent's event stream (see the harness's extraArgs) — render it
+  // to readable lines as it arrives, with the parser its own harness brings.
+  // stderr is plain text and passes through.
+  const renderer = run.renderer;
   const append = (str: string) => {
     if (!str) return;
     log.write(str);
     session.tail = (session.tail + str).slice(-TAIL_MAX);
   };
-  child.stdout.on("data", (d: Buffer) => append(renderer.push(d.toString())));
+  child.stdout.on("data", (d: Buffer) => {
+    append(renderer.push(d.toString()));
+    catchResumeId(s, session, renderer);
+  });
   child.stderr.on("data", (d: Buffer) => append(d.toString()));
   child.on("error", (err) => {
     session.error = String(err);
@@ -630,6 +807,7 @@ async function launch(s: RegistryState, session: Session, prompt: string): Promi
   });
   child.on("close", (code) => {
     append(renderer.flush());
+    catchResumeId(s, session, renderer); // the id may have been in the last partial line
     // Stamp the elapsed time through the same stream (not an appendFileSync
     // after log.end(), which would race the stream's pending flush), and hand the
     // exact instant to finish() so the file and the registry agree.
@@ -648,6 +826,20 @@ async function launch(s: RegistryState, session: Session, prompt: string): Promi
     finish(s, session, { ok: code === 0, code, endedAt });
     release();
   });
+}
+
+// A harness that mints its own session id reports it out of its output stream,
+// so the id shows up partway through the run. Save it the moment it does — and
+// persist at once, since a UI restart a second later would otherwise leave a
+// finished run with no way to resume it. First one wins: an agent that names its
+// id more than once is still one conversation. A harness that adopted our id has
+// no `resumeId` on its renderer and never reaches past the first check.
+function catchResumeId(s: RegistryState, session: Session, renderer: StreamRenderer): void {
+  if (session.resumeId || !renderer.resumeId) return;
+  const id = renderer.resumeId();
+  if (!id) return;
+  session.resumeId = id;
+  persist(s);
 }
 
 function finish(
@@ -672,7 +864,10 @@ function finish(
 
 // --- reading the registry (for the UI poll) ---------------------------------
 
-function toView(r: Session, withTail: boolean): SessionView {
+// `resumable` is the harness a failed run could be resumed under right now (see
+// resumableHarness) — read once per registry read and passed in, not re-read for
+// every session in the list.
+function toView(r: Session, withTail: boolean, resumable: string | null): SessionView {
   return {
     sessionId: r.sessionId,
     cardId: r.cardId,
@@ -684,13 +879,17 @@ function toView(r: Session, withTail: boolean): SessionView {
     // session has no duration yet; its pulse dot carries it instead.
     durationMs: r.status !== "running" && r.endedAt ? r.endedAt - r.startedAt : undefined,
     input: r.input,
-    resumable: r.resumable,
+    harness: r.harness,
+    // The Resume offer, and everything it needs to be honest: the run stopped
+    // short (failed or interrupted), we know the id to continue by, and the
+    // agent that ran it is still the one the board runs — resuming a Claude Code
+    // conversation under another agent would hand it an id that means nothing
+    // there.
+    canResume: canPickUp(r) && !!resumeIdOf(r) && !!resumable && r.harness === resumable,
+    resumedFrom: r.resumedFrom,
     ok: r.ok,
     code: r.code,
     error: r.error,
-    // Terminal session whose exit we never saw (it outlived a UI restart) — the
-    // UI shows it as finished with no pass/fail mark.
-    outcomeUnknown: r.status !== "running" ? r.outcomeUnknown : undefined,
     // The agent's final message — terminal sessions only; a live one has none yet.
     result: r.status !== "running" ? r.result : undefined,
     // Only terminal sessions carry their tail here (the result overlay reads it);
@@ -703,9 +902,10 @@ function toView(r: Session, withTail: boolean): SessionView {
 export function listSessions(): SessionView[] {
   const s = state();
   reapAdopted(s);
+  const resumable = resumableHarness(); // one config read for the whole list
   return [...s.sessions.values()]
     .sort((a, b) => a.startedAt - b.startedAt)
-    .map((r) => toView(r, true));
+    .map((r) => toView(r, true, resumable));
 }
 
 // One session's view with its log tail read from the file (task #14). Used to
@@ -717,7 +917,7 @@ export function getSession(sessionId: string): SessionView | null {
   reapAdopted(s);
   const r = s.sessions.get(sessionId);
   if (!r) return null;
-  const view = toView(r, false);
+  const view = toView(r, false, resumableHarness());
   // A finished session whose final message we still hold: the tail is the
   // in-memory event text (bounded), which the UI folds under the message —
   // the file would repeat the message at the end. Otherwise — a live session, or

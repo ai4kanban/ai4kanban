@@ -9,7 +9,7 @@
 //   tag     — set/clear the [user] tag on one open question (auto-refine triage)
 //   migrate — convert old bold-header cards to the frontmatter meta format
 //   archive — move a finished task's file/folder into docs/kanban/.archive/, strip its
-//             README entry, record "completed"
+//             README entry, drop its id from other cards' blocked_by/related, record "completed"
 //   reject  — same, but delete the file/folder, record "rejected"
 //   run     — record one run of a recurring task (+1 completed); keep the card
 //
@@ -249,6 +249,45 @@ function stripReadmeRefs(target) {
   }
   if (removed.length) fs.writeFileSync(README, out.join('\n'))
   return removed
+}
+
+// ---- drop cross-references -------------------------------------------------
+
+// Remove `id` from every other card's `blocked_by`/`related`. Run when a card leaves the
+// board (archive or reject): the id is gone, so a card still listing it is blocked by
+// nothing and pointing at nothing. Without this the board keeps a card "blocked" forever
+// and reconcileCrossRefs can only warn about it.
+//
+// Edits the two list lines in place rather than re-serializing the frontmatter, so a card
+// this script never wrote keeps whatever else it has. Only the inline `[1, 2]` form the
+// script writes is matched — a hand-written block list falls through to the reconcile
+// warning instead of being silently missed.
+const REF_LIST = /^(blocked_by|related):\s*\[(.*)\]\s*$/
+
+function dropCrossRefs(id) {
+  const touched = []
+  for (const file of walkMd(TODO)) {
+    if (path.basename(file) === 'README.md') continue
+    const lines = fs.readFileSync(file, 'utf8').split('\n')
+    if (lines[0].trim() !== '---') continue
+    let end = 1
+    while (end < lines.length && lines[end].trim() !== '---') end++
+    if (end >= lines.length) continue // no closing fence — not frontmatter
+    const fields = []
+    for (let i = 1; i < end; i++) {
+      const m = lines[i].match(REF_LIST)
+      if (!m) continue
+      const refs = m[2].split(',').map((s) => s.trim()).filter(Boolean)
+      const kept = refs.filter((s) => Number(s.replace(/^#/, '')) !== id)
+      if (kept.length === refs.length) continue
+      lines[i] = `${m[1]}: [${kept.join(', ')}]`
+      fields.push(m[1])
+    }
+    if (!fields.length) continue
+    fs.writeFileSync(file, lines.join('\n'))
+    touched.push(`${path.relative(TODO, file).split(path.sep).join('/')} (${fields.join(', ')})`)
+  }
+  return touched
 }
 
 // ---- flags + validation (guards against hallucinated meta) -----------------
@@ -1185,6 +1224,9 @@ function cmdRemove(id, metric) {
   } else {
     fs.rmSync(found.target)
   }
+  // The card is off the board now, so every blocked_by/related pointing at it is stale.
+  // Runs after the move/delete, so the card's own frontmatter is already out of `todo/`.
+  const unlinked = dropCrossRefs(id)
   bumpMetric(metric)
   const what = found.kind === 'group' ? `folder ${found.rel}/` : `file ${found.rel}`
   if (dest) console.log(`archived #${id}: moved ${what} → ${rel(dest)}${found.kind === 'group' ? '/' : ''}`)
@@ -1192,6 +1234,7 @@ function cmdRemove(id, metric) {
   if (removedRefs.length) console.log(`  dropped ${removedRefs.length} README entry(ies)`)
   else console.log('  no README entry (subtask or untracked)')
   if (marked) console.log(`  ${marked === 'tick' ? 'ticked' : 'struck'} #${id} in ${rel(groupRoot)}`)
+  for (const card of unlinked) console.log(`  unlinked #${id} from ${card}`)
 }
 
 // A recurring task never archives — each run bumps "completed" but the card stays,
@@ -1419,7 +1462,8 @@ Usage: node ${rel(SELF)} <command> [args]
   migrate [--dry-run]  convert old bold-header cards to frontmatter; missing meta falls
                        back to empty / med. Skips cards that already have frontmatter.
   archive <id>         finish task <id>: move its file/folder into docs/kanban/.archive/,
-                       strip its README entry, count completed
+                       strip its README entry, drop the id from every other card's
+                       blocked_by/related, count completed
   reject  <id>         reject task <id>: same, but delete the file/folder, count rejected
   run     <id>         record one run of recurring task <id>: +1 completed, card kept (no archive)
   peek                 print the current next-id (no bump)

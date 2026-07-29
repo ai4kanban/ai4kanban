@@ -14,7 +14,10 @@ before changing a page.
 
 ## Pre-commit Checks
 - **Python**: `uv run pre-commit run --all-files`
-- **JavaScript/Typescript**: `cd web && pnpm typecheck && pnpm run lint`
+- **JavaScript/Typescript**: run in whichever app you touched — `web/` (the public site)
+  and `kanban-ui/` (the local board UI) each have their own checks. Don't use `pnpm build`.
+  - `cd web && pnpm typecheck && pnpm run lint`
+  - `cd kanban-ui && pnpm typecheck && pnpm run lint`
 
 ## Long conversation
 

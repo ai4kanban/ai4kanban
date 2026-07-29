@@ -12,7 +12,7 @@ import { createPortal } from "react-dom";
 import { FiActivity, FiX } from "react-icons/fi";
 import { getSessionAction, listSessionsAction, startAgentAction } from "@/app/actions";
 import type { SessionView } from "@/lib/types";
-import { type AgentReq, HandoffButton, SessionLog } from "./agent-shared";
+import { type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
 
 const POLL_MS = 1500; // while a session is live
 const IDLE_POLL_MS = 5000; // while nothing is running — see the effect below
@@ -117,7 +117,12 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
     [],
   );
 
-  return { sessions, start };
+  // Force an immediate poll. `start` does this itself; a caller that made the
+  // registry move some other way (resuming a failed run) uses this so the new
+  // session shows up now instead of on the next idle tick.
+  const kick = useCallback(() => kickRef.current(), []);
+
+  return { sessions, start, kick };
 }
 
 // Run `fn` each time the tab becomes visible again. A hidden tab stops polling,
@@ -261,8 +266,10 @@ function fullTime(ts: number): string {
 }
 
 // The status dot shown against each session in the list: a pulsing ember while
-// live, mint when it passed, peach when it failed, neutral when the outcome is
-// unknown (a session that outlived a UI restart — see registry).
+// live, mint when it passed, peach otherwise. Peach covers both a failed run and
+// an interrupted one (a session that outlived a UI restart — see registry): the
+// dot only says whether the run got there, and neither of those did. Which one it
+// was, and what to do about it, is the log pane's word.
 function SessionDot({ session }: { session: SessionView }) {
   if (session.status === "running") {
     return (
@@ -272,7 +279,7 @@ function SessionDot({ session }: { session: SessionView }) {
       />
     );
   }
-  const tone = session.outcomeUnknown ? "bg-nb-ink-soft" : session.ok ? "bg-nb-mint" : "bg-nb-peach";
+  const tone = session.ok ? "bg-nb-mint" : "bg-nb-peach";
   return <span className={`size-[8px] shrink-0 rounded-full ${tone}`} aria-hidden />;
 }
 
@@ -285,7 +292,7 @@ function SessionDot({ session }: { session: SessionView }) {
 export function Sessions() {
   // Poll the shared registry for the picture every tab sees. This instance never
   // starts a session, so its onFinish never fires — pass a no-op.
-  const { sessions } = useAgentSessions(() => {});
+  const { sessions, kick } = useAgentSessions(() => {});
   const panel = usePanelState();
   const runningCount = sessions.reduce((n, r) => n + (r.status === "running" ? 1 : 0), 0);
 
@@ -318,7 +325,7 @@ export function Sessions() {
           </span>
         )}
       </button>
-      {panel.open && <SessionsDialog sessions={sessions} />}
+      {panel.open && <SessionsDialog sessions={sessions} onStarted={kick} />}
     </>
   );
 }
@@ -328,7 +335,15 @@ export function Sessions() {
 // blurred, backdrop-filtered header can't become the scrim's containing block and
 // trap it. Mounts only while open, so the selected session's log is tailed only
 // when visible.
-function SessionsDialog({ sessions }: { sessions: SessionView[] }) {
+function SessionsDialog({
+  sessions,
+  onStarted,
+}: {
+  sessions: SessionView[];
+  // Called when the dialog itself put a session into the registry (Resume), so
+  // the poll wakes at once and the new run joins the list without a wait.
+  onStarted: () => void;
+}) {
   const panel = usePanelState();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -344,11 +359,16 @@ function SessionsDialog({ sessions }: { sessions: SessionView[] }) {
   // so the panel always opens on something.
   const ordered = [...sessions].sort((a, b) => b.startedAt - a.startedAt);
   const selectedId = panel.selected ?? ordered[0]?.sessionId ?? null;
-  const selected = ordered.find((r) => r.sessionId === selectedId) ?? null;
   // Tail the selected session's log from the file — live while running, one fetch
   // when done. The list entry carries the input and (for finished sessions) the
   // tail, so the pane fills in before the tail loads.
   const log = useSessionLog(selectedId);
+  // The list is a poll behind: a session this dialog just started by resuming a
+  // failed run isn't in `sessions` yet. Its own fetch already has it, so that
+  // stands in until the next tick rather than flashing the empty pane.
+  const selected =
+    ordered.find((r) => r.sessionId === selectedId) ??
+    (log?.sessionId === selectedId ? log : null);
   const input = (log?.input ?? selected?.input ?? "").trim();
 
   if (!mounted) return null;
@@ -430,9 +450,23 @@ function SessionsDialog({ sessions }: { sessions: SessionView[] }) {
                     <span className="text-[12px] text-nb-ink-soft">#{selected.cardId}</span>
                   )}
                   <span className="text-[11px] text-nb-ink-soft">{fullTime(selected.startedAt)}</span>
-                  {(log?.resumable ?? selected.resumable) && (log?.sessionId ?? selected.sessionId) && (
+                  {/* A run started by Resume says so — otherwise it reads as a
+                      second identical run of the same action out of nowhere. */}
+                  {selected.resumedFrom && <span className="nb-tag">resumed</span>}
+                  {/* Only a run that stopped short — failed or interrupted —
+                      offers Resume, and the freshly polled `log` wins over the
+                      list entry: the poll that drew this row may be a second and
+                      a half old. Selecting the new session moves the panel onto
+                      it, so the log tail plays on. */}
+                  {(log?.canResume ?? selected.canResume) && (
                     <span className="ml-auto">
-                      <HandoffButton sessionId={(log?.sessionId ?? selected.sessionId) as string} />
+                      <ResumeButton
+                        sessionId={selected.sessionId}
+                        onResumed={(id) => {
+                          sessionsPanel.select(id);
+                          onStarted();
+                        }}
+                      />
                     </span>
                   )}
                 </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { FiBox, FiCheckCircle, FiChevronDown, FiFlag, FiHelpCircle, FiLayers, FiPlayCircle, FiUser } from "react-icons/fi";
+import { FiBox, FiCheckCircle, FiChevronDown, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import type { QuestionTag } from "@/lib/questions";
 import type { CardStatus } from "@/lib/types";
@@ -147,6 +147,25 @@ export function GroupChip() {
       style={{ background: "var(--color-nb-lilac-soft)", color: "var(--color-nb-lilac-ink)" }}
     >
       <FiLayers aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+    </span>
+  );
+}
+
+// Blocked marker — the card's `blocked_by` still names an open card, so starting
+// it now means starting out of order. Peach, the same colour the card page gives
+// its Blocked-by chips, so the two read as one thing. Icon-only like GroupChip:
+// the board's chip row is tight, and the tooltip carries which cards are in the
+// way. A marker only — the card stays on the board and every button still works.
+export function BlockedChip({ blockers }: { blockers: { id: number; title: string }[] }) {
+  const ids = blockers.map((b) => `#${b.id}`).join(", ");
+  return (
+    <span
+      className="nb-chip nb-tip"
+      tabIndex={0}
+      data-tip={`Blocked — ${ids} ${blockers.length === 1 ? "is" : "are"} still open`}
+      style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
+    >
+      <FiLock aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
     </span>
   );
 }

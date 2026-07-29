@@ -17,6 +17,12 @@ export interface StreamRenderer {
   flush(): string;
   /** The agent's final message, once the `result` event has arrived. */
   result(): string | undefined;
+  /** The id this harness's own CLI resumes by, once its output has reported one.
+   *  Only harnesses that mint their own id mid-run implement this — one that
+   *  adopts the id we generate (Claude Code, via `--session-id`) knows it before
+   *  the run starts and leaves this out. The registry polls it while the stream
+   *  runs and saves the id with the session the moment it arrives. */
+  resumeId?(): string | undefined;
 }
 
 // One short hint per tool call: the argument a human would recognize the call

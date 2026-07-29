@@ -51,3 +51,6 @@ export function modulesPath(): string {
 export function uiConfigPath(): string {
   return path.join(kanbanDir(), "ui.config.json");
 }
+export function metricsPath(): string {
+  return path.join(kanbanDir(), "metrics.csv");
+}

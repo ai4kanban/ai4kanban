@@ -4,14 +4,21 @@
 // instead of going through HTTP API routes. Reads the board, fires an agent, and
 // applies direct edits, all against the markdown files in docs/kanban/.
 
-import { buildPrompt, type AgentRequest } from "@/lib/agent";
+import { type AgentRequest, buildPrompt, HARNESSES } from "@/lib/agent";
 import { readBoard } from "@/lib/board";
-import { setAutoRefine } from "@/lib/config";
+import { setAutoRefine, setHarness, setHarnessModel } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
 import { patchCard, type CardPatch } from "@/lib/edit";
 import { readGoalText, writeGoalText } from "@/lib/goal";
+import { type MetricsResult, readMetrics } from "@/lib/metrics";
 import { readModules } from "@/lib/modules";
-import { getSession, listSessions, startSession, type StartResult } from "@/lib/registry";
+import {
+  getSession,
+  listSessions,
+  resumeSession,
+  startSession,
+  type StartResult,
+} from "@/lib/registry";
 import type { Board, SessionView } from "@/lib/types";
 
 export async function getBoard(): Promise<Board> {
@@ -45,6 +52,17 @@ export async function startAgentAction(req: AgentRequest): Promise<StartResult> 
   return startSession(req, prompt);
 }
 
+// Continue a failed run's conversation: a new session on the same card and the
+// same action, spawned with the agent's resume flags and a "continue" prompt.
+// Returns the NEW session's id (or a refusal message) exactly like starting one,
+// so the panel can select it and watch it the same way. The registry re-checks
+// that the run really did fail and really can be resumed — the button is drawn
+// from a poll that's up to a second and a half stale.
+export async function resumeSessionAction(sessionId: string): Promise<StartResult> {
+  if (typeof sessionId !== "string" || !sessionId) return { ok: false, error: "no session given" };
+  return resumeSession(sessionId);
+}
+
 // The shared session registry, for the UI's poll. Every tab reads the same picture.
 // The UI polls this continuously, so it's also where we make sure the background
 // auto-refine dispatcher (#43) is running — idempotent, so a poll from any tab
@@ -76,6 +94,15 @@ export async function saveGoalAction(text: string): Promise<{ ok: boolean; error
   return writeGoalText(text);
 }
 
+// The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv.
+// Read once each time the view opens; the file changes a few times a day at
+// most, so there's nothing to poll. A file that can't be read comes back as
+// { ok:false, error }, the way the other actions report failures, so the
+// message survives to the client instead of becoming a server-render error.
+export async function getMetricsAction(): Promise<MetricsResult> {
+  return readMetrics();
+}
+
 export async function patchCardAction(
   id: number,
   patch: CardPatch,
@@ -85,7 +112,28 @@ export async function patchCardAction(
 
 // Flip the global auto-refine switch (#41), persisted to docs/kanban/ui.config.json.
 // Returns { ok:false, error } on a parse/write failure so the toggle can revert
-// and surface the message; keeps the agent `command` untouched.
+// and surface the message; keeps the `harness` setting untouched.
 export async function setAutoRefineAction(on: boolean): Promise<{ ok: boolean; error?: string }> {
   return setAutoRefine(Boolean(on));
+}
+
+// Save the agent the user picked in the Configuration dialog (#68), persisted to
+// the same file. The name is checked against the harnesses this build ships, so
+// a stale client can't write a setting nothing can run. Running sessions are
+// untouched — each read the setting when it started.
+export async function setHarnessAction(name: string): Promise<{ ok: boolean; error?: string }> {
+  if (typeof name !== "string" || !HARNESSES.some((h) => h.name === name)) {
+    return { ok: false, error: `unknown agent "${name}"` };
+  }
+  return setHarness(name);
+}
+
+// Save the model id typed in the Configuration dialog (#71), persisted to the
+// same file. Free text: model ids change between agent releases, so the board
+// checks nothing beyond it being a string — the agent is the only validator, and
+// a bad id shows up as a failed run with the reason in its log. Empty clears the
+// setting, and the agent runs its own default.
+export async function setHarnessModelAction(model: string): Promise<{ ok: boolean; error?: string }> {
+  if (typeof model !== "string") return { ok: false, error: "the model must be text" };
+  return setHarnessModel(model);
 }

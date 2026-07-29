@@ -13,6 +13,7 @@ content — no navigation, styling, or scripts.
 - [Home — your task board in Markdown, right next to your code](https://ai4kanban.dev/index.md): What the skill is, how to install it in one prompt, driving the board in plain language, the local board UI, the indie-hacker preset, and Markdown project management (recurring tasks, group tasks, project memory, metrics).
 - [AI4Kanban vs. GitHub Issues](https://ai4kanban.dev/vs-github-issues.md): A head-to-head across storage, token cost, agent ergonomics, teams, and transparency — a local Markdown scratch-board vs. a shared, public system of record, and when to use each.
 - [AI4Kanban vs. Hermes Agent Kanban](https://ai4kanban.dev/vs-hermes-kanban.md): Two overlapping agent kanban boards — plain diffable files that run on any agent (even Hermes) vs. a durable, shared SQLite queue many named agents claim tasks from. Covers harness support, memory vs. audit, autonomy level, dashboards, and trade-offs.
+- [AI4Kanban vs. Vibe Kanban](https://ai4kanban.dev/vs-vibe-kanban.md): Vibe Kanban shut down when Bloop wound down in April 2026. A planning board your agent edits as plain files in your repo vs. a cockpit that runs many coding agents in parallel — the honest difference, and what carries over.
 
 ## Recipes
 

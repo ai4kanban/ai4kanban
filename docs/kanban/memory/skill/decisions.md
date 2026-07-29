@@ -33,6 +33,14 @@ re-ask a settled call.
   what it's sure of and ends either `ready` or holding only the questions a human must
   answer.
 
+## Where the skill folder lives
+
+- **Who decides where the skill folder lives?**: the user's installer, not us. Each agent
+  reads its own folder — `.claude/skills/kanban/` for Claude Code, `.agents/skills/kanban/`
+  for Codex — and an installer like `npx skills add` asks which agents to install for. We
+  copy, move or link nothing. The skill only stops naming one agent's folder in its own
+  instructions, so it runs from whichever folder it sits in.
+
 ## Storage
 
 - The GitHub Projects backend is wanted but parked — nothing is built until we pick it up.

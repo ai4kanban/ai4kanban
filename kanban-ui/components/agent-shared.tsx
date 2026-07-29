@@ -6,7 +6,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiCheck, FiCopy, FiZap } from "react-icons/fi";
+import { FiPlay, FiZap } from "react-icons/fi";
+import { resumeSessionAction } from "@/app/actions";
 import { useDraft, useDraftList } from "@/lib/draft";
 import { parseQuestion } from "@/lib/questions";
 import type { AgentAction, Card, SessionView } from "@/lib/types";
@@ -163,25 +164,33 @@ export function SessionLog({
 
   if (!session) return null;
   const running = session.status === "running";
-  // A session that outlived a UI restart finished out of our sight: show it as
-  // done with no pass/fail mark — don't guess an outcome we never saw.
-  const unknown = !running && session.outcomeUnknown;
+  // The run was cut off — the UI died mid-run and the agent ended out of our
+  // sight. It never reached an end, so it is never worded as one: "interrupted",
+  // not "finished", and Resume is offered as it is on a failure.
+  const interrupted = session.status === "interrupted";
   // No word while running — the pulse dot already signals progress.
-  const state = running ? "" : unknown ? "finished" : session.ok ? "done" : `exited ${session.code ?? "?"}`;
-  // How long it took, next to the outcome: "done · 4m 12s". An `unknown` session
+  const state = running
+    ? ""
+    : interrupted
+      ? "interrupted"
+      : session.ok
+        ? "done"
+        : `exited ${session.code ?? "?"}`;
+  // How long it took, next to the outcome: "done · 4m 12s". An interrupted run
   // ended out of our sight and was only noticed on the next pid poll — that's an
   // upper bound, not a measurement, so it's marked "~".
   const took =
     running || session.durationMs === undefined
       ? ""
-      : `${unknown ? "~" : ""}${formatDuration(session.durationMs)}`;
+      : `${interrupted ? "~" : ""}${formatDuration(session.durationMs)}`;
 
-  // Live/passed/failed/unknown indicator, shared by both layouts.
+  // Live/passed/failed/interrupted indicator, shared by both layouts. Interrupted
+  // gets its own glyph in blocker ink: not the ✓ of a clean run, and not the ✕ of
+  // a run that ended badly on its own — a run that was cut off.
   const indicator = running ? (
     <span className={PULSE_DOT} aria-hidden />
-  ) : unknown ? (
-    // Neutral dot — finished, but outcome unknown, so no ✓/✕.
-    <span aria-hidden style={{ color: "var(--color-nb-ink-soft)" }}>•</span>
+  ) : interrupted ? (
+    <span aria-hidden style={{ color: "var(--color-nb-peach-ink)" }}>⦸</span>
   ) : (
     <span aria-hidden style={{ color: "var(--color-nb-accent-deep)" }}>{session.ok ? "✓" : "✕"}</span>
   );
@@ -283,40 +292,63 @@ export function SessionLog({
   );
 }
 
-// The handoff control: copy this session's claude-code session id so the same
-// conversation can be resumed on the command line (`claude --resume <id>`). The
-// UI can't launch a terminal, so the copy IS the handoff — the id is the one
-// thing you need to carry across. Shows a brief check on copy; only rendered for
-// a resumable (claude) session, whose id claude runs under.
-export function HandoffButton({ sessionId }: { sessionId: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
+// The recovery control on a run that stopped short: send one more turn into the
+// very conversation that died — the agent picks up where it stopped instead of
+// starting the task over. It is the same thing you would do in a terminal with
+// `claude --resume <id>`, done here, so nothing is copied and no id is ever
+// shown: the server knows which agent ran and how that agent resumes.
+//
+// Rendered only when the server says `canResume` — the run failed or was
+// interrupted, its id is known, and the agent that ran it is still the configured
+// one. A passing run has nothing to continue, so it shows no button at all.
+export function ResumeButton({
+  sessionId,
+  onResumed,
+}: {
+  sessionId: string;
+  // Told the new session's id, so the view that owns the selection can follow the
+  // resumed run instead of staying on the dead one.
+  onResumed?: (sessionId: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const resume = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
     try {
-      await navigator.clipboard.writeText(sessionId);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1400);
-    } catch {
-      // clipboard denied (non-secure origin / permission) — nothing to fall back to
+      const res = await resumeSessionAction(sessionId);
+      // A refusal is the registry's own words — the card is locked by another
+      // run, the session aged out of the kept-30 window. Say it and leave the
+      // button alive to try again.
+      if (res.ok && res.sessionId) onResumed?.(res.sessionId);
+      else setError(res.error || "couldn't resume that session");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
     }
   };
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={copy}
-      aria-label="Copy conversation id to resume in claude code"
-      title={copied ? "copied — resume with: claude --resume <id>" : "copy conversation id to resume in claude code"}
-      // The same ghost sticker as the other quiet controls (header buttons,
-      // dialog cancels), shrunk to meta-row scale — it sits inside full nb
-      // panels, so it wears the ink frame + press shadow like everything else.
-      // Labeled "Copy ID" because the behavior IS a clipboard copy — the resume
-      // happens later, in the CLI. The copied state tints ember; the frame stays.
-      className={`shrink-0 gap-1 rounded-[7px] px-2 py-1 text-[11px] font-[700] ${copied ? "bg-nb-accent-soft text-nb-accent-deep" : ""
-        }`}
-    >
-      {copied ? <FiCheck className="text-[12px]" aria-hidden /> : <FiCopy className="text-[12px]" aria-hidden />}
-      {copied ? "Copied" : "Copy ID"}
-    </Button>
+    <span className="flex shrink-0 items-center gap-2">
+      {error && <span className="text-[11px] text-nb-peach-ink">{error}</span>}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={resume}
+        disabled={busy}
+        title="Continue this run's conversation where it failed"
+        // The same ghost sticker as the other quiet controls (header buttons,
+        // dialog cancels), shrunk to meta-row scale — it sits inside full nb
+        // panels, so it wears the ink frame + press shadow like everything else.
+        // Quiet, not the ember CTA: it starts an agent, but on a run that already
+        // went wrong, so it invites rather than urges.
+        className="gap-1 rounded-[7px] px-2 py-1 text-[11px] font-[700]"
+      >
+        <FiPlay className="text-[12px]" aria-hidden />
+        {busy ? "Resuming…" : "Resume"}
+      </Button>
+    </span>
   );
 }
 
@@ -326,7 +358,17 @@ export function HandoffButton({ sessionId }: { sessionId: string }) {
 // block for the fixed scrim and trap it inside the header (the board then paints
 // over it). The panel is height-capped so a long log scrolls instead of running
 // off-screen.
-export function SessionLogOverlay({ session, onClose }: { session: SessionView | null; onClose: () => void }) {
+export function SessionLogOverlay({
+  session,
+  onClose,
+  onResumed,
+}: {
+  session: SessionView | null;
+  onClose: () => void;
+  // Resuming a failed run starts a new session; the overlay follows it, so the
+  // owner of `session` is handed the new id to watch.
+  onResumed?: (sessionId: string) => void;
+}) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -364,7 +406,9 @@ export function SessionLogOverlay({ session, onClose }: { session: SessionView |
         <div className="flex shrink-0 items-center justify-between px-5 py-3" style={{ borderBottom: "1.5px solid var(--color-nb-ink)" }}>
           <h2 className="text-[15px] font-[800]">{title}</h2>
           <div className="flex items-center gap-3">
-            {session?.resumable && session.sessionId && <HandoffButton sessionId={session.sessionId} />}
+            {session?.canResume && (
+              <ResumeButton sessionId={session.sessionId} onResumed={onResumed} />
+            )}
             <button aria-label="Close" className="text-[18px] text-nb-ink-soft hover:text-nb-ink" onClick={onClose}>×</button>
           </div>
         </div>
@@ -374,6 +418,44 @@ export function SessionLogOverlay({ session, onClose }: { session: SessionView |
       </div>
     </div>,
     document.body,
+  );
+}
+
+// A warning the user has to answer before the action can run: the reason, then a
+// checkbox that says it back in their own voice. The whole box is the label, so
+// the click target is the paragraph-sized box, not a 15px square. Tones are the
+// two the board already speaks — `peach` for a blocker (something else must land
+// first), `accent` for a softer "this may not be ready".
+function WarningBox({
+  tone,
+  ack,
+  onAck,
+  ackLabel,
+  children,
+}: {
+  tone: "peach" | "accent";
+  ack: boolean;
+  onAck: (v: boolean) => void;
+  ackLabel: string;
+  children: React.ReactNode;
+}) {
+  const skin =
+    tone === "peach"
+      ? "bg-nb-peach-soft text-nb-peach-ink accent-nb-peach-ink"
+      : "bg-nb-accent-soft text-nb-accent-deep accent-nb-accent-deep";
+  return (
+    <label className={`mb-3 block cursor-pointer rounded-[8px] px-3 py-2 text-[12.5px] leading-relaxed ${skin}`}>
+      <span className="block">{children}</span>
+      <span className="mt-2 flex items-start gap-2 font-[700]">
+        <input
+          type="checkbox"
+          checked={ack}
+          onChange={(e) => onAck(e.target.checked)}
+          className="mt-[2px] size-[14px] shrink-0 cursor-pointer"
+        />
+        {ackLabel}
+      </span>
+    </label>
   );
 }
 
@@ -397,31 +479,64 @@ export function ActionDialog({
   // clears the draft once the session has actually started.
   const draftKey = dialog.kind === "create" ? "create" : `${dialog.kind}:${dialog.card.id}`;
   const [text, setText, clearDraft] = useDraft(draftKey);
+  // "Yes, I know" for a warned action (see the implement branch). Deliberately NOT
+  // persisted like the note draft is: closing the dialog drops it, so every open
+  // asks again. The dialog unmounts on close, so this resets on its own.
+  const [ack, setAck] = useState(false);
   const run = (req: AgentReq, label: string) => {
     clearDraft();
     onRun(req, label);
   };
 
   if (dialog.kind === "implement") {
-    // Warn but allow: `ready` means the plan is vetted and safe to build. On any
-    // other stage the card may still be vague, so show a warning — the user
-    // can still go ahead.
-    const notReady = dialog.card.status !== "ready";
+    // Two warnings, and never both at once — the stronger one wins. `blocked_by`
+    // is the strong one: another open card has to land first, so building this
+    // now means building on something that isn't there. It only ever names live
+    // cards — archiving or rejecting a card drops its id from every other card's
+    // blocked_by (kanban.mjs), so a leftover blocker can't linger here. `ready`
+    // is the soft one: the plan may still be rough.
+    //
+    // Either way the user can still go ahead — they know things the board doesn't
+    // — but going ahead is never the easy path. The warning box carries its own
+    // "I know" checkbox, and until it's ticked the confirm button is dead: no
+    // single click reaches an agent run the board said not to start. Ticking it
+    // wakes a quiet outlined button, not the ember CTA — the eye lands on Cancel.
+    const blockers = dialog.card.blocked_by;
+    const notReady = blockers.length === 0 && dialog.card.status !== "ready";
+    const warned = blockers.length > 0 || notReady;
     return (
       <Dialog title={`Implement #${dialog.card.id}`} onClose={onClose}>
         <p className={INTRO}>
           The agent reads the card, does the work, and checks off the todos.
         </p>
+        {blockers.length > 0 && (
+          <WarningBox
+            tone="peach"
+            ack={ack}
+            onAck={setAck}
+            ackLabel={`I know ${blockers.map((n) => `#${n}`).join(", ")} ${blockers.length === 1 ? "isn't" : "aren't"} done yet.`}
+          >
+            This card is blocked by {blockers.map((n) => `#${n}`).join(", ")}, still open on the
+            board. Finish {blockers.length === 1 ? "that card" : "those cards"} first.
+          </WarningBox>
+        )}
         {notReady && (
-          <p className="mb-3 rounded-[8px] bg-nb-accent-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-accent-deep">
+          <WarningBox
+            tone="accent"
+            ack={ack}
+            onAck={setAck}
+            ackLabel="I know the plan may still be rough."
+          >
             This card isn&apos;t marked <strong>ready</strong> yet — its plan may still be
-            rough. Let auto-refine take it to ready first, or implement anyway.
-          </p>
+            rough. Let auto-refine take it to ready first.
+          </WarningBox>
         )}
         <textarea className={INPUT} rows={4} placeholder="Optional extra notes for the agent…" value={text} onChange={(e) => setText(e.target.value)} />
         <DialogButtons
           onClose={onClose}
-          confirmLabel={notReady ? "Implement anyway" : "Implement"}
+          confirmLabel={warned ? "Implement anyway" : "Implement"}
+          risky={warned}
+          disabled={warned && !ack}
           onConfirm={() => run({ action: "implement", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Implement #${dialog.card.id}`)}
         />
       </Dialog>
@@ -680,7 +795,7 @@ function ResolveDialog({
       <p className={INTRO}>
         Answer what you know; the agent researches the rest and writes it to the card. Real judgment
         calls stay open for you. <strong>Resolve &amp; implement</strong> also builds the task, but
-        only if nothing's left for you to decide.
+        only if nothing&apos;s left for you to decide.
       </p>
       <div className="flex flex-col gap-3.5">
         {card.questions.map((q, i) => {
@@ -733,16 +848,30 @@ export function DialogButtons({
   onConfirm,
   confirmLabel,
   disabled,
+  risky,
 }: {
   onClose: () => void;
   onConfirm: () => void;
   confirmLabel: string;
   disabled?: boolean;
+  // The confirm goes against what the board just told the user (implementing a
+  // blocked card, say). It drops the ember fill for a quiet outlined button in
+  // blocker ink, so the row's only CTA-weight mark is Cancel — the safe way out
+  // is the one the eye lands on. Pair it with `disabled` until the user ticks
+  // the warning's checkbox, so the button is never a single stray click away.
+  risky?: boolean;
 }) {
   return (
     <div className="mt-4 flex justify-end gap-2.5">
       <Button variant="ghost" onClick={onClose}>Cancel</Button>
-      <Button disabled={disabled} onClick={onConfirm}>{confirmLabel}</Button>
+      <Button
+        variant={risky ? "ghost" : "accent"}
+        className={risky ? "border-nb-peach-ink text-nb-peach-ink" : undefined}
+        disabled={disabled}
+        onClick={onConfirm}
+      >
+        {confirmLabel}
+      </Button>
     </div>
   );
 }

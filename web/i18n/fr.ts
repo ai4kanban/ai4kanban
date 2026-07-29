@@ -278,7 +278,7 @@ const fr: SiteCopy = {
       },
       metrics: {
         title: "Métriques des tâches",
-        body: "Chaque carte archivée est une unité livrée : votre vitesse n'est donc qu'un nombre dans git, juste à côté du travail. Pas de tableau de bord, pas d'outil séparé.",
+        body: "Chaque carte archivée est une unité livrée : votre vitesse n'est donc qu'un nombre dans git, juste à côté du travail. Aucun outil externe à tenir synchronisé.",
         chart: {
           aria: "Débit quotidien sur douze jours : tâches totales, terminées, créées et rejetées.",
           series: {

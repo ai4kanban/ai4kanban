@@ -29,6 +29,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   agent badge into ONE configuration (gear) icon button that opens a single Configuration
   dialog; global settings (auto-refine, the agent connector) live inside it, so the header
   stays one quiet icon instead of growing a control per setting.
+- ❌ **A settings file that repeats a name inside its own setting** (`harness.settings.<name>`
+  under `harness.name`) → ✅ keep `ui.config.json` flat: the name and that thing's settings
+  sit side by side (`harness: { name, command, model }`). Switching drops the settings that
+  belonged to the old choice — nesting a block per choice to save them is machinery for a
+  case almost nobody hits.
 - ❌ **A recurring-task feature that only adds a Run button** → ✅ say how runs start without
   a click: the server's dispatcher runs due cards on a card-set cadence — scheduling is the
   server's job, never an in-session loop like Claude Code's `/loop`.

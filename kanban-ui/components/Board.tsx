@@ -1,15 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiHelpCircle } from "react-icons/fi";
 import { getBoard } from "@/app/actions";
 import type { AgentInfo, Board } from "@/lib/types";
+import { useBoardView } from "@/lib/view";
+import { BoardCard } from "./BoardCard";
 import { GoalBar } from "./GoalBar";
 import { Header } from "./Header";
-import { RUNNING_VERB, RunningBadge, SessionLogOverlay } from "./agent-shared";
-import { GroupChip, PriorityChip, RoiTag, StatusPill, TodoProgress } from "./chips";
-import { parseQuestion } from "@/lib/questions";
+import { QueueView } from "./Queue";
+import { SessionLogOverlay } from "./agent-shared";
 import { runningSessionForCard, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 export function BoardView({
@@ -31,6 +30,9 @@ export function BoardView({
   // running badge. The board has no inline session log of its own.
   const [logSessionId, setLogSessionId] = useState<string | null>(null);
   const openLog = useSessionLog(logSessionId);
+  // Kanban columns or the queue's two halves (#70). Remembered per project in
+  // the browser, so the board opens the way you left it.
+  const [view, setView] = useBoardView(projectRoot);
 
   const refresh = useCallback(async () => {
     try {
@@ -65,7 +67,15 @@ export function BoardView({
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-nb-cream">
-      <Header agent={agent} projectRoot={projectRoot} autoRefine={autoRefine} onError={setError} />
+      <Header
+        agent={agent}
+        projectRoot={projectRoot}
+        autoRefine={autoRefine}
+        sessions={sessions}
+        onError={setError}
+        view={view}
+        onViewChange={setView}
+      />
 
       {error && (
         <div className="mx-6 mt-4 nb-panel-sm p-3 text-[13px]" style={{ background: "var(--color-nb-peach-soft)" }}>
@@ -82,7 +92,11 @@ export function BoardView({
         <div className="p-10 text-nb-ink-soft">Reading the board…</div>
       )}
 
-      {board && (
+      {board && view === "queue" && (
+        <QueueView board={board} sessions={sessions} onOpenLog={setLogSessionId} />
+      )}
+
+      {board && view === "kanban" && (
         <div className="flex min-h-0 flex-1 items-stretch gap-4 overflow-x-auto p-6">
           {board.columns.map((col) => (
             <section
@@ -101,95 +115,34 @@ export function BoardView({
                 {col.cards.length === 0 && (
                   <p className="text-[12px] italic text-nb-ink-soft">no open cards</p>
                 )}
-                {col.cards.map((card) => {
-                  // A group root's progress comes from its own todo checklist, not
-                  // from counting subtask files: a finished subtask gets archived
-                  // and its file removed, so the files on disk only cover the OPEN
-                  // subtasks and would undercount done work. The root's `## Todo`
-                  // stays accurate across archives, so it drives the bar.
-                  // Group-ness is the reader's flag (the folder has a root.md),
-                  // not a subtask count — the count drops to zero once every
-                  // subtask is finished, and the chip would vanish right then.
-                  const isGroup = card.isGroup;
-                  // The one live session on this card (any tab), if any. It drives
-                  // the action-named badge that stands in for the saved-stage pill.
-                  const liveSession = runningSessionForCard(sessions, card.id);
-                  return (
-                  <Link
+                {col.cards.map((card) => (
+                  <BoardCard
                     key={card.id}
-                    href={`/${card.id}`}
-                    className="nb-panel-sm nb-press block cursor-pointer p-3.5 text-left"
-                  >
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="text-[12px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
-                        #{card.id}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        {isGroup && <GroupChip />}
-                        {liveSession ? (
-                          <RunningBadge
-                            label={RUNNING_VERB[liveSession.action]}
-                            onClick={(e) => {
-                              // The card is a link; keep the click on the badge.
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setLogSessionId(liveSession.sessionId);
-                            }}
-                          />
-                        ) : (
-                          <StatusPill status={card.status} />
-                        )}
-                        {card.questions.length > 0 &&
-                          (() => {
-                            const total = card.questions.length;
-                            const userCount = card.questions.filter(
-                              (q) => parseQuestion(q).tag === "user",
-                            ).length;
-                            // A `[user]` question waits on the human (accent); the
-                            // rest auto-refine still works on its own (quieter).
-                            const tip =
-                              `${total} open question${total === 1 ? "" : "s"}` +
-                              (userCount > 0
-                                ? ` · ${userCount} need${userCount === 1 ? "s" : ""} you`
-                                : "");
-                            return (
-                              <span
-                                tabIndex={0}
-                                className="nb-tip inline-flex"
-                                data-tip={tip}
-                                style={{
-                                  color:
-                                    userCount > 0
-                                      ? "var(--color-nb-accent)"
-                                      : "var(--color-nb-ink-soft)",
-                                }}
-                              >
-                                <FiHelpCircle aria-hidden style={{ width: 14, height: 14 }} />
-                              </span>
-                            );
-                          })()}
-                        {card.todos.total > 0 && (
-                          <TodoProgress done={card.todos.done} total={card.todos.total} />
-                        )}
-                      </span>
-                    </div>
-                    <p className="mb-3 text-[14px] font-[700] leading-snug tracking-[-0.01em]">
-                      {card.title}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                      <PriorityChip value={card.priority} />
-                      <RoiTag value={card.roi} />
-                    </div>
-                  </Link>
-                  );
-                })}
+                    card={card}
+                    // The one live session on this card (any tab), if any. It
+                    // drives the action-named badge that stands in for the
+                    // saved-stage pill.
+                    liveSession={runningSessionForCard(sessions, card.id)}
+                    onOpenLog={setLogSessionId}
+                    // No track chip here — the column heading above already
+                    // says which track this card is in.
+                  />
+                ))}
               </div>
             </section>
           ))}
         </div>
       )}
 
-      {logSessionId && <SessionLogOverlay session={openLog} onClose={() => setLogSessionId(null)} />}
+      {logSessionId && (
+        <SessionLogOverlay
+          session={openLog}
+          onClose={() => setLogSessionId(null)}
+          // Resuming swaps the overlay onto the run that continues the failed
+          // one, so the tail keeps playing instead of freezing on the dead log.
+          onResumed={setLogSessionId}
+        />
+      )}
     </div>
   );
 }

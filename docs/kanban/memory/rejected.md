@@ -12,3 +12,6 @@ before proposing so you don't re-suggest them.
 
 - **Mute cards you can't start yet** — the `ready` label on cards already shows what's ready
   to implement and, by absence, what you can't start yet, so a second "waiting" signal is redundant.
+- **Open-questions notification center in the header** — no clear incentive to build it; open
+  questions already show on the card. Worth revisiting later if the board grows a
+  human-in-the-loop center.
