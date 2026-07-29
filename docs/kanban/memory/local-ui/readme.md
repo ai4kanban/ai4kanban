@@ -13,3 +13,4 @@ covers it, or a plain-words note.
 - Type the model the agent runs with in the Configuration dialog, instead of hand-editing a command: `kanban-ui/README.md`.
 - See on the board which cards are waiting on another card, and which card is in the way: `kanban-ui/README.md`.
 - See which card auto-refine is on right now, from a **Refining #&lt;id&gt;** label beside the switch: `kanban-ui/README.md`.
+- Flip the header to **Queue** to see the same cards split into ready to build and not ready, instead of by track: `kanban-ui/README.md`.

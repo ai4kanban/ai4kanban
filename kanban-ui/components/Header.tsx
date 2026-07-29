@@ -23,6 +23,11 @@ import { Sessions } from "./sessions";
 // and `onViewChange` and it appears, leave them off and it doesn't. Only the
 // board has two layouts to switch between — on a card page the switch would
 // either do nothing or jump you off the card.
+//
+// On a narrow screen the row has to stay one line, so the text that is only
+// context gives way first: the path badge drops to the folder name, the view
+// switch and Create task go icon-only. Nothing is removed — every control is
+// still there at the same 36px tap size, just without its label.
 export function Header({
   agent,
   projectRoot,
@@ -42,32 +47,33 @@ export function Header({
 }) {
   return (
     <header
-      className="sticky top-0 z-20 flex items-center justify-between px-6 py-3.5 backdrop-blur-sm"
+      className="sticky top-0 z-20 flex items-center justify-between gap-2 px-3 py-2.5 backdrop-blur-sm sm:gap-3 sm:px-6 sm:py-3.5"
       style={{
         background: "color-mix(in srgb, var(--color-nb-cream) 90%, transparent)",
         borderBottom: "1.5px solid color-mix(in srgb, var(--color-nb-ink) 14%, transparent)",
       }}
     >
-      <div className="flex items-baseline gap-3">
+      <div className="flex min-w-0 items-baseline gap-2 sm:gap-3">
         <Link
           href="/"
-          className="text-[17px] font-[800] tracking-[-0.02em] hover:text-nb-accent-deep"
+          className="whitespace-nowrap text-[17px] font-[800] tracking-[-0.02em] hover:text-nb-accent-deep"
         >
           🗂️ Kanban
         </Link>
         <span
           title={`${projectRoot}/docs/kanban`}
-          className="flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[11px] text-nb-ink-soft"
+          className="hidden min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[11px] text-nb-ink-soft sm:flex"
           style={{
             background: "color-mix(in srgb, var(--color-nb-ink) 5%, transparent)",
             border: "1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent)",
           }}
         >
           <FiFolder className="shrink-0 opacity-70" size={12} />
-          {projectRoot}
+          <span className="truncate lg:hidden">{projectRoot.split("/").pop()}</span>
+          <span className="hidden truncate lg:inline">{projectRoot}</span>
         </span>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
         {view && onViewChange && <ViewSwitch view={view} onChange={onViewChange} />}
         <Progress />
         <Sessions />
@@ -87,6 +93,8 @@ export function Header({
 // sticker buttons: the views are one choice with two answers, and the filled
 // segment says which one you are looking at without a second mark. It shares the
 // 36px frame of the header's other buttons so the row still reads as one strip.
+// Below `sm` the labels go screen-reader-only and the two icons carry it — the
+// filled segment still says which view is on, and `title` still names both.
 const VIEWS: { key: BoardViewMode; label: string; icon: typeof FiColumns }[] = [
   { key: "kanban", label: "Board", icon: FiColumns },
   { key: "queue", label: "Queue", icon: FiList },
@@ -118,14 +126,14 @@ function ViewSwitch({
                 : "Queue — what you can start now"
             }
             onClick={() => onChange(key)}
-            className="inline-flex h-full cursor-pointer items-center gap-1.5 rounded-[6px] px-2.5 text-[12px] font-[700] transition-colors"
+            className="inline-flex h-full cursor-pointer items-center gap-1.5 rounded-[6px] px-2 text-[12px] font-[700] transition-colors sm:px-2.5"
             style={{
               background: on ? "var(--color-nb-accent-soft)" : "transparent",
               color: on ? "var(--color-nb-accent-deep)" : "var(--color-nb-ink-soft)",
             }}
           >
             <Icon aria-hidden style={{ width: 13, height: 13, flex: "0 0 auto" }} />
-            {label}
+            <span className="sr-only sm:not-sr-only">{label}</span>
           </button>
         );
       })}

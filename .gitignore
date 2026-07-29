@@ -1,5 +1,6 @@
 # Dogfooding symlink -> skill/ (avoids syncing edits across two paths)
 .claude/
+.agents/
 
 # Per-install version stamp (written by INSTALL/UPDATE prompts, not source)
 skill/.version

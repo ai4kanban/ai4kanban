@@ -38,7 +38,12 @@ export function BoardCard({
   return (
     <Link
       href={`/${card.id}`}
-      className="nb-panel-sm nb-press block cursor-pointer p-3.5 text-left"
+      // Column flex + `mt-auto` on the badge row: in the queue's grid the cards
+      // in a row stretch to the tallest one, and a one-line title would leave
+      // its badges floating mid-card. This pins them to the bottom edge. No
+      // `h-full` — grid items stretch on their own, and in the kanban column
+      // (a flex stack) it would blow one card up to the column's full height.
+      className="nb-panel-sm nb-press flex cursor-pointer flex-col p-3.5 text-left"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-[12px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
@@ -95,7 +100,7 @@ export function BoardCard({
         </span>
       </div>
       <p className="mb-3 text-[14px] font-[700] leading-snug tracking-[-0.01em]">{card.title}</p>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
         {showTrack && <TrackChip track={card.track} />}
         <PriorityChip value={card.priority} />
         <RoiTag value={card.roi} />

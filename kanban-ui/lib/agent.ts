@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { uiConfigPath } from "./paths";
 import { createStreamRenderer, type StreamRenderer } from "./stream";
-import type { AgentAction, AgentInfo, HarnessOption } from "./types";
+import type { AgentAction, AgentInfo, Boldness, HarnessOption } from "./types";
 
 // --- the harnesses ----------------------------------------------------------
 // A harness is one way to run an agent, and everything that differs between two
@@ -298,8 +298,19 @@ export interface AgentRequest {
   reason?: string; // reject
   description?: string; // create
   module?: string; // propose: the focus module (a name from modules.md)
+  boldness?: Boldness; // propose: how big a swing the 3 tasks take
   andImplement?: boolean; // resolve: keep going and implement once the questions settle
 }
+
+// What each boldness level tells a propose run. The rule lives in the skill
+// ("Boldness" in `references/propose.md`); these lines name the level and gloss
+// it in one clause, so the agent doesn't have to guess what the user meant by
+// the word. `normal` is the skill's default size, so it adds nothing.
+const BOLDNESS_LINE: Record<Boldness, string> = {
+  safe: `Boldness: **safe** (see "Boldness" in references/propose.md) — small moves that polish or fill gaps in what already works.`,
+  normal: "",
+  bold: `Boldness: **bold** (see "Boldness" in references/propose.md) — each of the 3 is a big leap: a whole new capability for the module, usually broad enough to be a group task.`,
+};
 
 export function buildPrompt(req: AgentRequest): string {
   const tag = req.id ? `#${req.id}` : "";
@@ -349,9 +360,16 @@ export function buildPrompt(req: AgentRequest): string {
         req.module
           ? `Focus on the "${req.module}" module — read its memory set and propose all 3 tasks inside it.`
           : `Pick one focus module yourself (per references/propose.md) and propose all 3 tasks inside it.`,
+        // How big a swing the 3 take. The levels are the skill's — see
+        // "Boldness" in references/propose.md — so this only names the one the
+        // user picked, with a one-clause gloss. `normal` is the skill's own
+        // default, so it says nothing.
+        BOLDNESS_LINE[req.boldness ?? "normal"],
         `Create the cards only, don't implement them.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
-      ].join(" ");
+      ]
+        .filter(Boolean)
+        .join(" ");
     case "auto-refine":
       return [
         `/kanban. Auto-refine task ${req.id} ${named} following \`references/auto-refine.md\`: triage and answer its open questions, then move the plan one step forward.`,

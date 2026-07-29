@@ -10,7 +10,7 @@ import { FiPlay, FiZap } from "react-icons/fi";
 import { resumeSessionAction } from "@/app/actions";
 import { useDraft, useDraftList } from "@/lib/draft";
 import { parseQuestion } from "@/lib/questions";
-import type { AgentAction, Card, SessionView } from "@/lib/types";
+import type { AgentAction, Boldness, Card, SessionView } from "@/lib/types";
 import { Button } from "./button";
 import { QuestionTagBadge } from "./chips";
 import { Dialog } from "./Dialog";
@@ -32,14 +32,16 @@ const INPUT =
 // ink-soft meta text under the bold ink title.
 const INTRO = "mb-3 text-[13px] leading-relaxed text-nb-ink-soft";
 
-// The create dialog's focus-module chips: the nb-chip shape a step up from the
-// board's 10.5px meta chips — these are tap targets, not passive labels. ON is
-// the row's single ember mark; DIM is the disabled look the not-in-effect side
-// wears (auto-pick ↔ the module names) — still clickable, hover wakes it.
-const MODULE_CHIP =
+// The create dialog's picker chips — the focus module and the boldness: the
+// nb-chip shape a step up from the board's 10.5px meta chips, because these are
+// tap targets, not passive labels. ON is a row's single ember mark; OFF is the
+// resting look; DIM is the disabled look the not-in-effect side of the module
+// row wears (auto-pick ↔ the module names) — still clickable, hover wakes it.
+const PICK_CHIP =
   "inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] px-2.5 py-[5px] text-[12px] font-[700] uppercase leading-none tracking-[0.04em] transition-[color,background-color,opacity]";
-const MODULE_CHIP_ON = "bg-nb-accent-soft text-nb-accent-deep";
-const MODULE_CHIP_DIM = "bg-nb-wash text-nb-ink-soft opacity-45 hover:opacity-100 hover:text-nb-ink";
+const PICK_CHIP_ON = "bg-nb-accent-soft text-nb-accent-deep";
+const PICK_CHIP_OFF = "bg-nb-wash text-nb-ink-soft hover:text-nb-ink";
+const PICK_CHIP_DIM = "bg-nb-wash text-nb-ink-soft opacity-45 hover:opacity-100 hover:text-nb-ink";
 
 export interface AgentReq {
   action: AgentAction;
@@ -48,6 +50,7 @@ export interface AgentReq {
   reason?: string;
   description?: string;
   module?: string;
+  boldness?: Boldness;
   title?: string;
   andImplement?: boolean;
 }
@@ -616,9 +619,9 @@ export function ActionDialog({
 //   • Describe — a textarea for what you want; the agent runs add-task and
 //     infers the modules itself (references/add-task.md step 1).
 //   • Propose — no textarea (there's nothing to describe); the agent walks one
-//     module as a user and proposes 3 new tasks (references/propose.md). The
-//     focus module is picked from a chip row that shows every module at a
-//     glance, with "agent picks" as the default chip.
+//     module as a user and proposes 3 new tasks (references/propose.md). Two
+//     chip rows steer it instead: WHERE the tasks land (the focus module, with
+//     "auto-pick" as the default chip) and HOW BIG they are (the boldness).
 function CreateDialog({
   modules,
   onClose,
@@ -631,6 +634,9 @@ function CreateDialog({
   const [text, setText, clearDraft] = useDraft("create");
   const [mode, setMode] = useState<"describe" | "propose">("describe");
   const [module, setModule] = useState("");
+  // How big a swing the 3 tasks take. "normal" is the size a propose run has
+  // always written, so it's the default and travels as no instruction at all.
+  const [boldness, setBoldness] = useState<Boldness>("normal");
   const propose = mode === "propose";
   const run = (req: AgentReq, label: string) => {
     clearDraft();
@@ -679,29 +685,24 @@ function CreateDialog({
       </p>
 
       {propose ? (
-        // The focus-module chips — every module visible at a glance, one tap to
-        // focus. "Auto-pick" (the AI default, led by a zap mark) sits apart from
-        // the module names behind a hairline divider so it doesn't read as a
-        // module itself. The two sides are an either/or: whichever isn't in
-        // effect dims to a disabled look, but stays clickable — that's how you
-        // switch. No module map → no row; the agent picks anyway.
-        modules.length > 0 && (
-          <div>
-            <span className="mb-2 block text-[12px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
-              Focus module
-            </span>
-            {/* What the pick does — a quiet one-liner so the row isn't a bare
-                list of names. */}
-            <p className="mb-2 text-[12px] leading-relaxed text-nb-ink-soft">
-              Pick the part of the product you want new tasks in — all 3 land inside it. Leave it
-              on “auto-pick” and the agent chooses the part that needs work most.
-            </p>
-            <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-col gap-4">
+          {/* The focus-module chips — every module visible at a glance, one tap
+              to focus. "Auto-pick" (the AI default, led by a zap mark) sits
+              apart from the module names behind a hairline divider so it doesn't
+              read as a module itself. The two sides are an either/or: whichever
+              isn't in effect dims to a disabled look, but stays clickable —
+              that's how you switch. No module map → no row; the agent picks
+              anyway. */}
+          {modules.length > 0 && (
+            <PickerSection
+              label="Focus module"
+              blurb="Pick the part of the product you want new tasks in — all 3 land inside it. Leave it on “auto-pick” and the agent chooses the part that needs work most."
+            >
               <button
                 type="button"
                 onClick={() => setModule("")}
                 aria-pressed={module === ""}
-                className={`${MODULE_CHIP} ${module === "" ? MODULE_CHIP_ON : MODULE_CHIP_DIM}`}
+                className={`${PICK_CHIP} ${module === "" ? PICK_CHIP_ON : PICK_CHIP_DIM}`}
               >
                 <FiZap className="text-[12px]" aria-hidden />
                 auto-pick
@@ -715,21 +716,39 @@ function CreateDialog({
                     type="button"
                     onClick={() => setModule(m)}
                     aria-pressed={selected}
-                    className={`${MODULE_CHIP} ${
-                      selected
-                        ? MODULE_CHIP_ON
-                        : module === ""
-                          ? MODULE_CHIP_DIM
-                          : "bg-nb-wash text-nb-ink-soft hover:text-nb-ink"
+                    className={`${PICK_CHIP} ${
+                      selected ? PICK_CHIP_ON : module === "" ? PICK_CHIP_DIM : PICK_CHIP_OFF
                     }`}
                   >
                     {m}
                   </button>
                 );
               })}
-            </div>
-          </div>
-        )
+            </PickerSection>
+          )}
+
+          {/* How big a swing the 3 take. Same chip row as the module pick, so
+              the two reads as one pair of dials: where the tasks land, and how
+              big they are. The picked level's own words sit under the row — one
+              line changes as you tap, instead of three lines of small print
+              spelling out every level at once. */}
+          <PickerSection label="Boldness" blurb="How big a move each of the 3 tasks is.">
+            {BOLDNESS_LEVELS.map((b) => (
+              <button
+                key={b.key}
+                type="button"
+                onClick={() => setBoldness(b.key)}
+                aria-pressed={boldness === b.key}
+                className={`${PICK_CHIP} ${boldness === b.key ? PICK_CHIP_ON : PICK_CHIP_OFF}`}
+              >
+                {b.label}
+              </button>
+            ))}
+            <p className="mt-2 basis-full text-[12px] leading-relaxed text-nb-ink-soft">
+              {BOLDNESS_LEVELS.find((b) => b.key === boldness)?.blurb}
+            </p>
+          </PickerSection>
+        </div>
       ) : (
         <textarea
           className={INPUT}
@@ -747,11 +766,67 @@ function CreateDialog({
         disabled={!propose && !text.trim()}
         onConfirm={() =>
           propose
-            ? run({ action: "propose", module: module || undefined }, "Propose tasks")
+            ? run(
+                {
+                  action: "propose",
+                  module: module || undefined,
+                  // "normal" is what a propose run does on its own — send it as
+                  // nothing, so only a level the user actually reached for
+                  // reaches the prompt.
+                  boldness: boldness === "normal" ? undefined : boldness,
+                },
+                "Propose tasks",
+              )
             : run({ action: "create", description: text.trim() }, "Create task")
         }
       />
     </Dialog>
+  );
+}
+
+// The three boldness levels, in order of how big a swing they take, with the
+// words the dialog shows for each. What the levels MEAN to the agent is the
+// skill's ("Boldness" in references/propose.md) — these blurbs say the same
+// thing in the user's terms, so the row isn't three bare adjectives.
+const BOLDNESS_LEVELS: { key: Boldness; label: string; blurb: string }[] = [
+  {
+    key: "safe",
+    label: "safe",
+    blurb: "Small moves — polish a rough edge, fill a gap in something that already works.",
+  },
+  {
+    key: "normal",
+    label: "normal",
+    blurb: "A feature each — one card a session can finish. This is what a propose run does on its own.",
+  },
+  {
+    key: "bold",
+    label: "bold",
+    blurb:
+      "A big leap each — a whole new capability for the module. A task that big usually lands as a group task with its own subtasks.",
+  },
+];
+
+// One labelled row in the propose tab: the uppercase kicker, a quiet one-liner
+// under it, then the chips. Both picks (focus module, boldness) wear this, so
+// they read as one pair of dials rather than two separate widgets.
+function PickerSection({
+  label,
+  blurb,
+  children,
+}: {
+  label: string;
+  blurb: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <span className="mb-2 block text-[12px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
+        {label}
+      </span>
+      <p className="mb-2 text-[12px] leading-relaxed text-nb-ink-soft">{blurb}</p>
+      <div className="flex flex-wrap items-center gap-1.5">{children}</div>
+    </div>
   );
 }
 

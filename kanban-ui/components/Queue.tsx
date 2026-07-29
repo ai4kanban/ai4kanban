@@ -38,7 +38,10 @@ export function QueueView({
   const implementingCount = ready.length - readyCount;
 
   return (
-    <div className="flex min-h-0 flex-1 items-stretch gap-4 overflow-hidden p-6">
+    // Two halves side by side is a desktop shape. On a phone each one is far
+    // narrower than a card, so below `md` they stack and the whole view scrolls
+    // as one — ready first, which is the half you came here for.
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 md:flex-row md:items-stretch md:overflow-hidden md:p-6">
       <Half
         title="Ready to build"
         count={`${readyCount} ready · ${implementingCount} implementing`}
@@ -57,11 +60,11 @@ export function QueueView({
   );
 }
 
-// One half: the same wash panel a kanban column sits in, but half the screen
-// wide and scrolling on its own, so filling one side never pushes the other off.
+// One half: the same wash panel a kanban column sits in, half the screen wide.
 // The cards inside lay out as a grid that wraps to the width instead of a single
 // stack — the half is wide enough for several across, and a one-card-wide column
-// in half a screen would be mostly empty space.
+// in half a screen would be mostly empty space. On a phone the grid falls back
+// to one card per row, which is all that fits.
 function Half({
   title,
   count,
@@ -77,7 +80,10 @@ function Half({
 }) {
   return (
     <section
-      className="flex min-w-0 flex-1 flex-col rounded-[14px] p-3"
+      // Stacked on a phone the half is as tall as its cards and the page
+      // scrolls; side by side it takes half the width and scrolls on its own,
+      // so filling one side never pushes the other off.
+      className="flex min-w-0 shrink-0 flex-col rounded-[14px] p-3 md:min-h-0 md:shrink md:flex-1"
       style={{ background: "var(--color-nb-wash)" }}
     >
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -87,11 +93,11 @@ function Half({
         </h2>
         <span className="text-[12px] text-nb-ink-soft">{count}</span>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pl-px pr-1 pt-px pb-1">
+      <div className="min-h-0 overflow-x-hidden pl-px pr-1 pt-px pb-1 md:flex-1 md:overflow-y-auto">
         {cards.length === 0 ? (
           <p className="text-[12px] italic text-nb-ink-soft">no open cards</p>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
             {cards.map((card) => (
               <BoardCard
                 key={card.id}

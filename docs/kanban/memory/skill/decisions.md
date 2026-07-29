@@ -35,11 +35,11 @@ re-ask a settled call.
 
 ## Where the skill folder lives
 
-- **Who decides where the skill folder lives?**: the user's installer, not us. Each agent
-  reads its own folder — `.claude/skills/kanban/` for Claude Code, `.agents/skills/kanban/`
-  for Codex — and an installer like `npx skills add` asks which agents to install for. We
-  copy, move or link nothing. The skill only stops naming one agent's folder in its own
-  instructions, so it runs from whichever folder it sits in.
+- **Who decides where the skill folder lives?**: our install prompt does, and it never asks
+  which agents you use — it copies the skill into both `.claude/skills/kanban/` (Claude
+  Code) and `.agents/skills/kanban/` (Codex). The skill names no agent's folder in its own
+  instructions, so it also runs from wherever another installer — `npx skills add`, a
+  plugin — put it.
 
 ## Storage
 

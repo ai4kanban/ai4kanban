@@ -96,6 +96,12 @@ export interface Board {
   goalWeak: boolean;
 }
 
+/** How big a swing a propose run takes. `safe` polishes what already works,
+ *  `normal` is a feature-sized card, `bold` is a big move — a whole capability,
+ *  usually a group task. The three levels are defined in the skill
+ *  (`references/propose.md`, "Boldness"); this is only the name the UI sends. */
+export type Boldness = "safe" | "normal" | "bold";
+
 export type AgentAction =
   | "implement"
   | "reject"

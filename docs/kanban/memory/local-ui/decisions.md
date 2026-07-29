@@ -100,6 +100,10 @@ re-ask a settled call.
   wrong line there and fix it in your own editor. Memory is plain unstructured text the
   user owns, like their code, and a text box in the board is no better than an IDE. The
   goal bar stays the one file the UI writes.
+- **How do you get from a wrong line to fixing it?**: Each section has a "more" menu with
+  Copy path and Copy relative path. You copy the path and hand it to your coding agent or
+  your editor. The UI never opens the file for you, and what you do with the path is your
+  business.
 
 ## Setting up a board from the UI
 

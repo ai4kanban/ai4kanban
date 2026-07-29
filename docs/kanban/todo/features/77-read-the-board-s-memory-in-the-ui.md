@@ -7,8 +7,7 @@ status: todo
 blocked_by: []
 related: []
 modules: [local-ui]
-questions:
-  - "[user] Memory is view-only, so how do you get from a wrong line to fixing it? (a) each section shows its file path as plain text you copy into your editor; (b) the path is a link that opens the file in your editor. Recommend (a) — (a) already tells you where to go, and a link that launches an app works on some machines and not others."
+questions: []
 ---
 
 Add a Memory view to the UI, so you can read what the agent remembers — what shipped, what
@@ -34,14 +33,18 @@ was settled, what was turned down — without opening files in an editor.
 - Everything here is read-only. Memory is plain text the user owns, like their code, and a
   text box in the board is no better than the editor they already have. You read a wrong
   line here and fix it there.
+- Each section has a small "more" menu with two items: **Copy path** and **Copy relative
+  path**. That is how you get from a wrong line to the file that holds it — paste the path
+  into your editor, or hand it to your coding agent and tell it what to change. The board
+  does not open the file for you.
 - A module with no memory folder yet says so plainly, and so does a file that isn't there.
 - No agent run starts from this view. Compressing memory stays a flow you ask for.
 
 ## What the user does
 - Opens Memory and reads what the agent decided, so the last three proposals stop looking
   arbitrary.
-- Finds a settled decision that no longer holds, sees which file holds it, and fixes that
-  line in their own editor.
+- Finds a settled decision that no longer holds, copies that file's path from the section
+  menu, and gives it to their coding agent — or opens it in their editor — to fix the line.
 
 ## Decided by the agent
 - One view for every scope, or one view per module? One view with a scope picker. Propose
@@ -51,13 +54,18 @@ was settled, what was turned down — without opening files in an editor.
 - Does a read-only view still show the goal? Yes, in the project scope. Reading it beside
   the memory is the point; the goal bar stays the only place the UI writes `goal.md`.
 - Its own page or a dialog? A dialog from the header, like Daily progress and Runs.
+- What do the two copy items copy? "Copy relative path" copies the path from the repo root,
+  e.g. `docs/kanban/memory/local-ui/decisions.md` — the form you paste to an agent working
+  in that repo. "Copy path" copies the full path on disk.
+- Does the goal section get the menu too? Yes. Every section that shows a file has it.
 
 ## Todo
 - [ ] Add the Memory button to the header and the view it opens.
 - [ ] Show the project's four memory files, plus the goal, rendered as markdown.
 - [ ] Add the module picker and show that module's four files.
 - [ ] Handle a module with no memory folder yet, and a file that does not exist.
-- [ ] Point at where each section's file lives, in the form the open question settles on.
+- [ ] Give each section a "more" menu with Copy path and Copy relative path, and show that
+      the copy worked.
 - [ ] Update `kanban-ui/README.md` to describe the Memory view.
 - [ ] Open the UI, switch between the project and a module, and check each file reads the
       same as it does on disk.

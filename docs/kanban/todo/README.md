@@ -21,7 +21,6 @@ _(none)_
 - [#64 Run a recurring task from the UI](features/64-run-a-recurring-task-from-the-ui.md)
 - [#67 Handle a failed agent run instead of just marking it red](features/67-handle-a-failed-agent-run-instead-of-just-marking-it-red.md)
 - [#69 Support Codex CLI as the agent harness](features/69-support-codex-cli-as-the-agent-harness.md)
-- [#70 Add a queue view that splits ready cards from the rest](features/70-add-a-queue-view-that-splits-ready-cards-from-the-rest.md)
 - [#79 Set up a board from the UI when the repo has none](features/79-set-up-a-board-from-the-ui-when-the-repo-has-none.md)
 - [#77 Read the board's memory in the UI](features/77-read-the-board-s-memory-in-the-ui.md)
 - [#80 Say what the agent must be allowed to do before a button works](features/80-say-what-the-agent-must-be-allowed-to-do-before-a-button-wor.md)

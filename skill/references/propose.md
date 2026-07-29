@@ -45,5 +45,23 @@ All inside the focus; none already on the board, already shipped (in the publish
 `references/refine.md`). Write each
 with the "Add a task" flow in `SKILL.md`.
 
+### Boldness
+
+How big a move each of the 3 is. Whoever asks for the run picks one; **normal** unless
+they say otherwise. It changes the size of the idea, never the count — 3 either way.
+
+- **safe** — polish a rough edge, or fill a gap in something that already works. No new
+  surface: the user's story is the one they play today, just without the stumble.
+- **normal** — a feature each: one card a session can finish. The default size.
+- **bold** — a big leap each: a whole new capability for the module, something the user
+  can't do today at all. Judge it against the long-term goal in
+  `docs/kanban/memory/goal.md`, not against the current rough edges — a bold task is a
+  step toward the horizon. A task this big is normally broad enough to split into
+  subtasks that need splitting again, so write it as a **group task** (see "Group task"
+  in `SKILL.md`); write it as one card only if the split truly doesn't earn its folder.
+
+Boldness is a size, not a licence: a bold task still has to be new (not on the board, not
+shipped, not in `rejected.md`) and still gets written with the "Add a task" flow.
+
 A propose run writes no memory. `readme.md` is the finish flow's record — a scan reads
 it and leaves it alone.

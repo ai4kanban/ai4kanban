@@ -44,7 +44,9 @@ The header carries five things:
 - **Board / Queue** — the two views above.
 - **Create task** — describe an idea in your words and the agent writes the card. The same
   dialog has a **Propose 3 tasks** mode: pick a module (or let the agent pick one) and it
-  proposes three new tasks inside it.
+  proposes three new tasks inside it. A **Boldness** row sets how big those tasks are —
+  `safe` polishes what already works, `normal` is a feature each, and `bold` asks for a big
+  leap each: a whole new capability, usually written as a group task.
 - **Runs** — every agent session, live or finished. Open one to read its log. A finished run
   can be continued with a follow-up prompt; that starts a new run.
 - **Daily progress** (the chart) — the last 30 days of the board, as a line each for

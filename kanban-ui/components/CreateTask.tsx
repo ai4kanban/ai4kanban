@@ -80,7 +80,10 @@ export function CreateTask() {
   return (
     <div className="relative flex items-center gap-3">
       <Button
-        className="gap-1.5"
+        // Narrow screens keep the button but drop its label — a plus in the
+        // header's own square frame, still the same tap target.
+        className="h-9 w-9 gap-1.5 rounded-[9px] p-0 sm:h-auto sm:w-auto sm:rounded-[11px] sm:px-[18px] sm:py-[10px]"
+        aria-label="Create task"
         disabled={creating}
         onClick={() => {
           setError(null);
@@ -88,7 +91,7 @@ export function CreateTask() {
         }}
       >
         <FiPlus className="text-[16px]" aria-hidden />
-        Create task
+        <span className="sr-only sm:not-sr-only">Create task</span>
       </Button>
 
       {error && (
