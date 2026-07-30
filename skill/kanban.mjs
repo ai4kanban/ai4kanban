@@ -40,7 +40,7 @@ import { fileURLToPath } from 'node:url'
 // from the manifests. `version` prints this; the install/update prompt also writes a
 // `.version` stamp (source SHA + date) next to the script for `git log` deltas — printed
 // here too when present.
-const SKILL_VERSION = '0.4.0'
+const SKILL_VERSION = '0.4.1'
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
 // The board lives at <repo>/docs/kanban. Every command runs from the repo root (SKILL.md
