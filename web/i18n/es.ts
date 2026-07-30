@@ -37,14 +37,14 @@ const es: SiteCopy = {
     meta: {
       title: "AI4Kanban — gestión de proyectos con IA que crece contigo",
       description:
-        "Gestión de proyectos con IA para Claude Code. Dale una idea vaga: el agente la descompone y la va aclarando en bucle hasta que está lista para construir. Markdown plano, en git.",
+        "Gestión de proyectos con IA para Claude Code: una skill y un tablero local. Dale una idea vaga y el agente la descompone, resuelve por su cuenta lo que puede y aclara contigo el resto hasta que queda lista para construir. Markdown plano, en git.",
       social:
-        "Dale una idea vaga. El agente la descompone, resuelve por su cuenta lo que puede y te pregunta el resto, y sigue trabajándola en segundo plano hasta que cada detalle está claro para construir.",
+        "Dale una idea vaga. El agente la descompone, resuelve por su cuenta lo que puede, te plantea el resto y sigue avanzando en segundo plano hasta que cada detalle queda lo bastante definido para construir.",
     },
     hero: {
-      badge: "Una skill de Claude Code",
+      badge: "Una skill de Claude Code + un tablero local",
       title: "Gestión de proyectos con IA\nque crece contigo.",
-      lead: "Dale una idea vaga. El agente la descompone, resuelve por su cuenta lo que puede y te pregunta el resto, y sigue trabajándola en segundo plano hasta que cada detalle está claro para construir. El tablero es Markdown plano en `docs/kanban/`: en git, sin base de datos, sin MCP.",
+      lead: "Dale una idea vaga. El agente la descompone, resuelve por su cuenta lo que puede, te plantea el resto y sigue avanzando en segundo plano hasta que cada detalle queda lo bastante definido para construir. El tablero es Markdown plano en `docs/kanban/`: versionado en git, sin base de datos y sin MCP.",
       ctaInstall: "Instálalo con un solo prompt",
       ctaGithub: "Ver en GitHub",
     },
@@ -58,35 +58,35 @@ const es: SiteCopy = {
     },
     features: {
       breakDown: {
-        title: "Descompone el trabajo",
+        title: "Descomposición autónoma",
         body: "El agente lee una idea y la parte en subtareas. Si viene enredada con una petición ajena, la separa en una tarea propia.",
       },
       clarify: {
-        title: "Aclara en bucle",
+        title: "Aclaración en bucle",
         body: "El agente empieza cuestionando la idea. Lo que puede resolver con memoria y sentido común lo resuelve solo; el resto te llega a ti. Y sigue dando vueltas hasta quedarse sin preguntas.",
       },
       alwaysOn: {
-        title: "Trabaja 24/7",
+        title: "Funcionamiento 24/7",
         body: "La descomposición y las aclaraciones siguen corriendo en segundo plano hasta que la idea se convierte en una especificación clara.",
       },
       traceable: {
-        title: "Cada decisión es rastreable",
+        title: "Decisiones trazables",
         body: "Siempre puedes ver cómo se fue formando una especificación, paso a paso.",
       },
       proposes: {
-        title: "Propone tareas por su cuenta",
+        title: "Propuestas propias",
         body: "El agente plantea funciones sacadas de la memoria de cada módulo. Vetas una y queda registrado: no volverá a proponer nada de ese estilo.",
       },
       selfEvolving: {
-        title: "Se va afinando solo",
+        title: "Evolución continua",
         body: "Cada vez que intervienes, esa decisión queda registrada y guía lo que el agente decide después. La memoria está organizada por módulo del proyecto.",
       },
       orders: {
-        title: "Ordena el trabajo",
+        title: "Dependencias y prioridades",
         body: "No solo parte tareas: detecta dependencias y pesa el retorno frente al esfuerzo, para que el trabajo avance en el orden correcto.",
       },
       lifecycle: {
-        title: "Se ocupa de todo el ciclo",
+        title: "Ciclo completo hasta la entrega",
         body: "Su trabajo no acaba cuando la especificación está clara. Lleva la vida entera de una tarea, desde que se propone hasta que se aclara, se construye y se archiva, así que el tablero siempre refleja dónde está el proyecto de verdad.",
       },
     },
@@ -547,23 +547,23 @@ const es: SiteCopy = {
         "Atado a la pila Hermes / Nous y a sus herramientas kanban_*.",
       ],
       whenLabel: "Cuándo usar ai4kanban",
-      when: "Elige la skill cuando quieras el tablero **versionado junto a tu código**, cuando vayas a quedarte en un entorno que ya ejecutas, o cuando no quieras operar un runtime solo para tener un tablero de tareas. Tira de Hermes Kanban cuando **ya trabajes a fondo con Hermes**: su tablero se enchufa directo al despachador, los perfiles con nombre y el control desde chat que ya tienes montados. Al final los dos son colas duraderas; la de la skill son archivos en git, la de Hermes son filas en SQLite.",
+      when: "Elige ai4kanban cuando quieras el tablero **versionado junto a tu código**, cuando vayas a quedarte en un entorno que ya ejecutas, o cuando no quieras operar un runtime solo para tener un tablero de tareas. Tira de Hermes Kanban cuando **ya trabajes a fondo con Hermes**: su tablero se enchufa directo al despachador, los perfiles con nombre y el control desde chat que ya tienes montados. Al final los dos son colas duraderas; la de ai4kanban son archivos en git, la de Hermes son filas en SQLite.",
     },
     harness: {
       heading: {
         eyebrow: "Compatibilidad de entornos",
         title: "¿Qué agentes pueden ejecutar el tablero?",
       },
-      lead: "La diferencia más clara de todas. El tablero de la skill son archivos planos, así que **cualquier agente capaz de leer un repo puede ejecutarlo**, incluido el propio Hermes. El tablero de Hermes Kanban vive detrás de las herramientas `kanban_*` del runtime, así que solo puede Hermes.",
+      lead: "La diferencia más clara de todas. El tablero de ai4kanban son archivos planos, así que **cualquier agente capaz de leer un repo puede ejecutarlo**, incluido el propio Hermes. El tablero de Hermes Kanban vive detrás de las herramientas `kanban_*` del runtime, así que solo puede Hermes.",
       oursSub: "cualquier agente que lea archivos",
       theirsSub: "solo Hermes",
       supported: "compatible",
       notSupported: "no compatible",
-      note: "…y la fila de la skill sigue y sigue: Windsurf, OpenCode, Gemini CLI, cualquier cosa que lea archivos. Hermes Kanban no deja puerta abierta a otros agentes.",
+      note: "…y la fila de ai4kanban sigue y sigue: Windsurf, OpenCode, Gemini CLI, cualquier cosa que lea archivos. Hermes Kanban no deja puerta abierta a otros agentes.",
     },
     comparison: {
       heading: { eyebrow: "Cara a cara", title: "AI4Kanban vs. Hermes Kanban" },
-      lead: "Un {check} es una victoria clara; un **guion** es un compromiso. La skill gana en simplicidad y portabilidad, Hermes en la cola compartida y duradera y en escala; el resto queda en empate.",
+      lead: "Un {check} es una victoria clara; un **guion** es un compromiso. ai4kanban gana en simplicidad y portabilidad, Hermes en la cola compartida y duradera y en escala; el resto queda en empate.",
       ourLabel: "AI4Kanban",
       theirLabel: "Hermes Kanban",
       rows: {
@@ -642,7 +642,7 @@ const es: SiteCopy = {
         eyebrow: "Memoria vs. auditoría",
         title: "Qué recuerda cada tablero",
       },
-      lead: "La diferencia esencial: la memoria de la skill es una **entrada para planificar**, existe para que la propuesta siguiente sea más lista. El registro de Hermes es una **salida de la ejecución**, existe para poder reproducir el pasado.",
+      lead: "La diferencia esencial: la memoria de ai4kanban es una **entrada para planificar**, existe para que la propuesta siguiente sea más lista. El registro de Hermes es una **salida de la ejecución**, existe para poder reproducir el pasado.",
       ours: {
         heading: "AI4Kanban",
         verdict: "Recuerda conclusiones, olvida el resto.",
@@ -700,7 +700,7 @@ const es: SiteCopy = {
     },
     gui: {
       heading: { eyebrow: "Los paneles", title: "Interfaz gráfica del tablero" },
-      lead: "Los dos traen tablero web, pero cumplen papeles distintos. El de la skill es una **superficie de control para tu agente**: las acciones de una tarjeta lanzan ejecuciones. El de Hermes es una **ventana en vivo al despachador**: muestra qué está haciendo la flota ahora mismo.",
+      lead: "Los dos traen tablero web, pero cumplen papeles distintos. El de ai4kanban es una **superficie de control para tu agente**: las acciones de una tarjeta lanzan ejecuciones. El de Hermes es una **ventana en vivo al despachador**: muestra qué está haciendo la flota ahora mismo.",
       ours: {
         heading: "AI4Kanban — tablero local",
         body: "Un tablero web local sobre los archivos Markdown. Las acciones de una tarjeta (*implementar, revisar, archivar*) le pasan el trabajo a un agente, y ves su registro llegando en directo, con pausas para preguntarte.",
@@ -738,19 +738,19 @@ const es: SiteCopy = {
       theirs: {
         manyAgents: {
           title: "Un tablero, muchos agentes con nombre",
-          body: "Un único tablero duradero donde varios agentes con nombre, y personas, toman tareas y se pasan el trabajo. El despachador sondea las tareas listas y lanza el agente asignado a cada una. El tablero de la skill lo lleva el único entorno en el que estés.",
+          body: "Un único tablero duradero donde varios agentes con nombre, y personas, toman tareas y se pasan el trabajo. El despachador sondea las tareas listas y lanza el agente asignado a cada una. El tablero de ai4kanban lo lleva el único entorno en el que estés.",
         },
         selfHealing: {
           title: "Cola de tareas que se autorrepara",
-          body: "La cola sigue cada tarea a través de las caídas: TTL de reserva, latidos, reclamación de reservas caducadas, reintentos y cortacircuitos. Un proceso puede morir a medias y el tablero recupera la tarea y la reintenta. Los archivos de la skill también son duraderos, pero una ejecución muerta simplemente espera al siguiente ciclo programado.",
+          body: "La cola sigue cada tarea a través de las caídas: TTL de reserva, latidos, reclamación de reservas caducadas, reintentos y cortacircuitos. Un proceso puede morir a medias y el tablero recupera la tarea y la reintenta. Los archivos de ai4kanban también son duraderos, pero una ejecución muerta simplemente espera al siguiente ciclo programado.",
         },
         autoDecompose: {
           title: "Descompone tareas automáticamente",
-          body: "Sueltas una tarea en bruto y el descompositor LLM del despachador la abre en un grafo de subtareas, cada una dirigida a un agente especialista, sin desglose manual. La skill parte una tarjeta en pendientes y en un grafo de tareas cuidado a mano.",
+          body: "Sueltas una tarea en bruto y el descompositor LLM del despachador la abre en un grafo de subtareas, cada una dirigida a un agente especialista, sin desglose manual. ai4kanban parte una tarjeta en pendientes y en un grafo de tareas cuidado a mano.",
         },
         fleetReach: {
           title: "Alcance y escala de flota",
-          body: "Hecho para muchos agentes repartidos en muchos tableros, multiinquilino y con control desde Discord, Telegram, Slack, correo y SMS. La skill es un tablero individual y austero que se queda en tu repo y tu terminal.",
+          body: "Hecho para muchos agentes repartidos en muchos tableros, multiinquilino y con control desde Discord, Telegram, Slack, correo y SMS. ai4kanban es un tablero individual y austero que se queda en tu repo y tu terminal.",
         },
       },
     },
@@ -773,7 +773,7 @@ const es: SiteCopy = {
       ],
       verdict:
         "Se solapan más de lo que sugieren los nombres: los dos son tableros kanban para agentes. La división está en qué viene incluido: ai4kanban es un **tablero de archivos que deja la automatización a tu entorno**; Hermes Agent Kanban es ese mismo tablero **envuelto en una cola de trabajo duradera y compartida**. Si quieres un tablero que compartan muchos agentes y que sobreviva a las caídas, usa Hermes. Si quieres un tablero austero en tu repo que amplías solo cuando hace falta, usa ai4kanban.",
-      note: "Hasta pueden convivir: la skill como el sitio ligero donde planificas y podas en git, y Hermes como la cola duradera que ejecuta el trabajo pesado y compartido una vez que has decidido cuál es.",
+      note: "Hasta pueden convivir: ai4kanban como el sitio ligero donde planificas y podas en git, y Hermes como la cola duradera que ejecuta el trabajo pesado y compartido una vez que has decidido cuál es.",
     },
   },
 
@@ -947,7 +947,7 @@ const es: SiteCopy = {
         "No te importa depender de un fork de la comunidad ahora que Bloop ha cerrado.",
       ],
       verdict:
-        "Resuelven cuellos de botella distintos. Vibe Kanban es una **cabina de orquestación** para ejecutar muchos agentes; ai4kanban es un **tablero de planificación** que un agente edita en tu repo. Si te encantaba el tablero de Vibe Kanban para ordenar el trabajo, la skill te lo da como archivos planos que sobreviven a cualquier empresa. Si te encantaba su motor de agentes en paralelo, la skill no es eso, y preferimos decirlo.",
+        "Resuelven cuellos de botella distintos. Vibe Kanban es una **cabina de orquestación** para ejecutar muchos agentes; ai4kanban es un **tablero de planificación** que un agente edita en tu repo. Si te encantaba el tablero de Vibe Kanban para ordenar el trabajo, ai4kanban te lo da como archivos planos que sobreviven a cualquier empresa. Si te encantaba su motor de agentes en paralelo, ai4kanban no es eso, y preferimos decirlo.",
       note: "Ahora que Bloop ha cerrado, el tablero es la parte que merece la pena llevarse hacia delante sin ninguna empresa detrás, y eso es exactamente ai4kanban.",
     },
   },

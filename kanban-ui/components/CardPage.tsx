@@ -9,7 +9,6 @@ import {
   FiCornerLeftUp,
   FiEdit2,
   FiHelpCircle,
-  FiLock,
   FiPlay,
   FiXCircle,
 } from "react-icons/fi";
@@ -216,30 +215,6 @@ export function CardPage({
               <FiPlay className="text-[15px]" aria-hidden />
               Implement
             </Button>
-          )}
-          {/* Blocked note (#63) — sits beside Implement so it's read before the
-              click, and never instead of it: the button keeps working. This board
-              nudges, it never gates. */}
-          {card.openBlockers.length > 0 && (
-            <span
-              className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] font-[700]"
-              style={{ color: "var(--color-nb-peach-ink)" }}
-            >
-              <FiLock className="text-[13px]" aria-hidden />
-              Waiting on
-              {card.openBlockers.map((b, i) => (
-                <Link
-                  key={b.id}
-                  href={`/${b.id}`}
-                  className="underline underline-offset-2 hover:text-nb-accent-deep"
-                  title={b.title}
-                >
-                  #{b.id}
-                  {i < card.openBlockers.length - 1 ? "," : ""}
-                </Link>
-              ))}
-              — still open
-            </span>
           )}
           {actions.has("edit") && (
             <Button variant="ghost" size="sm" disabled={busy} onClick={() => setDialog({ kind: "edit", card })}>

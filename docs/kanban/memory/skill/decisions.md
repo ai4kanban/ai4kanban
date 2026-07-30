@@ -27,6 +27,23 @@ re-ask a settled call.
 - The archive is not project memory. No flow reads it; `readme.md` plus the published docs
   stay the only record of shipped work.
 
+## Setup
+
+- Settling the goal's open details happens during setup itself, as a conversation in the
+  user's coding harness — never through auto-refine. The user is at the keyboard, so the
+  agent asks and writes each answer into the project-wide `decisions.md` right there.
+- Setup settles `goal.md` and the project-wide `decisions.md` before it writes
+  `modules.md`. A project started without code has no code to read a module map from —
+  the map can only come from what's been decided.
+- **How many first cards does setup end with?**: 10. They lay the foundation later work
+  builds on — never improvement tasks aimed at what the project hasn't built yet.
+
+## The module map
+
+- **How many modules?**: be conservative, above all in a from-scratch repo — a simple
+  single-purpose project (say, one small web server) is one module, not several. Add
+  lines only as the code grows.
+
 ## Auto-refine
 
 - One session drives one card the whole way. It never pauses to ask the user: it answers

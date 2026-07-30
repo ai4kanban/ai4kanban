@@ -5,7 +5,7 @@ priority: med
 roi: med
 status: todo
 blocked_by: []
-related: [67, 79]
+related: [67]
 modules: [local-ui]
 questions:
   - "[user] Who unblocks the agent? (a) the user does it once in their own agent settings; the UI keeps passing nothing and only documents it. (b) the UI passes the flag itself on every run, the way #69 already decided for Codex, so a fresh install works on the first press. Recommend (b): the goal promises it works out of the box, and one harness unblocking itself while the other leaves it to the user is a split we would be explaining forever."

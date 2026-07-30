@@ -28,14 +28,16 @@ _(not filled in yet — the user writes this.)_
 // than parsed and re-serialized.
 const FM_RE = /^---\n([\s\S]*?)\n---\n?/;
 
-// The agent's judgment of the goal, read the way the skill reads it: only an
-// explicit `reviewed: strong` counts — a missing file, a missing field, or any
-// other value reads as weak. Never throws; a weak read must not break the board.
-export function goalReviewed(): "strong" | "weak" {
+// The agent's judgment of the goal, read the way the skill reads it: `strong`
+// and `good` both mean clear enough to plan from — a missing file, a missing
+// field, or any other value reads as weak. Never throws; a weak read must not
+// break the board.
+export function goalReviewed(): "strong" | "good" | "weak" {
   try {
     const fm = fs.readFileSync(goalPath(), "utf8").match(FM_RE);
     const line = fm && fm[1].match(/^reviewed:[ \t]*(.+?)[ \t]*$/m);
-    return line && line[1] === "strong" ? "strong" : "weak";
+    const v = line && line[1];
+    return v === "strong" || v === "good" ? v : "weak";
   } catch {
     return "weak";
   }

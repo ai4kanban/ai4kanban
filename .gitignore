@@ -14,3 +14,4 @@ docs/kanban/.archive/
 keyword-research/
 .env
 social-posts/
+.DS_Store

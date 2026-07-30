@@ -64,7 +64,7 @@ answer beats a blank one. **Write the goal** opens a plain text editor on `goal.
 your own words, the agent never drafts it for you; the file holds the whole direction,
 horizon and roadmap included. Saving writes the file and leaves the `reviewed:` field to
 the agent — it re-judges on its next propose or refine pass, and the bar disappears once
-the value turns strong. The ✕ hides the bar for the browser session. The board works the
+the value turns `good` or `strong`. The ✕ hides the bar for the browser session. The board works the
 same either way; the bar is a nudge, not a gate.
 
 ## A card's buttons

@@ -7,7 +7,8 @@
 // session (sessionStorage — nothing is written to the board files). Saving the
 // goal hides it for the session too: `reviewed:` stays weak until an agent flow
 // re-judges it, and nagging right after the user wrote would be wrong. Once the
-// value turns strong the bar drops out with the board refresh — no reload.
+// value turns `good` or `strong` the bar drops out with the board refresh — no
+// reload.
 
 import { useEffect, useState } from "react";
 import { FiX } from "react-icons/fi";

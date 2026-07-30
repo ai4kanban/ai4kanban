@@ -41,14 +41,14 @@ const fr: SiteCopy = {
     meta: {
       title: "AI4Kanban — la gestion de projet par IA qui grandit avec vous",
       description:
-        "La gestion de projet par IA pour Claude Code. Donnez-lui une idée floue : l'agent la découpe et la clarifie en boucle jusqu'à ce qu'elle soit prête à construire. Du Markdown brut, dans git.",
+        "La gestion de projet par IA pour Claude Code : une skill et un tableau local. Donnez-lui une idée floue et l'agent la découpe, tranche seul ce qu'il peut et clarifie le reste avec vous jusqu'à ce qu'elle soit prête à construire. Du Markdown brut, dans git.",
       social:
-        "Donnez-lui une idée floue. L'agent la découpe, tranche seul ce qu'il peut, vous demande le reste, et continue en arrière-plan jusqu'à ce que chaque détail soit assez clair pour construire.",
+        "Donnez-lui une idée floue. L'agent la découpe, tranche seul ce qu'il peut, vous soumet le reste et poursuit en arrière-plan jusqu'à ce que chaque détail soit assez précis pour être construit.",
     },
     hero: {
-      badge: "Une skill Claude Code",
+      badge: "Une skill Claude Code + un tableau local",
       title: "La gestion de projet par IA\nqui grandit avec vous.",
-      lead: "Donnez-lui une idée floue. L'agent la découpe, tranche seul ce qu'il peut, vous demande le reste, et continue en arrière-plan jusqu'à ce que chaque détail soit assez clair pour construire. Le tableau, c'est du Markdown brut dans `docs/kanban/` : dans git, sans base de données, sans MCP.",
+      lead: "Donnez-lui une idée floue. L'agent la découpe, tranche seul ce qu'il peut, vous soumet le reste et poursuit en arrière-plan jusqu'à ce que chaque détail soit assez précis pour être construit. Le tableau est du Markdown brut dans `docs/kanban/` : versionné dans git, sans base de données ni MCP.",
       ctaInstall: "Installez-le en un seul prompt",
       ctaGithub: "Voir sur GitHub",
     },
@@ -62,35 +62,35 @@ const fr: SiteCopy = {
     },
     features: {
       breakDown: {
-        title: "Découpe le travail",
+        title: "Découpage autonome",
         body: "L'agent lit une idée et la découpe en sous-tâches. Une demande sans rapport qui s'y était glissée en ressort comme une tâche à part.",
       },
       clarify: {
-        title: "Clarifie en boucle",
+        title: "Clarification en boucle",
         body: "L'agent commence par questionner l'idée. Ce que la mémoire et le bon sens suffisent à trancher, il le tranche seul ; le reste vous revient. Et il recommence jusqu'à n'avoir plus de questions.",
       },
       alwaysOn: {
-        title: "Tourne 24h/24",
+        title: "Fonctionnement 24h/24",
         body: "Le découpage et les clarifications continuent en arrière-plan jusqu'à ce que l'idée devienne une spécification claire.",
       },
       traceable: {
-        title: "Chaque décision est traçable",
+        title: "Décisions traçables",
         body: "Vous pouvez toujours revoir comment une spécification a pris forme, étape par étape.",
       },
       proposes: {
-        title: "Propose ses propres tâches",
+        title: "Propositions autonomes",
         body: "L'agent avance des fonctionnalités tirées de la mémoire de chaque module. Vous en refusez une, c'est noté : il ne reproposera plus rien de ce genre.",
       },
       selfEvolving: {
-        title: "S'affine tout seul",
+        title: "Auto-évolution",
         body: "Chaque fois que vous intervenez, votre arbitrage est enregistré et oriente les décisions suivantes de l'agent. La mémoire est rangée par module du projet.",
       },
       orders: {
-        title: "Ordonne le travail",
+        title: "Dépendances et priorités",
         body: "Il ne se contente pas de découper : il repère les dépendances et met le gain en balance avec l'effort, pour que le travail avance dans le bon ordre.",
       },
       lifecycle: {
-        title: "Prend en charge tout le cycle",
+        title: "Cycle complet jusqu'à la livraison",
         body: "Son travail ne s'arrête pas quand la spécification est claire. Il mène toute la vie d'une tâche, de la proposition à la clarification, à la construction, à l'archivage, de sorte que le tableau montre toujours où en est vraiment le projet.",
       },
     },
@@ -552,23 +552,23 @@ const fr: SiteCopy = {
         "Lié à la pile Hermes / Nous et à ses outils kanban_*.",
       ],
       whenLabel: "Quand prendre ai4kanban",
-      when: "Prenez la skill quand vous voulez le tableau **versionné avec votre code**, quand vous comptez rester dans un environnement que vous faites déjà tourner, ou quand vous ne voulez pas exploiter un runtime juste pour avoir un tableau de tâches. Prenez Hermes Kanban quand **vous travaillez déjà à fond avec Hermes** : son tableau se branche directement sur le répartiteur, les profils nommés et le pilotage par chat que vous avez montés. Au fond, les deux sont des files durables ; celle de la skill, ce sont des fichiers dans git, celle d'Hermes, des lignes dans SQLite.",
+      when: "Prenez ai4kanban quand vous voulez le tableau **versionné avec votre code**, quand vous comptez rester dans un environnement que vous faites déjà tourner, ou quand vous ne voulez pas exploiter un runtime juste pour avoir un tableau de tâches. Prenez Hermes Kanban quand **vous travaillez déjà à fond avec Hermes** : son tableau se branche directement sur le répartiteur, les profils nommés et le pilotage par chat que vous avez montés. Au fond, les deux sont des files durables ; celle d'ai4kanban, ce sont des fichiers dans git, celle d'Hermes, des lignes dans SQLite.",
     },
     harness: {
       heading: {
         eyebrow: "Environnements compatibles",
         title: "Quels agents peuvent faire tourner le tableau ?",
       },
-      lead: "La différence la plus nette de toutes. Le tableau de la skill, ce sont des fichiers bruts : **n'importe quel agent capable de lire un dépôt peut le faire tourner**, Hermes compris. Le tableau d'Hermes Kanban se trouve derrière les outils `kanban_*` du runtime, donc seul Hermes le peut.",
+      lead: "La différence la plus nette de toutes. Le tableau d'ai4kanban, ce sont des fichiers bruts : **n'importe quel agent capable de lire un dépôt peut le faire tourner**, Hermes compris. Le tableau d'Hermes Kanban se trouve derrière les outils `kanban_*` du runtime, donc seul Hermes le peut.",
       oursSub: "n'importe quel agent qui lit des fichiers",
       theirsSub: "Hermes uniquement",
       supported: "compatible",
       notSupported: "non compatible",
-      note: "…et la ligne de la skill continue encore : Windsurf, OpenCode, Gemini CLI, tout ce qui lit des fichiers. Hermes Kanban ne laisse aucune porte d'entrée aux autres agents.",
+      note: "…et la ligne d'ai4kanban continue encore : Windsurf, OpenCode, Gemini CLI, tout ce qui lit des fichiers. Hermes Kanban ne laisse aucune porte d'entrée aux autres agents.",
     },
     comparison: {
       heading: { eyebrow: "Face à face", title: "AI4Kanban vs. Hermes Kanban" },
-      lead: "Un {check}, c'est une victoire nette ; un **tiret**, c'est un compromis. La skill l'emporte sur la simplicité et la portabilité, Hermes sur la file partagée durable et l'échelle ; le reste est à égalité.",
+      lead: "Un {check}, c'est une victoire nette ; un **tiret**, c'est un compromis. ai4kanban l'emporte sur la simplicité et la portabilité, Hermes sur la file partagée durable et l'échelle ; le reste est à égalité.",
       ourLabel: "AI4Kanban",
       theirLabel: "Hermes Kanban",
       rows: {
@@ -647,7 +647,7 @@ const fr: SiteCopy = {
         eyebrow: "Mémoire vs. audit",
         title: "Ce dont chaque tableau se souvient",
       },
-      lead: "La différence essentielle : la mémoire de la skill est une **entrée pour la planification**, elle existe pour que la proposition suivante soit plus fine. Le journal d'Hermes est une **sortie de l'exécution**, il existe pour qu'on puisse rejouer le passé.",
+      lead: "La différence essentielle : la mémoire d'ai4kanban est une **entrée pour la planification**, elle existe pour que la proposition suivante soit plus fine. Le journal d'Hermes est une **sortie de l'exécution**, il existe pour qu'on puisse rejouer le passé.",
       ours: {
         heading: "AI4Kanban",
         verdict: "Retient les conclusions, oublie le reste.",
@@ -705,7 +705,7 @@ const fr: SiteCopy = {
     },
     gui: {
       heading: { eyebrow: "Les interfaces", title: "L'interface du tableau kanban" },
-      lead: "Les deux livrent un tableau web, mais ils ne jouent pas le même rôle. Celui de la skill est une **surface de commande pour votre agent** : les actions d'une carte déclenchent des exécutions. Celui d'Hermes est une **fenêtre en direct sur le répartiteur** : il montre ce que la flotte fait en ce moment.",
+      lead: "Les deux livrent un tableau web, mais ils ne jouent pas le même rôle. Celui d'ai4kanban est une **surface de commande pour votre agent** : les actions d'une carte déclenchent des exécutions. Celui d'Hermes est une **fenêtre en direct sur le répartiteur** : il montre ce que la flotte fait en ce moment.",
       ours: {
         heading: "AI4Kanban — tableau local",
         body: "Un tableau web local posé sur les fichiers Markdown. Les actions d'une carte (*implémenter, relire, archiver*) confient le travail à un agent, et vous voyez son journal défiler avec des questions au passage.",
@@ -743,19 +743,19 @@ const fr: SiteCopy = {
       theirs: {
         manyAgents: {
           title: "Un tableau, de nombreux agents nommés",
-          body: "Un unique tableau durable sur lequel plusieurs agents nommés, et des humains, prennent des tâches et se passent le travail. Le répartiteur surveille les tâches prêtes et lance pour chacune l'agent assigné. Le tableau de la skill, lui, est mené par le seul environnement dans lequel vous êtes.",
+          body: "Un unique tableau durable sur lequel plusieurs agents nommés, et des humains, prennent des tâches et se passent le travail. Le répartiteur surveille les tâches prêtes et lance pour chacune l'agent assigné. Le tableau d'ai4kanban, lui, est mené par le seul environnement dans lequel vous êtes.",
         },
         selfHealing: {
           title: "Une file de tâches qui se répare seule",
-          body: "La file suit chaque tâche à travers les plantages : TTL de prise, battements de cœur, reprise des prises expirées, nouvelles tentatives et coupe-circuits. Un processus peut mourir en cours et le tableau reprend la tâche et la réessaie. Les fichiers de la skill sont durables aussi, mais une exécution morte attend simplement le prochain créneau planifié.",
+          body: "La file suit chaque tâche à travers les plantages : TTL de prise, battements de cœur, reprise des prises expirées, nouvelles tentatives et coupe-circuits. Un processus peut mourir en cours et le tableau reprend la tâche et la réessaie. Les fichiers d'ai4kanban sont durables aussi, mais une exécution morte attend simplement le prochain créneau planifié.",
         },
         autoDecompose: {
           title: "Découpe les tâches automatiquement",
-          body: "Vous lâchez une tâche brute et le découpeur LLM du répartiteur la déploie en un graphe de sous-tâches, chacune confiée à un agent spécialiste, sans découpage manuel. La skill, elle, découpe une carte en points à cocher et en graphe de tâches entretenu à la main.",
+          body: "Vous lâchez une tâche brute et le découpeur LLM du répartiteur la déploie en un graphe de sous-tâches, chacune confiée à un agent spécialiste, sans découpage manuel. ai4kanban, lui, découpe une carte en points à cocher et en graphe de tâches entretenu à la main.",
         },
         fleetReach: {
           title: "Portée et échelle de flotte",
-          body: "Conçu pour de nombreux agents répartis sur de nombreux tableaux, multi-locataire, pilotable depuis Discord, Telegram, Slack, e-mail et SMS. La skill, elle, est un tableau solo et sobre qui reste dans votre dépôt et votre terminal.",
+          body: "Conçu pour de nombreux agents répartis sur de nombreux tableaux, multi-locataire, pilotable depuis Discord, Telegram, Slack, e-mail et SMS. ai4kanban, lui, est un tableau solo et sobre qui reste dans votre dépôt et votre terminal.",
         },
       },
     },
@@ -778,7 +778,7 @@ const fr: SiteCopy = {
       ],
       verdict:
         "Ils se recouvrent bien plus que les noms ne le laissent croire : ce sont deux tableaux kanban pour agents. La ligne de partage, c'est ce qui est embarqué. ai4kanban est un **tableau en fichiers qui laisse l'automatisation à votre environnement** ; Hermes Agent Kanban, c'est ce même tableau **enveloppé dans une file de travail durable et partagée**. Si vous voulez un tableau que de nombreux agents partagent et qui survit aux plantages, prenez Hermes. Si vous voulez un tableau sobre dans votre dépôt que vous n'étendez qu'au besoin, prenez ai4kanban.",
-      note: "Ils peuvent même cohabiter : la skill comme l'endroit léger où vous planifiez et élaguez dans git, Hermes comme la file durable qui exécute le travail lourd et partagé une fois que vous avez décidé ce que c'est.",
+      note: "Ils peuvent même cohabiter : ai4kanban comme l'endroit léger où vous planifiez et élaguez dans git, Hermes comme la file durable qui exécute le travail lourd et partagé une fois que vous avez décidé ce que c'est.",
     },
   },
 
@@ -952,7 +952,7 @@ const fr: SiteCopy = {
         "Dépendre d'un fork communautaire maintenant que Bloop a fermé ne vous gêne pas.",
       ],
       verdict:
-        "Ils règlent des goulots d'étranglement différents. Vibe Kanban est un **cockpit d'orchestration** pour faire tourner de nombreux agents ; ai4kanban est un **tableau de planification** qu'un agent édite dans votre dépôt. Si vous aimiez le tableau de Vibe Kanban pour aligner le travail, la skill vous le rend sous forme de fichiers bruts qui survivent à n'importe quelle entreprise. Si vous aimiez son moteur d'agents en parallèle, la skill n'est pas ça, et on préfère le dire.",
+        "Ils règlent des goulots d'étranglement différents. Vibe Kanban est un **cockpit d'orchestration** pour faire tourner de nombreux agents ; ai4kanban est un **tableau de planification** qu'un agent édite dans votre dépôt. Si vous aimiez le tableau de Vibe Kanban pour aligner le travail, ai4kanban vous le rend sous forme de fichiers bruts qui survivent à n'importe quelle entreprise. Si vous aimiez son moteur d'agents en parallèle, ai4kanban n'est pas ça, et on préfère le dire.",
       note: "Depuis la fermeture de Bloop, c'est le tableau qui mérite d'être emporté plus loin, sans aucune entreprise attachée, et c'est exactement ce qu'est ai4kanban.",
     },
   },

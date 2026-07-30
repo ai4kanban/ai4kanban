@@ -854,13 +854,13 @@ function cmdMemoryInit(module) {
 
 // ---- goal review -----------------------------------------------------------
 //
-// `goal.md`'s frontmatter carries one machine-readable field: `reviewed: strong | weak`
+// `goal.md`'s frontmatter carries one machine-readable field: `reviewed: strong | good | weak`
 // — whether the goal is clear enough to plan from. The agent judges and edits the field
 // itself; this script only seeds it (`init`'s scaffold and repair), never sets a judged
 // value. Reading never fails: a missing file, a missing field, or a bad value all count
 // as `weak`, and the board keeps working either way.
 
-const GOAL_REVIEW_VALUES = ['strong', 'weak']
+const GOAL_REVIEW_VALUES = ['strong', 'good', 'weak']
 
 // The value as written, or null when the file has no valid field — the init repair
 // reads null as "add the field"; everyone else reads it as weak.

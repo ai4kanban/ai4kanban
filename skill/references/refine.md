@@ -7,8 +7,7 @@ empty can't be refined — resolve them first (`references/resolve.md`).
 ## 1. Check
 
 Each line below is one plain question. Answer yes or no; a no needs one line saying
-what's wrong. Flag real problems, not hypotheticals. The buckets are independent — hand
-each to its own subagent.
+what's wrong. Flag real problems, not hypotheticals.
 
 - **Format — is it written like a card?**
   - **On topic**: does the body do what the title says? Anything else is another task.

@@ -42,14 +42,14 @@ const en: SiteCopy = {
     meta: {
       title: "AI4Kanban — AI project management that grows with you",
       description:
-        "AI project management for Claude Code. Give it a vague idea — the agent breaks it down and clarifies it in a loop until it's clear enough to build. Plain Markdown, in git.",
+        "AI project management for Claude Code — a skill plus a local board UI. Give it a vague idea and the agent breaks it down, settles what it can on its own, and clarifies the rest with you until it's clear enough to build. Plain Markdown, in git.",
       social:
-        "Give it a vague idea. The agent breaks it down, answers what it can on its own, asks you the rest — and keeps at it in the background until every detail is clear enough to build.",
+        "Give it a vague idea. The agent breaks it down, settles what it can on its own, brings you the rest, and keeps working in the background until every detail is clear enough to build.",
     },
     hero: {
-      badge: "A Claude Code skill",
+      badge: "A Claude Code skill + a local board UI",
       title: "AI project management\nthat grows with you.",
-      lead: "Give it a vague idea. The agent breaks it down, answers what it can on its own, asks you the rest — and keeps at it in the background until every detail is clear enough to build. The board is plain Markdown in `docs/kanban/` — in git, no database, no MCP.",
+      lead: "Give it a vague idea. The agent breaks it down, settles what it can on its own, brings you the rest, and keeps working in the background until every detail is clear enough to build. The board is plain Markdown in `docs/kanban/` — versioned in git, with no database and no MCP.",
       ctaInstall: "Install in one prompt",
       ctaGithub: "View on GitHub",
     },
@@ -550,26 +550,26 @@ const en: SiteCopy = {
         "Tied to the Hermes / Nous stack and its kanban_* tools.",
       ],
       whenLabel: "When to use ai4kanban",
-      when: "Pick the skill when you want the board **versioned with your code**, when you're staying in a harness you already run, or when you don't want to operate a runtime just to get a task board. Reach for Hermes Kanban when **you already work deeply with Hermes** — its board plugs straight into the dispatcher, named profiles, and chat control you've set up. Both are durable queues in the end; the skill's is files in git, Hermes's is rows in SQLite.",
+      when: "Pick ai4kanban when you want the board **versioned with your code**, when you're staying in a harness you already run, or when you don't want to operate a runtime just to get a task board. Reach for Hermes Kanban when **you already work deeply with Hermes** — its board plugs straight into the dispatcher, named profiles, and chat control you've set up. Both are durable queues in the end; ai4kanban's is files in git, Hermes's is rows in SQLite.",
     },
     harness: {
       heading: {
         eyebrow: "Harness support",
         title: "Which agents can run the board?",
       },
-      lead: "The clearest single difference. The skill's board is plain files, so **any agent that can read a repo can run it** — including Hermes itself. Hermes Kanban's board sits behind the runtime's `kanban_*` tools, so only Hermes can.",
+      lead: "The clearest single difference. ai4kanban's board is plain files, so **any agent that can read a repo can run it** — including Hermes itself. Hermes Kanban's board sits behind the runtime's `kanban_*` tools, so only Hermes can.",
       oursSub: "any file-reading agent",
       theirsSub: "Hermes only",
       supported: "supported",
       notSupported: "not supported",
-      note: "…and the skill's row keeps going — Windsurf, OpenCode, Gemini CLI, anything that reads files. Hermes Kanban has no way in for other agents.",
+      note: "…and ai4kanban's row keeps going — Windsurf, OpenCode, Gemini CLI, anything that reads files. Hermes Kanban has no way in for other agents.",
     },
     comparison: {
       heading: {
         eyebrow: "Head to head",
         title: "AI4Kanban vs. Hermes Kanban",
       },
-      lead: "A {check} is a clear win; a **dash** is a trade-off. The skill wins on simplicity and portability, Hermes on the durable shared queue and scale — the rest is a draw.",
+      lead: "A {check} is a clear win; a **dash** is a trade-off. ai4kanban wins on simplicity and portability, Hermes on the durable shared queue and scale — the rest is a draw.",
       ourLabel: "AI4Kanban",
       theirLabel: "Hermes Kanban",
       rows: {
@@ -647,7 +647,7 @@ const en: SiteCopy = {
         eyebrow: "Memory vs. audit",
         title: "What each board remembers",
       },
-      lead: "The essential difference: the skill's memory is an **input to planning** — it exists so the next proposal is smarter. Hermes's log is an **output of execution** — it exists so the past can be replayed.",
+      lead: "The essential difference: ai4kanban's memory is an **input to planning** — it exists so the next proposal is smarter. Hermes's log is an **output of execution** — it exists so the past can be replayed.",
       ours: {
         heading: "AI4Kanban",
         verdict: "Remembers conclusions, forgets the rest.",
@@ -705,7 +705,7 @@ const en: SiteCopy = {
     },
     gui: {
       heading: { eyebrow: "The dashboards", title: "Kanban Board GUI" },
-      lead: "Both ship a web board, but they play different roles. The skill's board is a **control surface for your agent** — card actions kick off runs. Hermes's board is a **live window onto the dispatcher** — it shows what the fleet is doing right now.",
+      lead: "Both ship a web board, but they play different roles. ai4kanban's board is a **control surface for your agent** — card actions kick off runs. Hermes's board is a **live window onto the dispatcher** — it shows what the fleet is doing right now.",
       ours: {
         heading: "AI4Kanban — local board",
         body: "A local web board over the Markdown files. Card actions — *implement, review, archive* — hand the work to an agent, and you watch its log stream back with human-in-the-loop prompts.",
@@ -743,19 +743,19 @@ const en: SiteCopy = {
       theirs: {
         manyAgents: {
           title: "One board, many named agents",
-          body: "A single durable board that multiple named agents — and humans — claim tasks and hand off work on. The dispatcher polls ready tasks and spawns the assigned agent for each. The skill's board is driven by whatever single harness you're in.",
+          body: "A single durable board that multiple named agents — and humans — claim tasks and hand off work on. The dispatcher polls ready tasks and spawns the assigned agent for each. ai4kanban's board is driven by whatever single harness you're in.",
         },
         selfHealing: {
           title: "Self-healing task queue",
-          body: "The queue tracks each task through crashes: claim TTLs, heartbeats, stale-claim reclaim, retries, and circuit breakers. A worker can die mid-task and the board reclaims and retries it — the skill's files are durable, but a dead run just waits for the next scheduled tick.",
+          body: "The queue tracks each task through crashes: claim TTLs, heartbeats, stale-claim reclaim, retries, and circuit breakers. A worker can die mid-task and the board reclaims and retries it — ai4kanban's files are durable, but a dead run just waits for the next scheduled tick.",
         },
         autoDecompose: {
           title: "Auto-decomposes tasks",
-          body: "Drop in a rough task and the dispatcher's LLM decomposer fans it into a child-task graph, each child routed to a specialist agent — no manual breakdown. The skill splits a card into todos and a hand-tended task graph.",
+          body: "Drop in a rough task and the dispatcher's LLM decomposer fans it into a child-task graph, each child routed to a specialist agent — no manual breakdown. ai4kanban splits a card into todos and a hand-tended task graph.",
         },
         fleetReach: {
           title: "Fleet reach and scale",
-          body: "Built for many agents across many boards, multi-tenant, with control from Discord, Telegram, Slack, email, and SMS. The skill is a lean solo board that stays in your repo and terminal.",
+          body: "Built for many agents across many boards, multi-tenant, with control from Discord, Telegram, Slack, email, and SMS. ai4kanban is a lean solo board that stays in your repo and terminal.",
         },
       },
     },
@@ -778,7 +778,7 @@ const en: SiteCopy = {
       ],
       verdict:
         "They overlap more than the names suggest — both are agent kanban boards. The split is what's bundled: ai4kanban is a **file-based board with automation left to your harness**; Hermes Agent Kanban is that board **wrapped in a durable, shared work queue**. If you want one board many agents share, surviving crashes, use Hermes. If you want a lean board in your repo you extend only when you need to, use ai4kanban.",
-      note: "They can even sit side by side — the skill as the lightweight place you plan and prune in git, Hermes as the durable queue that runs the heavy, shared work once you've decided what it is.",
+      note: "They can even sit side by side — ai4kanban as the lightweight place you plan and prune in git, Hermes as the durable queue that runs the heavy, shared work once you've decided what it is.",
     },
   },
 
@@ -950,7 +950,7 @@ const en: SiteCopy = {
         "You're fine depending on a community fork now that Bloop has shut down.",
       ],
       verdict:
-        "They fix different bottlenecks. Vibe Kanban is an **orchestration cockpit** for running many agents; ai4kanban is a **planning board** one agent edits in your repo. If you loved Vibe Kanban's board for lining up work, the skill gives you that as plain files that outlast any company. If you loved its parallel-agent engine, the skill isn't that — and we'd rather say so.",
+        "They fix different bottlenecks. Vibe Kanban is an **orchestration cockpit** for running many agents; ai4kanban is a **planning board** one agent edits in your repo. If you loved Vibe Kanban's board for lining up work, ai4kanban gives you that as plain files that outlast any company. If you loved its parallel-agent engine, ai4kanban isn't that — and we'd rather say so.",
       note: "Since Bloop shut down, the board is the part worth carrying forward with no company attached — and that's exactly what ai4kanban is.",
     },
   },
