@@ -1082,7 +1082,7 @@ function ResolveDialog({
   const tick = (i: number, q: CardQuestion, n: number) => {
     const current = picks[i] ?? [];
     const next =
-      q.pick === "many"
+      q.mode === "multi"
         ? current.includes(n)
           ? current.filter((x) => x !== n)
           : [...current, n].sort((a, b) => a - b)
@@ -1175,7 +1175,7 @@ function OptionPicker({
   picked: number[];
   onTick: (n: number) => void;
 }) {
-  const many = question.pick === "many";
+  const many = question.mode === "multi";
   const On = many ? FiCheckSquare : FiCheckCircle;
   const Off = many ? FiSquare : FiCircle;
   return (

@@ -3,7 +3,7 @@ title: Track setup with a checklist and show a bar until it's done
 track: features
 priority: high
 roi: high
-status: ready
+status: implementing
 blocked_by: [84]
 related: [83]
 modules: [skill, local-ui]

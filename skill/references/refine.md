@@ -62,10 +62,10 @@ Read the "Card format" and "Writing style" of `SKILL.md`.
 - **Raise a question** instead of rewriting when the call is the user's (taste, priorities,
   money, product direction), or a **spec-level** problem is significant and you can't
   settle it — is this what the user wants, which of two shapes should the feature take,
-  what's the rule in a case the card never names. Record it with `${KB} update <id>
-  --question ".."` (repeat the flag), leave that part alone; small calls, make them.
-  When the answer is a pick between choices, give the choices as options rather than
-  packing them into the line — see "A question with choices" in `references/resolve.md`.
+  what's the rule in a case the card never names. Record it with `${KB} update-questions
+  <id> --append ".."` (repeat the flag), leave that part alone; small calls, make them.
+  A question only the user can settle is tagged `[user]`, and when it's a pick between
+  choices it carries them as options ("Ask the user the rest" in `references/resolve.md`).
 - **Mark it ready.** A concrete plan and no open questions finishes the card: `${KB} update
   <id> --status ready` — only if this refine stopped at the code level, not one stage
   short. The user scans for the `ready` pill to pick what to build next.

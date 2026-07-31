@@ -3,12 +3,12 @@
 // the script does. The script stays the ONLY writer for id-touching moves; the UI
 // only rewrites these validated fields, and only for cards that already exist.
 
-import { hasOptions, type CardQuestion, type QuestionPick } from "./questions";
+import { hasOptions, type CardQuestion, type QuestionMode } from "./questions";
 import type { CardMeta, CardStatus } from "./types";
 
 const STATUSES: CardStatus[] = ["todo", "ready", "implementing"];
 
-const PICKS: QuestionPick[] = ["one", "many"];
+const MODES: QuestionMode[] = ["single", "multi"];
 
 // Read any accepted form — a plain string, or the mapping parseQuestionsBlock
 // builds — as one question. An empty options list reads as a plain question, so
@@ -21,18 +21,18 @@ function normalizeQuestion(raw: unknown): CardQuestion {
       .map((o) => String(o).trim())
       .filter(Boolean);
     if (options.length === 0) return { text };
-    const asked = String(r.pick) as QuestionPick;
-    const pick: QuestionPick = PICKS.includes(asked) ? asked : "one";
+    const asked = String(r.mode) as QuestionMode;
+    const mode: QuestionMode = MODES.includes(asked) ? asked : "single";
     const recommend = (Array.isArray(r.recommend) ? r.recommend : [])
       .map(Number)
       .filter((n) => Number.isInteger(n) && n >= 1 && n <= options.length);
-    return { text, pick, options, recommend: pick === "one" ? recommend.slice(0, 1) : recommend };
+    return { text, mode, options, recommend: mode === "single" ? recommend.slice(0, 1) : recommend };
   }
   return { text: String(raw) };
 }
 
 // Read the indented block under `questions:`. An item is either `- <text>`
-// (plain) or `- question: <text>` followed by its `pick:`, `options:` and
+// (plain) or `- question: <text>` followed by its `mode:`, `options:` and
 // `recommend:` lines. Ported from parseQuestionsBlock in skill/kanban.mjs.
 function parseQuestionsBlock(lines: string[]): CardQuestion[] {
   const out: CardQuestion[] = [];
@@ -68,8 +68,8 @@ function parseQuestionsBlock(lines: string[]): CardQuestion[] {
           .split(",")
           .map((s) => Number(s.trim()))
           .filter((n) => Number.isInteger(n));
-      } else if (key === "pick") {
-        q.pick = unquote(val);
+      } else if (key === "mode") {
+        q.mode = unquote(val);
       }
     }
     out.push(normalizeQuestion(q));
@@ -111,7 +111,7 @@ export function serializeFrontmatter(m: CardMeta): string {
         continue;
       }
       out.push(`  - question: ${yamlScalar(q.text)}`);
-      out.push(`    pick: ${q.pick}`);
+      out.push(`    mode: ${q.mode}`);
       out.push("    options:");
       for (const o of q.options ?? []) out.push(`      - ${yamlScalar(o)}`);
       out.push(`    recommend: [${(q.recommend ?? []).join(", ")}]`);

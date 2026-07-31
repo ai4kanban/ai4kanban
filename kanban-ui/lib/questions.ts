@@ -7,9 +7,9 @@ export interface ParsedQuestion {
   text: string;
 }
 
-/** How many options the user may tick: `one` (pick a single option) or `many`
- *  (pick as many as they want). */
-export type QuestionPick = "one" | "many";
+/** How many options the user may tick: `single` (one option) or `multi` (as many
+ *  as they want). */
+export type QuestionMode = "single" | "multi";
 
 /** One open question on a card.
  *
@@ -24,7 +24,7 @@ export interface CardQuestion {
   /** The question itself, `[user]` tag included. Split it with parseQuestion. */
   text: string;
   /** Absent on a plain question. */
-  pick?: QuestionPick;
+  mode?: QuestionMode;
   /** Each option is one short line, with its reason inside that line. Absent or
    *  empty on a plain question. */
   options?: string[];

@@ -8,10 +8,11 @@ The task board lives in `docs/kanban/`. Read it before suggesting or adding work
 
 ## Configuration
 
-**Read `docs/kanban/config.md` first** — it carries your project's settings: name, tracks,
-planning sources, reference docs, optional preset. `kanban init` seeds it; install fills it
-in; until then its defaults apply. It lives with your board, so an update leaves it
-untouched — the skill folder (`SKILL.md`, `kanban.mjs`, `references/`) is upstream-owned and
+**Read `docs/kanban/config.md` before proposing, adding, or refining** — it carries your
+project's settings: name, tracks, planning sources, reference docs, optional preset.
+`kanban init` seeds it; install fills it in; until then its defaults apply. It lives with
+your board, so an update leaves it
+untouched — the skill folder (`SKILL.md`, `kanban.mjs` with its `lib/` and `commands/`, `references/`) is upstream-owned and
 overwritten wholesale (see "Updating the skill"). "Your tracks / planning sources / reference
 docs" below mean this file.
 
@@ -90,13 +91,15 @@ ${KB} create [--count N]            # allocate N ids (default 1), prints them
 ${KB} create --title ".." --track <track> [--priority high|med|low] [--roi high|med|low] \
              [--blocked-by 1,2] [--related 3] [--modules skill,site] [--question ".."] [--slug ..]
                                     # scaffold ONE card: frontmatter + body template + README entry; then fill only the body
-${KB} update <id> --question ".." --options "a — why | b — why" [--pick one|many] [--recommend 1]
-                                    # a question the user picks from, not one long line of prose;
-                                    # the flags after a --question belong to it (references/resolve.md)
-${KB} update <id> [--priority ..] [--roi ..] [--track ..] [--slug ..] \
-             [--blocked-by ..] [--related ..] [--modules ..] [--question ..] \
-             [--drop-question 1,3] [--clear-questions]
-                                    # rewrite a card's frontmatter; --track moves it, --slug renames
+${KB} update <id> [--priority ..] [--roi ..] [--status ..] [--track ..] [--slug ..] \
+             [--blocked-by ..] [--related ..] [--modules ..]
+                                    # rewrite a card's frontmatter fields; --track moves it, --slug renames
+${KB} update-questions <id> [--append ".."] [--update <n> ".."] [--drop 1,3] [--clear]
+                                    # patch open questions one op at a time — nothing rewrites the list whole
+${KB} update-questions <id> --update 1 "[user] .." --option "a — why" --option "b — why" \
+             [--recommended-option "c — why"] [--mode single|multi]
+                                    # a question the user picks from, not one long line of prose; the option
+                                    # flags belong to the --append/--update before them (references/resolve.md)
 ${KB} archive <id>                  # finish task <id>
 ${KB} reject  <id>                  # reject task <id>
 ${KB} run     <id>                  # record one run of recurring task <id> (card kept)
@@ -104,9 +107,9 @@ ${KB} peek                          # current next-id, no bump
 ${KB} help                          # full usage
 ```
 
-**Never hand-write a card's frontmatter.** Use `create`/`update` for the meta
-(title, track, priority, roi, blocked_by, related, modules, questions); use Write/Edit only
-for the card **body**.
+**Never hand-write a card's frontmatter.** Use `create`/`update`/`update-questions` for the
+meta (title, track, priority, roi, blocked_by, related, modules, questions); use Write/Edit
+only for the card **body**.
 
 Tag a card with `--modules` (see `docs/kanban/modules.md`);
 optional — a task can touch two modules or none. Add a new line to modules.md according to `module-map.md`
@@ -175,11 +178,7 @@ Then run `${KB} archive <id>` to record the completion.
 
 ## Reject an idea
 
-Rejecting is rare. When you (or the user) turn down an idea, add a short line to
-`rejected.md` (see "The memory set") — under the topic that fits; start a new topic heading if none
-fits. Format: `- **<idea name>** — <why we said no, one line>.`
-
-Then run `${KB} reject <id>` to remove the card.
+Rejecting is rare, and it deletes the card. Full guide in `references/reject.md`.
 
 ## Record a redesign
 

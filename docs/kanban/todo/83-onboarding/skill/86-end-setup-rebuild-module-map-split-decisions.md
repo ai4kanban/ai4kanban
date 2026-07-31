@@ -7,7 +7,10 @@ status: todo
 blocked_by: [84, 85]
 related: [83]
 modules: [skill]
-questions: []
+questions:
+  - Does setup write modules.md once, here at the closing step, instead of writing it mid-setup (#84) and rewriting it here?
+  - What makes a settled call one module's rather than the whole project's, and where does a call that spans two modules go?
+  - On a project the conservative rule maps to a single module, does the split still move the calls into that module's memory, or do they stay project-wide?
 ---
 
 Give setup a closing step: look back at everything setup settled, rewrite `modules.md` to

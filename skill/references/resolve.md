@@ -18,31 +18,29 @@ under `## Decided by the agent` (read "Card format" in `SKILL.md`).
 Ask when the evidence isn't enough. Keep the question itself plain and short: one line
 the user can answer at a glance.
 
-Run `${KB} tag <id> 1,2,3 user` for these questions.
+Two commands hand a question over. Pick by one rule: does its wording change?
 
-### A question with choices
-
-When the answer is a pick between choices, give the choices as **options** — don't pack
-them into the question line. The user then ticks one instead of reading a sentence to
-find them:
+- **No — hand it over as it stands.** `${KB} tag <id> 1,3 user` flips ownership on the
+  numbered questions and touches nothing else.
+- **Yes — you're rewriting it**, usually because the answer is a pick between choices:
+  list them as options so the user ticks one instead of reading a sentence to find them.
+  `${KB} update-questions <id> --update <n> ".."` rewrites question `n` in place — text,
+  tag and options together — and never touches its siblings.
 
 ```
-${KB} update 12 --question "[user] Where should the board live?" \
-  --options "local files — simple | GitHub Projects — syncs with issues" \
-  --pick one --recommend 1
+${KB} update-questions 12 \
+  --update 1 "[user] Where should the board live?" \
+    --recommended-option "local files — simple" \
+    --option "GitHub Projects — syncs with issues" \
+  --update 2 "[user] Which parts ship in v1?" \
+    --mode multi \
+    --option "the board" \
+    --option "the CLI" \
+    --option "the web UI"
 ```
 
-- `--options` — the choices, split on `|`, two or more. **One short line each, with the
-  reason inside that line** ("local files — simple"). There's no second field for a note.
-- `--pick one` (the default) lets the user tick a single option; `--pick many` lets them
-  tick as many as they want.
-- `--recommend` — the option numbers ticked when the dialog opens, 1-based. One for
-  `--pick one`, one or more for `--pick many`. Leave it off when you have no
-  recommendation; the list then opens with nothing ticked.
-
-The flags after a `--question` belong to that question, so one call can carry several:
-repeat `--question` and give each its own options. A `--question` with no `--options`
-stays a plain question with a text box — that's the right shape for anything open-ended.
+`--recommended-option` is an `--option` that opens ticked — one flag, so the choice is
+written once and sits wherever you list it.
 
 The user always keeps the text box, so an options question can still be answered "none of
 these" in their own words. You get back the option lines they ticked, or their words —
@@ -50,8 +48,8 @@ never both.
 
 ## Update the frontmatter
 
-- All answered → `${KB} update <id> --clear-questions`
-- Some answered → `${KB} update <id> --drop-question 1,3` — the 1-based numbers of
+- All answered → `${KB} update-questions <id> --clear`
+- Some answered → `${KB} update-questions <id> --drop 1,3` — the 1-based numbers of
   the answered ones. The rest stay untouched, tags included.
 
 ## Fold the answers into the card

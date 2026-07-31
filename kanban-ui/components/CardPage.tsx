@@ -44,7 +44,7 @@ const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft
 // marker's SHAPE says how many may be picked (round = one, square = as many as
 // you like), matching the radio / checkbox the dialog shows.
 function QuestionOptions({ question }: { question: CardQuestion }) {
-  const many = question.pick === "many";
+  const many = question.mode === "multi";
   const On = many ? FiCheckSquare : FiCheckCircle;
   const Off = many ? FiSquare : FiCircle;
   return (
