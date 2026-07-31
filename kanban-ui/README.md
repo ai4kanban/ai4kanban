@@ -76,6 +76,7 @@ log is read-only — you never type into a running session.
 | Button | When it shows |
 | --- | --- |
 | **Implement** | Until every todo on the card is checked. Never on a group root. |
+| **Refine** | While a refine would still move the card — see below. |
 | **Edit** | Always. Say what to change and the agent revises the card. |
 | **Resolve** | Only when the card has open questions. |
 | **Archive** | Once every todo is checked (a group root: once every subtask is resolved). |
@@ -89,10 +90,81 @@ When a card is blocked, **Waiting on #&lt;id&gt; — still open** sits next to *
 link to each blocking card. The button still works: it's there so you know what you're
 starting ahead of, not to stop you.
 
-There is no **Refine** button. Refining is automatic only — see Auto-refine below.
+**Refine** runs one refine on this card right now, instead of waiting for the board to get
+to it. Its dialog has nothing to type — it says what the agent will do, and you confirm. It
+is the same run the board makes on its own (see **Auto-refine** below), so it works whether
+that switch is on or off: the switch says whether the server refines cards by itself, not
+whether you may ask for one.
+
+The button shows only while a refine would still move the card. It's gone once the card is
+**ready**, once every todo is checked, and when every open question is one only you can
+answer — **Resolve** is the button for that last one. A **Blocked** card keeps the button;
+the dialog names the blocker in one line and refines anyway.
+
+A card can only have one run at a time. If the board is already refining this card, the
+button is off and the badge beside the title says what's going on.
 
 A run never commits. It leaves its changes in your working tree; you read `git diff` and
 commit.
+
+### Stopping a run
+
+A live run's log has a small **✕** in its title bar. That ends the run — useful when an
+agent is going the wrong way and you'd rather not wait for it. It's in every place the log
+opens: the card page, the log you open from a card on the board, and **Runs** in the header.
+
+The ✕ never stops anything on its own. It opens a small box asking you to confirm, so a
+stray click on a busy board can't kill an agent mid-edit. Confirm and the button reads
+**stopping…** for a few seconds: the agent is asked to end first, and only killed if it
+doesn't go.
+
+**Stop doesn't undo anything.** The run ends where it stands, and whatever it half-wrote
+stays in your working tree — same as any other run. Read `git diff` and undo what you don't
+want.
+
+Every run can be stopped, whoever started it: one you pressed a button for, and one the
+board started by itself. The card unlocks the moment the run ends, so you can start
+something else on it.
+
+**Stopped** is its own outcome, next to done and failed — a blue dot in the runs panel and
+`stopped` on the log. Nothing went wrong, so it never reads as a failure, and it offers no
+**Resume**: a run you ended is over, not one that stopped short.
+
+If the board was auto-refining that card, stopping holds: it won't be picked up again a
+minute later. Any later run on the card — a **Refine** you start, an **Implement**, an
+**Edit** — lifts that and the board can pick it up again.
+
+Stop ends the agent. A build or a test the agent kicked off is left to finish on its own.
+
+### What a run cost
+
+When a run ends, its log says how long it took, what it cost, and which model did the work:
+`done · 4m 12s · est. $0.42 · claude-opus-5`.
+The same line shows wherever that log opens — from the card, or from **Runs** in the header.
+
+The number is an **estimate**, not a bill. The agent works it out on its own machine from the
+run's tokens at list prices. Most people run the board on a subscription plan, where a single
+run isn't charged on its own, so what you actually pay may be nothing at all.
+
+It is one run's own cost. The board never adds runs up — not per card, not per day — and a
+run you continued with **Resume** shows what that new run cost, not the whole conversation.
+
+A run with no cost to report shows no number: one still going, one that failed, was
+interrupted or was stopped before it got there, and an agent whose output says nothing about
+cost.
+
+### Which model a run used
+
+The model comes from the run itself — what the agent said it was working with — not from the
+model box in **Configuration**. So a run shows a model even when you left that box empty and
+let the agent pick, and a run that started before you last changed the model still shows the
+one it actually ran on.
+
+It shows from the run's first seconds, so you can see what a live run is using, and it reads
+exactly as the agent said it — the board never tidies up or invents a model name.
+
+A run whose agent never named a model shows nothing there: an older run from before the board
+tracked this, and any agent whose output doesn't say.
 
 ## Group tasks
 
@@ -118,19 +190,36 @@ The gear in the header opens the **Configuration** dialog. It holds:
 - **Model** — the model that agent runs with. Type an id, or leave it empty to let the agent
   use its own default.
 - **Auto-refine** — a switch. Turn it on and the server refines cards in the background:
-  about once a minute it picks the highest-priority card that still needs refining and runs
-  one refine on it, one card at a time. It answers the questions it's confident about and
-  leaves the real judgment calls for you as open questions. With the switch off, no card is
-  ever refined. While a refine is running, **Refining #&lt;id&gt;** sits beside the switch and
-  names the card it is on; when nothing is running the label is gone.
+  about once a minute it picks the highest-priority cards that still need refining and runs
+  a refine on each. It answers the questions it's confident about and
+  leaves the real judgment calls for you as open questions. A card the board marks **Blocked**
+  is passed over — its plan depends on a card that isn't built yet, so it waits until every
+  blocker is archived or rejected, then gets picked up on a later pass. So is a card whose
+  last run you stopped — see **Stopping a run**. With the switch off,
+  no card is refined *on its own* — the **Refine** button on a card page still works. While a
+  refine is running, **Refining #&lt;id&gt;** sits beside the switch and names every card it is
+  on, background runs and ones you started alike; when nothing is running the label is gone.
+- **Cards at once** — how many cards auto-refine works on at the same time. One by default,
+  so nothing changes until you raise it, and 5 is as high as it goes. Each run takes a
+  different card — the same card is never refined twice at once. More is faster on a big
+  backlog and heavier on your machine and your rate limit. The number saves whether or not
+  auto-refine is on; it's what the next run uses. A refine you start yourself never waits for
+  a free slot, but it fills one while it runs, so the board starts one fewer of its own.
 
 Settings live in `docs/kanban/ui.config.json`, next to your board — so `npx` always serves
 the latest UI and an update never touches your settings. Everything the dialog holds writes
 itself there:
 
 ```json
-{ "harness": { "name": "claude-code", "model": "claude-opus-5" }, "autoRefine": false }
+{
+  "harness": { "name": "claude-code", "model": "claude-opus-5" },
+  "autoRefine": false,
+  "autoRefineParallelism": 1
+}
 ```
+
+`autoRefineParallelism` is a whole number from 1 to 5. Anything else — a 0, a negative, text,
+a missing key — reads as 1, so a hand-edit that doesn't mean anything never breaks the board.
 
 `harness.name` is the agent. It decides everything about how that agent runs: the command,
 the flags that make it stream its output into the live log, the env vars, and the flags the
@@ -187,7 +276,8 @@ It **takes the place** of the run it continues: the row it started from disappea
 `resumed`, and the panel keeps one row for the work rather than a chain of dead attempts. That
 also drops the old run's log, so read anything you want from it before you press the button.
 
-Only a run that stopped short offers it. A run that passed has nothing to continue, and a run whose
+Only a run that stopped short offers it. A run that passed has nothing to continue, a run you
+stopped yourself is over rather than short (see **Stopping a run**), and a run whose
 conversation the agent can't reach (it never reported an id, or a different agent is picked
 now) shows no button rather than one that could only fail. If the conversation itself has
 expired, the resume ends as a failed run with the reason in its log, like any other failure.

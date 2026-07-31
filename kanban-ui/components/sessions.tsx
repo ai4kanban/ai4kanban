@@ -266,10 +266,13 @@ function fullTime(ts: number): string {
 }
 
 // The status dot shown against each session in the list: a pulsing ember while
-// live, mint when it passed, peach otherwise. Peach covers both a failed run and
-// an interrupted one (a session that outlived a UI restart — see registry): the
-// dot only says whether the run got there, and neither of those did. Which one it
-// was, and what to do about it, is the log pane's word.
+// live, mint when it passed, sky when the user stopped it, peach otherwise. Peach
+// covers both a failed run and an interrupted one (a session that outlived a UI
+// restart — see registry): the dot only says whether the run got there, and
+// neither of those did. Which one it was, and what to do about it, is the log
+// pane's word. A stopped run (#49) is the one that reached no end and yet is not
+// a problem — someone ended it on purpose — so it takes the board's neutral blue
+// rather than the peach of something that went wrong.
 function SessionDot({ session }: { session: SessionView }) {
   if (session.status === "running") {
     return (
@@ -279,7 +282,8 @@ function SessionDot({ session }: { session: SessionView }) {
       />
     );
   }
-  const tone = session.ok ? "bg-nb-mint" : "bg-nb-peach";
+  const tone =
+    session.status === "stopped" ? "bg-nb-sky" : session.ok ? "bg-nb-mint" : "bg-nb-peach";
   return <span className={`size-[8px] shrink-0 rounded-full ${tone}`} aria-hidden />;
 }
 

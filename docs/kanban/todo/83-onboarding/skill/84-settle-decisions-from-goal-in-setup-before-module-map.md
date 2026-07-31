@@ -4,7 +4,7 @@ track: skill
 priority: high
 roi: high
 status: todo
-blocked_by: [82]
+blocked_by: []
 related: [83]
 modules: [skill, site]
 questions:
@@ -29,9 +29,10 @@ conversation in the user's coding harness, not auto-refine — and do it before
   the steps the agent runs inside the user's coding harness after the install script
   (#81) has done the mechanical part. The install prompt points at this doc instead of
   spelling the flow out.
-- The doc fixes the order: settle `goal.md` (the step from #82), then settle the
-  project-wide `decisions.md` from it, then write `modules.md`, then propose the first
-  tasks.
+- The doc fixes the order: ask the user to write `goal.md` in their own words, then settle
+  the project-wide `decisions.md` from it, then write `modules.md`, then propose the first
+  tasks. Setup does not tell the user what shape the goal must take — the file has no fixed
+  format.
 - Settling `decisions.md` is a conversation, not auto-refine: the user is at the
   keyboard during setup, so the agent reads `goal.md`, asks the missing details a
   planner would need, and writes each settled answer as one line in the project-wide

@@ -14,16 +14,19 @@ re-ask a settled call.
 
 ## Auto-refine
 
-- Refining is automatic only. There is no manual "Refine" button; with the switch off,
-  nothing refines.
-- The dispatcher refines one card at a time, highest priority first, and only while the
-  switch is on.
+- Auto-refining runs on its own in the background, and the user can also start one on a card
+  from its page. The switch governs only the background runs — with it off, no card is
+  refined on its own, but the card page's Refine button still works.
+- The dispatcher refines cards highest priority first, and only while the switch is on. How
+  many at once is a user setting; the default is 1.
+- **Do two refines at once need a guard on the files they share?**: No. Last write wins —
+  no lock, no queue. Only create, propose, archive and reject stay one-at-a-time.
 - The background timer runs from server start. Refining does not wait for a browser tab to
   open the board.
 - It answers a card's open questions itself, except the ones tagged `[user]`. It skips a
   card whose questions are all `[user]` — that one waits for the human.
 - The switch shows one read-only label beside it in the Configuration dialog: "Refining
-  #<id>", the card the background run is on right now. When no run is going there is no
+  #<id>", the card a refine is on right now, background or user-started. When no run is going there is no
   label at all — no "last refined", no "next up", no idle reason. The runs panel is the
   place to browse runs.
 - **Does a paused dispatcher say so beside the switch?**: No. Even when a rate limit pauses
@@ -47,6 +50,12 @@ re-ask a settled call.
   what the user has staged. It also never keeps a frozen copy — an old run shows today's
   files.
 
+## Which model a run used
+
+- **Where does the model shown on a run come from?**: what the agent reports as it runs, not
+  the model field in the Configuration dialog. Most people leave that field empty and let the
+  agent pick, so reading the setting would leave most runs blank.
+
 ## Stopping a run
 
 - Any running run can be stopped from the UI, whoever started it — a background auto-refine
@@ -56,6 +65,10 @@ re-ask a settled call.
 - Stop ends the agent only. A build or test the agent started is left to finish on its own.
 - Stopping a background refine holds: the dispatcher does not pick that card again while its
   newest run is a stopped one.
+- **Does stopping undo the run's half-finished edits?**: No. They stay in the working tree
+  and the user undoes them with git — the same as any other run's changes.
+- **How is a stop confirmed?**: the control is a small ✕, and pressing it opens a
+  confirmation popover beside it. One click never ends a run.
 
 ## Continuing a run
 
@@ -82,6 +95,14 @@ re-ask a settled call.
   short-term goal. There is no separate roadmap file; the bar asks for all of it in that
   one file.
 - The bar can be dismissed; it is a nudge, not a gate.
+
+## Notice bars
+
+- **How does the UI tell the user about a condition it can't fix itself?**: with one shared
+  bar — the goal nudge and warnings both use it. It shows by default and stays while the
+  condition holds; a ✕ closes it and writes nothing to the board files.
+- A card the dispatcher gave up on after repeated failed runs says so in that bar, on the
+  card's own page.
 
 ## The progress view
 

@@ -46,7 +46,7 @@ current board` — and moves when the step ticks. The UI never runs setup itself
   quiet.
 - The checklist is also how any flow asks "is setup done" — it reads the file instead of
   guessing from blanks in `config.md`.
-- No cards before the last box. Creating the first tasks (#86) is the checklist's last
+- No cards before the last box. Creating the first tasks (#91) is the checklist's last
   item; no earlier setup step creates a card. While any box is unticked, the flows that
   create cards — propose, add — wait for setup to finish. A run that dies halfway leaves
   a board with no cards, not a half-planned one.
@@ -72,7 +72,7 @@ current board` — and moves when the step ticks. The UI never runs setup itself
 - [ ] Show no bar when the file is absent, so existing boards stay quiet.
 - [ ] Show the copyable harness instruction on the bar when the next step needs the
       agent, like `/kanban setup the current board`.
-- [ ] Put creating the first tasks (#86) last on the checklist and make sure no earlier
+- [ ] Put creating the first tasks (#91) last on the checklist and make sure no earlier
       step creates a card.
 - [ ] Make the propose and add flows wait while any box is unticked.
 - [ ] Kill setup halfway, open the UI, and check the bar shows the remaining steps and

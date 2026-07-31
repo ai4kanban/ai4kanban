@@ -7,8 +7,7 @@ status: todo
 blocked_by: []
 related: [16, 49, 51, 69]
 modules: [local-ui]
-questions:
-  - "[user] A card the dispatcher gave up on after 3 failed runs — (a) show nothing; (b) one line on the card page beside Implement; (c) that line plus a small icon chip on the board, like the blocked lock. Recommend (c): the skip is permanent and its failed runs age out of the runs panel, so nothing else would ever show it."
+questions: []
 ---
 
 Say why an agent run failed, and stop the dispatcher from retrying a failure it can't fix.
@@ -67,6 +66,16 @@ one card, one a minute, every one of them the same limit.
 - That means the board has to record who started each run. Today it can only guess from
   the run's name, and Resume already breaks the guess: resuming a failed background refine
   keeps that run's name while being the user's own run.
+- Say it on the card. A card the dispatcher gave up on shows a notice bar at the top of its
+  page: the dispatcher stopped picking it after 3 failed runs in a row, and starting a run
+  yourself puts it back in the rotation. It reads as a warning, not a nudge.
+- The bar shows by default and stays for as long as the card is skipped. A ✕ closes it for
+  the rest of the browser session — nothing is written to the board files.
+- It is the same strip the goal bar already uses. Pull that strip out into one shared bar
+  and put both notices on it, so every notice in the UI looks and closes the same way.
+- The board marks a skipped card with a small icon chip, in the row that already carries the
+  blocked lock. Without it a skipped card looks like any other on the board, and its failed
+  runs age out of the 30-run history.
 
 **Remember it across a restart**
 - Keep the wait and the per-card failure counts in `docs/kanban/.dispatcher.json`, next to
@@ -107,6 +116,10 @@ one card, one a minute, every one of them the same limit.
   dispatcher-started and not rate-limited. A run the dispatcher didn't start clears it —
   the UI's Edit is itself a run, so editing from the UI clears it; a hand edit to the file
   does not.
+- Does the skipped card's bar carry its own button? No. Implement, Refine, Resolve and Edit
+  already sit on the toolbar above it, and any of them clears the skip.
+- Does the board show the skip too? Yes, as a small icon chip beside the blocked lock. The
+  bar alone would only be found by opening the card.
 - Where does the wait state live? `docs/kanban/.dispatcher.json`, out of git, next to
   `.sessions.json`. Not `ui.config.json` (the user's settings, checked in) and not the
   session history (pruned to 30 and dropped with its log — lossy).
@@ -129,8 +142,13 @@ one card, one a minute, every one of them the same limit.
       clear the count when a run it didn't start begins.
 - [ ] Remember the wait and the per-card failure counts across a UI restart, in
       `docs/kanban/.dispatcher.json` and out of git.
-- [ ] Add a "when a run fails" section to `kanban-ui/README.md`: the three kinds, and what
-      the dispatcher does about each.
+- [ ] Pull the goal bar's strip out into one shared notice bar, and keep the goal bar on it.
+- [ ] Show that bar on the page of a card the dispatcher gave up on: why it was skipped, and
+      that starting a run yourself puts it back. It stays while the card is skipped, and its
+      ✕ hides it for the browser session only.
+- [ ] Mark a skipped card on the board with a small icon chip, beside the blocked lock.
+- [ ] Add a "when a run fails" section to `kanban-ui/README.md`: the three kinds, what the
+      dispatcher does about each, and what a card it gave up on looks like.
 - [ ] Fix the three passages in `kanban-ui/README.md` this card makes wrong — the
       auto-refine section, the `CLAUDE_CODE_MAX_RETRIES` paragraph, and "the reason is in
       its output".

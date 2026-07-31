@@ -23,9 +23,8 @@ _(none)_
 - [#69 Support Codex CLI as the agent harness](features/69-support-codex-cli-as-the-agent-harness.md)
 - [#77 Read the board's memory in the UI](features/77-read-the-board-s-memory-in-the-ui.md)
 - [#80 Say what the agent must be allowed to do before a button works](features/80-say-what-the-agent-must-be-allowed-to-do-before-a-button-wor.md)
-- [#88 Run several auto-refines at once, set by a parallelism setting](features/88-run-several-auto-refines-at-once-set-by-a-parallelism-settin.md)
-- [#89 Auto-refine never picks a card whose blockers are still open](features/89-auto-refine-never-picks-a-card-whose-blockers-are-still-open.md)
-- [#90 Show what a run cost in dollars on the session log overlay](features/90-show-what-a-run-cost-in-dollars-on-the-session-log-overlay.md)
+- [#92 Connector setup: model, provider, endpoint, reasoning](92-per-connector-configuration/root.md)
+- [#100 Releases: plan what ships in this version and what waits](100-release-planning/root.md)
 
 ## skill
 

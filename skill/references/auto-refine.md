@@ -25,7 +25,8 @@ ${KB} tag <id> 1,2,3 user               # tag several questions at once (comma-s
 Never pause to ask the user.
 
 1. Run `references/refine.md`.
-2. Hand the subagent the card and the whole batch of untagged questions at once.
+2. If questions is not empty, spawn a subagent and hand it the card and the whole batch
+   of untagged questions at once. Questions should be answered with a fresh context.
    It researches and decides according to `references/resolve.md`:
    If answering surfaces new questions, add them untagged and run one more subagent for
    the new batch.

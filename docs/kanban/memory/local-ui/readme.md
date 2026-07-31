@@ -14,3 +14,8 @@ covers it, or a plain-words note.
 - See on the board which cards are waiting on another card, and which card is in the way: `kanban-ui/README.md`.
 - See which card auto-refine is on right now, from a **Refining #&lt;id&gt;** label beside the switch: `kanban-ui/README.md`.
 - Flip the header to **Queue** to see the same cards split into ready to build and not ready, instead of by track: `kanban-ui/README.md`.
+- Auto-refine leaves a blocked card alone until its blockers are gone, so no run is spent on a plan that depends on unbuilt work: `kanban-ui/README.md`.
+- See what a run cost in dollars beside its duration in the session log, marked as an estimate: `kanban-ui/README.md`.
+- See which model did a run's work in its session log, taken from what the agent reported, not from the model setting: `kanban-ui/README.md`.
+- Set how many cards auto-refine works on at once, up to 5, from the Configuration dialog: `kanban-ui/README.md`.
+- Refine the card you are looking at right now with a **Refine** button on its page, instead of waiting for the board to reach it — and it works with the auto-refine switch off: `kanban-ui/README.md`.

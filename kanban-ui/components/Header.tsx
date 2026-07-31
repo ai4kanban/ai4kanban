@@ -13,8 +13,9 @@ import { Sessions } from "./sessions";
 // self-contained (see CreateTask) so both pages
 // get it without threading any session state through the header. `projectRoot` is
 // the repo the server is driving (holds docs/kanban/) — shown as a small badge so
-// you can tell at a glance which board this is. `autoRefine` seeds the
-// Configuration dialog's switch and `sessions` is the page's polled registry
+// you can tell at a glance which board this is. `autoRefine` and
+// `autoRefineParallelism` seed the Configuration dialog's auto-refine controls
+// and `sessions` is the page's polled registry
 // list, which tells that dialog whether a background refine is running and on
 // which card (#51); `onError` lets a save failure surface where the page already
 // shows errors, across its top.
@@ -32,6 +33,7 @@ export function Header({
   agent,
   projectRoot,
   autoRefine,
+  autoRefineParallelism,
   sessions,
   onError,
   view,
@@ -40,6 +42,7 @@ export function Header({
   agent: AgentInfo;
   projectRoot: string;
   autoRefine: boolean;
+  autoRefineParallelism: number;
   sessions: SessionView[];
   onError?: (msg: string) => void;
   view?: BoardViewMode;
@@ -80,6 +83,7 @@ export function Header({
         <Configuration
           agent={agent}
           autoRefine={autoRefine}
+          autoRefineParallelism={autoRefineParallelism}
           sessions={sessions}
           onError={onError}
         />

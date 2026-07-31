@@ -116,8 +116,31 @@ const RESULT_MARKER = "<<<kanban:result>>>";
 // output.
 const DURATION_MARKER = "<<<kanban:duration>>>";
 
+// What the run cost, written into the log the same way and for the same reason
+// (`<marker> 0.4231`, in US dollars). The registry answers this from the session
+// record, but .sessions.json keeps only the newest sessions — so the number is
+// stamped into the durable log too, and getSession() recovers it from there for a
+// run whose registry entry is thinner than its file. Stripped back out before the
+// log is shown.
+const COST_MARKER = "<<<kanban:cost>>>";
+
+// Which model did the work, stamped into the log the same way and for the same
+// reason (`<marker> claude-opus-5`). The live record answers this while the run
+// is going and for as long as .sessions.json keeps it, but that file holds only
+// the newest runs — so the id goes into the durable log too and getSession()
+// recovers it from there. Stripped back out before the log is shown.
+const MODEL_MARKER = "<<<kanban:model>>>";
+
 function durationLine(session: Session, endedAt: number): string {
   return `\n${DURATION_MARKER} ${Math.max(0, endedAt - session.startedAt)}\n`;
+}
+
+function costLine(costUsd: number): string {
+  return `${COST_MARKER} ${costUsd}\n`;
+}
+
+function modelLine(model: string): string {
+  return `${MODEL_MARKER} ${model}\n`;
 }
 
 // Same line, for the paths that don't own the log's write stream (a session
@@ -143,7 +166,11 @@ interface Session {
   // an exit code. It used to be folded into `done` with an outcomeUnknown flag,
   // which read as "finished" — a run that never got there. It now stands on its
   // own: shown as unfinished work, and resumable like a failure.
-  status: "running" | "done" | "error" | "interrupted";
+  //
+  // `stopped` is the fifth (#49): the user ended this run from the UI. Not a
+  // failure — nothing went wrong, someone decided it should stop — and not
+  // something to resume either: a run you ended is over.
+  status: "running" | "done" | "error" | "interrupted" | "stopped";
   startedAt: number;
   endedAt?: number;
   pid?: number;
@@ -155,6 +182,18 @@ interface Session {
   ok?: boolean;
   code?: number | null;
   error?: string;
+  // What this run cost in US dollars, as its own output reported it at close. An
+  // estimate the agent worked out from tokens at list prices — not a bill, and
+  // this run's own number alone: nothing here ever adds two runs together. Unset
+  // for a run that reported none (still live, cut off before it finished, an
+  // agent command that says nothing about cost, or a run from before #90).
+  costUsd?: number;
+  // The model that did the work, as the run's own output named it — caught the
+  // moment the agent says it (its opening banner), not read off the model
+  // setting, which is empty for most people and belongs to today rather than to
+  // this run. Unset until the agent names one, and for good on an agent whose
+  // output never does or a run from before #98.
+  model?: string;
   tail: string;
   // The agent's final message, parsed out of its event stream at close. The
   // tail holds only the intermediate events then — the UI leads with this and
@@ -190,6 +229,13 @@ interface Session {
   // Re-adopted from disk after a UI restart. We are no longer its parent, so we
   // detect its exit by polling the pid instead of a 'close' event.
   adopted?: boolean;
+  // Stop has been asked for on this run (#49), so whichever path witnesses the
+  // end — the child's own close event, the pid poll on an adopted run, or the
+  // backstop timer — records it as `stopped` rather than a failure. In memory
+  // only: it lives for the few seconds between the signal and the end, and a UI
+  // that dies inside that window leaves a run nobody saw the end of, which is
+  // what `interrupted` already means.
+  stopping?: boolean;
 }
 
 interface RegistryState {
@@ -259,6 +305,9 @@ function persist(s: RegistryState): void {
       harness: r.harness,
       resumeId: r.resumeId,
       resumedFrom: r.resumedFrom,
+      // Saved mid-run, like resumeId: a live run has already named its model, so
+      // a restart that re-adopts it keeps showing which one.
+      model: r.model,
       logPath: r.logPath,
       priorStatus: r.priorStatus,
     }));
@@ -276,6 +325,8 @@ function persist(s: RegistryState): void {
     ok: r.ok,
     code: r.code,
     error: r.error,
+    costUsd: r.costUsd,
+    model: r.model,
     logPath: r.logPath,
   }));
   try {
@@ -315,6 +366,7 @@ function adoptFromDisk(s: RegistryState): void {
       harness: typeof d.harness === "string" ? d.harness : "",
       resumeId: typeof d.resumeId === "string" ? d.resumeId : undefined,
       resumedFrom: typeof d.resumedFrom === "string" ? d.resumedFrom : undefined,
+      model: typeof d.model === "string" && d.model ? d.model : undefined,
       tail: "",
       logPath: d.logPath || path.join(sessionsDir(), `${d.sessionId}.log`),
       priorStatus: d.priorStatus,
@@ -333,7 +385,9 @@ function adoptFromDisk(s: RegistryState): void {
       // A saved terminal state comes back as itself; anything unrecognized reads
       // as `done`, the one state that claims nothing beyond "it ended".
       status:
-        d.status === "error" || d.status === "interrupted" ? d.status : "done",
+        d.status === "error" || d.status === "interrupted" || d.status === "stopped"
+          ? d.status
+          : "done",
       startedAt: d.startedAt || Date.now(),
       endedAt: typeof d.endedAt === "number" ? d.endedAt : undefined,
       input: typeof d.input === "string" ? d.input : undefined,
@@ -348,6 +402,12 @@ function adoptFromDisk(s: RegistryState): void {
       ok: typeof d.ok === "boolean" ? d.ok : undefined,
       code: d.code ?? null,
       error: typeof d.error === "string" ? d.error : undefined,
+      // A run saved before #90, or one that never reported a cost, has no number
+      // here — and shows none, rather than a zero it didn't earn.
+      costUsd: typeof d.costUsd === "number" && d.costUsd > 0 ? d.costUsd : undefined,
+      // Same for the model: a run saved before #98, or one whose agent never
+      // named a model, shows none rather than today's setting.
+      model: typeof d.model === "string" && d.model ? d.model : undefined,
       // No in-memory tail/result survives a restart — getSession() reads the log file.
       tail: "",
       logPath,
@@ -392,7 +452,9 @@ function reapAdopted(s: RegistryState): void {
   let changed = false;
   for (const r of s.sessions.values()) {
     if (r.status === "running" && r.adopted && !pidAlive(r.pid)) {
-      r.status = "interrupted";
+      // Unless we are the reason it is gone: an adopted run has no close event,
+      // so this poll is also how a Stop on one gets witnessed (#49).
+      r.status = r.stopping ? "stopped" : "interrupted";
       r.code = null; // exit code is unknown across a restart
       // `ok` stays unset: we saw neither a pass nor a failure.
       // We only know it ended by the time we noticed, so this duration is an
@@ -451,11 +513,15 @@ function readLogTail(logPath: string, maxBytes = TAIL_BYTES): string | null {
 // message, so a session re-adopted after a restart folds the events away the
 // same as an in-session run. Returns just { tail } when there's no separable
 // message (a live session, or a custom command with no recognizable structure).
-function splitLogResult(logText: string): { tail: string; result?: string; durationMs?: number } {
-  // Pull the duration stamp out first: it's bookkeeping, not agent output, so it
-  // must not reach the view — and left in place it would land after the last tool
-  // line and the legacy fallback below would read it as the final message.
+function splitLogResult(
+  logText: string,
+): { tail: string; result?: string; durationMs?: number; costUsd?: number; model?: string } {
+  // Pull the bookkeeping stamps out first: they're not agent output, so they must
+  // not reach the view — and left in place they would land after the last tool
+  // line and the legacy fallback below would read them as the final message.
   let durationMs: number | undefined;
+  let costUsd: number | undefined;
+  let model: string | undefined;
   const kept: string[] = [];
   for (const line of logText.split("\n")) {
     if (line.startsWith(DURATION_MARKER)) {
@@ -463,10 +529,18 @@ function splitLogResult(logText: string): { tail: string; result?: string; durat
       if (Number.isFinite(ms)) durationMs = ms;
       continue;
     }
+    if (line.startsWith(COST_MARKER)) {
+      const usd = Number(line.slice(COST_MARKER.length).trim());
+      if (Number.isFinite(usd) && usd > 0) costUsd = usd;
+      continue;
+    }
+    if (line.startsWith(MODEL_MARKER)) {
+      model = line.slice(MODEL_MARKER.length).trim() || undefined;
+      continue;
+    }
     kept.push(line);
   }
-  const split = splitBody(kept.join("\n"));
-  return durationMs === undefined ? split : { ...split, durationMs };
+  return { ...splitBody(kept.join("\n")), durationMs, costUsd, model };
 }
 
 function splitBody(logText: string): { tail: string; result?: string } {
@@ -689,6 +763,92 @@ export function resumeSession(sessionId: string): StartResult {
   return { ok: true, sessionId: newId };
 }
 
+// --- stopping a run ---------------------------------------------------------
+
+// How long a run gets to end on its own after Stop asks it to, before it is
+// killed outright.
+const STOP_GRACE_MS = 5_000;
+// And how long after the kill we close the record ourselves. The child's own
+// 'close' event normally does it, but that event waits on the output PIPE, not
+// the process — a tool the agent left behind can hold the pipe open long after
+// the agent itself is gone, which would leave the run reading "running" and its
+// card locked. So the registry closes it out regardless (#49).
+const STOP_CLOSE_MS = 2_000;
+
+// Send a real signal to a run's process. Never throws: the process may exit
+// between the check and the call, and losing that race is not an error — the run
+// is over either way, which is what Stop wanted.
+function signal(pid: number | undefined, sig: NodeJS.Signals): void {
+  if (!pid) return;
+  try {
+    process.kill(pid, sig);
+  } catch {
+    // already gone
+  }
+}
+
+// End a run the user stopped from the UI (#49). Asks the agent to end (SIGTERM),
+// kills it if it is still there after the grace, and closes the record out.
+//
+// The run then finishes the way every other run does — log closed, duration
+// stamped, the card's stage restored and the card unlocked — but under its own
+// outcome: `stopped` is neither a pass nor a failure, and it offers no Resume,
+// since a run you ended has nothing left to continue.
+//
+// Stopping a run that has already ended does nothing and reports no error: the
+// button is drawn from a poll that can be a second and a half old, so the run
+// may well have finished between the draw and the click.
+export function stopSession(sessionId: string): StartResult {
+  const s = state();
+  reapAdopted(s);
+
+  const r = s.sessions.get(sessionId);
+  if (!r) return { ok: false, error: "that session is no longer in the registry" };
+  // Over already, or already asked to stop — nothing to do, and nothing wrong.
+  if (r.status !== "running" || r.stopping) return { ok: true, sessionId };
+  r.stopping = true;
+
+  // No live process to signal: the run is queued behind the index lock and has
+  // not spawned yet, or it died on its own a moment ago. Nothing will ever tell
+  // us it ended, so close it out here. (A run stopped before it spawned never
+  // does — launch() checks the record after the lock.)
+  if (!r.pid || !pidAlive(r.pid)) {
+    finishStopped(s, r);
+    return { ok: true, sessionId };
+  }
+
+  signal(r.pid, "SIGTERM");
+  after(STOP_GRACE_MS, () => {
+    if (pidAlive(r.pid)) signal(r.pid, "SIGKILL");
+  });
+  after(STOP_GRACE_MS + STOP_CLOSE_MS, () => finishStopped(s, r));
+  return { ok: true, sessionId };
+}
+
+// setTimeout that can't hold the server process open on its own — same reason
+// the dispatcher unrefs its interval.
+function after(ms: number, fn: () => void): void {
+  const t = setTimeout(fn, ms);
+  if (typeof t.unref === "function") t.unref();
+}
+
+// Close out a stopped run's record. Whichever path gets here first wins and the
+// rest are no-ops (the status guard), because three of them can: the child's own
+// close event, the pid poll on an adopted run, and the backstop timer above.
+function finishStopped(s: RegistryState, session: Session): void {
+  if (session.status !== "running") return;
+  session.status = "stopped";
+  session.code = null; // killed, so any exit code we might read says nothing
+  // `ok` stays unset, as it does for an interrupted run: the run neither passed
+  // nor failed, it was ended.
+  session.endedAt = Date.now();
+  stampDuration(session, session.endedAt);
+  clearSessionStatus(session);
+  pruneLogs();
+  persist(s);
+  pruneMemory(s);
+}
+
 // Drop a session from the registry and take its log with it. Only for a session
 // something else has taken over (see resumeSession) — the record and the file are
 // one thing, so leaving the log would strand a file nothing can open, and it would
@@ -747,6 +907,14 @@ async function launch(
     ? await acquireIndexLock(s)
     : () => {};
 
+  // An index action can wait minutes on that lock, and Stop reaches a run that
+  // never spawned: the record is already closed out, so don't start the agent
+  // now (#49).
+  if (session.status !== "running") {
+    release();
+    return;
+  }
+
   try {
     fs.mkdirSync(sessionsDir(), { recursive: true });
   } catch {
@@ -799,6 +967,7 @@ async function launch(
   child.stdout.on("data", (d: Buffer) => {
     append(renderer.push(d.toString()));
     catchResumeId(s, session, renderer);
+    catchModel(s, session, renderer);
   });
   child.stderr.on("data", (d: Buffer) => append(d.toString()));
   child.on("error", (err) => {
@@ -808,11 +977,32 @@ async function launch(
   child.on("close", (code) => {
     append(renderer.flush());
     catchResumeId(s, session, renderer); // the id may have been in the last partial line
+    catchModel(s, session, renderer); // and so may the model, on a very short run
+    // A stopped run whose pipe outlived it was already closed out by the backstop
+    // (see finishStopped): the stamps are in the log and the record is final, so
+    // all that's left here is to let go of the stream and the lock.
+    if (session.status !== "running") {
+      log.end();
+      release();
+      return;
+    }
     // Stamp the elapsed time through the same stream (not an appendFileSync
     // after log.end(), which would race the stream's pending flush), and hand the
     // exact instant to finish() so the file and the registry agree.
     const endedAt = Date.now();
     log.write(durationLine(session, endedAt));
+    // What the run cost, if its own output said. Stamped right after the duration
+    // — the two are one line in the UI — and kept on the session so the number is
+    // there without re-reading the file.
+    const cost = renderer.costUsd?.();
+    if (cost !== undefined) {
+      session.costUsd = cost;
+      log.write(costLine(cost));
+    }
+    // And which model did it. Already on the session (caught the moment the agent
+    // named it) — this stamps it into the log so the file alone can still answer
+    // once the record ages out of .sessions.json.
+    if (session.model) log.write(modelLine(session.model));
     // The final message is kept off the tail (the UI shows it in its own
     // panel and folds the events away) but written to the log file — behind a
     // marker line — so the file alone is the complete, durable record and a
@@ -842,13 +1032,34 @@ function catchResumeId(s: RegistryState, session: Session, renderer: StreamRende
   persist(s);
 }
 
+// The model the agent named for this run, taken the instant its output says one
+// — the opening banner, seconds in — so a live run can show what it is working
+// with instead of waiting for the end. Persisted at once for the same reason the
+// resume id is: a restart a moment later would otherwise leave the run with no
+// model to show. First one wins, in the renderer; a harness whose output never
+// names a model has no `model` on its renderer and stops at the first check.
+function catchModel(s: RegistryState, session: Session, renderer: StreamRenderer): void {
+  if (session.model || !renderer.model) return;
+  const model = renderer.model();
+  if (!model) return;
+  session.model = model;
+  persist(s);
+}
+
 function finish(
   s: RegistryState,
   session: Session,
   res: { ok: boolean; code: number | null; error?: string; endedAt?: number },
 ): void {
-  session.status = res.ok ? "done" : "error";
-  session.ok = res.ok;
+  // A run the user stopped exits non-zero (we killed it), but that is not a
+  // failure — so the signal we sent, not the code it died with, names the
+  // outcome. `ok` stays unset for it, as it does for an interrupted run.
+  if (session.stopping) {
+    session.status = "stopped";
+  } else {
+    session.status = res.ok ? "done" : "error";
+    session.ok = res.ok;
+  }
   session.code = res.code;
   if (res.error) session.error = res.error;
   // `endedAt` comes from the caller when it already stamped that instant into the
@@ -878,6 +1089,14 @@ function toView(r: Session, withTail: boolean, resumable: string | null): Sessio
     // How long it took — the one number the UI shows next to "done". A running
     // session has no duration yet; its pulse dot carries it instead.
     durationMs: r.status !== "running" && r.endedAt ? r.endedAt - r.startedAt : undefined,
+    // What the run cost, beside the duration. A live run has none yet — the
+    // number arrives with the agent's closing event — and a run that never
+    // reported one shows nothing at all.
+    costUsd: r.status !== "running" ? r.costUsd : undefined,
+    // Which model is doing the work. Unlike the duration and the cost, this one
+    // shows on a LIVE run too: the agent names it in its first seconds, and
+    // seeing what a run is using while it goes is the point.
+    model: r.model,
     input: r.input,
     harness: r.harness,
     // The Resume offer, and everything it needs to be honest: the run stopped
@@ -931,7 +1150,7 @@ export function getSession(sessionId: string): SessionView | null {
     // recover it from the marker in the log so the UI folds the events away, the
     // same as an in-session run. A live session has no marker yet, so this is a
     // no-op.
-    const { tail, result, durationMs } = splitLogResult(raw);
+    const { tail, result, durationMs, costUsd, model } = splitLogResult(raw);
     view.tail = tail;
     if (result && r.status !== "running") view.result = result;
     // The registry's own timestamps win when it has them; the stamp in the log is
@@ -939,6 +1158,14 @@ export function getSession(sessionId: string): SessionView | null {
     if (view.durationMs === undefined && durationMs !== undefined && r.status !== "running") {
       view.durationMs = durationMs;
     }
+    // Same for the cost: the record first, the log's stamp for a run re-read
+    // after a restart.
+    if (view.costUsd === undefined && costUsd !== undefined && r.status !== "running") {
+      view.costUsd = costUsd;
+    }
+    // Same again for the model. No `running` guard here: the stamp is only ever
+    // written at close, so a live run can't have one to recover.
+    if (view.model === undefined && model !== undefined) view.model = model;
   }
   return view;
 }

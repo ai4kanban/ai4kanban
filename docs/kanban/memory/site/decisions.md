@@ -32,6 +32,11 @@ re-ask a settled call.
   outside your repo to sync with. It never promised the board has no charts, so a view
   built into the board doesn't break it. Say "no external tool" in the copy.
 
+## The quick start
+
+- The site's quick start shows one command, `npx ai4kanban install` — never a list of
+  shell steps and never a `curl … | sh` line.
+
 ## Vibe Kanban comparison
 
 - Say plainly that Vibe Kanban shut down and its repo is stalled. Don't soften it.

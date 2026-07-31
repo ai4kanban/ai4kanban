@@ -28,6 +28,14 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   missing value reads as `todo`) so the stage is part of the board's record and survives a
   UI restart. The script is the only writer, like every other field.
 
+## Setup
+
+- ❌ **End setup by creating ten loose cards** → ✅ end it with two group tasks: **v1**,
+  what the first release must include, and **vnext**, everything else. A flat pile says
+  nothing about what ships first, and ideas that miss the pile are lost.
+- ❌ **Plan a later release from scratch** → ✅ a release is a slice moved out of vnext
+  into its own group task (v2, then v3); what is left stays in vnext.
+
 ## Auto-refine
 
 - ❌ **Auto-refine records every auto-answer in `decisions.md`, same as the human resolve

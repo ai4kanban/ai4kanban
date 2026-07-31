@@ -3,6 +3,14 @@
 Ideas we turned down, grouped by topic. One line each: the idea, and why we said no. Read
 before proposing so you don't re-suggest them.
 
+## Goal
+
+- **A fixed template for `goal.md`, shared by the script seed and the UI's starting text** —
+  we don't pin down what the goal file must contain, the same way Claude Code and OpenClaw
+  don't restrict what goes in `soul.md`. What we may write instead is a best-practices
+  guide — a good goal covers the business goal, the long horizon, a roadmap, a direction —
+  as advice, not a shape the UI or the agent enforces.
+
 ## Local UI
 
 - **Human-in-the-loop / mid-run reply to the agent** — we don't add a live reply channel.

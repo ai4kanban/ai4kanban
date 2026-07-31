@@ -17,6 +17,18 @@ export interface StreamRenderer {
   flush(): string;
   /** The agent's final message, once the `result` event has arrived. */
   result(): string | undefined;
+  /** What this run cost in US dollars, once the `result` event has reported one.
+   *  An ESTIMATE the agent works out on its own machine from token counts at list
+   *  prices — not a bill (task #90). Only harnesses whose output reports a cost
+   *  implement this; the rest leave it out and the UI shows no number. */
+  costUsd?(): number | undefined;
+  /** The model id this run is working with, as the agent itself named it (task
+   *  #98) — never the model setting, which most people leave empty. The FIRST id
+   *  the output names wins: that is the model the run started on, and a run that
+   *  hands some work to a smaller model along the way is still one run by one
+   *  model. Only harnesses whose output names a model implement this; the rest
+   *  leave it out and the UI shows nothing rather than inventing a name. */
+  model?(): string | undefined;
   /** The id this harness's own CLI resumes by, once its output has reported one.
    *  Only harnesses that mint their own id mid-run implement this — one that
    *  adopts the id we generate (Claude Code, via `--session-id`) knows it before
@@ -38,9 +50,27 @@ function toolHint(input: unknown): string {
   return `(${line.length > 96 ? line.slice(0, 93) + "…" : line})`;
 }
 
+// The model id an event names, if it names one. Claude Code says it twice over:
+// the `system`/`init` banner it opens with carries `model`, and every assistant
+// turn repeats it under `message.model`. The banner comes first — which is what
+// makes the model showable from the run's first second — and the turn is the
+// fallback for output that opens with no banner.
+function eventModel(ev: Record<string, unknown>): string | undefined {
+  if (ev.type === "system" && ev.subtype === "init" && typeof ev.model === "string") {
+    return ev.model.trim() || undefined;
+  }
+  if (ev.type === "assistant") {
+    const msg = ev.message as { model?: unknown } | undefined;
+    if (typeof msg?.model === "string") return msg.model.trim() || undefined;
+  }
+  return undefined;
+}
+
 export function createStreamRenderer(): StreamRenderer {
   let buf = "";
   let final: string | undefined;
+  let cost: number | undefined;
+  let model: string | undefined;
 
   const renderLine = (line: string): string => {
     if (!line.trim()) return "";
@@ -52,6 +82,10 @@ export function createStreamRenderer(): StreamRenderer {
     } catch {
       return line + "\n";
     }
+    // Which model is doing the work, taken from the run's own output as it goes.
+    // First one wins, so this settles on the opening banner's id and never drifts
+    // to whatever a later turn happens to say.
+    if (model === undefined) model = eventModel(ev);
     switch (ev.type) {
       case "assistant": {
         const msg = ev.message as { content?: unknown } | undefined;
@@ -69,6 +103,14 @@ export function createStreamRenderer(): StreamRenderer {
       }
       case "result":
         if (typeof ev.result === "string") final = ev.result;
+        // `total_cost_usd` is claude's own arithmetic — the run's tokens at list
+        // prices, worked out locally. A run on a subscription plan still reports
+        // one even though nothing was charged for it, which is exactly why the UI
+        // calls it an estimate. Only a positive, finite number counts; anything
+        // else means the run has no cost to show (task #90).
+        if (typeof ev.total_cost_usd === "number" && Number.isFinite(ev.total_cost_usd) && ev.total_cost_usd > 0) {
+          cost = ev.total_cost_usd;
+        }
         return "";
       default:
         // system/init banners and tool results are noise in a tail.
@@ -89,5 +131,7 @@ export function createStreamRenderer(): StreamRenderer {
       return rest ? renderLine(rest) : "";
     },
     result: () => final,
+    costUsd: () => cost,
+    model: () => model,
   };
 }

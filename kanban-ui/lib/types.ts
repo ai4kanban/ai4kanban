@@ -2,6 +2,12 @@
 
 export type Level = "high" | "med" | "low";
 
+/** The most cards auto-refine will work on at once (#88). It lives here, not in
+ *  lib/config.ts, because both sides need it and config.ts reads the filesystem
+ *  — a client component can't import that. The server clamps the saved setting
+ *  to it, the dialog's stepper stops at it. */
+export const MAX_PARALLEL = 5;
+
 /** The stage a card rests in, saved on the card so it survives a UI restart.
  *  In order: `todo` (raw), `ready` (plan concrete, no open questions, someone
  *  could start now), `implementing`. `reject`/`archive` take the card off the board, so they
@@ -130,8 +136,12 @@ export interface SessionView {
   /** `interrupted` is its own terminal state: the run was cut off — the UI
    *  server died mid-run and the agent ended out of our sight — so it neither
    *  passed nor reported a failure. It is NOT a finish: it reads as unfinished
-   *  work and offers Resume, the same as a failure. */
-  status: "running" | "done" | "error" | "interrupted";
+   *  work and offers Resume, the same as a failure.
+   *
+   *  `stopped` is the state of a run the user ended from the UI (#49). Nothing
+   *  went wrong with it, so it is never shown as a failure — and it offers no
+   *  Resume: a run you ended is over, not one that stopped short. */
+  status: "running" | "done" | "error" | "interrupted" | "stopped";
   startedAt: number;
   endedAt?: number;
   /** How long the session ran, in ms. Terminal sessions only. Normally just
@@ -141,6 +151,25 @@ export interface SessionView {
    *  For an `interrupted` run this is an upper bound — we only know it ended by
    *  the time we noticed — so the UI marks it `~`. */
   durationMs?: number;
+  /** What this run cost, in US dollars. An ESTIMATE: the agent works it out on
+   *  its own machine from the run's tokens at list prices, and the board's
+   *  default agent runs on a subscription plan, where a single run isn't charged
+   *  at all — so the UI never words it as a bill. It is this run's own number and
+   *  nothing more: the board never adds runs up, and a run continued with Resume
+   *  reports what that new run cost, not the whole conversation. Absent for a live
+   *  run, one cut off before it reported a cost, a run from before this existed,
+   *  and an agent command that says nothing about cost — all of which show no
+   *  number rather than a zero. */
+  costUsd?: number;
+  /** The model that did this run's work, as the agent itself reported it — not
+   *  the model field in the Configuration dialog, which most people leave empty
+   *  and which says nothing about a run that started before it was changed. The
+   *  id is shown exactly as the agent said it, suffixes and all; the board never
+   *  invents or prettifies a model name. Present from the run's first seconds, so
+   *  a live run shows what it is using. Absent for a run from before this
+   *  existed, one cut off before its agent named a model, and any agent whose
+   *  output never says — all of which show nothing rather than a guess. */
+  model?: string;
   /** The text the user typed for this session — a create's description, an
    *  action's notes, or a reject's reason. Shown in the global sessions panel
    *  (#21); absent when the session carried no note. */

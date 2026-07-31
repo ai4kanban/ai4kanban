@@ -3,9 +3,9 @@ title: Support Codex CLI as the agent harness
 track: features
 priority: med
 roi: high
-status: todo
+status: ready
 blocked_by: []
-related: []
+related: [67]
 modules: [local-ui, skill, site]
 questions: []
 ---
@@ -17,7 +17,9 @@ with a Codex harness behind the interface from #68, a Codex subscription works t
 - Add a Codex harness: spawn `codex exec --json --sandbox workspace-write`. `--json`
   streams JSONL events on stdout for the live tail; the sandbox flag is needed because
   `codex exec` defaults to read-only and a kanban run writes files. Map exit codes to run
-  outcomes.
+  outcomes — Codex exits non-zero when a turn fails.
+- The model field in the Configuration dialog works for Codex: it answers to `--model` and
+  to `-m`, and a hand-written `harness.command` that already names either one wins.
 - A Codex run writes only inside the repo and gets no network, and `codex exec` refuses to
   run outside a git repo. All three stay as they are. Someone who needs more widens it in
   `harness.command`, the same escape hatch every harness has, and the harness never
@@ -31,27 +33,32 @@ with a Codex harness behind the interface from #68, a Codex subscription works t
 - The skill tells the agent to run the script at `.claude/skills/kanban/kanban.mjs`. That
   names one agent's folder, so it is wrong anywhere else the skill sits. The skill points
   at the script in its own folder instead.
-- Codex has no `--session-id` flag, so the id can't be pinned up front. Capture the
-  `thread_id` from the run's first `thread.started` event and store it as the run's session
-  id. The resume handoff copies `codex resume <thread-id>` and appears only once that event
-  has arrived. Resuming needs a Codex CLI from May 2026 (0.135) or later.
+- Codex has no `--session-id` flag, so it mints its own id. The board keeps its own id for
+  the run and stores Codex's `thread_id` beside it — the plumbing for a harness that names
+  its own id is already there, so the harness only has to report the id out of the stream.
+  It arrives on the run's first `thread.started` event. The resume handoff copies
+  `codex resume <thread-id>` and appears only once that event has landed.
+- A failed Codex run says why in a structured code on its `error` event —
+  `usageLimitExceeded` for a usage limit, `unauthorized` when the user isn't signed in —
+  and a turn that dies reports `turn.failed`. Read the code, not the wording.
+- Codex reports token counts on `turn.completed`, no price, and its events never name the
+  model. So a Codex run's session log shows no dollar figure and no model name. Leave both
+  blank rather than inventing them.
 - Show "Codex" as the agent name in the UI.
 - Out of this task: installing or upgrading the skill from the UI — for example an Install
   button when the Codex skill folder is missing.
 
 ## Todo
 - [ ] Add a Codex harness in `kanban-ui/lib/agent.ts`: spawn `codex exec --json --sandbox workspace-write`, parse its JSONL events (`thread.started`, `turn.*`, `item.*`, `error`) into the live tail, and map exit codes to outcomes. Leave out any flag the user's own `harness.command` already sets.
+- [ ] Make the model setting reach Codex through `--model`, and treat a `-m` in the user's own command as a model it already names.
 - [ ] Start the Codex prompts with `$kanban.` instead of `/kanban.` — each harness carries its own way of calling the skill.
 - [ ] Drop the `.claude/skills/kanban/` path from the script line in `skill/SKILL.md`, so the skill runs the script from its own folder wherever it is installed.
-- [ ] Capture `thread_id` from the `thread.started` event, store it as the session id, show the `codex resume <thread-id>` handoff once it arrives, and continue a failed run with `codex exec resume <thread-id>`.
+- [ ] Capture `thread_id` from the `thread.started` event, keep it as the run's resume id, show the `codex resume <thread-id>` handoff once it arrives, and continue a failed run with `codex exec resume <thread-id>`.
 - [ ] Show "Codex" as the agent name in the UI, with its own icon next to `kanban-ui/public/agents/claude.svg`.
-- [ ] Teach the Codex harness to recognise its own failures for #67's three kinds: Codex
-      says "You've hit your usage limit" with a "Try again at <local time>" reset, and it
-      reports a failure on a different event than Claude Code does. Skip this if #67 hasn't
-      landed yet — then #67 writes both.
+- [ ] Teach the Codex harness to sort its own failures into #67's three kinds, off the error code Codex reports rather than off the wording. #67 owns the three kinds; whichever card lands second writes this part.
 - [ ] Make `web/public/INSTALL_PROMPT.txt` copy the skill into `.agents/skills/kanban/` as well as `.claude/skills/kanban/`, stamp `.version` in both, and ask the user nothing about which agents they use.
 - [ ] Update `skill/references/update.md` so an update refreshes every folder the skill was copied into, not only `.claude/skills/kanban/`.
-- [ ] Update `kanban-ui/README.md`: how to switch to Codex, that the skill must be installed for Codex first, that resuming needs Codex CLI 0.135 or later, and that a Codex run writes only inside the repo with no network until you widen it in `harness.command`.
+- [ ] Update `kanban-ui/README.md`: how to switch to Codex, that the skill must be installed for Codex first, which Codex version resuming needs (find the earliest one with `codex exec resume` and name it), that a Codex run writes only inside the repo with no network until you widen it in `harness.command`, and that a Codex run's log shows no cost and no model name.
 - [ ] Update `README.md` and `README-zh.md`: Codex is wired up now, not "on the roadmap". The site copy already says any harness, so it needs no change.
 - [ ] In a project with the skill installed for Codex, click Refine on a card and check the run loads the skill from `$kanban` and the card really changes.
 
@@ -72,3 +79,6 @@ with a Codex harness behind the interface from #68, a Codex subscription works t
   id is captured from the JSON stream because Codex can't pin one up front.
 - Rate limits — Codex has no equivalent of `CLAUDE_CODE_MAX_RETRIES=0`; the harness sets no
   special env and accepts that a rate-limited run may wait.
+- Why not skip resume for Codex? — because the board already carries the plumbing for a
+  harness that mints its own id, built for exactly this case. Leaving it out would leave
+  that code with no user.

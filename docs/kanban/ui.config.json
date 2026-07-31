@@ -1,6 +1,7 @@
 {
   "harness": {
-    "name": "claude-code"
+    "name": "claude-code",
+    "model": "claude-opus-5"
   },
   "autoRefine": false
 }

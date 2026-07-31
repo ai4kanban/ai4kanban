@@ -3,7 +3,7 @@ title: Read the board's memory in the UI
 track: features
 priority: med
 roi: high
-status: todo
+status: ready
 blocked_by: []
 related: []
 modules: [local-ui]
@@ -24,11 +24,15 @@ was settled, what was turned down — without opening files in an editor.
 
 ## Scope
 - A Memory button in the header, next to Daily progress, Runs and the gear.
-- The view opens on the whole project's memory. A picker switches to one module, listing
-  the modules from the module map.
-- Each scope shows its four files as sections: what shipped, settled decisions, design
-  mistakes, rejected ideas. The project scope also shows the goal, because there is only
-  one goal file and it lives at the board root.
+- The view always opens on the whole project's memory. A row of scope chips sits at the top
+  — Project first, then one chip per module from the module map — and stays put while you
+  read. Picking another chip starts you at the top of that scope.
+- Below it, one scroll. Each scope shows its four files as sections in this order: what
+  shipped, settled decisions, design mistakes, rejected ideas. The project scope puts the
+  goal first, above them, because there is only one goal file and it lives at the board
+  root.
+- A section header names its file and sticks to the top while you scroll that section, so
+  you always know which file you are reading.
 - Files are rendered as markdown to read, the same way a card body is.
 - Everything here is read-only. Memory is plain text the user owns, like their code, and a
   text box in the board is no better than the editor they already have. You read a wrong
@@ -58,11 +62,22 @@ was settled, what was turned down — without opening files in an editor.
   e.g. `docs/kanban/memory/local-ui/decisions.md` — the form you paste to an agent working
   in that repo. "Copy path" copies the full path on disk.
 - Does the goal section get the menu too? Yes. Every section that shows a file has it.
+- One scroll of sections, or tabs and a file list? One scroll. A scope is four short files,
+  and a second switcher beside the scope chips is chrome the content does not need.
+- Does a long file collapse to its headings? No, every section shows its whole file. Memory
+  is one line per entry, the longest file on this board is 128 lines, and half of them have
+  no headings to collapse to.
+- Does the view remember the last scope you read? No, it opens on the project every time.
+  The only view choice the UI remembers is the board layout; a chip inside a dialog is not
+  that, and a remembered module goes stale the day you drop it from the map.
+- Can you open a module's memory from a card that names it? No. The header button is the
+  one way in. The module chips on a card stay read-only text, and memory belongs to a
+  module, not to the card you happen to be reading.
 
 ## Todo
 - [ ] Add the Memory button to the header and the view it opens.
 - [ ] Show the project's four memory files, plus the goal, rendered as markdown.
-- [ ] Add the module picker and show that module's four files.
+- [ ] Add the scope chips and show a module's four files.
 - [ ] Handle a module with no memory folder yet, and a file that does not exist.
 - [ ] Give each section a "more" menu with Copy path and Copy relative path, and show that
       the copy worked.

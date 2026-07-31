@@ -50,6 +50,13 @@ re-ask a settled call.
   what it's sure of and ends either `ready` or holding only the questions a human must
   answer.
 
+## Installing and updating
+
+- **How does a user install and update?**: by running one Node script, published on npm —
+  `npx ai4kanban install` and `npx ai4kanban update`. No shell script, no
+  `curl … | sh`, and no git clone: the package carries the skill folder. The plugin
+  channel is unaffected.
+
 ## Where the skill folder lives
 
 - **Who decides where the skill folder lives?**: our install prompt does, and it never asks

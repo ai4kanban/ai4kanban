@@ -8,8 +8,13 @@
 
 import { useState } from "react";
 import { FiAlertCircle, FiCheck, FiSettings } from "react-icons/fi";
-import { setAutoRefineAction, setHarnessAction, setHarnessModelAction } from "@/app/actions";
-import type { AgentInfo, HarnessOption, SessionView } from "@/lib/types";
+import {
+  setAutoRefineAction,
+  setAutoRefineParallelismAction,
+  setHarnessAction,
+  setHarnessModelAction,
+} from "@/app/actions";
+import { type AgentInfo, type HarnessOption, MAX_PARALLEL, type SessionView } from "@/lib/types";
 import { Dialog } from "./Dialog";
 
 // A harness's mark, e.g. the Claude sunburst at public/agents/claude.svg.
@@ -22,6 +27,7 @@ function AgentMark({ src, size }: { src: string; size: number }) {
 export function Configuration({
   agent,
   autoRefine,
+  autoRefineParallelism,
   sessions,
   onError,
 }: {
@@ -29,6 +35,9 @@ export function Configuration({
   // The current auto-refine state, read on the server for the first paint. The
   // toggle owns it from here — another tab picks up a change on its next load.
   autoRefine: boolean;
+  // How many cards refine at once (#88), read the same way and owned by the
+  // stepper from here on.
+  autoRefineParallelism: number;
   // The registry list the page already polls, passed down rather than polled
   // again here (#51): it's the only thing that knows a background refine is
   // running, and the dialog is not worth a second loop.
@@ -65,9 +74,10 @@ export function Configuration({
           <div className="mt-5 border-t border-nb-ink/12 pt-4">
             <AutoRefineToggle
               initial={autoRefine}
-              refiningId={refiningCardId(sessions)}
+              refiningIds={refiningCardIds(sessions)}
               onError={onError}
             />
+            <ParallelismStepper initial={autoRefineParallelism} onError={onError} />
           </div>
         </Dialog>
       )}
@@ -253,14 +263,17 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
   );
 }
 
-// The card a background refine is working on right now, or null when none is
-// (#51). The dispatcher runs one auto-refine at a time, so the first live one is
-// the one. A running session always has a card, but the field is nullable (a
-// create has no card), so a null is treated as nothing to show rather than
-// printing "Refining #null".
-function refiningCardId(sessions: SessionView[]): number | null {
-  const live = sessions.find((r) => r.status === "running" && r.action === "auto-refine");
-  return live?.cardId ?? null;
+// The cards a refine is working on right now, in the order they started, or empty
+// when none is (#51). There can be several at once (#88), so the label names each
+// of them. Background runs and ones the user started from a card page (#99) both
+// count: the label answers "what is being refined right now", and showing half of
+// them would mislead. A running session always has a card, but the field is
+// nullable (a create has no card), so a null is dropped rather than printing
+// "Refining #null".
+function refiningCardIds(sessions: SessionView[]): number[] {
+  return sessions
+    .filter((r) => r.status === "running" && r.action === "auto-refine" && r.cardId !== null)
+    .map((r) => r.cardId as number);
 }
 
 // The auto-refine switch. Flips instantly and saves; on a save failure it flips
@@ -268,14 +281,14 @@ function refiningCardId(sessions: SessionView[]): number | null {
 // looks muted, on shows in the accent color.
 function AutoRefineToggle({
   initial,
-  refiningId,
+  refiningIds,
   onError,
 }: {
   initial: boolean;
-  // The card being refined right now, or null. Shown as a small label beside the
-  // switch while a run is live, and nothing at all when none is — the switch
-  // never carries idle text.
-  refiningId: number | null;
+  // The cards being refined right now, whoever started the run. Shown as a small
+  // label beside the switch while one is live, and nothing at all when none is —
+  // the switch never carries idle text.
+  refiningIds: number[];
   onError?: (msg: string) => void;
 }) {
   const [on, setOn] = useState(initial);
@@ -305,10 +318,11 @@ function AutoRefineToggle({
       <div className="flex items-center justify-between gap-4">
         <span className="flex items-center gap-2">
           <span className="text-[14px] font-[800]">Auto-refine</span>
-          {/* Which card the background refine is on, while it is on one (#51).
-              Read-only, and gone the moment the run ends — no idle text, no
-              "last refined". The pulse dot matches the running badge on a card. */}
-          {refiningId !== null && (
+          {/* Which cards a refine is on, while it is on any (#51) — background or
+              user-started alike. Read-only, and gone the moment the runs end — no
+              idle text, no "last refined". The pulse dot matches the running
+              badge on a card. */}
+          {refiningIds.length > 0 && (
             <span
               className="nb-chip"
               style={{ background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}
@@ -317,7 +331,7 @@ function AutoRefineToggle({
                 className="size-[6px] rounded-full bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]"
                 aria-hidden
               />
-              Refining #{refiningId}
+              Refining {refiningIds.map((id) => `#${id}`).join(", ")}
             </span>
           )}
         </span>
@@ -345,7 +359,88 @@ function AutoRefineToggle({
           auto-answers questions it is sure about. */}
       <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
         The agent refines cards in the background and answers its own safe questions without
-        asking you. Refine only ever happens here — with this off, no card is refined.
+        asking you. With this off, no card is refined on its own — you can still refine one
+        yourself with the <strong>Refine</strong> button on its page.
+      </p>
+    </div>
+  );
+}
+
+// How many cards auto-refine works on at once (#88). A stepper, not a text
+// field: the range is 1..MAX_PARALLEL, every value in it is one tap away, and
+// there is nothing to type wrong. Each tap saves and, on a failure, steps back
+// and reports the error where the switch above does. The setting saves whether
+// or not auto-refine is on — it's what the next run will use, and hiding it
+// behind the switch would make it look like it had been forgotten.
+function ParallelismStepper({
+  initial,
+  onError,
+}: {
+  initial: number;
+  onError?: (msg: string) => void;
+}) {
+  const [n, setN] = useState(initial);
+  const [saving, setSaving] = useState(false);
+
+  const step = async (delta: number) => {
+    const next = n + delta;
+    if (saving || next < 1 || next > MAX_PARALLEL) return;
+    setN(next); // optimistic, like the switch
+    setSaving(true);
+    try {
+      const res = await setAutoRefineParallelismAction(next);
+      if (!res.ok) {
+        setN(n); // save failed — step back
+        onError?.(res.error || "couldn't save how many refine at once");
+      }
+    } catch (e) {
+      setN(n);
+      onError?.(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // The two ends are dead ends, not wraps: at 1 there is no minus, at the cap no
+  // plus, so the range shows itself without a line of text explaining it.
+  const stepBtn =
+    "inline-flex size-7 cursor-pointer items-center justify-center rounded-[8px] border-[1.5px] border-nb-ink bg-nb-paper text-[16px] leading-none font-[800] text-nb-ink transition-[transform,box-shadow] duration-[120ms] hover:-translate-x-px hover:-translate-y-px hover:shadow-[2px_2px_0_0_var(--color-nb-ink)] active:translate-x-px active:translate-y-px active:shadow-none disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-none";
+
+  return (
+    <div className="mt-4">
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-[14px] font-[800]">Cards at once</span>
+        <span className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="One fewer card at once"
+            disabled={saving || n <= 1}
+            onClick={() => step(-1)}
+            className={stepBtn}
+          >
+            −
+          </button>
+          <span
+            aria-live="polite"
+            className="min-w-[1.25rem] text-center text-[14px] font-[800] tabular-nums"
+          >
+            {n}
+          </span>
+          <button
+            type="button"
+            aria-label="One more card at once"
+            disabled={saving || n >= MAX_PARALLEL}
+            onClick={() => step(1)}
+            className={stepBtn}
+          >
+            +
+          </button>
+        </span>
+      </div>
+      <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
+        How many cards the agent refines at the same time, each a different card. One by
+        default. More is faster on a big backlog and heavier on your machine; {MAX_PARALLEL} is
+        as high as it goes.
       </p>
     </div>
   );

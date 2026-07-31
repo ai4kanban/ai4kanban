@@ -1,12 +1,14 @@
 import fs from "node:fs";
 import { uiConfigPath } from "./paths";
+import { MAX_PARALLEL } from "./types";
 
 // --- the settings the dialog writes ------------------------------------------
-// Two settings live in docs/kanban/ui.config.json: `harness` (which agent runs
-// every card button — see lib/agent.ts, which owns reading it) and `autoRefine`
-// (#41), one top-level boolean, off by default. The Configuration dialog reads
-// both on load and writes them as you change them; the skill's auto-refine flows
-// (#42, #43) read `autoRefine` before acting.
+// Three settings live in docs/kanban/ui.config.json: `harness` (which agent runs
+// every card button — see lib/agent.ts, which owns reading it), `autoRefine`
+// (#41), one top-level boolean, off by default, and `autoRefineParallelism`
+// (#88), how many cards refine at once. The Configuration dialog reads them on
+// load and writes them as you change them; the skill's auto-refine flows (#42,
+// #43) read `autoRefine` before acting.
 
 // Read and parse the whole config object. Throws on a malformed file so a writer
 // never clobbers a user's settings; a missing file is an empty object.
@@ -27,6 +29,34 @@ export function readAutoRefine(): boolean {
   } catch {
     return false;
   }
+}
+
+// How many cards auto-refine works on at once (#88). One by default, so a board
+// that never touches the setting behaves exactly as it did: one card at a time.
+//
+// Anything the file can't mean reads as 1 — a missing key, a zero, a negative, a
+// fraction, a string, an unparsable file. A number above the cap is clamped
+// rather than refused: the user asked for "as many as possible", and MAX_PARALLEL
+// is what that is. Five agents at once is already heavy on a laptop and on rate
+// limits, and it keeps a mistyped 50 from spawning fifty of them.
+export function readAutoRefineParallelism(): number {
+  try {
+    const n = readConfigRaw().autoRefineParallelism;
+    if (typeof n !== "number" || !Number.isInteger(n) || n < 1) return 1;
+    return Math.min(n, MAX_PARALLEL);
+  } catch {
+    return 1;
+  }
+}
+
+// Save how many refine at once. Clamped into 1..MAX_PARALLEL here too, so a
+// stale client or a hand-typed number can't write a setting the dispatcher would
+// have to second-guess — the file always holds a value that means what it says.
+export function setAutoRefineParallelism(n: number): { ok: boolean; error?: string } {
+  const value = Number.isFinite(n) ? Math.min(Math.max(Math.trunc(n), 1), MAX_PARALLEL) : 1;
+  return writeConfig((cfg) => {
+    cfg.autoRefineParallelism = value;
+  });
 }
 
 // Flip the switch and persist it, keeping every other key (the `harness`

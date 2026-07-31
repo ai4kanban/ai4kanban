@@ -6,8 +6,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiPlay, FiZap } from "react-icons/fi";
-import { resumeSessionAction } from "@/app/actions";
+import { FiPlay, FiX, FiZap } from "react-icons/fi";
+import { resumeSessionAction, stopSessionAction } from "@/app/actions";
 import { useDraft, useDraftList } from "@/lib/draft";
 import { parseQuestion } from "@/lib/questions";
 import type { AgentAction, Boldness, Card, SessionView } from "@/lib/types";
@@ -57,6 +57,7 @@ export interface AgentReq {
 
 export type DialogState =
   | { kind: "implement"; card: Card }
+  | { kind: "refine"; card: Card }
   | { kind: "reject"; card: Card }
   | { kind: "archive"; card: Card }
   | { kind: "edit"; card: Card }
@@ -102,8 +103,10 @@ export function RunningBadge({
 export const RUNNING_VERB: Record<AgentAction, string> = {
   implement: "implementing",
   edit: "editing",
-  // "refining", not "auto-refining" — refine is only ever automatic, so the
-  // prefix says nothing and the longer word wraps the card's badge onto two lines.
+  // "refining", not "auto-refining" — the same run reaches here whether the
+  // dispatcher picked the card or the user pressed Refine (#99), and while it is
+  // going the difference doesn't matter: the work is identical. The shorter word
+  // also keeps the card's badge on one line.
   "auto-refine": "refining",
   resolve: "resolving",
   reject: "rejecting",
@@ -130,6 +133,15 @@ function formatDuration(ms: number): string {
   const mins = Math.floor(total / 60);
   if (mins < 60) return `${mins}m ${total % 60}s`;
   return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+}
+
+// What a finished run cost, in US dollars (task #90). Two decimals is the unit
+// people read money in; a run too cheap to reach a cent says so as "<$0.01"
+// rather than "$0.00", which would read as free. The word "est." carries the
+// rest: the agent worked the number out from tokens at list prices, and on a
+// subscription plan nothing was charged for the run at all.
+function formatCost(usd: number): string {
+  return usd < 0.005 ? "est. <$0.01" : `est. $${usd.toFixed(2)}`;
 }
 
 // A tailing view of one session's captured output (task #14). Shows the last few
@@ -171,14 +183,20 @@ export function SessionLog({
   // sight. It never reached an end, so it is never worded as one: "interrupted",
   // not "finished", and Resume is offered as it is on a failure.
   const interrupted = session.status === "interrupted";
+  // The user ended this run from the UI (#49). Nothing went wrong with it, so it
+  // never reads as a failure — and the code it died with says nothing, because we
+  // are the ones who killed it.
+  const stopped = session.status === "stopped";
   // No word while running — the pulse dot already signals progress.
   const state = running
     ? ""
-    : interrupted
-      ? "interrupted"
-      : session.ok
-        ? "done"
-        : `exited ${session.code ?? "?"}`;
+    : stopped
+      ? "stopped"
+      : interrupted
+        ? "interrupted"
+        : session.ok
+          ? "done"
+          : `exited ${session.code ?? "?"}`;
   // How long it took, next to the outcome: "done · 4m 12s". An interrupted run
   // ended out of our sight and was only noticed on the next pid poll — that's an
   // upper bound, not a measurement, so it's marked "~".
@@ -186,12 +204,50 @@ export function SessionLog({
     running || session.durationMs === undefined
       ? ""
       : `${interrupted ? "~" : ""}${formatDuration(session.durationMs)}`;
+  // And what it cost, after the duration: "done · 4m 12s · est. $0.42". One run,
+  // one number — this run's own, never a total. A run that reported no cost (a
+  // live one, one cut off early, an agent that says nothing about money) shows
+  // nothing here at all.
+  const cost =
+    running || session.costUsd === undefined ? "" : formatCost(session.costUsd);
 
-  // Live/passed/failed/interrupted indicator, shared by both layouts. Interrupted
-  // gets its own glyph in blocker ink: not the ✓ of a clean run, and not the ✕ of
-  // a run that ended badly on its own — a run that was cut off.
+  // The run's facts, in one middot-separated row: what came of it, how long it
+  // took, what it cost, and which model did the work. A live run shows only the
+  // model — the pulse dot says the rest, and the numbers aren't in yet.
+  const facts: { key: string; text: string; dim?: boolean; title?: string }[] = [];
+  if (state) facts.push({ key: "state", text: state });
+  if (took) facts.push({ key: "took", text: took, dim: true });
+  if (cost) {
+    facts.push({
+      key: "cost",
+      text: cost,
+      dim: true,
+      title:
+        "Worked out from this run's tokens at list prices. It's what the run would cost to buy — not what you were billed; on a subscription plan a run isn't charged on its own.",
+    });
+  }
+  // The model the agent itself said it was running, shown exactly as it said it
+  // (task #98) — not the model setting, which is empty for most people and says
+  // nothing about a run that started before it was last changed. An agent that
+  // never names one leaves this out entirely rather than reading "default".
+  if (session.model) {
+    facts.push({
+      key: "model",
+      text: session.model,
+      dim: true,
+      title: "The model this run reported it was working with.",
+    });
+  }
+
+  // Live/passed/failed/interrupted/stopped indicator, shared by both layouts.
+  // Interrupted gets its own glyph in blocker ink: not the ✓ of a clean run, and
+  // not the ✕ of a run that ended badly on its own — a run that was cut off. A
+  // stopped run gets the square in the board's neutral blue: it neither passed
+  // nor failed, someone ended it.
   const indicator = running ? (
     <span className={PULSE_DOT} aria-hidden />
+  ) : stopped ? (
+    <span aria-hidden style={{ color: "var(--color-nb-sky-ink)" }}>■</span>
   ) : interrupted ? (
     <span aria-hidden style={{ color: "var(--color-nb-peach-ink)" }}>⦸</span>
   ) : (
@@ -244,11 +300,21 @@ export function SessionLog({
     >
       <span className="nb-tag">session log</span>
       <span className="ml-auto flex items-center gap-1.5">
+        {/* Stop (#49) rides in the title bar, the one piece of chrome every place
+            that shows a run already has — so the card page, the board's log
+            overlay and the runs panel all get it from here. */}
+        {running && <StopButton sessionId={session.sessionId} />}
         {indicator}
-        {state && (
+        {facts.length > 0 && (
+          // Middots between the facts so two numbers in a row don't run together.
+          // Any caveat lives in a fact's tooltip — the row itself stays short.
           <span className="text-[11px] text-nb-ink-soft">
-            {state}
-            {took && <span className="ml-1.5 tabular-nums opacity-80">{took}</span>}
+            {facts.map((f, i) => (
+              <span key={f.key} className={f.dim ? "tabular-nums opacity-80" : undefined} title={f.title}>
+                {i > 0 && <span className="mx-1.5" aria-hidden>·</span>}
+                {f.text}
+              </span>
+            ))}
           </span>
         )}
       </span>
@@ -275,11 +341,14 @@ export function SessionLog({
   // overlay) owns the scrolling, so the log flows at full length inside the frame.
   if (flush) {
     return (
-      <div className="nb-outline overflow-hidden bg-nb-paper">
+      // No `overflow-hidden` on the frame: the two children round their own outer
+      // corners instead, so the Stop popover can hang below the title bar over a
+      // log body too short to hold it.
+      <div className="nb-outline bg-nb-paper">
         {titleBar}
         <div
           ref={ref}
-          className="bg-nb-wash px-4 py-3 shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
+          className="rounded-b-[12.5px] bg-nb-wash px-4 py-3 shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
         >
           {body}
         </div>
@@ -351,6 +420,114 @@ export function ResumeButton({
         <FiPlay className="text-[12px]" aria-hidden />
         {busy ? "Resuming…" : "Resume"}
       </Button>
+    </span>
+  );
+}
+
+// The control that ends a live run (#49): a small ✕ in the log's title bar. It
+// never stops anything on its own — pressing it opens a confirmation popover
+// beside it, so a stray click on a busy board can't kill an agent mid-edit.
+//
+// What the popover has to say is the one thing Stop does NOT do: the run ends
+// where it stands and whatever it half-wrote stays in the working tree. The board
+// never undoes work — that's `git` in your own terminal.
+//
+// After the confirm the button says "stopping…" and stays that way until the poll
+// brings the run back as stopped. That wait is real: the agent is asked to end
+// first and only killed if it doesn't, so a few seconds pass, and pretending
+// otherwise would be a lie the next poll undoes.
+function StopButton({ sessionId }: { sessionId: string }) {
+  const [open, setOpen] = useState(false);
+  const [asked, setAsked] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  // Escape, or a click anywhere else, dismisses the popover — the same way out
+  // the dialogs give. Only bound while it's open.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [open]);
+
+  const stop = async () => {
+    setOpen(false);
+    setAsked(true);
+    setError(null);
+    try {
+      const res = await stopSessionAction(sessionId);
+      // A refusal is the registry's own words — the run aged out of the kept-30
+      // window. Say it and let the button be pressed again.
+      if (!res.ok) {
+        setAsked(false);
+        setError(res.error || "couldn't stop that run");
+      }
+    } catch (e) {
+      setAsked(false);
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  if (asked) {
+    return <span className="text-[11px] text-nb-ink-soft">stopping…</span>;
+  }
+
+  return (
+    // The title bar is a click target of its own on the card page (it collapses
+    // the log), so every press in here stops at this element.
+    <span ref={ref} className="relative flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+      {error && <span className="text-[11px] text-nb-peach-ink">{error}</span>}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Stop this run"
+        aria-expanded={open}
+        title="Stop this run"
+        className="-my-0.5 grid size-[22px] cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[background-color,color,transform] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90"
+      >
+        <FiX className="text-[14px]" aria-hidden />
+      </button>
+      {open && (
+        // A full nb panel, small: ink frame and hard shadow like every other
+        // surface, hung off the ✕ and right-aligned so it can't run off the edge
+        // of the log window.
+        <span className="nb-panel-sm absolute right-0 top-full z-30 mt-2 block w-[248px] p-3 text-left">
+          <span className="block text-[13px] font-[700] leading-snug text-nb-ink">
+            Stop this run?
+          </span>
+          <span className="mt-1 block text-[12px] leading-relaxed text-nb-ink-soft">
+            It ends where it is. Anything it half-wrote stays in your working tree.
+          </span>
+          <span className="mt-2.5 flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-[7px] px-2 py-1 text-[11px] font-[700]"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-[7px] border-nb-peach-ink px-2 py-1 text-[11px] font-[700] text-nb-peach-ink"
+              onClick={stop}
+            >
+              Stop run
+            </Button>
+          </span>
+        </span>
+      )}
     </span>
   );
 }
@@ -541,6 +718,43 @@ export function ActionDialog({
           risky={warned}
           disabled={warned && !ack}
           onConfirm={() => run({ action: "implement", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Implement #${dialog.card.id}`)}
+        />
+      </Dialog>
+    );
+  }
+
+  if (dialog.kind === "refine") {
+    // The one action with nothing to type (#99). It runs exactly what the
+    // background dispatcher runs, on the card the user is looking at, so the
+    // dialog only has to say what that is and get a yes — no note box, and no
+    // "I know" checkbox either: a refine writes a plan, never code, so there is
+    // nothing here to warn about.
+    const blockers = dialog.card.openBlockers;
+    return (
+      <Dialog title={`Refine #${dialog.card.id}`} onClose={onClose}>
+        <p className={INTRO}>
+          The agent takes this card one step forward: it answers the open questions it can
+          settle itself, leaves the ones only you can decide for you, and sharpens the plan.
+          It works on the card, not the code.
+        </p>
+        {/* A blocked card is refined all the same — the board's rule for blocked
+            is warn, don't stop — so this is one plain line saying what's still
+            open, with nothing to tick. */}
+        {blockers.length > 0 && (
+          <p className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
+            This card is blocked by {blockers.map((b) => `#${b.id}`).join(", ")}, still open on
+            the board. The plan may change once {blockers.length === 1 ? "that card is" : "those cards are"} done.
+          </p>
+        )}
+        <DialogButtons
+          onClose={onClose}
+          confirmLabel="Refine"
+          onConfirm={() =>
+            run(
+              { action: "auto-refine", id: dialog.card.id, title: dialog.card.title },
+              `Refine #${dialog.card.id}`,
+            )
+          }
         />
       </Dialog>
     );

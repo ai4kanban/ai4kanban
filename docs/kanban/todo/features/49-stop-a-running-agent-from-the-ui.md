@@ -7,8 +7,7 @@ status: todo
 blocked_by: []
 related: []
 modules: [local-ui]
-questions:
-  - "[user] A stopped run leaves half-finished edits in the working tree. Does the UI just say so and leave them, or is undoing them part of this card?"
+questions: []
 ---
 
 Add a Stop button to a running run, so a run that goes wrong can be ended from the UI
@@ -23,11 +22,12 @@ instead of hunting for the process in a terminal.
   ask whether it is alive. Ending it is the same call with a real signal.
 
 ## Scope
-- A Stop button on a running run, in the global runs panel and on the live log view. Same
-  look as the other quiet buttons.
-- One confirm step: it says the run stops where it is and its unfinished edits stay in the
-  working tree.
-- One press is enough. Stop asks the run to end; a run still alive after a short grace is
+- Stop is a small ✕ on a running run. It sits in the log window's title bar, so it is there
+  wherever that log opens: the card page, the board's log overlay, and the global runs panel.
+- The ✕ never stops a run on its own. It opens a small confirmation popover right beside it —
+  one line saying the run stops where it is and its unfinished edits stay in the working tree,
+  then Cancel or Stop run. A stray click can't kill a run.
+- One confirm is enough. Stop asks the run to end; a run still alive after a short grace is
   killed.
 - The run then ends like any other: log closed, duration stamped, card stage restored
   (`clearSessionStatus` already does this), card unlocked.
@@ -43,24 +43,35 @@ instead of hunting for the process in a terminal.
 - Stopping a run that already finished does nothing. The button is only on a running run.
 
 ## Scope out
-- No pause and resume. A stopped run is over; continuing is card #28's job.
+- Stop never touches your files. Whatever the run half-wrote stays in the working tree, and
+  undoing it is `git` in your own terminal — the board does not offer to revert.
+- No pause and resume. A stopped run is over, so it offers no Resume button.
 - No mid-run message to the agent. That channel stays rejected — see
   `docs/kanban/memory/local-ui/rejected.md`.
 - Stop ends the agent only. A build or test it started is left to finish on its own.
 
 ## Todo
-- [ ] Add a stop path in `kanban-ui/lib/registry.ts`: signal the run's process, kill it
+- [x] Add a stop path in `kanban-ui/lib/registry.ts`: signal the run's process, kill it
       after a short grace, close out its record.
-- [ ] Carry stopped as an outcome end to end — saved with the run record, read back after a
+- [x] Carry stopped as an outcome end to end — saved with the run record, read back after a
       restart, shown as its own dot and word in the runs panel and the log view.
-- [ ] Make the stopped run walk the normal end path: log closed, duration stamped, card
+- [x] Make the stopped run walk the normal end path: log closed, duration stamped, card
       stage restored, card unlocked — even if a leftover tool process still holds the
       output pipe open.
-- [ ] Add a server action for it in `kanban-ui/app/actions.ts`.
-- [ ] Add the Stop button with its confirm dialog to the runs panel (`sessions.tsx`) and the
-      live log view (`agent-shared.tsx`).
-- [ ] Skip a card in the auto-refine dispatcher when its newest run is a stopped one.
-- [ ] Handle a run whose process is already gone: say the run has ended, don't show an error.
-- [ ] Make an adopted run (one that outlived a UI restart) stoppable the same way.
-- [ ] Update `kanban-ui/README.md` — Stop is a new user action, and the README's run section
+- [x] Add a server action for it in `kanban-ui/app/actions.ts`.
+- [x] Add the ✕ with its confirmation popover to the log window's title bar
+      (`agent-shared.tsx`), so it shows on the card page, the board overlay and the runs panel.
+- [x] Skip a card in the auto-refine dispatcher when its newest run is a stopped one.
+- [x] Handle a run whose process is already gone: say the run has ended, don't show an error.
+- [x] Make an adopted run (one that outlived a UI restart) stoppable the same way.
+- [x] Update `kanban-ui/README.md` — Stop is a new user action, and the README's run section
       says nothing about ending a run.
+
+## Decided by the agent
+- Where does the ✕ go? In the log window's title bar, the one piece of chrome every place
+  that shows a run already has. One button, and it appears on the card page, the board's log
+  overlay and the runs panel at once.
+- Can a stopped run be resumed? No. Resume is for a run that stopped short on its own; a run
+  you ended is over.
+- What does a stopped run's dot look like? The neutral blue the board already uses for a
+  signal that is neither good nor bad — not the green of done, not the peach of a failure.

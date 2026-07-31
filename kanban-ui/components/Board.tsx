@@ -17,12 +17,14 @@ export function BoardView({
   agent,
   projectRoot,
   autoRefine,
+  autoRefineParallelism,
 }: {
   initialBoard: Board | null;
   initialError: string | null;
   agent: AgentInfo;
   projectRoot: string;
   autoRefine: boolean;
+  autoRefineParallelism: number;
 }) {
   const [board, setBoard] = useState<Board | null>(initialBoard);
   const [error, setError] = useState<string | null>(initialError);
@@ -71,6 +73,7 @@ export function BoardView({
         agent={agent}
         projectRoot={projectRoot}
         autoRefine={autoRefine}
+        autoRefineParallelism={autoRefineParallelism}
         sessions={sessions}
         onError={setError}
         view={view}

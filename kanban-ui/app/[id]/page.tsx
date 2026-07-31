@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { CardPage } from "@/components/CardPage";
 import { agentInfo } from "@/lib/agent";
 import { findCard, readBoard } from "@/lib/board";
-import { readAutoRefine } from "@/lib/config";
+import { readAutoRefine, readAutoRefineParallelism } from "@/lib/config";
 import { repoRoot } from "@/lib/paths";
 
 // Read the board on the server and hand the one card to the client page. The
@@ -26,6 +26,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       agent={agentInfo()}
       projectRoot={repoRoot()}
       autoRefine={readAutoRefine()}
+      autoRefineParallelism={readAutoRefineParallelism()}
     />
   );
 }

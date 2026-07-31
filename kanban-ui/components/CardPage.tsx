@@ -8,6 +8,7 @@ import {
   FiChevronRight,
   FiCornerLeftUp,
   FiEdit2,
+  FiFeather,
   FiHelpCircle,
   FiPlay,
   FiXCircle,
@@ -27,12 +28,13 @@ import {
 } from "./agent-shared";
 import { LevelSelect, ModuleChip, QuestionTagBadge, StatusPill, TodoProgress, TrackChip } from "./chips";
 import { parseQuestion } from "@/lib/questions";
+import { canRefine } from "@/lib/refine";
 import { Markdown } from "./Markdown";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
 
-type CardButton = "implement" | "edit" | "resolve" | "archive" | "reject";
+type CardButton = "implement" | "refine" | "edit" | "resolve" | "archive" | "reject";
 
 // The one place that maps a card's state to the buttons that fit it (task #29).
 // Inputs are the whole card state: `status`, open questions, todo progress. Each
@@ -52,8 +54,12 @@ function visibleActions(card: Card): Set<CardButton> {
   const buttons = new Set<CardButton>();
   if (!allDone && !card.isGroup) buttons.add("implement"); // Implement — unless all todos are checked, and never on a group root
   buttons.add("edit"); // Edit — always
-  // No manual Refine: refine is only ever automatic now — the background
-  // auto-refine dispatcher (#43) refines `todo`, question-free cards on its own.
+  // Refine (#99) — only when a refine would really move the card (canRefine): the
+  // background dispatcher would arrive at a `ready` card, a finished one, or one
+  // waiting on a `[user]` question and leave it exactly as it was, so a button
+  // there would promise work that never happens. Being blocked is not a reason to
+  // hide it — the dialog says so and runs anyway.
+  if (canRefine(card)) buttons.add("refine");
   if (hasQuestions) buttons.add("resolve"); // Resolve — has open questions
   if (card.isGroup ? groupDone : allDone) buttons.add("archive"); // Archive — every subtask resolved, or all todos checked
   buttons.add("reject"); // Reject — always
@@ -78,12 +84,14 @@ export function CardPage({
   agent,
   projectRoot,
   autoRefine,
+  autoRefineParallelism,
 }: {
   card: Card;
   openIds: number[];
   agent: AgentInfo;
   projectRoot: string;
   autoRefine: boolean;
+  autoRefineParallelism: number;
 }) {
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -170,6 +178,7 @@ export function CardPage({
         agent={agent}
         projectRoot={projectRoot}
         autoRefine={autoRefine}
+        autoRefineParallelism={autoRefineParallelism}
         sessions={sessions}
         onError={setError}
       />
@@ -214,6 +223,27 @@ export function CardPage({
             <Button size="sm" disabled={busy} onClick={() => setDialog({ kind: "implement", card })}>
               <FiPlay className="text-[15px]" aria-hidden />
               Implement
+            </Button>
+          )}
+          {/* Refine — the same run the board makes on its own, on demand. While
+              another run holds this card it's disabled like every other button,
+              and its tooltip names what that run is doing, so a second refine is
+              never a click away. (The server refuses one anyway — the poll behind
+              `busy` can be a second and a half old.) */}
+          {actions.has("refine") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              title={
+                busy && liveSession
+                  ? `Already ${RUNNING_VERB[liveSession.action]} this card`
+                  : "Take this card's plan one step forward now"
+              }
+              onClick={() => setDialog({ kind: "refine", card })}
+            >
+              <FiFeather className="text-[15px]" aria-hidden />
+              Refine
             </Button>
           )}
           {actions.has("edit") && (

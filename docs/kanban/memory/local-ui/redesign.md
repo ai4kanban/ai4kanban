@@ -30,10 +30,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   dialog; global settings (auto-refine, the agent connector) live inside it, so the header
   stays one quiet icon instead of growing a control per setting.
 - ❌ **A settings file that repeats a name inside its own setting** (`harness.settings.<name>`
-  under `harness.name`) → ✅ keep `ui.config.json` flat: the name and that thing's settings
-  sit side by side (`harness: { name, command, model }`). Switching drops the settings that
-  belonged to the old choice — nesting a block per choice to save them is machinery for a
-  case almost nobody hits.
+  under `harness.name`) → ✅ name the picked thing once, and file each choice's settings in a
+  map keyed by that name. The name is written once, never inside its own block. Switching
+  keeps what the old choice had: a connector carries a provider, an endpoint, a key source
+  and a reasoning level, so dropping all of it on a switch is a real loss. (#93 revises the
+  earlier call in #68, which kept one flat block because there was one setting to lose.)
 - ❌ **A recurring-task feature that only adds a Run button** → ✅ say how runs start without
   a click: the server's dispatcher runs due cards on a card-set cadence — scheduling is the
   server's job, never an in-session loop like Claude Code's `/loop`.

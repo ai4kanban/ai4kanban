@@ -7,9 +7,7 @@ status: todo
 blocked_by: []
 related: [80, 83]
 modules: [skill, site]
-questions:
-  - "[user] What is the script written in? (a) Node — one `install.mjs`, run by the Node 18+ we already require, same on macOS, Linux and Windows, same language as `kanban.mjs`. (b) a shell script, which is shorter but needs a Windows twin. Recommend (a): we already require Node and nothing else, so the script adds no new requirement."
-  - "[user] How does the user get the script? (a) `npx ai4kanban-setup` — we already publish `ai4kanban-ui` on npm, so this is one command and nothing is downloaded by hand. (b) `curl https://ai4kanban.dev/install.sh | sh`. Recommend (a): the agent already knows npx from the UI, and piping a web page into a shell is the kind of command a careful user blocks."
+questions: []
 ---
 
 Let one script do the install and the update, so the agent runs one command instead of a
@@ -31,11 +29,15 @@ list of shell commands the user has to approve one by one.
 
 ## Scope
 - Write one script that does the mechanical part of install and of update. Same script,
-  two commands.
+  two commands: `npx ai4kanban install` and `npx ai4kanban update`.
+- The script is Node — one file, run by the Node 18+ we already require, the same on
+  macOS, Linux and Windows.
+- It ships as its own npm package, `ai4kanban`, with the skill folder inside it. The user
+  clones nothing and downloads nothing by hand, and gets the exact version they asked for.
 - Install: get the skill into the project's skill folders, scaffold the board, stamp the
   installed version.
-- Update: fetch the newer skill, overwrite the skill folder wholesale, re-stamp, and run
-  the repair steps `update.md` lists today. `docs/kanban/` is never touched.
+- Update: overwrite the skill folder wholesale, re-stamp, and run the repair steps
+  `update.md` lists today. `docs/kanban/` is never touched.
 - The script says what it did in plain words, and is safe to run twice.
 - Keep the parts a script can't do in the prompt: reading the repo, filling in
   `docs/kanban/config.md`, writing the module map, proposing the first tasks. Those stay
@@ -58,15 +60,27 @@ list of shell commands the user has to approve one by one.
 - Does the update script make its own decisions? No. It does the mechanical steps and
   prints what changed; anything that needs a judgement call — a new config setting, an old
   memory layout — it reports and leaves to the agent.
-- Where does it live? With the skill, so an installed project already has the update
-  command without fetching anything first — the same promise `update.md` makes today.
+- Why npm and not `curl … | sh`? npm needs nothing hosted, no Windows twin, and no shell
+  pipe — the kind of command a careful user blocks. A shell script would still call Node to
+  do the work, so it is plumbing that buys nothing.
+- Why its own package and not a second command on `ai4kanban-ui`? The UI is optional and
+  ships a built Next.js app. Setup must work for someone who never wants the UI.
+- Where does the script live? In the package only, not inside the skill folder. `npx`
+  fetches the newest copy on demand, so a copy sitting in the skill folder would be a stale
+  one that has to fetch anyway. (This replaces the earlier call to ship it with the skill.)
+- What does the version stamp hold? The package version, not a git SHA. `update` compares
+  it with the published version, so nothing needs a git clone to tell you what changed.
 
 ## Todo
-- [ ] Write the script with an `install` command: copy the skill in, scaffold the board,
-      stamp the version.
-- [ ] Add an `update` command: fetch, overwrite the skill folder, re-stamp, run the repair
-      steps, report anything that needs the agent's judgement.
+- [ ] Write the script with an `install` command: copy the skill into both skill folders,
+      scaffold the board, stamp the version.
+- [ ] Add an `update` command: overwrite the skill folder, re-stamp, run the repair steps,
+      report anything that needs the agent's judgement.
 - [ ] Make both safe to run twice, and make them print what they did.
+- [ ] Publish it as the `ai4kanban` npm package with the skill folder inside, so
+      `npx ai4kanban install` is the whole first command.
+- [ ] Add the new package to the release steps in `PUBLISHING.md` and to
+      `scripts/sync-version.mjs`, so it ships on every release with the one version.
 - [ ] Cut the shell steps out of `INSTALL_PROMPT.txt` and leave the agent's part.
 - [ ] Rewrite `skill/references/update.md` around the one command.
 - [ ] Update the quick start in `README.md`, `README-zh.md`, and the site copy.
