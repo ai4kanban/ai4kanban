@@ -8,15 +8,14 @@ blocked_by: []
 related: [57]
 modules: [skill, local-ui]
 questions:
-  - "[user] With GitHub parked, #58 is the only card that still needs this layer, and it only needs a board handle it can open per board. Does the full swappable-backend layer plus the `backend` setting still ship now, or shrink to that handle until a second backend actually arrives?"
+  - "[user] With GitHub (#59) parked and the project switcher rejected, no card needs this layer right now. Does the full swappable-backend layer plus the `backend` setting still ship now, or wait until a second backend actually arrives?"
 ---
 
 Today the board can only be markdown files in `docs/kanban/`. Put one storage layer in
 between so a user can pick where their board lives.
 
 Part of #57. There is one backend today — the markdown board — so the layer ships as the
-seam a later backend plugs into, and #58 is the card that needs it now, because it must
-hold several boards at once.
+seam a later backend plugs into.
 
 ## Scope
 
@@ -45,8 +44,8 @@ hold several boards at once.
 - [ ] Turn that list into one storage interface, in one place.
 - [ ] Implement the markdown backend against the interface, keeping today's file layout.
 - [ ] Make a backend something you open for one board, not one thing the whole process
-      shares. #58 is blocked on this card and needs to hold several boards at once — if
-      the layer bakes in one board per run, #58 pays for the same refactor twice.
+      shares. A layer that bakes in one board per run has to be undone by anything that
+      later opens two.
 - [ ] Add the `backend` key to `docs/kanban/ui.config.json`, defaulting to the markdown
       board.
 - [ ] Make `kanban.mjs` read `docs/kanban/ui.config.json`. It reads no config file today.

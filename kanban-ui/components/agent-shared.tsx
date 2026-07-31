@@ -6,10 +6,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiPlay, FiX, FiZap } from "react-icons/fi";
+import {
+  FiCheckCircle,
+  FiCheckSquare,
+  FiCircle,
+  FiPlay,
+  FiSquare,
+  FiX,
+  FiZap,
+} from "react-icons/fi";
 import { resumeSessionAction, stopSessionAction } from "@/app/actions";
-import { useDraft, useDraftList } from "@/lib/draft";
-import { parseQuestion } from "@/lib/questions";
+import { useDraft, useDraftList, useDraftPicks } from "@/lib/draft";
+import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
 import type { AgentAction, Boldness, Card, SessionView } from "@/lib/types";
 import { Button } from "./button";
 import { QuestionTagBadge } from "./chips";
@@ -1060,19 +1068,48 @@ function ResolveDialog({
 }) {
   // Persist the per-question answers so an accidental close keeps them; reconciled
   // to the current question count on reopen. Cleared once the session starts.
-  const [answers, setAnswer, clearDraft] = useDraftList(`resolve:${card.id}`, card.questions.length);
+  const [answers, setAnswer, clearAnswers] = useDraftList(`resolve:${card.id}`, card.questions.length);
+  // The ticked options beside them. An untouched question opens on the agent's
+  // recommendation, so a whole card of options questions is one click to confirm.
+  const [picks, setPick, clearPicks] = useDraftPicks(
+    `resolve-picks:${card.id}`,
+    card.questions.map((q) => (hasOptions(q) ? (q.recommend ?? []) : [])),
+  );
+
+  // Ticking and typing are the two ways to answer one question, and they never
+  // mix: whichever the user just used wipes the other. So the answer that
+  // reaches the agent is either the options or the words, never a muddle of both.
+  const tick = (i: number, q: CardQuestion, n: number) => {
+    const current = picks[i] ?? [];
+    const next =
+      q.pick === "many"
+        ? current.includes(n)
+          ? current.filter((x) => x !== n)
+          : [...current, n].sort((a, b) => a - b)
+        : current.includes(n)
+          ? [] // clicking the ticked option again unticks it — back to unanswered
+          : [n];
+    setPick(i, next);
+    if (next.length > 0 && answers[i]) setAnswer(i, "");
+  };
+  const type = (i: number, value: string) => {
+    setAnswer(i, value);
+    if (value.trim() && (picks[i] ?? []).length > 0) setPick(i, []);
+  };
 
   // Both footer buttons share this — resolve alone, or resolve then keep going into
   // implement in the same session. The prompt (see buildPrompt) tells the agent to
   // only implement when nothing genuine is left for the user to decide.
   const submit = (andImplement: boolean) => {
-    clearDraft();
+    const notes = composeAnswers(card.questions, answers, picks);
+    clearAnswers();
+    clearPicks();
     onRun(
       {
         action: "resolve",
         id: card.id,
         title: card.title,
-        notes: composeAnswers(card.questions, answers),
+        notes,
         andImplement: andImplement || undefined,
       },
       `${andImplement ? "Resolve & implement" : "Resolve"} #${card.id}`,
@@ -1088,7 +1125,7 @@ function ResolveDialog({
       </p>
       <div className="flex flex-col gap-3.5">
         {card.questions.map((q, i) => {
-          const { tag, text } = parseQuestion(q);
+          const { tag, text } = parseQuestion(q.text);
           return (
           <div key={i} className="flex flex-col gap-1.5">
             {/* Marker inline ahead of the question, not in a column beside it — see
@@ -1097,12 +1134,19 @@ function ResolveDialog({
               <QuestionTagBadge tag={tag} />
               {text}
             </label>
+            {hasOptions(q) && (
+              <OptionPicker question={q} picked={picks[i] ?? []} onTick={(n) => tick(i, q, n)} />
+            )}
             <textarea
               className={INPUT}
               rows={2}
-              placeholder="Your answer, or leave blank for the agent to research…"
+              placeholder={
+                hasOptions(q)
+                  ? "None of these? Answer in your own words — that clears the ticks…"
+                  : "Your answer, or leave blank for the agent to research…"
+              }
               value={answers[i]}
-              onChange={(e) => setAnswer(i, e.target.value)}
+              onChange={(e) => type(i, e.target.value)}
             />
           </div>
           );
@@ -1117,18 +1161,91 @@ function ResolveDialog({
   );
 }
 
+// The tick list for a question that carries options. Rows are buttons, not native
+// radios/checkboxes, for one reason: a ticked option can be clicked again to untick
+// it — a native radio can't — and leaving everything unticked is a real answer
+// here ("I have no view; you research it"). The marker's shape still says how many
+// may be picked: round for one, square for as many as you like.
+function OptionPicker({
+  question,
+  picked,
+  onTick,
+}: {
+  question: CardQuestion;
+  picked: number[];
+  onTick: (n: number) => void;
+}) {
+  const many = question.pick === "many";
+  const On = many ? FiCheckSquare : FiCheckCircle;
+  const Off = many ? FiSquare : FiCircle;
+  return (
+    <div
+      role={many ? "group" : "radiogroup"}
+      aria-label={parseQuestion(question.text).text}
+      className="flex flex-col gap-1"
+    >
+      {(question.options ?? []).map((option, k) => {
+        const n = k + 1;
+        const on = picked.includes(n);
+        const Icon = on ? On : Off;
+        return (
+          <button
+            key={k}
+            type="button"
+            role={many ? "checkbox" : "radio"}
+            aria-checked={on}
+            onClick={() => onTick(n)}
+            className="nb-outline flex items-start gap-2 px-2.5 py-1.5 text-left text-[12.5px] leading-[18px] transition-colors hover:bg-nb-accent-soft"
+            style={{
+              background: on ? "var(--color-nb-accent-soft)" : "transparent",
+              color: on ? "var(--color-nb-accent-deep)" : undefined,
+              fontWeight: on ? 700 : 400,
+            }}
+          >
+            <Icon aria-hidden className="relative top-[2px] shrink-0" style={{ width: 13, height: 13 }} />
+            <span>
+              {option}
+              {(question.recommend ?? []).includes(n) && (
+                <span className="ml-1.5 text-[10.5px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
+                  recommended
+                </span>
+              )}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // Pair the questions the user answered with their answers into a note block the
-// agent can fold into the card. Blank answers are dropped — those are the ones
-// the agent researches — and if nothing was answered we send no note at all, so
-// the agent resolves every question on its own just as before.
-function composeAnswers(questions: string[], answers: string[]): string | undefined {
+// agent can fold into the card. A question answered by ticking sends the option
+// lines themselves, so the agent reads a choice rather than interpreting prose.
+// Unanswered questions are dropped — those are the ones the agent researches —
+// and if nothing was answered we send no note at all, so the agent resolves every
+// question on its own just as before.
+function composeAnswers(
+  questions: CardQuestion[],
+  answers: string[],
+  picks: number[][],
+): string | undefined {
   const answered = questions
-    .map((q, i) => ({ q: parseQuestion(q).text, a: answers[i]?.trim() }))
-    .filter((x) => x.a);
+    .map((q, i) => {
+      const asked = parseQuestion(q.text).text;
+      const chosen = hasOptions(q)
+        ? (picks[i] ?? []).map((n) => (q.options ?? [])[n - 1]).filter(Boolean)
+        : [];
+      if (chosen.length > 0) {
+        return `Q: ${asked}\nPicked:\n${chosen.map((o) => `- ${o}`).join("\n")}`;
+      }
+      const typed = answers[i]?.trim();
+      return typed ? `Q: ${asked}\nA: ${typed}` : null;
+    })
+    .filter((x): x is string => x !== null);
   if (answered.length === 0) return undefined;
   return [
     "My answers to some of the open questions — fold these in, and research the rest:",
-    ...answered.map(({ q, a }) => `Q: ${q}\nA: ${a}`),
+    ...answered,
   ].join("\n\n");
 }
 

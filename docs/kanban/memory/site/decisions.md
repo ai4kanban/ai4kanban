@@ -36,6 +36,8 @@ re-ask a settled call.
 
 - The site's quick start shows one command, `npx ai4kanban install` — never a list of
   shell steps and never a `curl … | sh` line.
+- **Which GitHub repo do the site's links point at?**: `ai4kanban/ai4kanban`. The project
+  moved off `dist0com/ai4kanban`, so no page leans on the old redirect.
 
 ## Vibe Kanban comparison
 

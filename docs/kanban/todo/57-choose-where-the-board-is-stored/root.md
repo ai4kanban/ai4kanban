@@ -77,9 +77,10 @@ real backend ships on top of it. If we end up shipping just one backend, a small
 aimed at that one backend is cheaper — so decide which backends we actually want before
 starting #55.
 
-Answered above: #59 is the card that needs the layer, and we want it. #58, the project
-switcher, is blocked by #55 too, so the layer is not paid for by #59 alone. If #59 is ever
-dropped, #55 still has #58 to carry it — check that card before dropping the layer.
+Answered above: #59 is the card that needs the layer, and we want it. The project switcher,
+the other card that was blocked by #55, has been rejected — we don't keep a list of
+projects — so #59 is the only thing paying for the layer now. If #59 is ever dropped,
+nothing else carries #55.
 
 ## Decided by the agent
 

@@ -61,17 +61,31 @@ Set up ai4kanban for this project. Read
 https://ai4kanban.dev/INSTALL_PROMPT.txt and follow it.
 ```
 
-Agent 会把 skill 装进你的项目，读一遍代码库把配置填好，在 `docs/kanban/` 下搭起看板，
-并提出头三个任务。配置和看板都在 `docs/kanban/` 里，skill 目录下只有通用代码。装完之后，
-你只管跟看板对话。
+Agent 先读一遍代码库，然后跑一条命令：
 
-更喜欢用插件？先 `/plugin marketplace add dist0com/ai4kanban`，再
-`/plugin install kanban@kanban`，skill 就可用了；之后执行 `kanban init` 并填好
-`docs/kanban/config.md`，安装就结束了，不用往项目里复制任何文件。上面那段安装 prompt
-两条路都覆盖。
+```bash
+npx ai4kanban install --tracks feature,bug,research
+```
+
+这条命令把 skill 装进你的项目，并在 `docs/kanban/` 下搭起看板。之后 Agent 把配置填好，
+写出模块清单，再提出头三个任务。配置和看板都在 `docs/kanban/` 里，skill 目录下只有通用
+代码。装完之后，你只管跟看板对话。
+
+以后要升级，同样一条命令：
+
+```bash
+npx ai4kanban update
+```
+
+它会把 skill 换成最新版，补上旧版本没写过的东西，并告诉你从哪个版本升到了哪个版本。
+你的看板不会被动到。
+
+更喜欢用插件？先 `/plugin marketplace add ai4kanban/ai4kanban`，再
+`/plugin install kanban@kanban`，skill 就可用了；但插件不会给你配好看板，那一步还是要跑
+`npx ai4kanban install`。上面那段安装 prompt 两条路都覆盖。
 
 如果你的 Agent 打不开网址，直接打开 [`INSTALL_PROMPT.txt`](web/public/INSTALL_PROMPT.txt)
-把内容贴给它，效果一样。唯一的前置要求是 Node.js 18+；脚本零依赖，没有别的东西要装。
+把内容贴给它，效果一样。唯一的前置要求是 Node.js 18+；全都零依赖，没有别的东西要装。
 
 ## 使用 skill
 

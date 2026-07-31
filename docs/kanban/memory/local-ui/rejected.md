@@ -29,6 +29,14 @@ before proposing so you don't re-suggest them.
 - **A one-button in-UI setup run for a repo with no board** — the setup checklist (#85)
   is the onboarding UI. It starts simple: the bar shows the instruction to copy into your
   coding harness (e.g. `/kanban setup the current board`); the UI doesn't run setup itself.
+- **Switching between projects from the header** — we don't keep a list of projects. A
+  server serves the board it was started in; a list spanning boards has nowhere to live
+  that isn't outside every repo, which breaks files-in-the-repo as the only source of
+  truth. A second board means a second server.
+- **Telling the user what the agent must be allowed to do before a button works** — we
+  couldn't tell what problem this was for. Nobody has reported a button that quietly does
+  nothing because of permissions, so the card was written from a guess. If it turns out to
+  be real, raise it again from the actual case that hit it.
 - **A follow-up prompt box on any finished run** — the Resume button covers the real need:
   a run that stopped short gets one "continue" turn, no typing. A prompt box on every
   finished run is the first step toward replicating a full Claude Code chat inside the

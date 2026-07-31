@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { CardPage } from "@/components/CardPage";
+import { NoBoard } from "@/components/NoBoard";
 import { agentInfo } from "@/lib/agent";
 import { findCard, readBoard } from "@/lib/board";
 import { readAutoRefine, readAutoRefineParallelism } from "@/lib/config";
-import { repoRoot } from "@/lib/paths";
+import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 
 // Read the board on the server and hand the one card to the client page. The
 // files in docs/kanban/ are the source of truth; router.refresh() re-reads them
@@ -11,6 +12,11 @@ import { repoRoot } from "@/lib/paths";
 export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  // Same as the board page: no board at all is the "no board here" page, not a
+  // missing card and not a crash. Checked first, since reading a card means
+  // reading a board.
+  if (!findRepoRoot()) return <NoBoard searchedFrom={boardSearchStart()} />;
+
   const { id } = await params;
   const cardId = Number(id);
   if (!Number.isInteger(cardId)) notFound();

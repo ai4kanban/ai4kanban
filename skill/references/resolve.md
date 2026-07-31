@@ -15,14 +15,38 @@ under `## Decided by the agent` (read "Card format" in `SKILL.md`).
 
 ## Ask the user the rest
 
-Ask when the evidence isn't enough. Write the options
-and your recommendation into the question text itself. Keep it plain and short: one
-line the user can answer at a glance.
-
-> Where should the board live? (a) local files — simple; (b) GitHub Projects — syncs
-> with issues. Recommend (a).
+Ask when the evidence isn't enough. Keep the question itself plain and short: one line
+the user can answer at a glance.
 
 Run `${KB} tag <id> 1,2,3 user` for these questions.
+
+### A question with choices
+
+When the answer is a pick between choices, give the choices as **options** — don't pack
+them into the question line. The user then ticks one instead of reading a sentence to
+find them:
+
+```
+${KB} update 12 --question "[user] Where should the board live?" \
+  --options "local files — simple | GitHub Projects — syncs with issues" \
+  --pick one --recommend 1
+```
+
+- `--options` — the choices, split on `|`, two or more. **One short line each, with the
+  reason inside that line** ("local files — simple"). There's no second field for a note.
+- `--pick one` (the default) lets the user tick a single option; `--pick many` lets them
+  tick as many as they want.
+- `--recommend` — the option numbers ticked when the dialog opens, 1-based. One for
+  `--pick one`, one or more for `--pick many`. Leave it off when you have no
+  recommendation; the list then opens with nothing ticked.
+
+The flags after a `--question` belong to that question, so one call can carry several:
+repeat `--question` and give each its own options. A `--question` with no `--options`
+stays a plain question with a text box — that's the right shape for anything open-ended.
+
+The user always keeps the text box, so an options question can still be answered "none of
+these" in their own words. You get back the option lines they ticked, or their words —
+never both.
 
 ## Update the frontmatter
 

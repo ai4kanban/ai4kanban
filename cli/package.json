@@ -1,0 +1,37 @@
+{
+  "name": "ai4kanban",
+  "version": "0.4.1",
+  "description": "Set up and update AI4Kanban in one command — copies the skill into your project and scaffolds the Markdown board under docs/kanban/.",
+  "keywords": [
+    "kanban",
+    "claude",
+    "claude-code",
+    "codex",
+    "agent",
+    "skill",
+    "markdown",
+    "board"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://ai4kanban.dev/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ai4kanban/ai4kanban.git",
+    "directory": "cli"
+  },
+  "type": "module",
+  "bin": {
+    "ai4kanban": "bin/ai4kanban.mjs"
+  },
+  "files": [
+    "bin/",
+    "skill/"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "bundle": "node scripts/bundle-skill.mjs",
+    "prepublishOnly": "node ../scripts/sync-version.mjs --check && npm run bundle"
+  }
+}

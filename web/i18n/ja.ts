@@ -94,7 +94,7 @@ const ja: SiteCopy = {
     install: {
       heading: { eyebrow: "セットアップ", title: "プロンプト 1 つでインストール" },
       lead: "プロジェクトのルートで、Claude Code（あるいはシェルコマンドを実行できる任意のエージェント）にこう伝えてください：",
-      note: "エージェントがスキルを `.claude/skills/kanban/` にコピーし、あなたのコードベースを読んで設定を埋め、ボードを用意し、最初の 3 つのタスクを提案します。",
+      note: "エージェントはまずコードベースを読み、そのうえで `npx ai4kanban install` というコマンドを 1 つ実行します。これでスキルが入り、ボードができます。設定を埋めるのも、最初の 3 つのタスクを提案するのもエージェントです。あとで更新するときも同じくコマンド 1 つ、`npx ai4kanban update` です。",
     },
     board: {
       heading: { eyebrow: "使い方", title: "Claude Code のなかで AI4Kanban を使う" },

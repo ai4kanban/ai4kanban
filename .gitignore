@@ -2,8 +2,9 @@
 .claude/
 .agents/
 
-# Per-install version stamp (written by INSTALL/UPDATE prompts, not source)
-skill/.version
+# The skill copy the `ai4kanban` npm package ships — rebuilt by cli/scripts/bundle-skill.mjs
+# on every publish, so it never belongs in git.
+cli/skill/
 
 # Local UI session registry: live agent sessions + their captured logs (task #12)
 docs/kanban/.sessions.json

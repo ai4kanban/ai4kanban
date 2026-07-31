@@ -1,68 +1,54 @@
 Set up ai4kanban for this project.
 
-You can reach this two ways, and both finish here:
-  - run this prompt directly, or
-  - add the plugin marketplace — `/plugin marketplace add dist0com/ai4kanban` then
-    `/plugin install kanban@kanban` — which makes the skill available to browse but does
-    NOT configure a board.
-Either way the board still needs a per-project setup, and that is what this prompt does.
-Your settings live with the board at `docs/kanban/config.md`, not inside the skill folder,
-so once the skill is available `/plugin install` plus scaffolding the board is the whole
-setup — nothing gets copied or edited in the (possibly read-only) skill folder.
+Setup is one command plus the parts only you can do. The command copies the skill in and
+scaffolds the board; you read the repo, fill in the configuration, and propose the first
+tasks. Your settings live with the board at `docs/kanban/config.md`, never inside the skill
+folder, so the skill can be replaced wholesale on every update.
 
 Do the following, in order. Ask me at most 3 short questions total, and only where you
 genuinely can't infer a value — otherwise pick sensible defaults and tell me what you chose.
 
-1. Get the skill available.
-   - If you added it as a plugin (`/plugin install kanban@kanban`), it's already available —
-     skip to step 2.
-   - Otherwise, if `.claude/skills/kanban/SKILL.md` does not already exist, copy it in:
+1. Read this repository first, before running anything. Infer:
+   - the project name and its one-line goal (README, package metadata),
+   - the tracks the work naturally splits into — the buckets a task can live in. The default
+     is `feature bug research`; pick something that fits this project better if it does,
+   - the best planning sources to scan (code folders, docs/, roadmap),
+   - any reference docs worth keeping in sync (user guides, changelog, roadmap).
 
-       git clone https://github.com/dist0com/ai4kanban /tmp/ai4kanban
-       mkdir -p .claude/skills
-       cp -R /tmp/ai4kanban/skill .claude/skills/kanban
-
-2. Read the skill's `SKILL.md`. Note how its "The script" section says to run the script —
-   `node` plus `kanban.mjs` in the skill's base folder (a copied install is
-   `.claude/skills/kanban/kanban.mjs`). Use that form for every command below.
-
-3. Analyze this repository to infer the config values: the project name and one-line goal
-   (from the README / package metadata), what natural tracks the work splits into
-   (e.g. feature / bug / research, or something that fits this project better), the best
-   planning sources to scan (code dirs, docs/, roadmap), and any reference docs worth
-   keeping in sync (user guides, changelog, roadmap).
-
-4. If this is a solo product you're launching, offer the indie-hacker preset (the skill's
+2. If this is a solo product I'm launching, offer the indie-hacker preset (the skill's
    `references/presets/indie-hacker.md`) instead of the default tracks.
 
-5. Scaffold the board with the script, passing the tracks you chose in step 3:
+3. Run the one setup command from the project root, passing the tracks from step 1:
 
-       node .claude/skills/kanban/kanban.mjs init <track1> <track2> ...
+       npx --yes ai4kanban@latest install --tracks <track1>,<track2>,...
 
-   This creates `docs/kanban/` with `todo/README.md`, a `todo/blockers/` folder and one
-   folder per track, `next-id` set to `1`, the umbrella memory set — `readme.md`, `goal.md`,
-   `decisions.md`, `redesign.md`, `rejected.md` — and a blank `config.md`. It's safe to
-   re-run — on an existing board it only adds `config.md` if it's missing.
+   That copies the skill into `.claude/skills/kanban/` (Claude Code) and
+   `.agents/skills/kanban/` (Codex), and scaffolds `docs/kanban/` — the track folders, the
+   board index, `next-id`, the memory set (`readme.md`, `goal.md`, `decisions.md`,
+   `redesign.md`, `rejected.md`), a blank `config.md`, and a blank `modules.md`. It's safe
+   to run twice and it never edits a board that's already there.
 
-6. Fill in the configuration. Open `docs/kanban/config.md` and replace every {{PLACEHOLDER}}
-   with the value you chose in step 3. That is the only file you fill in; the rest of the
+   Already added the skill as a plugin (`/plugin marketplace add ai4kanban/ai4kanban` then
+   `/plugin install kanban@kanban`)? The plugin makes the skill available but does not
+   configure a board, so still run the command — it scaffolds the board either way.
+
+4. Read the skill's `SKILL.md`, at `.claude/skills/kanban/SKILL.md`. Note how its "The
+   script" section says to run the script — `node` plus `kanban.mjs` in the skill folder.
+   Use that form for every command below.
+
+5. Fill in the configuration. Open `docs/kanban/config.md` and replace every {{PLACEHOLDER}}
+   with the value you inferred in step 1. That is the only file you fill in; the rest of the
    skill is generic and stays as-is.
 
-7. Write the module map. Follow the skill's `references/module-map.md` to write
+6. Write the module map. Follow the skill's `references/module-map.md` to write
    `docs/kanban/modules.md` — a plain list of what parts this project is made of. Reuse the
-   repo analysis you already did in step 3; don't scan again. Print the finished map so I
-   see it once. The propose flow reads this map to pick a focus area.
+   repo analysis from step 1; don't scan again. Print the finished map so I see it once. The
+   propose flow reads this map to pick a focus area.
 
-8. If you copied the skill in (step 1), stamp the installed version so later updates know
-   where they're starting from (skip this for a plugin install — its cache is read-only):
+7. Run `node .claude/skills/kanban/kanban.mjs init` once more so every module on the map
+   gets its own memory path, then propose the first 3 tasks so I have somewhere to start.
 
-       printf 'sha: %s\ndate: %s\n' "$(git -C /tmp/ai4kanban rev-parse HEAD)" "$(date +%F)" > .claude/skills/kanban/.version
-
-9. Run the script's `peek` command (e.g. `node .claude/skills/kanban/kanban.mjs peek`) to
-   confirm it finds the board, then propose the first 3 tasks so I have something to start
-   from.
-
-10. Recommend the local board UI and ask if I want it — don't silently skip it. It's the
+8. Recommend the local board UI and ask if I want it — don't silently skip it. It's the
    nicest way to use the board: a local Next.js app that shows every track and drives the
    work from buttons instead of the terminal, while the `docs/kanban/` files stay the single
    source of truth. Tell me it runs with one command, nothing to install or compile:
@@ -74,5 +60,5 @@ genuinely can't infer a value — otherwise pick sensible defaults and tell me w
    own guide (https://www.npmjs.com/package/ai4kanban-ui) for what the buttons do and
    how to change which agent they spawn.
 
-To pull a newer version of the skill later, follow the skill's `references/update.md` — the
-setup leaves it in place, so updating never needs anything fetched from upstream first.
+To pull a newer version later, run `npx --yes ai4kanban@latest update` — same shape, one
+command. The skill's `references/update.md` covers what it does and what it leaves to you.

@@ -25,7 +25,7 @@ either copy the skill folder in by hand (see the README) or install it as a plug
 Already wired up. Users run:
 
 ```
-/plugin marketplace add dist0com/ai4kanban
+/plugin marketplace add ai4kanban/ai4kanban
 /plugin install kanban@kanban
 ```
 
@@ -36,7 +36,8 @@ To keep it healthy:
   run `node scripts/sync-version.mjs`, which stamps every derived spot —
   `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `SKILL_VERSION` in
   `skill/kanban.mjs` (what `kanban.mjs version` prints, so installed projects can tell
-  they're behind), and `kanban-ui/package.json`. Then tag the commit (`git tag v0.1.1`).
+  they're behind), `kanban-ui/package.json`, and `cli/package.json`. Then tag the commit
+  (`git tag v0.1.1`).
   `node scripts/sync-version.mjs 0.1.2` bumps `VERSION` and stamps in one step;
   `--check` verifies everything is in sync (the UI's `prepublishOnly` runs it, so a
   mismatched UI can't be published).
@@ -51,7 +52,7 @@ which ships in every Claude Code install. Third parties can submit through their
 directory submission form; plugins must meet quality and security review.
 
 - [ ] Read the contribution / submission guidelines on that repo.
-- [ ] Submit `dist0com/ai4kanban` via the form.
+- [ ] Submit `ai4kanban/ai4kanban` via the form.
 - [ ] Address review feedback.
 
 ## Channel 3 — third-party directories (index public repos)
@@ -61,7 +62,7 @@ having a clean public repo with a good README and the manifests above.
 
 | Directory | URL | How to get listed |
 | --- | --- | --- |
-| skills.sh (Vercel Agent Skills) | https://skills.sh | Auto-indexes public repos with a `SKILL.md` or `.claude-plugin/marketplace.json`. Install: `npx skills add dist0com/ai4kanban`. Submission rules: https://skills.sh/docs |
+| skills.sh (Vercel Agent Skills) | https://skills.sh | Auto-indexes public repos with a `SKILL.md` or `.claude-plugin/marketplace.json`. Install: `npx skills add ai4kanban/ai4kanban`. Submission rules: https://skills.sh/docs |
 | Claude Marketplaces | https://claudemarketplaces.com | Indexes public repos daily; submit if not auto-picked |
 | LobeHub Skills | https://lobehub.com/skills | Submission / sync from GitHub |
 | SkillsMP | https://skillsmp.com | Submission / sync from GitHub |
@@ -114,6 +115,40 @@ The package was called `kanban-skill-ui` until the 2026-07-26 rename. That name 
 retired: run `npm deprecate kanban-skill-ui "renamed to ai4kanban-ui"` once, then leave
 it alone. There is no alias package and no shim.
 
+## Channel 6 — the setup command on npm
+
+Setup and updates ship as their own npm package, **`ai4kanban`**, so the whole mechanical
+part is one command the user approves once:
+
+```
+npx ai4kanban install --tracks feature,bug,research
+npx ai4kanban update
+```
+
+How it's wired (in `cli/`):
+
+- `bin/ai4kanban.mjs` is the whole CLI — one file, no dependencies, Node 18+.
+- The skill travels **inside the tarball**. npm can only pack files under the package
+  folder, so `scripts/bundle-skill.mjs` copies the repo's `skill/` to `cli/skill/` at
+  publish time (`prepublishOnly`). That copy is gitignored; run out of a source checkout,
+  the CLI falls back to the repo's `skill/` directly.
+- `prepublishOnly` also runs `sync-version.mjs --check`, so a version-drifted CLI can't be
+  published. The version matters: `update` prints it as the version it moved the user to,
+  and links `…/compare/v<old>...v<new>` between the two tags — which only resolves if every
+  release is tagged.
+- It never edits a user's cards, config, or memory. Anything needing a judgement call is
+  printed under "Needs your attention" for the agent to finish.
+
+To publish a new version:
+
+```
+cd cli
+npm publish        # prepublishOnly checks the version and bundles the skill
+```
+
+Then smoke-test in a throwaway repo: `npx ai4kanban@latest install`. It is public and
+unscoped. Don't rename it — a rename breaks the install prompt, both READMEs, and the site.
+
 ## A website (optional)
 
 Decide per task #2 on the board. Options, cheapest first:
@@ -130,11 +165,15 @@ Whatever the choice, the landing content is the README's pitch plus the two inst
 
 1. `claude plugin validate .` passes.
 2. `node scripts/sync-version.mjs <new-version>` bumps the root `VERSION` and stamps all
-   derived spots (plugin.json, marketplace.json, `SKILL_VERSION`, kanban-ui/package.json);
-   commit and tag it (`git tag v<new-version>`).
+   derived spots (plugin.json, marketplace.json, `SKILL_VERSION`, kanban-ui/package.json,
+   cli/package.json); commit and tag it (`git tag v<new-version>`).
 3. README and guides reflect any behavior change.
-4. `npm publish` the board UI from `kanban-ui/` (Channel 5) — its `prepublishOnly` runs
+4. `npm publish` the setup command from `cli/` (Channel 6) — it carries the skill, so this
+   is what a new user actually installs; smoke-test `npx ai4kanban@latest install` in a
+   throwaway repo.
+5. `npm publish` the board UI from `kanban-ui/` (Channel 5) — its `prepublishOnly` runs
    `sync-version.mjs --check` first, so a version-drifted UI is refused; smoke-test
    `npx ai4kanban-ui`. The UI shares the one version, so publish it every release.
-5. Push to `main` **with tags** (`git push --tags`); directories that auto-sync pick it up.
-   Ping the ones that don't.
+6. Push to `main` **with tags** (`git push --tags`); directories that auto-sync pick it up.
+   Ping the ones that don't. The tags matter beyond discovery — `npx ai4kanban update`
+   links the GitHub compare view between two release tags.

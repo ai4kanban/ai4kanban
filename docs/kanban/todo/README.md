@@ -17,12 +17,10 @@ _(none)_
 - [#50 Show what a run changed in the working tree](features/50-show-what-a-run-changed-in-the-working-tree.md)
 - [#56 Let a user read and edit the board in Obsidian](features/56-read-and-edit-the-board-in-obsidian.md)
 - [#57 Let a user choose where the board is stored](57-choose-where-the-board-is-stored/root.md)
-- [#58 Switch between projects from the header instead of restarting the server](features/58-switch-between-projects-from-the-header-instead-of-restartin.md)
 - [#64 Run a recurring task from the UI](features/64-run-a-recurring-task-from-the-ui.md)
 - [#67 Handle a failed agent run instead of just marking it red](features/67-handle-a-failed-agent-run-instead-of-just-marking-it-red.md)
 - [#69 Support Codex CLI as the agent harness](features/69-support-codex-cli-as-the-agent-harness.md)
 - [#77 Read the board's memory in the UI](features/77-read-the-board-s-memory-in-the-ui.md)
-- [#80 Say what the agent must be allowed to do before a button works](features/80-say-what-the-agent-must-be-allowed-to-do-before-a-button-wor.md)
 - [#92 Connector setup: model, provider, endpoint, reasoning](92-per-connector-configuration/root.md)
 - [#100 Releases: plan what ships in this version and what waits](100-release-planning/root.md)
 

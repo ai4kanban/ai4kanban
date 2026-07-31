@@ -22,4 +22,4 @@ content — no navigation, styling, or scripts.
 
 ## More
 
-- [GitHub repository](https://github.com/dist0com/ai4kanban): Source, install prompt, and the skill files.
+- [GitHub repository](https://github.com/ai4kanban/ai4kanban): Source, install prompt, and the skill files.

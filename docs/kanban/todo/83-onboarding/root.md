@@ -5,12 +5,9 @@ priority: high
 roi: high
 status: todo
 blocked_by: []
-related: [81, 84, 85, 86, 87, 91]
+related: [84, 85, 86, 87, 91, 107, 108]
 modules: [skill, local-ui, site]
-questions:
-  - "[user] Do we write a best-practices guide for goal.md instead of a template? The guide would say what a good goal covers — the business goal, the long horizon, a roadmap, a direction — as advice, not a format. (a) Write it as a page in docs/guides/ that setup points the user at. (b) Write it as a few lines in the goal.md seed itself, so it is there when the file is opened. (c) Write nothing for now. Recommend (a): a guide the user can read once and ignore keeps the file free-form, which is the point of dropping #82."
-  - "[user] With no fixed format, what makes the agent call a goal 'strong', 'good' or 'weak'? (a) Only 'weak' when the file is missing or still the seed text; anything the user wrote is at least 'good'. (b) The agent judges the content — can it tell a good proposal from a bad one by reading this? Recommend (a): judging free-form prose against no format is guesswork, and a nagging bar on a goal the user did write is worse than no bar."
-  - "[user] The script's goal.md seed and the local UI's starting text say different things today. Do we still make them one wording? (a) Yes — same words in both places, kept short and free-form. (b) No, leave them. Recommend (a): the two disagreeing is a plain bug even with no format to enforce."
+questions: []
 ---
 
 Track everything between "I installed this" and "I have a board I can plan on". This is a
@@ -19,8 +16,11 @@ group task; each piece is its own subtask in this folder.
 ## Scope
 - One script does the mechanical install and update, so setup is one approval, not four
   (#81).
-- ~~Setup ends with a real `goal.md` in the user's words, not a placeholder (#82).~~
-  We don't fix a shape for `goal.md`; setup asks the user to write it and moves on.
+- `goal.md` keeps no fixed shape: setup asks the user to write it in their own words and
+  moves on. What a good goal covers is advice in a guide setup links (#107), never a
+  format the agent enforces. The seed text is one wording in the script and the UI, and a
+  goal is judged weak only when the file is missing or still that seed — anything the
+  user wrote passes (#108).
 - Setup drills that goal into `decisions.md` before the module map is written, so the
   board's memory starts filling before the first proposals (#84).
 - Setup keeps a checklist of its own steps in `setup-checklist.md` and ticks each box as
@@ -40,12 +40,15 @@ group task; each piece is its own subtask in this folder.
 - Order: #81 first — it rewrites the install prompt the later steps lean on.
   #85 lists the steps #84 fixes, #86 is second-to-last
   on that list and #91 is the last box, so they come after #84 in that order. #87 rides
-  on #84's setup doc and can land any time after it.
+  on #84's setup doc and can land any time after it. #107 and #108 are independent — the
+  guide only needs a link from #84's setup doc once both exist.
 
 ## Todo
-- [ ] Install and update by running one script, not a list of shell commands #81
+- [x] Install and update by running one script, not a list of shell commands #81
 - [ ] Settle decisions.md from goal.md in setup, before the module map #84
 - [ ] Track setup with a checklist and show a bar until it's done #85
 - [ ] End setup by rebuilding the module map and splitting decisions into module memories #86
 - [ ] End setup by creating the v1 and vnext group tasks #91
 - [ ] Ask for a deadline in setup and move decisions that can wait to decisions-v2.md #87
+- [ ] Write a guide on what makes a good goal, and point setup at it #107
+- [ ] Make the goal.md seed one wording and the weak test simple #108

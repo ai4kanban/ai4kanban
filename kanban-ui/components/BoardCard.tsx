@@ -71,7 +71,7 @@ export function BoardCard({
             (() => {
               const total = card.questions.length;
               const userCount = card.questions.filter(
-                (q) => parseQuestion(q).tag === "user",
+                (q) => parseQuestion(q.text).tag === "user",
               ).length;
               // A `[user]` question waits on the human (accent); the rest
               // auto-refine still works on its own (quieter).

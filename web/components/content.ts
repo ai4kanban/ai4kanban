@@ -15,7 +15,7 @@ import type {
   UiActionKey,
 } from "@/i18n/types";
 
-export const GITHUB_URL = "https://github.com/dist0com/ai4kanban";
+export const GITHUB_URL = "https://github.com/ai4kanban/ai4kanban";
 
 // The "What it does" checklist from the README — everything here is built and
 // working today.

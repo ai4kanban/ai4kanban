@@ -90,6 +90,9 @@ ${KB} create [--count N]            # allocate N ids (default 1), prints them
 ${KB} create --title ".." --track <track> [--priority high|med|low] [--roi high|med|low] \
              [--blocked-by 1,2] [--related 3] [--modules skill,site] [--question ".."] [--slug ..]
                                     # scaffold ONE card: frontmatter + body template + README entry; then fill only the body
+${KB} update <id> --question ".." --options "a — why | b — why" [--pick one|many] [--recommend 1]
+                                    # a question the user picks from, not one long line of prose;
+                                    # the flags after a --question belong to it (references/resolve.md)
 ${KB} update <id> [--priority ..] [--roi ..] [--track ..] [--slug ..] \
              [--blocked-by ..] [--related ..] [--modules ..] [--question ..] \
              [--drop-question 1,3] [--clear-questions]

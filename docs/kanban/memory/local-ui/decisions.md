@@ -33,6 +33,12 @@ re-ask a settled call.
   background refining for hours, the switch stays silent — a failure is a run's business,
   and the failed run in the runs panel is where its reason is named.
 
+## Answering open questions
+
+- **Can the user still type a free answer when a question has options?**: yes, the text box
+  stays. But the two ways to answer don't mix: on a `single-option` question the user either
+  ticks one option or types an answer, never both.
+
 ## What a run leaves behind
 
 - A run never commits. It leaves its changes in the working tree and the user reads
@@ -95,6 +101,14 @@ re-ask a settled call.
   short-term goal. There is no separate roadmap file; the bar asks for all of it in that
   one file.
 - The bar can be dismissed; it is a nudge, not a gate.
+- **Does the bar come back if the goal turns weak again long after setup?**: yes, with
+  that one item on it. Proposals are judged against the goal, so the nudge outlives
+  setup — even though the setup checklist is gone by then.
+- **What does the UI's goal box show when `goal.md` isn't written yet?**: the same seed
+  wording the script writes into the file — one text, never two.
+- **When does the bar stop nagging?**: as soon as the user writes anything. A goal counts
+  as weak only when the file is missing or still the seed, so a written goal is never
+  nagged about again.
 
 ## Notice bars
 

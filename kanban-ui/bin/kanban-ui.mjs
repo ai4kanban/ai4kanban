@@ -65,9 +65,11 @@ if (!fs.existsSync(server)) {
 if (!fs.existsSync(path.join(board, "docs", "kanban", "todo"))) {
   process.stderr.write(
     `ai4kanban-ui: no docs/kanban/todo/ found at or above ${board}\n` +
-      "Run it from your repo root, or pass --board <dir>.\n",
+      "  This repo has no board yet — make one with: npx ai4kanban install\n" +
+      "  Or this is not the repo you meant — start it from your repo root, or pass --board <dir>.\n",
   );
-  // Keep going — lib/paths.ts still walks up and gives the same error if truly missing.
+  // Keep going, and say the same two things on the page — the browser is where
+  // the user is looking (components/NoBoard.tsx).
 }
 
 process.stdout.write(

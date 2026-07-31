@@ -88,3 +88,58 @@ export function useDraftList(
 
   return [values, setAt, clear];
 }
+
+// The ticked options next to those answer boxes — one list of 1-based option
+// numbers per question. `seed` is what an untouched dialog opens with (the
+// agent's recommendations), so clearing the draft goes back to the
+// recommendations rather than to nothing. A saved draft that no longer matches
+// the card's questions is dropped for the seed.
+export function useDraftPicks(
+  key: string,
+  seed: number[][],
+): [number[][], (i: number, v: number[]) => void, () => void] {
+  const storageKey = PREFIX + key;
+  // Serialized, so the effects below re-run when the seed's CONTENT changes and
+  // not on every render that rebuilds the same array.
+  const seedJson = JSON.stringify(seed);
+  const [values, setValues] = useState<number[][]>(() => JSON.parse(seedJson) as number[][]);
+
+  useEffect(() => {
+    const fallback = JSON.parse(seedJson) as number[][];
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      const arr = saved ? JSON.parse(saved) : null;
+      if (Array.isArray(arr) && arr.length === fallback.length) {
+        setValues(
+          fallback.map((s, i) =>
+            Array.isArray(arr[i]) ? arr[i].filter((n: unknown) => Number.isInteger(n)) : s,
+          ),
+        );
+        return;
+      }
+    } catch {}
+    setValues(fallback);
+  }, [storageKey, seedJson]);
+
+  const setAt = useCallback(
+    (i: number, v: number[]) => {
+      setValues((prev) => {
+        const next = prev.map((p, j) => (j === i ? v : p));
+        try {
+          window.localStorage.setItem(storageKey, JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+    },
+    [storageKey],
+  );
+
+  const clear = useCallback(() => {
+    setValues(JSON.parse(seedJson) as number[][]);
+    try {
+      window.localStorage.removeItem(storageKey);
+    } catch {}
+  }, [storageKey, seedJson]);
+
+  return [values, setAt, clear];
+}

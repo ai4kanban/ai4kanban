@@ -37,9 +37,7 @@ import { fileURLToPath } from 'node:url'
 // Released version of the skill. Do NOT hand-edit — it's stamped from the repo's root
 // VERSION file by scripts/sync-version.mjs (the one number for the whole repo; see
 // PUBLISHING.md). It's baked in because this file is copied into installed projects away
-// from the manifests. `version` prints this; the install/update prompt also writes a
-// `.version` stamp (source SHA + date) next to the script for `git log` deltas — printed
-// here too when present.
+// from the manifests, so `version` can answer without anything fetched.
 const SKILL_VERSION = '0.4.1'
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
@@ -299,6 +297,10 @@ function dropCrossRefs(id) {
 function parseFlags(args, allowed) {
   const flags = {}
   const positional = []
+  // Every flag in the order it was typed. Most commands read `flags`, where a
+  // repeated flag collapses into a list; the question flags need the order too,
+  // because --options/--pick/--recommend belong to the --question before them.
+  const order = []
   for (let i = 0; i < args.length; i++) {
     const a = args[i]
     if (a.startsWith('--')) {
@@ -309,17 +311,19 @@ function parseFlags(args, allowed) {
       const next = args[i + 1]
       if (next === undefined || next.startsWith('--')) {
         flags[key] = true
+        order.push([key, true])
       } else {
         if (flags[key] === undefined) flags[key] = next
         else if (Array.isArray(flags[key])) flags[key].push(next)
         else flags[key] = [flags[key], next]
+        order.push([key, next])
         i++
       }
     } else {
       positional.push(a)
     }
   }
-  return { flags, positional }
+  return { flags, positional, order }
 }
 
 function slugify(s) {
@@ -452,7 +456,18 @@ function serializeFrontmatter(m) {
   if (!m.questions || m.questions.length === 0) out.push('questions: []')
   else {
     out.push('questions:')
-    for (const q of m.questions) out.push(`  - ${yamlScalar(q)}`)
+    for (const raw of m.questions) {
+      const q = normalizeQuestion(raw)
+      if (!hasOptions(q)) {
+        out.push(`  - ${yamlScalar(q.text)}`)
+        continue
+      }
+      out.push(`  - question: ${yamlScalar(q.text)}`)
+      out.push(`    pick: ${q.pick}`)
+      out.push('    options:')
+      for (const o of q.options) out.push(`      - ${yamlScalar(o)}`)
+      out.push(`    recommend: [${q.recommend.join(', ')}]`)
+    }
   }
   out.push('---')
   return out.join('\n')
@@ -489,6 +504,21 @@ function parseFrontmatter(text) {
     if (!m) continue
     const key = m[1]
     const val = m[2]
+    // `questions:` holds two shapes at once — a plain line and an options block —
+    // so it gets its own reader instead of the generic list branch below.
+    if (key === 'questions') {
+      if (val === '') {
+        const block = []
+        while (j + 1 < fm.length && /^\s/.test(fm[j + 1]) && fm[j + 1].trim() !== '') {
+          block.push(fm[j + 1])
+          j++
+        }
+        meta.questions = parseQuestionsBlock(block)
+      } else {
+        meta.questions = val.trim() === '[]' ? [] : [normalizeQuestion(unquote(val))]
+      }
+      continue
+    }
     if (val === '') {
       const items = []
       while (j + 1 < fm.length && /^\s*-\s+/.test(fm[j + 1])) {
@@ -510,10 +540,97 @@ function parseFrontmatter(text) {
       meta[k] = []
     }
   }
-  if (!Array.isArray(meta.questions)) meta.questions = meta.questions ? [meta.questions] : []
+  if (!Array.isArray(meta.questions)) meta.questions = meta.questions ? [normalizeQuestion(meta.questions)] : []
   // modules is an optional string list; a card written before this field parses as [].
   if (!Array.isArray(meta.modules)) meta.modules = []
   return { meta, body: lines.slice(i + 1).join('\n') }
+}
+
+// ---- questions -------------------------------------------------------------
+//
+// A question comes in two shapes. A PLAIN one is a single line the user answers
+// in a text box — what every card has always written. An OPTIONS one carries
+// choices the user ticks instead of reading them out of a sentence:
+//
+//   questions:
+//     - a plain question stays one line
+//     - question: Where should the board live?
+//       pick: one
+//       options:
+//         - local files — simple
+//         - GitHub Projects — syncs with issues
+//       recommend: [1]
+//
+// `pick: one` lets the user tick one option, `pick: many` as many as they want.
+// `recommend` holds 1-based positions into `options` — the ones the resolve
+// dialog opens already ticked; `[]` means nothing is pre-ticked. An option is
+// one short line with its reason inside it; there is no note field beside it.
+//
+// In memory every question is an object: `{ text }` for a plain one, plus
+// `pick`, `options` and `recommend` when it has options. Kept in step with
+// kanban-ui/lib/frontmatter.ts and kanban-ui/lib/questions.ts.
+const PICKS = ['one', 'many']
+
+function hasOptions(q) {
+  return Array.isArray(q.options) && q.options.length > 0
+}
+
+// Read any accepted form — a plain string, or the mapping the block above parses
+// into — as one question object. An options list shorter than one entry reads as
+// a plain question, so a half-written card still opens.
+function normalizeQuestion(raw) {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const text = String(raw.question ?? raw.text ?? '')
+    const options = (Array.isArray(raw.options) ? raw.options : []).map((o) => String(o).trim()).filter(Boolean)
+    if (options.length === 0) return { text }
+    const pick = PICKS.includes(String(raw.pick)) ? String(raw.pick) : 'one'
+    const recommend = (Array.isArray(raw.recommend) ? raw.recommend : [])
+      .map(Number)
+      .filter((n) => Number.isInteger(n) && n >= 1 && n <= options.length)
+    return { text, pick, options, recommend: pick === 'one' ? recommend.slice(0, 1) : recommend }
+  }
+  return { text: String(raw) }
+}
+
+// Read the indented block under `questions:`. An item is either `- <text>` (plain)
+// or `- question: <text>` followed by its `pick:`, `options:` and `recommend:` lines.
+function parseQuestionsBlock(lines) {
+  const out = []
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^\s*-\s+([\s\S]*)$/)
+    if (!m) continue
+    const head = m[1]
+    const opened = head.match(/^question:\s*(.*)$/)
+    if (!opened) {
+      out.push({ text: unquote(head) })
+      continue
+    }
+    const q = { question: unquote(opened[1]), options: [], recommend: [] }
+    // Keep reading this question's fields until the next `- ` item. The option
+    // lines are `- ` items themselves, so they're consumed as they're found.
+    while (i + 1 < lines.length && !/^\s*-\s/.test(lines[i + 1])) {
+      const field = lines[i + 1].match(/^\s*([A-Za-z_]+):\s*(.*)$/)
+      i++
+      if (!field) continue
+      const [, key, val] = field
+      if (key === 'options') {
+        while (i + 1 < lines.length && /^\s*-\s+/.test(lines[i + 1])) {
+          q.options.push(unquote(lines[i + 1].replace(/^\s*-\s+/, '')))
+          i++
+        }
+      } else if (key === 'recommend') {
+        q.recommend = val
+          .replace(/^\[|\]$/g, '')
+          .split(',')
+          .map((s) => Number(s.trim()))
+          .filter((n) => Number.isInteger(n))
+      } else if (key === 'pick') {
+        q.pick = unquote(val)
+      }
+    }
+    out.push(normalizeQuestion(q))
+  }
+  return out
 }
 
 // ---- question tags ---------------------------------------------------------
@@ -521,8 +638,9 @@ function parseFrontmatter(text) {
 // An open question may lead with a `[user] ...` tag token — a judgment call the
 // human must make. No token means untagged: freshly raised, not yet triaged.
 // There is no tag for an answered question — answering removes it from the list.
-// The tag lives in the string; parseQuestion splits it off, formatQuestion puts
-// it back. Kept in step with parseQuestion in kanban-ui/lib/questions.ts.
+// The tag lives at the front of the question's text, on both shapes; parseQuestion
+// splits it off, formatQuestion puts it back. Kept in step with parseQuestion in
+// kanban-ui/lib/questions.ts.
 const QUESTION_TAGS = ['user']
 
 function parseQuestion(raw) {
@@ -538,11 +656,68 @@ function formatQuestion(tag, text) {
 // tag — almost always a typo like `[users]` that would silently read as text.
 function warnBadQuestionTags(questions) {
   for (const q of questions) {
-    const m = String(q).match(/^\[([^\]]+)\]\s/)
+    const m = String(q.text).match(/^\[([^\]]+)\]\s/)
     if (m && !QUESTION_TAGS.includes(m[1].toLowerCase())) {
       warn(`question tag "[${m[1]}]" isn't recognised — use [user] (or no tag). Stored as literal text.`)
     }
   }
+}
+
+// Build the question list from the flags as they were typed: each `--question`
+// starts a new one, and `--options`, `--pick` and `--recommend` after it belong
+// to that question. A question with no `--options` stays plain.
+function collectQuestions(order) {
+  const out = []
+  const current = (flag) => {
+    const q = out[out.length - 1]
+    if (!q) die(`--${flag} must come after the --question it belongs to`)
+    return q
+  }
+  for (const [key, value] of order) {
+    if (key === 'question') {
+      const text = value === true ? '' : String(value).trim()
+      if (!text) die('--question must not be empty')
+      out.push({ question: text, options: [], recommend: [] })
+    } else if (key === 'options') {
+      const q = current('options')
+      if (q.options.length) die(`one --options per --question (got a second for "${q.question}")`)
+      const opts = String(value)
+        .split('|')
+        .map((s) => s.trim())
+        .filter(Boolean)
+      if (opts.length < 2) die('--options needs at least 2 choices, separated by "|" (e.g. "local files — simple | GitHub Projects — syncs with issues")')
+      q.options = opts
+    } else if (key === 'pick') {
+      const q = current('pick')
+      const p = String(value).toLowerCase()
+      if (!PICKS.includes(p)) die(`--pick must be one | many (got "${value}")`)
+      q.pick = p
+    } else if (key === 'recommend') {
+      const q = current('recommend')
+      const ns = String(value)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map(Number)
+      if (ns.length === 0 || ns.some((n) => !Number.isInteger(n) || n < 1)) {
+        die('--recommend needs one or more 1-based option numbers (e.g. 1 or 1,3)')
+      }
+      q.recommend = ns
+    }
+  }
+  for (const q of out) {
+    if (q.options.length === 0) {
+      if (q.pick !== undefined || q.recommend.length) {
+        die(`--pick and --recommend only apply to a question with --options ("${q.question}")`)
+      }
+      continue
+    }
+    q.pick = q.pick || 'one'
+    const over = q.recommend.find((n) => n > q.options.length)
+    if (over !== undefined) die(`--recommend points at option ${over}, but that question has ${q.options.length}`)
+    if (q.pick === 'one' && q.recommend.length > 1) die('--pick one takes at most one --recommend option')
+  }
+  return out.map(normalizeQuestion)
 }
 
 // One or more 1-based question positions (`1` or `1,3`), validated against the
@@ -896,7 +1071,7 @@ function ensureGoalReviewed() {
 
 // ---- commands --------------------------------------------------------------
 
-const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'blocked-by', 'related', 'modules', 'question', 'slug', 'count', 'no-body']
+const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'blocked-by', 'related', 'modules', 'question', 'options', 'pick', 'recommend', 'slug', 'count', 'no-body']
 
 // Two modes:
 //   bare      `create [--count N]`  → allocate ids and print them (group-task setup).
@@ -904,11 +1079,11 @@ const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'blocked-by', 'relate
 //             frontmatter + a body template, and index it. The script owns the meta;
 //             fill the body with your editor and leave the frontmatter alone.
 function cmdCreate(args) {
-  const { flags, positional } = parseFlags(args, CREATE_FLAGS)
+  const { flags, positional, order } = parseFlags(args, CREATE_FLAGS)
   if (positional.length) die(`create takes options, not positional args (got "${positional.join(' ')}")`)
 
   if (flags.title === undefined) {
-    for (const bad of ['track', 'priority', 'roi', 'blocked-by', 'related', 'modules', 'question', 'slug', 'no-body']) {
+    for (const bad of ['track', 'priority', 'roi', 'blocked-by', 'related', 'modules', 'question', 'options', 'pick', 'recommend', 'slug', 'no-body']) {
       if (flags[bad] !== undefined) die(`--${bad} needs --title (that's card mode). Without --title, create only allocates ids.`)
     }
     const count = flags.count !== undefined ? Number(flags.count) : 1
@@ -937,7 +1112,7 @@ function cmdCreate(args) {
   const blocked_by = flags['blocked-by'] !== undefined ? parseIdList(flags['blocked-by'], 'blocked-by', start) : []
   const related = flags.related !== undefined ? parseIdList(flags.related, 'related', start) : []
   const modules = flags.modules !== undefined ? validModules(parseModuleList(flags.modules)) : []
-  const questions = flags.question !== undefined ? (Array.isArray(flags.question) ? flags.question : [flags.question]).map(String) : []
+  const questions = collectQuestions(order)
   warnBadQuestionTags(questions)
   const slug = slugify(flags.slug !== undefined ? flags.slug : title)
   const fileRel = path.join(track, `${start}-${slug}.md`)
@@ -958,12 +1133,12 @@ function cmdCreate(args) {
   reconcileBoard()
 }
 
-const UPDATE_FLAGS = ['title', 'track', 'priority', 'roi', 'status', 'blocked-by', 'related', 'modules', 'question', 'drop-question', 'clear-questions', 'slug']
+const UPDATE_FLAGS = ['title', 'track', 'priority', 'roi', 'status', 'blocked-by', 'related', 'modules', 'question', 'options', 'pick', 'recommend', 'drop-question', 'clear-questions', 'slug']
 
 // Rewrite a card's frontmatter. Also the sanctioned way to move a card between tracks
 // (--track moves the file + fixes the index) or rename it (--slug). Body is untouched.
 function cmdUpdate(args) {
-  const { flags, positional } = parseFlags(args, UPDATE_FLAGS)
+  const { flags, positional, order } = parseFlags(args, UPDATE_FLAGS)
   const id = Number(positional[0])
   if (!Number.isInteger(id)) die('need a numeric task id: update <id> [--field value ...]')
   const found = locate(id)
@@ -1021,9 +1196,11 @@ function cmdUpdate(args) {
     changes.push('questions')
   }
   if (flags.question !== undefined) {
-    meta.questions = (Array.isArray(flags.question) ? flags.question : [flags.question]).map(String)
+    meta.questions = collectQuestions(order)
     warnBadQuestionTags(meta.questions)
     changes.push('questions')
+  } else if (flags.options !== undefined || flags.pick !== undefined || flags.recommend !== undefined) {
+    die('--options / --pick / --recommend belong to a --question — pass the whole question again')
   }
 
   // A `ready` card has no open questions by definition (see STATUSES). Adding one
@@ -1111,8 +1288,9 @@ function cmdTag(args) {
     die(`#${id} has ${meta.questions.length} open question(s) — there's no question ${over} to tag.`)
   }
   for (const n of ns) {
-    const { text } = parseQuestion(meta.questions[n - 1])
-    meta.questions[n - 1] = formatQuestion(tag === 'none' ? null : tag, text)
+    const q = meta.questions[n - 1]
+    const { text } = parseQuestion(q.text)
+    q.text = formatQuestion(tag === 'none' ? null : tag, text)
   }
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
   const label = tag === 'none' ? '(untagged)' : `[${tag}]`
@@ -1245,17 +1423,11 @@ function isRecurringCard(found) {
   return found.rel.split(path.sep)[0] === 'recurring'
 }
 
-// Print the installed version. SKILL_VERSION is the released number baked into this file;
-// `.version` (written by the install/update prompt) adds the source SHA + date it came from,
-// so an update can `git log <sha>..HEAD` to summarise what changed.
+// Print the installed version — the released number baked into this file when it was
+// published. `npx ai4kanban update` reads the same number to say which version it moved
+// you from.
 function cmdVersion() {
   console.log(`ai4kanban ${SKILL_VERSION}`)
-  const stamp = path.join(SCRIPT_DIR, '.version')
-  if (fs.existsSync(stamp)) {
-    console.log(fs.readFileSync(stamp, 'utf8').trim())
-  } else {
-    console.log('  (no .version stamp — installed before versioning, or a source checkout)')
-  }
 }
 
 function cmdRun(id) {
@@ -1447,6 +1619,11 @@ Usage: node ${rel(SELF)} <command> [args]
                        (validated against modules.md), --question "..." (repeatable),
                        --slug my-slug, --no-body.
                        The script owns the frontmatter — fill only the body by hand.
+                       A question the user picks from carries its choices: follow its
+                       --question with --options "a — why | b — why" (2+, split on
+                       "|"), --pick one|many (default one), and --recommend 1 or 1,3
+                       (the options ticked when the dialog opens). Without --options
+                       the question stays a plain line with a text box.
   update <id> [opts]   rewrite a card's frontmatter (same opts as create, plus
                        --status todo|ready|implementing, --drop-question n[,n...]
                        to remove answered questions by 1-based position, and

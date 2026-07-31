@@ -212,4 +212,4 @@ you've decided what it is.
 
 ---
 
-Install ai4kanban · https://github.com/dist0com/ai4kanban
+Install ai4kanban · https://github.com/ai4kanban/ai4kanban

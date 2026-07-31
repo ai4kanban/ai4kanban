@@ -26,7 +26,7 @@ export function canRefine(card: Card): boolean {
   if (card.status !== "todo") return false;
   const { total, done } = card.todos;
   if (total > 0 && done === total) return false;
-  if (card.questions.length > 0 && card.questions.every((q) => parseQuestion(q).tag === "user")) {
+  if (card.questions.length > 0 && card.questions.every((q) => parseQuestion(q.text).tag === "user")) {
     return false;
   }
   return true;

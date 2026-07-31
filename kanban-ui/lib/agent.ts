@@ -372,9 +372,7 @@ export function buildPrompt(req: AgentRequest): string {
         .join(" ");
     case "auto-refine":
       return [
-        `/kanban. Auto-refine task ${req.id} ${named} following \`references/auto-refine.md\`: triage and answer its open questions, then move the plan one step forward.`,
-        `For each untagged question, spawn a fresh subagent to answer it objectively; tag the ones only I can decide \`[user]\` (\`kanban tag ${req.id} <n> user\`) and leave them for me.`,
-        req.notes ? `Extra notes: ${req.notes}` : "",
+        `/kanban. Auto-refine task ${req.id} ${named} following \`references/auto-refine.md\`.`,
         `Don't ask me questions with human-in-the-loop — the \`[user]\` tag is how you defer to me.`,
       ]
         .filter(Boolean)

@@ -69,19 +69,33 @@ Set up ai4kanban for this project. Read
 https://ai4kanban.dev/INSTALL_PROMPT.txt and follow it.
 ```
 
-The agent gets the skill into your project, reads your codebase to fill in the
-configuration, scaffolds the board under `docs/kanban/`, and proposes your first three
+The agent reads your codebase, then runs one command:
+
+```bash
+npx ai4kanban install --tracks feature,bug,research
+```
+
+That copies the skill into your project and scaffolds the board under `docs/kanban/`. The
+agent then fills in the configuration, writes the module map, and proposes your first three
 tasks. Both your config and your board live in `docs/kanban/` — the skill folder holds only
 generic code. From then on you just talk to the board.
 
-Prefer plugins? `/plugin marketplace add dist0com/ai4kanban` then
-`/plugin install kanban@kanban` makes the skill available; from there, `kanban init` plus
-filling in `docs/kanban/config.md` is the whole setup — nothing to copy in. The install
-prompt above covers both paths.
+To update later, one command again:
+
+```bash
+npx ai4kanban update
+```
+
+It replaces the skill with the newest version, repairs anything an older release never
+wrote, and tells you which version you moved from and to. Your board is never touched.
+
+Prefer plugins? `/plugin marketplace add ai4kanban/ai4kanban` then
+`/plugin install kanban@kanban` makes the skill available, but it doesn't configure a
+board — run `npx ai4kanban install` for that. The install prompt above covers both paths.
 
 If your agent can't fetch URLs, open [`INSTALL_PROMPT.txt`](web/public/INSTALL_PROMPT.txt)
-and paste its contents instead — same result. The only requirement is Node.js 18+ — the
-script has no dependencies, so there's nothing to install.
+and paste its contents instead — same result. The only requirement is Node.js 18+ — nothing
+has dependencies, so there's nothing to install.
 
 ## Using the skill
 

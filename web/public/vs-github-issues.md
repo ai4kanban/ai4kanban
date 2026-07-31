@@ -135,4 +135,4 @@ ai4kanban as the private surface their agent drives every day.
 
 ---
 
-Install ai4kanban · https://github.com/dist0com/ai4kanban
+Install ai4kanban · https://github.com/ai4kanban/ai4kanban

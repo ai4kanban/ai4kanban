@@ -5,12 +5,16 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FiArchive,
+  FiCheckCircle,
+  FiCheckSquare,
   FiChevronRight,
+  FiCircle,
   FiCornerLeftUp,
   FiEdit2,
   FiFeather,
   FiHelpCircle,
   FiPlay,
+  FiSquare,
   FiXCircle,
 } from "react-icons/fi";
 import { patchCardAction } from "@/app/actions";
@@ -27,12 +31,52 @@ import {
   SessionLog,
 } from "./agent-shared";
 import { LevelSelect, ModuleChip, QuestionTagBadge, StatusPill, TodoProgress, TrackChip } from "./chips";
-import { parseQuestion } from "@/lib/questions";
+import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
 import { canRefine } from "@/lib/refine";
 import { Markdown } from "./Markdown";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
+
+// The choices on an options question, read-only — the same list the Resolve
+// dialog hands the user, shown here so the options can be read without opening
+// the dialog. The recommended ones wear a filled marker and say so in words; the
+// marker's SHAPE says how many may be picked (round = one, square = as many as
+// you like), matching the radio / checkbox the dialog shows.
+function QuestionOptions({ question }: { question: CardQuestion }) {
+  const many = question.pick === "many";
+  const On = many ? FiCheckSquare : FiCheckCircle;
+  const Off = many ? FiSquare : FiCircle;
+  return (
+    <ul className="mt-1.5 flex flex-col gap-1">
+      {(question.options ?? []).map((option, k) => {
+        const recommended = (question.recommend ?? []).includes(k + 1);
+        const Icon = recommended ? On : Off;
+        return (
+          <li
+            key={k}
+            className="flex items-baseline gap-1.5 text-[12.5px] leading-[18px]"
+            style={{ color: recommended ? "var(--color-nb-accent-deep)" : undefined }}
+          >
+            <Icon
+              aria-hidden
+              className="relative top-[2px] shrink-0"
+              style={{ width: 12, height: 12 }}
+            />
+            <span>
+              {option}
+              {recommended && (
+                <span className="ml-1.5 text-[10.5px] font-[700] uppercase tracking-[0.04em]">
+                  recommended
+                </span>
+              )}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 type CardButton = "implement" | "refine" | "edit" | "resolve" | "archive" | "reject";
 
@@ -391,11 +435,12 @@ export function CardPage({
                 but the first. Inline, the text wraps back under the marker. */}
             <ul className="flex flex-col gap-2.5 text-[13px] leading-[19px]">
               {card.questions.map((q, i) => {
-                const { tag, text } = parseQuestion(q);
+                const { tag, text } = parseQuestion(q.text);
                 return (
                   <li key={i}>
                     <QuestionTagBadge tag={tag} />
                     {text}
+                    {hasOptions(q) && <QuestionOptions question={q} />}
                   </li>
                 );
               })}

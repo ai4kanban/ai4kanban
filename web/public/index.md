@@ -8,7 +8,7 @@ backlog lives as plain Markdown files in `docs/kanban/` — in git, diffable,
 readable by you and the agent. No database, no MCP. Just talk to the board.
 
 - Install in one prompt
-- View on GitHub: https://github.com/dist0com/ai4kanban
+- View on GitHub: https://github.com/ai4kanban/ai4kanban
 
 ## Why it's different
 
@@ -35,9 +35,10 @@ https://ai4kanban.dev/INSTALL_PROMPT.txt
 and follow it.
 ```
 
-The agent copies the skill into `.claude/skills/kanban/`, reads your codebase to
-fill in the configuration, scaffolds the board, and proposes your first three
-tasks.
+The agent reads your codebase, then runs one command — `npx ai4kanban install` —
+which copies the skill in and scaffolds the board. It fills in the configuration
+and proposes your first three tasks. Updating later is one command too:
+`npx ai4kanban update`.
 
 ## 02 · Usage — Using ai4kanban in Claude Code
 
@@ -180,4 +181,4 @@ next to the work — no external tool to keep in sync.
 
 ---
 
-Install ai4kanban · https://github.com/dist0com/ai4kanban
+Install ai4kanban · https://github.com/ai4kanban/ai4kanban

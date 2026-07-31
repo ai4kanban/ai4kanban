@@ -15,7 +15,7 @@
   "homepage": "https://ai4kanban.dev/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dist0com/ai4kanban.git",
+    "url": "git+https://github.com/ai4kanban/ai4kanban.git",
     "directory": "kanban-ui"
   },
   "bin": {

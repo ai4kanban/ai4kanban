@@ -6,10 +6,9 @@ before proposing so you don't re-suggest them.
 ## Goal
 
 - **A fixed template for `goal.md`** — we don't pin down what the goal file must contain,
-  the same way Claude Code and OpenClaw don't restrict what goes in `soul.md`. What we may
-  write instead is a best-practices guide — a good goal covers the business goal, the long
-  horizon, a roadmap, a direction — as advice the user can ignore, not a shape the agent
-  enforces.
+  the same way Claude Code and OpenClaw don't restrict what goes in `soul.md`. What we
+  write instead is a best-practices guide in `docs/guides/` — advice the user can ignore,
+  not a shape the agent enforces.
 
 ## Storage
 

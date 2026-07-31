@@ -3,7 +3,7 @@
 //
 // The canonical version lives in the root `VERSION` file. Every other place that
 // must carry a version (plugin manifest, marketplace catalog, the skill script that
-// runs inside installed projects, and the npm UI package) is DERIVED — this script
+// runs inside installed projects, and the two npm packages) is DERIVED — this script
 // stamps them all from `VERSION` so you only ever edit one number.
 //
 // Why copies exist at all: each is read by a different tool in its own format, and
@@ -43,6 +43,13 @@ const TARGETS = [
     // first "version" key is the package version (deps use ^ ranges, not this shape)
     re: /("version"\s*:\s*")(\d+\.\d+\.\d+[^"]*)(")/,
     label: 'kanban-ui/package.json',
+  },
+  {
+    file: 'cli/package.json',
+    // the `ai4kanban` setup command — `npx ai4kanban update` prints this as the version
+    // it moved the user to, so it has to match what the skill it ships says
+    re: /("version"\s*:\s*")(\d+\.\d+\.\d+[^"]*)(")/,
+    label: 'cli/package.json',
   },
   {
     file: 'skill/kanban.mjs',

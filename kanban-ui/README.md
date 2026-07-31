@@ -82,6 +82,15 @@ log is read-only — you never type into a running session.
 | **Archive** | Once every todo is checked (a group root: once every subtask is resolved). |
 | **Reject** | Always. |
 
+**Resolve** gives each open question an answer box. A question that carries choices shows
+them as a tick list instead — one pick, or as many as you like, depending on the question —
+with the agent's recommended ones already ticked, so agreeing is one click on the confirm
+button. Those questions keep their box too: type an answer and the ticks clear, tick an
+option and the text clears. Your answer is either the options or your own words, never
+both. Leave a question untouched — nothing ticked, nothing typed — and the agent
+researches that one itself. The card page lists the same choices under **open questions**,
+so you can read them without opening the dialog.
+
 **Resolve** has a second confirm, **Resolve & implement**: the agent answers the questions
 it can settle itself, and if nothing is left for you to decide it goes straight on to build
 the card in the same run. If a real judgment call remains, it stops and leaves it for you.
@@ -288,6 +297,24 @@ part of an hour while the card stays locked. With retries off, a rate limit ends
 away and the board shows it failed. Note this is not a spend control: whether hitting your
 plan's limit spills into paid extra usage is an account setting on claude.ai, not something
 the CLI can turn off.
+
+## When it finds no board
+
+Start the UI somewhere with no board and the page says **There is no board here**, and names
+the folder it searched. It takes over the whole screen — there is nothing to show a header or
+buttons for until a board exists. The terminal says the same thing when the server starts.
+
+Two things it could be, and the page gives both:
+
+- **This repo has no board yet.** Make one — run `npx ai4kanban install` in the repo root.
+- **This is not the repo you meant.** Stop the UI and start it from your repo root, or point
+  it at the repo: `npx ai4kanban-ui --board /path/to/repo`.
+
+The UI never sets a board up for you. Install one in a terminal, switch back to the tab, and
+the board is there — no reload.
+
+A board that exists but has a card the UI can't read is a different thing: that board still
+opens, with the error in a strip above it.
 
 ## Run it from source
 

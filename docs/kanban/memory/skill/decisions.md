@@ -15,9 +15,15 @@ re-ask a settled call.
 
 ## The goal
 
-- Whether the goal is strong or weak is the agent's common-sense call, not a written
-  rubric. `weak` only when it is apparent — missing, still the template, or too vague to
-  plan from; anything borderline counts as strong.
+- **What makes a goal `weak`?**: the file is missing, or still the seed text. Anything the
+  user wrote is at least `good`. The agent does not judge the prose — there is no format
+  to judge it against, and nagging about a goal the user did write is worse than no nag.
+- **Do we tell the user what a good goal contains?**: yes, as a guide page in
+  `docs/guides/` that setup links — advice on the business goal, the long horizon, a
+  rough roadmap, the direction. Advice only; nothing enforces it and the file stays
+  free-form.
+- **What does the seeded `goal.md` say?**: one wording, short, used by the script and
+  shown by the local UI's goal box. The two never say different things.
 
 ## Finished cards
 
@@ -29,14 +35,24 @@ re-ask a settled call.
 
 ## Setup
 
-- Settling the goal's open details happens during setup itself, as a conversation in the
-  user's coding harness — never through auto-refine. The user is at the keyboard, so the
-  agent asks and writes each answer into the project-wide `decisions.md` right there.
+- **Does setup ask the user anything about the goal?**: No. Setup reads `goal.md` and
+  settles every detail it can by itself, each as a line in the project-wide
+  `decisions.md`. What it can't settle becomes a `[user]` open question on the cards it
+  creates, answered later through the normal resolve flow. Neither count is capped.
 - Setup settles `goal.md` and the project-wide `decisions.md` before it writes
   `modules.md`. A project started without code has no code to read a module map from —
   the map can only come from what's been decided.
 - **How many first cards does setup end with?**: 10. They lay the foundation later work
   builds on — never improvement tasks aimed at what the project hasn't built yet.
+- **Where does the setup checklist live?**: `setup-checklist.md` at the board root, next
+  to `config.md` — one fixed path every flow and the UI read. It is board state, not
+  memory.
+- **How does a flow know setup is unfinished?**: the checklist file is there. Setup's last
+  step deletes it, so a board without the file is a board that is set up. A finished
+  checklist is never kept as a record.
+- **May a card be created before setup ends?**: no. While the checklist file is there,
+  propose and add create nothing and ask the user to finish setup first. A card the user
+  writes by hand, outside the skill, is not blocked.
 
 ## The module map
 
@@ -50,8 +66,19 @@ re-ask a settled call.
   what it's sure of and ends either `ready` or holding only the questions a human must
   answer.
 
+## Open questions
+
+- **Can a question carry options?**: yes, in two shapes — `single-option`, where the user
+  picks one, and `multi-options`, where the user picks as many as they want. A question
+  with no options stays an open-ended ask.
+- **Do old questions have to be rewritten?**: no. A question written as one prose line with
+  the choices inside it keeps working and renders as a plain question. The agent never
+  rewrites it, and no card is migrated — both shapes live side by side.
+
 ## Installing and updating
 
+- **Which GitHub repo is ours?**: `ai4kanban/ai4kanban`. The project moved off
+  `dist0com/ai4kanban`; every link, manifest, and install instruction names the new one.
 - **How does a user install and update?**: by running one Node script, published on npm —
   `npx ai4kanban install` and `npx ai4kanban update`. No shell script, no
   `curl … | sh`, and no git clone: the package carries the skill folder. The plugin

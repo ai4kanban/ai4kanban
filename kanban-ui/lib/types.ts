@@ -1,5 +1,7 @@
 // Shapes shared between the board reader (server) and the UI (client).
 
+import type { CardQuestion } from "./questions";
+
 export type Level = "high" | "med" | "low";
 
 /** The most cards auto-refine will work on at once (#88). It lives here, not in
@@ -23,7 +25,8 @@ export interface CardMeta {
   status: CardStatus;
   blocked_by: number[];
   related: number[];
-  questions: string[];
+  /** The card's open questions, plain and options ones alike (see CardQuestion). */
+  questions: CardQuestion[];
   /** The parts of the product this card touches (module names from
    *  docs/kanban/modules.md). A card with no field, or an empty list, touches
    *  none. Read-only in the UI — the CLI writes it. */
