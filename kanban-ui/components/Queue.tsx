@@ -1,6 +1,6 @@
 "use client";
 
-import type { Board, Card, SessionView } from "@/lib/types";
+import type { Card, Column, SessionView } from "@/lib/types";
 import { byQueueOrder } from "@/lib/pick-order";
 import { BoardCard } from "./BoardCard";
 import { runningSessionForCard } from "./sessions";
@@ -12,6 +12,10 @@ import { runningSessionForCard } from "./sessions";
 // and recurring cards are plain track folders, so they split by status like any
 // other card, and a group root shows while its subtasks stay on its own page.
 // The split only regroups the same cards.
+//
+// That is why it takes the board's `columns` rather than the board: the release
+// dropdown (#104) hides cards before either view draws them, so both views
+// regroup the very same set and can't disagree about what is on screen.
 
 // `ready` and `implementing` are both work already vetted — the second is just
 // already in flight — so they share the left half, ready first. Everything else
@@ -20,15 +24,17 @@ import { runningSessionForCard } from "./sessions";
 const isReadyHalf = (card: Card) => card.status === "ready" || card.status === "implementing";
 
 export function QueueView({
-  board,
+  columns,
+  hasReleases,
   sessions,
   onOpenLog,
 }: {
-  board: Board;
+  columns: Column[];
+  hasReleases: boolean;
   sessions: SessionView[];
   onOpenLog: (sessionId: string) => void;
 }) {
-  const cards = board.columns.flatMap((col) => col.cards);
+  const cards = columns.flatMap((col) => col.cards);
   const ready = cards.filter(isReadyHalf).sort(byQueueOrder);
   const notReady = cards.filter((c) => !isReadyHalf(c)).sort(byQueueOrder);
 
@@ -48,7 +54,7 @@ export function QueueView({
         cards={ready}
         sessions={sessions}
         onOpenLog={onOpenLog}
-        hasReleases={board.releases.length > 0}
+        hasReleases={hasReleases}
       />
       <Half
         title="Not ready"
@@ -56,7 +62,7 @@ export function QueueView({
         cards={notReady}
         sessions={sessions}
         onOpenLog={onOpenLog}
-        hasReleases={board.releases.length > 0}
+        hasReleases={hasReleases}
       />
     </div>
   );

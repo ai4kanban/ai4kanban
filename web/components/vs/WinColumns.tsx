@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { panel } from "../styles";
 
-// "Where each one wins" — two columns of cards, shared by all three comparison
+// "Where each one wins" — two columns of cards, shared by all comparison
 // pages. Each card is an emoji, a self-descriptive title, and one paragraph.
 
 export type WinItem = { key: string; icon: string; title: string; body: string };

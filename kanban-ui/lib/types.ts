@@ -56,6 +56,10 @@ export interface Subtask {
   id: number;
   title: string;
   track: string;
+  /** The release this subtask ships in. A subtask carries its own — the root is
+   *  a tracking card — and neither board view draws a subtask, so this is what
+   *  lets the root stand in for a group under a picked release (#104). */
+  release: string;
   todos: { total: number; done: number };
 }
 
@@ -135,6 +139,12 @@ export interface Board {
    *  all: no picker, no chip on a card. `next` is never in here; it is where a
    *  card with no release sits and the picker adds it last on its own. */
   releases: string[];
+  /** How many open cards name each release, keyed by version id, with `next`
+   *  for the cards that name none. It counts every open card — subtasks answer
+   *  for themselves, the way they do on the CLI — so the number beside a release
+   *  in the board's dropdown (#104) is the one `release list` prints. A release
+   *  with nothing open in it is absent, not zero. */
+  releaseCounts: Record<string, number>;
   /** True when `memory/goal.md`'s `reviewed:` field says the goal isn't clear
    *  enough to plan from (a missing file or field reads weak too). With no
    *  checklist left it is the whole setup bar — one item, the goal — since the
@@ -177,8 +187,9 @@ export type AgentAction =
 export interface SessionView {
   /** This session's unique id — ours, and the key the run is tracked by. It is
    *  the agent's OWN id only when that harness adopted it (Claude Code does, via
-   *  `--session-id`); a harness that mints its own keeps a second id, which the
-   *  UI never sees on its own — it arrives baked into `resumeCommand`. */
+   *  `--session-id`); a harness that mints its own (Codex's thread id) keeps a
+   *  second id, which the UI never sees — Resume is a server-side action and the
+   *  server knows which id to hand back to which CLI. */
   sessionId: string;
   /** Which harness ran this session (a name from `HARNESSES`, e.g.
    *  "claude-code"). Saved with the run, so the resume handoff is built from the
@@ -263,6 +274,99 @@ export interface SessionView {
   tail?: string;
 }
 
+/** One choice on a `select` setting's list. `value` is what gets saved; an
+ *  empty `value` means the agent's own default, like an empty text box. */
+export interface SettingChoice {
+  value: string;
+  label: string;
+}
+
+/** One provider a connector can talk to (#95) — who pays for a run and where it
+ *  goes. A connector ships its own list, the dialog shows the list as one
+ *  setting, and the pick decides two things: which of the connector's other
+ *  settings are shown, and the whole environment a run starts under.
+ *
+ *  It is plain data, no functions: this crosses to the browser with the rest of
+ *  the settings. The rules that read it live in `lib/providers.ts`, which both
+ *  sides share. */
+export interface Provider {
+  /** What gets saved, e.g. "subscription" — the value of the provider setting. */
+  id: string;
+  /** The name in the list, e.g. "Anthropic API". */
+  label: string;
+  /** One plain line under the list saying what this pick is. */
+  blurb: string;
+  /** The setting keys this provider shows and uses. A setting no provider names
+   *  is always shown; one that some provider names is shown, and reaches a run,
+   *  only while a provider that needs it is picked. */
+  needs: string[];
+  /** The subset of `needs` that must carry a value before this pick can be
+   *  saved — the endpoint's base URL, without which the pick means nothing. */
+  requires?: string[];
+  /** Fixed variables this provider sets on every run, on top of what its
+   *  settings map to. */
+  env?: Record<string, string>;
+  /** One more variable a setting's value is set under while this provider is
+   *  picked, keyed by the setting's key. A gateway reads the key from whichever
+   *  header its team chose, so the endpoint sends the same key both ways. */
+  alsoEnv?: Record<string, string>;
+  /** When the file names no provider, this one is the default instead of the
+   *  setting's own `defaultProvider` if every setting key listed here is
+   *  already filled in. It is how a board that saved a key before the list
+   *  existed goes on running with that key. */
+  preferWhenSet?: string[];
+}
+
+/** One setting a harness declares (#93). A harness's configuration IS its list
+ *  of these — the dialog draws the list and nothing else — so a new agent brings
+ *  its settings with it instead of the dialog learning its name.
+ *
+ *  Four shapes ship: a box to type in (`text`), a list to pick one from
+ *  (`select`), a key (`secret`, #94), and the provider list (`provider`, #95).
+ *  A setting that needs more than these brings it itself. */
+export interface HarnessSetting {
+  /** The key it saves under inside the `harness` block of ui.config.json — e.g.
+   *  `model` writes `harness.model`. `name` and `command` are the block's own
+   *  keys, so no setting can take either.
+   *
+   *  A `secret` saves nowhere near that block: its value goes to
+   *  `docs/kanban/.env` under the variable `env` names, and this key only
+   *  identifies the field. */
+  key: string;
+  /** The label above the control, e.g. "Model". */
+  label: string;
+  /** One plain line of help under the control. */
+  help: string;
+  kind: "text" | "select" | "secret" | "provider";
+  /** Text only: the hint shown in an empty box. */
+  placeholder?: string;
+  /** Select only: what the list offers, in the order it shows them. */
+  choices?: SettingChoice[];
+  /** Provider only: the providers this connector can talk to, in the order the
+   *  dialog lists them (#95). */
+  providers?: Provider[];
+  /** Provider only: the pick a board that has never made one runs under. */
+  defaultProvider?: string;
+  /** The environment variable this setting's value reaches the run under, e.g.
+   *  `ANTHROPIC_API_KEY` for a key or `ANTHROPIC_BASE_URL` for an endpoint. A
+   *  setting with no `env` reaches the run some other way (a flag) or not at
+   *  all.
+   *
+   *  For a `secret` it is also the name of the line in `docs/kanban/.env`, so
+   *  writing that line by hand and typing the key into the dialog are the same
+   *  thing. A secret carries no `flags` — it never touches the command. */
+  env?: string;
+  /** Every flag name this agent's CLI takes for this setting — how the setting
+   *  reaches the command. The first one is what a run appends. A setting with no
+   *  flags reaches the run some other way (its own card says how) and adds
+   *  nothing to the command. */
+  flags?: string[];
+  /** The line to show instead of `help` when a hand-written `harness.command`
+   *  already names one of `flags`: the override wins, so the field isn't in
+   *  effect and a filled-in one never looks broken. */
+  overriddenHelp?: string;
+}
+
 /** One harness the user can pick in the Configuration dialog. */
 export interface HarnessOption {
   /** The name written to the `harness` setting, e.g. "claude-code". */
@@ -275,6 +379,9 @@ export interface HarnessOption {
   icon: string;
   /** The command this harness runs when the setting carries no override. */
   command: string;
+  /** The settings this harness takes, in the order the dialog draws them. Each
+   *  agent brings its own list; picking one draws that list and nothing else. */
+  settings: HarnessSetting[];
 }
 
 /** Which harness runs the card actions, and what the dialog can switch to. */
@@ -286,13 +393,26 @@ export interface AgentInfo {
   command: string;
   /** True when the config names no harness at all, so we run the default. */
   isDefault: boolean;
-  /** The model id the active harness runs with, as the dialog's field shows it.
-   *  Empty means the harness's own default — the board never invents an id. */
-  model: string;
-  /** True when the `harness.command` override already names a model flag. The
-   *  override wins, so the model field above is not in effect and the dialog
-   *  says so rather than letting a filled-in field look broken. */
-  modelIgnored: boolean;
+  /** What the active harness's settings are set to, keyed by the setting's key
+   *  (`model` for `harness.model`). A key that isn't here is unset — the agent's
+   *  own default; the board never invents a value. A `secret` is never in
+   *  here: a saved key is never read back (see `secretsSet`).
+   *
+   *  The provider setting (#95) is the one exception: it always carries a
+   *  value, because a run always goes through one provider. A board that never
+   *  picked reads as the default, and so the dialog shows what the run will
+   *  actually do. */
+  values: Record<string, string>;
+  /** The keys of the `secret` settings that have a key in `docs/kanban/.env`
+   *  right now — set or not set, and nothing more. The value never leaves the
+   *  server, so the dialog shows Replace and Clear instead of the key. A key
+   *  written into that file by hand shows here too: the file is the one place
+   *  the board looks. */
+  secretsSet: string[];
+  /** The keys of the settings a `harness.command` override already names. The
+   *  override wins, so those fields aren't in effect and the dialog says so
+   *  rather than letting a filled-in field look broken. */
+  ignored: string[];
   /** Every harness the dialog can pick. */
   options: HarnessOption[];
   /** The harness name the config asked for, when we don't know it. We run the

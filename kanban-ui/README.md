@@ -39,9 +39,11 @@ you can start, and a blocker rises to the top of the rest, since there's no bloc
 here to make it stand out. Cards carry their track in this view for the same reason. The view
 you pick is remembered in your browser, per board; nothing is written to the files.
 
-The header carries five things:
+The header carries six things:
 
 - **Board / Queue** — the two views above.
+- **The release dropdown** — which version the board is showing. It only appears once the
+  board has releases; see below.
 - **Create task** — describe an idea in your words and the agent writes the card. The same
   dialog has a **Propose 3 tasks** mode: pick a module (or let the agent pick one) and it
   proposes three new tasks inside it. A **Boldness** row sets how big those tasks are —
@@ -78,6 +80,41 @@ queue. Nothing asks you to plan a release.
 longer on the list. That card goes on showing what it says, marked **not on the list**, and
 the box moves it onto a release that really exists.
 
+### Showing one release at a time
+
+The dropdown in the header says which release you are looking at. Pick one and **the cards
+in every other release are hidden** — that is the point of it: you work on this version
+without the rest of the backlog in the way. Both views obey it, so the columns and the
+ready / not-ready halves regroup on the same cards.
+
+**Blockers are the exception: every blocker stays on screen whatever you pick.** A blocker
+is usually in the way of the very version you are planning, and a blocker is never out of
+sight. You see it in the Blockers column, and at the top of the queue's halves, even when it
+belongs to another release or to none.
+
+**All releases** is the way back to the whole board, and where the board opens. Each entry
+counts the open cards in it — "v1 (7)" — so you can see a version is nearly empty without
+opening it. Those are the same numbers `release list` prints in your terminal.
+
+A few more things it does:
+
+- A **group task** shows whenever the root or any of its subtasks is in the release you
+  picked. Neither view draws a subtask, so hiding the root would hide the whole group.
+- **Create task** puts the new card in the release on screen, so it doesn't vanish the
+  moment you write it. **Propose 3 tasks** doesn't — it offers work nobody has planned, and
+  that work stays at **next**.
+- A release with **nothing open in it says so**, with All releases one click away, instead
+  of looking like a broken board. Blockers on screen don't count: a blocker belongs to
+  whoever it blocks.
+- Your pick is remembered in your browser, per board, like the view switch. Nothing is
+  written to the files, so a pick never changes what the agent works on — background
+  refining still reads the whole board, and the progress chart still counts every card.
+- If the release you picked is gone — you closed it, or edited `releases.md` — the board
+  opens on All releases rather than hiding your cards behind a version that no longer
+  exists.
+
+A board that plans no versions never sees the dropdown at all.
+
 ### The setup bar
 
 One bar sits between the header and the columns while something about the board is
@@ -91,6 +128,9 @@ paste into your coding agent, with a **Copy** button:
 ```
 /kanban. Set up this board — follow docs/kanban/setup-checklist.md.
 ```
+
+The line follows the agent you picked, because agents trigger a skill differently: on Codex
+it reads `$kanban. Set up this board …` instead. Copy it and paste it as it comes.
 
 The UI never runs setup itself — you paste that line, and the bar moves as boxes tick.
 Setup picks up at the first unticked box, so the same line restarts it wherever it stopped.
@@ -206,7 +246,7 @@ run you continued with **Resume** shows what that new run cost, not the whole co
 
 A run with no cost to report shows no number: one still going, one that failed, was
 interrupted or was stopped before it got there, and an agent whose output says nothing about
-cost.
+cost — Codex is one, so a Codex run's log shows the duration and no dollar figure.
 
 ### Which model a run used
 
@@ -219,7 +259,8 @@ It shows from the run's first seconds, so you can see what a live run is using, 
 exactly as the agent said it — the board never tidies up or invents a model name.
 
 A run whose agent never named a model shows nothing there: an older run from before the board
-tracked this, and any agent whose output doesn't say.
+tracked this, and any agent whose output doesn't say — Codex never does, so a Codex run names
+no model even with the Model box filled in.
 
 ## Group tasks
 
@@ -239,12 +280,39 @@ the subtask files are gone.
 
 ## Configuration
 
-The gear in the header opens the **Configuration** dialog. It holds:
+The gear in the header opens the **Configuration** dialog. A sidebar on its left splits it
+into two sections — **Agent** and **Auto-refine** — and a new group of settings joins as one
+more entry there. It holds:
 
-- **Agent** — pick the agent that every button spawns. It runs in your repo root.
-- **Model** — the model that agent runs with. Type an id, or leave it empty to let the agent
-  use its own default.
-- **Auto-refine** — a switch. Turn it on and the server refines cards in the background:
+- **Agent** — pick the agent that every button spawns: **Claude Code** or **Codex**. It runs
+  in your repo root. See **Running on Codex** below for what changes when you switch.
+- **The agent's own settings** — under the agent rows, in the same section, sit the settings
+  that agent takes. Each agent brings its own list, so the fields change when you pick
+  another one. Claude Code takes these:
+  - **Provider** — who pays for a run and where it goes: the **Claude subscription**, the
+    **Anthropic API**, or an **Anthropic-compatible endpoint**. The pick decides which of the
+    boxes below you see. See **Which provider a run goes through**.
+  - **Endpoint base URL** — the address your gateway answers on. Only for the endpoint, and it
+    has to be filled in before that pick will save.
+  - **API key** — your Anthropic key, or the one your gateway issued. Only for the two
+    providers that can take one. See **Keys** below.
+  - **Model** — the model that agent runs with. Type an id, or leave it empty to let the agent
+    use its own default.
+  - **Reasoning effort** — how hard the model thinks on every run. Pick one from the list:
+    Low, Medium, High, Extra high (xhigh), Max. Lower is quicker and cheaper, higher is
+    slower and more careful. Leave it on **Agent's default** and the board passes nothing —
+    the agent thinks however it thinks on its own.
+
+  Codex takes two:
+  - **Model** — the same box: the id Codex runs with, passed to it as `--model`. Leave it
+    empty for its own default.
+  - **OpenAI API key** — optional. Leave it empty and runs use the login your `codex` CLI
+    already has. Fill it in and every run uses that key instead. See **Keys** below.
+
+  Switching agents empties the fields — a Claude model id means nothing to Codex — and leaves
+  your saved keys alone.
+- **Auto-refine** — its own section, holding a switch. Turn it on and the server refines
+  cards in the background:
   about once a minute it picks the highest-priority cards that still need refining and runs
   a refine on each. It answers the questions it's confident about and
   leaves the real judgment calls for you as open questions. A card the board marks **Blocked**
@@ -263,11 +331,17 @@ The gear in the header opens the **Configuration** dialog. It holds:
 
 Settings live in `docs/kanban/ui.config.json`, next to your board — so `npx` always serves
 the latest UI and an update never touches your settings. Everything the dialog holds writes
-itself there:
+itself there, with one exception: a key goes to `docs/kanban/.env` instead, and never to this
+file (see **Keys** below).
 
 ```json
 {
-  "harness": { "name": "claude-code", "model": "claude-opus-5" },
+  "harness": {
+    "name": "claude-code",
+    "provider": "subscription",
+    "model": "claude-opus-5",
+    "reasoning": "high"
+  },
   "autoRefine": false,
   "autoRefineParallelism": 1
 }
@@ -278,14 +352,40 @@ a missing key — reads as 1, so a hand-edit that doesn't mean anything never br
 
 `harness.name` is the agent. It decides everything about how that agent runs: the command,
 the flags that make it stream its output into the live log, the env vars, and the flags the
-**Resume** button uses. Claude Code is the default and the only agent today. If
-the file names an agent this UI doesn't know, Claude Code runs and the dialog says so — you
-are never moved to a different agent without being told.
+**Resume** button uses, and how a prompt calls the skill. Two agents ship: `claude-code`, the
+default, and `codex`. If the file names an agent this UI doesn't know, Claude Code runs and
+the dialog says so — you are never moved to a different agent without being told.
+
+Every other key in the block is one of the settings that agent takes. Each agent says which
+settings it has and what each one is called, and the dialog draws that list — so the fields
+you see always belong to the agent you picked, and a new agent is one entry rather than a new
+box in the UI. Claude Code has four here: `harness.provider`, `harness.baseUrl`,
+`harness.model` and `harness.reasoning`. Codex has one, `harness.model`. Their API keys are
+settings too, but a key is never written to this file — keys have their own place (see
+**Keys**).
+
+`harness.provider` is who pays for the run and where it goes — for Claude Code, one of
+`subscription`, `anthropic-api` or `endpoint`. Leave it out and the board picks for you:
+`anthropic-api` on a board whose `.env` already holds an Anthropic key, `subscription`
+otherwise. A value this UI doesn't know reads as that same default, so the dialog and the run
+never disagree. `harness.baseUrl` goes with the `endpoint` pick and is the only setting the
+board insists on: it won't save that pick without one.
 
 `harness.model` is the model that agent runs with, passed to it as `--model <id>`. One model
 for every button — there's no per-action model. Leave it empty (or leave the key out) and the
 agent runs its own default; the board never invents an id for you. Nothing here checks the id:
 a wrong one makes the run exit right away, and the reason is in that run's log.
+
+`harness.reasoning` is how hard that model thinks, passed to it as `--effort <level>`. For
+Claude Code the levels are `low`, `medium`, `high`, `xhigh` and `max` — the agent's own words,
+not the board's, so another agent names its own. One level for every button, like the model.
+Leave it empty (or leave the key out) and nothing is passed. Nothing here checks the level:
+the dialog only offers the ones on the list, and a level you hand-write into the file that
+the agent doesn't know makes it say so and run at its own default — that warning is in the
+run's log.
+
+A key no agent declares is left exactly where it is. Saving in the dialog writes the one
+setting you changed and touches nothing else in the file — it's yours.
 
 To run a custom binary of that agent, or add flags to it, add a `harness.command` by hand:
 
@@ -296,12 +396,13 @@ To run a custom binary of that agent, or add flags to it, add a `harness.command
 `harness.command` is a path or flags **for the agent `harness.name` picked** — not a way to
 run a different one. The harness always adds its own flags on top, and another agent's binary
 would reject them. To run a different agent, pick it. The harness's flags never override one
-you set yourself. If the override already names a model, it wins and `harness.model` is not
-added — one model flag, one place it comes from — and the dialog says the Model field isn't
-in effect, so a filled-in field never looks broken.
+you set yourself. If the override already names a setting's flag — a `--model`, say — it wins
+and that setting is not added on top. One flag, one place it comes from, and the dialog says
+the field isn't in effect, so a filled-in field never looks broken.
 
-Both the model and the override belong to the agent they were written for, so switching
-agents in the dialog drops them.
+The settings and the override belong to the agent they were written for — one agent's model
+id or endpoint means nothing under another's name — so switching agents in the dialog clears
+the block and leaves the new agent's name alone in it.
 
 Each run reads the setting once, when it starts — flipping the picker while an agent is
 working changes what the next run spawns, never the one in flight. And each run records the
@@ -309,12 +410,137 @@ agent it ran under, so **Resume** only ever offers to continue a run the agent y
 picked can actually reach: switch agents and a run the old one started stops offering it,
 rather than handing its id to a CLI that never heard of it.
 
+### Running on Codex
+
+Pick **Codex** in the Configuration dialog and every button spawns
+`codex exec --json --sandbox workspace-write` instead. Nothing else about the board changes:
+the same cards, the same buttons, the same files.
+
+You need the `codex` CLI on your PATH, signed in — a ChatGPT subscription runs the board the
+same way a Claude one does. **Codex 0.94 or newer**, which is when it started reading skills
+from `.agents/skills/`; the board's install writes the skill there as well as into
+`.claude/skills/`, so both agents find it with nothing to set up. (Resuming a run needs
+`codex exec resume`, which has been there since 0.35, so the skills version is the one that
+matters.)
+
+Its two settings sit under the agent rows: a **Model** box, passed to Codex as `--model`, and
+an optional **OpenAI API key** (`OPENAI_API_KEY`) — leave that empty and runs use the login
+your `codex` CLI already has.
+
+Four things read differently on Codex:
+
+- **A run stays inside your repo.** `--sandbox workspace-write` lets it write in the working
+  folder and nowhere else, gives it no network, and makes it refuse to start outside a git
+  repo. If your work needs more than that, widen it yourself with a `harness.command` — a
+  `--sandbox` you name there is the one that runs, and the board adds none on top.
+- **A rate limit waits instead of failing.** Claude Code is run with retries off, so a limit
+  ends the run at once and frees the card. Codex has no such switch: a rate-limited run sits
+  there retrying, holding the card, until it gets through or gives up. Nothing on the board
+  is stuck — every other card still works — but that one run may take a long while.
+- **No cost.** Codex reports no price for a run, so its log shows the duration and nothing
+  where Claude Code shows `est. $0.42`.
+- **No model name.** Codex never names the model in its output, and the board shows what the
+  run itself said rather than what the Model box holds — so a Codex log names no model, even
+  when you filled that box in.
+
+**Resume** works: Codex mints its own thread id, the board catches it from the run's first
+event and keeps it with the session, and Resume continues that thread with
+`codex exec resume <thread-id>`.
+
+### Which provider a run goes through
+
+Every run has to go through somebody's account. **Provider**, at the top of the Agent
+section, is where you say whose. Claude Code offers three:
+
+| Provider | What it is | What it needs |
+| --- | --- | --- |
+| **Claude subscription** | The login your `claude` CLI already has. | Nothing. |
+| **Anthropic API** | Pay per token on an Anthropic key. | The **API key** box. |
+| **Anthropic-compatible endpoint** | A gateway that answers in the Anthropic format — OpenRouter, LiteLLM, a company proxy. | The **base URL**; a key only if that gateway asks for one. |
+
+**You only see the boxes your pick uses.** The subscription shows neither, the Anthropic API
+shows the key, the endpoint shows both. The endpoint is the one pick the board won't save
+without its box: type the base URL and the pick saves itself the moment it's there. A key is
+never demanded — you can write one into `docs/kanban/.env` by hand at any time, so the board
+doesn't treat an empty box as a mistake.
+
+**Your pick decides the whole environment a run starts in.** It sets what it needs, and it
+clears everything else that could send Claude Code somewhere: the other providers' variables,
+and the ones for providers this board doesn't offer yet (Bedrock, Vertex, Foundry). So an
+`ANTHROPIC_BASE_URL` you exported in your shell months ago can't quietly route a
+**Claude subscription** run through a gateway while the dialog says otherwise. Your cloud
+credentials themselves — `AWS_PROFILE`, `GOOGLE_APPLICATION_CREDENTIALS` and the like — are
+left alone: they move nothing once the switch above them is gone, and the agent may need them
+for the work it's doing in your repo.
+
+**Changing your mind costs nothing.** The base URL and the key stay in their boxes when you
+pick something else, so flipping between two providers never asks you to type either again.
+Only what the new pick needs reaches the next run.
+
+**Defaults keep an existing board running as it is.** A board that never picks anything runs
+on the subscription. A board whose `.env` already holds an Anthropic key reads as the
+Anthropic API instead, so the key it was already using goes on being used.
+
+**There is no "OpenAI" entry, on purpose.** Claude Code speaks the Anthropic API and nothing
+else. An OpenAI model reaches it through a gateway that answers in the Anthropic format —
+that's the endpoint entry, with the gateway's own base URL. To run Codex on an OpenAI account,
+pick Codex.
+
+Codex has no provider list yet: it runs on whatever login its CLI has, plus the optional key
+below, and its runs inherit your shell environment as they always did.
+
+### Keys
+
+Keys live in **`docs/kanban/.env`**, next to `ui.config.json`. That is the only place the
+board keeps one — never `ui.config.json`, never a shell profile, never anywhere else.
+
+There are two ways to set one, and they agree:
+
+- Type it into the Configuration dialog and press **Save**. It lands in `docs/kanban/.env`.
+- Or write the line in that file yourself:
+
+  ```
+  ANTHROPIC_API_KEY=sk-ant-…
+  ```
+
+Plain `NAME=value` lines, one per line. Blank lines and lines starting with `#` are skipped,
+and a value in quotes is read without them. The board reads the file for *which* keys it
+holds, so a key you write by hand shows in the dialog as set and works in the next run — no
+restart, nothing to keep in step.
+
+Saving from the dialog rewrites that one line. Every other line — a key the board doesn't
+know, a comment, the order they sit in — is left alone. It's your file.
+
+**The file is kept out of git.** `docs/kanban/.gitignore` carries `.env`, so the key can't
+be committed. `kanban init` writes it when it makes the board — and adds it to an older
+board when you re-run it — so a key you write by hand yourself is covered from the first
+day. Saving from the dialog makes sure of it too. A `.gitignore` already there gets the
+line added, not replaced. Commit that `.gitignore`; never commit the `.env`.
+
+**A saved key is never shown back.** The box hides what you type, and once it's saved the
+dialog says the key is set, with **Replace** and **Clear** beside it. The key is never on
+screen, never in a run's log, and never on a command line.
+
+**What a run gets.** When a run starts, the board sets the variables from `docs/kanban/.env`,
+so what the dialog shows is what the run uses. On Claude Code the key goes out under the
+variable its provider uses — `ANTHROPIC_API_KEY` for the Anthropic API, and for a gateway
+both that and `ANTHROPIC_AUTH_TOKEN`, since which header a gateway reads is its own team's
+choice. A key belongs to the provider you picked: on the **Claude subscription** it isn't
+sent at all, even when it's saved.
+
+Each agent takes one key, and it is **optional** either way: Claude Code's is
+`ANTHROPIC_API_KEY`, Codex's is `OPENAI_API_KEY`. Leave it empty and runs use whatever login
+that CLI already has, which is how the board has always worked. Clear it and the next run goes
+straight back to that login. The two keys sit side by side in the file — switching agents,
+or providers, never touches either one, so a key you gave once is still there when you come
+back.
+
 ### When a run fails or is interrupted
 
 A run that stopped short — the peach dot in the sessions panel — shows a **Resume** button. It
-sends one more turn into that same conversation (`claude --resume <id>`, run for you), so the
-agent picks up where it stopped instead of starting the task over. Nothing is copied and you
-never see an id.
+sends one more turn into that same conversation (`claude --resume <id>`, or
+`codex exec resume <thread-id>`, run for you), so the agent picks up where it stopped instead
+of starting the task over. Nothing is copied and you never see an id.
 
 Two things stop a run short, and the log says which. It **exited** with a non-zero code: the
 agent itself gave up, and the reason is in its output. Or it was **interrupted**: the board
@@ -343,6 +569,9 @@ part of an hour while the card stays locked. With retries off, a rate limit ends
 away and the board shows it failed. Note this is not a spend control: whether hitting your
 plan's limit spills into paid extra usage is an account setting on claude.ai, not something
 the CLI can turn off.
+
+Codex has no equivalent switch, so a rate-limited Codex run waits it out and holds its card
+while it does — see **Running on Codex**.
 
 ## When it finds no board
 

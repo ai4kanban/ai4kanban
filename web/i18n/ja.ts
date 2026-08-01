@@ -935,6 +935,177 @@ const ja: SiteCopy = {
       note: "Bloop が畳んだいま、会社を背負わずに引き継ぐ価値があるのはあのボードの部分です。そしてそれこそが ai4kanban です。",
     },
   },
+
+  vsLinear: {
+    meta: {
+      title: "AI4Kanban vs. Linear — リポジトリ内の AI プロジェクト管理",
+      socialTitle: "AI4Kanban vs. Linear",
+      description:
+        "ai4kanban と Linear app を比較。コーディングエージェント向けにリポジトリ内で計画を研ぐループと、Linear のチームワークスペース、エージェント基盤、プロジェクト、課題管理の違い。",
+      social:
+        "Linear は優れたチームシステム、ai4kanban はリポジトリ内の計画ループ。それぞれが向く場面を、エージェント、価格、ワークフローまで含めて比較します。",
+    },
+    hero: {
+      badge: "比較",
+      title: "AI4Kanban vs.\nLinear",
+      lead: "Linear は人とエージェントが連携する、完成度の高いプロジェクト管理ワークスペースです。ai4kanban は、粗いアイデアをエージェントが着手可能なタスクまで研ぐ、リポジトリ内の計画ボード。安い Linear ではなく、計画の置き方そのものが違います。",
+      ours: {
+        name: "AI4Kanban",
+        body: "リポジトリ内のただの Markdown。エージェントが計画のループを担います。",
+      },
+      theirs: {
+        name: "Linear",
+        body: "ホストされたチームワークスペース。人とエージェントが一緒に計画し、作り、レビューします。",
+      },
+    },
+    summary: {
+      heading: {
+        eyebrow: "短く言うと",
+        title: "Linear にもエージェントはいる。違うのは計画の居場所です",
+      },
+      lead: "Linear は、課題管理に AI を足しただけの製品ではありません。Linear Agent はワークスペース全体の文脈を扱い、エージェント基盤は課題をコーディングエージェントへ委任し、MCP server は外部エージェントをつなぎます。Coding Sessions では Claude Code や Codex を動かし、レビュー用の pull request まで返せます。",
+      panel:
+        "ai4kanban を選ぶ理由はもっと絞られます。**リポジトリの中で、エージェントに計画のループを持たせたい**ときです。粗い依頼が、質問、判断、依存関係、着手可能なカードへ変わります。ボードと記憶はレビューできる Markdown としてコードの隣に残ります。",
+    },
+    comparison: {
+      heading: { eyebrow: "正面比較", title: "AI4Kanban vs. Linear" },
+      lead: "{check} はその行で明確に向く側、**横線**は働き方次第という意味です。Linear は**チーム連携、ポートフォリオ計画、統合、内蔵のエージェント実行**で勝ちます。ai4kanban は**リポジトリ内での詳細化、可搬性、git に残る計画の記憶**で勝ちます。",
+      ourLabel: "AI4Kanban",
+      theirLabel: "Linear",
+      rows: {
+        bestFit: {
+          dimension: "最も向く人",
+          kanban: "コーディングエージェントが仕事を進める個人開発者と小さなチーム。",
+          linear: "人、プロジェクト、エージェントを調整するプロダクト・開発チーム。",
+        },
+        sourceOfTruth: {
+          dimension: "信頼できる情報源",
+          kanban: "プロジェクトのリポジトリにある Markdown。コードと一緒に版管理されます。",
+          linear: "アプリ、API、MCP からアクセスする共有の Linear ワークスペース。",
+        },
+        refinement: {
+          dimension: "粗いアイデアから着手可能なタスクへ",
+          kanban: "refine と resolve のループが答えられることは答え、残りを記録し、カードが具体的になるまで続きます。",
+          linear: "Linear Agent は下書き、要約、更新、範囲決めを助けます。Coding Sessions の結果は課題の書き方にも左右されます。",
+        },
+        agentModel: {
+          dimension: "エージェントの仕組み",
+          kanban: "今使っている実行環境がボードを読み書きします。Claude Code と Codex はすでに接続済みです。",
+          linear: "Linear Agent に、インストール可能な app user、課題の委任、エージェント向けガイド、ホスト型 MCP server が加わります。",
+        },
+        execution: {
+          dimension: "実装とレビュー",
+          kanban: "選んだ実行環境が ready カードを実装し、レビューもその環境と git の流れに残ります。",
+          linear: "Coding Sessions がクラウドで Claude Code や Codex を動かし、PR を開き、diff とレビューを Linear に置きます。",
+        },
+        collaboration: {
+          dimension: "人どうしの共同作業",
+          kanban: "小さなチームが git で協力する形。同じボードの同時編集は得意ではありません。",
+          linear: "メンバー、担当者、コメント、非公開チーム、ゲスト、権限を備えたリアルタイムのワークスペース。",
+        },
+        portfolio: {
+          dimension: "計画できる範囲",
+          kanban: "カード、依存関係、優先度、ROI、release、モジュール別の記憶。",
+          linear: "課題、プロジェクト、サイクル、イニシアチブ、マイルストーン、タイムライン、トリアージ、分析、顧客要望。",
+        },
+        setup: {
+          dimension: "導入",
+          kanban: "1 つの prompt でリポジトリに導入。ボードにアカウント、DB、リモートサービスは不要です。",
+          linear: "ワークスペースを作り、チームの必要に応じて統合とエージェントのアクセスを設定します。",
+        },
+        portability: {
+          dimension: "持ち運びやすさ",
+          kanban: "リポジトリを clone すれば、ボード、判断、履歴も付いてきます。オフラインでも動きます。",
+          linear: "データは Linear に置かれ、管理者は課題を CSV で書き出したり API を使ったりできます。",
+        },
+        pricing: {
+          dimension: "価格",
+          kanban: "Apache-2.0 で無料。料金がかかるのは自分で選んだコーディングエージェントだけです。",
+          linear: "Free は 250 課題、2 チーム。Basic は年払いで 1 人月額 10 ドル、Business は 16 ドル。Coding Sessions は AI credits も使います。",
+        },
+      },
+    },
+    model: {
+      heading: {
+        eyebrow: "本当の違い",
+        title: "リポジトリの記憶 vs. チームのワークスペース",
+      },
+      lead: "いまはどちらもエージェントに対応しています。大事なのは、**どの文脈が計画を持つか**です。プロジェクトのリポジトリか、会社で共有するワークスペースか。",
+      ours: {
+        name: "AI4Kanban — リポジトリが一緒に計画する",
+        is: "計画を変える前に、エージェントはコード、過去の判断、却下した案、出荷済みの仕事を読みます。未解決の質問に答えが出るか、あなたへ明確に渡されるまで研ぎ続けます。",
+        isnt: "広い共同作業のスイートではありません。役立つ計画の記憶はコードと一緒に commit され、clone のたびに付いてきます。",
+      },
+      theirs: {
+        name: "Linear — ワークスペースが全員をつなぐ",
+        is: "課題はチームに属し、プロジェクトはチームをまたげます。サイクル、イニシアチブ、タイムライン、文書、コメント、顧客要望が共有の文脈を作り、エージェントも同じ権限付きの場所で働きます。",
+        isnt: "本当の問題が、粗い依頼を信頼できる仕様に変えることだけなら、個人開発者には大きすぎる仕組みです。",
+      },
+      note: "併用はできますが、どちらがタスク状態を持つか決める必要があります。個人開発者にとって、2 つの信頼できる情報源は価値より手順を増やしがちです。",
+    },
+    wins: {
+      heading: { eyebrow: "トレードオフ", title: "それぞれが勝つところ" },
+      lead: "Linear は広さ、連携、一体化した実行で勝ちます。ai4kanban はエージェント主導の計画をローカルで見える形にし、実行の合間にも失われにくくします。",
+      oursHeading: "AI4Kanban",
+      theirsHeading: "Linear",
+      ours: {
+        roughToReady: {
+          title: "粗い依頼を着手可能な仕事にする",
+          body: "最初の課題説明を仕様扱いせず、エージェントがループの中で質問し、調べ、分け、解決します。",
+        },
+        repoMemory: {
+          title: "計画の記憶がコードの隣にある",
+          body: "判断、却下した案、依存関係、カードは、次のエージェント実行が最初から読む、diff 可能なただのファイルです。",
+        },
+        anyHarness: {
+          title: "好きな実行環境を使える",
+          body: "ボードは Linear Agent や 1 つのコーディング統合に縛られません。Claude Code と Codex はすでに使え、形式は他の環境にも開かれています。",
+        },
+        noSaas: {
+          title: "管理するボード SaaS がない",
+          body: "計画面にワークスペース、席、認証、DB、同期層はありません。ボードはリポジトリの一部です。",
+        },
+      },
+      theirs: {
+        teamSystem: {
+          title: "人のチームのための本格的なシステム",
+          body: "同時編集、担当、権限、コメント、非公開チーム、ゲスト、通知、完成度の高い画面を備えています。",
+        },
+        agentPlatform: {
+          title: "エージェントと実行が組み込み済み",
+          body: "Linear Agent、app user、MCP、課題委任、Coding Sessions、diff、pull request レビューが同じ文脈を共有します。",
+        },
+        planningDepth: {
+          title: "深いプロダクト計画",
+          body: "プロジェクト、サイクル、イニシアチブ、マイルストーン、タイムライン、トリアージ、分析、顧客要望は小さなリポジトリボードを大きく超えます。",
+        },
+        integrations: {
+          title: "統合と検索できる文脈",
+          body: "GitHub、GitLab、Slack、Teams、サポートツール、API、webhook、ワークスペース検索が会社の仕事をつなぎます。",
+        },
+      },
+    },
+    decision: {
+      heading: { eyebrow: "選び方", title: "どちらを使うべき？" },
+      oursHeading: "こんなときは ai4kanban",
+      theirsHeading: "こんなときは Linear のまま",
+      ours: [
+        "個人開発者か小さなチームが、コーディングエージェントで仕事を進める。",
+        "入力は粗いことが多く、計画のループがボトルネックになっている。",
+        "タスクと長く残す判断を、コードの隣の git に置きたい。",
+        "ボード内蔵のランタイムではなく、自分で実行環境を選びたい。",
+      ],
+      theirs: [
+        "複数人が同時に仕事を作り、割り当て、話し合い、更新する。",
+        "サイクル、イニシアチブ、タイムライン、トリアージ、顧客要望、レポートに頼っている。",
+        "クラウドのコーディングセッションと diff レビューを管理ツール内で使いたい。",
+        "全社の統合、権限、セキュリティ制御、サポートが必要。",
+      ],
+      verdict:
+        "Linear は優れた**チームシステム**、ai4kanban は鋭い**リポジトリ内の計画ループ**です。人どうしの調整がボトルネックなら Linear を使い続けてください。コーディングエージェントが曖昧な仕事を受け取り、その背景の判断を何度も失うなら、ボードをリポジトリに入れ、そこで研がせるほうが合います。",
+      note: "機能ごとに Linear を置き換えるのではなく、計画モデルを変える選択です。",
+    },
+  },
 };
 
 export default ja;

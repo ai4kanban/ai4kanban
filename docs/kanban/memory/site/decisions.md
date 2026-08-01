@@ -44,3 +44,9 @@ re-ask a settled call.
 - Say plainly that Vibe Kanban shut down and its repo is stalled. Don't soften it.
 - Name and link no competitor, alternative, or community fork. For readers who wanted
   parallel-agent orchestration, say our skill isn't that and stop there.
+
+## Linear comparison
+
+- **Who is the Linear comparison for?**: Solo developers and small teams using an AI
+  coding agent. Linear is a workspace for a team of people and agents; AI4Kanban is a
+  repo-local board an agent plans in.

@@ -907,6 +907,174 @@ const zh: SiteCopy = {
       note: "Bloop 关停之后，那块看板才是值得不带任何公司继续往前带的部分，而 ai4kanban 正是这个东西。",
     },
   },
+
+  vsLinear: {
+    meta: {
+      title: "AI4Kanban vs. Linear — 仓库内的 AI 项目管理",
+      socialTitle: "AI4Kanban vs. Linear",
+      description:
+        "比较 ai4kanban 与 Linear app：一个是面向编码智能体、运行在仓库内的规划循环，另一个是包含智能体平台、项目与问题跟踪的团队工作区。",
+      social:
+        "Linear 是更强的团队系统，ai4kanban 是更专注的仓库内规划循环。看看双方在智能体、价格与工作方式上的适用场景。",
+    },
+    hero: {
+      badge: "对比",
+      title: "AI4Kanban vs.\nLinear",
+      lead: "Linear 是一套成熟的项目管理工作区，让人和智能体在里面协作。ai4kanban 则是一块仓库内的规划看板，由智能体把粗略想法反复细化到可以开工。它不是一个更便宜的 Linear，而是另一种规划方式。",
+      ours: {
+        name: "AI4Kanban",
+        body: "仓库里的纯 Markdown，由智能体负责完整的规划循环。",
+      },
+      theirs: {
+        name: "Linear",
+        body: "托管的团队工作区，人和智能体一起规划、开发与评审。",
+      },
+    },
+    summary: {
+      heading: {
+        eyebrow: "简单说",
+        title: "Linear 也有智能体，差别在于规划住在哪里",
+      },
+      lead: "Linear 早已不是加了一点 AI 的问题跟踪器。Linear Agent 能使用整个工作区的上下文；智能体平台可以把问题委派给编码智能体；MCP server 能接入外部智能体；Coding Sessions 还能运行 Claude Code 或 Codex，再把 pull request 带回工作区评审。",
+      panel:
+        "选择 ai4kanban 的理由更窄：你希望**智能体在仓库里负责规划循环**。一个粗略需求会变成问题、决策、依赖关系和可直接开工的卡片。看板及其记忆以可审查的 Markdown 留在代码旁边。",
+    },
+    comparison: {
+      heading: { eyebrow: "正面对比", title: "AI4Kanban vs. Linear" },
+      lead: "{check} 表示这一项更适合哪一方；**横线**表示取决于你的工作方式。Linear 胜在**团队协作、产品组合规划、集成和内置的智能体执行**；ai4kanban 胜在**仓库内细化、可移植性，以及 git 里的规划记忆**。",
+      ourLabel: "AI4Kanban",
+      theirLabel: "Linear",
+      rows: {
+        bestFit: {
+          dimension: "最适合谁",
+          kanban: "由编码智能体推动工作的独立开发者和小团队。",
+          linear: "需要协调成员、项目与智能体的产品和工程团队。",
+        },
+        sourceOfTruth: {
+          dimension: "事实来源",
+          kanban: "项目仓库里的 Markdown，与代码一起做版本控制。",
+          linear: "共享的 Linear 工作区，通过应用、API 或 MCP 访问。",
+        },
+        refinement: {
+          dimension: "从粗略想法到可开工任务",
+          kanban: "refine 与 resolve 循环自行回答能回答的问题，记录其余问题，直到卡片足够具体才停止。",
+          linear: "Linear Agent 可以起草、总结、更新并帮助界定工作；Coding Sessions 的结果仍取决于问题本身写得是否清楚。",
+        },
+        agentModel: {
+          dimension: "智能体模式",
+          kanban: "由你现有的运行环境读写看板；目前已接好 Claude Code 和 Codex。",
+          linear: "Linear Agent 加上可安装的 app user、问题委派、智能体指南和托管的 MCP server。",
+        },
+        execution: {
+          dimension: "编码与评审",
+          kanban: "你选择的运行环境负责实现 ready 卡片，评审留在该运行环境与 git 工作流中。",
+          linear: "Coding Sessions 在云端运行 Claude Code 或 Codex、创建 PR，并把 diff 与评审放进 Linear。",
+        },
+        collaboration: {
+          dimension: "人类协作",
+          kanban: "适合小团队通过 git 协作，不擅长多人同时编辑看板。",
+          linear: "实时工作区，包含成员、负责人、评论、私有团队、访客与权限。",
+        },
+        portfolio: {
+          dimension: "规划广度",
+          kanban: "卡片、依赖、优先级、ROI、release 和模块记忆。",
+          linear: "问题、项目、cycle、initiative、milestone、timeline、triage、insight 与客户请求。",
+        },
+        setup: {
+          dimension: "安装",
+          kanban: "一条 prompt 装进仓库；看板本身不需要账号、数据库或远程服务。",
+          linear: "创建工作区，再按团队需要连接集成并配置智能体权限。",
+        },
+        portability: {
+          dimension: "可移植性",
+          kanban: "克隆仓库，看板、决策和历史便一起带走；离线也能工作。",
+          linear: "数据存放在 Linear；管理员可以把工作区问题导出为 CSV，也可以使用 API。",
+        },
+        pricing: {
+          dimension: "价格",
+          kanban: "Apache-2.0，免费；你只需为自己选择的编码智能体工具付费。",
+          linear: "Free：250 个问题、2 个团队。Basic：年付每人每月 $10。Business：年付每人每月 $16。Coding Sessions 还会消耗 AI credits。",
+        },
+      },
+    },
+    model: {
+      heading: { eyebrow: "真正的差别", title: "仓库记忆 vs. 团队工作区" },
+      lead: "两款产品如今都支持智能体。关键问题是：**哪一份上下文拥有计划**，项目仓库，还是共享的公司工作区？",
+      ours: {
+        name: "AI4Kanban — 仓库与你一起规划",
+        is: "智能体修改计划前，会先读代码、过去的决策、被否决的想法和已经交付的工作。它持续细化，直到所有开放问题得到回答，或明确交给你决定。",
+        isnt: "它不是一套广泛的协作平台。有用的规划记忆会和代码一起提交，并跟随每一次克隆。",
+      },
+      theirs: {
+        name: "Linear — 工作区协调所有人",
+        is: "问题归属团队，项目可以跨团队；cycle、initiative、timeline、文档、评论和客户请求构成共享上下文。智能体也在这套有权限控制的工作区里行动。",
+        isnt: "如果独立开发者真正的问题，只是把一个粗略需求变成可靠方案，那么它提供的系统往往远超所需。",
+      },
+      note: "两者可以并用，但你必须决定由谁拥有任务状态。对独立开发者而言，两份事实来源通常只会增加流程。",
+    },
+    wins: {
+      heading: { eyebrow: "取舍", title: "各自赢在哪里" },
+      lead: "Linear 胜在广度、协作与一体化执行。ai4kanban 胜在让智能体主导的规划保持本地、可检查，而且不会在两次运行之间丢失。",
+      oursHeading: "AI4Kanban",
+      theirsHeading: "Linear",
+      ours: {
+        roughToReady: {
+          title: "把粗略需求变成可开工任务",
+          body: "智能体会循环提问、研究、拆分和解决问题，而不是把第一版问题描述直接当成方案。",
+        },
+        repoMemory: {
+          title: "规划记忆就在代码旁边",
+          body: "决策、被否决的想法、依赖关系与卡片都是纯文本、可 diff 的文件，下一次智能体运行默认就会读取。",
+        },
+        anyHarness: {
+          title: "使用你自己的运行环境",
+          body: "看板不绑定 Linear Agent 或某一种编码集成。Claude Code 与 Codex 已经可用，开放的文件格式也欢迎任何运行环境。",
+        },
+        noSaas: {
+          title: "无需管理看板 SaaS",
+          body: "规划界面本身没有工作区、席位、认证、数据库或同步层。看板就是仓库的一部分。",
+        },
+      },
+      theirs: {
+        teamSystem: {
+          title: "真正面向人类团队的系统",
+          body: "多人同时编辑、明确归属、权限、评论、私有团队、访客、通知，以及成熟的界面。",
+        },
+        agentPlatform: {
+          title: "智能体与执行都已内置",
+          body: "Linear Agent、app user、MCP、问题委派、Coding Sessions、diff 与 pull request 评审共享同一套工作区上下文。",
+        },
+        planningDepth: {
+          title: "深入的产品规划",
+          body: "项目、cycle、initiative、milestone、timeline、triage、insight 和客户请求，远超一块小型仓库看板。",
+        },
+        integrations: {
+          title: "集成与可搜索的上下文",
+          body: "GitHub、GitLab、Slack、Teams、客服工具、API、webhook 与工作区搜索，把公司的其他工作连接起来。",
+        },
+      },
+    },
+    decision: {
+      heading: { eyebrow: "怎么选", title: "你该用哪一个？" },
+      oursHeading: "这些情况选 ai4kanban",
+      theirsHeading: "这些情况继续用 Linear",
+      ours: [
+        "独立开发者或小团队通过编码智能体推动工作。",
+        "输入通常很模糊，规划循环才是真正的瓶颈。",
+        "你希望任务与长期决策以 git 文件留在代码旁边。",
+        "你想自己选择运行环境，而不是采用看板自带的智能体运行时。",
+      ],
+      theirs: [
+        "多人需要同时创建、分配、讨论和更新工作。",
+        "你依赖 cycle、initiative、timeline、triage、客户请求或报告。",
+        "你希望在项目管理工具内委派云端编码任务并评审 diff。",
+        "你需要全公司的集成、权限、安全控制和支持。",
+      ],
+      verdict:
+        "Linear 是更强的**团队系统**，ai4kanban 是更专注的**仓库内规划循环**。如果瓶颈是人与人之间的协调，继续用 Linear。如果编码智能体总在接收模糊工作，又不断遗失背后的决策，就把看板放进仓库，让智能体在那里把需求细化清楚。",
+      note: "这是规划方式的改变，不是按功能逐项替换 Linear。",
+    },
+  },
 };
 
 export default zh;

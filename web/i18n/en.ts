@@ -954,6 +954,177 @@ const en: SiteCopy = {
       note: "Since Bloop shut down, the board is the part worth carrying forward with no company attached — and that's exactly what ai4kanban is.",
     },
   },
+
+  vsLinear: {
+    meta: {
+      title: "AI4Kanban vs. Linear — repo-local AI project management",
+      socialTitle: "AI4Kanban vs. Linear",
+      description:
+        "Compare ai4kanban with the Linear app: a repo-local planning loop for coding agents versus Linear's team workspace, agent platform, projects, and issue tracking.",
+      social:
+        "Linear is the stronger team system. ai4kanban is the sharper repo-local planning loop. See where each fits, including agents, pricing, and workflow.",
+    },
+    hero: {
+      badge: "Comparison",
+      title: "AI4Kanban vs.\nLinear",
+      lead: "Linear is a polished project-management workspace where people and agents coordinate. ai4kanban is a repo-local planning board that an agent refines from rough idea to build-ready task. This is not a cheaper Linear clone; it is a different planning model.",
+      ours: {
+        name: "AI4Kanban",
+        body: "Plain Markdown in your repo. The agent owns the planning loop.",
+      },
+      theirs: {
+        name: "Linear",
+        body: "A hosted team workspace. People and agents plan, build, and review together.",
+      },
+    },
+    summary: {
+      heading: {
+        eyebrow: "The short version",
+        title: "Linear has agents. The difference is where planning lives.",
+      },
+      lead: "Linear is not just an issue tracker with an AI add-on. Linear Agent works across workspace context, its agent platform delegates issues to coding agents, its MCP server connects external agents, and Coding Sessions can run Claude Code or Codex and return a pull request for review.",
+      panel:
+        "Choose ai4kanban for a narrower reason: you want the **agent to own the planning loop inside the repo**. A rough request becomes questions, decisions, dependencies, and a build-ready card. The board and its memory stay as reviewable Markdown beside the code.",
+    },
+    comparison: {
+      heading: { eyebrow: "Head to head", title: "AI4Kanban vs. Linear" },
+      lead: "A {check} marks the clearer fit for that row; a **dash** means the choice depends on how you work. Linear wins at **team coordination, portfolio planning, integrations, and built-in agent execution**. ai4kanban wins at **repo-local refinement, portability, and planning memory in git**.",
+      ourLabel: "AI4Kanban",
+      theirLabel: "Linear",
+      rows: {
+        bestFit: {
+          dimension: "Best fit",
+          kanban: "Solo developers and small teams whose coding agent drives the work.",
+          linear: "Product and engineering teams coordinating people, projects, and agents.",
+        },
+        sourceOfTruth: {
+          dimension: "Source of truth",
+          kanban: "Markdown in the project repo, versioned with the code.",
+          linear: "A shared Linear workspace reached through its apps, API, or MCP.",
+        },
+        refinement: {
+          dimension: "From rough idea to ready task",
+          kanban: "A refine-and-resolve loop answers what it can, records the rest, and stops when the card is concrete.",
+          linear: "Linear Agent drafts, summarizes, updates, and helps scope work; issue quality still drives coding-session results.",
+        },
+        agentModel: {
+          dimension: "Agent model",
+          kanban: "Your existing harness reads and writes the board; Claude Code and Codex are wired up today.",
+          linear: "Linear Agent plus installable app users, delegated issues, agent guidance, and a hosted MCP server.",
+        },
+        execution: {
+          dimension: "Coding and review",
+          kanban: "Your chosen harness implements the ready card; review stays in that harness and git workflow.",
+          linear: "Coding Sessions run Claude Code or Codex in the cloud, open a PR, and put diffs and review in Linear.",
+        },
+        collaboration: {
+          dimension: "Human collaboration",
+          kanban: "Small-team git collaboration; concurrent board editing is not its strength.",
+          linear: "A real-time workspace with members, assignees, comments, private teams, guests, and permissions.",
+        },
+        portfolio: {
+          dimension: "Planning breadth",
+          kanban: "Cards, dependencies, priority, ROI, releases, and module memory.",
+          linear: "Issues, projects, cycles, initiatives, milestones, timelines, triage, insights, and customer requests.",
+        },
+        setup: {
+          dimension: "Setup",
+          kanban: "Install into a repo with one prompt; the board needs no account, database, or remote service.",
+          linear: "Create a workspace; connect integrations and agent access as the team needs them.",
+        },
+        portability: {
+          dimension: "Portability",
+          kanban: "Clone the repo and the board, decisions, and history come with it; it works offline.",
+          linear: "Data lives in Linear; admins can export workspace issue data as CSV and use the API.",
+        },
+        pricing: {
+          dimension: "Price",
+          kanban: "Apache-2.0 and free; you pay only for the coding-agent tools you choose.",
+          linear: "Free: 250 issues and 2 teams. Basic: $10/user/month yearly. Business: $16/user/month yearly. Coding Sessions use AI credits.",
+        },
+      },
+    },
+    model: {
+      heading: {
+        eyebrow: "The real difference",
+        title: "Repo memory vs. team workspace",
+      },
+      lead: "Both products now support agents. The important question is **which context owns the plan**: the project repo, or a shared company workspace.",
+      ours: {
+        name: "AI4Kanban — the repo plans with you",
+        is: "The agent reads the code, past decisions, rejected ideas, and shipped work before it changes the plan. It keeps refining until open questions are answered or clearly handed to you.",
+        isnt: "It is not a broad collaboration suite. The useful planning memory is committed with the code and follows every clone.",
+      },
+      theirs: {
+        name: "Linear — the workspace coordinates everyone",
+        is: "Issues belong to teams; projects can span teams; cycles, initiatives, timelines, documents, comments, and customer requests create shared context. Agents work inside the same permissioned workspace.",
+        isnt: "It is substantially more system than a solo developer needs when the real problem is turning one rough request into a reliable spec.",
+      },
+      note: "They can coexist, but then you must decide which one owns task state. For a solo developer, two sources of truth are usually more process than value.",
+    },
+    wins: {
+      heading: { eyebrow: "Trade-offs", title: "Where each one wins" },
+      lead: "Linear wins breadth, coordination, and integrated execution. ai4kanban wins by making agent-led planning local, inspectable, and hard to lose between runs.",
+      oursHeading: "AI4Kanban",
+      theirsHeading: "Linear",
+      ours: {
+        roughToReady: {
+          title: "Turns rough asks into ready work",
+          body: "The agent questions, researches, splits, and resolves a card in a loop instead of treating the first issue description as the spec.",
+        },
+        repoMemory: {
+          title: "Planning memory beside the code",
+          body: "Decisions, rejected ideas, dependencies, and cards are plain, diffable files the next agent run reads by default.",
+        },
+        anyHarness: {
+          title: "Bring your own harness",
+          body: "The board is not tied to Linear Agent or one coding integration. Claude Code and Codex work today; the file format stays open to any harness.",
+        },
+        noSaas: {
+          title: "No board SaaS to administer",
+          body: "No workspace, seats, auth, database, or sync layer for the planning surface itself. The board is part of the repo.",
+        },
+      },
+      theirs: {
+        teamSystem: {
+          title: "A real system for a human team",
+          body: "Concurrent editing, ownership, permissions, comments, private teams, guests, notifications, and a polished interface.",
+        },
+        agentPlatform: {
+          title: "Agents and execution built in",
+          body: "Linear Agent, app users, MCP, delegated issues, Coding Sessions, diffs, and pull-request review share the same workspace context.",
+        },
+        planningDepth: {
+          title: "Deep product planning",
+          body: "Projects, cycles, initiatives, milestones, timelines, triage, insights, and customer requests go far beyond a small repo board.",
+        },
+        integrations: {
+          title: "Integrations and searchable context",
+          body: "GitHub, GitLab, Slack, Teams, support tools, APIs, webhooks, and workspace search connect the rest of a company's work.",
+        },
+      },
+    },
+    decision: {
+      heading: { eyebrow: "The call", title: "Which should you use?" },
+      oursHeading: "Reach for ai4kanban when",
+      theirsHeading: "Stay with Linear when",
+      ours: [
+        "A solo developer or small team drives work through a coding agent.",
+        "Your input starts vague and the planning loop is the bottleneck.",
+        "You want tasks and durable decisions in git beside the code.",
+        "You want to choose the harness instead of adopting a board's agent runtime.",
+      ],
+      theirs: [
+        "Multiple people create, assign, discuss, and update work at the same time.",
+        "You rely on cycles, initiatives, timelines, triage, customer requests, or reporting.",
+        "You want delegated cloud coding sessions and diff review inside the project tool.",
+        "You need company-wide integrations, permissions, security controls, and support.",
+      ],
+      verdict:
+        "Linear is the stronger **team system**. ai4kanban is the sharper **repo-local planning loop**. If coordination across people is the bottleneck, stay with Linear. If a coding agent keeps receiving fuzzy work and losing the decisions behind it, put the board in the repo and let the agent refine it there.",
+      note: "This is a change of planning model, not a feature-for-feature Linear replacement.",
+    },
+  },
 };
 
 export default en;

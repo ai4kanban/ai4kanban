@@ -6,7 +6,7 @@ import { panelStatic } from "../styles";
 import type { SharedCopy, VsDecision } from "@/i18n/types";
 import { localeHref, type Locale } from "@/lib/i18n";
 
-// The closing "which should you use?" section, shared by all three comparison
+// The closing "which should you use?" section, shared by all comparison
 // pages: two guide columns, then the bottom line and the two CTAs.
 
 function Guide({

@@ -17,11 +17,15 @@ export function Dialog({
   onClose,
   children,
   width = 520,
+  flush = false,
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
   width?: number;
+  // The child owns the body: no padding, no scroll — for a layout with panes of
+  // its own, like Configuration's sidebar. The child scrolls its own panes.
+  flush?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -56,7 +60,14 @@ export function Dialog({
             <FiX className="h-[18px] w-[18px]" />
           </button>
         </div>
-        <div className="overflow-y-auto p-5">{children}</div>
+        {flush ? (
+          // Clipped to the panel's rounded corners: a pane with its own
+          // background (Configuration's wash sidebar) would otherwise paint
+          // square over the bottom corners.
+          <div className="flex min-h-0 overflow-hidden rounded-b-[14px]">{children}</div>
+        ) : (
+          <div className="overflow-y-auto p-5">{children}</div>
+        )}
       </div>
     </div>,
     document.body,

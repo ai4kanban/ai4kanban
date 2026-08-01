@@ -22,7 +22,11 @@ import { ActionDialog, type AgentReq } from "./agent-shared";
 import { Button } from "./button";
 import { sessionsPanel, useAgentSessions } from "./sessions";
 
-export function CreateTask() {
+// `release` is the version the board is showing (#104), or null for the whole
+// board. A card written while one release is on screen ships in it, so it doesn't
+// vanish the moment it is written. Propose is different — it offers work nobody
+// has planned — so its cards stay at `next` and this never reaches them.
+export function CreateTask({ release = null }: { release?: string | null }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,6 +112,7 @@ export function CreateTask() {
         <ActionDialog
           dialog={{ kind: "create" }}
           modules={modules}
+          release={release}
           onClose={() => setOpen(false)}
           onRun={startSession}
         />

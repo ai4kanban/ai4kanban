@@ -18,7 +18,6 @@ _(none)_
 - [#57 Let a user choose where the board is stored](57-choose-where-the-board-is-stored/root.md)
 - [#64 Run a recurring task from the UI](features/64-run-a-recurring-task-from-the-ui.md)
 - [#67 Handle a failed agent run instead of just marking it red](features/67-handle-a-failed-agent-run-instead-of-just-marking-it-red.md)
-- [#69 Support Codex CLI as the agent harness](features/69-support-codex-cli-as-the-agent-harness.md)
 - [#77 Read the board's memory in the UI](features/77-read-the-board-s-memory-in-the-ui.md)
 - [#92 Connector setup: model, provider, endpoint, reasoning](92-per-connector-configuration/root.md)
 - [#100 Releases: plan what ships in this version and what waits](100-release-planning/root.md)
@@ -36,4 +35,3 @@ _(none)_
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#5 Research the Vibe Kanban comparison and build its vs page](distribution/5-vibe-kanban-vs-page.md)
-- [#111 Research the Linear comparison and build its vs page](distribution/111-research-the-linear-comparison-and-build-its-vs-page.md)

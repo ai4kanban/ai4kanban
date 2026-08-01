@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getBoard } from "@/app/actions";
-import type { AgentInfo, Board } from "@/lib/types";
+import { filterColumns, pickIsEmpty, useReleasePick } from "@/lib/release-pick";
+import { type AgentInfo, type Board, DEFAULT_RELEASE } from "@/lib/types";
 import { useBoardView } from "@/lib/view";
 import { BoardCard } from "./BoardCard";
 import { Header } from "./Header";
@@ -39,6 +40,17 @@ export function BoardView({
   // Kanban columns or the queue's two halves (#70). Remembered per project in
   // the browser, so the board opens the way you left it.
   const [view, setView] = useBoardView(projectRoot);
+  // Which release both views show (#104). Remembered per project like the view
+  // above; All releases is the default and the whole board.
+  const [release, setRelease] = useReleasePick(projectRoot, board?.releases ?? []);
+  // The same set of cards for both layouts — the columns filtered once here, so
+  // the kanban columns and the queue's halves can never disagree about what the
+  // pick hides.
+  const columns = useMemo(
+    () => filterColumns(board?.columns ?? [], release),
+    [board, release],
+  );
+  const emptyRelease = pickIsEmpty(columns, release);
 
   const refresh = useCallback(async () => {
     try {
@@ -82,6 +94,14 @@ export function BoardView({
         onError={setError}
         view={view}
         onViewChange={setView}
+        releases={board?.releases ?? []}
+        releaseCounts={board?.releaseCounts ?? {}}
+        release={release}
+        onReleaseChange={setRelease}
+        // A card written while a version is on screen ships in that version.
+        // `next` is not a version, so a card made there lands where it would
+        // have anyway and the prompt says nothing about a release.
+        createRelease={release === DEFAULT_RELEASE ? null : release}
       />
 
       {error && (
@@ -107,13 +127,37 @@ export function BoardView({
         <div className="p-10 text-nb-ink-soft">Reading the board…</div>
       )}
 
+      {/* A filter that can empty the screen has to explain itself, or the user
+          reads it as a broken board and goes looking for their cards. Above both
+          views, so it says the same thing in either one, with the way back one
+          click away. Blockers on screen don't make the release non-empty — a
+          blocker belongs to whoever it blocks. */}
+      {board && emptyRelease && (
+        <div className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6" style={{ background: "var(--color-nb-sky-soft)" }}>
+          <strong>{release}</strong> has no open cards.{" "}
+          <button
+            type="button"
+            className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
+            onClick={() => setRelease(null)}
+          >
+            Show all releases
+          </button>
+          .
+        </div>
+      )}
+
       {board && view === "queue" && (
-        <QueueView board={board} sessions={sessions} onOpenLog={setLogSessionId} />
+        <QueueView
+          columns={columns}
+          hasReleases={board.releases.length > 0}
+          sessions={sessions}
+          onOpenLog={setLogSessionId}
+        />
       )}
 
       {board && view === "kanban" && (
         <div className="flex min-h-0 flex-1 items-stretch gap-4 overflow-x-auto p-6">
-          {board.columns.map((col) => (
+          {columns.map((col) => (
             <section
               key={col.track}
               className="flex w-[300px] shrink-0 flex-col rounded-[14px] p-3"

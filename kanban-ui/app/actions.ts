@@ -4,15 +4,23 @@
 // instead of going through HTTP API routes. Reads the board, fires an agent, and
 // applies direct edits, all against the markdown files in docs/kanban/.
 
-import { type AgentRequest, buildPrompt, HARNESSES } from "@/lib/agent";
+import {
+  activeSecrets,
+  activeSettings,
+  type AgentRequest,
+  buildPrompt,
+  HARNESSES,
+  settingSaveError,
+} from "@/lib/agent";
 import { readBoard } from "@/lib/board";
-import { setAutoRefine, setAutoRefineParallelism, setHarness, setHarnessModel } from "@/lib/config";
+import { setAutoRefine, setAutoRefineParallelism, setHarness, setHarnessSetting } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
 import { patchCard, type CardPatch } from "@/lib/edit";
 import { readGoalText, writeGoalText } from "@/lib/goal";
 import { tickSetupStep } from "@/lib/setup";
 import { type MetricsResult, readMetrics } from "@/lib/metrics";
 import { readModules } from "@/lib/modules";
+import { setSecret } from "@/lib/secrets";
 import {
   getSession,
   listSessions,
@@ -170,12 +178,72 @@ export async function setHarnessAction(name: string): Promise<{ ok: boolean; err
   return setHarness(name);
 }
 
-// Save the model id typed in the Configuration dialog (#71), persisted to the
-// same file. Free text: model ids change between agent releases, so the board
-// checks nothing beyond it being a string — the agent is the only validator, and
-// a bad id shows up as a failed run with the reason in its log. Empty clears the
-// setting, and the agent runs its own default.
-export async function setHarnessModelAction(model: string): Promise<{ ok: boolean; error?: string }> {
-  if (typeof model !== "string") return { ok: false, error: "the model must be text" };
-  return setHarnessModel(model);
+// Which of the picked agent's keys docs/kanban/.env holds (#94) — the setting
+// keys, never a key itself. The dialog asks after switching agents, because the
+// agent it just switched to declares its own keys and the file is the only
+// thing that knows which of them are set.
+export async function getHarnessSecretsAction(): Promise<string[]> {
+  return activeSecrets();
+}
+
+// Save one of the settings the picked agent declares (#93), persisted to the
+// same file. The key is checked against that agent's own list, so nothing can
+// write a key it never declared — including a field the user left focused while
+// switching agents, whose late save belongs to an agent that is no longer
+// picked.
+//
+// The value is checked only as far as the setting's shape allows: a list must be
+// given one of its own choices, a box takes free text. Model ids change between
+// agent releases, so a text setting is never validated here — the agent is the
+// only validator, and a bad id shows up as a failed run with the reason in its
+// log. Empty clears the setting, and the agent runs its own default.
+export async function setHarnessSettingAction(
+  key: string,
+  value: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (typeof key !== "string" || typeof value !== "string") {
+    return { ok: false, error: "a setting is saved as text" };
+  }
+  const setting = activeSettings().find((s) => s.key === key);
+  if (!setting) return { ok: false, error: `the agent you picked has no "${key}" setting` };
+  // A key never goes near ui.config.json — it has its own action and its own
+  // file (#94). Refused here rather than quietly rerouted: a client sending a
+  // key down this path has a bug, and the file it would land in is committed.
+  if (setting.kind === "secret") {
+    return { ok: false, error: `"${setting.label}" is a key — it saves to docs/kanban/.env` };
+  }
+  const next = value.trim();
+  if (setting.kind === "select" && next && !setting.choices?.some((c) => c.value === next)) {
+    return { ok: false, error: `"${next}" isn't one of the ${setting.label} choices` };
+  }
+  // The provider pick, and the boxes it can't do without (#95). A pick that
+  // names no provider we ship, one whose base URL is still empty, and a base URL
+  // emptied while that pick is live are all refused here — so whatever a client
+  // does, the file never says a run goes somewhere it can't go.
+  const wrong = settingSaveError(key, next);
+  if (wrong) return { ok: false, error: wrong };
+  return setHarnessSetting(key, next);
+}
+
+// Save one of the picked agent's keys (#94) to docs/kanban/.env — the board's
+// one place for them. An empty value clears it, and the agent goes back to
+// whatever login its CLI has of its own.
+//
+// The key is written to that file and nowhere else: not ui.config.json, not the
+// registry, not a run's log. Nothing comes back but ok — the value is never
+// returned, echoed, or read back into the browser. The setting has to be one
+// the picked agent declares as a secret, so a field left focused while
+// switching agents can't write a key the new agent never asked for.
+export async function setHarnessSecretAction(
+  key: string,
+  value: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (typeof key !== "string" || typeof value !== "string") {
+    return { ok: false, error: "a key is saved as text" };
+  }
+  const setting = activeSettings().find((s) => s.key === key);
+  if (!setting || setting.kind !== "secret" || !setting.env) {
+    return { ok: false, error: `the agent you picked has no "${key}" key` };
+  }
+  return setSecret(setting.env, value);
 }

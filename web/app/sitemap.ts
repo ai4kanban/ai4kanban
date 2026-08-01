@@ -95,7 +95,7 @@ function routeSources(route: string, locale: string): string[] {
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [];
 
-  // The four translated routes: one entry per language, each declaring the
+  // Every translated route: one entry per language, each declaring the
   // whole set as its `alternates` so a crawler finds every language from any
   // one URL. `x-default` points at English — the defined fallback for a reader
   // whose language we don't publish, matching each page's `<head>`.

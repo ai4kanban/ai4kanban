@@ -1,6 +1,6 @@
 import { BoardView } from "@/components/Board";
 import { NoBoard } from "@/components/NoBoard";
-import { agentInfo, SETUP_INSTRUCTION } from "@/lib/agent";
+import { agentInfo, setupInstruction } from "@/lib/agent";
 import { readBoard } from "@/lib/board";
 import { readAutoRefine, readAutoRefineParallelism } from "@/lib/config";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
@@ -32,7 +32,7 @@ export default function Page() {
       projectRoot={repoRoot()}
       autoRefine={readAutoRefine()}
       autoRefineParallelism={readAutoRefineParallelism()}
-      setupInstruction={SETUP_INSTRUCTION}
+      setupInstruction={setupInstruction()}
     />
   );
 }

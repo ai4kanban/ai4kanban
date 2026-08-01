@@ -72,6 +72,14 @@ export function releasesPath(): string {
 export function uiConfigPath(): string {
   return path.join(kanbanDir(), "ui.config.json");
 }
+// The board's one place for API keys (#94), beside ui.config.json. Kept out of
+// git by the .gitignore below, which the board writes whenever it writes a key.
+export function envFilePath(): string {
+  return path.join(kanbanDir(), ".env");
+}
+export function kanbanGitignorePath(): string {
+  return path.join(kanbanDir(), ".gitignore");
+}
 export function metricsPath(): string {
   return path.join(kanbanDir(), "metrics.csv");
 }

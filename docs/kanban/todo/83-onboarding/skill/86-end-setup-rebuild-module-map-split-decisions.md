@@ -4,8 +4,9 @@ track: skill
 priority: high
 roi: high
 status: ready
+release: next
 blocked_by: [84]
-related: [83]
+related: [83, 112]
 modules: [skill]
 questions: []
 ---
@@ -48,10 +49,10 @@ that memory, once it sits in the right place.
   the fresh map. So this step's job is to put the memory in the right place before
   anything is planned from it. They are plain cards — setup never sorts them into a
   release.
-- This step runs once, at setup, and never again on a board that is already set up. A
-  board that gains a module later keeps its calls where they are; the new module's memory
-  starts empty and fills from the cards that name it. Keeping the map itself honest stays
-  what it is today — whoever reads it and finds it wrong fixes it there and then.
+- This step runs once, at setup, and never again on a board that is already set up. What
+  happens when a board gains a module later is #112's rule, written on the step that adds
+  a map line — don't restate it here. Keeping the map itself honest stays what it is
+  today: whoever reads it and finds it wrong fixes it there and then.
 
 ## What the user sees
 - A board fresh out of setup whose module map matches what they told setup, and whose
@@ -77,9 +78,6 @@ that memory, once it sits in the right place.
   one box.
 - Do the project-wide memory files go away on a one-module board? No. A card that names no
   module still writes there, and a board can grow a second module later.
-- Does a module added later re-split the calls this step moved? No. They stay put, and the
-  new module's memory fills from the cards that name it. Moving old lines is a job nothing
-  on the board does today.
 - Does this step run again on an existing board? No, setup only. Setup's checklist is
   deleted when setup ends and is never written again, and the map already has an owner
   after setup.
@@ -93,8 +91,8 @@ that memory, once it sits in the right place.
       it project-wide, and the same line never lives in two files.
 - [ ] Say what the split does when the map has one module: every call moves into it, and
       the project-wide memory files stay even when they end up empty.
-- [ ] Say in the closing step that it runs once, at setup: a board that gains a module
-      later keeps its calls where they are.
+- [ ] Say in the closing step that it runs once, at setup, and leave what a later module
+      gets to #112's rule on the step that adds a map line.
 - [ ] Fold the conservative-module rule into `references/module-map.md`: a simple
       single-purpose project is one module; add lines only as the code grows.
 - [ ] Widen the setup checklist's module box to cover this whole step — write the map,

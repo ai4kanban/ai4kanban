@@ -65,6 +65,14 @@ re-ask a settled call.
   propose and add create nothing and ask the user to finish setup first. A card the user
   writes by hand, outside the skill, is not blocked.
 
+## What `init` writes
+
+- **Does `init` keep the board's keys file out of git?**: yes. It writes
+  `docs/kanban/.gitignore` with `.env` in it — on a fresh board, and on an older board when
+  it is re-run — so a key someone writes into `docs/kanban/.env` by hand is safe on a board
+  that never opens the local UI. Only `.env` goes in that file, and the repo's root
+  `.gitignore` is never touched.
+
 ## The module map
 
 - **How many modules?**: be conservative, above all in a from-scratch repo — a simple

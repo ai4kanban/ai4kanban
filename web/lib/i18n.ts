@@ -35,7 +35,7 @@ export const LOCALE_TAGS: Record<Locale, string> = {
 };
 
 /**
- * The routes that exist in every language: the landing page and the three
+ * The routes that exist in every language: the landing page and the comparison
  * comparison pages. `""` is the landing page. Recipes stay English-only.
  */
 export const TRANSLATED_PATHS = [
@@ -43,6 +43,7 @@ export const TRANSLATED_PATHS = [
   "/vs-github-issues",
   "/vs-hermes-kanban",
   "/vs-vibe-kanban",
+  "/vs-linear",
 ] as const;
 
 export type TranslatedPath = (typeof TRANSLATED_PATHS)[number];
@@ -71,7 +72,7 @@ export function localeHref(locale: Locale, href: string): string {
   const path = hash === -1 ? href : href.slice(0, hash);
   const fragment = hash === -1 ? "" : href.slice(hash);
   const base = path === "/" ? "" : path;
-  // Only the four translated routes exist per language; anything else
+  // Only the translated routes listed above exist per language; anything else
   // (recipes, the Markdown mirrors) stays on its English URL.
   if (!(TRANSLATED_PATHS as readonly string[]).includes(base)) return href;
   return `${localePath(locale, base)}${fragment}`;

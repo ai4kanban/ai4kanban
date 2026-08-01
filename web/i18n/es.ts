@@ -951,6 +951,177 @@ const es: SiteCopy = {
       note: "Ahora que Bloop ha cerrado, el tablero es la parte que merece la pena llevarse hacia delante sin ninguna empresa detrás, y eso es exactamente ai4kanban.",
     },
   },
+
+  vsLinear: {
+    meta: {
+      title: "AI4Kanban vs. Linear — gestión de proyectos con IA en el repo",
+      socialTitle: "AI4Kanban vs. Linear",
+      description:
+        "Compara ai4kanban con la app de Linear: un bucle de planificación dentro del repo para agentes de código frente al espacio de equipo, la plataforma de agentes, los proyectos y el seguimiento de incidencias de Linear.",
+      social:
+        "Linear es el sistema de equipo más potente. ai4kanban es el bucle de planificación más preciso dentro del repo. Mira dónde encaja cada uno, incluidos agentes, precio y flujo de trabajo.",
+    },
+    hero: {
+      badge: "Comparación",
+      title: "AI4Kanban vs.\nLinear",
+      lead: "Linear es un espacio de gestión de proyectos pulido donde personas y agentes se coordinan. ai4kanban es un tablero de planificación dentro del repo que un agente afina desde una idea en bruto hasta una tarea lista para construir. No es un Linear más barato, sino otro modelo de planificación.",
+      ours: {
+        name: "AI4Kanban",
+        body: "Markdown plano en tu repo. El agente se ocupa del bucle de planificación.",
+      },
+      theirs: {
+        name: "Linear",
+        body: "Un espacio de equipo alojado. Personas y agentes planifican, construyen y revisan juntos.",
+      },
+    },
+    summary: {
+      heading: {
+        eyebrow: "La versión corta",
+        title: "Linear tiene agentes. La diferencia es dónde vive el plan.",
+      },
+      lead: "Linear no es solo un gestor de incidencias con IA añadida. Linear Agent trabaja con el contexto del espacio, su plataforma permite delegar incidencias a agentes de código, el MCP server conecta agentes externos y Coding Sessions puede ejecutar Claude Code o Codex y devolver un pull request para revisión.",
+      panel:
+        "Elige ai4kanban por una razón más concreta: quieres que **el agente se ocupe del bucle de planificación dentro del repo**. Una petición en bruto se convierte en preguntas, decisiones, dependencias y una tarjeta lista para construir. El tablero y su memoria se quedan como Markdown revisable junto al código.",
+    },
+    comparison: {
+      heading: { eyebrow: "Cara a cara", title: "AI4Kanban vs. Linear" },
+      lead: "Un {check} marca el encaje más claro de cada fila; una **raya** indica que depende de cómo trabajes. Linear gana en **coordinación de equipos, planificación de cartera, integraciones y ejecución de agentes integrada**. ai4kanban gana en **refinamiento dentro del repo, portabilidad y memoria de planificación en git**.",
+      ourLabel: "AI4Kanban",
+      theirLabel: "Linear",
+      rows: {
+        bestFit: {
+          dimension: "Para quién encaja mejor",
+          kanban: "Desarrolladores en solitario y equipos pequeños cuyo agente de código mueve el trabajo.",
+          linear: "Equipos de producto e ingeniería que coordinan personas, proyectos y agentes.",
+        },
+        sourceOfTruth: {
+          dimension: "Fuente de verdad",
+          kanban: "Markdown en el repo del proyecto, versionado con el código.",
+          linear: "Un espacio compartido de Linear al que se llega por sus apps, API o MCP.",
+        },
+        refinement: {
+          dimension: "De idea en bruto a tarea lista",
+          kanban: "Un bucle de refine y resolve responde lo que puede, registra el resto y para cuando la tarjeta ya es concreta.",
+          linear: "Linear Agent redacta, resume, actualiza y ayuda a acotar; la calidad de la incidencia sigue marcando el resultado de Coding Sessions.",
+        },
+        agentModel: {
+          dimension: "Modelo de agentes",
+          kanban: "Tu entorno actual lee y escribe el tablero; Claude Code y Codex ya están conectados.",
+          linear: "Linear Agent más app users instalables, incidencias delegadas, guía para agentes y un MCP server alojado.",
+        },
+        execution: {
+          dimension: "Código y revisión",
+          kanban: "El entorno que elijas implementa la tarjeta lista; la revisión se queda en ese entorno y en el flujo de git.",
+          linear: "Coding Sessions ejecuta Claude Code o Codex en la nube, abre un PR y coloca los diffs y la revisión en Linear.",
+        },
+        collaboration: {
+          dimension: "Colaboración humana",
+          kanban: "Colaboración por git para equipos pequeños; editar el tablero a la vez no es su fuerte.",
+          linear: "Un espacio en tiempo real con miembros, responsables, comentarios, equipos privados, invitados y permisos.",
+        },
+        portfolio: {
+          dimension: "Amplitud de planificación",
+          kanban: "Tarjetas, dependencias, prioridad, ROI, releases y memoria por módulo.",
+          linear: "Incidencias, proyectos, ciclos, iniciativas, hitos, cronologías, triage, insights y peticiones de clientes.",
+        },
+        setup: {
+          dimension: "Puesta en marcha",
+          kanban: "Se instala en un repo con un prompt; el tablero no necesita cuenta, base de datos ni servicio remoto.",
+          linear: "Creas un espacio y conectas integraciones y acceso de agentes según lo necesite el equipo.",
+        },
+        portability: {
+          dimension: "Portabilidad",
+          kanban: "Clonas el repo y el tablero, las decisiones y el historial vienen con él; funciona sin conexión.",
+          linear: "Los datos viven en Linear; los administradores pueden exportar incidencias a CSV y usar la API.",
+        },
+        pricing: {
+          dimension: "Precio",
+          kanban: "Apache-2.0 y gratis; solo pagas las herramientas de agente de código que elijas.",
+          linear: "Free: 250 incidencias y 2 equipos. Basic: 10 $ por usuario al mes, pago anual. Business: 16 $. Coding Sessions consume AI credits.",
+        },
+      },
+    },
+    model: {
+      heading: {
+        eyebrow: "La diferencia real",
+        title: "Memoria del repo frente a espacio de equipo",
+      },
+      lead: "Los dos productos ya admiten agentes. La pregunta importante es **qué contexto es dueño del plan**: el repo del proyecto o un espacio compartido de la empresa.",
+      ours: {
+        name: "AI4Kanban — el repo planifica contigo",
+        is: "El agente lee el código, las decisiones anteriores, las ideas rechazadas y lo ya entregado antes de cambiar el plan. Sigue afinando hasta que las preguntas abiertas quedan respondidas o se te entregan claramente.",
+        isnt: "No es una suite amplia de colaboración. La memoria útil del plan se guarda con el código y acompaña a cada clon.",
+      },
+      theirs: {
+        name: "Linear — el espacio coordina a todos",
+        is: "Las incidencias pertenecen a equipos; los proyectos pueden cruzarlos; ciclos, iniciativas, cronologías, documentos, comentarios y peticiones de clientes crean contexto compartido. Los agentes trabajan en ese mismo espacio con permisos.",
+        isnt: "Es bastante más sistema del que necesita un desarrollador en solitario cuando el problema real es convertir una petición vaga en una especificación fiable.",
+      },
+      note: "Pueden convivir, pero entonces debes decidir cuál conserva el estado de las tareas. Para un desarrollador en solitario, dos fuentes de verdad suelen añadir más proceso que valor.",
+    },
+    wins: {
+      heading: { eyebrow: "Compromisos", title: "Dónde gana cada uno" },
+      lead: "Linear gana en amplitud, coordinación y ejecución integrada. ai4kanban gana al mantener la planificación dirigida por agentes en local, visible y difícil de perder entre ejecuciones.",
+      oursHeading: "AI4Kanban",
+      theirsHeading: "Linear",
+      ours: {
+        roughToReady: {
+          title: "Convierte peticiones vagas en trabajo listo",
+          body: "El agente pregunta, investiga, divide y resuelve una tarjeta en bucle, en vez de tratar la primera descripción como si ya fuera la especificación.",
+        },
+        repoMemory: {
+          title: "Memoria de planificación junto al código",
+          body: "Decisiones, ideas rechazadas, dependencias y tarjetas son archivos planos con diff que la siguiente ejecución lee por defecto.",
+        },
+        anyHarness: {
+          title: "Trae tu propio entorno",
+          body: "El tablero no está atado a Linear Agent ni a una integración concreta. Claude Code y Codex ya funcionan; el formato queda abierto a cualquier entorno.",
+        },
+        noSaas: {
+          title: "Sin un SaaS de tablero que administrar",
+          body: "La superficie de planificación no tiene espacios, asientos, autenticación, base de datos ni capa de sincronización. El tablero forma parte del repo.",
+        },
+      },
+      theirs: {
+        teamSystem: {
+          title: "Un sistema real para equipos humanos",
+          body: "Edición simultánea, propiedad, permisos, comentarios, equipos privados, invitados, notificaciones y una interfaz pulida.",
+        },
+        agentPlatform: {
+          title: "Agentes y ejecución integrados",
+          body: "Linear Agent, app users, MCP, incidencias delegadas, Coding Sessions, diffs y revisión de pull requests comparten el mismo contexto.",
+        },
+        planningDepth: {
+          title: "Planificación de producto profunda",
+          body: "Proyectos, ciclos, iniciativas, hitos, cronologías, triage, insights y peticiones de clientes van mucho más allá de un tablero pequeño en el repo.",
+        },
+        integrations: {
+          title: "Integraciones y contexto buscable",
+          body: "GitHub, GitLab, Slack, Teams, herramientas de soporte, APIs, webhooks y búsqueda conectan el resto del trabajo de la empresa.",
+        },
+      },
+    },
+    decision: {
+      heading: { eyebrow: "La decisión", title: "¿Cuál deberías usar?" },
+      oursHeading: "Tira de ai4kanban cuando",
+      theirsHeading: "Quédate con Linear cuando",
+      ours: [
+        "Un desarrollador en solitario o un equipo pequeño mueve el trabajo con un agente de código.",
+        "Tus entradas empiezan vagas y el bucle de planificación es el cuello de botella.",
+        "Quieres tareas y decisiones duraderas en git, junto al código.",
+        "Quieres elegir el entorno en lugar de adoptar el runtime de agentes del tablero.",
+      ],
+      theirs: [
+        "Varias personas crean, asignan, discuten y actualizan trabajo al mismo tiempo.",
+        "Dependes de ciclos, iniciativas, cronologías, triage, peticiones de clientes o informes.",
+        "Quieres sesiones de código delegadas en la nube y revisión de diffs dentro de la herramienta.",
+        "Necesitas integraciones para toda la empresa, permisos, controles de seguridad y soporte.",
+      ],
+      verdict:
+        "Linear es el **sistema de equipo** más potente. ai4kanban es el **bucle de planificación dentro del repo** más preciso. Si el cuello de botella es coordinar personas, quédate con Linear. Si un agente de código recibe trabajo borroso y pierde las decisiones que había detrás, mete el tablero en el repo y deja que lo afine allí.",
+      note: "Es un cambio de modelo de planificación, no un sustituto función por función de Linear.",
+    },
+  },
 };
 
 export default es;

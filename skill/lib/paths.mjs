@@ -23,6 +23,10 @@ export const README = path.join(TODO, 'README.md')
 export const METRICS = path.join(KANBAN, 'metrics.csv')
 export const MODULES_MD = path.join(KANBAN, 'modules.md')
 export const CONFIG = path.join(KANBAN, 'config.md')
+// The board's own ignore file. It keeps docs/kanban/.env — the one place API keys live —
+// out of git, and it is the board's file, never the repo's root one: that one is the
+// user's, and a board that edits it is a board that surprises them.
+export const KANBAN_GITIGNORE = path.join(KANBAN, '.gitignore')
 // The open releases, in the order they ship — one line each. A board that never plans a
 // version still works: no file means no releases yet (see lib/releases.mjs).
 export const RELEASES = path.join(KANBAN, 'releases.md')

@@ -150,6 +150,7 @@ function readGroup(folderName: string): { root: Card; subCards: Card[] } | null 
     id: c.id,
     title: c.title,
     track: c.track,
+    release: c.release,
     todos: c.todos,
   }));
   return { root, subCards };
@@ -268,6 +269,18 @@ function readArchive(): ArchiveGroup[] {
     .filter((g) => g.markdown.length > 0);
 }
 
+// How many open cards name each release. Counted over EVERY open card, subtasks
+// included, so the number the board's release dropdown shows is the number
+// `release list` prints on the CLI — a group's subtasks answer for themselves
+// there too. A blocker counts once, in the release it names: it shows under every
+// release the user picks, and counting it everywhere would make each one look
+// fuller than it is.
+function countByRelease(cards: Card[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const card of cards) counts[card.release] = (counts[card.release] ?? 0) + 1;
+  return counts;
+}
+
 export function readBoard(): Board {
   const { board, every } = collectCards();
   // Bucket the board cards by their frontmatter track, then lay the columns out
@@ -291,6 +304,7 @@ export function readBoard(): Board {
     archive: readArchive(),
     openIds,
     releases: readReleases(),
+    releaseCounts: countByRelease(every),
     goalWeak: goalReviewed() === "weak",
     setup: readSetup(),
   };

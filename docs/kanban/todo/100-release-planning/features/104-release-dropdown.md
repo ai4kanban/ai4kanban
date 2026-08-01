@@ -53,22 +53,22 @@ the way.
   that list and does not read it again.
 
 ## Todo
-- [ ] Add the release dropdown to the header, with open counts, defaulting to All releases.
-- [ ] Make both the kanban and the queue view show the picked release.
-- [ ] Show a group root whenever the root or one of its subtasks is in the picked release.
-- [ ] Keep every blocker on screen in both views, whatever release is picked.
-- [ ] Put a card made while a release is picked into that release.
-- [ ] Remember the choice per project in the browser, and leave the board files alone.
-- [ ] Fall back to All releases when the remembered release is no longer on the board.
-- [ ] Say on screen when the picked release holds nothing open.
-- [ ] Hide the dropdown, or leave it quiet, on a board that has no releases yet.
-- [ ] Write the dropdown into `kanban-ui/README.md`, and say plainly that picking a release
+- [x] Add the release dropdown to the header, with open counts, defaulting to All releases.
+- [x] Make both the kanban and the queue view show the picked release.
+- [x] Show a group root whenever the root or one of its subtasks is in the picked release.
+- [x] Keep every blocker on screen in both views, whatever release is picked.
+- [x] Put a card made while a release is picked into that release.
+- [x] Remember the choice per project in the browser, and leave the board files alone.
+- [x] Fall back to All releases when the remembered release is no longer on the board.
+- [x] Say on screen when the picked release holds nothing open.
+- [x] Hide the dropdown, or leave it quiet, on a board that has no releases yet.
+- [x] Write the dropdown into `kanban-ui/README.md`, and say plainly that picking a release
       hides the other releases' cards but keeps every blocker.
-- [ ] Check it by hand: two releases with cards in each, switch between them in both views,
+- [x] Check it by hand: two releases with cards in each, switch between them in both views,
       reload, and see the choice stick.
-- [ ] Check it by hand: a blocker sitting in another release, and one at `next`, both still
+- [x] Check it by hand: a blocker sitting in another release, and one at `next`, both still
       on screen while a release is picked, in both views.
-- [ ] Check it by hand: pick a release, close it with `release close`, reload, and land on
+- [x] Check it by hand: pick a release, close it with `release close`, reload, and land on
       All releases with nothing missing.
 
 ## Decided by the agent
@@ -84,6 +84,9 @@ the way.
   browser and the release list lives in git, so the two drift — a release closes, or someone
   edits the file. Showing the whole board is the safe end of that drift: nothing is hidden
   behind a version that is gone.
+- **The dropdown is on the board only, not on a card page.** A card page shows one card,
+  and that card is in the release it names whatever is picked. The view switch is on the
+  board alone for the same reason.
 - **The pick never reaches the agent.** It is a browser setting, like the view toggle, so
   background refining and the progress chart keep reading the whole board. A choice one tab
   made must not quietly change what the server works on.

@@ -3,7 +3,7 @@ import { FiCheck, FiMinus, FiX } from "react-icons/fi";
 import { Rich } from "../Rich";
 import { panelStatic } from "../styles";
 
-// The side-by-side matrix, shared by all three comparison pages. A green check
+// The side-by-side matrix, shared by all comparison pages. A green check
 // marks the side that wins a row and a red cross the side that doesn't — read at
 // a glance, no legend needed. A dash on both sides is a deliberate trade-off:
 // neither is worse, it comes down to what you need.

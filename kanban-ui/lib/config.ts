@@ -4,7 +4,8 @@ import { MAX_PARALLEL } from "./types";
 
 // --- the settings the dialog writes ------------------------------------------
 // Three settings live in docs/kanban/ui.config.json: `harness` (which agent runs
-// every card button — see lib/agent.ts, which owns reading it), `autoRefine`
+// every card button, and the settings that agent declares — see lib/agent.ts,
+// which owns reading it and says what may go in the block), `autoRefine`
 // (#41), one top-level boolean, off by default, and `autoRefineParallelism`
 // (#88), how many cards refine at once. The Configuration dialog reads them on
 // load and writes them as you change them; the skill's auto-refine flows (#42,
@@ -69,11 +70,12 @@ export function setAutoRefine(on: boolean): { ok: boolean; error?: string } {
   });
 }
 
-// Save the harness the user picked in the dialog. Writes the name only — a
-// `harness.command` override is a hand-edit, and it belongs to the harness it
-// was written for, so switching to a different harness drops it rather than
-// running one agent's flags under another's name. Re-picking the harness that's
-// already set keeps it.
+// Save the harness the user picked in the dialog. Switching to a different
+// harness clears the whole block and writes the name alone: every setting in it
+// — the model, a hand-edited `command`, whatever else that agent declares — was
+// typed for the old agent, and one agent's endpoint or model id means nothing
+// under another's name. Re-picking the harness that's already set changes
+// nothing, so the block is kept exactly as it is.
 //
 // The pre-#68 top-level `command` key is left exactly where it is. Nothing reads
 // it, and the dialog says so — but this is the user's file, and quietly deleting
@@ -81,30 +83,30 @@ export function setAutoRefine(on: boolean): { ok: boolean; error?: string } {
 // notice that stays up until they delete it themselves.
 export function setHarness(name: string): { ok: boolean; error?: string } {
   return writeConfig((cfg) => {
-    const prev = (cfg.harness ?? {}) as { name?: unknown; command?: unknown; model?: unknown };
-    const same = prev.name === name;
-    const next: Record<string, unknown> = { name };
-    if (same && typeof prev.model === "string") next.model = prev.model;
-    if (same && typeof prev.command === "string") next.command = prev.command;
-    cfg.harness = next;
+    const prev = (cfg.harness ?? {}) as Record<string, unknown>;
+    cfg.harness = prev.name === name ? prev : { name };
   });
 }
 
-// Save the model id typed in the dialog (#71). Writes `harness.model` and
-// nothing else, so the name and a hand-edited `command` survive. An empty field
-// means "use the harness's own default" — that drops the key rather than leaving
-// an empty string behind, because a missing key and a blank one mean the same
-// thing and only one of them reads as deliberate.
+// Save one of the settings the picked harness declares (#93) — `model` writes
+// `harness.model`. Writes that one key and nothing else: the name, a hand-edited
+// `command`, the harness's other settings and any key no setting declares all
+// survive untouched. It is the user's file.
 //
-// The id is never checked here. Model ids change faster than we ship, so the
+// An empty value means "use the harness's own default" — that drops the key
+// rather than leaving an empty string behind, because a missing key and a blank
+// one mean the same thing and only one of them reads as deliberate.
+//
+// The value is never checked here. Model ids change faster than we ship, so the
 // harness is the only validator: a bad one makes the run exit non-zero and the
-// error text shows in that session's log.
-export function setHarnessModel(model: string): { ok: boolean; error?: string } {
+// error text shows in that session's log. That the key is one the picked harness
+// actually declares IS checked, one layer up in app/actions.ts.
+export function setHarnessSetting(key: string, value: string): { ok: boolean; error?: string } {
   return writeConfig((cfg) => {
     const harness = { ...((cfg.harness ?? {}) as Record<string, unknown>) };
-    const id = model.trim();
-    if (id) harness.model = id;
-    else delete harness.model;
+    const next = value.trim();
+    if (next) harness[key] = next;
+    else delete harness[key];
     cfg.harness = harness;
   });
 }

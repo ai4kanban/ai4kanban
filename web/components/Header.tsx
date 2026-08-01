@@ -9,6 +9,7 @@ const COMPARISONS = [
   { href: "/vs-github-issues", title: "vs GitHub Issues" },
   { href: "/vs-hermes-kanban", title: "vs Hermes Agent Kanban" },
   { href: "/vs-vibe-kanban", title: "vs Vibe Kanban" },
+  { href: "/vs-linear", title: "vs Linear" },
 ];
 
 function CompareMenu({ c, locale }: { c: SiteCopy; locale: Locale }) {

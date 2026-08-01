@@ -24,3 +24,7 @@ covers it, or a plain-words note.
 - Stop a running run from the ✕ in the log window's title bar, with one confirmation, instead of hunting down the process in a terminal: `kanban-ui/README.md`.
 - One bar shows how far setup got and hands over the line to paste into your coding agent, until setup's last box is ticked; a goal judged weak later brings the same bar back with just that item: `kanban-ui/README.md`.
 - Move a card into a release, or back out to `next`, by picking from the open releases on the card page — no terminal, and no version id to type: `kanban-ui/README.md`.
+- Keep your API key in one place, `docs/kanban/.env` — type it into the Configuration dialog or write the line yourself, and the board keeps the file out of git: `kanban-ui/README.md`.
+- The Configuration dialog draws the settings the picked agent says it takes, instead of one fixed Model box, and saving leaves every other key in the file alone: `kanban-ui/README.md`.
+- Pick how hard the model thinks — low to max — from a list in the Configuration dialog, and leave it on the agent's default to pass nothing: `kanban-ui/README.md`.
+- Run every board action through Codex CLI, including continuing a failed Codex conversation with Resume: `kanban-ui/README.md`.

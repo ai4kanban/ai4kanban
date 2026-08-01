@@ -9,6 +9,9 @@ const nextConfig = {
   // build writes .next/standalone/server.js plus its own minimal node_modules;
   // the bin script (bin/kanban-ui.mjs) launches it. See references/local-ui.md.
   output: "standalone",
+  // TEMP (screenshot preview): separate dist dir so a dev server can run beside
+  // the production one without clobbering .next. Reverted after use.
+  ...(process.env.KANBAN_UI_DIST_DIR ? { distDir: process.env.KANBAN_UI_DIST_DIR } : {}),
 };
 
 export default nextConfig;

@@ -65,6 +65,25 @@ re-ask a settled call.
   Keeping every connector's settings across a switch is not worth a new file shape while
   there is one connector.
 
+### API keys
+
+- **Does the dialog write the key, or is the file hand-edited only?**: both. You type it in
+  the Configuration dialog and it lands in `docs/kanban/.env`, or you write the line in that
+  file yourself. Either way the board reads the same file, so a hand-written key shows in the
+  dialog as set.
+- The box hides what you type, the way a password field does. A saved key is never shown
+  back — the box says it is set, with Replace and Clear.
+- Keys live in `docs/kanban/.env` and nowhere else — never `ui.config.json`. A key hand-written
+  into `ui.config.json` is ignored, not used.
+- The board keeps `.env` out of git itself, through its own `docs/kanban/.gitignore` — never
+  by editing the repo's root one. `kanban init` writes that file, so a key written by hand is
+  covered on a board that never opens the dialog; saving a key from the dialog makes sure of
+  it too.
+- What `.env` names wins for a run; a variable it doesn't name is left alone, so a key already
+  exported in the shell keeps working.
+- Switching connector clears the connector's settings but never the keys. A key belongs to
+  the variable it is written under, not to whoever was picked when it was typed.
+
 ## Which model a run used
 
 - **Where does the model shown on a run come from?**: what the agent reports as it runs, not
@@ -149,6 +168,13 @@ re-ask a settled call.
 - **Does picking a release also filter the blockers?**: No. Every blocker stays on screen
   whatever release is picked, in both views. The blockers track exists so a blocker is never
   out of sight, and a blocker at `next` is usually blocking the version being planned.
+
+## Moving cards into a release
+
+- **Is a hand-picked bulk move worth building next to the agent's fill-a-release pass?**:
+  Yes, build it. The agent's pass only adds cards to a release and never takes any out, so a
+  version planned too full needs a fast way to send several cards back to `next`. Ticking
+  cards on the board is that way, and it works in both directions.
 
 ## The memory view
 

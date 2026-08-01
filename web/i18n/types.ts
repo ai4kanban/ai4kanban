@@ -144,6 +144,30 @@ export type VsVibeKanbanWinKey =
 
 export type VsVibeWinKey = "parallel" | "reviewInPlace" | "boardUi" | "support";
 
+export type VsLinearRowKey =
+  | "bestFit"
+  | "sourceOfTruth"
+  | "refinement"
+  | "agentModel"
+  | "execution"
+  | "collaboration"
+  | "portfolio"
+  | "setup"
+  | "portability"
+  | "pricing";
+
+export type VsLinearKanbanWinKey =
+  | "roughToReady"
+  | "repoMemory"
+  | "anyHarness"
+  | "noSaas";
+
+export type VsLinearWinKey =
+  | "teamSystem"
+  | "agentPlatform"
+  | "planningDepth"
+  | "integrations";
+
 // ── the copy itself ─────────────────────────────────────────────────────────
 
 /** Chrome that every page shares: nav, footer, copy button, switcher. */
@@ -433,10 +457,43 @@ export type VsVibeCopy = {
   decision: VsDecision;
 };
 
+export type VsLinearCopy = {
+  meta: PageMeta;
+  hero: VsHero;
+  summary: { heading: Heading; lead: string; panel: string };
+  comparison: {
+    heading: Heading;
+    lead: string;
+    ourLabel: string;
+    theirLabel: string;
+    rows: Record<
+      VsLinearRowKey,
+      { dimension: string; kanban: string; linear: string }
+    >;
+  };
+  model: {
+    heading: Heading;
+    lead: string;
+    ours: { name: string; is: string; isnt: string };
+    theirs: { name: string; is: string; isnt: string };
+    note: string;
+  };
+  wins: {
+    heading: Heading;
+    lead: string;
+    oursHeading: string;
+    theirsHeading: string;
+    ours: Record<VsLinearKanbanWinKey, TitleBody>;
+    theirs: Record<VsLinearWinKey, TitleBody>;
+  };
+  decision: VsDecision;
+};
+
 export type SiteCopy = {
   shared: SharedCopy;
   home: HomeCopy;
   vsGithub: VsGithubCopy;
   vsHermes: VsHermesCopy;
   vsVibe: VsVibeCopy;
+  vsLinear: VsLinearCopy;
 };

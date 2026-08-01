@@ -48,8 +48,8 @@ the same vague idea into a spec concrete enough to build.
 
 ## How it's built
 
-- [ ] **Any harness.** Designed for any harness — Claude Code, Codex, Cursor. Only
-  Claude Code is wired up today; the rest is on the roadmap.
+- [x] **Any harness.** Designed for any harness — Claude Code, Codex, Cursor. Claude Code
+  and Codex are wired up today; the rest is on the roadmap.
 - [x] **Local first.** Cards are Markdown files by default. No MCP, no database,
   token-efficient. Everything is plain text in git — you can review it, diff it, roll it back.
 - [x] **Works out of the box.** One prompt installs or updates it. AI4Kanban does one thing —
@@ -137,7 +137,8 @@ Localhost only — no hosting, no login. See [kanban-ui/](kanban-ui/README.md) f
 ## Roadmap
 
 - [ ] **Pluggable storage** (soon) — keep the board in Obsidian, Notion, or GitHub Issues.
-- [ ] **Pluggable harness** (soon) — hand tasks to Claude Code, Codex, or Cursor to run.
+- [ ] **Pluggable harness** (in progress) — hand tasks to Claude Code, Codex, or Cursor to
+  run. Claude Code and Codex work today; Cursor is next.
 - [ ] **Git worktrees** (soon) — tasks run in parallel, each in its own worktree, without
   stepping on each other.
 - [ ] **Schedules and webhooks** (soon) — pull in requests from outside, on a timer or

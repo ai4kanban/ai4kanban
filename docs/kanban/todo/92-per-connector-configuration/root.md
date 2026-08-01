@@ -6,7 +6,7 @@ roi: high
 status: ready
 release: next
 blocked_by: []
-related: [69, 93, 94, 95, 96, 97]
+related: [95, 96]
 modules: [local-ui]
 questions: []
 ---
@@ -26,13 +26,13 @@ subtask in this folder.
   decides where their runs go, and nothing on screen says so.
 
 ## Scope
-- A connector says what settings it takes, and the dialog draws them. Adding the next one —
-  Codex (#69), Cursor, Openclaw — is one entry, not a UI change (#93).
+- A connector says what settings it takes, and the dialog draws them. Codex has proved the
+  shape; adding Cursor or Openclaw is one entry, not a UI change. Already shipped.
 - `docs/kanban/ui.config.json` keeps the shape it has today: the picked connector's name
   and its settings in one block. Nothing this group adds migrates a file or stops reading a
-  key someone already typed (#93).
+  key someone already typed.
 - A key the connector doesn't declare is left alone when the dialog saves. The board
-  doesn't rewrite the user's file behind their back (#93).
+  doesn't rewrite the user's file behind their back.
 - Every key the board uses sits in one file it owns, `docs/kanban/.env`, kept out of git —
   not scattered across shell profiles and wrapper scripts. No key ever reaches
   `ui.config.json`, which is checked in (#94).
@@ -43,30 +43,31 @@ subtask in this folder.
   provider needs are set, and the ones only the other providers use are dropped. A leftover
   export in the user's shell can never quietly send a "Claude subscription" run through a
   gateway (#95).
-- The Claude subscription stays the default. It only works when the user installed the
-  `claude` CLI and logged in themselves, so the dialog says when it can't run — before a
-  button is pressed, not after a failed run (#96).
-- How hard the model thinks is one more setting, picked from a list the connector names
-  (#97).
+- The Claude subscription is the default, and a board that already saved a key reads as the
+  Anthropic API, so nobody's runs change under them. The subscription only works when the
+  user installed the `claude` CLI and logged in themselves, so the dialog says when it can't
+  run — before a button is pressed, not after a failed run (#96).
+- How hard the model thinks is one more setting, picked from a list the connector names.
+  Already shipped.
 - What the user does: open Configuration, pick an agent, pick who pays for the run, type a
   model. A user who touches none of it keeps exactly today's setup.
-- Order: #93 first — everything else is a setting on the list it defines. Then #94, then
-  #95, which needs both. #96 checks the providers #95 adds, so it waits for #95. #97 needs
-  only #93 and can land any time after it.
-- Out of this group: adding Codex itself (#69), a setting per card action, and the cloud
-  providers (Bedrock, Vertex, Foundry).
+- Order: the settings list every other piece hangs off is done, and so is the reasoning
+  level. #94 next, then #95, which needs both. #96 checks the providers #95 adds, so it
+  waits for #95.
+- Out of this group: adding connectors themselves, a setting per card action, and the cloud
+  providers (Bedrock, Vertex, Foundry). Codex already shipped separately.
 
 ## Todo
-- [ ] Let each connector declare its own settings #93
-- [ ] Keep API keys in one file, not scattered #94
+- [x] Let each connector declare its own settings #93
+- [x] Keep API keys in one file, not scattered #94
 - [ ] Pick which provider a connector talks to #95
 - [ ] Say when a connector can't run, before a button is pressed #96
-- [ ] Set how hard the model thinks #97
+- [x] Set how hard the model thinks #97
 
 ## Decided by the agent
-- **Does #69 join this group?** No. Codex ships on its own and works with the settings we
-  have today; this group works with one connector. They only need each other to be tested
-  well, and `related` says that. Whichever lands second fills in the other's blanks.
+- **Does Codex join this group?** No. Codex shipped on its own and works with the settings
+  we have today; this group works with one connector. They only needed each other to be
+  tested well.
 - **Which providers are on the list?** The ones a user reaches for on day one: a
   subscription, the vendor's own API, and one custom endpoint that covers every gateway
   (OpenRouter, LiteLLM, a company proxy). Bedrock, Vertex and Foundry are the same kind of

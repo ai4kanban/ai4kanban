@@ -90,19 +90,22 @@ English (`app/(en)/`):
 | `/vs-github-issues` | `vs-github-issues/page.tsx` |
 | `/vs-hermes-kanban` | `vs-hermes-kanban/page.tsx` |
 | `/vs-vibe-kanban` | `vs-vibe-kanban/page.tsx` |
+| `/vs-linear` | `vs-linear/page.tsx` |
 | `/og-image` | `og-image/page.tsx` — a 1200×630 frame you screenshot for the share card. Not indexed, not linked. |
 
 Translated (`app/(intl)/[locale]/`), where `locale` is `zh`, `es`, `ja`, or `fr`:
-`/zh`, `/zh/vs-github-issues`, `/zh/vs-hermes-kanban`, `/zh/vs-vibe-kanban` — and the
-same four for `/es`, `/ja`, `/fr`. Recipes are English-only.
+`/zh`, `/zh/vs-github-issues`, `/zh/vs-hermes-kanban`, `/zh/vs-vibe-kanban`,
+`/zh/vs-linear` — and the same five for `/es`, `/ja`, `/fr`. Recipes are English-only.
 
 The route files are thin. The page body lives once in `components/pages/` —
-`HomePage.tsx`, `VsGithubPage.tsx`, `VsHermesPage.tsx`, `VsVibePage.tsx` — and takes a
-`locale`, so English and the four translations render the same component.
+`HomePage.tsx`, `VsGithubPage.tsx`, `VsHermesPage.tsx`, `VsVibePage.tsx`,
+`VsLinearPage.tsx` — and takes a `locale`, so English and the four translations render
+the same component.
 
 Sections sit in a folder per page: `components/home/`, `components/vs-github-issues/`,
-`components/vs-hermes-kanban/`, `components/vs-vibe-kanban/`, `components/recipes/`,
-plus `components/vs/` for parts all three comparison pages share.
+`components/vs-hermes-kanban/`, `components/vs-vibe-kanban/`,
+`components/vs-linear/`, `components/recipes/`, plus `components/vs/` for parts all
+comparison pages share.
 
 Shared across every page: `Header.tsx`, `Footer.tsx`, `SectionHeading.tsx` (the
 numbered eyebrow plus H2), `CodeBlock.tsx` (a code block with a copy button), and

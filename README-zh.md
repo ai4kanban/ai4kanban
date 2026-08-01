@@ -42,8 +42,8 @@ AI4Kanban 记得你过去的每个决定，并用它们把同样模糊的想法�
 
 ## 实现方式
 
-- [ ] **不挑 harness。** 设计上不绑定任何 harness（运行 Agent 的工具），Claude Code、
-  Codex、Cursor 都行。目前只接通了 Claude Code，其余在路线图上。
+- [x] **不挑 harness。** 设计上不绑定任何 harness（运行 Agent 的工具），Claude Code、
+  Codex、Cursor 都行。目前已经接通 Claude Code 和 Codex，其余在路线图上。
 - [x] **本地优先。** 卡片默认就是 Markdown 文件，不走 MCP，不用数据库，省 token。所有
   内容都是 git 里的纯文本，能 review、能 diff、能回滚。
 - [x] **开箱即用。** 一句 prompt 就能安装或更新。AI4Kanban 只做项目管理这一件事，几乎
@@ -127,7 +127,8 @@ npx ai4kanban-ui        # http://localhost:7420
 ## 路线图
 
 - [ ] **可插拔存储**（即将）：把看板放进 Obsidian、Notion 或 GitHub Issues。
-- [ ] **可插拔 harness**（即将）：把任务交给 Claude Code、Codex 或 Cursor 去执行。
+- [ ] **可插拔 harness**（进行中）：把任务交给 Claude Code、Codex 或 Cursor 去执行。
+  Claude Code 和 Codex 已经能用，接下来是 Cursor。
 - [ ] **Git worktrees**（即将）：多个任务并行，各占一个 worktree，互不干扰。
 - [ ] **定时任务与 webhook**（即将）：按时间或通过 webhook 从外部接收请求。
 - [ ] **阻塞任务处理**（即将）：对积压太久的任务不再放任，拆开、重写，或者直接否掉。

@@ -61,6 +61,7 @@ export interface AgentReq {
   boldness?: Boldness;
   title?: string;
   andImplement?: boolean;
+  release?: string; // create: the version the new card ships in
 }
 
 export type DialogState =
@@ -677,6 +678,7 @@ export function ActionDialog({
   onClose,
   onRun,
   modules = [],
+  release = null,
 }: {
   dialog: Exclude<DialogState, null>;
   onClose: () => void;
@@ -684,6 +686,9 @@ export function ActionDialog({
   // The module names for the create dialog's picker (from modules.md, read
   // server-side). Only the create kind uses it; the per-card dialogs ignore it.
   modules?: string[];
+  // The release the board is showing, which a card made here ships in (#104).
+  // Create only, like `modules`.
+  release?: string | null;
 }) {
   // Persist the draft per action + card so an accidental close keeps the text
   // (resolve keeps its own list-shaped draft in ResolveDialog below). `run`
@@ -854,7 +859,7 @@ export function ActionDialog({
 
   // create — its own component so the propose toggle + module pick are clean,
   // unconditional hooks (like ResolveDialog).
-  return <CreateDialog modules={modules} onClose={onClose} onRun={onRun} />;
+  return <CreateDialog modules={modules} release={release} onClose={onClose} onRun={onRun} />;
 }
 
 // The Create-task dialog, which also folds in propose (#38). They're two modes
@@ -869,10 +874,12 @@ export function ActionDialog({
 //     "auto-pick" as the default chip) and HOW BIG they are (the boldness).
 function CreateDialog({
   modules,
+  release,
   onClose,
   onRun,
 }: {
   modules: string[];
+  release: string | null;
   onClose: () => void;
   onRun: (req: AgentReq, label: string) => void;
 }) {
@@ -927,6 +934,16 @@ function CreateDialog({
         {propose
           ? "The agent walks one module of the product as a user and proposes 3 new tasks inside it — nothing to describe."
           : "Describe what you want. The agent turns it into one or more cards and figures out which modules they touch."}
+        {/* Where the new cards land, when the board is showing one release. Said
+            here rather than left to be discovered: a card that quietly joined a
+            version is worse than one you were told about. Propose says nothing —
+            its cards stay at `next` whatever is on screen. */}
+        {!propose && release && (
+          <>
+            {" "}
+            They ship in <strong>{release}</strong>, the release on screen.
+          </>
+        )}
       </p>
 
       {propose ? (
@@ -1022,7 +1039,10 @@ function CreateDialog({
                 },
                 "Propose tasks",
               )
-            : run({ action: "create", description: text.trim() }, "Create task")
+            : run(
+                { action: "create", description: text.trim(), release: release ?? undefined },
+                "Create task",
+              )
         }
       />
     </Dialog>

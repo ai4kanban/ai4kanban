@@ -6,7 +6,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, warn, rel, writeNextId, SKILL_DIR, KANBAN, TODO, README, CONFIG, MODULES_MD, RELEASES, MEMORY, GOAL, SETUP_CHECKLIST } from '../lib/paths.mjs'
+import { die, warn, rel, writeNextId, SKILL_DIR, KANBAN, TODO, README, CONFIG, KANBAN_GITIGNORE, MODULES_MD, RELEASES, MEMORY, GOAL, SETUP_CHECKLIST } from '../lib/paths.mjs'
 import { unquote } from '../lib/yaml.mjs'
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate.mjs'
 import { writeReleasesIfMissing } from '../lib/releases.mjs'
@@ -70,6 +70,30 @@ function writeModulesIfMissing() {
   return true
 }
 
+// docs/kanban/.env holds the board's API keys, so it must never reach git — and the only
+// thing that can promise that on a board nobody has opened the UI on is `init`. A key
+// written into the file by hand is covered from the first day, before anything else runs.
+//
+// The rule goes in the board's own ignore file, never the repo's root one. An existing
+// file gets the line added, not replaced: comments, order and every other rule in it are
+// the user's. The line is written exactly as the UI writes it, so neither one adds it twice.
+const IGNORE_BLOCK = `# The board's API keys — never commit them.
+.env
+`
+
+function writeGitignoreIfMissing() {
+  fs.mkdirSync(KANBAN, { recursive: true })
+  if (!fs.existsSync(KANBAN_GITIGNORE)) {
+    fs.writeFileSync(KANBAN_GITIGNORE, IGNORE_BLOCK)
+    return true
+  }
+  const text = fs.readFileSync(KANBAN_GITIGNORE, 'utf8')
+  if (text.split('\n').some((line) => line.trim() === '.env')) return false
+  const separator = !text || text.endsWith('\n') ? '' : '\n'
+  fs.writeFileSync(KANBAN_GITIGNORE, `${text}${separator}${IGNORE_BLOCK}`)
+  return true
+}
+
 export function cmdInit(args) {
   const tracks = args.length ? args : DEFAULT_TRACKS
   for (const t of tracks) {
@@ -81,7 +105,8 @@ export function cmdInit(args) {
     // Re-running `init` is the repair step for a board made by an older version: it adds
     // whatever that version never wrote — docs/kanban/config.md if the board predates the
     // move out of the skill folder, modules.md if it predates the module map, releases.md
-    // if it predates releases — and never touches any of them once they're filled in. The
+    // if it predates releases, the .gitignore that keeps the keys file out of git if it
+    // predates that — and never touches any of them once they're filled in. The
     // release list arrives empty even when cards already name a version: reading the ids
     // off them would invent a ship order nobody chose. `release list` names those ids
     // instead, so the user adds back the ones they meant.
@@ -93,6 +118,7 @@ export function cmdInit(args) {
       writeConfigIfMissing() && rel(CONFIG),
       writeModulesIfMissing() && rel(MODULES_MD),
       writeReleasesIfMissing() && rel(RELEASES),
+      writeGitignoreIfMissing() && rel(KANBAN_GITIGNORE),
     ].filter(Boolean)
     // The project-wide memory, then every module already on the map, so a board whose map
     // is filled in is fully repaired by this one command. A map seeded blank a line above
@@ -131,6 +157,7 @@ export function cmdInit(args) {
   writeConfigIfMissing()
   writeModulesIfMissing()
   writeReleasesIfMissing()
+  writeGitignoreIfMissing()
   writeNextId(1)
   // Setup's remaining steps, written now so a user who installs and stops there still
   // opens the board onto a list of what is left instead of one that looks finished.

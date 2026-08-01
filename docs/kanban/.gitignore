@@ -1,0 +1,2 @@
+# The board's API keys — never commit them.
+.env

@@ -86,12 +86,13 @@ create, update, migrate, archive, or reject a task. It allocates ids, writes a c
 **frontmatter**, moves/removes task files, keeps the README index, and records the daily
 metric.
 
-Point `KB="node .claude/skills/kanban/kanban.mjs"`. Set it once and run every command from
-the repo root as `${KB} <command>`:
+Point `KB="node <this skill's folder>/kanban.mjs"` — the folder this SKILL.md sits in, which
+differs per agent (`.claude/skills/kanban/`, `.agents/skills/kanban/`, a plugin path). Set it
+once and run every command from the repo root as `${KB} <command>`:
 
 ```
 ${KB} init [track...]               # scaffold docs/kanban/ (tracks default to feature bug research)
-                                    # re-run to repair an older board: adds missing config.md, modules.md, releases.md, memory paths
+                                    # re-run to repair an older board: adds missing config.md, modules.md, releases.md, .gitignore, memory paths
 ${KB} setup-done <step>             # tick one box on setup's checklist as that step finishes
                                     # steps: install, config, goal, decisions, modules, tasks
 ${KB} setup-status                  # how far setup got; says finished when there's no checklist
