@@ -12,6 +12,9 @@ settings — it's yours.** The skill folder (`SKILL.md`, `kanban.mjs`, `referenc
 generic and owned by upstream, so an update overwrites it wholesale; this file is never
 touched. See "Updating the skill" in `SKILL.md`.
 
+- **Setup gate** — while `docs/kanban/setup-checklist.md` sits next to this file, setup
+  is unfinished: create no cards. `references/setup.md` in the skill folder says what to
+  do instead.
 - **Project** — {{PROJECT_NAME}}: {{PROJECT_GOAL}}
   _(default: this repository; its goal is whatever the README states.)_
 - **Tracks** — the buckets a task can live in, with a rough share of effort:

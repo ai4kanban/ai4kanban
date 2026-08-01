@@ -4,7 +4,7 @@ track: skill
 priority: high
 roi: high
 status: todo
-blocked_by: [101]
+blocked_by: []
 related: [100]
 modules: [skill]
 questions: []
@@ -33,6 +33,8 @@ releases in order, and show what each one holds.
 - [ ] Scaffold `releases.md` on `init`, and add it to an older board without touching
       anything else.
 - [ ] Say in the skill docs what a release is, where the list lives, and how to add one.
+      The card's `release` field is already written up under "The release a card ships in"
+      in `skill/SKILL.md` — don't say it twice.
 - [ ] Write the release idea into `README.md` and `README-zh.md`, and into
       `docs/guides/daily-loop.md` where the loop decides what to work on next.
 - [ ] Check it by hand: make two releases, put cards in both, and read `release list`.

@@ -30,11 +30,15 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Setup
 
-- ❌ **End setup by creating ten loose cards** → ✅ end it with two group tasks: **v1**,
-  what the first release must include, and **vnext**, everything else. A flat pile says
-  nothing about what ships first, and ideas that miss the pile are lost.
-- ❌ **Plan a later release from scratch** → ✅ a release is a slice moved out of vnext
-  into its own group task (v2, then v3); what is left stays in vnext.
+- ❌ **End setup by sorting the first cards into a v1 and a vnext group task** → ✅ end it
+  with the first tasks as plain cards. Setup never asks for a release; a project that
+  wants one creates it later from the release work.
+
+## Releases
+
+- ❌ **A release is a group task you drag work into** → ✅ a release is a field on a card,
+  so an ordinary card never has to live inside someone else's folder. A card that names
+  no release reads as `next`.
 
 ## Auto-refine
 

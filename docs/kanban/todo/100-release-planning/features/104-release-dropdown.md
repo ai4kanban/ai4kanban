@@ -4,7 +4,7 @@ track: features
 priority: med
 roi: high
 status: todo
-blocked_by: [102]
+blocked_by: [105]
 related: [100]
 modules: [local-ui]
 questions:
@@ -28,13 +28,21 @@ the way.
   written to the board.
 - Closed releases are not in the list. A closed release holds no open cards, so there is
   nothing to look at.
-- A group root and its subtasks follow the same rule as any other card: each is shown when
-  its own release is picked.
+- A group root is shown when the root or any of its subtasks names the picked release.
+  Neither view draws a subtask, so hiding the root would hide every subtask planned for that
+  version.
+- A card made from the board while one release is picked lands in that release, so it does
+  not vanish the moment it is written.
+- Moving a card out of the picked release takes it off the screen. That is the filter doing
+  its job, and the card is where it was sent.
+- The UI already reads the release list for the card page (#105). This card uses that list
+  and does not read it again.
 
 ## Todo
-- [ ] Read `docs/kanban/releases.md` and hand the board's releases to the UI.
 - [ ] Add the release dropdown to the header, with open counts, defaulting to All releases.
 - [ ] Make both the kanban and the queue view show the picked release.
+- [ ] Show a group root whenever the root or one of its subtasks is in the picked release.
+- [ ] Put a card made while a release is picked into that release.
 - [ ] Remember the choice per project in the browser, and leave the board files alone.
 - [ ] Hide the dropdown, or leave it quiet, on a board that has no releases yet.
 - [ ] Write the dropdown into `kanban-ui/README.md`.

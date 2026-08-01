@@ -10,6 +10,20 @@ const STATUSES: CardStatus[] = ["todo", "ready", "implementing"];
 
 const MODES: QuestionMode[] = ["single", "multi"];
 
+const DEFAULT_RELEASE = "next";
+
+// A version id is free text (`v1`, `0.5.0`, `august`) kept exactly as typed minus the
+// spaces at each end, its case untouched. Missing, empty or damaged reads as `next`, so a
+// card written before this field still opens. Ported from normalizeRelease in
+// skill/lib/validate.mjs.
+function normalizeRelease(raw: unknown): string {
+  if (raw === undefined || raw === null || typeof raw === "object") return DEFAULT_RELEASE;
+  if (typeof raw === "boolean") return DEFAULT_RELEASE;
+  const v = String(raw).trim();
+  if (!v || v.toLowerCase() === DEFAULT_RELEASE) return DEFAULT_RELEASE;
+  return v;
+}
+
 // Read any accepted form — a plain string, or the mapping parseQuestionsBlock
 // builds — as one question. An empty options list reads as a plain question, so
 // a half-written card still opens.
@@ -98,6 +112,9 @@ export function serializeFrontmatter(m: CardMeta): string {
   out.push(`priority: ${m.priority}`);
   out.push(`roi: ${m.roi}`);
   out.push(`status: ${STATUSES.includes(m.status) ? m.status : "todo"}`);
+  // Written back even though nothing here sets it: an edit made in the UI must not drop
+  // the release someone picked in the terminal.
+  out.push(`release: ${yamlScalar(normalizeRelease(m.release))}`);
   out.push(`blocked_by: [${(m.blocked_by || []).join(", ")}]`);
   out.push(`related: [${(m.related || []).join(", ")}]`);
   out.push(`modules: [${(m.modules || []).join(", ")}]`);
@@ -220,6 +237,7 @@ export function parseFrontmatter(text: string): ParsedCard {
     // A missing or unknown status reads as `todo`, so cards written before this
     // field still parse.
     status: STATUSES.includes(rawStatus) ? rawStatus : "todo",
+    release: normalizeRelease(meta.release),
     blocked_by: (meta.blocked_by as number[]) ?? [],
     related: (meta.related as number[]) ?? [],
     questions: (meta.questions as CardQuestion[]) ?? [],

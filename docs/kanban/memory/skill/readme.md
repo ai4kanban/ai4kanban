@@ -11,3 +11,5 @@ covers it, or a plain-words note.
 - A question for the user with choices is written as options they tick, not as prose with the choices inside the line — `--option "a" --option "b" [--recommended-option "c"] [--mode single|multi]`: `skill/references/resolve.md`.
 - `goal.md` carries a `reviewed: strong | weak` field — the agent judges whether the goal is clear enough to plan from and writes the field itself: `docs/guides/daily-loop.md`.
 - Setup and updates are one command each — `npx ai4kanban install` copies the skill into the Claude Code and Codex folders and scaffolds the board; `npx ai4kanban update` refreshes the skill folders it finds and leaves the board alone: `skill/references/update.md`.
+- Setup keeps its own steps in `docs/kanban/setup-checklist.md` and ticks each box as it goes — while the file is there the skill creates no cards, and the last tick deletes it: "Setup" in `skill/SKILL.md`.
+- Say which release a card ships in — `create --release v1`, `update <id> --release v1`, `--release next` to take it back out; a card that names none is `next`: "The release a card ships in" in `skill/SKILL.md`.

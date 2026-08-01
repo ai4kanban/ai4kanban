@@ -272,6 +272,20 @@ export const RESUME_PROMPT = [
   `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
 ].join(" ");
 
+// The one line the setup bar hands the user to paste into their coding harness
+// when setup's next step needs the agent (#85). It lives here, beside the other
+// harness prompts, because it says how the skill is invoked — and files under
+// `skill/` never say that. One wording for every harness, like every prompt the
+// board sends; the checklist names each step and who does it, never how to
+// invoke anything.
+//
+// It is one line rather than one per step: setup picks up at the first unticked
+// box, so the same paste restarts it wherever it stopped. The board never spawns
+// this run itself — the user pastes it, and the bar moves when the box ticks.
+// The install command ends on this same line (cli/bin/ai4kanban.mjs); the two are
+// separate packages, so keep them in step by hand.
+export const SETUP_INSTRUCTION = "/kanban. Set up this board — follow docs/kanban/setup-checklist.md.";
+
 /** What the Configuration dialog shows and picks from. */
 export function agentInfo(): AgentInfo {
   const { harness, command, isDefault, model, modelIgnored, unknownName, staleCommand } = resolveHarness();

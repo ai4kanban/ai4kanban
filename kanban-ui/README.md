@@ -55,17 +55,40 @@ The header carries five things:
   board with nothing recorded yet says so instead.
 - **Configuration** (the gear) — see below.
 
-### The goal bar
+### The setup bar
 
-When the agent has judged `memory/goal.md` weak (`reviewed: weak` in its frontmatter — a
-missing file counts too), a bar shows between the header and the columns asking you to
-write the goal. Every proposal the agent makes is judged against that file, so a rough
-answer beats a blank one. **Write the goal** opens a plain text editor on `goal.md` —
-your own words, the agent never drafts it for you; the file holds the whole direction,
-horizon and roadmap included. Saving writes the file and leaves the `reviewed:` field to
-the agent — it re-judges on its next propose or refine pass, and the bar disappears once
-the value turns `good` or `strong`. The ✕ hides the bar for the browser session. The board works the
-same either way; the bar is a nudge, not a gate.
+One bar sits between the header and the columns while something about the board is
+unfinished. It shows for two reasons.
+
+**Setup isn't done.** Installing scaffolds the board and writes `setup-checklist.md` — the
+steps setup still owes you, one box each. The bar says how far setup got ("3 of 6 steps
+done") and what comes next. When the next step needs the agent, it hands you the line to
+paste into your coding agent, with a **Copy** button:
+
+```
+/kanban. Set up this board — follow docs/kanban/setup-checklist.md.
+```
+
+The UI never runs setup itself — you paste that line, and the bar moves as boxes tick.
+Setup picks up at the first unticked box, so the same line restarts it wherever it stopped.
+The last box creates your first cards and deletes the checklist; the bar goes away at the
+same moment the cards appear. Before that the skill creates no cards at all — ask it for
+one and it tells you to finish setup first.
+
+**The goal needs writing.** One of setup's steps is the project goal, and the bar gives
+that one a **Write the goal** button instead of a line to copy. It opens a plain text
+editor on `memory/goal.md` — your own words, the agent never drafts it for you; the file
+holds the whole direction, horizon and roadmap included. Saving writes the file, ticks that
+step, and leaves the `reviewed:` field to the agent.
+
+Long after setup, the agent can judge the goal weak again (`reviewed: weak` in its
+frontmatter — a missing file counts too). Then the same bar comes back with just that one
+item, since every proposal the agent makes is judged against that file. It disappears once
+the value turns `good` or `strong`.
+
+The ✕ hides the bar for the browser session. The board works the same either way; the bar
+is a nudge, not a gate. A board that is set up and simply has no cards left shows nothing —
+empty columns aren't a signal, and neither is a board set up before the checklist existed.
 
 ## A card's buttons
 

@@ -5,8 +5,8 @@ import { getBoard } from "@/app/actions";
 import type { AgentInfo, Board } from "@/lib/types";
 import { useBoardView } from "@/lib/view";
 import { BoardCard } from "./BoardCard";
-import { GoalBar } from "./GoalBar";
 import { Header } from "./Header";
+import { SetupBar } from "./SetupBar";
 import { QueueView } from "./Queue";
 import { SessionLogOverlay } from "./agent-shared";
 import { runningSessionForCard, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
@@ -18,6 +18,7 @@ export function BoardView({
   projectRoot,
   autoRefine,
   autoRefineParallelism,
+  setupInstruction,
 }: {
   initialBoard: Board | null;
   initialError: string | null;
@@ -25,6 +26,9 @@ export function BoardView({
   projectRoot: string;
   autoRefine: boolean;
   autoRefineParallelism: number;
+  /** The line the setup bar hands over for the coding harness. It comes from the
+   *  server (lib/agent.ts reads the filesystem, which a client can't import). */
+  setupInstruction: string;
 }) {
   const [board, setBoard] = useState<Board | null>(initialBoard);
   const [error, setError] = useState<string | null>(initialError);
@@ -86,10 +90,18 @@ export function BoardView({
         </div>
       )}
 
-      {/* The goal nudge (#53), keyed to the agent's judgment of goal.md. It
-          drops out with the next board refresh once the value turns strong —
-          the same refresh that already runs on session finish and tab focus. */}
-      {board?.goalWeak && <GoalBar onSaved={refresh} />}
+      {/* Unfinished setup (#85), else the goal nudge (#53) when the agent has
+          judged goal.md weak again. Both drop out with the next board refresh —
+          the same refresh that already runs on session finish and tab focus — so
+          the bar moves on its own as setup's boxes tick. */}
+      {board && (
+        <SetupBar
+          setup={board.setup}
+          goalWeak={board.goalWeak}
+          setupInstruction={setupInstruction}
+          onSaved={refresh}
+        />
+      )}
 
       {!board && !error && (
         <div className="p-10 text-nb-ink-soft">Reading the board…</div>

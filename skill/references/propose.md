@@ -3,6 +3,9 @@
 Pick a module, then propose **3 new tasks inside it**. New work, not picks from the
 board — tasks in one focus close a gap; scattered ideas just skim the product.
 
+**Stop if setup is unfinished** — `docs/kanban/setup-checklist.md` being there says it is.
+Propose nothing; follow `references/setup.md` instead.
+
 ## 1. Pick the module
 
 **Ask the user to pick one or more modules from the map.** If they leave it open, pick

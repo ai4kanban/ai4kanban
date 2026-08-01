@@ -42,6 +42,10 @@ re-ask a settled call.
 - Setup settles `goal.md` and the project-wide `decisions.md` before it writes
   `modules.md`. A project started without code has no code to read a module map from —
   the map can only come from what's been decided.
+- **What if the user never writes `goal.md`?**: setup stops at the goal step. Nothing after
+  it can be built from the seed text, so there are no decisions, no module map and no first
+  cards. The board's setup bar keeps asking for the goal, and a later setup run picks up
+  from that step.
 - **How many first cards does setup end with?**: 10. They lay the foundation later work
   builds on — never improvement tasks aimed at what the project hasn't built yet.
 - **Where does the setup checklist live?**: `setup-checklist.md` at the board root, next
@@ -50,6 +54,13 @@ re-ask a settled call.
 - **How does a flow know setup is unfinished?**: the checklist file is there. Setup's last
   step deletes it, so a board without the file is a board that is set up. A finished
   checklist is never kept as a record.
+- **What are setup's steps?**: six, in this order — install, config, goal, decisions,
+  modules, tasks. Each box names the step and who does it: the script (already done when
+  the file is written), the agent, or the user. A later step joins the list by being added
+  to it, never by a second list.
+- **Who ticks the goal box?**: the local UI, when its goal editor saves. That is the one
+  step the board can finish itself; every other box is ticked by the agent running
+  `setup-done <step>`.
 - **May a card be created before setup ends?**: no. While the checklist file is there,
   propose and add create nothing and ask the user to finish setup first. A card the user
   writes by hand, outside the skill, is not blocked.
@@ -59,6 +70,12 @@ re-ask a settled call.
 - **How many modules?**: be conservative, above all in a from-scratch repo — a simple
   single-purpose project (say, one small web server) is one module, not several. Add
   lines only as the code grows.
+- **Does a module added later get the older notes about it?**: yes. Adding a line to the
+  map moves the notes that are now clearly that module's out of the memory it came from,
+  once. A rename keeps the memory with the module.
+- **What happens to a deleted module's memory?**: it is folded back into the project-wide
+  memory and the folder goes away, so nothing we learned about that part is lost with the
+  map line.
 
 ## Auto-refine
 

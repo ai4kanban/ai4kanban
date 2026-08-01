@@ -68,6 +68,23 @@ export function validStatus(v) {
   if (!STATUSES.includes(v)) die(`--status must be one of ${STATUSES.join(' | ')} (got "${v}")`)
 }
 
+// The release a card ships in. A card that names none reads as `next` — wanted, but not
+// promised to a version.
+export const DEFAULT_RELEASE = 'next'
+
+// A version id is free text (`v1`, `0.5.0`, `august`) — the board never parses it. It's
+// kept exactly as typed minus the spaces at each end, and its case stands, the way a
+// track or a module name does: `V1` and `v1` are two different names. An empty, blank or
+// damaged value reads as `next`, so an old or hand-edited card still opens. `next` itself
+// is accepted whatever the case.
+export function normalizeRelease(raw) {
+  if (raw === undefined || raw === null || typeof raw === 'object') return DEFAULT_RELEASE
+  if (typeof raw === 'boolean') return DEFAULT_RELEASE
+  const v = String(raw).trim()
+  if (!v || v.toLowerCase() === DEFAULT_RELEASE) return DEFAULT_RELEASE
+  return v
+}
+
 function trackNames() {
   return fs
     .readdirSync(TODO, { withFileTypes: true })

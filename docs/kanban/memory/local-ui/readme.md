@@ -21,3 +21,5 @@ covers it, or a plain-words note.
 - Refine the card you are looking at right now with a **Refine** button on its page, instead of waiting for the board to reach it — and it works with the auto-refine switch off: `kanban-ui/README.md`.
 - Answer a question with choices by ticking a list with the recommended ones already ticked, instead of reading the options out of a sentence: `kanban-ui/README.md`.
 - Start the UI where there is no board and the page says there is no board here, names the folder it searched, and gives what to run for both causes — instead of a crash screen: `kanban-ui/README.md`.
+- Stop a running run from the ✕ in the log window's title bar, with one confirmation, instead of hunting down the process in a terminal: `kanban-ui/README.md`.
+- One bar shows how far setup got and hands over the line to paste into your coding agent, until setup's last box is ticked; a goal judged weak later brings the same bar back with just that item: `kanban-ui/README.md`.

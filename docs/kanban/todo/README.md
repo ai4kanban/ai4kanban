@@ -13,7 +13,6 @@ _(none)_
 
 - [#45 Implement a whole group task in one goal-mode agent run](features/45-implement-a-whole-group-task-in-one-goal-mode-agent-run.md)
 - [#48 Run each implement in its own git worktree and merge it back to main](features/48-run-each-implement-in-its-own-git-worktree-and-merge-it-back.md)
-- [#49 Stop a running agent from the UI](features/49-stop-a-running-agent-from-the-ui.md)
 - [#50 Show what a run changed in the working tree](features/50-show-what-a-run-changed-in-the-working-tree.md)
 - [#56 Let a user read and edit the board in Obsidian](features/56-read-and-edit-the-board-in-obsidian.md)
 - [#57 Let a user choose where the board is stored](57-choose-where-the-board-is-stored/root.md)
@@ -28,6 +27,7 @@ _(none)_
 
 - [#16 auto-implement: let the agent build a ready card on its own](skill/16-auto-implement-let-the-agent-build-a-ready-card-on-its-own.md)
 - [#83 Onboarding: from install to a board ready to plan](83-onboarding/root.md)
+- [#112 Move a module's calls into its memory when the map gains that module](skill/112-move-a-module-s-calls-into-its-memory-when-the-map-gains-tha.md)
 
 ## docs
 
@@ -36,3 +36,4 @@ _(none)_
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#5 Research the Vibe Kanban comparison and build its vs page](distribution/5-vibe-kanban-vs-page.md)
+- [#111 Research the Linear comparison and build its vs page](distribution/111-research-the-linear-comparison-and-build-its-vs-page.md)

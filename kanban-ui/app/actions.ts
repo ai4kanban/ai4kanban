@@ -10,6 +10,7 @@ import { setAutoRefine, setAutoRefineParallelism, setHarness, setHarnessModel } 
 import { ensureDispatcher } from "@/lib/dispatcher";
 import { patchCard, type CardPatch } from "@/lib/edit";
 import { readGoalText, writeGoalText } from "@/lib/goal";
+import { tickSetupStep } from "@/lib/setup";
 import { type MetricsResult, readMetrics } from "@/lib/metrics";
 import { readModules } from "@/lib/modules";
 import {
@@ -103,18 +104,23 @@ export async function getSessionAction(sessionId: string): Promise<SessionView |
   return getSession(sessionId);
 }
 
-// The goal editor behind the goal bar (#53). Reading returns the user's words
-// (template body when goal.md doesn't exist yet); saving writes them back with
-// the frontmatter — the agent's `reviewed:` field — untouched.
+// The goal editor behind the setup bar (#53, #85). Reading returns the user's
+// words (template body when goal.md doesn't exist yet); saving writes them back
+// with the frontmatter — the agent's `reviewed:` field — untouched.
 export async function getGoalAction(): Promise<string> {
   return readGoalText();
 }
 
+// Writing the goal IS setup's goal step, so a save ticks that box — the one box
+// the board finishes itself. On a board with no checklist the tick is a no-op,
+// which is the whole of the "a goal judged weak long after setup" case.
 export async function saveGoalAction(text: string): Promise<{ ok: boolean; error?: string }> {
   if (typeof text !== "string" || !text.trim()) {
     return { ok: false, error: "the goal must not be empty" };
   }
-  return writeGoalText(text);
+  const res = writeGoalText(text);
+  if (res.ok) tickSetupStep("goal");
+  return res;
 }
 
 // The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv.

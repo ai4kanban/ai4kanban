@@ -4,8 +4,10 @@
 // Handles the id-touching moves so the board stays consistent:
 //   init    — scaffold a fresh docs/kanban/ board (folders, the project-wide memory set in memory/, config.md)
 //   memory-init — lazily scaffold a module's memory path with the four-file set (no goal.md)
+//   setup-done  — tick one box on setup's own checklist; the last tick deletes the file
+//   setup-status — how far setup got (or that this board has no checklist left)
 //   create  — allocate task id(s); with --title, also write the card's frontmatter + index it
-//   update  — rewrite a card's frontmatter fields (priority/roi/links/status, move track, rename)
+//   update  — rewrite a card's frontmatter fields (priority/roi/links/status/release, move track, rename)
 //   update-questions — patch the open-question list in place (append/update/drop/clear)
 //   tag     — set/clear the [user] tag on one open question (auto-refine triage)
 //   migrate — convert old bold-header cards to the frontmatter meta format
@@ -28,6 +30,8 @@
 // Usage:
 //   node kanban.mjs init [track...]                     scaffold docs/kanban/ (folders, memory/, config.md)
 //   node kanban.mjs memory-init <module>                lazily scaffold memory/<module>/ with the four-file set
+//   node kanban.mjs setup-done <step>                   tick one box on docs/kanban/setup-checklist.md
+//   node kanban.mjs setup-status                        print how far setup got
 //   node kanban.mjs create [--count N]                  allocate N ids (default 1), print them
 //   node kanban.mjs create --title T --track K [opts]   scaffold one card (frontmatter + body template + index)
 //   node kanban.mjs update <id> [opts]                  rewrite a card's frontmatter fields / move / rename
@@ -48,6 +52,7 @@ import { cmdInit, cmdMemoryInit } from './commands/init.mjs'
 import { cmdCreate, cmdUpdate, cmdUpdateQuestions, cmdTag } from './commands/card.mjs'
 import { cmdRemove } from './commands/remove.mjs'
 import { cmdMigrate, cmdRun } from './commands/misc.mjs'
+import { cmdSetupDone, cmdSetupStatus } from './commands/setup.mjs'
 
 // Released version of the skill. Do NOT hand-edit — it's stamped from the repo's root
 // VERSION file by scripts/sync-version.mjs (the one number for the whole repo; see
@@ -71,6 +76,10 @@ function main() {
       return cmdInit(rest)
     case 'memory-init':
       return cmdMemoryInit(rest[0])
+    case 'setup-done':
+      return cmdSetupDone(rest)
+    case 'setup-status':
+      return cmdSetupStatus()
     case 'create':
       return cmdCreate(rest)
     case 'update':
@@ -110,7 +119,7 @@ function main() {
   }
 }
 
-const COMMANDS = ['init', 'memory-init', 'create', 'update', 'update-questions', 'tag', 'migrate', 'archive', 'reject', 'run', 'peek', 'version', 'metrics', 'help']
+const COMMANDS = ['init', 'memory-init', 'setup-done', 'setup-status', 'create', 'update', 'update-questions', 'tag', 'migrate', 'archive', 'reject', 'run', 'peek', 'version', 'metrics', 'help']
 
 const HELP = `kanban — the only sanctioned writer of docs/kanban/next-id.
 
@@ -123,11 +132,19 @@ Usage: node ${rel(SELF)} <command> [args]
                        (readme, decisions, redesign, rejected — goal.md lives only at the
                        board root). Idempotent — run it before the first write to a
                        module's memory.
+  setup-done <step>    tick one box on docs/kanban/setup-checklist.md as that setup
+                       step finishes: install, config, goal, decisions, modules,
+                       tasks. The tick that closes the last box deletes the file, so
+                       a board without it is a board that is set up.
+  setup-status         how far setup got, and which step comes next. Says setup is
+                       finished when there is no checklist.
   create [--count N]   allocate N task ids (default 1), advance next-id, print them
   create --title T --track K [opts]
                        scaffold ONE card: write its frontmatter + a body template, index it.
                        opts: --priority high|med|low (default med), --roi high|med|low
-                       (default med), --blocked-by 1,2, --related 3, --modules skill,site
+                       (default med), --release v1 (default next — the card is wanted,
+                       not promised to a version; free text, kept as typed),
+                       --blocked-by 1,2, --related 3, --modules skill,site
                        (validated against modules.md), --question "..." (repeatable),
                        --slug my-slug, --no-body.
                        The script owns the frontmatter — fill only the body by hand.
@@ -139,10 +156,12 @@ Usage: node ${rel(SELF)} <command> [args]
                        the same list and opens ticked, so it's written once. Without
                        any option the question stays a plain line with a text box.
   update <id> [opts]   rewrite a card's frontmatter fields: --title, --priority,
-                       --roi, --status todo|ready|implementing, --blocked-by,
-                       --related, --modules. --track moves the card + fixes the
-                       index; --slug renames it. Body and questions are left
-                       untouched — questions have their own command below.
+                       --roi, --status todo|ready|implementing, --release,
+                       --blocked-by, --related, --modules. --release next (or an
+                       empty value) takes the card back out of a release.
+                       --track moves the card + fixes the index; --slug renames
+                       it. Body and questions are left untouched — questions have
+                       their own command below.
   update-questions <id> [ops]
                        patch the open-question list, one op at a time, applied in
                        the order typed: --append ".." adds a question, --update

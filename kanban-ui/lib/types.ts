@@ -23,6 +23,10 @@ export interface CardMeta {
   priority: string;
   roi: string;
   status: CardStatus;
+  /** The release this card ships in — a free-text version id like `v1`. A card
+   *  that names none reads as `next`: wanted, not promised to a version.
+   *  Read-only in the UI for now — the CLI writes it. */
+  release: string;
   blocked_by: number[];
   related: number[];
   /** The card's open questions, plain and options ones alike (see CardQuestion). */
@@ -94,15 +98,39 @@ export interface ArchiveGroup {
   markdown: string;
 }
 
+/** One box on setup's checklist. `owner` says who does the step: `script` is
+ *  already done by the time the board exists, `agent` needs a run in the user's
+ *  coding harness, `you` is the user's own — the goal is the one such step, and
+ *  the setup bar gives it a button instead of a line to copy. */
+export interface SetupStep {
+  name: string;
+  owner: "script" | "agent" | "you";
+  text: string;
+  done: boolean;
+}
+
+/** How far setup got, read from `docs/kanban/setup-checklist.md`. Absent (null)
+ *  means there is no checklist — setup is finished, or the board predates it. */
+export interface SetupState {
+  done: number;
+  total: number;
+  /** The first unticked step — what setup does next. */
+  next: SetupStep | null;
+}
+
 export interface Board {
   columns: Column[];
   archive: ArchiveGroup[];
   /** Ids of every open card — used to linkify only #<id>s that still exist. */
   openIds: number[];
   /** True when `memory/goal.md`'s `reviewed:` field says the goal isn't clear
-   *  enough to plan from (a missing file or field reads weak too). Drives the
-   *  goal bar above the board; the board itself works either way. */
+   *  enough to plan from (a missing file or field reads weak too). With no
+   *  checklist left it is the whole setup bar — one item, the goal — since the
+   *  agent can judge the goal weak again long after setup. */
   goalWeak: boolean;
+  /** Setup's checklist while it exists, null once setup deleted it. Drives the
+   *  setup bar above the board; the board itself works either way. */
+  setup: SetupState | null;
 }
 
 /** How big a swing a propose run takes. `safe` polishes what already works,

@@ -3,7 +3,7 @@
 // The card's `--- ... ---` meta block. Only needs to read what this script (and
 // `migrate`) write. The questions' shape is documented in ./questions.mjs.
 
-import { STATUSES } from './validate.mjs'
+import { STATUSES, normalizeRelease } from './validate.mjs'
 import { yamlScalar, unquote } from './yaml.mjs'
 import { hasOptions, normalizeQuestion, parseQuestionsBlock } from './questions.mjs'
 
@@ -14,6 +14,7 @@ export function serializeFrontmatter(m) {
   out.push(`priority: ${m.priority}`)
   out.push(`roi: ${m.roi}`)
   out.push(`status: ${STATUSES.includes(m.status) ? m.status : 'todo'}`)
+  out.push(`release: ${yamlScalar(normalizeRelease(m.release))}`)
   out.push(`blocked_by: [${(m.blocked_by || []).join(', ')}]`)
   out.push(`related: [${(m.related || []).join(', ')}]`)
   out.push(`modules: [${(m.modules || []).join(', ')}]`)
@@ -91,6 +92,9 @@ export function parseFrontmatter(text) {
     }
   }
   if (!Array.isArray(meta.questions)) meta.questions = meta.questions ? [normalizeQuestion(meta.questions)] : []
+  // The release the card ships in. Missing, empty or damaged reads as `next`, so a card
+  // written before this field — or one whose line was blanked by hand — still opens.
+  meta.release = normalizeRelease(meta.release)
   // modules is an optional string list; a card written before this field parses as [].
   if (!Array.isArray(meta.modules)) meta.modules = []
   return { meta, body: lines.slice(i + 1).join('\n') }

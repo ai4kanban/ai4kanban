@@ -1,6 +1,9 @@
 # Add a task
 
-Turn an idea into a card on the board. 
+Turn an idea into a card on the board.
+
+**Stop if setup is unfinished** — `docs/kanban/setup-checklist.md` being there says it is.
+Create no card; follow `references/setup.md` instead.
 
 1. **Resolve the modules.** If the modules are not explicitly given, infer them
    yourself: read `docs/kanban/modules.md` and decide which modules the idea

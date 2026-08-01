@@ -70,6 +70,9 @@ docs/kanban/
 ├── modules.md      one line per module — install writes it, propose reads it (see "The
 │                   module map")
 ├── config.md       your project's settings (see Configuration) — seeded by init, yours to fill
+├── setup-checklist.md
+│                   setup's own steps, while setup is unfinished (see "Setup") — the
+│                   last tick deletes it; no file means the board is set up
 ├── next-id         the next free task id — NEVER edit by hand; only the script writes it
 └── metrics.csv     one row per day: completed, created, rejected — script-kept; never touch
 ```
@@ -87,11 +90,14 @@ the repo root as `${KB} <command>`:
 ```
 ${KB} init [track...]               # scaffold docs/kanban/ (tracks default to feature bug research)
                                     # re-run to repair an older board: adds missing config.md, modules.md, memory paths
+${KB} setup-done <step>             # tick one box on setup's checklist as that step finishes
+                                    # steps: install, config, goal, decisions, modules, tasks
+${KB} setup-status                  # how far setup got; says finished when there's no checklist
 ${KB} create [--count N]            # allocate N ids (default 1), prints them
 ${KB} create --title ".." --track <track> [--priority high|med|low] [--roi high|med|low] \
-             [--blocked-by 1,2] [--related 3] [--modules skill,site] [--question ".."] [--slug ..]
+             [--release v1] [--blocked-by 1,2] [--related 3] [--modules skill,site] [--question ".."] [--slug ..]
                                     # scaffold ONE card: frontmatter + body template + README entry; then fill only the body
-${KB} update <id> [--priority ..] [--roi ..] [--status ..] [--track ..] [--slug ..] \
+${KB} update <id> [--priority ..] [--roi ..] [--status ..] [--release ..] [--track ..] [--slug ..] \
              [--blocked-by ..] [--related ..] [--modules ..]
                                     # rewrite a card's frontmatter fields; --track moves it, --slug renames
 ${KB} update-questions <id> [--append ".."] [--update <n> ".."] [--drop 1,3] [--clear]
@@ -108,17 +114,37 @@ ${KB} help                          # full usage
 ```
 
 **Never hand-write a card's frontmatter.** Use `create`/`update`/`update-questions` for the
-meta (title, track, priority, roi, blocked_by, related, modules, questions); use Write/Edit
-only for the card **body**.
+meta (title, track, priority, roi, status, release, blocked_by, related, modules,
+questions); use Write/Edit only for the card **body**.
 
 Tag a card with `--modules` (see `docs/kanban/modules.md`);
 optional — a task can touch two modules or none. Add a new line to modules.md according to `module-map.md`
 if you find no match.
 
+## The release a card ships in
+
+A card names the release it ships in: `--release v1` when the card is made,
+`update <id> --release v1` after. A card that names none reads as `next` — wanted, but not
+promised to a version — and so does one whose field is empty. `update <id> --release next`
+takes a card back out of a release.
+
+A version id is free text: `v1`, `0.5.0` and `august` all work. It is kept exactly as
+typed, so `V1` and `v1` are two different releases. Only the script writes the field,
+like every other one in the frontmatter.
+
+A group root and each of its subtasks carry their own release — the root is a tracking
+card, so a subtask ships in the release it names itself.
+
 ## Task id
 
 Every task's id is the number at the front of its filename (`04-plan-cap-enforcement.md` →
 id 4). Ids are global and never reused; only the script's `create` allocates them.
+
+## Setup
+
+`docs/kanban/setup-checklist.md` being there says setup is unfinished — the last tick
+deletes it. While it's there, no flow creates cards; setup's own last step is the only
+exception. Full guide in `references/setup.md`.
 
 ## Propose new tasks
 

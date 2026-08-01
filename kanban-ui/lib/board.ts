@@ -4,6 +4,7 @@ import { parseFrontmatter } from "./frontmatter";
 import { goalReviewed } from "./goal";
 import { archivePath, readmePath, todoDir } from "./paths";
 import { byPickOrder } from "./pick-order";
+import { readSetup } from "./setup";
 import type { ArchiveGroup, Board, Card, Column, Subtask } from "./types";
 
 const idPrefix = (name: string): number | null => {
@@ -68,6 +69,7 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     priority: meta.priority,
     roi: meta.roi,
     status: meta.status,
+    release: meta.release,
     blocked_by: meta.blocked_by,
     related: meta.related,
     questions: meta.questions,
@@ -283,5 +285,11 @@ export function readBoard(): Board {
   }));
   // Linkify every open id, subtasks included — not just the cards the columns show.
   const openIds = Array.from(new Set(every.map((card) => card.id)));
-  return { columns, archive: readArchive(), openIds, goalWeak: goalReviewed() === "weak" };
+  return {
+    columns,
+    archive: readArchive(),
+    openIds,
+    goalWeak: goalReviewed() === "weak",
+    setup: readSetup(),
+  };
 }

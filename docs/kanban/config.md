@@ -1,5 +1,8 @@
 # Configuration
 
+- **Setup gate** — while `docs/kanban/setup-checklist.md` sits next to this file, setup
+  is unfinished: create no cards. `references/setup.md` in the skill folder says what to
+  do instead.
 - **Project** — AI4Kanban: AI project management that grows with you. You give it a vague
   idea; it breaks the idea down, settles what it can from memory, asks you the rest, and
   keeps going until the spec is clear enough to build. The board is plain markdown in git.

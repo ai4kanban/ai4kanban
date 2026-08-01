@@ -26,9 +26,10 @@ before proposing so you don't re-suggest them.
 - **A Finished view that browses archived cards** — too little value for the work. An
   archived card is a plain file next to the board; anyone can read it in their IDE or any
   file viewer. The UI does not have to be the place you review finished work.
-- **A one-button in-UI setup run for a repo with no board** — the setup checklist (#85)
-  is the onboarding UI. It starts simple: the bar shows the instruction to copy into your
-  coding harness (e.g. `/kanban setup the current board`); the UI doesn't run setup itself.
+- **A one-button in-UI setup run for a repo with no board** — the setup checklist bar is
+  the onboarding UI. It stays simple: the bar shows the instruction to copy into your
+  coding harness (`/kanban. Set up this board — follow docs/kanban/setup-checklist.md.`);
+  the UI doesn't run setup itself.
 - **Switching between projects from the header** — we don't keep a list of projects. A
   server serves the board it was started in; a list spanning boards has nowhere to live
   that isn't outside every repo, which breaks files-in-the-repo as the only source of

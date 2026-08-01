@@ -7,6 +7,7 @@ folder, so the skill can be replaced wholesale on every update.
 
 Do the following, in order. Ask me at most 3 short questions total, and only where you
 genuinely can't infer a value — otherwise pick sensible defaults and tell me what you chose.
+The goal in step 6 is the one thing you must ask for: it's mine to write, not yours to guess.
 
 1. Read this repository first, before running anything. Infer:
    - the project name and its one-line goal (README, package metadata),
@@ -28,6 +29,15 @@ genuinely can't infer a value — otherwise pick sensible defaults and tell me w
    `redesign.md`, `rejected.md`), a blank `config.md`, and a blank `modules.md`. It's safe
    to run twice and it never edits a board that's already there.
 
+   It also writes `docs/kanban/setup-checklist.md` — the steps below, one box each. Tick
+   each box the moment its step finishes:
+
+       node .claude/skills/kanban/kanban.mjs setup-done <step>
+
+   The tick that closes the last box deletes the file, and that is what says this board is
+   set up. Until then the local UI shows a bar with what's left, and the skill creates no
+   cards. Never edit the file by hand.
+
    Already added the skill as a plugin (`/plugin marketplace add ai4kanban/ai4kanban` then
    `/plugin install kanban@kanban`)? The plugin makes the skill available but does not
    configure a board, so still run the command — it scaffolds the board either way.
@@ -38,27 +48,42 @@ genuinely can't infer a value — otherwise pick sensible defaults and tell me w
 
 5. Fill in the configuration. Open `docs/kanban/config.md` and replace every {{PLACEHOLDER}}
    with the value you inferred in step 1. That is the only file you fill in; the rest of the
-   skill is generic and stays as-is.
+   skill is generic and stays as-is. Then tick the box: `setup-done config`.
 
-6. Write the module map. Follow the skill's `references/module-map.md` to write
+6. Ask me for the project goal, in my own words — where this is headed and roughly how far.
+   Write what I say into `docs/kanban/memory/goal.md`, below its frontmatter, and tick
+   `setup-done goal`. Don't draft the goal for me and don't enforce a shape. If I don't
+   answer, leave the box unticked and carry on — the board's own bar will ask me later.
+
+7. Settle `docs/kanban/memory/decisions.md` from that goal: the calls a planner would need
+   that the goal already implies — who it's for, what's out of scope, what done looks like.
+   One short line each, grouped by topic. Settle what you can and say what you chose;
+   anything you can't settle becomes an open question on the cards you create in step 9.
+   Then tick `setup-done decisions`.
+
+8. Write the module map. Follow the skill's `references/module-map.md` to write
    `docs/kanban/modules.md` — a plain list of what parts this project is made of. Reuse the
-   repo analysis from step 1; don't scan again. Print the finished map so I see it once. The
-   propose flow reads this map to pick a focus area.
+   repo analysis from step 1; don't scan again. With no code to read, build it from the goal
+   and the decisions above instead. Print the finished map so I see it once — the propose
+   flow reads it to pick a focus area. Then run
+   `node .claude/skills/kanban/kanban.mjs init` once more so every module on the map gets
+   its own memory path, and tick `setup-done modules`.
 
-7. Run `node .claude/skills/kanban/kanban.mjs init` once more so every module on the map
-   gets its own memory path, then propose the first 3 tasks so I have somewhere to start.
+9. Propose the first 3 tasks so I have somewhere to start. This is the one time cards are
+   created while the checklist is still there — every other flow refuses until setup ends.
+   Then tick `setup-done tasks`, which closes the list and deletes the file.
 
-8. Recommend the local board UI and ask if I want it — don't silently skip it. It's the
-   nicest way to use the board: a local Next.js app that shows every track and drives the
-   work from buttons instead of the terminal, while the `docs/kanban/` files stay the single
-   source of truth. Tell me it runs with one command, nothing to install or compile:
+10. Recommend the local board UI and ask if I want it — don't silently skip it. It's the
+    nicest way to use the board: a local Next.js app that shows every track and drives the
+    work from buttons instead of the terminal, while the `docs/kanban/` files stay the
+    single source of truth. Tell me it runs with one command, nothing to install or compile:
 
-       npx ai4kanban-ui        # http://localhost:7420, localhost only
+        npx ai4kanban-ui        # http://localhost:7420, localhost only
 
-   If I say yes, run it for me (or hand me the command) and point me at the skill's
-   `references/local-ui.md` for setup options like `--port` and `--board`, and at the app's
-   own guide (https://www.npmjs.com/package/ai4kanban-ui) for what the buttons do and
-   how to change which agent they spawn.
+    If I say yes, run it for me (or hand me the command) and point me at the skill's
+    `references/local-ui.md` for setup options like `--port` and `--board`, and at the app's
+    own guide (https://www.npmjs.com/package/ai4kanban-ui) for what the buttons do and
+    how to change which agent they spawn.
 
 To pull a newer version later, run `npx --yes ai4kanban@latest update` — same shape, one
 command. The skill's `references/update.md` covers what it does and what it leaves to you.

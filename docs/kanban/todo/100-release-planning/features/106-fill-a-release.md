@@ -4,7 +4,7 @@ track: features
 priority: low
 roi: med
 status: todo
-blocked_by: [102]
+blocked_by: [104]
 related: [100]
 modules: [skill, local-ui]
 questions:
@@ -22,8 +22,8 @@ rest at `next`.
 - It says what it moved and why, one line per card, so the user can undo any of it by
   moving the card back.
 - The user can say how many cards to aim for. Without a number the agent picks what fits.
-- A flow the skill owns, so it works from a terminal too, and one action in the UI on the
-  release that starts it.
+- A flow the skill owns, so it works from a terminal too, and one action in the UI that
+  starts it, sitting on the release the dropdown (#104) is showing.
 - Cards that a human already put in a release are left alone. A hand-made plan is not
   second-guessed.
 

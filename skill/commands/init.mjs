@@ -6,10 +6,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, warn, rel, writeNextId, SKILL_DIR, KANBAN, TODO, README, CONFIG, MODULES_MD, MEMORY, GOAL } from '../lib/paths.mjs'
+import { die, warn, rel, writeNextId, SKILL_DIR, KANBAN, TODO, README, CONFIG, MODULES_MD, MEMORY, GOAL, SETUP_CHECKLIST } from '../lib/paths.mjs'
 import { unquote } from '../lib/yaml.mjs'
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate.mjs'
 import { scaffoldMemoryPath, scaffoldProjectMemory } from '../lib/memory.mjs'
+import { nextSetupStep, writeSetupChecklist } from '../lib/setup.mjs'
 
 // Default tracks when `init` is run with no track args. Swap by passing your own,
 // e.g. `init growth validation building`. Keep in step with the SKILL.md defaults.
@@ -80,6 +81,10 @@ export function cmdInit(args) {
     // whatever that version never wrote — docs/kanban/config.md if the board predates the
     // move out of the skill folder, modules.md if it predates the module map — and never
     // touches either one once it's filled in.
+    //
+    // The setup checklist is deliberately NOT among them. It is written once, by the
+    // scaffold below; a board that was set up long ago has no file and must stay quiet,
+    // and planting one here would tell that user to finish a setup that finished months ago.
     const added = [writeConfigIfMissing() && rel(CONFIG), writeModulesIfMissing() && rel(MODULES_MD)].filter(Boolean)
     // The project-wide memory, then every module already on the map, so a board whose map
     // is filled in is fully repaired by this one command. A map seeded blank a line above
@@ -118,10 +123,14 @@ export function cmdInit(args) {
   writeConfigIfMissing()
   writeModulesIfMissing()
   writeNextId(1)
+  // Setup's remaining steps, written now so a user who installs and stops there still
+  // opens the board onto a list of what is left instead of one that looks finished.
+  writeSetupChecklist()
   console.log(`initialised board at ${rel(KANBAN)}/`)
   console.log(`  tracks: ${tracks.join(', ')}`)
-  console.log(`  next: fill the Configuration in ${rel(CONFIG)} and the map in ${rel(MODULES_MD)},`)
-  console.log(`        then \`create\` your first task`)
+  console.log(`  setup's remaining steps are in ${rel(SETUP_CHECKLIST)} — \`setup-done <step>\` ticks one`)
+  const next = nextSetupStep()
+  if (next) console.log(`  next: \`${next.name}\` (${next.owner}) — ${next.text}`)
 }
 
 export function cmdMemoryInit(module) {

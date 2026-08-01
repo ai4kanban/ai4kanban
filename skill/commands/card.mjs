@@ -8,7 +8,7 @@ import path from 'node:path'
 
 import { die, warn, rel, readNextId, writeNextId, TODO } from '../lib/paths.mjs'
 import { bumpMetric } from '../lib/metrics.mjs'
-import { parseFlags, slugify, validLevel, validStatus, validTrack, validModules, parseModuleList, parseIdList } from '../lib/validate.mjs'
+import { parseFlags, slugify, validLevel, validStatus, validTrack, validModules, parseModuleList, parseIdList, normalizeRelease } from '../lib/validate.mjs'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, parseQuestionOps, parseQuestionPositions } from '../lib/questions.mjs'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter.mjs'
 import { locate, enclosingGroupRoot } from '../lib/cards.mjs'
@@ -32,7 +32,7 @@ function defaultBody() {
   ].join('\n')
 }
 
-const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'count', 'no-body']
+const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'count', 'no-body']
 
 // Two modes:
 //   bare      `create [--count N]`  → allocate ids and print them (group-task setup).
@@ -44,7 +44,7 @@ export function cmdCreate(args) {
   if (positional.length) die(`create takes options, not positional args (got "${positional.join(' ')}")`)
 
   if (flags.title === undefined) {
-    for (const bad of ['track', 'priority', 'roi', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'no-body']) {
+    for (const bad of ['track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'no-body']) {
       if (flags[bad] !== undefined) die(`--${bad} needs --title (that's card mode). Without --title, create only allocates ids.`)
     }
     const count = flags.count !== undefined ? Number(flags.count) : 1
@@ -69,6 +69,8 @@ export function cmdCreate(args) {
   validLevel(priority, 'priority')
   const roi = flags.roi !== undefined ? String(flags.roi) : 'med'
   validLevel(roi, 'roi')
+  // No --release means `next`: the card is wanted, not promised to a version.
+  const release = normalizeRelease(flags.release)
   const start = readNextId()
   const blocked_by = flags['blocked-by'] !== undefined ? parseIdList(flags['blocked-by'], 'blocked-by', start) : []
   const related = flags.related !== undefined ? parseIdList(flags.related, 'related', start) : []
@@ -83,7 +85,7 @@ export function cmdCreate(args) {
   // validation passed → allocate + write
   writeNextId(start + 1)
   bumpMetric('created')
-  const meta = { title, track, priority, roi, status: 'todo', blocked_by, related, modules, questions }
+  const meta = { title, track, priority, roi, status: 'todo', release, blocked_by, related, modules, questions }
   const body = flags['no-body'] ? '' : defaultBody()
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
   const indexed = addReadmeRef(track, start, title, fileRel)
@@ -94,7 +96,7 @@ export function cmdCreate(args) {
   reconcileBoard()
 }
 
-const UPDATE_FLAGS = ['title', 'track', 'priority', 'roi', 'status', 'blocked-by', 'related', 'modules', 'slug']
+const UPDATE_FLAGS = ['title', 'track', 'priority', 'roi', 'status', 'release', 'blocked-by', 'related', 'modules', 'slug']
 
 // Rewrite a card's frontmatter fields. Also the sanctioned way to move a card between
 // tracks (--track moves the file + fixes the index) or rename it (--slug). Body is
@@ -130,6 +132,11 @@ export function cmdUpdate(args) {
     validStatus(String(flags.status))
     meta.status = String(flags.status)
     changes.push('status')
+  }
+  // `--release next` — or an empty value — takes the card back out of a version.
+  if (flags.release !== undefined) {
+    meta.release = normalizeRelease(flags.release)
+    changes.push(`release→${meta.release}`)
   }
   const ceiling = readNextId()
   if (flags['blocked-by'] !== undefined) {

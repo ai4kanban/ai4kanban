@@ -4,7 +4,7 @@ track: features
 priority: med
 roi: high
 status: todo
-blocked_by: [101]
+blocked_by: [102]
 related: [100]
 modules: [local-ui]
 questions: []
@@ -18,17 +18,18 @@ already is — on the card — instead of in a terminal.
   priority and roi are set today.
 - The list to pick from is the open releases plus `next`. Nothing is typed, so a version id
   cannot be misspelled into existence.
+- This is where the UI first reads the board's release list. The release dropdown (#104)
+  is built on the same list and does not read it a second time.
 - A card shows its release wherever it already shows its track — a card sitting in `next`
   says so too, so an unplanned card is not silently blank.
 - Making a new release is not done here. This is only moving a card into one that exists.
 - Changing the release writes the card through the script, like every other field, so the
   board file stays the record.
-- With a release picked in the dropdown (#104), moving a card out of it takes the card off
-  the screen. That is the filter doing its job, and the card is where it was sent.
 
 ## Todo
 - [ ] Show a card's release on its page and let the user pick another one.
-- [ ] Fill the picker from the open releases plus `next`, with no free typing.
+- [ ] Read `docs/kanban/releases.md` in the UI and fill the picker from the open releases
+      plus `next`, with no free typing.
 - [ ] Show the release on the card wherever the track already shows.
 - [ ] Write the change through the script, and refresh the board from the file.
 - [ ] Write it into `kanban-ui/README.md`.

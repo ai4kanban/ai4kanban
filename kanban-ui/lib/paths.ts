@@ -72,3 +72,6 @@ export function uiConfigPath(): string {
 export function metricsPath(): string {
   return path.join(kanbanDir(), "metrics.csv");
 }
+export function setupChecklistPath(): string {
+  return path.join(kanbanDir(), "setup-checklist.md");
+}

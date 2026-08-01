@@ -259,11 +259,19 @@ function cmdInstall(root, tracks) {
   runKanban(placed[0].dest, root, ['init', ...tracks])
   sayNotes()
   say('')
-  say('Next, and only an agent can do these:')
-  say('  1. fill in docs/kanban/config.md from what the repo tells you')
-  say('  2. write docs/kanban/modules.md (the skill\'s references/module-map.md says how)')
-  say('  3. propose the first 3 tasks')
+  // One instruction, not a list of steps. The steps are on the board now, in
+  // docs/kanban/setup-checklist.md — and two lists would drift. Setup picks up at the
+  // first unticked box, so this same line restarts it wherever it stops.
+  say('Next, paste this into your coding agent to finish setup:')
+  say('')
+  say(`    ${SETUP_INSTRUCTION}`)
 }
+
+// The line the user copies into their coding harness to run setup's agent steps. One
+// wording for every harness, and the same one the local board UI shows on its setup bar
+// (kanban-ui/lib/agent.ts) — the two are separate packages, so it is repeated here rather
+// than shared. Keep them in step.
+const SETUP_INSTRUCTION = '/kanban. Set up this board — follow docs/kanban/setup-checklist.md.'
 
 function cmdUpdate(root) {
   say(`ai4kanban ${VERSION} — updating ${root}`)
