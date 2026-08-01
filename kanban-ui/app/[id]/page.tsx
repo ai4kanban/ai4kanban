@@ -29,6 +29,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     <CardPage
       card={card}
       openIds={board.openIds}
+      releases={board.releases}
       agent={agentInfo()}
       projectRoot={repoRoot()}
       autoRefine={readAutoRefine()}

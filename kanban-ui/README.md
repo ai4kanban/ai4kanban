@@ -17,8 +17,8 @@ Installing it, pointing it at a board elsewhere, changing the port, updating: th
 ## The board
 
 The home page is the board — one column per track, cards in priority order. Click a card to
-open it: the full card body, its meta (track, modules, priority, ROI, blockers), its open
-questions, and its buttons.
+open it: the full card body, its meta (track, modules, release, priority, ROI, blockers), its
+open questions, and its buttons.
 
 A card waiting on another card carries a small **lock** marker; hover it to see which cards
 are in the way. It shows only while a blocker is still on the board — once that card is
@@ -54,6 +54,29 @@ The header carries five things:
   `docs/kanban/metrics.csv`, which the script keeps as you work; the view only reads it. A
   board with nothing recorded yet says so instead.
 - **Configuration** (the gear) — see below.
+
+### The release a card ships in
+
+A card can say which version it ships in. Open the card and the meta box has a **Release**
+box next to Priority and ROI: pick a version and the card moves into it, pick **next** and
+it comes back out. **next** is where a card with no release sits — wanted, but not promised
+to a version.
+
+The list you pick from is the open releases in `docs/kanban/releases.md`, in the order they
+ship, with **next** last. There is nothing to type, so a version id can't be misspelled into
+existence. Making a release is still a terminal job: `release new v1` in your coding agent,
+and it shows up in the box. Your pick is written into the card file the moment you make it,
+like priority and ROI, so the files stay the record.
+
+In the **Queue** view each card carries its release beside its track, so you can see what is
+promised to a version and what isn't without opening anything.
+
+A board that plans no versions never sees any of this — no box on a card, no chip in the
+queue. Nothing asks you to plan a release.
+
+`releases.md` is a plain file you can edit, so a card can end up naming a version that is no
+longer on the list. That card goes on showing what it says, marked **not on the list**, and
+the box moves it onto a release that really exists.
 
 ### The setup bar
 

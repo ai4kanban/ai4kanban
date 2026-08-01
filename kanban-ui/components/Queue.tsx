@@ -48,6 +48,7 @@ export function QueueView({
         cards={ready}
         sessions={sessions}
         onOpenLog={onOpenLog}
+        hasReleases={board.releases.length > 0}
       />
       <Half
         title="Not ready"
@@ -55,6 +56,7 @@ export function QueueView({
         cards={notReady}
         sessions={sessions}
         onOpenLog={onOpenLog}
+        hasReleases={board.releases.length > 0}
       />
     </div>
   );
@@ -71,12 +73,14 @@ function Half({
   cards,
   sessions,
   onOpenLog,
+  hasReleases,
 }: {
   title: string;
   count: string;
   cards: Card[];
   sessions: SessionView[];
   onOpenLog: (sessionId: string) => void;
+  hasReleases: boolean;
 }) {
   return (
     <section
@@ -106,8 +110,10 @@ function Half({
                 onOpenLog={onOpenLog}
                 // Every track is merged in here, so a card has to say where it
                 // came from — otherwise a blocker at the top of the ready half
-                // reads as just another card.
+                // reads as just another card. Its release rides along in the
+                // same row, on a board that plans versions.
                 showTrack
+                hasReleases={hasReleases}
               />
             ))}
           </div>

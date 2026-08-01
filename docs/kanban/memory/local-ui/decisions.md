@@ -56,6 +56,15 @@ re-ask a settled call.
   what the user has staged. It also never keeps a frozen copy — an old run shows today's
   files.
 
+## Connector settings
+
+- Each connector declares the settings it takes and the Configuration dialog draws them.
+  Two shapes only: a box to type in, and a list to pick one from.
+- The settings file keeps one block for the picked connector — its name and its settings
+  together — not one block per connector. Switching connector clears it, as it does today.
+  Keeping every connector's settings across a switch is not worth a new file shape while
+  there is one connector.
+
 ## Which model a run used
 
 - **Where does the model shown on a run come from?**: what the agent reports as it runs, not
@@ -127,7 +136,19 @@ re-ask a settled call.
 
 - **Is a queue view the same as the rejected ready-only toggle?**: No. The toggle hid every
   card that wasn't `ready`; the queue view shows ready and not-ready side by side and hides
-  nothing. A second way to group the whole board is fine — hiding cards is not.
+  nothing. It is a second way to group the whole board, not a filter.
+
+## The release dropdown
+
+- **Does picking a release hide the other releases' cards?**: Yes. The dropdown filters —
+  you see one release at a time, with an All releases entry to get the whole board back. A
+  dropdown that hides nothing does nothing.
+- This is the one place the board hides a card, and it takes a deliberate pick to do it.
+  Layouts still hide nothing: the queue view regroups the whole board, and All releases is
+  the default.
+- **Does picking a release also filter the blockers?**: No. Every blocker stays on screen
+  whatever release is picked, in both views. The blockers track exists so a blocker is never
+  out of sight, and a blocker at `next` is usually blocking the version being planned.
 
 ## The memory view
 

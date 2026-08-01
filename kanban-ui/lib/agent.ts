@@ -326,6 +326,12 @@ const BOLDNESS_LINE: Record<Boldness, string> = {
   bold: `Boldness: **bold** (see "Boldness" in references/propose.md) — each of the 3 is a big leap: a whole new capability for the module, usually broad enough to be a group task.`,
 };
 
+// A revision can leave the card rough — its status still short of "ready". This
+// line, appended to every prompt that revises a card (edit, resolve, create),
+// sends the same run into the auto-refine loop right then, so a touched card
+// comes back ready instead of waiting for a separate Auto-refine click.
+const AUTO_REFINE_AFTER = `Afterwards, if the card's status is not "ready", auto-refine it following \`references/auto-refine.md\`.`;
+
 export function buildPrompt(req: AgentRequest): string {
   const tag = req.id ? `#${req.id}` : "";
   const named = req.title ? `${tag} ("${req.title}")` : tag;
@@ -358,12 +364,14 @@ export function buildPrompt(req: AgentRequest): string {
         `/kanban. Revise task ${req.id} ${named}: "${req.notes || ""}".`,
         `Only revise the card — don't implement it, and don't archive, or reject it.`,
         `You can create new subtasks if it's a group task and the intent is to do so.`,
+        AUTO_REFINE_AFTER,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(" ");
     case "create":
       return [
         `/kanban. Add task(s) from this requirement: "${req.description || ""}".`,
         `Follow the skill's add-task flow. Create task only, don't implement it.`,
+        AUTO_REFINE_AFTER,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ]
         .filter(Boolean)
@@ -398,6 +406,7 @@ export function buildPrompt(req: AgentRequest): string {
           ? `Then, if resolving settles every question and nothing genuine is left for me to decide, go straight on to implementing the task — one continuous session. But if any real judgment call stays open, stop there and report it: don't implement on a guess.`
           : "",
         req.notes ? `Extra notes: ${req.notes}` : "",
+        AUTO_REFINE_AFTER,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ]
         .filter(Boolean)

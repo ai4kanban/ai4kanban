@@ -10,6 +10,8 @@
 //   update  — rewrite a card's frontmatter fields (priority/roi/links/status/release, move track, rename)
 //   update-questions — patch the open-question list in place (append/update/drop/clear)
 //   tag     — set/clear the [user] tag on one open question (auto-refine triage)
+//   release — add a release to docs/kanban/releases.md, list them with what each holds, or
+//             close one: summary written, leftovers back to `next`, line off the list
 //   migrate — convert old bold-header cards to the frontmatter meta format
 //   archive — move a finished task's file/folder into docs/kanban/.archive/, strip its
 //             README entry, drop its id from other cards' blocked_by/related, record "completed"
@@ -37,6 +39,9 @@
 //   node kanban.mjs update <id> [opts]                  rewrite a card's frontmatter fields / move / rename
 //   node kanban.mjs update-questions <id> [ops]         patch the open-question list (append/update/drop/clear)
 //   node kanban.mjs tag <id> <n[,n...]> <user|none>    set/clear the tag on one or more open questions
+//   node kanban.mjs release new <id>                   add a release to docs/kanban/releases.md
+//   node kanban.mjs release list                       the releases in ship order + what each holds
+//   node kanban.mjs release close <id>                 close a shipped release: summary + leftovers to `next`
 //   node kanban.mjs migrate [--dry-run]                 convert old bold-header cards to frontmatter
 //   node kanban.mjs archive <id>                        finish task <id> (move card to .archive/ + README + metric)
 //   node kanban.mjs reject  <id>                        reject task <id> (delete card + README + metric)
@@ -52,6 +57,7 @@ import { cmdInit, cmdMemoryInit } from './commands/init.mjs'
 import { cmdCreate, cmdUpdate, cmdUpdateQuestions, cmdTag } from './commands/card.mjs'
 import { cmdRemove } from './commands/remove.mjs'
 import { cmdMigrate, cmdRun } from './commands/misc.mjs'
+import { cmdRelease } from './commands/release.mjs'
 import { cmdSetupDone, cmdSetupStatus } from './commands/setup.mjs'
 
 // Released version of the skill. Do NOT hand-edit — it's stamped from the repo's root
@@ -88,6 +94,8 @@ function main() {
       return cmdUpdateQuestions(rest)
     case 'tag':
       return cmdTag(rest)
+    case 'release':
+      return cmdRelease(rest)
     case 'migrate':
       return cmdMigrate(rest)
     case 'archive':
@@ -119,15 +127,15 @@ function main() {
   }
 }
 
-const COMMANDS = ['init', 'memory-init', 'setup-done', 'setup-status', 'create', 'update', 'update-questions', 'tag', 'migrate', 'archive', 'reject', 'run', 'peek', 'version', 'metrics', 'help']
+const COMMANDS = ['init', 'memory-init', 'setup-done', 'setup-status', 'create', 'update', 'update-questions', 'tag', 'release', 'migrate', 'archive', 'reject', 'run', 'peek', 'version', 'metrics', 'help']
 
 const HELP = `kanban — the only sanctioned writer of docs/kanban/next-id.
 
 Usage: node ${rel(SELF)} <command> [args]
 
   init [track...]      scaffold docs/kanban/ (folders, the project-wide memory set in memory/, and a blank
-                       config.md); tracks default to feature bug research. On an existing
-                       board it only adds config.md if it's missing (safe to re-run).
+                       config.md, releases.md); tracks default to feature bug research. On an
+                       existing board it only adds the files that are missing (safe to re-run).
   memory-init <module> lazily scaffold docs/kanban/memory/<module>/ with the four-file set
                        (readme, decisions, redesign, rejected — goal.md lives only at the
                        board root). Idempotent — run it before the first write to a
@@ -173,6 +181,25 @@ Usage: node ${rel(SELF)} <command> [args]
                        before them, same as create's --question. A question may
                        carry a leading [user] tag marking it as the human's
                        judgment call.
+  release new <id>     add a release to the end of docs/kanban/releases.md (the open
+                       releases, in the order they ship). A version id is free text
+                       (v1, 0.5.0, august), kept as typed, and has to work as a
+                       filename — letters, numbers, dot, dash, underscore. Refused: an
+                       empty id, one already on the list, and \`next\` — that name is
+                       where a card with no release sits, always last and never written
+                       down.
+  release list         the releases in ship order, each with how many open cards name it
+                       and how many of those are ready to build; \`next\` last. Names any
+                       card pointing at a release that is not on the list.
+  release close <id>   the version shipped: write what it held to
+                       docs/kanban/.release-summaries/<id>.md (what shipped, from the
+                       archived cards naming it; what didn't, from the open ones), send
+                       every card still open in it back to \`next\`, and take its line off
+                       the list. Always allowed, whatever is still open. There is no
+                       second run — afterwards the id is unknown and no card names it.
+                       A card with every todo ticked but never archived counts as not
+                       shipped; the close names it so you can archive it and fix that
+                       one line by hand.
   tag <id> <n[,n...]> <t>  set the tag on one or more open questions (1-based, e.g.
                        1 or 1,2,3): user | none (none strips it). Used by the
                        auto-refine loop to hand questions to the human without

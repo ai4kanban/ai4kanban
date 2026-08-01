@@ -10,6 +10,8 @@
 // command that prints plain text, or a stray CLI warning, still lands in the
 // log as-is.
 
+import type { TokenUsage } from "./types";
+
 export interface StreamRenderer {
   /** Feed a chunk of stdout; returns the log text it renders to (may be ""). */
   push(chunk: string): string;
@@ -22,6 +24,11 @@ export interface StreamRenderer {
    *  prices — not a bill (task #90). Only harnesses whose output reports a cost
    *  implement this; the rest leave it out and the UI shows no number. */
   costUsd?(): number | undefined;
+  /** The tokens the run consumed, once the `result` event has reported them —
+   *  fresh input, cache writes, cache reads, and output, the same counts the
+   *  cost above is worked out from. Only harnesses whose output reports usage
+   *  implement this; the rest leave it out and the UI shows no numbers. */
+  usage?(): TokenUsage | undefined;
   /** The model id this run is working with, as the agent itself named it (task
    *  #98) — never the model setting, which most people leave empty. The FIRST id
    *  the output names wins: that is the model the run started on, and a run that
@@ -71,6 +78,7 @@ export function createStreamRenderer(): StreamRenderer {
   let final: string | undefined;
   let cost: number | undefined;
   let model: string | undefined;
+  let usage: TokenUsage | undefined;
 
   const renderLine = (line: string): string => {
     if (!line.trim()) return "";
@@ -111,6 +119,25 @@ export function createStreamRenderer(): StreamRenderer {
         if (typeof ev.total_cost_usd === "number" && Number.isFinite(ev.total_cost_usd) && ev.total_cost_usd > 0) {
           cost = ev.total_cost_usd;
         }
+        // The same event carries the token counts the cost was worked out from:
+        // `usage.input_tokens` and friends, totals for the whole run. All-zero
+        // counts read as "reported nothing" — no numbers over four zeros.
+        {
+          const u = ev.usage as Record<string, unknown> | undefined;
+          const n = (v: unknown) =>
+            typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
+          if (u && typeof u === "object") {
+            const parsed: TokenUsage = {
+              input: n(u.input_tokens),
+              cacheCreation: n(u.cache_creation_input_tokens),
+              cacheRead: n(u.cache_read_input_tokens),
+              output: n(u.output_tokens),
+            };
+            if (parsed.input + parsed.cacheCreation + parsed.cacheRead + parsed.output > 0) {
+              usage = parsed;
+            }
+          }
+        }
         return "";
       default:
         // system/init banners and tool results are noise in a tail.
@@ -132,6 +159,7 @@ export function createStreamRenderer(): StreamRenderer {
     },
     result: () => final,
     costUsd: () => cost,
+    usage: () => usage,
     model: () => model,
   };
 }

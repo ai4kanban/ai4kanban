@@ -108,7 +108,13 @@ Drive it in plain language — the skill triggers on these:
 | "refine #4" | reviews card #4 and makes it one step more concrete |
 | "resolve #4" | works through card #4's open questions with you |
 | "review the board" | checks cards for clarity, duplication, done-ness |
+| "create release v1" | plans a version, then "put #4 in v1" and "what's in v1?" |
 | "#4 is done" | updates the docs the change touched, removes the card |
+
+Planning a version is optional. Create a release, put the cards you promised into it, and
+ask what's in it — you get each release in ship order with how many cards it holds and how
+many are ready to build. Cards you don't place sit at `next`: wanted, not promised to a
+version.
 
 This repo uses the skill on itself: `docs/kanban/` is a real board tracking the skill's
 own development, so you can see exactly what a filled-in setup looks like.

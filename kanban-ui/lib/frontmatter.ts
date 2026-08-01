@@ -4,19 +4,17 @@
 // only rewrites these validated fields, and only for cards that already exist.
 
 import { hasOptions, type CardQuestion, type QuestionMode } from "./questions";
-import type { CardMeta, CardStatus } from "./types";
+import { DEFAULT_RELEASE, type CardMeta, type CardStatus } from "./types";
 
 const STATUSES: CardStatus[] = ["todo", "ready", "implementing"];
 
 const MODES: QuestionMode[] = ["single", "multi"];
 
-const DEFAULT_RELEASE = "next";
-
 // A version id is free text (`v1`, `0.5.0`, `august`) kept exactly as typed minus the
 // spaces at each end, its case untouched. Missing, empty or damaged reads as `next`, so a
 // card written before this field still opens. Ported from normalizeRelease in
 // skill/lib/validate.mjs.
-function normalizeRelease(raw: unknown): string {
+export function normalizeRelease(raw: unknown): string {
   if (raw === undefined || raw === null || typeof raw === "object") return DEFAULT_RELEASE;
   if (typeof raw === "boolean") return DEFAULT_RELEASE;
   const v = String(raw).trim();
@@ -112,8 +110,9 @@ export function serializeFrontmatter(m: CardMeta): string {
   out.push(`priority: ${m.priority}`);
   out.push(`roi: ${m.roi}`);
   out.push(`status: ${STATUSES.includes(m.status) ? m.status : "todo"}`);
-  // Written back even though nothing here sets it: an edit made in the UI must not drop
-  // the release someone picked in the terminal.
+  // Normalized on the way out as well as in, so an edit that never touches the field can't
+  // drop a release someone picked in the terminal, and a hand-written one is tidied to the
+  // form the script writes.
   out.push(`release: ${yamlScalar(normalizeRelease(m.release))}`);
   out.push(`blocked_by: [${(m.blocked_by || []).join(", ")}]`);
   out.push(`related: [${(m.related || []).join(", ")}]`);

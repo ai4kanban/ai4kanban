@@ -12,6 +12,7 @@ import { parseFlags, slugify, validLevel, validStatus, validTrack, validModules,
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, parseQuestionOps, parseQuestionPositions } from '../lib/questions.mjs'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter.mjs'
 import { locate, enclosingGroupRoot } from '../lib/cards.mjs'
+import { validRelease } from '../lib/releases.mjs'
 import { readmeHeadingFor, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme.mjs'
 import { reconcileBoard } from '../lib/reconcile.mjs'
 
@@ -69,8 +70,9 @@ export function cmdCreate(args) {
   validLevel(priority, 'priority')
   const roi = flags.roi !== undefined ? String(flags.roi) : 'med'
   validLevel(roi, 'roi')
-  // No --release means `next`: the card is wanted, not promised to a version.
-  const release = normalizeRelease(flags.release)
+  // No --release means `next`: the card is wanted, not promised to a version. Any other
+  // value has to name a release on the list — a typo must not invent a version.
+  const release = validRelease(normalizeRelease(flags.release))
   const start = readNextId()
   const blocked_by = flags['blocked-by'] !== undefined ? parseIdList(flags['blocked-by'], 'blocked-by', start) : []
   const related = flags.related !== undefined ? parseIdList(flags.related, 'related', start) : []
@@ -135,7 +137,7 @@ export function cmdUpdate(args) {
   }
   // `--release next` — or an empty value — takes the card back out of a version.
   if (flags.release !== undefined) {
-    meta.release = normalizeRelease(flags.release)
+    meta.release = validRelease(normalizeRelease(flags.release))
     changes.push(`release→${meta.release}`)
   }
   const ceiling = readNextId()

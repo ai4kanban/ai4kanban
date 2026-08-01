@@ -1,9 +1,9 @@
 "use client";
 
-import { FiBox, FiCheckCircle, FiChevronDown, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiUser } from "react-icons/fi";
+import { FiBox, FiCheckCircle, FiChevronDown, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import type { QuestionTag } from "@/lib/questions";
-import type { CardStatus } from "@/lib/types";
+import { DEFAULT_RELEASE, type CardStatus } from "@/lib/types";
 
 // Meaning-coded chips + level selects, all built from the design language's
 // borderless pill and quiet select. Priority/roi map onto the signal pastels.
@@ -201,6 +201,82 @@ export function ModuleChip({ module }: { module: string }) {
     >
       <FiBox aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
       {module}
+    </span>
+  );
+}
+
+// Release — the version this card ships in (#105). A tag icon, since a release
+// is a name pinned on the work rather than a kind of work (the track) or a part
+// of the product (the module). `next` is where a card with no release sits, so
+// it wears the quiet wash instead of the sky fill a promised version gets: a
+// board full of unplanned cards stays calm, and the ones in this version stand
+// out. It always says something — never a blank space — so an unplanned card
+// reads as unplanned rather than as a card the board forgot.
+export function ReleaseChip({ release }: { release: string }) {
+  const planned = release !== DEFAULT_RELEASE;
+  return (
+    <span
+      className="nb-chip"
+      style={{
+        background: planned ? "var(--color-nb-sky-soft)" : "var(--color-nb-wash)",
+        color: planned ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
+      }}
+    >
+      <FiTag aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+      {release}
+    </span>
+  );
+}
+
+// The card page's release picker — the ReleaseChip above, made pickable the way
+// LevelSelect makes the priority chip pickable. The options are the open
+// releases plus `next` last, and nothing can be typed, so a version id can't be
+// misspelled into existence; making a release stays a CLI job.
+//
+// `releases` is the list as it is right now. A card can name a version that is no
+// longer on it — the list is a file a person edits — so that value is kept as a
+// first option and the card goes on saying what it says. Re-picking it is a
+// no-op (same value, no change event), which is exactly right: the card is
+// already there, and the only move on offer is onto a release that exists.
+export function ReleaseSelect({
+  value,
+  releases,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  releases: string[];
+  disabled?: boolean;
+  onChange: (v: string) => void;
+}) {
+  const planned = value !== DEFAULT_RELEASE;
+  const stale = planned && !releases.includes(value);
+  return (
+    <span
+      className="nb-levelselect"
+      style={{
+        background: planned ? "var(--color-nb-sky-soft)" : "var(--color-nb-wash)",
+        color: planned ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
+      }}
+    >
+      <FiTag aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto", marginLeft: 7 }} />
+      {/* the icon already carries the chip's left inset, so the select drops its own */}
+      <select
+        style={{ paddingLeft: 4 }}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {stale && <option value={value}>{value} — not on the list</option>}
+        {releases.map((r) => (
+          <option key={r} value={r}>
+            {r}
+          </option>
+        ))}
+        <option value={DEFAULT_RELEASE}>{DEFAULT_RELEASE}</option>
+      </select>
+      <FiChevronDown aria-hidden style={{ width: 10, height: 10 }} />
     </span>
   );
 }

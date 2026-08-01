@@ -66,6 +66,9 @@ export function archivePath(): string {
 export function modulesPath(): string {
   return path.join(kanbanDir(), "modules.md");
 }
+export function releasesPath(): string {
+  return path.join(kanbanDir(), "releases.md");
+}
 export function uiConfigPath(): string {
   return path.join(kanbanDir(), "ui.config.json");
 }

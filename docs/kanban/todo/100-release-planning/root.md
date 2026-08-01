@@ -4,8 +4,9 @@ track: features
 priority: med
 roi: high
 status: ready
+release: next
 blocked_by: []
-related: [102, 103, 104, 105, 106]
+related: [104, 106, 114]
 modules: [skill, local-ui]
 questions: []
 ---
@@ -29,10 +30,13 @@ This is a group task; each piece is its own subtask in this folder.
 - A card names the release it ships in. A card that names none reads as `next`: wanted, not
   promised to a version. Shipped.
 - A release is a real thing on the board — a version id, a place that says what is in it,
-  and an order (#102).
-- Closing a release is the user's call, not something that happens on its own. The cards
-  still open in it move to the release after it, so nothing is dropped (#103).
-- A card's release can be changed from the UI, the way its priority can (#105).
+  and an order. Shipped.
+- Closing a release is the user's call, not something that happens on its own. The close
+  writes down what shipped, sends the cards still open back to `next`, and takes the
+  release off the list. Shipped.
+- A card's release can be changed from the UI, the way its priority can. Shipped.
+- Several cards can be ticked and moved into a release, or back out to `next`, in one
+  action (#114).
 - Board and queue view get one dropdown: which release am I looking at (#104).
 - A group root shows under a release when the root or any of its subtasks names it. Neither
   view draws a subtask, so hiding the root would hide every subtask planned for that
@@ -41,22 +45,25 @@ This is a group task; each piece is its own subtask in this folder.
   is not off the screen the moment it is written (#104).
 - Filling a release card by card is slow, so the agent can do the first pass: put the
   urgent, short-term work into the release and leave the rest at `next` (#106).
-- Order: the `release` field on a card came first — every other piece is about that field,
-  and it has shipped. #102 next, because a release has to exist before anything can point
-  at one. #103 needs only #102 and can land
-  any time after it; nothing waits on it. Then #105, because a release has to be filled
-  before looking at one release at a time means anything, and it is where the UI first
-  reads the release list. #104 after #105, on that same list. #106 last: the action that
-  starts it sits on the release #104 shows.
-- Out of this group: release notes or a changelog of what a closed release shipped, dates
-  and deadlines on a release, and telling people about any of it on the site.
+- Order: the `release` field on a card came first — every other piece is about that field.
+  Then the release list itself, because a release has to exist before anything can point
+  at one. Then the close, which nothing waited on. Then setting a card's release from the
+  UI, because a release has to be filled before looking at one release at a time means
+  anything, and it is where the UI first reads the release list. Those four have shipped.
+  #104 next, on that same list. #114 needs nothing more and can land any time. #106 last:
+  the action that starts it sits on the release #104 shows.
+- Out of this group: a changelog — the close leaves a list of the cards that shipped,
+  but not every change goes through the board, so a changelog stays a person's job.
+  Also out: dates and deadlines on a release, and telling people about any of it on the
+  site.
 
 ## Todo
 - [x] Say which release a card ships in #101
-- [ ] Create a release and see what is in it #102
-- [ ] Close a release and move the undone cards to the next one #103
-- [ ] Set a card's release from the UI #105
+- [x] Create a release and see what is in it #102
+- [x] Close a release, write down what shipped, and send the rest back to next #103
+- [x] Set a card's release from the UI #105
 - [ ] Pick which release the board and queue view show #104
+- [ ] Move several cards into a release at once #114
 - [ ] Fill a release with the urgent work in one go #106
 
 ## Decided by the agent
@@ -68,9 +75,14 @@ This is a group task; each piece is its own subtask in this folder.
 - **A version id is free text.** `v1`, `0.5.0`, `august` — the board never parses it. The
   order releases come in is the order they are written down, not something derived from the
   id.
-- **A closed release is not a changelog.** Archiving a card takes it off the board as it
-  always has. A release holds open work, and closing one says the plan is done, not what
-  shipped.
+- **A closed release leaves the board.** Git already keeps the past: a tag names every
+  version, and the release page serves it. A team plans a release or two ahead of where it
+  is, so `releases.md` holds a line or two — closing removes the line instead of letting
+  hundreds pile up.
+- **The close writes a summary, not a changelog.** Not every change goes through the
+  board, so only a person can say what a version changed. What the board can say is which
+  of its cards shipped, and it writes that list to `docs/kanban/.release-summaries/` on
+  close. A changelog, if anyone writes one, starts from there.
 - **A group root answers for its subtasks.** A subtask carries its own release but
   never shows as a board card — the root is the only card either view draws. So the root has
   to stand for the whole group, the way it already stands for a blocker sitting inside it
@@ -78,7 +90,9 @@ This is a group task; each piece is its own subtask in this folder.
 - **A new card follows the release on screen.** The other option is landing every new card
   in `next`, out of sight of the person who just wrote it. Propose is different: it offers
   work nobody has planned, so its cards stay at `next`.
-- **One piece owns each job, so no two repeat it.** The field work keeps the local UI from
-  wiping a release it does not yet show; showing and picking one is #105. The field on a
-  card is documented already, #102 documents what a release is and where the list lives.
-  #105 is where the UI reads the release list, and #104 uses that same list.
+- **One piece owns each job, so no two repeat it.** The field work kept the local UI from
+  wiping a release it did not yet show; showing and picking one on a card shipped after it.
+  The field on a card is documented already, and so is what a release is and where the list
+  lives. The card page is where the UI reads the release list, and #104 and #114 use that
+  same list. The card page moves one card, #114 moves the cards the user picked, #106 picks
+  the cards itself.

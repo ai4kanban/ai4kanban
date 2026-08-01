@@ -18,8 +18,9 @@ It does the whole mechanical part:
 
 - overwrites every skill folder it finds — `.claude/skills/kanban/` (Claude Code) and
   `.agents/skills/kanban/` (Codex) — with the new version, wholesale,
-- adds what an older version never wrote: `config.md`, `modules.md`, a memory path for
-  every module on the map, the goal's `reviewed:` field,
+- adds what an older version never wrote: `config.md`, `modules.md`, `releases.md` (empty —
+  the board never guesses a ship order), a memory path for every module on the map, the
+  goal's `reviewed:` field,
 - moves a memory set still sitting at the board root into `docs/kanban/memory/`,
 - drops a leftover `docs/kanban/memory/<module>/goal.md` that says nothing the root goal
   doesn't (the goal lives at `docs/kanban/memory/goal.md` only),

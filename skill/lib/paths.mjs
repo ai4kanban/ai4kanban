@@ -23,6 +23,12 @@ export const README = path.join(TODO, 'README.md')
 export const METRICS = path.join(KANBAN, 'metrics.csv')
 export const MODULES_MD = path.join(KANBAN, 'modules.md')
 export const CONFIG = path.join(KANBAN, 'config.md')
+// The open releases, in the order they ship — one line each. A board that never plans a
+// version still works: no file means no releases yet (see lib/releases.mjs).
+export const RELEASES = path.join(KANBAN, 'releases.md')
+// What a closed release left behind, one file per version id. Closing takes the release
+// off the list, so this folder is the only record of what the version was meant to hold.
+export const RELEASE_SUMMARIES = path.join(KANBAN, '.release-summaries')
 // Setup's own checklist. Its presence is the flag: it exists while setup is unfinished,
 // and the tick that closes the last box deletes it. A board with no file is a board that
 // is set up — which is why boards made before this file existed stay quiet.

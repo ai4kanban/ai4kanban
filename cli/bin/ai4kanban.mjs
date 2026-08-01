@@ -167,8 +167,8 @@ function repairBoard(skillDir, root) {
   moveLegacyMemory(board)
   sayDid()
   // `init` on an existing board is the repair step: it adds what an older version never
-  // wrote (config.md, modules.md, the memory paths, the goal's `reviewed:` field) and never
-  // touches a file that's already filled in.
+  // wrote (config.md, modules.md, releases.md, the memory paths, the goal's `reviewed:`
+  // field) and never touches a file that's already filled in.
   runKanban(skillDir, root, ['init'])
   dropModuleGoals(board)
   checkConfig(board)

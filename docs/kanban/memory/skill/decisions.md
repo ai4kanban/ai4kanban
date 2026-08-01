@@ -92,6 +92,26 @@ re-ask a settled call.
   the choices inside it keeps working and renders as a plain question. The agent never
   rewrites it, and no card is migrated — both shapes live side by side.
 
+## Releases
+
+- **Can a release be closed while cards in it are still open?**: yes, always — a version
+  ships when the user says it ships. The open cards go back to `next`; they are never moved
+  into the release after it.
+- **Where do the releases live?**: one line each in `docs/kanban/releases.md`, in the order
+  they ship. The file holds only what is still ahead, so it stays a line or two long — short
+  enough that reordering and renaming are hand edits, not commands.
+- **What is a version id allowed to be?**: letters, numbers, dot, dash and underscore, kept
+  as typed — closing a release writes a file named after it. `next` is not a version id: it
+  is where a card with no release sits, always last, and never written in the file.
+- **What if a card names a release that is not on the list?**: the card keeps it and
+  `release list` names the id, so it can be put back or the cards moved. The board never
+  clears the field and never refuses to run over it. Setting a release the list doesn't have
+  is still an error — a typo must not invent a version.
+- **What does the agent put in a release when it fills one?**: the cards at `next` that are
+  high priority, have nothing open blocking them, and are not a group root. It never reads a
+  card to judge how big it is — a plain rule the user can predict beats a smarter one they
+  have to check.
+
 ## Installing and updating
 
 - **Which GitHub repo is ours?**: `ai4kanban/ai4kanban`. The project moved off

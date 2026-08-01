@@ -23,3 +23,4 @@ covers it, or a plain-words note.
 - Start the UI where there is no board and the page says there is no board here, names the folder it searched, and gives what to run for both causes — instead of a crash screen: `kanban-ui/README.md`.
 - Stop a running run from the ✕ in the log window's title bar, with one confirmation, instead of hunting down the process in a terminal: `kanban-ui/README.md`.
 - One bar shows how far setup got and hands over the line to paste into your coding agent, until setup's last box is ticked; a goal judged weak later brings the same bar back with just that item: `kanban-ui/README.md`.
+- Move a card into a release, or back out to `next`, by picking from the open releases on the card page — no terminal, and no version id to type: `kanban-ui/README.md`.

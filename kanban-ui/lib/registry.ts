@@ -14,7 +14,7 @@ import {
 import { allCards, findCard } from "./board";
 import { kanbanDir, repoRoot } from "./paths";
 import type { StreamRenderer } from "./stream";
-import type { AgentAction, CardStatus, SessionView } from "./types";
+import type { AgentAction, CardStatus, SessionView, TokenUsage } from "./types";
 
 // The server-side session registry. One local UI server = one process, so this
 // in-memory map is shared by every browser tab: a tab that refreshes, or a
@@ -131,6 +131,11 @@ const COST_MARKER = "<<<kanban:cost>>>";
 // recovers it from there. Stripped back out before the log is shown.
 const MODEL_MARKER = "<<<kanban:model>>>";
 
+// What the run consumed in tokens, stamped the same way and for the same reason
+// (`<marker> {"input":10,...}` — the TokenUsage object as JSON). The counts the
+// cost above was worked out from, shown at the end of the intermediate events.
+const USAGE_MARKER = "<<<kanban:usage>>>";
+
 function durationLine(session: Session, endedAt: number): string {
   return `\n${DURATION_MARKER} ${Math.max(0, endedAt - session.startedAt)}\n`;
 }
@@ -141,6 +146,28 @@ function costLine(costUsd: number): string {
 
 function modelLine(model: string): string {
   return `${MODEL_MARKER} ${model}\n`;
+}
+
+function usageLine(usage: TokenUsage): string {
+  return `${USAGE_MARKER} ${JSON.stringify(usage)}\n`;
+}
+
+// A TokenUsage read back from somewhere untrusted — .sessions.json or a log
+// stamp. All four counts or nothing: a partial object shows no numbers rather
+// than zeros it didn't earn.
+function asUsage(v: unknown): TokenUsage | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const o = v as Record<string, unknown>;
+  const nums = [o.input, o.cacheCreation, o.cacheRead, o.output];
+  if (!nums.every((n) => typeof n === "number" && Number.isFinite(n) && n >= 0)) {
+    return undefined;
+  }
+  return {
+    input: o.input as number,
+    cacheCreation: o.cacheCreation as number,
+    cacheRead: o.cacheRead as number,
+    output: o.output as number,
+  };
 }
 
 // Same line, for the paths that don't own the log's write stream (a session
@@ -188,6 +215,10 @@ interface Session {
   // for a run that reported none (still live, cut off before it finished, an
   // agent command that says nothing about cost, or a run from before #90).
   costUsd?: number;
+  // The tokens the run consumed, as its own output counted them at close — the
+  // numbers the cost above comes from. Unset for a run that reported none, like
+  // the cost.
+  usage?: TokenUsage;
   // The model that did the work, as the run's own output named it — caught the
   // moment the agent says it (its opening banner), not read off the model
   // setting, which is empty for most people and belongs to today rather than to
@@ -326,6 +357,7 @@ function persist(s: RegistryState): void {
     code: r.code,
     error: r.error,
     costUsd: r.costUsd,
+    usage: r.usage,
     model: r.model,
     logPath: r.logPath,
   }));
@@ -405,6 +437,8 @@ function adoptFromDisk(s: RegistryState): void {
       // A run saved before #90, or one that never reported a cost, has no number
       // here — and shows none, rather than a zero it didn't earn.
       costUsd: typeof d.costUsd === "number" && d.costUsd > 0 ? d.costUsd : undefined,
+      // And its token counts, all four or none — same rule as the cost.
+      usage: asUsage(d.usage),
       // Same for the model: a run saved before #98, or one whose agent never
       // named a model, shows none rather than today's setting.
       model: typeof d.model === "string" && d.model ? d.model : undefined,
@@ -513,15 +547,21 @@ function readLogTail(logPath: string, maxBytes = TAIL_BYTES): string | null {
 // message, so a session re-adopted after a restart folds the events away the
 // same as an in-session run. Returns just { tail } when there's no separable
 // message (a live session, or a custom command with no recognizable structure).
-function splitLogResult(
-  logText: string,
-): { tail: string; result?: string; durationMs?: number; costUsd?: number; model?: string } {
+function splitLogResult(logText: string): {
+  tail: string;
+  result?: string;
+  durationMs?: number;
+  costUsd?: number;
+  model?: string;
+  usage?: TokenUsage;
+} {
   // Pull the bookkeeping stamps out first: they're not agent output, so they must
   // not reach the view — and left in place they would land after the last tool
   // line and the legacy fallback below would read them as the final message.
   let durationMs: number | undefined;
   let costUsd: number | undefined;
   let model: string | undefined;
+  let usage: TokenUsage | undefined;
   const kept: string[] = [];
   for (const line of logText.split("\n")) {
     if (line.startsWith(DURATION_MARKER)) {
@@ -538,9 +578,30 @@ function splitLogResult(
       model = line.slice(MODEL_MARKER.length).trim() || undefined;
       continue;
     }
+    if (line.startsWith(USAGE_MARKER)) {
+      try {
+        usage = asUsage(JSON.parse(line.slice(USAGE_MARKER.length).trim()));
+      } catch {
+        // a garbled stamp shows no numbers
+      }
+      continue;
+    }
     kept.push(line);
   }
-  return { ...splitBody(kept.join("\n")), durationMs, costUsd, model };
+  return { ...splitBody(kept.join("\n")), durationMs, costUsd, model, usage };
+}
+
+// The final assistant turn is streamed into the tail as it happens, then the
+// same text arrives AGAIN as the `result` event — which the UI leads with,
+// folding the tail away as "intermediate events". A tail that still ends with
+// the final message would show it twice, so the trailing copy is cut here. The
+// log FILE keeps both on purpose: the streamed copy is part of the durable
+// event record, and the marker line already separates the two for re-reads.
+function stripTrailingResult(tail: string, result: string): string {
+  const r = result.trim();
+  const t = tail.replace(/\s+$/, "");
+  if (!r || !t.endsWith(r)) return tail;
+  return t.slice(0, t.length - r.length).replace(/\s+$/, "");
 }
 
 function splitBody(logText: string): { tail: string; result?: string } {
@@ -551,7 +612,10 @@ function splitBody(logText: string): { tail: string; result?: string } {
   if (at !== -1) {
     const tail = logText.slice(0, at).replace(/\n+$/, "");
     const result = logText.slice(at + RESULT_MARKER.length).replace(/^\n+/, "").replace(/\n+$/, "");
-    return { tail, result: result || undefined };
+    return {
+      tail: result ? stripTrailingResult(tail, result) : tail,
+      result: result || undefined,
+    };
   }
   // Fallback for pre-marker (legacy) logs. The renderer wrote every tool call as
   // a "⏺ …" line, so the closing prose after the LAST tool line is the final
@@ -999,6 +1063,13 @@ async function launch(
       session.costUsd = cost;
       log.write(costLine(cost));
     }
+    // And the token counts that cost comes from, stamped the same way for the
+    // same reason. The UI shows them at the end of the intermediate events.
+    const usage = renderer.usage?.();
+    if (usage) {
+      session.usage = usage;
+      log.write(usageLine(usage));
+    }
     // And which model did it. Already on the session (caught the moment the agent
     // named it) — this stamps it into the log so the file alone can still answer
     // once the record ages out of .sessions.json.
@@ -1010,6 +1081,11 @@ async function launch(
     const final = renderer.result();
     if (final) {
       session.result = final;
+      // The tail already streamed this same text as the last assistant turn —
+      // drop that trailing copy so the folded events don't repeat the message
+      // the UI leads with. The log file keeps the full stream; only the
+      // in-memory tail the view reads is trimmed.
+      session.tail = stripTrailingResult(session.tail, final);
       log.write(`\n${RESULT_MARKER}\n${final}\n`);
     }
     log.end();
@@ -1093,6 +1169,9 @@ function toView(r: Session, withTail: boolean, resumable: string | null): Sessio
     // number arrives with the agent's closing event — and a run that never
     // reported one shows nothing at all.
     costUsd: r.status !== "running" ? r.costUsd : undefined,
+    // The token counts behind that cost — same terms: terminal sessions only,
+    // and a run that reported none shows nothing.
+    usage: r.status !== "running" ? r.usage : undefined,
     // Which model is doing the work. Unlike the duration and the cost, this one
     // shows on a LIVE run too: the agent names it in its first seconds, and
     // seeing what a run is using while it goes is the point.
@@ -1150,7 +1229,7 @@ export function getSession(sessionId: string): SessionView | null {
     // recover it from the marker in the log so the UI folds the events away, the
     // same as an in-session run. A live session has no marker yet, so this is a
     // no-op.
-    const { tail, result, durationMs, costUsd, model } = splitLogResult(raw);
+    const { tail, result, durationMs, costUsd, model, usage } = splitLogResult(raw);
     view.tail = tail;
     if (result && r.status !== "running") view.result = result;
     // The registry's own timestamps win when it has them; the stamp in the log is
@@ -1162,6 +1241,10 @@ export function getSession(sessionId: string): SessionView | null {
     // after a restart.
     if (view.costUsd === undefined && costUsd !== undefined && r.status !== "running") {
       view.costUsd = costUsd;
+    }
+    // And for the token counts, stamped and recovered alongside it.
+    if (view.usage === undefined && usage !== undefined && r.status !== "running") {
+      view.usage = usage;
     }
     // Same again for the model. No `running` guard here: the stamp is only ever
     // written at close, so a live run can't have one to recover.

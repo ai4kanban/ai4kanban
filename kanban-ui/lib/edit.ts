@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { parseFrontmatter, serializeFrontmatter } from "./frontmatter";
+import { normalizeRelease, parseFrontmatter, serializeFrontmatter } from "./frontmatter";
 import { readmePath, todoDir } from "./paths";
+import { readReleases } from "./releases";
+import { DEFAULT_RELEASE } from "./types";
 
 const LEVELS = ["high", "med", "low"];
 
@@ -43,6 +45,9 @@ export interface CardPatch {
   body?: string;
   priority?: string;
   roi?: string;
+  /** A version id from `releases.md`, or `next` to take the card out of a
+   *  release. Nothing else is accepted — see patchCard. */
+  release?: string;
 }
 
 export interface PatchResult {
@@ -50,7 +55,7 @@ export interface PatchResult {
   error?: string;
 }
 
-// Apply a direct edit to a card file. Only the four validated fields are
+// Apply a direct edit to a card file. Only the five validated fields are
 // writable here — everything else (track, id, links, questions) stays with the
 // agents and the script. Frontmatter is re-serialized with the script's exact
 // formatter so the diff is minimal and the script can still read the card.
@@ -78,6 +83,26 @@ export function patchCard(id: number, patch: CardPatch): PatchResult {
     if (!LEVELS.includes(patch.roi))
       return { ok: false, error: `roi must be one of ${LEVELS.join(" | ")}` };
     meta.roi = patch.roi;
+  }
+  // A card can only be moved onto a release that exists, the same check the
+  // script makes — a typo must not quietly invent a version. `next` is always
+  // allowed and never on the list: it is where a card with no release sits, so
+  // picking it is how a card comes back out of a release. The card's OWN release
+  // isn't accepted just because the card names it: `releases.md` is a file a
+  // person edits, and a card left pointing at a line someone deleted still shows
+  // what it says but can only move onto a release that is really there.
+  if (patch.release !== undefined) {
+    const release = normalizeRelease(patch.release);
+    const known = readReleases();
+    if (release !== DEFAULT_RELEASE && !known.includes(release)) {
+      return {
+        ok: false,
+        error:
+          `unknown release "${release}" — releases on the list: ` +
+          `${known.join(", ") || "(none)"}. Make one with \`release new <id>\`.`,
+      };
+    }
+    meta.release = release;
   }
 
   const newBody = patch.body !== undefined ? patch.body : body;

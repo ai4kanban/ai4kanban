@@ -19,7 +19,7 @@ import {
 } from "react-icons/fi";
 import { patchCardAction } from "@/app/actions";
 import type { CardPatch } from "@/lib/edit";
-import type { AgentInfo, Card, SessionView } from "@/lib/types";
+import { DEFAULT_RELEASE, type AgentInfo, type Card, type SessionView } from "@/lib/types";
 import { Button } from "./button";
 import { Header } from "./Header";
 import {
@@ -30,7 +30,15 @@ import {
   RunningBadge,
   SessionLog,
 } from "./agent-shared";
-import { LevelSelect, ModuleChip, QuestionTagBadge, StatusPill, TodoProgress, TrackChip } from "./chips";
+import {
+  LevelSelect,
+  ModuleChip,
+  QuestionTagBadge,
+  ReleaseSelect,
+  StatusPill,
+  TodoProgress,
+  TrackChip,
+} from "./chips";
 import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
 import { canRefine } from "@/lib/refine";
 import { Markdown } from "./Markdown";
@@ -125,6 +133,7 @@ function MetaItem({ label, children }: { label: string; children: React.ReactNod
 export function CardPage({
   card,
   openIds,
+  releases,
   agent,
   projectRoot,
   autoRefine,
@@ -132,6 +141,7 @@ export function CardPage({
 }: {
   card: Card;
   openIds: number[];
+  releases: string[];
   agent: AgentInfo;
   projectRoot: string;
   autoRefine: boolean;
@@ -350,6 +360,22 @@ export function CardPage({
                   <ModuleChip key={m} module={m} />
                 ))}
               </span>
+            </MetaItem>
+          )}
+
+          {/* Release (#105) — the version this card ships in, picked from the
+              open releases plus `next`. A board that plans no versions says
+              nothing about them at all, so the column is gone rather than
+              stuck on `next`; a card left pointing at a release someone deleted
+              from the list still shows its own value, so nothing goes quiet. */}
+          {(releases.length > 0 || card.release !== DEFAULT_RELEASE) && (
+            <MetaItem label="Release">
+              <ReleaseSelect
+                value={card.release}
+                releases={releases}
+                disabled={busy}
+                onChange={(v) => patchCard(card.id, { release: v })}
+              />
             </MetaItem>
           )}
 

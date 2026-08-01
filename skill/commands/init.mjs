@@ -6,9 +6,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, warn, rel, writeNextId, SKILL_DIR, KANBAN, TODO, README, CONFIG, MODULES_MD, MEMORY, GOAL, SETUP_CHECKLIST } from '../lib/paths.mjs'
+import { die, warn, rel, writeNextId, SKILL_DIR, KANBAN, TODO, README, CONFIG, MODULES_MD, RELEASES, MEMORY, GOAL, SETUP_CHECKLIST } from '../lib/paths.mjs'
 import { unquote } from '../lib/yaml.mjs'
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate.mjs'
+import { writeReleasesIfMissing } from '../lib/releases.mjs'
 import { scaffoldMemoryPath, scaffoldProjectMemory } from '../lib/memory.mjs'
 import { nextSetupStep, writeSetupChecklist } from '../lib/setup.mjs'
 
@@ -79,13 +80,20 @@ export function cmdInit(args) {
   if (fs.existsSync(KANBAN)) {
     // Re-running `init` is the repair step for a board made by an older version: it adds
     // whatever that version never wrote — docs/kanban/config.md if the board predates the
-    // move out of the skill folder, modules.md if it predates the module map — and never
-    // touches either one once it's filled in.
+    // move out of the skill folder, modules.md if it predates the module map, releases.md
+    // if it predates releases — and never touches any of them once they're filled in. The
+    // release list arrives empty even when cards already name a version: reading the ids
+    // off them would invent a ship order nobody chose. `release list` names those ids
+    // instead, so the user adds back the ones they meant.
     //
     // The setup checklist is deliberately NOT among them. It is written once, by the
     // scaffold below; a board that was set up long ago has no file and must stay quiet,
     // and planting one here would tell that user to finish a setup that finished months ago.
-    const added = [writeConfigIfMissing() && rel(CONFIG), writeModulesIfMissing() && rel(MODULES_MD)].filter(Boolean)
+    const added = [
+      writeConfigIfMissing() && rel(CONFIG),
+      writeModulesIfMissing() && rel(MODULES_MD),
+      writeReleasesIfMissing() && rel(RELEASES),
+    ].filter(Boolean)
     // The project-wide memory, then every module already on the map, so a board whose map
     // is filled in is fully repaired by this one command. A map seeded blank a line above
     // names nothing yet — those paths are made once the map is written.
@@ -122,6 +130,7 @@ export function cmdInit(args) {
   scaffoldProjectMemory()
   writeConfigIfMissing()
   writeModulesIfMissing()
+  writeReleasesIfMissing()
   writeNextId(1)
   // Setup's remaining steps, written now so a user who installs and stops there still
   // opens the board onto a list of what is left instead of one that looks finished.

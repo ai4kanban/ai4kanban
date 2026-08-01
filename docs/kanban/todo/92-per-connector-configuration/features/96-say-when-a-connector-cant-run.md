@@ -18,12 +18,12 @@ run fails. Let each choice in the Configuration dialog say whether it can run.
 - A connector answers one question: can it run right now? Two things are checked — its CLI
   is installed, and, for a subscription, that CLI is logged in. `claude auth status` says
   the second and needs no key.
-- A provider that reads a key is ready when its variable is set (#94), and not ready when
-  it isn't.
+- A provider that needs a key is ready when that key is in `docs/kanban/.env` (#94), and
+  not ready when it isn't.
 - A choice that isn't ready is still shown. It is never hidden, and the board never quietly
   picks another one.
 - Beside it goes one plain line: what is missing, and the one thing that fixes it — install
-  `claude`, or run `claude auth login` in a terminal, or export the variable.
+  `claude`, or run `claude auth login` in a terminal, or add the key.
 - The check runs when the dialog opens. It never blocks the board, and a check that is slow
   or errors reads as "can't tell", not as "not ready".
 - The board never logs anyone in, never runs a login for them, and never reads their

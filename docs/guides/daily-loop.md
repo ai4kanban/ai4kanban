@@ -20,6 +20,36 @@ skill marks how clear it is in the file's frontmatter (`reviewed: strong | weak`
 either way, but proposals are guesses until you write the goal — the skill never writes
 it for you.
 
+## Plan a release
+
+A release is a version you're planning — call it `v1`, `0.5.0`, or `august`; the board
+never reads the name. Say **"create release v1"** and it joins the list in
+`docs/kanban/releases.md`, in the order it ships. Say **"put #4 in v1"** and that card
+ships in that version. A card you never place sits at `next` — wanted, but not promised to
+a version.
+
+Say **"what's in v1?"** and you get every release in ship order, each with how many cards
+it holds and how many are ready to build, `next` last. So the work you promised for this
+version sits on the same screen as the work nobody promised.
+
+Releases are optional. Nothing asks you for one, and a board that never plans a version
+works exactly as it does without them.
+
+## Close a release
+
+The version shipped. Say **"close v1"**. The skill writes what the release held to
+`docs/kanban/.release-summaries/v1.md` — what shipped, from the cards you archived while
+they named it, and what didn't — sends every card still open in it back to `next`, and
+takes the version off the list. `releases.md` only ever shows what's still ahead.
+
+You can close whenever you say the version shipped, however much is still open. Afterwards
+the id is gone: putting a card in `v1` fails like a typo, and the next version is a new
+release. A card whose todos are all ticked but which you never archived counts as not
+shipped — the skill names it so you can archive it and fix that line in the summary.
+
+The summary is a list of cards, not a changelog. Not every change goes through the board,
+so only you can say what the version changed — the summary is your source for writing that.
+
 ## Add a task
 
 Say **"add a task: <idea>"**. Before writing, the skill reviews the idea (business value,
@@ -80,6 +110,9 @@ by hand.
 
 ```bash
 node .claude/skills/kanban/kanban.mjs create [--count N]   # allocate ids
+node .claude/skills/kanban/kanban.mjs release new v1       # plan a version
+node .claude/skills/kanban/kanban.mjs release list         # what each version holds
+node .claude/skills/kanban/kanban.mjs release close v1     # the version shipped
 node .claude/skills/kanban/kanban.mjs archive <id>         # finish a task
 node .claude/skills/kanban/kanban.mjs reject  <id>         # drop an idea
 node .claude/skills/kanban/kanban.mjs peek                 # next free id

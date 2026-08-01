@@ -10,6 +10,12 @@ export type Level = "high" | "med" | "low";
  *  to it, the dialog's stepper stops at it. */
 export const MAX_PARALLEL = 5;
 
+/** Where a card with no release sits — wanted, but not promised to a version.
+ *  It is always last in a picker and is never written into `releases.md`, so it
+ *  can never be one of the ids read from that file. Both sides need it (the
+ *  card reader normalizes to it, the picker offers it), so it lives here. */
+export const DEFAULT_RELEASE = "next";
+
 /** The stage a card rests in, saved on the card so it survives a UI restart.
  *  In order: `todo` (raw), `ready` (plan concrete, no open questions, someone
  *  could start now), `implementing`. `reject`/`archive` take the card off the board, so they
@@ -24,8 +30,9 @@ export interface CardMeta {
   roi: string;
   status: CardStatus;
   /** The release this card ships in — a free-text version id like `v1`. A card
-   *  that names none reads as `next`: wanted, not promised to a version.
-   *  Read-only in the UI for now — the CLI writes it. */
+   *  that names none reads as `next`: wanted, not promised to a version. The
+   *  card page picks it from the open releases (#105); making a release is still
+   *  the CLI's job. */
   release: string;
   blocked_by: number[];
   related: number[];
@@ -123,6 +130,11 @@ export interface Board {
   archive: ArchiveGroup[];
   /** Ids of every open card — used to linkify only #<id>s that still exist. */
   openIds: number[];
+  /** The open releases from `docs/kanban/releases.md`, in ship order. Empty on a
+   *  board that plans no versions — then the UI says nothing about releases at
+   *  all: no picker, no chip on a card. `next` is never in here; it is where a
+   *  card with no release sits and the picker adds it last on its own. */
+  releases: string[];
   /** True when `memory/goal.md`'s `reviewed:` field says the goal isn't clear
    *  enough to plan from (a missing file or field reads weak too). With no
    *  checklist left it is the whole setup bar — one item, the goal — since the
@@ -138,6 +150,17 @@ export interface Board {
  *  usually a group task. The three levels are defined in the skill
  *  (`references/propose.md`, "Boldness"); this is only the name the UI sends. */
 export type Boldness = "safe" | "normal" | "bold";
+
+/** The tokens one run consumed, as the agent's own closing event counted them.
+ *  Four numbers because the API bills them differently: fresh input, input
+ *  written to the prompt cache, input read back from it, and output. This run's
+ *  own numbers alone — the board never adds runs together. */
+export interface TokenUsage {
+  input: number;
+  cacheCreation: number;
+  cacheRead: number;
+  output: number;
+}
 
 export type AgentAction =
   | "implement"
@@ -201,6 +224,12 @@ export interface SessionView {
    *  existed, one cut off before its agent named a model, and any agent whose
    *  output never says — all of which show nothing rather than a guess. */
   model?: string;
+  /** The tokens this run consumed, as its own closing event counted them.
+   *  Terminal sessions only — the numbers arrive with the agent's last event.
+   *  Absent for a live run, one cut off early, an agent whose output reports no
+   *  usage, and a run from before this existed — all of which show nothing
+   *  rather than zeros. */
+  usage?: TokenUsage;
   /** The text the user typed for this session — a create's description, an
    *  action's notes, or a reject's reason. Shown in the global sessions panel
    *  (#21); absent when the session carried no note. */

@@ -1,10 +1,8 @@
 # Quick Dev Notes
 
-## Skill docs don't know their caller
+## Skill Writing
 
-A skill doesn't care who calls it. Files under `skill/` never mention the local-UI
-dispatcher, `ui.config.json`, or `claude -p` — how a skill gets invoked is the caller's
-concern, documented on the caller's side.
+Add minimal, only necessary information to SKILL.md. The context is precious.
 
 ## The public site
 

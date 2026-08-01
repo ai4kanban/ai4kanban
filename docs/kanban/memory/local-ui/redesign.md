@@ -29,12 +29,17 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   agent badge into ONE configuration (gear) icon button that opens a single Configuration
   dialog; global settings (auto-refine, the agent connector) live inside it, so the header
   stays one quiet icon instead of growing a control per setting.
-- ❌ **A settings file that repeats a name inside its own setting** (`harness.settings.<name>`
-  under `harness.name`) → ✅ name the picked thing once, and file each choice's settings in a
-  map keyed by that name. The name is written once, never inside its own block. Switching
-  keeps what the old choice had: a connector carries a provider, an endpoint, a key source
-  and a reasoning level, so dropping all of it on a switch is a real loss. (#93 revises the
-  earlier call in #68, which kept one flat block because there was one setting to lose.)
+- ❌ **A new settings-file shape to hold a new setting** (a map keyed by the picked thing's
+  name, plus a migration and a "no longer in effect" notice) → ✅ a new setting is one more
+  key in the block that already exists. The picked thing is named once, its settings sit
+  beside the name, and a file written before the card keeps working untouched. Only reshape
+  the file when a user really loses something today — not when they might once a second
+  choice exists.
+- ❌ **The board holds no secret, so a key comes from whatever the user exported before
+  starting the server** (a shell profile, a wrapper script, a different place per machine) →
+  ✅ one fixed file the board owns, `docs/kanban/.env`, next to `ui.config.json` and kept out
+  of git. Keys go in one known place the dialog can write and report on; `ui.config.json` is
+  checked in and never holds one. (#94)
 - ❌ **A recurring-task feature that only adds a Run button** → ✅ say how runs start without
   a click: the server's dispatcher runs due cards on a card-set cadence — scheduling is the
   server's job, never an in-session loop like Claude Code's `/loop`.

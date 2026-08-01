@@ -18,7 +18,7 @@ import {
 import { resumeSessionAction, stopSessionAction } from "@/app/actions";
 import { useDraft, useDraftList, useDraftPicks } from "@/lib/draft";
 import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
-import type { AgentAction, Boldness, Card, SessionView } from "@/lib/types";
+import type { AgentAction, Boldness, Card, SessionView, TokenUsage } from "@/lib/types";
 import { Button } from "./button";
 import { QuestionTagBadge } from "./chips";
 import { Dialog } from "./Dialog";
@@ -152,6 +152,15 @@ function formatCost(usd: number): string {
   return usd < 0.005 ? "est. <$0.01" : `est. $${usd.toFixed(2)}`;
 }
 
+// The run's token counts as one readable line, closing out the intermediate
+// events: what the agent read fresh, wrote to and read back from the prompt
+// cache, and wrote out. Full numbers with separators, not "1.2M" — the counts
+// are the point here, and the line only appears in an opened fold.
+function formatTokens(u: TokenUsage): string {
+  const n = (v: number) => v.toLocaleString("en-US");
+  return `tokens · ${n(u.input)} input · ${n(u.cacheCreation)} cache write · ${n(u.cacheRead)} cache read · ${n(u.output)} output`;
+}
+
 // A tailing view of one session's captured output (task #14). Shows the last few
 // KB; auto-scrolls to the newest line unless the user has scrolled up to read
 // back. Once the session ends with a parsed final message, the view leads with
@@ -271,16 +280,30 @@ export function SessionLog({
     </pre>
   ) : result ? (
     // The final message leads; the event lines it streamed on the way fold into
-    // one collapsed row above it.
+    // one collapsed row above it. The tail's own trailing copy of the message
+    // was already cut server-side, so the fold never repeats what leads. A run
+    // that finished clean closes the fold with its token counts — the numbers
+    // behind the cost in the title bar.
     <>
-      {tail && (
+      {(tail || (session.ok && session.usage)) && (
         <details className="mb-2">
           <summary className="cursor-pointer select-none text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft hover:text-nb-ink">
             intermediate events
           </summary>
-          <pre className="m-0 mt-2 text-nb-ink-soft" style={MONO_TEXT}>
-            {tail}
-          </pre>
+          {tail && (
+            <pre className="m-0 mt-2 text-nb-ink-soft" style={MONO_TEXT}>
+              {tail}
+            </pre>
+          )}
+          {session.ok && session.usage && (
+            <p
+              className="m-0 mt-2 tabular-nums text-nb-ink-soft opacity-80"
+              style={MONO_TEXT}
+              title="This run's token counts, as the agent reported them: fresh input, prompt-cache writes and reads, and output."
+            >
+              {formatTokens(session.usage)}
+            </p>
+          )}
         </details>
       )}
       <Markdown body={result} openIds={openIds} className="nb-sessionlog-md" />

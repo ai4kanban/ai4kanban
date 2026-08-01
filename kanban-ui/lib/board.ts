@@ -4,6 +4,7 @@ import { parseFrontmatter } from "./frontmatter";
 import { goalReviewed } from "./goal";
 import { archivePath, readmePath, todoDir } from "./paths";
 import { byPickOrder } from "./pick-order";
+import { readReleases } from "./releases";
 import { readSetup } from "./setup";
 import type { ArchiveGroup, Board, Card, Column, Subtask } from "./types";
 
@@ -289,6 +290,7 @@ export function readBoard(): Board {
     columns,
     archive: readArchive(),
     openIds,
+    releases: readReleases(),
     goalWeak: goalReviewed() === "weak",
     setup: readSetup(),
   };

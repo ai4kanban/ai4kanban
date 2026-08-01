@@ -34,9 +34,10 @@ group task; each piece is its own subtask in this folder.
   decision into its module's memory (#86), then creating the first tasks. Those first
   tasks are plain cards. Setup never plans a release: a project that wants one creates it
   later from the release work (#100), and a project that doesn't never sees the question.
-- Setup also asks if the work has a deadline; if it does, calls about work that can wait
-  move into `decisions-v2.md`, to merge back by hand once v1 ships (#87). A special
-  case — kept deliberately simple.
+- The goal is the only thing setup asks for. A deadline is part of the goal's horizon, so
+  setup reads it there; if there is one, calls about work that can wait move into
+  `decisions-v2.md`, to merge back by hand once v1 ships (#87). A special case — kept
+  deliberately simple.
 - Order: #81 first — it rewrites the install prompt the later steps lean on.
   The checklist already lists the steps #84 fixes, and #86 is the last box on that list,
   so it comes after #84. #87 rides on #84's setup doc and can land any time after it. #107 and #108 are independent — the
@@ -47,6 +48,6 @@ group task; each piece is its own subtask in this folder.
 - [ ] Settle decisions.md from goal.md in setup, before the module map #84
 - [x] Track setup with a checklist and show a bar until it's done #85
 - [ ] End setup by rebuilding the module map and splitting decisions into module memories #86
-- [ ] Ask for a deadline in setup and move decisions that can wait to decisions-v2.md #87
+- [ ] Read the deadline from goal.md and move decisions that can wait to decisions-v2.md #87
 - [ ] Write a guide on what makes a good goal, and point setup at it #107
 - [ ] Make the goal.md seed one wording and the weak test simple #108
