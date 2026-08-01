@@ -1,0 +1,77 @@
+# What makes a good goal
+
+`docs/kanban/memory/goal.md` is the one file the board asks you to write yourself. Every
+proposal it makes is judged against it, so what you put there decides what gets suggested
+next — and what doesn't.
+
+**This is advice, not a format.** Nothing checks your goal against this page. There is no
+template, no required heading, no minimum length. A goal that ignores every line below is
+still a good goal if it tells the board where you're headed. Read it once, take what's
+useful, skip the rest.
+
+## What to cover
+
+Four things, in any order, at any length.
+
+**The business goal.** Who this is for and what changes for them. Not the feature list —
+the reason the features exist. A board that knows the reason can tell a proposal that
+serves it from one that just sounds useful.
+
+**The horizon.** How far out you're thinking, and what "there" looks like. A year and
+paying users is a different project from a weekend tool you'll stop touching. Say which
+one this is, and roughly what would count as done.
+
+**What comes next.** A rough list of what you want, in rough order. It doesn't have to be
+right — it just has to say what you already know you want, so the board proposes the work
+around it instead of re-proposing it.
+
+**The direction behind it.** The calls that hold across features: what you refuse to
+build, and what you pick when two good things conflict. This is the part that pays off
+most. It's how a proposal gets turned down before it reaches you.
+
+## An example
+
+```markdown
+# Goal
+
+A time tracker for freelance designers who bill by the project, not the hour.
+
+Today they guess at their rates because they never learn what a project actually cost
+them. I want a designer to finish a project, see in one number whether it was worth it,
+and price the next one from that.
+
+**Horizon:** a year. By then it should pay for itself — call it 200 paying users. I work
+on this in the evenings, so nothing here assumes a team.
+
+**Next, roughly in order:** track time against a project; a per-project cost report;
+import past invoices so a new user sees real numbers on day one; then suggest a rate from
+their own history.
+
+**The direction:** it stays a single-person tool. No teams, no approvals, no admin roles —
+anything that needs a second user is out. When simple and complete conflict, pick simple:
+a designer should get something useful in the first ten minutes without any setup. Their
+data stays exportable; I'm not charging anyone for storage.
+```
+
+Nothing here is required. The headings are that person's habit, not a shape the board
+looks for. What matters is that a reader could take a proposed feature and say whether it
+belongs.
+
+## What doesn't help
+
+- **A feature list with no reason behind it.** The board can already read your backlog.
+  What it can't guess is why those features and not others.
+- **Sprint-level detail.** This week's work belongs on cards. The goal is the thing that
+  is still true in six months.
+- **Nothing at all.** An empty or untouched goal doesn't stop the board — but every
+  proposal becomes a guess, and you review guesses.
+
+## How the board reads it
+
+The goal is read fresh every time work is proposed, so an edit changes the next proposal.
+Keep it as short as you can stand: it's the file the board reads most, and a long one
+buries the direction inside it.
+
+The agent notes in the file's frontmatter how clear the goal looks to plan from. That's
+the only thing it writes there. **It never drafts or rewrites your goal** — that stays
+yours, in your words, in whatever shape you like.

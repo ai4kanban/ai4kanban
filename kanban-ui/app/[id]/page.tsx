@@ -34,6 +34,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       projectRoot={repoRoot()}
       autoRefine={readAutoRefine()}
       autoRefineParallelism={readAutoRefineParallelism()}
+      goalWritten={board.goalWritten}
     />
   );
 }

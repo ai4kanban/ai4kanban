@@ -5,7 +5,7 @@ priority: med
 roi: med
 status: todo
 release: next
-blocked_by: [107]
+blocked_by: []
 related: [83]
 modules: [skill, local-ui]
 questions: []
@@ -26,7 +26,8 @@ missing, or still that seed.
 ## Scope
 - One seed wording, short and free-form, in the script; the UI's starting text is the
   same words. It says the file is the user's own words and what it is not — not this
-  week's work, that's the cards — and links the guide (#107) for what a good one covers.
+  week's work, that's the cards — and links `docs/guides/what-makes-a-good-goal.md` for
+  what a good one covers, at the published URL setup already uses.
 - The weak test becomes mechanical: `weak` only when `goal.md` is missing or still the
   seed. Anything the user wrote counts as at least `good`. No agent judges free-form
   prose against a format that doesn't exist.

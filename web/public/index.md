@@ -36,9 +36,10 @@ and follow it.
 ```
 
 The agent reads your codebase, then runs one command — `npx ai4kanban install` —
-which copies the skill in and scaffolds the board. It fills in the configuration
-and proposes your first three tasks. Updating later is one command too:
-`npx ai4kanban update`.
+which copies the skill in and scaffolds the board. It fills in the configuration,
+asks for your project goal — the one thing setup asks — settles the first
+decisions from it, and creates your first ten tasks. Updating later is one
+command too: `npx ai4kanban update`.
 
 ## 02 · Usage — Using ai4kanban in Claude Code
 

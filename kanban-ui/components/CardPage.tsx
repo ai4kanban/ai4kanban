@@ -138,6 +138,7 @@ export function CardPage({
   projectRoot,
   autoRefine,
   autoRefineParallelism,
+  goalWritten,
 }: {
   card: Card;
   openIds: number[];
@@ -146,6 +147,9 @@ export function CardPage({
   projectRoot: string;
   autoRefine: boolean;
   autoRefineParallelism: number;
+  /** Whether the header's goal button has anything to open (#128). The header is
+   *  the same on both pages, and direction is worth rereading wherever you are. */
+  goalWritten: boolean;
 }) {
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -235,6 +239,7 @@ export function CardPage({
         autoRefineParallelism={autoRefineParallelism}
         sessions={sessions}
         onError={setError}
+        goalWritten={goalWritten}
       />
 
       <main className="mx-auto w-full max-w-[840px] px-6 py-6">

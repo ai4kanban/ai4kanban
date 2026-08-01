@@ -100,7 +100,7 @@ const en: SiteCopy = {
     install: {
       heading: { eyebrow: "Setup", title: "Install in one prompt" },
       lead: "From your project root, tell Claude Code (or any agent that can run shell commands):",
-      note: "The agent reads your codebase, then runs one command — `npx ai4kanban install` — which copies the skill in and scaffolds the board. It fills in the configuration and proposes your first three tasks. Updating later is one command too: `npx ai4kanban update`.",
+      note: "The agent reads your codebase, then runs one command — `npx ai4kanban install` — which copies the skill in and scaffolds the board. It fills in the configuration, asks for your project goal — the one thing setup asks — settles the first decisions from it, and creates your first ten tasks. Updating later is one command too: `npx ai4kanban update`.",
     },
     board: {
       heading: { eyebrow: "Usage", title: "Using AI4Kanban in Claude Code" },

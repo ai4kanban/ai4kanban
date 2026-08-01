@@ -12,9 +12,10 @@
 // The agent's own settings are NOT written here: this file draws whatever list
 // the picked agent declares in lib/agent.ts, and knows no agent by name.
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiCheck, FiFeather, FiSettings, FiTerminal } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiChevronDown, FiFeather, FiSettings, FiTerminal, FiZap } from "react-icons/fi";
 import {
   getHarnessSecretsAction,
   setAutoRefineAction,
@@ -22,6 +23,7 @@ import {
   setHarnessAction,
   setHarnessSecretAction,
   setHarnessSettingAction,
+  testConnectionAction,
 } from "@/app/actions";
 import {
   defaultProviderId,
@@ -32,6 +34,7 @@ import {
 } from "@/lib/providers";
 import {
   type AgentInfo,
+  type ConnectionTest,
   type HarnessOption,
   type HarnessSetting,
   MAX_PARALLEL,
@@ -44,6 +47,47 @@ import { Dialog } from "./Dialog";
 // contents.
 const CONTROL =
   "w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait";
+
+// The pane's small sticker button — the key field's Save/Replace/Clear and the
+// Test button. Same press-down as the header's ghost buttons, one size down.
+const QUIET_BTN =
+  "cursor-pointer rounded-[8px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-1.5 text-[12px] font-[700] text-nb-ink transition-[transform,box-shadow] duration-[120ms] hover:-translate-x-px hover:-translate-y-px hover:shadow-[2px_2px_0_0_var(--color-nb-ink)] active:translate-x-px active:translate-y-px active:shadow-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-none";
+
+// The pane's one dropdown, used by every list in it. A native <select> in the
+// CONTROL frame with our own chevron: appearance-none drops the browser's,
+// which sits too tight against the right edge.
+function SelectControl({
+  id,
+  value,
+  disabled,
+  onChange,
+  children,
+}: {
+  id: string;
+  value: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="relative block">
+      <select
+        id={id}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${CONTROL} cursor-pointer appearance-none pr-10`}
+      >
+        {children}
+      </select>
+      <FiChevronDown
+        aria-hidden
+        className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-nb-ink"
+        style={{ width: 14, height: 14 }}
+      />
+    </span>
+  );
+}
 
 // A harness's mark, e.g. the Claude sunburst at public/agents/claude.svg.
 // alt="" because the agent name always sits right next to it.
@@ -85,6 +129,7 @@ export function Configuration({
   const [open, setOpen] = useState(false);
   // Which pane shows. Reopening the dialog starts back on Agent.
   const [section, setSection] = useState<Section>("agent");
+  const router = useRouter();
   return (
     <>
       {/* Ghost sticker button (design.md .nb-cta-ghost), a matched pair with the
@@ -105,7 +150,23 @@ export function Configuration({
       </button>
 
       {open && (
-        <Dialog title="Configuration" onClose={() => setOpen(false)} width={640} flush>
+        <Dialog
+          title="Configuration"
+          onClose={() => {
+            setOpen(false);
+            // Re-read the settings on the server. Every field in here is seeded
+            // from a prop when it mounts, and closing unmounts them — so without
+            // this the next open would redraw the page's first paint and a
+            // setting saved a moment ago would look lost, while the file has it.
+            // On close rather than on each save: nothing on screen shows these
+            // settings while the dialog is up, and a refresh per keystroke-blur
+            // would re-read the whole board for nobody.
+            router.refresh();
+          }}
+          width={640}
+          height="90vh"
+          flush
+        >
           {/* The section list. A quiet vertical nav on the wash, the active entry
               in the ember tint — the same active language as the harness rows. */}
           <nav
@@ -136,12 +197,9 @@ export function Configuration({
           {/* The panes. Both stay mounted and the inactive one hides: the fields
               hold optimistic state seeded from the server's first paint, so
               unmounting on a section switch would throw away a value saved a
-              moment ago. min() keeps the height steady between the two panes
-              without overflowing a short viewport. */}
-          <div
-            className="min-h-0 flex-1 overflow-y-auto p-6"
-            style={{ minHeight: "min(400px, 60vh)" }}
-          >
+              moment ago. The dialog's fixed height keeps the panes steady;
+              a pane taller than it scrolls here. */}
+          <div className="min-h-0 flex-1 overflow-y-auto p-6">
             {/* The agent harness — pick which agent runs every card action (#68),
                 and the settings that agent declares (#93). */}
             <div hidden={section !== "agent"}>
@@ -164,9 +222,9 @@ export function Configuration({
   );
 }
 
-// The harness picker: one row per agent we can run, the active one framed in
-// ember with an "Active" chip, and under them the settings that agent declares
-// (#93) — for Claude Code, the model it runs with (#71). Clicking a row saves
+// The harness picker: one square card per agent we can run, the active one
+// framed in ember, and under them the settings that agent declares (#93) — for
+// Claude Code, the model it runs with (#71). Clicking a card saves
 // that harness's name to docs/kanban/ui.config.json — nothing else changes, and
 // a running session keeps the harness it started under. Selecting optimistically
 // and reverting on a failed save, like the auto-refine switch.
@@ -362,59 +420,56 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
     await writeSetting(list, id);
   };
 
-  // What the active row says under its name. A hand-edited `harness.command`
-  // override is the one thing worth showing here — it's what actually runs, and
-  // it's invisible otherwise.
+  // A hand-edited `harness.command` override is the one thing worth a note under
+  // the cards — it's what actually runs, and it's invisible otherwise.
   const overridden = agent.command !== agent.options.find((o) => o.name === agent.name)?.command;
 
   return (
     <div className="flex flex-col gap-2">
-      {agent.options.map((option) => {
-        const on = option.name === active;
-        return (
-          <button
-            key={option.name}
-            type="button"
-            aria-pressed={on}
-            disabled={saving}
-            onClick={() => pick(option)}
-            className="nb-outline flex w-full cursor-pointer items-center justify-between bg-nb-paper px-4 py-3 text-left disabled:cursor-wait"
-            style={{
-              borderColor: on
-                ? "var(--color-nb-accent-deep)"
-                : "color-mix(in srgb, var(--color-nb-ink) 22%, transparent)",
-            }}
-          >
-            <span className="flex items-center gap-3">
+      {/* One square card per agent, all of them visible at once — the name and
+          the mark say what each is, no note needed. The ember frame alone marks
+          the active one. */}
+      <div className="flex flex-wrap gap-2">
+        {agent.options.map((option) => {
+          const on = option.name === active;
+          return (
+            <button
+              key={option.name}
+              type="button"
+              aria-pressed={on}
+              disabled={saving}
+              onClick={() => pick(option)}
+              className="nb-outline flex w-[104px] cursor-pointer flex-col items-center gap-2 bg-nb-paper px-2 pb-2.5 pt-4 disabled:cursor-wait"
+              style={{
+                borderColor: on
+                  ? "var(--color-nb-accent-deep)"
+                  : "color-mix(in srgb, var(--color-nb-ink) 22%, transparent)",
+              }}
+            >
               <span
                 className="flex items-center justify-center rounded-[9px]"
                 style={{
-                  width: 34,
-                  height: 34,
+                  width: 38,
+                  height: 38,
                   background: on ? "var(--color-nb-accent-soft)" : "var(--color-nb-wash)",
                 }}
               >
-                <AgentMark src={option.icon} size={19} />
+                <AgentMark src={option.icon} size={22} />
               </span>
-              <span>
-                <span className="block text-[14px] font-[800]">{option.label}</span>
-                <span className="block text-[12px] text-nb-ink-soft">
-                  {on && overridden ? <code>{agent.command}</code> : option.blurb}
-                </span>
-              </span>
-            </span>
-            {on && (
-              <span
-                className="nb-chip"
-                style={{ background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}
-              >
-                <FiCheck aria-hidden style={{ width: 11, height: 11 }} />
-                Active
-              </span>
-            )}
-          </button>
-        );
-      })}
+              <span className="text-[12px] font-[800]">{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* The override, when there is one, so what actually runs is never hidden.
+          Only while the active card is the saved one — picking another agent
+          drops the override. */}
+      {overridden && active === agent.name && (
+        <p className="text-[12px] leading-relaxed text-nb-ink-soft">
+          Runs your override: <code>{agent.command}</code>
+        </p>
+      )}
 
       {/* The settings the picked agent declares (#93), in its own order — for
           Claude Code, the provider it talks to (#95), the model it runs with
@@ -474,6 +529,17 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
         </div>
       )}
 
+      {/* Test the setup that is saved (#96). Last in the pane, under the
+          settings it tests. It is keyed on the saved setup, so changing any of
+          it throws the old result away rather than leaving a "Passed" standing
+          for a setup that is gone. */}
+      <ConnectionTester
+        key={`${active}|${JSON.stringify(saved)}|${[...secretsSet].sort().join(",")}`}
+        agentLabel={activeOption?.label ?? active}
+        unsavedPick={Boolean(pending)}
+        disabled={saving}
+      />
+
       {/* Never move a user to another agent silently: when the config asks for a
           harness we don't ship, or still carries the pre-#68 `command` key that
           nothing reads, the dialog says which agent is actually running. */}
@@ -489,6 +555,150 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
       )}
     </div>
   );
+}
+
+// Does this setup actually run? (#96) One button, and a panel under it with the
+// answer.
+//
+// The test is a real run of the agent — the same command and the same
+// environment a card run gets — asking for one word. So a test that passes is a
+// card run that starts, which a checklist of "is the CLI there, is a key set"
+// could never promise: it can't see a revoked key, a gateway that is up but
+// refuses this model, or a proxy that needs a VPN.
+//
+// It tests what is SAVED, not what is on screen. Every box here saves as it
+// changes, so the two are the same thing — except a provider pick still waiting
+// on a box, which is why the button stands down while one is pending rather than
+// testing a setup the user has already moved on from.
+//
+// The result lives here and only here: closing the dialog throws it away, and
+// nothing about the test reaches the board, the runs panel, or a card.
+function ConnectionTester({
+  agentLabel,
+  unsavedPick,
+  disabled,
+}: {
+  agentLabel: string;
+  // A provider is picked but not written yet, so the saved setup isn't the one
+  // on screen and a test now would answer a question nobody asked.
+  unsavedPick: boolean;
+  // A save is in flight — the setup is mid-change.
+  disabled: boolean;
+}) {
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<ConnectionTest | null>(null);
+
+  const test = async () => {
+    if (running || disabled || unsavedPick) return;
+    setRunning(true);
+    setResult(null);
+    try {
+      setResult(await testConnectionAction());
+    } catch (e) {
+      // The action doesn't throw for anything the test itself hit — this is the
+      // call not getting there (the server went away mid-test). Shown the same
+      // way a failure is, in the words we were given.
+      setResult({ ok: false, ms: 0, output: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 border-t border-nb-ink/12 pt-4">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          disabled={running || disabled || unsavedPick}
+          onClick={() => void test()}
+          className={`${QUIET_BTN} inline-flex shrink-0 items-center gap-1.5`}
+        >
+          <FiZap className="text-[13px]" aria-hidden />
+          {running ? "Testing…" : "Test"}
+        </button>
+        <p className="text-[12px] leading-relaxed text-nb-ink-soft">
+          {unsavedPick
+            ? "Save the provider pick above first — Test runs the setup that is saved."
+            : `Sends one tiny message through ${agentLabel} as it is saved here. On a paid provider that costs a few tokens.`}
+        </p>
+      </div>
+      {(running || result) && <TestResult running={running} result={result} />}
+    </div>
+  );
+}
+
+// What the test found. Three shapes, because they are three different things to
+// do next: it worked, the CLI isn't installed, or the agent said no.
+//
+// A failure shows the agent's own output and nothing on top of it. The board
+// explains exactly one case in its own words — a CLI that isn't there, whose
+// real error ("spawn claude ENOENT") tells a user nothing. Everything else is
+// already a real message from the thing that refused, and a guess written over
+// it would send people down the wrong path.
+function TestResult({ running, result }: { running: boolean; result: ConnectionTest | null }) {
+  const tone = running
+    ? { bg: "var(--color-nb-wash)", ink: "var(--color-nb-ink-soft)" }
+    : result?.ok
+      ? { bg: "var(--color-nb-mint-soft)", ink: "var(--color-nb-mint-ink)" }
+      : { bg: "var(--color-nb-peach-soft)", ink: "var(--color-nb-peach-ink)" };
+
+  return (
+    <div
+      aria-live="polite"
+      className="mt-3 rounded-[10px] border-[1.5px] border-nb-ink px-3 py-2.5"
+      style={{ background: tone.bg }}
+    >
+      <p className="flex items-start gap-2 text-[13px] font-[700]" style={{ color: tone.ink }}>
+        {running ? (
+          <>
+            <span
+              className="mt-[5px] size-[6px] shrink-0 rounded-full bg-nb-ink-soft animate-[nbPulse_1.1s_ease-in-out_infinite]"
+              aria-hidden
+            />
+            Running one small chat through this setup…
+          </>
+        ) : result?.ok ? (
+          <>
+            <FiCheck className="mt-[2px] shrink-0" aria-hidden />
+            Passed — the agent answered in {seconds(result.ms)}.
+          </>
+        ) : (
+          <>
+            <FiAlertCircle className="mt-[2px] shrink-0" aria-hidden />
+            {result?.missing
+              ? `Failed — the ${result.missing} command isn't on this machine.`
+              : result?.timedOut
+                ? `Failed — no answer after ${seconds(result?.ms ?? 0)}, so the test gave up.`
+                : "Failed — the agent didn't answer."}
+          </>
+        )}
+      </p>
+
+      {/* The one failure with an instruction attached: name the command that
+          installs the agent's CLI, so there is something to do about it. */}
+      {!running && result?.install && (
+        <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
+          Install it, then test again:{" "}
+          <code className="rounded bg-nb-ink/8 px-1 py-0.5">{result.install}</code>
+        </p>
+      )}
+
+      {/* The agent's own words, as they came — so they can be read, searched, or
+          pasted somewhere that knows what they mean. */}
+      {!running && result?.output && (
+        <pre className="mt-2 max-h-[220px] overflow-auto whitespace-pre-wrap break-words rounded-[8px] border border-nb-ink/15 bg-nb-paper px-2.5 py-2 text-[11px] leading-relaxed text-nb-ink">
+          {result.output}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+// How long a test took, in the plainest form: "1.4s". Whole seconds past ten —
+// nobody needs a tenth of a second on a run that slow.
+function seconds(ms: number): string {
+  const s = ms / 1000;
+  return `${s < 10 ? s.toFixed(1) : Math.round(s)}s`;
 }
 
 // The provider the agent talks to (#95) — who pays for a run and where it goes.
@@ -527,32 +737,28 @@ function ProviderField({
       >
         {setting.label}
       </label>
-      <select
-        id={id}
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onPick(e.target.value)}
-        className={`${CONTROL} cursor-pointer`}
-      >
+      <SelectControl id={id} value={value} disabled={disabled} onChange={onPick}>
         {providers.map((provider) => (
           <option key={provider.id} value={provider.id}>
             {provider.label}
           </option>
         ))}
-      </select>
+      </SelectControl>
       {shown && (
         <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">{shown.blurb}</p>
       )}
-      <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-        {waitingFor.length > 0 ? (
-          <strong className="text-nb-accent-deep">
-            Not saved yet — fill in the {waitingFor.join(" and ")} below and this pick saves
-            itself.
-          </strong>
-        ) : (
-          setting.help
-        )}
-      </p>
+      {(waitingFor.length > 0 || setting.help) && (
+        <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
+          {waitingFor.length > 0 ? (
+            <strong className="text-nb-accent-deep">
+              Not saved yet — fill in the {waitingFor.join(" and ")} below and this pick saves
+              itself.
+            </strong>
+          ) : (
+            setting.help
+          )}
+        </p>
+      )}
     </div>
   );
 }
@@ -603,9 +809,6 @@ function SecretField({
     done(await onSave(value));
   };
 
-  const quiet =
-    "cursor-pointer rounded-[8px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-1.5 text-[12px] font-[700] text-nb-ink transition-[transform,box-shadow] duration-[120ms] hover:-translate-x-px hover:-translate-y-px hover:shadow-[2px_2px_0_0_var(--color-nb-ink)] active:translate-x-px active:translate-y-px active:shadow-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-none";
-
   return (
     <div>
       <label
@@ -618,21 +821,40 @@ function SecretField({
         <div className="flex items-center gap-2">
           <input
             id={id}
-            type="password"
+            // NOT type="password", on purpose. Chrome ignores autoComplete="off"
+            // on a password field: it offers to save what you type as a website
+            // password, and — worse — it autofills a stored password into the
+            // box. A user who accepted that fill saved someone's password into
+            // docs/kanban/.env as their agent key, and every run 401'd. A text
+            // box is not a credential field to any password manager, so neither
+            // happens. The masking is CSS instead (below), and it is the only
+            // thing type="password" was here for: this box is write-only —
+            // a saved key is never read back into it.
+            type="text"
             value={typed}
             disabled={disabled}
             placeholder={setting.placeholder}
             spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
             // Not a login box: an agent key has no business in a password
-            // manager, and a browser offering to fill one would be noise.
+            // manager, and a browser offering to fill one would be noise. The
+            // data- attributes say the same to 1Password and LastPass, which
+            // read their own and not the standard one.
             autoComplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
             onChange={(e) => setTyped(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") void save();
             }}
-            className="w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait"
+            // The dots. Only while there's something to hide — the property
+            // masks the placeholder too, and a placeholder that says what shape
+            // of key to paste is worth reading.
+            className={`w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait ${typed ? "[-webkit-text-security:disc]" : ""}`}
           />
-          <button type="button" disabled={disabled || !typed.trim()} onClick={() => void save()} className={quiet}>
+          <button type="button" disabled={disabled || !typed.trim()} onClick={() => void save()} className={QUIET_BTN}>
             Save
           </button>
           {replacing && (
@@ -643,7 +865,7 @@ function SecretField({
                 setTyped("");
                 setReplacing(false);
               }}
-              className={quiet}
+              className={QUIET_BTN}
             >
               Cancel
             </button>
@@ -656,10 +878,10 @@ function SecretField({
             Set — it&rsquo;s in docs/kanban/.env
           </span>
           <span className="flex items-center gap-2">
-            <button type="button" disabled={disabled} onClick={() => setReplacing(true)} className={quiet}>
+            <button type="button" disabled={disabled} onClick={() => setReplacing(true)} className={QUIET_BTN}>
               Replace
             </button>
-            <button type="button" disabled={disabled} onClick={() => void onSave("")} className={quiet}>
+            <button type="button" disabled={disabled} onClick={() => void onSave("")} className={QUIET_BTN}>
               Clear
             </button>
           </span>
@@ -713,22 +935,21 @@ function SettingField({
         {setting.label}
       </label>
       {setting.kind === "select" ? (
-        <select
+        <SelectControl
           id={id}
           value={value}
           disabled={disabled}
-          onChange={(e) => {
-            onChange(e.target.value);
-            onSave(e.target.value);
+          onChange={(v) => {
+            onChange(v);
+            onSave(v);
           }}
-          className={`${CONTROL} cursor-pointer`}
         >
           {listed.map((choice) => (
             <option key={choice.value} value={choice.value}>
               {choice.label}
             </option>
           ))}
-        </select>
+        </SelectControl>
       ) : (
         <input
           id={id}
@@ -848,9 +1069,8 @@ function AutoRefineToggle({
           hover-only title. No confirmation popup — auto-refine only ever
           auto-answers questions it is sure about. */}
       <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-        The agent refines cards in the background and answers its own safe questions without
-        asking you. With this off, no card is refined on its own — you can still refine one
-        yourself with the <strong>Refine</strong> button on its page.
+        The agent refines cards in the background and answers its own safe questions. With this
+        off, cards are only refined when you press <strong>Refine</strong> on their page.
       </p>
     </div>
   );
@@ -932,9 +1152,7 @@ function ParallelismStepper({
         </span>
       </div>
       <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-        How many cards the agent refines at the same time, each a different card. One by
-        default. More is faster on a big backlog and heavier on your machine; {MAX_PARALLEL} is
-        as high as it goes.
+        More is faster on a big backlog and heavier on your machine; {MAX_PARALLEL} is the cap.
       </p>
     </div>
   );

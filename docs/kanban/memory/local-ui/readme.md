@@ -28,3 +28,7 @@ covers it, or a plain-words note.
 - The Configuration dialog draws the settings the picked agent says it takes, instead of one fixed Model box, and saving leaves every other key in the file alone: `kanban-ui/README.md`.
 - Pick how hard the model thinks — low to max — from a list in the Configuration dialog, and leave it on the agent's default to pass nothing: `kanban-ui/README.md`.
 - Run every board action through Codex CLI, including continuing a failed Codex conversation with Resume: `kanban-ui/README.md`.
+- Press **Test** in the Configuration dialog to send one tiny message through the setup you saved and see whether it works, with the agent's own reason when it doesn't: `kanban-ui/README.md`.
+- Read the whole project goal from a compass in the header, on the board and on a card page alike, and edit it there — the file's `reviewed:` field is left to the agent: `kanban-ui/README.md`.
+- Pick who pays for a run — the Claude subscription, the Anthropic API, or any Anthropic-compatible gateway — in the Configuration dialog, and the run goes through that pick alone, not through something your shell exported: `kanban-ui/README.md`.
+- Start a release from the header's release dropdown — it is on every board, including one that has never planned a version, and a name the board can't take says why without closing the dialog; closing, renaming and reordering a release stay terminal jobs: `kanban-ui/README.md`.

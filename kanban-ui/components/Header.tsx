@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { FiChevronDown, FiColumns, FiFolder, FiList, FiTag } from "react-icons/fi";
+import { FiColumns, FiFolder, FiList } from "react-icons/fi";
 import type { ReleasePick } from "@/lib/release-pick";
-import { type AgentInfo, DEFAULT_RELEASE, type SessionView } from "@/lib/types";
+import type { AgentInfo, SessionView } from "@/lib/types";
 import type { BoardViewMode } from "@/lib/view";
 import { Configuration } from "./Configuration";
 import { CreateTask } from "./CreateTask";
+import { Goal } from "./Goal";
 import { Progress } from "./Progress";
+import { ReleasePicker } from "./ReleasePicker";
 import { Sessions } from "./sessions";
 
 // Shared header for the board and the card detail page — identical on both: the
@@ -30,12 +32,19 @@ import { Sessions } from "./sessions";
 // same board-only terms: it says which version the columns and the queue are
 // showing, and a card page shows one card whatever is picked. It also decides
 // where a card made from here lands — a card written while `v1` is on screen
-// ships in `v1`, so it doesn't vanish the moment it is written.
+// ships in `v1`, so it doesn't vanish the moment it is written. It is on every
+// board now, a board with no releases included (#115): its last entry is how a
+// release is started, so hiding it on an empty board hid the feature from the
+// only user who hadn't met it.
 //
 // On a narrow screen the row has to stay one line, so the text that is only
 // context gives way first: the path badge drops to the folder name, the view
 // switch and Create task go icon-only. Nothing is removed — every control is
 // still there at the same 36px tap size, just without its label.
+//
+// The goal button (#128) sits on the left instead, after the path: that side says
+// what this board is — the name, then the folder it lives in — and what it is for
+// belongs there too. It survives every width, since one icon costs nothing.
 export function Header({
   agent,
   projectRoot,
@@ -49,7 +58,9 @@ export function Header({
   releaseCounts = {},
   release = null,
   onReleaseChange,
+  onCreateRelease,
   createRelease = null,
+  goalWritten = false,
 }: {
   agent: AgentInfo;
   projectRoot: string;
@@ -59,18 +70,25 @@ export function Header({
   onError?: (msg: string) => void;
   view?: BoardViewMode;
   onViewChange?: (v: BoardViewMode) => void;
-  /** The open releases in ship order. Empty — a board that plans no versions —
-   *  means no dropdown at all: nothing should make a user who never plans a
-   *  release meet the word. */
+  /** The open releases in ship order. Empty is a board that plans no versions —
+   *  the dropdown still shows, saying All releases and offering New release, so
+   *  the first release can be started from here. */
   releases?: string[];
   /** How many open cards each release holds, `next` included. */
   releaseCounts?: Record<string, number>;
   release?: ReleasePick;
   onReleaseChange?: (r: ReleasePick) => void;
+  /** Make a release and put the board on it (#115). Passed with
+   *  `onReleaseChange` or not at all — a card page has neither. */
+  onCreateRelease?: (id: string) => Promise<{ ok: boolean; error?: string }>;
   /** The version a card made from here ships in — the release on screen, or null
    *  when the whole board is showing and the new card lands wherever the agent
    *  puts it. A card page passes nothing: it shows one card, not a release. */
   createRelease?: string | null;
+  /** Whether `memory/goal.md` holds the user's own words. False — missing, empty
+   *  or still the seed — means there is nothing to open and the button stays
+   *  away; the setup bar is what asks for the goal then. */
+  goalWritten?: boolean;
 }) {
   return (
     <header
@@ -99,14 +117,16 @@ export function Header({
           <span className="truncate lg:hidden">{projectRoot.split("/").pop()}</span>
           <span className="hidden truncate lg:inline">{projectRoot}</span>
         </span>
+        <Goal written={goalWritten} />
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-        {onReleaseChange && releases.length > 0 && (
+        {onReleaseChange && onCreateRelease && (
           <ReleasePicker
             releases={releases}
             counts={releaseCounts}
             value={release}
             onChange={onReleaseChange}
+            onCreate={onCreateRelease}
           />
         )}
         {view && onViewChange && <ViewSwitch view={view} onChange={onViewChange} />}
@@ -122,72 +142,6 @@ export function Header({
         <CreateTask release={createRelease} />
       </div>
     </header>
-  );
-}
-
-// The value the All-releases option carries. A version id is free text, but it
-// can never be empty (`release new` refuses one), so the empty string is the one
-// value no release can take.
-const ALL = "";
-
-// Which release the board is showing (#104). A select, not a row of chips: a
-// board can plan several versions and the entries carry counts, so the list
-// belongs behind one control that says what you are looking at — the header row
-// has to stay one line. It wears the same 36px sticker frame as the view switch
-// beside it, and the sky fill the release chip on a card already uses, so picking
-// a version reads as the same thing in both places.
-//
-// The counts are the open cards naming each release — the numbers `release list`
-// prints — so a nearly-empty version is visible without opening it. All releases
-// counts the whole board.
-function ReleasePicker({
-  releases,
-  counts,
-  value,
-  onChange,
-}: {
-  releases: string[];
-  counts: Record<string, number>;
-  value: ReleasePick;
-  onChange: (r: ReleasePick) => void;
-}) {
-  const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
-  const entry = (id: string) => `${id} (${counts[id] ?? 0})`;
-  const filtering = value !== null;
-  return (
-    <span
-      className="relative inline-flex h-9 items-center rounded-[9px] border-[1.5px] border-nb-ink pl-2 shadow-[2px_2px_0_0_var(--color-nb-ink)]"
-      style={{
-        background: filtering ? "var(--color-nb-sky-soft)" : "var(--color-nb-paper)",
-        color: filtering ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
-      }}
-    >
-      <FiTag aria-hidden style={{ width: 13, height: 13, flex: "0 0 auto" }} />
-      <select
-        aria-label="Which release to show"
-        title="Show one release at a time — blockers always stay on screen"
-        value={value ?? ALL}
-        onChange={(e) => onChange(e.target.value === ALL ? null : e.target.value)}
-        // A native select, sized to the header's other controls: appearance-none
-        // so the sticker frame is the only chrome, and right padding to clear the
-        // chevron sitting on top of it.
-        // The frame is sized to the longest entry, so it is capped: a long
-        // version id truncates instead of pushing the header's other controls
-        // off a narrow screen.
-        className="h-full max-w-[112px] cursor-pointer appearance-none border-none bg-transparent pl-1.5 pr-[22px] text-[12px] font-[700] leading-none text-inherit focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent sm:max-w-[176px]"
-      >
-        <option value={ALL}>All releases ({total})</option>
-        {releases.map((r) => (
-          <option key={r} value={r}>
-            {entry(r)}
-          </option>
-        ))}
-        {/* `next` is always last: it is where a card with no release sits, not a
-            version, so it never joins the ship order above it. */}
-        <option value={DEFAULT_RELEASE}>{entry(DEFAULT_RELEASE)}</option>
-      </select>
-      <FiChevronDown aria-hidden className="pointer-events-none absolute right-2" style={{ width: 11, height: 11 }} />
-    </span>
   );
 }
 

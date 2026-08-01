@@ -68,8 +68,9 @@ npx ai4kanban install --tracks feature,bug,research
 ```
 
 这条命令把 skill 装进你的项目，并在 `docs/kanban/` 下搭起看板。之后 Agent 把配置填好，
-写出模块清单，再提出头三个任务。配置和看板都在 `docs/kanban/` 里，skill 目录下只有通用
-代码。装完之后，你只管跟看板对话。
+问你一句项目目标——整个设置只问这一件事——从目标里定下最初的决策，写出模块清单，再建好
+头十个任务。配置和看板都在 `docs/kanban/` 里，skill 目录下只有通用代码。装完之后，你只
+管跟看板对话。
 
 以后要升级，同样一条命令：
 

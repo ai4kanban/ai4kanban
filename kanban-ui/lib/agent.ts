@@ -72,6 +72,10 @@ export interface Harness extends HarnessOption {
    *  Codex reads a slash as plain chat text and triggers on a `$` name
    *  (`$kanban`) instead. The rest of every prompt is the same for both. */
   skillCall: string;
+  /** The command that installs this agent's CLI (#96). Named when a run — or a
+   *  Test — can't start because the binary isn't on the machine, so the user
+   *  reads what to do instead of a raw spawn error. */
+  install: string;
 }
 
 // `claude -p` in its default text mode prints nothing until the session ends, so
@@ -85,9 +89,6 @@ function claudeStreamArgs(argv: string[]): string[] {
 const CLAUDE_CODE: Harness = {
   name: "claude-code",
   label: "Claude Code",
-  // What the agent is, not who pays for it — that is the provider pick now
-  // (#95), and this line would be wrong under two of its three entries.
-  blurb: "Anthropic's coding CLI",
   icon: "/agents/claude.svg",
   command: "claude -p",
 
@@ -162,14 +163,21 @@ const CLAUDE_CODE: Harness = {
           // box that has to be filled. The key isn't: a proxy on your own laptop
           // often takes none.
           requires: ["baseUrl"],
-          // Which header a gateway reads is its own team's choice —
-          // `Authorization: Bearer` for some, `x-api-key` for others — and the
-          // board has no way to ask. The same key goes out under both variables,
-          // so one box works whichever the gateway wants.
-          alsoEnv: { apiKey: "ANTHROPIC_AUTH_TOKEN" },
+          // A gateway key goes out as ANTHROPIC_AUTH_TOKEN, never as
+          // ANTHROPIC_API_KEY. Claude Code treats a set ANTHROPIC_API_KEY as its
+          // own auth source and turns the user's claude.ai connectors off when
+          // it sees one — so sending the key both ways to suit whichever header
+          // a gateway prefers costs the user their connectors on every run. This
+          // is the variable OpenRouter, LiteLLM and the rest document, and the
+          // gateway reads it as `Authorization: Bearer`.
+          envAs: { apiKey: "ANTHROPIC_AUTH_TOKEN" },
+          // And the other one has to be there and EMPTY, not merely unset. That
+          // is what Claude Code's own gateway instructions say, and an empty
+          // value says "this run has no API key of its own" in a way a missing
+          // variable doesn't.
+          env: { ANTHROPIC_API_KEY: "" },
         },
       ],
-      help: "Who pays for a run and where it goes. The pick decides the whole environment a run starts under, so a base URL or a key left over in your shell can never move a run somewhere this doesn't say.",
     },
     // Where an endpoint run goes. Not a secret — a gateway address is not a
     // credential — so it saves beside the model in ui.config.json, and it
@@ -181,20 +189,22 @@ const CLAUDE_CODE: Harness = {
       kind: "text",
       env: "ANTHROPIC_BASE_URL",
       placeholder: "https://my-gateway.example.com",
-      help: "The address the gateway answers on. It has to be filled in before the endpoint can be picked — without it the pick would mean nothing.",
+      help: "The address the gateway answers on.",
     },
     // The key the picked provider uses (#94). It belongs to the box it is typed
     // in, not to whoever was picked at the time, so switching providers — or
     // agents — never asks for it again. Only a provider that needs it sees it:
     // the subscription never does, so the box isn't drawn there and the key
-    // never reaches that run.
+    // never reaches that run. The variable it goes out under follows the pick:
+    // Anthropic's own API reads this one, a gateway reads ANTHROPIC_AUTH_TOKEN
+    // (the endpoint's `envAs` above).
     {
       key: "apiKey",
       label: "API key",
       kind: "secret",
       env: "ANTHROPIC_API_KEY",
       placeholder: "sk-ant-…",
-      help: "Your Anthropic key, or the one your gateway issued. It is saved to docs/kanban/.env, which the board keeps out of git, and it is never shown back. A gateway that takes no key needs nothing here.",
+      help: "Saved to docs/kanban/.env (kept out of git), never shown back.",
     },
     // The model is free text rather than a list — model ids change between agent
     // releases, and a stale list would block a model the agent already runs.
@@ -207,7 +217,7 @@ const CLAUDE_CODE: Harness = {
       kind: "text",
       placeholder: "claude-opus-5",
       flags: ["--model"],
-      help: "Leave it empty to run the agent's own default. The id isn't checked here — a wrong one fails the run, and the log says why.",
+      help: "Empty runs the agent's default. A wrong id fails the run; the log says why.",
       overriddenHelp: `Not in effect: your ui.config.json's "harness.command" already names a model, and that wins.`,
     },
     // How hard the model thinks (#97). A list, not a box: unlike a model id,
@@ -238,7 +248,7 @@ const CLAUDE_CODE: Harness = {
         { value: "max", label: "Max" },
       ],
       flags: ["--effort"],
-      help: "How hard the model thinks on every run. Lower is quicker and cheaper, higher is slower and more careful. Leave it on the agent's default and nothing is passed.",
+      help: "Lower is quicker and cheaper, higher is slower and more careful.",
       overriddenHelp: `Not in effect: your ui.config.json's "harness.command" already names an effort level, and that wins.`,
     },
   ],
@@ -294,6 +304,8 @@ const CLAUDE_CODE: Harness = {
 
   // Claude Code loads a skill from its slash name.
   skillCall: "/kanban",
+
+  install: "npm install -g @anthropic-ai/claude-code",
 };
 
 // The two flags every `codex exec` run wants, added only when the user's own
@@ -326,7 +338,6 @@ function codexExtraArgs(argv: string[]): string[] {
 const CODEX: Harness = {
   name: "codex",
   label: "Codex",
-  blurb: "ChatGPT subscription",
   icon: "/agents/codex.svg",
   command: "codex exec --json --sandbox workspace-write",
 
@@ -358,7 +369,7 @@ const CODEX: Harness = {
       kind: "text",
       placeholder: "gpt-5.1-codex",
       flags: ["--model", "-m"],
-      help: "Leave it empty to run the agent's own default. The id isn't checked here — a wrong one fails the run, and the log says why.",
+      help: "Empty runs the agent's default. A wrong id fails the run; the log says why.",
       overriddenHelp: `Not in effect: your ui.config.json's "harness.command" already names a model, and that wins.`,
     },
     {
@@ -367,7 +378,7 @@ const CODEX: Harness = {
       kind: "secret",
       env: "OPENAI_API_KEY",
       placeholder: "sk-…",
-      help: "Optional. Leave it empty and runs use the login your `codex` CLI already has. Fill it in and every run uses this key instead. It is saved to docs/kanban/.env, which the board keeps out of git, and it is never shown back.",
+      help: "Optional — empty uses your codex CLI's own login. Saved to docs/kanban/.env, never shown back.",
     },
   ],
 
@@ -388,6 +399,8 @@ const CODEX: Harness = {
   // skill from a `$` name. The install already writes the skill to
   // `.agents/skills/kanban/`, which is where Codex looks.
   skillCall: "$kanban",
+
+  install: "npm install -g @openai/codex",
 };
 
 /** Every harness the UI can run, in the order the dialog lists them. */
@@ -447,8 +460,8 @@ for (const harness of HARNESSES) {
     for (const required of provider.requires ?? []) {
       if (!provider.needs.includes(required)) throw new Error(`harness "${harness.name}": the provider "${provider.id}" requires "${required}" without needing it`);
     }
-    for (const key of Object.keys(provider.alsoEnv ?? {})) {
-      if (!provider.needs.includes(key)) throw new Error(`harness "${harness.name}": the provider "${provider.id}" gives "${key}" a second variable without needing it`);
+    for (const key of Object.keys(provider.envAs ?? {})) {
+      if (!provider.needs.includes(key)) throw new Error(`harness "${harness.name}": the provider "${provider.id}" renames the variable of "${key}" without needing it`);
     }
   }
   if (list.defaultProvider && !ids.has(list.defaultProvider)) {
@@ -703,9 +716,11 @@ function runEnv(resolved: ResolvedHarness): NodeJS.ProcessEnv {
     if (!shownForProvider(harness.settings, setting.key, picked)) continue;
     const value = setting.kind === "secret" ? file[setting.env] : values[setting.key];
     if (!value) continue;
-    env[setting.env] = value;
-    const alias = picked?.alsoEnv?.[setting.key];
-    if (alias) env[alias] = value;
+    // The picked provider can send this setting out under a different variable
+    // than the setting's own — the same key is ANTHROPIC_API_KEY on Anthropic's
+    // API and ANTHROPIC_AUTH_TOKEN on a gateway. Instead of, never as well as:
+    // both at once is two auth sources, and the agent picks one of them.
+    env[picked?.envAs?.[setting.key] ?? setting.env] = value;
   }
   return { ...env, ...(picked?.env ?? {}) };
 }
@@ -719,7 +734,7 @@ function ownedVars(harness: Harness): string[] {
   const list = providerSetting(harness.settings);
   if (!list) return [...names];
   for (const provider of list.providers ?? []) {
-    for (const name of Object.values(provider.alsoEnv ?? {})) names.add(name);
+    for (const name of Object.values(provider.envAs ?? {})) names.add(name);
     for (const name of Object.keys(provider.env ?? {})) names.add(name);
     for (const key of provider.needs) {
       const setting = harness.settings.find((s) => s.key === key);
@@ -749,6 +764,9 @@ export interface ActiveHarness {
    *  harness adopted the id we generated. Null when the harness mints its own
    *  mid-run; the renderer reports it once it appears. */
   resumeId: string | null;
+  /** The command that installs this agent's CLI — what to say when the spawn
+   *  fails because the binary isn't there (#96). */
+  install: string;
 }
 
 // Read the harness setting ONCE and resolve it into everything the run needs.
@@ -766,6 +784,7 @@ export function startRun(sessionId: string): ActiveHarness {
     env: runEnv(resolved),
     renderer: harness.renderer(),
     resumeId: harness.adoptsSessionId ? sessionId : null,
+    install: harness.install,
   };
 }
 
@@ -790,6 +809,7 @@ export function resumeRun(harnessName: string, resumeId: string): ActiveHarness 
     // The resumed turn runs under the id it resumed, so this run can be resumed
     // again by the same id — a failure two turns deep is still recoverable.
     resumeId,
+    install: harness.install,
   };
 }
 
@@ -863,10 +883,9 @@ export function agentInfo(): AgentInfo {
     // Every harness's settings go down, not just the active one's: picking
     // another agent redraws the fields from its own list right away, with
     // nothing filled in, without waiting on the server.
-    options: HARNESSES.map(({ name, label, blurb, icon, command, settings }) => ({
+    options: HARNESSES.map(({ name, label, icon, command, settings }) => ({
       name,
       label,
-      blurb,
       icon,
       command,
       settings,

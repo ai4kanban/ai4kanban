@@ -36,9 +36,18 @@ re-ask a settled call.
 ## Setup
 
 - **Does setup ask the user anything about the goal?**: No. Setup reads `goal.md` and
-  settles every detail it can by itself, each as a line in the project-wide
-  `decisions.md`. What it can't settle becomes a `[user]` open question on the cards it
-  creates, answered later through the normal resolve flow. Neither count is capped.
+  settles the calls it leaves open, each as a line in the project-wide `decisions.md` —
+  never copying in what the goal already answers; the goal is the seed planning reads
+  directly. What it can't settle is kept, uncapped, and handed over on one card (next
+  entry).
+- **Where do the calls setup can't settle go?**: on one card setup creates with the first
+  tasks — always `1-answer-the-questions-setup-couldnt-settle.md`, its id allocated
+  first — each an open `[user]` question in that card's frontmatter. Never in
+  `setup-checklist.md`, which the last tick deletes, and never in `decisions.md`, which
+  holds only settled calls. The user answers through the normal resolve flow; each answer
+  becomes a `decisions.md` line, and the card archives when its list is empty. While it's
+  open, a goal-level call no flow can settle is appended there; afterwards a question
+  rides the card that raised it.
 - Setup settles `goal.md` and the project-wide `decisions.md` before it writes
   `modules.md`. A project started without code has no code to read a module map from —
   the map can only come from what's been decided.

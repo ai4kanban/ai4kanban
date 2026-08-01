@@ -18,9 +18,10 @@ _(none)_
 - [#57 Let a user choose where the board is stored](57-choose-where-the-board-is-stored/root.md)
 - [#64 Run a recurring task from the UI](features/64-run-a-recurring-task-from-the-ui.md)
 - [#67 Handle a failed agent run instead of just marking it red](features/67-handle-a-failed-agent-run-instead-of-just-marking-it-red.md)
-- [#77 Read the board's memory in the UI](features/77-read-the-board-s-memory-in-the-ui.md)
-- [#92 Connector setup: model, provider, endpoint, reasoning](92-per-connector-configuration/root.md)
+- [#77 Read the board's memory in the UI](77-memory-in-the-ui/root.md)
 - [#100 Releases: plan what ships in this version and what waits](100-release-planning/root.md)
+- [#116 Unstick cards that sit on the board too long](116-stuck-cards/root.md)
+- [#124 Let a small team share one board](124-team-board/root.md)
 
 ## skill
 
@@ -35,3 +36,11 @@ _(none)_
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#5 Research the Vibe Kanban comparison and build its vs page](distribution/5-vibe-kanban-vs-page.md)
+
+## 100-release-planning/features
+
+
+## 77-memory-in-the-ui/features
+
+- [#129 Read the project's memory in the UI](77-memory-in-the-ui/features/129-read-the-project-s-memory-in-the-ui.md)
+- [#130 Read a module's memory in the UI](77-memory-in-the-ui/features/130-read-a-module-s-memory-in-the-ui.md)

@@ -36,6 +36,9 @@ const HEADER = `# Setup checklist
 Setup's own steps, in order. Each step ticks its box when it finishes; the tick that closes
 the last box deletes this file, so a board without it is a board that is set up.
 
+The guide for each step is the skill's \`references/setup.md\` — start at the first
+unticked box and follow it in order.
+
 The script writes this file — \`kanban.mjs setup-done <step>\` ticks one box. Don't edit it
 by hand: the local board UI reads its shape to show how far setup got and what comes next.
 

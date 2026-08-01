@@ -83,6 +83,11 @@ re-ask a settled call.
   exported in the shell keeps working.
 - Switching connector clears the connector's settings but never the keys. A key belongs to
   the variable it is written under, not to whoever was picked when it was typed.
+- **Which variable does a gateway key go out under?**: `ANTHROPIC_AUTH_TOKEN` only, with
+  `ANTHROPIC_API_KEY` sent explicitly empty. Sending the same key both ways to suit whichever
+  header a gateway prefers is not allowed: Claude Code reads a key in `ANTHROPIC_API_KEY` as
+  its own login and switches the user's claude.ai connectors off for the run. A run carries
+  one auth source, the one its provider names.
 
 ## Which model a run used
 
@@ -137,6 +142,15 @@ re-ask a settled call.
 - **When does the bar stop nagging?**: as soon as the user writes anything. A goal counts
   as weak only when the file is missing or still the seed, so a written goal is never
   nagged about again.
+
+### The goal on the board
+
+- **What is the goal to a user reading the board?**: a reminder of the horizon, not a file
+  they work in. It is written once and reread now and then, so the UI shows it as one quiet
+  line above the board that opens the whole file on click. Editing stays possible but sits
+  one click in.
+- **Does the memory view show the goal too?**: no. The goal has its own line above the
+  board; the memory view is the four memory files. One file, one place.
 
 ## Notice bars
 

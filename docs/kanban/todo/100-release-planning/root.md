@@ -64,6 +64,7 @@ This is a group task; each piece is its own subtask in this folder.
 - [x] Set a card's release from the UI #105
 - [ ] Pick which release the board and queue view show #104
 - [ ] Move several cards into a release at once #114
+- [x] Make a release from the UI #115
 - [ ] Fill a release with the urgent work in one go #106
 
 ## Decided by the agent

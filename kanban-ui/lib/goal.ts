@@ -23,6 +23,11 @@ user owns this file; the agent seeds it but does not invent the goal.
 _(not filled in yet — the user writes this.)_
 `;
 
+// The one line every seeded goal carries, in the script's wording and in the
+// template above. A user who writes their goal replaces it, so its presence is
+// how we tell a file that is still the seed from one that holds real words.
+const SEED_LINE = "_(not filled in yet — the user writes this.)_";
+
 // The leading `--- ... ---` frontmatter block, if any. goal.md's frontmatter is
 // free-form (not a card's fixed schema), so it is kept verbatim on save rather
 // than parsed and re-serialized.
@@ -41,6 +46,21 @@ export function goalReviewed(): "strong" | "good" | "weak" {
   } catch {
     return "weak";
   }
+}
+
+// Is there a goal to read? True once the file holds the user's own words —
+// missing, empty, or still the seed all mean there is nothing to open, and the
+// setup bar is what asks for it in that state. This is a mechanical test on the
+// text, not the agent's `reviewed:` judgment (#128): a user who writes their
+// goal can open it straight away, not after the next agent run.
+export function goalWritten(): boolean {
+  let body: string;
+  try {
+    body = fs.readFileSync(goalPath(), "utf8").replace(FM_RE, "");
+  } catch {
+    return false;
+  }
+  return body.trim().length > 0 && !body.includes(SEED_LINE);
 }
 
 // The goal text for the editor: everything below the frontmatter — the user's

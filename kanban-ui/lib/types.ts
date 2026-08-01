@@ -31,8 +31,8 @@ export interface CardMeta {
   status: CardStatus;
   /** The release this card ships in — a free-text version id like `v1`. A card
    *  that names none reads as `next`: wanted, not promised to a version. The
-   *  card page picks it from the open releases (#105); making a release is still
-   *  the CLI's job. */
+   *  card page picks it from the open releases (#105), and the header's release
+   *  dropdown is where one is made (#115). */
   release: string;
   blocked_by: number[];
   related: number[];
@@ -150,6 +150,13 @@ export interface Board {
    *  checklist left it is the whole setup bar — one item, the goal — since the
    *  agent can judge the goal weak again long after setup. */
   goalWeak: boolean;
+  /** True when `memory/goal.md` holds the user's own words — so the header's
+   *  goal button has something to open (#128). A missing file, an empty one, or
+   *  one still carrying the seeded text reads false, and the setup bar is what
+   *  asks for the goal in that state. Deliberately not `!goalWeak`: that field
+   *  is the agent's judgment, and a goal just written is readable before the
+   *  next agent run re-judges it. */
+  goalWritten: boolean;
   /** Setup's checklist while it exists, null once setup deleted it. Drives the
    *  setup bar above the board; the board itself works either way. */
   setup: SetupState | null;
@@ -274,6 +281,31 @@ export interface SessionView {
   tail?: string;
 }
 
+/** What one connection test found out (#96) — the Test button in the
+ *  Configuration dialog sends a tiny chat through the setup that is saved and
+ *  this is everything it learned. The panel under the button is drawn from it
+ *  and nothing else. */
+export interface ConnectionTest {
+  /** The agent answered — the setup works. Nothing reads what it answered. */
+  ok: boolean;
+  /** How long the test took, in ms. Shown on a pass. */
+  ms: number;
+  /** The agent's own output, exactly as it came (stdout and stderr in the order
+   *  they arrived), for a failure. Never a guess at what went wrong: an
+   *  explanation invented on top of a real error message sends people down the
+   *  wrong path. Absent on a pass. */
+  output?: string;
+  /** The agent's CLI isn't on this machine: the command that wasn't found. Its
+   *  own kind of failure, because a raw spawn error says nothing a user can act
+   *  on — this is the one case the board explains in its own words. */
+  missing?: string;
+  /** The command that installs it, shown with `missing`. */
+  install?: string;
+  /** The test gave up on its own after the time limit, so a dead endpoint
+   *  reports a failure instead of leaving the panel spinning. */
+  timedOut?: boolean;
+}
+
 /** One choice on a `select` setting's list. `value` is what gets saved; an
  *  empty `value` means the agent's own default, like an empty text box. */
 export interface SettingChoice {
@@ -304,12 +336,15 @@ export interface Provider {
    *  saved — the endpoint's base URL, without which the pick means nothing. */
   requires?: string[];
   /** Fixed variables this provider sets on every run, on top of what its
-   *  settings map to. */
+   *  settings map to. An empty value is a real setting, not a skip: it is how a
+   *  provider says "this variable must be there and empty". */
   env?: Record<string, string>;
-  /** One more variable a setting's value is set under while this provider is
-   *  picked, keyed by the setting's key. A gateway reads the key from whichever
-   *  header its team chose, so the endpoint sends the same key both ways. */
-  alsoEnv?: Record<string, string>;
+  /** The variable a setting's value goes out under while this provider is
+   *  picked, INSTEAD of the setting's own `env`, keyed by the setting's key.
+   *  One connector's key can mean a different variable per provider — the same
+   *  Anthropic key is `ANTHROPIC_API_KEY` on Anthropic's own API and
+   *  `ANTHROPIC_AUTH_TOKEN` on a gateway. */
+  envAs?: Record<string, string>;
   /** When the file names no provider, this one is the default instead of the
    *  setting's own `defaultProvider` if every setting key listed here is
    *  already filled in. It is how a board that saved a key before the list
@@ -335,8 +370,9 @@ export interface HarnessSetting {
   key: string;
   /** The label above the control, e.g. "Model". */
   label: string;
-  /** One plain line of help under the control. */
-  help: string;
+  /** One plain line of help under the control. Left out when the control needs
+   *  none — the provider list explains its picked entry instead (Provider.blurb). */
+  help?: string;
   kind: "text" | "select" | "secret" | "provider";
   /** Text only: the hint shown in an empty box. */
   placeholder?: string;
@@ -373,8 +409,6 @@ export interface HarnessOption {
   name: string;
   /** Friendly name shown in the dialog, e.g. "Claude Code". */
   label: string;
-  /** One short line under the label, e.g. "Subscription plan". */
-  blurb: string;
   /** Public path of the harness's mark, e.g. "/agents/claude.svg". */
   icon: string;
   /** The command this harness runs when the setting carries no override. */

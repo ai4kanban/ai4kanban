@@ -39,11 +39,12 @@ you can start, and a blocker rises to the top of the rest, since there's no bloc
 here to make it stand out. Cards carry their track in this view for the same reason. The view
 you pick is remembered in your browser, per board; nothing is written to the files.
 
-The header carries six things:
+The header carries seven things:
 
+- **The goal** (the compass, on the left beside the folder path) — see below.
 - **Board / Queue** — the two views above.
-- **The release dropdown** — which version the board is showing. It only appears once the
-  board has releases; see below.
+- **The release dropdown** — which version the board is showing, and where a release is
+  started; see below.
 - **Create task** — describe an idea in your words and the agent writes the card. The same
   dialog has a **Propose 3 tasks** mode: pick a module (or let the agent pick one) and it
   proposes three new tasks inside it. A **Boldness** row sets how big those tasks are —
@@ -57,6 +58,23 @@ The header carries six things:
   board with nothing recorded yet says so instead.
 - **Configuration** (the gear) — see below.
 
+### The goal
+
+`memory/goal.md` is where the project is headed, in your own words. Every proposal the agent
+makes is judged against it, so it is worth rereading now and then — and the small **compass**
+on the left of the header, after the folder path, is how. It sits on the board and on a card
+page alike.
+
+Click it and a **Goal** dialog shows the whole file, headings, paragraphs and roadmap as you
+wrote them. Nothing is cut short or folded away; a long goal scrolls.
+
+**Edit** in that dialog swaps the text for a plain box, with Save and Cancel. Saving writes
+your words back and leaves the frontmatter exactly as it is — `reviewed:` is the agent's
+judgment, the words are yours — and the dialog shows what you just saved, with no reload.
+
+The compass only shows when there is something to read. A goal that is missing or still the
+seeded text has nothing to open, and the setup bar is what asks you to write it there.
+
 ### The release a card ships in
 
 A card can say which version it ships in. Open the card and the meta box has a **Release**
@@ -66,9 +84,8 @@ to a version.
 
 The list you pick from is the open releases in `docs/kanban/releases.md`, in the order they
 ship, with **next** last. There is nothing to type, so a version id can't be misspelled into
-existence. Making a release is still a terminal job: `release new v1` in your coding agent,
-and it shows up in the box. Your pick is written into the card file the moment you make it,
-like priority and ROI, so the files stay the record.
+existence — the header's dropdown is where a release is made. Your pick is written into the
+card file the moment you make it, like priority and ROI, so the files stay the record.
 
 In the **Queue** view each card carries its release beside its track, so you can see what is
 promised to a version and what isn't without opening anything.
@@ -113,7 +130,31 @@ A few more things it does:
   opens on All releases rather than hiding your cards behind a version that no longer
   exists.
 
-A board that plans no versions never sees the dropdown at all.
+### Starting a release
+
+The dropdown's last entry is **New release**, on a board with five releases and on one with
+none. It asks for a version id and nothing else — `v1`, `0.5.0`, `august`, whatever you call
+your versions. That is all a release is: a name and a place in the order, which is the order
+you made them in. The note you can write beside a version in `releases.md` is yours, and
+nothing reads it.
+
+The board switches to the new release the moment it is made, so what you write next lands in
+it — **Create task** puts a new card in the release on screen. It is empty to begin with, so
+the "has no open cards" note is what greets you, with **All releases** one click away.
+
+A name the board can't take — one it already has, an empty one, **next**, or one that can't
+be a filename — is refused with the reason under the box, and the dialog stays open so you
+can fix the name where you typed it. Leaving without a name makes nothing and leaves the
+board on the release it was already showing.
+
+**Closing a release is still a terminal job**: `release close v1` in your coding agent. It
+writes down what shipped, sends the cards still open back to **next**, and prints output
+worth reading. Renaming and reordering are terminal jobs too — `releases.md` is a short file
+and a hand edit is how those work.
+
+A board that plans no versions sees the dropdown saying **All releases** and offering **New
+release**, and nothing more: no **next** entry, since **next** is the whole board there.
+Nothing asks you for a version.
 
 ### The setup bar
 
@@ -311,6 +352,9 @@ more entry there. It holds:
 
   Switching agents empties the fields — a Claude model id means nothing to Codex — and leaves
   your saved keys alone.
+- **Test** — under those settings, a button that sends one tiny message through the setup you
+  have saved and says whether it worked. On a failure it shows what the agent said. See
+  **Testing the connection**.
 - **Auto-refine** — its own section, holding a switch. Turn it on and the server refines
   cards in the background:
   about once a minute it picks the highest-priority cards that still need refining and runs
@@ -489,6 +533,40 @@ pick Codex.
 Codex has no provider list yet: it runs on whatever login its CLI has, plus the optional key
 below, and its runs inherit your shell environment as they always did.
 
+### Testing the connection
+
+**Test**, at the bottom of the Agent section, answers one question: does this setup actually
+run? Without it you only find out on the first card run that fails — the `claude` CLI isn't
+logged in, the key was revoked, the gateway is down, the model id is wrong.
+
+It sends one tiny message — "Reply with OK and nothing else." — through the agent, spawned
+exactly the way a card run is: the same command, the same environment. So a test that passes
+is a card run that starts. Nothing reads the answer; that the agent answered at all is the
+pass.
+
+**It tests what is saved**, not what you have half-typed. Every box in the dialog saves as you
+change it, so the two are normally the same thing — the one exception is a provider pick still
+waiting on a box, and Test stands down until that pick is saved.
+
+What the panel under the button says:
+
+- **Passed**, with how long it took.
+- **Failed**, then the agent's own words — the same lines that agent's run log would show, and
+  nothing written on top of them. "Not logged in · Please run /login", "API Error: 401 API key
+  is invalid", "Unable to connect to API (ConnectionRefused)", "There's an issue with the
+  selected model (…)". A guess laid over a real error message would only send you the wrong
+  way, so there isn't one.
+- **The CLI isn't installed** is the one case the board puts in its own words, because
+  `spawn claude ENOENT` tells you nothing. It names the command that's missing and the command
+  that installs it.
+- **No answer after a minute** and the test gives up and reports that, so a dead endpoint never
+  leaves the panel spinning.
+
+A test costs a few tokens on a paid provider — the line beside the button says so. It is not
+board work: no card is touched, no card is locked, nothing joins the queue, and it never shows
+up in the **Sessions** panel. Close the dialog and the result is gone; it's a check you run
+while you're looking at the setup, not a job the board keeps.
+
 ### Keys
 
 Keys live in **`docs/kanban/.env`**, next to `ui.config.json`. That is the only place the
@@ -523,10 +601,12 @@ screen, never in a run's log, and never on a command line.
 
 **What a run gets.** When a run starts, the board sets the variables from `docs/kanban/.env`,
 so what the dialog shows is what the run uses. On Claude Code the key goes out under the
-variable its provider uses — `ANTHROPIC_API_KEY` for the Anthropic API, and for a gateway
-both that and `ANTHROPIC_AUTH_TOKEN`, since which header a gateway reads is its own team's
-choice. A key belongs to the provider you picked: on the **Claude subscription** it isn't
-sent at all, even when it's saved.
+variable its provider uses, and only that one: `ANTHROPIC_API_KEY` for the Anthropic API,
+`ANTHROPIC_AUTH_TOKEN` for a gateway — which is what OpenRouter, LiteLLM and the rest read.
+A gateway run also gets `ANTHROPIC_API_KEY` explicitly empty, because Claude Code reads a
+key there as its own login and turns your claude.ai connectors off when it finds one. A key
+belongs to the provider you picked: on the **Claude subscription** it isn't sent at all,
+even when it's saved.
 
 Each agent takes one key, and it is **optional** either way: Claude Code's is
 `ANTHROPIC_API_KEY`, Codex's is `OPENAI_API_KEY`. Leave it empty and runs use whatever login

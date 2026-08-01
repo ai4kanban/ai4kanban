@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseFrontmatter } from "./frontmatter";
-import { goalReviewed } from "./goal";
+import { goalReviewed, goalWritten } from "./goal";
 import { archivePath, readmePath, todoDir } from "./paths";
 import { byPickOrder } from "./pick-order";
 import { readReleases } from "./releases";
@@ -306,6 +306,7 @@ export function readBoard(): Board {
     releases: readReleases(),
     releaseCounts: countByRelease(every),
     goalWeak: goalReviewed() === "weak",
+    goalWritten: goalWritten(),
     setup: readSetup(),
   };
 }

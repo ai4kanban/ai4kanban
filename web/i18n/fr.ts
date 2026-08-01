@@ -99,7 +99,7 @@ const fr: SiteCopy = {
     install: {
       heading: { eyebrow: "Mise en place", title: "Installez-le en un seul prompt" },
       lead: "Depuis la racine de votre projet, dites à Claude Code (ou à n'importe quel agent capable de lancer des commandes shell) :",
-      note: "L'agent lit votre code, puis lance une seule commande — `npx ai4kanban install` — qui installe la skill et met le tableau en place. Il remplit ensuite la configuration et vous propose vos trois premières tâches. Pour mettre à jour plus tard, une commande suffit aussi : `npx ai4kanban update`.",
+      note: "L'agent lit votre code, puis lance une seule commande — `npx ai4kanban install` — qui installe la skill et met le tableau en place. Il remplit ensuite la configuration, vous demande l'objectif du projet — la seule question de l'installation —, en tire les premières décisions et crée vos dix premières tâches. Pour mettre à jour plus tard, une commande suffit aussi : `npx ai4kanban update`.",
     },
     board: {
       heading: { eyebrow: "Usage", title: "Utiliser AI4Kanban dans Claude Code" },

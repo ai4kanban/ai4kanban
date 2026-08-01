@@ -97,7 +97,7 @@ const zh: SiteCopy = {
     install: {
       heading: { eyebrow: "安装", title: "一句话完成安装" },
       lead: "在项目根目录下，对 Claude Code（或任何能执行 shell 命令的智能体）说：",
-      note: "智能体先读一遍你的代码库，然后跑一条命令 `npx ai4kanban install`，把技能装进项目并搭好看板。剩下的配置由它填，最初的三个任务也由它提。以后升级同样只要一条命令：`npx ai4kanban update`。",
+      note: "智能体先读一遍你的代码库，然后跑一条命令 `npx ai4kanban install`，把技能装进项目并搭好看板。配置由它填，项目目标问你一句——整个设置只问这一件事——再从目标里定下最初的决策，建好头十个任务。以后升级同样只要一条命令：`npx ai4kanban update`。",
     },
     board: {
       heading: { eyebrow: "用法", title: "在 Claude Code 里使用 AI4Kanban" },

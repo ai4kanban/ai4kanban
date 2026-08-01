@@ -17,12 +17,17 @@ export function Dialog({
   onClose,
   children,
   width = 520,
+  height,
   flush = false,
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
   width?: number;
+  // A fixed height, e.g. "90vh". The panel keeps it whatever the content —
+  // short content leaves room, long content scrolls — so the dialog doesn't
+  // resize as its panes change. Left out, the panel sizes to its content.
+  height?: number | string;
   // The child owns the body: no padding, no scroll — for a layout with panes of
   // its own, like Configuration's sidebar. The child scrolls its own panes.
   flush?: boolean;
@@ -44,7 +49,7 @@ export function Dialog({
     <div className="nb-scrim" style={{ alignItems: "center" }} onClick={onClose}>
       <div
         className="nb-panel flex flex-col"
-        style={{ width, maxWidth: "100%", maxHeight: "calc(100vh - 2rem)" }}
+        style={{ width, maxWidth: "100%", height, maxHeight: "calc(100vh - 2rem)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div
@@ -64,7 +69,8 @@ export function Dialog({
           // Clipped to the panel's rounded corners: a pane with its own
           // background (Configuration's wash sidebar) would otherwise paint
           // square over the bottom corners.
-          <div className="flex min-h-0 overflow-hidden rounded-b-[14px]">{children}</div>
+          // flex-1 fills a fixed `height`; with a content-sized panel it's inert.
+          <div className="flex min-h-0 flex-1 overflow-hidden rounded-b-[14px]">{children}</div>
         ) : (
           <div className="overflow-y-auto p-5">{children}</div>
         )}

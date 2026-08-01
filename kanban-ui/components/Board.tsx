@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getBoard } from "@/app/actions";
+import { createReleaseAction, getBoard } from "@/app/actions";
 import { filterColumns, pickIsEmpty, useReleasePick } from "@/lib/release-pick";
 import { type AgentInfo, type Board, DEFAULT_RELEASE } from "@/lib/types";
 import { useBoardView } from "@/lib/view";
@@ -61,6 +61,23 @@ export function BoardView({
     }
   }, []);
 
+  // Start a release from the header (#115). The board is re-read before the pick
+  // moves, so the new release is on the list the pick is checked against — a pick
+  // the list doesn't hold yet would be dropped back to All releases in the same
+  // render. Then the board switches to it: the user asked for this version to
+  // work in it, and a card made while it is picked lands in it. It is empty, so
+  // the "has no open cards" note is what greets them, with the way back on it.
+  const makeRelease = useCallback(
+    async (id: string) => {
+      const res = await createReleaseAction(id);
+      if (!res.ok) return res;
+      await refresh();
+      setRelease(id);
+      return res;
+    },
+    [refresh, setRelease],
+  );
+
   // The board starts no sessions itself (Create task lives in the header,
   // per-card actions on the card page), so it only reads the registry — for the
   // per-card running badges and to refresh when any session finishes.
@@ -98,10 +115,12 @@ export function BoardView({
         releaseCounts={board?.releaseCounts ?? {}}
         release={release}
         onReleaseChange={setRelease}
+        onCreateRelease={makeRelease}
         // A card written while a version is on screen ships in that version.
         // `next` is not a version, so a card made there lands where it would
         // have anyway and the prompt says nothing about a release.
         createRelease={release === DEFAULT_RELEASE ? null : release}
+        goalWritten={board?.goalWritten ?? false}
       />
 
       {error && (

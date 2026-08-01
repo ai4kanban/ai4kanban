@@ -20,10 +20,9 @@
 
 import { useEffect, useState } from "react";
 import { FiCheck, FiCopy, FiX } from "react-icons/fi";
-import { getGoalAction, saveGoalAction } from "@/app/actions";
 import type { SetupState } from "@/lib/types";
 import { Button } from "./button";
-import { Dialog } from "./Dialog";
+import { GoalEditor } from "./Goal";
 
 const DISMISS_KEY = "kanban-ui.setup-bar-dismissed";
 
@@ -31,11 +30,6 @@ const DISMISS_KEY = "kanban-ui.setup-bar-dismissed";
 // — it's the step the board can finish itself — and every other step the line to
 // paste. The name is the script's (skill/lib/setup.mjs).
 const GOAL_STEP = "goal";
-
-// Same input rules as the agent dialogs' textarea, taller: the goal is a few
-// paragraphs, not a note.
-const INPUT =
-  "min-h-[260px] w-full resize-y rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2.5 font-mono text-[13px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent";
 
 export function SetupBar({
   setup,
@@ -200,65 +194,5 @@ function CopyLine({ text }: { text: string }) {
         {copied ? "Copied" : "Copy"}
       </Button>
     </div>
-  );
-}
-
-// The goal editor: the user's own words, saved to goal.md with the agent's
-// `reviewed:` field left untouched.
-function GoalEditor({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [text, setText] = useState<string | null>(null); // null = still loading
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch the current goal text fresh each time the editor opens — an agent run
-  // may have seeded or reshaped the file since the page loaded.
-  useEffect(() => {
-    let alive = true;
-    getGoalAction()
-      .then((t) => alive && setText(t))
-      .catch((e) => alive && setError(e instanceof Error ? e.message : String(e)));
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const save = async () => {
-    if (text === null) return;
-    setSaving(true);
-    setError(null);
-    const res = await saveGoalAction(text);
-    setSaving(false);
-    if (!res.ok) {
-      setError(res.error || "could not save the goal");
-      return;
-    }
-    onSaved();
-  };
-
-  return (
-    <Dialog title="Write the goal" width={640} onClose={onClose}>
-      <p className="mb-3 text-[13px] leading-relaxed text-nb-ink-soft">
-        Your own words go in — the agent never drafts the goal for you. This one file holds the
-        whole direction, the horizon and roadmap included. A rough, short answer is fine and can
-        change later.
-      </p>
-      {text === null && !error && <p className="text-[13px] italic text-nb-ink-soft">Reading goal.md…</p>}
-      {text !== null && (
-        <textarea className={INPUT} value={text} onChange={(e) => setText(e.target.value)} autoFocus />
-      )}
-      {error && (
-        <div className="mt-3 nb-panel-sm p-2.5 text-[12px]" style={{ background: "var(--color-nb-peach-soft)" }}>
-          {error}
-        </div>
-      )}
-      <div className="mt-4 flex justify-end gap-2.5">
-        <Button size="sm" variant="ghost" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button size="sm" disabled={text === null || saving} onClick={save}>
-          {saving ? "Saving…" : "Save"}
-        </Button>
-      </div>
-    </Dialog>
   );
 }

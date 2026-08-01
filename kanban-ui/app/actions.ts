@@ -20,7 +20,9 @@ import { readGoalText, writeGoalText } from "@/lib/goal";
 import { tickSetupStep } from "@/lib/setup";
 import { type MetricsResult, readMetrics } from "@/lib/metrics";
 import { readModules } from "@/lib/modules";
+import { addRelease } from "@/lib/releases";
 import { setSecret } from "@/lib/secrets";
+import { testConnection } from "@/lib/test-connection";
 import {
   getSession,
   listSessions,
@@ -29,7 +31,7 @@ import {
   type StartResult,
   stopSession,
 } from "@/lib/registry";
-import type { Board, SessionView } from "@/lib/types";
+import type { Board, ConnectionTest, SessionView } from "@/lib/types";
 
 export async function getBoard(): Promise<Board> {
   return readBoard();
@@ -129,6 +131,21 @@ export async function saveGoalAction(text: string): Promise<{ ok: boolean; error
   const res = writeGoalText(text);
   if (res.ok) tickSetupStep("goal");
   return res;
+}
+
+// Start a release from the header's New release entry (#115) — one line appended
+// to docs/kanban/releases.md, the same line `release new` writes.
+//
+// No agent run: a release is a name and its place in the order, so there is
+// nothing for an agent to decide, and a run answers minutes later in a log —
+// which cannot refuse a bad name in the dialog the user is still typing in. The
+// UI already writes a card's release and the goal file the same direct way.
+//
+// A name that can't be a release comes back as { ok:false, error } rather than
+// throwing, so the dialog shows why and stays open on what was typed.
+export async function createReleaseAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  if (typeof id !== "string") return { ok: false, error: "a version id is text" };
+  return addRelease(id);
 }
 
 // The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv.
@@ -246,4 +263,19 @@ export async function setHarnessSecretAction(
     return { ok: false, error: `the agent you picked has no "${key}" key` };
   }
   return setSecret(setting.env, value);
+}
+
+// Send one small chat through the setup that is saved right now and say whether
+// it worked (#96) — the Test button in the Configuration dialog.
+//
+// It takes no arguments on purpose: there is nothing for the client to say. The
+// setup being tested is the one in the files, which is the one the next card run
+// will use, so a client can neither test something else nor test something that
+// isn't saved.
+//
+// It touches no card, holds no lock and starts no session — see
+// lib/test-connection.ts. It never throws either: every way it can go wrong is a
+// result the panel shows.
+export async function testConnectionAction(): Promise<ConnectionTest> {
+  return testConnection();
 }

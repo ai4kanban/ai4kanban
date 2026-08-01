@@ -40,6 +40,38 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   ✅ one fixed file the board owns, `docs/kanban/.env`, next to `ui.config.json` and kept out
   of git. Keys go in one known place the dialog can write and report on; `ui.config.json` is
   checked in and never holds one. (#94)
+- ❌ **A control is hidden when the thing it drives doesn't exist yet** (no releases → no
+  release dropdown, so the UI never says releases exist and gives no way to make one) → ✅ the
+  empty state is where the UI teaches the feature: keep the control and let it offer the
+  first step. A user who only ever opens the UI must be able to find a feature the script
+  has. (#104)
+- ❌ **Say whether a setup can run by checking its pieces up front** (is the CLI installed,
+  is it logged in, is the key set — a readiness line per choice, worked out when the dialog
+  opens) → ✅ one **Test** button that really runs the thing once and shows what came back.
+  A real run answers every case a checklist can't see — a revoked key, a gateway that
+  refuses this model — and "test" is a word the user already knows. (#96)
+- ❌ **The goal is one section inside a bigger memory view, shipped with it** → ✅ the goal
+  is its own lightweight element, built first: a quiet header button that opens the whole
+  file. It is rarely edited and often reread — the opposite of the memory files, which are
+  read-only and live in a view you open on purpose. (#77, #128)
+- ❌ **Put a long file on the board as one summarized line** (a headline stripped out of
+  `goal.md`, truncated to fit a row) → ✅ a file the user wrote in full is opened in full.
+  Give it a control that costs no space — an icon button in the header — and show the whole
+  thing in the dialog. A one-line squeeze of a page of text drops the part worth rereading
+  and takes a row from every board, every day. (#128)
+- ❌ **A read-only reference control joins the header's action cluster on the right, in the
+  same sticker frame** → ✅ it goes on the left, beside the board's name and folder path,
+  with no border, no shadow, icon only. The left of the header says what this board is; the
+  right is the things you do. (#128)
+- ❌ **Send a key out under every variable the agent might read, so it works whichever one
+  the other end wants** → ✅ one auth variable per run, the one the picked provider names.
+  A second one isn't a harmless spare: an agent reads it as another login and changes what
+  it does — Claude Code turns the user's claude.ai connectors off the moment
+  `ANTHROPIC_API_KEY` is set. (#95)
+- ❌ **A dialog's fields are seeded once, from the page's first load** (a setting saved a
+  moment ago reads back empty the next time the dialog opens, while the file has it) → ✅ a
+  settings dialog shows what the file holds every time it opens. What you saved is what you
+  see when you come back, with no page reload. (#95)
 - ❌ **A recurring-task feature that only adds a Run button** → ✅ say how runs start without
   a click: the server's dispatcher runs due cards on a card-set cadence — scheduling is the
   server's job, never an in-session loop like Claude Code's `/loop`.

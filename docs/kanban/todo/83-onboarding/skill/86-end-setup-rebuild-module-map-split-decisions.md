@@ -5,7 +5,7 @@ priority: high
 roi: high
 status: ready
 release: next
-blocked_by: [84]
+blocked_by: []
 related: [83, 112]
 modules: [skill]
 questions: []
@@ -16,7 +16,8 @@ decision into the memory of the module it belongs to. The first tasks are create
 that memory, once it sits in the right place.
 
 ## Today
-- Setup settles the project-wide `decisions.md` before the module map is written (#84).
+- Setup settles the project-wide `decisions.md` before the module map is written
+  (`references/setup.md`).
   At that moment there are no modules yet, so every call lands project-wide — even the
   ones that clearly belong to one module.
 - Setup writes `modules.md` in the middle, before anything reads it, and nothing checks
@@ -25,7 +26,7 @@ that memory, once it sits in the right place.
   fresh out of setup already breaks the rule it will be planned by.
 
 ## Scope
-- Add a closing step to the setup flow doc (#84's `references/setup.md`), after every step
+- Add a closing step to the setup flow doc (`references/setup.md`), after every step
   that settles something and right before the one that creates the first tasks. It writes
   `modules.md` from everything setup learned — the code, the goal, and the decisions. No
   earlier step writes a map, so setup never plans from a draft.
