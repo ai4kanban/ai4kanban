@@ -15,7 +15,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiCheck, FiChevronDown, FiFeather, FiSettings, FiTerminal, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiFeather, FiSettings, FiTerminal, FiZap } from "react-icons/fi";
 import {
   getHarnessSecretsAction,
   setAutoRefineAction,
@@ -41,6 +41,7 @@ import {
   type SessionView,
 } from "@/lib/types";
 import { Dialog } from "./Dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 // The look of every box and list in this pane. One string, because the provider
 // list, the model box and the reasoning list are the same control with different
@@ -53,41 +54,9 @@ const CONTROL =
 const QUIET_BTN =
   "cursor-pointer rounded-[8px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-1.5 text-[12px] font-[700] text-nb-ink transition-[transform,box-shadow] duration-[120ms] hover:-translate-x-px hover:-translate-y-px hover:shadow-[2px_2px_0_0_var(--color-nb-ink)] active:translate-x-px active:translate-y-px active:shadow-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-none";
 
-// The pane's one dropdown, used by every list in it. A native <select> in the
-// CONTROL frame with our own chevron: appearance-none drops the browser's,
-// which sits too tight against the right edge.
-function SelectControl({
-  id,
-  value,
-  disabled,
-  onChange,
-  children,
-}: {
-  id: string;
-  value: string;
-  disabled: boolean;
-  onChange: (value: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <span className="relative block">
-      <select
-        id={id}
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className={`${CONTROL} cursor-pointer appearance-none pr-10`}
-      >
-        {children}
-      </select>
-      <FiChevronDown
-        aria-hidden
-        className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-nb-ink"
-        style={{ width: 14, height: 14 }}
-      />
-    </span>
-  );
-}
+// The pane's dropdowns are ui/select.tsx — its default trigger IS the CONTROL
+// frame, so a list and a text box read as the same control. `disabled` here is
+// always a save in flight, hence the cursor-wait override.
 
 // A harness's mark, e.g. the Claude sunburst at public/agents/claude.svg.
 // alt="" because the agent name always sits right next to it.
@@ -737,13 +706,18 @@ function ProviderField({
       >
         {setting.label}
       </label>
-      <SelectControl id={id} value={value} disabled={disabled} onChange={onPick}>
-        {providers.map((provider) => (
-          <option key={provider.id} value={provider.id}>
-            {provider.label}
-          </option>
-        ))}
-      </SelectControl>
+      <Select value={value || undefined} disabled={disabled} onValueChange={onPick}>
+        <SelectTrigger id={id} className="disabled:cursor-wait">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {providers.map((provider) => (
+            <SelectItem key={provider.id} value={provider.id}>
+              {provider.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {shown && (
         <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">{shown.blurb}</p>
       )}
@@ -926,6 +900,14 @@ function SettingField({
     ? [...choices, { value, label: `${value} (from your ui.config.json)` }]
     : choices;
 
+  // A choice can mean "nothing saved" and carry the value "" (the reasoning
+  // list's Agent's default) — but Radix refuses an empty-string item value, so
+  // that choice wears this stand-in inside the select and is mapped back to ""
+  // on the way out. No declared choice can collide: the values are ours, from
+  // lib/agent.ts.
+  const EMPTY = "—empty—";
+  const toItem = (v: string) => v || EMPTY;
+
   return (
     <div>
       <label
@@ -935,21 +917,26 @@ function SettingField({
         {setting.label}
       </label>
       {setting.kind === "select" ? (
-        <SelectControl
-          id={id}
-          value={value}
+        <Select
+          value={toItem(value)}
           disabled={disabled}
-          onChange={(v) => {
-            onChange(v);
-            onSave(v);
+          onValueChange={(v) => {
+            const next = v === EMPTY ? "" : v;
+            onChange(next);
+            onSave(next);
           }}
         >
-          {listed.map((choice) => (
-            <option key={choice.value} value={choice.value}>
-              {choice.label}
-            </option>
-          ))}
-        </SelectControl>
+          <SelectTrigger id={id} className="disabled:cursor-wait">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {listed.map((choice) => (
+              <SelectItem key={choice.value} value={toItem(choice.value)}>
+                {choice.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ) : (
         <input
           id={id}

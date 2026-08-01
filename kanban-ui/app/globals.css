@@ -158,39 +158,9 @@ body {
   opacity: 1;
 }
 
-/* Level select — a meaning chip that is secretly a native <select>. The
-   wrapper carries the level fill/ink (set inline from the LEVEL scale); the
-   select is transparent so text + chevron read as one nb-chip-sized pill. */
-.nb-levelselect {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  border-radius: 6px;
-}
-.nb-levelselect select {
-  appearance: none;
-  border: none;
-  background: transparent;
-  padding: 3px 19px 3px 7px;
-  font-size: 10.5px;
-  font-weight: 700;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: inherit;
-  cursor: pointer;
-}
-.nb-levelselect select:disabled {
-  cursor: not-allowed;
-}
-.nb-levelselect:has(select:disabled) {
-  opacity: 0.6;
-}
-.nb-levelselect svg {
-  position: absolute;
-  right: 5px;
-  pointer-events: none;
-}
+/* Dropdowns are components/ui/select.tsx (shadcn Select restyled to this
+   language) — no shared class here. Its open-list animation is the nbPopIn
+   keyframe below. */
 
 /* The dialog textarea now lives as Tailwind utilities in
    components/agent-shared.tsx (INPUT) — colocated with the dialogs that use it. */
@@ -225,6 +195,19 @@ body {
   50% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* The ui/select list opening — a small settle-down from just above, so the
+   panel reads as dropping out of its trigger rather than blinking in. */
+@keyframes nbPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 

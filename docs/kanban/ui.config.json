@@ -1,8 +1,6 @@
 {
   "harness": {
-    "name": "claude-code",
-    "baseUrl": "https://openrouter.ai/api",
-    "provider": "subscription"
+    "name": "codex"
   },
   "autoRefine": false
 }

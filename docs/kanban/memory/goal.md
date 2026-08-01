@@ -2,8 +2,6 @@
 reviewed: strong
 ---
 
-# Goal
-
 AI project management that grows with you.
 
 AI4Kanban的目标是一个自进化的AI *项目经理*：给它一个模糊想法，它会自主解读、拆解、循环澄清，直到每个需求细节都被明确。

@@ -22,20 +22,18 @@
 // nothing reads.
 
 import { useState } from "react";
-import { FiChevronDown, FiTag } from "react-icons/fi";
+import { FiTag } from "react-icons/fi";
 import type { ReleasePick } from "@/lib/release-pick";
 import { DEFAULT_RELEASE } from "@/lib/types";
 import { Button } from "./button";
 import { Dialog } from "./Dialog";
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "./ui/select";
 
-// The value the All-releases option carries. A version id is free text, but it
-// can never be empty (a release is refused an empty name), so the empty string is
-// the one value no release can take.
-const ALL = "";
-
-// The value the New-release entry carries. `readReleases` cuts a line at its em
-// dash, so a release id can never hold one — not even from a hand edit — which
-// makes this the one other value no entry above it can collide with.
+// The values the All-releases and New-release entries carry. `readReleases`
+// cuts a line at the em dash, so a release id can never hold one — not even
+// from a hand edit — which makes these the two values no entry can collide
+// with. (Radix refuses an empty-string value, so All can't just be "".)
+const ALL = "—all—";
 const NEW = "—new—";
 
 export function ReleasePicker({
@@ -59,55 +57,58 @@ export function ReleasePicker({
   const entry = (id: string) => `${id} (${counts[id] ?? 0})`;
   const filtering = value !== null;
   return (
-    <span
-      className="relative inline-flex h-9 items-center rounded-[9px] border-[1.5px] border-nb-ink pl-2 shadow-[2px_2px_0_0_var(--color-nb-ink)]"
-      style={{
-        background: filtering ? "var(--color-nb-sky-soft)" : "var(--color-nb-paper)",
-        color: filtering ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
-      }}
-    >
-      <FiTag aria-hidden style={{ width: 13, height: 13, flex: "0 0 auto" }} />
-      <select
-        aria-label="Which release to show"
-        title="Show one release at a time — blockers always stay on screen"
+    <>
+      <Select
         value={value ?? ALL}
-        onChange={(e) => {
-          if (e.target.value !== NEW) {
-            onChange(e.target.value === ALL ? null : e.target.value);
+        onValueChange={(v) => {
+          // New release is an action, not a thing to be showing. The pick isn't
+          // passed on, and the select is controlled, so it stays on the release
+          // the board is on — even if the user closes the dialog without making
+          // anything.
+          if (v === NEW) {
+            setMaking(true);
             return;
           }
-          // New release is an action, not a thing to be showing, so the select
-          // goes straight back to the release the board is on. Put back here and
-          // not left to the re-render, so it holds even if the user closes the
-          // dialog without making anything.
-          e.target.value = value ?? ALL;
-          setMaking(true);
+          onChange(v === ALL ? null : v);
         }}
-        // A native select, sized to the header's other controls: appearance-none
-        // so the sticker frame is the only chrome, and right padding to clear the
-        // chevron sitting on top of it.
-        // The frame is sized to the longest entry, so it is capped: a long
-        // version id truncates instead of pushing the header's other controls
-        // off a narrow screen.
-        className="h-full max-w-[112px] cursor-pointer appearance-none border-none bg-transparent pl-1.5 pr-[22px] text-[12px] font-[700] leading-none text-inherit focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent sm:max-w-[176px]"
       >
-        <option value={ALL}>All releases ({total})</option>
-        {releases.map((r) => (
-          <option key={r} value={r}>
-            {entry(r)}
-          </option>
-        ))}
-        {/* `next` is always last of the releases: it is where a card with no
-            release sits, not a version, so it never joins the ship order above
-            it. On a board with no releases it is left out — `next` is the whole
-            board there, so an entry for it would say what All releases says. */}
-        {releases.length > 0 && <option value={DEFAULT_RELEASE}>{entry(DEFAULT_RELEASE)}</option>}
-        <option value={NEW}>New release…</option>
-      </select>
-      <FiChevronDown aria-hidden className="pointer-events-none absolute right-2" style={{ width: 11, height: 11 }} />
+        {/* The trigger wears the same 36px sticker frame as the view switch
+            beside it. The entry span is capped: a long version id truncates
+            instead of pushing the header's other controls off a narrow
+            screen. */}
+        <SelectTrigger
+          aria-label="Which release to show"
+          title="Show one release at a time — blockers always stay on screen"
+          className="h-9 w-auto gap-1.5 rounded-[9px] px-2 py-0 text-[12px] font-[700] leading-none shadow-[2px_2px_0_0_var(--color-nb-ink)] [&>span]:max-w-[104px] sm:[&>span]:max-w-[168px]"
+          style={{
+            background: filtering ? "var(--color-nb-sky-soft)" : "var(--color-nb-paper)",
+            color: filtering ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
+          }}
+        >
+          <FiTag aria-hidden style={{ width: 13, height: 13, flex: "0 0 auto" }} />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL}>All releases ({total})</SelectItem>
+          {releases.map((r) => (
+            <SelectItem key={r} value={r}>
+              {entry(r)}
+            </SelectItem>
+          ))}
+          {/* `next` is always last of the releases: it is where a card with no
+              release sits, not a version, so it never joins the ship order above
+              it. On a board with no releases it is left out — `next` is the whole
+              board there, so an entry for it would say what All releases says. */}
+          {releases.length > 0 && <SelectItem value={DEFAULT_RELEASE}>{entry(DEFAULT_RELEASE)}</SelectItem>}
+          {/* Set off from the entries above: they are things to be looking at,
+              this one does something. */}
+          <SelectSeparator />
+          <SelectItem value={NEW}>New release…</SelectItem>
+        </SelectContent>
+      </Select>
 
       {making && <NewReleaseDialog onCreate={onCreate} onClose={() => setMaking(false)} />}
-    </span>
+    </>
   );
 }
 

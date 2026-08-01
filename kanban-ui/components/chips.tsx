@@ -1,12 +1,20 @@
 "use client";
 
-import { FiBox, FiCheckCircle, FiChevronDown, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
+import { FiBox, FiCheckCircle, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import type { QuestionTag } from "@/lib/questions";
 import { DEFAULT_RELEASE, type CardStatus } from "@/lib/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 // Meaning-coded chips + level selects, all built from the design language's
 // borderless pill and quiet select. Priority/roi map onto the signal pastels.
+
+// The pickable chips below are ui/select.tsx dressed down to nb-chip size: the
+// trigger drops the CONTROL frame (the wrapper's meaning fill is the only
+// chrome) and the open list shrinks its type to match. The 1em icons follow.
+const CHIP_TRIGGER =
+  "h-auto w-auto gap-1 rounded-[6px] border-0 px-[7px] py-[3px] text-[10.5px] font-[700] uppercase tracking-[0.04em] leading-none";
+const CHIP_ITEM = "py-1.5 pr-7 text-[10.5px] font-[700] uppercase tracking-[0.04em]";
 
 // One high/med/low scale shared by priority and roi. `dot` is the solid signal
 // colour; `soft`/`ink` are the filled-chip pair.
@@ -252,32 +260,37 @@ export function ReleaseSelect({
   const planned = value !== DEFAULT_RELEASE;
   const stale = planned && !releases.includes(value);
   return (
-    <span
-      className="nb-levelselect"
-      style={{
-        background: planned ? "var(--color-nb-sky-soft)" : "var(--color-nb-wash)",
-        color: planned ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
-      }}
-    >
-      <FiTag aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto", marginLeft: 7 }} />
-      {/* the icon already carries the chip's left inset, so the select drops its own */}
-      <select
-        style={{ paddingLeft: 4 }}
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
+    <Select value={value} disabled={disabled} onValueChange={onChange}>
+      {/* stopPropagation: the chip sits on a clickable card row — opening the
+          list must not also open the card. The portaled list is outside the
+          row's DOM, so its clicks never reach it. */}
+      <SelectTrigger
         onClick={(e) => e.stopPropagation()}
+        className={CHIP_TRIGGER}
+        style={{
+          background: planned ? "var(--color-nb-sky-soft)" : "var(--color-nb-wash)",
+          color: planned ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
+        }}
       >
-        {stale && <option value={value}>{value} — not on the list</option>}
+        <FiTag aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {stale && (
+          <SelectItem value={value} className={CHIP_ITEM}>
+            {value} — not on the list
+          </SelectItem>
+        )}
         {releases.map((r) => (
-          <option key={r} value={r}>
+          <SelectItem key={r} value={r} className={CHIP_ITEM}>
             {r}
-          </option>
+          </SelectItem>
         ))}
-        <option value={DEFAULT_RELEASE}>{DEFAULT_RELEASE}</option>
-      </select>
-      <FiChevronDown aria-hidden style={{ width: 10, height: 10 }} />
-    </span>
+        <SelectItem value={DEFAULT_RELEASE} className={CHIP_ITEM}>
+          {DEFAULT_RELEASE}
+        </SelectItem>
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -324,9 +337,8 @@ export function QuestionTagBadge({ tag }: { tag: QuestionTag | null }) {
 }
 
 // A quick-adjust level select for priority / roi. Looks like the other meaning
-// chips — filled with the current level's signal colour — but is a native
-// <select>, so it edits in place. The fixed option set means a bad value can't
-// slip in.
+// chips — filled with the current level's signal colour — but is a select, so
+// it edits in place. The fixed option set means a bad value can't slip in.
 export function LevelSelect({
   value,
   disabled,
@@ -338,18 +350,22 @@ export function LevelSelect({
 }) {
   const c = LEVEL[value] || LEVEL.low;
   return (
-    <span className="nb-levelselect" style={{ background: c.soft, color: c.ink }}>
-      <select
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
+    <Select value={value} disabled={disabled} onValueChange={onChange}>
+      {/* stopPropagation — see ReleaseSelect above. */}
+      <SelectTrigger
         onClick={(e) => e.stopPropagation()}
+        className={CHIP_TRIGGER}
+        style={{ background: c.soft, color: c.ink }}
       >
-        <option value="high">high</option>
-        <option value="med">med</option>
-        <option value="low">low</option>
-      </select>
-      <FiChevronDown aria-hidden style={{ width: 10, height: 10 }} />
-    </span>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {(["high", "med", "low"] as const).map((level) => (
+          <SelectItem key={level} value={level} className={CHIP_ITEM}>
+            {level}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
