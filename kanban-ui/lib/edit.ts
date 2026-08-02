@@ -3,7 +3,7 @@ import path from "node:path";
 import { normalizeRelease, parseFrontmatter, serializeFrontmatter } from "./frontmatter";
 import { readmePath, todoDir } from "./paths";
 import { readReleases } from "./releases";
-import { DEFAULT_RELEASE } from "./types";
+import { NO_RELEASE } from "./types";
 
 const LEVELS = ["high", "med", "low"];
 
@@ -45,7 +45,7 @@ export interface CardPatch {
   body?: string;
   priority?: string;
   roi?: string;
-  /** A version id from `releases.md`, or `next` to take the card out of a
+  /** A version id from `releases.md`, or empty to take the card out of a
    *  release. Nothing else is accepted — see patchCard. */
   release?: string;
 }
@@ -85,16 +85,16 @@ export function patchCard(id: number, patch: CardPatch): PatchResult {
     meta.roi = patch.roi;
   }
   // A card can only be moved onto a release that exists, the same check the
-  // script makes — a typo must not quietly invent a version. `next` is always
-  // allowed and never on the list: it is where a card with no release sits, so
-  // picking it is how a card comes back out of a release. The card's OWN release
+  // script makes — a typo must not quietly invent a version. An empty value is
+  // always allowed: it means no release, so writing it is how a card comes back
+  // out of a release. The card's OWN release
   // isn't accepted just because the card names it: `releases.md` is a file a
   // person edits, and a card left pointing at a line someone deleted still shows
   // what it says but can only move onto a release that is really there.
   if (patch.release !== undefined) {
     const release = normalizeRelease(patch.release);
     const known = readReleases();
-    if (release !== DEFAULT_RELEASE && !known.includes(release)) {
+    if (release !== NO_RELEASE && !known.includes(release)) {
       return {
         ok: false,
         error:

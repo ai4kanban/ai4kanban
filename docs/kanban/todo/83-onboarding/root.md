@@ -4,7 +4,7 @@ track: skill
 priority: high
 roi: high
 status: ready
-release: next
+release: 0.5.0
 blocked_by: []
 related: [86, 108]
 modules: [skill, local-ui, site, docs]

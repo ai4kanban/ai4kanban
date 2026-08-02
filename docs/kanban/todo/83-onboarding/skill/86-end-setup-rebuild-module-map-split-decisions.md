@@ -4,7 +4,7 @@ track: skill
 priority: high
 roi: high
 status: ready
-release: next
+release: ""
 blocked_by: []
 related: [83, 112]
 modules: [skill]

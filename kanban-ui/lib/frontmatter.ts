@@ -4,22 +4,20 @@
 // only rewrites these validated fields, and only for cards that already exist.
 
 import { hasOptions, type CardQuestion, type QuestionMode } from "./questions";
-import { DEFAULT_RELEASE, type CardMeta, type CardStatus } from "./types";
+import { NO_RELEASE, type CardMeta, type CardStatus } from "./types";
 
 const STATUSES: CardStatus[] = ["todo", "ready", "implementing"];
 
 const MODES: QuestionMode[] = ["single", "multi"];
 
 // A version id is free text (`v1`, `0.5.0`, `august`) kept exactly as typed minus the
-// spaces at each end, its case untouched. Missing, empty or damaged reads as `next`, so a
-// card written before this field still opens. Ported from normalizeRelease in
+// spaces at each end, its case untouched. Missing, empty or damaged reads as no release,
+// so a card written before this field still opens. Ported from normalizeRelease in
 // skill/lib/validate.mjs.
 export function normalizeRelease(raw: unknown): string {
-  if (raw === undefined || raw === null || typeof raw === "object") return DEFAULT_RELEASE;
-  if (typeof raw === "boolean") return DEFAULT_RELEASE;
-  const v = String(raw).trim();
-  if (!v || v.toLowerCase() === DEFAULT_RELEASE) return DEFAULT_RELEASE;
-  return v;
+  if (raw === undefined || raw === null || typeof raw === "object") return NO_RELEASE;
+  if (typeof raw === "boolean") return NO_RELEASE;
+  return String(raw).trim();
 }
 
 // Read any accepted form — a plain string, or the mapping parseQuestionsBlock

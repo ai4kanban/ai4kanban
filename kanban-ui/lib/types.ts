@@ -10,11 +10,11 @@ export type Level = "high" | "med" | "low";
  *  to it, the dialog's stepper stops at it. */
 export const MAX_PARALLEL = 5;
 
-/** Where a card with no release sits — wanted, but not promised to a version.
- *  It is always last in a picker and is never written into `releases.md`, so it
- *  can never be one of the ids read from that file. Both sides need it (the
- *  card reader normalizes to it, the picker offers it), so it lives here. */
-export const DEFAULT_RELEASE = "next";
+/** A card with no release — wanted, but not promised to a version. The empty
+ *  string is that state; there is no sentinel name for it. Both sides need it
+ *  (the card reader normalizes to it, the picker offers clearing to it), so it
+ *  lives here. */
+export const NO_RELEASE = "";
 
 /** The stage a card rests in, saved on the card so it survives a UI restart.
  *  In order: `todo` (raw), `ready` (plan concrete, no open questions, someone
@@ -29,8 +29,8 @@ export interface CardMeta {
   priority: string;
   roi: string;
   status: CardStatus;
-  /** The release this card ships in — a free-text version id like `v1`. A card
-   *  that names none reads as `next`: wanted, not promised to a version. The
+  /** The release this card ships in — a free-text version id like `v1`, or
+   *  empty for a card in no release: wanted, not promised to a version. The
    *  card page picks it from the open releases (#105), and the header's release
    *  dropdown is where one is made (#115). */
   release: string;
@@ -136,11 +136,10 @@ export interface Board {
   openIds: number[];
   /** The open releases from `docs/kanban/releases.md`, in ship order. Empty on a
    *  board that plans no versions — then the UI says nothing about releases at
-   *  all: no picker, no chip on a card. `next` is never in here; it is where a
-   *  card with no release sits and the picker adds it last on its own. */
+   *  all: no picker, no chip on a card. */
   releases: string[];
-  /** How many open cards name each release, keyed by version id, with `next`
-   *  for the cards that name none. It counts every open card — subtasks answer
+  /** How many open cards name each release, keyed by version id, with the empty
+   *  key for the cards in no release. It counts every open card — subtasks answer
    *  for themselves, the way they do on the CLI — so the number beside a release
    *  in the board's dropdown (#104) is the one `release list` prints. A release
    *  with nothing open in it is absent, not zero. */

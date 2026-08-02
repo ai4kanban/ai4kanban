@@ -21,6 +21,7 @@ _(none)_
 - [#77 Read the board's memory in the UI](77-memory-in-the-ui/root.md)
 - [#100 Releases: plan what ships in this version and what waits](100-release-planning/root.md)
 - [#116 Unstick cards that sit on the board too long](116-stuck-cards/root.md)
+- [#135 Auto-prune the memory daily as a background run](features/135-auto-prune-the-memory-daily-as-a-background-run.md)
 
 ## skill
 
@@ -28,15 +29,14 @@ _(none)_
 - [#83 Onboarding: from install to a board ready to plan](83-onboarding/root.md)
 - [#112 Move a module's calls into its memory when the map gains that module](skill/112-move-a-module-s-calls-into-its-memory-when-the-map-gains-tha.md)
 
-## docs
-
-
 ## distribution
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#5 Research the Vibe Kanban comparison and build its vs page](distribution/5-vibe-kanban-vs-page.md)
 
 ## 100-release-planning/features
+
+- [#136 Close a release from the UI](100-release-planning/features/136-close-a-release-from-the-ui.md)
 
 
 ## 77-memory-in-the-ui/features

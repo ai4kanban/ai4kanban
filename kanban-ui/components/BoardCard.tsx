@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FiHelpCircle } from "react-icons/fi";
-import { DEFAULT_RELEASE, type Card, type SessionView } from "@/lib/types";
+import { NO_RELEASE, type Card, type SessionView } from "@/lib/types";
 import { parseQuestion } from "@/lib/questions";
 import { RUNNING_VERB, RunningBadge } from "./agent-shared";
 import {
@@ -28,21 +28,19 @@ import {
 //
 // The release rides with the track chip (#105) — same row, same opt-in — so a
 // card says which version it ships in wherever it says which track it is in.
-// `hasReleases` is whether the board plans any versions at all: on one that never
-// has, the chip is gone rather than reading `next` on every card, since a user
-// who never plans a version should never meet the word.
+// Only a card that is in a version wears it: an unplanned card says nothing,
+// because on a board where most cards are unplanned a chip on every one of them
+// is clutter, and the planned few stand out better against silence.
 export function BoardCard({
   card,
   liveSession,
   onOpenLog,
   showTrack = false,
-  hasReleases = false,
 }: {
   card: Card;
   liveSession?: SessionView;
   onOpenLog: (sessionId: string) => void;
   showTrack?: boolean;
-  hasReleases?: boolean;
 }) {
   // A group root's progress comes from its own todo checklist, not from counting
   // subtask files: a finished subtask gets archived and its file removed, so the
@@ -119,7 +117,7 @@ export function BoardCard({
       <p className="mb-3 text-[14px] font-[700] leading-snug tracking-[-0.01em]">{card.title}</p>
       <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
         {showTrack && <TrackChip track={card.track} />}
-        {showTrack && (hasReleases || card.release !== DEFAULT_RELEASE) && (
+        {showTrack && card.release !== NO_RELEASE && (
           <ReleaseChip release={card.release} />
         )}
         <PriorityChip value={card.priority} />

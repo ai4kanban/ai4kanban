@@ -16,9 +16,21 @@ one focus close a gap, scattered ideas just skim the product.
 - Run `${KB} list --module <module>` — every open card tagged with the focus module, so
   you don't re-propose planned work.
 
-## 2. Write the tasks
+## 2. Drill down to submodules
 
-Write each with the "Add a task" flow in `SKILL.md`. Every proposal:
+A module is too big to propose against. Its submodules are the h2 headings in its
+`decisions.md` and `readme.md`. Pick up to **3** where importance is high but the lines
+under the heading are light or bare — that mismatch is where a gap hides.
+
+Spawn one subagent per picked submodule, splitting the count (cap **10**) among them.
+Each gets its submodule's heading and lines, `goal.md`, the open cards, its share of the
+count, and the rules in "Write the tasks" — it studies the existing cards, drafts the
+missing pieces, and drops any draft that breaks a rule. Subagents return **drafts, not
+cards**; the main agent creates the cards, so ids never race.
+
+## 3. Write the tasks
+
+Create each surviving draft with the "Add a task" flow in `SKILL.md`. Every proposal:
 
 - **Inside the module(s).**
 - **From a user walkthrough (optional)** — play one real user story in the focus, step by

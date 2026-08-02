@@ -27,12 +27,20 @@ it for you.
 A release is a version you're planning — call it `v1`, `0.5.0`, or `august`; the board
 never reads the name. Say **"create release v1"** and it joins the list in
 `docs/kanban/releases.md`, in the order it ships. Say **"put #4 in v1"** and that card
-ships in that version. A card you never place sits at `next` — wanted, but not promised to
-a version.
+ships in that version. A card you never place is in no release — wanted, but not promised
+to a version.
+
+Say **"create release v1 and fill it"** and the unplaced high-priority cards go in as the
+version is made. The fill is a rule, not a judgment call: a card goes in when its priority
+is high, nothing open is blocking it, and it is not a group root — a subtask is tested on
+its own, and a card already in a release stays where it is. Every card that moved is named,
+and every high-priority card left behind is named with the test it failed, so you read the
+plan instead of guessing it. On the local board, the New release dialog carries the same
+move as a toggle, with the count of cards it would put in.
 
 Say **"what's in v1?"** and you get every release in ship order, each with how many cards
-it holds and how many are ready to build, `next` last. So the work you promised for this
-version sits on the same screen as the work nobody promised.
+it holds and how many are ready to build — the cards in no release counted last. So the
+work you promised for this version sits on the same screen as the work nobody promised.
 
 Releases are optional. Nothing asks you for one, and a board that never plans a version
 works exactly as it does without them.
@@ -41,7 +49,7 @@ works exactly as it does without them.
 
 The version shipped. Say **"close v1"**. The skill writes what the release held to
 `docs/kanban/.release-summaries/v1.md` — what shipped, from the cards you archived while
-they named it, and what didn't — sends every card still open in it back to `next`, and
+they named it, and what didn't — clears the release off every card still open in it, and
 takes the version off the list. `releases.md` only ever shows what's still ahead.
 
 You can close whenever you say the version shipped, however much is still open. Afterwards
@@ -51,6 +59,18 @@ shipped — the skill names it so you can archive it and fix that line in the su
 
 The summary is a list of cards, not a changelog. Not every change goes through the board,
 so only you can say what the version changed — the summary is your source for writing that.
+
+## Drop a release
+
+You gave up on the version — it will not ship. Say **"drop v1"**. The version comes off
+the list with no shipped record: the summary file gets one dated `## Dropped` section
+listing the cards archived under it and the open ones sent back, and it says dropped,
+never shipped. The open cards come out of the version — back to no release. On the local
+board, the release dropdown offers the drop while you're looking at that version, and
+shows you which open cards it moves before you confirm.
+
+The skill writes down nothing about why. If the reason is worth keeping, it's yours to
+write — in the summary file, or wherever you keep such notes.
 
 ## Add a task
 
@@ -113,8 +133,10 @@ by hand.
 ```bash
 node .claude/skills/kanban/kanban.mjs create [--count N]   # allocate ids
 node .claude/skills/kanban/kanban.mjs release new v1       # plan a version
+node .claude/skills/kanban/kanban.mjs release new v1 --fill # …with the high-priority cards in
 node .claude/skills/kanban/kanban.mjs release list         # what each version holds
 node .claude/skills/kanban/kanban.mjs release close v1     # the version shipped
+node .claude/skills/kanban/kanban.mjs release drop v1      # the version will not ship
 node .claude/skills/kanban/kanban.mjs archive <id>         # finish a task
 node .claude/skills/kanban/kanban.mjs reject  <id>         # drop an idea
 node .claude/skills/kanban/kanban.mjs peek                 # next free id

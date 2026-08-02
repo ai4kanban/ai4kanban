@@ -988,8 +988,8 @@ export function buildPrompt(req: AgentRequest): string {
         `${kb}. Add task(s) from this requirement: "${req.description || ""}".`,
         `Follow the skill's add-task flow. Create task only, don't implement it.`,
         // The board was showing one release when this was written, so the card
-        // ships in it — otherwise it would land at `next`, off the screen of the
-        // person who just wrote it.
+        // ships in it — otherwise it would land in no release, off the screen of
+        // the person who just wrote it.
         req.release ? `Put the new card(s) in the "${req.release}" release: \`--release ${req.release}\`.` : "",
         AUTO_REFINE_AFTER,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,

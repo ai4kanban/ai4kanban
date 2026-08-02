@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createReleaseAction, getBoard } from "@/app/actions";
+import { createReleaseAction, dropReleaseAction, getBoard } from "@/app/actions";
 import { filterColumns, pickIsEmpty, useReleasePick } from "@/lib/release-pick";
-import { type AgentInfo, type Board, DEFAULT_RELEASE } from "@/lib/types";
+import type { AgentInfo, Board } from "@/lib/types";
 import { useBoardView } from "@/lib/view";
 import { BoardCard } from "./BoardCard";
 import { Header } from "./Header";
@@ -68,11 +68,27 @@ export function BoardView({
   // work in it, and a card made while it is picked lands in it. It is empty, so
   // the "has no open cards" note is what greets them, with the way back on it.
   const makeRelease = useCallback(
-    async (id: string) => {
-      const res = await createReleaseAction(id);
+    async (id: string, fill: boolean) => {
+      const res = await createReleaseAction(id, fill);
       if (!res.ok) return res;
       await refresh();
       setRelease(id);
+      return res;
+    },
+    [refresh, setRelease],
+  );
+
+  // Give up on a release from the header (#131). The pick moves back to All
+  // releases first — the release is about to be gone, and the fallback in
+  // useReleasePick would land there anyway, this just skips the frame where a
+  // dead version is picked. Then the board is re-read: its cards have no
+  // release and the version is off the list.
+  const dropRelease = useCallback(
+    async (id: string) => {
+      const res = await dropReleaseAction(id);
+      if (!res.ok) return res;
+      setRelease(null);
+      await refresh();
       return res;
     },
     [refresh, setRelease],
@@ -116,10 +132,9 @@ export function BoardView({
         release={release}
         onReleaseChange={setRelease}
         onCreateRelease={makeRelease}
+        onDropRelease={dropRelease}
         // A card written while a version is on screen ships in that version.
-        // `next` is not a version, so a card made there lands where it would
-        // have anyway and the prompt says nothing about a release.
-        createRelease={release === DEFAULT_RELEASE ? null : release}
+        createRelease={release}
         goalWritten={board?.goalWritten ?? false}
       />
 
@@ -168,7 +183,6 @@ export function BoardView({
       {board && view === "queue" && (
         <QueueView
           columns={columns}
-          hasReleases={board.releases.length > 0}
           sessions={sessions}
           onOpenLog={setLogSessionId}
         />

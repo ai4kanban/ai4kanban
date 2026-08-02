@@ -3,7 +3,7 @@
 import { FiBox, FiCheckCircle, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import type { QuestionTag } from "@/lib/questions";
-import { DEFAULT_RELEASE, type CardStatus } from "@/lib/types";
+import { NO_RELEASE, type CardStatus } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 // Meaning-coded chips + level selects, all built from the design language's
@@ -215,20 +215,14 @@ export function ModuleChip({ module }: { module: string }) {
 
 // Release — the version this card ships in (#105). A tag icon, since a release
 // is a name pinned on the work rather than a kind of work (the track) or a part
-// of the product (the module). `next` is where a card with no release sits, so
-// it wears the quiet wash instead of the sky fill a promised version gets: a
-// board full of unplanned cards stays calm, and the ones in this version stand
-// out. It always says something — never a blank space — so an unplanned card
-// reads as unplanned rather than as a card the board forgot.
+// of the product (the module). Only a card in a version gets the chip — the
+// caller keeps it off unplanned cards, so the sky fill marks the planned few
+// instead of stamping every card on the board.
 export function ReleaseChip({ release }: { release: string }) {
-  const planned = release !== DEFAULT_RELEASE;
   return (
     <span
       className="nb-chip"
-      style={{
-        background: planned ? "var(--color-nb-sky-soft)" : "var(--color-nb-wash)",
-        color: planned ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
-      }}
+      style={{ background: "var(--color-nb-sky-soft)", color: "var(--color-nb-sky-ink)" }}
     >
       <FiTag aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
       {release}
@@ -238,14 +232,23 @@ export function ReleaseChip({ release }: { release: string }) {
 
 // The card page's release picker — the ReleaseChip above, made pickable the way
 // LevelSelect makes the priority chip pickable. The options are the open
-// releases plus `next` last, and nothing can be typed, so a version id can't be
-// misspelled into existence; making a release stays a CLI job.
+// releases plus a bare "—" last for a card in no release — the "Release" label
+// beside the chip says what the dash means, and the file value it writes is
+// empty. Nothing can be typed, so a version id can't be misspelled into
+// existence; making a release stays a CLI job.
 //
 // `releases` is the list as it is right now. A card can name a version that is no
 // longer on it — the list is a file a person edits — so that value is kept as a
 // first option and the card goes on saying what it says. Re-picking it is a
 // no-op (same value, no change event), which is exactly right: the card is
 // already there, and the only move on offer is onto a release that exists.
+//
+// Radix refuses an empty item value, so the "no release" item carries the dash
+// itself as its value — an em dash can never be a real version id (those are
+// letters, numbers, dot, dash, underscore) — and it maps back to the empty
+// string on the way out.
+const NO_RELEASE_ITEM = "—";
+
 export function ReleaseSelect({
   value,
   releases,
@@ -257,10 +260,14 @@ export function ReleaseSelect({
   disabled?: boolean;
   onChange: (v: string) => void;
 }) {
-  const planned = value !== DEFAULT_RELEASE;
+  const planned = value !== NO_RELEASE;
   const stale = planned && !releases.includes(value);
   return (
-    <Select value={value} disabled={disabled} onValueChange={onChange}>
+    <Select
+      value={planned ? value : NO_RELEASE_ITEM}
+      disabled={disabled}
+      onValueChange={(v) => onChange(v === NO_RELEASE_ITEM ? NO_RELEASE : v)}
+    >
       {/* stopPropagation: the chip sits on a clickable card row — opening the
           list must not also open the card. The portaled list is outside the
           row's DOM, so its clicks never reach it. */}
@@ -286,8 +293,8 @@ export function ReleaseSelect({
             {r}
           </SelectItem>
         ))}
-        <SelectItem value={DEFAULT_RELEASE} className={CHIP_ITEM}>
-          {DEFAULT_RELEASE}
+        <SelectItem value={NO_RELEASE_ITEM} className={CHIP_ITEM}>
+          —
         </SelectItem>
       </SelectContent>
     </Select>

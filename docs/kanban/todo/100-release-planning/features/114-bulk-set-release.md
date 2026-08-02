@@ -4,7 +4,7 @@ track: features
 priority: low
 roi: med
 status: ready
-release: next
+release: ""
 blocked_by: []
 related: [100]
 modules: [local-ui]
@@ -12,8 +12,8 @@ questions: []
 ---
 
 Planning a version one card at a time is slow, and a version planned too full has no fast way
-back — #106 only ever adds cards to a release. Let the user tick several cards on the board
-and send them all into a release, or back to `next`, in one action.
+back — the fill that runs when a release is made only ever adds cards. Let the user tick
+several cards on the board and send them all into a release, or back out of one, in one action.
 
 ## Scope
 - The user can tick more than one open card, in the board view and the queue view. The tick
@@ -21,11 +21,11 @@ and send them all into a release, or back to `next`, in one action.
 - While at least one card is ticked, a bar says how many, offers the release to move them
   into, and unticks everything again. With nothing ticked the board looks exactly as it does
   today.
-- The release is picked from the open releases plus `next` — the same list the card page's
-  release picker reads. Nothing is typed, and a release that is not on the list can't be
+- The release is picked from the open releases plus a "no release" entry — the same list
+  the card page's release picker reads. Nothing is typed, and a release that is not on the list can't be
   chosen.
-- `next` is on that list, so the same action also sends many cards back out of a release.
-  This is the only fast way out — #106 only adds.
+- "No release" is on that list, so the same action also sends many cards back out of a
+  release. This is the only fast way out — the fill only adds.
 - Each card is written on its own, the same single-card write the card page's release picker
   makes. If one card fails, the rest still move and the bar names the one that did not.
 - A ticked group root moves itself only. A subtask ships in the release it names itself, and
@@ -36,8 +36,8 @@ and send them all into a release, or back to `next`, in one action.
   screen, the way a single move already takes a card off it.
 - Changing the release dropdown or switching view also clears the selection, so a move never
   touches a card the user can no longer see.
-- This is the hand-picked move. #106 puts the high-priority cards in at the moment a release
-  is made; here the user has already decided and only wants fewer clicks.
+- This is the hand-picked move. The fill puts the high-priority cards in at the moment a
+  release is made; here the user has already decided and only wants fewer clicks.
 - Out of this card: ticking cards to do anything else — archive, priority, track. This
   action only sets the release.
 
@@ -53,13 +53,13 @@ and send them all into a release, or back to `next`, in one action.
 - [ ] Redraw the board from the files after the move.
 - [ ] Write it into `kanban-ui/README.md`.
 - [ ] Check it by hand: tick four cards, move them into a release, read the four files, then
-      tick them again and send them back to `next`.
+      tick them again and take them back out of the release.
 - [ ] Check it by hand: pick a release, tick cards, move them somewhere else, and see them
       leave the screen with nothing left ticked.
 
 ## Decided by the agent
-- **Out is the same action as in.** `next` already sits on the list, so sending cards back
-  out of a release is one more pick, not a second button.
+- **Out is the same action as in.** "No release" already sits on the list, so sending
+  cards back out of a release is one more pick, not a second button.
 - **Ticking works in both views.** Both draw the same cards, so a user planning a version in
   the queue view should not have to switch to the board to move them.
 - **A group root moves alone.** Each subtask already carries its own release, so a root is

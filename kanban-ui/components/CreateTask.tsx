@@ -25,7 +25,7 @@ import { sessionsPanel, useAgentSessions } from "./sessions";
 // `release` is the version the board is showing (#104), or null for the whole
 // board. A card written while one release is on screen ships in it, so it doesn't
 // vanish the moment it is written. Propose is different — it offers work nobody
-// has planned — so its cards stay at `next` and this never reaches them.
+// has planned — so its cards start with no release and this never reaches them.
 export function CreateTask({ release = null }: { release?: string | null }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);

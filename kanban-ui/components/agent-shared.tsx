@@ -950,7 +950,7 @@ function CreateDialog({
         {/* Where the new cards land, when the board is showing one release. Said
             here rather than left to be discovered: a card that quietly joined a
             version is worse than one you were told about. Propose says nothing —
-            its cards stay at `next` whatever is on screen. */}
+            its cards start with no release whatever is on screen. */}
         {!propose && release && (
           <>
             {" "}

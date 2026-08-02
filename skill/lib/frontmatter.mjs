@@ -92,8 +92,8 @@ export function parseFrontmatter(text) {
     }
   }
   if (!Array.isArray(meta.questions)) meta.questions = meta.questions ? [normalizeQuestion(meta.questions)] : []
-  // The release the card ships in. Missing, empty or damaged reads as `next`, so a card
-  // written before this field — or one whose line was blanked by hand — still opens.
+  // The release the card ships in. Missing, empty or damaged reads as no release, so a
+  // card written before this field — or one whose line was blanked by hand — still opens.
   meta.release = normalizeRelease(meta.release)
   // modules is an optional string list; a card written before this field parses as [].
   if (!Array.isArray(meta.modules)) meta.modules = []

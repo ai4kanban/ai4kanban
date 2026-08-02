@@ -114,8 +114,12 @@ Drive it in plain language — the skill triggers on these:
 
 Planning a version is optional. Create a release, put the cards you promised into it, and
 ask what's in it — you get each release in ship order with how many cards it holds and how
-many are ready to build. Cards you don't place sit at `next`: wanted, not promised to a
-version.
+many are ready to build. A card you don't place is in no release: wanted, not promised to
+a version. "Create release v1 and fill it" starts the version with the unplaced
+high-priority cards already in it — every card that moved or stayed is named, so you can
+read the plan before you build it. When a version ships, "close v1" writes down what it
+held and moves the board on; if you give up on one instead, "drop v1" takes it off the
+list with no shipped record and its open cards go back to being unplaced.
 
 This repo uses the skill on itself: `docs/kanban/` is a real board tracking the skill's
 own development, so you can see exactly what a filled-in setup looks like.

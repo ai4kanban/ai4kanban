@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { type Card, type Column, DEFAULT_RELEASE } from "./types";
+import type { Card, Column } from "./types";
 
-/** Which release the board is showing (#104). A version id, `next`, or `null`
- *  for All releases — the whole board, and where a board that plans no versions
- *  always sits. */
+/** Which release the board is showing (#104). A version id, or `null` for All
+ *  releases — the whole board, and where a board that plans no versions always
+ *  sits. "No release" is not a pick: it isn't a version, so the unplanned cards
+ *  are seen under All releases. */
 export type ReleasePick = string | null;
 
 /** The blockers track, which the pick never hides. A blocker is usually in the
@@ -58,8 +59,7 @@ export function useReleasePick(
   // A pick that no longer exists is dropped in the same render it stops being
   // real, so the board never draws one frame filtered by a version that is gone.
   // The effect only cleans the stored value up afterwards.
-  const known =
-    pick !== null && releases.length > 0 && (pick === DEFAULT_RELEASE || releases.includes(pick));
+  const known = pick !== null && releases.includes(pick);
   useEffect(() => {
     if (pick !== null && !known) choose(null);
   }, [pick, known, choose]);

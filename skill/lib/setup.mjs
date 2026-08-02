@@ -154,7 +154,7 @@ export function writeSetupQuestionsCard(track) {
   const file = path.join(TODO, fileRel)
   if (fs.existsSync(file)) return null
   writeNextId(id + 1)
-  const meta = { title: SETUP_QUESTIONS_TITLE, track, priority: 'high', roi: 'high', status: 'todo', release: 'next', blocked_by: [], related: [], modules: [], questions: [] }
+  const meta = { title: SETUP_QUESTIONS_TITLE, track, priority: 'high', roi: 'high', status: 'todo', release: '', blocked_by: [], related: [], modules: [], questions: [] }
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + SETUP_QUESTIONS_BODY)
   addReadmeRef(track, id, SETUP_QUESTIONS_TITLE, fileRel)
   return { id, file }

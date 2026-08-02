@@ -59,6 +59,7 @@ export function Header({
   release = null,
   onReleaseChange,
   onCreateRelease,
+  onDropRelease,
   createRelease = null,
   goalWritten = false,
 }: {
@@ -74,13 +75,19 @@ export function Header({
    *  the dropdown still shows, saying All releases and offering New release, so
    *  the first release can be started from here. */
   releases?: string[];
-  /** How many open cards each release holds, `next` included. */
+  /** How many open cards each release holds, the unplanned (no-release) ones
+   *  included — those only feed the All-releases total. */
   releaseCounts?: Record<string, number>;
   release?: ReleasePick;
   onReleaseChange?: (r: ReleasePick) => void;
-  /** Make a release and put the board on it (#115). Passed with
-   *  `onReleaseChange` or not at all — a card page has neither. */
-  onCreateRelease?: (id: string) => Promise<{ ok: boolean; error?: string }>;
+  /** Make a release and put the board on it (#115). `fill` is the dialog's
+   *  toggle (#106): put the high-priority cards with no release in as it is made.
+   *  Passed with `onReleaseChange` or not at all — a card page has neither. */
+  onCreateRelease?: (id: string, fill: boolean) => Promise<{ ok: boolean; error?: string }>;
+  /** Give up on the release the board is showing (#131): no shipped record, its
+   *  open cards' release cleared, its line off the list. Board-only, like the
+   *  other release handlers. */
+  onDropRelease?: (id: string) => Promise<{ ok: boolean; error?: string }>;
   /** The version a card made from here ships in — the release on screen, or null
    *  when the whole board is showing and the new card lands wherever the agent
    *  puts it. A card page passes nothing: it shows one card, not a release. */
@@ -120,13 +127,14 @@ export function Header({
         <Goal written={goalWritten} />
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-        {onReleaseChange && onCreateRelease && (
+        {onReleaseChange && onCreateRelease && onDropRelease && (
           <ReleasePicker
             releases={releases}
             counts={releaseCounts}
             value={release}
             onChange={onReleaseChange}
             onCreate={onCreateRelease}
+            onDrop={onDropRelease}
           />
         )}
         {view && onViewChange && <ViewSwitch view={view} onChange={onViewChange} />}

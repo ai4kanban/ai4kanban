@@ -15,7 +15,9 @@ import {
 import { readBoard } from "@/lib/board";
 import { setAutoRefine, setAutoRefineParallelism, setHarness, setHarnessSetting } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
+import { dropPlan, type DropPlan, dropRelease } from "@/lib/drop";
 import { patchCard, type CardPatch } from "@/lib/edit";
+import { fillPlan, type FillPlan, fillRelease } from "@/lib/fill";
 import { readGoalText, writeGoalText } from "@/lib/goal";
 import { tickSetupStep } from "@/lib/setup";
 import { type MetricsResult, readMetrics } from "@/lib/metrics";
@@ -143,9 +145,39 @@ export async function saveGoalAction(text: string): Promise<{ ok: boolean; error
 //
 // A name that can't be a release comes back as { ok:false, error } rather than
 // throwing, so the dialog shows why and stays open on what was typed.
-export async function createReleaseAction(id: string): Promise<{ ok: boolean; error?: string }> {
+//
+// `fill` is the dialog's toggle (#106): the high-priority cards with no release go in
+// as the release is made — the same move `release new <id> --fill` makes. It
+// runs only after the release is really on the list, so a refused name moves
+// nothing.
+export async function createReleaseAction(id: string, fill = false): Promise<{ ok: boolean; error?: string }> {
   if (typeof id !== "string") return { ok: false, error: "a version id is text" };
-  return addRelease(id);
+  const res = addRelease(id);
+  if (res.ok && fill === true) fillRelease(id.trim());
+  return res;
+}
+
+// What the fill would do right now — the New release dialog reads this as it
+// opens, so the toggle carries the number of cards before the release is made.
+export async function fillPlanAction(): Promise<FillPlan> {
+  return fillPlan();
+}
+
+// Which open cards a drop would strip of their release — the confirm dialog reads
+// this as it opens (#131), so the user sees the move before anything is written.
+export async function dropPlanAction(id: string): Promise<DropPlan> {
+  if (typeof id !== "string" || !id) return { left: [] };
+  return dropPlan(id);
+}
+
+// Give up on a release from the header's picker (#131) — the same move `release
+// drop` makes: one dated `## Dropped` section in the summary file, the open
+// cards' release cleared, the line off the list. Direct, like starting a release:
+// there is nothing for an agent to decide, and a stale board — the release
+// already gone — comes back as { ok:false, error } for the dialog to show.
+export async function dropReleaseAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  if (typeof id !== "string" || !id.trim()) return { ok: false, error: "no release named" };
+  return dropRelease(id.trim());
 }
 
 // The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv.

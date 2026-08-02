@@ -22,7 +22,7 @@ before proposing so you don't re-suggest them.
 - **Ready-only focus toggle** — a board toggle to hide every card that isn't `ready` isn't
   useful; the board is small enough to scan, and a status is not worth hiding work over. A
   view that shows ready and not-ready side by side (#70) is a different idea and is fine.
-  So is the release dropdown (#104), which hides the other releases — that one is a version
+  So is the release dropdown, now shipped, which hides the other releases — that one is a version
   the user planned and picked, not a status the board filtered on for them.
 - **A Finished view that browses archived cards** — too little value for the work. An
   archived card is a plain file next to the board; anyone can read it in their IDE or any

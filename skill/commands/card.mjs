@@ -70,8 +70,8 @@ export function cmdCreate(args) {
   validLevel(priority, 'priority')
   const roi = flags.roi !== undefined ? String(flags.roi) : 'med'
   validLevel(roi, 'roi')
-  // No --release means `next`: the card is wanted, not promised to a version. Any other
-  // value has to name a release on the list — a typo must not invent a version.
+  // No --release means no release: the card is wanted, not promised to a version. Any
+  // other value has to name a release on the list — a typo must not invent a version.
   const release = validRelease(normalizeRelease(flags.release))
   const start = readNextId()
   const blocked_by = flags['blocked-by'] !== undefined ? parseIdList(flags['blocked-by'], 'blocked-by', start) : []
@@ -135,10 +135,10 @@ export function cmdUpdate(args) {
     meta.status = String(flags.status)
     changes.push('status')
   }
-  // `--release next` — or an empty value — takes the card back out of a version.
+  // `--release ""` — an empty value — takes the card back out of a version.
   if (flags.release !== undefined) {
     meta.release = validRelease(normalizeRelease(flags.release))
-    changes.push(`release→${meta.release}`)
+    changes.push(`release→${meta.release || '(none)'}`)
   }
   const ceiling = readNextId()
   if (flags['blocked-by'] !== undefined) {

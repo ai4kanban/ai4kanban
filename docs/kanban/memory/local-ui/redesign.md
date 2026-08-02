@@ -44,7 +44,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   release dropdown, so the UI never says releases exist and gives no way to make one) → ✅ the
   empty state is where the UI teaches the feature: keep the control and let it offer the
   first step. A user who only ever opens the UI must be able to find a feature the script
-  has. (#104)
+  has. (the release dropdown)
 - ❌ **Say whether a setup can run by checking its pieces up front** (is the CLI installed,
   is it logged in, is the key set — a readiness line per choice, worked out when the dialog
   opens) → ✅ one **Test** button that really runs the thing once and shows what came back.
@@ -72,6 +72,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   moment ago reads back empty the next time the dialog opens, while the file has it) → ✅ a
   settings dialog shows what the file holds every time it opens. What you saved is what you
   see when you come back, with no page reload. (#95)
+- ❌ **A board action stays terminal-only because it feels rare or administrative** ("the
+  drop is a terminal job; the UI does not offer it") → ✅ the UI offers what the script
+  offers: a user who only ever opens the UI must be able to run the action there, with the
+  consequences shown before they confirm. (#131)
 - ❌ **A recurring-task feature that only adds a Run button** → ✅ say how runs start without
   a click: the server's dispatcher runs due cards on a card-set cadence — scheduling is the
   server's job, never an in-session loop like Claude Code's `/loop`.

@@ -1,9 +1,14 @@
 # Setup
 
-Run `${KB} setup-status`, start at the first unticked box, and follow the matching
-section below, in order. Each step ticks its own box with `${KB} setup-done <step>` the
-moment it finishes. Never hand-edit `docs/kanban/setup-checklist.md` — the local UI
-reads its shape.
+```
+${KB} setup-status                  # how far setup got; says finished when there's no checklist
+${KB} setup-done <step>             # tick one box on setup's checklist as that step finishes
+                                    # steps: install, config, goal, decisions, modules, tasks
+```
+
+Run `setup-status`, start at the first unticked box, and follow the matching section
+below, in order. Each step ticks its own box the moment it finishes. Never hand-edit
+`docs/kanban/setup-checklist.md` — the local UI reads its shape.
 
 While the checklist exists, create no cards — not from propose, not from add. And never
 stop to ask the user anything except the goal: the moment you hit a call you can't make

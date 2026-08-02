@@ -7,10 +7,9 @@
   idea; it breaks the idea down, settles what it can from memory, asks you the rest, and
   keeps going until the spec is clear enough to build. The board is plain markdown in git.
 - **Tracks** — the buckets a task can live in, with a rough share of effort:
-  - `features` 40% — new board behavior a user can see, in the skill or the local UI.
-  - `skill` 30% — the skill itself: `SKILL.md`, `kanban.mjs`, the references, the flows.
-  - `docs` 15% — the user guides in `docs/guides/` and the two READMEs.
-  - `distribution` 15% — the landing site, launch posts, and anything else that puts the
+  - `features` 45% — new board behavior a user can see, in the skill or the local UI.
+  - `skill` 35% — the skill itself: `SKILL.md`, `kanban.mjs`, the references, the flows.
+  - `distribution` 20% — the landing site, launch posts, and anything else that puts the
     project in front of people.
 - **Planning sources** — what to read when proposing new work:
   - the code: `skill/`, `kanban-ui/`, `web/`.

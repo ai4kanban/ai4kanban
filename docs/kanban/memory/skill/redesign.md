@@ -38,7 +38,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 - ❌ **A release is a group task you drag work into** → ✅ a release is a field on a card,
   so an ordinary card never has to live inside someone else's folder. A card that names
-  no release reads as `next`.
+  no release is simply in no release.
 
 ## Auto-refine
 

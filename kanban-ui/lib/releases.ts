@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import { kanbanDir, releasesPath } from "./paths";
-import { DEFAULT_RELEASE } from "./types";
 
 // Read docs/kanban/releases.md — the open releases, one line each, in the order
 // they ship — and return just the version ids. This is the one place the UI reads
@@ -56,8 +55,8 @@ The versions this board is planning, in the order they ship — one line per rel
 \`release new <id>\` adds one to the end. Closing a release takes its line away, so this
 file only ever shows what is still ahead.
 
-A card says which release it ships in. A card that says nothing sits at \`next\` — wanted,
-but not promised to a version. \`next\` is always last and is never written here.
+A card says which release it ships in. A card that says nothing is in no release —
+wanted, but not promised to a version.
 
 The order is whatever the lines say, so a hand edit is how you reorder. A note after the
 version id is yours to write; nothing reads it.
@@ -75,15 +74,31 @@ const ID_RE = /^[A-Za-z0-9._-]+$/;
 // The user reading this has no terminal open. Null means the name is fine.
 function idProblem(id: string, known: string[]): string | null {
   if (!id) return "a release needs a version id, like v1 or 0.5.0";
-  if (id.toLowerCase() === DEFAULT_RELEASE) {
-    return `"${DEFAULT_RELEASE}" is where a card with no release sits — it is always there and can't be made. Pick a version id, like v1.`;
-  }
   if (id === "." || id === "..") return `"${id}" names a folder, not a version — pick a version id, like v1.`;
   if (!ID_RE.test(id)) {
     return `a version id can only hold letters, numbers, dot, dash and underscore (you typed "${id}") — closing a release writes a file named after it.`;
   }
   if (known.includes(id)) return `"${id}" is already a release on this board.`;
   return null;
+}
+
+// Take one release's line off the list — the last step of a drop (#131), ported
+// from skill/lib/releases.mjs. When the last release goes the file gets its empty
+// line back, so it reads the way a fresh one does instead of ending in a stray
+// blank.
+export function removeReleaseLine(id: string): void {
+  const kept: string[] = [];
+  let dropped = false;
+  for (const line of fs.readFileSync(releasesPath(), "utf8").split("\n")) {
+    if (!dropped && lineId(line) === id) {
+      dropped = true;
+      continue;
+    }
+    kept.push(line);
+  }
+  while (kept.length && !kept[kept.length - 1].trim()) kept.pop();
+  if (!kept.some((line) => lineId(line))) kept.push("", EMPTY_MARK);
+  fs.writeFileSync(releasesPath(), kept.join("\n") + "\n");
 }
 
 // Add one release to the end of the list — the header's New release entry (#115).

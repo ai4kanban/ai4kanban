@@ -12,7 +12,7 @@
 //   tag     — set/clear the [user] tag on one open question (auto-refine triage)
 //   list    — the open cards at a glance (--module filters to one module's cards)
 //   release — add a release to docs/kanban/releases.md, list them with what each holds, or
-//             close one: summary written, leftovers back to `next`, line off the list
+//             close one: summary written, leftovers' release cleared, line off the list
 //   migrate — convert old bold-header cards to the frontmatter meta format
 //   archive — move a finished task's file/folder into docs/kanban/.archive/, strip its
 //             README entry, drop its id from other cards' blocked_by/related, record "completed"
@@ -41,9 +41,12 @@
 //   node kanban.mjs update-questions <id> [ops]         patch the open-question list (append/update/drop/clear)
 //   node kanban.mjs tag <id> <n[,n...]> <user|none>    set/clear the tag on one or more open questions
 //   node kanban.mjs list [--module <m>]                 the open cards at a glance, optionally one module's
-//   node kanban.mjs release new <id>                   add a release to docs/kanban/releases.md
+//   node kanban.mjs release new <id> [--fill]          add a release to docs/kanban/releases.md; --fill
+//                                                       puts the high-priority cards with no release in
 //   node kanban.mjs release list                       the releases in ship order + what each holds
-//   node kanban.mjs release close <id>                 close a shipped release: summary + leftovers to `next`
+//   node kanban.mjs release close <id>                 close a shipped release: summary + leftovers' release cleared
+//   node kanban.mjs release drop <id>                  drop a release that won't ship: no shipped record,
+//                                                       its open cards' release cleared
 //   node kanban.mjs migrate [--dry-run]                 convert old bold-header cards to frontmatter
 //   node kanban.mjs archive <id>                        finish task <id> (move card to .archive/ + README + metric)
 //   node kanban.mjs reject  <id>                        reject task <id> (delete card + README + metric)
@@ -155,7 +158,7 @@ Usage: node ${rel(SELF)} <command> [args]
   create --title T --track K [opts]
                        scaffold ONE card: write its frontmatter + a body template, index it.
                        opts: --priority high|med|low (default med), --roi high|med|low
-                       (default med), --release v1 (default next — the card is wanted,
+                       (default med), --release v1 (default none — the card is wanted,
                        not promised to a version; free text, kept as typed),
                        --blocked-by 1,2, --related 3, --modules skill,site
                        (validated against modules.md), --question "..." (repeatable),
@@ -170,8 +173,8 @@ Usage: node ${rel(SELF)} <command> [args]
                        any option the question stays a plain line with a text box.
   update <id> [opts]   rewrite a card's frontmatter fields: --title, --priority,
                        --roi, --status todo|ready|implementing, --release,
-                       --blocked-by, --related, --modules. --release next (or an
-                       empty value) takes the card back out of a release.
+                       --blocked-by, --related, --modules. --release "" (an empty
+                       value) takes the card back out of a release.
                        --track moves the card + fixes the index; --slug renames
                        it. Body and questions are left untouched — questions have
                        their own command below.
@@ -195,21 +198,32 @@ Usage: node ${rel(SELF)} <command> [args]
                        releases, in the order they ship). A version id is free text
                        (v1, 0.5.0, august), kept as typed, and has to work as a
                        filename — letters, numbers, dot, dash, underscore. Refused: an
-                       empty id, one already on the list, and \`next\` — that name is
-                       where a card with no release sits, always last and never written
-                       down.
+                       empty id and one already on the list.
+                       --fill puts the high-priority cards with no release in as the
+                       release is made: a card goes in when its priority is high,
+                       nothing open is blocking it, and it is not a group root —
+                       nothing else is looked at, and a card already in a release
+                       stays where it is. One line per card moved; a high-priority
+                       card left behind is named with the test it failed.
   release list         the releases in ship order, each with how many open cards name it
-                       and how many of those are ready to build; \`next\` last. Names any
-                       card pointing at a release that is not on the list.
+                       and how many of those are ready to build; the cards in no release
+                       are counted last. Names any card pointing at a release that is
+                       not on the list.
   release close <id>   the version shipped: write what it held to
                        docs/kanban/.release-summaries/<id>.md (what shipped, from the
-                       archived cards naming it; what didn't, from the open ones), send
-                       every card still open in it back to \`next\`, and take its line off
+                       archived cards naming it; what didn't, from the open ones), clear
+                       the release off every card still open in it, and take its line off
                        the list. Always allowed, whatever is still open. There is no
                        second run — afterwards the id is unknown and no card names it.
                        A card with every todo ticked but never archived counts as not
                        shipped; the close names it so you can archive it and fix that
                        one line by hand.
+  release drop <id>    the version will not ship: write one dated \`## Dropped\` section
+                       to docs/kanban/.release-summaries/<id>.md (the cards archived
+                       under it, and the open ones sent back), clear the release off
+                       every open card in it, and take its line off the list. Nothing it
+                       writes reads as a shipped version, and a later close of a remade
+                       <id> skips the cards the drop listed.
   tag <id> <n[,n...]> <t>  set the tag on one or more open questions (1-based, e.g.
                        1 or 1,2,3): user | none (none strips it). Used by the
                        auto-refine loop to hand questions to the human without

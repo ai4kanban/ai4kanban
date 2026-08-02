@@ -181,13 +181,13 @@ re-ask a settled call.
   the default.
 - **Does picking a release also filter the blockers?**: No. Every blocker stays on screen
   whatever release is picked, in both views. The blockers track exists so a blocker is never
-  out of sight, and a blocker at `next` is usually blocking the version being planned.
+  out of sight, and an unplanned blocker is usually blocking the version being planned.
 
 ## Moving cards into a release
 
 - **Is a hand-picked bulk move worth building next to the agent's fill-a-release pass?**:
   Yes, build it. The agent's pass only adds cards to a release and never takes any out, so a
-  version planned too full needs a fast way to send several cards back to `next`. Ticking
+  version planned too full needs a fast way to take several cards back out of the release. Ticking
   cards on the board is that way, and it works in both directions.
 
 ## The memory view

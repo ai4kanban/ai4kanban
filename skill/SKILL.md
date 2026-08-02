@@ -70,8 +70,7 @@ docs/kanban/
 ├── modules.md      one line per module — install writes it, propose reads it (see "The
 │                   module map")
 ├── config.md       your project's settings (see Configuration) — seeded by init, yours to fill
-├── releases.md     the open releases, in the order they ship — one line each (see "The
-│                   release a card ships in")
+├── releases.md     the open releases, in the order they ship — one line each (see "Releases")
 ├── setup-checklist.md
 │                   setup's own steps, while setup is unfinished (see "Setup") — the
 │                   last tick deletes it; no file means the board is set up
@@ -93,9 +92,6 @@ once and run every command from the repo root as `${KB} <command>`:
 ```
 ${KB} init [track...]               # scaffold docs/kanban/ (tracks default to feature bug research)
                                     # re-run to repair an older board: adds missing config.md, modules.md, releases.md, .gitignore, memory paths
-${KB} setup-done <step>             # tick one box on setup's checklist as that step finishes
-                                    # steps: install, config, goal, decisions, modules, tasks
-${KB} setup-status                  # how far setup got; says finished when there's no checklist
 ${KB} create [--count N]            # allocate N ids (default 1), prints them
 ${KB} create --title ".." --track <track> [--priority high|med|low] [--roi high|med|low] \
              [--release v1] [--blocked-by 1,2] [--related 3] [--modules skill,site] [--question ".."] [--slug ..]
@@ -104,19 +100,11 @@ ${KB} update <id> [--priority ..] [--roi ..] [--status ..] [--release ..] [--tra
              [--blocked-by ..] [--related ..] [--modules ..]
                                     # rewrite a card's frontmatter fields; --track moves it, --slug renames
 ${KB} update-questions <id> [--append ".."] [--update <n> ".."] [--drop 1,3] [--clear]
-                                    # patch open questions one op at a time — nothing rewrites the list whole
-${KB} update-questions <id> --update 1 "[user] .." --option "a — why" --option "b — why" \
-             [--recommended-option "c — why"] [--mode single|multi]
-                                    # a question the user picks from, not one long line of prose; the option
-                                    # flags belong to the --append/--update before them (references/resolve.md)
+                                    # patch open questions one op at a time — nothing rewrites the list whole;
+                                    # options for a pick-one question: references/resolve.md
 ${KB} list [--module <m>]           # the open cards at a glance: id, title, meta, summary, file path;
                                     # --module narrows it to the cards tagged with one module
-${KB} release new <id>              # add a release to the end of the list in releases.md
-${KB} release list                  # the releases in ship order, each with its card counts; `next` last
-${KB} release close <id>            # the version shipped: write its summary, send the rest back to `next`
 ${KB} archive <id>                  # finish task <id>
-${KB} reject  <id>                  # reject task <id>
-${KB} run     <id>                  # record one run of recurring task <id> (card kept)
 ${KB} peek                          # current next-id, no bump
 ${KB} help                          # full usage
 ```
@@ -131,55 +119,12 @@ if you find no match.
 
 ## Releases
 
-A release is a version this project is planning: a version id, a place on the board that
-says what is in it, and an order. The open releases live in `docs/kanban/releases.md`, one
-line each, in the order they ship. `${KB} release new v1` adds one to the end.
-`${KB} release list` reads them back with, for each, how many open cards name it and how
-many of those are ready to build.
-
-Releases are optional. A board that never plans a version works exactly as it does without
-one — nothing asks the user for a release.
-
-`next` is always last and is never written in the file: it is where a card with no release
-sits, so it can't be created. Everything else is:
-
-- A `--release` that names no release on the list is an error listing the ones that exist,
-  the same way an unknown module is. A typo must not quietly invent a version.
-- A version id has to work as a filename — letters, numbers, dot, dash and underscore —
-  because closing a release writes a summary file named after it.
-- The counts are the open cards on the board. An archived card is not counted.
-- The file is short — a team plans a release or two ahead — so a hand edit is how you
-  reorder or rename. There is no command for either. `release list` names every card
-  pointing at an id that is no longer on the list, so nothing goes missing.
-
-## Close a release
-
-The version shipped, so the board moves on: `${KB} release close v1`. It writes what the
-release held to `docs/kanban/.release-summaries/v1.md` — what shipped, from the archived
-cards that name it, and what didn't, from the open ones — sends every card still open in it
-back to `next`, and takes its line off the list.
-
-Closing is always allowed. A release full of open cards closes the same way an empty one
-does; nothing is asked first. Afterwards the id is unknown: `--release v1` fails like any
-typo, and reopening is `release new` for the next version.
-
-There is no second run, so read what the close prints. A card with every todo ticked but
-never archived counts as not shipped — archive the ones that really shipped, then fix that
-one line in the summary by hand.
-
-## The release a card ships in
-
-A card names the release it ships in: `--release v1` when the card is made,
-`update <id> --release v1` after. A card that names none reads as `next` — wanted, but not
-promised to a version — and so does one whose field is empty. `update <id> --release next`
-takes a card back out of a release.
-
-A version id is free text: `v1`, `0.5.0` and `august` all work. It is kept exactly as
-typed, so `V1` and `v1` are two different releases. Only the script writes the field,
-like every other one in the frontmatter.
-
-A group root and each of its subtasks carry their own release — the root is a tracking
-card, so a subtask ships in the release it names itself.
+A release is a version this project is planning; the open ones live in
+`docs/kanban/releases.md`, one line each, in ship order. A card names the release it ships
+in via `--release`; a card that names none is simply in no release. Releases are optional —
+a board that never plans a version works exactly as it does without one. Full guide in
+`references/releases.md` — read it before running any `release` command or setting
+`--release`.
 
 ## Task id
 

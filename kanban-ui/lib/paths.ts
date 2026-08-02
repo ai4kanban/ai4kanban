@@ -69,6 +69,15 @@ export function modulesPath(): string {
 export function releasesPath(): string {
   return path.join(kanbanDir(), "releases.md");
 }
+// The finished cards, moved here by `archive`. Read-only for the UI — dropping a
+// release lists the cards archived under it in the summary it writes.
+export function archiveDir(): string {
+  return path.join(kanbanDir(), ".archive");
+}
+// What a closed or dropped release left behind, one file per version id.
+export function releaseSummariesDir(): string {
+  return path.join(kanbanDir(), ".release-summaries");
+}
 export function uiConfigPath(): string {
   return path.join(kanbanDir(), "ui.config.json");
 }

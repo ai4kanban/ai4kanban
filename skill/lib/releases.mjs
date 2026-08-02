@@ -1,8 +1,8 @@
 // ---- the release list ------------------------------------------------------
 //
 // docs/kanban/releases.md holds the open releases, one line each, in the order they ship.
-// A card names one of them in its `release` field; a card that names none sits at `next`,
-// which is always last and is never written down.
+// A card names one of them in its `release` field; a card that names none is in no
+// release — its field is empty.
 //
 // Closing a release takes its line away (git tags remember what already shipped), so the
 // file stays a line or two long. That is why this module only reads the list and appends
@@ -16,7 +16,7 @@ import path from 'node:path'
 import { die, rel, KANBAN, TODO, ARCHIVE, RELEASES, RELEASE_SUMMARIES } from './paths.mjs'
 import { walkMd, idPrefix } from './cards.mjs'
 import { parseFrontmatter, serializeFrontmatter } from './frontmatter.mjs'
-import { DEFAULT_RELEASE, normalizeRelease } from './validate.mjs'
+import { NO_RELEASE, normalizeRelease } from './validate.mjs'
 
 // The line a fresh list carries instead of releases. Appending removes it.
 const EMPTY_MARK = '_(no releases yet — `release new v1` makes the first one.)_'
@@ -27,8 +27,8 @@ The versions this board is planning, in the order they ship — one line per rel
 \`release new <id>\` adds one to the end. Closing a release takes its line away, so this
 file only ever shows what is still ahead.
 
-A card says which release it ships in. A card that says nothing sits at \`next\` — wanted,
-but not promised to a version. \`next\` is always last and is never written here.
+A card says which release it ships in. A card that says nothing is in no release —
+wanted, but not promised to a version.
 
 The order is whatever the lines say, so a hand edit is how you reorder. A note after the
 version id is yours to write; nothing reads it.
@@ -48,12 +48,6 @@ const ID_RE = /^[A-Za-z0-9._-]+$/
 function validNewId(raw) {
   const id = String(raw === true ? '' : (raw ?? '')).trim()
   if (!id) die('release new needs a version id, e.g. `release new v1`')
-  if (id.toLowerCase() === DEFAULT_RELEASE) {
-    die(
-      `"${DEFAULT_RELEASE}" is where a card with no release sits — it is always last and is ` +
-        `never written down. Pick a version id, e.g. \`release new v1\`.`,
-    )
-  }
   if (id === '.' || id === '..') die(`"${id}" names a folder, not a release — pick a version id, e.g. \`release new v1\``)
   if (!ID_RE.test(id)) {
     die(
@@ -120,10 +114,10 @@ export function addRelease(raw) {
   return id
 }
 
-// A card's `--release` must name a release on the list (or `next`, which never is). A
+// A card's `--release` must name a release on the list (or be empty — no release). A
 // typo has to fail loudly — quietly inventing a version is how work goes missing.
 export function validRelease(id) {
-  if (id === DEFAULT_RELEASE) return id
+  if (id === NO_RELEASE) return id
   if (!hasReleaseList()) {
     die(`--release ${id}: this board has no releases yet. Make one first: \`release new ${quoteId(id)}\`.`)
   }
@@ -131,7 +125,7 @@ export function validRelease(id) {
   if (!known.includes(id)) {
     die(
       `unknown release "${id}". releases on the list: ${known.join(', ') || '(none)'}. ` +
-        `Add it with \`release new ${quoteId(id)}\`, or leave the card at \`${DEFAULT_RELEASE}\`.`,
+        `Add it with \`release new ${quoteId(id)}\`, or leave the card in no release (--release "").`,
     )
   }
   return id
@@ -157,8 +151,8 @@ function allTicked(body) {
 
 // Every card under `dir`, with the release it names. A group root and each of its subtasks
 // answer for themselves — the root is a tracking card, so a subtask counts under the
-// release it names itself. A card with no frontmatter yet counts at `next`, so nothing goes
-// missing from the totals.
+// release it names itself. A card with no frontmatter yet counts as in no release, so
+// nothing goes missing from the totals.
 function cardRows(dir) {
   if (!fs.existsSync(dir)) return []
   const rows = []
@@ -208,20 +202,20 @@ export function countByRelease() {
 // ---- filling a new release ---------------------------------------------------
 //
 // `release new <id> --fill` (and the New release dialog's toggle) puts the high-priority
-// cards sitting at `next` into the release the moment it is made. The fill is a rule, not
+// cards in no release into the release the moment it is made. The fill is a rule, not
 // a judgment call — a card goes in on three tests: its priority is high, nothing open is
 // blocking it, and it is not a group root. Nothing else is looked at. It only ever adds:
 // a card already in a release stays where it is.
 
-// The cards the fill would move, and the high-priority cards it would leave at `next`,
-// each with the test it failed — so a report can name them and nothing is dropped silently.
+// The cards the fill would move, and the high-priority cards it would leave out, each
+// with the test it failed — so a report can name them and nothing is dropped silently.
 export function fillCandidates() {
   const cards = openCards()
   const byId = new Map(cards.map((c) => [c.id, c]))
   const fill = []
   const skipped = []
   for (const card of cards) {
-    if (card.release !== DEFAULT_RELEASE || card.priority !== 'high') continue
+    if (card.release !== NO_RELEASE || card.priority !== 'high') continue
     if (card.root) {
       skipped.push({ ...card, reason: 'a group root — each subtask goes in on its own' })
       continue
@@ -251,8 +245,8 @@ export function fillRelease(id) {
 
 // ---- closing a release -----------------------------------------------------
 //
-// A version ships and the board moves on: write down what the release held, send the cards
-// that didn't make it back to `next`, and take the line off the list. Closing is always
+// A version ships and the board moves on: write down what the release held, clear the
+// release off the cards that didn't make it, and take the line off the list. Closing is always
 // allowed — a version ships when the user says it ships — and there is no second run: after
 // it, the id is unknown and no card names it.
 
@@ -260,8 +254,8 @@ export const summaryPath = (id) => path.join(RELEASE_SUMMARIES, `${id}.md`)
 
 const today = () => new Date().toISOString().slice(0, 10)
 
-// Rewrite one card's release field — the fill moves a card in with it, and a close sends
-// the leftovers back to `next` the same way.
+// Rewrite one card's release field — the fill moves a card in with it, and a close clears
+// the leftovers' field the same way.
 function setCardRelease(file, release) {
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
   if (!meta) return false
@@ -272,9 +266,11 @@ function setCardRelease(file, release) {
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
-const cardLine = (card) =>
-  `- #${card.id} ${card.title}${card.track ? ` (${card.track})` : ''}` +
-  (card.done ? ' — every todo ticked, never archived' : '')
+const cardLine = (card) => `- #${card.id} ${card.title}${card.track ? ` (${card.track})` : ''}`
+
+// The line for a card that was still open — the ticked-but-never-archived marker only
+// makes sense there, so an archived card's line never carries it.
+const openCardLine = (card) => cardLine(card) + (card.done ? ' — every todo ticked, never archived' : '')
 
 // One dated section per close. A version id can be made again after it was closed, so a
 // second close appends instead of writing over: the first version's record is the only one
@@ -297,12 +293,12 @@ function writeSummary(id, shipped, left) {
   out.push('')
   out.push(
     left.length
-      ? `Sent back to \`next\` — ${plural(left.length, 'card')} still open when it closed:`
-      : 'Sent back to `next` — nothing was still open.',
+      ? `Sent back with no release — ${plural(left.length, 'card')} still open when it closed:`
+      : 'Sent back with no release — nothing was still open.',
   )
   if (left.length) {
     out.push('')
-    for (const card of left) out.push(cardLine(card))
+    for (const card of left) out.push(openCardLine(card))
   }
   if (left.some((c) => c.done)) {
     out.push('')
@@ -320,22 +316,26 @@ function writeSummary(id, shipped, left) {
 
 const HEADING = (id) => `# ${id}
 
-What each close of this release left behind. This is a list of cards, not a changelog — not
-every change goes through the board, so only a person can say what the version changed.
+What each close or drop of this release left behind. This is a list of cards, not a
+changelog — not every change goes through the board, so only a person can say what the
+version changed.
 `
 
-// The ids an earlier close of this id already listed as shipped. A version id can be made
-// again, and an archived card keeps naming it forever — without this, closing the second
-// `v1` would claim the first one's cards shipped all over again. A line moved into the
-// shipped list by hand counts as well; that hand fix is how a missed card gets there.
-function alreadyShipped(file) {
+// The ids an earlier close or drop of this id already accounted for. A version id can be
+// made again, and an archived card keeps naming it forever — without this, closing the
+// second `v1` would claim the first one's cards shipped all over again, whether the first
+// `v1` closed (its `Shipped` list) or was dropped (its `Archived under` list). A line
+// moved into either list by hand counts as well; that hand fix is how a missed card gets
+// there. A drop's `Sent back` cards are NOT counted: they left the version still open,
+// so if one later joins the remade version and really ships, the close may claim it.
+function alreadyCounted(file) {
   if (!fs.existsSync(file)) return new Set()
   const ids = new Set()
-  let inShipped = false
+  let counting = false
   for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
-    if (line.startsWith('Shipped —')) inShipped = true
-    else if (line.startsWith('Sent back') || line.startsWith('## ')) inShipped = false
-    const m = inShipped && line.match(/^-\s+#(\d+)\b/)
+    if (line.startsWith('Shipped —') || line.startsWith('Archived under')) counting = true
+    else if (line.startsWith('Sent back') || line.startsWith('## ')) counting = false
+    const m = counting && line.match(/^-\s+#(\d+)\b/)
     if (m) ids.add(Number(m[1]))
   }
   return ids
@@ -368,14 +368,79 @@ export function closeRelease(raw) {
         `A closed release is off the list for good — plan the next version with \`release new <id>\`.`,
     )
   }
-  const counted = alreadyShipped(summaryPath(id))
+  const counted = alreadyCounted(summaryPath(id))
   const shipped = archivedCards().filter((c) => c.release === id && !counted.has(c.id))
   const left = openCards().filter((c) => c.release === id)
   // The summary is written first: it is the only record of what the version was meant to
   // hold, and the next step is what erases that from the cards.
   const summary = writeSummary(id, shipped, left)
-  // Back to `next`: the work is not promised to a version nobody has picked yet.
-  for (const card of left) setCardRelease(card.file, DEFAULT_RELEASE)
+  // The field is cleared: the work is not promised to a version nobody has picked yet.
+  for (const card of left) setCardRelease(card.file, NO_RELEASE)
   removeReleaseLine(id)
   return { id, shipped, left, summary, remaining: readReleases() }
+}
+
+// ---- dropping a release ----------------------------------------------------
+//
+// The team gives up on a version: it comes off the list without a shipped record. The
+// open cards' release field is cleared exactly as a close clears it — the work is no
+// longer promised to a version — and one dated `## Dropped` section goes to the summary file,
+// saying dropped, never shipped. The why is the user's to write down if they want it
+// kept; the drop writes no memory line.
+
+// One dated section per drop, appended like a close's — the summary file is the only
+// record of what the version was meant to hold, whichever way it ended.
+function writeDropSection(id, archived, left) {
+  fs.mkdirSync(RELEASE_SUMMARIES, { recursive: true })
+  const file = summaryPath(id)
+  const out = []
+  out.push(`## Dropped ${today()}`)
+  out.push('')
+  out.push('This version was given up — nothing here shipped.')
+  out.push('')
+  out.push(
+    archived.length
+      ? `Archived under \`${id}\` — ${plural(archived.length, 'card')}, done before the drop:`
+      : `Archived under \`${id}\` — nothing was archived under this release.`,
+  )
+  if (archived.length) {
+    out.push('')
+    for (const card of archived) out.push(cardLine(card))
+  }
+  out.push('')
+  out.push(
+    left.length
+      ? `Sent back with no release — ${plural(left.length, 'card')} still open when it was dropped:`
+      : 'Sent back with no release — nothing was still open.',
+  )
+  if (left.length) {
+    out.push('')
+    for (const card of left) out.push(openCardLine(card))
+  }
+  out.push('')
+  const section = out.join('\n')
+  if (fs.existsSync(file)) fs.appendFileSync(file, `\n${section}`)
+  else fs.writeFileSync(file, `${HEADING(id)}\n${section}`)
+  return file
+}
+
+export function dropRelease(raw) {
+  const id = String(raw === true ? '' : (raw ?? '')).trim()
+  if (!id) die('release drop needs a version id, e.g. `release drop v1`')
+  const known = readReleases()
+  if (!known.includes(id)) {
+    die(
+      `unknown release "${id}". releases on the list: ${known.join(', ') || '(none)'}. ` +
+        `A dropped release is off the list for good — only a release on the list can be dropped.`,
+    )
+  }
+  // The cards an earlier close or drop of this id already listed stay theirs — this
+  // section records only what the version held this time around.
+  const counted = alreadyCounted(summaryPath(id))
+  const archived = archivedCards().filter((c) => c.release === id && !counted.has(c.id))
+  const left = openCards().filter((c) => c.release === id)
+  const summary = writeDropSection(id, archived, left)
+  for (const card of left) setCardRelease(card.file, NO_RELEASE)
+  removeReleaseLine(id)
+  return { id, archived, left, summary, remaining: readReleases() }
 }

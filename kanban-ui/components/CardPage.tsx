@@ -19,7 +19,7 @@ import {
 } from "react-icons/fi";
 import { patchCardAction } from "@/app/actions";
 import type { CardPatch } from "@/lib/edit";
-import { DEFAULT_RELEASE, type AgentInfo, type Card, type SessionView } from "@/lib/types";
+import { NO_RELEASE, type AgentInfo, type Card, type SessionView } from "@/lib/types";
 import { Button } from "./button";
 import { Header } from "./Header";
 import {
@@ -369,11 +369,12 @@ export function CardPage({
           )}
 
           {/* Release (#105) — the version this card ships in, picked from the
-              open releases plus `next`. A board that plans no versions says
-              nothing about them at all, so the column is gone rather than
-              stuck on `next`; a card left pointing at a release someone deleted
-              from the list still shows its own value, so nothing goes quiet. */}
-          {(releases.length > 0 || card.release !== DEFAULT_RELEASE) && (
+              open releases plus a bare "—" for none. A board that plans no
+              versions says nothing about them at all, so the column is gone
+              rather than stuck on the dash; a card left pointing at a release
+              someone deleted from the list still shows its own value, so
+              nothing goes quiet. */}
+          {(releases.length > 0 || card.release !== NO_RELEASE) && (
             <MetaItem label="Release">
               <ReleaseSelect
                 value={card.release}

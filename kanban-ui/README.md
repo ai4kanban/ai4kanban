@@ -44,7 +44,7 @@ The header carries seven things:
 - **The goal** (the compass, on the left beside the folder path) — see below.
 - **Board / Queue** — the two views above.
 - **The release dropdown** — which version the board is showing, and where a release is
-  started; see below.
+  started or dropped; see below.
 - **Create task** — describe an idea in your words and the agent writes the card. The same
   dialog has a **Propose tasks** mode: pick a module (or let the agent pick one) and it
   proposes new tasks inside it. A **How many** row sets the count — 3 by default, 10 at
@@ -140,14 +140,39 @@ your versions. That is all a release is: a name and a place in the order, which 
 you made them in. The note you can write beside a version in `releases.md` is yours, and
 nothing reads it.
 
+Under the name box sits one toggle: **put the high-priority cards in**. It is on, and it
+says how many cards that is, so you see the move before making the release. The fill is a
+rule, not a judgment call — it looks only at the cards sitting at **next**, and a card goes
+in on three tests: its priority is high, nothing open is blocking it, and it is not a group
+root (a subtask is tested on its own). Nothing else is looked at, and it only ever adds — a
+card already in a release stays where it is. Every high-priority card the fill would leave
+behind is listed right there with the test it failed, so nothing is dropped silently. With
+nothing at **next** to move, the toggle says so; turned off, the release is made empty. A
+card that shouldn't have gone in moves back the way any card does — its **Release** box.
+
 The board switches to the new release the moment it is made, so what you write next lands in
-it — **Create task** puts a new card in the release on screen. It is empty to begin with, so
-the "has no open cards" note is what greets you, with **All releases** one click away.
+it — **Create task** puts a new card in the release on screen. With the toggle off it is
+empty to begin with, so the "has no open cards" note is what greets you, with **All
+releases** one click away; with the toggle on, the cards it moved are what you see.
 
 A name the board can't take — one it already has, an empty one, **next**, or one that can't
 be a filename — is refused with the reason under the box, and the dialog stays open so you
 can fix the name where you typed it. Leaving without a name makes nothing and leaves the
 board on the release it was already showing.
+
+### Dropping a release
+
+You gave up on the version — it will not ship. While the board is showing one release, the
+dropdown offers **Drop that release**, under **New release**. It never fires on one click:
+a dialog first says what happens and lists the open cards that go back to **next** — still
+wanted, no longer promised to a version — and only confirming writes anything.
+
+The result is exactly what `release drop v1` does in a terminal: the version comes off the
+list with no shipped record, and the summary file in `docs/kanban/.release-summaries/` gets
+one dated **Dropped** section — the cards archived under the version, and the open ones
+sent back. Cards already archived stay archived; nothing written reads later as a shipped
+version. Why you gave up is yours to write down if you want it kept — the board records
+nothing about it.
 
 **Closing a release is still a terminal job**: `release close v1` in your coding agent. It
 writes down what shipped, sends the cards still open back to **next**, and prints output
