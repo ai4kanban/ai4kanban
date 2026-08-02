@@ -80,20 +80,24 @@ seeded text has nothing to open, and the setup bar is what asks you to write it 
 ### The release a card ships in
 
 A card can say which version it ships in. Open the card and the meta box has a **Release**
-box next to Priority and ROI: pick a version and the card moves into it, pick **next** and
-it comes back out. **next** is where a card with no release sits — wanted, but not promised
-to a version.
+box next to Priority and ROI: pick a version and the card moves into it, pick the dash and
+it comes back out. The dash is a card in no release — wanted, but not promised to a version.
 
 The list you pick from is the open releases in `docs/kanban/releases.md`, in the order they
-ship, with **next** last. There is nothing to type, so a version id can't be misspelled into
+ship, with the dash last. There is nothing to type, so a version id can't be misspelled into
 existence — the header's dropdown is where a release is made. Your pick is written into the
 card file the moment you make it, like priority and ROI, so the files stay the record.
 
-In the **Queue** view each card carries its release beside its track, so you can see what is
-promised to a version and what isn't without opening anything.
+The board cards themselves don't show the version. The dropdown in the header already says
+which release you are looking at, and stamping the same name on every card under it crowds
+out what the card is about.
 
-A board that plans no versions never sees any of this — no box on a card, no chip in the
-queue. Nothing asks you to plan a release.
+A **group task** moves as one: put its root card in a version and every subtask goes in with
+it, including the subtasks of a nested group, and taking the root out takes them all out. A
+single subtask can still be moved on its own.
+
+A board that plans no versions never sees any of this — no box on a card. Nothing asks you
+to plan a release.
 
 `releases.md` is a plain file you can edit, so a card can end up naming a version that is no
 longer on the list. That card goes on showing what it says, marked **not on the list**, and
@@ -121,7 +125,7 @@ A few more things it does:
   picked. Neither view draws a subtask, so hiding the root would hide the whole group.
 - **Create task** puts the new card in the release on screen, so it doesn't vanish the
   moment you write it. **Propose tasks** doesn't — it offers work nobody has planned, and
-  that work stays at **next**.
+  that work stays in no release.
 - A release with **nothing open in it says so**, with All releases one click away, instead
   of looking like a broken board. Blockers on screen don't count: a blocker belongs to
   whoever it blocks.
@@ -140,14 +144,15 @@ your versions. That is all a release is: a name and a place in the order, which 
 you made them in. The note you can write beside a version in `releases.md` is yours, and
 nothing reads it.
 
-Under the name box sits one toggle: **put the high-priority cards in**. It is on, and it
-says how many cards that is, so you see the move before making the release. The fill is a
-rule, not a judgment call — it looks only at the cards sitting at **next**, and a card goes
-in on three tests: its priority is high, nothing open is blocking it, and it is not a group
-root (a subtask is tested on its own). Nothing else is looked at, and it only ever adds — a
+Under the name box sits one toggle: **put every unplanned high-priority card in**. It is on,
+and the cards it would move are named right under it, so you see the move before making the
+release — not a number you have to take on faith. The fill is a rule, not a judgment call —
+it looks only at the cards in no release, and a card goes in on three tests: its priority is
+high, nothing open is blocking it, and it is not a group root (a subtask is tested on its
+own). Nothing else is looked at, and it only ever adds — a
 card already in a release stays where it is. Every high-priority card the fill would leave
-behind is listed right there with the test it failed, so nothing is dropped silently. With
-nothing at **next** to move, the toggle says so; turned off, the release is made empty. A
+behind is named there too, with the test it failed, so nothing is dropped silently. With
+no unplanned card to move, the toggle says so; turned off, the release is made empty. A
 card that shouldn't have gone in moves back the way any card does — its **Release** box.
 
 The board switches to the new release the moment it is made, so what you write next lands in
@@ -155,17 +160,39 @@ it — **Create task** puts a new card in the release on screen. With the toggle
 empty to begin with, so the "has no open cards" note is what greets you, with **All
 releases** one click away; with the toggle on, the cards it moved are what you see.
 
-A name the board can't take — one it already has, an empty one, **next**, or one that can't
+A name the board can't take — one it already has, an empty one, or one that can't
 be a filename — is refused with the reason under the box, and the dialog stays open so you
 can fix the name where you typed it. Leaving without a name makes nothing and leaves the
 board on the release it was already showing.
 
+### Closing a release
+
+The version shipped. While the board is showing one release, a **⋯** joins the release
+dropdown — one sticker, two parts — and its menu offers **Close release**. It never fires on
+one click: a dialog first says what the close writes down and lists the open cards that come
+out of the version — still wanted, no longer promised to it — and only confirming writes
+anything.
+
+The dialog also names any open card whose todos are all ticked but which was never archived.
+Such a card counts as **not shipped**, and a closed release can't be reopened to fix that, so
+it is named while you can still cancel, archive the card, and close after. In a terminal you
+read that warning after the close; here you read it before.
+
+The result is exactly what `release close v1` does: the summary file in
+`docs/kanban/.release-summaries/` gets one dated **Closed** section — what shipped, from the
+cards you archived while they named the version, and what was still open — the open cards come
+out of the version, and its line comes off the list. Afterwards the board shows **All
+releases**: the version it was showing no longer exists.
+
+The summary is a list of cards, not a changelog, and the board never edits it again. If a line
+in it is wrong, fix that file in your own editor, the way you'd fix a memory file.
+
 ### Dropping a release
 
-You gave up on the version — it will not ship. While the board is showing one release, the
-dropdown offers **Drop that release**, under **New release**. It never fires on one click:
-a dialog first says what happens and lists the open cards that go back to **next** — still
-wanted, no longer promised to a version — and only confirming writes anything.
+You gave up on the version — it will not ship. The same **⋯** menu offers **Drop release**.
+It never fires on one click either:
+a dialog first says what happens and lists the open cards that come out of the version — still
+wanted, no longer promised to it — and only confirming writes anything.
 
 The result is exactly what `release drop v1` does in a terminal: the version comes off the
 list with no shipped record, and the summary file in `docs/kanban/.release-summaries/` gets
@@ -174,14 +201,11 @@ sent back. Cards already archived stay archived; nothing written reads later as 
 version. Why you gave up is yours to write down if you want it kept — the board records
 nothing about it.
 
-**Closing a release is still a terminal job**: `release close v1` in your coding agent. It
-writes down what shipped, sends the cards still open back to **next**, and prints output
-worth reading. Renaming and reordering are terminal jobs too — `releases.md` is a short file
+**Renaming and reordering a release are still terminal jobs** — `releases.md` is a short file
 and a hand edit is how those work.
 
 A board that plans no versions sees the dropdown saying **All releases** and offering **New
-release**, and nothing more: no **next** entry, since **next** is the whole board there.
-Nothing asks you for a version.
+release**, and nothing more. Nothing asks you for a version.
 
 ### The setup bar
 
@@ -229,11 +253,12 @@ log is read-only — you never type into a running session.
 
 | Button | When it shows |
 | --- | --- |
-| **Implement** | Until every todo on the card is checked. Never on a group root. |
+| **Implement** | Until every todo on the card is checked. Never on a group root or a recurring card. |
+| **Run** | On a recurring card, in place of Implement — see below. |
 | **Refine** | While a refine would still move the card — see below. |
 | **Edit** | Always. Say what to change and the agent revises the card. |
 | **Resolve** | Only when the card has open questions. |
-| **Archive** | Once every todo is checked (a group root: once every subtask is resolved). |
+| **Archive** | Once every todo is checked (a group root: once every subtask is resolved). Never on a recurring card. |
 | **Reject** | Always. |
 
 **Resolve** gives each open question an answer box. A question that carries choices shows
@@ -269,6 +294,30 @@ button is off and the badge beside the title says what's going on.
 
 A run never commits. It leaves its changes in your working tree; you read `git diff` and
 commit.
+
+### Recurring tasks
+
+A card in the **recurring** column is a job you repeat — a weekly report, a daily tidy-up —
+not a piece of work you finish once. Its column carries a light lilac tint so you can tell it
+apart at a glance, and its cards behave differently: they are run again and again, and they
+are never archived.
+
+**Run** does one pass. The agent works through the card's **Process** in order, records the
+run, and rewrites a step or two so the next run needs less of you — that is the point of a
+recurring card: each pass should need a little less human than the last. The card stays on
+the board when the run ends.
+
+Nobody is watching a run, so a step that needs your judgment is not guessed at: it is left
+undone and written into that run's open-questions file, next to the card, for you to answer
+whenever you get to it. The next run folds your answer into the Process.
+
+The card page says when the job **last ran**, next to Priority and ROI — the date and time of
+the last run, or **Never run** for a card that hasn't run yet.
+
+There is no **Archive** on a recurring card, since it has no end state, and no **Refine**
+either — a recurring card has a Process, not a build plan, so running it is what sharpens it.
+**Edit**, **Resolve** and **Reject** work as they do anywhere else. To make one, describe the
+job in **Create task** and say it repeats; the agent writes it into the recurring column.
 
 ### Stopping a run
 
@@ -341,6 +390,8 @@ card, not something you build directly:
   (done) or struck through (rejected). Archiving the root closes the whole group.
 - A group root that never got any subtasks can't be archived that way. Close it with
   **Reject**.
+- The root's **Release** box moves the whole group: every subtask under it, nested groups
+  included, is written into the version you pick, and the dash takes them all back out.
 
 The root keeps this record itself: when a subtask is archived its line on the root is ticked,
 and when a subtask is rejected its line is struck through. So the outcome survives even after

@@ -5,10 +5,11 @@ copy you're compressing: the project-wide one at `docs/kanban/memory/` or a modu
 `docs/kanban/memory/<module>/`. `goal.md` is not in the set — it's user-owned, leave it alone.
 
 One principle for all files: they exist to stop us re-proposing work, re-making a
-design mistake, or re-asking a settled question. Rewrite each as **topics** — areas of
-the product — with plain-language takeaways under each. Keep only what helps future
-planning; drop code detail, dates, task ids, step-by-step stories, and the reasoning
-behind settled decisions. Merge lines that say the same thing. Rewrite, don't just cut.
+design mistake, or re-asking a settled question. Rewrite each as **topics** (h2 title) — areas of
+the module — with plain-language takeaways under each section. Keep only what helps future
+planning; drop code detail, dates, task ids, step-by-step stories.
+
+Merge lines that say the same thing. Rewrite, don't just cut.
 
 On top of that, per file:
 

@@ -42,6 +42,11 @@ export interface CardMeta {
    *  docs/kanban/modules.md). A card with no field, or an empty list, touches
    *  none. Read-only in the UI — the CLI writes it. */
   modules: string[];
+  /** When this card last ran, as `YYYY-MM-DD HH:MM` — recurring cards only, and
+   *  only once one has run: `kanban run <id>` stamps it. Empty means never run.
+   *  Read-only in the UI, like `modules`; both frontmatter serializers keep it,
+   *  so an edit in between can't erase it. */
+  last_run: string;
 }
 
 /** A pointer to another card — just enough to show a link. */
@@ -75,6 +80,13 @@ export interface Card extends CardMeta {
    *  finished subtask's file is removed, so a group with everything done has no
    *  subtask files left and would otherwise stop reading as a group. */
   isGroup: boolean;
+  /** True when this card is a recurring job — it lives under `todo/recurring/`,
+   *  a reserved folder whose cards repeat on a cadence instead of being built
+   *  once. Read from the path, the same way the CLI reads it. It changes what
+   *  the card offers: **Run** instead of Implement, no Archive (a recurring card
+   *  has no end state), and no refine (its `## Process` has no todo boxes to
+   *  sharpen toward `ready`). */
+  recurring: boolean;
   /** The `blocked_by` ids that still point at an open card, so this card really
    *  is blocked. An id no longer on the board was archived or rejected and
    *  blocks nothing; a recurring card never closes, so it is skipped too, as is
@@ -187,6 +199,10 @@ export interface TokenUsage {
 
 export type AgentAction =
   | "implement"
+  /** One pass of a recurring card (#64) — the agent walks its `## Process`,
+   *  records the run with `kanban run`, and sharpens the process for next time.
+   *  It never finishes the card: a recurring job has no end state. */
+  | "run"
   | "reject"
   | "archive"
   | "edit"

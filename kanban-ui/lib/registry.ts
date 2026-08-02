@@ -30,8 +30,10 @@ import type { AgentAction, CardStatus, SessionView, TokenUsage } from "./types";
 // create / propose / archive / reject all rewrite shared files through the skill
 // script (next-id, the README index, metrics.csv). Run two at once and they
 // corrupt each other even on different cards — so these serialize behind one
-// lock. Propose allocates several ids in one run, so it belongs here too.
-const INDEX_ACTIONS = new Set<AgentAction>(["create", "propose", "archive", "reject"]);
+// lock. Propose allocates several ids in one run, so it belongs here too, and so
+// does a recurring run: `kanban run` bumps metrics.csv and rewrites the README
+// index, the very files this lock exists for.
+const INDEX_ACTIONS = new Set<AgentAction>(["create", "propose", "archive", "reject", "run"]);
 
 // Actions that may run only one at a time across the whole board. A create has
 // no card yet, so the per-card lock can't catch a duplicate — and the registry
@@ -47,6 +49,7 @@ const SINGLETON_ACTIONS = new Set<AgentAction>(["create", "propose"]);
 // implemented".
 const VERB: Record<AgentAction, string> = {
   implement: "implemented",
+  run: "run",
   reject: "rejected",
   archive: "archived",
   edit: "edited",

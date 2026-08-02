@@ -57,6 +57,11 @@ the id is gone: putting a card in `v1` fails like a typo, and the next version i
 release. A card whose todos are all ticked but which you never archived counts as not
 shipped — the skill names it so you can archive it and fix that line in the summary.
 
+On the local board, the ⋯ beside the release dropdown offers the close while you're looking
+at that version. It shows you what the close records and which open cards come out of the
+version before you confirm, and it names the ticked-but-never-archived cards there — early
+enough to cancel, archive them, and close after.
+
 The summary is a list of cards, not a changelog. Not every change goes through the board,
 so only you can say what the version changed — the summary is your source for writing that.
 
@@ -66,8 +71,8 @@ You gave up on the version — it will not ship. Say **"drop v1"**. The version 
 the list with no shipped record: the summary file gets one dated `## Dropped` section
 listing the cards archived under it and the open ones sent back, and it says dropped,
 never shipped. The open cards come out of the version — back to no release. On the local
-board, the release dropdown offers the drop while you're looking at that version, and
-shows you which open cards it moves before you confirm.
+board, the ⋯ beside the release dropdown offers the drop while you're looking at that
+version, and shows you which open cards it moves before you confirm.
 
 The skill writes down nothing about why. If the reason is worth keeping, it's yours to
 write — in the summary file, or wherever you keep such notes.

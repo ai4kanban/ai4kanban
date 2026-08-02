@@ -6,7 +6,12 @@ import type { Card } from "./types";
 // Refine button on the card page (#99) — so the button can never offer a run
 // that arrives, finds nothing to do, and leaves the card exactly as it was.
 //
-// The three cases where a refine has nothing to work with:
+// The four cases where a refine has nothing to work with:
+//   • the card is recurring (#64) — it carries a `## Process`, not a build plan
+//     with todo boxes, and it never reaches `ready` because it is never finished
+//     at all. A refine would push it toward a state it has no way to reach. Its
+//     process is sharpened by RUNNING it instead: each run rewrites a step to
+//     need less of a human (references/recurring-task.md);
 //   • the card isn't `todo` — it's `ready` (the plan is already concrete) or
 //     being implemented, and neither is a plan waiting to be sharpened;
 //   • every todo is checked — that card is finished, not rough;
@@ -23,6 +28,7 @@ import type { Card } from "./types";
 // Refine on a blocked card has asked for it, so it runs and the dialog just says
 // what's still open.
 export function canRefine(card: Card): boolean {
+  if (card.recurring) return false;
   if (card.status !== "todo") return false;
   const { total, done } = card.todos;
   if (total > 0 && done === total) return false;

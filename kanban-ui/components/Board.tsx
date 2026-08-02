@@ -1,11 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createReleaseAction, dropReleaseAction, getBoard } from "@/app/actions";
+import {
+  closeReleaseAction,
+  createReleaseAction,
+  dropReleaseAction,
+  getBoard,
+  setCardsReleaseAction,
+} from "@/app/actions";
 import { filterColumns, pickIsEmpty, useReleasePick } from "@/lib/release-pick";
 import type { AgentInfo, Board } from "@/lib/types";
 import { useBoardView } from "@/lib/view";
 import { BoardCard } from "./BoardCard";
+import { BulkReleaseBar } from "./BulkReleaseBar";
 import { Header } from "./Header";
 import { SetupBar } from "./SetupBar";
 import { QueueView } from "./Queue";
@@ -51,6 +58,51 @@ export function BoardView({
     [board, release],
   );
   const emptyRelease = pickIsEmpty(columns, release);
+  // The cards ticked for a bulk release move (#114), and what the last move
+  // couldn't do. Not remembered anywhere: a selection is one action in progress,
+  // not a way of looking at the board.
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [failed, setFailed] = useState<{ id: number; error: string }[]>([]);
+  const [moveError, setMoveError] = useState<string | null>(null);
+  const clearSelection = useCallback(() => {
+    setSelected(new Set());
+    setFailed([]);
+    setMoveError(null);
+  }, []);
+  // Touching a tick drops the last move's report: the user has moved on to a
+  // different set of cards, and a message about the old one would read as
+  // something the next move did.
+  const toggleSelected = useCallback((id: number, next: boolean) => {
+    setFailed([]);
+    setMoveError(null);
+    setSelected((prev) => {
+      const out = new Set(prev);
+      if (next) out.add(id);
+      else out.delete(id);
+      return out;
+    });
+  }, []);
+
+  // Changing what is on screen unticks everything. The release dropdown can hide
+  // a ticked card and the view switch is the user turning to another job — and
+  // moving a card someone has stopped looking at is the one way this action
+  // surprises them.
+  useEffect(clearSelection, [release, view, clearSelection]);
+
+  // A ticked card that has left the screen some other way — archived by a run,
+  // rejected, its file edited — is dropped from the selection in the same render
+  // it goes, so a move can only ever write the cards in front of the user. The
+  // same identity is handed back when nothing changed, so this can't loop.
+  const onScreen = useMemo(
+    () => new Set(columns.flatMap((col) => col.cards.map((c) => c.id))),
+    [columns],
+  );
+  useEffect(() => {
+    setSelected((prev) => {
+      const next = new Set([...prev].filter((id) => onScreen.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [onScreen]);
 
   const refresh = useCallback(async () => {
     try {
@@ -78,6 +130,28 @@ export function BoardView({
     [refresh, setRelease],
   );
 
+  // Send every ticked card into one release, or back out of one (#114). Each
+  // card is written on its own on the server, so one card that can't be moved
+  // costs the others nothing: the ones that went through are unticked and the
+  // ones that didn't stay ticked, with the reason in the bar above them — a
+  // second try needs no re-ticking. Then the board is re-read from the files, so
+  // what is on screen is what the cards say and anything that left the release
+  // being shown drops off it.
+  const moveSelected = useCallback(
+    async (target: string) => {
+      const ids = [...selected];
+      const res = await setCardsReleaseAction(ids, target);
+      setMoveError(res.error ?? null);
+      setFailed(res.failed);
+      if (!res.error) {
+        const stuck = new Set(res.failed.map((f) => f.id));
+        setSelected(new Set(ids.filter((id) => stuck.has(id))));
+        await refresh();
+      }
+    },
+    [selected, refresh],
+  );
+
   // Give up on a release from the header (#131). The pick moves back to All
   // releases first — the release is about to be gone, and the fallback in
   // useReleasePick would land there anyway, this just skips the frame where a
@@ -86,6 +160,20 @@ export function BoardView({
   const dropRelease = useCallback(
     async (id: string) => {
       const res = await dropReleaseAction(id);
+      if (!res.ok) return res;
+      setRelease(null);
+      await refresh();
+      return res;
+    },
+    [refresh, setRelease],
+  );
+
+  // Close a shipped release from the header (#136). The pick moves the same way
+  // the drop moves it: back to All releases before the re-read, since the
+  // version it was showing no longer exists.
+  const closeRelease = useCallback(
+    async (id: string) => {
+      const res = await closeReleaseAction(id);
       if (!res.ok) return res;
       setRelease(null);
       await refresh();
@@ -133,6 +221,7 @@ export function BoardView({
         onReleaseChange={setRelease}
         onCreateRelease={makeRelease}
         onDropRelease={dropRelease}
+        onCloseRelease={closeRelease}
         // A card written while a version is on screen ships in that version.
         createRelease={release}
         goalWritten={board?.goalWritten ?? false}
@@ -180,11 +269,28 @@ export function BoardView({
         </div>
       )}
 
+      {/* Only while cards are ticked, or while the last move has something left
+          to say (#114). With nothing ticked the board is exactly what it was
+          before this existed. Above both views, like the note above it, so the
+          count and the move read the same in either one. */}
+      {board && (selected.size > 0 || moveError || failed.length > 0) && (
+        <BulkReleaseBar
+          count={selected.size}
+          releases={board.releases}
+          failed={failed}
+          error={moveError}
+          onMove={moveSelected}
+          onClear={clearSelection}
+        />
+      )}
+
       {board && view === "queue" && (
         <QueueView
           columns={columns}
           sessions={sessions}
           onOpenLog={setLogSessionId}
+          selected={selected}
+          onSelect={toggleSelected}
         />
       )}
 
@@ -193,8 +299,16 @@ export function BoardView({
           {columns.map((col) => (
             <section
               key={col.track}
-              className="flex w-[300px] shrink-0 flex-col rounded-[14px] p-3"
-              style={{ background: "var(--color-nb-wash)" }}
+              // `recurring` is a reserved folder, not a track someone named: its
+              // cards repeat on a cadence and are never finished, so the column
+              // carries a lilac cast over the neutral wash the other columns
+              // share. Faint on purpose — it says "these behave differently",
+              // not "look here".
+              className={`flex w-[300px] shrink-0 flex-col rounded-[14px] p-3 ${
+                col.track === "recurring"
+                  ? "bg-[color-mix(in_srgb,var(--color-nb-lilac)_16%,var(--color-nb-wash))]"
+                  : "bg-nb-wash"
+              }`}
             >
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="nb-tag">
@@ -216,6 +330,8 @@ export function BoardView({
                     // saved-stage pill.
                     liveSession={runningSessionForCard(sessions, card.id)}
                     onOpenLog={setLogSessionId}
+                    selected={selected.has(card.id)}
+                    onSelect={toggleSelected}
                     // No track chip here — the column heading above already
                     // says which track this card is in.
                   />

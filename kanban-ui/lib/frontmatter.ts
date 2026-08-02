@@ -115,6 +115,10 @@ export function serializeFrontmatter(m: CardMeta): string {
   out.push(`blocked_by: [${(m.blocked_by || []).join(", ")}]`);
   out.push(`related: [${(m.related || []).join(", ")}]`);
   out.push(`modules: [${(m.modules || []).join(", ")}]`);
+  // When a recurring card last ran (`kanban run` stamps it). Written only when
+  // the card carries one, so a one-shot card's frontmatter is untouched — and
+  // re-emitted whenever it is there, so a UI edit can't erase the stamp.
+  if (m.last_run) out.push(`last_run: ${yamlScalar(m.last_run)}`);
   if (!m.questions || m.questions.length === 0) out.push("questions: []");
   else {
     out.push("questions:");
@@ -239,6 +243,10 @@ export function parseFrontmatter(text: string): ParsedCard {
     related: (meta.related as number[]) ?? [],
     questions: (meta.questions as CardQuestion[]) ?? [],
     modules: (meta.modules as string[]) ?? [],
+    // When the card last ran — recurring cards only, and only once they have
+    // run. Anything but text reads as never run, so a blanked or damaged line
+    // just means the card has no run to report.
+    last_run: typeof meta.last_run === "string" ? meta.last_run.trim() : "",
   };
   return { meta: normalized, body: lines.slice(i + 1).join("\n") };
 }

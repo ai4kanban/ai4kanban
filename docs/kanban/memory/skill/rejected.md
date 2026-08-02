@@ -21,9 +21,9 @@ before proposing so you don't re-suggest them.
 ## Setup
 
 - **Ending setup with a v1 and a vnext group task** — not every project plans releases on
-  day one, so setup must not ask for one. Releases are the release-planning work's job
-  (#100): the board makes a release easy to see and easy to create when the user wants
-  one, and never requires it. Setup ends with the first tasks, not with a version split.
+  day one, so setup must not ask for one. The board makes a release easy to see and easy
+  to create when the user wants one, and never requires it. Setup ends with the first
+  tasks, not with a version split.
 - **Reading a deadline from the goal and splitting decisions by it** — the board does not
   support deadlines for now. Setup reads no date out of `goal.md`, no step asks for one,
   and no `decisions-v2.md` parks the calls that could wait — every settled call lands in

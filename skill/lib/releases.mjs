@@ -264,6 +264,28 @@ function setCardRelease(file, release) {
   return true
 }
 
+// A group root's release is the whole group's. Setting it writes the same release down
+// every card inside the folder — each subtask, and each subtask of a nested group, all
+// the way down — and clearing it clears them the same way. A group is one piece of work
+// split up: a root promised to a version whose subtasks name nothing would leave the real
+// work out of it, and the subtasks are what `release list` counts and what a close reads.
+//
+// Only cards move. A file in the folder that isn't a card — a sibling doc, a README, a
+// file with no frontmatter — has no release field and is left alone. The root itself is
+// skipped: its caller has just written it.
+export function setSubtreeRelease(dir, release) {
+  const root = path.join(dir, 'root.md')
+  const changed = []
+  for (const file of walkMd(dir)) {
+    const base = path.basename(file)
+    if (base === 'README.md' || file === root) continue
+    const id = base === 'root.md' ? idPrefix(path.basename(path.dirname(file))) : idPrefix(base)
+    if (id == null) continue
+    if (setCardRelease(file, release)) changed.push(id)
+  }
+  return changed.sort((a, b) => a - b)
+}
+
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 const cardLine = (card) => `- #${card.id} ${card.title}${card.track ? ` (${card.track})` : ''}`

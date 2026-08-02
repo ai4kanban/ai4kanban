@@ -62,9 +62,10 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
   // shows under. A group root lives in `<id>-<slug>/root.md` (a folder that is
   // NOT a track), so its column can only come from the frontmatter, not the path.
   const track = meta.track || path.basename(path.dirname(relFromTodo));
+  const relPath = relFromTodo.split(path.sep).join("/");
   return {
     id,
-    relPath: relFromTodo.split(path.sep).join("/"),
+    relPath,
     title: meta.title,
     track,
     priority: meta.priority,
@@ -75,24 +76,23 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     related: meta.related,
     questions: meta.questions,
     modules: meta.modules,
+    last_run: meta.last_run,
     body: body.replace(/^\n+/, "").replace(/\s+$/, ""),
     todos: countTodos(body),
     isGroup: false, // readGroup flips this on the one card that is a root
+    // `recurring/` is a reserved folder, not a track someone named: a card in it
+    // repeats on a cadence instead of being built once. The path is what says so
+    // — the same test `kanban run` makes before it will record a run.
+    recurring: relPath.split("/")[0] === "recurring",
     openBlockers: [], // filled by attachBlockers once every card has been read
   };
-}
-
-// A recurring card lives under `todo/recurring/` and is never archived — each run
-// bumps the metric and the card stays. So it can't hold another card up: the
-// block would never clear.
-function isRecurring(card: Card): boolean {
-  return card.relPath.split("/")[0] === "recurring";
 }
 
 // Work out what is really blocking each card. A `blocked_by` id counts only when
 // it names a card that is still open — an id no longer on the board was archived
 // or rejected, so that work is done and the block is cleared. A recurring blocker
-// and a card that names itself are skipped: neither can ever clear.
+// and a card that names itself are skipped: neither can ever clear — a recurring
+// card is never archived, so a block on one would hold forever.
 //
 // Runs over every card at once (subtasks included), so a blocker inside a group
 // folder resolves like any other card.
@@ -102,7 +102,7 @@ function attachBlockers(cards: Card[]): void {
     card.openBlockers = card.blocked_by
       .filter((n) => n !== card.id)
       .map((n) => byId.get(n))
-      .filter((b): b is Card => !!b && !isRecurring(b))
+      .filter((b): b is Card => !!b && !b.recurring)
       .map((b) => ({ id: b.id, title: b.title }));
   }
 }

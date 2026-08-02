@@ -48,9 +48,10 @@ re-ask a settled call.
   becomes a `decisions.md` line, and the card archives when its list is empty. While it's
   open, a goal-level call no flow can settle is appended there; afterwards a question
   rides the card that raised it.
-- Setup settles `goal.md` and the project-wide `decisions.md` before it writes
-  `modules.md`. A project started without code has no code to read a module map from —
-  the map can only come from what's been decided.
+- **Does the module map come before or after the decisions?**: after. Setup settles
+  `goal.md` and the project-wide `decisions.md` first, then writes `modules.md`, then moves
+  each call into the module it belongs to. A project started without code has no code to
+  read a map from — the map can only come from what's been decided.
 - **What if the user never writes `goal.md`?**: setup stops at the goal step. Nothing after
   it can be built from the seed text, so there are no decisions, no module map and no first
   cards. The board's setup bar keeps asking for the goal, and a later setup run picks up
@@ -99,6 +100,18 @@ re-ask a settled call.
 - One session drives one card the whole way. It never pauses to ask the user: it answers
   what it's sure of and ends either `ready` or holding only the questions a human must
   answer.
+
+## Recurring tasks
+
+- **How does a built-in background job (like daily memory pruning) ship?**: as a seeded
+  card in the recurring track, run by the dispatcher when the user sets a cadence —
+  never as its own UI switch with its own state file. The card is the visible, editable
+  record of the job; deleting it is the opt-out, and nothing re-adds it behind the
+  user's back.
+- **How is a cadence written?**: always in the units grammar — `30m`, `2h`, `1d`,
+  `1d at 09:30`. There is no word form like `daily`, anywhere: not in a card body, not
+  in a doc, not as a value the script accepts. One grammar, so nothing has to translate
+  between two.
 
 ## Open questions
 

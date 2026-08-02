@@ -11,6 +11,7 @@ import { unquote } from '../lib/yaml.mjs'
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate.mjs'
 import { writeReleasesIfMissing } from '../lib/releases.mjs'
 import { scaffoldMemoryPath, scaffoldProjectMemory } from '../lib/memory.mjs'
+import { writePruneMemoryCard } from '../lib/recurring.mjs'
 import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup.mjs'
 
 // Default tracks when `init` is run with no track args. Swap by passing your own,
@@ -114,6 +115,10 @@ export function cmdInit(args) {
     // The setup checklist is deliberately NOT among them. It is written once, by the
     // scaffold below; a board that was set up long ago has no file and must stay quiet,
     // and planting one here would tell that user to finish a setup that finished months ago.
+    //
+    // Nor is the "Prune the memory" recurring card, for the same kind of reason: deleting
+    // it is how a board opts out of the job, and a repair that re-added it would undo that
+    // choice on every re-run.
     const added = [
       writeConfigIfMissing() && rel(CONFIG),
       writeModulesIfMissing() && rel(MODULES_MD),
@@ -173,10 +178,14 @@ export function cmdInit(args) {
   // The questions card comes right after `next-id` is seeded, so it takes id 1 and sorts
   // on top. Setup's steps append every call they can't settle to it as they run.
   const questionsCard = writeSetupQuestionsCard(tracks[0])
+  // The one job every board starts with, in `recurring/` beside the track folders. It
+  // ships with no cadence, so nothing runs until someone asks for it.
+  const pruneCard = writePruneMemoryCard()
   console.log(`initialised board at ${rel(KANBAN)}/`)
   console.log(`  tracks: ${tracks.join(', ')}`)
   console.log(`  setup's remaining steps are in ${rel(SETUP_CHECKLIST)} — \`setup-done <step>\` ticks one`)
   if (questionsCard) console.log(`  questions card: #${questionsCard.id} — setup appends the calls it can't settle here`)
+  if (pruneCard) console.log(`  recurring card: #${pruneCard.id} ${rel(pruneCard.file)} — prunes the memory; runs only when you run it`)
   const next = nextSetupStep()
   if (next) console.log(`  next: \`${next.name}\` (${next.owner}) — ${next.text}`)
 }

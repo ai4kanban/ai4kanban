@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { FiHelpCircle } from "react-icons/fi";
-import { NO_RELEASE, type Card, type SessionView } from "@/lib/types";
+import { FiCheck, FiHelpCircle } from "react-icons/fi";
+import { type Card, type SessionView } from "@/lib/types";
 import { parseQuestion } from "@/lib/questions";
 import { RUNNING_VERB, RunningBadge } from "./agent-shared";
 import {
   BlockedChip,
   GroupChip,
   PriorityChip,
-  ReleaseChip,
   RoiTag,
   StatusPill,
   TodoProgress,
@@ -26,21 +25,32 @@ import {
 // card has to say which one it came from, while a kanban column's heading
 // already does.
 //
-// The release rides with the track chip (#105) — same row, same opt-in — so a
-// card says which version it ships in wherever it says which track it is in.
-// Only a card that is in a version wears it: an unplanned card says nothing,
-// because on a board where most cards are unplanned a chip on every one of them
-// is clutter, and the planned few stand out better against silence.
+// The release is NOT on the card. The release picker at the top of the board is
+// how you look at one version, and the card page is where a card says and
+// changes which one it is in — a version stamped on every card as well is a
+// third place saying the same thing, and it crowds out what the card is for.
+//
+// The tick (#114) is a target of its own at the head of the card, so several
+// cards can be sent into a release at once while clicking the card itself still
+// opens its page — the card is a link, and the whole point of ticking is to do
+// something to a card without going to it. It draws only where the view passes
+// `onSelect`, so a card page or any future reuse gets the plain card.
 export function BoardCard({
   card,
   liveSession,
   onOpenLog,
   showTrack = false,
+  selected = false,
+  onSelect,
 }: {
   card: Card;
   liveSession?: SessionView;
   onOpenLog: (sessionId: string) => void;
   showTrack?: boolean;
+  /** Ticked for the bulk move. Only meaningful with `onSelect`. */
+  selected?: boolean;
+  /** Tick or untick this card. Left out draws no tick at all. */
+  onSelect?: (id: number, next: boolean) => void;
 }) {
   // A group root's progress comes from its own todo checklist, not from counting
   // subtask files: a finished subtask gets archived and its file removed, so the
@@ -58,11 +68,46 @@ export function BoardCard({
       // its badges floating mid-card. This pins them to the bottom edge. No
       // `h-full` — grid items stretch on their own, and in the kanban column
       // (a flex stack) it would blow one card up to the column's full height.
-      className="nb-panel-sm nb-press flex cursor-pointer flex-col p-3.5 text-left"
+      // A ticked card wears the accent ring so the group being moved reads at a
+      // glance across a full column, not one 16px box at a time.
+      className={`nb-panel-sm nb-press flex cursor-pointer flex-col p-3.5 text-left ${
+        selected ? "outline-2 outline-offset-2 outline-nb-accent" : ""
+      }`}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-[12px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
-          #{card.id}
+        <span className="flex min-w-0 items-center gap-1.5">
+          {onSelect && (
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={selected}
+              aria-label={`${selected ? "Untick" : "Tick"} #${card.id} ${card.title}`}
+              title="Tick to move this card into a release"
+              onClick={(e) => {
+                // The card is a link; keep the click on the tick.
+                e.preventDefault();
+                e.stopPropagation();
+                onSelect(card.id, !selected);
+              }}
+              // The negative margin buys a bigger hit area than the box it
+              // draws, so the tick is easy to hit without pushing the id along.
+              className={`-m-1 inline-flex cursor-pointer items-center justify-center p-1 ${
+                selected ? "text-white" : "text-transparent hover:text-nb-ink-soft"
+              }`}
+            >
+              <span
+                className="inline-flex size-[15px] items-center justify-center rounded-[4px] border-[1.5px] border-nb-ink"
+                style={{
+                  background: selected ? "var(--color-nb-accent)" : "var(--color-nb-paper)",
+                }}
+              >
+                <FiCheck aria-hidden style={{ width: 10, height: 10 }} strokeWidth={3} />
+              </span>
+            </button>
+          )}
+          <span className="text-[12px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
+            #{card.id}
+          </span>
         </span>
         <span className="flex items-center gap-2">
           {isGroup && <GroupChip />}
@@ -117,9 +162,6 @@ export function BoardCard({
       <p className="mb-3 text-[14px] font-[700] leading-snug tracking-[-0.01em]">{card.title}</p>
       <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
         {showTrack && <TrackChip track={card.track} />}
-        {showTrack && card.release !== NO_RELEASE && (
-          <ReleaseChip release={card.release} />
-        )}
         <PriorityChip value={card.priority} />
         <RoiTag value={card.roi} />
       </div>

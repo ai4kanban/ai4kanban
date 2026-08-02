@@ -30,6 +30,35 @@ function locate(id: number): string | null {
   return walk(todoDir());
 }
 
+// Write `release` down every card inside a group folder — each subtask, and the
+// root and subtasks of a nested group, all the way down. Ported from
+// setSubtreeRelease in skill/lib/releases.mjs, which explains why a group moves
+// as one: the subtasks are the work, so a root promised to a version whose
+// subtasks name nothing would leave that work out of it.
+//
+// Only cards move. README.md, a sibling doc, a file with no frontmatter — none
+// of them carry a release. The group's own root is skipped: patchCard has just
+// written it.
+function setSubtreeRelease(dir: string, release: string): void {
+  const root = path.join(dir, "root.md");
+  function walk(current: string): void {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!entry.name.endsWith(".md")) continue;
+      if (entry.name === "README.md" || full === root) continue;
+      const { meta, body } = parseFrontmatter(fs.readFileSync(full, "utf8"));
+      if (!meta) continue;
+      meta.release = release;
+      fs.writeFileSync(full, serializeFrontmatter(meta) + "\n" + body);
+    }
+  }
+  walk(dir);
+}
+
 // Rewrite the title in the README index bullet for this id, keeping its link.
 function syncReadmeTitle(id: number, title: string): void {
   const rp = readmePath();
@@ -108,6 +137,12 @@ export function patchCard(id: number, patch: CardPatch): PatchResult {
   const newBody = patch.body !== undefined ? patch.body : body;
   const normalizedBody = newBody.replace(/^\n+/, "").replace(/\s+$/, "");
   fs.writeFileSync(file, serializeFrontmatter(meta) + "\n\n" + normalizedBody + "\n");
+
+  // A group root's release is the whole group's: putting the root in a version
+  // puts every subtask in it, and taking the root out takes them all out.
+  if (patch.release !== undefined && path.basename(file) === "root.md") {
+    setSubtreeRelease(path.dirname(file), meta.release);
+  }
 
   if (titleChanged) syncReadmeTitle(id, meta.title);
   return { ok: true };

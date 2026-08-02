@@ -961,6 +961,25 @@ export function buildPrompt(req: AgentRequest): string {
       ]
         .filter(Boolean)
         .join(" ");
+    // One pass of a recurring card (#64). It is not an implement: the card is a
+    // job that repeats, so the run does its `## Process`, records itself with
+    // `kanban run`, and leaves the card on the board.
+    //
+    // A `[ask]` step is the one thing a headless run can't do — nobody is there
+    // to answer. The flow already has the right home for it: the run's
+    // open-questions file, which exists precisely to hold what needed a human.
+    // So the prompt says to skip such a step and log it unanswered rather than
+    // guess at it, and the next run picks it up from there.
+    case "run":
+      return [
+        `${kb}. Run recurring task ${req.id} ${named} — one pass, following \`references/recurring-task.md\`.`,
+        `Do the \`## Process\` steps in order, record the run with \`run ${req.id}\`, then improve the process for next time.`,
+        req.notes ? `Extra notes: ${req.notes}` : "",
+        `This run is headless — don't ask me questions. A \`[ask]\` step you can't settle yourself goes unanswered into this run's open-questions file, per that guide.`,
+        `Don't archive this card: a recurring task has no end state.`,
+      ]
+        .filter(Boolean)
+        .join(" ");
     case "reject":
       return [
         `${kb}. Reject task ${req.id} ${named}. Reason: ${req.reason || "(none given)"}.`,

@@ -6,7 +6,7 @@ roi: med
 status: todo
 release: ""
 blocked_by: [118]
-related: [116, 64]
+related: [116]
 modules: [skill]
 questions: []
 ---
@@ -24,8 +24,8 @@ the unstick flow (#118).
   helps nobody. The cap lives in the card's process, so a run can tune it.
 - The run's proposals land as open questions and board changes the user can review,
   like any other agent work.
-- With a cadence set, the dispatcher runs the sweep in the background (#64). Without
-  one, the user runs it by hand.
+- With a cadence set, the dispatcher runs the sweep in the background (#139). Without
+  one, the user runs it by hand with the card's Run button.
 
 ## Todo
 - [ ] Create the recurring sweep card with its process: list the stuck cards, run the

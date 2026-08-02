@@ -27,10 +27,17 @@ export function QueueView({
   columns,
   sessions,
   onOpenLog,
+  selected,
+  onSelect,
 }: {
   columns: Column[];
   sessions: SessionView[];
   onOpenLog: (sessionId: string) => void;
+  /** The cards ticked for the bulk release move (#114). Both views tick — they
+   *  draw the same cards, and someone planning a version in the queue should
+   *  not have to switch to the board to move them. */
+  selected: Set<number>;
+  onSelect: (id: number, next: boolean) => void;
 }) {
   const cards = columns.flatMap((col) => col.cards);
   const ready = cards.filter(isReadyHalf).sort(byQueueOrder);
@@ -52,6 +59,8 @@ export function QueueView({
         cards={ready}
         sessions={sessions}
         onOpenLog={onOpenLog}
+        selected={selected}
+        onSelect={onSelect}
       />
       <Half
         title="Not ready"
@@ -59,6 +68,8 @@ export function QueueView({
         cards={notReady}
         sessions={sessions}
         onOpenLog={onOpenLog}
+        selected={selected}
+        onSelect={onSelect}
       />
     </div>
   );
@@ -75,12 +86,16 @@ function Half({
   cards,
   sessions,
   onOpenLog,
+  selected,
+  onSelect,
 }: {
   title: string;
   count: string;
   cards: Card[];
   sessions: SessionView[];
   onOpenLog: (sessionId: string) => void;
+  selected: Set<number>;
+  onSelect: (id: number, next: boolean) => void;
 }) {
   return (
     <section
@@ -108,6 +123,8 @@ function Half({
                 card={card}
                 liveSession={runningSessionForCard(sessions, card.id)}
                 onOpenLog={onOpenLog}
+                selected={selected.has(card.id)}
+                onSelect={onSelect}
                 // Every track is merged in here, so a card has to say where it
                 // came from — otherwise a blocker at the top of the ready half
                 // reads as just another card. Its release rides along in the

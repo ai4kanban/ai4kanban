@@ -60,6 +60,7 @@ export function Header({
   onReleaseChange,
   onCreateRelease,
   onDropRelease,
+  onCloseRelease,
   createRelease = null,
   goalWritten = false,
 }: {
@@ -88,6 +89,10 @@ export function Header({
    *  open cards' release cleared, its line off the list. Board-only, like the
    *  other release handlers. */
   onDropRelease?: (id: string) => Promise<{ ok: boolean; error?: string }>;
+  /** Close the release the board is showing (#136): what shipped written down,
+   *  its open cards' release cleared, its line off the list. Board-only, like the
+   *  other release handlers. */
+  onCloseRelease?: (id: string) => Promise<{ ok: boolean; error?: string }>;
   /** The version a card made from here ships in — the release on screen, or null
    *  when the whole board is showing and the new card lands wherever the agent
    *  puts it. A card page passes nothing: it shows one card, not a release. */
@@ -127,7 +132,7 @@ export function Header({
         <Goal written={goalWritten} />
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-        {onReleaseChange && onCreateRelease && onDropRelease && (
+        {onReleaseChange && onCreateRelease && onDropRelease && onCloseRelease && (
           <ReleasePicker
             releases={releases}
             counts={releaseCounts}
@@ -135,6 +140,7 @@ export function Header({
             onChange={onReleaseChange}
             onCreate={onCreateRelease}
             onDrop={onDropRelease}
+            onCloseRelease={onCloseRelease}
           />
         )}
         {view && onViewChange && <ViewSwitch view={view} onChange={onViewChange} />}

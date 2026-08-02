@@ -13,8 +13,10 @@ import {
   settingSaveError,
 } from "@/lib/agent";
 import { readBoard } from "@/lib/board";
+import { type BulkReleaseResult, setCardsRelease } from "@/lib/bulk-release";
 import { setAutoRefine, setAutoRefineParallelism, setHarness, setHarnessSetting } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
+import { closePlan, type ClosePlan, closeRelease } from "@/lib/close";
 import { dropPlan, type DropPlan, dropRelease } from "@/lib/drop";
 import { patchCard, type CardPatch } from "@/lib/edit";
 import { fillPlan, type FillPlan, fillRelease } from "@/lib/fill";
@@ -53,6 +55,9 @@ export async function getModules(): Promise<string[]> {
 // the dispatcher's own budget, and this run isn't the dispatcher's.
 const ACTIONS = new Set([
   "implement",
+  // One pass of a recurring card (#64) — the Run button that stands in for
+  // Implement on a card under todo/recurring/.
+  "run",
   "reject",
   "archive",
   "edit",
@@ -180,6 +185,25 @@ export async function dropReleaseAction(id: string): Promise<{ ok: boolean; erro
   return dropRelease(id.trim());
 }
 
+// What a close would write down and move — the confirm dialog reads this as it
+// opens (#136). It carries the open cards with every todo ticked, since a close
+// counts those as not shipped and cannot be undone; seeing them here is what
+// lets the user cancel, archive the card, and close after.
+export async function closePlanAction(id: string): Promise<ClosePlan> {
+  if (typeof id !== "string" || !id) return { left: [], shipped: 0 };
+  return closePlan(id);
+}
+
+// Close a shipped release from the header's picker (#136) — the same move
+// `release close` makes: one dated `## Closed` section in the summary file, the
+// open cards' release cleared, the line off the list. Direct, like the drop
+// beside it: there is nothing for an agent to decide, and a stale board — the
+// release already gone — comes back as { ok:false, error } for the dialog to show.
+export async function closeReleaseAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  if (typeof id !== "string" || !id.trim()) return { ok: false, error: "no release named" };
+  return closeRelease(id.trim());
+}
+
 // The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv.
 // Read once each time the view opens; the file changes a few times a day at
 // most, so there's nothing to poll. A file that can't be read comes back as
@@ -194,6 +218,26 @@ export async function patchCardAction(
   patch: CardPatch,
 ): Promise<{ ok: boolean; error?: string }> {
   return patchCard(id, patch);
+}
+
+// Move the cards ticked on the board into one release, or back out of one
+// (#114) — the same single-card write the card page's Release box makes, run
+// once per card. Direct, like the release actions above: there is nothing for an
+// agent to decide, and the user has already decided which cards these are.
+//
+// A release the list doesn't hold refuses the whole move before anything is
+// written; a card that can't be moved on its own — archived under the user
+// while the board was stale — comes back in `failed` while the rest go through.
+export async function setCardsReleaseAction(
+  ids: number[],
+  release: string,
+): Promise<BulkReleaseResult> {
+  if (!Array.isArray(ids) || typeof release !== "string") {
+    return { moved: 0, failed: [], error: "a bulk move takes card ids and a release" };
+  }
+  const clean = ids.filter((id) => Number.isInteger(id));
+  if (clean.length === 0) return { moved: 0, failed: [], error: "no cards were ticked" };
+  return setCardsRelease(clean, release);
 }
 
 // Flip the global auto-refine switch (#41), persisted to docs/kanban/ui.config.json.

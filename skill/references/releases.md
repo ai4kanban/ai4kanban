@@ -15,8 +15,9 @@ ${KB} release drop v2               # the version won't ship: no shipped record,
 - An id is free text — `v2`, `0.5.0`, `august` all work — but it is case-sensitive
   (`V1` and `v1` are two releases) and must only use filename-safe characters: letters,
   numbers, dot, dash, underscore.
-- A group root never ships anything itself — it only tracks its subtasks. So put the
-  release on each subtask; the root's own field doesn't matter.
+- A group ships as one. `update <root id> --release v2` writes v2 on the root and on
+  every subtask under it, nested groups included; `--release ""` on the root takes the
+  whole group back out. A single subtask can still be moved on its own.
 - There is no command to reorder or rename releases. Hand-edit `releases.md`, then run
   `release list` — it flags every card still naming the old id, and you fix those with
   `update --release`.

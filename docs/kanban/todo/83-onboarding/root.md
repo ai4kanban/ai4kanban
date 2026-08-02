@@ -34,20 +34,21 @@ group task; each piece is its own subtask in this folder.
   onboarding UI, and it stays simple: for a step the agent must run it shows the line to
   copy into the coding harness, and for the goal it opens the editor. The UI never runs
   setup itself.
-- Setup closes by rewriting `modules.md` from everything it settled and moving each
-  decision into its module's memory (#86), then creating the first tasks. Those first
-  tasks are plain cards. Setup never plans a release: a project that wants one creates it
-  later from the release work (#100), and a project that doesn't never sees the question.
+- Setup writes `modules.md` right before it creates the first tasks — built, in the flow
+  doc's `modules` step. That step still has to move each decision into its module's memory
+  (#86), so the first tasks are planned from memory that sits in the right place. Those
+  first tasks are plain cards. Setup never plans a release: a project that wants one
+  creates it later, and a project that doesn't never sees the question.
 - The goal is the only thing setup asks for. Nothing asks about timing: the board does
   not support deadlines for now, so every settled call lands in `decisions.md` alike.
-- Order: the setup flow doc (`references/setup.md`) is written; #86 widens its
-  module-map step, which sits right before the first tasks. The guide is written and setup
+- Order: the setup flow doc (`references/setup.md`) is written; #86 widens its `modules`
+  step, which sits right before the first tasks. The guide is written and setup
   links it; #108 points the seed wording at the same link.
 
 ## Todo
 - [x] Install and update by running one script, not a list of shell commands #81
 - [x] Settle decisions.md from goal.md in setup, before the module map #84
 - [x] Track setup with a checklist and show a bar until it's done #85
-- [ ] End setup by rebuilding the module map and splitting decisions into module memories #86
+- [ ] Split setup's decisions into module memories before the first tasks #86
 - [x] Write a guide on what makes a good goal, and point setup at it #107
 - [ ] Make the goal.md seed one wording and the weak test simple #108

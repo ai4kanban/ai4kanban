@@ -75,6 +75,7 @@ export interface AgentReq {
 
 export type DialogState =
   | { kind: "implement"; card: Card }
+  | { kind: "run"; card: Card }
   | { kind: "refine"; card: Card }
   | { kind: "reject"; card: Card }
   | { kind: "archive"; card: Card }
@@ -120,6 +121,7 @@ export function RunningBadge({
 // read — refine/resolve don't need their own saved status to be visible.
 export const RUNNING_VERB: Record<AgentAction, string> = {
   implement: "implementing",
+  run: "running",
   edit: "editing",
   // "refining", not "auto-refining" — the same run reaches here whether the
   // dispatcher picked the card or the user pressed Refine (#99), and while it is
@@ -763,6 +765,52 @@ export function ActionDialog({
           risky={warned}
           disabled={warned && !ack}
           onConfirm={() => run({ action: "implement", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Implement #${dialog.card.id}`)}
+        />
+      </Dialog>
+    );
+  }
+
+  // One pass of a recurring card (#64) — the button that stands in for Implement
+  // on a card under todo/recurring/. No warning box here, unlike Implement:
+  // neither of its two warnings can apply. A recurring card never reaches
+  // `ready` (it is never finished, so there is nothing to be ready for) and it
+  // can't be blocked by anything the board would let you see — a run is the
+  // normal thing to do to it, not a leap.
+  if (dialog.kind === "run") {
+    const { last_run: lastRun } = dialog.card;
+    return (
+      <Dialog title={`Run #${dialog.card.id}`} onClose={onClose}>
+        <p className={INTRO}>
+          The agent works through this card&apos;s <strong>Process</strong> in order, records
+          the run, and rewrites a step or two so the next run needs less of you. The card
+          stays on the board — a recurring task is never finished.
+        </p>
+        <p className={INTRO}>
+          Nobody watches a run, so a step that needs your judgment is left undone and written
+          into this run&apos;s open-questions file for you to answer later.{" "}
+          {lastRun ? `Last run ${lastRun}.` : "This card has never run."}
+        </p>
+        <textarea
+          className={INPUT}
+          rows={3}
+          placeholder="Optional extra notes for this run…"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <DialogButtons
+          onClose={onClose}
+          confirmLabel="Run"
+          onConfirm={() =>
+            run(
+              {
+                action: "run",
+                id: dialog.card.id,
+                title: dialog.card.title,
+                notes: text.trim() || undefined,
+              },
+              `Run #${dialog.card.id}`,
+            )
+          }
         />
       </Dialog>
     );

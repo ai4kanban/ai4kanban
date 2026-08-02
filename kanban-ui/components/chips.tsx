@@ -213,25 +213,11 @@ export function ModuleChip({ module }: { module: string }) {
   );
 }
 
-// Release — the version this card ships in (#105). A tag icon, since a release
-// is a name pinned on the work rather than a kind of work (the track) or a part
-// of the product (the module). Only a card in a version gets the chip — the
-// caller keeps it off unplanned cards, so the sky fill marks the planned few
-// instead of stamping every card on the board.
-export function ReleaseChip({ release }: { release: string }) {
-  return (
-    <span
-      className="nb-chip"
-      style={{ background: "var(--color-nb-sky-soft)", color: "var(--color-nb-sky-ink)" }}
-    >
-      <FiTag aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
-      {release}
-    </span>
-  );
-}
-
-// The card page's release picker — the ReleaseChip above, made pickable the way
-// LevelSelect makes the priority chip pickable. The options are the open
+// The card page's release picker — the version this card ships in (#105), made
+// pickable the way LevelSelect makes the priority chip pickable. A tag icon,
+// since a release is a name pinned on the work rather than a kind of work (the
+// track) or a part of the product (the module). It draws only here: the board
+// cards don't carry the version (see BoardCard). The options are the open
 // releases plus a bare "—" last for a card in no release — the "Release" label
 // beside the chip says what the dash means, and the file value it writes is
 // empty. Nothing can be typed, so a version id can't be misspelled into

@@ -53,8 +53,9 @@ exists and works.
    ${KB} run <id>
    ```
 
-   This adds +1 to `completed` in `metrics.csv` and **keeps the card** — no archive, no
-   README edit. It refuses if the card isn't under `todo/recurring/`.
+   This adds +1 to `completed` in `metrics.csv`, stamps `last_run: YYYY-MM-DD HH:MM`
+   into the card's frontmatter, and **keeps the card** — no archive, no README edit. It
+   refuses if the card isn't under `todo/recurring/`.
 4. **Self-improve `## Process`.** Rewrite it so the next run needs less human effort:
    - An `[ask]` you answered the same way it could be derived → rewrite as an `[agent]`
      instruction.

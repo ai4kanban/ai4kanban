@@ -12,7 +12,7 @@ import { parseFlags, slugify, validLevel, validStatus, validTrack, validModules,
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, parseQuestionOps, parseQuestionPositions } from '../lib/questions.mjs'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter.mjs'
 import { locate, enclosingGroupRoot } from '../lib/cards.mjs'
-import { validRelease } from '../lib/releases.mjs'
+import { validRelease, setSubtreeRelease } from '../lib/releases.mjs'
 import { readmeHeadingFor, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme.mjs'
 import { reconcileBoard } from '../lib/reconcile.mjs'
 
@@ -190,6 +190,13 @@ export function cmdUpdate(args) {
   if (moving && fs.existsSync(dest)) die(`${rel(dest)} already exists`)
 
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
+  // Putting a group root in a release puts the whole group in it — every subtask, and
+  // the subtasks of a nested group too. Taking the root out takes them all out. Done
+  // after the root is written so the group ends up on one release either way.
+  if (flags.release !== undefined && found.kind === 'group') {
+    const ids = setSubtreeRelease(found.target, meta.release)
+    if (ids.length) changes.push(`release on ${ids.length} subtask${ids.length === 1 ? '' : 's'} (${ids.map((n) => `#${n}`).join(', ')})`)
+  }
   if (moving) fs.renameSync(file, dest)
   if (isSubtask) {
     // A subtask never owns a top-level README entry — fix its nested bullet in place.

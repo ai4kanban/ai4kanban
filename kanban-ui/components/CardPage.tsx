@@ -86,12 +86,17 @@ function QuestionOptions({ question }: { question: CardQuestion }) {
   );
 }
 
-type CardButton = "implement" | "refine" | "edit" | "resolve" | "archive" | "reject";
+type CardButton = "implement" | "run" | "refine" | "edit" | "resolve" | "archive" | "reject";
 
 // The one place that maps a card's state to the buttons that fit it (task #29).
 // Inputs are the whole card state: `status`, open questions, todo progress. Each
 // button has exactly one rule, and every state combination falls out of them —
 // read top to bottom to see all the states at a glance.
+//
+// A recurring card (#64) is the one card that reads differently, because it is a
+// job rather than a piece of work: it is run again and again and never finished.
+// So Implement becomes **Run** and Archive never shows — there is no end state to
+// archive it into. Edit, Resolve and Reject stand exactly as they are.
 function visibleActions(card: Card): Set<CardButton> {
   const hasQuestions = card.questions.length > 0;
   const { total, done } = card.todos;
@@ -104,7 +109,8 @@ function visibleActions(card: Card): Set<CardButton> {
   const sub = card.subtaskLines;
   const groupDone = !!sub && sub.total > 0 && sub.resolved === sub.total;
   const buttons = new Set<CardButton>();
-  if (!allDone && !card.isGroup) buttons.add("implement"); // Implement — unless all todos are checked, and never on a group root
+  if (card.recurring) buttons.add("run"); // Run — a recurring card, always: a job you can start again
+  else if (!allDone && !card.isGroup) buttons.add("implement"); // Implement — unless all todos are checked, and never on a group root
   buttons.add("edit"); // Edit — always
   // Refine (#99) — only when a refine would really move the card (canRefine): the
   // background dispatcher would arrive at a `ready` card, a finished one, or one
@@ -113,7 +119,9 @@ function visibleActions(card: Card): Set<CardButton> {
   // hide it — the dialog says so and runs anyway.
   if (canRefine(card)) buttons.add("refine");
   if (hasQuestions) buttons.add("resolve"); // Resolve — has open questions
-  if (card.isGroup ? groupDone : allDone) buttons.add("archive"); // Archive — every subtask resolved, or all todos checked
+  // Archive — every subtask resolved, or all todos checked. Never on a recurring
+  // card: it has no end state, and archiving one would take a job off the board.
+  if (!card.recurring && (card.isGroup ? groupDone : allDone)) buttons.add("archive");
   buttons.add("reject"); // Reject — always
   return buttons;
 }
@@ -284,6 +292,19 @@ export function CardPage({
               Implement
             </Button>
           )}
+          {/* Run (#64) — Implement's place on a recurring card. Same ember CTA:
+              it is the one thing you came to this card to do. */}
+          {actions.has("run") && (
+            <Button
+              size="sm"
+              disabled={busy}
+              title="Do one pass of this recurring task now"
+              onClick={() => setDialog({ kind: "run", card })}
+            >
+              <FiPlay className="text-[15px]" aria-hidden />
+              Run
+            </Button>
+          )}
           {/* Refine — the same run the board makes on its own, on demand. While
               another run holds this card it's disabled like every other button,
               and its tooltip names what that run is doing, so a second refine is
@@ -396,6 +417,18 @@ export function CardPage({
           {total > 0 && (
             <MetaItem label="Todos">
               <TodoProgress done={done} total={total} width={90} />
+            </MetaItem>
+          )}
+
+          {/* When this job last ran (#64) — recurring cards only, since it is the
+              one card that has a "last time". A card that has never run says so
+              in words rather than showing a dash: never run is a real state, and
+              the Run button beside it is what changes it. */}
+          {card.recurring && (
+            <MetaItem label="Last run">
+              <span className="text-[12.5px] font-[700] tabular-nums text-nb-ink-soft">
+                {card.last_run || "Never run"}
+              </span>
             </MetaItem>
           )}
 

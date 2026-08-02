@@ -3,10 +3,10 @@ title: Move several cards into a release at once
 track: features
 priority: low
 roi: med
-status: ready
+status: todo
 release: ""
 blocked_by: []
-related: [100]
+related: []
 modules: [local-ui]
 questions: []
 ---
