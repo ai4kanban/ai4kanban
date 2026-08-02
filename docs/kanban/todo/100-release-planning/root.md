@@ -43,15 +43,15 @@ This is a group task; each piece is its own subtask in this folder.
   version (#104).
 - A card made from the board while one release is picked lands in that release, so new work
   is not off the screen the moment it is written (#104).
-- Filling a release card by card is slow, so the agent can do the first pass: put the
-  urgent, short-term work into the release and leave the rest at `next` (#106).
+- Making a release can put the high-priority cards into it on the spot, so a version does
+  not start empty and nobody moves them in one at a time (#106).
 - Order: the `release` field on a card came first — every other piece is about that field.
   Then the release list itself, because a release has to exist before anything can point
   at one. Then the close, which nothing waited on. Then setting a card's release from the
   UI, because a release has to be filled before looking at one release at a time means
   anything, and it is where the UI first reads the release list. Those four have shipped.
-  #104 next, on that same list. #114 needs nothing more and can land any time. #106 last:
-  the action that starts it sits on the release #104 shows.
+  #104 next, on that same list. #114 and #106 need nothing more and can land any time —
+  #106 hangs off the New release dialog, which shipped with #115.
 - Out of this group: a changelog — the close leaves a list of the cards that shipped,
   but not every change goes through the board, so a changelog stays a person's job.
   Also out: dates and deadlines on a release, and telling people about any of it on the
@@ -65,7 +65,7 @@ This is a group task; each piece is its own subtask in this folder.
 - [ ] Pick which release the board and queue view show #104
 - [ ] Move several cards into a release at once #114
 - [x] Make a release from the UI #115
-- [ ] Fill a release with the urgent work in one go #106
+- [ ] Fill a new release with the high-priority cards #106
 
 ## Decided by the agent
 - **A field on the card, not a folder per release.** A card already sits in a track folder,

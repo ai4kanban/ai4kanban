@@ -4,7 +4,7 @@
 // finishes, and read how far setup got. See lib/setup.mjs for the file itself.
 
 import { die, rel, SETUP_CHECKLIST } from '../lib/paths.mjs'
-import { nextSetupStep, readSetupChecklist, SETUP_STEPS, tickSetupStep } from '../lib/setup.mjs'
+import { findSetupQuestionsCard, nextSetupStep, readSetupChecklist, SETUP_STEPS, tickSetupStep } from '../lib/setup.mjs'
 
 const names = () => SETUP_STEPS.map((s) => s.name).join(', ')
 
@@ -30,6 +30,12 @@ export function cmdSetupDone(args) {
   if (result.finished) {
     console.log(`ticked \`${name}\` — ${result.done}/${result.total} done, setup finished`)
     console.log(`  removed ${rel(SETUP_CHECKLIST)}: a board without it is a board that is set up`)
+    const card = result.questionsCard
+    if (card && card.kept) {
+      console.log(`  questions card #${card.id} holds ${card.questions} open question${card.questions === 1 ? '' : 's'} — the user answers them through the resolve flow`)
+    } else if (card) {
+      console.log(`  removed the empty questions card #${card.id} — setup settled everything itself`)
+    }
     return
   }
   console.log(`ticked \`${name}\` — ${result.done}/${result.total} done`)
@@ -45,4 +51,8 @@ export function cmdSetupStatus() {
   const done = steps.filter((s) => s.done).length
   console.log(`setup is unfinished — ${done}/${steps.length} done (${rel(SETUP_CHECKLIST)})`)
   for (const s of steps) console.log(`  [${s.done ? 'x' : ' '}] ${s.name} (${s.owner}) — ${s.text}`)
+  const card = findSetupQuestionsCard()
+  if (card) {
+    console.log(`  questions card: #${card.id} (${card.questions} open) — \`update-questions ${card.id} --append "[user] .."\` adds a call you can't settle`)
+  }
 }

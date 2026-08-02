@@ -162,6 +162,13 @@ export interface Board {
   setup: SetupState | null;
 }
 
+/** How many tasks a propose run writes when the user doesn't say, and the most
+ *  it will ever write. The cap is the skill's ("How many" in
+ *  `references/propose.md`); both sides need the pair — the dialog's picker
+ *  stops at the max, the server clamps whatever a client sends. */
+export const PROPOSE_DEFAULT = 3;
+export const PROPOSE_MAX = 10;
+
 /** How big a swing a propose run takes. `safe` polishes what already works,
  *  `normal` is a feature-sized card, `bold` is a big move — a whole capability,
  *  usually a group task. The three levels are defined in the skill

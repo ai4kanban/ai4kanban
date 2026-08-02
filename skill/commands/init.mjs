@@ -11,7 +11,7 @@ import { unquote } from '../lib/yaml.mjs'
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate.mjs'
 import { writeReleasesIfMissing } from '../lib/releases.mjs'
 import { scaffoldMemoryPath, scaffoldProjectMemory } from '../lib/memory.mjs'
-import { nextSetupStep, writeSetupChecklist } from '../lib/setup.mjs'
+import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup.mjs'
 
 // Default tracks when `init` is run with no track args. Swap by passing your own,
 // e.g. `init growth validation building`. Keep in step with the SKILL.md defaults.
@@ -120,6 +120,14 @@ export function cmdInit(args) {
       writeReleasesIfMissing() && rel(RELEASES),
       writeGitignoreIfMissing() && rel(KANBAN_GITIGNORE),
     ].filter(Boolean)
+    // A board still mid-setup gets the questions card if it was made before the card
+    // existed — same test as everything else about setup: the checklist file says so.
+    if (setupUnfinished() && !findSetupQuestionsCard()) {
+      const track = tracks.find((t) => fs.existsSync(path.join(TODO, t))) || tracks[0]
+      fs.mkdirSync(path.join(TODO, track), { recursive: true })
+      const card = writeSetupQuestionsCard(track)
+      if (card) added.push(rel(card.file))
+    }
     // The project-wide memory, then every module already on the map, so a board whose map
     // is filled in is fully repaired by this one command. A map seeded blank a line above
     // names nothing yet — those paths are made once the map is written.
@@ -162,9 +170,13 @@ export function cmdInit(args) {
   // Setup's remaining steps, written now so a user who installs and stops there still
   // opens the board onto a list of what is left instead of one that looks finished.
   writeSetupChecklist()
+  // The questions card comes right after `next-id` is seeded, so it takes id 1 and sorts
+  // on top. Setup's steps append every call they can't settle to it as they run.
+  const questionsCard = writeSetupQuestionsCard(tracks[0])
   console.log(`initialised board at ${rel(KANBAN)}/`)
   console.log(`  tracks: ${tracks.join(', ')}`)
   console.log(`  setup's remaining steps are in ${rel(SETUP_CHECKLIST)} — \`setup-done <step>\` ticks one`)
+  if (questionsCard) console.log(`  questions card: #${questionsCard.id} — setup appends the calls it can't settle here`)
   const next = nextSetupStep()
   if (next) console.log(`  next: \`${next.name}\` (${next.owner}) — ${next.text}`)
 }

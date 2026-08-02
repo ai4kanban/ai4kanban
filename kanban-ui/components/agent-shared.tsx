@@ -18,7 +18,15 @@ import {
 import { resumeSessionAction, stopSessionAction } from "@/app/actions";
 import { useDraft, useDraftList, useDraftPicks } from "@/lib/draft";
 import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
-import type { AgentAction, Boldness, Card, SessionView, TokenUsage } from "@/lib/types";
+import {
+  PROPOSE_DEFAULT,
+  PROPOSE_MAX,
+  type AgentAction,
+  type Boldness,
+  type Card,
+  type SessionView,
+  type TokenUsage,
+} from "@/lib/types";
 import { Button } from "./button";
 import { QuestionTagBadge } from "./chips";
 import { Dialog } from "./Dialog";
@@ -58,6 +66,7 @@ export interface AgentReq {
   reason?: string;
   description?: string;
   module?: string;
+  count?: number; // propose: how many tasks to write
   boldness?: Boldness;
   title?: string;
   andImplement?: boolean;
@@ -869,9 +878,10 @@ export function ActionDialog({
 //   • Describe — a textarea for what you want; the agent runs add-task and
 //     infers the modules itself (references/add-task.md step 1).
 //   • Propose — no textarea (there's nothing to describe); the agent walks one
-//     module as a user and proposes 3 new tasks (references/propose.md). Two
-//     chip rows steer it instead: WHERE the tasks land (the focus module, with
-//     "auto-pick" as the default chip) and HOW BIG they are (the boldness).
+//     module as a user and proposes new tasks inside it (references/propose.md).
+//     Three chip rows steer it instead: WHERE the tasks land (the focus module,
+//     with "auto-pick" as the default chip), HOW MANY there are, and HOW BIG
+//     they are (the boldness).
 function CreateDialog({
   modules,
   release,
@@ -886,7 +896,10 @@ function CreateDialog({
   const [text, setText, clearDraft] = useDraft("create");
   const [mode, setMode] = useState<"describe" | "propose">("describe");
   const [module, setModule] = useState("");
-  // How big a swing the 3 tasks take. "normal" is the size a propose run has
+  // How many cards the run writes, 1..PROPOSE_MAX. Sent every time — the skill
+  // has the same default, but a count the user tapped is worth saying out loud.
+  const [count, setCount] = useState(PROPOSE_DEFAULT);
+  // How big a swing those tasks take. "normal" is the size a propose run has
   // always written, so it's the default and travels as no instruction at all.
   const [boldness, setBoldness] = useState<Boldness>("normal");
   const propose = mode === "propose";
@@ -897,7 +910,7 @@ function CreateDialog({
 
   const TABS = [
     { key: "describe", label: "Describe a task" },
-    { key: "propose", label: "Propose 3 tasks" },
+    { key: "propose", label: "Propose tasks" },
   ] as const;
 
   return (
@@ -932,7 +945,7 @@ function CreateDialog({
 
       <p className={INTRO}>
         {propose
-          ? "The agent walks one module of the product as a user and proposes 3 new tasks inside it — nothing to describe."
+          ? "The agent walks one module of the product as a user and proposes new tasks inside it — nothing to describe."
           : "Describe what you want. The agent turns it into one or more cards and figures out which modules they touch."}
         {/* Where the new cards land, when the board is showing one release. Said
             here rather than left to be discovered: a card that quietly joined a
@@ -958,7 +971,7 @@ function CreateDialog({
           {modules.length > 0 && (
             <PickerSection
               label="Focus module"
-              blurb="Pick the part of the product you want new tasks in — all 3 land inside it. Leave it on “auto-pick” and the agent chooses the part that needs work most."
+              blurb="Pick the part of the product you want new tasks in — they all land inside it. Leave it on “auto-pick” and the agent chooses the part that needs work most."
             >
               <button
                 type="button"
@@ -989,12 +1002,33 @@ function CreateDialog({
             </PickerSection>
           )}
 
-          {/* How big a swing the 3 take. Same chip row as the module pick, so
-              the two reads as one pair of dials: where the tasks land, and how
-              big they are. The picked level's own words sit under the row — one
-              line changes as you tap, instead of three lines of small print
-              spelling out every level at once. */}
-          <PickerSection label="Boldness" blurb="How big a move each of the 3 tasks is.">
+          {/* How many cards the run writes. Single digits, so the whole range
+              fits one wrapped row and every count is one tap — no stepper to
+              click up ten times. PROPOSE_MAX is the skill's cap ("How many" in
+              references/propose.md), not a UI limit. */}
+          <PickerSection
+            label="How many"
+            blurb="Tasks this run writes. More tasks means a longer run and a thinner idea each."
+          >
+            {Array.from({ length: PROPOSE_MAX }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setCount(n)}
+                aria-pressed={count === n}
+                className={`${PICK_CHIP} min-w-[30px] justify-center ${count === n ? PICK_CHIP_ON : PICK_CHIP_OFF}`}
+              >
+                {n}
+              </button>
+            ))}
+          </PickerSection>
+
+          {/* How big a swing they take. Same chip row as the module pick, so
+              the rows read as one set of dials: where the tasks land, how many
+              there are, and how big they are. The picked level's own words sit
+              under the row — one line changes as you tap, instead of three lines
+              of small print spelling out every level at once. */}
+          <PickerSection label="Boldness" blurb="How big a move each task is.">
             {BOLDNESS_LEVELS.map((b) => (
               <button
                 key={b.key}
@@ -1024,7 +1058,7 @@ function CreateDialog({
 
       <DialogButtons
         onClose={onClose}
-        confirmLabel={propose ? "Propose 3 tasks" : "Create task"}
+        confirmLabel={propose ? `Propose ${count} task${count === 1 ? "" : "s"}` : "Create task"}
         disabled={!propose && !text.trim()}
         onConfirm={() =>
           propose
@@ -1032,6 +1066,7 @@ function CreateDialog({
                 {
                   action: "propose",
                   module: module || undefined,
+                  count,
                   // "normal" is what a propose run does on its own — send it as
                   // nothing, so only a level the user actually reached for
                   // reaches the prompt.
@@ -1068,7 +1103,7 @@ const BOLDNESS_LEVELS: { key: Boldness; label: string; blurb: string }[] = [
     key: "bold",
     label: "bold",
     blurb:
-      "A big leap each — a whole new capability for the module. A task that big usually lands as a group task with its own subtasks.",
+      "A big leap each — a capability the module doesn't have at all, still sized so one session can finish it.",
   },
 ];
 

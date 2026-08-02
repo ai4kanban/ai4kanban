@@ -6,12 +6,13 @@
 
 import { die, rel, RELEASES } from '../lib/paths.mjs'
 import { DEFAULT_RELEASE } from '../lib/validate.mjs'
-import { readReleases, hasReleaseList, addRelease, countByRelease, openCards, quoteId, closeRelease } from '../lib/releases.mjs'
+import { readReleases, hasReleaseList, addRelease, countByRelease, openCards, quoteId, closeRelease, fillRelease } from '../lib/releases.mjs'
 
 const USAGE = `usage:
-  release new <id>   add a release to the end of the list (e.g. \`release new v1\`)
-  release list       the releases in ship order, with what each one holds
-  release close <id> the version shipped: write the summary, send the rest back to \`next\``
+  release new <id> [--fill]  add a release to the end of the list (e.g. \`release new v1\`);
+                             --fill puts the high-priority cards at \`next\` in as it is made
+  release list               the releases in ship order, with what each one holds
+  release close <id>         the version shipped: write the summary, send the rest back to \`next\``
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
@@ -28,12 +29,26 @@ export function cmdRelease(args) {
 }
 
 function releaseNew(rest) {
-  if (rest.length > 1) die(`release new takes one version id (got "${rest.join(' ')}") — quote it if it has spaces`)
-  const id = addRelease(rest[0])
+  const fill = rest.includes('--fill')
+  const ids = rest.filter((a) => a !== '--fill')
+  if (ids.length > 1) die(`release new takes one version id (got "${ids.join(' ')}") — quote it if it has spaces`)
+  const id = addRelease(ids[0])
   const known = readReleases()
   console.log(`added release ${id} to ${rel(RELEASES)}`)
   console.log(`  ship order: ${known.join(' → ')} → ${DEFAULT_RELEASE}`)
-  console.log(`  put a card in it with \`update <id> --release ${quoteId(id)}\``)
+  if (!fill) {
+    console.log(`  put a card in it with \`update <id> --release ${quoteId(id)}\``)
+    return
+  }
+  // --fill: one line per card it moved, and one for every high-priority card it left at
+  // `next` with the test that card failed — nothing is dropped silently.
+  const { fill: moved, skipped } = fillRelease(id)
+  if (!moved.length && !skipped.length) {
+    console.log(`  nothing at ${DEFAULT_RELEASE} is high priority — the release starts empty`)
+    return
+  }
+  for (const card of moved) console.log(`  in    #${card.id} ${card.title}`)
+  for (const card of skipped) console.log(`  left  #${card.id} ${card.title} — ${card.reason}`)
 }
 
 function releaseClose(rest) {

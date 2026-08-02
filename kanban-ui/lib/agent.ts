@@ -4,6 +4,7 @@ import { uiConfigPath } from "./paths";
 import { missingRequired, pickedProvider, providerSetting, shownForProvider } from "./providers";
 import { readEnvFile } from "./secrets";
 import { createStreamRenderer, type StreamRenderer } from "./stream";
+import { PROPOSE_DEFAULT, PROPOSE_MAX } from "./types";
 import type {
   AgentAction,
   AgentInfo,
@@ -907,7 +908,8 @@ export interface AgentRequest {
   description?: string; // create
   release?: string; // create: the version the new card(s) ship in (#104)
   module?: string; // propose: the focus module (a name from modules.md)
-  boldness?: Boldness; // propose: how big a swing the 3 tasks take
+  count?: number; // propose: how many tasks to write (1–PROPOSE_MAX, default PROPOSE_DEFAULT)
+  boldness?: Boldness; // propose: how big a swing the tasks take
   andImplement?: boolean; // resolve: keep going and implement once the questions settle
 }
 
@@ -918,8 +920,17 @@ export interface AgentRequest {
 const BOLDNESS_LINE: Record<Boldness, string> = {
   safe: `Boldness: **safe** (see "Boldness" in references/propose.md) — small moves that polish or fill gaps in what already works.`,
   normal: "",
-  bold: `Boldness: **bold** (see "Boldness" in references/propose.md) — each of the 3 is a big leap: a whole new capability for the module, usually broad enough to be a group task.`,
+  bold: `Boldness: **bold** (see "Boldness" in references/propose.md) — each task is a big leap: a capability the module doesn't have at all, still sized so one session finishes it.`,
 };
+
+// The count a propose run is asked for, made safe: a whole number between 1 and
+// the cap, PROPOSE_DEFAULT when nothing (or nonsense) came in. The dialog
+// already offers only valid counts — this is for anything else that builds a
+// request.
+function clampCount(count: number | undefined): number {
+  if (!Number.isFinite(count)) return PROPOSE_DEFAULT;
+  return Math.min(PROPOSE_MAX, Math.max(1, Math.round(count as number)));
+}
 
 // A revision can leave the card rough — its status still short of "ready". This
 // line, appended to every prompt that revises a card (edit, resolve, create),
@@ -985,13 +996,17 @@ export function buildPrompt(req: AgentRequest): string {
       ]
         .filter(Boolean)
         .join(" ");
-    case "propose":
+    case "propose": {
+      // How many cards this run writes. The skill has its own default and cap
+      // ("How many" in references/propose.md); this clamps whatever reached the
+      // server so a hand-made request can't ask for fifty cards.
+      const n = clampCount(req.count);
       return [
-        `${kb}. Propose 3 new tasks following \`references/propose.md\`.`,
+        `${kb}. Propose ${n} new task${n === 1 ? "" : "s"} following \`references/propose.md\`.`,
         req.module
-          ? `Focus on the "${req.module}" module — read its memory set and propose all 3 tasks inside it.`
-          : `Pick one focus module yourself (per references/propose.md) and propose all 3 tasks inside it.`,
-        // How big a swing the 3 take. The levels are the skill's — see
+          ? `Focus on the "${req.module}" module — read its memory set and write every one of them inside it.`
+          : `Pick one focus module yourself (per references/propose.md) and write every one of them inside it.`,
+        // How big a swing they take. The levels are the skill's — see
         // "Boldness" in references/propose.md — so this only names the one the
         // user picked, with a one-clause gloss. `normal` is the skill's own
         // default, so it says nothing.
@@ -1001,6 +1016,7 @@ export function buildPrompt(req: AgentRequest): string {
       ]
         .filter(Boolean)
         .join(" ");
+    }
     case "auto-refine":
       return [
         `${kb}. Auto-refine task ${req.id} ${named} following \`references/auto-refine.md\`.`,

@@ -10,6 +10,7 @@
 //   update  — rewrite a card's frontmatter fields (priority/roi/links/status/release, move track, rename)
 //   update-questions — patch the open-question list in place (append/update/drop/clear)
 //   tag     — set/clear the [user] tag on one open question (auto-refine triage)
+//   list    — the open cards at a glance (--module filters to one module's cards)
 //   release — add a release to docs/kanban/releases.md, list them with what each holds, or
 //             close one: summary written, leftovers back to `next`, line off the list
 //   migrate — convert old bold-header cards to the frontmatter meta format
@@ -39,6 +40,7 @@
 //   node kanban.mjs update <id> [opts]                  rewrite a card's frontmatter fields / move / rename
 //   node kanban.mjs update-questions <id> [ops]         patch the open-question list (append/update/drop/clear)
 //   node kanban.mjs tag <id> <n[,n...]> <user|none>    set/clear the tag on one or more open questions
+//   node kanban.mjs list [--module <m>]                 the open cards at a glance, optionally one module's
 //   node kanban.mjs release new <id>                   add a release to docs/kanban/releases.md
 //   node kanban.mjs release list                       the releases in ship order + what each holds
 //   node kanban.mjs release close <id>                 close a shipped release: summary + leftovers to `next`
@@ -57,6 +59,7 @@ import { cmdInit, cmdMemoryInit } from './commands/init.mjs'
 import { cmdCreate, cmdUpdate, cmdUpdateQuestions, cmdTag } from './commands/card.mjs'
 import { cmdRemove } from './commands/remove.mjs'
 import { cmdMigrate, cmdRun } from './commands/misc.mjs'
+import { cmdList } from './commands/list.mjs'
 import { cmdRelease } from './commands/release.mjs'
 import { cmdSetupDone, cmdSetupStatus } from './commands/setup.mjs'
 
@@ -94,6 +97,8 @@ function main() {
       return cmdUpdateQuestions(rest)
     case 'tag':
       return cmdTag(rest)
+    case 'list':
+      return cmdList(rest)
     case 'release':
       return cmdRelease(rest)
     case 'migrate':
@@ -127,7 +132,7 @@ function main() {
   }
 }
 
-const COMMANDS = ['init', 'memory-init', 'setup-done', 'setup-status', 'create', 'update', 'update-questions', 'tag', 'release', 'migrate', 'archive', 'reject', 'run', 'peek', 'version', 'metrics', 'help']
+const COMMANDS = ['init', 'memory-init', 'setup-done', 'setup-status', 'create', 'update', 'update-questions', 'tag', 'list', 'release', 'migrate', 'archive', 'reject', 'run', 'peek', 'version', 'metrics', 'help']
 
 const HELP = `kanban — the only sanctioned writer of docs/kanban/next-id.
 
@@ -181,6 +186,11 @@ Usage: node ${rel(SELF)} <command> [args]
                        before them, same as create's --question. A question may
                        carry a leading [user] tag marking it as the human's
                        judgment call.
+  list [--module <m>]  the open cards at a glance — one block per card with its id,
+                       title, meta (track, status, priority, roi, release, blockers,
+                       open questions), summary line and file path. --module <m>
+                       narrows it to the cards tagged with that module (validated
+                       against modules.md).
   release new <id>     add a release to the end of docs/kanban/releases.md (the open
                        releases, in the order they ship). A version id is free text
                        (v1, 0.5.0, august), kept as typed, and has to work as a

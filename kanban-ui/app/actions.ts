@@ -61,7 +61,7 @@ const ACTIONS = new Set([
 ]);
 
 // create and propose touch no existing card (create makes one, propose makes
-// three), so they carry no `id` — every other action needs one.
+// several), so they carry no `id` — every other action needs one.
 const CARDLESS = new Set(["create", "propose"]);
 
 // Start an agent and return immediately with a sessionId (or a lock message). The

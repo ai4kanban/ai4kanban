@@ -10,7 +10,9 @@ Ask **"what's next?"**. The skill:
    (the index of shipped work — one line per behavior, linking to its doc), and
    `rejected.md` so it won't repeat work.
 2. Scans your planning sources for real gaps.
-3. Proposes **three new tasks** from real gaps — not a pick from the existing pile.
+3. Proposes **new tasks** from real gaps — not a pick from the existing pile. Three of
+   them unless you ask for a different count (ten is the most it will write), each one
+   short-term: a card a session can finish and you can feel right away.
 
 You approve, tweak, or drop each. Approved ones become cards.
 

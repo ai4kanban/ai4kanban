@@ -46,10 +46,12 @@ The header carries seven things:
 - **The release dropdown** — which version the board is showing, and where a release is
   started; see below.
 - **Create task** — describe an idea in your words and the agent writes the card. The same
-  dialog has a **Propose 3 tasks** mode: pick a module (or let the agent pick one) and it
-  proposes three new tasks inside it. A **Boldness** row sets how big those tasks are —
-  `safe` polishes what already works, `normal` is a feature each, and `bold` asks for a big
-  leap each: a whole new capability, usually written as a group task.
+  dialog has a **Propose tasks** mode: pick a module (or let the agent pick one) and it
+  proposes new tasks inside it. A **How many** row sets the count — 3 by default, 10 at
+  most — and a **Boldness** row sets how big those tasks are: `safe` polishes what already
+  works, `normal` is a feature each, and `bold` asks for a big leap each — a capability the
+  module doesn't have at all. Every proposal is a single card a session can finish, never a
+  group task.
 - **Runs** — every agent session, live or finished. Open one to read its log. A finished run
   can be continued with a follow-up prompt; that starts a new run.
 - **Daily progress** (the chart) — the last 30 days of the board, as a line each for
@@ -118,7 +120,7 @@ A few more things it does:
 - A **group task** shows whenever the root or any of its subtasks is in the release you
   picked. Neither view draws a subtask, so hiding the root would hide the whole group.
 - **Create task** puts the new card in the release on screen, so it doesn't vanish the
-  moment you write it. **Propose 3 tasks** doesn't — it offers work nobody has planned, and
+  moment you write it. **Propose tasks** doesn't — it offers work nobody has planned, and
   that work stays at **next**.
 - A release with **nothing open in it says so**, with All releases one click away, instead
   of looking like a broken board. Blockers on screen don't count: a blocker belongs to

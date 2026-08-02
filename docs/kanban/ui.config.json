@@ -1,6 +1,7 @@
 {
   "harness": {
-    "name": "codex"
+    "name": "claude-code",
+    "provider": "subscription"
   },
   "autoRefine": false
 }

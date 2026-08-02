@@ -36,8 +36,8 @@ and send them all into a release, or back to `next`, in one action.
   screen, the way a single move already takes a card off it.
 - Changing the release dropdown or switching view also clears the selection, so a move never
   touches a card the user can no longer see.
-- This is the hand-picked move. #106 is the agent's first pass, where the agent decides what
-  belongs; here the user has already decided and only wants fewer clicks.
+- This is the hand-picked move. #106 puts the high-priority cards in at the moment a release
+  is made; here the user has already decided and only wants fewer clicks.
 - Out of this card: ticking cards to do anything else — archive, priority, track. This
   action only sets the release.
 

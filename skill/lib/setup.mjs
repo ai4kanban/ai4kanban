@@ -3,15 +3,20 @@
 // Setup keeps its own steps in `docs/kanban/setup-checklist.md`. The file's presence is
 // the flag: it is there while setup is unfinished, and the tick that closes the last box
 // deletes it. So a board with no file is a board that is set up — which is what keeps
-// boards made before this file existed quiet.
+// boards made before this file existed quiet. An empty board is not a flag: no checklist
+// and no cards means setup finished and the backlog ran out, nothing more.
 //
 // The script owns the file the way it owns the rest of the board's state: it writes it
 // once, when a fresh board is scaffolded, and each setup step ticks its own box by name.
 // Nobody hand-edits it, so the local UI can rely on its shape.
 
 import fs from 'node:fs'
+import path from 'node:path'
 
-import { CONFIG, rel, SETUP_CHECKLIST } from './paths.mjs'
+import { CONFIG, rel, SETUP_CHECKLIST, TODO, readNextId, writeNextId } from './paths.mjs'
+import { serializeFrontmatter, parseFrontmatter } from './frontmatter.mjs'
+import { addReadmeRef, stripReadmeRefs } from './readme.mjs'
+import { walkMd, idPrefix } from './cards.mjs'
 
 // The steps, in the order setup runs them. `owner` says who does the step — `script` is
 // already done by the time the file is written, `agent` needs a run in the user's coding
@@ -76,7 +81,9 @@ export function writeSetupChecklist() {
  *   { missing: true }                       — no checklist; this board is already set up
  *   { unknown: true }                       — no such step in this board's checklist
  *   { already: true, done, total }          — that box was ticked before
- *   { ok: true, done, total, finished }     — ticked; `finished` means the file is gone
+ *   { ok: true, done, total, finished }     — ticked; `finished` means the file is gone,
+ *     and `questionsCard` says what became of the questions card ({ id, kept, questions? }
+ *     — kept with its open count, or removed because it stayed empty; null if long gone)
  */
 export function tickSetupStep(name) {
   if (!setupUnfinished()) return { missing: true }
@@ -100,7 +107,7 @@ export function tickSetupStep(name) {
   if (done >= total) {
     fs.rmSync(SETUP_CHECKLIST)
     swapConfigGateForDone()
-    return { ok: true, done, total, finished: true }
+    return { ok: true, done, total, finished: true, questionsCard: dropSetupQuestionsCardIfEmpty() }
   }
   fs.writeFileSync(SETUP_CHECKLIST, lines.join('\n'))
   return { ok: true, done, total, finished: false }
@@ -120,6 +127,57 @@ function swapConfigGateForDone() {
   while (end < lines.length && /^\s+\S/.test(lines[end])) end++
   lines.splice(start, end - start, CONFIG_SETUP_DONE)
   fs.writeFileSync(CONFIG, lines.join('\n'))
+}
+
+// ---- the setup questions card ----------------------------------------------
+//
+// Setup never stops to ask the user anything but the goal. Every other call it can't
+// settle is appended, the moment it comes up, to one card the scaffold creates alongside
+// the checklist — created first so it takes the board's first id and sorts on top. The
+// tick that finishes setup removes the card again if nothing ever landed on it.
+
+export const SETUP_QUESTIONS_SLUG = 'answer-the-questions-setup-couldnt-settle'
+const SETUP_QUESTIONS_TITLE = "Answer the questions setup couldn't settle"
+
+const SETUP_QUESTIONS_BODY = `The calls setup could not settle on its own — each step appends its own here as it runs.
+Answer them through the resolve flow: each answer becomes a line in the project-wide
+\`docs/kanban/memory/decisions.md\`, and the card is done when no question is left. It
+holds no build work, so no todos.
+`
+
+// Written by the fresh scaffold, and by init's repair when a mid-setup board lacks it —
+// same test as the checklist: while that file exists, this card is expected. Not counted
+// in metrics: it is setup furniture, not planned work.
+export function writeSetupQuestionsCard(track) {
+  const id = readNextId()
+  const fileRel = path.join(track, `${id}-${SETUP_QUESTIONS_SLUG}.md`)
+  const file = path.join(TODO, fileRel)
+  if (fs.existsSync(file)) return null
+  writeNextId(id + 1)
+  const meta = { title: SETUP_QUESTIONS_TITLE, track, priority: 'high', roi: 'high', status: 'todo', release: 'next', blocked_by: [], related: [], modules: [], questions: [] }
+  fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + SETUP_QUESTIONS_BODY)
+  addReadmeRef(track, id, SETUP_QUESTIONS_TITLE, fileRel)
+  return { id, file }
+}
+
+/** The questions card wherever it sits, with its open-question count. Null when gone. */
+export function findSetupQuestionsCard() {
+  const file = walkMd(TODO).find((f) => path.basename(f).endsWith(`-${SETUP_QUESTIONS_SLUG}.md`))
+  if (!file) return null
+  const { meta } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+  return { id: idPrefix(path.basename(file)), file, questions: meta?.questions?.length ?? 0 }
+}
+
+// An empty questions card left behind would be the board's first card saying nothing, so
+// the final tick clears it when setup settled everything itself. One with questions
+// stays — the user answers it through the resolve flow.
+function dropSetupQuestionsCardIfEmpty() {
+  const card = findSetupQuestionsCard()
+  if (!card) return null
+  if (card.questions > 0) return { id: card.id, kept: true, questions: card.questions }
+  fs.rmSync(card.file)
+  stripReadmeRefs({ kind: 'file', rel: path.relative(TODO, card.file) })
+  return { id: card.id, kept: false }
 }
 
 /** The first unticked step — what setup does next. Null when there is no checklist. */

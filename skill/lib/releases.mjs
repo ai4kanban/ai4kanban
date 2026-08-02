@@ -174,9 +174,13 @@ function cardRows(dir) {
       // A card the script never wrote may have no title — its filename says enough.
       title: (meta && meta.title) || base.replace(/^\d+-/, '').replace(/\.md$/, ''),
       track: (meta && meta.track) || '',
+      priority: (meta && meta.priority) || '',
       release: normalizeRelease(meta && meta.release),
       ready: Boolean(meta) && meta.status === 'ready',
       done: allTicked(body),
+      blockedBy: (meta && meta.blocked_by) || [],
+      root: base === 'root.md',
+      recurring: path.relative(dir, file).split(path.sep)[0] === 'recurring',
     })
   }
   return rows.sort((a, b) => a.id - b.id)
@@ -201,6 +205,50 @@ export function countByRelease() {
   return counts
 }
 
+// ---- filling a new release ---------------------------------------------------
+//
+// `release new <id> --fill` (and the New release dialog's toggle) puts the high-priority
+// cards sitting at `next` into the release the moment it is made. The fill is a rule, not
+// a judgment call — a card goes in on three tests: its priority is high, nothing open is
+// blocking it, and it is not a group root. Nothing else is looked at. It only ever adds:
+// a card already in a release stays where it is.
+
+// The cards the fill would move, and the high-priority cards it would leave at `next`,
+// each with the test it failed — so a report can name them and nothing is dropped silently.
+export function fillCandidates() {
+  const cards = openCards()
+  const byId = new Map(cards.map((c) => [c.id, c]))
+  const fill = []
+  const skipped = []
+  for (const card of cards) {
+    if (card.release !== DEFAULT_RELEASE || card.priority !== 'high') continue
+    if (card.root) {
+      skipped.push({ ...card, reason: 'a group root — each subtask goes in on its own' })
+      continue
+    }
+    // Blocked means blocked by a card that is still open. An id no longer on the board
+    // was archived or rejected, so that work is done; a recurring card never closes and
+    // a card can't block itself, so neither counts.
+    const blockers = card.blockedBy
+      .filter((n) => n !== card.id)
+      .map((n) => byId.get(n))
+      .filter((b) => b && !b.recurring)
+    if (blockers.length) {
+      skipped.push({ ...card, reason: `blocked by ${blockers.map((b) => `#${b.id}`).join(', ')}, still open` })
+      continue
+    }
+    fill.push(card)
+  }
+  return { fill, skipped }
+}
+
+// Move every candidate into release `id`. Returns what moved and what stayed, with why.
+export function fillRelease(id) {
+  const { fill, skipped } = fillCandidates()
+  for (const card of fill) setCardRelease(card.file, id)
+  return { fill, skipped }
+}
+
 // ---- closing a release -----------------------------------------------------
 //
 // A version ships and the board moves on: write down what the release held, send the cards
@@ -212,12 +260,12 @@ export const summaryPath = (id) => path.join(RELEASE_SUMMARIES, `${id}.md`)
 
 const today = () => new Date().toISOString().slice(0, 10)
 
-// The card's own release field, back to `next`. The work is not promised to a version
-// nobody has picked yet; it waits in the backlog until the user puts it in a new one.
-function clearRelease(file) {
+// Rewrite one card's release field — the fill moves a card in with it, and a close sends
+// the leftovers back to `next` the same way.
+function setCardRelease(file, release) {
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
   if (!meta) return false
-  meta.release = DEFAULT_RELEASE
+  meta.release = release
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
   return true
 }
@@ -326,7 +374,8 @@ export function closeRelease(raw) {
   // The summary is written first: it is the only record of what the version was meant to
   // hold, and the next step is what erases that from the cards.
   const summary = writeSummary(id, shipped, left)
-  for (const card of left) clearRelease(card.file)
+  // Back to `next`: the work is not promised to a version nobody has picked yet.
+  for (const card of left) setCardRelease(card.file, DEFAULT_RELEASE)
   removeReleaseLine(id)
   return { id, shipped, left, summary, remaining: readReleases() }
 }

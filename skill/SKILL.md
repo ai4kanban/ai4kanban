@@ -1,7 +1,7 @@
 ---
 name: kanban
 description: Use to propose new tasks, add a task, mark one done, or push a task one step forward. Manages the file-based task board in docs/kanban/ — blockers, roadmap tracks, archive, and global task ids. Triggers on "propose new tasks", "what's on the backlog", "add a task", "this is done", "refine", "resolve", "dive deeper".
-argument-hint: "[propose | add <task> | refine <id> | resolve <id> | done <id> | reject <id>]"
+argument-hint: "[propose [count] | add <task> | refine <id> | resolve <id> | done <id> | reject <id>]"
 ---
 
 The task board lives in `docs/kanban/`. Read it before suggesting or adding work.
@@ -109,6 +109,8 @@ ${KB} update-questions <id> --update 1 "[user] .." --option "a — why" --option
              [--recommended-option "c — why"] [--mode single|multi]
                                     # a question the user picks from, not one long line of prose; the option
                                     # flags belong to the --append/--update before them (references/resolve.md)
+${KB} list [--module <m>]           # the open cards at a glance: id, title, meta, summary, file path;
+                                    # --module narrows it to the cards tagged with one module
 ${KB} release new <id>              # add a release to the end of the list in releases.md
 ${KB} release list                  # the releases in ship order, each with its card counts; `next` last
 ${KB} release close <id>            # the version shipped: write its summary, send the rest back to `next`
@@ -192,8 +194,10 @@ exception. Full guide in `references/setup.md`.
 
 ## Propose new tasks
 
-When the user asks to propose work, pick **one module** and propose **3 new tasks
-inside it** — work nobody has planned yet. Full guide in `references/propose.md`.
+When the user asks to propose work, pick **one module** and propose new tasks inside it —
+work nobody has planned yet, each one short-term and its own single card (never a group
+task). **3** of them unless the user names a count; **10** is the cap. Full guide in
+`references/propose.md`.
 
 ## Add a task
 
