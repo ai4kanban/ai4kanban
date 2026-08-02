@@ -71,11 +71,16 @@ Click it and a **Goal** dialog shows the whole file, headings, paragraphs and ro
 wrote them. Nothing is cut short or folded away; a long goal scrolls.
 
 **Edit** in that dialog swaps the text for a plain box, with Save and Cancel. Saving writes
-your words back and leaves the frontmatter exactly as it is — `reviewed:` is the agent's
-judgment, the words are yours — and the dialog shows what you just saved, with no reload.
+your words back and the dialog shows what you just saved, with no reload.
 
-The compass only shows when there is something to read. A goal that is missing or still the
-seeded text has nothing to open, and the setup bar is what asks you to write it there.
+The compass only shows when there is something to read. A goal file that is missing or empty
+has nothing to open, and the setup bar is what asks you to write it there.
+
+A save marks the goal `reviewed: pending` in its frontmatter and leaves the rest of the block
+alone. That field is how clear the goal looks to plan from: `strong`, `good` and `weak` are
+the agent's judgment — it writes them when it sets the board up and every time it proposes
+work — and `pending` just means you wrote something nobody has read yet. Only `weak` (or an
+empty file) makes the board ask you for a goal, so writing one is enough to stop it asking.
 
 ### The release a card ships in
 
@@ -231,15 +236,15 @@ same moment the cards appear. Before that the skill creates no cards at all — 
 one and it tells you to finish setup first.
 
 **The goal needs writing.** One of setup's steps is the project goal, and the bar gives
-that one a **Write the goal** button instead of a line to copy. It opens a plain text
-editor on `memory/goal.md` — your own words, the agent never drafts it for you; the file
-holds the whole direction, horizon and roadmap included. Saving writes the file, ticks that
-step, and leaves the `reviewed:` field to the agent.
+that one a **Write the goal** button instead of a line to copy. It opens an empty box on
+`memory/goal.md` — your own words, the agent never drafts it for you — with a note above it
+saying what belongs in the file and a link to the longer guide. Saving writes the file and
+ticks that step; the bar then moves on to setup's next step.
 
-Long after setup, the agent can judge the goal weak again (`reviewed: weak` in its
-frontmatter — a missing file counts too). Then the same bar comes back with just that one
-item, since every proposal the agent makes is judged against that file. It disappears once
-the value turns `good` or `strong`.
+Long after setup, the bar comes back with just that one item when there is no goal to plan
+from — the file is empty, or the agent has judged it weak again (`reviewed: weak` in its
+frontmatter). Every proposal the agent makes is judged against that file. Writing a goal is
+enough to send the bar away; you never wait on an agent run for that.
 
 The ✕ hides the bar for the browser session. The board works the same either way; the bar
 is a nudge, not a gate. A board that is set up and simply has no cards left shows nothing —
@@ -313,6 +318,33 @@ whenever you get to it. The next run folds your answer into the Process.
 
 The card page says when the job **last ran**, next to Priority and ROI — the date and time of
 the last run, or **Never run** for a card that hasn't run yet.
+
+#### A cadence runs the job for you
+
+Beside the last run is **Cadence** — how often this job should repeat. Pick a number and a
+unit: every 30 minutes, every 6 hours, every 7 days. Pick days and a time box appears, so a
+report can run every day at 09:30. **No cadence** is one of the choices on the same list and
+takes the schedule off again.
+
+Give a card a cadence and the board runs it itself when it comes due — no click. The run is
+the same one the **Run** button starts, it shows up in **Runs** like any other, and **Stop**
+ends it. Without a cadence the card runs only when you click Run; writing one is the opt-in.
+
+**Next run** appears beside Last run and says when the job comes round again — or **Due
+now** when the board is about to pick it up. Both times are your machine's clock, the one
+the server runs on.
+
+A card that has never run is due at once, so a new job runs within the minute instead of
+waiting a day to show it works. After that it waits out the interval from the last recorded
+run. The board wakes once a minute, so that minute is the floor: a cadence shorter than that
+still runs once a minute. A job that was due while the board was closed runs once when you
+open it, not once for every window it missed.
+
+Only one recurring job runs at a time, and it has its own slot — a refine going on doesn't
+hold back a job that is due, and neither does the **Auto-refine** switch, which is only
+about refining. If a run is stopped, fails, or ends without recording itself, the board
+leaves that card alone rather than starting the same broken run every minute; click **Run**
+when you want it back on its cadence.
 
 There is no **Archive** on a recurring card, since it has no end state, and no **Refine**
 either — a recurring card has a Process, not a build plan, so running it is what sharpens it.
@@ -441,7 +473,8 @@ more entry there. It holds:
   is passed over — its plan depends on a card that isn't built yet, so it waits until every
   blocker is archived or rejected, then gets picked up on a later pass. So is a card whose
   last run you stopped — see **Stopping a run**. With the switch off,
-  no card is refined *on its own* — the **Refine** button on a card page still works. While a
+  no card is refined *on its own* — the **Refine** button on a card page still works, and so
+  does a recurring card's cadence, which is its own switch (see **Recurring tasks**). While a
   refine is running, **Refining #&lt;id&gt;** sits beside the switch and names every card it is
   on, background runs and ones you started alike; when nothing is running the label is gone.
 - **Cards at once** — how many cards auto-refine works on at the same time. One by default,

@@ -162,7 +162,8 @@ Usage: node ${rel(SELF)} <command> [args]
                        not promised to a version; free text, kept as typed),
                        --blocked-by 1,2, --related 3, --modules skill,site
                        (validated against modules.md), --question "..." (repeatable),
-                       --slug my-slug, --no-body.
+                       --slug my-slug, --no-body, --cadence "1d at 09:30"
+                       (--track recurring only — see update below).
                        The script owns the frontmatter — fill only the body by hand.
                        A question the user picks from carries its choices: follow its
                        --question with one --option "a — why" per choice (2+), and
@@ -173,8 +174,12 @@ Usage: node ${rel(SELF)} <command> [args]
                        any option the question stays a plain line with a text box.
   update <id> [opts]   rewrite a card's frontmatter fields: --title, --priority,
                        --roi, --status todo|ready|implementing, --release,
-                       --blocked-by, --related, --modules. --release "" (an empty
-                       value) takes the card back out of a release.
+                       --blocked-by, --related, --modules, --cadence. --release ""
+                       (an empty value) takes the card back out of a release.
+                       --cadence sets how often a recurring card repeats — 30m, 6h,
+                       7d, or 1d at 09:30 (a time of day only with whole days).
+                       Recurring cards only; --cadence "" clears it and the card
+                       runs by hand again.
                        --track moves the card + fixes the index; --slug renames
                        it. Body and questions are left untouched — questions have
                        their own command below.

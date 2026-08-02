@@ -6,7 +6,7 @@ roi: high
 status: ready
 release: 0.5.0
 blocked_by: []
-related: [86, 108]
+related: []
 modules: [skill, local-ui, site, docs]
 questions: []
 ---
@@ -20,9 +20,9 @@ group task; each piece is its own subtask in this folder.
 - `goal.md` keeps no fixed shape: setup asks the user to write it in their own words and
   moves on. What a good goal covers is advice in a guide setup links
   (`docs/guides/what-makes-a-good-goal.md`), never a
-  format the agent enforces. The seed text is one wording in the script and the UI, and a
-  goal is judged weak only when the file is missing or still that seed — anything the
-  user wrote passes (#108).
+  format the agent enforces. Built — the file starts empty, the ask carries the words and
+  the link, and the board asks for a goal only while the file is empty or the agent has
+  judged what's in it too vague to plan from.
 - Setup drills that goal into `decisions.md` before the module map is written, so the
   board's memory starts filling before the first proposals. Every call it can't settle
   waits as a `[user]` question on one card setup creates with the first tasks; answering
@@ -42,13 +42,13 @@ group task; each piece is its own subtask in this folder.
 - The goal is the only thing setup asks for. Nothing asks about timing: the board does
   not support deadlines for now, so every settled call lands in `decisions.md` alike.
 - Order: the setup flow doc (`references/setup.md`) is written; #86 widens its `modules`
-  step, which sits right before the first tasks. The guide is written and setup
-  links it; #108 points the seed wording at the same link.
+  step, which sits right before the first tasks. The guide is written, and both places
+  that ask for the goal — the setup step and the local UI's goal box — link to it.
 
 ## Todo
 - [x] Install and update by running one script, not a list of shell commands #81
 - [x] Settle decisions.md from goal.md in setup, before the module map #84
 - [x] Track setup with a checklist and show a bar until it's done #85
-- [ ] Split setup's decisions into module memories before the first tasks #86
+- [x] Split setup's decisions into module memories before the first tasks #86
 - [x] Write a guide on what makes a good goal, and point setup at it #107
-- [ ] Make the goal.md seed one wording and the weak test simple #108
+- [x] Start the goal file empty and stop nudging once a goal is written #108

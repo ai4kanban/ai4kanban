@@ -962,21 +962,24 @@ export function buildPrompt(req: AgentRequest): string {
         .filter(Boolean)
         .join(" ");
     // One pass of a recurring card (#64). It is not an implement: the card is a
-    // job that repeats, so the run does its `## Process`, records itself with
-    // `kanban run`, and leaves the card on the board.
+    // job that repeats, so the run does its `## Process` and leaves the card on
+    // the board.
     //
-    // A `[ask]` step is the one thing a headless run can't do — nobody is there
-    // to answer. The flow already has the right home for it: the run's
-    // open-questions file, which exists precisely to hold what needed a human.
-    // So the prompt says to skip such a step and log it unanswered rather than
-    // guess at it, and the next run picks it up from there.
+    // Nothing here about recording the run. That is the board's bookkeeping, and
+    // the registry does it when the session closes (see recordRun) — an agent
+    // asked to stamp the harness's own scheduling state is one crash away from
+    // freezing the card.
+    //
+    // And nothing here about how a run goes. The card's `## Process` is the job,
+    // and the protocol around it — questions, the resolve pass, never archiving —
+    // is the same for every recurring card, so it belongs in the guide, not in a
+    // prompt rebuilt on every run. Only the headless rule stays, because that is
+    // a fact about THIS harness rather than about recurring tasks.
     case "run":
       return [
         `${kb}. Run recurring task ${req.id} ${named} — one pass, following \`references/recurring-task.md\`.`,
-        `Do the \`## Process\` steps in order, record the run with \`run ${req.id}\`, then improve the process for next time.`,
         req.notes ? `Extra notes: ${req.notes}` : "",
-        `This run is headless — don't ask me questions. A \`[ask]\` step you can't settle yourself goes unanswered into this run's open-questions file, per that guide.`,
-        `Don't archive this card: a recurring task has no end state.`,
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ]
         .filter(Boolean)
         .join(" ");

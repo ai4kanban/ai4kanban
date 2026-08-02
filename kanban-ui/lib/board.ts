@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import { formatStamp, nextDue } from "./cadence";
 import { parseFrontmatter } from "./frontmatter";
-import { goalReviewed, goalWritten } from "./goal";
+import { goalNeedsWork, goalWritten } from "./goal";
 import { archivePath, readmePath, todoDir } from "./paths";
 import { byPickOrder } from "./pick-order";
 import { readReleases } from "./releases";
@@ -42,6 +43,17 @@ function countSubtaskLines(body: string): { total: number; resolved: number } {
   return { total, resolved };
 }
 
+// When a recurring card comes round again, in words the card page can print as
+// it stands (#139). Empty when the card has no cadence — nothing will start it
+// but a person. "Due now" when the wait is already over, which covers a card
+// that has never run: it is due the moment it gets a cadence, so a new job is
+// seen working instead of waiting a day for its first pass.
+function dueLabel(lastRun: string, cadence: string): string {
+  const due = nextDue(lastRun, cadence);
+  if (!due) return "";
+  return due.getTime() <= Date.now() ? "Due now" : formatStamp(due);
+}
+
 // Read one card file into a Card. Returns null if it has no id or no frontmatter.
 function readCard(file: string, relFromTodo: string): Card | null {
   const id = idPrefix(path.basename(relFromTodo));
@@ -63,6 +75,10 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
   // NOT a track), so its column can only come from the frontmatter, not the path.
   const track = meta.track || path.basename(path.dirname(relFromTodo));
   const relPath = relFromTodo.split(path.sep).join("/");
+  // `recurring/` is a reserved folder, not a track someone named: a card in it
+  // repeats on a cadence instead of being built once. The path is what says so
+  // — the same test `kanban run` makes before it will record a run.
+  const recurring = relPath.split("/")[0] === "recurring";
   return {
     id,
     relPath,
@@ -77,13 +93,15 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     questions: meta.questions,
     modules: meta.modules,
     last_run: meta.last_run,
+    cadence: meta.cadence,
+    // When the dispatcher will pick this card up next, worked out here — on the
+    // server, whose clock is the one the schedule runs on. A browser on another
+    // machine would otherwise show its own idea of the time (#139).
+    nextRun: recurring ? dueLabel(meta.last_run, meta.cadence) : "",
     body: body.replace(/^\n+/, "").replace(/\s+$/, ""),
     todos: countTodos(body),
     isGroup: false, // readGroup flips this on the one card that is a root
-    // `recurring/` is a reserved folder, not a track someone named: a card in it
-    // repeats on a cadence instead of being built once. The path is what says so
-    // — the same test `kanban run` makes before it will record a run.
-    recurring: relPath.split("/")[0] === "recurring",
+    recurring,
     openBlockers: [], // filled by attachBlockers once every card has been read
   };
 }
@@ -305,7 +323,7 @@ export function readBoard(): Board {
     openIds,
     releases: readReleases(),
     releaseCounts: countByRelease(every),
-    goalWeak: goalReviewed() === "weak",
+    goalNeedsWork: goalNeedsWork(),
     goalWritten: goalWritten(),
     setup: readSetup(),
   };

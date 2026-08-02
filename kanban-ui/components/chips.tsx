@@ -1,7 +1,9 @@
 "use client";
 
-import { FiBox, FiCheckCircle, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import { FiBox, FiCheckCircle, FiClock, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
+import { type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
 import type { QuestionTag } from "@/lib/questions";
 import { NO_RELEASE, type CardStatus } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -325,6 +327,137 @@ export function QuestionTagBadge({ tag }: { tag: QuestionTag | null }) {
     >
       <Icon aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
       {c.label}
+    </span>
+  );
+}
+
+// The card page's cadence control (#139) — how often a recurring card repeats,
+// and so whether the board runs it in the background at all. Three pieces, read
+// left to right as the sentence they make: "every 30 minutes", "every 1 days at
+// 09:30".
+//
+// The unit list carries **No cadence** as a choice of its own, because taking a
+// schedule off is the same kind of decision as setting one — not a separate
+// clear button hidden beside it. Picking it writes an empty field and the card
+// goes back to running only when someone clicks Run.
+//
+// The count is a box rather than a list: real jobs don't fall into a handful of
+// numbers — a health check wants 5 minutes, a report 12 hours — and a list long
+// enough to cover them is worse than typing two digits. It commits when it
+// loses focus or on Enter, so a half-typed "3" on the way to "30" is never
+// saved; a number that isn't a whole one, one or more, snaps back to what the
+// card says.
+//
+// The time of day shows only for days, which is the only interval it can mean
+// anything for, and only ever a time — the date is the interval's to decide.
+const CADENCE_NONE = "none";
+const CADENCE_UNITS: { value: CadenceUnit; label: string; start: number }[] = [
+  { value: "m", label: "minutes", start: 30 },
+  { value: "h", label: "hours", start: 6 },
+  { value: "d", label: "days", start: 1 },
+];
+const CADENCE_WORD = "text-[10.5px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft";
+const CADENCE_BOX =
+  "nb-outline h-[21px] rounded-[6px] bg-nb-paper px-1.5 text-[11px] font-[700] tabular-nums text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:opacity-60";
+
+export function CadenceSelect({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  disabled?: boolean;
+  onChange: (v: string) => void;
+}) {
+  const cadence = parseCadence(value);
+  // The count is typed, so it needs a state of its own while it's being typed —
+  // reset whenever the card says something else (another tab, the CLI, a run).
+  const [count, setCount] = useState(cadence ? String(cadence.n) : "");
+  useEffect(() => {
+    const c = parseCadence(value);
+    setCount(c ? String(c.n) : "");
+  }, [value]);
+
+  const push = (n: number, unit: CadenceUnit, at: string) =>
+    onChange(formatCadence({ n, unit, at: unit === "d" ? at : "" }));
+
+  const commitCount = () => {
+    const n = Number(count);
+    if (!cadence) return;
+    if (!Number.isInteger(n) || n < 1) {
+      setCount(String(cadence.n)); // not a count — the card's own value stands
+      return;
+    }
+    if (n !== cadence.n) push(n, cadence.unit, cadence.at);
+  };
+
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      {cadence && (
+        <>
+          <span className={CADENCE_WORD}>every</span>
+          <input
+            type="number"
+            min={1}
+            step={1}
+            className={CADENCE_BOX}
+            style={{ width: 46 }}
+            value={count}
+            disabled={disabled}
+            aria-label="How many"
+            onChange={(e) => setCount(e.target.value)}
+            onBlur={commitCount}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+            }}
+          />
+        </>
+      )}
+      <Select
+        value={cadence ? cadence.unit : CADENCE_NONE}
+        disabled={disabled}
+        onValueChange={(v) => {
+          if (v === CADENCE_NONE) return onChange("");
+          const unit = v as CadenceUnit;
+          const start = CADENCE_UNITS.find((u) => u.value === unit)?.start ?? 1;
+          push(cadence?.n ?? start, unit, cadence?.at ?? "");
+        }}
+      >
+        <SelectTrigger
+          onClick={(e) => e.stopPropagation()}
+          className={CHIP_TRIGGER}
+          style={{
+            background: cadence ? "var(--color-nb-sky-soft)" : "var(--color-nb-wash)",
+            color: cadence ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
+          }}
+        >
+          <FiClock aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {CADENCE_UNITS.map((u) => (
+            <SelectItem key={u.value} value={u.value} className={CHIP_ITEM}>
+              {u.label}
+            </SelectItem>
+          ))}
+          <SelectItem value={CADENCE_NONE} className={CHIP_ITEM}>
+            No cadence
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      {cadence?.unit === "d" && (
+        <>
+          <span className={CADENCE_WORD}>at</span>
+          <input
+            type="time"
+            className={CADENCE_BOX}
+            value={cadence.at}
+            disabled={disabled}
+            aria-label="Time of day"
+            onChange={(e) => push(cadence.n, cadence.unit, e.target.value)}
+          />
+        </>
+      )}
     </span>
   );
 }

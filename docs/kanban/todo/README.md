@@ -21,8 +21,6 @@ _(none)_
 - [#114 Move several cards into a release at once](features/114-bulk-set-release.md)
 - [#116 Unstick cards that sit on the board too long](116-stuck-cards/root.md)
 - [#138 Let an open question carry an ASCII sketch of the UI](features/138-let-an-open-question-carry-an-ascii-sketch-of-the-ui.md)
-- [#135 Add a built-in recurring card that prunes the memory](features/135-add-a-built-in-recurring-card-that-prunes-the-memory.md)
-- [#139 Run recurring cards on a cadence you set to the minute](features/139-run-recurring-cards-on-a-cadence-you-set-to-the-minute.md)
 - [#140 Schedule a blocked card so it starts the moment its blocker is done](features/140-schedule-a-blocked-card-so-it-starts-the-moment-its-blocker.md)
 
 ## skill

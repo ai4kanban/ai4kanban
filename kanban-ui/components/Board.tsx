@@ -14,6 +14,7 @@ import { useBoardView } from "@/lib/view";
 import { BoardCard } from "./BoardCard";
 import { BulkReleaseBar } from "./BulkReleaseBar";
 import { Header } from "./Header";
+import { OpenIdsProvider } from "./open-ids";
 import { SetupBar } from "./SetupBar";
 import { QueueView } from "./Queue";
 import { SessionLogOverlay } from "./agent-shared";
@@ -205,152 +206,154 @@ export function BoardView({
   useOnTabFocus(refresh);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-nb-cream">
-      <Header
-        agent={agent}
-        projectRoot={projectRoot}
-        autoRefine={autoRefine}
-        autoRefineParallelism={autoRefineParallelism}
-        sessions={sessions}
-        onError={setError}
-        view={view}
-        onViewChange={setView}
-        releases={board?.releases ?? []}
-        releaseCounts={board?.releaseCounts ?? {}}
-        release={release}
-        onReleaseChange={setRelease}
-        onCreateRelease={makeRelease}
-        onDropRelease={dropRelease}
-        onCloseRelease={closeRelease}
-        // A card written while a version is on screen ships in that version.
-        createRelease={release}
-        goalWritten={board?.goalWritten ?? false}
-      />
-
-      {error && (
-        <div className="mx-6 mt-4 nb-panel-sm p-3 text-[13px]" style={{ background: "var(--color-nb-peach-soft)" }}>
-          {error}
-        </div>
-      )}
-
-      {/* Unfinished setup (#85), else the goal nudge (#53) when the agent has
-          judged goal.md weak again. Both drop out with the next board refresh —
-          the same refresh that already runs on session finish and tab focus — so
-          the bar moves on its own as setup's boxes tick. */}
-      {board && (
-        <SetupBar
-          setup={board.setup}
-          goalWeak={board.goalWeak}
-          setupInstruction={setupInstruction}
-          onSaved={refresh}
-        />
-      )}
-
-      {!board && !error && (
-        <div className="p-10 text-nb-ink-soft">Reading the board…</div>
-      )}
-
-      {/* A filter that can empty the screen has to explain itself, or the user
-          reads it as a broken board and goes looking for their cards. Above both
-          views, so it says the same thing in either one, with the way back one
-          click away. Blockers on screen don't make the release non-empty — a
-          blocker belongs to whoever it blocks. */}
-      {board && emptyRelease && (
-        <div className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6" style={{ background: "var(--color-nb-sky-soft)" }}>
-          <strong>{release}</strong> has no open cards.{" "}
-          <button
-            type="button"
-            className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
-            onClick={() => setRelease(null)}
-          >
-            Show all releases
-          </button>
-          .
-        </div>
-      )}
-
-      {/* Only while cards are ticked, or while the last move has something left
-          to say (#114). With nothing ticked the board is exactly what it was
-          before this existed. Above both views, like the note above it, so the
-          count and the move read the same in either one. */}
-      {board && (selected.size > 0 || moveError || failed.length > 0) && (
-        <BulkReleaseBar
-          count={selected.size}
-          releases={board.releases}
-          failed={failed}
-          error={moveError}
-          onMove={moveSelected}
-          onClear={clearSelection}
-        />
-      )}
-
-      {board && view === "queue" && (
-        <QueueView
-          columns={columns}
+    <OpenIdsProvider ids={board?.openIds ?? []}>
+      <div className="flex h-screen flex-col overflow-hidden bg-nb-cream">
+        <Header
+          agent={agent}
+          projectRoot={projectRoot}
+          autoRefine={autoRefine}
+          autoRefineParallelism={autoRefineParallelism}
           sessions={sessions}
-          onOpenLog={setLogSessionId}
-          selected={selected}
-          onSelect={toggleSelected}
+          onError={setError}
+          view={view}
+          onViewChange={setView}
+          releases={board?.releases ?? []}
+          releaseCounts={board?.releaseCounts ?? {}}
+          release={release}
+          onReleaseChange={setRelease}
+          onCreateRelease={makeRelease}
+          onDropRelease={dropRelease}
+          onCloseRelease={closeRelease}
+          // A card written while a version is on screen ships in that version.
+          createRelease={release}
+          goalWritten={board?.goalWritten ?? false}
         />
-      )}
 
-      {board && view === "kanban" && (
-        <div className="flex min-h-0 flex-1 items-stretch gap-4 overflow-x-auto p-6">
-          {columns.map((col) => (
-            <section
-              key={col.track}
-              // `recurring` is a reserved folder, not a track someone named: its
-              // cards repeat on a cadence and are never finished, so the column
-              // carries a lilac cast over the neutral wash the other columns
-              // share. Faint on purpose — it says "these behave differently",
-              // not "look here".
-              className={`flex w-[300px] shrink-0 flex-col rounded-[14px] p-3 ${
-                col.track === "recurring"
-                  ? "bg-[color-mix(in_srgb,var(--color-nb-lilac)_16%,var(--color-nb-wash))]"
-                  : "bg-nb-wash"
-              }`}
+        {error && (
+          <div className="mx-6 mt-4 nb-panel-sm p-3 text-[13px]" style={{ background: "var(--color-nb-peach-soft)" }}>
+            {error}
+          </div>
+        )}
+
+        {/* Unfinished setup (#85), else the goal nudge (#53) when goal.md is empty
+            or the agent has judged it weak again. Both drop out with the next board
+            refresh — the same refresh that already runs on session finish and tab
+            focus — so the bar moves on its own as setup's boxes tick. */}
+        {board && (
+          <SetupBar
+            setup={board.setup}
+            goalNeedsWork={board.goalNeedsWork}
+            setupInstruction={setupInstruction}
+            onSaved={refresh}
+          />
+        )}
+
+        {!board && !error && (
+          <div className="p-10 text-nb-ink-soft">Reading the board…</div>
+        )}
+
+        {/* A filter that can empty the screen has to explain itself, or the user
+            reads it as a broken board and goes looking for their cards. Above both
+            views, so it says the same thing in either one, with the way back one
+            click away. Blockers on screen don't make the release non-empty — a
+            blocker belongs to whoever it blocks. */}
+        {board && emptyRelease && (
+          <div className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6" style={{ background: "var(--color-nb-sky-soft)" }}>
+            <strong>{release}</strong> has no open cards.{" "}
+            <button
+              type="button"
+              className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
+              onClick={() => setRelease(null)}
             >
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="nb-tag">
-                  <span style={{ color: "var(--color-nb-accent)" }}>●</span>
-                  {col.title}
-                </h2>
-                <span className="text-[12px] text-nb-ink-soft">{col.cards.length}</span>
-              </div>
-              <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overflow-x-hidden pl-px pr-1 pt-px pb-1">
-                {col.cards.length === 0 && (
-                  <p className="text-[12px] italic text-nb-ink-soft">no open cards</p>
-                )}
-                {col.cards.map((card) => (
-                  <BoardCard
-                    key={card.id}
-                    card={card}
-                    // The one live session on this card (any tab), if any. It
-                    // drives the action-named badge that stands in for the
-                    // saved-stage pill.
-                    liveSession={runningSessionForCard(sessions, card.id)}
-                    onOpenLog={setLogSessionId}
-                    selected={selected.has(card.id)}
-                    onSelect={toggleSelected}
-                    // No track chip here — the column heading above already
-                    // says which track this card is in.
-                  />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
+              Show all releases
+            </button>
+            .
+          </div>
+        )}
 
-      {logSessionId && (
-        <SessionLogOverlay
-          session={openLog}
-          onClose={() => setLogSessionId(null)}
-          // Resuming swaps the overlay onto the run that continues the failed
-          // one, so the tail keeps playing instead of freezing on the dead log.
-          onResumed={setLogSessionId}
-        />
-      )}
-    </div>
+        {/* Only while cards are ticked, or while the last move has something left
+            to say (#114). With nothing ticked the board is exactly what it was
+            before this existed. Above both views, like the note above it, so the
+            count and the move read the same in either one. */}
+        {board && (selected.size > 0 || moveError || failed.length > 0) && (
+          <BulkReleaseBar
+            count={selected.size}
+            releases={board.releases}
+            failed={failed}
+            error={moveError}
+            onMove={moveSelected}
+            onClear={clearSelection}
+          />
+        )}
+
+        {board && view === "queue" && (
+          <QueueView
+            columns={columns}
+            sessions={sessions}
+            onOpenLog={setLogSessionId}
+            selected={selected}
+            onSelect={toggleSelected}
+          />
+        )}
+
+        {board && view === "kanban" && (
+          <div className="flex min-h-0 flex-1 items-stretch gap-4 overflow-x-auto p-6">
+            {columns.map((col) => (
+              <section
+                key={col.track}
+                // `recurring` is a reserved folder, not a track someone named: its
+                // cards repeat on a cadence and are never finished, so the column
+                // carries a lilac cast over the neutral wash the other columns
+                // share. Faint on purpose — it says "these behave differently",
+                // not "look here".
+                className={`flex w-[300px] shrink-0 flex-col rounded-[14px] p-3 ${
+                  col.track === "recurring"
+                    ? "bg-[color-mix(in_srgb,var(--color-nb-lilac)_16%,var(--color-nb-wash))]"
+                    : "bg-nb-wash"
+                }`}
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="nb-tag">
+                    <span style={{ color: "var(--color-nb-accent)" }}>●</span>
+                    {col.title}
+                  </h2>
+                  <span className="text-[12px] text-nb-ink-soft">{col.cards.length}</span>
+                </div>
+                <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overflow-x-hidden pl-px pr-1 pt-px pb-1">
+                  {col.cards.length === 0 && (
+                    <p className="text-[12px] italic text-nb-ink-soft">no open cards</p>
+                  )}
+                  {col.cards.map((card) => (
+                    <BoardCard
+                      key={card.id}
+                      card={card}
+                      // The one live session on this card (any tab), if any. It
+                      // drives the action-named badge that stands in for the
+                      // saved-stage pill.
+                      liveSession={runningSessionForCard(sessions, card.id)}
+                      onOpenLog={setLogSessionId}
+                      selected={selected.has(card.id)}
+                      onSelect={toggleSelected}
+                      // No track chip here — the column heading above already
+                      // says which track this card is in.
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+
+        {logSessionId && (
+          <SessionLogOverlay
+            session={openLog}
+            onClose={() => setLogSessionId(null)}
+            // Resuming swaps the overlay onto the run that continues the failed
+            // one, so the tail keeps playing instead of freezing on the dead log.
+            onResumed={setLogSessionId}
+          />
+        )}
+      </div>
+    </OpenIdsProvider>
   );
 }

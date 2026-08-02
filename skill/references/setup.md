@@ -23,14 +23,16 @@ says what goes in it. Then `setup-done config`.
 
 ## `goal`
 
-The user writes this one; the seed in `docs/kanban/memory/goal.md` says what it holds.
-Ask for it, with one line they can skip:
+The user writes this one. `docs/kanban/memory/goal.md` starts empty, so the ask is yours:
+where the project is headed in their own words — what they want, how far out, and roughly
+what comes next. Rough and short is fine. Add one line they can skip:
 
     Not sure what to put in it? https://github.com/ai4kanban/ai4kanban/blob/main/docs/guides/what-makes-a-good-goal.md
 
-Put their answer below the frontmatter and tick the box. A goal already written — the
-file is past the seed text — just gets its tick. No answer means stop the run; a later
-one resumes here.
+Put their answer below the frontmatter. A goal already written — the file has words in it
+— is taken as is. Either way, judge it now and set `reviewed:` in the frontmatter yourself
+(`strong | good | weak`, see "The memory set" in `SKILL.md`), then tick the box. No answer
+means stop the run; a later one resumes here.
 
 ## `decisions`
 
@@ -43,10 +45,29 @@ Don't copy in what `goal.md` already answers — planning reads the goal directl
 
 ## `modules`
 
+Two halves, one step: write the map, then file the settled calls under it.
+
 Write `docs/kanban/modules.md` following `references/module-map.md` — from the repo
 already read at `config` (don't scan again), or from the goal and decisions when there
-is no code. Print the map, run `${KB} init` again so every module gets its memory path,
-then `setup-done modules`.
+is no code. Print the map, then run `${KB} init` again so every module gets its memory
+path.
+
+Now split `docs/kanban/memory/decisions.md`, so the first tasks are planned from memory
+that already sits in the right place:
+
+- A call belongs to a module when a user would only meet it in that part of the product —
+  the same test that tags a card with a module. Exactly one owner means the line moves to
+  that module's `decisions.md`.
+- A call it takes two modules to state stays project-wide. If it splits cleanly into a
+  half per module, write each half in its own module.
+- Moves, not copies. A call lives in one place; the same line in two files drifts apart.
+- One module on the map means every call moves into it and the project-wide file is left
+  near-empty. That's right — planning reads that module's memory from then on.
+- The project-wide memory files stay at the board root either way, even when they end up
+  empty. A card that names no module still writes there.
+
+Then `setup-done modules`. This split runs at setup only; a module the board gains later
+is covered by `references/module-map.md`, on the step that adds a line.
 
 ## `tasks`
 

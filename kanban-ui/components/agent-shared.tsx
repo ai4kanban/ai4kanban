@@ -4,6 +4,7 @@
 // card page (per-card actions): the request/result shapes, the running + result
 // overlays, and the input dialogs for each action.
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -182,13 +183,11 @@ export function SessionLog({
   session,
   collapsed = false,
   onToggle,
-  openIds,
   flush = false,
 }: {
   session: SessionView | null;
   collapsed?: boolean;
   onToggle?: () => void;
-  openIds?: number[];
   // `flush` drops the collapse toggle and the body's height cap (the panel it's
   // dropped into — the sessions dialog, the board overlay — owns the scrolling)
   // but keeps the full ink-framed window with its title bar, so the log is the
@@ -318,12 +317,12 @@ export function SessionLog({
           )}
         </details>
       )}
-      <Markdown body={result} openIds={openIds} className="nb-sessionlog-md" />
+      <Markdown body={result} className="nb-sessionlog-md" />
     </>
   ) : tail ? (
     // No parsed final message (custom agent command, or a session re-adopted
     // after a restart) — the tail is all there is.
-    <Markdown body={tail} openIds={openIds} className="nb-sessionlog-md" />
+    <Markdown body={tail} className="nb-sessionlog-md" />
   ) : (
     <pre className="m-0 text-nb-ink-soft" style={MONO_TEXT}>
       (no output)
@@ -604,18 +603,31 @@ export function SessionLogOverlay({
 
   // A create or propose session touches no card, so it has no `#id — action`
   // handle: name it by what it's doing instead. Every other session is tied to a
-  // card and reads `#5 — refine`.
-  const title = !session
-    ? "session log"
-    : session.cardId === null
-      ? session.action === "propose"
-        ? session.status === "running"
-          ? "Proposing tasks"
-          : "Propose tasks"
-        : session.status === "running"
-          ? "Creating task"
-          : "Create task"
-      : `#${session.cardId} — ${session.action}`;
+  // card and reads `#5 — refine`, with the id linking to that card the way every
+  // other `#id` in the UI does (see the sessions dialog for why it isn't gated on
+  // the card still being open).
+  const title = !session ? (
+    "session log"
+  ) : session.cardId === null ? (
+    session.action === "propose" ? (
+      session.status === "running" ? (
+        "Proposing tasks"
+      ) : (
+        "Propose tasks"
+      )
+    ) : session.status === "running" ? (
+      "Creating task"
+    ) : (
+      "Create task"
+    )
+  ) : (
+    <>
+      <Link href={`/${session.cardId}`} className="nb-idlink" onClick={onClose}>
+        #{session.cardId}
+      </Link>
+      {` — ${session.action}`}
+    </>
+  );
 
   if (!mounted) return null;
 

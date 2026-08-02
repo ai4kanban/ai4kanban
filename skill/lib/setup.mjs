@@ -28,7 +28,7 @@ export const SETUP_STEPS = [
   { name: 'config', owner: 'agent', text: 'Fill in `docs/kanban/config.md` from what the repo says.' },
   { name: 'goal', owner: 'you', text: 'Write the project goal in `docs/kanban/memory/goal.md`.' },
   { name: 'decisions', owner: 'agent', text: 'Settle `docs/kanban/memory/decisions.md` from the goal.' },
-  { name: 'modules', owner: 'agent', text: 'Write `docs/kanban/modules.md` and every module\'s memory path.' },
+  { name: 'modules', owner: 'agent', text: 'Write `docs/kanban/modules.md`, then move each settled call into its module\'s memory.' },
   { name: 'tasks', owner: 'agent', text: 'Create the first tasks.' },
 ]
 

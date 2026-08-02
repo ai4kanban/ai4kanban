@@ -18,6 +18,10 @@ export function serializeFrontmatter(m) {
   out.push(`blocked_by: [${(m.blocked_by || []).join(', ')}]`)
   out.push(`related: [${(m.related || []).join(', ')}]`)
   out.push(`modules: [${(m.modules || []).join(', ')}]`)
+  // How often a recurring card repeats (`30m`, `6h`, `1d at 09:30` — see
+  // ./cadence.mjs). Written only when the card carries one; no cadence means the
+  // card runs when a human clicks Run and never on its own.
+  if (m.cadence) out.push(`cadence: ${yamlScalar(m.cadence)}`)
   // When a recurring card last ran (`run` stamps it). Written only when the card
   // carries one, so a one-shot card's frontmatter is untouched — and re-emitted
   // whenever it is there, so an `update` in between can't erase the stamp.
@@ -105,6 +109,10 @@ export function parseFrontmatter(text) {
   // Anything but text reads as never run, so a blanked or damaged line just means
   // the card has no run to report.
   meta.last_run = typeof meta.last_run === 'string' && meta.last_run.trim() ? meta.last_run.trim() : ''
+  // How often the card repeats. Kept as written — whoever reads it parses it
+  // (./cadence.mjs); a line that isn't one of the accepted forms means the card
+  // has no working cadence and only runs by hand.
+  meta.cadence = typeof meta.cadence === 'string' && meta.cadence.trim() ? meta.cadence.trim() : ''
   return { meta, body: lines.slice(i + 1).join('\n') }
 }
 

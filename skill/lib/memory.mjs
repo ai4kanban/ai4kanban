@@ -43,21 +43,16 @@ before proposing so you don't re-suggest them.
 // `goal.md` is the board root's alone. The project has one direction, and every flow
 // judges a card against that one file — a per-module copy would only split it. So the
 // project-wide path gets these five files; a module path gets the four above.
-// It seeds `reviewed: weak` — a fresh template is not a goal to plan from.
+//
+// It starts with the `reviewed: weak` line and nothing else: the file is the user's own
+// words, and anything seeded above them is text they have to delete first. What belongs
+// in a goal is said where the user is asked for it — the setup step and the local UI's
+// goal box — not in the file.
 const PROJECT_MEMORY_SET = {
   ...MEMORY_SET,
   'goal.md': `---
 reviewed: weak
 ---
-
-# Goal
-
-Where this is headed, in the user's own words: the long-term goal, the horizon it aims
-at, and the roadmap of what comes next, roughly in order. Not this week's work — that's
-the cards on the board. The user owns this file; the agent seeds it but does not invent
-the goal.
-
-_(not filled in yet — the user writes this.)_
 `,
 }
 

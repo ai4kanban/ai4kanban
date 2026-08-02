@@ -7,6 +7,7 @@
 // sessions panel (task #21) — the header's activity button and its two-pane
 // history dialog.
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { FiActivity, FiX } from "react-icons/fi";
@@ -450,8 +451,22 @@ function SessionsDialog({
                   <span className="text-[14px] font-[800] capitalize tracking-[-0.02em]">
                     {selected.action}
                   </span>
+                  {/* The card this run worked on, as a link to it — the same
+                      `#id` → `/id` jump the markdown bodies make, so an id reads
+                      the same wherever it appears. Not gated on the card still
+                      being open, the way a mention in prose is: this id is what
+                      the run WAS, and a card the run archived is exactly the one
+                      you'd click. The board's not-found page says so and takes
+                      you back. Navigating closes the dialog, or it would sit on
+                      top of the card you just opened. */}
                   {selected.cardId !== null && (
-                    <span className="text-[12px] text-nb-ink-soft">#{selected.cardId}</span>
+                    <Link
+                      href={`/${selected.cardId}`}
+                      className="nb-idlink text-[12px]"
+                      onClick={() => sessionsPanel.close()}
+                    >
+                      #{selected.cardId}
+                    </Link>
                   )}
                   <span className="text-[11px] text-nb-ink-soft">{fullTime(selected.startedAt)}</span>
                   {/* A run started by Resume says so — otherwise it reads as a

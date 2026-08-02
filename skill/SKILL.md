@@ -60,7 +60,7 @@ docs/kanban/
 │   ├── README.md   the index — read it first
 │   ├── blockers/   hard blockers; they gate the next milestone — clear them first
 │   ├── <track>/    one folder per track (see Configuration), one card per file
-│   └── recurring/  jobs on a cadence (see "Recurring task") — never archived
+│   └── recurring/  jobs we repeat (see "Recurring task") — never archived
 ├── memory/         all memory — see "The memory set"
 │   ├── readme.md, decisions.md, rejected.md, redesign.md
 │   │               the four-file set for the project as a whole
@@ -213,8 +213,9 @@ A track is the bucket a task lives in — one folder per track under `todo/`. Yo
 
 ## Recurring task
 
-A recurring task is a job we repeat on a cadence (e.g. a weekly report), not a
-one-shot. Full guide in `references/recurring-task.md`.
+A recurring task is a job we repeat (e.g. a weekly report), not a one-shot. Adding one
+and running one are both in `references/recurring-task.md`; the job itself is the card's
+own `## Process`.
 
 ## Run the board locally
 
@@ -252,14 +253,18 @@ soon as the module is known — `init` does it for every module already on the m
 update flow does it for the rest, and any flow about to write a note runs it first.
 
 **`goal.md` sits outside the set, at the board root only** — the long-term goal, horizon,
-and roadmap in the user's words; the agent never writes the goal, except a frontmatter line
-`reviewed: strong | good | weak`.
-This field says whether the goal is clear enough to plan from — `weak` only when apparent (missing, still the template, too vague to judge a proposal against).
+and roadmap in the user's words. It starts empty; the agent never writes the goal, except
+the frontmatter line `reviewed: strong | good | pending | weak` — how clear the goal is to
+plan from. `weak` only when apparent (missing, empty, too vague to judge a proposal
+against). `pending` means written but not judged yet: the script and the local UI set it
+when a goal is saved, and you replace it the next time you read the goal. Judge it at the
+`goal` setup step and on every propose run — never stop to ask the user about it.
 
 ## Auto-pruning
 
 To compress the memory set — the project-wide copy and each module copy — down to
-planning-useful summaries, follow `references/prune-memory.md`.
+planning-useful summaries, follow `references/prune-memory.md`. The board ships with a
+recurring card that does this — never create one.
 
 ## Document a change
 

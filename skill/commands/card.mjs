@@ -11,7 +11,9 @@ import { bumpMetric } from '../lib/metrics.mjs'
 import { parseFlags, slugify, validLevel, validStatus, validTrack, validModules, parseModuleList, parseIdList, normalizeRelease } from '../lib/validate.mjs'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, parseQuestionOps, parseQuestionPositions } from '../lib/questions.mjs'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter.mjs'
-import { locate, enclosingGroupRoot } from '../lib/cards.mjs'
+import { CADENCE_FORMS, formatCadence, parseCadence } from '../lib/cadence.mjs'
+import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards.mjs'
+import { RECURRING } from '../lib/recurring.mjs'
 import { validRelease, setSubtreeRelease } from '../lib/releases.mjs'
 import { readmeHeadingFor, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme.mjs'
 import { reconcileBoard } from '../lib/reconcile.mjs'
@@ -33,7 +35,21 @@ function defaultBody() {
   ].join('\n')
 }
 
-const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'count', 'no-body']
+// How often a recurring card repeats, as `--cadence` gives it: one of the forms in
+// lib/cadence.mjs, written back in that module's own spelling so every card reads the
+// same. An empty value is "no cadence" — the card goes back to running only when a
+// human clicks Run. Anything the grammar doesn't cover is refused with the accepted
+// forms, never written half-parsed.
+function cadenceFlag(raw) {
+  if (raw === true) die(`--cadence needs a value: ${CADENCE_FORMS}. Use --cadence "" to clear it.`)
+  const text = String(raw).trim()
+  if (!text) return ''
+  const parsed = parseCadence(text)
+  if (!parsed) die(`--cadence "${text}" isn't a cadence. Accepted: ${CADENCE_FORMS}`)
+  return formatCadence(parsed)
+}
+
+const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'count', 'no-body', 'cadence']
 
 // Two modes:
 //   bare      `create [--count N]`  → allocate ids and print them (group-task setup).
@@ -45,7 +61,7 @@ export function cmdCreate(args) {
   if (positional.length) die(`create takes options, not positional args (got "${positional.join(' ')}")`)
 
   if (flags.title === undefined) {
-    for (const bad of ['track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'no-body']) {
+    for (const bad of ['track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'no-body', 'cadence']) {
       if (flags[bad] !== undefined) die(`--${bad} needs --title (that's card mode). Without --title, create only allocates ids.`)
     }
     const count = flags.count !== undefined ? Number(flags.count) : 1
@@ -77,6 +93,12 @@ export function cmdCreate(args) {
   const blocked_by = flags['blocked-by'] !== undefined ? parseIdList(flags['blocked-by'], 'blocked-by', start) : []
   const related = flags.related !== undefined ? parseIdList(flags.related, 'related', start) : []
   const modules = flags.modules !== undefined ? validModules(parseModuleList(flags.modules)) : []
+  // Only a card that repeats can have a cadence — a one-shot task is built once.
+  let cadence = ''
+  if (flags.cadence !== undefined) {
+    if (track !== RECURRING) die(`--cadence is for recurring cards only (--track ${RECURRING}); a one-shot task is built once, not repeated.`)
+    cadence = cadenceFlag(flags.cadence)
+  }
   const questions = collectQuestions(order)
   warnBadQuestionTags(questions)
   const slug = slugify(flags.slug !== undefined ? flags.slug : title)
@@ -87,7 +109,7 @@ export function cmdCreate(args) {
   // validation passed → allocate + write
   writeNextId(start + 1)
   bumpMetric('created')
-  const meta = { title, track, priority, roi, status: 'todo', release, blocked_by, related, modules, questions }
+  const meta = { title, track, priority, roi, status: 'todo', release, blocked_by, related, modules, cadence, questions }
   const body = flags['no-body'] ? '' : defaultBody()
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
   const indexed = addReadmeRef(track, start, title, fileRel)
@@ -98,7 +120,7 @@ export function cmdCreate(args) {
   reconcileBoard()
 }
 
-const UPDATE_FLAGS = ['title', 'track', 'priority', 'roi', 'status', 'release', 'blocked-by', 'related', 'modules', 'slug']
+const UPDATE_FLAGS = ['title', 'track', 'priority', 'roi', 'status', 'release', 'blocked-by', 'related', 'modules', 'slug', 'cadence']
 
 // Rewrite a card's frontmatter fields. Also the sanctioned way to move a card between
 // tracks (--track moves the file + fixes the index) or rename it (--slug). Body is
@@ -153,6 +175,14 @@ export function cmdUpdate(args) {
     meta.modules = validModules(parseModuleList(flags.modules))
     changes.push('modules')
   }
+  // How often the card repeats, and so whether the local UI runs it in the
+  // background at all. `--cadence ""` clears it and the card goes back to
+  // running only when someone clicks Run.
+  if (flags.cadence !== undefined) {
+    if (!isRecurringCard(found)) die(`#${id} is not recurring (${found.rel} is not under ${RECURRING}/) — only a card that repeats can have a cadence.`)
+    meta.cadence = cadenceFlag(flags.cadence)
+    changes.push(`cadence→${meta.cadence || '(none)'}`)
+  }
   // A `ready` card has no open questions by definition (see STATUSES). Open questions
   // mean the plan is not settled, so a `--status ready` with them pending lands as
   // `todo`. This holds the invariant no matter who set the status.
@@ -181,6 +211,12 @@ export function cmdUpdate(args) {
     base = `${id}-${slugify(flags.slug)}.md`
   }
   meta.track = newTrack
+  // A card moved out of recurring/ leaves its cadence behind: nothing runs a
+  // one-shot task on a schedule, so the line would only mislead whoever reads it.
+  if (flags.track !== undefined && newTrack !== RECURRING && meta.cadence) {
+    meta.cadence = ''
+    changes.push('cadence cleared (no longer recurring)')
+  }
   // Only a standalone card can change folders (--track). A subtask and a group
   // root stay in their own folder; --slug at most renames the file there.
   const standalone = found.kind === 'file' && !isSubtask

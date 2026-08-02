@@ -52,6 +52,7 @@ function openRows() {
       release: (meta && meta.release) || '',
       blocked_by: (meta && meta.blocked_by) || [],
       modules: (meta && meta.modules) || [],
+      cadence: (meta && meta.cadence) || '',
       questions: (meta && meta.questions) || [],
       summary: summaryLine(body),
     })
@@ -87,6 +88,7 @@ export function cmdList(args) {
     const meta = [r.track, r.status, `priority ${r.priority}`, `roi ${r.roi}`]
     if (r.isRoot) meta.push('group root')
     if (r.release) meta.push(`release ${r.release}`)
+    if (r.cadence) meta.push(`every ${r.cadence}`)
     if (r.blocked_by.length) meta.push(`blocked by ${r.blocked_by.map((n) => `#${n}`).join(', ')}`)
     if (r.questions.length) meta.push(plural(r.questions.length, 'open question'))
     console.log('')

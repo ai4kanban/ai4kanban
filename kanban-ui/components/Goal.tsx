@@ -11,12 +11,12 @@
 // path badge shrinks and drops on a narrow screen, one icon costs nothing.
 //
 // It appears only when there is something to read (`goalWritten`, lib/goal.ts): a missing
-// or still-seeded file has nothing to open, and the setup bar is what asks for the goal
-// there.
+// or empty file has nothing to open, and the setup bar is what asks for the goal there.
 //
 // The editor here and the setup bar's "Write the goal" are one form (GoalForm) — same
-// textarea, same save, same rule that the file's frontmatter survives untouched:
-// `reviewed:` is the agent's judgment, the words are the user's.
+// textarea, same save, same rule that the words are the user's and the judgment is the
+// agent's: a save marks the goal `reviewed: pending` and leaves the rest of the
+// frontmatter alone (#108).
 
 import { useEffect, useState } from "react";
 import { FiCompass } from "react-icons/fi";
@@ -102,10 +102,20 @@ export function GoalEditor({ onClose, onSaved }: { onClose: () => void; onSaved:
   const { text, setText, error } = useGoalText();
   return (
     <Dialog title="Write the goal" width={640} onClose={onClose}>
+      {/* The box starts empty (#108), so what belongs in a goal is said here — the
+          file no longer opens with a paragraph the user has to delete first. */}
       <p className="mb-3 text-[13px] leading-relaxed text-nb-ink-soft">
-        Your own words go in — the agent never drafts the goal for you. This one file holds the
-        whole direction, the horizon and roadmap included. A rough, short answer is fine and can
-        change later.
+        Where the project is headed, in your own words: what you want, how far out, and roughly
+        what comes next. Rough and short is fine, and you can change it later — the agent never
+        drafts the goal for you.{" "}
+        <a
+          href="https://github.com/ai4kanban/ai4kanban/blob/main/docs/guides/what-makes-a-good-goal.md"
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-2 hover:text-nb-ink"
+        >
+          What makes a good goal
+        </a>
       </p>
       {error && <Failure text={error} />}
       {text === null && !error && <p className="text-[13px] italic text-nb-ink-soft">Reading goal.md…</p>}

@@ -8,8 +8,9 @@
 //     the agent it hands over the line to paste into the coding harness; the
 //     board never runs setup itself. When the step is the user's own (the goal),
 //     it opens the goal editor instead.
-//  2. Setup is long done but the agent has judged `goal.md` weak again. Then the
-//     bar comes back with that one item — the goal nudge of old, unchanged.
+//  2. Setup is long done but there is no goal to plan from — `goal.md` is empty,
+//     or the agent has judged it weak again. Then the bar comes back with that
+//     one item, the goal.
 //
 // A board with no checklist and a goal that reads fine shows nothing, so boards
 // set up before the checklist existed — and a board whose backlog is simply
@@ -33,12 +34,12 @@ const GOAL_STEP = "goal";
 
 export function SetupBar({
   setup,
-  goalWeak,
+  goalNeedsWork,
   setupInstruction,
   onSaved,
 }: {
   setup: SetupState | null;
-  goalWeak: boolean;
+  goalNeedsWork: boolean;
   /** The line to paste into the coding harness — one wording, from lib/agent.ts. */
   setupInstruction: string;
   onSaved: () => void;
@@ -57,7 +58,7 @@ export function SetupBar({
   const [editing, setEditing] = useState(false);
 
   if (dismissed) return null;
-  if (!setup && !goalWeak) return null;
+  if (!setup && !goalNeedsWork) return null;
 
   const next = setup?.next ?? null;
   const writesGoal = setup ? next?.name === GOAL_STEP : true;
@@ -113,11 +114,10 @@ export function SetupBar({
           onClose={() => setEditing(false)}
           onSaved={() => {
             setEditing(false);
-            // Saving hides the bar for the session too: `reviewed:` stays weak
-            // until an agent flow re-judges it, and nagging right after the user
-            // wrote would be wrong. In setup, the refresh moves the bar on to the
-            // next step — the save ticked the goal's box.
-            dismiss();
+            // The refresh is enough to clear the bar now: a saved goal is written
+            // and `reviewed: pending`, so the board stops asking. In setup, the
+            // same refresh moves the bar on to the next step — the save ticked
+            // the goal's box.
             onSaved();
           }}
         />

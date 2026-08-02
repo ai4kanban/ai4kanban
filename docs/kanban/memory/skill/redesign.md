@@ -34,6 +34,19 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   with the first tasks as plain cards. Setup never asks for a release; a project that
   wants one creates it later from the release work.
 
+## The goal
+
+- ❌ **Judge the goal by a rule in the code, so no agent run is needed** → ✅ the agent is
+  the only judge of how good a goal is; the board only sees whether text is there. A rule
+  that grades free-form prose is a rule that gets the user's own words wrong.
+- ❌ **A goal the user just wrote stays weak until an agent re-judges it** → ✅ written but
+  not judged yet is its own review value, and it never nudges. Every path that writes the
+  goal — the setup step, the UI's goal box, a hand edit, an upgrade of an older board —
+  has to leave the file in a state that doesn't ask for the goal again.
+- ❌ **Seed a file with a paragraph explaining what belongs in it** → ✅ the file starts
+  empty and the explanation sits where the user is asked for it. A seed is text the user
+  deletes before they can start.
+
 ## Releases
 
 - ❌ **A release is a group task you drag work into** → ✅ a release is a field on a card,

@@ -17,10 +17,17 @@ Ask **"what's next?"**. The skill:
 You approve, tweak, or drop each. Approved ones become cards.
 
 Every proposal is judged against `memory/goal.md` — the direction in your own words. The
-skill marks how clear it is in the file's frontmatter (`reviewed: strong | weak`).
-`weak` means the goal is missing or too vague to plan from. The board keeps working
-either way, but proposals are guesses until you write the goal — the skill never writes
-it for you.
+file starts empty, and the skill never writes the goal for you. It only marks how clear
+the goal looks in the file's frontmatter (`reviewed:`), and it re-marks it every time it
+proposes:
+
+- `strong` / `good` — clear enough to plan from.
+- `pending` — you just wrote or edited the goal and nothing has read it yet. Written by
+  the board itself when the goal is saved, so it never asks you for work you just did.
+- `weak` — missing, empty, or too vague to plan from. This is the only value that makes
+  the board ask you for a goal.
+
+The board keeps working either way, but proposals are guesses until you write the goal.
 
 ## Plan a release
 

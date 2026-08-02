@@ -97,8 +97,8 @@ export function Header({
    *  when the whole board is showing and the new card lands wherever the agent
    *  puts it. A card page passes nothing: it shows one card, not a release. */
   createRelease?: string | null;
-  /** Whether `memory/goal.md` holds the user's own words. False — missing, empty
-   *  or still the seed — means there is nothing to open and the button stays
+  /** Whether `memory/goal.md` holds the user's own words. False — the file is
+   *  missing or empty — means there is nothing to open and the button stays
    *  away; the setup bar is what asks for the goal then. */
   goalWritten?: boolean;
 }) {

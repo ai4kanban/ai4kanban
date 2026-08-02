@@ -31,8 +31,8 @@ import type { AgentAction, CardStatus, SessionView, TokenUsage } from "./types";
 // script (next-id, the README index, metrics.csv). Run two at once and they
 // corrupt each other even on different cards — so these serialize behind one
 // lock. Propose allocates several ids in one run, so it belongs here too, and so
-// does a recurring run: `kanban run` bumps metrics.csv and rewrites the README
-// index, the very files this lock exists for.
+// does a recurring run: recordRun bumps metrics.csv and rewrites the README
+// index at the close of one, the very files this lock exists for.
 const INDEX_ACTIONS = new Set<AgentAction>(["create", "propose", "archive", "reject", "run"]);
 
 // Actions that may run only one at a time across the whole board. A create has
@@ -66,22 +66,44 @@ const SESSION_STATUS: Partial<Record<AgentAction, CardStatus>> = {
   implement: "implementing",
 };
 
-// The board script owns the `status` field, like every other frontmatter field,
-// so the UI never hand-writes it — it shells out to `update <id> --status`. The
-// script lives behind a symlink, so it needs `--preserve-symlinks-main` to
-// resolve the repo root (same reason the agent prompts use it). Best-effort: if
-// the card is gone (archived) or the script is missing, the write just no-ops.
-function setCardStatus(cardId: number, status: CardStatus): void {
+// The board script owns every frontmatter field, so the UI never hand-writes
+// one — it shells out. The script lives behind a symlink, so it needs
+// `--preserve-symlinks-main` to resolve the repo root (same reason the agent
+// prompts use it). Best-effort: if the card is gone (archived) or the script
+// isn't installed, the call just no-ops.
+function board(args: string[]): void {
   const script = path.join(repoRoot(), ".claude", "skills", "kanban", "kanban.mjs");
   try {
-    execFileSync(
-      process.execPath,
-      ["--preserve-symlinks-main", script, "update", String(cardId), "--status", status],
-      { cwd: repoRoot(), stdio: "ignore" },
-    );
+    execFileSync(process.execPath, ["--preserve-symlinks-main", script, ...args], {
+      cwd: repoRoot(),
+      stdio: "ignore",
+    });
   } catch {
-    // card removed, or script not installed — leave the field as-is
+    // card removed, or script not installed — leave the board as-is
   }
+}
+
+function setCardStatus(cardId: number, status: CardStatus): void {
+  board(["update", String(cardId), "--status", status]);
+}
+
+// Recording a recurring run is the board's own bookkeeping, not part of the job
+// the card describes — so the UI does it at the end of the session rather than
+// asking the agent to call `run` on itself mid-flow. The stamp is what the
+// cadence counts from, and leaving the harness's scheduling state for the agent
+// to advance meant a run that died on the last step left the card frozen.
+//
+// Only a run that PASSED is recorded. A failed, stopped or interrupted session
+// never reached the end of the `## Process`, so `last_run` stays where it was
+// and the card is still due — and the dispatcher's already-started guard (see
+// dueRecurring) is what keeps that from respawning it every minute until a
+// person looks at it.
+//
+// Called from finish() while the index lock is still held, because `run` bumps
+// metrics.csv and rewrites the README index — the very files that lock covers.
+function recordRun(session: Session): void {
+  if (session.action !== "run" || session.cardId === null || session.status !== "done") return;
+  board(["run", String(session.cardId)]);
 }
 
 // When an implement session ends and its card still exists, restore the stage it
@@ -1145,6 +1167,7 @@ function finish(
   // log, so the two records can't drift apart.
   session.endedAt = res.endedAt ?? Date.now();
   clearSessionStatus(session);
+  recordRun(session);
   // Prune old logs first, then persist — so the saved "last session log" records
   // only ever point at files that still exist (task #14).
   pruneLogs();

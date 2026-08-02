@@ -149,15 +149,16 @@ export function cmdInit(args) {
       const done = scaffoldMemoryPath(m)
       if (done) scaffolded.push(done)
     }
-    // A board made before the `reviewed:` field gets it here, seeded weak.
-    const goalRepaired = ensureGoalReviewed()
+    // A goal written by an older version: the seeded text goes, and a goal with words in
+    // it stops reading as one nobody wrote.
+    const goalRepaired = repairGoal()
     console.log(
       added.length
         ? `board already exists at ${rel(KANBAN)}/ — added the missing ${added.join(', ')} (safe to re-run)`
         : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length || goalRepaired ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
     )
     for (const s of scaffolded) console.log(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
-    if (goalRepaired) console.log(`  added \`reviewed: weak\` to ${rel(GOAL)} — the agent judges the goal and edits the field`)
+    if (goalRepaired) console.log(`  ${rel(GOAL)}: ${goalRepaired} — the agent judges the goal and edits the field`)
     if (added.includes(rel(MODULES_MD))) {
       console.log(`  next: fill in ${rel(MODULES_MD)} (see "The module map"), then re-run init for the memory paths`)
     }
@@ -203,16 +204,39 @@ export function cmdMemoryInit(module) {
 
 // ---- goal review -----------------------------------------------------------
 //
-// `goal.md`'s frontmatter carries one machine-readable field: `reviewed: strong | good | weak`
-// — whether the goal is clear enough to plan from. The agent judges and edits the field
-// itself; this script only seeds it (`init`'s scaffold and repair), never sets a judged
-// value. Reading never fails: a missing file, a missing field, or a bad value all count
-// as `weak`, and the board keeps working either way.
+// `goal.md`'s frontmatter carries one machine-readable field:
+// `reviewed: strong | good | pending | weak` — whether the goal is clear enough to plan
+// from. `strong`, `good` and `weak` are the agent's judgment, and only the agent writes
+// them. `pending` is not a judgment: it says a goal is written and nobody has judged it
+// yet, and it is what the script and the local UI seed on a goal that has words in it.
+// Everything but `weak` means "don't ask the user for a goal" — nagging someone for work
+// they just did is the one thing this field must never do.
 
-const GOAL_REVIEW_VALUES = ['strong', 'good', 'weak']
+const GOAL_REVIEW_VALUES = ['strong', 'good', 'pending', 'weak']
 
-// The value as written, or null when the file has no valid field — the init repair
-// reads null as "add the field"; everyone else reads it as weak.
+// The body older versions seeded into a fresh `goal.md` — the script's wording, then the
+// local UI's. A goal that still holds one of these, whitespace aside, is a goal nobody has
+// written: the repair below clears it, so the file the user opens is empty.
+const SEEDED_GOAL_BODIES = [
+  `# Goal
+
+Where this is headed, in the user's own words: the long-term goal, the horizon it aims
+at, and the roadmap of what comes next, roughly in order. Not this week's work — that's
+the cards on the board. The user owns this file; the agent seeds it but does not invent
+the goal.
+
+_(not filled in yet — the user writes this.)_`,
+  `# Goal
+
+The direction, in the user's own words — where this is headed. One short statement. The
+user owns this file; the agent seeds it but does not invent the goal.
+
+_(not filled in yet — the user writes this.)_`,
+]
+
+// The value as written, or null when the file has no valid field — the repair below reads
+// null as "the field needs writing"; everyone else reads it as weak on an empty goal and
+// as unjudged on a written one.
 function readGoalReviewFrom(text) {
   const fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---/)
   const line = fm && fm[1].match(/^reviewed:[ \t]*(.+?)[ \t]*$/m)
@@ -232,13 +256,37 @@ function writeGoalReviewInto(text, value) {
   return `---\n${inner}---${text.slice(fm[0].length)}`
 }
 
-// The `reviewed:` field arrived after boards existed. `init`'s repair pass adds it to a
-// goal.md that lacks it — seeded `weak`, exactly what the missing field already reads
-// as — and never touches a value that's set, so a judged goal survives a re-run.
-function ensureGoalReviewed() {
-  if (!fs.existsSync(GOAL)) return false
+// The goal file as it stands: its body below the frontmatter, and whether that body is
+// the user's own words. A body that is empty — or still one of the seeded blocks older
+// versions wrote — is nobody's goal.
+function readGoalBody(text) {
+  const body = text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '')
+  const flat = (s) => s.trim().replace(/\s+/g, ' ')
+  const seeded = SEEDED_GOAL_BODIES.some((s) => flat(s) === flat(body))
+  return { body, seeded, written: !seeded && body.trim() !== '' }
+}
+
+// Bring an older board's `goal.md` up to date, without ever touching a goal the user
+// wrote. Three repairs, all mechanical:
+//
+//   - a body that is still the seeded block is emptied — it was never a goal, and it is
+//     text the user would have to delete before writing their own,
+//   - a goal with words in it gets `reviewed: pending` unless the agent already judged it
+//     `good` or `strong`, so an upgrade never leaves an already-written goal asking to be
+//     written. The next propose run re-judges it,
+//   - a goal with nothing in it gets `reviewed: weak`, which is what a missing field
+//     already reads as.
+//
+// Returns what it did, for `init` to report; null when there was nothing to repair.
+function repairGoal() {
+  if (!fs.existsSync(GOAL)) return null
   const text = fs.readFileSync(GOAL, 'utf8')
-  if (readGoalReviewFrom(text)) return false
-  fs.writeFileSync(GOAL, writeGoalReviewInto(text, 'weak'))
-  return true
+  const { body, seeded, written } = readGoalBody(text)
+  const current = readGoalReviewFrom(text)
+  const value = written ? (current === 'good' || current === 'strong' ? current : 'pending') : 'weak'
+  if (!seeded && value === current) return null
+  const kept = seeded ? text.slice(0, text.length - body.length) : text
+  fs.writeFileSync(GOAL, writeGoalReviewInto(kept, value))
+  if (seeded) return 'cleared the seeded text — the goal starts empty, in the user\'s own words'
+  return `set \`reviewed: ${value}\``
 }

@@ -74,9 +74,9 @@ job, not the user's.
 - **Is `pending` a new status?** — No. The statuses are the fixed three, `todo` / `ready` /
   `implementing`, in the script and the UI alike, and the queue view groups by them — a
   fourth would drop the card out of the ready half. Scheduling gets its own field, the way
-  a cadence does on #139.
+  a recurring card's cadence does.
 - **Does the run need the auto-implement switch (#16)?** — No, and it does not wait for
-  that card. #139 settled the same shape: a per-card opt-in is its own switch, and the
+  that card. The recurring cadence settled the same shape: a per-card opt-in is its own switch, and the
   global one stays about refining. #16 needs a stop rule because it picks card after card;
   this fires one run for one card the user picked, and the mark clears when it starts.
 - **Can a rough card be scheduled?** — No, ready only. `ready` already means a concrete

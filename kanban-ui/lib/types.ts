@@ -47,6 +47,12 @@ export interface CardMeta {
    *  Read-only in the UI, like `modules`; both frontmatter serializers keep it,
    *  so an edit in between can't erase it. */
   last_run: string;
+  /** How often this card repeats — `30m`, `6h`, `1d at 09:30` (#139). Recurring
+   *  cards only, and optional there: empty means the card runs when someone
+   *  clicks Run and never on its own. Written by the card page's cadence
+   *  control and by `kanban update --cadence`; kept exactly as the file has it,
+   *  since reading it is lib/cadence.ts's job. */
+  cadence: string;
 }
 
 /** A pointer to another card — just enough to show a link. */
@@ -87,6 +93,12 @@ export interface Card extends CardMeta {
    *  has no end state), and no refine (its `## Process` has no todo boxes to
    *  sharpen toward `ready`). */
   recurring: boolean;
+  /** When this card comes round again, ready to print: a `YYYY-MM-DD HH:MM`
+   *  stamp, or "Due now" when the wait is already over (#139). Empty on a card
+   *  with no cadence — nothing will start it but a person — and on every
+   *  one-shot card. Worked out on the server, whose clock is the one the
+   *  schedule runs on. */
+  nextRun: string;
   /** The `blocked_by` ids that still point at an open card, so this card really
    *  is blocked. An id no longer on the board was archived or rejected and
    *  blocks nothing; a recurring card never closes, so it is skipped too, as is
@@ -156,17 +168,16 @@ export interface Board {
    *  in the board's dropdown (#104) is the one `release list` prints. A release
    *  with nothing open in it is absent, not zero. */
   releaseCounts: Record<string, number>;
-  /** True when `memory/goal.md`'s `reviewed:` field says the goal isn't clear
-   *  enough to plan from (a missing file or field reads weak too). With no
-   *  checklist left it is the whole setup bar — one item, the goal — since the
-   *  agent can judge the goal weak again long after setup. */
-  goalWeak: boolean;
+  /** True when the board should ask for a goal: `memory/goal.md` is missing or
+   *  empty, or the agent judged what's in it `weak` (#108). A goal the user just
+   *  wrote never counts — no agent runs on a save, so the board would be asking
+   *  for work already done. With no checklist left this is the whole setup bar —
+   *  one item, the goal — since the agent can judge a goal weak again long after
+   *  setup. */
+  goalNeedsWork: boolean;
   /** True when `memory/goal.md` holds the user's own words — so the header's
-   *  goal button has something to open (#128). A missing file, an empty one, or
-   *  one still carrying the seeded text reads false, and the setup bar is what
-   *  asks for the goal in that state. Deliberately not `!goalWeak`: that field
-   *  is the agent's judgment, and a goal just written is readable before the
-   *  next agent run re-judges it. */
+   *  goal button has something to open (#128). A missing or empty file reads
+   *  false, and the setup bar is what asks for the goal in that state. */
   goalWritten: boolean;
   /** Setup's checklist while it exists, null once setup deleted it. Drives the
    *  setup bar above the board; the board itself works either way. */

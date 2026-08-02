@@ -122,8 +122,9 @@ export async function getSessionAction(sessionId: string): Promise<SessionView |
 }
 
 // The goal editor behind the setup bar (#53, #85). Reading returns the user's
-// words (template body when goal.md doesn't exist yet); saving writes them back
-// with the frontmatter — the agent's `reviewed:` field — untouched.
+// words (an empty box when goal.md doesn't exist yet); saving writes them back
+// and marks the goal `reviewed: pending` — written, and waiting on the agent's
+// judgment (#108).
 export async function getGoalAction(): Promise<string> {
   return readGoalText();
 }

@@ -24,7 +24,7 @@ the unstick flow (#118).
   helps nobody. The cap lives in the card's process, so a run can tune it.
 - The run's proposals land as open questions and board changes the user can review,
   like any other agent work.
-- With a cadence set, the dispatcher runs the sweep in the background (#139). Without
+- With a cadence set, the dispatcher runs the sweep in the background. Without
   one, the user runs it by hand with the card's Run button.
 
 ## Todo

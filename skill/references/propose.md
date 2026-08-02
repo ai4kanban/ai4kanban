@@ -13,6 +13,10 @@ one focus close a gap, scattered ideas just skim the product.
   where memory says users stumble most.
 - Read its memory set at `docs/kanban/memory/<module>/` (see "The memory set" in
   `SKILL.md`) and `docs/kanban/memory/goal.md` for the direction.
+- Judge goal.md while you have it open and set its `reviewed:` field (`strong | good |
+  weak`) — you are the only judge of it, this is the run that re-judges it, and it takes
+  no question to the user. Then propose either way: a weak goal makes proposals guesses,
+  not something to stop for.
 - Run `${KB} list --module <module>` — every open card tagged with the focus module, so
   you don't re-propose planned work.
 

@@ -2,7 +2,7 @@
 
 ## Skill Writing
 
-Add minimal, only necessary information to SKILL.md. The context is precious.
+Add minimal, only necessary information to SKILL.md and references/*.md. The context is precious.
 
 ## The public site
 

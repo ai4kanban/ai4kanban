@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { CADENCE_FORMS, formatCadence, parseCadence } from "./cadence";
 import { normalizeRelease, parseFrontmatter, serializeFrontmatter } from "./frontmatter";
 import { readmePath, todoDir } from "./paths";
 import { readReleases } from "./releases";
@@ -77,6 +78,10 @@ export interface CardPatch {
   /** A version id from `releases.md`, or empty to take the card out of a
    *  release. Nothing else is accepted — see patchCard. */
   release?: string;
+  /** How often a recurring card repeats (#139) — one of lib/cadence.ts's forms,
+   *  or empty to take the cadence off and leave the card running only when
+   *  someone clicks Run. Recurring cards only. */
+  cadence?: string;
 }
 
 export interface PatchResult {
@@ -84,7 +89,7 @@ export interface PatchResult {
   error?: string;
 }
 
-// Apply a direct edit to a card file. Only the five validated fields are
+// Apply a direct edit to a card file. Only the validated fields of CardPatch are
 // writable here — everything else (track, id, links, questions) stays with the
 // agents and the script. Frontmatter is re-serialized with the script's exact
 // formatter so the diff is minimal and the script can still read the card.
@@ -132,6 +137,19 @@ export function patchCard(id: number, patch: CardPatch): PatchResult {
       };
     }
     meta.release = release;
+  }
+  // The cadence, written the same way the script writes it (#139): only a card
+  // that repeats can carry one, and only in a form the scheduler can read — a
+  // half-parsed line would look like a schedule and never run. Empty clears it,
+  // which is how a card goes back to running only when someone clicks Run.
+  if (patch.cadence !== undefined) {
+    if (path.relative(todoDir(), file).split(path.sep)[0] !== "recurring") {
+      return { ok: false, error: `#${id} is not a recurring card — only a card that repeats can have a cadence` };
+    }
+    const text = patch.cadence.trim();
+    const parsed = text ? parseCadence(text) : null;
+    if (text && !parsed) return { ok: false, error: `"${text}" isn't a cadence. Accepted: ${CADENCE_FORMS}` };
+    meta.cadence = parsed ? formatCadence(parsed) : "";
   }
 
   const newBody = patch.body !== undefined ? patch.body : body;

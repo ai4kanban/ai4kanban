@@ -77,8 +77,8 @@ npx ai4kanban install --tracks feature,bug,research
 
 That copies the skill into your project and scaffolds the board under `docs/kanban/`. The
 agent then fills in the configuration, asks for your project goal — the one thing setup
-asks — settles the first decisions from it, writes the module map, and creates your first
-ten tasks. Both your config and your board live in `docs/kanban/` — the skill folder holds
+asks — settles the first decisions from it, maps the project's modules, files each
+decision under the module it belongs to, and creates your first ten tasks. Both your config and your board live in `docs/kanban/` — the skill folder holds
 only generic code. From then on you just talk to the board.
 
 To update later, one command again:

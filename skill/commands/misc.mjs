@@ -10,6 +10,7 @@ import { die, rel, TODO } from '../lib/paths.mjs'
 import { bumpMetric } from '../lib/metrics.mjs'
 import { parseFlags, slugify, LEVELS } from '../lib/validate.mjs'
 import { parseFrontmatter, serializeFrontmatter } from '../lib/frontmatter.mjs'
+import { formatStamp, nextDue } from '../lib/cadence.mjs'
 import { walkMd, locate, isRecurringCard } from '../lib/cards.mjs'
 import { reconcileBoard } from '../lib/reconcile.mjs'
 
@@ -76,15 +77,6 @@ export function cmdMigrate(args) {
   console.log(`\n${dry ? '(dry run) ' : ''}${changed} card(s) ${dry ? 'to migrate' : 'migrated'}, ${skipped} already frontmatter`)
 }
 
-// The minute a run happened, as the card records it: `2026-08-02 14:31`, local time.
-// To the minute, not the day — a recurring card can run several times a day, and a
-// cadence set to the minute needs a stamp that can say so.
-function runStamp() {
-  const d = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
 export function cmdRun(id) {
   if (!Number.isInteger(id)) die('need a numeric task id')
   const found = locate(id)
@@ -92,16 +84,22 @@ export function cmdRun(id) {
   if (!isRecurringCard(found)) {
     die(`#${id} is not recurring (${found.rel} is not under recurring/). Use \`archive\` for one-shot tasks.`)
   }
-  // Stamp when the card ran, so the board can say when it last did instead of
-  // making someone read the run files for a date.
+  // Records one pass of a recurring card. The local UI calls this itself at the end
+  // of a run session, so a card run from the board never needs anyone to remember
+  // it — this is for a pass done by hand, outside the board.
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
   if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
-  const stamp = runStamp()
+  // To the minute, not the day — a recurring card can run several times a day, and
+  // a cadence set to the minute needs a stamp that can say so.
+  const stamp = formatStamp(new Date())
   meta.last_run = stamp
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
   bumpMetric('completed')
   console.log(`ran #${id} at ${stamp}: +1 completed (card kept — recurring)`)
-  console.log('  next: fold this run into the card\'s ## Process; log unrepeatable asks in its open-questions file')
+  // The stamp is what the schedule counts from, so say when the card comes round
+  // again — or that nothing will start it but a person.
+  const due = nextDue(meta.last_run, meta.cadence)
+  console.log(due ? `  next due ${formatStamp(due)} (cadence ${meta.cadence})` : '  no cadence — this card runs only when you run it')
   reconcileBoard()
 }

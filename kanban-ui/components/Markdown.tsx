@@ -4,6 +4,7 @@ import Link from "next/link";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { SKIP, visit } from "unist-util-visit";
+import { useOpenIds } from "./open-ids";
 
 // react-markdown strips URLs with unknown protocols, which would drop our
 // `card:<id>` scheme. Let those through; sanitize everything else as usual.
@@ -49,16 +50,10 @@ function remarkCardLinks(openIds: Set<number>) {
   };
 }
 
-export function Markdown({
-  body,
-  openIds = [],
-  className,
-}: {
-  body: string;
-  openIds?: number[];
-  className?: string;
-}) {
-  const ids = new Set(openIds);
+export function Markdown({ body, className }: { body: string; className?: string }) {
+  // Every markdown body on a page linkifies against the same set — see
+  // OpenIdsProvider for why this is context rather than a prop.
+  const ids = useOpenIds();
   return (
     <div className={className ? `nb-md ${className}` : "nb-md"}>
       <ReactMarkdown

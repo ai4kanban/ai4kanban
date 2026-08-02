@@ -31,6 +31,7 @@ import {
   SessionLog,
 } from "./agent-shared";
 import {
+  CadenceSelect,
   LevelSelect,
   ModuleChip,
   QuestionTagBadge,
@@ -42,6 +43,7 @@ import {
 import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
 import { canRefine } from "@/lib/refine";
 import { Markdown } from "./Markdown";
+import { OpenIdsProvider } from "./open-ids";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
@@ -239,286 +241,312 @@ export function CardPage({
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-nb-cream">
-      <Header
-        agent={agent}
-        projectRoot={projectRoot}
-        autoRefine={autoRefine}
-        autoRefineParallelism={autoRefineParallelism}
-        sessions={sessions}
-        onError={setError}
-        goalWritten={goalWritten}
-      />
+    <OpenIdsProvider ids={openIds}>
+      <div className="flex min-h-screen flex-col bg-nb-cream">
+        <Header
+          agent={agent}
+          projectRoot={projectRoot}
+          autoRefine={autoRefine}
+          autoRefineParallelism={autoRefineParallelism}
+          sessions={sessions}
+          onError={setError}
+          goalWritten={goalWritten}
+        />
 
-      <main className="mx-auto w-full max-w-[840px] px-6 py-6">
-        {error && (
-          <div className="nb-panel-sm mb-4 p-3 text-[13px]" style={{ background: "var(--color-nb-peach-soft)" }}>
-            {error}
+        <main className="mx-auto w-full max-w-[840px] px-6 py-6">
+          {error && (
+            <div className="nb-panel-sm mb-4 p-3 text-[13px]" style={{ background: "var(--color-nb-peach-soft)" }}>
+              {error}
+            </div>
+          )}
+
+          {/* part of a group — link up to the tracking root */}
+          {card.parent && (
+            <Link
+              href={`/${card.parent.id}`}
+              className="mb-2 inline-flex items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-accent-deep"
+            >
+              <FiCornerLeftUp className="text-[13px]" aria-hidden />
+              Part of #{card.parent.id} {card.parent.title}
+            </Link>
+          )}
+
+          {/* title band — the card's one mark rides beside the title: a live
+              session's badge while busy, otherwise the saved stage (nothing while
+              `todo`). Never both. */}
+          <div className="mb-4 flex flex-wrap items-center gap-x-2.5 gap-y-2">
+            <span className="shrink-0 text-[20px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
+              #{card.id}
+            </span>
+            <h1 className="text-[20px] font-[800] tracking-[-0.02em] leading-tight">{card.title}</h1>
+            {busy ? (
+              <RunningBadge label={liveSession ? `${RUNNING_VERB[liveSession.action]} this card…` : "working…"} />
+            ) : (
+              card.status !== "todo" && <StatusPill status={card.status} detailed />
+            )}
           </div>
-        )}
 
-        {/* part of a group — link up to the tracking root */}
-        {card.parent && (
-          <Link
-            href={`/${card.parent.id}`}
-            className="mb-2 inline-flex items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-accent-deep"
-          >
-            <FiCornerLeftUp className="text-[13px]" aria-hidden />
-            Part of #{card.parent.id} {card.parent.title}
-          </Link>
-        )}
-
-        {/* title band — the card's one mark rides beside the title: a live
-            session's badge while busy, otherwise the saved stage (nothing while
-            `todo`). Never both. */}
-        <div className="mb-4 flex flex-wrap items-center gap-x-2.5 gap-y-2">
-          <span className="shrink-0 text-[20px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
-            #{card.id}
-          </span>
-          <h1 className="text-[20px] font-[800] tracking-[-0.02em] leading-tight">{card.title}</h1>
-          {busy ? (
-            <RunningBadge label={liveSession ? `${RUNNING_VERB[liveSession.action]} this card…` : "working…"} />
-          ) : (
-            card.status !== "todo" && <StatusPill status={card.status} detailed />
-          )}
-        </div>
-
-        {/* toolbar — the state machine (visibleActions) decides which buttons
-            fit the card's state; busy still disables every one that shows. */}
-        <div className="mb-5 flex flex-wrap items-center gap-2">
-          {actions.has("implement") && (
-            <Button size="sm" disabled={busy} onClick={() => setDialog({ kind: "implement", card })}>
-              <FiPlay className="text-[15px]" aria-hidden />
-              Implement
-            </Button>
-          )}
-          {/* Run (#64) — Implement's place on a recurring card. Same ember CTA:
-              it is the one thing you came to this card to do. */}
-          {actions.has("run") && (
-            <Button
-              size="sm"
-              disabled={busy}
-              title="Do one pass of this recurring task now"
-              onClick={() => setDialog({ kind: "run", card })}
-            >
-              <FiPlay className="text-[15px]" aria-hidden />
-              Run
-            </Button>
-          )}
-          {/* Refine — the same run the board makes on its own, on demand. While
-              another run holds this card it's disabled like every other button,
-              and its tooltip names what that run is doing, so a second refine is
-              never a click away. (The server refuses one anyway — the poll behind
-              `busy` can be a second and a half old.) */}
-          {actions.has("refine") && (
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={busy}
-              title={
-                busy && liveSession
-                  ? `Already ${RUNNING_VERB[liveSession.action]} this card`
-                  : "Take this card's plan one step forward now"
-              }
-              onClick={() => setDialog({ kind: "refine", card })}
-            >
-              <FiFeather className="text-[15px]" aria-hidden />
-              Refine
-            </Button>
-          )}
-          {actions.has("edit") && (
-            <Button variant="ghost" size="sm" disabled={busy} onClick={() => setDialog({ kind: "edit", card })}>
-              <FiEdit2 className="text-[15px]" aria-hidden />
-              Edit
-            </Button>
-          )}
-          {actions.has("resolve") && (
-            <Button variant="ghost" size="sm" disabled={busy} onClick={() => setDialog({ kind: "resolve", card })}>
-              <FiHelpCircle className="text-[15px]" aria-hidden />
-              Resolve
-            </Button>
-          )}
-          {actions.has("archive") && (
-            <Button variant="ghost" size="sm" disabled={busy} onClick={() => setDialog({ kind: "archive", card })}>
-              <FiArchive className="text-[15px]" aria-hidden />
-              Archive
-            </Button>
-          )}
-          {actions.has("reject") && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-auto"
-              disabled={busy}
-              style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
-              onClick={() => setDialog({ kind: "reject", card })}
-            >
-              <FiXCircle className="text-[15px]" aria-hidden />
-              Reject
-            </Button>
-          )}
-        </div>
-
-        {/* Session log: the live tail while an agent works, and a re-openable view
-            of the last session's output afterwards. The full log stays in its file. */}
-        {latestSession && (
-          <div className="mb-4">
-            <SessionLog
-              session={sessionLog}
-              openIds={openIds}
-              collapsed={!busy && !showLog}
-              onToggle={busy ? undefined : () => setShowLog((v) => !v)}
-            />
-          </div>
-        )}
-
-        {/* meta box — stacked label/value columns in a flat outlined band; no
-            shadow, so it reads subordinate to the content panel below */}
-        <div className="nb-outline mb-4 flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-paper px-4 py-3">
-          <MetaItem label="Track">
-            <TrackChip track={card.track} />
-          </MetaItem>
-
-          {card.modules.length > 0 && (
-            <MetaItem label="Modules">
-              <span className="flex flex-wrap items-center gap-1.5">
-                {card.modules.map((m) => (
-                  <ModuleChip key={m} module={m} />
-                ))}
-              </span>
-            </MetaItem>
-          )}
-
-          {/* Release (#105) — the version this card ships in, picked from the
-              open releases plus a bare "—" for none. A board that plans no
-              versions says nothing about them at all, so the column is gone
-              rather than stuck on the dash; a card left pointing at a release
-              someone deleted from the list still shows its own value, so
-              nothing goes quiet. */}
-          {(releases.length > 0 || card.release !== NO_RELEASE) && (
-            <MetaItem label="Release">
-              <ReleaseSelect
-                value={card.release}
-                releases={releases}
+          {/* toolbar — the state machine (visibleActions) decides which buttons
+              fit the card's state; busy still disables every one that shows. */}
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            {actions.has("implement") && (
+              <Button size="sm" disabled={busy} onClick={() => setDialog({ kind: "implement", card })}>
+                <FiPlay className="text-[15px]" aria-hidden />
+                Implement
+              </Button>
+            )}
+            {/* Run (#64) — Implement's place on a recurring card. Same ember CTA:
+                it is the one thing you came to this card to do. */}
+            {actions.has("run") && (
+              <Button
+                size="sm"
                 disabled={busy}
-                onChange={(v) => patchCard(card.id, { release: v })}
+                title="Do one pass of this recurring task now"
+                onClick={() => setDialog({ kind: "run", card })}
+              >
+                <FiPlay className="text-[15px]" aria-hidden />
+                Run
+              </Button>
+            )}
+            {/* Refine — the same run the board makes on its own, on demand. While
+                another run holds this card it's disabled like every other button,
+                and its tooltip names what that run is doing, so a second refine is
+                never a click away. (The server refuses one anyway — the poll behind
+                `busy` can be a second and a half old.) */}
+            {actions.has("refine") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busy}
+                title={
+                  busy && liveSession
+                    ? `Already ${RUNNING_VERB[liveSession.action]} this card`
+                    : "Take this card's plan one step forward now"
+                }
+                onClick={() => setDialog({ kind: "refine", card })}
+              >
+                <FiFeather className="text-[15px]" aria-hidden />
+                Refine
+              </Button>
+            )}
+            {actions.has("edit") && (
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => setDialog({ kind: "edit", card })}>
+                <FiEdit2 className="text-[15px]" aria-hidden />
+                Edit
+              </Button>
+            )}
+            {actions.has("resolve") && (
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => setDialog({ kind: "resolve", card })}>
+                <FiHelpCircle className="text-[15px]" aria-hidden />
+                Resolve
+              </Button>
+            )}
+            {actions.has("archive") && (
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => setDialog({ kind: "archive", card })}>
+                <FiArchive className="text-[15px]" aria-hidden />
+                Archive
+              </Button>
+            )}
+            {actions.has("reject") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto"
+                disabled={busy}
+                style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
+                onClick={() => setDialog({ kind: "reject", card })}
+              >
+                <FiXCircle className="text-[15px]" aria-hidden />
+                Reject
+              </Button>
+            )}
+          </div>
+
+          {/* Session log: the live tail while an agent works, and a re-openable view
+              of the last session's output afterwards. The full log stays in its file. */}
+          {latestSession && (
+            <div className="mb-4">
+              <SessionLog
+                session={sessionLog}
+                collapsed={!busy && !showLog}
+                onToggle={busy ? undefined : () => setShowLog((v) => !v)}
               />
-            </MetaItem>
-          )}
-
-          <MetaItem label="Priority">
-            <LevelSelect value={card.priority} disabled={busy} onChange={(v) => patchCard(card.id, { priority: v })} />
-          </MetaItem>
-
-          <MetaItem label="ROI">
-            <LevelSelect value={card.roi} disabled={busy} onChange={(v) => patchCard(card.id, { roi: v })} />
-          </MetaItem>
-
-          {total > 0 && (
-            <MetaItem label="Todos">
-              <TodoProgress done={done} total={total} width={90} />
-            </MetaItem>
-          )}
-
-          {/* When this job last ran (#64) — recurring cards only, since it is the
-              one card that has a "last time". A card that has never run says so
-              in words rather than showing a dash: never run is a real state, and
-              the Run button beside it is what changes it. */}
-          {card.recurring && (
-            <MetaItem label="Last run">
-              <span className="text-[12.5px] font-[700] tabular-nums text-nb-ink-soft">
-                {card.last_run || "Never run"}
-              </span>
-            </MetaItem>
-          )}
-
-          {card.blocked_by.length > 0 && (
-            <MetaItem label="Blocked by">
-              {card.blocked_by.map((n) => (
-                <Link
-                  key={n}
-                  href={`/${n}`}
-                  className="nb-chip"
-                  style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
-                >
-                  #{n}
-                </Link>
-              ))}
-            </MetaItem>
-          )}
-
-          {card.related.length > 0 && (
-            <MetaItem label="Related">
-              {card.related.map((n) => (
-                <Link
-                  key={n}
-                  href={`/${n}`}
-                  className="nb-chip"
-                  style={{ background: "var(--color-nb-wash)", color: "var(--color-nb-ink-soft)" }}
-                >
-                  #{n}
-                </Link>
-              ))}
-            </MetaItem>
-          )}
-        </div>
-
-        {card.subtasks && card.subtasks.length > 0 && (
-          <div className="nb-outline mb-4 bg-nb-paper p-3">
-            <div className="nb-tag mb-2">
-              <span style={{ color: "var(--color-nb-accent)" }}>●</span>
-              subtasks
             </div>
-            <ul className="flex flex-col gap-1.5">
-              {card.subtasks.map((s) => (
-                <li key={s.id}>
+          )}
+
+          {/* meta box — stacked label/value columns in a flat outlined band; no
+              shadow, so it reads subordinate to the content panel below */}
+          <div className="nb-outline mb-4 flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-paper px-4 py-3">
+            <MetaItem label="Track">
+              <TrackChip track={card.track} />
+            </MetaItem>
+
+            {card.modules.length > 0 && (
+              <MetaItem label="Modules">
+                <span className="flex flex-wrap items-center gap-1.5">
+                  {card.modules.map((m) => (
+                    <ModuleChip key={m} module={m} />
+                  ))}
+                </span>
+              </MetaItem>
+            )}
+
+            {/* Release (#105) — the version this card ships in, picked from the
+                open releases plus a bare "—" for none. A board that plans no
+                versions says nothing about them at all, so the column is gone
+                rather than stuck on the dash; a card left pointing at a release
+                someone deleted from the list still shows its own value, so
+                nothing goes quiet. */}
+            {(releases.length > 0 || card.release !== NO_RELEASE) && (
+              <MetaItem label="Release">
+                <ReleaseSelect
+                  value={card.release}
+                  releases={releases}
+                  disabled={busy}
+                  onChange={(v) => patchCard(card.id, { release: v })}
+                />
+              </MetaItem>
+            )}
+
+            <MetaItem label="Priority">
+              <LevelSelect value={card.priority} disabled={busy} onChange={(v) => patchCard(card.id, { priority: v })} />
+            </MetaItem>
+
+            <MetaItem label="ROI">
+              <LevelSelect value={card.roi} disabled={busy} onChange={(v) => patchCard(card.id, { roi: v })} />
+            </MetaItem>
+
+            {total > 0 && (
+              <MetaItem label="Todos">
+                <TodoProgress done={done} total={total} width={90} />
+              </MetaItem>
+            )}
+
+            {/* When this job last ran (#64) — recurring cards only, since it is the
+                one card that has a "last time". A card that has never run says so
+                in words rather than showing a dash: never run is a real state, and
+                the Run button beside it is what changes it. */}
+            {card.recurring && (
+              <MetaItem label="Last run">
+                <span className="text-[12.5px] font-[700] tabular-nums text-nb-ink-soft">
+                  {card.last_run || "Never run"}
+                </span>
+              </MetaItem>
+            )}
+
+            {/* How often it repeats (#139), and when that lands next. Writing a
+                cadence is the opt-in to background runs: with one, the board
+                starts this job itself when it comes due; without one, only the
+                Run button above does. The next time is beside the last one
+                because the pair is the whole schedule — where it just was, and
+                where it goes next — and it is gone when there is no cadence to
+                work it out from. Both are the server's local time. */}
+            {card.recurring && (
+              <MetaItem label="Cadence">
+                <CadenceSelect
+                  value={card.cadence}
+                  disabled={busy}
+                  onChange={(v) => patchCard(card.id, { cadence: v })}
+                />
+              </MetaItem>
+            )}
+
+            {card.recurring && card.nextRun && (
+              <MetaItem label="Next run">
+                <span className="text-[12.5px] font-[700] tabular-nums text-nb-ink-soft">
+                  {card.nextRun}
+                </span>
+              </MetaItem>
+            )}
+
+            {card.blocked_by.length > 0 && (
+              <MetaItem label="Blocked by">
+                {card.blocked_by.map((n) => (
                   <Link
-                    href={`/${s.id}`}
-                    className="nb-press flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 hover:bg-nb-wash"
+                    key={n}
+                    href={`/${n}`}
+                    className="nb-chip"
+                    style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
                   >
-                    <span className="shrink-0 text-[12px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
-                      #{s.id}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[13.5px] font-[700] leading-snug">{s.title}</span>
-                    {s.todos.total > 0 && <TodoProgress done={s.todos.done} total={s.todos.total} />}
-                    <FiChevronRight className="shrink-0 text-[14px] text-nb-ink-soft" aria-hidden />
+                    #{n}
                   </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+                ))}
+              </MetaItem>
+            )}
 
-        {card.questions.length > 0 && (
-          <div className="nb-outline mb-3 p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
-            <div className="nb-tag mb-2">
-              <span style={{ color: "var(--color-nb-accent)" }}>?</span> open questions
-            </div>
-            {/* The marker leads the question inline rather than sitting in its own
-                column: questions here run several lines, and a marker column holds
-                that width open for all of them — a blank gutter beside every line
-                but the first. Inline, the text wraps back under the marker. */}
-            <ul className="flex flex-col gap-2.5 text-[13px] leading-[19px]">
-              {card.questions.map((q, i) => {
-                const { tag, text } = parseQuestion(q.text);
-                return (
-                  <li key={i}>
-                    <QuestionTagBadge tag={tag} />
-                    {text}
-                    {hasOptions(q) && <QuestionOptions question={q} />}
+            {card.related.length > 0 && (
+              <MetaItem label="Related">
+                {card.related.map((n) => (
+                  <Link
+                    key={n}
+                    href={`/${n}`}
+                    className="nb-chip"
+                    style={{ background: "var(--color-nb-wash)", color: "var(--color-nb-ink-soft)" }}
+                  >
+                    #{n}
+                  </Link>
+                ))}
+              </MetaItem>
+            )}
+          </div>
+
+          {card.subtasks && card.subtasks.length > 0 && (
+            <div className="nb-outline mb-4 bg-nb-paper p-3">
+              <div className="nb-tag mb-2">
+                <span style={{ color: "var(--color-nb-accent)" }}>●</span>
+                subtasks
+              </div>
+              <ul className="flex flex-col gap-1.5">
+                {card.subtasks.map((s) => (
+                  <li key={s.id}>
+                    <Link
+                      href={`/${s.id}`}
+                      className="nb-press flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 hover:bg-nb-wash"
+                    >
+                      <span className="shrink-0 text-[12px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
+                        #{s.id}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[13.5px] font-[700] leading-snug">{s.title}</span>
+                      {s.todos.total > 0 && <TodoProgress done={s.todos.done} total={s.todos.total} />}
+                      <FiChevronRight className="shrink-0 text-[14px] text-nb-ink-soft" aria-hidden />
+                    </Link>
                   </li>
-                );
-              })}
-            </ul>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {card.questions.length > 0 && (
+            <div className="nb-outline mb-3 p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
+              <div className="nb-tag mb-2">
+                <span style={{ color: "var(--color-nb-accent)" }}>?</span> open questions
+              </div>
+              {/* The marker leads the question inline rather than sitting in its own
+                  column: questions here run several lines, and a marker column holds
+                  that width open for all of them — a blank gutter beside every line
+                  but the first. Inline, the text wraps back under the marker. */}
+              <ul className="flex flex-col gap-2.5 text-[13px] leading-[19px]">
+                {card.questions.map((q, i) => {
+                  const { tag, text } = parseQuestion(q.text);
+                  return (
+                    <li key={i}>
+                      <QuestionTagBadge tag={tag} />
+                      {text}
+                      {hasOptions(q) && <QuestionOptions question={q} />}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          <div className="nb-panel-sm p-5">
+            <Markdown body={card.body} />
           </div>
-        )}
+        </main>
 
-        <div className="nb-panel-sm p-5">
-          <Markdown body={card.body} openIds={openIds} />
-        </div>
-      </main>
-
-      {dialog && <ActionDialog dialog={dialog} onClose={() => setDialog(null)} onRun={runAgent} />}
-    </div>
+        {dialog && <ActionDialog dialog={dialog} onClose={() => setDialog(null)} onRun={runAgent} />}
+      </div>
+    </OpenIdsProvider>
   );
 }

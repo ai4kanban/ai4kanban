@@ -21,6 +21,8 @@ It does the whole mechanical part:
 - adds what an older version never wrote: `config.md`, `modules.md`, `releases.md` (empty —
   the board never guesses a ship order), a memory path for every module on the map, the
   goal's `reviewed:` field,
+- clears the paragraph older versions seeded into `docs/kanban/memory/goal.md` — the file
+  starts empty now — and never leaves a goal that is already written asking to be written,
 - moves a memory set still sitting at the board root into `docs/kanban/memory/`,
 - drops a leftover `docs/kanban/memory/<module>/goal.md` that says nothing the root goal
   doesn't (the goal lives at `docs/kanban/memory/goal.md` only),

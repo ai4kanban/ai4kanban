@@ -10,8 +10,9 @@ import type { Card } from "./types";
 //   • the card is recurring (#64) — it carries a `## Process`, not a build plan
 //     with todo boxes, and it never reaches `ready` because it is never finished
 //     at all. A refine would push it toward a state it has no way to reach. Its
-//     process is sharpened by RUNNING it instead: each run rewrites a step to
-//     need less of a human (references/recurring-task.md);
+//     questions are settled by RUNNING it instead: a run ends by handing them to
+//     a subagent that resolves them, the way auto-refine does, and is the ONLY
+//     thing that resolves these cards (references/recurring-task.md);
 //   • the card isn't `todo` — it's `ready` (the plan is already concrete) or
 //     being implemented, and neither is a plan waiting to be sharpened;
 //   • every todo is checked — that card is finished, not rough;

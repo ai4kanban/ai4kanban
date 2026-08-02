@@ -1,21 +1,26 @@
 import { buildPrompt, type AgentRequest } from "./agent";
 import { readBoard } from "./board";
+import { nextDue } from "./cadence";
 import { readAutoRefine, readAutoRefineParallelism } from "./config";
 import { canRefine } from "./refine";
 import { listSessions, startSession } from "./registry";
 import type { Card, SessionView } from "./types";
 
-// --- the auto-refine dispatcher (#43) ---------------------------------------
-// A background timer inside the local-UI server that refines cards on its own,
-// so the board runs itself without being asked. It is not the only way a refine
-// starts — the card page's Refine button (#99) runs the same thing on one card
-// on demand — but it is the one that needs no user at all.
+// --- the dispatcher (#43, #139) ---------------------------------------------
+// A background timer inside the local-UI server that works the board on its own,
+// so it runs without being asked. Two jobs on the one timer: it refines cards
+// that a refine would move (#43), and it runs the recurring cards whose cadence
+// has elapsed (#139). Neither is the only way that work starts — the card page's
+// Refine and Run buttons do the same thing on one card on demand — but these are
+// the ones that need no user at all.
 //
 // One process = one UI server, so a single timer pinned to globalThis is enough
-// (the same reason the session registry lives there). It wakes once a minute;
-// while the auto-refine switch is off, or while every refine slot is taken, a
-// tick does nothing. Otherwise it walks the cards that need refining, highest
-// priority first, and launches a session on each until the slots are full (#88).
+// (the same reason the session registry lives there). It wakes once a minute and
+// makes both passes. The refine pass: while the auto-refine switch is off, or
+// while every refine slot is taken, it does nothing; otherwise it walks the cards
+// that need refining, highest priority first, and launches a session on each
+// until the slots are full (#88). The recurring pass is below, and the switch
+// does not gate it — the cadence on the card is that pass's only switch.
 //
 // How many slots there are is the user's `autoRefineParallelism` setting, 1 by
 // default — so an untouched board still refines one card at a time. A tick fills
@@ -25,14 +30,18 @@ import type { Card, SessionView } from "./types";
 // last-write-wins; only create/propose/archive/reject serialize (see the index
 // lock in registry.ts).
 
-const TICK_MS = 60_000; // wake once a minute (#43: timed interval, 1 min per iteration)
+// Wake once a minute (#43: timed interval, 1 min per iteration). It is also the
+// floor under a cadence: a card set to repeat faster than the tick still runs
+// once a tick, since the tick is the only moment anything is started.
+const TICK_MS = 60_000;
 
 const LEVEL: Record<string, number> = { high: 0, med: 1, low: 2 };
 const level = (v: string): number => LEVEL[v] ?? 3; // unranked sorts after ranked
 
-// Highest priority first, then roi, then id — the order the dispatcher refines
-// cards in (all candidates are `todo`, so status doesn't enter the sort).
-function byRefineOrder(a: Card, b: Card): number {
+// Highest priority first, then roi, then id — the order the dispatcher takes
+// cards in, refine candidates and due recurring jobs alike (all candidates are
+// `todo`, so status doesn't enter the sort).
+function byDispatchOrder(a: Card, b: Card): number {
   return level(a.priority) - level(b.priority) || level(a.roi) - level(b.roi) || a.id - b.id;
 }
 
@@ -74,44 +83,119 @@ function stoppedByHand(sessions: SessionView[]): Set<number> {
   return skip;
 }
 
+// --- recurring runs (#139) --------------------------------------------------
+// The same minute timer also runs the recurring cards whose cadence has elapsed,
+// so a job that repeats actually repeats without anyone clicking Run.
+//
+// It has its own single slot, separate from the refine slots above: a refine
+// that is going must not hold back a job that is due, and a job that is still
+// running must not start a second copy of itself. One at a time, because a
+// recurring run does real work in the repo and two of them at once is a merge
+// nobody asked for.
+//
+// The auto-refine switch does not gate this. That switch is about refining; the
+// cadence written on the card is the only switch background runs have — no
+// cadence, no background run.
+
+// The newest `run` session on each card. Only run sessions count: this is asking
+// "has a pass already been started for the window the card is due in", and an
+// edit or a refine on the same card says nothing about that.
+function newestRuns(sessions: SessionView[]): Map<number, SessionView> {
+  const newest = new Map<number, SessionView>();
+  for (const r of sessions) {
+    if (r.cardId === null || r.action !== "run") continue;
+    const best = newest.get(r.cardId);
+    if (!best || r.startedAt > best.startedAt) newest.set(r.cardId, r);
+  }
+  return newest;
+}
+
+// The recurring cards that should run right now, highest priority first.
+//
+// Due is the cadence's own rule (lib/cadence.ts): a card that never ran is due
+// at once, otherwise the interval since `last_run` has to have passed.
+//
+// A card is passed over when a run for this very window has already been
+// started — the newest run on it began at or after the time it is due. That run
+// stopped, failed, or was cut off, because only a run that PASSES is recorded
+// (see recordRun) and recording moves `last_run` forward and with it the due
+// time. Without this rule a broken agent connector — every run failing in
+// seconds — would leave the card due on every tick and the board would spawn a
+// run a minute, forever. Starting it again is then a person's call: a manual Run
+// that passes puts the card back on its cadence.
+function dueRecurring(cards: Card[], sessions: SessionView[], busy: Set<number | null>): Card[] {
+  const newest = newestRuns(sessions);
+  const now = Date.now();
+  return cards
+    .filter((card) => {
+      if (!card.recurring || busy.has(card.id)) return false;
+      const due = nextDue(card.last_run, card.cadence);
+      if (!due || due.getTime() > now) return false;
+      const last = newest.get(card.id);
+      return !last || last.startedAt < due.getTime();
+    })
+    .sort(byDispatchOrder);
+}
+
+// Start the one due recurring card, if the recurring slot is free.
+function runDue(sessions: SessionView[], cards: Card[], busy: Set<number | null>): void {
+  const live = sessions.some((s) => s.status === "running" && s.action === "run");
+  if (live) return; // one recurring run at a time
+  const card = dueRecurring(cards, sessions, busy)[0];
+  if (!card) return;
+  const req: AgentRequest = { action: "run", id: card.id, title: card.title };
+  // The refine pass reads the same set right after, so a card this run just took
+  // is a card it leaves alone.
+  if (startSession(req, buildPrompt(req)).ok) busy.add(card.id);
+}
+
 // One dispatcher pass. Never throws — a bad tick (unreadable board, spawn
 // failure) must not kill the timer, so the next minute still tries.
 function tick(): void {
   try {
-    if (!readAutoRefine()) return; // switch off — nothing auto-runs
-
     const sessions = listSessions();
-    // Only refine runs use up a slot — a card the user is implementing by hand is
-    // other work and doesn't shrink the pool. A refine the user started from a
-    // card page (#99) DOES count: it never waited for a slot to be free, but
-    // while it runs it is one more agent refining, so the dispatcher starts one
-    // fewer. The setting bounds how many refines are going at once, whoever asked
-    // for them.
-    const live = sessions.filter((s) => s.status === "running" && s.action === "auto-refine").length;
-    const free = readAutoRefineParallelism() - live;
-    if (free <= 0) return; // every slot taken — wait for one to end
-
-    // A card already in any live session is skipped (startSession's per-card lock
-    // would refuse it anyway) so we move on to the next candidate.
+    const cards = readBoard().columns.flatMap((c) => c.cards);
+    // A card already in any live session is skipped (startSession's per-card
+    // lock would refuse it anyway) so we move on to the next candidate. Shared
+    // by both passes — a card being run is not a card to refine, and the other
+    // way round.
     const busy = new Set(
       sessions.filter((s) => s.status === "running" && s.cardId !== null).map((s) => s.cardId),
     );
-    const stopped = stoppedByHand(sessions);
-
-    const queue = readBoard()
-      .columns.flatMap((c) => c.cards)
-      .filter((card) => needsRefine(card) && !busy.has(card.id) && !stopped.has(card.id))
-      .sort(byRefineOrder)
-      .slice(0, free);
-
-    for (const card of queue) {
-      const req: AgentRequest = { action: "auto-refine", id: card.id, title: card.title };
-      // Each start is independently refused-or-not by the registry's locks; a
-      // refusal on one card is not a reason to skip the rest of the queue.
-      startSession(req, buildPrompt(req));
-    }
+    // Due jobs first: they were promised a time, and a refine is never in a
+    // hurry. Neither pass waits on the other — they have their own slots.
+    runDue(sessions, cards, busy);
+    if (readAutoRefine()) refineNext(sessions, cards, busy);
   } catch {
     // swallow — keep the timer alive for the next tick
+  }
+}
+
+// The auto-refine pass: fill every free refine slot with the cards a refine
+// would really move.
+function refineNext(sessions: SessionView[], cards: Card[], busy: Set<number | null>): void {
+  // Only refine runs use up a slot — a card the user is implementing by hand is
+  // other work and doesn't shrink the pool. A refine the user started from a
+  // card page (#99) DOES count: it never waited for a slot to be free, but
+  // while it runs it is one more agent refining, so the dispatcher starts one
+  // fewer. The setting bounds how many refines are going at once, whoever asked
+  // for them.
+  const live = sessions.filter((s) => s.status === "running" && s.action === "auto-refine").length;
+  const free = readAutoRefineParallelism() - live;
+  if (free <= 0) return; // every slot taken — wait for one to end
+
+  const stopped = stoppedByHand(sessions);
+
+  const queue = cards
+    .filter((card) => needsRefine(card) && !busy.has(card.id) && !stopped.has(card.id))
+    .sort(byDispatchOrder)
+    .slice(0, free);
+
+  for (const card of queue) {
+    const req: AgentRequest = { action: "auto-refine", id: card.id, title: card.title };
+    // Each start is independently refused-or-not by the registry's locks; a
+    // refusal on one card is not a reason to skip the rest of the queue.
+    startSession(req, buildPrompt(req));
   }
 }
 

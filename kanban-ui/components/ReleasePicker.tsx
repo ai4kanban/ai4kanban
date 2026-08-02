@@ -152,7 +152,11 @@ export function ReleasePicker({
         </Select>
         {/* The verbs that end the version on screen — only there, since they
             act on what is being looked at. Close leads: shipping is how a
-            version is meant to end, and giving up on it is the other answer. */}
+            version is meant to end, and giving up on it is the other answer.
+            The segment breaks the frame's sky ink for ember: three dots in the
+            same blue as the label beside them read as more of the label, and
+            the one place the board ends a release can't be the thing nobody
+            sees. */}
         {filtering && (
           <>
             <span aria-hidden className="mx-0.5 h-[18px] w-px shrink-0 bg-current opacity-30" />
@@ -162,7 +166,7 @@ export function ReleasePicker({
                   type="button"
                   aria-label={`What to do with ${value}`}
                   title={`What to do with ${value}`}
-                  className="inline-flex h-full cursor-pointer items-center rounded-[6px] px-1 text-inherit hover:bg-nb-ink/10 focus-visible:bg-nb-ink/10 focus-visible:outline-0 data-[state=open]:bg-nb-ink/10"
+                  className="inline-flex h-full cursor-pointer items-center rounded-[6px] px-1 text-nb-accent-deep hover:bg-nb-ink/10 focus-visible:bg-nb-ink/10 focus-visible:outline-0 data-[state=open]:bg-nb-ink/10"
                 >
                   <FiMoreHorizontal aria-hidden style={{ width: 14, height: 14, flex: "0 0 auto" }} />
                 </button>

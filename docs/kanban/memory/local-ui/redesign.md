@@ -82,4 +82,4 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A schedule is a pick from a few named options** (daily / weekly / monthly) → ✅ a
   number and a unit, down to the minute, plus an optional time of day — `30m`, `6h`,
   `1d at 09:30`. Real jobs don't fall into three buckets: a health check wants minutes and
-  a report wants a fixed hour. A short preset list is a guess at which buckets matter. (#139)
+  a report wants a fixed hour. A short preset list is a guess at which buckets matter.
