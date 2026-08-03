@@ -6,20 +6,6 @@ until any of the conditions is met:
 2. all todos checked
 3. questions.length > 0 && every question tag === "user"
 
-## Question tags
-
-Each open question in the card's `questions` frontmatter carries a tag saying who owns it:
-
-- **`[user]`** — a judgment call the agent must not guess: taste, priorities, money,
-  product direction.
-- **untagged** — freshly raised, not yet triaged. These are what a pass works through.
-
-Set tags with the script — never hand-edit frontmatter:
-
-```
-${KB} tag <id> 1,2,3 user               # tag several questions at once (comma-separated)
-```
-
 ## The loop
 
 Never pause to ask the user.

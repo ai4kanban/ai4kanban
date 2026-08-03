@@ -8,7 +8,10 @@ release: ""
 blocked_by: []
 related: []
 modules: []
-questions: []
+last_run: 2026-08-03 11:29
+questions:
+  - The local-ui and skill readme files now group shipped work under topic headings instead of one flat line per behavior — keep that shape?
+  - Recurring cadence, `kanban run`, and the seeded prune card are in no published doc — should a card be added to document them?
 ---
 
 Squeeze the memory files back down to what helps plan the next task. Delete this

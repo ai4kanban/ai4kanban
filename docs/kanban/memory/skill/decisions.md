@@ -15,15 +15,12 @@ re-ask a settled call.
 
 ## The goal
 
-- **What makes a goal `weak`?**: the file is missing, or still the seed text. Anything the
-  user wrote is at least `good`. The agent does not judge the prose — there is no format
-  to judge it against, and nagging about a goal the user did write is worse than no nag.
-- **Do we tell the user what a good goal contains?**: yes, as a guide page in
-  `docs/guides/` that setup links — advice on the business goal, the long horizon, a
-  rough roadmap, the direction. Advice only; nothing enforces it and the file stays
+- The agent judges only whether a goal is there, never the prose: missing or still seed
+  text is `weak`, anything the user wrote is at least `good`. Nagging about a goal the
+  user did write is worse than no nag.
+- What a good goal contains is advice in a guide setup links to — the business goal, the
+  long horizon, a rough roadmap, the direction. Nothing enforces it and the file stays
   free-form.
-- **What does the seeded `goal.md` say?**: one wording, short, used by the script and
-  shown by the local UI's goal box. The two never say different things.
 
 ## Finished cards
 
@@ -35,65 +32,28 @@ re-ask a settled call.
 
 ## Setup
 
-- **Does setup ask the user anything about the goal?**: No. Setup reads `goal.md` and
-  settles the calls it leaves open, each as a line in the project-wide `decisions.md` —
-  never copying in what the goal already answers; the goal is the seed planning reads
-  directly. What it can't settle is kept, uncapped, and handed over on one card (next
-  entry).
-- **Where do the calls setup can't settle go?**: on one card setup creates with the first
-  tasks — always `1-answer-the-questions-setup-couldnt-settle.md`, its id allocated
-  first — each an open `[user]` question in that card's frontmatter. Never in
-  `setup-checklist.md`, which the last tick deletes, and never in `decisions.md`, which
-  holds only settled calls. The user answers through the normal resolve flow; each answer
-  becomes a `decisions.md` line, and the card archives when its list is empty. While it's
-  open, a goal-level call no flow can settle is appended there; afterwards a question
-  rides the card that raised it.
-- **Does the module map come before or after the decisions?**: after. Setup settles
-  `goal.md` and the project-wide `decisions.md` first, then writes `modules.md`, then moves
-  each call into the module it belongs to. A project started without code has no code to
+- Setup asks the user for one thing, the goal. It settles what the goal answers into
+  `decisions.md`, and hands over every call it can't settle as `[user]` questions on one
+  card that tops the board — never in the checklist, never in `decisions.md`, which holds
+  only settled calls.
+- Without a written `goal.md` setup stops at the goal step: nothing after it can be built
+  from seed text, so there are no decisions, no module map, no first cards. A later run
+  picks up from there.
+- The module map comes after the decisions. A project started without code has no code to
   read a map from — the map can only come from what's been decided.
-- **What if the user never writes `goal.md`?**: setup stops at the goal step. Nothing after
-  it can be built from the seed text, so there are no decisions, no module map and no first
-  cards. The board's setup bar keeps asking for the goal, and a later setup run picks up
-  from that step.
-- **How many first cards does setup end with?**: 10. They lay the foundation later work
-  builds on — never improvement tasks aimed at what the project hasn't built yet.
-- **Where does the setup checklist live?**: `setup-checklist.md` at the board root, next
-  to `config.md` — one fixed path every flow and the UI read. It is board state, not
-  memory.
-- **How does a flow know setup is unfinished?**: the checklist file is there. Setup's last
-  step deletes it, so a board without the file is a board that is set up. A finished
-  checklist is never kept as a record.
-- **What are setup's steps?**: six, in this order — install, config, goal, decisions,
-  modules, tasks. Each box names the step and who does it: the script (already done when
-  the file is written), the agent, or the user. A later step joins the list by being added
-  to it, never by a second list.
-- **Who ticks the goal box?**: the local UI, when its goal editor saves. That is the one
-  step the board can finish itself; every other box is ticked by the agent running
-  `setup-done <step>`.
-- **May a card be created before setup ends?**: no. While the checklist file is there,
-  propose and add create nothing and ask the user to finish setup first. A card the user
-  writes by hand, outside the skill, is not blocked.
-
-## What `init` writes
-
-- **Does `init` keep the board's keys file out of git?**: yes. It writes
-  `docs/kanban/.gitignore` with `.env` in it — on a fresh board, and on an older board when
-  it is re-run — so a key someone writes into `docs/kanban/.env` by hand is safe on a board
-  that never opens the local UI. Only `.env` goes in that file, and the repo's root
-  `.gitignore` is never touched.
+- Setup ends with 10 first cards, the ones later work builds on — never improvements aimed
+  at what the project hasn't built yet.
+- While `setup-checklist.md` is there the board is unfinished and no flow creates a card;
+  the last tick deletes it, and a finished checklist is never kept as a record. A card the
+  user writes by hand, outside the skill, is never blocked.
 
 ## The module map
 
-- **How many modules?**: be conservative, above all in a from-scratch repo — a simple
-  single-purpose project (say, one small web server) is one module, not several. Add
-  lines only as the code grows.
-- **Does a module added later get the older notes about it?**: yes. Adding a line to the
-  map moves the notes that are now clearly that module's out of the memory it came from,
-  once. A rename keeps the memory with the module.
-- **What happens to a deleted module's memory?**: it is folded back into the project-wide
-  memory and the folder goes away, so nothing we learned about that part is lost with the
-  map line.
+- Be conservative, above all in a from-scratch repo — a simple single-purpose project is
+  one module, not several. Add lines only as the code grows.
+- Adding a module later moves the notes that are now clearly its own out of the memory
+  they came from, once. A rename keeps the memory with the module; deleting one folds its
+  memory back into the project-wide set, so nothing we learned is lost with the map line.
 
 ## Auto-refine
 
@@ -103,68 +63,52 @@ re-ask a settled call.
 
 ## Recurring tasks
 
-- **How does a built-in background job (like daily memory pruning) ship?**: as a seeded
-  card in the recurring track, run by the dispatcher when the user sets a cadence —
-  never as its own UI switch with its own state file. The card is the visible, editable
-  record of the job; deleting it is the opt-out, and nothing re-adds it behind the
-  user's back.
-- **How is a cadence written?**: always in the units grammar — `30m`, `2h`, `1d`,
-  `1d at 09:30`. There is no word form like `daily`, anywhere: not in a card body, not
-  in a doc, not as a value the script accepts. One grammar, so nothing has to translate
-  between two.
+- A built-in background job (say, pruning the memory) ships as a seeded card in the
+  recurring track, run when the user sets a cadence — never as its own UI switch with its
+  own state file. The card is the visible, editable record of the job; deleting it is the
+  opt-out, and nothing re-adds it behind the user's back.
+- A cadence is always the units grammar — `30m`, `2h`, `1d`, `1d at 09:30`. There is no
+  word form like `daily` anywhere, so nothing has to translate between two.
 
 ## Open questions
 
-- **Can a question carry options?**: yes, in two shapes — `single-option`, where the user
-  picks one, and `multi-options`, where the user picks as many as they want. A question
-  with no options stays an open-ended ask.
-- **Do old questions have to be rewritten?**: no. A question written as one prose line with
-  the choices inside it keeps working and renders as a plain question. The agent never
-  rewrites it, and no card is migrated — both shapes live side by side.
+- A question can carry options — `single-option` to pick one, `multi-options` to pick as
+  many as you want — and one with no options stays an open-ended ask.
+- A question written as prose with the choices inside it keeps working and is never
+  rewritten. Both shapes live side by side; no card is migrated.
 
 ## Releases
 
-- **Can a release be closed while cards in it are still open?**: yes, always — a version
-  ships when the user says it ships. The open cards' release is cleared; they are never moved
-  into the release after it.
-- **Where do the releases live?**: one line each in `docs/kanban/releases.md`, in the order
-  they ship. The file holds only what is still ahead, so it stays a line or two long — short
-  enough that reordering and renaming are hand edits, not commands.
-- **What is a version id allowed to be?**: letters, numbers, dot, dash and underscore, kept
-  as typed — closing a release writes a file named after it. A card with no release has an
-  empty field; there is no sentinel name for that state.
-- **What if a card names a release that is not on the list?**: the card keeps it and
-  `release list` names the id, so it can be put back or the cards moved. The board never
-  clears the field and never refuses to run over it. Setting a release the list doesn't have
-  is still an error — a typo must not invent a version.
-- **What does the agent put in a release when it fills one?**: the cards in no release that are
-  high priority, have nothing open blocking them, and are not a group root. It never reads a
-  card to judge how big it is — a plain rule the user can predict beats a smarter one they
-  have to check.
+- A version ships when the user says it ships, open cards or not. Closing clears the
+  release off the cards still open; they are never moved into the release afterwards.
+- The open releases are one line each in `docs/kanban/releases.md`, in ship order, holding
+  only what is still ahead — short enough that reordering and renaming are hand edits.
+- A version id is letters, numbers, dot, dash and underscore, kept as typed. A card with
+  no release has an empty field; there is no sentinel name for that state.
+- A card naming a release that is not on the list keeps it, and `release list` names the
+  id so it can be put back. The board never clears the field and never refuses to run over
+  it — but setting a release the list doesn't have is still an error, so a typo can't
+  invent a version.
+- Filling a release takes the cards in no release that are high priority, have nothing
+  open blocking them, and are not a group root. It never reads a card to judge how big it
+  is: a plain rule the user can predict beats a smarter one they have to check.
 
 ## Installing and updating
 
-- **Which GitHub repo is ours?**: `ai4kanban/ai4kanban`. The project moved off
-  `dist0com/ai4kanban`; every link, manifest, and install instruction names the new one.
-- **How does a user install and update?**: by running one Node script, published on npm —
-  `npx ai4kanban install` and `npx ai4kanban update`. No shell script, no
-  `curl … | sh`, and no git clone: the package carries the skill folder. The plugin
-  channel is unaffected.
-
-## Where the skill folder lives
-
-- **Who decides where the skill folder lives?**: our install prompt does, and it never asks
-  which agents you use — it copies the skill into both `.claude/skills/kanban/` (Claude
-  Code) and `.agents/skills/kanban/` (Codex). The skill names no agent's folder in its own
-  instructions, so it also runs from wherever another installer — `npx skills add`, a
-  plugin — put it.
+- Our GitHub repo is `ai4kanban/ai4kanban` — every link, manifest, and install
+  instruction names it, and nothing leans on the old `dist0com` redirect.
+- A user installs and updates by running one Node script published on npm —
+  `npx ai4kanban install` and `npx ai4kanban update`. No shell script, no `curl … | sh`,
+  no git clone: the package carries the skill folder. The plugin channel is unaffected.
+- Install never asks which agents you use; it copies the skill into both
+  `.claude/skills/kanban/` and `.agents/skills/kanban/`. The skill names no agent's folder
+  in its own instructions, so it also runs from wherever another installer put it.
 
 ## Storage
 
 - The GitHub Projects backend is wanted but parked — nothing is built until we pick it up.
-- Notion is a later idea; it gets a card when a user asks for it.
+  Notion is a later idea; it gets a card when a user asks for it.
 - We require and ship no Obsidian community plugin, so the board shows there as a grouped
   table, never as drag-and-drop columns.
 - The memory set, `metrics.csv` and `next-id` stay local markdown on every backend — only
-  cards ever move to another backend.
-- One backend per project; the board is never mirrored to a second one.
+  cards ever move. One backend per project; the board is never mirrored to a second one.

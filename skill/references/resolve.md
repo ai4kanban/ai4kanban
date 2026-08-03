@@ -1,5 +1,11 @@
 # Resolve open questions
 
+Each open question in the card's `questions` frontmatter carries a tag saying who owns it:
+
+- **`[user]`** — a judgment call the agent must not guess: taste, priorities, money,
+  product direction.
+- **untagged** — freshly raised, not yet triaged. These are what a pass works through.
+
 ## Try to answer each question yourself
 
 Research first — the module's code, the board, the memory set of any module the card

@@ -14,25 +14,21 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Card format
 
-- ❌ **Meta in bold lines under the title** (`**Track:** ... **Priority:** ...`) → ✅ a
-  markdown frontmatter block (`title`, `track`, `priority`, `roi`, `status`, `blocked_by`,
-  `related`, `questions`) so programs can parse and write it. Add `questions` for
-  decisions a human still owes.
+- ❌ **A card's state lives somewhere other than the card** (the UI's memory, a side file)
+  → ✅ everything about a card is a frontmatter field the script writes and nothing else
+  does, so the state survives a restart and any reader can parse it.
 - ❌ **One feature split into sibling top-level cards** (a shared layer card plus one card
   per backend, wired together only by `blocked_by` / `related`) → ✅ a group task: a root
   card that holds the shared plan, the ordering, and the questions that span all the
   pieces, with each piece as a subtask in its folder. Siblings hide that they are one
   feature and make the same question get asked on three cards.
-- ❌ **A card's stage lives only in the UI's memory** (lost on restart) → ✅ a `status`
-  field in the frontmatter (`todo` / `ready` / `implementing`, default `todo`, a
-  missing value reads as `todo`) so the stage is part of the board's record and survives a
-  UI restart. The script is the only writer, like every other field.
 
-## Setup
+## The script
 
-- ❌ **End setup by sorting the first cards into a v1 and a vnext group task** → ✅ end it
-  with the first tasks as plain cards. Setup never asks for a release; a project that
-  wants one creates it later from the release work.
+- ❌ **Assume the script can find the board from where its own file sits** (it can't, from
+  a read-only plugin cache) → ✅ it locates `docs/kanban/` from the working directory,
+  since commands run from the repo root. Anything that moves per-project state out of the
+  skill folder has to keep that true or the plugin channel silently breaks.
 
 ## The goal
 
@@ -41,8 +37,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   that grades free-form prose is a rule that gets the user's own words wrong.
 - ❌ **A goal the user just wrote stays weak until an agent re-judges it** → ✅ written but
   not judged yet is its own review value, and it never nudges. Every path that writes the
-  goal — the setup step, the UI's goal box, a hand edit, an upgrade of an older board —
-  has to leave the file in a state that doesn't ask for the goal again.
+  goal has to leave the file in a state that doesn't ask for the goal again.
 - ❌ **Seed a file with a paragraph explaining what belongs in it** → ✅ the file starts
   empty and the explanation sits where the user is asked for it. A seed is text the user
   deletes before they can start.
