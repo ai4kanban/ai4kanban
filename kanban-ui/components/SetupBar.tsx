@@ -1,7 +1,9 @@
 "use client";
 
-// The setup bar (#85), a strip between the header and the columns. It shows two
-// things, and drops out when neither is true:
+// The setup card (#85), floating over the board's bottom-right corner. It sits
+// outside the layout on purpose: setup is a nudge running alongside the work,
+// not a band the board has to start below, so nothing shifts when it appears or
+// goes. It shows two things, and drops out when neither is true:
 //
 //  1. Setup is unfinished — `docs/kanban/setup-checklist.md` is still there. The
 //     bar says how far setup got and what comes next. When the next step needs
@@ -20,7 +22,7 @@
 // the browser session (sessionStorage — nothing is written to the board files).
 
 import { useEffect, useState } from "react";
-import { FiCheck, FiCopy, FiX } from "react-icons/fi";
+import { FiCheck, FiCopy, FiFlag, FiX } from "react-icons/fi";
 import type { SetupState } from "@/lib/types";
 import { Button } from "./button";
 import { GoalEditor } from "./Goal";
@@ -65,13 +67,40 @@ export function SetupBar({
 
   return (
     <div
-      className="mx-6 mt-4 nb-panel-sm flex items-center gap-4 p-3.5"
-      style={{ background: "var(--color-nb-accent-soft)" }}
+      className="nb-panel fixed bottom-5 right-5 z-40 w-[360px] max-w-[calc(100vw-2.5rem)] animate-[nbPopIn_150ms_ease] p-3.5"
+      style={{ background: "color-mix(in srgb, var(--color-nb-accent-soft) 45%, var(--color-nb-paper))" }}
     >
-      <div className="min-w-0 flex-1">
+      {/* Top line: how far setup got, or — with no checklist left — what this is
+          about at all. The ✕ rides along with it, away from the button. */}
+      <div className="flex items-center gap-2">
         {setup ? (
-          <p className="text-[13px] leading-snug">
-            <span className="font-[800]">Setting up this board — {setup.done} of {setup.total} steps done.</span>{" "}
+          <Meter done={setup.done} total={setup.total} />
+        ) : (
+          <span className="nb-tag">
+            {/* Inline color: `.nb-tag` sets the ink on itself, so the one bit of
+                accent has to be put on the icon directly. */}
+            <FiFlag
+              className="h-[12px] w-[12px]"
+              style={{ color: "var(--color-nb-accent)" }}
+              aria-hidden
+            />
+            Project goal
+          </span>
+        )}
+        <button
+          onClick={dismiss}
+          aria-label="Dismiss"
+          title="Hide for this session"
+          className="-mr-1 -mt-0.5 ml-auto grid h-6 w-6 shrink-0 cursor-pointer place-items-center rounded-[7px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/8 hover:text-nb-ink active:scale-90"
+        >
+          <FiX className="h-[14px] w-[14px]" />
+        </button>
+      </div>
+
+      <p className="mt-2 text-[13px] leading-snug">
+        {setup ? (
+          <>
+            <span className="font-[750]">Setting up this board.</span>{" "}
             {next ? (
               <span className="text-nb-ink-soft">
                 Next: <Ticks text={next.text} />
@@ -79,35 +108,27 @@ export function SetupBar({
             ) : (
               <span className="text-nb-ink-soft">Finishing the last step.</span>
             )}
-          </p>
+          </>
         ) : (
-          <p className="text-[13px] leading-snug">
-            <span className="font-[800]">The project goal is missing or unclear.</span>{" "}
+          <>
+            <span className="font-[750]">The project goal is missing or unclear.</span>{" "}
             <span className="text-nb-ink-soft">
               Every proposal the agent makes is judged against it. Say where the project is headed and
               roughly how far — rough and short is fine, you can change it later.
             </span>
-          </p>
+          </>
         )}
-        {setup && <Meter done={setup.done} total={setup.total} />}
-      </div>
+      </p>
 
       {writesGoal ? (
-        <Button size="sm" className="shrink-0" onClick={() => setEditing(true)}>
-          Write the goal
-        </Button>
+        <div className="mt-3 flex justify-end">
+          <Button size="sm" onClick={() => setEditing(true)}>
+            Write the goal
+          </Button>
+        </div>
       ) : (
         <CopyLine text={setupInstruction} />
       )}
-
-      <button
-        onClick={dismiss}
-        aria-label="Dismiss"
-        title="Hide for this session"
-        className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90"
-      >
-        <FiX className="h-[16px] w-[16px]" />
-      </button>
 
       {editing && (
         <GoalEditor
@@ -145,27 +166,40 @@ function Ticks({ text }: { text: string }) {
   );
 }
 
-// How far setup got, as a bar — the same meter a card's todo list uses, run the
-// full width of the strip.
+// How far setup got: one short segment per step, filled as far as it got, with
+// the count beside it. A bar run the width of the strip read as a stray rule —
+// a handful of steps is small enough to just show them.
 function Meter({ done, total }: { done: number; total: number }) {
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   return (
     <span
-      className="mt-2 block h-[5px] w-full overflow-hidden rounded-full"
-      style={{ background: "color-mix(in srgb, var(--color-nb-ink) 12%, transparent)" }}
+      className="flex shrink-0 items-center gap-2"
       role="img"
       aria-label={`Setup: ${done} of ${total} steps done`}
     >
-      <span
-        className="block h-full"
-        style={{ width: `${pct}%`, background: "var(--color-nb-accent)" }}
-      />
+      <span className="flex items-center gap-[4px]">
+        {Array.from({ length: total }, (_, i) => (
+          <span
+            key={i}
+            className="h-[6px] w-[26px] rounded-[3px]"
+            style={{
+              background:
+                i < done
+                  ? "var(--color-nb-accent)"
+                  : "color-mix(in srgb, var(--color-nb-ink) 18%, transparent)",
+            }}
+          />
+        ))}
+      </span>
+      <span className="font-mono text-[13px] font-[700] text-nb-ink-soft tabular-nums">
+        {done}/{total}
+      </span>
     </span>
   );
 }
 
 // The instruction to paste into the coding harness, with a copy button. The line
-// is shown in full — a user without a working clipboard can still select it.
+// is shown in full — a user without a working clipboard can still select it — so
+// it wraps inside the card rather than being cut to one row.
 function CopyLine({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => {
@@ -185,14 +219,16 @@ function CopyLine({ text }: { text: string }) {
   };
 
   return (
-    <div className="flex min-w-0 shrink items-center gap-2">
-      <code className="truncate rounded-[8px] border-[1.5px] border-nb-ink bg-nb-paper px-2.5 py-1.5 font-mono text-[12px] text-nb-ink">
+    <div className="mt-3">
+      <code className="block rounded-[8px] border-[1.5px] border-nb-ink bg-nb-paper px-2.5 py-1.5 font-mono text-[11.5px] leading-snug text-nb-ink">
         {text}
       </code>
-      <Button size="sm" variant="ghost" className="shrink-0" onClick={copy} title="Copy for your coding agent">
-        {copied ? <FiCheck className="h-[14px] w-[14px]" /> : <FiCopy className="h-[14px] w-[14px]" />}
-        {copied ? "Copied" : "Copy"}
-      </Button>
+      <div className="mt-2 flex justify-end">
+        <Button size="sm" variant="ghost" onClick={copy} title="Copy for your coding agent">
+          {copied ? <FiCheck className="h-[14px] w-[14px]" /> : <FiCopy className="h-[14px] w-[14px]" />}
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
     </div>
   );
 }

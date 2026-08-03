@@ -238,7 +238,9 @@ export function BoardView({
         {/* Unfinished setup (#85), else the goal nudge (#53) when goal.md is empty
             or the agent has judged it weak again. Both drop out with the next board
             refresh — the same refresh that already runs on session finish and tab
-            focus — so the bar moves on its own as setup's boxes tick. */}
+            focus — so the card moves on its own as setup's boxes tick. It floats
+            over the bottom-right corner, so where it sits in this list doesn't
+            move anything. */}
         {board && (
           <SetupBar
             setup={board.setup}
