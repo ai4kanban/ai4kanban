@@ -60,10 +60,14 @@ re-ask a settled call.
 
 - Each connector declares the settings it takes and the Configuration dialog draws them.
   Two shapes only: a box to type in, and a list to pick one from.
-- The settings file keeps one block for the picked connector — its name and its settings
-  together — not one block per connector. Switching connector clears it, as it does today.
-  Keeping every connector's settings across a switch is not worth a new file shape while
-  there is one connector.
+- The settings file keeps one block per connector, all of them side by side under
+  `harnessSettings` and keyed by name, and `harness` is just the name of the one that runs.
+  Switching writes that one name and moves no setting, so nothing is ever lost — one
+  connector's model id or endpoint means nothing under another's name, which is why each
+  keeps its own block rather than sharing one.
+- A run reads the running connector's block and no other. A `harness` naming a connector this
+  build doesn't ship runs the default, and reads the DEFAULT's block — settings always belong
+  to the connector that actually runs.
 
 ### API keys
 
@@ -81,8 +85,8 @@ re-ask a settled call.
   it too.
 - What `.env` names wins for a run; a variable it doesn't name is left alone, so a key already
   exported in the shell keeps working.
-- Switching connector clears the connector's settings but never the keys. A key belongs to
-  the variable it is written under, not to whoever was picked when it was typed.
+- Switching connector never touches the keys. A key belongs to the variable it is written
+  under, not to whoever was picked when it was typed.
 - **Which variable does a gateway key go out under?**: `ANTHROPIC_AUTH_TOKEN` only, with
   `ANTHROPIC_API_KEY` sent explicitly empty. Sending the same key both ways to suit whichever
   header a gateway prefers is not allowed: Claude Code reads a key in `ANTHROPIC_API_KEY` as

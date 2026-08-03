@@ -5,8 +5,8 @@
 // applies direct edits, all against the markdown files in docs/kanban/.
 
 import {
-  activeSecrets,
   activeSettings,
+  agentInfo,
   type AgentRequest,
   buildPrompt,
   HARNESSES,
@@ -35,7 +35,7 @@ import {
   type StartResult,
   stopSession,
 } from "@/lib/registry";
-import type { Board, ConnectionTest, SessionView } from "@/lib/types";
+import type { AgentInfo, Board, ConnectionTest, SessionView } from "@/lib/types";
 
 export async function getBoard(): Promise<Board> {
   return readBoard();
@@ -265,19 +265,22 @@ export async function setAutoRefineParallelismAction(
 // the same file. The name is checked against the harnesses this build ships, so
 // a stale client can't write a setting nothing can run. Running sessions are
 // untouched — each read the setting when it started.
-export async function setHarnessAction(name: string): Promise<{ ok: boolean; error?: string }> {
+//
+// A save comes back with the whole agent setting as it now reads, because
+// switching is the one change the dialog can't work out for itself: the new
+// agent's settings come back from where they were parked when it was last
+// picked, its keys are whatever docs/kanban/.env already holds, and its provider
+// is worked out from those keys. The file is the only thing that knows any of
+// it, so the fields are drawn from this rather than guessed and then corrected.
+export async function setHarnessAction(
+  name: string,
+): Promise<{ ok: boolean; error?: string; agent?: AgentInfo }> {
   if (typeof name !== "string" || !HARNESSES.some((h) => h.name === name)) {
     return { ok: false, error: `unknown agent "${name}"` };
   }
-  return setHarness(name);
-}
-
-// Which of the picked agent's keys docs/kanban/.env holds (#94) — the setting
-// keys, never a key itself. The dialog asks after switching agents, because the
-// agent it just switched to declares its own keys and the file is the only
-// thing that knows which of them are set.
-export async function getHarnessSecretsAction(): Promise<string[]> {
-  return activeSecrets();
+  const res = setHarness(name);
+  if (!res.ok) return res;
+  return { ok: true, agent: agentInfo() };
 }
 
 // Save one of the settings the picked agent declares (#93), persisted to the

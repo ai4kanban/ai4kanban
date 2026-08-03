@@ -17,7 +17,6 @@ import { useState } from "react";
 import type { IconType } from "react-icons";
 import { FiAlertCircle, FiCheck, FiFeather, FiSettings, FiTerminal, FiZap } from "react-icons/fi";
 import {
-  getHarnessSecretsAction,
   setAutoRefineAction,
   setAutoRefineParallelismAction,
   setHarnessAction,
@@ -25,13 +24,7 @@ import {
   setHarnessSettingAction,
   testConnectionAction,
 } from "@/app/actions";
-import {
-  defaultProviderId,
-  missingRequired,
-  pickedProvider,
-  providerSetting,
-  shownForProvider,
-} from "@/lib/providers";
+import { missingRequired, pickedProvider, providerSetting, shownForProvider } from "@/lib/providers";
 import {
   type AgentInfo,
   type ConnectionTest,
@@ -198,6 +191,11 @@ export function Configuration({
 // a running session keeps the harness it started under. Selecting optimistically
 // and reverting on a failed save, like the auto-refine switch.
 function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: string) => void }) {
+  // The agent setting as the file now reads it. It starts as the server's first
+  // paint and is replaced by what a switch writes back, so the override note and
+  // the notices below always describe the agent on screen rather than the one
+  // that was picked when the page loaded.
+  const [info, setInfo] = useState(agent);
   const [active, setActive] = useState(agent.name);
   const [saving, setSaving] = useState(false);
   // What the fields show, and what was last written to the file — keyed by the
@@ -205,9 +203,9 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
   // halfway through typing, and only a save makes it the setting.
   const [values, setValues] = useState(agent.values);
   const [saved, setSaved] = useState(agent.values);
-  // The settings a `harness.command` override already names, so those fields
-  // aren't in effect. Switching agents drops that override, so the notes go
-  // with it.
+  // The settings the agent's `command` override already names, so those fields
+  // aren't in effect. Every agent has its own override, so switching redraws
+  // these from the new one's.
   const [ignored, setIgnored] = useState(agent.ignored);
   // Which of the agent's keys are set (#94) — set or not set, never a key. A
   // key lives in docs/kanban/.env, so nothing here ever holds one longer than
@@ -221,7 +219,7 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
   // it is picked, and it can't be picked until the base URL is there.
   const [pending, setPending] = useState("");
 
-  const activeOption = agent.options.find((o) => o.name === active);
+  const activeOption = info.options.find((o) => o.name === active);
   const settings = activeOption?.settings ?? [];
 
   // What "filled in" means on this side: a key is filled when the server says
@@ -250,9 +248,11 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
     const prev = { name: active, values, saved, ignored, secretsSet };
     setActive(option.name);
     // These settings belong to the agent they were written for — `claude-opus-5`
-    // means nothing to another agent — so switching empties every field,
-    // matching the block the server just cleared. The fields drawn from here on
-    // are the newly picked agent's own.
+    // means nothing to another agent — and each agent keeps its own block in the
+    // file, so the fields empty out while the switch saves and the new agent's
+    // own come back from the server a moment later, along with which of its keys
+    // that file holds. Neither is knowable here, so nothing is guessed in the
+    // meantime.
     setValues({});
     setSaved({});
     setIgnored([]);
@@ -268,31 +268,22 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
     };
     try {
       const res = await setHarnessAction(option.name);
-      if (!res.ok) {
+      if (!res.ok || !res.agent) {
         revert();
         onError?.(res.error || "couldn't save the agent setting");
         return;
       }
-      // Switching agents never touches docs/kanban/.env — a key belongs to the
-      // variable it is written under, not to whoever was picked when you typed
-      // it. So the new agent's keys can already be set, and only the file
-      // knows: ask, rather than showing "not set" and inviting the user to type
-      // a key they have already given us.
-      const secrets = await getHarnessSecretsAction();
-      setSecretsSet(secrets);
-      // The new agent's provider starts where the server just put it: its
-      // default, worked out from the keys that file already holds (#95). The
-      // block was cleared, so nothing else is filled in. Without this the fields
-      // that hang off the pick would stay hidden until the page was reloaded.
-      const next = providerSetting(option.settings);
-      if (next) {
-        const id = defaultProviderId(next, (key) => {
-          const setting = option.settings.find((s) => s.key === key);
-          return setting?.kind === "secret" && secrets.includes(key);
-        });
-        setValues((all) => ({ ...all, [next.key]: id }));
-        setSaved((all) => ({ ...all, [next.key]: id }));
-      }
+      // The file as it now reads: this agent's own block — the settings it had
+      // when it was last picked and any `command` override in it — plus its
+      // provider, worked out from the keys docs/kanban/.env already holds (#95).
+      // Switching never touches that .env either: a key belongs to the variable
+      // it is written under, not to whoever was picked when you typed it, so the
+      // new agent's keys can already be set and this is what says which.
+      setInfo(res.agent);
+      setValues(res.agent.values);
+      setSaved(res.agent.values);
+      setIgnored(res.agent.ignored);
+      setSecretsSet(res.agent.secretsSet);
     } catch (e) {
       revert();
       onError?.(e instanceof Error ? e.message : String(e));
@@ -389,9 +380,9 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
     await writeSetting(list, id);
   };
 
-  // A hand-edited `harness.command` override is the one thing worth a note under
+  // A hand-edited the agent's `command` override is the one thing worth a note under
   // the cards — it's what actually runs, and it's invisible otherwise.
-  const overridden = agent.command !== agent.options.find((o) => o.name === agent.name)?.command;
+  const overridden = info.command !== info.options.find((o) => o.name === info.name)?.command;
 
   return (
     <div className="flex flex-col gap-2">
@@ -399,7 +390,7 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
           the mark say what each is, no note needed. The ember frame alone marks
           the active one. */}
       <div className="flex flex-wrap gap-2">
-        {agent.options.map((option) => {
+        {info.options.map((option) => {
           const on = option.name === active;
           return (
             <button
@@ -432,11 +423,12 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
       </div>
 
       {/* The override, when there is one, so what actually runs is never hidden.
-          Only while the active card is the saved one — picking another agent
-          drops the override. */}
-      {overridden && active === agent.name && (
+          Only while the active card is the saved one — mid-switch it names the
+          agent that is on its way out. Each agent has an override of its own, so
+          switching back brings that agent's note back with it. */}
+      {overridden && active === info.name && (
         <p className="text-[12px] leading-relaxed text-nb-ink-soft">
-          Runs your override: <code>{agent.command}</code>
+          Runs your override: <code>{info.command}</code>
         </p>
       )}
 
@@ -512,12 +504,12 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
       {/* Never move a user to another agent silently: when the config asks for a
           harness we don't ship, or still carries the pre-#68 `command` key that
           nothing reads, the dialog says which agent is actually running. */}
-      {(agent.unknownName || agent.staleCommand) && (
+      {(info.unknownName || info.staleCommand) && (
         <p className="flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
           <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
           <span>
-            {agent.unknownName
-              ? `Your ui.config.json asks for the agent "${agent.unknownName}", which this UI doesn't know, so ${agent.options.find((o) => o.name === agent.name)?.label ?? agent.name} is running instead.`
+            {info.unknownName
+              ? `Your ui.config.json asks for the agent "${info.unknownName}", which this UI doesn't know, so ${info.options.find((o) => o.name === info.name)?.label ?? info.name} is running instead.`
               : `Your ui.config.json still has the old top-level "command" key. Nothing reads it — the agent above is what runs. You can delete the key; it's your file, so nothing here touches it.`}
           </span>
         </p>
@@ -871,7 +863,7 @@ function SecretField({
 // from. The box saves when it loses focus or on Enter, the list the moment you
 // pick, so neither writes into the user's config file on every keystroke.
 //
-// A setting the hand-written `harness.command` already names shows its own "not
+// A setting the hand-written the agent's `command` already names shows its own "not
 // in effect" line instead of the help: the override wins, and a filled-in field
 // should never look like it is doing something it isn't.
 function SettingField({

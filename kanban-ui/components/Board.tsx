@@ -336,8 +336,6 @@ export function BoardView({
                       onOpenLog={setLogSessionId}
                       selected={selected.has(card.id)}
                       onSelect={toggleSelected}
-                      // No track chip here — the column heading above already
-                      // says which track this card is in.
                     />
                   ))}
                 </div>

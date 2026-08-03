@@ -22,23 +22,17 @@ export function byPickOrder(a: Card, b: Card): number {
   );
 }
 
-// The queue view's order. Same pick order, with two rules ahead of priority —
-// both only between cards at the same status, so the status ranking above still
-// decides first:
-//
-//  1. A card waiting on an open card sinks below the ones you can start. The
-//     half promises the top is startable work, and a blocked card is not. It
-//     only moves — it is never hidden or gated (the line #63 drew).
-//  2. Among the rest, a blockers-track card rises. The kanban view gives
-//     blockers their own leading column; merging every track into one half would
-//     otherwise bury them among the feature cards.
+// The queue view's order, used within one track band. Same pick order, with one
+// rule ahead of priority, and only between cards at the same status so the
+// status ranking above still decides first: a card waiting on an open card sinks
+// below the ones you can start. The half promises the top is startable work, and
+// a blocked card is not. It only moves — it is never hidden or gated (the line
+// #63 drew).
 export function byQueueOrder(a: Card, b: Card): number {
   const blocked = (c: Card) => (c.openBlockers.length > 0 ? 1 : 0);
-  const blockerTrack = (c: Card) => (c.track === "blockers" ? 0 : 1);
   return (
     rank(STATUS_RANK, a.status) - rank(STATUS_RANK, b.status) ||
     blocked(a) - blocked(b) ||
-    blockerTrack(a) - blockerTrack(b) ||
     byPickOrder(a, b)
   );
 }

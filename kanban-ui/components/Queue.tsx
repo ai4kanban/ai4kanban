@@ -16,12 +16,34 @@ import { runningSessionForCard } from "./sessions";
 // That is why it takes the board's `columns` rather than the board: the release
 // dropdown (#104) hides cards before either view draws them, so both views
 // regroup the very same set and can't disagree about what is on screen.
+//
+// Inside a half the cards keep their tracks, banded one under another in the
+// board's own column order. The half is the answer to "can I start this", the
+// band says "what kind of work is it" — so a card needs no track chip, and a
+// reserved folder can colour its whole band instead of every card in it.
 
 // `ready` and `implementing` are both work already vetted — the second is just
 // already in flight — so they share the left half, ready first. Everything else
 // (`todo`, and a card carrying no status at all, e.g. a recurring one) is not
 // ready to start.
 const isReadyHalf = (card: Card) => card.status === "ready" || card.status === "implementing";
+
+/** One track's cards within a half. Empty bands are dropped before drawing —
+ *  a track with nothing on this side of the split has nothing to say. */
+interface Band {
+  track: string;
+  title: string;
+  cards: Card[];
+}
+
+const bandsFor = (columns: Column[], keep: (card: Card) => boolean): Band[] =>
+  columns
+    .map((col) => ({
+      track: col.track,
+      title: col.title,
+      cards: col.cards.filter(keep).sort(byQueueOrder),
+    }))
+    .filter((band) => band.cards.length > 0);
 
 export function QueueView({
   columns,
@@ -39,14 +61,15 @@ export function QueueView({
   selected: Set<number>;
   onSelect: (id: number, next: boolean) => void;
 }) {
-  const cards = columns.flatMap((col) => col.cards);
-  const ready = cards.filter(isReadyHalf).sort(byQueueOrder);
-  const notReady = cards.filter((c) => !isReadyHalf(c)).sort(byQueueOrder);
+  const ready = bandsFor(columns, isReadyHalf);
+  const notReady = bandsFor(columns, (c) => !isReadyHalf(c));
 
   // The ready half carries two numbers, because only the first is work waiting
   // on you — an implementing card is already being built and needs nothing.
-  const readyCount = ready.filter((c) => c.status === "ready").length;
-  const implementingCount = ready.length - readyCount;
+  const readyCards = ready.flatMap((b) => b.cards);
+  const readyCount = readyCards.filter((c) => c.status === "ready").length;
+  const implementingCount = readyCards.length - readyCount;
+  const notReadyCount = notReady.reduce((n, b) => n + b.cards.length, 0);
 
   return (
     // Two halves side by side is a desktop shape. On a phone each one is far
@@ -56,7 +79,7 @@ export function QueueView({
       <Half
         title="Ready to build"
         count={`${readyCount} ready · ${implementingCount} implementing`}
-        cards={ready}
+        bands={ready}
         sessions={sessions}
         onOpenLog={onOpenLog}
         selected={selected}
@@ -64,8 +87,8 @@ export function QueueView({
       />
       <Half
         title="Not ready"
-        count={`${notReady.length}`}
-        cards={notReady}
+        count={`${notReadyCount}`}
+        bands={notReady}
         sessions={sessions}
         onOpenLog={onOpenLog}
         selected={selected}
@@ -75,15 +98,15 @@ export function QueueView({
   );
 }
 
-// One half: the same wash panel a kanban column sits in, half the screen wide.
-// The cards inside lay out as a grid that wraps to the width instead of a single
-// stack — the half is wide enough for several across, and a one-card-wide column
-// in half a screen would be mostly empty space. On a phone the grid falls back
-// to one card per row, which is all that fits.
+// One half: the same wash panel a kanban column sits in, half the screen wide,
+// holding one band per track. The cards inside a band lay out as a grid that
+// wraps to the width instead of a single stack — the half is wide enough for
+// two or more across, and a one-card-wide column in half a screen would be
+// mostly empty space. On a phone the grid falls back to one card per row.
 function Half({
   title,
   count,
-  cards,
+  bands,
   sessions,
   onOpenLog,
   selected,
@@ -91,7 +114,7 @@ function Half({
 }: {
   title: string;
   count: string;
-  cards: Card[];
+  bands: Band[];
   sessions: SessionView[];
   onOpenLog: (sessionId: string) => void;
   selected: Set<number>;
@@ -113,27 +136,79 @@ function Half({
         <span className="text-[12px] text-nb-ink-soft">{count}</span>
       </div>
       <div className="min-h-0 overflow-x-hidden pl-px pr-1 pt-px pb-1 md:flex-1 md:overflow-y-auto">
-        {cards.length === 0 ? (
+        {bands.length === 0 ? (
           <p className="text-[12px] italic text-nb-ink-soft">no open cards</p>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
-            {cards.map((card) => (
-              <BoardCard
-                key={card.id}
-                card={card}
-                liveSession={runningSessionForCard(sessions, card.id)}
+          <div className="flex flex-col gap-2">
+            {bands.map((band) => (
+              <TrackBand
+                key={band.track}
+                band={band}
+                sessions={sessions}
                 onOpenLog={onOpenLog}
-                selected={selected.has(card.id)}
+                selected={selected}
                 onSelect={onSelect}
-                // Every track is merged in here, so a card has to say where it
-                // came from — otherwise a blocker at the top of the ready half
-                // reads as just another card. Its release rides along in the
-                // same row, on the cards that are in a version.
-                showTrack
               />
             ))}
           </div>
         )}
+      </div>
+    </section>
+  );
+}
+
+// One track's cards inside a half: a rule carrying the track name and its count,
+// then the grid. The rule is what cuts one track from the next — the bands sit
+// on the same wash, so a line and a name are all it takes.
+//
+// `recurring` is a reserved folder, not a track someone named: its cards repeat
+// on a cadence and are never finished, so its band takes the same faint lilac
+// cast the kanban view gives the recurring column. The band is tinted, not the
+// cards — a card looks the same wherever it sits, and the colour belongs to the
+// kind of work, not to each box.
+function TrackBand({
+  band,
+  sessions,
+  onOpenLog,
+  selected,
+  onSelect,
+}: {
+  band: Band;
+  sessions: SessionView[];
+  onOpenLog: (sessionId: string) => void;
+  selected: Set<number>;
+  onSelect: (id: number, next: boolean) => void;
+}) {
+  const recurring = band.track === "recurring";
+  return (
+    <section
+      className="rounded-[10px] px-2 pb-3 pt-2"
+      style={
+        recurring
+          ? { background: "color-mix(in srgb, var(--color-nb-lilac) 16%, var(--color-nb-wash))" }
+          : undefined
+      }
+    >
+      <div className="mb-2.5 flex items-center gap-2.5">
+        <h3 className="nb-tag text-[10.5px] whitespace-nowrap">{band.title}</h3>
+        <span
+          aria-hidden
+          className="h-px flex-1"
+          style={{ background: "color-mix(in srgb, var(--color-nb-ink) 14%, transparent)" }}
+        />
+        <span className="text-[11px] tabular-nums text-nb-ink-soft">{band.cards.length}</span>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))]">
+        {band.cards.map((card) => (
+          <BoardCard
+            key={card.id}
+            card={card}
+            liveSession={runningSessionForCard(sessions, card.id)}
+            onOpenLog={onOpenLog}
+            selected={selected.has(card.id)}
+            onSelect={onSelect}
+          />
+        ))}
       </div>
     </section>
   );

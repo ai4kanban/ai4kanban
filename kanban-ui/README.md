@@ -491,11 +491,16 @@ file (see **Keys** below).
 
 ```json
 {
-  "harness": {
-    "name": "claude-code",
-    "provider": "subscription",
-    "model": "claude-opus-5",
-    "reasoning": "high"
+  "harness": "claude-code",
+  "harnessSettings": {
+    "claude-code": {
+      "provider": "subscription",
+      "model": "claude-opus-5",
+      "reasoning": "high"
+    },
+    "codex": {
+      "model": "gpt-5.1-codex"
+    }
   },
   "autoRefine": false,
   "autoRefineParallelism": 1
@@ -505,33 +510,41 @@ file (see **Keys** below).
 `autoRefineParallelism` is a whole number from 1 to 5. Anything else — a 0, a negative, text,
 a missing key — reads as 1, so a hand-edit that doesn't mean anything never breaks the board.
 
-`harness.name` is the agent. It decides everything about how that agent runs: the command,
-the flags that make it stream its output into the live log, the env vars, and the flags the
-**Resume** button uses, and how a prompt calls the skill. Two agents ship: `claude-code`, the
-default, and `codex`. If the file names an agent this UI doesn't know, Claude Code runs and
-the dialog says so — you are never moved to a different agent without being told.
+`harness` is the agent that runs — a name, and nothing else. It decides everything about how
+that agent runs: the command, the flags that make it stream its output into the live log, the
+env vars, the flags the **Resume** button uses, and how a prompt calls the skill. Two agents
+ship: `claude-code`, the default, and `codex`. If the file names an agent this UI doesn't
+know, Claude Code runs and the dialog says so — you are never moved to a different agent
+without being told.
 
-Every other key in the block is one of the settings that agent takes. Each agent says which
+`harnessSettings` is every agent's settings, each under its own name, whether or not it is
+the one running. Switching agents changes `harness` and touches nothing else, so nothing is
+ever lost: try Codex for an afternoon and your Claude Code model, provider and endpoint are
+waiting where you left them — and Codex's are waiting the next time you go back. One agent's
+model id or endpoint means nothing under another's name, which is why each keeps its own
+block instead of sharing one. Only the running agent's block is read.
+
+Inside a block, each key is one of the settings that agent takes. Each agent says which
 settings it has and what each one is called, and the dialog draws that list — so the fields
 you see always belong to the agent you picked, and a new agent is one entry rather than a new
-box in the UI. Claude Code has four here: `harness.provider`, `harness.baseUrl`,
-`harness.model` and `harness.reasoning`. Codex has one, `harness.model`. Their API keys are
-settings too, but a key is never written to this file — keys have their own place (see
-**Keys**).
+box in the UI. Claude Code has four: `provider`, `baseUrl`, `model` and `reasoning`. Codex has
+one, `model`. Their API keys are settings too, but a key is never written to this file — keys
+have their own place (see **Keys**), and they stay under the variable they were written for, so
+switching agents never touches them.
 
-`harness.provider` is who pays for the run and where it goes — for Claude Code, one of
-`subscription`, `anthropic-api` or `endpoint`. Leave it out and the board picks for you:
-`anthropic-api` on a board whose `.env` already holds an Anthropic key, `subscription`
-otherwise. A value this UI doesn't know reads as that same default, so the dialog and the run
-never disagree. `harness.baseUrl` goes with the `endpoint` pick and is the only setting the
-board insists on: it won't save that pick without one.
+`provider` is who pays for the run and where it goes — for Claude Code, one of `subscription`,
+`anthropic-api` or `endpoint`. Leave it out and the board picks for you: `anthropic-api` on a
+board whose `.env` already holds an Anthropic key, `subscription` otherwise. A value this UI
+doesn't know reads as that same default, so the dialog and the run never disagree. `baseUrl`
+goes with the `endpoint` pick and is the only setting the board insists on: it won't save that
+pick without one.
 
-`harness.model` is the model that agent runs with, passed to it as `--model <id>`. One model
+`model` is the model that agent runs with, passed to it as `--model <id>`. One model
 for every button — there's no per-action model. Leave it empty (or leave the key out) and the
 agent runs its own default; the board never invents an id for you. Nothing here checks the id:
 a wrong one makes the run exit right away, and the reason is in that run's log.
 
-`harness.reasoning` is how hard that model thinks, passed to it as `--effort <level>`. For
+`reasoning` is how hard that model thinks, passed to it as `--effort <level>`. For
 Claude Code the levels are `low`, `medium`, `high`, `xhigh` and `max` — the agent's own words,
 not the board's, so another agent names its own. One level for every button, like the model.
 Leave it empty (or leave the key out) and nothing is passed. Nothing here checks the level:
@@ -540,24 +553,25 @@ the agent doesn't know makes it say so and run at its own default — that warni
 run's log.
 
 A key no agent declares is left exactly where it is. Saving in the dialog writes the one
-setting you changed and touches nothing else in the file — it's yours.
+setting you changed, in the one block it belongs to, and touches nothing else in the file —
+it's yours.
 
-To run a custom binary of that agent, or add flags to it, add a `harness.command` by hand:
+To run a custom binary of an agent, or add flags to it, add a `command` to that agent's block
+by hand:
 
 ```json
-{ "harness": { "name": "claude-code", "command": "/my/bin/claude -p --model opus" } }
+{
+  "harness": "claude-code",
+  "harnessSettings": { "claude-code": { "command": "/my/bin/claude -p --model opus" } }
+}
 ```
 
-`harness.command` is a path or flags **for the agent `harness.name` picked** — not a way to
-run a different one. The harness always adds its own flags on top, and another agent's binary
-would reject them. To run a different agent, pick it. The harness's flags never override one
-you set yourself. If the override already names a setting's flag — a `--model`, say — it wins
-and that setting is not added on top. One flag, one place it comes from, and the dialog says
-the field isn't in effect, so a filled-in field never looks broken.
-
-The settings and the override belong to the agent they were written for — one agent's model
-id or endpoint means nothing under another's name — so switching agents in the dialog clears
-the block and leaves the new agent's name alone in it.
+`command` is a path or flags **for the agent whose block it is in** — not a way to run a
+different one. The harness always adds its own flags on top, and another agent's binary would
+reject them. To run a different agent, pick it. The harness's flags never override one you set
+yourself. If the override already names a setting's flag — a `--model`, say — it wins and that
+setting is not added on top. One flag, one place it comes from, and the dialog says the field
+isn't in effect, so a filled-in field never looks broken.
 
 Each run reads the setting once, when it starts — flipping the picker while an agent is
 working changes what the next run spawns, never the one in flight. And each run records the
@@ -586,7 +600,7 @@ Four things read differently on Codex:
 
 - **A run stays inside your repo.** `--sandbox workspace-write` lets it write in the working
   folder and nowhere else, gives it no network, and makes it refuse to start outside a git
-  repo. If your work needs more than that, widen it yourself with a `harness.command` — a
+  repo. If your work needs more than that, widen it yourself with a `command` of your own — a
   `--sandbox` you name there is the one that runs, and the board adds none on top.
 - **A rate limit waits instead of failing.** Claude Code is run with retries off, so a limit
   ends the run at once and frees the card. Codex has no such switch: a rate-limited run sits

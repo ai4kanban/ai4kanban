@@ -12,7 +12,6 @@ import {
   RoiTag,
   StatusPill,
   TodoProgress,
-  TrackChip,
 } from "./chips";
 
 // One card as both board views draw it — the kanban columns and the queue's two
@@ -20,10 +19,11 @@ import {
 // component and the views only differ in what they pass in.
 //
 // `liveSession` is the one running session on this card (if any); `onOpenLog`
-// makes its badge open that session's log overlay, which each view owns. The
-// track chip is opt-in: the queue view merges every track into one grid, so a
-// card has to say which one it came from, while a kanban column's heading
-// already does.
+// makes its badge open that session's log overlay, which each view owns.
+//
+// The track is NOT on the card. Both views band their cards by track and head
+// each band with its name — the kanban column heading, the queue's rule — so a
+// chip repeating it on every card says nothing the reader can't already see.
 //
 // The release is NOT on the card. The release picker at the top of the board is
 // how you look at one version, and the card page is where a card says and
@@ -39,14 +39,12 @@ export function BoardCard({
   card,
   liveSession,
   onOpenLog,
-  showTrack = false,
   selected = false,
   onSelect,
 }: {
   card: Card;
   liveSession?: SessionView;
   onOpenLog: (sessionId: string) => void;
-  showTrack?: boolean;
   /** Ticked for the bulk move. Only meaningful with `onSelect`. */
   selected?: boolean;
   /** Tick or untick this card. Left out draws no tick at all. */
@@ -161,7 +159,6 @@ export function BoardCard({
       </div>
       <p className="mb-3 text-[14px] font-[700] leading-snug tracking-[-0.01em]">{card.title}</p>
       <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        {showTrack && <TrackChip track={card.track} />}
         <PriorityChip value={card.priority} />
         <RoiTag value={card.roi} />
       </div>

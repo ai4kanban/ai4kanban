@@ -393,9 +393,9 @@ export interface Provider {
  *  (`select`), a key (`secret`, #94), and the provider list (`provider`, #95).
  *  A setting that needs more than these brings it itself. */
 export interface HarnessSetting {
-  /** The key it saves under inside the `harness` block of ui.config.json — e.g.
-   *  `model` writes `harness.model`. `name` and `command` are the block's own
-   *  keys, so no setting can take either.
+  /** The key it saves under inside this agent's block in ui.config.json — e.g.
+   *  Claude Code's `model` writes `harnessSettings.claude-code.model`. `command` is
+   *  the block's own key, so no setting can take it.
    *
    *  A `secret` saves nowhere near that block: its value goes to
    *  `docs/kanban/.env` under the variable `env` names, and this key only
@@ -430,7 +430,7 @@ export interface HarnessSetting {
    *  flags reaches the run some other way (its own card says how) and adds
    *  nothing to the command. */
   flags?: string[];
-  /** The line to show instead of `help` when a hand-written `harness.command`
+  /** The line to show instead of `help` when a hand-written the agent's `command`
    *  already names one of `flags`: the override wins, so the field isn't in
    *  effect and a filled-in one never looks broken. */
   overriddenHelp?: string;
@@ -456,12 +456,12 @@ export interface AgentInfo {
   /** The active harness's name, e.g. "claude-code". */
   name: string;
   /** The resolved command every action runs, e.g. "claude -p" — the harness's
-   *  default, or the `harness.command` override from the config file. */
+   *  default, or the agent's `command` override from the config file. */
   command: string;
   /** True when the config names no harness at all, so we run the default. */
   isDefault: boolean;
   /** What the active harness's settings are set to, keyed by the setting's key
-   *  (`model` for `harness.model`). A key that isn't here is unset — the agent's
+   *  (`model` for its block's `model`). A key that isn't here is unset — the agent's
    *  own default; the board never invents a value. A `secret` is never in
    *  here: a saved key is never read back (see `secretsSet`).
    *
@@ -476,7 +476,7 @@ export interface AgentInfo {
    *  written into that file by hand shows here too: the file is the one place
    *  the board looks. */
   secretsSet: string[];
-  /** The keys of the settings a `harness.command` override already names. The
+  /** The keys of the settings a the agent's `command` override already names. The
    *  override wins, so those fields aren't in effect and the dialog says so
    *  rather than letting a filled-in field look broken. */
   ignored: string[];

@@ -1,15 +1,16 @@
 import fs from "node:fs";
+import { configBlock, pickedHarnessName } from "./agent";
 import { uiConfigPath } from "./paths";
 import { MAX_PARALLEL } from "./types";
 
 // --- the settings the dialog writes ------------------------------------------
 // Three settings live in docs/kanban/ui.config.json: `harness` (which agent runs
-// every card button, and the settings that agent declares — see lib/agent.ts,
-// which owns reading it and says what may go in the block), `autoRefine`
-// (#41), one top-level boolean, off by default, and `autoRefineParallelism`
-// (#88), how many cards refine at once. The Configuration dialog reads them on
-// load and writes them as you change them; the skill's auto-refine flows (#42,
-// #43) read `autoRefine` before acting.
+// every card button, with every agent's own settings kept beside it in
+// `harnessSettings` — see lib/agent.ts, which owns reading both and says what
+// may go in a block), `autoRefine` (#41), one top-level boolean, off by default,
+// and `autoRefineParallelism` (#88), how many cards refine at once. The
+// Configuration dialog reads them on load and writes them as you change them;
+// the skill's auto-refine flows (#42, #43) read `autoRefine` before acting.
 
 // Read and parse the whole config object. Throws on a malformed file so a writer
 // never clobbers a user's settings; a missing file is an empty object.
@@ -70,32 +71,33 @@ export function setAutoRefine(on: boolean): { ok: boolean; error?: string } {
   });
 }
 
-// Save the harness the user picked in the dialog. Switching to a different
-// harness clears the whole block and writes the name alone: every setting in it
-// — the model, a hand-edited `command`, whatever else that agent declares — was
-// typed for the old agent, and one agent's endpoint or model id means nothing
-// under another's name. Re-picking the harness that's already set changes
-// nothing, so the block is kept exactly as it is.
-//
-// The pre-#68 top-level `command` key is left exactly where it is. Nothing reads
-// it, and the dialog says so — but this is the user's file, and quietly deleting
-// a line they wrote, as a side effect of clicking an agent, is worse than a
-// notice that stays up until they delete it themselves.
+// Save the harness the user picked in the dialog — one name, and nothing else
+// moves. Every agent's settings already live under its own name in
+// `harnessSettings`, so switching writes no setting, reads none, and loses none:
+// the agent you leave keeps its model, its endpoint and its `command` override
+// exactly as they were, and picking it again brings them all back.
 export function setHarness(name: string): { ok: boolean; error?: string } {
   return writeConfig((cfg) => {
-    const prev = (cfg.harness ?? {}) as Record<string, unknown>;
-    cfg.harness = prev.name === name ? prev : { name };
+    cfg.harness = name;
   });
 }
 
-// Save one of the settings the picked harness declares (#93) — `model` writes
-// `harness.model`. Writes that one key and nothing else: the name, a hand-edited
-// `command`, the harness's other settings and any key no setting declares all
-// survive untouched. It is the user's file.
+// Save one of the settings the picked harness declares (#93) — Claude Code's
+// `model` writes `harnessSettings.claude-code.model`. Writes that one key in
+// that one agent's block and nothing else: a hand-edited `command`, that
+// harness's other settings, every other harness's block and any key no setting
+// declares all survive untouched. It is the user's file.
+//
+// Which block is decided the same way a run decides it (pickedHarnessName), so
+// a save can never land on an agent other than the one the dialog is showing —
+// including on a file whose `harness` names an agent this build doesn't ship,
+// where the default runs and the default's block is what is written.
 //
 // An empty value means "use the harness's own default" — that drops the key
 // rather than leaving an empty string behind, because a missing key and a blank
-// one mean the same thing and only one of them reads as deliberate.
+// one mean the same thing and only one of them reads as deliberate. A block with
+// nothing left in it goes too, so clearing a setting doesn't leave an empty
+// husk behind.
 //
 // The value is never checked here. Model ids change faster than we ship, so the
 // harness is the only validator: a bad one makes the run exit non-zero and the
@@ -103,11 +105,16 @@ export function setHarness(name: string): { ok: boolean; error?: string } {
 // actually declares IS checked, one layer up in app/actions.ts.
 export function setHarnessSetting(key: string, value: string): { ok: boolean; error?: string } {
   return writeConfig((cfg) => {
-    const harness = { ...((cfg.harness ?? {}) as Record<string, unknown>) };
+    const name = pickedHarnessName(cfg.harness);
+    const blocks = { ...configBlock(cfg.harnessSettings) };
+    const block = { ...configBlock(blocks[name]) };
     const next = value.trim();
-    if (next) harness[key] = next;
-    else delete harness[key];
-    cfg.harness = harness;
+    if (next) block[key] = next;
+    else delete block[key];
+    if (Object.keys(block).length) blocks[name] = block;
+    else delete blocks[name];
+    if (Object.keys(blocks).length) cfg.harnessSettings = blocks;
+    else delete cfg.harnessSettings;
   });
 }
 

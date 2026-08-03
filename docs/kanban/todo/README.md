@@ -26,7 +26,6 @@ _(none)_
 ## skill
 
 - [#16 auto-implement: let the agent build a ready card on its own](skill/16-auto-implement-let-the-agent-build-a-ready-card-on-its-own.md)
-- [#83 Onboarding: from install to a board ready to plan](83-onboarding/root.md)
 - [#112 Move a module's calls into its memory when the map gains that module](skill/112-move-a-module-s-calls-into-its-memory-when-the-map-gains-tha.md)
 - [#137 Add a short UI design reference that UI features go through](skill/137-add-a-short-ui-design-reference-that-ui-features-go-through.md)
 - [#141 Update the sibling tasks when one task's plan changes](skill/141-update-the-sibling-tasks-when-one-task-s-plan-changes.md)

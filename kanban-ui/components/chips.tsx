@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FiBox, FiCheckCircle, FiClock, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
+import { FiBox, FiCheckCircle, FiClock, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiRepeat, FiTag, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import { type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
 import type { QuestionTag } from "@/lib/questions";
@@ -180,8 +180,15 @@ export function BlockedChip({ blockers }: { blockers: { id: number; title: strin
   );
 }
 
+// The track a card came from — the card page's chip. Neither board view draws
+// it: both band their cards by track and head each band with its name.
+// `blockers` and `recurring` are reserved folders, not tracks someone named, so
+// each says so — peach for the blocker (the colour the board gives work in the
+// way), a repeat icon for recurring, which comes round again instead of being
+// built once.
 export function TrackChip({ track }: { track: string }) {
   const blocker = track === "blockers";
+  const recurring = track === "recurring";
   return (
     <span
       className="nb-chip"
@@ -194,6 +201,7 @@ export function TrackChip({ track }: { track: string }) {
           : "var(--color-nb-lilac-ink)",
       }}
     >
+      {recurring && <FiRepeat aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />}
       {track}
     </span>
   );

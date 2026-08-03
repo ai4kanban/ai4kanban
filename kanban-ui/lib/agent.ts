@@ -39,7 +39,7 @@ export interface Harness extends HarnessOption {
   /** The settings this harness takes, in the order the dialog draws them (#93).
    *  This list is the whole of its configuration: the dialog draws it and
    *  nothing else, a run appends the ones that carry a flag, and the file keeps
-   *  them beside `name` in the `harness` block. */
+   *  them in this harness's own block under `harnessSettings`. */
   settings: HarnessSetting[];
   /** Every variable that could send this connector to a provider the user
    *  didn't pick (#95). All of them are dropped from a run's environment, and
@@ -219,7 +219,7 @@ const CLAUDE_CODE: Harness = {
       placeholder: "claude-opus-5",
       flags: ["--model"],
       help: "Empty runs the agent's default. A wrong id fails the run; the log says why.",
-      overriddenHelp: `Not in effect: your ui.config.json's "harness.command" already names a model, and that wins.`,
+      overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names a model, and that wins.`,
     },
     // How hard the model thinks (#97). A list, not a box: unlike a model id,
     // the levels are the agent's own vocabulary — these five are exactly what
@@ -250,7 +250,7 @@ const CLAUDE_CODE: Harness = {
       ],
       flags: ["--effort"],
       help: "Lower is quicker and cheaper, higher is slower and more careful.",
-      overriddenHelp: `Not in effect: your ui.config.json's "harness.command" already names an effort level, and that wins.`,
+      overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names an effort level, and that wins.`,
     },
   ],
 
@@ -310,7 +310,7 @@ const CLAUDE_CODE: Harness = {
 };
 
 // The two flags every `codex exec` run wants, added only when the user's own
-// `harness.command` hasn't already named them.
+// `command` hasn't already named them.
 //
 // `--json` gives the JSONL event stream lib/codex-stream.ts renders — without it
 // `codex exec` prints its final message and nothing else, so the live tail would
@@ -319,7 +319,7 @@ const CLAUDE_CODE: Harness = {
 // `--sandbox workspace-write` is needed because `codex exec` defaults to
 // read-only and a board run writes files. It is also the whole of what a Codex
 // run may do: inside the repo, no network, and it refuses to start outside a git
-// repo. Someone who needs more widens it in `harness.command`. `--full-auto` is
+// repo. Someone who needs more widens it in that agent's `command`. `--full-auto` is
 // deprecated in current Codex (it warns and points here), so it is never used —
 // but a command that names it, or the bypass flag, counts as a sandbox already
 // chosen and nothing is added on top.
@@ -371,7 +371,7 @@ const CODEX: Harness = {
       placeholder: "gpt-5.1-codex",
       flags: ["--model", "-m"],
       help: "Empty runs the agent's default. A wrong id fails the run; the log says why.",
-      overriddenHelp: `Not in effect: your ui.config.json's "harness.command" already names a model, and that wins.`,
+      overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names a model, and that wins.`,
     },
     {
       key: "apiKey",
@@ -410,15 +410,15 @@ export const HARNESSES: Harness[] = [CLAUDE_CODE, CODEX];
 /** What runs when the config names no harness, or names one we don't know. */
 export const DEFAULT_HARNESS = CLAUDE_CODE;
 
-// The `harness` block's own two keys. A setting saves beside them, so it can't
-// be called either — `name` picks the agent and `command` overrides its command,
-// and a setting by one of those names would fight with them.
-const RESERVED_SETTING_KEYS = ["name", "command"];
+// The one key a harness's own block already uses: `command`, the hand-written
+// override for its binary and flags. A setting saves beside it, so a setting by
+// that name would fight with it.
+const RESERVED_SETTING_KEYS = ["command"];
 
 // Checked here, once, when this module loads: the list is written in this file
 // and compiled in, so a clash is a mistake in the entry above, and the person
 // adding a harness is the only one who can ever see this. Better a loud failure
-// the moment it's added than a setting that quietly overwrites the agent's name.
+// the moment it's added than a setting that quietly overwrites the override.
 for (const harness of HARNESSES) {
   const seen = new Set<string>();
   const seenEnv = new Set<string>();
@@ -477,14 +477,23 @@ function harnessByName(name: string | undefined): Harness | undefined {
 // --- the harness setting ----------------------------------------------------
 // Reads the consumer repo's docs/kanban/ui.config.json:
 //
-//   "harness": { "name": "claude-code", "model": "claude-opus-5", "command": "claude -p" }
+//   "harness": "claude-code",
+//   "harnessSettings": {
+//     "claude-code": { "model": "claude-opus-5", "command": "claude -p" },
+//     "codex": { "model": "gpt-5.1-codex" }
+//   }
 //
-// `name` picks the harness and `command` is an optional override for a custom
-// binary or extra flags, hand-edited in the file. Every other key in the block
-// is one of the settings that harness declares — `model` is Claude Code's, and
-// each agent brings its own list (#93). They all belong to the harness that is
-// picked — a model id for one agent means nothing to another — so switching
-// harness clears the block.
+// `harness` is the name of the agent that runs, and nothing else. Every agent
+// keeps its own settings in `harnessSettings`, under its own name, whether or
+// not it is the one picked — so switching agents changes which block is read and
+// throws nothing away. A model id or an endpoint written for one agent means
+// nothing under another's name, which is exactly why they are kept apart rather
+// than shared.
+//
+// Inside a block, `command` is an optional override for a custom binary or
+// extra flags, hand-edited in the file. Every other key is one of the settings
+// that harness declares — `model` is Claude Code's, and each agent brings its
+// own list (#93).
 //
 // A key no setting declares is left exactly where it is: this is the user's
 // file, and nothing here rewrites a line they wrote.
@@ -516,6 +525,24 @@ interface ResolvedHarness {
   unknownName?: string;
   /** The file still holds the pre-#68 top-level `command` key. Nothing reads it. */
   staleCommand?: boolean;
+}
+
+/** One block out of the config file — the `harnessSettings` map, or one agent's
+ *  settings inside it. Anything that isn't a plain object reads as empty, so a
+ *  hand-edit that put a string or a list where a block belongs is ignored rather
+ *  than spread into a run (or written back over). */
+export function configBlock(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+/** The name of the harness that runs for a config file's `harness` value: the
+ *  one it names, or the default when it names none or names one we don't ship.
+ *  Its block in `harnessSettings` is the picked agent's settings — so the writer
+ *  (lib/config.ts) and the reader below always mean the same block. */
+export function pickedHarnessName(configured: unknown): string {
+  const asked = typeof configured === "string" ? configured.trim() : "";
+  return (harnessByName(asked) ?? DEFAULT_HARNESS).name;
 }
 
 /** True when this argv already names a flag — `--model id` or `--model=id`, in
@@ -558,12 +585,15 @@ function resolveHarness(): ResolvedHarness {
     // an unreadable or malformed file runs the default, like a missing one
   }
   const staleCommand = typeof cfg.command === "string" && cfg.command.trim() ? true : undefined;
-  const block = (cfg.harness ?? {}) as Record<string, unknown>;
-  const asked = typeof block.name === "string" ? block.name.trim() : "";
-  const override = typeof block.command === "string" ? block.command.trim() : "";
+  const asked = typeof cfg.harness === "string" ? cfg.harness.trim() : "";
   const known = harnessByName(asked);
   const harness = known ?? DEFAULT_HARNESS;
-  const command = known ? override || known.command : DEFAULT_HARNESS.command;
+  // Always the running harness's own block, never the one the file asked for: a
+  // name we don't ship runs the default, and the default's settings are the
+  // default's. Same rule as pickedHarnessName, which is what writes it.
+  const block = configBlock(configBlock(cfg.harnessSettings)[harness.name]);
+  const override = typeof block.command === "string" ? block.command.trim() : "";
+  const command = override || harness.command;
   const argv = command.split(/\s+/).filter(Boolean);
   const values: Record<string, string> = {};
   const ignored: string[] = [];
