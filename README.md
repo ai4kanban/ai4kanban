@@ -4,9 +4,7 @@
 
 ### AI project management that grows with you.
 
-Give it a vague idea. The agent breaks it down, answers what it can<br>
-on its own, asks you the rest — and keeps at it in the background<br>
-until every detail is clear enough to build.
+A Kanban board that plans autonomously, shaped by every decision.
 
 **English** · [简体中文](README-zh.md)
 
@@ -16,49 +14,81 @@ until every detail is clear enough to build.
 
 </div>
 
+## Kanban Engineering
+
+Coding agents can already turn clear requirements directly into code. As a project moves
+into continuous iteration, however, the bottleneck shifts upstream to project management:
+deciding what to do next, turning vague ideas into actionable requirements, and managing
+tradeoffs, dependencies, and schedules across tasks.
+
+A codebase preserves implementation outcomes, but not the reasoning behind decisions or
+the directions that were explicitly ruled out. Chat windows work well for one-off tasks,
+but struggle to carry the context that accumulates over the life of a project. Without
+that context, both people and agents can get lost in the details during the long journey
+from an initial version to a mature product.
+
+Kanban Engineering brings goals, tasks, decisions, and execution status together on one
+board, with AI handling project management: proactively proposing requirements, refining
+them in a loop, breaking down and prioritizing work, planning releases, and moving tasks
+through their entire lifecycle. People remain responsible for product direction, taste,
+business judgment, and final approval. AI4Kanban is an open-source implementation of this
+way of working.
+
 ## What it does
 
-Everything checked below is built and working today.
+Everything checked below is available today.
 
-- [x] **Breaks work down.** The agent reads an idea and splits it into subtasks. An
-  unrelated ask tangled in gets pulled out as a task of its own.
-- [x] **Clarifies in a loop.** The agent starts by questioning the idea. Whatever
-  memory and common sense can settle, it settles on its own; the rest comes to you. It
-  keeps looping until it runs out of questions.
-- [x] **Runs 24/7.** Breakdown and clarification keep running in the background until the
-  idea becomes a clear spec.
-- [x] **Every decision is traceable.** You can always see how a spec took shape, step by
-  step.
-- [x] **Proposes its own tasks.** The agent pitches features drawn from each module's
-  memory. Veto one and that's recorded — it won't pitch that kind of idea again.
-- [x] **Self-evolving.** Each time you step in, that call is recorded and steers the
-  agent's later decisions. Memory is organized by project module.
-- [x] **Orders the work.** It doesn't just split tasks — it identifies dependencies and
-  weighs ROI against effort, so work runs in the right order.
-- [x] **Owns the whole lifecycle.** Its job doesn't end once the spec is clear. It
-  runs a task's entire life — proposed, clarified, built, archived — so the board always
-  shows where the project really stands.
+- [x] **Proposes work proactively.** The agent selects a module, draws on its code and
+  accumulated module memory, and proposes unplanned features as concrete pieces of work.
+- [x] **Builds project memory.** Decisions that will inform future planning are filed
+  under the relevant module. Reasons for rejecting an idea are preserved as well, so
+  similar proposals do not keep resurfacing.
+- [x] **Refines requirements in a loop.** The agent reviews a requirement and raises
+  questions. It makes decisions on its own when project memory and common sense provide
+  enough context, and asks you only when they do not. The loop continues until the work
+  is ready to begin or only decisions that require your input remain.
+- [x] **Keeps work moving in the background.** With Auto-refine enabled, the agent
+  automatically works through cards that are not yet ready, without waiting for
+  card-by-card instructions. Cards blocked by other work wait until their dependencies
+  are complete.
+- [x] **Breaks down tasks.** The agent divides a requirement into subtasks and separates
+  unrelated requests into their own cards.
+- [x] **Manages dependencies and priorities.** The agent identifies dependencies,
+  weighs value against cost, and uses both to determine the order of execution.
+- [x] **Preserves the decision trail.** Each card records how the requirement was
+  refined and which judgments the agent made independently. Completed tasks remain
+  archived in Git.
+- [x] **Plans releases.** Optional. Assign cards to a release to see its scope and how
+  many tasks are ready to begin.
+- [x] **Manages the complete lifecycle.** AI4Kanban covers proposal, clarification,
+  execution, and archival, so the board always reflects the project's actual progress.
+- [x] **Runs recurring tasks.** Keep periodic reports, external checks, and other
+  repeated work as persistent cards. New boards also include a memory-cleanup card by
+  default. Run them on demand or on a schedule; every run is timestamped, but the cards
+  are never archived.
 
-AI4Kanban is built for small teams. Put the work on a board and step back from
-implementation — spend your attention on what each task is worth to users, not on how the
-coding agent is doing its job. Today's coding agents already turn a clear spec into
-working code. Hand them a vague idea, though, and they'll build the wrong thing on top of
-the wrong assumptions. AI4Kanban remembers your past decisions and draws on them to turn
-the same vague idea into a spec concrete enough to build.
+AI4Kanban is designed for small teams. It does not make product-direction decisions for
+you. Instead, it shifts your work from writing requirements one by one and supervising
+execution to assessing value and approving results. As its module memory grows, the agent
+can make decisions based on the project's own constraints and preferences, ask fewer
+repetitive questions, and avoid directions that have already been rejected.
 
-## How it's built
+## How it works
 
-- [x] **Any harness.** Designed for any harness — Claude Code, Codex, Cursor. Claude Code
-  and Codex are wired up today; the rest is on the roadmap.
-- [x] **Local first.** Cards are Markdown files by default. No MCP, no database,
-  token-efficient. Everything is plain text in git — you can review it, diff it, roll it back.
-- [x] **Works out of the box.** One prompt installs or updates it. AI4Kanban does one thing —
-  project management — so there's almost nothing to configure.
-- [x] **Two ways to drive it.** Work the board from the command line through the skill,
-  or point and click in the local UI.
+- [x] **Not tied to a single agent.** The board is decoupled from agent runtimes. Claude
+  Code and Codex are supported today, with Cursor and other environments
+  on the roadmap.
+- [x] **Local first.** Cards are stored as Markdown files by default, with no MCP server
+  or database required, reducing token usage. Everything is plain text in Git, so it can
+  be reviewed, diffed, and rolled back.
+- [x] **Works out of the box.** A single prompt installs or updates it. AI4Kanban focuses
+  exclusively on project management, so there is almost nothing to configure.
+- [x] **Two ways to interact.** Manage the board from the command line through the skill,
+  or use the local UI.
 
-Human project managers track their work on a Kanban board, and an agent should too. AI4Kanban
-doesn't live in a chat window — the board is the interface.
+The board is not an add-on interface. It is the agent's long-term project context, with a
+clear place for goals, tasks, decisions, dependencies, and progress. AI4Kanban is not
+centered on a chat window; the board is the agent's project-management interface.
 
 ## Quick start
 
@@ -69,102 +99,85 @@ Set up ai4kanban for this project. Read
 https://ai4kanban.dev/INSTALL_PROMPT.txt and follow it.
 ```
 
-The agent reads your codebase, then runs one command:
+The agent first reads your codebase, then runs:
 
 ```bash
 npx ai4kanban install --tracks feature,bug,research
 ```
 
-That copies the skill into your project and scaffolds the board under `docs/kanban/`. The
-agent then fills in the configuration, asks for your project goal — the one thing setup
-asks — settles the first decisions from it, maps the project's modules, files each
-decision under the module it belongs to, and creates your first ten tasks. Both your config and your board live in `docs/kanban/` — the skill folder holds
-only generic code. From then on you just talk to the board.
+Setup asks for just one thing: your project goal. The agent uses it to establish module
+memory, map the project's modules, and create the first ten initial task cards. From
+then on, you can manage the project directly through the board.
 
-To update later, one command again:
-
-```bash
-npx ai4kanban update
-```
-
-It replaces the skill with the newest version, repairs anything an older release never
-wrote, and tells you which version you moved from and to. Your board is never touched.
-
-Prefer plugins? `/plugin marketplace add ai4kanban/ai4kanban` then
-`/plugin install kanban@kanban` makes the skill available, but it doesn't configure a
-board — run `npx ai4kanban install` for that. The install prompt above covers both paths.
-
-If your agent can't fetch URLs, open [`INSTALL_PROMPT.txt`](web/public/INSTALL_PROMPT.txt)
-and paste its contents instead — same result. The only requirement is Node.js 18+ — nothing
-has dependencies, so there's nothing to install.
+If the agent cannot access the URL, open
+[`INSTALL_PROMPT.txt`](web/public/INSTALL_PROMPT.txt) and give it the contents instead.
+The result is the same. The only prerequisite is Node.js 18+; no other dependencies need
+to be installed.
 
 ## Using the skill
 
-Drive it in plain language — the skill triggers on these:
-
 | You say | The agent does |
 | --- | --- |
-| "propose new tasks" | walks one focus area and drafts new cards for work nobody's planned |
-| "add a task: …" | reviews the idea, writes a card, adds it to the index |
-| "refine #4" | reviews card #4 and makes it one step more concrete |
-| "resolve #4" | works through card #4's open questions with you |
-| "review the board" | checks cards for clarity, duplication, done-ness |
-| "create release v1" | plans a version, then "put #4 in v1" and "what's in v1?" |
-| "#4 is done" | updates the docs the change touched, removes the card |
+| "what's next?" / "propose new tasks" | selects a module, reads its memory, and drafts cards for unplanned work; creates 3 by default |
+| "add a task: …" | evaluates the idea, then creates a card and adds it to the index |
+| "refine #4" | refines card #4 from a vague idea into something more concrete |
+| "auto-refine #4" | keeps refining card #4 automatically until only decisions that require your input remain |
+| "resolve #4" | works through the open questions on card #4 one by one |
+| "review the board" | checks whether cards are clear, duplicates, already complete, or no longer worth pursuing |
+| "implement #4" | implements card #4 and completes its checklist |
+| "#4 is done" | updates the relevant documentation, then archives the card |
+| "reject #4" | deletes the card and records the reason, so similar proposals do not return |
+| "add a recurring task: …" | creates a recurring task that is never archived; say "run #4" to run it once |
+| "create release v1" | plans a release; you can then use "put #4 in v1", "what's in v1?", and "close v1" |
 
-Planning a version is optional. Create a release, put the cards you promised into it, and
-ask what's in it — you get each release in ship order with how many cards it holds and how
-many are ready to build. A card you don't place is in no release: wanted, not promised to
-a version. "Create release v1 and fill it" starts the version with the unplaced
-high-priority cards already in it — every card that moved or stayed is named, so you can
-read the plan before you build it. When a version ships, "close v1" writes down what it
-held and moves the board on; if you give up on one instead, "drop v1" takes it off the
-list with no shipped record and its open cards go back to being unplaced.
+The table uses English examples, but instructions in Chinese work as well.
 
-This repo uses the skill on itself: `docs/kanban/` is a real board tracking the skill's
-own development, so you can see exactly what a filled-in setup looks like.
+See the [daily loop guide](docs/guides/daily-loop.md) for the complete workflow.
+
+This repository also uses the skill to manage its own development. `docs/kanban/` is a
+real, active board that you can explore as a complete example.
 
 ### Web UI (optional)
 
-A local board over the same Markdown files — read a card in full and act on it with a
-click instead of a prompt:
+The local UI uses the same Markdown files as its single source of truth and provides both
+Board and Queue views. You can read complete cards and the project goal, create tasks or
+ask the agent to propose them, plan releases, run agents, schedule recurring tasks, and
+review progress from the last 30 days. The Markdown files always remain authoritative.
 
 ```bash
 npx ai4kanban-ui        # http://localhost:7420
 ```
 
-![The board view in the web UI](https://cdn.ai4kanban.dev/kanban-skill-ui-v3.jpg)
+![The board view in the Web UI](https://cdn.ai4kanban.dev/kanban-skill-ui-v3.jpg)
 
-![Card detail view in the web UI](https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v3.jpg)
+![Card detail view in the Web UI](https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v3.jpg)
 
-Localhost only — no hosting, no login. See [kanban-ui/](kanban-ui/README.md) for options.
+It runs only on localhost, with no deployment or login required. See
+[kanban-ui/](kanban-ui/README.md) for more options.
 
 ## Roadmap
 
-- [ ] **Pluggable storage** (soon) — keep the board in Obsidian, Notion, or GitHub Issues.
-- [ ] **Pluggable harness** (in progress) — hand tasks to Claude Code, Codex, or Cursor to
-  run. Claude Code and Codex work today; Cursor is next.
-- [ ] **Git worktrees** (soon) — tasks run in parallel, each in its own worktree, without
-  stepping on each other.
-- [ ] **Schedules and webhooks** (soon) — pull in requests from outside, on a timer or
-  through a webhook.
-- [ ] **Blocked-task management** (soon) — get tough on tasks that sit too long: split
-  them, rewrite them, or reject them outright.
-- [ ] **Team collaboration** (later)
+- [ ] **Pluggable storage** (soon): store the board in Obsidian, Notion, or GitHub Issues.
+- [ ] **More agent runtimes** (in progress): Claude Code and Codex are supported
+  today, with Cursor next.
+- [ ] **Git worktrees** (soon): run multiple tasks in parallel, each in an isolated
+  worktree.
+- [ ] **External input connectors** (soon): bring in user feedback, competitor research,
+  and industry signals through webhooks, then turn them into tasks the board can evaluate.
+- [ ] **Blocked-task management** (soon): split, rewrite, or reject tasks that remain
+  stalled for too long.
+- [ ] **Team collaboration** (medium term)
 
 ## Updating
 
-One prompt — the update guide ships with the skill, so there's nothing to fetch first:
+Update with a single prompt:
 
 ```
 Update ai4kanban in this project. Read
 .claude/skills/kanban/references/update.md and follow it.
 ```
 
-Updates overwrite only the generic skill folder (`SKILL.md`, `kanban.mjs`, the references).
-Your config and your board both live in `docs/kanban/`, so they're never touched.
-
 ## License
 
-[Apache License 2.0](LICENSE). Free to use, modify, and redistribute. Contributions
+[Apache License 2.0](LICENSE). Free to use, modify, and redistribute. Contributions are
 welcome.
