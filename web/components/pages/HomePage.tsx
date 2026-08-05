@@ -1,12 +1,11 @@
-import { Header } from "@/components/Header";
+import { HomeHeader } from "@/components/home/HomeHeader";
 import { Hero } from "@/components/home/Hero";
-import { Features } from "@/components/home/Features";
-import { Install } from "@/components/home/Install";
-import { BoardTable } from "@/components/home/BoardTable";
-import { BoardUI } from "@/components/home/BoardUI";
-import { Presets } from "@/components/home/Presets";
-import { Advanced } from "@/components/home/Advanced";
-import { Footer } from "@/components/Footer";
+import { Compare } from "@/components/home/Compare";
+import { Loop } from "@/components/home/Loop";
+import { Memory } from "@/components/home/Memory";
+import { Iterate } from "@/components/home/Iterate";
+import { Start } from "@/components/home/Start";
+import { HomeFooter } from "@/components/home/HomeFooter";
 import { getCopy } from "@/i18n";
 import {
   APP_ID,
@@ -20,17 +19,20 @@ import type { Locale } from "@/lib/i18n";
 
 // The landing page, rendered once per language. `app/(en)/page.tsx` builds the
 // English copy at `/`; `app/(intl)/[locale]/page.tsx` builds the other four.
+//
+// The page brings its own header and footer: the shared `Header.tsx` and
+// `Footer.tsx` carry the comparison pages' link set, and this page links to its
+// own five sections instead.
 export function HomePage({ locale }: { locale: Locale }) {
-  const c = getCopy(locale);
-  const home = webPage("", c.home.meta.title, c.home.meta.description, {
-    locale,
-  });
+  const copy = getCopy(locale);
+  const c = copy.home;
+  const home = webPage("", c.meta.title, c.meta.description, { locale });
 
   const schema = jsonLd(home, {
     ...softwareApplication({
       id: APP_ID,
       name: "AI4Kanban",
-      description: c.home.meta.description,
+      description: c.meta.description,
       url: pageUrl(""),
       free: true,
     }),
@@ -44,17 +46,16 @@ export function HomePage({ locale }: { locale: Locale }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: schema }}
       />
-      <Header c={c} locale={locale} />
-      <main className="mx-auto max-w-4xl px-6">
-        <Hero c={c.home} locale={locale} />
-        <Features c={c.home} />
-        <Install c={c} />
-        <BoardTable c={c.home} />
-        <BoardUI c={c} />
-        <Presets c={c.home} />
-        <Advanced c={c.home} />
+      <HomeHeader c={copy} locale={locale} />
+      <main className="mx-auto max-w-5xl px-6">
+        <Hero c={c.hero} />
+        <Compare c={c.compare} />
+        <Loop c={c.loop} />
+        <Memory c={c.memory} />
+        <Iterate c={c.iterate} />
+        <Start c={c.start} />
       </main>
-      <Footer c={c} locale={locale} path="" />
+      <HomeFooter c={c.footer} locale={locale} />
     </>
   );
 }

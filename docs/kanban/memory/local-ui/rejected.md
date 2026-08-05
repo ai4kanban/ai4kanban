@@ -36,6 +36,11 @@ before proposing so you don't re-suggest them.
   from a guess. Nobody has reported a button that quietly does nothing because of
   permissions; raise it again from the actual case if it turns out to be real.
 
+## Connectors
+
+- **A Gemini CLI connector** — not one of the agents we want to reach. Cursor, OpenClaw and
+  OpenCode come first, and any agent past them waits for users to ask.
+
 ## Setup
 
 - **A one-button in-UI setup run for a repo with no board** — the setup bar is the

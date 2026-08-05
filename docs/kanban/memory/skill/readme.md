@@ -12,6 +12,9 @@ covers it, or a plain-words note.
   cards on its own: `skill/references/auto-refine.md`.
 - A question for the user with choices is written as options they tick, not as prose with
   the choices inside the line: `skill/references/resolve.md`.
+- Source-to-task extraction treats articles, research, analyses, and user feedback as
+  evidence, validates ideas by module, and skips work already supported or planned:
+  `skill/references/extract-ideas.md`.
 - A finished card is kept, not deleted — archive moves it to `docs/kanban/.archive/`,
   which stays in git: `docs/guides/daily-loop.md`.
 

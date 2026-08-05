@@ -10,11 +10,8 @@
   --color-accent: #58a6ff;
   --color-code: #0a0e14;
 
-  /* Track hues — one per solo-founder task type, so the proportion bar reads
-     as three different kinds of work rather than three shades of one. */
+  /* The one green: a check mark, and the half of the work that's yours. */
   --color-growth: #3fb950;
-  --color-validation: #e3b341;
-  --color-building: #58a6ff;
 
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;

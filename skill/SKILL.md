@@ -1,7 +1,6 @@
 ---
 name: kanban
-description: Use to propose new tasks, add a task, mark one done, or push a task one step forward. Manages the file-based task board in docs/kanban/ — blockers, roadmap tracks, archive, and global task ids. Triggers on "propose new tasks", "what's on the backlog", "add a task", "this is done", "refine", "resolve", "dive deeper".
-argument-hint: "[propose [count] | add <task> | refine <id> | resolve <id> | done <id> | reject <id>]"
+description: Manage the file-based board in docs/kanban/. Use to propose or add tasks (including from articles, research, analyses, or feedback), refine or resolve a task, mark it done, or reject it. Triggers on "what's next", "create tasks from this", "add a task", "refine", "resolve", "done", and "reject".
 ---
 
 The task board lives in `docs/kanban/`. Read it before suggesting or adding work.
@@ -137,16 +136,9 @@ id 4). Ids are global and never reused; only the script's `create` allocates the
 deletes it. While it's there, no flow creates cards; setup's own last step is the only
 exception. Full guide in `references/setup.md`.
 
-## Propose new tasks
+## Add tasks
 
-When the user asks to propose work, pick **one module** and propose new tasks inside it —
-work nobody has planned yet, each one short-term and its own single card (never a group
-task). **3** of them unless the user names a count; **10** is the cap. Full guide in
-`references/propose.md`.
-
-## Add a task
-
-Add a task from an idea. Full guide in `references/add-task.md`.
+Full guide in `references/add-task.md`.
 
 ## Refine
 
@@ -213,9 +205,8 @@ A track is the bucket a task lives in — one folder per track under `todo/`. Yo
 
 ## Recurring task
 
-A recurring task is a job we repeat (e.g. a weekly report), not a one-shot. Adding one
-and running one are both in `references/recurring-task.md`; the job itself is the card's
-own `## Process`.
+A recurring task is a job we repeat (e.g. a weekly report), not a one-shot. Running one
+is in `references/recurring-task.md`; the job itself is the card's own `## Process`.
 
 ## Run the board locally
 

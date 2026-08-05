@@ -12,11 +12,9 @@ before proposing so you don't re-suggest them.
 
 ## Outside sources
 
-- **An intake flow that pulls ideas from outside sources onto the board** — the skill is
-  already flexible enough: a recurring card holding a plain prompt plus the add-task flow
-  turns an outside item into a card, so no built-in intake machinery is needed. The part
-  that is actually missing is the connector to the outside source, and that is not in the
-  open core.
+- **Built-in connectors that pull outside sources onto the board** — a recurring card or
+  user prompt can supply the material to the idea-extraction flow. The missing connector
+  belongs outside the open core; the skill only evaluates material it can already read.
 
 ## Setup
 

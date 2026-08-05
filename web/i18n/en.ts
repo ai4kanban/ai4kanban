@@ -40,254 +40,156 @@ const en: SiteCopy = {
 
   home: {
     meta: {
-      title: "AI4Kanban — AI project management that grows with you",
+      title:
+        "AI4Kanban — The project board that plans autonomously and learns from every decision",
       description:
-        "AI project management for Claude Code — a skill plus a local board UI. Give it a vague idea and the agent breaks it down, settles what it can on its own, and clarifies the rest with you until it's clear enough to build. Plain Markdown, in git.",
-      social:
-        "Give it a vague idea. The agent breaks it down, settles what it can on its own, brings you the rest, and keeps working in the background until every detail is clear enough to build.",
+        "An agent-led project board that turns project goals into continuous execution — defining tasks, clarifying requirements, setting priorities, and preserving every product decision in project memory.",
     },
+
+    header: {
+      brand: "🗂️ AI4Kanban",
+      nav: {
+        install: "Install",
+      },
+      github: "GitHub ↗",
+    },
+
     hero: {
-      badge: "A Claude Code skill + a local board UI",
-      title: "AI project management\nthat grows with you.",
-      lead: "Give it a vague idea. The agent breaks it down, settles what it can on its own, brings you the rest, and keeps working in the background until every detail is clear enough to build. The board is plain Markdown in `docs/kanban/` — versioned in git, with no database and no MCP.",
-      ctaInstall: "Install in one prompt",
-      ctaGithub: "View on GitHub",
-    },
-    quickview: {
-      caption:
-        "The board, rendered in your terminal — the same files that live in git.",
-      taskView: "Task names",
-      fileView: "File paths",
-      frontAria: "{view} view (front)",
-      flipAria: "Flip to {view} view",
-    },
-    features: {
-      breakDown: {
-        title: "Breaks work down",
-        body: "The agent reads an idea and splits it into subtasks. An unrelated ask tangled in gets pulled out as a task of its own.",
-      },
-      clarify: {
-        title: "Clarifies in a loop",
-        body: "The agent starts by questioning the idea. Whatever memory and common sense can settle, it settles on its own; the rest comes to you. It keeps looping until it runs out of questions.",
-      },
-      alwaysOn: {
-        title: "Runs 24/7",
-        body: "Breakdown and clarification keep running in the background until the idea becomes a clear spec.",
-      },
-      traceable: {
-        title: "Every decision is traceable",
-        body: "You can always see how a spec took shape, step by step.",
-      },
-      proposes: {
-        title: "Proposes its own tasks",
-        body: "The agent pitches features drawn from each module's memory. Veto one and that's recorded — it won't pitch that kind of idea again.",
-      },
-      selfEvolving: {
-        title: "Self-evolving",
-        body: "Each time you step in, that call is recorded and steers the agent's later decisions. Memory is organized by project module.",
-      },
-      orders: {
-        title: "Orders the work",
-        body: "It doesn't just split tasks — it identifies dependencies and weighs ROI against effort, so work runs in the right order.",
-      },
-      lifecycle: {
-        title: "Owns the whole lifecycle",
-        body: "Its job doesn't end once the spec is clear. It runs a task's entire life — proposed, clarified, built, archived — so the board always shows where the project really stands.",
-      },
-    },
-    featuresNote:
-      "AI4Kanban is built for small teams. Today's coding agents already turn a clear spec into working code — hand them a vague idea, though, and they'll build the wrong thing on top of the wrong assumptions. AI4Kanban remembers your past decisions and draws on them to turn the same vague idea into a spec concrete enough to build.",
-    install: {
-      heading: { eyebrow: "Setup", title: "Install in one prompt" },
-      lead: "From your project root, tell Claude Code (or any agent that can run shell commands):",
-      note: "The agent reads your codebase, then runs one command — `npx ai4kanban install` — which copies the skill in and scaffolds the board. It fills in the configuration, asks for your project goal — the one thing setup asks — settles the first decisions from it, and creates your first ten tasks. Updating later is one command too: `npx ai4kanban update`.",
-    },
-    board: {
-      heading: { eyebrow: "Usage", title: "Using AI4Kanban in Claude Code" },
-      lead: "Once installed, drive it in plain language:",
-      terminal: "you › claude",
-      rows: {
-        whatsNext: {
-          say: '"/kanban what\'s next?"',
-          does: "reads the board + your sources, proposes 3 new tasks",
-        },
-        addTask: {
-          say: '"/kanban add a task: …"',
-          does: "reviews the idea, writes a card, adds it to the index",
-        },
-        refine: {
-          say: '"/kanban refine #4"',
-          does: "reviews card #4, then pushes it one stage toward concrete",
-        },
-        review: {
-          say: '"/kanban review the board"',
-          does: "checks cards for clarity, duplication, done-ness",
-        },
-        done: {
-          say: '"/kanban #4 is done"',
-          does: "compresses it into the archive, removes the card",
-        },
-        badIdea: {
-          say: '"/kanban #4 was a bad idea"',
-          does: "records why in rejected.md so it's never re-proposed",
-        },
-      },
-    },
-    ui: {
-      heading: {
-        eyebrow: "Board UI",
-        title: "A local board you can open in the browser",
-      },
-      lead: "Prefer to look instead of ask? One command opens a board over the same Markdown files — read a task in full without hunting for its file in your IDE tree, and act on it with a click instead of re-typing the same prompt into the chat.",
-      optional:
-        "It's optional — the install step ships nothing extra. When you want it, just ask Claude:",
-      started:
-        "Claude starts the prebuilt server for you — localhost only, nothing to compile.",
-      actionsLead: "Each card's buttons hand a move to an agent, no chat needed:",
-      actions: {
-        implement: {
-          label: "Implement",
-          body: "hand the card to Claude to build",
-        },
-        edit: { label: "Edit", body: "revise the card, don't run it" },
-        refine: { label: "Refine", body: "push a stuck card one step on" },
-        resolve: { label: "Resolve", body: "answer the card's open questions" },
-        archive: { label: "Archive", body: "file a finished card away" },
-        reject: { label: "Reject", body: "drop a card and note why" },
-      },
+      title: "A project board that plans itself.",
+      lead: "It brings your goals, code, and project memory together to manage work from planning through completion. You make the product calls and give final approval.",
+      ctaInstall: "Start with one prompt",
+      ctaGithub: "View on GitHub ↗",
       shots: {
-        board: {
-          label: "Board view",
-          alt: "ai4kanban's local web board — Blockers, UI, Skill, Docs, and Distribution columns of Markdown cards with #ids, priority and ROI badges, and subtask progress bars.",
-        },
-        detail: {
-          label: "Card detail",
-          alt: "A task detail page in the local board — title, Implement / Review / Edit / Reject actions, a metadata row for track, priority, ROI, todos and blockers, and the full card body.",
-        },
+        board: { label: "Board", alt: "AI4Kanban local board: Board view" },
+        queue: { label: "Queue", alt: "AI4Kanban local board: Queue view" },
+        frontAria: "{view} view (current)",
+        flipAria: "Switch to {view} view",
       },
-      frontAria: "{view} (front)",
-      flipAria: "Flip to {view}",
     },
-    presets: {
-      heading: { eyebrow: "Presets", title: "The indie-hacker preset" },
-      lead: "Building all day while nobody's watching is the classic solo-founder trap. This preset splits your time three ways — finding users, checking demand, and building — and Claude keeps new work spread across all three instead of piling it onto one.",
-      tracks: {
-        growth: {
-          body: "Get in front of users — posts, outreach, launches. Claude suggests methods worth trying and drafts them.",
+
+    compare: {
+      title: "From task tracking to autonomous planning",
+      lead: "Traditional boards only record and track tasks, and every input has to be written by hand. AI4Kanban uses your long-term goals and the decisions already in project memory to plan work and move it forward autonomously.",
+      columns: { classic: "Traditional board", kanban: "AI4Kanban" },
+      rows: [
+        {
+          dimension: "Input",
+          classic: "Detailed tasks written by hand",
+          kanban: "Long-term goals and rough ideas",
         },
-        validation: {
-          body: "Check the market wants it before you build deep. Post an honest question, share a trial, save the verdict.",
+        {
+          dimension: "Primary role",
+          classic: "Record and track tasks",
+          kanban: "Plan and drive work autonomously",
         },
-        building: {
-          body: "Stay at MVP. Build when it scales your work, strengthens the product, or users clearly ask for it.",
+        {
+          dimension: "Your role",
+          classic: "Maintain the board by hand",
+          kanban: "Make decisions and approve the result",
         },
-      },
-      note: "The `indie-hacker` preset also adds review gates — a moat test and a trust test — plus a market-validation method for posting to Reddit or X before you build. Swap in your own tracks and weights at install time.",
+      ],
     },
-    advanced: {
-      heading: {
-        eyebrow: "Features",
-        title: "Project management in Markdown, not a flat list",
-      },
-      lead: "A flat to-do list is just a list. This one does four things a list can't — recurring work, subtasks for the big jobs, a memory of what's done, and a throughput count.",
-      recurring: {
-        title: "Recurring tasks",
-        body: "Some work is never one-and-done. Keep each as a card in `docs/kanban/todo/recurring/` — a job that never gets archived — and let Claude Code's `/loop` run it on the cadence you pick, like every morning.",
-        examples: {
-          competitors: {
-            label: "Competitor tracking",
-            body: "See what rivals shipped or changed, and flag anything worth a response.",
-          },
-          listening: {
-            label: "Social listening",
-            body: "Pull fresh posts from Reddit or Slack and surface the ones that matter.",
-          },
-          boardReview: {
-            label: "Board review",
-            body: "Sweep the backlog for stale, duplicate, or already-done cards.",
-          },
+
+    loop: {
+      title: "Keep work moving",
+      lead: "Give it a goal or a rough idea. The agent reads your code and project memory, determines what comes next, clarifies requirements, breaks the work down, orders dependencies and priorities, and moves into execution.",
+      steps: [
+        {
+          title: "Define the next task",
+          body: "Use the goal, code, and module memory to determine what should happen next.",
         },
-        ladderLead:
-          "Not every job needs the same level of automation. A card can sit at any rung — from one you drive by hand, to one Claude handles for you, to a script that runs on its own:",
-        ladder: {
-          ask: { label: "you do it by hand" },
-          agent: { label: "Claude does it for you" },
-          script: { label: "a command runs it, no human" },
+        {
+          title: "Clarify requirements",
+          body: "The agent resolves anything it can from the code and project memory, bringing you only the product tradeoffs that require your judgment.",
         },
-        ladderNote:
-          "Push each job as far up as it earns — some stay hands-on, others run themselves.",
-      },
-      group: {
-        title: "Group tasks",
-        body: "A task too big to start tends to just sit there. When one card can't hold it, it becomes a **group task** — its own folder with a tracking `root.md` and one card per piece. Each piece gets its own id and is wired with *Blocked by* and *Related* links, so you always know the next thing to pick up.",
-      },
-      memory: {
-        title: "Project memory",
-        body: "Working the board is a loop. Each round, Claude proposes new work by pulling from three sources, you make the call, and it folds the result into a memory hub — so the next round builds on the last instead of repeating it.",
-        hubLabel: "docs/kanban/ — the hub that holds your feedback",
-        files: {
-          memory: {
-            body: "Notes from each scan carry to the next, with a watermark per source — so it re-reads only what changed.",
-          },
-          archive: {
-            body: "Shipped work shrinks to a plain line. It reads this before proposing, so it won't re-suggest what's done.",
-          },
-          rejected: {
-            body: "Ideas you turned down are kept with the reason, so it never floats them at you again.",
-          },
-          redesign: {
-            body: "A design mistake you corrected becomes a note, so the next card doesn't repeat the wrong plan.",
-          },
+        {
+          title: "Execute",
+          body: "Once the requirements are clear enough to begin, the agent follows the scope and steps defined in the task.",
         },
-        loop: {
-          aria: "The loop: propose, then you decide, then learn — then it starts over.",
-          centerCaption: "reads & writes",
-          stepLabel: "step",
-          stages: {
-            propose: {
-              label: "Propose",
-              body: "Pulls from three sources for work that isn't already shipped or shelved:",
-            },
-            decide: {
-              label: "You decide",
-              body: "Ship it, skip it, or fix the plan. A few words back to Claude is enough.",
-            },
-            learn: {
-              label: "Learn",
-              body: "Folds the outcome and your feedback into the hub, so the next round starts sharper.",
-            },
-          },
-          sources: {
-            project: {
-              label: "Your project",
-              body: "Codebase, board, docs, team chat — it connects what's already here into work worth doing.",
-            },
-            outside: {
-              label: "The outside",
-              body: "Reddit, Slack, your CRM. Recurring jobs pull in fresh signal and drop the findings on the board.",
-            },
-            you: {
-              label: "You",
-              body: "Your own steer and feedback, kept in the board so a good call is never lost or asked twice.",
-            },
-          },
+        {
+          title: "Record decisions",
+          body: "Write product decisions back to project memory so the next planning and development cycle can build on them.",
         },
+      ],
+      split: {
+        agentLabel: "Agent",
+        agentBody: "Plan work · Drive execution · Record decisions",
+        youLabel: "You",
+        youBody: "Set the goal · Make tradeoffs · Give final approval",
       },
-      metrics: {
-        title: "Task metrics",
-        body: "Each archived card is one shipped unit, so your velocity is just a number in git next to the work — no external tool to keep in sync.",
-        chart: {
-          aria: "Daily throughput over twelve days: total, completed, created, and rejected tasks.",
-          series: {
-            total: "Total",
-            completed: "Completed",
-            created: "Created",
-            rejected: "Rejected",
-          },
-          caption:
-            "One row per day in `metrics.csv` — completed, created, rejected, and their total. The script keeps it up to date; you never touch it.",
+    },
+
+    memory: {
+      title: "Learns as you build",
+      lead: "Conversations end. Product decisions stay. AI4Kanban saves your project goals and keeps a module-by-module record of shipped features, product decisions, reasons behind rejected ideas, and design lessons. It brings that context back when planning and clarifying new work.",
+      cards: [
+        {
+          title: "No need to repeat yourself",
+          body: "Established preferences and constraints carry straight into planning the next task.",
         },
+        {
+          title: "Avoid the same dead ends",
+          body: "Rejected directions and known design problems are not proposed again.",
+        },
+        {
+          title: "Pick up where you left off",
+          body: "Before planning new work, it reads what has already shipped and checks the current code.",
+        },
+      ],
+      tree: {
+        goal: "Project goal",
+        module: "One per module",
+        readme: "Shipped features",
+        decisions: "Product decisions",
+        rejected: "Reasons for rejection",
+        redesign: "Design lessons",
       },
+    },
+
+    iterate: {
+      title: "Drive continuous product iteration",
+      lead: "Turn external signals into requirements that keep the product — and each release — moving forward.",
+      inputsLabel: "External inputs",
+      inputs: [
+        "User feedback",
+        "Competitor research",
+        "Industry reports",
+        "Reddit discussions",
+      ],
+      context: [
+        "Decision history",
+        "Requirements and tasks",
+        "Project modules",
+        "Run history",
+      ],
+      skill: "AI4Kanban Skill",
+      otherAgents: "Other agents",
+      storage: "Project data",
+      outputsLabel: "Iteration outcomes",
+      outputs: ["Product improvements", "Release iterations"],
+    },
+
+    start: {
+      title: "Start with one prompt",
+      lead: "It reads your codebase, establishes the project goal and module memory, and creates the first set of tasks.",
+      notes: [
+        "Just provide the project goal",
+        "Node.js 18+",
+        "Local UI optional",
+      ],
+      cta: "Copy setup prompt",
+      copied: "Copied",
+    },
+
+    footer: {
+      github: "GitHub",
+      docs: "Documentation",
+      recipes: "Recipes",
+      comparisons: "Comparisons",
+      license: "Apache License 2.0",
+      language: "Language",
+      credit: "created by Tao Wu",
+      x: "Tao Wu on X",
     },
   },
 

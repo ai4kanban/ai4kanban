@@ -22,53 +22,8 @@ export type PageMeta = {
 export type Heading = { eyebrow: string; title: string };
 
 export type TitleBody = { title: string; body: string };
-export type LabelBody = { label: string; body: string };
 
 // ── keys shared with the component modules ──────────────────────────────────
-
-export type FeatureKey =
-  | "breakDown"
-  | "clarify"
-  | "alwaysOn"
-  | "traceable"
-  | "proposes"
-  | "selfEvolving"
-  | "orders"
-  | "lifecycle";
-
-export type BoardRowKey =
-  | "whatsNext"
-  | "addTask"
-  | "refine"
-  | "review"
-  | "done"
-  | "badIdea";
-
-export type UiActionKey =
-  | "implement"
-  | "edit"
-  | "refine"
-  | "resolve"
-  | "archive"
-  | "reject";
-
-export type RecurringExampleKey = "competitors" | "listening" | "boardReview";
-
-export type LadderKey = "ask" | "agent" | "script";
-
-export type InputSourceKey = "project" | "outside" | "you";
-
-export type SoloTrackKey = "growth" | "validation" | "building";
-
-export type LoopStageKey = "propose" | "decide" | "learn";
-
-export type LearnFileKey = "memory" | "archive" | "rejected" | "redesign";
-
-export type ThroughputSeriesKey =
-  | "total"
-  | "completed"
-  | "created"
-  | "rejected";
 
 export type VsGithubRowKey =
   | "storage"
@@ -197,89 +152,107 @@ export type SharedCopy = {
   cta: { install: string; github: string };
 };
 
+/**
+ * The landing page, section by section — the same five sections in every
+ * language, so each locale file fills the same keys.
+ *
+ * Where a component pairs a line of copy with something positional (an icon, a
+ * step number), the copy is a tuple rather than an array: a translation that
+ * drops or adds an entry is then a build error instead of a row that renders
+ * without its icon.
+ */
 export type HomeCopy = {
   meta: PageMeta;
+  header: {
+    brand: string;
+    nav: { install: string };
+    github: string;
+  };
   hero: {
-    badge: string;
-    /** `\n` marks the line break in the H1. */
     title: string;
     lead: string;
     ctaInstall: string;
     ctaGithub: string;
-  };
-  quickview: {
-    caption: string;
-    taskView: string;
-    fileView: string;
-    /** `{view}` is replaced by the view's name. */
-    frontAria: string;
-    flipAria: string;
-  };
-  features: Record<FeatureKey, TitleBody>;
-  featuresNote: string;
-  install: { heading: Heading; lead: string; note: string };
-  board: {
-    heading: Heading;
-    lead: string;
-    terminal: string;
-    rows: Record<BoardRowKey, { say: string; does: string }>;
-  };
-  ui: {
-    heading: Heading;
-    lead: string;
-    optional: string;
-    started: string;
-    actionsLead: string;
-    actions: Record<UiActionKey, LabelBody>;
     shots: {
       board: { label: string; alt: string };
-      detail: { label: string; alt: string };
+      queue: { label: string; alt: string };
+      /** `{view}` is replaced by the card's label. */
+      frontAria: string;
+      flipAria: string;
     };
-    /** `{view}` is replaced by the shot's label. */
-    frontAria: string;
-    flipAria: string;
   };
-  presets: {
-    heading: Heading;
+  compare: {
+    title: string;
     lead: string;
-    tracks: Record<SoloTrackKey, { body: string }>;
-    note: string;
+    columns: { classic: string; kanban: string };
+    rows: [CompareRow, CompareRow, CompareRow];
   };
-  advanced: {
-    heading: Heading;
+  loop: {
+    title: string;
     lead: string;
-    recurring: {
-      title: string;
-      body: string;
-      examples: Record<RecurringExampleKey, LabelBody>;
-      ladderLead: string;
-      ladder: Record<LadderKey, { label: string }>;
-      ladderNote: string;
-    };
-    group: { title: string; body: string };
-    memory: {
-      title: string;
-      body: string;
-      hubLabel: string;
-      files: Record<LearnFileKey, { body: string }>;
-      loop: {
-        aria: string;
-        centerCaption: string;
-        stepLabel: string;
-        stages: Record<LoopStageKey, LabelBody>;
-        sources: Record<InputSourceKey, LabelBody>;
-      };
-    };
-    metrics: {
-      title: string;
-      body: string;
-      chart: {
-        aria: string;
-        series: Record<ThroughputSeriesKey, string>;
-        caption: string;
-      };
+    steps: [TitleBody, TitleBody, TitleBody, TitleBody];
+    /** Who does what — the agent's half and yours. */
+    split: {
+      agentLabel: string;
+      agentBody: string;
+      youLabel: string;
+      youBody: string;
     };
   };
+  memory: {
+    title: string;
+    lead: string;
+    cards: [TitleBody, TitleBody, TitleBody];
+    /** What each memory file holds. The paths themselves stay in the component. */
+    tree: {
+      goal: string;
+      module: string;
+      readme: string;
+      decisions: string;
+      rejected: string;
+      redesign: string;
+    };
+  };
+  /** The architecture diagram: every entry is a node label, so all of it is nouns. */
+  iterate: {
+    title: string;
+    lead: string;
+    inputsLabel: string;
+    inputs: [string, string, string, string];
+    context: [string, string, string, string];
+    skill: string;
+    /** Names the "…" tile that stands for agents beyond Claude Code and Codex. */
+    otherAgents: string;
+    storage: string;
+    outputsLabel: string;
+    outputs: [string, string];
+  };
+  start: {
+    title: string;
+    lead: string;
+    /** The chips beside the copy button. */
+    notes: string[];
+    cta: string;
+    copied: string;
+  };
+  footer: {
+    github: string;
+    docs: string;
+    recipes: string;
+    comparisons: string;
+    license: string;
+    language: string;
+    credit: string;
+    /** Label for the X link on the credit line. */
+    x: string;
+  };
+};
+
+/** One row of the traditional-board / AI4Kanban comparison. */
+export type CompareRow = {
+  dimension: string;
+  classic: string;
+  kanban: string;
 };
 
 /** The two-chip header every comparison page opens with. */

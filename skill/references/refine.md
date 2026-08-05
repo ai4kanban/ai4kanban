@@ -54,8 +54,8 @@ Read the "Card format" and "Writing style" of `SKILL.md`.
 - **Reject.** A failed Value check. "Reject an idea" in `SKILL.md`: a line in
   `rejected.md`, then `${KB} reject <id>`. Unsure the value is real? Raise a question.
 - **Add a card.** A side idea, an unplanned, separate concern that doesn't
-  belong to this card. "Add a task" in `SKILL.md`, minding `references/add-task.md`'s rule
-  against near-duplicate splits.
+  belong to this card. Use "Add one task idea" in `references/add-task.md`, minding its
+  rule against near-duplicate splits.
 - **Group.** Cards that only make sense together: "Group task" in `SKILL.md` and "Tightly
   coupled tasks go in one group" in `references/add-task.md`.
 - **Archive.** Everything done and the goal met: "Finish a task" in `SKILL.md`.

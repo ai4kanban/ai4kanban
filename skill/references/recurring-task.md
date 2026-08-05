@@ -6,7 +6,8 @@ shipped behavior.
 
 ## Add one
 
-Same as any other card (`references/add-task.md`), with `--track recurring`:
+Validate it with "Add one task idea" in `references/add-task.md`, then create it with
+`--track recurring`:
 
 ```
 ${KB} create --title "Prune the memory" --track recurring \

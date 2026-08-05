@@ -39,258 +39,157 @@ const fr: SiteCopy = {
 
   home: {
     meta: {
-      title: "AI4Kanban — la gestion de projet par IA qui grandit avec vous",
+      title:
+        "AI4Kanban — Le tableau projet qui planifie en autonomie et apprend de chaque décision",
       description:
-        "La gestion de projet par IA pour Claude Code : une skill et un tableau local. Donnez-lui une idée floue et l'agent la découpe, tranche seul ce qu'il peut et clarifie le reste avec vous jusqu'à ce qu'elle soit prête à construire. Du Markdown brut, dans git.",
-      social:
-        "Donnez-lui une idée floue. L'agent la découpe, tranche seul ce qu'il peut, vous soumet le reste et poursuit en arrière-plan jusqu'à ce que chaque détail soit assez précis pour être construit.",
+        "Un tableau projet piloté par un agent qui transforme les objectifs en exécution continue : il définit les tâches, clarifie les exigences, fixe les priorités et conserve chaque décision produit dans la mémoire du projet.",
     },
+
+    header: {
+      brand: "🗂️ AI4Kanban",
+      nav: {
+        install: "Installation",
+      },
+      github: "GitHub ↗",
+    },
+
     hero: {
-      badge: "Une skill Claude Code + un tableau local",
-      title: "La gestion de projet par IA\nqui grandit avec vous.",
-      lead: "Donnez-lui une idée floue. L'agent la découpe, tranche seul ce qu'il peut, vous soumet le reste et poursuit en arrière-plan jusqu'à ce que chaque détail soit assez précis pour être construit. Le tableau est du Markdown brut dans `docs/kanban/` : versionné dans git, sans base de données ni MCP.",
-      ctaInstall: "Installez-le en un seul prompt",
-      ctaGithub: "Voir sur GitHub",
-    },
-    quickview: {
-      caption:
-        "Le tableau, rendu dans votre terminal : exactement les fichiers qui vivent dans git.",
-      taskView: "Noms de tâche",
-      fileView: "Chemins de fichier",
-      frontAria: "Vue {view} (au premier plan)",
-      flipAria: "Passer à la vue {view}",
-    },
-    features: {
-      breakDown: {
-        title: "Découpage autonome",
-        body: "L'agent lit une idée et la découpe en sous-tâches. Une demande sans rapport qui s'y était glissée en ressort comme une tâche à part.",
-      },
-      clarify: {
-        title: "Clarification en boucle",
-        body: "L'agent commence par questionner l'idée. Ce que la mémoire et le bon sens suffisent à trancher, il le tranche seul ; le reste vous revient. Et il recommence jusqu'à n'avoir plus de questions.",
-      },
-      alwaysOn: {
-        title: "Fonctionnement 24h/24",
-        body: "Le découpage et les clarifications continuent en arrière-plan jusqu'à ce que l'idée devienne une spécification claire.",
-      },
-      traceable: {
-        title: "Décisions traçables",
-        body: "Vous pouvez toujours revoir comment une spécification a pris forme, étape par étape.",
-      },
-      proposes: {
-        title: "Propositions autonomes",
-        body: "L'agent avance des fonctionnalités tirées de la mémoire de chaque module. Vous en refusez une, c'est noté : il ne reproposera plus rien de ce genre.",
-      },
-      selfEvolving: {
-        title: "Auto-évolution",
-        body: "Chaque fois que vous intervenez, votre arbitrage est enregistré et oriente les décisions suivantes de l'agent. La mémoire est rangée par module du projet.",
-      },
-      orders: {
-        title: "Dépendances et priorités",
-        body: "Il ne se contente pas de découper : il repère les dépendances et met le gain en balance avec l'effort, pour que le travail avance dans le bon ordre.",
-      },
-      lifecycle: {
-        title: "Cycle complet jusqu'à la livraison",
-        body: "Son travail ne s'arrête pas quand la spécification est claire. Il mène toute la vie d'une tâche, de la proposition à la clarification, à la construction, à l'archivage, de sorte que le tableau montre toujours où en est vraiment le projet.",
-      },
-    },
-    featuresNote:
-      "AI4Kanban est fait pour les petites équipes. Les agents de code d'aujourd'hui transforment déjà une spécification claire en code qui marche, mais donnez-leur une idée floue et ils construiront la mauvaise chose sur de mauvaises hypothèses. AI4Kanban se souvient de vos décisions passées et s'en sert pour transformer cette même idée floue en une spécification assez concrète pour être construite.",
-    install: {
-      heading: { eyebrow: "Mise en place", title: "Installez-le en un seul prompt" },
-      lead: "Depuis la racine de votre projet, dites à Claude Code (ou à n'importe quel agent capable de lancer des commandes shell) :",
-      note: "L'agent lit votre code, puis lance une seule commande — `npx ai4kanban install` — qui installe la skill et met le tableau en place. Il remplit ensuite la configuration, vous demande l'objectif du projet — la seule question de l'installation —, en tire les premières décisions et crée vos dix premières tâches. Pour mettre à jour plus tard, une commande suffit aussi : `npx ai4kanban update`.",
-    },
-    board: {
-      heading: { eyebrow: "Usage", title: "Utiliser AI4Kanban dans Claude Code" },
-      lead: "Une fois installé, vous le pilotez en langage courant :",
-      terminal: "you › claude",
-      rows: {
-        whatsNext: {
-          say: '"/kanban on fait quoi ensuite ?"',
-          does: "lit le tableau et vos sources, puis propose 3 nouvelles tâches",
-        },
-        addTask: {
-          say: '"/kanban ajoute une tâche : …"',
-          does: "examine l'idée, écrit une carte et l'ajoute à l'index",
-        },
-        refine: {
-          say: '"/kanban refine #4"',
-          does: "relit la carte #4, puis la pousse d'un cran vers le concret",
-        },
-        review: {
-          say: '"/kanban passe le tableau en revue"',
-          does: "vérifie la clarté, les doublons et ce qui est déjà fait",
-        },
-        done: {
-          say: '"/kanban #4 est terminée"',
-          does: "la comprime dans l'archive et supprime la carte",
-        },
-        badIdea: {
-          say: '"/kanban #4 était une mauvaise idée"',
-          does: "note pourquoi dans rejected.md pour ne jamais la reproposer",
-        },
-      },
-    },
-    ui: {
-      heading: {
-        eyebrow: "Tableau web",
-        title: "Un tableau local que vous ouvrez dans le navigateur",
-      },
-      lead: "Vous préférez regarder plutôt que demander ? Une commande ouvre un tableau posé sur ces mêmes fichiers Markdown : vous lisez une tâche en entier sans chercher son fichier dans l'arborescence de l'IDE, et vous agissez d'un clic au lieu de retaper le même prompt dans le chat.",
-      optional:
-        "C'est facultatif : l'installation n'embarque rien de plus. Quand vous en voulez, demandez-le simplement à Claude :",
-      started:
-        "Claude démarre pour vous le serveur déjà compilé : en localhost uniquement, rien à compiler.",
-      actionsLead:
-        "Les boutons de chaque carte confient une action à l'agent, sans passer par le chat :",
-      actions: {
-        implement: {
-          label: "Implémenter",
-          body: "confier la carte à Claude pour qu'il la construise",
-        },
-        edit: { label: "Modifier", body: "retoucher la carte, sans la lancer" },
-        refine: { label: "Affiner", body: "pousser d'un cran une carte bloquée" },
-        resolve: {
-          label: "Répondre",
-          body: "répondre aux questions ouvertes de la carte",
-        },
-        archive: { label: "Archiver", body: "ranger une carte terminée" },
-        reject: { label: "Rejeter", body: "abandonner une carte et noter pourquoi" },
-      },
+      title: "Un tableau projet qui planifie en autonomie.",
+      lead: "Il réunit vos objectifs, votre code et la mémoire du projet pour piloter le travail, de la planification à la livraison. Vous arbitrez les choix produit et donnez la validation finale.",
+      ctaInstall: "Démarrer avec un seul prompt",
+      ctaGithub: "Voir sur GitHub ↗",
       shots: {
-        board: {
-          label: "Vue tableau",
-          alt: "Le tableau web local d'ai4kanban, avec les colonnes Blockers, UI, Skill, Docs et Distribution remplies de cartes Markdown portant leurs #id, des badges de priorité et de ROI, et des barres de progression de sous-tâches.",
-        },
-        detail: {
-          label: "Détail d'une carte",
-          alt: "La page de détail d'une tâche dans le tableau local : titre, actions Implémenter / Relire / Modifier / Rejeter, une ligne de métadonnées avec la voie, la priorité, le ROI, les points à cocher et les blocages, et le corps complet de la carte.",
-        },
+        board: { label: "Board", alt: "Tableau local AI4Kanban : vue Board" },
+        queue: { label: "Queue", alt: "Tableau local AI4Kanban : vue Queue" },
+        frontAria: "Vue {view} (actuelle)",
+        flipAria: "Passer à la vue {view}",
       },
-      frontAria: "{view} (au premier plan)",
-      flipAria: "Passer à {view}",
     },
-    presets: {
-      heading: { eyebrow: "Préréglages", title: "Le préréglage indie-hacker" },
-      lead: "Construire toute la journée pendant que personne ne regarde, c'est le piège classique du fondateur solo. Ce préréglage partage votre temps en trois : trouver des utilisateurs, vérifier la demande, construire. Et Claude maintient le nouveau travail réparti sur les trois au lieu de tout empiler sur un seul.",
-      tracks: {
-        growth: {
-          body: "Passez devant les utilisateurs : publications, prise de contact, lancements. Claude suggère des méthodes à tenter et les rédige pour vous.",
+
+    compare: {
+      title: "Du suivi des tâches à la planification autonome",
+      lead: "Les tableaux classiques se contentent d’enregistrer et de suivre les tâches, toutes saisies à la main. AI4Kanban s’appuie sur vos objectifs à long terme et sur les décisions déjà conservées dans la mémoire du projet pour planifier le travail et le faire avancer en autonomie.",
+      columns: { classic: "Tableau classique", kanban: "AI4Kanban" },
+      rows: [
+        {
+          dimension: "Entrée",
+          classic: "Tâches détaillées rédigées à la main",
+          kanban: "Objectifs à long terme et idées à préciser",
         },
-        validation: {
-          body: "Vérifiez que le marché en veut avant de construire en profondeur. Posez une question honnête, partagez un essai, gardez le verdict.",
+        {
+          dimension: "Rôle principal",
+          classic: "Enregistrer et suivre les tâches",
+          kanban: "Planifier et faire avancer le travail en autonomie",
         },
-        building: {
-          body: "Restez au MVP. Construisez quand ça démultiplie votre travail, renforce le produit, ou quand les utilisateurs le demandent clairement.",
+        {
+          dimension: "Votre rôle",
+          classic: "Tenir le tableau à jour manuellement",
+          kanban: "Arbitrer et valider le résultat",
         },
-      },
-      note: "Le préréglage `indie-hacker` ajoute aussi deux garde-fous de relecture, un test de douve et un test de confiance, plus une méthode de validation marché pour publier sur Reddit ou X avant de construire. À l'installation, vous pouvez mettre vos propres voies et vos propres pondérations.",
+      ],
     },
-    advanced: {
-      heading: {
-        eyebrow: "Fonctions",
-        title: "De la gestion de projet en Markdown, pas une liste à plat",
-      },
-      lead: "Une liste de tâches à plat n'est qu'une liste. Celle-ci fait quatre choses qu'une liste ne peut pas faire : le travail récurrent, des sous-tâches pour les gros chantiers, une mémoire de ce qui est fait, et un décompte du débit.",
-      recurring: {
-        title: "Tâches récurrentes",
-        body: "Certains travaux ne se font jamais une fois pour toutes. Gardez chacun comme une carte dans `docs/kanban/todo/recurring/` (un travail qui n'est jamais archivé) et laissez le `/loop` de Claude Code l'exécuter à la cadence que vous choisissez, chaque matin par exemple.",
-        examples: {
-          competitors: {
-            label: "Veille concurrentielle",
-            body: "Voir ce que les concurrents ont sorti ou changé, et signaler ce qui mérite une réponse.",
-          },
-          listening: {
-            label: "Écoute sociale",
-            body: "Récupérer les publications fraîches de Reddit ou Slack et faire remonter celles qui comptent.",
-          },
-          boardReview: {
-            label: "Revue du tableau",
-            body: "Balayer le backlog à la recherche de cartes périmées, en double ou déjà faites.",
-          },
+
+    loop: {
+      title: "Faire avancer le travail",
+      lead: "Donnez-lui un objectif ou une idée encore floue. L’agent lit votre code et la mémoire du projet, détermine la prochaine étape, clarifie les exigences, découpe le travail, ordonne les dépendances et les priorités, puis passe à l’exécution.",
+      steps: [
+        {
+          title: "Définir la prochaine tâche",
+          body: "S’appuyer sur l’objectif, le code et la mémoire du module pour déterminer la suite.",
         },
-        ladderLead:
-          "Tous les travaux n'ont pas besoin du même niveau d'automatisation. Une carte peut rester à n'importe quel barreau : de celui que vous menez à la main, à celui que Claude prend en charge, jusqu'au script qui tourne tout seul :",
-        ladder: {
-          ask: { label: "vous le faites à la main" },
-          agent: { label: "Claude le fait pour vous" },
-          script: { label: "une commande l'exécute, sans humain" },
+        {
+          title: "Clarifier les exigences",
+          body: "L’agent tranche tout ce que le code et la mémoire du projet permettent d’établir, puis ne vous soumet que les arbitrages produit qui exigent votre jugement.",
         },
-        ladderNote:
-          "Montez chaque travail aussi haut qu'il le mérite : certains restent manuels, d'autres finissent par tourner seuls.",
-      },
-      group: {
-        title: "Tâches groupées",
-        body: "Une tâche trop grosse pour être commencée a tendance à rester là. Quand une seule carte ne suffit plus, elle devient une **tâche groupée** : son propre dossier, avec un `root.md` de suivi et une carte par morceau. Chaque morceau a son id et est relié par des liens *Blocked by* et *Related*, si bien que vous savez toujours quoi attraper ensuite.",
-      },
-      memory: {
-        title: "La mémoire du projet",
-        body: "Faire tourner le tableau, c'est une boucle. À chaque tour, Claude propose du travail neuf en puisant dans trois sources, vous tranchez, et il replie le résultat dans un hub de mémoire, pour que le tour suivant parte du précédent au lieu de le refaire.",
-        hubLabel: "docs/kanban/ : le hub qui garde vos arbitrages",
-        files: {
-          memory: {
-            body: "Les notes de chaque passage sont reprises au suivant, avec un repère par source, si bien qu'il ne relit que ce qui a changé.",
-          },
-          archive: {
-            body: "Le travail livré se réduit à une ligne. Il lit ceci avant de proposer, donc il ne resuggère pas ce qui est fait.",
-          },
-          rejected: {
-            body: "Les idées que vous avez écartées sont gardées avec leur motif, pour qu'il ne vous les ressorte jamais.",
-          },
-          redesign: {
-            body: "Une erreur de conception que vous avez corrigée devient une note, pour que la carte suivante ne refasse pas le mauvais plan.",
-          },
+        {
+          title: "Exécuter",
+          body: "Dès que les exigences sont assez claires pour commencer, l’agent suit le périmètre et les étapes définis dans la tâche.",
         },
-        loop: {
-          aria: "La boucle : il propose, vous tranchez, il apprend, puis ça recommence.",
-          centerCaption: "lit et écrit",
-          stepLabel: "étape",
-          stages: {
-            propose: {
-              label: "Proposer",
-              body: "Puise dans trois sources du travail qui n'est ni déjà livré ni mis de côté :",
-            },
-            decide: {
-              label: "Vous tranchez",
-              body: "On y va, on passe, ou on corrige le plan. Quelques mots à Claude suffisent.",
-            },
-            learn: {
-              label: "Apprendre",
-              body: "Replie le résultat et votre retour dans le hub, pour que le tour suivant démarre plus affûté.",
-            },
-          },
-          sources: {
-            project: {
-              label: "Votre projet",
-              body: "Code, tableau, docs, discussions d'équipe : il relie ce qui est déjà là en travail qui vaut la peine.",
-            },
-            outside: {
-              label: "L'extérieur",
-              body: "Reddit, Slack, votre CRM. Les travaux récurrents ramènent du signal frais et déposent leurs trouvailles sur le tableau.",
-            },
-            you: {
-              label: "Vous",
-              body: "Votre propre cap et vos retours, gardés dans le tableau pour qu'un bon arbitrage ne se perde pas et ne soit pas redemandé.",
-            },
-          },
+        {
+          title: "Consigner les décisions",
+          body: "Inscrire les décisions produit dans la mémoire du projet afin que le prochain cycle de planification et de développement puisse s’appuyer dessus.",
         },
+      ],
+      split: {
+        agentLabel: "Agent",
+        agentBody:
+          "Planifier le travail · Piloter l’exécution · Consigner les décisions",
+        youLabel: "Vous",
+        youBody: "Fixer l’objectif · Arbitrer · Donner la validation finale",
       },
-      metrics: {
-        title: "Métriques des tâches",
-        body: "Chaque carte archivée est une unité livrée : votre vitesse n'est donc qu'un nombre dans git, juste à côté du travail. Aucun outil externe à tenir synchronisé.",
-        chart: {
-          aria: "Débit quotidien sur douze jours : tâches totales, terminées, créées et rejetées.",
-          series: {
-            total: "Total",
-            completed: "Terminées",
-            created: "Créées",
-            rejected: "Rejetées",
-          },
-          caption:
-            "Une ligne par jour dans `metrics.csv` : terminées, créées, rejetées et leur total. Le script le tient à jour ; vous n'y touchez jamais.",
+    },
+
+    memory: {
+      title: "Apprend au fil du projet",
+      lead: "Les conversations se terminent. Les décisions produit restent. AI4Kanban conserve les objectifs du projet et tient, module par module, la liste des fonctionnalités livrées, des décisions produit, des raisons qui ont motivé les refus et des enseignements de conception. Il réutilise ce contexte pour planifier et clarifier les nouveaux travaux.",
+      cards: [
+        {
+          title: "Plus besoin de vous répéter",
+          body: "Les préférences et contraintes déjà établies alimentent directement la planification de la prochaine tâche.",
         },
+        {
+          title: "Ne plus retomber dans les mêmes impasses",
+          body: "Les pistes écartées et les problèmes de conception connus ne sont plus proposés.",
+        },
+        {
+          title: "Reprendre exactement où vous en étiez",
+          body: "Avant de planifier de nouveaux travaux, il lit ce qui a déjà été livré et examine le code actuel.",
+        },
+      ],
+      tree: {
+        goal: "Objectif du projet",
+        module: "Un par module",
+        readme: "Fonctionnalités livrées",
+        decisions: "Décisions produit",
+        rejected: "Motifs de refus",
+        redesign: "Enseignements de conception",
       },
+    },
+
+    iterate: {
+      title: "Piloter l’itération continue du produit",
+      lead: "Transformer les signaux externes en exigences qui font progresser le produit et chaque nouvelle version.",
+      inputsLabel: "Sources externes",
+      inputs: [
+        "Retours utilisateurs",
+        "Analyse de la concurrence",
+        "Études sectorielles",
+        "Discussions sur Reddit",
+      ],
+      context: [
+        "Historique des décisions",
+        "Exigences et tâches",
+        "Modules du projet",
+        "Historique des exécutions",
+      ],
+      skill: "AI4Kanban Skill",
+      otherAgents: "Autres agents",
+      storage: "Données du projet",
+      outputsLabel: "Résultats de l’itération",
+      outputs: ["Améliorations produit", "Nouvelles versions"],
+    },
+
+    start: {
+      title: "Démarrer avec un seul prompt",
+      lead: "Il lit votre base de code, établit l’objectif du projet et la mémoire de chaque module, puis crée les premières tâches.",
+      notes: [
+        "Il suffit d’indiquer l’objectif du projet",
+        "Node.js 18+",
+        "Interface locale facultative",
+      ],
+      cta: "Copier le prompt d’installation",
+      copied: "Copié",
+    },
+
+    footer: {
+      github: "GitHub",
+      docs: "Documentation",
+      recipes: "Recipes",
+      comparisons: "Comparisons",
+      license: "Licence Apache 2.0",
+      language: "Langue",
+      credit: "créé par Tao Wu",
+      x: "Tao Wu sur X",
     },
   },
 

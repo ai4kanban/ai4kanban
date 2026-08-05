@@ -21,6 +21,7 @@ _(none)_
 - [#114 Move several cards into a release at once](features/114-bulk-set-release.md)
 - [#116 Unstick cards that sit on the board too long](116-stuck-cards/root.md)
 - [#140 Schedule a blocked card so it starts the moment its blocker is done](features/140-schedule-a-blocked-card-so-it-starts-the-moment-its-blocker.md)
+- [#148 Show which cards can be built at the same time](features/148-show-which-cards-can-be-built-at-the-same-time.md)
 
 ## skill
 
@@ -28,11 +29,19 @@ _(none)_
 - [#112 Move a module's calls into its memory when the map gains that module](skill/112-move-a-module-s-calls-into-its-memory-when-the-map-gains-tha.md)
 - [#141 Update the sibling tasks when one task's plan changes](skill/141-update-the-sibling-tasks-when-one-task-s-plan-changes.md)
 - [#143 Plan UI tasks so the screen is agreed before it is built](143-ui-tasks/root.md)
+- [#144 Say how a card will be checked before it counts as done](skill/144-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
+- [#145 Turn a doc you already wrote into cards](skill/145-turn-a-doc-you-already-wrote-into-cards.md)
+- [#146 Name the one card to build next](skill/146-name-the-one-card-to-build-next.md)
+- [#147 Flag a card that is too big to build in one run](skill/147-flag-a-card-that-is-too-big-to-build-in-one-run.md)
+- [#149 Let two runs create cards at once without clobbering the board](skill/149-let-two-runs-create-cards-at-once-without-clobbering-the-boa.md)
+- [#150 Cut what the agent has to read to run one flow](skill/150-cut-what-the-agent-has-to-read-to-run-one-flow.md)
+- [#151 Make one install serve Cursor and Windsurf too](skill/151-make-one-install-serve-cursor-and-windsurf-too.md)
 
 ## distribution
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#5 Research the Vibe Kanban comparison and build its vs page](distribution/5-vibe-kanban-vs-page.md)
+- [#152 Build the Task Master comparison page](distribution/152-build-the-task-master-comparison-page.md)
 
 ## 77-memory-in-the-ui/features
 

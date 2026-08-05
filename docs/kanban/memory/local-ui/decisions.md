@@ -61,6 +61,8 @@ re-ask a settled call.
 
 ## Connectors and keys
 
+- **Which agents come next?**: Cursor, OpenClaw and OpenCode, after Claude Code and Codex.
+  Anything past those four waits for users to ask for it.
 - Each connector declares the settings it takes and the dialog draws them. Two shapes
   only: a box to type in, and a list to pick one from.
 - Each connector keeps its own settings block beside its name, so switching loses nothing

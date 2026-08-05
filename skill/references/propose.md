@@ -34,7 +34,8 @@ cards**; the main agent creates the cards, so ids never race.
 
 ## 3. Write the tasks
 
-Create each surviving draft with the "Add a task" flow in `SKILL.md`. Every proposal:
+Create each surviving draft with "Add one task idea" in
+`references/add-task.md`. Every proposal:
 
 - **Inside the module(s).**
 - **From a user walkthrough (optional)** — play one real user story in the focus, step by

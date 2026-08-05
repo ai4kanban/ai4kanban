@@ -38,246 +38,141 @@ const zh: SiteCopy = {
 
   home: {
     meta: {
-      title: "AI4Kanban — 与你共同成长的 AI 项目管理",
+      title: "AI4Kanban — 自主规划、随决策成长的项目看板",
       description:
-        "面向 Claude Code 的 AI 项目管理：一个技能，加一个本地看板界面。给它一个模糊想法，智能体会自主拆解、循环澄清，直到每个细节都明确到可以动手。看板是纯 Markdown，全部留在 git 里。",
-      social:
-        "给它一个模糊想法。智能体会自主拆解，能自行决断的就直接决断，其余的交由你澄清，并在后台持续推进，直到每个细节都明确到可以动手。",
+        "一个由 Agent 主导的项目看板。它从项目目标出发，持续明确任务、澄清需求、安排顺序并推进执行，用项目记忆保留每一次产品决策。",
     },
+
+    header: {
+      brand: "🗂️ AI4Kanban",
+      nav: {
+        install: "安装",
+      },
+      github: "GitHub ↗",
+    },
+
     hero: {
-      badge: "Claude Code 技能 + 本地看板界面",
-      title: "与你共同成长的\nAI 项目管理。",
-      lead: "给它一个模糊想法。智能体会自主拆解，能自行决断的就直接决断，其余的交由你澄清，并在后台持续推进，直到每个细节都明确到可以动手。看板是 `docs/kanban/` 下的纯 Markdown：全部留在 git 里，无需数据库，也无需 MCP。",
-      ctaInstall: "一句话完成安装",
-      ctaGithub: "在 GitHub 上查看",
-    },
-    quickview: {
-      caption: "看板在终端中的呈现，也就是 git 里的那些文件。",
-      taskView: "任务名",
-      fileView: "文件路径",
-      frontAria: "{view}视图（当前）",
-      flipAria: "切换到{view}视图",
-    },
-    features: {
-      breakDown: {
-        title: "自主拆解",
-        body: "智能体解读一个想法，将其拆解为多个子任务；夹带进来的无关需求会被单独拆出，另立一张卡片。",
-      },
-      clarify: {
-        title: "循环澄清",
-        body: "智能体首先对想法自主提问：凡是凭记忆和常识能解答的，直接决策，其余请你介入澄清。此流程不断重复，直到它提不出更多疑问。",
-      },
-      alwaysOn: {
-        title: "7×24 推进",
-        body: "拆解与澄清在后台持续进行，直到一个模糊想法变成一份明确的需求。",
-      },
-      traceable: {
-        title: "决策可追溯",
-        body: "一份需求是如何被一步步细化的，你随时可以回溯。",
-      },
-      proposes: {
-        title: "自主提出任务",
-        body: "智能体基于各模块的记忆提出功能提案。你的否决会被记录，此后不再出现同类提案。",
-      },
-      selfEvolving: {
-        title: "自进化",
-        body: "每一次人工介入都会被记录，成为后续自主决策的参照。记忆按项目模块分别组织。",
-      },
-      orders: {
-        title: "依赖与优先级",
-        body: "它不止于拆解任务，还负责排定优先级——识别任务间的依赖，权衡价值与成本，确保工作以正确的顺序推进。",
-      },
-      lifecycle: {
-        title: "交付闭环",
-        body: "职责不止于把需求澄清，而是覆盖任务的完整生命周期——提出、澄清、执行、归档，因此看板始终反映项目的真实进展。",
-      },
-    },
-    featuresNote:
-      "AI4Kanban 为小微团队而设计。得益于新模型的能力，今天的编码智能体已经能把明确的需求高完成度地翻译成代码；但如果需求本身不明确，它只会在错误的假设上做错误的开发。AI4Kanban 依靠持续积累的记忆，在你提出模糊想法时沿着过去的决策轨迹自主判断，最终产出可落地的明确需求。",
-    install: {
-      heading: { eyebrow: "安装", title: "一句话完成安装" },
-      lead: "在项目根目录下，对 Claude Code（或任何能执行 shell 命令的智能体）说：",
-      note: "智能体先读一遍你的代码库，然后跑一条命令 `npx ai4kanban install`，把技能装进项目并搭好看板。配置由它填，项目目标问你一句——整个设置只问这一件事——再从目标里定下最初的决策，建好头十个任务。以后升级同样只要一条命令：`npx ai4kanban update`。",
-    },
-    board: {
-      heading: { eyebrow: "用法", title: "在 Claude Code 里使用 AI4Kanban" },
-      lead: "安装完成后，用日常语言指挥它：",
-      terminal: "you › claude",
-      rows: {
-        whatsNext: {
-          say: '"/kanban 接下来做什么？"',
-          does: "读取看板与你的信息源，提出 3 个新任务",
-        },
-        addTask: {
-          say: '"/kanban 加个任务：…"',
-          does: "审阅这个想法，写成卡片，并加入索引",
-        },
-        refine: {
-          say: '"/kanban refine #4"',
-          does: "审查 4 号卡片，将其向具体推进一步",
-        },
-        review: {
-          say: '"/kanban 检查一下看板"',
-          does: "逐张检查卡片是否清晰、重复，或其实已经完成",
-        },
-        done: {
-          say: '"/kanban #4 做完了"',
-          does: "压缩写入归档，并移除该卡片",
-        },
-        badIdea: {
-          say: '"/kanban #4 是个馊主意"',
-          does: "将原因记入 rejected.md，此后不再重复提出",
-        },
-      },
-    },
-    ui: {
-      heading: { eyebrow: "看板界面", title: "一个能在浏览器里打开的本地看板" },
-      lead: "与其一问一答，不如直接看：一条命令即可在同一批 Markdown 文件之上打开看板——完整阅读一个任务，无需在 IDE 目录树里翻找；点击即可执行，无需把同样的提示词再打一遍。",
-      optional:
-        "看板界面是可选的，安装过程不会额外安装任何东西。需要时对 Claude 说一句即可：",
-      started: "Claude 会启动预编译好的服务，仅在本地运行，无需任何构建。",
-      actionsLead: "卡片上的每个按钮都会把一步操作交给智能体，无需打字：",
-      actions: {
-        implement: { label: "实现", body: "把这张卡片交给 Claude 执行" },
-        edit: { label: "编辑", body: "修改卡片内容，暂不执行" },
-        refine: { label: "细化", body: "把停滞的卡片向前推进一步" },
-        resolve: { label: "答疑", body: "回答卡片上待定的问题" },
-        archive: { label: "归档", body: "把已完成的卡片收起来" },
-        reject: { label: "否决", body: "废弃这张卡片并写明原因" },
-      },
+      title: "一块由 Agent 自主规划的项目看板。",
+      lead: "它结合项目目标、代码和记忆，管理任务从规划到完成的全过程；你只做产品取舍与最终验收。",
+      ctaInstall: "一句提示词开始",
+      ctaGithub: "查看 GitHub ↗",
       shots: {
-        board: {
-          label: "看板视图",
-          alt: "ai4kanban 的本地网页看板：Blockers、UI、Skill、Docs、Distribution 各列排着 Markdown 卡片，带 #编号、优先级和 ROI 徽章，以及子任务进度条。",
-        },
-        detail: {
-          label: "卡片详情",
-          alt: "本地看板里的任务详情页：标题，实现 / 审查 / 编辑 / 否决 操作，一行元数据显示分类、优先级、ROI、待办和阻塞项，以及卡片正文全文。",
-        },
+        board: { label: "Board", alt: "AI4Kanban 本地看板界面：Board 视图" },
+        queue: { label: "Queue", alt: "AI4Kanban 本地看板界面：Queue 视图" },
+        frontAria: "{view} 视图（当前）",
+        flipAria: "切换到 {view} 视图",
       },
-      frontAria: "{view}（当前）",
-      flipAria: "切换到{view}",
     },
-    presets: {
-      heading: { eyebrow: "预设", title: "独立开发者预设" },
-      lead: "无人监督时埋头开发一整天，是单干最典型的陷阱。这个预设把你的时间分成三份：获客、验证需求、开发产品。Claude 会让新任务在三者之间均衡分布，而不是全部堆在一侧。",
-      tracks: {
-        growth: {
-          body: "让用户看见你：发帖、私信、上线首发。Claude 会给出值得一试的路径，并替你把文案写好。",
+
+    compare: {
+      title: "从记录任务到自主规划",
+      lead: "传统看板只能记录和跟踪任务，输入全靠人工。AI4Kanban 能够结合项目远景目标和过往的决策记忆，自主规划任务并推进执行。",
+      columns: { classic: "传统看板", kanban: "AI4Kanban" },
+      rows: [
+        {
+          dimension: "输入",
+          classic: "人工撰写的详细任务",
+          kanban: "远景目标，模糊需求",
         },
-        validation: {
-          body: "在投入开发之前，先确认市场是否需要：抛出一个诚恳的问题、提供试用，并把结论沉淀下来。",
+        {
+          dimension: "主要作用",
+          classic: "记录和跟踪任务",
+          kanban: "自主规划并推进任务",
         },
-        building: {
-          body: "守住 MVP：只有当一件事能放大你的产出、加固产品，或用户明确提出时，才动手开发。",
+        {
+          dimension: "你的职责",
+          classic: "手动看板维护",
+          kanban: "只需决策与验收",
         },
-      },
-      note: "`indie-hacker` 预设还增加了两道审查关卡——护城河测试与信任测试，以及一套在开工前先去 Reddit 或 X 上验证市场的方法。安装时可以替换为你自己的分类与权重。",
+      ],
     },
-    advanced: {
-      heading: {
-        eyebrow: "功能",
-        title: "用 Markdown 做项目管理，而不是一张平铺清单",
-      },
-      lead: "平铺的待办清单终究只是一张清单。这里有四件清单做不到的事：周期性工作、大任务的子任务、对已完成之事的记忆，以及一份吞吐量统计。",
-      recurring: {
-        title: "周期性任务",
-        body: "有些工作不是做一次就结束的。把这类工作各作为一张卡片放进 `docs/kanban/todo/recurring/`（这类卡片永不归档），再用 Claude Code 的 `/loop` 按你设定的节奏运行，例如每天早上一次。",
-        examples: {
-          competitors: {
-            label: "盯竞品",
-            body: "追踪对手上线与改动了什么，标出值得回应的部分。",
-          },
-          listening: {
-            label: "听社区",
-            body: "抓取 Reddit 或 Slack 上的新帖，把真正重要的浮出来。",
-          },
-          boardReview: {
-            label: "查看板",
-            body: "清理待办中过期、重复或实际已完成的卡片。",
-          },
+
+    loop: {
+      title: "持续推进",
+      lead: "给出一个目标或模糊想法，Agent 会读取代码与项目记忆，明确接下来要做什么，逐步澄清需求、拆分任务、安排依赖和优先级，再推进执行。",
+      steps: [
+        {
+          title: "明确任务",
+          body: "结合目标、代码和模块记忆，判断接下来该做什么。",
         },
-        ladderLead:
-          "并非每件工作都需要同样的自动化程度。一张卡片可以停在任意一级：从你亲手完成，到交给 Claude，再到脚本自行运行：",
-        ladder: {
-          ask: { label: "你亲手完成" },
-          agent: { label: "交给 Claude 完成" },
-          script: { label: "一条命令完成，无需人工" },
+        {
+          title: "澄清需求",
+          body: "能从代码和记忆中确认的问题，Agent 自己处理；只把必须由你决定的产品取舍交给你。",
         },
-        ladderNote:
-          "每件工作都尽量往上推一级：有些注定需要亲力亲为，有些最终会自行运转。",
-      },
-      group: {
-        title: "任务组",
-        body: "一个大到无从下手的任务，往往就一直搁在那里。当一张卡片装不下它时，它会升级为一个**任务组**：独立的文件夹，一份用于跟踪的 `root.md`，以及每个部分各自一张卡片。每个部分有各自的编号，并以 *Blocked by* 和 *Related* 串联，因此你始终知道下一个该做哪一个。",
-      },
-      memory: {
-        title: "项目记忆",
-        body: "用看板推进工作是一个循环：每一轮，Claude 从三个来源中挖掘新任务向你提出，由你决策，再把结果沉淀进记忆中枢——于是下一轮从上一轮的终点继续，而不是从头再来。",
-        hubLabel: "docs/kanban/：存放你反馈的中枢",
-        files: {
-          memory: {
-            body: "每次扫描的笔记会传递给下一次，每个来源各带一条水位线，因此只会重读发生变化的部分。",
-          },
-          archive: {
-            body: "已交付的工作被压缩成一行。提出新任务前它会先读这里，因此不会重复建议已经完成的事。",
-          },
-          rejected: {
-            body: "被你否决的想法连同原因一并留存，因此不会被再次提起。",
-          },
-          redesign: {
-            body: "你纠正过的设计失误会沉淀为一条笔记，下一张卡片不会重蹈覆辙。",
-          },
+        {
+          title: "推进执行",
+          body: "需求明确到可以开工后，Agent 按任务中写明的范围和步骤推进。",
         },
-        loop: {
-          aria: "这个循环：先提议，然后你拍板，再学习，接着重新开始。",
-          centerCaption: "读取与写入",
-          stepLabel: "第",
-          stages: {
-            propose: {
-              label: "提议",
-              body: "从三个来源中找出既未交付、也未被搁置的工作：",
-            },
-            decide: {
-              label: "你拍板",
-              body: "执行、跳过，或调整方案。回复 Claude 几个字即可。",
-            },
-            learn: {
-              label: "学习",
-              body: "把结果与你的反馈沉淀进中枢，下一轮的起点因此更准。",
-            },
-          },
-          sources: {
-            project: {
-              label: "你的项目",
-              body: "代码库、看板、文档、团队聊天。它会把已有的信息串联成值得做的工作。",
-            },
-            outside: {
-              label: "外部世界",
-              body: "Reddit、Slack、你的 CRM。周期性任务会引入新的信号，并把发现写进看板。",
-            },
-            you: {
-              label: "你",
-              body: "你给出的方向与反馈都留存在看板中，因此一个好判断不会丢失，也不会被追问第二遍。",
-            },
-          },
+        {
+          title: "记录决策",
+          body: "把产品决策写回项目记忆，供下一次规划和开发继续使用。",
         },
+      ],
+      split: {
+        agentLabel: "Agent",
+        agentBody: "规划任务 · 推进执行 · 记录决策",
+        youLabel: "你",
+        youBody: "给出目标 · 做出取舍 · 最终验收",
       },
-      metrics: {
-        title: "任务指标",
-        body: "每张归档的卡片就是一个交付单位，因此你的速度只是 git 中紧挨着代码的一个数字，无需再与外部工具同步。",
-        chart: {
-          aria: "十二天的每日吞吐量：总计、完成、新建、否决的任务数。",
-          series: {
-            total: "总计",
-            completed: "完成",
-            created: "新建",
-            rejected: "否决",
-          },
-          caption:
-            "`metrics.csv` 每天一行：完成、新建、否决，以及三者之和。由脚本自动维护，你无需手动干预。",
+    },
+
+    memory: {
+      title: "越用越懂",
+      lead: "聊天会结束，产品决策会留下。AI4Kanban 保存项目目标，并按模块记录已完成的功能、产品决策、否决理由和设计教训，在规划新任务和澄清需求时重新使用。",
+      cards: [
+        {
+          title: "不用反复说明",
+          body: "已经明确的偏好与约束，直接用于下一次任务规划。",
         },
+        {
+          title: "不再重复踩坑",
+          body: "已否决的方向和已发现的设计问题不会被重复建议。",
+        },
+        {
+          title: "从当前进度继续",
+          body: "规划新任务时，先读取已经完成的功能和当前代码。",
+        },
+      ],
+      tree: {
+        goal: "项目目标",
+        module: "每个模块一份",
+        readme: "已完成的功能",
+        decisions: "产品决策",
+        rejected: "否决理由",
+        redesign: "设计教训",
       },
+    },
+
+    iterate: {
+      title: "持续驱动产品迭代",
+      lead: "把外部信息转化为需求，持续推进产品和版本迭代。",
+      inputsLabel: "外部输入",
+      inputs: ["用户反馈", "竞品调研", "行业报告", "Reddit 讨论"],
+      context: ["决策记忆", "需求任务", "项目模块", "运行记录"],
+      skill: "AI4Kanban Skill",
+      otherAgents: "其他 Agent",
+      storage: "项目数据",
+      outputsLabel: "迭代结果",
+      outputs: ["产品改进", "版本迭代"],
+    },
+
+    start: {
+      title: "一句开始",
+      lead: "它会读取代码库，建立项目目标与模块记忆，并创建首批任务。",
+      notes: ["只需提供项目目标", "Node.js 18+", "本地 UI 可选"],
+      cta: "复制安装提示词",
+      copied: "已复制",
+    },
+
+    footer: {
+      github: "GitHub",
+      docs: "Documentation",
+      recipes: "Recipes",
+      comparisons: "Comparisons",
+      license: "Apache License 2.0",
+      language: "语言切换",
+      credit: "created by Tao Wu",
+      x: "Tao Wu 的 X 主页",
     },
   },
 

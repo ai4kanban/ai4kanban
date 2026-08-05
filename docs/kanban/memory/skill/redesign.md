@@ -23,6 +23,15 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   pieces, with each piece as a subtask in its folder. Siblings hide that they are one
   feature and make the same question get asked on three cards.
 
+## Idea intake
+
+- ❌ **Send an article, analysis, or complaint straight to add-task** → ✅ treat it as
+  evidence, extract the user problems, route them to the right modules, and validate them
+  against shipped, planned, rejected, and remembered work before creating cards.
+- ❌ **Route propose, source extraction, and direct ideas separately from `SKILL.md`** →
+  ✅ keep one short link in `SKILL.md`; let `add-task.md` route every card-creation request
+  to the specialized reference it needs.
+
 ## The script
 
 - ❌ **Assume the script can find the board from where its own file sits** (it can't, from

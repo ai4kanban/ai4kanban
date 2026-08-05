@@ -94,6 +94,22 @@ mistake. Then it:
 - writes a self-contained card in plain language, split into checkable todos,
 - adds it to `todo/README.md` under its track.
 
+## Turn a source into tasks
+
+Say **"read this article and create tasks"**, or give the skill research, an analysis, or
+user feedback. It treats the material as evidence rather than a ready-made task list.
+
+The skill extracts concrete user problems, finds the project modules that could improve
+them, and validates each idea against the goal, code, docs, module memory, and open cards.
+Work is checked in parallel by module, then reconciled before any ids are allocated. Ideas
+that are already supported, already planned, previously rejected, outside the project's
+control, or too weak to justify are skipped. A useful detail for existing work updates
+that card instead of creating a duplicate.
+
+The result can be fewer tasks than the source suggests — including none. Each card that
+does survive is about the product improvement and user value, not about reading the
+source.
+
 ## Push a card forward
 
 Say **"refine #4"**. The skill first reviews the card (missing steps, missed edge cases,

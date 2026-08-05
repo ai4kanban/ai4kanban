@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getCopy } from "@/i18n";
 
 // A render-only page: a single 1200×630 frame that IS the social share card,
 // styled to match the landing hero. Open `/og-image/` at a 1200×630 viewport,
@@ -9,24 +10,33 @@ export const metadata: Metadata = {
 };
 
 const SHOTS = {
-  board: "https://cdn.ai4kanban.dev/kanban-skill-ui-v3.jpg",
-  detail: "https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v3.jpg",
+  board: "https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg",
+  queue: "https://cdn.ai4kanban.dev/ai4kanban-ui-v4-queue-view.jpg",
 };
 
-// One browser-chromed screenshot. Both shots crop to the same body height so the
-// two frames stack cleanly. `dim` darkens the back card so the front one pops.
-function Frame({ src, dim = false }: { src: string; dim?: boolean }) {
+const c = getCopy("en").home;
+
+// One browser-chromed screenshot. `dim` pushes the back card into the deck so
+// the Board view stays dominant, matching the landing hero's default state.
+function Frame({
+  src,
+  alt,
+  dim = false,
+}: {
+  src: string;
+  alt: string;
+  dim?: boolean;
+}) {
   return (
-    <div className="w-[528px] overflow-hidden rounded-lg border-2 border-border bg-code shadow-[8px_8px_0_0_#010409]">
-      <div className="flex items-center gap-1.5 border-b-2 border-border px-3.5 py-1.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
-        <span className="ml-2 font-mono text-xs text-muted">localhost:7420</span>
+    <div className="w-[548px] overflow-hidden rounded-lg border-2 border-border bg-code shadow-[8px_8px_0_0_#010409]">
+      <div className="flex h-7 items-center gap-1.5 border-b-2 border-border bg-elev px-3.5">
+        <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
       </div>
       <div className="relative">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt="" className="block w-full" />
+        <img src={src} alt={alt} className="block w-full" />
         {dim && <span className="absolute inset-0 bg-black/60" />}
       </div>
     </div>
@@ -36,37 +46,34 @@ function Frame({ src, dim = false }: { src: string; dim?: boolean }) {
 export default function OgImage() {
   return (
     <div className="relative flex h-[630px] w-[1200px] overflow-hidden bg-bg">
-      {/* Accent glow bleeding in from the top-left, like the hero's mood. */}
+      {/* The page's single accent, diffused behind the pitch and the deck. */}
       <div className="pointer-events-none absolute -left-40 -top-48 h-[520px] w-[520px] rounded-full bg-accent/20 blur-[130px]" />
+      <div className="pointer-events-none absolute -bottom-56 right-12 h-[480px] w-[480px] rounded-full bg-accent/10 blur-[140px]" />
 
-      {/* Left column: the pitch. */}
-      <div className="relative z-10 flex w-[640px] shrink-0 flex-col justify-center px-16">
-        <span className="mb-6 inline-block w-fit rounded-full bg-accent/10 px-4 py-1.5 text-sm font-semibold uppercase tracking-[0.18em] text-accent">
-          A Claude Code skill
-        </span>
-        <h1 className="text-[54px] font-bold leading-[1.05] tracking-tight text-ink">
-          AI project management that grows with you.
+      {/* Left column: the landing page's current brand, headline and lead. */}
+      <div className="relative z-10 flex w-[640px] shrink-0 flex-col justify-center px-16 py-14">
+        <div className="mb-9 flex items-center gap-3 text-[24px] font-bold text-ink">
+          <span>{c.header.brand}</span>
+        </div>
+        <h1 className="max-w-[540px] text-[58px] font-bold leading-[1.02] tracking-[-0.035em] text-ink">
+          {c.hero.title}
         </h1>
-        <p className="mt-6 text-[22px] leading-snug text-muted">
-          Give it a vague idea — it breaks it down, clarifies in a loop, and
-          remembers every decision. Plain Markdown, in your repo.
+        <p className="mt-7 max-w-[530px] text-[21px] leading-[1.42] text-muted">
+          {c.hero.lead}
         </p>
-        <div className="mt-10 flex items-center gap-2.5 text-[26px] font-bold text-ink">
-          <span aria-hidden="true">🗂️</span>
-          <span>
-            ai4kanban<span className="font-normal text-muted">.dev</span>
-          </span>
+        <div className="mt-10 font-mono text-[18px] font-semibold tracking-[0.08em] text-accent">
+          ai4kanban.dev
         </div>
       </div>
 
-      {/* Right column: the board view up front with a card-detail view peeking
-          out behind it — the same flip-deck motif as the landing page. */}
-      <div className="absolute left-[636px] top-1/2 -mt-7 -translate-y-1/2">
-        <div className="absolute left-14 top-14">
-          <Frame src={SHOTS.detail} dim />
+      {/* Right column: the new Board and Queue views in the landing hero's
+          flip-deck composition, with Board in front by default. */}
+      <div className="absolute left-[636px] top-1/2 -translate-y-1/2">
+        <div className="absolute left-13 top-13">
+          <Frame src={SHOTS.queue} alt={c.hero.shots.queue.alt} dim />
         </div>
         <div className="relative">
-          <Frame src={SHOTS.board} />
+          <Frame src={SHOTS.board} alt={c.hero.shots.board.alt} />
         </div>
       </div>
     </div>

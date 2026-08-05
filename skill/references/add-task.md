@@ -1,17 +1,36 @@
-# Add a task
+# Add tasks
 
-Turn an idea into a card on the board.
+Route every request that may create a card through this file.
 
 **Stop if setup is unfinished** — `docs/kanban/setup-checklist.md` being there says it is.
 Create no card; follow `references/setup.md` instead.
+
+## Route the request
+
+- No idea supplied; find missing work → `references/propose.md`.
+- Article, analysis, research, complaint, or other source supplied →
+  `references/extract-ideas.md`.
+- Repeating job → `references/recurring-task.md`.
+- Direct task idea → "Add one task idea" below.
+
+A research task is a direct idea; a research report is source material. Reading or
+summarizing a source without asking for tasks creates no card.
+
+## Add one task idea
+
+Turn one direct task idea or one validated draft into a card.
 
 1. **Resolve the modules.** If the modules are not explicitly given, infer them
    yourself: read `docs/kanban/modules.md` and decide which modules the idea
    touches. Never ask the user which modules to use.
    If no module fits, repair `modules.md` according to `references/module-map.md`.
-2. **Scaffold, then write the body.** Run `create --title "..." --track <track>
+2. **Validate the idea.** Read `docs/kanban/memory/goal.md`, the resolved modules'
+   memory, `${KB} list --module <module>`, and relevant code and docs. Skip work already
+   supported or rejected; update the card that already owns planned work. If value,
+   direction, or feasibility is unclear, explain the concern and ask before creating.
+3. **Scaffold, then write the body.** Run `create --title "..." --track <track>
    --modules <the step-1 modules>` plus any other meta flags (see "The script" in
-   `SKILL.md`) writes the file, its frontmatter, and the README entry. 
+   `SKILL.md`) to write the file, its frontmatter, and the README entry.
 
 ## Tightly coupled tasks go in one group
 

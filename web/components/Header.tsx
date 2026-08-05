@@ -1,44 +1,7 @@
-import { FiChevronDown } from "react-icons/fi";
 import { GITHUB_URL } from "./content";
+import { CompareMenu } from "./CompareMenu";
 import type { SiteCopy } from "@/i18n/types";
 import { localeHref, type Locale } from "@/lib/i18n";
-
-// The comparison pages this dropdown lists. Their titles are product names, so
-// the only translated parts are the "Compare" label and the closing note.
-const COMPARISONS = [
-  { href: "/vs-github-issues", title: "vs GitHub Issues" },
-  { href: "/vs-hermes-kanban", title: "vs Hermes Agent Kanban" },
-  { href: "/vs-vibe-kanban", title: "vs Vibe Kanban" },
-  { href: "/vs-linear", title: "vs Linear" },
-];
-
-function CompareMenu({ c, locale }: { c: SiteCopy; locale: Locale }) {
-  return (
-    <details className="group relative [&_summary]:list-none">
-      <summary className="flex cursor-pointer items-center gap-1 transition-colors hover:text-ink [&::-webkit-details-marker]:hidden">
-        {c.shared.nav.compare}
-        <FiChevronDown
-          className="h-3 w-3 transition-transform duration-150 group-open:rotate-180"
-          aria-hidden="true"
-        />
-      </summary>
-      <div className="absolute left-1/2 z-20 mt-2 w-64 -translate-x-1/2 rounded-lg border-2 border-border bg-elev p-1.5 shadow-[4px_4px_0_0_#010409]">
-        {COMPARISONS.map((x) => (
-          <a
-            key={x.href}
-            href={localeHref(locale, x.href)}
-            className="block rounded-md px-3 py-2 text-[0.9rem] font-medium text-ink no-underline transition-colors hover:bg-accent/10"
-          >
-            {x.title}
-          </a>
-        ))}
-        <p className="px-3 py-2 text-xs text-muted/70">
-          {c.shared.nav.compareMore}
-        </p>
-      </div>
-    </details>
-  );
-}
 
 export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
   const nav = c.shared.nav;
@@ -71,7 +34,11 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
         <a href="/recipes" className="transition-colors hover:text-ink">
           {nav.recipes}
         </a>
-        <CompareMenu c={c} locale={locale} />
+        <CompareMenu
+          label={nav.compare}
+          moreLabel={nav.compareMore}
+          locale={locale}
+        />
         <a
           href={GITHUB_URL}
           rel="noopener"

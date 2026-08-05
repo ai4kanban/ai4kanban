@@ -29,15 +29,9 @@ Seven colors:
 | `--color-accent` | `#58a6ff` | the one accent — eyebrows, links, hover states |
 | `--color-code` | `#0a0e14` | code blocks, terminals, and panels inset on a panel |
 
-Three track hues, one per solo-founder task type. They are only for showing kinds of
-work apart (the preset bar in `components/home/Presets.tsx`) and for a green check
-mark. They are not a general palette.
-
-| Token | Value |
-| --- | --- |
-| `--color-growth` | `#3fb950` |
-| `--color-validation` | `#e3b341` |
-| `--color-building` | `#58a6ff` |
+One green, `--color-growth` `#3fb950`. It is only for a check mark on the comparison
+pages and for the half of the work that is yours in `components/home/Loop.tsx`. It is
+not a second accent.
 
 Two font stacks: `--font-sans` (the system stack) for everything, `--font-mono` for
 code, terminals, and eyebrows.
@@ -107,11 +101,16 @@ Sections sit in a folder per page: `components/home/`, `components/vs-github-iss
 `components/vs-linear/`, `components/recipes/`, plus `components/vs/` for parts all
 comparison pages share.
 
-Shared across every page: `Header.tsx`, `Footer.tsx`, `SectionHeading.tsx` (the
+The landing page is the one page with its own chrome: `components/home/HomeHeader.tsx`
+links to its five sections, and `components/home/HomeFooter.tsx` closes it with the
+pixel wordmark. `Header.tsx` and `Footer.tsx` at the top of `components/` are the
+comparison and recipe pages'.
+
+Shared across those pages: `Header.tsx`, `Footer.tsx`, `SectionHeading.tsx` (the
 numbered eyebrow plus H2), `CodeBlock.tsx` (a code block with a copy button), and
 `Rich.tsx`.
 
-The language switcher sits in the footer. `Footer.tsx` renders `LanguageSwitcher.tsx`,
+The language switcher sits in the footer. Both footers render `LanguageSwitcher.tsx`,
 which lists all five languages, each in its own name, and links to the same page in
 that language. Nothing redirects by browser language — the reader picks. On a page
 that exists in English only, the switcher renders nothing; `TRANSLATED_PATHS` in
@@ -130,10 +129,12 @@ Every word the site renders lives in `web/i18n/`. Never type English into a comp
   down.
 
 Only words go in `i18n/`. Everything that isn't language — ordering, an emoji, a file
-name, which side of a comparison row wins — stays in a `*-content.ts` file next to the
-components and is joined to the copy by key: `components/content.ts`,
+name, which side of a comparison row wins — stays with the components: either in the
+section that draws it (the landing page keeps its icons, memory paths and agent marks
+inline) or in a `*-content.ts` file joined to the copy by key —
 `components/recipes/recipes-content.ts`, `components/vs-github-issues/vs-content.ts`,
-and so on.
+and so on. `components/content.ts` holds the one constant every page links to, the
+GitHub URL.
 
 Copy strings are plain text, so a translator never edits JSX. `Rich.tsx` renders a
 tiny Markdown subset for the little markup the text needs: `` `code` `` a code chip,

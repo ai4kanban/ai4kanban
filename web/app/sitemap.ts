@@ -4,12 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { recipes } from "@/components/recipes/recipes-content";
 import { BASE_URL } from "@/lib/site";
-import {
-  LOCALES,
-  LOCALE_TAGS,
-  TRANSLATED_PATHS,
-  localePath,
-} from "@/lib/i18n";
+import { LOCALES, TRANSLATED_PATHS, localePath } from "@/lib/i18n";
 
 // Required for `output: export` — emit sitemap.xml at build time.
 export const dynamic = "force-static";
@@ -95,26 +90,18 @@ function routeSources(route: string, locale: string): string[] {
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [];
 
-  // Every translated route: one entry per language, each declaring the
-  // whole set as its `alternates` so a crawler finds every language from any
-  // one URL. `x-default` points at English — the defined fallback for a reader
-  // whose language we don't publish, matching each page's `<head>`.
-  const alternates = (route: string) => ({
-    ...Object.fromEntries(
-      LOCALES.map((l) => [
-        LOCALE_TAGS[l],
-        `${BASE_URL}${localePath(l, route)}`,
-      ]),
-    ),
-    "x-default": `${BASE_URL}${localePath("en", route)}`,
-  });
-
+  // Every translated route: one entry per language. The hreflang set is not
+  // repeated here — each page's `<head>` already carries it (`lib/metadata.ts`),
+  // which is the signal Google reads either way. Declaring it in both places
+  // would cost validity: the sitemaps.org schema orders `<url>` as
+  // `loc, lastmod, changefreq, priority` and only then the extension wildcard,
+  // but Next's serializer emits `alternates` as `<xhtml:link>` directly after
+  // `<loc>` — ahead of `<lastmod>` — and the element order is not ours to set.
   for (const route of TRANSLATED_PATHS) {
     for (const locale of LOCALES) {
       entries.push({
         url: `${BASE_URL}${localePath(locale, route)}`,
         lastModified: gitLastModified(...routeSources(route, locale)),
-        alternates: { languages: alternates(route) },
       });
     }
   }

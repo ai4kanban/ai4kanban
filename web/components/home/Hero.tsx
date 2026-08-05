@@ -1,42 +1,28 @@
+import { Button } from "./Button";
 import { GITHUB_URL } from "../content";
-import { Rich } from "../Rich";
-import { Quickview } from "./Quickview";
+import { HeroShots } from "./HeroShots";
 import type { HomeCopy } from "@/i18n/types";
-import { localeHref, type Locale } from "@/lib/i18n";
 
-export function Hero({ c, locale }: { c: HomeCopy; locale: Locale }) {
+export function Hero({ c }: { c: HomeCopy["hero"] }) {
   return (
-    <>
-      <section className="mt-12 text-center">
-        <p className="mb-5 inline-block rounded-full bg-accent/10 px-3 py-1 text-[0.78rem] font-semibold uppercase tracking-wider text-accent">
-          {c.hero.badge}
-        </p>
-        <h1 className="text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl">
-          <Rich>{c.hero.title}</Rich>
+    <section className="mt-14 grid items-center gap-10 lg:mt-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12">
+      <div>
+        {/* `text-balance` keeps the break off the middle of a word — Chinese and
+            Japanese wrap anywhere, so an unbalanced line splits 规|划 down the
+            middle. */}
+        <h1 className="text-balance text-[2.5rem] font-bold leading-[1.2] tracking-tight sm:text-5xl sm:leading-[1.15]">
+          {c.title}
         </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-lg text-muted">
-          <Rich>{c.hero.lead}</Rich>
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <a
-            href={localeHref(locale, "/#install")}
-            className="rounded-lg border-2 border-accent bg-accent px-6 py-3 font-semibold text-white no-underline shadow-[4px_4px_0_0_#1f6feb] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#1f6feb]"
-          >
-            {c.hero.ctaInstall}
-          </a>
-          <a
-            href={GITHUB_URL}
-            rel="noopener"
-            className="rounded-lg border-2 border-border px-6 py-3 font-semibold text-ink no-underline shadow-[4px_4px_0_0_#010409] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[6px_6px_0_0_var(--color-accent)]"
-          >
-            {c.hero.ctaGithub}
-          </a>
+        <p className="mt-6 text-lg leading-relaxed text-muted">{c.lead}</p>
+        <div className="mt-9 flex flex-wrap gap-3">
+          <Button href="#install" variant="primary">
+            {c.ctaInstall}
+          </Button>
+          <Button href={GITHUB_URL}>{c.ctaGithub}</Button>
         </div>
-      </section>
+      </div>
 
-      <section className="mt-16">
-        <Quickview c={c.quickview} />
-      </section>
-    </>
+      <HeroShots c={c.shots} />
+    </section>
   );
 }
