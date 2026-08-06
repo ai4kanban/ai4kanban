@@ -46,19 +46,20 @@ export function CodeBlock({
 
   return (
     <div className="group relative my-4">
-      <pre className="overflow-x-auto rounded-lg border-2 border-border bg-code p-5 pr-14 shadow-[4px_4px_0_0_#010409]">
+      <pre className="overflow-x-auto rounded-xl border-2 border-border bg-code p-5 pr-14 shadow-[4px_4px_0_0_var(--color-ink)]">
         <code className="font-mono text-sm leading-7 text-ink">{children}</code>
       </pre>
       <button
         type="button"
         onClick={copy}
         aria-label={copied ? labels.copiedAria : labels.copyAria}
-        className="absolute right-3 top-3 flex items-center gap-1.5 rounded-lg border-2 border-border bg-code px-2.5 py-1.5 text-xs font-medium text-muted opacity-0 transition-all duration-150 hover:border-accent/50 hover:text-ink focus-visible:opacity-100 focus-visible:outline-none active:scale-95 group-hover:opacity-100 cursor-pointer"
+        // The outline stays ink; hover lifts the fill off the wash it sits on.
+        className="absolute right-3 top-3 flex items-center gap-1.5 rounded-lg border-2 border-border bg-code px-2.5 py-1.5 text-xs font-medium text-muted opacity-0 transition-all duration-150 hover:bg-elev hover:text-ink focus-visible:opacity-100 focus-visible:outline-none active:scale-95 group-hover:opacity-100 cursor-pointer"
       >
         {copied ? (
           <>
             <CheckIcon />
-            <span className="text-green-600 dark:text-green-500">
+            <span className="text-growth">
               {labels.copied}
             </span>
           </>
@@ -81,7 +82,7 @@ function CheckIcon() {
   return (
     <FiCheck
       size={13}
-      className="text-green-600 dark:text-green-500"
+      className="text-growth"
       aria-hidden="true"
     />
   );

@@ -1,25 +1,63 @@
 @import "tailwindcss";
 
-/* Tailwind v4 theme — GitHub-flavored dark palette exposed as utilities/vars. */
-@theme {
-  --color-bg: #0d1117;
-  --color-elev: #161b22;
-  --color-border: #21262d;
-  --color-ink: #e6edf3;
-  --color-muted: #9198a1;
-  --color-accent: #58a6ff;
-  --color-code: #0a0e14;
+/* Tailwind v4 theme — Neo-Brutalism on paper, exposed as utilities/vars. The
+   ground is neutral: white paper on a light neutral page, near-black ink
+   outlines, hard offset shadows, and one azure that is only ever an object.
 
-  /* The one green: a check mark, and the half of the work that's yours. */
-  --color-growth: #3fb950;
+   The three neutrals are a ramp, not three shades of white: the page is the
+   light neutral, a panel is the paper laid on it, and anything inset back into
+   a panel drops to the wash. Keep that order — a white panel on a white page is
+   what makes a section glare.
+
+   The azure is sampled off the watercolour mats the landing page mounts its
+   screenshots on (cdn.ai4kanban.dev/bloom-*.jpg), where the pigment lands
+   between #5fa5f5 and #7ab2f3. Every value here is measured on /design. */
+@theme {
+  --color-bg: #f5f6f8;
+  --color-elev: #ffffff;
+  --color-border: #191c22;
+  --color-ink: #191c22;
+  --color-muted: #4d5c73;
+  --color-accent: #2f7ff5;
+  --color-accent-deep: #12509e;
+  --color-code: #edeff3;
+
+  /* The one green and the one red: a win and a loss, nothing else. Both are set
+     dark enough to clear 4.5:1 on the page — they label text, not shapes. */
+  --color-growth: #0f7350;
+  --color-caution: #b32438;
 
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-pixel: Silkscreen, ui-monospace, monospace;
+}
+
+/* Silkscreen (SIL Open Font License) — the pixel face used for the AI4KANBAN
+   wordmark in the footer, and nothing else. It is subset to the six letters that
+   word needs (A I 4 K N B) and inlined, which takes it from a 3.5 KB fetch to
+   876 bytes of base64 riding along in this stylesheet. That is the whole point:
+   the site otherwise ships no web font, so keeping this one out of the network
+   means the page has zero font requests and the wordmark never swaps in late.
+   Changing the word means re-subsetting — this face has no other glyphs. Pull
+   the full Silkscreen regular from fonts.google.com/specimen/Silkscreen, then:
+     pyftsubset silkscreen-400.woff2 --text="<the new letters>" --flavor=woff2 \
+       --layout-features="" --no-hinting --desubroutinize
+   and base64 the result back into the src below. */
+@font-face {
+  font-family: Silkscreen;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("data:font/woff2;base64,d09GMgABAAAAAAKQAA4AAAAABgAAAAI+AAEAQgAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbIBwgBmAAVBEICoI0ggYBNgIkAxwLEAAEIAWEBAcgG9EEEdWT/RRfJPBUPC+LkCDhGAje8G5amNfRpfuvOR6+3y899727mKTMQmVWlUkRqbJaFRVbchJBtb5TjWpVFcGH7+u27ndzUiRJG/SAC+LYEmoO/va/AWfRADia24BULuKSyGb9zXYTnTiXbqM8H0iKjnRCs0qbDWdRHxEgCfpgaf9mzW/8JPTWyRy2G4njvVlXmJf0owmMA4oQWkKgb5kVYufuvqoroQFY17O8iluLcrucwIG0T5wz6bfIgGd29HAbemXgcLabqCO/JSC+lmdYpaKgYp4qME/ainFdRRrYbp8DDjcwsG32Oc1brzxpHjcPBQAI0TATdMAMjOEcLgESUFShCjGe3cyclTlvxlgdizFjpR99w++PtSZgOdWVclpjGRRd4gpsOB1jjsSYpVfHksJNYEKqgKKkb/orhChGB5wjYmhgqPbJdAvEkK0tBRGpH6tOSLqgoCHnuKZ+x+S4A4gEgbD92PI952du/NadWUfweFFmwvs3b6tZU16oI7QVEPyemZ8d+N+1K1CyU4amy5fgxlTC67UTAh3rtEAHaMW5fEoV2cMdJmSY5w5ZzPCarNZ7R6Z1MYNsORKTUnv577puh4ZJmxmlC1jO5wv4agEf413OMiFieGZoBSvgXBYasxz6uiiS/DibKVPokk4ZhplCVF5IjIt8lu+ePCh0+y1U6Um2mL7j26ff/XI/cczkeWeTC6Q/lKyggk7LzkooCkm+Q0JKxlQKKJUv7QO4Zu8mG746HRR0euLzJQA=")
+    format("woff2");
 }
 
 html {
   scroll-behavior: smooth;
+  /* The site is light only — tell the browser, so a scrollbar, a form control
+     and a focus ring are drawn for paper and not inverted by the OS setting. */
+  color-scheme: light;
 }
 
 body {

@@ -1,5 +1,5 @@
 import { FiGithub } from "react-icons/fi";
-import { Button } from "./Button";
+import { Button } from "../ui/Button";
 import { GITHUB_URL } from "../content";
 import { CompareMenu } from "../CompareMenu";
 import { HeaderLanguage } from "./HeaderLanguage";
@@ -16,7 +16,7 @@ export function HomeHeader({ c, locale }: { c: SiteCopy; locale: Locale }) {
   return (
     // Sticky from `sm` up only: on a phone the nav wraps to three rows, and
     // pinning that much chrome would take a third of the viewport.
-    <header className="z-30 border-b border-border/60 bg-bg/85 backdrop-blur sm:sticky sm:top-0">
+    <header className="z-30 border-b-2 border-border bg-bg/85 backdrop-blur sm:sticky sm:top-0">
       <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-6 py-4 sm:flex-row">
         <a
           href={localePath(locale, "")}
@@ -37,8 +37,7 @@ export function HomeHeader({ c, locale }: { c: SiteCopy; locale: Locale }) {
             moreLabel={nav.compareMore}
             locale={locale}
           />
-          {/* The switcher's label lives with the footer copy, which also uses it. */}
-          <HeaderLanguage locale={locale} label={c.home.footer.language} />
+          <HeaderLanguage locale={locale} label={c.shared.language.label} />
           <Button href={GITHUB_URL} size="sm">
             <FiGithub className="h-4 w-4" aria-hidden="true" />
             {header.github}

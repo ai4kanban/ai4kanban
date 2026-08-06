@@ -1,5 +1,5 @@
 // Structure for /vs-hermes-kanban — ordering and which side wins each row.
-// The words live in `i18n/*.ts` under `vsHermes`, joined to these by key.
+// The words live in `i18n/vs-hermes-kanban/*.ts`, joined to these by key.
 //
 // Framing (important): compare like for like — ai4kanban on a harness
 // (e.g. Claude Code) vs. the Hermes Kanban feature on the Hermes runtime. Both
@@ -14,7 +14,7 @@ import type {
   VsHermesRowKey,
   VsHermesStopKey,
   VsHermesWinKey,
-} from "@/i18n/types";
+} from "@/i18n/vs-hermes-kanban/types";
 
 export type HkEdge = "kanban" | "hermes" | "neutral";
 

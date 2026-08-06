@@ -5,7 +5,7 @@ import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { HermesMark } from "./HermesMark";
 import { panelStatic } from "../styles";
-import type { VsHermesCopy } from "@/i18n/types";
+import type { VsHermesCopy } from "@/i18n/vs-hermes-kanban/types";
 
 // The harness-compatibility split as a single support matrix: one logo bar of
 // agents as column headers, then a check/cross row per board. The vertical
@@ -42,13 +42,14 @@ function OpenAiMark({ className = "h-6 w-6" }: { className?: string }) {
 }
 
 // Brand-colored marks: Anthropic's coral for Claude Code; the OpenAI and
-// Cursor marks are white-on-dark by their own brand guides; OpenClaw and
-// Hermes ship their own colors as image assets. Each icon is a render fn so the
-// matrix can size it big (h-6) and the mobile chips small (h-4) from one source.
+// Cursor marks are one-color by their own brand guides, so on this page they
+// take the ink; OpenClaw and Hermes ship their own colors as image assets. Each
+// icon is a render fn so the matrix can size it big (h-6) and the mobile chips
+// small (h-4) from one source.
 const AGENTS: { name: string; icon: (className: string) => ReactNode }[] = [
   { name: "Claude Code", icon: (c) => <SiClaudecode className={`${c} text-[#D97757]`} /> },
-  { name: "Codex", icon: (c) => <OpenAiMark className={`${c} text-white`} /> },
-  { name: "Cursor", icon: (c) => <SiCursor className={`${c} text-white`} /> },
+  { name: "Codex", icon: (c) => <OpenAiMark className={`${c} text-ink`} /> },
+  { name: "Cursor", icon: (c) => <SiCursor className={`${c} text-ink`} /> },
   { name: "OpenClaw", icon: (c) => <OpenClawMark className={c} /> },
   { name: "Hermes", icon: (c) => <HermesMark className={c} /> },
 ];
@@ -72,14 +73,14 @@ function Mark({
   return (
     <span
       className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full ${
-        supported ? "bg-growth/15" : "bg-[#f85149]/[0.08]"
+        supported ? "bg-growth/15" : "bg-caution/[0.08]"
       }`}
     >
       {supported ? (
         <FiCheck className="h-4 w-4 text-growth" aria-label={labels.supported} />
       ) : (
         <FiX
-          className="h-4 w-4 text-[#f85149]/60"
+          className="h-4 w-4 text-caution"
           aria-label={labels.notSupported}
         />
       )}
@@ -151,7 +152,7 @@ function BoardChips({
               {ok ? (
                 <FiCheck className="h-3.5 w-3.5 text-growth" aria-label={labels.supported} />
               ) : (
-                <FiX className="h-3.5 w-3.5 text-[#f85149]/60" aria-label={labels.notSupported} />
+                <FiX className="h-3.5 w-3.5 text-caution" aria-label={labels.notSupported} />
               )}
             </span>
           );
@@ -183,7 +184,7 @@ export function HkHarness({
     <section className="mt-24">
       <SectionHeading num="02" {...c.heading} />
       <p className="text-ink">
-        <Rich code="plain">{c.lead}</Rich>
+        <Rich>{c.lead}</Rich>
       </p>
 
       <div className={`${panelStatic} mt-6 overflow-hidden`}>

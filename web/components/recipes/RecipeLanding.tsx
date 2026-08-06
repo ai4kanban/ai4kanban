@@ -1,23 +1,23 @@
 import { CodeBlock } from "../CodeBlock";
 import { RecipeArt } from "./RecipeArt";
 import { SectionHeading } from "../SectionHeading";
+import { Button } from "../ui/Button";
 import type { Recipe } from "./recipes-content";
-import { panel, panelStatic } from "../styles";
+import { panel, panelInset } from "../styles";
 import { getCopy } from "@/i18n";
 
 // Recipes are English-only (see `TRANSLATED_PATHS` in lib/i18n.ts), so the copy
 // button's labels come straight from the English copy.
 const CODE_LABELS = getCopy("en").shared.code;
 
+// The shared block, not a copy of its class list — this used to be a hand-rolled
+// <a> and had already drifted to an accent-colored shadow the rest of the site
+// dropped.
 function DownloadButton({ href, label }: { href: string; label: string }) {
   return (
-    <a
-      href={href}
-      download
-      className="inline-flex items-center gap-2 rounded-lg border-2 border-border px-5 py-2.5 font-semibold text-ink no-underline shadow-[4px_4px_0_0_#010409] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[6px_6px_0_0_var(--color-accent)]"
-    >
+    <Button href={href} download size="sm">
       ↓ {label}
-    </a>
+    </Button>
   );
 }
 
@@ -52,7 +52,7 @@ export function RecipeLanding({
             href={recipe.brand.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-5 inline-flex items-center gap-2.5 rounded-full border-2 border-border bg-code px-3 py-1.5 text-sm no-underline transition-colors hover:border-accent/50"
+            className="mt-5 inline-flex items-center gap-2.5 rounded-full border-2 border-border bg-elev px-3 py-1.5 text-sm no-underline transition-colors hover:bg-code"
           >
             <img
               src={recipe.brand.logo}
@@ -76,7 +76,7 @@ export function RecipeLanding({
           <CodeBlock labels={CODE_LABELS}>{recipe.installPrompt}</CodeBlock>
           <p className="mt-3 text-sm text-muted">
             Paste that and Claude pulls the card by URL, files it under{" "}
-            <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[0.9em] text-ink">
+            <code className="rounded bg-code px-1.5 py-0.5 font-mono text-[0.9em] text-ink">
               docs/kanban/todo/recurring/
             </code>
             , and runs it on the cadence you choose. Prefer to work offline? Grab
@@ -86,7 +86,7 @@ export function RecipeLanding({
             <DownloadButton href={recipe.mdFile} label="Download the card (.md)" />
             <a
               href="#card"
-              className="text-sm text-accent no-underline hover:underline"
+              className="text-sm text-accent-deep no-underline hover:underline"
             >
               Copy the full card ↓
             </a>
@@ -94,10 +94,10 @@ export function RecipeLanding({
         </div>
 
         {/* Prerequisite note */}
-        <div className={`${panelStatic} mt-8 bg-code p-5`}>
+        <div className={`${panelInset} mt-8 p-5`}>
           <p className="text-sm text-muted">
             <span className="font-semibold text-ink">Prerequisite:</span>{" "}
-            <a href="/#install" className="text-accent no-underline hover:underline">
+            <a href="/#install" className="text-accent-deep no-underline hover:underline">
               ai4kanban
             </a>{" "}
             installed in your repo. New here? Install the skill first, then paste
@@ -113,7 +113,7 @@ export function RecipeLanding({
                 href={recipe.brand.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-accent no-underline hover:underline"
+                className="text-accent-deep no-underline hover:underline"
               >
                 {recipe.brand.name}
               </a>

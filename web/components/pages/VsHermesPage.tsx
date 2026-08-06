@@ -1,5 +1,5 @@
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SectionHeading } from "@/components/SectionHeading";
 import { VsHeroSection } from "@/components/vs/VsHeroSection";
 import {
@@ -72,7 +72,7 @@ export function VsHermesPage({ locale }: { locale: Locale }) {
         dangerouslySetInnerHTML={{ __html: schema }}
       />
       <Header c={c} locale={locale} />
-      <main className="mx-auto max-w-4xl px-6 pb-8">
+      <main className="mx-auto max-w-4xl px-6">
         <VsHeroSection
           c={t.hero}
           shared={c.shared}
@@ -143,7 +143,7 @@ export function VsHermesPage({ locale }: { locale: Locale }) {
           theirsTag={<HermesMark className="h-6 w-6" />}
         />
       </main>
-      <Footer c={c} locale={locale} path={PATH} />
+      <SiteFooter c={c} locale={locale} path={PATH} />
     </>
   );
 }

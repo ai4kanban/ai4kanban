@@ -9,8 +9,12 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      // Render-only page that exists purely to be screenshot into the OG card.
-      disallow: "/og-image/",
+      disallow: [
+        // Render-only page that exists purely to be screenshot into the OG card.
+        "/og-image/",
+        // The design system reference — a tool for building the site, not a page.
+        "/design/",
+      ],
     },
     sitemap: `${BASE_URL}/sitemap.xml`,
   };

@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { SectionTitle } from "./SectionTitle";
-import { panelStatic } from "../styles";
+import { panelInset, panelStatic } from "../styles";
 import { ShotCardQuestions } from "../shots/ShotCardQuestions";
 import { ShotCardReady } from "../shots/ShotCardReady";
 import { ShotDecisions } from "../shots/ShotDecisions";
 import { ShotSessions } from "../shots/ShotSessions";
-import type { HomeCopy } from "@/i18n/types";
+import { CDN } from "@/lib/site";
+import type { HomeCopy } from "@/i18n/home/types";
 
 // Keep work moving — the four steps as a scrollytelling column: the title, the
 // lead and the who-does-what panel start level with the first card, ride up with
@@ -57,7 +58,6 @@ function useCenteredStickyTop() {
 // see the header comment in components/shots/nb.tsx. The first three draw a
 // board screen; step 04's memory files have no UI, so that one draws the file.
 // Ordered so the blooms swap diagonals card to card and the strongest lands last.
-const CDN = "https://cdn.ai4kanban.dev";
 const SHOTS: { mat: string; art: ReactNode }[] = [
   { mat: `${CDN}/bloom-1.jpg`, art: <ShotCardReady /> },
   { mat: `${CDN}/bloom-2.jpg`, art: <ShotCardQuestions /> },
@@ -66,18 +66,18 @@ const SHOTS: { mat: string; art: ReactNode }[] = [
 ];
 
 // Backs the mat so a failed image load leaves a pale blue field rather than a
-// dark hole. Keyed to the site's one accent, `--color-accent` #58a6ff, lightened
+// bare hole. Keyed to the site's one azure, `--color-accent` #2f7ff5, lightened
 // until text and a screenshot both sit on it comfortably.
-const MAT = "#dfe9f7";
+const MAT = "#d9e8fd";
 
 // The shot sits on the mat the way a print sits on a mount: a soft shadow, so
 // it reads as laid on top rather than cut out of it. The shadow is the page's
-// own near-black at low alpha — `border-border` is built to be seen against
-// #0d1117 and disappears on a light mat. No edge line: the drawings carry their
-// own ink-framed panels, and a second outline around those read as a frame in a
+// own ink at low alpha, and soft where every other shadow on the site is hard —
+// a mounted print casts a real one. No edge line: the drawings carry their own
+// ink-framed panels, and a second outline around those read as a frame in a
 // frame.
 const printFrame =
-  "rounded-md shadow-[0_6px_18px_-6px_rgba(13,17,23,0.5)]";
+  "rounded-lg shadow-[0_6px_18px_-6px_rgba(25,28,34,0.45)]";
 
 export function Loop({ c }: { c: HomeCopy["loop"] }) {
   const { ref, top } = useCenteredStickyTop();
@@ -90,9 +90,9 @@ export function Loop({ c }: { c: HomeCopy["loop"] }) {
           <p className="text-[1.05rem] leading-relaxed text-muted">{c.lead}</p>
 
           {/* Who does what — the point of the section, so it sits with the title. */}
-          <div className={`${panelStatic} mt-8 divide-y-2 divide-border bg-code`}>
+          <div className={`${panelInset} mt-8 divide-y-2 divide-border `}>
             <div className="px-5 py-4">
-              <span className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+              <span className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent-deep">
                 {c.split.agentLabel}
               </span>
               <p className="mt-2 text-[0.95rem] text-ink">{c.split.agentBody}</p>
@@ -110,7 +110,7 @@ export function Loop({ c }: { c: HomeCopy["loop"] }) {
         <ol className="relative space-y-5 before:absolute before:bottom-6 before:left-[1.6rem] before:top-6 before:w-px before:bg-border before:content-['']">
           {c.steps.map((step, i) => (
             <li key={step.title} className="relative flex gap-5">
-              <span className="z-10 flex h-13 w-13 shrink-0 items-center justify-center rounded-full border-2 border-border bg-code font-mono text-sm font-bold text-accent">
+              <span className="z-10 flex h-13 w-13 shrink-0 items-center justify-center rounded-full border-2 border-border bg-code font-mono text-sm font-bold text-accent-deep">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <div className="min-w-0 flex-1">

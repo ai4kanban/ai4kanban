@@ -1,7 +1,8 @@
 import { CopyPrompt } from "./CopyPrompt";
 import { SectionTitle } from "./SectionTitle";
-import { panelStatic } from "../styles";
-import type { HomeCopy } from "@/i18n/types";
+import { Chip } from "../ui/Chip";
+import { panelInset } from "../styles";
+import type { HomeCopy } from "@/i18n/home/types";
 
 // The prompt itself stays English — it's what the agent reads, not what the
 // reader reads, so it isn't copy.
@@ -17,7 +18,7 @@ export function Start({ c }: { c: HomeCopy["start"] }) {
       </p>
 
       <pre
-        className={`${panelStatic} mt-7 overflow-x-auto bg-code px-6 py-5 shadow-[8px_8px_0_0_#010409]`}
+        className={`${panelInset} mt-7 overflow-x-auto px-6 py-5 shadow-[8px_8px_0_0_var(--color-ink)]`}
       >
         <code className="font-mono text-sm leading-7 text-ink">{PROMPT}</code>
       </pre>
@@ -26,12 +27,7 @@ export function Start({ c }: { c: HomeCopy["start"] }) {
         <CopyPrompt text={PROMPT} label={c.cta} copiedLabel={c.copied} />
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           {c.notes.map((note) => (
-            <span
-              key={note}
-              className="rounded-full border border-border bg-elev px-3 py-1 font-mono text-xs text-muted"
-            >
-              {note}
-            </span>
+            <Chip key={note}>{note}</Chip>
           ))}
         </div>
       </div>

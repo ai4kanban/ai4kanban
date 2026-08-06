@@ -2,7 +2,7 @@ import type {
   VsLinearKanbanWinKey,
   VsLinearRowKey,
   VsLinearWinKey,
-} from "@/i18n/types";
+} from "@/i18n/vs-linear/types";
 
 export type LinearEdge = "kanban" | "linear" | "neutral";
 

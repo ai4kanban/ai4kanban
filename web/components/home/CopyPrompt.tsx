@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FiCheck, FiCopy } from "react-icons/fi";
-import { Button } from "./Button";
+import { Button } from "../ui/Button";
 
 // The install CTA is a copy button, not a link — there's nowhere to go, the
 // prompt is the product. Labels come in as props because this runs on the client.

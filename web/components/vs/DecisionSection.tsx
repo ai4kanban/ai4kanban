@@ -2,13 +2,19 @@ import type { ReactNode } from "react";
 import { GITHUB_URL } from "../content";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
-import { panelStatic } from "../styles";
-import type { SharedCopy, VsDecision } from "@/i18n/types";
+import { Button } from "../ui/Button";
+import { panelInset, panelStatic } from "../styles";
+import type { SharedCopy } from "@/i18n/shared/types";
+import type { VsDecision } from "@/i18n/types";
 import { localeHref, type Locale } from "@/lib/i18n";
 
 // The closing "which should you use?" section, shared by all comparison
 // pages: two guide columns, then the bottom line and the two CTAs.
 
+// Ours is on the paper, theirs in the wash — the neutral ramp is what says which
+// column is the answer. It used to ask for a tinted fill and an accent border on
+// top of `panelStatic`, and got neither: both lost to the fill and border already
+// in that string, so the two columns rendered identical. See design.md §3.
 function Guide({
   tag,
   heading,
@@ -21,11 +27,7 @@ function Guide({
   highlight?: boolean;
 }) {
   return (
-    <div
-      className={`${panelStatic} p-6 ${
-        highlight ? "border-accent/40 bg-accent/[0.04]" : "bg-elev"
-      }`}
-    >
+    <div className={`${highlight ? panelStatic : panelInset} p-6`}>
       <div className="mb-4 flex items-center gap-2.5">
         <span className="text-xl" aria-hidden="true">
           {tag}
@@ -35,7 +37,7 @@ function Guide({
       <ul className="space-y-2.5">
         {items.map((it) => (
           <li key={it} className="flex items-baseline gap-2.5 text-[0.95rem] text-muted">
-            <span className="select-none text-accent" aria-hidden="true">
+            <span className="select-none text-accent-deep" aria-hidden="true">
               →
             </span>
             <span>{it}</span>
@@ -69,10 +71,10 @@ export function DecisionSection({
       </div>
 
       {/* Bottom line */}
-      <div className={`${panelStatic} mt-8 bg-code p-6 sm:p-8`}>
+      <div className={`${panelInset} mt-8 p-6 sm:p-8`}>
         <div className="flex items-center gap-3">
-          <span className="h-5 w-1.5 bg-accent" aria-hidden="true" />
-          <span className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+          <span className="h-5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+          <span className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent-deep">
             {shared.bottomLine}
           </span>
         </div>
@@ -80,20 +82,15 @@ export function DecisionSection({
           <Rich>{c.verdict}</Rich>
         </p>
         <p className="mt-4 text-[0.95rem] text-muted">{c.note}</p>
+        {/* The same two buttons the landing page ends on — the component, not a
+            copy of its class list, so the pair can never drift from it again. */}
         <div className="mt-6 flex flex-wrap gap-3">
-          <a
-            href={localeHref(locale, "/#install")}
-            className="rounded-lg border-2 border-accent bg-accent px-5 py-2.5 text-[0.95rem] font-semibold text-white no-underline shadow-[4px_4px_0_0_#1f6feb] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#1f6feb]"
-          >
+          <Button href={localeHref(locale, "/#install")} variant="primary" size="sm">
             {shared.cta.install}
-          </a>
-          <a
-            href={GITHUB_URL}
-            rel="noopener"
-            className="rounded-lg border-2 border-border px-5 py-2.5 text-[0.95rem] font-semibold text-ink no-underline shadow-[4px_4px_0_0_#010409] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[6px_6px_0_0_var(--color-accent)]"
-          >
+          </Button>
+          <Button href={GITHUB_URL} size="sm">
             {shared.cta.github}
-          </a>
+          </Button>
         </div>
       </div>
     </section>

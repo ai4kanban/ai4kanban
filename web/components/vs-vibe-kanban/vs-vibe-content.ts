@@ -1,17 +1,15 @@
 // Structure for /vs-vibe-kanban — ordering and which side wins each row.
-// The words live in `i18n/*.ts` under `vsVibe`, joined to these by key.
+// The words live in `i18n/vs-vibe-kanban/*.ts`, joined to these by key.
 //
-// The honest framing this page is built on: Vibe Kanban is an agent-
-// orchestration cockpit (a local web app that runs many coding agents in
-// parallel, each in its own git worktree, with inline diff review). The kanban
-// skill is a planning board an agent edits as plain Markdown in your repo. They
-// fix different bottlenecks — the page says so plainly so we don't pull in
-// people who came for parallel orchestration.
+// The comparison rests on a clear distinction: Vibe Kanban is a local app for
+// running coding agents in parallel, isolating each one in a git worktree, and
+// reviewing their output. AI4Kanban is a planning workflow an agent maintains
+// as plain Markdown in the repository. They address different bottlenecks.
 import type {
   VsVibeKanbanWinKey,
   VsVibeRowKey,
   VsVibeWinKey,
-} from "@/i18n/types";
+} from "@/i18n/vs-vibe-kanban/types";
 
 export type Edge = "kanban" | "vibe" | "neutral";
 

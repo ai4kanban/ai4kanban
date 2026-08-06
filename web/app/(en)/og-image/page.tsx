@@ -28,7 +28,7 @@ function Frame({
   dim?: boolean;
 }) {
   return (
-    <div className="w-[548px] overflow-hidden rounded-lg border-2 border-border bg-code shadow-[8px_8px_0_0_#010409]">
+    <div className="w-[548px] overflow-hidden rounded-xl border-2 border-border bg-code shadow-[8px_8px_0_0_var(--color-ink)]">
       <div className="flex h-7 items-center gap-1.5 border-b-2 border-border bg-elev px-3.5">
         <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
@@ -37,7 +37,7 @@ function Frame({
       <div className="relative">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={src} alt={alt} className="block w-full" />
-        {dim && <span className="absolute inset-0 bg-black/60" />}
+        {dim && <span className="absolute inset-0 bg-bg/75" />}
       </div>
     </div>
   );
@@ -45,11 +45,11 @@ function Frame({
 
 export default function OgImage() {
   return (
+    // The ground is the landing page's ground and nothing else. Two diffused
+    // accent glows used to sit behind the pitch and the deck; a blurred blue
+    // field is the one thing the azure may not be — a page — and it made the
+    // card the only surface on the site with a colored background.
     <div className="relative flex h-[630px] w-[1200px] overflow-hidden bg-bg">
-      {/* The page's single accent, diffused behind the pitch and the deck. */}
-      <div className="pointer-events-none absolute -left-40 -top-48 h-[520px] w-[520px] rounded-full bg-accent/20 blur-[130px]" />
-      <div className="pointer-events-none absolute -bottom-56 right-12 h-[480px] w-[480px] rounded-full bg-accent/10 blur-[140px]" />
-
       {/* Left column: the landing page's current brand, headline and lead. */}
       <div className="relative z-10 flex w-[640px] shrink-0 flex-col justify-center px-16 py-14">
         <div className="mb-9 flex items-center gap-3 text-[24px] font-bold text-ink">
@@ -61,7 +61,7 @@ export default function OgImage() {
         <p className="mt-7 max-w-[530px] text-[21px] leading-[1.42] text-muted">
           {c.hero.lead}
         </p>
-        <div className="mt-10 font-mono text-[18px] font-semibold tracking-[0.08em] text-accent">
+        <div className="mt-10 font-mono text-[18px] font-semibold tracking-[0.08em] text-accent-deep">
           ai4kanban.dev
         </div>
       </div>

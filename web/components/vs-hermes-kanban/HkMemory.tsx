@@ -3,7 +3,7 @@ import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { HermesMark } from "./HermesMark";
 import { panelStatic } from "../styles";
-import type { VsHermesCopy } from "@/i18n/types";
+import type { VsHermesCopy } from "@/i18n/vs-hermes-kanban/types";
 
 // Expands the table's terse "Review & memory" row — but around the one
 // essential difference, not an inventory: the skill's memory is an *input to
@@ -36,12 +36,12 @@ function MemoryCard({
       </div>
       <p className="mb-2 text-lg font-semibold text-ink">{verdict}</p>
       <p className="text-[0.9rem] text-muted">
-        <Rich code="plain">{body}</Rich>
+        <Rich>{body}</Rich>
       </p>
       <div className="mt-4 rounded-lg bg-code p-4">
         <p className="text-sm font-medium text-ink">&ldquo;{q}&rdquo;</p>
         <p className="mt-1.5 text-sm text-muted">
-          <Rich code="plain">{a}</Rich>
+          <Rich code="wash">{a}</Rich>
         </p>
       </div>
     </div>

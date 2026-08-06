@@ -1,7 +1,7 @@
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
-import { panelStatic } from "../styles";
-import type { VsLinearCopy } from "@/i18n/types";
+import { panelInset } from "../styles";
+import type { VsLinearCopy } from "@/i18n/vs-linear/types";
 
 function ModelPanel({
   tag,
@@ -15,7 +15,7 @@ function ModelPanel({
   isnt: string;
 }) {
   return (
-    <div className={`${panelStatic} bg-code p-6`}>
+    <div className={`${panelInset} p-6`}>
       <div className="mb-4 flex items-center gap-2.5">
         <span className="text-xl" aria-hidden="true">
           {tag}

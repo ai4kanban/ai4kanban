@@ -3,57 +3,124 @@
 ## 1. What this is
 
 How the public site in `web/` looks and how it is put together. Read it before you
-change a page.
+change a page. It covers `web/` only — `kanban-ui/` is a separate app with its own
+theme. The site is a static export (`output: 'export'`), so every page is built to HTML.
 
-It covers `web/` only. `kanban-ui/` is a separate app with its own theme — nothing
-here applies to it.
-
-The site is a static export (`output: 'export'` in `next.config.mjs`), so there is no
-server at runtime. Every page is built to HTML.
+**Run `/design` before you argue about a color.** `app/(en)/design/page.tsx` renders
+every token and every block on one screen — importing the blocks from the same modules
+the pages do — and prints the measured contrast of each pair. If you change a token or
+add a surface, add its pair to that table, and update the hexes at the top of that file
+to match `globals.css`; the contrast math runs at build time and can't read a CSS
+variable. The page is `noindex` and disallowed in `robots.ts`.
 
 ## 2. The look
 
-A dark theme in GitHub's colors. All of it lives in the `@theme` block of
-`web/app/globals.css`. Tailwind v4 turns each token into a utility, so
+Neo-brutalism on paper: a light neutral page, white paper panels, near-black ink
+outlines, hard offset shadows, and one azure. Same ink and same hard shadows as
+`kanban-ui/app/globals.css`, but the ground is neutral where the board's is cream, and
+the accent is an azure where the board takes its ember. All of it lives in the `@theme`
+block of `web/app/globals.css`. Tailwind v4 turns each token into a utility, so
 `--color-muted` is `text-muted`, `--color-elev` is `bg-elev`, and so on.
 
-Seven colors:
+Ten colors, and only four of them are coloured:
 
 | Token | Value | Used for |
 | --- | --- | --- |
-| `--color-bg` | `#0d1117` | the page background |
-| `--color-elev` | `#161b22` | a raised surface — the panel fill |
-| `--color-border` | `#21262d` | every border |
-| `--color-ink` | `#e6edf3` | body text and headings |
-| `--color-muted` | `#9198a1` | second-level text: leads, captions, nav links |
-| `--color-accent` | `#58a6ff` | the one accent — eyebrows, links, hover states |
-| `--color-code` | `#0a0e14` | code blocks, terminals, and panels inset on a panel |
+| `--color-bg` | `#f5f6f8` | the page — a light neutral, no cast |
+| `--color-elev` | `#ffffff` | paper — the panel fill |
+| `--color-border` | `#191c22` | every outline, and every hard shadow |
+| `--color-ink` | `#191c22` | body text and headings — the same ink |
+| `--color-muted` | `#4d5c73` | second-level text: leads, captions, nav links |
+| `--color-accent` | `#2f7ff5` | the azure: fills and bars, nothing you have to read |
+| `--color-accent-deep` | `#12509e` | the blue as text, and the blue you put a label on |
+| `--color-code` | `#edeff3` | the wash: code blocks, terminals, panels inset on a panel |
+| `--color-growth` | `#0f7350` | a win on the comparison pages; your half of `Loop.tsx` |
+| `--color-caution` | `#b32438` | a loss on the comparison pages |
 
-One green, `--color-growth` `#3fb950`. It is only for a check mark on the comparison
-pages and for the half of the work that is yours in `components/home/Loop.tsx`. It is
-not a second accent.
+The green and the red are not a second accent. Both label text, so both clear 4.5:1 on
+the page. The azure is sampled off the watercolour mats the landing page mounts its
+screenshots on (`cdn.ai4kanban.dev/bloom-*.jpg`) — which is also why the page is white
+paper: the site has to sit next to them.
 
-Two font stacks: `--font-sans` (the system stack) for everything, `--font-mono` for
-code, terminals, and eyebrows.
+**The three neutrals are a ramp**, not three shades of white: the page, the paper panel
+laid on it, the wash inset back into that. Place a new surface on the ramp before you
+place it on the page. The ramp is also how you say one card outranks the card beside it —
+in `components/home/Compare.tsx` the traditional board sits in the wash and AI4Kanban on
+the paper above it; the losing half of a `ComparisonTable` row sinks to the wash; the
+middle stop in `HkAutonomy.tsx` is the one on paper. Reach for a step on the ramp before
+you reach for a color.
 
-That is the whole system. `globals.css` is about 30 lines — the tokens, smooth scroll
-on `html`, and the background and text color on `body`. There is nothing else in it.
+**The split between the two blues is contrast.** `accent` carries a paper label at only
+3.84:1, so it keeps the work that is only a shape: the eyebrow bar, the autonomy rail,
+the brightened fill of a button held on hover. Anything you have to read takes
+`accent-deep` — 7.28:1 off the page, 7.87:1 under a paper label. A blue block is
+`accent-deep` with an `elev` label.
+
+**The blue is an object** — a fill, a bar, a mark. Never a page, never a panel, never an
+outline. Fill with it: the primary button, the skill bar at the middle of the iteration
+diagram, the icon block in front of every node are what stop the page being a stack of
+white cards. Use it at full strength or not at all — there is no tint. A block is either
+filled with `accent-deep` and carrying a paper glyph, or it steps on the ramp instead.
+
+**Every outline is ink, in every state.** Hover does not recolour a border; it moves the
+block half a unit up and left and grows the shadow from 4px to 6px. On a button it also
+moves the fill — the primary brightens to the azure it is a deep cut of, the paper one
+drops to the wash. That is the one moment the bright azure is a ground, and nothing sits
+on it that isn't paper-white.
+
+**Every block casts the same ink shadow** — `--color-ink` under the blue button, the
+paper button, and every card. The shadow is the block's weight, not a color effect.
+
+Two things break the page's `max-w-5xl` column and run the full width of the viewport:
+
+- **The watercolour banner** behind the landing page's hero, in the same azure on the
+  same paper as the mats in `components/home/Loop.tsx`. It is the one place the blue is a
+  ground and not an object, and what earns it that is that it is a wash: 60% opacity,
+  masked so it dissolves into `--color-bg` before the section ends, never drawing an
+  edge, with nothing you have to read sitting on pigment — the headline stays on paper.
+- **The site footer**, the one dark block: the palette inverted rather than a new color —
+  the ink as the ground, the paper as the type at 70% for body, 30% for separators and
+  15% for the pixel wordmark. It ends the landing page and all four comparison pages.
+  Nothing inside it may name its own color; `LanguageSwitcher.tsx` sits in both footers,
+  so it inherits and separates its links by opacity and weight.
+
+Two values are not tokens, because they are illustration rather than a surface: the
+hairline in `HkDiagrams.tsx` and the linework in `RecipeArt.tsx`. Both are commented
+where they are declared.
+
+Two font stacks: `--font-sans` (the system stack) for everything, `--font-mono` for code,
+terminals, and eyebrows. Neither is a download. The exception is `--font-pixel`
+(Silkscreen), which draws the footer wordmark and nothing else — subset to the six
+letters of AI4KANBAN and inlined as base64, so the site makes zero font requests.
+Changing the word means re-subsetting; the recipe is in the comment above that rule.
+
+Past the tokens and that `@font-face`, `globals.css` holds only smooth scroll and
+`color-scheme: light` on `html`, and the background and text color on `body`.
 
 ## 3. The panel
 
 Every card on the site is the same block, defined in `web/components/styles.ts`:
 
-- `panel` — `rounded-lg`, a 2px `border-border` border, `bg-elev`, and a hard offset
-  shadow `4px 4px 0 #010409`. On hover it slides half a unit up and left, the border
-  turns `accent/50`, and the shadow grows to `6px 6px 0` in the accent color.
+- `panel` — `rounded-xl`, a 2px `border-border` border, `bg-elev`, and a hard offset
+  shadow `4px 4px 0` in the ink. On hover it slides half a unit up and left and the
+  shadow grows to `6px 6px 0`, still in the ink. The border does not change.
 - `panelStatic` — the same block with no hover. Use it when the card isn't clickable.
+- `panelInset` — the same frame filled with the wash instead of the paper, for a panel
+  that reads as sunk into the page rather than laid on it: a terminal, a screenshot
+  frame, a diagram whose own cards need paper to sit on.
 
-About two dozen files import one of the two. Compose extra classes onto it with a
+About two dozen files import one of the three. Compose extra classes onto it with a
 template string:
 
 ```tsx
-<div className={`${panelStatic} bg-code p-5`}>
+<div className={`${panelStatic} p-5`}>
 ```
+
+What you cannot compose that way is the fill or the border. Appending `bg-code` to a
+string that already says `bg-elev` does nothing — two utilities set the same property,
+and the winner is their order in the generated stylesheet, not the order you wrote them.
+That is why `panelInset` is its own export. A panel never needs a different border
+anyway: the outline is ink on every block, so move the card on the ramp instead.
 
 ## 4. The styling rule
 
@@ -71,10 +138,12 @@ Two exceptions:
 
 ```
 components/
+  ui/                 the primitives every page shares — Button, Chip, IconChip.
+                      Import these rather than re-typing a class list.
+                      Everything here is on /design.
   pages/              one file per page body, taking a `locale` — every language
                       renders the same component
-  home/               the landing page's sections, and the only page with its own
-                      chrome (HomeHeader, HomeFooter)
+  home/               the landing page's sections, and its own header (HomeHeader)
   vs/                 what all four comparison pages share
   vs-github-issues/   each comparison's own sections, plus its *-content.ts
   vs-hermes-kanban/
@@ -83,7 +152,9 @@ components/
   recipes/            the index, the cards, and their art
   shots/              the board mockups the landing page draws
   Header.tsx          chrome for the comparison and recipe pages
-  Footer.tsx          the same, carrying LanguageSwitcher.tsx — five languages,
+  SiteFooter.tsx      the dark band that ends the landing and comparison pages
+  Footer.tsx          the thin footer the English-only recipes end on
+                      Both carry LanguageSwitcher.tsx — five languages,
                       silent on a page that exists in English only
   CompareMenu.tsx     the header's comparisons dropdown, on Dropdown.tsx
   SectionHeading.tsx  numbered eyebrow plus H2
@@ -96,24 +167,39 @@ components/
 ## 6. The copy
 
 Every word the site renders lives in `web/i18n/`. Never type English into a component.
+One folder per page — `shared/` for the chrome, `home/`, and one per comparison, named
+like the component directory — and one file per language inside it:
 
-- `en.ts` is the source of truth. Write new copy here first.
-- `types.ts` holds `SiteCopy`, the shape of that copy.
-- `zh.ts`, `es.ts`, `ja.ts`, `fr.ts` each declare `const copy: SiteCopy`, so a key you
-  add to English and a language hasn't translated yet is a build error, not a silently
-  missing sentence.
-- `index.ts` exports `getCopy(locale)`. A page calls it once and passes the result
-  down.
+```
+i18n/
+  index.ts            getCopy(locale), and the rules for writing a string anywhere here
+  types.ts            the shapes pages share (PageMeta, VsHero…) and SiteCopy, which
+                      joins the six folder types
+  home/
+    en.ts             the landing page in English — the source of truth
+    zh.ts es.ts       …and the four translations, mirroring it key for key
+    ja.ts fr.ts
+    types.ts          HomeCopy: the shape all five declare
+    index.ts          the five, keyed by locale
+  shared/ vs-github-issues/ vs-hermes-kanban/ vs-vibe-kanban/ vs-linear/
+```
+
+- Write new copy in that page's `en.ts` first, then run `/translate-sync`.
+- Every language declares the folder's type, so a key you add to English and a language
+  hasn't translated yet is a build error, not a silently missing sentence.
+- A page calls `getCopy(locale)` once and passes the result down.
 
 Only words go in `i18n/`. Everything that isn't language — ordering, an emoji, a file
 name, which side of a comparison row wins — stays with the components: either in the
 section that draws it (the landing page keeps its icons, memory paths and agent marks
-inline) or in a `*-content.ts` file joined to the copy by key —
-`components/recipes/recipes-content.ts`, `components/vs-github-issues/vs-content.ts`,
-and so on. `components/content.ts` holds the one constant every page links to, the
-GitHub URL.
+inline) or in a `*-content.ts` file joined to the copy by key
+(`components/recipes/recipes-content.ts`, `components/vs-github-issues/vs-content.ts`).
+`components/content.ts` holds the GitHub URL.
 
-Copy strings are plain text, so a translator never edits JSX. `Rich.tsx` renders a
-tiny Markdown subset for the little markup the text needs: `` `code` `` a code chip,
-`**bold**`, `*italic*`, and `\n` a line break. Anything richer — a link, a button, a
-diagram — is layout and belongs in the component.
+Copy strings are plain text, so a translator never edits JSX. `Rich.tsx` renders a tiny
+Markdown subset: `` `code` `` a code chip, `**bold**`, `*italic*`, and `\n` a line break.
+Anything richer — a link, a button, a diagram — is layout and belongs in the component.
+Its one prop, `code`, names the *ground* the text sits on, not the fill: `paper` (the
+default) for the page or a paper panel, `wash` for text already on a `bg-code` block. The
+chip takes the neighbouring step of the ramp either way, because a `bg-code` chip on a
+`bg-code` panel is invisible.

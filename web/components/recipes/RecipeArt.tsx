@@ -1,17 +1,19 @@
 // Bespoke flat SVG spot illustrations — one per step of a recipe. Hand-authored
-// vector (not icons, not raster) so they match the GitHub-dark palette exactly,
+// vector (not icons, not raster) so they match the site's palette exactly,
 // stay crisp at any size, weigh ~1KB, and need no image pipeline. Each scene is
 // drawn on a 240×132 canvas and scales to the card width. Keyed by a step's `art`.
 
 // Illustration palette — mirrors globals.css so the art reads as one system.
-const A = "#58a6ff"; // accent
-const AF = "rgba(88,166,255,0.15)"; // accent fill
-const L = "#5b6673"; // linework
-const LS = "#2b3440"; // soft line
-const C = "#161d29"; // card fill (a touch above the code bg)
-const MUT = "#7d8894"; // muted content bars
-const GRN = "#3fb950";
-const YEL = "#e3b341";
+// Each scene is mounted on `bg-code`, so the fills below are read against the
+// wash, not against paper.
+const A = "#12509e"; // the blue — `accent-deep`, so 2px strokes and labels hold
+const AF = "rgba(47,127,245,0.15)"; // accent fill: the azure, as a tint only here
+const L = "#4d5c73"; // linework — the muted ink
+const LS = "#d3d8e0"; // soft line — the dimmed half of a scene, on purpose
+const C = "#ffffff"; // card fill (the paper, a step up from the code bg)
+const MUT = "#7d8899"; // muted content bars
+const GRN = "#0f7350";
+const YEL = "#bf8700"; // a warning dot; no token covers it
 
 // ── See what changed ─────────────────────────────────────────────────────────
 // A history spine: the newest entry (accent, green "new" dot) stands out from
@@ -141,7 +143,7 @@ function Advance() {
       <rect x="160" y="73" width="44" height="4.5" rx="2.25" fill={A} opacity="0.5" />
       <rect x="160" y="83" width="30" height="4.5" rx="2.25" fill={A} opacity="0.4" />
       <circle cx="208" cy="46" r="7.5" fill={GRN} />
-      <path d="M204.5 46 l2.4 2.4 l4 -4.4" fill="none" stroke="#0d1117" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M204.5 46 l2.4 2.4 l4 -4.4" fill="none" stroke={C} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </>
   );
 }

@@ -1,11 +1,50 @@
-import { Button } from "./Button";
+import Image from "next/image";
+import { Button } from "../ui/Button";
 import { GITHUB_URL } from "../content";
 import { HeroShots } from "./HeroShots";
-import type { HomeCopy } from "@/i18n/types";
+import { CDN } from "@/lib/site";
+import type { HomeCopy } from "@/i18n/home/types";
+
+// The watercolour banner behind the hero — the same paper and the same azure as
+// the mats in `Loop.tsx`, so the page opens in the palette it goes on to use.
+const BANNER = `${CDN}/bg-hero-v1.webp`;
 
 export function Hero({ c }: { c: HomeCopy["hero"] }) {
   return (
-    <section className="mt-14 grid items-center gap-10 lg:mt-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12">
+    <section className="relative mt-14 grid items-center gap-10 lg:mt-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12">
+      {/* The banner breaks out of the page's `max-w-5xl` column to the full
+          viewport (`left-1/2 w-screen -translate-x-1/2`) and is pulled back up
+          over the section's top margin so the pigment starts at the header's
+          rule. The mask dissolves it into the page ground, so the image never
+          ends on a visible edge.
+
+          It is a `next/image` and not a CSS `background-image` for one reason:
+          `priority` puts a `<link rel=preload>` in the head, so the browser
+          starts the fetch from the HTML instead of waiting until it has parsed
+          the stylesheet and laid the section out. The export is static
+          (`images.unoptimized`), so Next does no resizing here — the file is
+          pre-encoded WebP and served `immutable` from the CDN.
+
+          `fetchPriority` is set by hand because this is the LCP element: it
+          covers the viewport, so it is larger than the screenshot deck beside
+          it, and `priority` alone only preloads at the default priority. The
+          deck in `HeroShots.tsx` asks for `high` too — they are two files on
+          one HTTP/2 connection, and both are hero content. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-14 left-1/2 -z-10 h-[calc(100%+3.5rem)] w-screen -translate-x-1/2 overflow-hidden opacity-60 [mask-image:linear-gradient(to_bottom,#000_35%,transparent_92%)] lg:-top-20 lg:h-[calc(100%+5rem)]"
+      >
+        <Image
+          src={BANNER}
+          alt=""
+          fill
+          priority
+          fetchPriority="high"
+          sizes="100vw"
+          className="object-cover object-top"
+        />
+      </div>
+
       <div>
         {/* `text-balance` keeps the break off the middle of a word — Chinese and
             Japanese wrap anywhere, so an unbalanced line splits 规|划 down the

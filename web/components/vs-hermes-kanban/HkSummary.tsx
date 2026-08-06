@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { HermesMark } from "./HermesMark";
-import { panelStatic } from "../styles";
-import type { VsHermesCopy } from "@/i18n/types";
+import { panelInset, panelStatic } from "../styles";
+import type { VsHermesCopy } from "@/i18n/vs-hermes-kanban/types";
 
 // The honest TL;DR up front. The two projects largely overlap, so the skill is
 // framed as a lightweight *alternative* to Hermes Kanban: two parallel cards
@@ -30,7 +30,7 @@ function DiffCard({
       <ul className="space-y-2.5">
         {items.map((it) => (
           <li key={it} className="flex items-baseline gap-2.5 text-[0.95rem] text-muted">
-            <span className="select-none text-accent" aria-hidden="true">
+            <span className="select-none text-accent-deep" aria-hidden="true">
               →
             </span>
             <span>{it}</span>
@@ -58,8 +58,8 @@ export function HkSummary({ c }: { c: VsHermesCopy["summary"] }) {
         />
       </div>
 
-      <div className={`${panelStatic} mt-5 bg-code p-6`}>
-        <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+      <div className={`${panelInset} mt-5 p-6`}>
+        <p className="mb-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent-deep">
           {c.whenLabel}
         </p>
         <p className="text-[0.95rem] text-muted">

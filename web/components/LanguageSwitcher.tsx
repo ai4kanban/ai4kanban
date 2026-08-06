@@ -14,6 +14,10 @@ import {
 //
 // Pages that only exist in English (the recipes) get no switcher: there'd be
 // nowhere for the links to go.
+//
+// It takes no color of its own — one footer is paper and one is ink, so the
+// links inherit whatever their footer sets and separate themselves by opacity
+// and weight instead.
 export function LanguageSwitcher({
   locale,
   path,
@@ -29,18 +33,18 @@ export function LanguageSwitcher({
   return (
     <nav
       aria-label={label}
-      className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted"
+      className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm"
     >
-      <FiGlobe className="h-3.5 w-3.5" aria-hidden="true" />
+      <FiGlobe className="h-3.5 w-3.5 opacity-70" aria-hidden="true" />
       {LOCALES.map((l, i) => (
         <span key={l} className="flex items-center gap-2">
           {i > 0 && (
-            <span aria-hidden="true" className="text-muted/40">
+            <span aria-hidden="true" className="opacity-40">
               ·
             </span>
           )}
           {l === locale ? (
-            <span aria-current="true" className="font-semibold text-ink">
+            <span aria-current="true" className="font-semibold">
               {LOCALE_NAMES[l]}
             </span>
           ) : (
@@ -48,7 +52,7 @@ export function LanguageSwitcher({
               href={localePath(l, path)}
               hrefLang={LOCALE_TAGS[l]}
               lang={LOCALE_TAGS[l]}
-              className="text-muted hover:text-ink"
+              className="opacity-70 transition-opacity hover:opacity-100"
             >
               {LOCALE_NAMES[l]}
             </a>

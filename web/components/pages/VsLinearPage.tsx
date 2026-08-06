@@ -1,4 +1,4 @@
-import { Footer } from "@/components/Footer";
+import { SiteFooter } from "@/components/SiteFooter";
 import { Header } from "@/components/Header";
 import { SectionHeading } from "@/components/SectionHeading";
 import { DecisionSection } from "@/components/vs/DecisionSection";
@@ -62,7 +62,7 @@ export function VsLinearPage({ locale }: { locale: Locale }) {
         dangerouslySetInnerHTML={{ __html: schema }}
       />
       <Header c={c} locale={locale} />
-      <main className="mx-auto max-w-4xl px-6 pb-8">
+      <main className="mx-auto max-w-4xl px-6">
         <VsHeroSection c={t.hero} shared={c.shared} theirsTag="◩" />
         <LinearSummary c={t.summary} />
 
@@ -118,7 +118,7 @@ export function VsLinearPage({ locale }: { locale: Locale }) {
           theirsTag="◩"
         />
       </main>
-      <Footer c={c} locale={locale} path={PATH} />
+      <SiteFooter c={c} locale={locale} path={PATH} />
     </>
   );
 }

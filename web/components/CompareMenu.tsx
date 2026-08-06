@@ -26,7 +26,7 @@ export function CompareMenu({
         <a
           key={x.href}
           href={localeHref(locale, x.href)}
-          className="block rounded-md px-3 py-2 text-[0.9rem] font-medium text-ink no-underline transition-colors hover:bg-accent/10"
+          className="block rounded-lg px-3 py-2 text-[0.9rem] font-medium text-ink no-underline transition-colors hover:bg-code"
         >
           {x.title}
         </a>

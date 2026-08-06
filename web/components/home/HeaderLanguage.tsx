@@ -35,7 +35,7 @@ export function HeaderLanguage({
           <span
             key={l}
             aria-current="true"
-            className="block rounded-md bg-accent/10 px-3 py-2 text-[0.9rem] font-semibold text-ink"
+            className="block rounded-lg bg-code px-3 py-2 text-[0.9rem] font-semibold text-ink"
           >
             {LOCALE_NAMES[l]}
           </span>
@@ -45,7 +45,7 @@ export function HeaderLanguage({
             href={localePath(l, "")}
             hrefLang={LOCALE_TAGS[l]}
             lang={LOCALE_TAGS[l]}
-            className="block rounded-md px-3 py-2 text-[0.9rem] font-medium text-muted no-underline transition-colors hover:bg-accent/10 hover:text-ink"
+            className="block rounded-lg px-3 py-2 text-[0.9rem] font-medium text-muted no-underline transition-colors hover:bg-code hover:text-ink"
           >
             {LOCALE_NAMES[l]}
           </a>

@@ -12,11 +12,15 @@ import { Fragment, type ReactNode } from "react";
 
 const TOKEN = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|\n)/g;
 
-/** Code chips sit on two different backgrounds across the site. */
+/**
+ * Code chips sit on two different grounds across the site, so the chip takes
+ * the neighbouring step of the neutral ramp: the wash when the text is on the
+ * page or a paper panel, the paper when the text is already on the wash. Name
+ * the ground, not the fill — a `bg-code` chip on a `bg-code` panel is invisible.
+ */
 const CODE_CLASS = {
-  accent:
-    "rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[0.9em] text-ink",
-  plain: "rounded bg-code px-1 py-0.5 font-mono text-[0.9em] text-ink",
+  paper: "rounded bg-code px-1.5 py-0.5 font-mono text-[0.9em] text-ink",
+  wash: "rounded bg-elev px-1.5 py-0.5 font-mono text-[0.9em] text-ink",
 } as const;
 
 export type RichProps = {
@@ -25,7 +29,7 @@ export type RichProps = {
   code?: keyof typeof CODE_CLASS;
 };
 
-export function rich(text: string, code: keyof typeof CODE_CLASS = "accent") {
+export function rich(text: string, code: keyof typeof CODE_CLASS = "paper") {
   return text.split(TOKEN).map((part, i) => {
     if (part === "\n") return <br key={i} />;
     if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
@@ -50,6 +54,6 @@ export function rich(text: string, code: keyof typeof CODE_CLASS = "accent") {
 }
 
 /** Renders one copy string with its inline markup. */
-export function Rich({ children, code = "accent" }: RichProps): ReactNode {
+export function Rich({ children, code = "paper" }: RichProps): ReactNode {
   return <>{rich(children, code)}</>;
 }

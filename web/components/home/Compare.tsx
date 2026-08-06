@@ -1,8 +1,8 @@
 import { Fragment } from "react";
 import { FiArrowRight, FiCheckCircle, FiFlag, FiZap } from "react-icons/fi";
 import { SectionTitle } from "./SectionTitle";
-import { panelStatic } from "../styles";
-import type { HomeCopy } from "@/i18n/types";
+import { panelInset, panelStatic } from "../styles";
+import type { HomeCopy } from "@/i18n/home/types";
 
 // One icon per AI4Kanban answer, in row order: the goal you hand over, the work it
 // then runs by itself, the call that comes back to you. Icons aren't language, so
@@ -14,11 +14,18 @@ const ICONS = [FiFlag, FiZap, FiCheckCircle];
 const ROWS = ["row-start-2", "row-start-3", "row-start-4"];
 
 // From task tracking to autonomous planning — two columns, the traditional board
-// and AI4Kanban, with an arrow between them on every row. Both columns are one
-// `panelStatic` each, painted behind the rows by the grid, so the rows sit flush
-// inside a card and are told apart by a divider rather than a gap. The AI4Kanban
-// card carries the accent border the panel already uses on hover, plus an icon per
-// row. Below `sm` it becomes one panel with a block per row, each value naming its
+// and AI4Kanban, with an arrow between them on every row. Each column is one
+// panel painted behind the rows by the grid, so the rows sit flush inside a card
+// and are told apart by a divider rather than a gap.
+//
+// Which card wins is said with the neutral ramp, not with a border color: the
+// traditional board sits in the wash, AI4Kanban on the paper above it, so the
+// answer column is literally the brighter of the two. (A border color can't say
+// it — `border-accent` appended to a panel loses to the `border-border` already
+// in the string, which is why this read as two identical cards before.) The blue
+// is left to the column head and the per-row icons.
+//
+// Below `sm` it becomes one panel with a block per row, each value naming its
 // column.
 export function Compare({ c }: { c: HomeCopy["compare"] }) {
   return (
@@ -32,17 +39,17 @@ export function Compare({ c }: { c: HomeCopy["compare"] }) {
         {/* The two cards, spanning every comparison row behind the text. */}
         <div
           aria-hidden="true"
-          className={`${panelStatic} col-start-2 row-start-2 row-span-3`}
+          className={`${panelInset} col-start-2 row-start-2 row-span-3`}
         />
         <div
           aria-hidden="true"
-          className={`${panelStatic} col-start-4 row-start-2 row-span-3 border-accent/50`}
+          className={`${panelStatic} col-start-4 row-start-2 row-span-3`}
         />
 
         <span className="col-start-2 row-start-1 px-7 pb-3 text-[0.8rem] font-semibold text-muted">
           {c.columns.classic}
         </span>
-        <span className="col-start-4 row-start-1 px-7 pb-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+        <span className="col-start-4 row-start-1 px-7 pb-3 font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent-deep">
           {c.columns.kanban}
         </span>
 
@@ -65,14 +72,14 @@ export function Compare({ c }: { c: HomeCopy["compare"] }) {
                 aria-hidden="true"
                 className={`${ROWS[i]} col-start-3 flex items-center justify-center`}
               >
-                <FiArrowRight className="h-4 w-4 text-accent/50" />
+                <FiArrowRight className="h-4 w-4 text-accent-deep" />
               </span>
               <p
-                className={`${ROWS[i]} ${divider} col-start-4 flex items-center gap-3 border-accent/15 px-7 py-6 text-[1rem] font-medium text-ink`}
+                className={`${ROWS[i]} ${divider} col-start-4 flex items-center gap-3 border-border px-7 py-6 text-[1rem] font-medium text-ink`}
               >
                 <Icon
                   aria-hidden="true"
-                  className="h-[1.15rem] w-[1.15rem] shrink-0 text-accent"
+                  className="h-[1.15rem] w-[1.15rem] shrink-0 text-accent-deep"
                 />
                 {row.kanban}
               </p>
@@ -96,10 +103,10 @@ export function Compare({ c }: { c: HomeCopy["compare"] }) {
               <p className="mt-2 flex items-start gap-2.5 text-[0.95rem] font-medium leading-relaxed text-ink">
                 <Icon
                   aria-hidden="true"
-                  className="mt-[0.25rem] h-[1.05rem] w-[1.05rem] shrink-0 text-accent"
+                  className="mt-[0.25rem] h-[1.05rem] w-[1.05rem] shrink-0 text-accent-deep"
                 />
                 <span>
-                  <span className="mr-2 font-mono text-[0.8rem] font-normal text-accent/70">
+                  <span className="mr-2 font-mono text-[0.8rem] font-normal text-accent-deep">
                     {c.columns.kanban}
                   </span>
                   {row.kanban}

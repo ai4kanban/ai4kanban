@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Rich } from "../Rich";
-import { panelStatic } from "../styles";
+import { panelInset } from "../styles";
 import type { SiteCopy, VsHero } from "@/i18n/types";
 
 // The compact two-chip header every comparison page opens with: it states the
@@ -19,7 +19,7 @@ function Chip({
   extra?: ReactNode;
 }) {
   return (
-    <div className={`${panelStatic} flex-1 bg-code p-5`}>
+    <div className={`${panelInset} flex-1 p-5`}>
       {extra}
       <div className="mb-1.5 flex items-center gap-2">
         <span className="text-lg" aria-hidden="true">
@@ -47,7 +47,8 @@ export function VsHeroSection({
 }) {
   return (
     <section className="mt-12 text-center">
-      <p className="mb-5 inline-block rounded-full bg-accent/10 px-3 py-1 text-[0.78rem] font-semibold uppercase tracking-wider text-accent">
+      {/* The one filled blue object on this page's hero — a mark, not a tint. */}
+      <p className="mb-5 inline-block rounded-full border-2 border-border bg-accent-deep px-3 py-1 text-[0.78rem] font-semibold uppercase tracking-wider text-elev">
         {c.badge}
       </p>
       <h1 className="text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl">

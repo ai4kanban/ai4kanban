@@ -14,7 +14,7 @@ export function Footer({
   path: string;
 }) {
   return (
-    <footer className="mx-auto mt-20 max-w-4xl border-t border-border px-6 pb-12 pt-8 text-center text-sm text-muted">
+    <footer className="mx-auto mt-20 max-w-4xl border-t-2 border-border px-6 pb-12 pt-8 text-center text-sm text-muted">
       <p>
         <a href={GITHUB_URL} rel="noopener" className="text-muted hover:text-ink">
           GitHub

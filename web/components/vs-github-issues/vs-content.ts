@@ -1,10 +1,10 @@
 // Structure for /vs-github-issues — ordering and which side wins each row.
-// The words live in `i18n/*.ts` under `vsGithub`, joined to these by key.
+// The words live in `i18n/vs-github-issues/*.ts`, joined to these by key.
 import type {
   VsGithubIssuesWinKey,
   VsGithubKanbanWinKey,
   VsGithubRowKey,
-} from "@/i18n/types";
+} from "@/i18n/vs-github-issues/types";
 
 export type Edge = "kanban" | "issues" | "neutral";
 

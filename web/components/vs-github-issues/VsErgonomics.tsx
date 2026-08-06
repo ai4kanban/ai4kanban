@@ -1,8 +1,8 @@
 import { ergoIssuesKinds, ergoKanbanKinds, type ErgoKind } from "./vs-content";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
-import { panelStatic } from "../styles";
-import type { VsGithubCopy } from "@/i18n/types";
+import { panelInset } from "../styles";
+import type { VsGithubCopy } from "@/i18n/vs-github-issues/types";
 
 function Transcript({
   title,
@@ -20,7 +20,7 @@ function Transcript({
   footer: string;
 }) {
   return (
-    <div className={`${panelStatic} overflow-hidden bg-code`}>
+    <div className={`${panelInset} overflow-hidden `}>
       <div className="flex items-center justify-between border-b-2 border-border px-4 py-2.5">
         <span className="font-mono text-xs text-muted">{title}</span>
         <span
@@ -34,7 +34,7 @@ function Transcript({
           if (kinds[i] === "you") {
             return (
               <div key={i} className="flex items-baseline gap-2">
-                <span className="select-none text-accent">›</span>
+                <span className="select-none text-accent-deep">›</span>
                 <span className="font-semibold text-ink">{line}</span>
               </div>
             );
@@ -42,7 +42,7 @@ function Transcript({
           if (kinds[i] === "call") {
             return (
               <div key={i} className="flex items-baseline gap-2 pl-4 text-muted">
-                <span className="select-none text-accent/60">⚙</span>
+                <span className="select-none text-accent-deep">⚙</span>
                 <span>{line}</span>
               </div>
             );
@@ -73,15 +73,18 @@ export function VsErgonomics({ c }: { c: VsGithubCopy["ergonomics"] }) {
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Ours takes the filled blue mark, theirs a neutral one — the same
+            pairing the chips use everywhere else, at full strength or not at
+            all. */}
         <Transcript
           {...c.issues}
           kinds={ergoIssuesKinds}
-          chipClass="bg-muted/15 text-muted"
+          chipClass="border-2 border-border bg-elev text-muted"
         />
         <Transcript
           {...c.kanban}
           kinds={ergoKanbanKinds}
-          chipClass="bg-accent/15 text-accent"
+          chipClass="border-2 border-border bg-accent-deep text-elev"
         />
       </div>
 

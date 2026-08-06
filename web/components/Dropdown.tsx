@@ -59,7 +59,7 @@ export function Dropdown({
         />
       </summary>
       <div
-        className={`absolute z-20 mt-2 rounded-lg border-2 border-border bg-elev p-1.5 shadow-[4px_4px_0_0_#010409] ${
+        className={`absolute z-20 mt-2 rounded-xl border-2 border-border bg-elev p-1.5 shadow-[4px_4px_0_0_var(--color-ink)] ${
           align === "right" ? "right-0" : "left-1/2 -translate-x-1/2"
         } ${width}`}
       >

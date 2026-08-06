@@ -1,7 +1,7 @@
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
-import { panelStatic } from "../styles";
-import type { VsGithubCopy } from "@/i18n/types";
+import { panelInset } from "../styles";
+import type { VsGithubCopy } from "@/i18n/vs-github-issues/types";
 
 // The honest TL;DR up front: GitHub Issues can do it too — the difference is cost.
 export function VsSummary({ c }: { c: VsGithubCopy["summary"] }) {
@@ -12,7 +12,7 @@ export function VsSummary({ c }: { c: VsGithubCopy["summary"] }) {
         <Rich>{c.lead}</Rich>
       </p>
 
-      <div className={`${panelStatic} mt-5 bg-code p-6`}>
+      <div className={`${panelInset} mt-5 p-6`}>
         <p className="text-[0.95rem] text-muted">
           <Rich>{c.panel}</Rich>
         </p>

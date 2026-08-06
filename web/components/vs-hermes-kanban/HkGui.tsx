@@ -3,7 +3,7 @@ import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { HermesMark } from "./HermesMark";
 import { panelStatic } from "../styles";
-import type { VsHermesCopy } from "@/i18n/types";
+import type { VsHermesCopy } from "@/i18n/vs-hermes-kanban/types";
 
 // Expands the table's "Dashboard GUI" row into a section of its own. Both
 // sides ship a web board, but they're driven differently: the skill's local

@@ -1,7 +1,7 @@
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
-import { panelStatic } from "../styles";
-import type { VsVibeCopy } from "@/i18n/types";
+import { panelInset } from "../styles";
+import type { VsVibeCopy } from "@/i18n/vs-vibe-kanban/types";
 
 // The crux of the whole page: these tools sit at different points in the loop.
 // Say it as two plain panels so nobody mistakes one for a drop-in of the other.
@@ -17,7 +17,7 @@ function PurposePanel({
   isnt: string;
 }) {
   return (
-    <div className={`${panelStatic} bg-code p-6`}>
+    <div className={`${panelInset} p-6`}>
       <div className="mb-4 flex items-center gap-2.5">
         <span className="text-xl" aria-hidden="true">
           {tag}

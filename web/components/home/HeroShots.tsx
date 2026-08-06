@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { panelStatic } from "../styles";
-import type { HomeCopy } from "@/i18n/types";
+import { panelInset } from "../styles";
+import type { HomeCopy } from "@/i18n/home/types";
 
 // The two board views as a flip deck: the front shot sits top-left, the other
 // peeks out from behind — click it to bring it forward. Keeps both screenshots
@@ -19,7 +19,7 @@ const SRC: Record<Mode, string> = {
 function Frame({ mode, alt, eager }: { mode: Mode; alt: string; eager: boolean }) {
   return (
     <div
-      className={`${panelStatic} overflow-hidden bg-code shadow-[8px_8px_0_0_#010409]`}
+      className={`${panelInset} overflow-hidden shadow-[8px_8px_0_0_var(--color-ink)]`}
     >
       {/* Thin macOS title bar so the capture reads as a real app window. */}
       <div
@@ -76,7 +76,7 @@ export function HeroShots({ c }: { c: HomeCopy["hero"]["shots"] }) {
               c[mode].label,
             )}
             aria-pressed={isFront}
-            className="group absolute left-0 top-0 origin-top-left text-left transition-transform duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+            className="group absolute left-0 top-0 origin-top-left text-left transition-transform duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-deep focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
             style={{
               width: `calc(100% - ${PEEK}px)`,
               zIndex: isFront ? 20 : 10,
@@ -88,11 +88,12 @@ export function HeroShots({ c }: { c: HomeCopy["hero"]["shots"] }) {
             tabIndex={isFront ? -1 : 0}
           >
             <Frame mode={mode} alt={c[mode].alt} eager={mode === "board"} />
-            {/* Dims the back card; fades as it comes forward, lightens on hover. */}
+            {/* Washes the back card out toward the page; clears as it comes
+                forward, thins on hover. */}
             <span
               aria-hidden
               className={
-                "pointer-events-none absolute inset-0 rounded-lg bg-black/60 transition-opacity duration-300 " +
+                "pointer-events-none absolute inset-0 rounded-xl bg-bg/75 transition-opacity duration-300 " +
                 (isFront ? "opacity-0" : "opacity-100 group-hover:opacity-40")
               }
             />

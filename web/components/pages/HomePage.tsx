@@ -5,7 +5,7 @@ import { Loop } from "@/components/home/Loop";
 import { Memory } from "@/components/home/Memory";
 import { Iterate } from "@/components/home/Iterate";
 import { Start } from "@/components/home/Start";
-import { HomeFooter } from "@/components/home/HomeFooter";
+import { SiteFooter } from "@/components/SiteFooter";
 import { getCopy } from "@/i18n";
 import {
   APP_ID,
@@ -20,9 +20,9 @@ import type { Locale } from "@/lib/i18n";
 // The landing page, rendered once per language. `app/(en)/page.tsx` builds the
 // English copy at `/`; `app/(intl)/[locale]/page.tsx` builds the other four.
 //
-// The page brings its own header and footer: the shared `Header.tsx` and
-// `Footer.tsx` carry the comparison pages' link set, and this page links to its
-// own five sections instead.
+// The page brings its own header: the shared `Header.tsx` carries the
+// comparison pages' link set, and this page links to its own five sections
+// instead. The footer is `SiteFooter.tsx`, the same one those pages end on.
 export function HomePage({ locale }: { locale: Locale }) {
   const copy = getCopy(locale);
   const c = copy.home;
@@ -55,7 +55,7 @@ export function HomePage({ locale }: { locale: Locale }) {
         <Iterate c={c.iterate} />
         <Start c={c.start} />
       </main>
-      <HomeFooter c={c.footer} locale={locale} />
+      <SiteFooter c={copy} locale={locale} path="" />
     </>
   );
 }

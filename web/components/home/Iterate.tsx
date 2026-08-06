@@ -13,8 +13,10 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import { SectionTitle } from "./SectionTitle";
-import { panelStatic } from "../styles";
-import type { HomeCopy } from "@/i18n/types";
+import { Chip } from "../ui/Chip";
+import { IconChip } from "../ui/IconChip";
+import { panelInset, panelStatic } from "../styles";
+import type { HomeCopy } from "@/i18n/home/types";
 
 // Drive continuous product iteration — an architecture diagram rather than a set
 // of claims: outside information flows in on the left, AI4Kanban sits in the
@@ -25,12 +27,13 @@ import type { HomeCopy } from "@/i18n/types";
 // and what runs and stores the work (bottom). Those tier names are never drawn —
 // vertical position already says it — so the diagram stays nouns and arrows.
 //
-// Surfaces run the way they do in the memory section: the middle panel is the
-// dark canvas (`bg-code`) and every node on it is a raised `bg-elev` tile, so
-// the nodes read lighter than the page instead of darker. The lift comes from
-// small blocks — an accent chip behind each icon, the skill bar in accent, and
-// two pale tiles carrying the agent marks, which are near-black artwork and
-// need a light ground to be seen at all.
+// Surfaces run the way they do in the memory section: the middle panel is sunk
+// into the wash (`panelInset`) and every node on it is a raised `bg-elev` tile,
+// so the nodes read lighter than the panel they sit on. The blue is an object
+// here and never a tint: the skill bar is filled with it, and so is every icon
+// block, each carrying a paper glyph. The two washed tiles holding the agent
+// marks stay neutral on purpose — those are near-black artwork and need a ground
+// of their own to be seen at all.
 
 // One icon per node, in the order the copy lists them. Icons aren't language.
 const INPUT_ICONS: IconType[] = [
@@ -48,17 +51,6 @@ const AGENT_LOGOS = [
   { src: "/agents/claude.svg", alt: "Claude Code" },
   { src: "/agents/codex.svg", alt: "Codex" },
 ];
-
-// Every icon in the diagram sits in one of these: a small accent-tinted block,
-// the lightest thing on a node. Repeating it is what keeps the three columns
-// reading as one drawing.
-function IconChip({ icon: Icon }: { icon: IconType }) {
-  return (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-accent/25 bg-accent/10 text-accent">
-      <Icon className="h-[1.05rem] w-[1.05rem]" aria-hidden="true" />
-    </span>
-  );
-}
 
 // A node on either side of the diagram: icon left, noun right. Plain `panel`
 // fill, so the flanks sit above the page rather than sinking below it.
@@ -82,7 +74,7 @@ function FlowArrow() {
     <span className="flex items-center justify-center self-center py-1 lg:py-0">
       <FiArrowRight
         aria-hidden="true"
-        className="h-5 w-5 rotate-90 text-accent/80 lg:rotate-0"
+        className="h-5 w-5 rotate-90 text-accent-deep lg:rotate-0"
       />
     </span>
   );
@@ -121,10 +113,8 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
 
         <FlowArrow />
 
-        <div
-          className={`${panelStatic} border-accent/50 bg-code px-4 py-4 sm:px-5`}
-        >
-          <span className="block font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+        <div className={`${panelInset} px-4 py-4 sm:px-5`}>
+          <span className="block font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent-deep">
             AI4Kanban
           </span>
 
@@ -133,7 +123,7 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
             {c.context.map((label, i) => (
               <div
                 key={label}
-                className="flex flex-col items-center gap-2.5 rounded-md border-2 border-border bg-elev px-2 py-3.5 text-center"
+                className="flex flex-col items-center gap-2.5 rounded-lg border-2 border-border bg-elev px-2 py-3.5 text-center"
               >
                 <IconChip icon={CONTEXT_ICONS[i]} />
                 <span className="text-[0.85rem] leading-snug text-ink">
@@ -143,23 +133,27 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
             ))}
           </div>
 
-          {/* Tier two: the one thing that plans and drives — the brightest band
-              in the diagram, since everything above and below meets here. */}
-          <div className="mt-2.5 rounded-md border-2 border-accent/60 bg-accent/15 px-4 py-3.5 text-center font-mono text-[0.95rem] font-semibold text-accent">
+          {/* Tier two: the one thing that plans and drives — the widest filled
+              block in the diagram, since everything above and below meets here.
+              Same fill as the primary button, `accent-deep` with a paper label,
+              in the same ink frame. It was `bg-accent/15`, which is the one thing
+              it must not be: a blue diluted until it is a grey reads as a tile
+              that failed to load, not as the piece the rest connect to. */}
+          <div className="mt-2.5 rounded-lg border-2 border-border bg-accent-deep px-4 py-3.5 text-center font-mono text-[0.95rem] font-semibold text-elev">
             {c.skill}
           </div>
 
           {/* Tier three: what runs the work, and where the work is stored. The
               two are separate blocks so Markdown never reads as an agent. */}
           <div className="mt-2.5 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="flex items-center justify-center gap-5 rounded-md border-2 border-border bg-elev px-4 py-3">
+            <div className="flex items-center justify-center gap-5 rounded-lg border-2 border-border bg-elev px-4 py-3">
               {AGENT_LOGOS.map((logo) => (
-                // The marks are their own brand colors on near-black, so each
-                // gets a pale tile to sit on rather than being dropped straight
-                // onto the panel, where the Codex mark would vanish.
+                // Each mark keeps its own brand colors, so it gets an outlined
+                // tile of its own rather than being dropped straight onto the
+                // panel — the same frame the ellipsis beside them sits in.
                 <span
                   key={logo.src}
-                  className="flex h-10 w-10 items-center justify-center rounded-md bg-ink shadow-[2px_2px_0_0_#010409]"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-border bg-code shadow-[2px_2px_0_0_var(--color-ink)]"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -174,18 +168,16 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
                   mark. The board runs Claude Code and Codex today, so anything
                   logo-shaped here would claim an agent that doesn't ship. */}
               <span
-                className="flex h-10 w-10 items-center justify-center rounded-md border-2 border-dashed border-accent/30 bg-accent/[0.07] pb-1.5 font-mono text-xl leading-none text-accent/70"
+                className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-dashed border-border bg-code pb-1.5 font-mono text-xl leading-none text-muted"
                 role="img"
                 aria-label={c.otherAgents}
               >
                 <span aria-hidden="true">…</span>
               </span>
             </div>
-            <div className="flex flex-col items-center justify-center gap-1.5 rounded-md border-2 border-border bg-elev px-4 py-3">
+            <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-border bg-elev px-4 py-3">
               <span className="text-[0.85rem] text-muted">{c.storage}</span>
-              <span className="rounded border border-accent/25 bg-accent/10 px-2 py-0.5 font-mono text-[0.8rem] text-accent">
-                Markdown
-              </span>
+              <Chip tone="solid">Markdown</Chip>
             </div>
           </div>
         </div>

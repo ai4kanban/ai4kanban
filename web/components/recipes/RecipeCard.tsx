@@ -24,14 +24,14 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
       <p className="mt-4 text-[0.95rem] text-muted">{recipe.tagline}</p>
 
       <div className="mt-auto flex items-center justify-between gap-3 pt-5">
-        <span className="inline-flex items-center gap-1 text-sm font-semibold text-accent">
+        <span className="inline-flex items-center gap-1 text-sm font-semibold text-accent-deep">
           View recipe
           <span className="transition-transform duration-150 group-hover:translate-x-0.5">
             →
           </span>
         </span>
         {recipe.brand && (
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-code px-2.5 py-1 text-[0.72rem] font-semibold text-muted">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border-2 border-border bg-code px-2.5 py-1 text-[0.72rem] font-semibold text-muted">
             <img
               src={recipe.brand.logo}
               alt=""

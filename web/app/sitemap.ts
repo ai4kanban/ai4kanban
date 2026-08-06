@@ -52,13 +52,14 @@ function gitLastModified(...paths: string[]): Date | undefined {
 }
 
 // The files that own a route's rendered content. Route slugs already match
-// their component directory (`""` → `components/home`, `/vs-x` →
-// `components/vs-x`, `/recipes` → `components/recipes`), so this is derived
-// rather than a hand-kept table that drifts as pages are added.
+// their component and copy directories (`""` → `components/home` and
+// `i18n/home`, `/vs-x` → `components/vs-x` and `i18n/vs-x`), so this is derived
+// rather than a hand-kept table that drifts as pages are added. Recipes have no
+// copy folder — a path git doesn't know just drops out of the log.
 function routeSources(route: string, locale: string): string[] {
   const slug = route === "" ? "home" : route.slice(1).split("/")[0];
   const page = route === "" ? "app/(en)/page.tsx" : `app/(en)${route}/page.tsx`;
-  return [`components/${slug}`, page, `i18n/${locale}.ts`];
+  return [`components/${slug}`, page, `i18n/${slug}/${locale}.ts`];
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
