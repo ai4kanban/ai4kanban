@@ -7,8 +7,8 @@ Add minimal, only necessary information to SKILL.md and references/*.md. The con
 ## The public site
 
 `web/design.md` describes how the site in `web/` looks and is put together — the color
-tokens, the panel, where the styling goes, the routes, and where the copy lives. Read it
-before changing a page.
+tokens, the panel, where the styling goes, and where the copy lives. It is about design
+only; routing lives in comments in the files that own it. Read it before changing a page.
 
 ## Pre-commit Checks
 - **Python**: `uv run pre-commit run --all-files`

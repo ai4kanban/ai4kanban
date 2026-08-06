@@ -35,8 +35,10 @@ export const LOCALE_TAGS: Record<Locale, string> = {
 };
 
 /**
- * The routes that exist in every language: the landing page and the comparison
- * comparison pages. `""` is the landing page. Recipes stay English-only.
+ * The routes that exist in every language: the landing page (`""`) and the
+ * comparison pages. Recipes stay English-only. This list is what the hreflang
+ * set, `sitemap.ts`, and the language switcher all read, so a new translated
+ * route has to be added here to be seen.
  */
 export const TRANSLATED_PATHS = [
   "",

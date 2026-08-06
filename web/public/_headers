@@ -9,6 +9,32 @@
 /*.md
   Content-Type: text/markdown; charset=utf-8
 
+# A mirror is the same words as its HTML page, so it declares that page
+# canonical and search engines index one of the two. Listed one by one: a
+# rule's headers are *combined* when two patterns match the same request, and
+# two `Link: rel="canonical"` values make both worthless. Add a mirror, add a
+# line.
+/index.md
+  Link: <https://ai4kanban.dev/>; rel="canonical"
+
+/vs-github-issues.md
+  Link: <https://ai4kanban.dev/vs-github-issues>; rel="canonical"
+
+/vs-hermes-kanban.md
+  Link: <https://ai4kanban.dev/vs-hermes-kanban>; rel="canonical"
+
+/vs-vibe-kanban.md
+  Link: <https://ai4kanban.dev/vs-vibe-kanban>; rel="canonical"
+
+/vs-linear.md
+  Link: <https://ai4kanban.dev/vs-linear>; rel="canonical"
+
+/recipes/daily-kanban-maintenance.md
+  Link: <https://ai4kanban.dev/recipes/daily-kanban-maintenance>; rel="canonical"
+
+/recipes/competitor-analysis-loop.md
+  Link: <https://ai4kanban.dev/recipes/competitor-analysis-loop>; rel="canonical"
+
 /*.txt
   Content-Type: text/plain; charset=utf-8
 

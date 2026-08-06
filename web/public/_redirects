@@ -1,0 +1,8 @@
+# Cloudflare Pages redirects. Copied into the export as-is, like `_headers`.
+
+# English lives at the root, not under a prefix — `/vs-linear`, not
+# `/en/vs-linear`. Nothing on the site links to `/en/…`, but readers and
+# crawlers guess it once they've seen `/zh/…` and `/fr/…`, and it would
+# otherwise 404. Send them to the page they meant.
+/en / 301
+/en/* /:splat 301

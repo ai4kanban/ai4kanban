@@ -67,54 +67,31 @@ Two exceptions:
   panel. Don't add a string here for two or three call sites.
 - `web/app/globals.css` — tokens only. No utility classes, no component classes.
 
-## 5. The pages
+## 5. Where a component goes
 
-English pages live under `app/(en)/`, translated ones under `app/(intl)/[locale]/`.
-The split exists because each group needs its own `<html lang>`, and only a root
-layout can render `<html>`. Route groups don't appear in URLs, so English keeps its
-bare paths.
-
-English (`app/(en)/`):
-
-| Route | File |
-| --- | --- |
-| `/` | `page.tsx` |
-| `/recipes` | `recipes/page.tsx` |
-| `/recipes/<slug>` | `recipes/[slug]/page.tsx` |
-| `/vs-github-issues` | `vs-github-issues/page.tsx` |
-| `/vs-hermes-kanban` | `vs-hermes-kanban/page.tsx` |
-| `/vs-vibe-kanban` | `vs-vibe-kanban/page.tsx` |
-| `/vs-linear` | `vs-linear/page.tsx` |
-| `/og-image` | `og-image/page.tsx` — a 1200×630 frame you screenshot for the share card. Not indexed, not linked. |
-
-Translated (`app/(intl)/[locale]/`), where `locale` is `zh`, `es`, `ja`, or `fr`:
-`/zh`, `/zh/vs-github-issues`, `/zh/vs-hermes-kanban`, `/zh/vs-vibe-kanban`,
-`/zh/vs-linear` — and the same five for `/es`, `/ja`, `/fr`. Recipes are English-only.
-
-The route files are thin. The page body lives once in `components/pages/` —
-`HomePage.tsx`, `VsGithubPage.tsx`, `VsHermesPage.tsx`, `VsVibePage.tsx`,
-`VsLinearPage.tsx` — and takes a `locale`, so English and the four translations render
-the same component.
-
-Sections sit in a folder per page: `components/home/`, `components/vs-github-issues/`,
-`components/vs-hermes-kanban/`, `components/vs-vibe-kanban/`,
-`components/vs-linear/`, `components/recipes/`, plus `components/vs/` for parts all
-comparison pages share.
-
-The landing page is the one page with its own chrome: `components/home/HomeHeader.tsx`
-links to its five sections, and `components/home/HomeFooter.tsx` closes it with the
-pixel wordmark. `Header.tsx` and `Footer.tsx` at the top of `components/` are the
-comparison and recipe pages'.
-
-Shared across those pages: `Header.tsx`, `Footer.tsx`, `SectionHeading.tsx` (the
-numbered eyebrow plus H2), `CodeBlock.tsx` (a code block with a copy button), and
-`Rich.tsx`.
-
-The language switcher sits in the footer. Both footers render `LanguageSwitcher.tsx`,
-which lists all five languages, each in its own name, and links to the same page in
-that language. Nothing redirects by browser language — the reader picks. On a page
-that exists in English only, the switcher renders nothing; `TRANSLATED_PATHS` in
-`lib/i18n.ts` is the list it checks.
+```
+components/
+  pages/              one file per page body, taking a `locale` — every language
+                      renders the same component
+  home/               the landing page's sections, and the only page with its own
+                      chrome (HomeHeader, HomeFooter)
+  vs/                 what all four comparison pages share
+  vs-github-issues/   each comparison's own sections, plus its *-content.ts
+  vs-hermes-kanban/
+  vs-vibe-kanban/
+  vs-linear/
+  recipes/            the index, the cards, and their art
+  shots/              the board mockups the landing page draws
+  Header.tsx          chrome for the comparison and recipe pages
+  Footer.tsx          the same, carrying LanguageSwitcher.tsx — five languages,
+                      silent on a page that exists in English only
+  CompareMenu.tsx     the header's comparisons dropdown, on Dropdown.tsx
+  SectionHeading.tsx  numbered eyebrow plus H2
+  CodeBlock.tsx       code block with a copy button
+  Rich.tsx            the Markdown subset copy may use (§6)
+  styles.ts           the panel (§3)
+  content.ts          the GitHub URL
+```
 
 ## 6. The copy
 

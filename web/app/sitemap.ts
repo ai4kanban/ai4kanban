@@ -9,40 +9,14 @@ import { LOCALES, TRANSLATED_PATHS, localePath } from "@/lib/i18n";
 // Required for `output: export` — emit sitemap.xml at build time.
 export const dynamic = "force-static";
 
-// Discover every comparison route by scanning the English route group for
-// `vs-*` directories that hold a `page.tsx`. New comparison pages are picked up
-// automatically at build time — e.g. `app/(en)/vs-linear/page.tsx` →
-// `/vs-linear`.
-function vsRoutes(): string[] {
-  const appDir = path.join(process.cwd(), "app", "(en)");
-  const routes: string[] = [];
-
-  for (const entry of fs.readdirSync(appDir, { withFileTypes: true })) {
-    if (!entry.isDirectory() || !entry.name.startsWith("vs-")) continue;
-    if (fs.existsSync(path.join(appDir, entry.name, "page.tsx"))) {
-      routes.push(`/${entry.name}`);
-    }
-  }
-
-  return routes;
-}
-
 // Recipe routes: the index plus one page per card in the catalog.
 function recipeRoutes(): string[] {
   return ["/recipes", ...recipes.map((r) => `/recipes/${r.slug}`)];
 }
 
-// Markdown mirrors — a plain-Markdown twin of each page, served as a static
-// file from `public/` (`/` → `/index.md`, `/vs-x` → `/vs-x.md`, and one card
-// per recipe). Listed so AI crawlers and llms.txt consumers can discover them.
-// English only, like the recipes.
-function markdownMirrors(): string[] {
-  return [
-    "/index.md",
-    ...vsRoutes().map((r) => `${r}.md`),
-    ...recipes.map((r) => `/recipes/${r.slug}.md`),
-  ];
-}
+// The Markdown mirrors (`/index.md`, `/vs-x.md`, one card per recipe) are not
+// listed. A sitemap is for indexable pages, and each mirror is a duplicate of a
+// page already here; `llms.txt` is where crawlers find them.
 
 // `<lastmod>` is the only one of the three optional sitemap hints Google still
 // reads — it ignores `<changefreq>` and `<priority>`. A static export has no
@@ -106,20 +80,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
-  // English-only surfaces: the recipes and the Markdown mirrors. A mirror is a
-  // checked-in file, so it dates itself; a recipe page comes out of the
-  // catalog and its art.
+  // The recipes, which are English-only. A recipe page comes out of the catalog
+  // and its art.
   for (const route of recipeRoutes()) {
     entries.push({
       url: `${BASE_URL}${route}`,
       lastModified: gitLastModified(...routeSources(route, "en")),
-    });
-  }
-
-  for (const route of markdownMirrors()) {
-    entries.push({
-      url: `${BASE_URL}${route}`,
-      lastModified: gitLastModified(`public${route}`),
     });
   }
 
