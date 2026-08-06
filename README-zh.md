@@ -10,7 +10,7 @@
 
 [官网](https://ai4kanban.dev) · [快速开始](#快速开始) · [路线图](#路线图)
 
-<img src="https://cdn.ai4kanban.dev/og-image-v2.jpg" alt="AI4Kanban——越用越懂你的 AI 项目管理" width="720">
+<img src="https://cdn.ai4kanban.dev/og-image-v3.jpg" alt="AI4Kanban——越用越懂你的 AI 项目管理" width="720">
 
 </div>
 
@@ -123,9 +123,9 @@ npx ai4kanban install --tracks feature,bug,research
 npx ai4kanban-ui        # http://localhost:7420
 ```
 
-![Web UI 的看板视图](https://cdn.ai4kanban.dev/kanban-skill-ui-v3.jpg)
+![Web UI 的 Board 视图](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg)
 
-![Web UI 的卡片详情页](https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v3.jpg)
+![Web UI 的 Queue 视图](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-queue-view.jpg)
 
 仅在 localhost 上运行，无需部署或登录。更多选项见 [kanban-ui/](kanban-ui/README.md)。
 

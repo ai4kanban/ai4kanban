@@ -10,7 +10,7 @@ A Kanban board that plans autonomously, shaped by every decision.
 
 [Website](https://ai4kanban.dev) · [Quick start](#quick-start) · [Roadmap](#roadmap)
 
-<img src="https://cdn.ai4kanban.dev/og-image-v2.jpg" alt="AI4Kanban — AI project management that grows with you" width="720">
+<img src="https://cdn.ai4kanban.dev/og-image-v3.jpg" alt="AI4Kanban — AI project management that grows with you" width="720">
 
 </div>
 
@@ -149,9 +149,9 @@ review progress from the last 30 days. The Markdown files always remain authorit
 npx ai4kanban-ui        # http://localhost:7420
 ```
 
-![The board view in the Web UI](https://cdn.ai4kanban.dev/kanban-skill-ui-v3.jpg)
+![The board view in the Web UI](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg)
 
-![Card detail view in the Web UI](https://cdn.ai4kanban.dev/kanban-skill-ui-detail-v3.jpg)
+![The queue view in the Web UI](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-queue-view.jpg)
 
 It runs only on localhost, with no deployment or login required. See
 [kanban-ui/](kanban-ui/README.md) for more options.
