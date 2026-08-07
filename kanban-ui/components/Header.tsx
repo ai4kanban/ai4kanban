@@ -6,6 +6,7 @@ import type { BoardViewMode } from "@/lib/view";
 import { Configuration } from "./Configuration";
 import { CreateTask } from "./CreateTask";
 import { Goal } from "./Goal";
+import { LogoMark } from "./Logo";
 import { Progress } from "./Progress";
 import { ReleasePicker } from "./ReleasePicker";
 import { Sessions } from "./sessions";
@@ -113,9 +114,10 @@ export function Header({
       <div className="flex min-w-0 items-baseline gap-2 sm:gap-3">
         <Link
           href="/"
-          className="whitespace-nowrap text-[17px] font-[800] tracking-[-0.02em] hover:text-nb-accent-deep"
+          className="inline-flex items-center gap-2 whitespace-nowrap text-[17px] font-[800] tracking-[-0.02em] hover:text-nb-accent-deep"
         >
-          🗂️ Kanban
+          <LogoMark />
+          AI4Kanban
         </Link>
         <span
           title={`${projectRoot}/docs/kanban`}

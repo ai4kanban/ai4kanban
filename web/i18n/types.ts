@@ -15,6 +15,7 @@ import type { VsGithubCopy } from "./vs-github-issues/types";
 import type { VsHermesCopy } from "./vs-hermes-kanban/types";
 import type { VsVibeCopy } from "./vs-vibe-kanban/types";
 import type { VsLinearCopy } from "./vs-linear/types";
+import type { VsMulticaCopy } from "./vs-multica/types";
 
 /** Page `<title>` / description, plus the share-card variants when they differ. */
 export type PageMeta = {
@@ -60,4 +61,5 @@ export type SiteCopy = {
   vsHermes: VsHermesCopy;
   vsVibe: VsVibeCopy;
   vsLinear: VsLinearCopy;
+  vsMultica: VsMulticaCopy;
 };

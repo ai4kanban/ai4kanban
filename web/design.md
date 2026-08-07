@@ -71,6 +71,30 @@ on it that isn't paper-white.
 **Every block casts the same ink shadow** — `--color-ink` under the blue button, the
 paper button, and every card. The shadow is the block's weight, not a color effect.
 
+**The logo is that rule at mark size.** `components/ui/Logo.tsx` is a square block —
+`accent-deep` fill, ink outline, the same hard ink shadow — carrying a paper glyph of
+three board columns that step down as work leaves the board, then the name in the system
+sans. It is deliberately not its own piece of art: the mark is the page's vocabulary
+stated once, so it sits on the page rather than beside it. The block always names its own
+colors, because it is the same object on any ground; the word names none, so it inherits
+the ink on the page and the paper in the footer. `public/logo-mark.svg` and
+`public/logo.svg` carry the same geometry for anywhere off the site — change one, change
+the other. The header, the share card, and every comparison page render it — the `xs`
+size is the product's tag beside a competitor's mark, which is why our side of those pages
+is no longer a folder emoji. The brand is no longer a copy string, because the name is
+the same word in all five languages. The same mark is the favicon set in `public/` — the
+SVG, the 96px PNG, the `.ico`, the Apple touch icon and the two manifest sizes —
+declared once as `siteIcons` in `lib/metadata.ts` and spread into both root layouts.
+`app/` holds no icon files: that convention takes one image per role, and a tab, a
+Windows shortcut and an iOS home screen each want a different one.
+
+The board UI carries the same mark in its own palette — `kanban-ui/components/Logo.tsx`,
+the identical glyph filled with that app's ember instead of this one's azure, and bare:
+no frame, no shadow. A filled block there normally gets both, but at 22px a 1.5px ink
+hairline is a seventh of the width on each side and turns the ember muddy rather than
+framing it. The geometry is shared and nothing else is — a mark belongs to the product,
+a colour and a frame belong to the surface it sits on.
+
 Two things break the page's `max-w-5xl` column and run the full width of the viewport:
 
 - **The watercolour banner** behind the landing page's hero, in the same azure on the
@@ -80,9 +104,20 @@ Two things break the page's `max-w-5xl` column and run the full width of the vie
   edge, with nothing you have to read sitting on pigment — the headline stays on paper.
 - **The site footer**, the one dark block: the palette inverted rather than a new color —
   the ink as the ground, the paper as the type at 70% for body, 30% for separators and
-  15% for the pixel wordmark. It ends the landing page and all four comparison pages.
+  15% for the pixel wordmark. It ends the landing page and all comparison pages.
   Nothing inside it may name its own color; `LanguageSwitcher.tsx` sits in both footers,
   so it inherits and separates its links by opacity and weight.
+
+The same inversion is the whole ground of one surface that is not on the site at all: the
+social share card, `app/(en)/og-image/page.tsx`. It is the one thing seen alone — in
+someone else's timeline, at thumbnail size, with no page around it — and dark is what
+separates it there. It takes the footer's palette exactly and adds nothing: the ink as
+the ground, the paper at full for the headline and 70% for the lead, and the bright azure
+for the URL, which is the readable one of the two blues on the ink — with the `.dev` on
+it dropped to dimmed paper, so the domain reads as the brand plus a suffix rather than as
+nine characters of one weight. It is a render-only
+route; capture it at 1200×630 and upload the PNG to the versioned CDN name in
+`lib/site.ts`.
 
 Two values are not tokens, because they are illustration rather than a surface: the
 hairline in `HkDiagrams.tsx` and the linework in `RecipeArt.tsx`. Both are commented
@@ -138,20 +173,23 @@ Two exceptions:
 
 ```
 components/
-  ui/                 the primitives every page shares — Button, Chip, IconChip.
-                      Import these rather than re-typing a class list.
+  ui/                 the primitives every page shares — Button, Chip, IconChip,
+                      Logo. Import these rather than re-typing a class list.
                       Everything here is on /design.
   pages/              one file per page body, taking a `locale` — every language
                       renders the same component
-  home/               the landing page's sections, and its own header (HomeHeader)
-  vs/                 what all four comparison pages share
+  home/               the landing page's sections
+  vs/                 what all comparison pages share
   vs-github-issues/   each comparison's own sections, plus its *-content.ts
   vs-hermes-kanban/
   vs-vibe-kanban/
   vs-linear/
+  vs-multica/
   recipes/            the index, the cards, and their art
   shots/              the board mockups the landing page draws
-  Header.tsx          chrome for the comparison and recipe pages
+  Header.tsx          the one header, on every page — sticky from `sm` up
+                      HeaderLanguage.tsx is its language menu; the footer's
+                      switcher is the path-aware one
   SiteFooter.tsx      the dark band that ends the landing and comparison pages
   Footer.tsx          the thin footer the English-only recipes end on
                       Both carry LanguageSwitcher.tsx — five languages,
@@ -182,6 +220,7 @@ i18n/
     types.ts          HomeCopy: the shape all five declare
     index.ts          the five, keyed by locale
   shared/ vs-github-issues/ vs-hermes-kanban/ vs-vibe-kanban/ vs-linear/
+  vs-multica/
 ```
 
 - Write new copy in that page's `en.ts` first, then run `/translate-sync`.

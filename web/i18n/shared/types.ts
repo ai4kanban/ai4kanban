@@ -2,9 +2,6 @@
 export type SharedCopy = {
   nav: {
     install: string;
-    usage: string;
-    boardUi: string;
-    features: string;
     recipes: string;
     compare: string;
     /** The muted line closing the Compare menu. */

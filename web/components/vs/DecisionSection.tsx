@@ -1,3 +1,4 @@
+import { LogoMark } from "@/components/ui/Logo";
 import type { ReactNode } from "react";
 import { GITHUB_URL } from "../content";
 import { Rich } from "../Rich";
@@ -66,7 +67,7 @@ export function DecisionSection({
       <SectionHeading num={num} {...c.heading} />
 
       <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <Guide tag="🗂️" heading={c.oursHeading} items={c.ours} highlight />
+        <Guide tag={<LogoMark size="xs" />} heading={c.oursHeading} items={c.ours} highlight />
         <Guide tag={theirsTag} heading={c.theirsHeading} items={c.theirs} />
       </div>
 

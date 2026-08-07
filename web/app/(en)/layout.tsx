@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getCopy } from "@/i18n";
-import { htmlLang, pageMetadata } from "@/lib/metadata";
+import { htmlLang, pageMetadata, siteIcons } from "@/lib/metadata";
 import { BASE_URL } from "@/lib/site";
 import "../globals.css";
 
@@ -17,6 +17,7 @@ const c = getCopy("en");
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   ...pageMetadata({ locale: "en", path: "", ...c.home.meta }),
+  ...siteIcons,
   verification: {
     google: "QVTStPZuK-LT8pPMpHaVrFmpfTGz1Q-zqmdKpkTK8d0",
     other: {

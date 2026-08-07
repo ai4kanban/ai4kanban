@@ -27,6 +27,7 @@ import {
   softwareApplication,
   webPage,
 } from "@/lib/schema";
+import { LogoMark } from "@/components/ui/Logo";
 import type { Locale } from "@/lib/i18n";
 
 export const PATH = "/vs-vibe-kanban";
@@ -110,7 +111,7 @@ export function VsVibePage({ locale }: { locale: Locale }) {
             <p className="text-ink">{t.wins.lead}</p>
             <WinColumns
               oursHeading={t.wins.oursHeading}
-              oursTag="🗂️"
+              oursTag={<LogoMark size="xs" />}
               ours={kanbanWinOrder.map((k) => ({
                 key: k,
                 icon: kanbanWinIcons[k],

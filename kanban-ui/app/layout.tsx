@@ -2,12 +2,25 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./markdown.css";
 
+// The tab icon is the same mark as `components/Logo.tsx`, in this app's ember
+// rather than the site's azure, inlined rather than served: the board runs from
+// a local dev server with no `public/`, and a data URI keeps it to zero
+// requests and zero files. Same three columns as web/public/logo-mark.svg, and
+// the same bare block the header wears — no ink frame, no shadow. Those are the
+// site's mark; a 16px tab is the last place either survives.
+const ICON =
+  "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>" +
+  "<rect width='64' height='64' rx='15' fill='%23dd4f1e'/>" +
+  "<g transform='translate(12.16 12.16) scale(0.661)' fill='%23ffffff'>" +
+  "<rect x='5' y='8' width='12' height='44' rx='3.5'/>" +
+  "<rect x='24' y='8' width='12' height='35' rx='3.5'/>" +
+  "<rect x='43' y='8' width='12' height='26' rx='3.5'/>" +
+  "</g></svg>";
+
 export const metadata: Metadata = {
-  title: "Kanban board",
+  title: "AI4Kanban",
   description: "Local kanban board — spawn agents to do the work.",
-  icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂️</text></svg>",
-  },
+  icons: { icon: ICON },
 };
 
 export default function RootLayout({

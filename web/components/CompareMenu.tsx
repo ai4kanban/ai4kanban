@@ -8,6 +8,7 @@ const COMPARISONS = [
   { href: "/vs-hermes-kanban", title: "vs Hermes Agent Kanban" },
   { href: "/vs-vibe-kanban", title: "vs Vibe Kanban" },
   { href: "/vs-linear", title: "vs Linear" },
+  { href: "/vs-multica", title: "vs Multica" },
 ];
 
 /** Shared by the site header and the landing page's own header. */

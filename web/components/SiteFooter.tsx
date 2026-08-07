@@ -6,7 +6,7 @@ import type { SiteCopy } from "@/i18n/types";
 
 const X_URL = "https://x.com/tao_pmf";
 
-// The footer under the landing page and the four comparison pages. `Footer.tsx`
+// The footer under the landing page and the comparison pages. `Footer.tsx`
 // is the thin one the English-only recipes still use.
 export function SiteFooter({
   c,

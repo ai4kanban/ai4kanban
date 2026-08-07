@@ -10,14 +10,6 @@ const fr: HomeCopy = {
       "Un tableau projet piloté par un agent qui transforme les objectifs en exécution continue : il définit les tâches, clarifie les exigences, fixe les priorités et conserve chaque décision produit dans la mémoire du projet.",
   },
 
-  header: {
-    brand: "🗂️ AI4Kanban",
-    nav: {
-      install: "Installation",
-    },
-    github: "GitHub ↗",
-  },
-
   hero: {
     title: "Un tableau projet qui planifie en autonomie.",
     lead: "Il réunit vos objectifs, votre code et la mémoire du projet pour piloter le travail, de la planification à la livraison. Vous arbitrez les choix produit et donnez la validation finale.",

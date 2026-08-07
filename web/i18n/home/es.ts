@@ -10,14 +10,6 @@ const es: HomeCopy = {
       "Un tablero de proyecto dirigido por un agente que convierte los objetivos en ejecución continua: define tareas, aclara requisitos, fija prioridades y conserva cada decisión de producto en la memoria del proyecto.",
   },
 
-  header: {
-    brand: "🗂️ AI4Kanban",
-    nav: {
-      install: "Instalar",
-    },
-    github: "GitHub ↗",
-  },
-
   hero: {
     title: "Un tablero de proyecto que se planifica solo.",
     lead: "Reúne tus objetivos, tu código y la memoria del proyecto para gestionar el trabajo desde la planificación hasta la entrega. Tú tomas las decisiones de producto y das el visto bueno final.",

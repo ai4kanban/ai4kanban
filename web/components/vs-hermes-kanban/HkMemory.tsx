@@ -1,3 +1,4 @@
+import { LogoMark } from "@/components/ui/Logo";
 import type { ReactNode } from "react";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
@@ -57,7 +58,7 @@ export function HkMemory({ c }: { c: VsHermesCopy["memory"] }) {
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <MemoryCard tag="🗂️" {...c.ours} />
+        <MemoryCard tag={<LogoMark size="xs" />} {...c.ours} />
         <MemoryCard tag={<HermesMark className="h-6 w-6" />} {...c.theirs} />
       </div>
 

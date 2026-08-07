@@ -1,5 +1,5 @@
 import { FiGlobe } from "react-icons/fi";
-import { Dropdown } from "../Dropdown";
+import { Dropdown } from "./Dropdown";
 import {
   LOCALES,
   LOCALE_NAMES,
@@ -9,8 +9,9 @@ import {
 } from "@/lib/i18n";
 
 // The footer switcher lists all five languages in a row; the header has no room
-// for that, so it collapses into the same menu the comparison pages' header
-// uses for their list.
+// for that, so it collapses into the same menu the header's comparisons list
+// uses. Every link goes to the landing page in that language, not to the page
+// being read — the footer's switcher is the path-aware one.
 export function HeaderLanguage({
   locale,
   label,

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Logo } from "@/components/ui/Logo";
 import { getCopy } from "@/i18n";
 
 // A render-only page: a single 1200×630 frame that IS the social share card,
@@ -37,7 +38,9 @@ function Frame({
       <div className="relative">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={src} alt={alt} className="block w-full" />
-        {dim && <span className="absolute inset-0 bg-bg/75" />}
+        {/* Pushes the back card into the deck by washing it toward the ground
+            behind it — the ink here, not the page neutral. */}
+        {dim && <span className="absolute inset-0 bg-ink/75" />}
       </div>
     </div>
   );
@@ -45,24 +48,37 @@ function Frame({
 
 export default function OgImage() {
   return (
-    // The ground is the landing page's ground and nothing else. Two diffused
-    // accent glows used to sit behind the pitch and the deck; a blurred blue
-    // field is the one thing the azure may not be — a page — and it made the
-    // card the only surface on the site with a colored background.
-    <div className="relative flex h-[630px] w-[1200px] overflow-hidden bg-bg">
-      {/* Left column: the landing page's current brand, headline and lead. */}
+    // The card is the site's dark band, not a page: it is the one surface that
+    // never appears next to the site — it is seen alone, in someone else's
+    // timeline, at thumbnail size — and dark is what separates it there. So it
+    // takes the footer's inversion exactly: the ink as the ground, the paper as
+    // the type at full for the headline and 70% for the lead.
+    //
+    // What it is *not* is the navy field with two diffused accent glows this
+    // card used to carry. That ground was a blurred blue page, which is the one
+    // thing the azure may not be, and it was a colour the palette does not
+    // otherwise contain. Inverting the ramp gets the dark without either.
+    <div className="relative flex h-[630px] w-[1200px] overflow-hidden bg-ink">
+      {/* Left column: the logo, then the landing page's headline and lead. */}
       <div className="relative z-10 flex w-[640px] shrink-0 flex-col justify-center px-16 py-14">
-        <div className="mb-9 flex items-center gap-3 text-[24px] font-bold text-ink">
-          <span>{c.header.brand}</span>
+        {/* The word inherits, so the lockup is its dark version by sitting
+            here — paper on the ink, the same as it is in the footer. */}
+        <div className="mb-9 text-elev">
+          <Logo size="md" />
         </div>
-        <h1 className="max-w-[540px] text-[58px] font-bold leading-[1.02] tracking-[-0.035em] text-ink">
+        <h1 className="max-w-[540px] text-[58px] font-bold leading-[1.02] tracking-[-0.035em] text-elev">
           {c.hero.title}
         </h1>
-        <p className="mt-7 max-w-[530px] text-[21px] leading-[1.42] text-muted">
+        <p className="mt-7 max-w-[530px] text-[21px] leading-[1.42] text-elev/70">
           {c.hero.lead}
         </p>
-        <div className="mt-10 font-mono text-[18px] font-semibold tracking-[0.08em] text-accent-deep">
-          ai4kanban.dev
+        {/* The name takes the bright azure, not `accent-deep`: on the ink it is
+            the readable one of the two, and the deep cut is nearly the ground.
+            The TLD steps back to dimmed paper, so the string reads as the brand
+            with a suffix rather than as nine characters of equal weight — the
+            same move the footer makes with opacity instead of a second color. */}
+        <div className="mt-10 font-mono text-[18px] font-semibold tracking-[0.08em] text-accent">
+          ai4kanban<span className="text-elev/55">.dev</span>
         </div>
       </div>
 

@@ -10,14 +10,6 @@ const en: HomeCopy = {
       "An agent-led project board that turns project goals into continuous execution — defining tasks, clarifying requirements, setting priorities, and preserving every product decision in project memory.",
   },
 
-  header: {
-    brand: "🗂️ AI4Kanban",
-    nav: {
-      install: "Install",
-    },
-    github: "GitHub ↗",
-  },
-
   hero: {
     title: "A project board that plans itself.",
     lead: "It brings your goals, code, and project memory together to manage work from planning through completion. You make the product calls and give final approval.",

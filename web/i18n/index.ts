@@ -31,6 +31,7 @@ import vsGithub from "./vs-github-issues";
 import vsHermes from "./vs-hermes-kanban";
 import vsVibe from "./vs-vibe-kanban";
 import vsLinear from "./vs-linear";
+import vsMultica from "./vs-multica";
 
 /** Every word the site renders, in one language. */
 export function getCopy(locale: Locale): SiteCopy {
@@ -41,5 +42,6 @@ export function getCopy(locale: Locale): SiteCopy {
     vsHermes: vsHermes[locale],
     vsVibe: vsVibe[locale],
     vsLinear: vsLinear[locale],
+    vsMultica: vsMultica[locale],
   };
 }

@@ -29,6 +29,9 @@
 /vs-linear.md
   Link: <https://ai4kanban.dev/vs-linear>; rel="canonical"
 
+/vs-multica.md
+  Link: <https://ai4kanban.dev/vs-multica>; rel="canonical"
+
 /recipes/daily-kanban-maintenance.md
   Link: <https://ai4kanban.dev/recipes/daily-kanban-maintenance>; rel="canonical"
 
@@ -37,6 +40,11 @@
 
 /*.txt
   Content-Type: text/plain; charset=utf-8
+
+# Chrome drops a manifest served as anything but JSON, and with it the install
+# prompt and the home-screen icon.
+/site.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
 
 /_next/static/*
   Cache-Control: public, max-age=31536000, immutable

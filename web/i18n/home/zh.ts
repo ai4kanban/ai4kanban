@@ -9,14 +9,6 @@ const zh: HomeCopy = {
       "一个由 Agent 主导的项目看板。它从项目目标出发，持续明确任务、澄清需求、安排顺序并推进执行，用项目记忆保留每一次产品决策。",
   },
 
-  header: {
-    brand: "🗂️ AI4Kanban",
-    nav: {
-      install: "安装",
-    },
-    github: "GitHub ↗",
-  },
-
   hero: {
     title: "一块由 Agent 自主规划的项目看板。",
     lead: "它结合项目目标、代码和记忆，管理任务从规划到完成的全过程；你只做产品取舍与最终验收。",

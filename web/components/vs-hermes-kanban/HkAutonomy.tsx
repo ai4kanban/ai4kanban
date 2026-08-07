@@ -5,6 +5,7 @@ import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { HermesMark } from "./HermesMark";
 import { panelInset, panelStatic } from "../styles";
+import { LogoMark } from "@/components/ui/Logo";
 import type {
   VsHermesCopy,
   VsHermesStopKey,
@@ -18,7 +19,7 @@ import type {
 
 const STOP_TAG: Record<VsHermesStopKey, ReactNode> = {
   traditional: "📋",
-  kanban: "🗂️",
+  kanban: <LogoMark size="xs" />,
   hermes: <HermesMark className="h-5 w-5" />,
 };
 

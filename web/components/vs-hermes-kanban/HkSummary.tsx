@@ -1,3 +1,4 @@
+import { LogoMark } from "@/components/ui/Logo";
 import type { ReactNode } from "react";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
@@ -50,7 +51,7 @@ export function HkSummary({ c }: { c: VsHermesCopy["summary"] }) {
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <DiffCard tag="🗂️" heading={c.oursHeading} items={c.ours} />
+        <DiffCard tag={<LogoMark size="xs" />} heading={c.oursHeading} items={c.ours} />
         <DiffCard
           tag={<HermesMark className="h-6 w-6" />}
           heading={c.theirsHeading}

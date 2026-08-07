@@ -1,4 +1,4 @@
-import { HomeHeader } from "@/components/home/HomeHeader";
+import { Header } from "@/components/Header";
 import { Hero } from "@/components/home/Hero";
 import { Compare } from "@/components/home/Compare";
 import { Loop } from "@/components/home/Loop";
@@ -20,9 +20,8 @@ import type { Locale } from "@/lib/i18n";
 // The landing page, rendered once per language. `app/(en)/page.tsx` builds the
 // English copy at `/`; `app/(intl)/[locale]/page.tsx` builds the other four.
 //
-// The page brings its own header: the shared `Header.tsx` carries the
-// comparison pages' link set, and this page links to its own five sections
-// instead. The footer is `SiteFooter.tsx`, the same one those pages end on.
+// The chrome is the site's: `Header.tsx` on top and `SiteFooter.tsx` under,
+// the same pair the comparison pages carry.
 export function HomePage({ locale }: { locale: Locale }) {
   const copy = getCopy(locale);
   const c = copy.home;
@@ -46,7 +45,7 @@ export function HomePage({ locale }: { locale: Locale }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: schema }}
       />
-      <HomeHeader c={copy} locale={locale} />
+      <Header c={copy} locale={locale} />
       <main className="mx-auto max-w-5xl px-6">
         <Hero c={c.hero} />
         <Compare c={c.compare} />

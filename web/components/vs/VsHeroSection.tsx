@@ -1,3 +1,4 @@
+import { LogoMark } from "@/components/ui/Logo";
 import type { ReactNode } from "react";
 import { Rich } from "../Rich";
 import { panelInset } from "../styles";
@@ -59,7 +60,7 @@ export function VsHeroSection({
       </p>
 
       <div className="mt-8 flex flex-col items-stretch gap-3 text-left sm:flex-row">
-        <Chip tag="🗂️" name={c.ours.name} body={c.ours.body} extra={oursExtra} />
+        <Chip tag={<LogoMark size="xs" />} name={c.ours.name} body={c.ours.body} extra={oursExtra} />
         <div className="hidden items-center justify-center px-1 font-mono text-sm font-semibold text-muted sm:flex">
           {shared.vs}
         </div>

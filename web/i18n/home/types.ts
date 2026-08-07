@@ -11,11 +11,6 @@ import type { PageMeta, TitleBody } from "../types";
  */
 export type HomeCopy = {
   meta: PageMeta;
-  header: {
-    brand: string;
-    nav: { install: string };
-    github: string;
-  };
   hero: {
     title: string;
     lead: string;

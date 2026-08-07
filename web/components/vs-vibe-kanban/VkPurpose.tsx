@@ -1,3 +1,4 @@
+import { LogoMark } from "@/components/ui/Logo";
 import type { ReactNode } from "react";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
@@ -41,7 +42,7 @@ export function VkPurpose({ c }: { c: VsVibeCopy["purpose"] }) {
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <PurposePanel tag="🗂️" {...c.ours} />
+        <PurposePanel tag={<LogoMark size="xs" />} {...c.ours} />
         <PurposePanel
           tag={<VibeKanbanMark className="h-6 w-6" />}
           {...c.theirs}

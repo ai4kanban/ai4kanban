@@ -19,7 +19,10 @@ export const SITE_ID = `${BASE_URL}/#website`;
 export const APP_ID = `${BASE_URL}/#software`;
 
 // Google wants a logo of at least 112×112, uncropped, on white or transparent.
-// `app/icon.png` is 144×144 and exports to /icon.png.
+// This is the largest square the favicon set ships — the same mark as
+// `components/ui/Logo.tsx`, transparent outside the block. It doubles as the
+// manifest's 512 because a second copy of one image is a second thing to
+// forget: `app/icon.png` used to be named here, and outlived the file.
 const organization = {
   "@type": "Organization",
   "@id": ORG_ID,
@@ -27,9 +30,9 @@ const organization = {
   url: BASE_URL,
   logo: {
     "@type": "ImageObject",
-    url: `${BASE_URL}/icon.png`,
-    width: 144,
-    height: 144,
+    url: `${BASE_URL}/web-app-manifest-512x512.png`,
+    width: 512,
+    height: 512,
   },
   // Not a knowledge-panel lever — this just points at the project's one
   // official profile so the entity is unambiguous.

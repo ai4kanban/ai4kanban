@@ -1,4 +1,4 @@
-// The four comparison pages, in one list.
+// The comparison pages, in one list.
 //
 // Each renders at two URL shapes — `/vs-x` for English and `/{locale}/vs-x` for
 // the four translations — and Next needs a route file per shape, because only a
@@ -12,6 +12,10 @@ import { PATH as githubPath, VsGithubPage } from "@/components/pages/VsGithubPag
 import { PATH as hermesPath, VsHermesPage } from "@/components/pages/VsHermesPage";
 import { PATH as vibePath, VsVibePage } from "@/components/pages/VsVibePage";
 import { PATH as linearPath, VsLinearPage } from "@/components/pages/VsLinearPage";
+import {
+  PATH as multicaPath,
+  VsMulticaPage,
+} from "@/components/pages/VsMulticaPage";
 import { getCopy } from "@/i18n";
 import type { SiteCopy } from "@/i18n/types";
 import type { Locale } from "@/lib/i18n";
@@ -33,6 +37,7 @@ export const COMPARISONS: readonly Comparison[] = [
   { path: hermesPath, copy: "vsHermes", Page: VsHermesPage },
   { path: vibePath, copy: "vsVibe", Page: VsVibePage },
   { path: linearPath, copy: "vsLinear", Page: VsLinearPage },
+  { path: multicaPath, copy: "vsMultica", Page: VsMulticaPage },
 ];
 
 /** The `[vs]` segment of each comparison route — "vs-github-issues", and so on. */

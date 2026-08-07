@@ -10,7 +10,7 @@
 
 [官网](https://ai4kanban.dev) · [快速开始](#快速开始) · [路线图](#路线图)
 
-<img src="https://cdn.ai4kanban.dev/og-image-v3.jpg" alt="AI4Kanban——越用越懂你的 AI 项目管理" width="720">
+<img src="https://cdn.ai4kanban.dev/og-image-v4.jpg" alt="AI4Kanban——越用越懂你的 AI 项目管理" width="720">
 
 </div>
 

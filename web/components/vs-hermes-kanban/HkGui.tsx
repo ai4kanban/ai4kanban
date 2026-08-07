@@ -1,3 +1,4 @@
+import { LogoMark } from "@/components/ui/Logo";
 import type { ReactNode } from "react";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
@@ -70,7 +71,7 @@ export function HkGui({
         }`}
       >
         <GuiCard
-          tag="🗂️"
+          tag={<LogoMark size="xs" />}
           src="https://cdn.ai4kanban.dev/kanban-skill-ui-v3.jpg"
           {...c.ours}
         />

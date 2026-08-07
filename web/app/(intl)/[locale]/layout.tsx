@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCopy } from "@/i18n";
-import { htmlLang, pageMetadata } from "@/lib/metadata";
+import { htmlLang, pageMetadata, siteIcons } from "@/lib/metadata";
 import { BASE_URL } from "@/lib/site";
 import { TRANSLATED_LOCALES, isTranslatedLocale } from "@/lib/i18n";
 import "../../globals.css";
@@ -24,6 +24,7 @@ export async function generateMetadata({
   return {
     metadataBase: new URL(BASE_URL),
     ...pageMetadata({ locale, path: "", ...getCopy(locale).home.meta }),
+    ...siteIcons,
   };
 }
 

@@ -5,6 +5,7 @@ import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { HermesMark } from "./HermesMark";
 import { panelStatic } from "../styles";
+import { LogoMark } from "@/components/ui/Logo";
 import type { VsHermesCopy } from "@/i18n/vs-hermes-kanban/types";
 
 // The harness-compatibility split as a single support matrix: one logo bar of
@@ -171,7 +172,12 @@ export function HkHarness({
 }) {
   const marks = { supported: c.supported, notSupported: c.notSupported };
   const boards: Board[] = [
-    { tag: "🗂️", label: labels.ours, sub: c.oursSub, supports: () => true },
+    {
+      tag: <LogoMark size="xs" />,
+      label: labels.ours,
+      sub: c.oursSub,
+      supports: () => true,
+    },
     {
       tag: <HermesMark className="h-4 w-4" />,
       label: labels.theirs,

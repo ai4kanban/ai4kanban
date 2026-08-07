@@ -1,6 +1,8 @@
+import type { ReactNode } from "react";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { panelInset } from "../styles";
+import { LogoMark } from "@/components/ui/Logo";
 import type { VsLinearCopy } from "@/i18n/vs-linear/types";
 
 function ModelPanel({
@@ -9,7 +11,7 @@ function ModelPanel({
   is,
   isnt,
 }: {
-  tag: string;
+  tag: ReactNode;
   name: string;
   is: string;
   isnt: string;
@@ -36,7 +38,7 @@ export function LinearModel({ c }: { c: VsLinearCopy["model"] }) {
         <Rich>{c.lead}</Rich>
       </p>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <ModelPanel tag="🗂️" {...c.ours} />
+        <ModelPanel tag={<LogoMark size="xs" />} {...c.ours} />
         <ModelPanel tag="◩" {...c.theirs} />
       </div>
       <p className="mt-5 text-sm text-muted">{c.note}</p>

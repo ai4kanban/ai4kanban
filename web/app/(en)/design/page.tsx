@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { IconChip } from "@/components/ui/IconChip";
+import { Logo, LogoMark } from "@/components/ui/Logo";
 import { panel, panelInset, panelStatic } from "@/components/styles";
 import { contrast, format, verdict } from "@/lib/contrast";
 
@@ -276,6 +277,67 @@ export default function DesignPage() {
                 </div>
               );
             })}
+          </div>
+        </Section>
+
+        <Section
+          id="logo"
+          title="The logo"
+          note="components/ui/Logo.tsx — the square block and the name, on one line. The block is the page's rule at mark size: the deep blue fill, the ink outline, the hard ink shadow. The glyph is a board reduced to three columns that step down as work leaves it, in paper white, because a filled blue block carries a paper glyph or it carries nothing."
+        >
+          <div className={`${panelStatic} space-y-7 px-6 py-6`}>
+            <div>
+              <Label>logo · sm / md / lg</Label>
+              <div className="flex flex-wrap items-end gap-8">
+                <Logo size="sm" />
+                <Logo size="md" />
+                <Logo size="lg" />
+              </div>
+            </div>
+            <div>
+              <Label>mark alone · on paper, on the wash, on the ink</Label>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="flex items-center gap-4 rounded-lg border-2 border-border bg-elev px-5 py-4">
+                  <LogoMark size="sm" />
+                  <LogoMark size="md" />
+                  <LogoMark size="lg" />
+                </span>
+                <span className="flex items-center gap-4 rounded-lg border-2 border-border bg-code px-5 py-4">
+                  <LogoMark size="md" />
+                </span>
+                {/* On the ink the outline is the ground, so the block is read
+                    by its fill and its glyph alone — which is why the fill is
+                    the deep blue and never a tint of it. */}
+                <span className="flex items-center gap-4 rounded-lg border-2 border-border bg-ink px-5 py-4 text-elev">
+                  <Logo size="md" />
+                </span>
+              </div>
+            </div>
+            <div>
+              <Label>at the sizes a favicon and a tab actually get</Label>
+              <div className="flex flex-wrap items-end gap-4">
+                {[16, 20, 24, 32].map((px) => (
+                  <span key={px} className="text-center">
+                    <img
+                      src="/logo-mark.svg"
+                      alt=""
+                      width={px}
+                      height={px}
+                      style={{ width: px, height: px }}
+                    />
+                    <span className="mt-2 block font-mono text-[0.7rem] text-muted">
+                      {px}
+                    </span>
+                  </span>
+                ))}
+              </div>
+              <p className="mt-3 text-[0.9rem] leading-relaxed text-muted">
+                public/logo-mark.svg and public/logo.svg are the same geometry
+                as the component, for anywhere off the site. The mark is pure
+                shape; the lockup sets the name in live text, so a renderer with
+                no fonts should take the mark and set the name itself.
+              </p>
+            </div>
           </div>
         </Section>
 

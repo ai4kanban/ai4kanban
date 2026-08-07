@@ -75,3 +75,34 @@ export function pageMetadata({
 export function htmlLang(locale: Locale): string {
   return LOCALE_TAGS[locale];
 }
+
+// The icon set, spread into both root layouts so every page in every language
+// declares the same one. It replaced `app/icon.png` and its siblings: the file
+// convention only takes one image per role, and a tab, a pinned tab, a Windows
+// shortcut and an iOS home screen each want a different file — so the set is
+// declared here instead, and `app/` holds no icons at all.
+//
+// All of it is the mark from `components/ui/Logo.tsx`, exported from
+// `public/logo-mark.svg`. Every path is site-root, which is also what
+// `site.webmanifest` assumes internally.
+//
+//   favicon.svg          the tab wherever SVG is taken — it scales, so it is
+//                        the one file that is right at every size
+//   favicon-96x96.png    the tab everywhere else
+//   favicon.ico          the fallback: old browsers, and the Windows shortcut,
+//                        which reads the .ico and nothing else
+//   apple-touch-icon     180×180, the iOS home screen
+export const siteIcons: Pick<Metadata, "icons" | "manifest" | "appleWebApp"> = {
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
+  },
+  manifest: "/site.webmanifest",
+  // Names the icon on an iOS home screen. Without it iOS uses the page title,
+  // which is the full SEO sentence and gets truncated to nonsense.
+  appleWebApp: { title: "AI4Kanban" },
+};

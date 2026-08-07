@@ -46,6 +46,7 @@ export const TRANSLATED_PATHS = [
   "/vs-hermes-kanban",
   "/vs-vibe-kanban",
   "/vs-linear",
+  "/vs-multica",
 ] as const;
 
 export type TranslatedPath = (typeof TRANSLATED_PATHS)[number];

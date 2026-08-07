@@ -19,6 +19,7 @@ import {
   linearWinOrder,
 } from "@/components/vs-linear/vs-linear-content";
 import { getCopy } from "@/i18n";
+import { LogoMark } from "@/components/ui/Logo";
 import type { Locale } from "@/lib/i18n";
 import {
   APP_ID,
@@ -100,7 +101,7 @@ export function VsLinearPage({ locale }: { locale: Locale }) {
             <p className="text-ink">{t.wins.lead}</p>
             <WinColumns
               oursHeading={t.wins.oursHeading}
-              oursTag="🗂️"
+              oursTag={<LogoMark size="xs" />}
               ours={kanbanWinOrder.map((key) => ({
                 key,
                 icon: kanbanWinIcons[key],

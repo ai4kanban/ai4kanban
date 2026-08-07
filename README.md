@@ -10,7 +10,7 @@ A Kanban board that plans autonomously, shaped by every decision.
 
 [Website](https://ai4kanban.dev) · [Quick start](#quick-start) · [Roadmap](#roadmap)
 
-<img src="https://cdn.ai4kanban.dev/og-image-v3.jpg" alt="AI4Kanban — AI project management that grows with you" width="720">
+<img src="https://cdn.ai4kanban.dev/og-image-v4.jpg" alt="AI4Kanban — AI project management that grows with you" width="720">
 
 </div>
 

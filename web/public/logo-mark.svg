@@ -1,0 +1,17 @@
+<!-- AI4Kanban — the square mark on its own. Geometry only, so it renders the
+     same anywhere. The colours are the site's tokens: #12509e accent-deep,
+     #191c22 ink, #ffffff paper. The glyph sits in its own 60x60 box, scaled to
+     62% of the block and centred, which is exactly what components/ui/Logo.tsx
+     does — change one and change the other. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 74 74" width="74" height="74" role="img" aria-label="AI4Kanban">
+  <title>AI4Kanban</title>
+  <!-- The hard offset shadow every block on the site casts: the same ink, no blur. -->
+  <rect x="6" y="6" width="68" height="68" rx="17" fill="#191c22"/>
+  <rect x="2" y="2" width="64" height="64" rx="15" fill="#12509e" stroke="#191c22" stroke-width="4"/>
+  <!-- Three board columns, shared top, stepping down as work leaves the board. -->
+  <g transform="translate(12.9 12.9) scale(0.703)" fill="#ffffff">
+    <rect x="5" y="8" width="12" height="44" rx="3.5"/>
+    <rect x="24" y="8" width="12" height="35" rx="3.5"/>
+    <rect x="43" y="8" width="12" height="26" rx="3.5"/>
+  </g>
+</svg>
