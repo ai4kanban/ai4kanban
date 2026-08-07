@@ -36,6 +36,16 @@ export const compareRows: { key: VsHermesRowKey; edge: HkEdge }[] = [
   { key: "scale", edge: "hermes" },
 ];
 
+// The Chinese page uses a shorter editorial structure. These four rows carry
+// the architectural decision; compatibility, autonomy, and the two UIs remain
+// as their more legible visual sections instead of being repeated in the table.
+export const compactCompareRows: { key: VsHermesRowKey; edge: HkEdge }[] = [
+  { key: "whereBoardLives", edge: "kanban" },
+  { key: "infrastructure", edge: "kanban" },
+  { key: "crashRecovery", edge: "hermes" },
+  { key: "scale", edge: "hermes" },
+];
+
 // "Where each wins" cards. Titles are self-descriptive — the title alone should
 // tell you what the card is about. Each side lists only what survives factoring
 // out shared harness features.

@@ -32,7 +32,7 @@ const zh: SharedCopy = {
   language: { label: "语言" },
   vs: "vs",
   bottomLine: "结论",
-  cta: { install: "安装 ai4kanban", github: "在 GitHub 上查看 ↗" },
+  cta: { install: "安装 AI4Kanban", github: "在 GitHub 上查看 ↗" },
 };
 
 export default zh;

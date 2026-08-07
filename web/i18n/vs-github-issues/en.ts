@@ -4,232 +4,94 @@ import type { VsGithubCopy } from "./types";
 
 const en: VsGithubCopy = {
   meta: {
-    title:
-      "AI4Kanban vs. GitHub Issues — Different work calls for different tools",
+    title: "AI4Kanban vs. GitHub Issues: Local agent board or team tracker?",
     socialTitle: "AI4Kanban vs. GitHub Issues",
     description:
-      "A practical comparison of AI4Kanban's file-based board and GitHub Issues, including local Markdown vs. a remote API, token usage, how easily agents can use each tool, team collaboration, and the situations where each works best.",
+      "Compare AI4Kanban and GitHub Issues across storage, agent overhead, team coordination, history, and external participation.",
     social:
-      "AI4Kanban is not designed to replace GitHub Issues — the two tools address different bottlenecks. A practical comparison across speed, tokens, agents, and teams.",
+      "AI4Kanban favors direct local work with an agent. GitHub Issues favors coordination across a team or community.",
   },
   hero: {
     badge: "Comparison",
     title: "AI4Kanban vs.\nGitHub Issues",
-    lead: "AI4Kanban is not designed to replace GitHub Issues. The two tools address different bottlenecks. GitHub Issues is a shared, durable system of record that supports public collaboration; AI4Kanban is a private, local workspace that an agent can operate directly. The right choice depends on what is slowing you down.",
+    lead: "AI4Kanban and GitHub Issues solve different coordination problems. AI4Kanban gives a developer and an agent a board inside the repository. GitHub Issues gives a team or community a shared service for tracking and discussing work. Choose based on whether your daily work depends more on fast local execution or coordination across people.",
     ours: {
       name: "AI4Kanban",
-      body: "Plain Markdown stored in your repository, giving agents a fast local board they can read and update directly.",
+      body: "A Markdown board stored with the code, where an agent can read and update tasks directly.",
     },
     theirs: {
       name: "GitHub Issues",
-      body: "A hosted database accessed through an API, designed to serve as a shared system of record for a team or community.",
+      body: "A hosted task system for sharing work, discussion, and status across a team or community.",
     },
-  },
-  summary: {
-    heading: {
-      eyebrow: "The short version",
-      title: "Why not just use GitHub Issues?",
-    },
-    lead: "You can. Nearly everything AI4Kanban does can also be accomplished with GitHub Issues and the `gh` CLI or a GitHub MCP server. The meaningful difference is the operational cost.",
-    panel:
-      "For an agent, completing the same task through GitHub Issues usually involves **more data**, **more tool calls**, **greater token usage**, and **additional network latency**. It may also require **more explicit prompting** before the agent reaches for a remote tool. AI4Kanban does not offer GitHub's breadth of collaboration and integrations; instead, it prioritizes direct, fast local access. For a solo developer who works primarily with an agent, that speed can be the more valuable resource.",
   },
   comparison: {
     heading: {
-      eyebrow: "Head to head",
-      title: "AI4Kanban vs. GitHub Issues",
+      eyebrow: "Core comparison",
+      title: "Local workspace or shared service?",
     },
-    lead: "The table below compares the two tools across fourteen dimensions. A {check} marks a clear win; a **dash** marks a trade-off that comes down to what you need. AI4Kanban is strongest in **speed and local access**, while GitHub Issues is better suited to **scale and multi-person collaboration**.",
+    lead: "The underlying difference is where the board lives. That choice determines the cost of agent access, how concurrent work is coordinated, what history is retained, and how outsiders participate.",
     ourLabel: "AI4Kanban",
     theirLabel: "GitHub Issues",
     rows: {
       storage: {
-        dimension: "Storage",
-        kanban: "Plain Markdown files in your repository, versioned with Git.",
-        issues:
-          "Hosted by GitHub and accessed through its interfaces and API.",
-      },
-      offline: {
-        dimension: "Offline access",
-        kanban: "Fully available because the board is stored on disk.",
-        issues:
-          "Issue data requires a network connection and authentication.",
-      },
-      agentReads: {
-        dimension: "How an agent reads it",
+        dimension: "Where the work lives",
         kanban:
-          "Directly through filesystem tools such as Read, Grep, and Glob.",
-        issues: "Through the `gh` CLI or remote MCP calls.",
+          "The board is stored as Markdown in the repository. An agent can read and update it directly, including offline.",
+        issues:
+          "Tasks are hosted by GitHub. Agent access requires a network connection and the `gh` CLI or MCP.",
       },
       tokenCost: {
-        dimension: "Token usage per lookup",
+        dimension: "Agent overhead",
         kanban:
-          "Typically low because `grep` can return only the matching content.",
+          "Local search can return only the relevant text, keeping context use and response time low.",
         issues:
-          "Typically higher because the agent must process tool definitions and JSON responses.",
-      },
-      latency: {
-        dimension: "Latency",
-        kanban: "Local disk access is effectively immediate.",
-        issues: "Each request must wait for a network response.",
-      },
-      setup: {
-        dimension: "Setup",
-        kanban:
-          "Installed through a prompt; the core consists of a skill file and a small script.",
-        issues:
-          "Requires a GitHub account, authentication, and CLI or MCP configuration.",
-      },
-      lockIn: {
-        dimension: "Platform dependency",
-        kanban:
-          "No hosted platform dependency; the board is plain text and travels with the repository.",
-        issues: "Data remains in GitHub unless it is exported or migrated.",
-      },
-      metadata: {
-        dimension: "Metadata",
-        kanban:
-          "Intentionally focused on essentials such as priority and effort.",
-        issues:
-          "Rich fields for labels, milestones, assignees, and projects.",
+          "Remote operations also involve tool definitions, JSON responses, and network round trips, which usually use more tokens.",
       },
       concurrency: {
-        dimension: "Concurrent use",
+        dimension: "Concurrent collaboration",
         kanban:
-          "No concurrency control; two people can create the same task number, such as #1894.",
-        issues: "Server-assigned IDs safely support concurrent use.",
+          "There is no coordinating server, so two people can create the same task number and produce a conflict.",
+        issues:
+          "The server assigns IDs and synchronizes updates, making concurrent work safe for a team.",
       },
       history: {
-        dimension: "Decision history",
+        dimension: "What history is kept",
         kanban:
-          "Retains the decisions that affect future work, such as why an idea was rejected and what has shipped.",
+          "It retains decisions and outcomes that affect future work, while older detail is summarized.",
         issues:
-          "Preserves the complete history of comments, edits, and activity.",
-      },
-      closing: {
-        dimension: "Completing work",
-        kanban: "A card is archived after all of its task items are complete.",
-        issues:
-          "Issues can close automatically through linked pull requests and workflows.",
-      },
-      search: {
-        dimension: "Search at scale",
-        kanban:
-          "`grep` is fast on a small board but becomes less convenient as the board grows.",
-        issues:
-          "Indexed full-text search and saved filters are designed for larger datasets.",
+          "It preserves the full record of comments, edits, cross-references, and activity.",
       },
       contributors: {
-        dimension: "External contributors",
+        dimension: "External participation",
         kanban:
-          "Contributors can participate by committing Markdown, but there is no lightweight filing interface.",
+          "Contributors need repository access and participate by changing Markdown files.",
         issues:
-          "On public repositories, contributors can open issues, comment, and react without submitting code.",
-      },
-      transparency: {
-        dimension: "Transparency",
-        kanban:
-          "Every card remains visible in the repository; only the memory hub is reduced to essential information.",
-        issues:
-          "Issues are easy to share and can support the public workflow expected by open-source communities.",
+          "On a public repository, anyone can open an issue, comment, or react without submitting code.",
       },
     },
-  },
-  wins: {
-    heading: { eyebrow: "Trade-offs", title: "Where each tool is stronger" },
-    lead: "Neither tool is universally better. AI4Kanban is optimized for a developer and an agent moving work forward quickly. GitHub Issues is optimized for keeping many people and systems in sync.",
-    oursHeading: "AI4Kanban",
-    theirsHeading: "GitHub Issues",
-    ours: {
-      tokenLight: {
-        title: "Efficient local access",
-        body: "No MCP calls and no network dependency. The agent searches local Markdown instead of paging through a remote API, which reduces token usage and latency and avoids authentication interruptions during a task.",
-      },
-      agentsUseIt: {
-        title: "Fits how agents already work",
-        body: "Agents tend to use filesystem tools before searching a remote issue tracker. A Markdown board is available in the environment they already understand, so it requires less prompting and leaves less room for the agent to infer task state incorrectly.",
-      },
-      offline: {
-        title: "Portable and available offline",
-        body: "The board is a set of plain files in Git. It continues to work without a network connection or when GitHub is unavailable. There is no SaaS dependency or platform lock-in; cloning the repository brings the entire board with it.",
-      },
-      memory: {
-        title: "Memory designed for the next decision",
-        body: "AI4Kanban keeps the information that should guide future work: why an idea was rejected, what has shipped, and what remains between the current state and the goal. This helps the agent make useful forward-looking proposals instead of repeating completed or discarded work.",
-      },
-    },
-    theirs: {
-      teams: {
-        title: "Designed for team coordination",
-        body: "Server-assigned IDs, safe concurrent updates, and assignees make GitHub Issues suitable for multi-person workflows. AI4Kanban has no coordinating database, so two people can independently create task #1894 and produce a conflict.",
-      },
-      transparency: {
-        title: "Accessible to a wider community",
-        body: "Issues can be public and shared by URL, while external contributors can file reports, comment, and react. GitHub Issues is the better home when open participation matters more than local speed.",
-      },
-      fullContext: {
-        title: "Complete activity history",
-        body: "AI4Kanban deliberately compresses old information, reducing an archived card to a one-line summary. GitHub Issues retains comments, edits, and cross-references as part of the issue record.",
-      },
-      integration: {
-        title: "Mature integrations",
-        body: "GitHub Issues works with pull-request closing rules, commit links, projects, labels, milestones, indexed search, and a broad ecosystem of third-party tools.",
-      },
-    },
-  },
-  ergonomics: {
-    heading: {
-      eyebrow: "The key difference",
-      title: "Why agents work well with files",
-    },
-    lead: 'The practical difference becomes clear when an agent performs the work. Ask it to **"find my high-priority open tasks"** and the two tools require substantially different paths.',
-    issues: {
-      title: "you › agent + GitHub MCP",
-      chip: "multiple calls",
-      lines: [
-        "find my high-priority open issues",
-        "list_issues(state:open, labels:high)",
-        "4.2 KB JSON — 18 issues with every field",
-        "paginate, filter, summarize…",
-        "refresh authentication · process rate-limit headers · retry",
-      ],
-      footer: "several tool calls · kilobytes of JSON · network access each time",
-    },
-    kanban: {
-      title: "you › agent + AI4Kanban",
-      chip: "one call",
-      lines: [
-        "find my high-priority open tasks",
-        'grep -rl "Priority: high" docs/kanban/todo',
-        "three file paths",
-        "done — one call, no network",
-      ],
-      footer: "one tool call · a few paths · entirely local",
-    },
-    note: "Those extra operations accumulate. Asking what to do next, archiving a task, and reviewing the board all require another remote interaction when the source is GitHub Issues. When both options are available, models also tend to choose familiar, low-friction filesystem tools unless they are explicitly directed to use the remote tracker.",
   },
   decision: {
     heading: {
-      eyebrow: "Choosing between them",
-      title: "Which tool should you use?",
+      eyebrow: "How to choose",
+      title: "Which tool fits your workflow?",
     },
-    oursHeading: "Use AI4Kanban when",
-    theirsHeading: "Use GitHub Issues when",
+    oursHeading: "AI4Kanban is a better fit when",
+    theirsHeading: "GitHub Issues is a better fit when",
     ours: [
-      "You work alone or with one or two trusted collaborators.",
-      "You primarily drive work through an agent in the terminal.",
-      "You value forward progress and concise decision memory more than a complete activity log.",
-      "You want the board to remain in Git, available offline and easy to move.",
+      "You work alone or with one or two regular collaborators.",
+      "You rely on an agent in the terminal to move tasks forward.",
+      "You value fast execution and concise decision context over a complete activity log.",
+      "You want the board to stay in Git, work offline, and move with the repository.",
     ],
     theirs: [
-      "You are building in public and process transparency matters.",
-      "Several people need to update the backlog concurrently.",
-      "Your workflow depends on pull-request and CI integrations, projects, or milestones.",
-      "You want external contributors to file issues and participate in discussions.",
+      "Several people need to assign and update tasks at the same time.",
+      "The project is developed in public and process transparency matters.",
+      "Your workflow depends on pull requests, CI, projects, milestones, or automation.",
+      "You want outside contributors to file issues and join discussions.",
     ],
     verdict:
-      "AI4Kanban and GitHub Issues are not direct substitutes. GitHub Issues provides a **shared system of record**; AI4Kanban provides a **fast local board that an agent can operate directly**. If coordination between people is the bottleneck, use GitHub Issues. If the bottleneck is how efficiently you and an agent can move work forward, use AI4Kanban.",
-    note: "Many solo developers use both: GitHub Issues as the public issue tracker and AI4Kanban as the private workspace their agent uses each day.",
+      "The tools are not direct substitutes. GitHub Issues is a **shared task system for a team or community**; AI4Kanban is a **local working board an agent can operate directly**. Choose GitHub Issues when team coordination is the bottleneck. Choose AI4Kanban when the bottleneck is how efficiently you and an agent can move work forward.",
+    note: "They can also work together: use GitHub Issues for team-facing or public work, and AI4Kanban as the agent’s local workspace.",
   },
 };
 

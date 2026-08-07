@@ -18,7 +18,9 @@ import { HkHarness } from "@/components/vs-hermes-kanban/HkHarness";
 import { HkMemory } from "@/components/vs-hermes-kanban/HkMemory";
 import { HkAutonomy } from "@/components/vs-hermes-kanban/HkAutonomy";
 import { HkGui } from "@/components/vs-hermes-kanban/HkGui";
+import { HkCompactDecision } from "@/components/vs-hermes-kanban/HkCompactDecision";
 import {
+  compactCompareRows,
   compareRows,
   hermesWinIcons,
   hermesWinOrder,
@@ -51,7 +53,7 @@ export function VsHermesPage({ locale }: { locale: Locale }) {
       headline: t.meta.socialTitle ?? t.meta.title,
       description: t.meta.description,
       datePublished: "2026-07-19",
-      dateModified: "2026-07-27",
+      dateModified: locale === "zh" ? "2026-08-07" : "2026-07-27",
       about: [{ "@id": APP_ID }, { "@id": RIVAL_ID }],
     }),
     softwareApplication({
@@ -80,68 +82,106 @@ export function VsHermesPage({ locale }: { locale: Locale }) {
           oursExtra={<SkillDiagram c={t.hero} />}
           theirsExtra={<HermesDiagram c={t.hero} />}
         />
-        <HkSummary c={t.summary} />
-        <HkHarness
-          c={t.harness}
-          labels={{
-            ours: t.comparison.ourLabel,
-            theirs: t.comparison.theirLabel,
-          }}
-        />
+        {locale === "zh" ? (
+          <>
+            <section className="mt-24">
+              <SectionHeading num="01" {...t.comparison.heading} />
+              <ComparisonIntro>{t.comparison.lead}</ComparisonIntro>
+              <ComparisonTable
+                ourLabel={t.comparison.ourLabel}
+                theirLabel={t.comparison.theirLabel}
+                rows={compactCompareRows.map((r) => ({
+                  key: r.key,
+                  winner: r.edge === "hermes" ? "theirs" : "ours",
+                  dimension: t.comparison.rows[r.key].dimension,
+                  ours: t.comparison.rows[r.key].kanban,
+                  theirs: t.comparison.rows[r.key].hermes,
+                }))}
+              />
+            </section>
 
-        <section className="mt-24">
-          <SectionHeading num="03" {...t.comparison.heading} />
-          <ComparisonIntro>{t.comparison.lead}</ComparisonIntro>
-          <ComparisonTable
-            ourLabel={t.comparison.ourLabel}
-            theirLabel={t.comparison.theirLabel}
-            rows={compareRows.map((r) => ({
-              key: r.key,
-              winner:
-                r.edge === "hermes"
-                  ? "theirs"
-                  : r.edge === "kanban"
-                    ? "ours"
-                    : "neutral",
-              dimension: t.comparison.rows[r.key].dimension,
-              ours: t.comparison.rows[r.key].kanban,
-              theirs: t.comparison.rows[r.key].hermes,
-            }))}
-          />
-        </section>
+            <HkHarness
+              c={t.harness}
+              labels={{
+                ours: t.comparison.ourLabel,
+                theirs: t.comparison.theirLabel,
+              }}
+            />
+            <HkAutonomy c={t.autonomy} num="03" />
+            <HkGui c={t.gui} num="04" compact />
+            <HkCompactDecision
+              num="05"
+              c={t.decision}
+              shared={c.shared}
+              locale={locale}
+            />
+          </>
+        ) : (
+          <>
+            <HkSummary c={t.summary} />
+            <HkHarness
+              c={t.harness}
+              labels={{
+                ours: t.comparison.ourLabel,
+                theirs: t.comparison.theirLabel,
+              }}
+            />
 
-        <HkMemory c={t.memory} />
-        <HkAutonomy c={t.autonomy} />
-        <HkGui c={t.gui} />
+            <section className="mt-24">
+              <SectionHeading num="03" {...t.comparison.heading} />
+              <ComparisonIntro>{t.comparison.lead}</ComparisonIntro>
+              <ComparisonTable
+                ourLabel={t.comparison.ourLabel}
+                theirLabel={t.comparison.theirLabel}
+                rows={compareRows.map((r) => ({
+                  key: r.key,
+                  winner:
+                    r.edge === "hermes"
+                      ? "theirs"
+                      : r.edge === "kanban"
+                        ? "ours"
+                        : "neutral",
+                  dimension: t.comparison.rows[r.key].dimension,
+                  ours: t.comparison.rows[r.key].kanban,
+                  theirs: t.comparison.rows[r.key].hermes,
+                }))}
+              />
+            </section>
 
-        <section className="mt-24">
-          <SectionHeading num="07" {...t.wins.heading} />
-          <p className="text-ink">{t.wins.lead}</p>
-          <WinColumns
-            oursHeading={t.wins.oursHeading}
-            oursTag="🗂️"
-            ours={kanbanWinOrder.map((k) => ({
-              key: k,
-              icon: kanbanWinIcons[k],
-              ...t.wins.ours[k],
-            }))}
-            theirsHeading={t.wins.theirsHeading}
-            theirsTag={<HermesMark className="h-6 w-6" />}
-            theirs={hermesWinOrder.map((k) => ({
-              key: k,
-              icon: hermesWinIcons[k],
-              ...t.wins.theirs[k],
-            }))}
-          />
-        </section>
+            <HkMemory c={t.memory} />
+            <HkAutonomy c={t.autonomy} />
+            <HkGui c={t.gui} />
 
-        <DecisionSection
-          num="08"
-          c={t.decision}
-          shared={c.shared}
-          locale={locale}
-          theirsTag={<HermesMark className="h-6 w-6" />}
-        />
+            <section className="mt-24">
+              <SectionHeading num="07" {...t.wins.heading} />
+              <p className="text-ink">{t.wins.lead}</p>
+              <WinColumns
+                oursHeading={t.wins.oursHeading}
+                oursTag="🗂️"
+                ours={kanbanWinOrder.map((k) => ({
+                  key: k,
+                  icon: kanbanWinIcons[k],
+                  ...t.wins.ours[k],
+                }))}
+                theirsHeading={t.wins.theirsHeading}
+                theirsTag={<HermesMark className="h-6 w-6" />}
+                theirs={hermesWinOrder.map((k) => ({
+                  key: k,
+                  icon: hermesWinIcons[k],
+                  ...t.wins.theirs[k],
+                }))}
+              />
+            </section>
+
+            <DecisionSection
+              num="08"
+              c={t.decision}
+              shared={c.shared}
+              locale={locale}
+              theirsTag={<HermesMark className="h-6 w-6" />}
+            />
+          </>
+        )}
       </main>
       <SiteFooter c={c} locale={locale} path={PATH} />
     </>

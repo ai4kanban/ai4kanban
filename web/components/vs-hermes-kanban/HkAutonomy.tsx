@@ -60,10 +60,16 @@ function StopCard({
   );
 }
 
-export function HkAutonomy({ c }: { c: VsHermesCopy["autonomy"] }) {
+export function HkAutonomy({
+  c,
+  num = "05",
+}: {
+  c: VsHermesCopy["autonomy"];
+  num?: string;
+}) {
   return (
     <section className="mt-24">
-      <SectionHeading num="05" {...c.heading} />
+      <SectionHeading num={num} {...c.heading} />
       <p className="text-ink">
         <Rich>{c.lead}</Rich>
       </p>

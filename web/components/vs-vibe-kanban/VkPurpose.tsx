@@ -1,6 +1,8 @@
+import type { ReactNode } from "react";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { panelInset } from "../styles";
+import { VibeKanbanMark } from "./VibeKanbanMark";
 import type { VsVibeCopy } from "@/i18n/vs-vibe-kanban/types";
 
 // The crux of the whole page: these tools sit at different points in the loop.
@@ -11,7 +13,7 @@ function PurposePanel({
   is,
   isnt,
 }: {
-  tag: string;
+  tag: ReactNode;
   name: string;
   is: string;
   isnt: string;
@@ -40,7 +42,10 @@ export function VkPurpose({ c }: { c: VsVibeCopy["purpose"] }) {
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <PurposePanel tag="🗂️" {...c.ours} />
-        <PurposePanel tag="🎛️" {...c.theirs} />
+        <PurposePanel
+          tag={<VibeKanbanMark className="h-6 w-6" />}
+          {...c.theirs}
+        />
       </div>
 
       <p className="mt-5 text-sm text-muted">{c.note}</p>

@@ -19,6 +19,22 @@ export const compareRows: { key: VsLinearRowKey; edge: LinearEdge }[] = [
   { key: "pricing", edge: "neutral" },
 ];
 
+// The Chinese page uses a shorter editorial path. These are the six decisions
+// that materially distinguish the two products; the full matrix remains in
+// place for every other locale.
+const essentialRowKeys = new Set<VsLinearRowKey>([
+  "bestFit",
+  "sourceOfTruth",
+  "refinement",
+  "execution",
+  "collaboration",
+  "portfolio",
+]);
+
+export const essentialCompareRows = compareRows.filter(({ key }) =>
+  essentialRowKeys.has(key),
+);
+
 export const kanbanWinOrder: VsLinearKanbanWinKey[] = [
   "roughToReady",
   "repoMemory",

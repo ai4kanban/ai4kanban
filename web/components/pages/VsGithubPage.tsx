@@ -7,17 +7,8 @@ import {
   ComparisonTable,
   ComparisonIntro,
 } from "@/components/vs/ComparisonTable";
-import { WinColumns } from "@/components/vs/WinColumns";
 import { DecisionSection } from "@/components/vs/DecisionSection";
-import { VsSummary } from "@/components/vs-github-issues/VsSummary";
-import { VsErgonomics } from "@/components/vs-github-issues/VsErgonomics";
-import {
-  compareRows,
-  issuesWinIcons,
-  issuesWinOrder,
-  kanbanWinIcons,
-  kanbanWinOrder,
-} from "@/components/vs-github-issues/vs-content";
+import { compareRows } from "@/components/vs-github-issues/vs-content";
 import { getCopy } from "@/i18n";
 import {
   APP_ID,
@@ -73,10 +64,9 @@ export function VsGithubPage({ locale }: { locale: Locale }) {
       <Header c={c} locale={locale} />
       <main className="mx-auto max-w-4xl px-6">
         <VsHeroSection c={t.hero} shared={c.shared} theirsTag={githubMark} />
-        <VsSummary c={t.summary} />
 
         <section className="mt-24">
-          <SectionHeading num="02" {...t.comparison.heading} />
+          <SectionHeading num="01" {...t.comparison.heading} />
           <ComparisonIntro>{t.comparison.lead}</ComparisonIntro>
           <ComparisonTable
             ourLabel={t.comparison.ourLabel}
@@ -91,30 +81,8 @@ export function VsGithubPage({ locale }: { locale: Locale }) {
           />
         </section>
 
-        <section className="mt-24">
-          <SectionHeading num="03" {...t.wins.heading} />
-          <p className="text-ink">{t.wins.lead}</p>
-          <WinColumns
-            oursHeading={t.wins.oursHeading}
-            oursTag="🗂️"
-            ours={kanbanWinOrder.map((k) => ({
-              key: k,
-              icon: kanbanWinIcons[k],
-              ...t.wins.ours[k],
-            }))}
-            theirsHeading={t.wins.theirsHeading}
-            theirsTag={githubMark}
-            theirs={issuesWinOrder.map((k) => ({
-              key: k,
-              icon: issuesWinIcons[k],
-              ...t.wins.theirs[k],
-            }))}
-          />
-        </section>
-
-        <VsErgonomics c={t.ergonomics} />
         <DecisionSection
-          num="05"
+          num="02"
           c={t.decision}
           shared={c.shared}
           locale={locale}

@@ -12,6 +12,7 @@ import { LinearModel } from "@/components/vs-linear/LinearModel";
 import { LinearSummary } from "@/components/vs-linear/LinearSummary";
 import {
   compareRows,
+  essentialCompareRows,
   kanbanWinIcons,
   kanbanWinOrder,
   linearWinIcons,
@@ -33,6 +34,10 @@ export const PATH = "/vs-linear";
 export function VsLinearPage({ locale }: { locale: Locale }) {
   const c = getCopy(locale);
   const t = c.vsLinear;
+  const isCompactChinesePage = locale === "zh";
+  const visibleCompareRows = isCompactChinesePage
+    ? essentialCompareRows
+    : compareRows;
   const rivalId = `${pageUrl(PATH)}#linear`;
 
   const schema = jsonLd(
@@ -43,7 +48,7 @@ export function VsLinearPage({ locale }: { locale: Locale }) {
       headline: t.meta.socialTitle ?? t.meta.title,
       description: t.meta.description,
       datePublished: "2026-08-01",
-      dateModified: "2026-08-01",
+      dateModified: isCompactChinesePage ? "2026-08-07" : "2026-08-01",
       about: [{ "@id": APP_ID }, { "@id": rivalId }],
     }),
     softwareApplication({
@@ -72,7 +77,7 @@ export function VsLinearPage({ locale }: { locale: Locale }) {
           <ComparisonTable
             ourLabel={t.comparison.ourLabel}
             theirLabel={t.comparison.theirLabel}
-            rows={compareRows.map((row) => ({
+            rows={visibleCompareRows.map((row) => ({
               key: row.key,
               winner:
                 row.edge === "linear"
@@ -87,31 +92,33 @@ export function VsLinearPage({ locale }: { locale: Locale }) {
           />
         </section>
 
-        <LinearModel c={t.model} />
+        {!isCompactChinesePage && <LinearModel c={t.model} />}
 
-        <section className="mt-24">
-          <SectionHeading num="04" {...t.wins.heading} />
-          <p className="text-ink">{t.wins.lead}</p>
-          <WinColumns
-            oursHeading={t.wins.oursHeading}
-            oursTag="🗂️"
-            ours={kanbanWinOrder.map((key) => ({
-              key,
-              icon: kanbanWinIcons[key],
-              ...t.wins.ours[key],
-            }))}
-            theirsHeading={t.wins.theirsHeading}
-            theirsTag="◩"
-            theirs={linearWinOrder.map((key) => ({
-              key,
-              icon: linearWinIcons[key],
-              ...t.wins.theirs[key],
-            }))}
-          />
-        </section>
+        {!isCompactChinesePage && (
+          <section className="mt-24">
+            <SectionHeading num="04" {...t.wins.heading} />
+            <p className="text-ink">{t.wins.lead}</p>
+            <WinColumns
+              oursHeading={t.wins.oursHeading}
+              oursTag="🗂️"
+              ours={kanbanWinOrder.map((key) => ({
+                key,
+                icon: kanbanWinIcons[key],
+                ...t.wins.ours[key],
+              }))}
+              theirsHeading={t.wins.theirsHeading}
+              theirsTag="◩"
+              theirs={linearWinOrder.map((key) => ({
+                key,
+                icon: linearWinIcons[key],
+                ...t.wins.theirs[key],
+              }))}
+            />
+          </section>
+        )}
 
         <DecisionSection
-          num="05"
+          num={isCompactChinesePage ? "03" : "05"}
           c={t.decision}
           shared={c.shared}
           locale={locale}

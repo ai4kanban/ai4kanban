@@ -5,29 +5,29 @@ import type { VsHermesCopy } from "./types";
 const en: VsHermesCopy = {
   meta: {
     title:
-      "AI4Kanban vs. Hermes Agent Kanban — a lean file-based board vs. a durable runtime",
+      "AI4Kanban vs. Hermes Agent Kanban — repository-native planning or an integrated agent runtime",
     socialTitle: "AI4Kanban vs. Hermes Agent Kanban",
     description:
-      "How ai4kanban's file-based board compares to Nous Research's Hermes Agent Kanban: two overlapping agent kanban boards — plain diffable files that run on any agent (even Hermes) vs. a durable, shared SQLite queue many named agents claim tasks from.",
+      "Compare AI4Kanban's repository-native Markdown board with Nous Research's Hermes Agent Kanban. One keeps planning portable and reviewable; the other adds a shared SQLite queue, dispatcher, and multi-agent runtime.",
     social:
-      "Two overlapping agent kanban boards. ai4kanban is a lean, file-based board that runs on any agent (even Hermes); Hermes bundles the same board with a durable, shared queue many named agents work.",
+      "Two agent kanban systems, two architectural choices: a portable Markdown board that works with any coding agent, or a durable shared queue built into the Hermes runtime.",
   },
   hero: {
     badge: "Comparison",
     title: "AI4Kanban vs.\nHermes Agent Kanban",
-    lead: "Two agent-facing kanban boards with a lot of overlap. The difference is where the board sits in the stack: ai4kanban is a lean *board layer* you run any agent on top of; Hermes Agent Kanban fuses that board into its own runtime.",
+    lead: "Both products give agents a kanban board. The architectural boundary is different: AI4Kanban keeps the board as a portable *project layer* in your repository, while Hermes Agent Kanban makes it part of the Hermes runtime.",
     ours: {
       name: "AI4Kanban",
-      body: "A plain-Markdown board in your repo. The runtime, execution, and even maintenance layer on top — swap the agent, keep the board.",
+      body: "A Markdown board that lives with your code. Choose or change the agent that works from it without changing the board itself.",
     },
     theirs: {
       name: "Hermes Agent Kanban",
-      body: "The board, dispatcher, and named agents are one integrated runtime — durable and bundled, but the board doesn't detach from Hermes.",
+      body: "A unified system in which the board, dispatcher, and named agents share one durable Hermes runtime.",
     },
     oursDiagramAlt:
-      "The kanban is a Markdown board at the bottom; the agent runtime, execution and maintenance are a swappable layer stacked on top.",
+      "A Markdown kanban board forms the project layer, with a replaceable agent runtime handling execution and maintenance above it.",
     theirsDiagramAlt:
-      "One integrated Hermes runtime with the SQLite board, dispatcher and named agents fused inside it.",
+      "A single Hermes runtime contains the SQLite board, dispatcher, and named agents.",
     taskLayer: "task layer · execution + maintenance",
     boardLayer: "kanban · Markdown files (git)",
     runtimeLabel: "Hermes runtime",
@@ -35,142 +35,142 @@ const en: VsHermesCopy = {
   summary: {
     heading: {
       eyebrow: "The short version",
-      title: "So why not just use Hermes Kanban?",
+      title: "The practical difference",
     },
-    lead: "Fair question — the two overlap a lot. Both are kanban boards agents plan and work from, so think of ai4kanban as **a lightweight alternative to Hermes Kanban**: the same board idea, minus the bundled runtime. The difference is what's underneath.",
-    oursHeading: "AI4Kanban — a board made of files",
-    theirsHeading: "Hermes Kanban — a board inside a runtime",
+    lead: "The two products solve much of the same problem, but at different layers. AI4Kanban is **a portable planning system for the agent environment you already use**. Hermes Kanban is **an operational queue within Hermes**, designed to coordinate multiple workers and recover interrupted work.",
+    oursHeading: "AI4Kanban — planning stays with the project",
+    theirsHeading: "Hermes Kanban — execution stays with the runtime",
     ours: [
-      "Plain Markdown in your repo — every task and plan change is a reviewable diff.",
-      "No infrastructure: nothing to install, nothing to keep running.",
-      "Execution comes from whatever harness you already use — Claude Code, Codex, Cursor, even Hermes.",
+      "Tasks and plans are Markdown files in your repository, so every change can be reviewed and versioned.",
+      "The board has no database, gateway, or background service of its own.",
+      "Claude Code, Codex, Cursor, Hermes, or another file-capable agent can execute the work.",
     ],
     theirs: [
-      "A durable SQLite queue at ~/.hermes/kanban.db, shared by many named agents and humans.",
-      "A dispatcher hands ready tasks to agents and recovers crashed runs.",
-      "Tied to the Hermes / Nous stack and its kanban_* tools.",
+      "A durable SQLite queue at ~/.hermes/kanban.db is shared by named agents and people.",
+      "A dispatcher assigns ready tasks and recovers work after an interrupted run.",
+      "The board is integrated with the Hermes / Nous stack and its kanban_* tools.",
     ],
-    whenLabel: "When to use ai4kanban",
-    when: "Pick ai4kanban when you want the board **versioned with your code**, when you're staying in a harness you already run, or when you don't want to operate a runtime just to get a task board. Reach for Hermes Kanban when **you already work deeply with Hermes** — its board plugs straight into the dispatcher, named profiles, and chat control you've set up. Both are durable queues in the end; ai4kanban's is files in git, Hermes's is rows in SQLite.",
+    whenLabel: "How to choose",
+    when: "Choose AI4Kanban when you want planning **versioned with the code**, prefer your current agent environment, or do not need a dedicated orchestration service. Choose Hermes Kanban when **Hermes is already your operating environment** and you want its dispatcher, named profiles, chat controls, and recovery model. The durable record is different too: AI4Kanban relies on files and git; Hermes stores queue state in SQLite.",
   },
   harness: {
     heading: {
       eyebrow: "Harness support",
       title: "Which agents can run the board?",
     },
-    lead: "The clearest single difference. ai4kanban's board is plain files, so **any agent that can read a repo can run it** — including Hermes itself. Hermes Kanban's board sits behind the runtime's `kanban_*` tools, so only Hermes can.",
+    lead: "This is the clearest dividing line. Because AI4Kanban uses ordinary repository files, **any agent that can read and edit the project can use the board**, including Hermes. Hermes Kanban is exposed through the runtime's `kanban_*` tools and is therefore specific to Hermes.",
     oursSub: "any file-reading agent",
     theirsSub: "Hermes only",
     supported: "supported",
     notSupported: "not supported",
-    note: "…and ai4kanban's row keeps going — Windsurf, OpenCode, Gemini CLI, anything that reads files. Hermes Kanban has no way in for other agents.",
+    note: "AI4Kanban also works with Windsurf, OpenCode, Gemini CLI, and other tools that can read project files. Hermes Kanban is available only through the Hermes runtime.",
   },
   comparison: {
     heading: {
       eyebrow: "Head to head",
       title: "AI4Kanban vs. Hermes Kanban",
     },
-    lead: "A {check} is a clear win; a **dash** is a trade-off. ai4kanban wins on simplicity and portability, Hermes on the durable shared queue and scale — the rest is a draw.",
+    lead: "A {check} marks a clear advantage; a **dash** marks a trade-off. AI4Kanban favors portability and operational simplicity. Hermes favors coordinated, recoverable execution across multiple agents.",
     ourLabel: "AI4Kanban",
     theirLabel: "Hermes Kanban",
     rows: {
       whatItIs: {
         dimension: "What it is",
         kanban:
-          "A file-based kanban layer — the board is plain Markdown in your repo.",
+          "A repository-native planning layer built from Markdown files.",
         hermes:
-          "A kanban feature of the Hermes agent runtime — a durable SQLite board.",
+          "A durable kanban queue integrated into the Hermes agent runtime.",
       },
       infrastructure: {
         dimension: "Infrastructure",
         kanban:
-          "None of its own — the board is just plain Markdown files in your repo.",
-        hermes: "A running gateway, a SQLite database, and a dispatcher loop.",
+          "None for the board itself; it uses files already stored in your repository.",
+        hermes: "A Hermes gateway, SQLite database, and dispatcher process.",
       },
       whereBoardLives: {
         dimension: "Where the board lives",
         kanban:
-          "In your repo, under version control — every task and plan change is a reviewable diff.",
+          "In your repository, under the same version control as the code.",
         hermes:
-          "In a SQLite DB at ~/.hermes/kanban.db; changes go to an event log, not diffs.",
+          "In ~/.hermes/kanban.db, with changes recorded as events rather than repository diffs.",
       },
       setup: {
         dimension: "Setup",
-        kanban: "One prompt: a skill file and a small script.",
+        kanban: "One setup prompt installs a skill file and a small script.",
         hermes:
-          "Install the Hermes runtime, configure profiles, run the gateway.",
+          "Install Hermes, configure agent profiles, and run the gateway.",
       },
       parallelRuns: {
         dimension: "Parallel & scheduled runs",
         kanban:
-          "Your harness drives it — Claude Code spawns parallel subagents when you kick things off; scheduled jobs live in a recurring/ folder.",
+          "Your agent environment supplies parallelism; scheduled work is represented in the recurring/ folder.",
         hermes:
-          "The runtime drives it — the dispatcher picks up ready tasks on its own and spawns a worker process per task.",
+          "The dispatcher claims ready tasks automatically and starts a worker process for each one.",
       },
       crashRecovery: {
         dimension: "Crash recovery",
         kanban:
-          "No per-task queue — a run that dies mid-task just reruns on the next scheduled tick.",
+          "No runtime-level recovery queue; interrupted scheduled work is picked up on a later run.",
         hermes:
-          "A durable queue auto-recovers in-flight work — claim TTLs, heartbeats, stale-claim reclaim, retries.",
+          "The queue recovers in-flight work with claim TTLs, heartbeats, stale-claim reclamation, and retries.",
       },
       decomposition: {
         dimension: "Task decomposition",
         kanban:
-          "A card breaks into todos and a task graph — group, blocked-by, related — with deps worked out as it's written.",
+          "Refinement turns a card into concrete todos and explicit task relationships such as groups, blockers, and related work.",
         hermes:
-          "The dispatcher auto-runs an LLM decomposer, fanning a task into a child-task graph routed to specialists.",
+          "An LLM decomposer expands a task into a child-task graph and routes each child to a specialist.",
       },
       reviewMemory: {
         dimension: "Review & memory",
         kanban:
-          "Memory is pruned to why-rejected and what-shipped so the agent proposes forward — curated, not a full log.",
+          "Curated project memory preserves decisions and shipped work to improve future planning.",
         hermes:
-          "Keeps a full append-only event log and per-attempt run history for audit.",
+          "An append-only event log and per-attempt history support audit and recovery.",
       },
       dashboard: {
         dimension: "Dashboard GUI",
         kanban:
-          "A local web board where card actions — implement, review, archive — hand the work to an agent.",
+          "A local web board where card actions hand implementation, review, and archiving to an agent.",
         hermes:
-          "A live web board with drag-drop and a side drawer, plus control from chat apps.",
+          "A live dispatcher view with drag-and-drop, run details, and controls available from chat apps.",
       },
       scale: {
         dimension: "Scale & reach",
-        kanban: "A solo board; grep gets unwieldy as it grows.",
+        kanban: "Best suited to an individual or small team working in one repository.",
         hermes:
-          "Scales to many agents across many boards — multi-tenant, with control from Discord / Slack / email / SMS.",
+          "Designed for many agents and boards, with multi-tenant operation and control from chat, email, and SMS.",
       },
     },
   },
   memory: {
     heading: {
       eyebrow: "Memory vs. audit",
-      title: "What each board remembers",
+      title: "Two different kinds of history",
     },
-    lead: "The essential difference: ai4kanban's memory is an **input to planning** — it exists so the next proposal is smarter. Hermes's log is an **output of execution** — it exists so the past can be replayed.",
+    lead: "AI4Kanban keeps **planning context** so future proposals reflect earlier decisions. Hermes keeps an **execution record** so operators can inspect and reconstruct what happened. Each is useful, but for a different purpose.",
     ours: {
       heading: "AI4Kanban",
-      verdict: "Remembers conclusions, forgets the rest.",
-      body: "Four small files, **pruned on purpose**: `archive.md` (what shipped), `rejected.md` (what we turned down, and why), `redesign.md` (design mistakes not to repeat), `memory.md` (what past scans learned). The agent reads them all before proposing or writing a card; the full history is git's job.",
+      verdict: "Preserves decisions, not every event.",
+      body: "Four deliberately concise files capture what matters next: `archive.md` records shipped work, `rejected.md` records declined ideas and their rationale, `redesign.md` records design mistakes to avoid, and `memory.md` records useful findings from earlier scans. Agents read them before proposing or refining work; git retains the full change history.",
       q: "Why isn't idea X on the board?",
-      a: "One line in `rejected.md` — the idea and why it was turned down. Dead ideas stay dead.",
+      a: "`rejected.md` records the idea and the reason it was declined, so it is not proposed again without new evidence.",
     },
     theirs: {
       heading: "Hermes Kanban",
-      verdict: "Remembers every event, summarizes nothing.",
-      body: "Every state transition lands in an **append-only log**; every attempt keeps its exit code and full worker output. Built for audit and crash recovery, not for steering the next idea.",
+      verdict: "Preserves the complete execution trail.",
+      body: "Every state transition is written to an **append-only log**, and every attempt retains its exit code and worker output. That detail supports audit and crash recovery rather than future product planning.",
       q: "What happened to task 42 overnight?",
-      a: "`claimed → crashed → reclaimed → completed`, with per-attempt logs to read.",
+      a: "`claimed → crashed → reclaimed → completed`, with a separate log for each attempt.",
     },
-    note: "Curated memory makes the agent smarter next time; the audit log makes the past reconstructable. Neither substitutes for the other.",
+    note: "Curated memory informs the next decision; an audit log explains the last execution. Neither replaces the other.",
   },
   autonomy: {
     heading: {
       eyebrow: "Autonomy level",
       title: "How much autonomy does the agent get?",
     },
-    lead: 'Hermes Kanban promises **"drop a one-liner, walk away"** — full autonomy. ai4kanban is **agent-assisted**, and it starts earlier than plan mode: you save a half-formed idea to the board, `refine` turns it into concrete requirements, and you approve before any code is written.',
+    lead: 'Hermes Kanban is designed for **"drop a one-liner, walk away"** execution. AI4Kanban uses **reviewed autonomy**: you capture an incomplete idea, `refine` develops it into concrete requirements, and implementation waits for your approval.',
     stops: {
       traditional: {
         level: "No autonomy",
@@ -180,106 +180,106 @@ const en: VsHermesCopy = {
           "You think of every task and break it down — Trello or Jira just records it.",
       },
       kanban: {
-        level: "Semi autonomy",
-        term: "Agent-assisted",
+        level: "Reviewed autonomy",
+        term: "Agent proposes, human approves",
         heading: "AI4Kanban",
         detail:
-          "Each `refine` digs into the missing pieces and fills in requirements. You review before anything is built.",
+          "`refine` identifies gaps, develops the requirements, and presents the result for review before implementation.",
       },
       hermes: {
         level: "Full autonomy",
-        term: "Fire-and-forget",
+        term: "Unattended execution",
         heading: "Hermes Kanban",
         detail:
-          "One line in, a task tree out — decomposed and worked unattended until done. Claude Code's `/goal` makes the same bet.",
+          "A short request becomes a task tree that is decomposed and executed without supervision. Claude Code's `/goal` follows a similar model.",
       },
     },
     scaleLeft: "You plan everything",
     scaleMiddle: "Agent plans, you approve",
     scaleRight: "Agent plans everything",
-    worstCaseLabel: "Worst case, per level",
+    worstCaseLabel: "The risk at each level",
     worstCaseTheirs:
-      "**Fire-and-forget:** a small early misunderstanding grows into a whole tree of wrong tasks — built, tokens spent.",
+      "**Unattended execution:** an early misunderstanding can propagate through an entire task tree before anyone reviews the result.",
     worstCaseOurs:
-      "**Agent-assisted:** a wrong Markdown card — caught when you review it, before anything is built.",
-    note: "One refine fills in missing steps, splits side ideas into their own cards, ticks off todos that already landed, and leaves the taste calls to you as questions. When none are left, the card flips to **ready** — read it, then build it.",
+      "**Reviewed autonomy:** a flawed Markdown plan reaches review, but implementation has not started.",
+    note: "A refinement pass fills gaps, separates adjacent ideas into their own cards, recognizes work that is already complete, and turns judgment calls into questions. Once those questions are resolved, the card becomes **ready** for final review and implementation.",
   },
   gui: {
-    heading: { eyebrow: "The dashboards", title: "Kanban Board GUI" },
-    lead: "Both ship a web board, but they play different roles. ai4kanban's board is a **control surface for your agent** — card actions kick off runs. Hermes's board is a **live window onto the dispatcher** — it shows what the fleet is doing right now.",
+    heading: { eyebrow: "The dashboards", title: "Two boards, two roles" },
+    lead: "Both provide a web interface. AI4Kanban's board is a **control surface for project work**: card actions start agent runs. Hermes's board is an **operational view of the dispatcher**: it shows the current state of the agent fleet.",
     ours: {
       heading: "AI4Kanban — local board",
-      body: "A local web board over the Markdown files. Card actions — *implement, review, archive* — hand the work to an agent, and you watch its log stream back with human-in-the-loop prompts.",
-      alt: "ai4kanban's local web board — a light board with Blockers, UI, Skill, Docs, and Distribution columns and a Create task button.",
+      body: "A local web interface for the Markdown board. Actions such as *implement, review, and archive* hand work to an agent, stream its output, and pause when human input is required.",
+      alt: "AI4Kanban's light-themed local web board with Blockers, UI, Skill, Docs, and Distribution columns and a Create task button.",
     },
     theirs: {
       heading: "Hermes Kanban — live dispatcher view",
-      body: "A live board that tails the event log — drag-drop between columns, a side drawer with run history and exit-status badges, and the same board steerable from Discord, Slack, or SMS.",
-      alt: "Hermes Agent's Kanban dashboard — a dark board with Triage, Todo, Scheduled, and Ready columns and an orchestration toolbar.",
+      body: "A live view backed by the event log, with drag-and-drop columns, run history, exit-status badges, and controls available from Discord, Slack, or SMS.",
+      alt: "Hermes Agent's dark-themed Kanban dashboard with Triage, Todo, Scheduled, and Ready columns and an orchestration toolbar.",
     },
   },
   wins: {
     heading: { eyebrow: "Trade-offs", title: "Where each one wins" },
-    lead: "Neither is strictly better. ai4kanban optimizes for a lean, file-based board with no infra of its own; Hermes Kanban optimizes for a durable, shared work queue that many agents run against, unattended. Harness features — parallel runs, orchestration, a dashboard — are on both sides, so they aren't listed here.",
+    lead: "The better choice depends on the operating model. AI4Kanban minimizes infrastructure and keeps planning portable. Hermes Kanban provides a durable shared queue for coordinated, unattended execution. Both can support parallel work, orchestration, and a dashboard; the advantages below are the capabilities that genuinely distinguish them.",
     oursHeading: "AI4Kanban",
     theirsHeading: "Hermes Kanban",
     ours: {
       noInfra: {
-        title: "No infrastructure of its own",
-        body: "No database, no gateway, no daemon. Beyond the agent you already run, the board is plain Markdown files — nothing extra to install or keep alive, works on a plane.",
+        title: "No board service to operate",
+        body: "There is no board database, gateway, or daemon. Beyond the agent you already use, AI4Kanban is a set of Markdown files that works locally and offline.",
       },
       diffable: {
-        title: "Files you can diff and version",
-        body: "The board lives in the repo and travels with it, under whatever version control you use. Every task and plan change is a reviewable diff — no SQLite outside your project, no event log to query, no lock-in to one agent stack.",
+        title: "Planning that travels with the code",
+        body: "The board is versioned in the repository and follows the project wherever it goes. Task and plan changes use the same review workflow as code, without an external database or dependency on one agent stack.",
       },
       selfPruning: {
-        title: "Memory that self-prunes",
-        body: "It records why an idea was rejected and what got shipped, so the agent proposes forward instead of re-floating dead work. It keeps only what steers the next task, not a full audit log.",
+        title: "Memory designed for future decisions",
+        body: "AI4Kanban records rejected ideas, design lessons, and shipped work so future proposals build on earlier decisions. It deliberately retains planning signal rather than a complete execution log.",
       },
       onePrompt: {
-        title: "Installs in one prompt",
-        body: "A skill file and a small script — no profiles to configure, no dispatcher to tune. It meets any file-reading agent where it already is, Hermes included.",
+        title: "Fits the agent environment you already use",
+        body: "One setup prompt installs a skill file and a small script. There are no profiles or dispatcher settings to manage, and any file-capable agent can use the result, including Hermes.",
       },
     },
     theirs: {
       manyAgents: {
-        title: "One board, many named agents",
-        body: "A single durable board that multiple named agents — and humans — claim tasks and hand off work on. The dispatcher polls ready tasks and spawns the assigned agent for each. ai4kanban's board is driven by whatever single harness you're in.",
+        title: "A shared queue for named agents",
+        body: "Multiple named agents and people can claim and hand off work on one durable board. The dispatcher monitors ready tasks and launches the assigned agent for each one.",
       },
       selfHealing: {
-        title: "Self-healing task queue",
-        body: "The queue tracks each task through crashes: claim TTLs, heartbeats, stale-claim reclaim, retries, and circuit breakers. A worker can die mid-task and the board reclaims and retries it — ai4kanban's files are durable, but a dead run just waits for the next scheduled tick.",
+        title: "Automatic recovery for in-flight work",
+        body: "Claim TTLs, heartbeats, stale-claim reclamation, retries, and circuit breakers let the queue recover tasks after a worker fails. AI4Kanban preserves the task, but recovery is left to the next agent or scheduled run.",
       },
       autoDecompose: {
-        title: "Auto-decomposes tasks",
-        body: "Drop in a rough task and the dispatcher's LLM decomposer fans it into a child-task graph, each child routed to a specialist agent — no manual breakdown. ai4kanban splits a card into todos and a hand-tended task graph.",
+        title: "Automatic decomposition and routing",
+        body: "The dispatcher's LLM decomposer turns a rough request into a graph of child tasks and routes each one to a specialist agent. AI4Kanban develops the plan through iterative refinement and human review.",
       },
       fleetReach: {
-        title: "Fleet reach and scale",
-        body: "Built for many agents across many boards, multi-tenant, with control from Discord, Telegram, Slack, email, and SMS. ai4kanban is a lean solo board that stays in your repo and terminal.",
+        title: "Multi-agent operations at fleet scale",
+        body: "Hermes Kanban is designed for many agents across multiple boards, supports multi-tenant operation, and can be controlled from Discord, Telegram, Slack, email, and SMS.",
       },
     },
   },
   decision: {
     heading: { eyebrow: "The call", title: "Which should you use?" },
-    oursHeading: "Reach for ai4kanban when",
-    theirsHeading: "Reach for Hermes Kanban when",
+    oursHeading: "Choose AI4Kanban when",
+    theirsHeading: "Choose Hermes Kanban when",
     ours: [
-      "You want a file-based board — every task and plan change is a reviewable diff.",
-      "You want no infra of its own: plain files, offline, portable, no lock-in.",
-      "You want it agent-agnostic — Claude Code, Cursor, even Hermes itself.",
-      "You're solo and value a lean board over a bundled engine.",
+      "You want tasks and plans versioned and reviewed with the code.",
+      "You prefer a portable, offline-capable board with no service to operate.",
+      "You want to choose your own agent environment, including Claude Code, Codex, Cursor, or Hermes.",
+      "You are an individual or small team that values a focused planning layer.",
     ],
     theirs: [
-      "You already work deeply with Hermes — profiles, gateway, and chat control are set up.",
-      "You want one durable board that many named agents — and people — share.",
-      "You want a queue that auto-recovers in-flight tasks across crashes.",
-      "You want the dispatcher to auto-decompose tasks and route them to specialists.",
-      "You run fleet workloads across many boards and chat platforms.",
+      "Hermes is already your primary agent runtime, with profiles, gateway, and chat controls in place.",
+      "You need one durable queue shared by multiple named agents and people.",
+      "You need automatic recovery for interrupted work.",
+      "You want the dispatcher to decompose tasks and route them to specialist agents.",
+      "You operate many agents across multiple boards and communication channels.",
     ],
     verdict:
-      "They overlap more than the names suggest — both are agent kanban boards. The split is what's bundled: ai4kanban is a **file-based board with automation left to your harness**; Hermes Agent Kanban is that board **wrapped in a durable, shared work queue**. If you want one board many agents share, surviving crashes, use Hermes. If you want a lean board in your repo you extend only when you need to, use ai4kanban.",
-    note: "They can even sit side by side — ai4kanban as the lightweight place you plan and prune in git, Hermes as the durable queue that runs the heavy, shared work once you've decided what it is.",
+      "Choose AI4Kanban for a **repository-native planning layer that remains independent of the agent runtime**. Choose Hermes Agent Kanban for a **durable shared queue with integrated dispatch, recovery, and multi-agent coordination**. The right choice is not about which board has more features; it is about whether planning should belong to the project or to the runtime.",
+    note: "They can also complement each other: use AI4Kanban to refine and review work in git, then use Hermes as the durable execution queue for approved, shared work.",
   },
 };
 

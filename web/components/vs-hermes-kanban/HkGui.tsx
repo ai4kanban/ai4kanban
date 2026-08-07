@@ -48,15 +48,27 @@ function GuiCard({
   );
 }
 
-export function HkGui({ c }: { c: VsHermesCopy["gui"] }) {
+export function HkGui({
+  c,
+  num = "06",
+  compact = false,
+}: {
+  c: VsHermesCopy["gui"];
+  num?: string;
+  compact?: boolean;
+}) {
   return (
     <section className="mt-24">
-      <SectionHeading num="06" {...c.heading} />
+      <SectionHeading num={num} {...c.heading} />
       <p className="text-ink">
         <Rich>{c.lead}</Rich>
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-6">
+      <div
+        className={`mt-6 grid grid-cols-1 gap-6 ${
+          compact ? "sm:grid-cols-2" : ""
+        }`}
+      >
         <GuiCard
           tag="🗂️"
           src="https://cdn.ai4kanban.dev/kanban-skill-ui-v3.jpg"

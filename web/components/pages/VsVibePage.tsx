@@ -10,6 +10,7 @@ import { WinColumns } from "@/components/vs/WinColumns";
 import { DecisionSection } from "@/components/vs/DecisionSection";
 import { VkSummary } from "@/components/vs-vibe-kanban/VkSummary";
 import { VkPurpose } from "@/components/vs-vibe-kanban/VkPurpose";
+import { VibeKanbanMark } from "@/components/vs-vibe-kanban/VibeKanbanMark";
 import {
   compareRows,
   kanbanWinIcons,
@@ -33,7 +34,21 @@ export const PATH = "/vs-vibe-kanban";
 export function VsVibePage({ locale }: { locale: Locale }) {
   const c = getCopy(locale);
   const t = c.vsVibe;
+  const isCompactChinese = locale === "zh";
+  const vibeTag = <VibeKanbanMark />;
   const RIVAL_ID = `${pageUrl(PATH)}#vibe-kanban`;
+  const rows = isCompactChinese
+    ? compareRows.filter(({ key }) =>
+        [
+          "whatFor",
+          "orchestration",
+          "review",
+          "planning",
+          "runsAs",
+          "maintenance",
+        ].includes(key),
+      )
+    : compareRows;
 
   const schema = jsonLd(
     webPage(PATH, t.meta.title, t.meta.description, { locale }),
@@ -63,7 +78,7 @@ export function VsVibePage({ locale }: { locale: Locale }) {
       />
       <Header c={c} locale={locale} />
       <main className="mx-auto max-w-4xl px-6">
-        <VsHeroSection c={t.hero} shared={c.shared} theirsTag="🎛️" />
+        <VsHeroSection c={t.hero} shared={c.shared} theirsTag={vibeTag} />
         <VkSummary c={t.summary} />
 
         <section className="mt-24">
@@ -72,7 +87,7 @@ export function VsVibePage({ locale }: { locale: Locale }) {
           <ComparisonTable
             ourLabel={t.comparison.ourLabel}
             theirLabel={t.comparison.theirLabel}
-            rows={compareRows.map((r) => ({
+            rows={rows.map((r) => ({
               key: r.key,
               winner:
                 r.edge === "vibe"
@@ -87,35 +102,37 @@ export function VsVibePage({ locale }: { locale: Locale }) {
           />
         </section>
 
-        <VkPurpose c={t.purpose} />
+        {!isCompactChinese && <VkPurpose c={t.purpose} />}
 
-        <section className="mt-24">
-          <SectionHeading num="04" {...t.wins.heading} />
-          <p className="text-ink">{t.wins.lead}</p>
-          <WinColumns
-            oursHeading={t.wins.oursHeading}
-            oursTag="🗂️"
-            ours={kanbanWinOrder.map((k) => ({
-              key: k,
-              icon: kanbanWinIcons[k],
-              ...t.wins.ours[k],
-            }))}
-            theirsHeading={t.wins.theirsHeading}
-            theirsTag="🎛️"
-            theirs={vibeWinOrder.map((k) => ({
-              key: k,
-              icon: vibeWinIcons[k],
-              ...t.wins.theirs[k],
-            }))}
-          />
-        </section>
+        {!isCompactChinese && (
+          <section className="mt-24">
+            <SectionHeading num="04" {...t.wins.heading} />
+            <p className="text-ink">{t.wins.lead}</p>
+            <WinColumns
+              oursHeading={t.wins.oursHeading}
+              oursTag="🗂️"
+              ours={kanbanWinOrder.map((k) => ({
+                key: k,
+                icon: kanbanWinIcons[k],
+                ...t.wins.ours[k],
+              }))}
+              theirsHeading={t.wins.theirsHeading}
+              theirsTag={vibeTag}
+              theirs={vibeWinOrder.map((k) => ({
+                key: k,
+                icon: vibeWinIcons[k],
+                ...t.wins.theirs[k],
+              }))}
+            />
+          </section>
+        )}
 
         <DecisionSection
-          num="05"
+          num={isCompactChinese ? "03" : "05"}
           c={t.decision}
           shared={c.shared}
           locale={locale}
-          theirsTag="🎛️"
+          theirsTag={vibeTag}
         />
       </main>
       <SiteFooter c={c} locale={locale} path={PATH} />
