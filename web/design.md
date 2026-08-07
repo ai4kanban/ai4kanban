@@ -73,11 +73,33 @@ paper button, and every card. The shadow is the block's weight, not a color effe
 
 **The logo is that rule at mark size.** `components/ui/Logo.tsx` is a square block —
 `accent-deep` fill, ink outline, the same hard ink shadow — carrying a paper glyph of
-three board columns that step down as work leaves the board, then the name in the system
-sans. It is deliberately not its own piece of art: the mark is the page's vocabulary
-stated once, so it sits on the page rather than beside it. The block always names its own
-colors, because it is the same object on any ground; the word names none, so it inherits
-the ink on the page and the paper in the footer. `public/logo-mark.svg` and
+three board columns that step down as work leaves the board, then the name. It is
+deliberately not its own piece of art: the mark is the page's vocabulary stated once, so
+it sits on the page rather than beside it. The name gets the block's other rule: set in
+the heaviest cut of the system sans, at about seven tenths of the block so its cap-height
+reads level with the square's edges, and casting the same hard offset drop every block on
+the site casts. That is what makes it a mark rather than a label — the word is an object
+lying on the page at the block's height, lit from the same corner, not type set beside a
+logo. The site ships no display face for it and doesn't need one.
+
+Ink letters cannot cast an ink shadow, so the drop is the ink copy down and right with a
+paper halo held between it and the letters. Text shadows stack as whole strings under the
+type, so the halo cuts a clean edge around every letter. It has to go all the way round
+rather than sit on one side, because the shadow a letter needs protecting from is mostly
+its neighbour's, and that arrives from the left. Without it the word has to be tracked
+apart until the drops stop colliding, and a wordmark set that loose is no longer a mark —
+the halo is what buys the tight setting. It is paper and not the wash because the header
+band is paper, and a wash halo reads there as a grey line inside the letterform. The drop
+stays well under the block's 4px at every step: the block is one shape and the word is
+nine, and nine shapes each throwing the block's shadow would close up the page.
+
+The block always names its own colors, because it is the same object on any ground; the
+word names none, so it inherits the ink on the page and the paper in the footer. Only its
+drop is told which ground it is on, through `tone` — against the page the gap is paper
+and the shadow is ink, and on the dark share card that pair inverts to the ink and the
+azure, since an ink shadow is invisible there and a paper one reads as a second copy of
+the word rather than as its shadow. At `xs` there is no drop at all, the same size at
+which the block gives up its shadow. `public/logo-mark.svg` and
 `public/logo.svg` carry the same geometry for anywhere off the site — change one, change
 the other. The header, the share card, and every comparison page render it — the `xs`
 size is the product's tag beside a competitor's mark, which is why our side of those pages
@@ -102,6 +124,9 @@ Two things break the page's `max-w-5xl` column and run the full width of the vie
   ground and not an object, and what earns it that is that it is a wash: 60% opacity,
   masked so it dissolves into `--color-bg` before the section ends, never drawing an
   edge, with nothing you have to read sitting on pigment — the headline stays on paper.
+  It is off below `sm`: a phone viewport is narrower than the wash's soft middle, so all
+  that lands there is a crop of one corner, which reads as noise behind the headline
+  rather than as the banner the section was drawn around.
 - **The site footer**, the one dark block: the palette inverted rather than a new color —
   the ink as the ground, the paper as the type at 70% for body, 30% for separators and
   15% for the pixel wordmark. It ends the landing page and all comparison pages.
@@ -187,9 +212,18 @@ components/
   vs-multica/
   recipes/            the index, the cards, and their art
   shots/              the board mockups the landing page draws
-  Header.tsx          the one header, on every page — sticky from `sm` up
-                      HeaderLanguage.tsx is its language menu; the footer's
-                      switcher is the path-aware one
+  Header.tsx          the one header, on every page — one row, sticky, at
+                      every width, and the same height at every width. The
+                      band is paper on the page's neutral, opaque, so the
+                      hero's azure wash never tints it as the page scrolls
+                      under. HeaderLanguage.tsx is its language menu; the
+                      footer's switcher is the path-aware one
+  MobileNav.tsx       below `md`, the nav collapses into this one button so
+                      the header stays a single row. The language switcher
+                      and the GitHub button stay out in the row beside it —
+                      both are `Button`'s `icon` size, and the menu borrows
+                      the same block through `buttonClass` because a framed
+                      icon next to a bare one reads as two different things
   SiteFooter.tsx      the dark band that ends the landing and comparison pages
   Footer.tsx          the thin footer the English-only recipes end on
                       Both carry LanguageSwitcher.tsx — five languages,

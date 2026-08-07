@@ -29,10 +29,16 @@ export function Hero({ c }: { c: HomeCopy["hero"] }) {
           covers the viewport, so it is larger than the screenshot deck beside
           it, and `priority` alone only preloads at the default priority. The
           deck in `HeroShots.tsx` asks for `high` too — they are two files on
-          one HTTP/2 connection, and both are hero content. */}
+          one HTTP/2 connection, and both are hero content.
+
+          It is off below `sm`. A phone viewport is narrower than the wash's
+          soft middle, so what lands there is a crop of one corner — texture
+          behind the headline rather than the banner the section was drawn
+          around, and it reads as noise. The section keeps the plain page
+          ground there, and the headline is the LCP element instead. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-14 left-1/2 -z-10 h-[calc(100%+3.5rem)] w-screen -translate-x-1/2 overflow-hidden opacity-60 [mask-image:linear-gradient(to_bottom,#000_35%,transparent_92%)] lg:-top-20 lg:h-[calc(100%+5rem)]"
+        className="pointer-events-none absolute -top-14 left-1/2 -z-10 hidden h-[calc(100%+3.5rem)] w-screen -translate-x-1/2 overflow-hidden opacity-60 [mask-image:linear-gradient(to_bottom,#000_35%,transparent_92%)] sm:block lg:-top-20 lg:h-[calc(100%+5rem)]"
       >
         <Image
           src={BANNER}

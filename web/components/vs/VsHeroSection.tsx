@@ -6,7 +6,8 @@ import type { SiteCopy, VsHero } from "@/i18n/types";
 
 // The compact two-chip header every comparison page opens with: it states the
 // framing before any detail — two different tools, not two takes on one. The
-// Hermes page passes a diagram into each chip via `oursExtra` / `theirsExtra`.
+// Hermes and Multica pages pass a diagram into each chip via `oursExtra` /
+// `theirsExtra`.
 
 function Chip({
   tag,
@@ -19,15 +20,18 @@ function Chip({
   body: string;
   extra?: ReactNode;
 }) {
+  // Name first, then the drawing, then the sentence: a diagram above its own
+  // mark is a picture of nobody. The wrapper holds the diagram's spacing, so a
+  // chip without one keeps the name and its sentence as tight as before.
   return (
     <div className={`${panelInset} flex-1 p-5`}>
-      {extra}
       <div className="mb-1.5 flex items-center gap-2">
         <span className="text-lg" aria-hidden="true">
           {tag}
         </span>
         <span className="font-semibold text-ink">{name}</span>
       </div>
+      {extra && <div className="mb-3.5 mt-2">{extra}</div>}
       <p className="text-sm text-muted">{body}</p>
     </div>
   );

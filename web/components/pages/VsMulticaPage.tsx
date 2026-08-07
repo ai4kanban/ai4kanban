@@ -13,8 +13,8 @@ import { MulticaHorizon } from "@/components/vs-multica/MulticaHorizon";
 import {
   KanbanHeroDiagram,
   MulticaHeroDiagram,
-  MulticaLifecycle,
-} from "@/components/vs-multica/MulticaLifecycle";
+} from "@/components/vs-multica/MulticaDiagrams";
+import { MulticaLifecycle } from "@/components/vs-multica/MulticaLifecycle";
 import { MulticaMark } from "@/components/vs-multica/MulticaMark";
 import { MulticaMemory } from "@/components/vs-multica/MulticaMemory";
 import {
@@ -41,8 +41,46 @@ export const PATH = "/vs-multica";
 export function VsMulticaPage({ locale }: { locale: Locale }) {
   const c = getCopy(locale);
   const t = c.vsMultica;
+  const isChinese = locale === "zh";
   const rivalId = `${pageUrl(PATH)}#multica`;
   const multicaTag = <MulticaMark className="h-5 w-5" />;
+  const visibleCompareRows = isChinese
+    ? compareRows.filter(({ key }) =>
+        ["startingPoint", "execution", "teams", "storage", "license"].includes(
+          key,
+        ),
+      )
+    : compareRows;
+
+  const comparison = (
+    <section className="mt-24">
+      <SectionHeading
+        num={isChinese ? "02" : "03"}
+        {...t.comparison.heading}
+      />
+      <ComparisonIntro>{t.comparison.lead}</ComparisonIntro>
+      <ComparisonTable
+        ourLabel={t.comparison.ourLabel}
+        theirLabel={t.comparison.theirLabel}
+        rows={visibleCompareRows.map((row) => ({
+          key: row.key,
+          winner:
+            row.edge === "multica"
+              ? "theirs"
+              : row.edge === "kanban"
+                ? "ours"
+                : "neutral",
+          dimension: t.comparison.rows[row.key].dimension,
+          ours: t.comparison.rows[row.key].kanban,
+          theirs: t.comparison.rows[row.key].multica,
+        }))}
+      />
+    </section>
+  );
+
+  const backlog = (
+    <MulticaBacklog c={t.backlog} num={isChinese ? "03" : "02"} />
+  );
 
   const schema = jsonLd(
     webPage(PATH, t.meta.title, t.meta.description, { locale }),
@@ -85,28 +123,8 @@ export function VsMulticaPage({ locale }: { locale: Locale }) {
         />
 
         <MulticaLifecycle c={t.boundary} />
-        <MulticaBacklog c={t.backlog} />
-
-        <section className="mt-24">
-          <SectionHeading num="03" {...t.comparison.heading} />
-          <ComparisonIntro>{t.comparison.lead}</ComparisonIntro>
-          <ComparisonTable
-            ourLabel={t.comparison.ourLabel}
-            theirLabel={t.comparison.theirLabel}
-            rows={compareRows.map((row) => ({
-              key: row.key,
-              winner:
-                row.edge === "multica"
-                  ? "theirs"
-                  : row.edge === "kanban"
-                    ? "ours"
-                    : "neutral",
-              dimension: t.comparison.rows[row.key].dimension,
-              ours: t.comparison.rows[row.key].kanban,
-              theirs: t.comparison.rows[row.key].multica,
-            }))}
-          />
-        </section>
+        {isChinese ? comparison : backlog}
+        {isChinese ? backlog : comparison}
 
         <MulticaMemory c={t.memory} />
         <MulticaHorizon c={t.horizon} />

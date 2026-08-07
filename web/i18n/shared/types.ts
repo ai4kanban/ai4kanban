@@ -4,9 +4,9 @@ export type SharedCopy = {
     install: string;
     recipes: string;
     compare: string;
-    /** The muted line closing the Compare menu. */
-    compareMore: string;
     github: string;
+    /** Only read out loud: the label on the phone header's menu button. */
+    menu: string;
   };
   footer: {
     github: string;

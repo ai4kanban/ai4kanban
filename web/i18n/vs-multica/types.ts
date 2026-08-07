@@ -47,27 +47,19 @@ export type VsMulticaCopy = {
     stages: Record<VsMulticaStageKey, string>;
     oursLabel: string;
     theirsLabel: string;
-    handoffLabel: string;
-    principle: string;
+    // The one line each product's three stages add up to. It is the only thing
+    // in the diagram set large, because it is the only thing a reader who
+    // glances at this section needs to leave with.
+    oursJob: string;
+    theirsJob: string;
   };
   backlog: {
     heading: Heading;
     lead: string;
-    ours: {
-      label: string;
-      title: string;
-      body: string;
-      steps: [string, string, string];
-      state: string;
-    };
-    theirs: {
-      label: string;
-      title: string;
-      body: string;
-      steps: [string, string, string];
-      state: string;
-    };
-    note: string;
+    // What is in each box on day one. Not the steps — those are the section
+    // above, and listing them twice is what made this one read as filler.
+    ours: { label: string; title: string; items: [string, string, string] };
+    theirs: { label: string; title: string; items: [string, string, string] };
   };
   comparison: {
     heading: Heading;
@@ -82,10 +74,11 @@ export type VsMulticaCopy = {
   memory: {
     heading: Heading;
     lead: string;
+    // `title` is the whole point of the card — one side keeps the why, the
+    // other the how — so it is short enough to set large and read at a glance.
     ours: {
       eyebrow: string;
       title: string;
-      body: string;
       examples: [string, string, string];
       question: string;
       answer: string;
@@ -93,23 +86,20 @@ export type VsMulticaCopy = {
     theirs: {
       eyebrow: string;
       title: string;
-      body: string;
       examples: [string, string, string];
       question: string;
       answer: string;
     };
     note: string;
   };
+  // Only the gap. What Multica already provides is the section above; this one
+  // would repeat it if it named it again.
   horizon: {
     heading: Heading;
     lead: string;
-    shippedLabel: string;
     visionLabel: string;
-    shippedTitle: string;
-    shippedBody: string;
     visionTitle: string;
-    visionBody: string;
-    marker: string;
+    items: [string, string, string, string];
     note: string;
   };
   wins: {

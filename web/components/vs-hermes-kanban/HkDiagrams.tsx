@@ -33,7 +33,7 @@ export function SkillDiagram({ c }: { c: VsHermesCopy["hero"] }) {
     { x: 200, label: "Hermes" },
   ];
   return (
-    <div className="mb-4 rounded-xl border-2 border-border bg-elev p-2.5">
+    <div className="rounded-xl border-2 border-border bg-elev p-2.5">
       <svg
         viewBox="0 0 300 122"
         className="block h-auto w-full"
@@ -80,7 +80,7 @@ export function HermesDiagram({ c }: { c: VsHermesCopy["hero"] }) {
     { y: 90, name: "ops", dot: "#1a7f37" },
   ];
   return (
-    <div className="mb-4 rounded-xl border-2 border-border bg-elev p-2.5">
+    <div className="rounded-xl border-2 border-border bg-elev p-2.5">
       <svg
         viewBox="0 0 300 122"
         className="block h-auto w-full"

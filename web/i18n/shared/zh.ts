@@ -7,8 +7,8 @@ const zh: SharedCopy = {
     install: "安装",
     recipes: "任务模板",
     compare: "对比",
-    compareMore: "更多对比即将上线…",
     github: "GitHub ↗",
+    menu: "菜单",
   },
   footer: {
     github: "GitHub",

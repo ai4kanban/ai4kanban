@@ -2,8 +2,9 @@ import { Dropdown } from "./Dropdown";
 import { localeHref, type Locale } from "@/lib/i18n";
 
 // The comparison pages this dropdown lists. Their titles are product names, so
-// the only translated parts are the "Compare" label and the closing note.
-const COMPARISONS = [
+// the only translated part is the "Compare" label. `MobileNav.tsx` lists the same
+// five inline, because a menu inside a menu is not a thing on a phone.
+export const COMPARISONS = [
   { href: "/vs-github-issues", title: "vs GitHub Issues" },
   { href: "/vs-hermes-kanban", title: "vs Hermes Agent Kanban" },
   { href: "/vs-vibe-kanban", title: "vs Vibe Kanban" },
@@ -14,11 +15,9 @@ const COMPARISONS = [
 /** Shared by the site header and the landing page's own header. */
 export function CompareMenu({
   label,
-  moreLabel,
   locale,
 }: {
   label: string;
-  moreLabel: string;
   locale: Locale;
 }) {
   return (
@@ -32,7 +31,6 @@ export function CompareMenu({
           {x.title}
         </a>
       ))}
-      <p className="px-3 py-2 text-xs text-muted/70">{moreLabel}</p>
     </Dropdown>
   );
 }

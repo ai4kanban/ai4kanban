@@ -69,17 +69,34 @@ export function Memory({ c }: { c: HomeCopy["memory"] }) {
           })}
         </div>
 
+        {/* Two columns from `sm` up, the note beside the path it annotates.
+            Below that the note moves under its path and indents.
+
+            It has to move. The path column is `max-content` on a `whitespace-pre`
+            tree, so the pair has a floor of about 380px — wider than a phone,
+            and a grid column never shrinks under its content, so this panel was
+            what put the whole page on a horizontal scrollbar. Squeezed to fit it
+            would break "Reasons for rejection" over three lines against a
+            one-line path. `overflow-x-auto` keeps a longer path in a translation
+            inside this frame rather than back on the page. */}
         <div
-          className={`${panelInset} grid grid-cols-[max-content_1fr] items-baseline gap-x-8 gap-y-2 px-6 py-5 font-mono text-[0.9rem] leading-relaxed`}
+          className={`${panelInset} overflow-x-auto px-6 py-5 font-mono text-[0.9rem] leading-relaxed sm:grid sm:grid-cols-[max-content_1fr] sm:items-baseline sm:gap-x-8 sm:gap-y-2`}
         >
           {TREE.map((row) => (
-            <div key={row.line} className="contents">
+            <div key={row.line} className="mb-2 last:mb-0 sm:contents">
               <code
-                className={`whitespace-pre ${row.dir ? "text-accent-deep" : "text-ink"}`}
+                className={`block whitespace-pre ${row.dir ? "text-accent-deep" : "text-ink"}`}
               >
                 {row.line}
               </code>
-              <span className="text-[0.85rem] text-muted">
+              {/* A row with no note still has to hold its grid cell from `sm`
+                  up, or every row after it shifts a column. On a phone there is
+                  no column to hold, so it takes no line either. */}
+              <span
+                className={`pl-8 text-[0.85rem] text-muted sm:block sm:pl-0 ${
+                  row.note ? "block" : "hidden"
+                }`}
+              >
                 {row.note ? c.tree[row.note] : ""}
               </span>
             </div>

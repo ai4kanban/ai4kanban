@@ -7,8 +7,8 @@ const fr: SharedCopy = {
     install: "Installation",
     recipes: "Recettes",
     compare: "Comparatifs",
-    compareMore: "D'autres comparatifs bientôt…",
     github: "GitHub ↗",
+    menu: "Menu",
   },
   footer: {
     github: "GitHub",

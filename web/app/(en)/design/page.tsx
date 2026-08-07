@@ -309,7 +309,7 @@ export default function DesignPage() {
                     by its fill and its glyph alone — which is why the fill is
                     the deep blue and never a tint of it. */}
                 <span className="flex items-center gap-4 rounded-lg border-2 border-border bg-ink px-5 py-4 text-elev">
-                  <Logo size="md" />
+                  <Logo size="md" tone="ink" />
                 </span>
               </div>
             </div>
@@ -364,6 +364,17 @@ export default function DesignPage() {
                 <Button size="sm">
                   <FiGithub className="h-4 w-4" aria-hidden="true" />
                   GitHub
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label>icon — the phone header, where a label won&apos;t fit</Label>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button variant="primary" size="icon" aria-label="Copy">
+                  <FiCopy className="h-4 w-4" aria-hidden="true" />
+                </Button>
+                <Button size="icon" aria-label="GitHub">
+                  <FiGithub className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>

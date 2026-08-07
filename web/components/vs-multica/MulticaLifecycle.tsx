@@ -1,69 +1,59 @@
-import { FiArrowRight, FiCheck, FiSearch, FiZap } from "react-icons/fi";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { panelInset, panelStatic } from "../styles";
-import { stageOrder } from "./vs-multica-content";
+import { MulticaMark } from "./MulticaMark";
+import { oursStages, theirsStages } from "./vs-multica-content";
+import { LogoMark } from "@/components/ui/Logo";
 import type { VsMulticaCopy } from "@/i18n/vs-multica/types";
 
-export function KanbanHeroDiagram({
-  c,
+// One column per product. The job line is the only thing set large, so a reader
+// who takes one second off this section leaves with "manages the project" and
+// "runs the agents" — the stages under it are the evidence, not the message,
+// and are set as a quiet numbered list rather than six competing blocks.
+function Track({
+  ours,
+  label,
+  job,
+  stages,
 }: {
-  c: VsMulticaCopy["hero"];
+  ours?: boolean;
+  label: string;
+  job: string;
+  stages: string[];
 }) {
   return (
-    <div
-      className="mb-4 rounded-lg border border-border bg-elev p-3"
-      role="img"
-      aria-label={c.oursDiagramAlt}
-    >
-      <div className="flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent-deep text-elev">
-          <FiSearch className="h-3.5 w-3.5" />
-        </span>
-        <span className="font-mono text-[0.65rem] font-semibold uppercase tracking-wider text-accent-deep">
-          {c.oursDiagramTop}
-        </span>
+    <div className={`${ours ? panelStatic : panelInset} overflow-hidden`}>
+      <div className="flex items-center gap-2.5 px-5 pt-5 sm:px-6 sm:pt-6">
+        {ours ? <LogoMark size="xs" /> : <MulticaMark className="h-5 w-5" />}
+        <p className="font-mono text-[0.65rem] font-semibold uppercase tracking-[0.17em] text-muted">
+          {label}
+        </p>
       </div>
-      <div className="ml-3.5 h-3 border-l-2 border-dashed border-border" />
-      <div className="rounded-md border-2 border-border bg-code px-3 py-2 font-mono text-[0.65rem] font-semibold text-ink">
-        {c.oursDiagramBottom}
+      <p className="px-5 pb-5 pt-2 text-2xl font-bold tracking-tight text-ink sm:px-6 sm:pb-6">
+        {job}
+      </p>
+      <div className="divide-y-2 divide-border border-t-2 border-border">
+        {stages.map((stage, index) => (
+          <div
+            key={stage}
+            className="flex items-center gap-4 px-5 py-3.5 sm:px-6"
+          >
+            <span
+              className={`font-mono text-[0.7rem] font-bold ${
+                ours ? "text-accent-deep" : "text-muted"
+              }`}
+            >
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span className="text-[0.95rem] font-medium text-ink">{stage}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-export function MulticaHeroDiagram({
-  c,
-}: {
-  c: VsMulticaCopy["hero"];
-}) {
-  return (
-    <div
-      className="mb-4 rounded-lg border border-border bg-elev p-3"
-      role="img"
-      aria-label={c.theirsDiagramAlt}
-    >
-      <div className="rounded-md border-2 border-border bg-code px-3 py-2 font-mono text-[0.65rem] font-semibold text-ink">
-        {c.theirsDiagramTop}
-      </div>
-      <div className="ml-3.5 h-3 border-l-2 border-dashed border-border" />
-      <div className="flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink text-elev">
-          <FiZap className="h-3.5 w-3.5" />
-        </span>
-        <span className="font-mono text-[0.65rem] font-semibold uppercase tracking-wider text-ink">
-          {c.theirsDiagramBottom}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-export function MulticaLifecycle({
-  c,
-}: {
-  c: VsMulticaCopy["boundary"];
-}) {
+export function MulticaLifecycle({ c }: { c: VsMulticaCopy["boundary"] }) {
   return (
     <section className="mt-24">
       <SectionHeading num="01" {...c.heading} />
@@ -71,106 +61,18 @@ export function MulticaLifecycle({
         <Rich>{c.lead}</Rich>
       </p>
 
-      <div className={`${panelStatic} mt-7 overflow-hidden`}>
-        <div className="hidden grid-cols-2 border-b-2 border-border font-mono text-[0.68rem] font-semibold uppercase tracking-[0.16em] sm:grid">
-          <div className="bg-accent-deep px-4 py-3 text-elev">{c.oursLabel}</div>
-          <div className="bg-ink px-4 py-3 text-elev">{c.theirsLabel}</div>
-        </div>
-
-        <div className="relative hidden grid-cols-6 gap-0 px-6 py-8 sm:grid">
-          <span
-            className="absolute bottom-0 left-1/2 top-0 border-l-2 border-dashed border-border"
-            aria-hidden="true"
-          />
-          {stageOrder.map((key, index) => {
-            const ours = index < 3;
-            return (
-              <div key={key} className="relative flex items-center sm:block">
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-border font-mono text-sm font-black ${
-                    ours ? "bg-accent-deep text-elev" : "bg-ink text-elev"
-                  }`}
-                >
-                  {String(index + 1).padStart(2, "0")}
-                </div>
-                <p className="mt-3 text-sm font-semibold text-ink">
-                  {c.stages[key]}
-                </p>
-                {index < stageOrder.length - 1 && (
-                  <FiArrowRight
-                    className="absolute right-2 top-3 h-4 w-4 text-muted"
-                    aria-hidden="true"
-                  />
-                )}
-              </div>
-            );
-          })}
-          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-border bg-elev px-2.5 py-1 font-mono text-[0.6rem] font-bold uppercase tracking-wider text-ink">
-            {c.handoffLabel}
-          </span>
-        </div>
-
-        <div className="sm:hidden">
-          {[
-            {
-              label: c.oursLabel,
-              keys: stageOrder.slice(0, 3),
-              tone: "bg-accent-deep",
-              start: 0,
-            },
-            {
-              label: c.theirsLabel,
-              keys: stageOrder.slice(3),
-              tone: "bg-ink",
-              start: 3,
-            },
-          ].map((group, groupIndex) => (
-            <div key={group.label}>
-              {groupIndex > 0 && (
-                <div className="relative flex h-10 items-center justify-center border-y-2 border-dashed border-border bg-code">
-                  <span className="rounded-full border-2 border-border bg-elev px-2.5 py-1 font-mono text-[0.6rem] font-bold uppercase tracking-wider text-ink">
-                    {c.handoffLabel}
-                  </span>
-                </div>
-              )}
-              <div
-                className={`${group.tone} px-4 py-3 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-elev`}
-              >
-                {group.label}
-              </div>
-              <div className="space-y-3 p-4">
-                {group.keys.map((key, offset) => {
-                  const index = group.start + offset;
-                  return (
-                    <div key={key} className="flex items-center gap-3">
-                      <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 border-border font-mono text-xs font-black text-elev ${group.tone}`}
-                      >
-                        {String(index + 1).padStart(2, "0")}
-                      </div>
-                      <p className="text-sm font-semibold text-ink">
-                        {c.stages[key]}
-                      </p>
-                      {offset < group.keys.length - 1 && (
-                        <FiArrowRight
-                          className="ml-auto h-4 w-4 rotate-90 text-muted"
-                          aria-hidden="true"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className={`${panelInset} mt-5 flex items-start gap-3 p-5`}>
-        <FiCheck className="mt-0.5 h-5 w-5 shrink-0 text-growth" aria-hidden="true" />
-        <p className="text-[0.95rem] text-muted">
-          <Rich code="wash">{c.principle}</Rich>
-        </p>
+      <div className="mt-7 grid gap-5 sm:grid-cols-2">
+        <Track
+          ours
+          label={c.oursLabel}
+          job={c.oursJob}
+          stages={oursStages.map((key) => c.stages[key])}
+        />
+        <Track
+          label={c.theirsLabel}
+          job={c.theirsJob}
+          stages={theirsStages.map((key) => c.stages[key])}
+        />
       </div>
     </section>
   );

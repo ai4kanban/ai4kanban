@@ -1,4 +1,4 @@
-import { FiArrowDown, FiMoon, FiRefreshCw, FiZap } from "react-icons/fi";
+import { FiCheck } from "react-icons/fi";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
 import { panelInset, panelStatic } from "../styles";
@@ -6,84 +6,64 @@ import { MulticaMark } from "./MulticaMark";
 import { LogoMark } from "@/components/ui/Logo";
 import type { VsMulticaCopy } from "@/i18n/vs-multica/types";
 
-function Track({
+// Both titles are the same sentence with one phrase swapped — "project
+// management, ready to run" against "agent infrastructure, ready to run" —
+// which is the whole comparison, so the title is what carries the weight and
+// the contents below it are a plain checklist of nouns.
+function Box({
   ours,
   c,
 }: {
   ours?: boolean;
-  c: VsMulticaCopy["backlog"]["ours"] | VsMulticaCopy["backlog"]["theirs"];
+  c: VsMulticaCopy["backlog"]["ours"];
 }) {
   return (
-    <div className={`${ours ? panelStatic : panelInset} p-5 sm:p-6`}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          {ours ? <LogoMark size="xs" /> : <MulticaMark />}
-          <div>
-            <p className="font-mono text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-accent-deep">
-              {c.label}
-            </p>
-            <h3 className="font-semibold text-ink">{c.title}</h3>
-          </div>
-        </div>
-        <span
-          className={`rounded-full border-2 border-border px-2.5 py-1 font-mono text-[0.62rem] font-bold uppercase tracking-wider ${
-            ours ? "bg-accent-deep text-elev" : "bg-code text-muted"
-          }`}
-        >
-          {c.state}
-        </span>
+    <div
+      className={`${ours ? panelStatic : panelInset} p-5 sm:row-span-3 sm:grid sm:grid-rows-subgrid sm:gap-0 sm:p-6`}
+    >
+      <div className="flex items-center gap-2.5">
+        {ours ? <LogoMark size="xs" /> : <MulticaMark className="h-5 w-5" />}
+        <p className="font-mono text-[0.65rem] font-semibold uppercase tracking-[0.17em] text-muted">
+          {c.label}
+        </p>
       </div>
-      <p className="mt-3 text-sm text-muted">
-        <Rich code={ours ? "paper" : "wash"}>{c.body}</Rich>
-      </p>
-
-      <div className="mt-5 space-y-2">
-        {c.steps.map((step, index) => (
-          <div key={step}>
-            <div className="flex items-center gap-3 rounded-lg border border-border bg-elev px-3 py-2.5">
-              <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
-                  ours ? "bg-accent-deep text-elev" : "bg-ink text-elev"
-                }`}
-              >
-                {ours ? (
-                  <FiRefreshCw className="h-3.5 w-3.5" />
-                ) : index === 0 ? (
-                  <FiMoon className="h-3.5 w-3.5" />
-                ) : (
-                  <FiZap className="h-3.5 w-3.5" />
-                )}
-              </span>
-              <span className="text-sm font-medium text-ink">{step}</span>
-            </div>
-            {index < c.steps.length - 1 && (
-              <FiArrowDown className="mx-auto my-1 h-3.5 w-3.5 text-muted" />
-            )}
-          </div>
+      <h3 className="mt-2 text-xl font-bold leading-snug tracking-tight text-ink">
+        {c.title}
+      </h3>
+      <ul className="mt-5 space-y-3">
+        {c.items.map((item) => (
+          <li key={item} className="flex items-start gap-3">
+            <FiCheck
+              className={`mt-1 h-4 w-4 shrink-0 ${ours ? "text-growth" : "text-muted"}`}
+              aria-hidden="true"
+            />
+            <span className="text-[0.95rem] text-ink">{item}</span>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }
 
 export function MulticaBacklog({
   c,
+  num = "02",
 }: {
   c: VsMulticaCopy["backlog"];
+  num?: string;
 }) {
   return (
     <section className="mt-24">
-      <SectionHeading num="02" {...c.heading} />
+      <SectionHeading num={num} {...c.heading} />
       <p className="text-ink">
         <Rich>{c.lead}</Rich>
       </p>
-      <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <Track ours c={c.ours} />
-        <Track c={c.theirs} />
+      {/* Subgrid so the eyebrow, the title and the checklist line up across the
+          gutter however many lines either title runs to. */}
+      <div className="mt-7 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:grid-rows-[auto_auto_auto]">
+        <Box ours c={c.ours} />
+        <Box c={c.theirs} />
       </div>
-      <p className="mt-5 text-sm text-muted">
-        <Rich>{c.note}</Rich>
-      </p>
     </section>
   );
 }

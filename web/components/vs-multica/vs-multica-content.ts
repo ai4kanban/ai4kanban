@@ -18,14 +18,17 @@ export const compareRows: { key: VsMulticaRowKey; edge: MulticaEdge }[] = [
   { key: "license", edge: "kanban" },
 ];
 
-export const stageOrder: VsMulticaStageKey[] = [
+// Two flows, not one. These used to be a single 01→06 rail with a divider in
+// the middle, which read as one pipeline handing off from our product to
+// theirs — the opposite of what the section says. Each product numbers its own
+// three steps from one.
+export const oursStages: VsMulticaStageKey[] = [
   "discover",
   "refine",
   "prioritize",
-  "assign",
-  "run",
-  "review",
 ];
+
+export const theirsStages: VsMulticaStageKey[] = ["assign", "run", "review"];
 
 export const kanbanWinOrder: VsMulticaKanbanWinKey[] = [
   "upstream",

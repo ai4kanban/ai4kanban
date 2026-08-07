@@ -12,6 +12,12 @@ import {
 // for that, so it collapses into the same menu the header's comparisons list
 // uses. Every link goes to the landing page in that language, not to the page
 // being read — the footer's switcher is the path-aware one.
+//
+// One version at every width. On a phone it stays out in the header row rather
+// than moving inside the menu button: the globe is what a reader who can't read
+// the page looks for, and it shouldn't be two taps behind a hamburger. It keeps
+// the language's own name there too — the glyph alone only says a language menu
+// is here, and which one you are in is the half a switcher is actually asked.
 export function HeaderLanguage({
   locale,
   label,
@@ -26,8 +32,13 @@ export function HeaderLanguage({
       width="w-40"
       label={
         <>
-          <FiGlobe className="h-4 w-4" aria-hidden="true" />
-          {LOCALE_NAMES[locale]}
+          <FiGlobe className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {/* Under 375px the name goes and the globe carries the control alone.
+              The phone header is the logo, this, and two buttons in one row,
+              and the longest name — `Français` — needs 375 to fit beside them.
+              375 is the narrowest screen still sold; below it this is a floor,
+              not a second design. */}
+          <span className="max-[374px]:hidden">{LOCALE_NAMES[locale]}</span>
         </>
       }
     >

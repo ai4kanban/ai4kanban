@@ -11,6 +11,8 @@ export function Dropdown({
   ariaLabel,
   align = "center",
   width,
+  chevron = true,
+  summaryClass = "flex cursor-pointer items-center gap-1.5 transition-colors hover:text-ink",
   children,
 }: {
   /** What the closed menu shows, left of the chevron. */
@@ -21,6 +23,10 @@ export function Dropdown({
   align?: "center" | "right";
   /** The panel's width, as a Tailwind class: menus size to their longest entry. */
   width: string;
+  /** Off when the label is already a menu glyph — a hamburger needs no arrow. */
+  chevron?: boolean;
+  /** Replaces the plain nav-link look, for a menu that has to be a button. */
+  summaryClass?: string;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
@@ -50,13 +56,15 @@ export function Dropdown({
     <details ref={ref} className="group relative [&_summary]:list-none">
       <summary
         aria-label={ariaLabel}
-        className="flex cursor-pointer items-center gap-1.5 transition-colors hover:text-ink [&::-webkit-details-marker]:hidden"
+        className={`${summaryClass} [&::-webkit-details-marker]:hidden`}
       >
         {label}
-        <FiChevronDown
-          className="h-3 w-3 transition-transform duration-150 group-open:rotate-180"
-          aria-hidden="true"
-        />
+        {chevron && (
+          <FiChevronDown
+            className="h-3 w-3 transition-transform duration-150 group-open:rotate-180"
+            aria-hidden="true"
+          />
+        )}
       </summary>
       <div
         className={`absolute z-20 mt-2 rounded-xl border-2 border-border bg-elev p-1.5 shadow-[4px_4px_0_0_var(--color-ink)] ${

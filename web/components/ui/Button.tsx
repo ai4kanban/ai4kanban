@@ -29,15 +29,39 @@ const VARIANT = {
   secondary: "bg-elev text-ink hover:bg-code",
 } as const;
 
+// `icon` is `sm` squared up: the same block with no label in it, for the phone
+// header, where the button has to earn its width against a logo and a menu. The
+// two are the same height on purpose — 36px, the label's `leading-5` box plus
+// `py-1.5` against the icon's 16px plus `p-2`, both over the 2px outline — so
+// the header is one row tall whether it shows the label or drops it. That is
+// what `leading-5` is doing here: without it the line box is the inherited
+// `normal` and the block's height drifts with the font.
 const SIZE = {
   md: "px-6 py-3",
-  sm: "px-3.5 py-1.5 text-[0.95rem]",
+  sm: "px-3.5 py-1.5 text-[0.95rem] leading-5",
+  icon: "p-2",
 } as const;
+
+export type ButtonVariant = keyof typeof VARIANT;
+export type ButtonSize = keyof typeof SIZE;
+
+/**
+ * The block on its own, for the one element that has to be this button without
+ * being one: the `<summary>` the phone header's menu opens from, which sits
+ * beside the GitHub button and would read as a stray glyph next to it. Reach
+ * for `<Button>` everywhere else.
+ */
+export function buttonClass(
+  variant: ButtonVariant = "secondary",
+  size: ButtonSize = "md",
+) {
+  return `${BASE} ${VARIANT[variant]} ${SIZE[size]}`;
+}
 
 export type ButtonProps = {
   children: ReactNode;
-  variant?: keyof typeof VARIANT;
-  size?: keyof typeof SIZE;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   /** Set to render a link. Without it you get a `<button>`. */
   href?: string;
   /** Saves `href` to disk instead of navigating — the recipe card downloads. */
@@ -56,7 +80,7 @@ export function Button({
   onClick,
   ...rest
 }: ButtonProps) {
-  const className = `${BASE} ${VARIANT[variant]} ${SIZE[size]}`;
+  const className = buttonClass(variant, size);
 
   if (href) {
     // Every off-site link on this page is a plain <a> — see the eslint config.

@@ -64,7 +64,7 @@ export default function OgImage() {
         {/* The word inherits, so the lockup is its dark version by sitting
             here — paper on the ink, the same as it is in the footer. */}
         <div className="mb-9 text-elev">
-          <Logo size="md" />
+          <Logo size="md" tone="ink" />
         </div>
         <h1 className="max-w-[540px] text-[58px] font-bold leading-[1.02] tracking-[-0.035em] text-elev">
           {c.hero.title}

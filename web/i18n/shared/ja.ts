@@ -7,8 +7,8 @@ const ja: SharedCopy = {
     install: "インストール",
     recipes: "レシピ",
     compare: "比較",
-    compareMore: "比較ページは順次追加予定…",
     github: "GitHub ↗",
+    menu: "メニュー",
   },
   footer: {
     github: "GitHub",

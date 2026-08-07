@@ -3,255 +3,241 @@ import type { VsMulticaCopy } from "./types";
 const en: VsMulticaCopy = {
   meta: {
     title:
-      "AI4Kanban vs. Multica — deciding the work or operating the agent fleet",
+      "AI4Kanban vs. Multica: AI project management or a multi-agent platform",
     socialTitle: "AI4Kanban vs. Multica",
     description:
-      "Compare AI4Kanban and Multica across task discovery, refinement, decision memory, agent execution, teams, infrastructure, and licensing.",
+      "AI4Kanban is a ready-to-use AI project-management system. Multica is a general platform for building and operating teams of agents.",
     social:
-      "Both put coding agents on a kanban board. AI4Kanban decides which work should exist; Multica decides which agent runs the work.",
+      "Both use agents to execute tasks, but they serve different needs: one manages projects; the other provides the platform for an agent team.",
   },
   hero: {
     badge: "Comparison",
     title: "AI4Kanban vs.\nMultica",
-    lead: "Both products put coding agents on a kanban board. The real boundary is **when the agent enters the story**: AI4Kanban works upstream to decide and refine the task; Multica takes an issue that already exists and operates the run.",
+    lead: "Both products let agents execute tasks. **AI4Kanban is a ready-to-use AI project-management system; Multica is a general-purpose multi-agent platform.**",
     ours: {
       name: "AI4Kanban",
-      body: "A planning loop in your repository. The agent proposes work, develops vague ideas, orders the board, and remembers earlier decisions.",
+      body: "People set direction, bring ideas, and make the key calls. Agents discover work, clarify requirements, set priorities, execute tasks, and feed what they learn back into project memory.",
     },
     theirs: {
       name: "Multica",
-      body: "A project-operations system for human and agent teams. Assign an issue, then queue, dispatch, observe, retry, and review the run.",
+      body: "You create multiple agents, give each one responsibilities, Skills, and a runtime, then manage assignments, execution, retries, reviews, and team collaboration in one place.",
     },
     oursDiagramAlt:
-      "AI4Kanban reads the project and turns an emerging idea into a ready card.",
+      "AI4Kanban helps people and agents plan and execute around a shared project goal.",
     theirsDiagramAlt:
-      "Multica takes a ready issue and dispatches it to an agent runtime.",
-    oursDiagramTop: "read project · find work",
-    oursDiagramBottom: "vague idea → ready card",
-    theirsDiagramTop: "ready issue + assignee",
-    theirsDiagramBottom: "dispatch · run · review",
+      "Multica lets teams configure and operate multiple agents.",
+    oursDiagramTop: "people set direction · make the calls",
+    oursDiagramBottom: "agents plan · clarify · execute",
+    theirsDiagramTop: "multiple agents + Skills + runtimes",
+    theirsDiagramBottom: "assign · dispatch · collaborate · monitor",
   },
   boundary: {
     heading: {
-      eyebrow: "The dividing line",
-      title: "Same board. Opposite sides of ready.",
+      eyebrow: "Positioning",
+      title: "Two products for two different needs",
     },
-    lead: "A kanban board is only the surface. AI4Kanban concentrates on the decisions **before a task is ready**. Multica concentrates on the machinery **after a task is ready**. The products can meet at the handoff without being the same system.",
+    lead: "AI4Kanban helps people and AI manage a project together. Multica helps teams create, organize, and run multiple agents.",
     stages: {
-      discover: "Discover",
-      refine: "Refine",
-      prioritize: "Prioritize",
-      assign: "Assign",
-      run: "Run",
-      review: "Review",
+      discover: "Set direction",
+      refine: "Clarify with AI",
+      prioritize: "Drive progress",
+      assign: "Create agents",
+      run: "Configure teams",
+      review: "Operate work",
     },
-    oursLabel: "AI4Kanban · decide the work",
-    theirsLabel: "Multica · operate the work",
-    handoffLabel: "ready",
-    principle:
-      "**Multica decides which agent runs a task. AI4Kanban decides which tasks should exist.** That is the shortest useful answer to “aren't these the same idea?”",
+    oursLabel: "AI4Kanban",
+    theirsLabel: "Multica",
+    oursJob: "Manages the project",
+    theirsJob: "Runs the agents",
   },
   backlog: {
     heading: {
-      eyebrow: "The backlog test",
-      title: "What happens before Todo?",
+      eyebrow: "Out of the box",
+      title: "What is in each box?",
     },
-    lead: "Multica's own task model makes the boundary concrete: an issue in **Backlog does not trigger an agent**. It is a parking lot until a person decides the work is real and moves it forward. In AI4Kanban, the unready board is where the agent does its planning work.",
+    lead: "Both are complete on day one, but they are complete at different things. AI4Kanban ships the project management; Multica ships the machinery to run agents.",
     ours: {
-      label: "Backlog is active",
-      title: "The agent develops the card",
-      body: "The agent reads the code and module memory before it treats the request as work.",
-      steps: [
-        "Propose or capture an incomplete idea",
-        "Resolve context and expose real decisions",
-        "Order a build-ready card by value and dependency",
+      label: "AI4Kanban",
+      title: "Project management, ready to run",
+      items: [
+        "A working method for people and AI",
+        "A board with the full card lifecycle",
+        "Project memory kept in the repository",
       ],
-      state: "agent awake",
     },
     theirs: {
-      label: "Backlog is parked",
-      title: "The agent waits for Todo",
-      body: "The human supplies the issue description and acceptance criteria; assignment starts execution only after the work is admitted.",
-      steps: [
-        "Human writes or accepts the issue",
-        "Human moves Backlog → Todo",
-        "Daemon queues and dispatches the assignee",
+      label: "Multica",
+      title: "Agent infrastructure, ready to run",
+      items: [
+        "Agent identities, Instructions, and Skills",
+        "Squads, chat, and task queues",
+        "Automation, retries, and run history",
       ],
-      state: "agent asleep",
     },
-    note: "Multica does include quick-create, but it is a one-shot transcriber: it formats free text into an issue and exits. It does not inspect the codebase, ask a question, or record an assumption.",
   },
   comparison: {
     heading: {
-      eyebrow: "Head to head",
-      title: "The shipped products, not the headlines",
+      eyebrow: "Key differences",
+      title: "What matters most",
     },
-    lead: "A {check} marks the clearer fit for that dimension; a **dash** marks an architectural trade-off. This comparison credits Multica for the operational platform it has actually shipped and separates that from its future vision.",
+    lead: "A {check} marks the stronger fit for that need; a **dash** marks a trade-off.",
     ourLabel: "AI4Kanban",
     theirLabel: "Multica",
     rows: {
       startingPoint: {
-        dimension: "Where the product starts",
+        dimension: "Product focus",
         kanban:
-          "Before the task: inspect the project, propose work, and decide what belongs on the board.",
+          "A complete project-management workflow for people and AI, ready to use.",
         multica:
-          "After the task exists: accept an issue, assignee, priority, and execution instructions.",
+          "A general workspace for multi-agent teams; users define the roles and workflows.",
       },
       backlog: {
-        dimension: "Backlog behavior",
+        dimension: "Proactive project management",
         kanban:
-          "The agent actively develops unready cards and can propose work nobody requested.",
+          "Agents read the project and its memory, then propose, refine, and prioritize work.",
         multica:
-          "A parking lot. An issue in Backlog does not wake an assigned agent.",
+          "Possible with Agents, Skills, and Autopilots, but you configure the behavior yourself.",
       },
       refinement: {
-        dimension: "From vague idea to spec",
+        dimension: "Requirement clarification",
         kanban:
-          "A repeated refine loop reads code and memory, makes assumptions explicit, and asks only unresolved product questions.",
+          "Uses the code and project record to fill in context, leaving only product trade-offs for people.",
         multica:
-          "Descriptions are free text; the human is told to provide files, constraints, outcomes, and acceptance criteria.",
+          "No ready-made project-clarification workflow; you add one through Agent Instructions or a Skill.",
       },
       memory: {
-        dimension: "What compounds",
+        dimension: "Long-term memory",
         kanban:
-          "Project decisions, redesign lessons, shipped work, and rejection reasons shape the next proposal.",
+          "Project decisions, rejection reasons, and redesign lessons feed directly into future planning.",
         multica:
-          "Reusable Skills preserve working methods; issue activity and run history preserve execution provenance.",
+          "Skills preserve working methods; comments and run history preserve the execution record.",
       },
       execution: {
-        dimension: "Run operations",
+        dimension: "Execution management",
         kanban:
-          "Hands implementation to the chosen coding harness; no native retry, replay, token-cost, or fleet layer.",
+          "Can launch Claude Code or Codex on a card and track the full lifecycle from proposal to archive.",
         multica:
-          "Queues, dispatches, streams, meters, retries, replays, gates review, and links pull requests and CI.",
+          "Runs multiple agents in parallel, with queues, retries, replay, cost tracking, review gates, and PR and CI links.",
       },
       teams: {
-        dimension: "People and agent teams",
+        dimension: "Team collaboration",
         kanban:
-          "Local-first and best for one developer or a small team collaborating through git.",
+          "Local-first, for individual developers and small teams collaborating through git.",
         multica:
-          "Multiplayer workspaces, roles, squads, inboxes, comments, permissions, and notifications.",
+          "Multi-user workspaces, roles, Squads, comments, permissions, and notifications.",
       },
       storage: {
-        dimension: "Storage and infrastructure",
+        dimension: "Deployment and storage",
         kanban:
-          "Markdown in the repository; no database, account, board server, or MCP dependency.",
+          "Cards and memory live in the repository; no database, account, or board server.",
         multica:
-          "PostgreSQL + pgvector, a Go server, local daemon, OAuth, and hosted or self-hosted deployment.",
+          "Uses PostgreSQL, a server, and a local daemon; available hosted or self-hosted.",
       },
       license: {
         dimension: "License",
         kanban:
-          "Apache License 2.0, including commercial use, hosting, and embedding.",
+          "Apache-2.0, including commercial use, hosting, and embedding.",
         multica:
-          "A source-available Multica License with restrictions on hosted services and commercial embedding.",
+          "Source-available; hosted services and commercial embedding are restricted by the Multica License.",
       },
     },
   },
   memory: {
     heading: {
-      eyebrow: "Two kinds of memory",
-      title: "How to do it vs. why we decided it",
+      eyebrow: "Long-term memory",
+      title: "They remember different things",
     },
-    lead: "Both systems accumulate knowledge, but on different axes. Multica Skills teach agents **how to perform a kind of work**. AI4Kanban's module memory records **what this project has decided and ruled out**.",
+    lead: "Both keep notes between runs. They keep different notes.",
     ours: {
       eyebrow: "Project judgment",
-      title: "AI4Kanban remembers the veto",
-      body: "Compact repository files are read before the agent proposes or refines work. The point is not a complete transcript; it is to keep the next planning decision from repeating an old mistake.",
-      examples: ["rejected.md", "redesign.md", "memory.md"],
+      title: "Why a decision was made",
+      examples: ["decisions.md", "rejected.md", "redesign.md"],
       question: "Why did the board stop proposing idea X?",
       answer:
-        "`rejected.md` records the idea and its rationale, so it stays out unless new evidence changes the decision.",
+        "`rejected.md` records why it was rejected. Without new evidence, the idea stays out.",
     },
     theirs: {
       eyebrow: "Working method",
-      title: "Multica remembers the playbook",
-      body: "Skills are hand-authored or imported `SKILL.md` bundles shared across agents. Issue comments and execution history show what happened to a run, but completed work does not automatically become decision memory.",
-      examples: ["SKILL.md", "comments", "run history"],
-      question: "How should this agent perform a security review?",
+      title: "How an agent should work",
+      examples: ["Instructions", "SKILL.md", "run history"],
+      question: "How should this agent run a security review?",
       answer:
-        "Attach a reusable Skill that contains the procedure, files, and instructions for that kind of work.",
+        "Attach a Skill with the steps, files, and requirements for the review.",
     },
-    note: "The distinction is procedure vs. judgment. A playbook can improve execution; a rejection record can stop the wrong work from being proposed again.",
+    note: "",
   },
   horizon: {
     heading: {
-      eyebrow: "Vision vs. shipped",
-      title: "The overlap is coming closer",
+      eyebrow: "Build it yourself",
+      title: "What would you need to add in Multica?",
     },
-    lead: "Multica's `VISION.md` reaches upstream. It describes agents that structure intent, gather context, make uncertainty explicit, and keep decisions connected to outcomes. That is much closer to AI4Kanban's current thesis than Multica's current product is.",
-    shippedLabel: "Shipped today",
-    visionLabel: "Declared direction",
-    shippedTitle: "Execute an issue",
-    shippedBody:
-      "Backlog waits. The daemon tells the assignee to read the issue and complete it. Refinement happens after code exists, through review and revision.",
-    visionTitle: "Develop the intent",
-    visionBody:
-      "Future agents are meant to turn intent into structured work and separate known facts from decisions still needed.",
-    marker: "watch this gap",
-    note: "This is a real competitive threat, not a reason to credit unshipped features. The honest comparison is shipped vs. shipped, with the declared direction named plainly.",
+    lead: "You can build a project-manager agent on Multica. Creating the agent is the quick part; four questions are then yours to answer, and to keep answering as the project changes.",
+    visionLabel: "You still build",
+    visionTitle: "The project-management behavior",
+    items: [
+      "How it understands the project goal",
+      "How it finds work worth doing",
+      "How it clarifies a vague requirement",
+      "What it remembers between runs",
+    ],
+    note: "",
   },
   wins: {
     heading: {
-      eyebrow: "Trade-offs",
-      title: "Where each one is plainly ahead",
+      eyebrow: "Strengths",
+      title: "Choose for the problem you have",
     },
-    lead: "This is not a feature-count contest. AI4Kanban is intentionally smaller and earlier in the lifecycle. Multica is substantially broader once work enters execution.",
+    lead: "AI4Kanban is focused, complete, and ready to use. Multica is broad and flexible, built to operate multiple agents.",
     oursHeading: "AI4Kanban",
     theirsHeading: "Multica",
     ours: {
       upstream: {
-        title: "The agent helps decide the work",
-        body: "It proposes from project context, turns rough asks into buildable cards, and orders them by value and dependency before execution begins.",
+        title: "Project management out of the box",
+        body: "No need to design a project-manager Agent first. Once installed, people and agents can plan, clarify, and execute through one shared workflow.",
       },
       rejectionMemory: {
         title: "Rejected ideas stay rejected",
-        body: "Decision and redesign memory shape later planning, so the agent does not keep pitching a direction the project already ruled out.",
+        body: "Past decisions shape the next planning cycle and reduce repeated discussion.",
       },
       repoNative: {
-        title: "The whole planning layer fits in git",
-        body: "Cards and memory are readable, diffable files beside the code, with no board service to operate and plain Apache-2.0 terms.",
+        title: "Everything lives in git",
+        body: "Cards and memory are readable and diffable, with no separate board service to run.",
       },
     },
     theirs: {
       operations: {
-        title: "A serious execution control plane",
-        body: "Run replay, retries, review gates, PR and CI linkage, token metering, webhooks, attachments, and multiple operational views are already shipped.",
+        title: "Full execution control",
+        body: "Queues, retries, replay, reviews, cost tracking, and PR and CI links are all built in.",
       },
       teams: {
-        title: "Built for multiplayer work",
-        body: "Workspaces, roles, squads, threaded discussion, notifications, permissions, and persistent agent identities support a real human-and-agent organization.",
+        title: "Built for people and multiple agents",
+        body: "Workspaces, roles, Squads, comments, permissions, and notifications live in one platform.",
       },
       runtimeReach: {
-        title: "Far broader runtime support",
-        body: "Multica supports roughly twenty agent CLIs and connects them through local daemons and cloud runtimes. AI4Kanban wires up Claude Code and Codex today.",
+        title: "Broader runtime support",
+        body: "A local daemon connects many agent CLIs. AI4Kanban currently supports Claude Code and Codex.",
       },
     },
   },
   decision: {
-    heading: {
-      eyebrow: "The call",
-      title: "Which should you use?",
-    },
-    oursHeading: "Choose AI4Kanban when",
-    theirsHeading: "Choose Multica when",
+    heading: { eyebrow: "Recommendation", title: "Which should you choose?" },
+    oursHeading: "Choose AI4Kanban if you",
+    theirsHeading: "Choose Multica if you",
     ours: [
-      "Your bottleneck is deciding and refining the right work, not dispatching it.",
-      "You want an agent to propose tasks from code and project memory.",
-      "You want rejection reasons and design decisions to shape future planning.",
-      "You prefer a small, repository-native system with no board infrastructure.",
-      "Plain Apache-2.0 terms matter for what you are building.",
+      "Want a ready-made way for people and AI to manage a project together.",
+      "Need agents across planning, clarification, and execution.",
+      "Want project decisions and rejection reasons to shape future planning.",
+      "Prefer a lightweight, repository-native system with no extra service.",
     ],
     theirs: [
-      "The tasks already exist and your bottleneck is running them reliably.",
-      "Multiple people and named agents need one shared operational workspace.",
-      "You need retries, replay, cost metering, PR and CI linkage, or review gates.",
-      "You want broad agent-runtime support, squads, chat, webhooks, and mobile access.",
-      "You are comfortable operating or buying a server-backed platform.",
+      "Need to create and operate several agents with different roles.",
+      "Need a shared workspace, issues, and run history for people and agents.",
+      "Need retries, replay, cost tracking, or PR and CI integrations.",
+      "Are prepared to define your own project-management Agent, Skills, and workflows.",
     ],
     verdict:
-      "Choose AI4Kanban to **decide and develop the work before it is ready**. Choose Multica to **assign and operate the work after it is ready**. If you need both, the clean seam is simple: let AI4Kanban produce the approved card, then create the Multica issue for execution.",
-    note: "The two can complement each other, but do not keep two live sources of truth for the same task state. Pick a clear handoff point.",
+      "Choose AI4Kanban for a **ready-to-use AI project-management system**. Choose Multica for a **general platform to build and operate a multi-agent team**. Both use agents to execute tasks; one is for project management, the other for multi-agent operations.",
+    note: "",
   },
 };
 

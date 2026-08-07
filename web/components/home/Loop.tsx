@@ -108,13 +108,19 @@ export function Loop({ c }: { c: HomeCopy["loop"] }) {
 
         {/* The rail: a hairline behind the numbers ties the four steps together. */}
         <ol className="relative space-y-5 before:absolute before:bottom-6 before:left-[1.6rem] before:top-6 before:w-px before:bg-border before:content-['']">
+          {/* The number and the step's words are indented off the rail; the mat
+              is only indented from `sm` up. On a phone that indent plus the
+              mat's own padding spent a third of the viewport on white space, and
+              the drawing inside — which sizes its type to its container — shrank
+              with it. Below `sm` the mat runs the full column instead, and the
+              rail still reads because the numbers above it are on it. */}
           {c.steps.map((step, i) => (
-            <li key={step.title} className="relative flex gap-5">
-              <span className="z-10 flex h-13 w-13 shrink-0 items-center justify-center rounded-full border-2 border-border bg-code font-mono text-sm font-bold text-accent-deep">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="pb-4 pt-2.5">
+            <li key={step.title} className="relative">
+              <div className="flex gap-4 sm:gap-5">
+                <span className="z-10 flex h-13 w-13 shrink-0 items-center justify-center rounded-full border-2 border-border bg-code font-mono text-sm font-bold text-accent-deep">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="min-w-0 flex-1 pb-4 pt-2.5">
                   <h3 className="text-lg font-semibold text-ink">
                     {step.title}
                   </h3>
@@ -122,20 +128,20 @@ export function Loop({ c }: { c: HomeCopy["loop"] }) {
                     {step.body}
                   </p>
                 </div>
-                <div
-                  className={`${panelStatic} overflow-hidden bg-cover bg-center p-6`}
-                  style={{
-                    backgroundColor: MAT,
-                    backgroundImage: `url(${SHOTS[i].mat})`,
-                  }}
-                >
-                  {/* The drawing is decoration, not content — the step's title
-                      and body above it already say everything it shows, so it
-                      carries no label of its own for a screen reader to read
-                      out twice. */}
-                  <div aria-hidden className={`overflow-hidden ${printFrame}`}>
-                    {SHOTS[i].art}
-                  </div>
+              </div>
+              <div
+                className={`${panelStatic} overflow-hidden bg-cover bg-center p-3 sm:ml-[4.5rem] sm:p-6`}
+                style={{
+                  backgroundColor: MAT,
+                  backgroundImage: `url(${SHOTS[i].mat})`,
+                }}
+              >
+                {/* The drawing is decoration, not content — the step's title
+                    and body above it already say everything it shows, so it
+                    carries no label of its own for a screen reader to read
+                    out twice. */}
+                <div aria-hidden className={`overflow-hidden ${printFrame}`}>
+                  {SHOTS[i].art}
                 </div>
               </div>
             </li>

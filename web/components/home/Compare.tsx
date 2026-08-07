@@ -88,30 +88,56 @@ export function Compare({ c }: { c: HomeCopy["compare"] }) {
         })}
       </div>
 
-      <div className={`${panelStatic} mt-9 divide-y-2 divide-border sm:hidden`}>
+      {/* Below `sm` the grid becomes one card per row of it — the dimension is
+          the card's title bar and the two answers are its only contents, so
+          what a line belongs to is said by the card edge rather than by
+          reading order. As one long card it wasn't: nine bands separated by
+          the same rule, and a dimension looked like a third answer with no
+          text under it.
+          Each answer names its column on its own line above it, because at
+          this width the value wraps and an inline label reads as the first
+          words of the sentence. Which one wins is the ramp again — the
+          traditional board in the wash, ours on the paper below it, same as
+          the wide layout.
+          The title bar takes the accent bar `SectionTitle` puts in front of a
+          section number: on this page that mark means "what follows is
+          titled", and it is the one blue here that isn't the AI4Kanban
+          label. */}
+      <div className="mt-9 space-y-4 sm:hidden">
         {c.rows.map((row, i) => {
           const Icon = ICONS[i];
           return (
-            <div key={row.dimension} className="px-5 py-4">
-              <p className="text-[0.85rem] text-muted/60">{row.dimension}</p>
-              <p className="mt-2 text-[0.95rem] leading-relaxed text-muted">
-                <span className="mr-2 text-[0.8rem] text-muted/50">
-                  {c.columns.classic}
-                </span>
-                {row.classic}
-              </p>
-              <p className="mt-2 flex items-start gap-2.5 text-[0.95rem] font-medium leading-relaxed text-ink">
-                <Icon
+            <div
+              key={row.dimension}
+              className={`${panelStatic} overflow-hidden`}
+            >
+              <p className="flex items-center gap-2.5 border-b-2 border-border px-5 py-3 font-mono text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-ink">
+                <span
                   aria-hidden="true"
-                  className="mt-[0.25rem] h-[1.05rem] w-[1.05rem] shrink-0 text-accent-deep"
+                  className="h-3.5 w-1 shrink-0 rounded-full bg-accent"
                 />
-                <span>
-                  <span className="mr-2 font-mono text-[0.8rem] font-normal text-accent-deep">
-                    {c.columns.kanban}
-                  </span>
-                  {row.kanban}
-                </span>
+                {row.dimension}
               </p>
+              <div className="bg-code px-5 py-3.5">
+                <p className="text-[0.78rem] font-semibold text-muted">
+                  {c.columns.classic}
+                </p>
+                <p className="mt-1 text-[0.95rem] leading-relaxed text-muted">
+                  {row.classic}
+                </p>
+              </div>
+              <div className="border-t-2 border-border px-5 py-3.5">
+                <p className="flex items-center gap-2 font-mono text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-accent-deep">
+                  <Icon
+                    aria-hidden="true"
+                    className="h-[1.05rem] w-[1.05rem] shrink-0"
+                  />
+                  {c.columns.kanban}
+                </p>
+                <p className="mt-1 text-[0.95rem] font-medium leading-relaxed text-ink">
+                  {row.kanban}
+                </p>
+              </div>
             </div>
           );
         })}
