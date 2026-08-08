@@ -27,8 +27,11 @@
   --color-growth: #0f7350;
   --color-caution: #b32438;
 
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
+  /* Inter, loaded by `next/font` in lib/fonts.ts and self-hosted. The old
+     system stack stays behind it: it draws the first paint, every CJK glyph on
+     the zh and ja pages, and anything Inter's latin subset doesn't cover. */
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --font-pixel: Silkscreen, ui-monospace, monospace;
 }
@@ -36,9 +39,9 @@
 /* Silkscreen (SIL Open Font License) — the pixel face used for the AI4KANBAN
    wordmark in the footer, and nothing else. It is subset to the six letters that
    word needs (A I 4 K N B) and inlined, which takes it from a 3.5 KB fetch to
-   876 bytes of base64 riding along in this stylesheet. That is the whole point:
-   the site otherwise ships no web font, so keeping this one out of the network
-   means the page has zero font requests and the wordmark never swaps in late.
+   876 bytes of base64 riding along in this stylesheet. Keep it inlined: it is
+   six letters, and off the network it can never swap in late on the one place
+   that would be conspicuous.
    Changing the word means re-subsetting — this face has no other glyphs. Pull
    the full Silkscreen regular from fonts.google.com/specimen/Silkscreen, then:
      pyftsubset silkscreen-400.woff2 --text="<the new letters>" --flavor=woff2 \

@@ -15,9 +15,13 @@ import {
 //
 // One version at every width. On a phone it stays out in the header row rather
 // than moving inside the menu button: the globe is what a reader who can't read
-// the page looks for, and it shouldn't be two taps behind a hamburger. It keeps
-// the language's own name there too — the glyph alone only says a language menu
-// is here, and which one you are in is the half a switcher is actually asked.
+// the page looks for, and it shouldn't be two taps behind a hamburger.
+//
+// The name only rides along from `md` up. On a phone the row is the wordmark and
+// three controls, and a word as wide as "Français" beside them left the header
+// reading as a wall of text with nothing dominant in it. The glyph goes alone
+// there, like the GitHub control beside it does — the menu it opens names the
+// current language anyway, one tap in.
 export function HeaderLanguage({
   locale,
   label,
@@ -32,13 +36,10 @@ export function HeaderLanguage({
       width="w-40"
       label={
         <>
-          <FiGlobe className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {/* Under 375px the name goes and the globe carries the control alone.
-              The phone header is the logo, this, and two buttons in one row,
-              and the longest name — `Français` — needs 375 to fit beside them.
-              375 is the narrowest screen still sold; below it this is a floor,
-              not a second design. */}
-          <span className="max-[374px]:hidden">{LOCALE_NAMES[locale]}</span>
+          {/* A step larger where it stands alone: unframed beside two bordered
+              buttons, a 16px glyph read as a stray mark rather than a control. */}
+          <FiGlobe className="h-5 w-5 shrink-0 md:h-4 md:w-4" aria-hidden="true" />
+          <span className="hidden md:inline">{LOCALE_NAMES[locale]}</span>
         </>
       }
     >

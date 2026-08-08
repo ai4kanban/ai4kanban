@@ -148,10 +148,15 @@ Two values are not tokens, because they are illustration rather than a surface: 
 hairline in `HkDiagrams.tsx` and the linework in `RecipeArt.tsx`. Both are commented
 where they are declared.
 
-Two font stacks: `--font-sans` (the system stack) for everything, `--font-mono` for code,
-terminals, and eyebrows. Neither is a download. The exception is `--font-pixel`
-(Silkscreen), which draws the footer wordmark and nothing else — subset to the six
-letters of AI4KANBAN and inlined as base64, so the site makes zero font requests.
+Two font stacks: `--font-sans` for everything, `--font-mono` for code, terminals, and
+eyebrows. Sans is Inter, loaded by `next/font` in `lib/fonts.ts` and self-hosted out of
+`_next/static/media` — both root layouts put `inter.variable` on `<html>`. The old system
+stack is still there behind it, and still does real work: it draws the first paint, and
+it draws every CJK glyph on the zh and ja pages, because the subset we ship is latin
+only. Never add a CJK web font — they are megabytes. `--font-mono` is not a download.
+
+`--font-pixel` (Silkscreen) draws the footer wordmark and nothing else — subset to the
+six letters of AI4KANBAN and inlined as base64, so that one never touches the network.
 Changing the word means re-subsetting; the recipe is in the comment above that rule.
 
 Past the tokens and that `@font-face`, `globals.css` holds only smooth scroll and
@@ -220,10 +225,13 @@ components/
                       footer's switcher is the path-aware one
   MobileNav.tsx       below `md`, the nav collapses into this one button so
                       the header stays a single row. The language switcher
-                      and the GitHub button stay out in the row beside it —
-                      both are `Button`'s `icon` size, and the menu borrows
-                      the same block through `buttonClass` because a framed
-                      icon next to a bare one reads as two different things
+                      and the GitHub button stay out in the row beside it,
+                      both down to their glyph — the phone row is the
+                      wordmark and three controls, and words on any of them
+                      leave nothing in it to look at first. GitHub and the
+                      menu are `Button`'s `icon` size, the menu borrowing
+                      that block through `buttonClass` because a framed icon
+                      next to a bare one reads as two different things
   SiteFooter.tsx      the dark band that ends the landing and comparison pages
   Footer.tsx          the thin footer the English-only recipes end on
                       Both carry LanguageSwitcher.tsx — five languages,

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCopy } from "@/i18n";
+import { inter } from "@/lib/fonts";
 import { htmlLang, pageMetadata, siteIcons } from "@/lib/metadata";
 import { BASE_URL } from "@/lib/site";
 import { TRANSLATED_LOCALES, isTranslatedLocale } from "@/lib/i18n";
@@ -39,7 +40,7 @@ export default async function IntlRootLayout({
   if (!isTranslatedLocale(locale)) notFound();
 
   return (
-    <html lang={htmlLang(locale)}>
+    <html lang={htmlLang(locale)} className={inter.variable}>
       <head>
         {/* Same domain shepherding as the English layout — see (en)/layout.tsx. */}
         <script

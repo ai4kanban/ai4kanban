@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getCopy } from "@/i18n";
+import { inter } from "@/lib/fonts";
 import { htmlLang, pageMetadata, siteIcons } from "@/lib/metadata";
 import { BASE_URL } from "@/lib/site";
 import "../globals.css";
@@ -32,7 +33,7 @@ export default function EnglishRootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang={htmlLang("en")}>
+    <html lang={htmlLang("en")} className={inter.variable}>
       <head>
         {/* Send *.pages.dev and the old kanbanskill.cc domain to the current one.
             Raw inline script so it runs during HTML parse (no flash, no dependency
