@@ -73,14 +73,6 @@ const es: HomeCopy = {
         body: "Guardar las decisiones de producto en la memoria del proyecto para que el siguiente ciclo de planificación y desarrollo pueda aprovecharlas.",
       },
     ],
-    split: {
-      agentLabel: "Agente",
-      agentBody:
-        "Planificar el trabajo · Impulsar la ejecución · Registrar decisiones",
-      youLabel: "Tú",
-      youBody:
-        "Plantear el objetivo · Decidir qué priorizar · Dar el visto bueno final",
-    },
   },
 
   memory: {

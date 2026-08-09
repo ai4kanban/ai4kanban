@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { recipes } from "@/components/recipes/recipes-content";
-import { panelInset } from "@/components/styles";
+import { heroTop, panelInset } from "@/components/styles";
 import { getCopy } from "@/i18n";
 import { pageMetadata } from "@/lib/metadata";
 import { itemList, jsonLd, pageUrl, webPage } from "@/lib/schema";
@@ -53,7 +53,7 @@ export default function RecipesPage() {
       />
       <Header c={c} locale="en" />
       <main className="mx-auto max-w-4xl px-6 pb-8">
-        <section className="mt-12 text-center">
+        <section className={`${heroTop} text-center`}>
           <p className="mb-5 inline-block rounded-full border-2 border-border bg-accent-deep px-3 py-1 text-[0.78rem] font-semibold uppercase tracking-wider text-elev">
             Recipes
           </p>

@@ -66,12 +66,6 @@ const zh: HomeCopy = {
         body: "把产品决策写回项目记忆，供下一次规划和开发继续使用。",
       },
     ],
-    split: {
-      agentLabel: "Agent",
-      agentBody: "规划任务 · 推进执行 · 记录决策",
-      youLabel: "你",
-      youBody: "给出目标 · 做出取舍 · 最终验收",
-    },
   },
 
   memory: {

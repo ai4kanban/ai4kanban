@@ -1,7 +1,7 @@
 import { LogoMark } from "@/components/ui/Logo";
 import type { ReactNode } from "react";
 import { Rich } from "../Rich";
-import { panelInset } from "../styles";
+import { heroTop, panelInset } from "../styles";
 import type { SiteCopy, VsHero } from "@/i18n/types";
 
 // The compact two-chip header every comparison page opens with: it states the
@@ -51,7 +51,7 @@ export function VsHeroSection({
   theirsExtra?: ReactNode;
 }) {
   return (
-    <section className="mt-12 text-center">
+    <section className={`${heroTop} text-center`}>
       {/* The one filled blue object on this page's hero — a mark, not a tint. */}
       <p className="mb-5 inline-block rounded-full border-2 border-border bg-accent-deep px-3 py-1 text-[0.78rem] font-semibold uppercase tracking-wider text-elev">
         {c.badge}

@@ -67,12 +67,6 @@ const en: HomeCopy = {
         body: "Write product decisions back to project memory so the next planning and development cycle can build on them.",
       },
     ],
-    split: {
-      agentLabel: "Agent",
-      agentBody: "Plan work · Drive execution · Record decisions",
-      youLabel: "You",
-      youBody: "Set the goal · Make tradeoffs · Give final approval",
-    },
   },
 
   memory: {

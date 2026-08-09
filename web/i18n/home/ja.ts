@@ -72,12 +72,6 @@ const ja: HomeCopy = {
         body: "プロダクト上の判断をプロジェクトの記憶に書き戻し、次の計画と開発に活用します。",
       },
     ],
-    split: {
-      agentLabel: "エージェント",
-      agentBody: "タスクを計画 · 実行を推進 · 判断を記録",
-      youLabel: "あなた",
-      youBody: "目標を示す · 取捨選択する · 最終確認",
-    },
   },
 
   memory: {

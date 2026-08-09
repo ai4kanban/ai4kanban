@@ -1,40 +1,45 @@
 import { FiBookmark, FiPlayCircle, FiShield } from "react-icons/fi";
 import { SectionTitle } from "./SectionTitle";
+import { Mat, printFrame } from "./Mat";
 import { IconChip } from "../ui/IconChip";
 import { panelInset } from "../styles";
+import { CDN } from "@/lib/site";
 import type { HomeCopy } from "@/i18n/home/types";
+
+// The watercolour the tree is mounted on — the same set `Loop.tsx` mounts its
+// four shots on, so a listing and a screenshot read as the same kind of object
+// wherever the page shows one.
+const TREE_MAT = `${CDN}/bloom-2.jpg`;
 
 // The memory is a directory of Markdown files, so the visual is that directory —
 // real paths, one module expanded, a second left collapsed to show there's one
 // per module. Paths and glyphs are structure, not copy, so they stay here; the
 // note beside each file comes from the copy module.
-// `line` is the drawn tree, for the two-column layout from `sm` up. `name` and
-// `depth` are the same rows without the connectors, for the phone — see the
-// panel below for why that width can't use the drawing.
+//
+// `prefix` is the drawn connector, stored apart from the name so it can be set
+// in the muted grey: the connectors are the listing's rules, not its content,
+// and at the ink they weighed as much as the filenames they were pointing at.
+// They are drawn at one dash rather than the canonical two, and the nested level
+// is indented three columns rather than four — the whole listing is then five
+// characters narrower than a terminal would print it, which is what buys the
+// note a place on the same line at phone width.
 type Row = {
-  line: string;
+  prefix: string;
   name: string;
-  depth: 0 | 1 | 2;
   dir?: boolean;
   note?: keyof HomeCopy["memory"]["tree"];
 };
 
 const TREE: Row[] = [
-  { line: "docs/kanban/memory/", name: "docs/kanban/memory/", depth: 0, dir: true },
-  { line: "├── goal.md", name: "goal.md", depth: 1, note: "goal" },
-  { line: "├── local-ui/", name: "local-ui/", depth: 1, dir: true, note: "module" },
-  { line: "│   ├── readme.md", name: "readme.md", depth: 2, note: "readme" },
-  { line: "│   ├── decisions.md", name: "decisions.md", depth: 2, note: "decisions" },
-  { line: "│   ├── rejected.md", name: "rejected.md", depth: 2, note: "rejected" },
-  { line: "│   └── redesign.md", name: "redesign.md", depth: 2, note: "redesign" },
-  { line: "└── site/", name: "site/", depth: 1, dir: true },
+  { prefix: "", name: "docs/kanban/memory/", dir: true },
+  { prefix: "├─ ", name: "goal.md", note: "goal" },
+  { prefix: "├─ ", name: "local-ui/", dir: true, note: "module" },
+  { prefix: "│  ├─ ", name: "readme.md", note: "readme" },
+  { prefix: "│  ├─ ", name: "decisions.md", note: "decisions" },
+  { prefix: "│  ├─ ", name: "rejected.md", note: "rejected" },
+  { prefix: "│  └─ ", name: "redesign.md", note: "redesign" },
+  { prefix: "└─ ", name: "site/", dir: true },
 ];
-
-// The phone tree's indent, one class per level — a rule per depth rather than a
-// computed padding, so the values stay in the markup like every other spacing on
-// the site. The nested step is the wider one because that is where the drawing
-// used to put a `│` guide.
-const INDENT = ["pl-0", "pl-4", "pl-9"] as const;
 
 // One icon per claim, in the order the copy lists them: what's kept, what's
 // avoided, where the next run picks up.
@@ -48,10 +53,14 @@ export function Memory({ c }: { c: HomeCopy["memory"] }) {
         {c.lead}
       </p>
 
-      {/* The tree is only as wide as its longest path, so its column is sized to
-          the content instead of taking half the row — otherwise the panel ends
-          in dead space. The claims take whatever is left. */}
-      <div className="mt-9 grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto]">
+      {/* Two halves of one row, at the same width: the claims are what the
+          memory is for and the listing is what it is, and neither outranks the
+          other. The tree column being sized to its own content instead put the
+          split wherever the longest note in the current language happened to
+          land, which moved the seam between the two panels from language to
+          language. The mat takes the half and the print sits centred on it —
+          that is the mat's job, and a picture is allowed to have a margin. */}
+      <div className="mt-9 grid gap-5 lg:grid-cols-2">
         {/* Three ranks per row so the panel isn't flat: a filled blue icon block
             anchors the left edge, the claim reads first, the evidence sits under
             it at a smaller size. The rows share the height evenly, which matches
@@ -80,58 +89,73 @@ export function Memory({ c }: { c: HomeCopy["memory"] }) {
           })}
         </div>
 
-        {/* The tree is two panels, one per width, because it is two different
-            drawings — not one drawing that reflows.
+        {/* One listing at every width. It used to be two — a two-column grid
+            from `sm` up and, on the phone, a connectorless version with the
+            note tucked under its path — because a note in its own grid column
+            can't survive a 320px viewport. What removed the fork was making the
+            note share the path's line instead of taking a column: the path sets
+            left, the note sets right, and the space between them is whatever
+            the width happens to leave. Nothing has to reflow, so nothing has to
+            be redrawn for the phone.
 
-            From `sm` up it is the listing a terminal prints: connectors drawn in
-            the path, the note beside the path it annotates in a second column.
-            The path column is `max-content` on a `whitespace-pre` tree, so that
-            pair has a floor of about 380px, and a grid column never shrinks
-            under its content — which is what once put the whole page on a
-            horizontal scrollbar. `overflow-x-auto` keeps a longer path in a
-            translation inside this frame rather than back on the page. */}
-        <div
-          className={`${panelInset} hidden overflow-x-auto px-6 py-5 font-mono text-[0.9rem] leading-relaxed sm:grid sm:grid-cols-[max-content_1fr] sm:items-baseline sm:gap-x-8 sm:gap-y-2`}
+            It is mounted the way `Loop.tsx` mounts its shots: a watercolour
+            mat, and the listing laid on it as a print — paper, soft shadow, no
+            outline. It is the same object those are, a picture of the product's
+            files, so it is mounted and not framed. The mat also gives the
+            listing a margin of its own, which is what a terminal frame was
+            doing before with an ink box.
+
+            The print is capped and centred rather than filling its column. The
+            listing is eight short lines; run to the full width of a tablet the
+            gap between a path and its note opens far enough that the pair stops
+            reading as one row, and the cap is the width at which it still does.
+            Centring is also what lets the claims beside it set the height of
+            the row.
+
+            Two faces, because the two halves of a row are different kinds of
+            thing: the path is what the terminal printed, in the mono, and the
+            note is our annotation of it, in the sans a step smaller. That is
+            what separates the columns now that no rule and no wide gutter
+            does. A note long enough to wrap — French runs to 27 characters —
+            wraps within its own right-aligned block, and `items-baseline`
+            keeps its first line sitting on the path's.
+
+            The rows are set tighter than body leading, because the connectors
+            are drawn characters and the drawing only closes up when the rows
+            are close enough for one row's `│` to point at the next one's. A
+            tree is a shape; loosen it and it is eight lines that happen to be
+            near each other. */}
+        <Mat
+          src={TREE_MAT}
+          className="flex items-center justify-center p-4 sm:p-6"
         >
-          {TREE.map((row) => (
-            <div key={row.line} className="contents">
-              <code
-                className={`block whitespace-pre ${row.dir ? "text-accent-deep" : "text-ink"}`}
+          <div
+            className={`${printFrame} w-full max-w-[23rem] bg-elev px-3.5 py-4 font-mono text-[0.75rem] leading-[1.6] sm:px-5 sm:text-[0.8rem]`}
+          >
+            {TREE.map((row) => (
+              <div
+                key={row.name}
+                className="flex items-baseline justify-between gap-2 sm:gap-3"
               >
-                {row.line}
-              </code>
-              {/* A row with no note still has to hold its grid cell, or every
-                  row after it shifts a column. */}
-              <span className="block text-[0.85rem] text-muted">
-                {row.note ? c.tree[row.note] : ""}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* On a phone there is no second column, so the note goes under its
-            path — and then the connectors have to go. A drawn `├──` sets every
-            path at the same left edge whatever its depth, so a note tucked
-            under one landed left of the file it belongs to and the nesting read
-            as noise. Here the indent is the structure: a file sits under its
-            directory, and its note sits under it, one step further in. The blue
-            still marks the directories, so the shape survives the change. */}
-        <div
-          className={`${panelInset} px-5 py-5 font-mono text-[0.85rem] leading-relaxed sm:hidden`}
-        >
-          {TREE.map((row) => (
-            <div key={row.line} className={`${INDENT[row.depth]} mb-3 last:mb-0`}>
-              <code className={row.dir ? "text-accent-deep" : "text-ink"}>
-                {row.name}
-              </code>
-              {row.note && (
-                <span className="mt-0.5 block pl-3 text-[0.8rem] text-muted">
-                  {c.tree[row.note]}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
+                <code className="whitespace-pre">
+                  <span className="text-muted">{row.prefix}</span>
+                  <span
+                    className={
+                      row.dir ? "font-medium text-accent-deep" : "text-ink"
+                    }
+                  >
+                    {row.name}
+                  </span>
+                </code>
+                {row.note && (
+                  <span className="text-right font-sans text-[0.68rem] leading-snug text-muted sm:text-[0.72rem]">
+                    {c.tree[row.note]}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </Mat>
       </div>
     </section>
   );

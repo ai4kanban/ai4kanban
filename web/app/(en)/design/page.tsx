@@ -11,7 +11,13 @@ import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { IconChip } from "@/components/ui/IconChip";
 import { Logo, LogoMark } from "@/components/ui/Logo";
-import { panel, panelInset, panelStatic } from "@/components/styles";
+import {
+  framed,
+  panel,
+  panelBare,
+  panelInset,
+  panelStatic,
+} from "@/components/styles";
 import { contrast, format, verdict } from "@/lib/contrast";
 
 // Every token and every block the site ships, on one screen, with the measured
@@ -30,8 +36,10 @@ import { contrast, format, verdict } from "@/lib/contrast";
 //   The blue is an object: a fill, a bar, a mark. Never a page, never a panel,
 //   never an outline.
 //
-//   Every outline is ink, in every state. Hover moves the block, and on a
-//   button it moves the fill.
+//   The hard ink shadow is what makes a block. The outline is the exception —
+//   every button, and the one panel that has to read as primary — and when it
+//   is there it is ink, in every state. Hover moves the block, and on a button
+//   it moves the fill.
 //
 //   `accent` is a shape. `accent-deep` is the only blue that carries a label.
 
@@ -344,7 +352,7 @@ export default function DesignPage() {
         <Section
           id="buttons"
           title="Buttons"
-          note="components/ui/Button.tsx — one block, two fills, an ink outline in every state. Hover lifts the block, grows the shadow and changes the fill: the primary brightens to the azure, the paper one drops to the wash."
+          note="components/ui/Button.tsx — one block, two fills, and the 2px ink outline in every state. The button is the one thing that carries the outline by default, which is what separates it from the panels around it: a panel is lifted, a button is lifted and drawn. Hover lifts it further, grows the shadow and changes the fill — the primary brightens to the azure, the paper one drops to the wash."
         >
           <div className={`${panelStatic} space-y-7 px-6 py-6`}>
             <div>
@@ -394,14 +402,16 @@ export default function DesignPage() {
 
         <Section
           id="panels"
-          title="Panels"
-          note="components/styles.ts — the same frame at two fills. Hover moves the card and grows the shadow; the outline and the shadow stay ink, so a card and a button carry the same weight."
+          title="Surfaces"
+          note="components/styles.ts — two styles, raised and bare, with nothing between them. A block either takes the 4px hard ink shadow, or it takes nothing at all and is separated by the step it sits on in the ramp. The 2px ink outline is not part of either: it is a modifier, `framed`, and by default only a button wears it. There is no 1px grey in the system — that is the compromise that makes a page look busy and undesigned at once, and once it exists every block gets one. Raised is for a block that is an object on the page: a card, the one surface a section is built around. Everything else is bare."
         >
+          <Label>style 1 · raised — 4px hard ink shadow, no outline</Label>
           <div className="grid gap-4 sm:grid-cols-3">
             <div className={`${panel} p-5`}>
               <p className="font-mono text-[0.85rem] font-semibold">panel</p>
               <p className="mt-2 text-[0.9rem] leading-relaxed text-muted">
-                Paper, ink outline, 4px ink shadow. Lifts on hover — try it.
+                Paper on the page, lifted by the ink shadow. Lifts further on
+                hover — try it.
               </p>
             </div>
             <div className={`${panelStatic} p-5`}>
@@ -418,6 +428,82 @@ export default function DesignPage() {
                 two cards matters is said with this ramp, not with a border.
               </p>
             </div>
+          </div>
+
+          <div className="mt-8">
+            <Label>
+              the modifier · framed — the outline back on, for the primary one
+            </Label>
+            {/* The pair is the whole argument: the same block twice, and the
+                outline only says "this one" while the block beside it isn't
+                saying it too. Frame both and neither is being pointed at. */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className={`${panelStatic} p-5`}>
+                <p className="font-mono text-[0.85rem] font-semibold">
+                  panelStatic
+                </p>
+                <p className="mt-2 text-[0.9rem] leading-relaxed text-muted">
+                  The default. A handful of these on a screen still read as a
+                  handful of blocks.
+                </p>
+              </div>
+              <div className={`${panelStatic} ${framed} p-5`}>
+                <p className="font-mono text-[0.85rem] font-semibold">
+                  panelStatic + framed
+                </p>
+                <p className="mt-2 text-[0.9rem] leading-relaxed text-muted">
+                  One per screen. It composes because no panel string sets a
+                  border — the fill is the thing you can&apos;t append.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <Label>
+              style 2 · bare — no border, no shadow, separated by the ramp
+            </Label>
+            {/* Shown on the wash, because that is the point: a bare block is
+                only a block when it lands on the step next to its ground. */}
+            <div className="rounded-xl bg-code p-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className={`${panelBare} p-5`}>
+                  <p className="font-mono text-[0.85rem] font-semibold">
+                    panelBare
+                  </p>
+                  <p className="mt-2 text-[0.9rem] leading-relaxed text-muted">
+                    Paper, cut out of whatever it sits on. Every part of a
+                    composite: a node in a diagram, a tile in a grid, a row in a
+                    list.
+                  </p>
+                </div>
+                <div className="rounded-xl bg-accent-deep p-5 text-elev">
+                  <p className="font-mono text-[0.85rem] font-semibold">
+                    a filled block
+                  </p>
+                  <p className="mt-2 text-[0.9rem] leading-relaxed opacity-80">
+                    Read by its fill, so it is never framed — an ink outline
+                    would only make it weigh the same as the tiles beside it.
+                  </p>
+                </div>
+                <div className="overflow-hidden rounded-xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={BLOOMS[0]}
+                    alt=""
+                    className="h-full min-h-28 w-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-[0.9rem] text-muted">
+              The block those three sit in is <code>panelBareInset</code> — the
+              wash, bare, on the page. Artwork is bare for a second reason: an
+              ink box around a watercolour is a frame around a picture, and four
+              down a column read as four boxes, which is why the mats in{" "}
+              <code>components/home/Loop.tsx</code> carry none.
+            </p>
           </div>
         </Section>
 
@@ -446,26 +532,33 @@ export default function DesignPage() {
             </div>
             <div>
               <Label>a node, as the diagrams draw it</Label>
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                {[
-                  { t: "Decision history", i: FiBookmark },
-                  { t: "Requirements", i: FiList },
-                  { t: "Project modules", i: FiBox },
-                  { t: "Run history", i: FiActivity },
-                ].map((n) => (
-                  <div
-                    key={n.t}
-                    className="flex flex-col items-center gap-2.5 rounded-lg border-2 border-border bg-elev px-2 py-3.5 text-center"
-                  >
-                    <IconChip icon={n.i} />
-                    <span className="text-[0.85rem] leading-snug">{n.t}</span>
-                  </div>
-                ))}
-              </div>
-              {/* The one filled blue block on a screen: the piece everything
-                  above and below it connects to. */}
-              <div className="mt-2.5 rounded-lg border-2 border-border bg-accent-deep px-4 py-3.5 text-center font-mono text-[0.95rem] font-semibold text-elev">
-                AI4Kanban Skill
+              {/* Nothing here is framed and nothing casts a shadow — a diagram
+                  is twenty parts, and twenty ink frames nested three deep draw
+                  a grid of boxes over the top of the flow the picture is for.
+                  Every edge in it is a change of fill instead. */}
+              <div className="rounded-xl bg-code p-3">
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                  {[
+                    { t: "Decision history", i: FiBookmark },
+                    { t: "Requirements", i: FiList },
+                    { t: "Project modules", i: FiBox },
+                    { t: "Run history", i: FiActivity },
+                  ].map((n) => (
+                    <div
+                      key={n.t}
+                      className="flex flex-col items-center gap-2.5 rounded-lg bg-elev px-2 py-3.5 text-center"
+                    >
+                      <IconChip icon={n.i} />
+                      <span className="text-[0.85rem] leading-snug">{n.t}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* The one filled blue block on a screen: the piece everything
+                    above and below it connects to, and the only thing in the
+                    diagram that raises its voice. */}
+                <div className="mt-2.5 rounded-lg bg-accent-deep px-4 py-3.5 text-center font-mono text-[0.95rem] font-semibold text-elev">
+                  AI4Kanban Skill
+                </div>
               </div>
             </div>
           </div>
@@ -501,7 +594,9 @@ export default function DesignPage() {
           title="The dark band"
           note="The site footer: the palette inverted rather than a new colour — the ink as the ground, the paper as the type."
         >
-          <div className="rounded-xl border-2 border-border bg-ink px-6 py-8 text-sm text-elev/70">
+          {/* Bare, like the real one: the band bleeds to both edges of the
+              viewport, so it has no outside to draw. */}
+          <div className="rounded-xl bg-ink px-6 py-8 text-sm text-elev/70">
             <p className="text-center">
               GitHub · Documentation · Recipes · Apache License 2.0
             </p>

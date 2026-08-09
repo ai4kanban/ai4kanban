@@ -100,7 +100,7 @@ function Handoff() {
 
 function Frame({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-xl border-2 border-border bg-elev p-2.5">
+    <div className="rounded-xl bg-elev p-2.5">
       {children}
     </div>
   );

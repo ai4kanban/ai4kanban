@@ -24,14 +24,18 @@ export function IconChip({
   icon: Icon,
   tone = "blue",
   size = "sm",
+  className = "",
 }: {
   icon: IconType;
   tone?: keyof typeof TONE;
   size?: keyof typeof SIZE;
+  // For a caller that animates the block — `Iterate.tsx` lights each one as the
+  // signal reaches it. The fill still comes from `tone`; this only adds to it.
+  className?: string;
 }) {
   return (
     <span
-      className={`flex shrink-0 items-center justify-center rounded-lg ${TONE[tone]} ${SIZE[size]}`}
+      className={`flex shrink-0 items-center justify-center rounded-lg ${TONE[tone]} ${SIZE[size]} ${className}`}
     >
       <Icon aria-hidden="true" />
     </span>

@@ -46,7 +46,10 @@ export function CodeBlock({
 
   return (
     <div className="group relative my-4">
-      <pre className="overflow-x-auto rounded-xl border-2 border-border bg-code p-5 pr-14 shadow-[4px_4px_0_0_var(--color-ink)]">
+      {/* The wash and the hard ink shadow, and no outline — the panel's default
+          block. The copy button on top keeps its border, because a button is
+          the one thing that still draws one. */}
+      <pre className="overflow-x-auto rounded-xl bg-code p-5 pr-14 shadow-[4px_4px_0_0_var(--color-ink)]">
         <code className="font-mono text-sm leading-7 text-ink">{children}</code>
       </pre>
       <button

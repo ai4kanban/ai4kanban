@@ -34,13 +34,6 @@ export type HomeCopy = {
     title: string;
     lead: string;
     steps: [TitleBody, TitleBody, TitleBody, TitleBody];
-    /** Who does what — the agent's half and yours. */
-    split: {
-      agentLabel: string;
-      agentBody: string;
-      youLabel: string;
-      youBody: string;
-    };
   };
   memory: {
     title: string;

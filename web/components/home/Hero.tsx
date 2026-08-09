@@ -3,6 +3,7 @@ import { Button } from "../ui/Button";
 import { GITHUB_URL } from "../content";
 import { HeroShots } from "./HeroShots";
 import { CDN } from "@/lib/site";
+import { heroTop } from "../styles";
 import type { HomeCopy } from "@/i18n/home/types";
 
 // The watercolour banner behind the hero — the same paper and the same azure as
@@ -11,12 +12,17 @@ const BANNER = `${CDN}/bg-hero-v1.webp`;
 
 export function Hero({ c }: { c: HomeCopy["hero"] }) {
   return (
-    <section className="relative mt-14 grid items-center gap-10 lg:mt-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12">
+    <section
+      className={`relative ${heroTop} grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12`}
+    >
       {/* The banner breaks out of the page's `max-w-5xl` column to the full
           viewport (`left-1/2 w-screen -translate-x-1/2`) and is pulled back up
           over the section's top margin so the pigment starts at the header's
-          rule. The mask dissolves it into the page ground, so the image never
-          ends on a visible edge.
+          rule. Those two offsets are `heroTop` restated — the negative top and
+          the extra height both have to equal it at both breakpoints, or the
+          wash starts below the rule and draws an edge across the page. The mask
+          dissolves it into the page ground, so the image never ends on a
+          visible edge.
 
           It is a `next/image` and not a CSS `background-image` for one reason:
           `priority` puts a `<link rel=preload>` in the head, so the browser
@@ -38,7 +44,7 @@ export function Hero({ c }: { c: HomeCopy["hero"] }) {
           ground there, and the headline is the LCP element instead. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-14 left-1/2 -z-10 hidden h-[calc(100%+3.5rem)] w-screen -translate-x-1/2 overflow-hidden opacity-60 [mask-image:linear-gradient(to_bottom,#000_35%,transparent_92%)] sm:block lg:-top-20 lg:h-[calc(100%+5rem)]"
+        className="pointer-events-none absolute -top-20 left-1/2 -z-10 hidden h-[calc(100%+5rem)] w-screen -translate-x-1/2 overflow-hidden opacity-60 [mask-image:linear-gradient(to_bottom,#000_35%,transparent_92%)] sm:block lg:-top-32 lg:h-[calc(100%+8rem)]"
       >
         <Image
           src={BANNER}

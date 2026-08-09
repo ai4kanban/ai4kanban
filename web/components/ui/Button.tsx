@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 
 // The page's one button block — the panel's shadow at the panel's offset, so a
-// button and a card are cut from the same stock. The shadow grows by exactly the
-// hover translate (2px), which keeps the block's bottom-right edge pinned as the
-// face lifts off it.
+// button and a card are cut from the same stock, plus the 2px ink outline the
+// panels don't take. That outline is what makes this one a button: a panel is
+// lifted, a button is lifted and drawn, and it is the one block on the page you
+// are meant to hit. The shadow grows by exactly the hover translate (2px), which
+// keeps the block's bottom-right edge pinned as the face lifts off it.
 const BASE =
   "inline-flex items-center justify-center gap-2 rounded-lg border-2 " +
   "border-border font-semibold no-underline " +

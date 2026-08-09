@@ -67,13 +67,6 @@ const fr: HomeCopy = {
         body: "Inscrire les décisions produit dans la mémoire du projet afin que le prochain cycle de planification et de développement puisse s’appuyer dessus.",
       },
     ],
-    split: {
-      agentLabel: "Agent",
-      agentBody:
-        "Planifier le travail · Piloter l’exécution · Consigner les décisions",
-      youLabel: "Vous",
-      youBody: "Fixer l’objectif · Arbitrer · Donner la validation finale",
-    },
   },
 
   memory: {

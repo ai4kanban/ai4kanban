@@ -50,7 +50,7 @@ function MemoryCard({
       </div>
 
       <div
-        className={`mt-5 rounded-lg border-2 border-border p-4 ${ours ? "bg-code" : "bg-elev"}`}
+        className={`mt-5 rounded-lg p-4 ${ours ? "bg-code" : "bg-elev"}`}
       >
         <p className="text-sm font-semibold text-ink">{c.question}</p>
         <p className="mt-1.5 text-sm text-muted">

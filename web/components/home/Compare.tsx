@@ -16,7 +16,13 @@ const ROWS = ["row-start-2", "row-start-3", "row-start-4"];
 // From task tracking to autonomous planning — two columns, the traditional board
 // and AI4Kanban, with an arrow between them on every row. Each column is one
 // panel painted behind the rows by the grid, so the rows sit flush inside a card
-// and are told apart by a divider rather than a gap.
+// rather than floating apart.
+//
+// Neither card is outlined: each is a fill laid behind the grid, lifted off the
+// page by the hard ink shadow every panel on the site casts, and the rows are
+// cut apart by the rule between them. That is the whole structure — the lines
+// inside a table are what a table is, and an outline around the outside of one
+// only boxes in something the rows have already squared off.
 //
 // Which card wins is said with the neutral ramp, not with a border color: the
 // traditional board sits in the wash, AI4Kanban on the paper above it, so the

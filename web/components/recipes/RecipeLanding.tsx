@@ -3,7 +3,7 @@ import { RecipeArt } from "./RecipeArt";
 import { SectionHeading } from "../SectionHeading";
 import { Button } from "../ui/Button";
 import type { Recipe } from "./recipes-content";
-import { panel, panelInset } from "../styles";
+import { heroTop, panel, panelInset } from "../styles";
 import { getCopy } from "@/i18n";
 
 // Recipes are English-only (see `TRANSLATED_PATHS` in lib/i18n.ts), so the copy
@@ -34,7 +34,7 @@ export function RecipeLanding({
   return (
     <main className="mx-auto max-w-4xl px-6 pb-8">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="mt-10">
+      <section className={heroTop}>
         <a
           href="/recipes"
           className="inline-flex items-center gap-1 text-sm text-muted no-underline transition-colors hover:text-ink"

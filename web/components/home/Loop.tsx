@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { SectionTitle } from "./SectionTitle";
-import { panelInset, panelStatic } from "../styles";
+import { Mat, printFrame } from "./Mat";
 import { ShotCardQuestions } from "../shots/ShotCardQuestions";
 import { ShotCardReady } from "../shots/ShotCardReady";
 import { ShotDecisions } from "../shots/ShotDecisions";
@@ -10,10 +10,9 @@ import { ShotSessions } from "../shots/ShotSessions";
 import { CDN } from "@/lib/site";
 import type { HomeCopy } from "@/i18n/home/types";
 
-// Keep work moving — the four steps as a scrollytelling column: the title, the
-// lead and the who-does-what panel start level with the first card, ride up with
-// the page until they sit in the middle of the screen, then hold there while the
-// steps scroll past.
+// Keep work moving — the four steps as a scrollytelling column: the title and
+// the lead start level with the first card, ride up with the page until they sit
+// in the middle of the screen, then hold there while the steps scroll past.
 //
 // That resting point is `(viewport - column height) / 2`, which CSS can't work
 // out on its own, so the column measures itself and feeds the number to
@@ -46,10 +45,14 @@ function useCenteredStickyTop() {
   return { ref, top };
 }
 
-// One artwork per step, used as the mat the shot is mounted on. Only the mat is
-// a panel — the title and body sit bare on the page above it, so there's no card
-// edge boxing a light mat in and no text over the artwork. Each step gets its
-// own texture so the four read as a set without repeating.
+// One artwork per step, used as the mat the shot is mounted on. Nothing here is
+// a panel: the title and body sit bare on the page above the mat, and the mat
+// carries no outline and no hard shadow either. It is a picture, and an ink
+// frame around a watercolour is a frame around a frame — four of them down the
+// column turned a scroll through the steps into a scroll past four boxes. What
+// holds the mat together instead is its own bleed to the edge, and the soft
+// shadow the print casts onto it. Each step gets its own texture so the four
+// read as a set without repeating.
 //
 // `art` is a drawing from components/shots/, not a capture: this column is
 // ~464px wide, and a real 840px screenshot of the card page lands here at
@@ -65,20 +68,6 @@ const SHOTS: { mat: string; art: ReactNode }[] = [
   { mat: `${CDN}/bloom-4.jpg`, art: <ShotDecisions /> },
 ];
 
-// Backs the mat so a failed image load leaves a pale blue field rather than a
-// bare hole. Keyed to the site's one azure, `--color-accent` #2f7ff5, lightened
-// until text and a screenshot both sit on it comfortably.
-const MAT = "#d9e8fd";
-
-// The shot sits on the mat the way a print sits on a mount: a soft shadow, so
-// it reads as laid on top rather than cut out of it. The shadow is the page's
-// own ink at low alpha, and soft where every other shadow on the site is hard —
-// a mounted print casts a real one. No edge line: the drawings carry their own
-// ink-framed panels, and a second outline around those read as a frame in a
-// frame.
-const printFrame =
-  "rounded-lg shadow-[0_6px_18px_-6px_rgba(25,28,34,0.45)]";
-
 export function Loop({ c }: { c: HomeCopy["loop"] }) {
   const { ref, top } = useCenteredStickyTop();
   return (
@@ -88,25 +77,14 @@ export function Loop({ c }: { c: HomeCopy["loop"] }) {
         <div ref={ref} style={{ top }} className="lg:sticky lg:self-start">
           <SectionTitle num="02" title={c.title} />
           <p className="text-[1.05rem] leading-relaxed text-muted">{c.lead}</p>
-
-          {/* Who does what — the point of the section, so it sits with the title. */}
-          <div className={`${panelInset} mt-8 divide-y-2 divide-border `}>
-            <div className="px-5 py-4">
-              <span className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent-deep">
-                {c.split.agentLabel}
-              </span>
-              <p className="mt-2 text-[0.95rem] text-ink">{c.split.agentBody}</p>
-            </div>
-            <div className="px-5 py-4">
-              <span className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-growth">
-                {c.split.youLabel}
-              </span>
-              <p className="mt-2 text-[0.95rem] text-ink">{c.split.youBody}</p>
-            </div>
-          </div>
         </div>
 
-        {/* The rail: a hairline behind the numbers ties the four steps together. */}
+        {/* The rail: one hairline behind the numbers ties the four steps
+            together. Full-strength ink, like every other line the site draws —
+            it is a rule, not a block's border, so the framed/bare rule in
+            §3 of design.md has nothing to say about it, and there is no
+            half-strength ink anywhere in the theme to reach for instead. At 1px
+            it is delicate enough without being diluted. */}
         <ol className="relative space-y-5 before:absolute before:bottom-6 before:left-[1.6rem] before:top-6 before:w-px before:bg-border before:content-['']">
           {/* The number and the step's words are indented off the rail; the mat
               is only indented from `sm` up. On a phone that indent plus the
@@ -117,7 +95,13 @@ export function Loop({ c }: { c: HomeCopy["loop"] }) {
           {c.steps.map((step, i) => (
             <li key={step.title} className="relative">
               <div className="flex gap-4 sm:gap-5">
-                <span className="z-10 flex h-13 w-13 shrink-0 items-center justify-center rounded-full border-2 border-border bg-code font-mono text-sm font-bold text-accent-deep">
+                {/* Borderless, like everything else in the section. The disc
+                    is only there to break the rail behind the number — it is
+                    opaque, so it does that at any strength — and the number
+                    itself is the marker: mono, bold, and the one blue in the
+                    column. Ringed in ink it was the last neo-brutalist block
+                    left here, four hard circles down a page of soft edges. */}
+                <span className="z-10 flex h-13 w-13 shrink-0 items-center justify-center rounded-full bg-code font-mono text-sm font-bold text-accent-deep">
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <div className="min-w-0 flex-1 pb-4 pt-2.5">
@@ -129,21 +113,15 @@ export function Loop({ c }: { c: HomeCopy["loop"] }) {
                   </p>
                 </div>
               </div>
-              <div
-                className={`${panelStatic} overflow-hidden bg-cover bg-center p-3 sm:ml-[4.5rem] sm:p-6`}
-                style={{
-                  backgroundColor: MAT,
-                  backgroundImage: `url(${SHOTS[i].mat})`,
-                }}
-              >
+              <Mat src={SHOTS[i].mat} className="p-3 sm:ml-[4.5rem] sm:p-6">
                 {/* The drawing is decoration, not content — the step's title
                     and body above it already say everything it shows, so it
                     carries no label of its own for a screen reader to read
                     out twice. */}
-                <div aria-hidden className={`overflow-hidden ${printFrame}`}>
+                <div aria-hidden className={printFrame}>
                   {SHOTS[i].art}
                 </div>
-              </div>
+              </Mat>
             </li>
           ))}
         </ol>
