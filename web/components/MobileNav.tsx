@@ -32,6 +32,9 @@ export function MobileNav({ c, locale }: { c: SiteCopy; locale: Locale }) {
       <a href={localeHref(locale, "/#install")} className={item}>
         {nav.install}
       </a>
+      <a href={localeHref(locale, "/download")} className={item}>
+        {nav.download}
+      </a>
       <a href="/recipes" className={item}>
         {nav.recipes}
       </a>

@@ -52,7 +52,7 @@ export function HomePage({ locale }: { locale: Locale }) {
         <Loop c={c.loop} />
         <Memory c={c.memory} />
         <Iterate c={c.iterate} />
-        <Start c={c.start} />
+        <Start c={c.start} locale={locale} />
       </main>
       <SiteFooter c={copy} locale={locale} path="" />
     </>

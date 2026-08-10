@@ -67,6 +67,14 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
           >
             {nav.install}
           </a>
+          {/* The board app. It gets a nav slot of its own because it is the
+              one thing on the site a reader leaves with. */}
+          <a
+            href={localeHref(locale, "/download")}
+            className="transition-colors hover:text-ink"
+          >
+            {nav.download}
+          </a>
           {/* Recipes are English-only, so this link never takes a locale prefix. */}
           <a href="/recipes" className="transition-colors hover:text-ink">
             {nav.recipes}

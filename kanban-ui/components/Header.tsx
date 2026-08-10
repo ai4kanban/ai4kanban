@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { FiColumns, FiFolder, FiList } from "react-icons/fi";
+import { FiColumns, FiList } from "react-icons/fi";
 import type { ReleasePick } from "@/lib/release-pick";
 import type { AgentInfo, SessionView } from "@/lib/types";
 import type { BoardViewMode } from "@/lib/view";
 import { Configuration } from "./Configuration";
 import { CreateTask } from "./CreateTask";
+import { ProjectPath } from "./desktop";
 import { Goal } from "./Goal";
 import { LogoMark } from "./Logo";
 import { Progress } from "./Progress";
@@ -67,6 +68,7 @@ export function Header({
   onSetReleaseGoal,
   createRelease = null,
   goalWritten = false,
+  desktop = false,
 }: {
   agent: AgentInfo;
   projectRoot: string;
@@ -116,6 +118,10 @@ export function Header({
    *  missing or empty — means there is nothing to open and the button stays
    *  away; the setup bar is what asks for the goal then. */
   goalWritten?: boolean;
+  /** Whether this board is running inside the desktop app (#175). All it changes
+   *  here is the folder badge: in the app it opens another project, since there
+   *  is no terminal to restart the board from. */
+  desktop?: boolean;
 }) {
   return (
     <header
@@ -133,18 +139,7 @@ export function Header({
           <LogoMark />
           AI4Kanban
         </Link>
-        <span
-          title={`${projectRoot}/docs/kanban`}
-          className="hidden min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[11px] text-nb-ink-soft sm:flex"
-          style={{
-            background: "color-mix(in srgb, var(--color-nb-ink) 5%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent)",
-          }}
-        >
-          <FiFolder className="shrink-0 opacity-70" size={12} />
-          <span className="truncate lg:hidden">{projectRoot.split("/").pop()}</span>
-          <span className="hidden truncate lg:inline">{projectRoot}</span>
-        </span>
+        <ProjectPath projectRoot={projectRoot} desktop={desktop} />
         <Goal written={goalWritten} />
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">

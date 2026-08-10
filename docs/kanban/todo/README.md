@@ -29,6 +29,8 @@ _(none)_
 - [#174 Add the coding agent skill later, from a button in the UI](features/174-add-the-coding-agent-skill-later-from-a-button-in-the-ui.md)
 - [#175 Open the board as a desktop app](features/175-open-the-board-as-a-desktop-app.md)
 - [#176 Answer the board's questions from your phone](features/176-answer-the-board-s-questions-from-your-phone.md)
+- [#178 Open and switch projects from the app, the way an IDE does](features/178-open-and-switch-projects-from-the-app-the-way-an-ide-does.md)
+- [#179 Show a failed run on the card it was working on](features/179-show-a-failed-run-on-the-card-it-was-working-on.md)
 
 ## skill
 
@@ -41,7 +43,6 @@ _(none)_
 - [#156 Two runs writing cards at once must not clobber the board](skill/156-two-runs-writing-cards-at-once-must-not-clobber-the-board.md)
 - [#157 Turn a spec you already wrote into the cards that build it](skill/157-turn-a-spec-you-already-wrote-into-the-cards-that-build-it.md)
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
-- [#159 Make one install serve Cursor and Windsurf too](skill/159-make-one-install-serve-cursor-and-windsurf-too.md)
 - [#167 Put every board command in one CLI](skill/167-put-every-board-command-in-one-cli.md)
 - [#168 Start, watch, stop and resume an agent run from the CLI](skill/168-start-watch-stop-and-resume-an-agent-run-from-the-cli.md)
 - [#170 Let the skill do everything the UI can](skill/170-let-the-skill-do-everything-the-ui-can.md)
@@ -50,6 +51,7 @@ _(none)_
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#177 Make the board UI the way in, in the README and on the site](distribution/177-make-the-board-ui-the-way-in-in-the-readme-and-on-the-site.md)
+- [#180 Track each competitor as a feature checklist tied to your cards](distribution/180-track-each-competitor-as-a-feature-checklist-tied-to-your-ca.md)
 
 ## 77-memory-in-the-ui/features
 

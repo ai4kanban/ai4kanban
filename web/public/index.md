@@ -54,20 +54,22 @@ Once installed, drive it in plain language:
 | "/kanban #4 is done" | notes what shipped, moves the card off the board |
 | "/kanban #4 was a bad idea" | records why in rejected.md so it's never re-proposed |
 
-## 03 · Board UI — A local board you can open in the browser
+## 03 · Board UI — A board you can open as an app
 
-Prefer to look instead of ask? One command opens a board over the same Markdown
-files — read a task in full without hunting for its file in your IDE tree, and
-act on it with a click instead of re-typing the same prompt into the chat.
+Prefer to look instead of ask? The board opens as a desktop app over the same
+Markdown files — read a task in full without hunting for its file in your IDE
+tree, and act on it with a click instead of re-typing the same prompt into the
+chat.
 
-It's optional — the install step ships nothing extra. When you want it, just ask
-Claude:
+Download it at https://ai4kanban.dev/download — nothing to install first: no
+Node, no npx, no terminal. It asks which project folder to open the first time
+and remembers it. macOS, Windows and Linux; macOS is the build we test and sign.
 
-```
-/kanban run the local board UI
-```
+It's optional — the install step ships nothing extra.
 
-Claude starts the prebuilt server for you — localhost only, nothing to compile.
+Running the same board in a browser with `npx ai4kanban-ui` still works, but that
+way is deprecated: the package is frozen rather than pulled, so an existing setup
+keeps coming up, and no new release lands there.
 
 Each card's buttons hand a move to an agent, no chat needed:
 

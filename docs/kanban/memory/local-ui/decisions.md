@@ -25,6 +25,10 @@ re-ask a settled call.
   built and shipped untested until someone reports otherwise.
 - **How does a user get the board?**: the desktop app is the way in. Homebrew may come
   later; npx is not how the app is handed out.
+- **What happens to the browser way?**: deprecated the day the app ships, and said so out
+  loud — a warning from npm, a notice in the page, and no doc teaching it any more. The
+  package is frozen, not pulled, so people already on it keep a working board. The pages
+  live on inside the app; only starting a server and opening a browser goes away.
 - **What do we pay to sign the app?**: the Mac app only — macOS is the one we test, so it
   opens with no warning. Windows and Linux ship unsigned and the download page says how to
   open them. Revisit a Windows certificate when users ask.

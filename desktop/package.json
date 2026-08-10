@@ -1,0 +1,29 @@
+{
+  "name": "ai4kanban-desktop",
+  "productName": "AI4Kanban",
+  "version": "0.5.0",
+  "private": true,
+  "description": "The AI4Kanban board as a desktop app — no terminal, no Node, nothing to install first.",
+  "license": "Apache-2.0",
+  "author": "AI4Kanban contributors",
+  "homepage": "https://ai4kanban.dev/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ai4kanban/ai4kanban.git",
+    "directory": "desktop"
+  },
+  "main": "main.js",
+  "scripts": {
+    "bundle": "node scripts/bundle-ui.mjs",
+    "start": "node scripts/bundle-ui.mjs --if-missing && electron .",
+    "dist": "node scripts/bundle-ui.mjs && electron-builder --mac --win --linux",
+    "dist:mac": "node scripts/bundle-ui.mjs && electron-builder --mac",
+    "dist:win": "node scripts/bundle-ui.mjs && electron-builder --win",
+    "dist:linux": "node scripts/bundle-ui.mjs && electron-builder --linux",
+    "lint": "node --check main.js && node --check preload.js && node --check lib/menu.js && node --check lib/server.js && node --check lib/shell-env.js && node --check lib/store.js && node --check lib/update.js"
+  },
+  "devDependencies": {
+    "electron": "^43.3.0",
+    "electron-builder": "^26.15.3"
+  }
+}

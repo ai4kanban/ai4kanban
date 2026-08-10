@@ -10,6 +10,12 @@ before proposing so you don't re-suggest them.
   write instead is a best-practices guide in `docs/guides/` — advice the user can ignore,
   not a shape the agent enforces.
 
+## Install
+
+- **A per-agent install that writes each editor's own rules file** — Cursor and Windsurf
+  both read the shared `.agents` folder, and install already writes the skill to
+  `.agents/skills/kanban/`, so they work the day they install. No per-agent target to add.
+
 ## Outside sources
 
 - **Built-in connectors that pull outside sources onto the board** — a recurring card or
@@ -31,3 +37,8 @@ before proposing so you don't re-suggest them.
 
 - **Mirror the board to a second backend** — two live copies means two-way sync and a
   conflict story, a product of its own rather than a setting. One backend per project.
+- **Move every flow off Read and Grep and onto script commands** — the script already
+  lists cards and writes a card's frontmatter, which is the part that needs one owner.
+  Wrapping the rest — showing a card, searching card text, writing a card body — buys
+  nothing on a file board: the agent reads files well. A backend that can't be read as
+  files carries that cost itself, on its own card.

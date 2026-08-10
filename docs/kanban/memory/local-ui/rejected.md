@@ -13,16 +13,20 @@ before proposing so you don't re-suggest them.
   and, by absence, what can't, so a second "waiting" signal is redundant.
 - **A Finished view that browses archived cards** — too little value for the work. An
   archived card is a plain file next to the board; anyone can read it in their editor.
-- **Switching between projects from the header** — we keep no list of projects. A server
-  serves the board it was started in; a list spanning boards has nowhere to live that
-  isn't outside every repo, which breaks files-in-the-repo as the only source of truth. A
-  second board means a second server.
+- **Switching between projects from the browser UI** — a server serves the board it was
+  started in, so a second board means a second server. This does not apply to the desktop
+  app: an app with no terminal has to open and switch folders itself, and the user asked
+  for it (#178).
 - **Open-questions notification center in the header** — no clear incentive to build it;
   open questions already show on the card. Worth revisiting if the board ever grows a
   human-in-the-loop center.
 - **Ticking several cards to move them into a release at once** — cards go into and out of
   a release by asking the agent in plain words, not by hand-picking them in the UI. A
   multi-select bar builds the manual path we don't want.
+- **Route every card read and write through the script** — listing cards and writing a
+  card's frontmatter already go through it, and that covers what the board needs one owner
+  for. A full read-and-write API on top changes nothing a user sees and slows down work
+  that reads files today.
 
 ## Runs
 

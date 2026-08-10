@@ -3,8 +3,9 @@
 //
 // The canonical version lives in the root `VERSION` file. Every other place that
 // must carry a version (plugin manifest, marketplace catalog, the skill script that
-// runs inside installed projects, and the two npm packages) is DERIVED — this script
-// stamps them all from `VERSION` so you only ever edit one number.
+// runs inside installed projects, the two npm packages, and the desktop app) is
+// DERIVED — this script stamps them all from `VERSION` so you only ever edit one
+// number.
 //
 // Why copies exist at all: each is read by a different tool in its own format, and
 // `skill/kanban.mjs` gets physically copied into installed projects (`.claude/skills/`)
@@ -50,6 +51,13 @@ const TARGETS = [
     // it moved the user to, so it has to match what the skill it ships says
     re: /("version"\s*:\s*")(\d+\.\d+\.\d+[^"]*)(")/,
     label: 'cli/package.json',
+  },
+  {
+    file: 'desktop/package.json',
+    // the desktop app — what the window's About box shows, and what it compares
+    // against the newest GitHub release to say a newer one is out
+    re: /("version"\s*:\s*")(\d+\.\d+\.\d+[^"]*)(")/,
+    label: 'desktop/package.json',
   },
   {
     file: 'skill/kanban.mjs',

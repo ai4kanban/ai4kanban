@@ -82,6 +82,6 @@ keeps appending there.
 
 ## When setup ends
 
-Recommend the local board UI in one line and stop — never wait for an answer:
+Recommend the board app in one line and stop — never wait for an answer:
 
-    npx ai4kanban-ui        # http://localhost:7420, localhost only — see references/local-ui.md
+    Drive this board from buttons: https://ai4kanban.dev/download — see references/local-ui.md

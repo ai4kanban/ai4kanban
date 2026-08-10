@@ -3,12 +3,13 @@ title: Run the board with an agent beyond Claude Code and Codex
 track: features
 priority: med
 roi: med
-status: ready
-release: ""
-blocked_by: [159]
+status: todo
+release: 0.6.0
+blocked_by: []
 related: []
 modules: [local-ui]
-questions: []
+questions:
+  - Install writes the skill to .claude/skills/ and .agents/skills/. Cursor reads the .agents folder, so it is covered — do OpenClaw and OpenCode read it too, or does each need its own skill location?
 ---
 
 The board can only run work through Claude Code or Codex. Someone who works in Cursor,
@@ -26,7 +27,8 @@ those three agents.
   failing at run time.
 - Every button must reach the skill under the new agent: the skill has to sit where that
   agent looks for it, and the prompt has to trigger it the way that agent triggers a
-  skill. Install covers where the skill is written (#159).
+  skill. Install already writes the skill to the shared `.agents` folder, so an agent that
+  reads that folder needs nothing extra.
 - Name the supported agents in the local UI docs and in the README, so the claim matches
   what ships.
 

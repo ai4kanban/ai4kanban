@@ -14,7 +14,7 @@ questions: []
 Everything we publish still teaches the old first step: install the skill into your coding agent. Once the board sets itself up from the UI, that sends every new user down the harder path.
 
 ## Scope
-- The first step everywhere becomes opening the board — the app or one command — not
+- The first step everywhere becomes opening the board — downloading the app — not
   installing a skill.
 - The skill is shown as an optional extra, further down: drive the same board from your
   coding agent.

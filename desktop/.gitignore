@@ -1,0 +1,5 @@
+node_modules/
+dist/
+# The board UI's prebuilt server, copied in by scripts/bundle-ui.mjs at build
+# time. It is a build product of ../kanban-ui, not a source file.
+resources/server/

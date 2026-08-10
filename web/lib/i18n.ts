@@ -42,6 +42,7 @@ export const LOCALE_TAGS: Record<Locale, string> = {
  */
 export const TRANSLATED_PATHS = [
   "",
+  "/download",
   "/vs-github-issues",
   "/vs-hermes-kanban",
   "/vs-vibe-kanban",

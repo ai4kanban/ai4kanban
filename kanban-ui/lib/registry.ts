@@ -1084,8 +1084,18 @@ async function launch(
   });
   child.stderr.on("data", (d: Buffer) => append(d.toString()));
   child.on("error", (err) => {
-    session.error = String(err);
-    log.write(`\n[error] ${String(err)}`);
+    // The one failure worth saying in our own words, the same one Test Connection
+    // explains (lib/test-connection.ts): the agent's binary isn't on this
+    // machine — or isn't on the PATH this board was started with. "spawn claude
+    // ENOENT" tells a user nothing, and it is the first thing the desktop app
+    // (#175) can hit, since an app opened from the Dock starts with the desktop
+    // session's PATH rather than a terminal's.
+    const said =
+      (err as NodeJS.ErrnoException)?.code === "ENOENT"
+        ? `${cmd} isn't installed, or isn't on this board's PATH. Install it with: ${run.install}`
+        : String(err);
+    session.error = said;
+    log.write(`\n[error] ${said}`);
   });
   child.on("close", (code) => {
     append(renderer.flush());

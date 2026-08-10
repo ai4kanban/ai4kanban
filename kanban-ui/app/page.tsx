@@ -3,6 +3,7 @@ import { NoBoard } from "@/components/NoBoard";
 import { agentInfo, setupInstruction } from "@/lib/agent";
 import { readBoard } from "@/lib/board";
 import { readAutoRefine, readAutoRefineParallelism } from "@/lib/config";
+import { isDesktop } from "@/lib/desktop";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 import type { Board } from "@/lib/types";
 
@@ -15,7 +16,7 @@ export default function Page() {
   // board read below is caught, but every other call here resolves a board path
   // too, so without this they'd throw outside the catch and the user would get
   // the framework's crash screen instead of a plain message.
-  if (!findRepoRoot()) return <NoBoard searchedFrom={boardSearchStart()} />;
+  if (!findRepoRoot()) return <NoBoard searchedFrom={boardSearchStart()} desktop={isDesktop()} />;
 
   let initialBoard: Board | null = null;
   let initialError: string | null = null;
@@ -33,6 +34,7 @@ export default function Page() {
       autoRefine={readAutoRefine()}
       autoRefineParallelism={readAutoRefineParallelism()}
       setupInstruction={setupInstruction()}
+      desktop={isDesktop()}
     />
   );
 }

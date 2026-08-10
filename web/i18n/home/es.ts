@@ -135,6 +135,12 @@ const es: HomeCopy = {
     ],
     cta: "Copiar prompt de instalación",
     copied: "Copiado",
+    app: {
+      title: "O abre el tablero como una aplicación",
+      body:
+        "Descárgala, ábrela y apúntala a un proyecto. No hace falta instalar nada antes: ni Node, ni npx, ni terminal. Abrir el tablero en el navegador con `npx ai4kanban-ui` sigue funcionando, pero esa vía está obsoleta.",
+      cta: "Conseguir la aplicación",
+    },
   },
 };
 

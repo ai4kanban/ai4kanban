@@ -70,6 +70,8 @@ export type HomeCopy = {
     notes: string[];
     cta: string;
     copied: string;
+    /** The other way in: the board as an app, beside the setup prompt. */
+    app: { title: string; body: string; cta: string };
   };
 };
 

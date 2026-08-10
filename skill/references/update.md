@@ -69,5 +69,5 @@ ${KB} peek
 ${KB} version
 ```
 
-Tell the user to review `git diff` before committing. The board UI needs no update —
-`npx ai4kanban-ui@latest` picks up a new release.
+Tell the user to review `git diff` before committing. The board app updates separately —
+it says when a newer one is out and links the download; it never updates itself.

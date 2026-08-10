@@ -6,7 +6,7 @@ roi: high
 status: ready
 release: 0.6.0
 blocked_by: []
-related: [61]
+related: []
 modules: [skill, local-ui]
 questions: []
 ---
@@ -41,9 +41,10 @@ The rules for a card live in two places — the script in the skill folder and a
 - **How does someone get the board commands?**: both ways. `npx ai4kanban <command>` for a
   one-off by hand, and a copy inside the UI and the desktop app, because the UI asks the
   board on every click and the app has to work with no terminal and no network.
-- **Does this card take over #61?**: it takes the commands — reading a card, searching card
-  text, writing a card body. #61 keeps the rest, moving the skill's own flows off reading
-  files directly, which waits on the parked storage work.
+- **Does the CLI have to make the flows stop reading files?**: no. It adds the commands —
+  reading a card, searching card text, writing a card body — so anything that wants them
+  has them. Making every flow go through them was turned down: it changes nothing a user
+  sees on a file board.
 
 ## Todo
 - [ ] Add the board actions the command does not have yet, so it covers everything the UI

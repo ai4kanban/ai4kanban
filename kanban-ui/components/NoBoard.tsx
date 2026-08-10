@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { PickAnotherProject } from "./desktop";
 import { useOnTabFocus } from "./sessions";
 
 // Shown as the whole page when the walk up finds no `docs/kanban/todo/`. It
@@ -10,7 +11,16 @@ import { useOnTabFocus } from "./sessions";
 //
 // It is a message, not an offer. The UI never sets a board up itself; it says
 // what to run and gets out of the way.
-export function NoBoard({ searchedFrom }: { searchedFrom: string }) {
+export function NoBoard({
+  searchedFrom,
+  desktop = false,
+}: {
+  searchedFrom: string;
+  /** Whether this is the desktop app (#175). In the app there is no terminal to
+   *  send anyone to, so the second cause below is a button that opens another
+   *  project instead of a command to type. */
+  desktop?: boolean;
+}) {
   const router = useRouter();
   // Install a board in a terminal, switch back to this tab, and it's there — the
   // same re-read on tab focus the board itself does. No timer, no Try again
@@ -31,16 +41,28 @@ export function NoBoard({ searchedFrom }: { searchedFrom: string }) {
           what="Make one — run this in the repo root:"
           command="npx ai4kanban install"
         />
-        <Cause
-          title="This is not the repo you meant."
-          what="Stop the UI and start it from your repo root, or point it at the repo:"
-          command="npx ai4kanban-ui --board /path/to/repo"
-        />
+        {desktop ? (
+          <section className="mt-5">
+            <h2 className="text-[14px] font-[700]">This is not the project you meant.</h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-nb-ink-soft">
+              Pick another folder — the app opens it in this window.
+            </p>
+            <PickAnotherProject desktop />
+          </section>
+        ) : (
+          <Cause
+            title="This is not the repo you meant."
+            what="Stop the UI and start it from your repo root, or point it at the repo:"
+            command="npx ai4kanban-ui --board /path/to/repo"
+          />
+        )}
 
-        <p className="mt-5 text-[12px] leading-relaxed text-nb-ink-soft">
-          Install a board in a terminal, then switch back to this tab — it shows up on its
-          own.
-        </p>
+        {!desktop && (
+          <p className="mt-5 text-[12px] leading-relaxed text-nb-ink-soft">
+            Install a board in a terminal, then switch back to this tab — it shows up on its
+            own.
+          </p>
+        )}
       </div>
     </main>
   );

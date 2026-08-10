@@ -4,6 +4,7 @@ import { NoBoard } from "@/components/NoBoard";
 import { agentInfo } from "@/lib/agent";
 import { findCard, readBoard } from "@/lib/board";
 import { readAutoRefine, readAutoRefineParallelism } from "@/lib/config";
+import { isDesktop } from "@/lib/desktop";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 
 // Read the board on the server and hand the one card to the client page. The
@@ -15,7 +16,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // Same as the board page: no board at all is the "no board here" page, not a
   // missing card and not a crash. Checked first, since reading a card means
   // reading a board.
-  if (!findRepoRoot()) return <NoBoard searchedFrom={boardSearchStart()} />;
+  if (!findRepoRoot()) return <NoBoard searchedFrom={boardSearchStart()} desktop={isDesktop()} />;
 
   const { id } = await params;
   const cardId = Number(id);
@@ -35,6 +36,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       autoRefine={readAutoRefine()}
       autoRefineParallelism={readAutoRefineParallelism()}
       goalWritten={board.goalWritten}
+      desktop={isDesktop()}
     />
   );
 }

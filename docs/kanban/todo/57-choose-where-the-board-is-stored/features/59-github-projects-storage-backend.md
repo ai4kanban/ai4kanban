@@ -4,7 +4,7 @@ track: features
 priority: low
 roi: med
 status: todo
-blocked_by: [55, 61]
+blocked_by: [55]
 related: [57]
 modules: [skill, local-ui]
 questions: []
@@ -13,7 +13,7 @@ questions: []
 Let a user keep the board in GitHub, so a team can see and edit it without cloning the
 repo. This is the first backend that is not files on disk, so it is the harder one.
 
-Part of #57. It needs the storage layer from #55, and #61 after it.
+Part of #57. It needs the storage layer from #55.
 
 ## Scope
 
@@ -26,8 +26,9 @@ Part of #57. It needs the storage layer from #55, and #61 after it.
 - Ids: GitHub gives its own numbers. Decide whether our task id stays ours and is stored
   alongside, or is replaced by the GitHub number. Everything on the board points at ids,
   so this choice touches every flow.
-- The agent cannot open a card with Read here. This backend only works after #61 moves
-  every flow onto the script's own read and write commands.
+- The agent cannot open a card with Read here, so this backend has to give the flows
+  another way in: commands that show a card, search card text, and write a card body. That
+  is this card's own cost — a file board never needs it.
 - Moving a board that already has cards is #55's move command. Here it only has to be
   tested for real: markdown board in, GitHub board out, and back again.
 - Handle the network: a call can fail, be slow, or hit a rate limit. A failed write must

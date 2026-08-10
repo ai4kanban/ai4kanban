@@ -5,7 +5,7 @@ priority: med
 roi: med
 status: ready
 blocked_by: []
-related: [55, 59, 61]
+related: [55, 59]
 modules: [skill, local-ui]
 questions: []
 ---
@@ -24,14 +24,12 @@ tracks the work; each piece is its own subtask in this folder.
 - One setting names the backend: `backend` in `docs/kanban/ui.config.json`. Picking a
   backend is the only thing a user does in this group. The Obsidian switch is a different
   card's setting (#56) and is not part of this group.
-- Then move the flows onto the script (#61). Today they open card files with Read and
-  Grep, which only works when the board is files.
 - Then the backend people asked for: GitHub Projects (#59). It is opt-in.
 - The backend card says plainly what it gives up. A board on GitHub is no longer plain
   text in git.
 - Changing the setting never moves cards. A user with a board full of cards runs one move
   command, once (#55).
-- Order: #55, then #61, then #59. Each one needs the one before it.
+- Order: #55, then #59. #59 needs the layer under it.
 - Docs: #55 adds the page on picking a backend and the page on moving a board, #59 adds
   its own page.
 
@@ -60,15 +58,16 @@ tracks the work; each piece is its own subtask in this folder.
       backends.
 - [x] Add #61 to this group: move the flows onto the script. It is blocked by #55, and
       #59 is blocked by it.
-- [ ] Make every flow read and write cards through the script #61
 - [x] Say in the scope that this group adds one setting, `backend`, and that the Obsidian
       switch belongs to #56.
 - [ ] Cover moving a board that already has cards: one move command on #55, tested against
       a real GitHub project on #59.
-- [ ] Park #59 and #61 at low priority, and build only #55 for now. The move command and
-      the flow rewrite come back with them.
+- [ ] Park #59 at low priority, and build only #55 for now. The move command comes back
+      with it.
 - [ ] Keep the settings in `docs/kanban/ui.config.json` — no `settings.json`. This reverts
       the scope line above naming that file.
+- [ ] Drop the flow rewrite from this group. Reading and searching cards through the
+      script buys nothing on a file board; a backend that needs it pays for it itself.
 
 ## Pushback
 
@@ -89,8 +88,8 @@ nothing else carries #55.
   same layout, same files. The group's goal is still met with it cut, which is the test a
   refine uses, so it is split off rather than kept. The work is still wanted — the card
   moved to `todo/features/` and ships on its own.
-- **The order changed.** Because #56 is out, this group is now #55, then #61, then #59, in
-  that order. The layer is no longer racing a card that never needed it.
+- **The order changed.** Because #56 is out, this group is now #55, then #59, in that
+  order. The layer is no longer racing a card that never needed it.
 - **A user sets one thing here: `backend`.** The Obsidian switch is a second key in the
   same `settings.json`, but it answers a different question — `backend` says where cards
   live, the switch says how a card file is written. Folding one into the other would make
@@ -101,8 +100,8 @@ nothing else carries #55.
   it belongs there, and #59 only has to test it against a real GitHub project. Flipping the
   setting on a board that still holds markdown cards must say so and name the command —
   never show an empty board as if it were the truth.
-- **The flow rewrite is its own card, #61.** Moving every flow off Read and Grep is a
-  different kind of work from the layer: #55 changes code nobody sees, #61 changes what the
-  agent does on every run. Only a remote backend needs it, so as its own card it can wait
-  and #55 can land as a plain refactor. It stays inside this group, because a piece of one
-  feature belongs in the group, not as a loose sibling.
+- **The flow rewrite is out of this group.** Moving every flow off Read and Grep is not
+  part of swapping the backend: the script already lists cards and writes their
+  frontmatter, and a file board gains nothing from wrapping the rest. Only a backend that
+  cannot be read as files needs it, so #59 carries that cost on its own card. (The user's
+  call.)

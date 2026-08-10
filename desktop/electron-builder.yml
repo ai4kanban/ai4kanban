@@ -1,0 +1,73 @@
+# How the app is packed for each system. Run it through the scripts in
+# package.json — they build the board UI into resources/server/ first, which is
+# the one thing this file expects to already be there.
+appId: dev.ai4kanban.app
+productName: AI4Kanban
+copyright: Copyright © AI4Kanban contributors
+
+directories:
+  output: dist
+  buildResources: build
+
+# The app itself is a handful of small files. Everything heavy — the board
+# server — rides along as a resource below.
+files:
+  - main.js
+  - preload.js
+  - lib/**/*
+  - package.json
+
+# The board UI's prebuilt Next server, copied in by scripts/bundle-ui.mjs. It
+# lives outside the asar archive because it is a Node program that reads its own
+# files from disk, and Node can't read out of an asar (lib/server.js finds it at
+# process.resourcesPath/server).
+# The board server (resources/server, built by scripts/bundle-ui.mjs) is copied
+# in by this hook rather than by `extraResources`. It has to be: electron-builder
+# drops any `node_modules` it finds inside an extra resource, assuming it is the
+# app's own and belongs in the asar — and the board server's `node_modules` is
+# Next's bundle, without which the packaged app ships a server that can't start.
+# The hook runs before code signing, so what it copies is signed with the rest.
+afterPack: scripts/after-pack.js
+
+# --- macOS: the one we test, and the one we sign -----------------------------
+# Signed and notarized, so a fresh download opens with a double-click and no
+# warning. Signing needs an Apple Developer account and its certificate in the
+# keychain; notarizing needs APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and
+# APPLE_TEAM_ID in the environment. Without them, build with
+# `-c.mac.notarize=false` — see PUBLISHING.md.
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip # what an auto-update would read, and the smaller download
+      arch: [arm64, x64]
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.inherit.plist
+  notarize: true
+
+dmg:
+  title: AI4Kanban ${version}
+
+# --- Windows and Linux: built and shipped unsigned this release --------------
+# Untested and unsigned, so both systems show a warning on first open. The
+# download page says so, and says the one step past it.
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+
+linux:
+  category: Development
+  # One file, nothing to install, runs on any modern distro — the closest thing
+  # Linux has to "download and open".
+  target:
+    - target: AppImage
+      arch: [x64, arm64]

@@ -15,6 +15,7 @@ import type { AgentInfo, Board } from "@/lib/types";
 import { useBoardView } from "@/lib/view";
 import { BoardCard } from "./BoardCard";
 import { BulkReleaseBar } from "./BulkReleaseBar";
+import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
 import { SetupBar } from "./SetupBar";
@@ -36,6 +37,7 @@ export function BoardView({
   autoRefine,
   autoRefineParallelism,
   setupInstruction,
+  desktop,
 }: {
   initialBoard: Board | null;
   initialError: string | null;
@@ -46,6 +48,9 @@ export function BoardView({
   /** The line the setup bar hands over for the coding harness. It comes from the
    *  server (lib/agent.ts reads the filesystem, which a client can't import). */
   setupInstruction: string;
+  /** Whether this board is running inside the desktop app (#175). Read on the
+   *  server so the first paint is already right. */
+  desktop: boolean;
 }) {
   const [board, setBoard] = useState<Board | null>(initialBoard);
   const [error, setError] = useState<string | null>(initialError);
@@ -318,7 +323,13 @@ export function BoardView({
           // A card written while a version is on screen ships in that version.
           createRelease={release}
           goalWritten={board?.goalWritten ?? false}
+          desktop={desktop}
         />
+
+        {/* How this board is being run, when that is worth saying: a newer app
+            inside the app, the deprecation notice in a browser (#175). Above the
+            error strip because it is about the whole session, not this action. */}
+        <RunningNotice desktop={desktop} />
 
         {error && (
           <div className="mx-6 mt-4 nb-panel-sm p-3 text-[13px]" style={{ background: "var(--color-nb-peach-soft)" }}>

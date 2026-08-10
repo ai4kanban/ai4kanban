@@ -113,21 +113,46 @@ npx ai4kanban install --tracks feature,bug,research
 本仓库也使用这套 skill 管理自身开发：`docs/kanban/` 是一块真实运行的看板，可作为完整
 示例参考。
 
-### Web UI（可选）
+### 看板桌面应用（可选）
 
-本地 UI 以同一批 Markdown 文件为唯一数据源，提供 Board 和 Queue 两种视图。你可以查看
+**[下载 →](https://ai4kanban.dev/download)** —— 无需预先安装任何东西：不需要 Node，
+不需要 npx，也不需要开着终端。
+
+看板 UI 以同一批 Markdown 文件为唯一数据源，提供 Board 和 Queue 两种视图。你可以查看
 完整卡片和项目目标、创建任务或让 Agent 提出需求、规划版本、运行 Agent、设置重复任务周期，
 并查看最近 30 天的进度；看板数据始终以 Markdown 文件为准。
 
-```bash
-npx ai4kanban-ui        # http://localhost:7420
-```
+首次打开时它会让你选择项目文件夹，之后记住这个选择。发起 Agent 运行仍然需要机器上装有
+你的编码 Agent，这一点和在终端里一样。
+
+| 系统 | 安装包 | 已签名 | 已测试 |
+| --- | --- | --- | --- |
+| macOS（Apple 芯片、Intel） | `.dmg` / `.zip` | 是 | 是 |
+| Windows | `.exe` 安装包 | 否 | 否 |
+| Linux | `.AppImage` | 否 | 否 |
+
+每个版本我们只测试 macOS。Windows 和 Linux 这个版本未经测试、也未签名，首次打开时系统
+会警告：Windows 上点 **更多信息** → **仍要运行**；Linux 上先 `chmod +x AI4Kanban-*.AppImage`
+再运行。
 
 ![Web UI 的 Board 视图](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg)
 
 ![Web UI 的 Queue 视图](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-queue-view.jpg)
 
-仅在 localhost 上运行，无需部署或登录。更多选项见 [kanban-ui/](kanban-ui/README.md)。
+每个按钮的作用见 [kanban-ui/](kanban-ui/README.md)。
+
+<details>
+<summary>改用浏览器打开（已弃用）</summary>
+
+```bash
+npx ai4kanban-ui        # 已弃用 —— http://localhost:7420，仅本机
+```
+
+自桌面应用发布的那个版本起弃用。它仍然可用，npm 包只是冻结而非下架，已经在用的人不会被
+打断 —— 但不会再有新版本发到那里。页面本身不会消失：应用就是同样的页面装进了一个窗口。
+被弃用的是“让人自己起一个服务再打开浏览器”这件事。
+
+</details>
 
 ## 路线图
 

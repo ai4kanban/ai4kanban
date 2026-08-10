@@ -2,6 +2,8 @@
 export type SharedCopy = {
   nav: {
     install: string;
+    /** The download page — where the board app is handed out. */
+    download: string;
     recipes: string;
     compare: string;
     github: string;

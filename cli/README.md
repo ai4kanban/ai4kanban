@@ -52,7 +52,8 @@ Both commands are safe to run twice.
 
 ## Also
 
-- The board UI: `npx ai4kanban-ui` — a local page over the same Markdown files.
+- The board app: <https://ai4kanban.dev/download> — the same Markdown files, in a window.
+  (`npx ai4kanban-ui` still serves it in a browser, but that way is deprecated.)
 - Source and docs: <https://github.com/ai4kanban/ai4kanban>
 
 Node 18+. No dependencies.

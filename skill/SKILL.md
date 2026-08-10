@@ -215,7 +215,7 @@ is in `references/recurring-task.md`; the job itself is the card's own `## Proce
 
 ## Run the board locally
 
-A small local UI server to drive the board from buttons instead of the terminal. Full guide in
+The board app — drive the board from buttons instead of the terminal. Full guide in
 `references/local-ui.md`.
 
 ## Updating the skill and local UI

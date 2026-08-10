@@ -21,6 +21,7 @@ import { patchCardAction } from "@/app/actions";
 import type { CardPatch } from "@/lib/edit";
 import { NO_RELEASE, type AgentInfo, type Card, type SessionView } from "@/lib/types";
 import { Button } from "./button";
+import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import {
   ActionDialog,
@@ -149,6 +150,7 @@ export function CardPage({
   autoRefine,
   autoRefineParallelism,
   goalWritten,
+  desktop,
 }: {
   card: Card;
   openIds: number[];
@@ -160,6 +162,9 @@ export function CardPage({
   /** Whether the header's goal button has anything to open (#128). The header is
    *  the same on both pages, and direction is worth rereading wherever you are. */
   goalWritten: boolean;
+  /** Whether this board is running inside the desktop app (#175). The header and
+   *  the running notice are the same on both pages, so this is too. */
+  desktop: boolean;
 }) {
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
@@ -251,7 +256,12 @@ export function CardPage({
           sessions={sessions}
           onError={setError}
           goalWritten={goalWritten}
+          desktop={desktop}
         />
+
+        {/* Same line as the board's (#175) — a newer app in the app, the
+            deprecation notice in a browser. */}
+        <RunningNotice desktop={desktop} />
 
         <main className="mx-auto w-full max-w-[840px] px-6 py-6">
           {error && (

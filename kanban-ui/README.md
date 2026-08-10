@@ -1,18 +1,37 @@
 # ai4kanban-ui
 
-The local board UI for [ai4kanban](https://ai4kanban.dev/). It shows every track in
-a browser and drives the work from buttons: each button spawns an agent in your repo that
-does the kanban work for you — propose, refine, implement, archive.
+> **Deprecated — get the desktop app instead: <https://ai4kanban.dev/download>**
+>
+> The app is the same board in a window, with nothing to install first: no Node, no npx, no
+> terminal to keep alive. This package keeps working and is not going away, but it is frozen
+> at its last version and no new release lands here.
+
+The local board UI for [ai4kanban](https://ai4kanban.dev/). It shows every track and drives
+the work from buttons: each button spawns an agent in your repo that does the kanban work
+for you — propose, refine, implement, archive.
 
 The markdown files in `docs/kanban/` stay the single source of truth. The UI only reads and
 writes those files, so nothing here is locked in.
 
+The desktop app is these same pages in a window, so everything below describes both. The
+pages themselves are not going anywhere — reaching the board from another device still
+needs them. What is deprecated is asking a person to start a server and open a browser:
+
 ```
-npx ai4kanban-ui        # http://localhost:7420, localhost only
+npx ai4kanban-ui        # deprecated — http://localhost:7420, localhost only
 ```
 
 Installing it, pointing it at a board elsewhere, changing the port, updating: the skill's
 `references/local-ui.md`. This file is about **using** it.
+
+## In the app
+
+Two things are the app's and not the browser's. The folder path in the header opens another
+project — the app has no terminal to be restarted from — and **File → Open Project…** does
+the same. And when a newer version is out, a line above the board says so with a link; the
+app never updates itself.
+
+Closing the window ends the board and every agent run under it.
 
 ## The board
 

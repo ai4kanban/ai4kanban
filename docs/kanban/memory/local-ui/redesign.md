@@ -18,6 +18,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   script has.
 - ❌ **A board action stays terminal-only because it feels rare or administrative** → ✅ the
   UI offers what the script offers, with the consequences shown before the user confirms.
+- ❌ **The desktop app remembers one folder and nothing else** (switching project means
+  repointing the window, so a person with three projects repoints it all day) → ✅ the app
+  works like an IDE: Open Folder, a list of the projects opened before, and one click to
+  switch. A folder with no board opens onboarding, not an error.
 - ❌ **One control changes meaning with a field above it** (the same switch is "fill from
   the goal" or "put the high-priority cards in", depending on whether a box has words) →
   ✅ two modes get two tabs that name them, and each tab shows only its own fields. A

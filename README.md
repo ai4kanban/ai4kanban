@@ -138,23 +138,48 @@ See the [daily loop guide](docs/guides/daily-loop.md) for the complete workflow.
 This repository also uses the skill to manage its own development. `docs/kanban/` is a
 real, active board that you can explore as a complete example.
 
-### Web UI (optional)
+### The board app (optional)
 
-The local UI uses the same Markdown files as its single source of truth and provides both
+**[Download it →](https://ai4kanban.dev/download)** — nothing to install first: no Node, no
+npx, no terminal.
+
+The board UI uses the same Markdown files as its single source of truth and provides both
 Board and Queue views. You can read complete cards and the project goal, create tasks or
 ask the agent to propose them, plan releases, run agents, schedule recurring tasks, and
 review progress from the last 30 days. The Markdown files always remain authoritative.
 
-```bash
-npx ai4kanban-ui        # http://localhost:7420
-```
+It asks which project folder to open the first time and remembers it. Starting runs still
+needs your coding agent on the machine, same as from a terminal.
+
+| System | Build | Signed | Tested |
+| --- | --- | --- | --- |
+| macOS (Apple Silicon, Intel) | `.dmg` / `.zip` | yes | yes |
+| Windows | `.exe` installer | no | no |
+| Linux | `.AppImage` | no | no |
+
+macOS is the one we test each release. Windows and Linux are published untested and
+unsigned this release, so each warns on first open: on Windows click **More info** →
+**Run anyway**; on Linux `chmod +x AI4Kanban-*.AppImage` and run it.
 
 ![The board view in the Web UI](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg)
 
 ![The queue view in the Web UI](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-queue-view.jpg)
 
-It runs only on localhost, with no deployment or login required. See
-[kanban-ui/](kanban-ui/README.md) for more options.
+What the buttons do: [kanban-ui/](kanban-ui/README.md).
+
+<details>
+<summary>Running it in a browser instead (deprecated)</summary>
+
+```bash
+npx ai4kanban-ui        # deprecated — http://localhost:7420, localhost only
+```
+
+Deprecated as of the release that shipped the app. It keeps working and the package is
+frozen rather than pulled, so an existing setup still comes up — but no release lands there
+again. The pages themselves are not going anywhere; the app is those same pages in a
+window. What is deprecated is asking you to start a server and open a browser.
+
+</details>
 
 ## Roadmap
 
