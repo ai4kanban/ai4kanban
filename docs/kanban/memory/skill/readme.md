@@ -44,10 +44,19 @@ covers it, or a plain-words note.
   cards in on three tests, and `release list` to see every release in ship order with how
   many cards it holds and how many are ready: "Plan a release" in
   `docs/guides/daily-loop.md`.
-- Close a shipped version or drop one that won't ship — both clear the release off the
-  cards still open and take it off the list for good; only close writes a shipped record,
-  and a remade id never re-claims the old cards: "Close a release" and "Drop a release" in
+- Say what a version is for — `release new v1 --goal ".."` when you make it, `release goal
+  v1 ".."` to change it, `""` to clear it. It sits on the release's own line, `release
+  list` prints it under each version, and it is never required: "Plan a release" in
   `docs/guides/daily-loop.md`.
+- Fill a version against its goal — say "plan release v1" and the agent moves in the open
+  cards that ship the goal, writes the ones the board is missing, and reports what it
+  moved, wrote and left out. It only adds, so it can be run again whenever the goal
+  changes; a version with no goal falls back to `--fill`'s rule:
+  `skill/references/plan-release.md`.
+- Close a shipped version or drop one that won't ship — both clear the release off the
+  cards still open and take it off the list for good; close writes its summary, while drop
+  writes no summary file or section and leaves an older summary untouched: "Close a
+  release" and "Drop a release" in `docs/guides/daily-loop.md`.
 
 ## Recurring tasks
 

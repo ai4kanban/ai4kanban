@@ -3,6 +3,7 @@
 ## Skill Writing
 
 Add minimal, only necessary information to SKILL.md and references/*.md. The context is precious.
+When writing a skill/reference, it's recommended to use `- **bold title**: one liner` format to make the requirements scannable.
 
 ## The public site
 

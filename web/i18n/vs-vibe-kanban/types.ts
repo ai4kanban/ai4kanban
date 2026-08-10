@@ -4,6 +4,7 @@ import type {
   TitleBody,
   VsDecision,
   VsHero,
+  VsHeroDiagrams,
 } from "../types";
 
 // Keys shared with `components/vs-vibe-kanban/vs-vibe-content.ts`.
@@ -30,7 +31,7 @@ export type VsVibeWinKey = "parallel" | "reviewInPlace" | "boardUi" | "support";
 
 export type VsVibeCopy = {
   meta: PageMeta;
-  hero: VsHero;
+  hero: VsHero & VsHeroDiagrams;
   summary: { heading: Heading; lead: string; panel: string };
   comparison: {
     heading: Heading;

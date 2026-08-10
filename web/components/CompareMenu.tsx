@@ -3,8 +3,9 @@ import { localeHref, type Locale } from "@/lib/i18n";
 
 // The comparison pages this dropdown lists. Their titles are product names, so
 // the only translated part is the "Compare" label. `MobileNav.tsx` lists the same
-// five inline, because a menu inside a menu is not a thing on a phone.
+// ones inline, because a menu inside a menu is not a thing on a phone.
 export const COMPARISONS = [
+  { href: "/vs-task-master", title: "vs Task Master" },
   { href: "/vs-github-issues", title: "vs GitHub Issues" },
   { href: "/vs-hermes-kanban", title: "vs Hermes Agent Kanban" },
   { href: "/vs-vibe-kanban", title: "vs Vibe Kanban" },

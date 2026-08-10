@@ -120,10 +120,15 @@ if you find no match.
 
 A release is a version this project is planning; the open ones live in
 `docs/kanban/releases.md`, one line each, in ship order. A card names the release it ships
-in via `--release`; a card that names none is simply in no release. Releases are optional —
+in via `--release`; a card that names none is simply in no release. A release also says what
+it is for — ask for that goal when making one; it lives on the release's own line, and is
+never required. Releases are optional —
 a board that never plans a version works exactly as it does without one. Full guide in
 `references/releases.md` — read it before running any `release` command or setting
 `--release`.
+
+**Plan a release** — fill it with the open cards that ship its goal, and write the ones the
+goal needs that the board is missing. Full guide in `references/plan-release.md`.
 
 ## Task id
 

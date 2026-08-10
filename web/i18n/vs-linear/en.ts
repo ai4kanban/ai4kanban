@@ -23,6 +23,15 @@ const en: VsLinearCopy = {
       name: "Linear",
       body: "A hosted workspace where people and agents coordinate product work.",
     },
+    oursDiagramAlt:
+      "A vague note goes into AI4Kanban and comes out as a spec with its acceptance criteria written down, stored next to the code.",
+    theirsDiagramAlt:
+      "A team's work goes into Linear and comes out as one shared list showing who owns each item and where it stands.",
+    oursDiagramTop: "a vague idea in",
+    oursDiagramBottom: "a spec you can build, next to the code",
+    theirsDiagramTop: "a whole team’s work in",
+    theirsDiagramBottom:
+      "one shared list: who has what, and where it stands",
   },
   summary: {
     heading: {

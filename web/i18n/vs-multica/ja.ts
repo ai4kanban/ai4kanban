@@ -23,13 +23,13 @@ const ja: VsMulticaCopy = {
       body: "複数のエージェントを作成し、それぞれの責務、Skills、実行環境を設定します。分担、実行、再試行、レビュー、チーム連携を一つの場所で管理できます。",
     },
     oursDiagramAlt:
-      "AI4Kanbanは、共通のプロジェクト目標を軸に人とエージェントが計画・実行できるようにします。",
+      "作りたいものを伝えると、ボードが自分で計画して進めます。作成も命名も割り当ても必要なエージェントはありません。",
     theirsDiagramAlt:
-      "Multicaは、複数のエージェントを設定して運用できるようにします。",
-    oursDiagramTop: "人が方向を示す・判断する",
-    oursDiagramBottom: "エージェントが計画・明確化・実行",
-    theirsDiagramTop: "複数のエージェント + Skills + ランタイム",
-    theirsDiagramBottom: "分担・配分・連携・監視",
+      "Multicaが用意するのは基盤であってチームではありません。エージェントは自分で作成し、実行後の割り当て・監視・再試行も自分に戻ってきます。",
+    oursDiagramTop: "作りたいものを伝えるだけ",
+    oursDiagramBottom: "あとはボードが計画して進める — 設定するエージェントはなし",
+    theirsDiagramTop: "エージェントは一つずつ自分で作る",
+    theirsDiagramBottom: "割り当ても監視も再試行も、そのままあなたの仕事",
   },
   boundary: {
     heading: {

@@ -6,7 +6,9 @@ import {
   createReleaseAction,
   dropReleaseAction,
   getBoard,
+  planReleaseAction,
   setCardsReleaseAction,
+  setReleaseGoalAction,
 } from "@/app/actions";
 import { filterColumns, pickIsEmpty, useReleasePick } from "@/lib/release-pick";
 import type { AgentInfo, Board } from "@/lib/types";
@@ -18,7 +20,13 @@ import { OpenIdsProvider } from "./open-ids";
 import { SetupBar } from "./SetupBar";
 import { QueueView } from "./Queue";
 import { SessionLogOverlay } from "./agent-shared";
-import { runningSessionForCard, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
+import {
+  runningSessionForCard,
+  sessionsPanel,
+  useAgentSessions,
+  useOnTabFocus,
+  useSessionLog,
+} from "./sessions";
 
 export function BoardView({
   initialBoard,
@@ -114,22 +122,94 @@ export function BoardView({
     }
   }, []);
 
+  // The board starts no sessions itself (Create task lives in the header,
+  // per-card actions on the card page) except the one that plans a release
+  // (#165), so it mostly reads the registry — for the per-card running badges,
+  // to say a release is being planned, and to refresh when any session finishes.
+  const { sessions, watch } = useAgentSessions(() => {});
+
+  // The plan run this tab just started, held from the click until the poll
+  // catches it. The registry poll can be a second and a half behind, and the
+  // board switches to the new release at once — so without this the user gets a
+  // frame of "v1 has no open cards" on a version that is being filled right now,
+  // which reads as a release that did nothing.
+  const [planRun, setPlanRun] = useState<{ release: string; sessionId: string } | null>(null);
+
+  // Start the run and take it on as this tab's: the poll wakes at once, so the
+  // run is in the runs panel from the moment the release is. The board says it is
+  // planning (below); nothing opens over the board, since the note is on the very
+  // release the user was just put on.
+  const takeOnPlan = useCallback(
+    (release: string, sessionId: string) => {
+      setPlanRun({ release, sessionId });
+      watch(sessionId, `plan ${release}`);
+    },
+    [watch],
+  );
+
   // Start a release from the header (#115). The board is re-read before the pick
   // moves, so the new release is on the list the pick is checked against — a pick
   // the list doesn't hold yet would be dropped back to All releases in the same
   // render. Then the board switches to it: the user asked for this version to
   // work in it, and a card made while it is picked lands in it. It is empty, so
-  // the "has no open cards" note is what greets them, with the way back on it.
+  // the "no open cards" note — or, while it is being filled, the "being planned"
+  // note — is what greets them, with the way back on it.
+  // A release made on the goal tab is planned against that goal by an agent run
+  // (#165) — started behind the release, never waited for. The release is made
+  // either way, so a run that couldn't start is reported across the top of the
+  // board rather than back into a dialog that has already closed on a version
+  // that does exist.
   const makeRelease = useCallback(
-    async (id: string, fill: boolean) => {
-      const res = await createReleaseAction(id, fill);
+    async (raw: string, fill: boolean, goal: string) => {
+      // Trimmed once, here, so the version the pick moves to, the version the
+      // planning note is keyed on, and the version the run records as its input
+      // are all the same string — the server trims as it writes either way.
+      const id = raw.trim();
+      const res = await createReleaseAction(id, fill, goal);
       if (!res.ok) return res;
       await refresh();
       setRelease(id);
+      if (res.planSessionId) takeOnPlan(id, res.planSessionId);
+      if (res.planError) setError(`${id} was made, but filling it from its goal didn't start: ${res.planError}`);
       return res;
     },
-    [refresh, setRelease],
+    [refresh, setRelease, takeOnPlan],
   );
+
+  // Fill a release that already exists from its goal (#165) — the ⋯ menu's entry.
+  // The board starts it rather than the picker so the run is taken on here, the
+  // one place that also says the release is being planned and re-reads the board
+  // when it ends.
+  const planRelease = useCallback(
+    async (id: string) => {
+      const res = await planReleaseAction(id);
+      if (res.ok && res.sessionId) takeOnPlan(id, res.sessionId);
+      return res;
+    },
+    [takeOnPlan],
+  );
+
+  // A plan run on the release on screen, from any tab — a run started in a second
+  // tab plans this same board, so it says so here too. `input` is the version a
+  // plan-release run was started for.
+  const livePlan = sessions.find(
+    (r) => r.status === "running" && r.action === "plan-release" && r.input === release,
+  );
+  // …and the one this tab started a moment ago, until the poll has it. Dropped
+  // once the poll reports it ended, so a run whose record ages out of the kept
+  // window can't bring the note back weeks later.
+  const planSessionId =
+    livePlan?.sessionId ??
+    (planRun &&
+    planRun.release === release &&
+    !sessions.some((r) => r.sessionId === planRun.sessionId)
+      ? planRun.sessionId
+      : null);
+  useEffect(() => {
+    if (!planRun) return;
+    const seen = sessions.find((r) => r.sessionId === planRun.sessionId);
+    if (seen && seen.status !== "running") setPlanRun(null);
+  }, [sessions, planRun]);
 
   // Send every ticked card into one release, or back out of one (#114). Each
   // card is written on its own on the server, so one card that can't be moved
@@ -183,13 +263,21 @@ export function BoardView({
     [refresh, setRelease],
   );
 
-  // The board starts no sessions itself (Create task lives in the header,
-  // per-card actions on the card page), so it only reads the registry — for the
-  // per-card running badges and to refresh when any session finishes.
-  const { sessions } = useAgentSessions(() => {});
+  // Say what the release on screen is for, or change it (#164). Only the board
+  // file changes, so the pick stays where it is — but the board is re-read, since
+  // the dropdown shows the goal under the version.
+  const setGoal = useCallback(
+    async (id: string, goal: string) => {
+      const res = await setReleaseGoalAction(id, goal);
+      if (res.ok) await refresh();
+      return res;
+    },
+    [refresh],
+  );
 
   // Re-read the board whenever any session finishes (from this tab or another),
-  // so created/archived/rejected cards appear or disappear without a manual reload.
+  // so created/archived/rejected cards appear or disappear without a manual
+  // reload — a plan run's moved and written cards included (#165).
   const prevRunning = useRef<Set<string>>(new Set());
   useEffect(() => {
     const now = new Set(sessions.filter((r) => r.status === "running").map((r) => r.sessionId));
@@ -218,12 +306,15 @@ export function BoardView({
           view={view}
           onViewChange={setView}
           releases={board?.releases ?? []}
+          releaseGoals={board?.releaseGoals ?? {}}
           releaseCounts={board?.releaseCounts ?? {}}
           release={release}
           onReleaseChange={setRelease}
           onCreateRelease={makeRelease}
+          onPlanRelease={planRelease}
           onDropRelease={dropRelease}
           onCloseRelease={closeRelease}
+          onSetReleaseGoal={setGoal}
           // A card written while a version is on screen ships in that version.
           createRelease={release}
           goalWritten={board?.goalWritten ?? false}
@@ -254,12 +345,33 @@ export function BoardView({
           <div className="p-10 text-nb-ink-soft">Reading the board…</div>
         )}
 
+        {/* A release being filled from its goal (#165) says so, and says it
+            before the "no open cards" note can: the board switches to the new
+            version the instant it is made, and a version that is empty because
+            an agent is still writing its cards is not the same thing as a
+            version with nothing in it. It stands until the run ends, since the
+            cards arrive over the run rather than all at once at the close. */}
+        {board && planSessionId && (
+          <div className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6" style={{ background: "var(--color-nb-sky-soft)" }}>
+            <strong>{release}</strong> is being planned — the agent is moving in the cards that ship
+            its goal and writing the ones the board hasn&apos;t got. They appear here as it goes.{" "}
+            <button
+              type="button"
+              className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
+              onClick={() => sessionsPanel.open(planSessionId)}
+            >
+              Watch the run
+            </button>
+            .
+          </div>
+        )}
+
         {/* A filter that can empty the screen has to explain itself, or the user
             reads it as a broken board and goes looking for their cards. Above both
             views, so it says the same thing in either one, with the way back one
             click away. Blockers on screen don't make the release non-empty — a
             blocker belongs to whoever it blocks. */}
-        {board && emptyRelease && (
+        {board && emptyRelease && !planSessionId && (
           <div className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6" style={{ background: "var(--color-nb-sky-soft)" }}>
             <strong>{release}</strong> has no open cards.{" "}
             <button

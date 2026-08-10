@@ -16,6 +16,7 @@ import type { VsHermesCopy } from "./vs-hermes-kanban/types";
 import type { VsVibeCopy } from "./vs-vibe-kanban/types";
 import type { VsLinearCopy } from "./vs-linear/types";
 import type { VsMulticaCopy } from "./vs-multica/types";
+import type { VsTaskMasterCopy } from "./vs-task-master/types";
 
 /** Page `<title>` / description, plus the share-card variants when they differ. */
 export type PageMeta = {
@@ -42,6 +43,21 @@ export type VsHero = {
   theirs: { name: string; body: string };
 };
 
+/**
+ * The words a hero diagram pair needs. The captions are the argument in one
+ * line each — above the art, what the product is; below it, what it costs you —
+ * so they are copy, while everything inside the drawings (product names, file
+ * names, marks) stays with the component and isn't translated.
+ */
+export type VsHeroDiagrams = {
+  oursDiagramAlt: string;
+  theirsDiagramAlt: string;
+  oursDiagramTop: string;
+  oursDiagramBottom: string;
+  theirsDiagramTop: string;
+  theirsDiagramBottom: string;
+};
+
 /** The closing "which should you use?" section. */
 export type VsDecision = {
   heading: Heading;
@@ -62,4 +78,5 @@ export type SiteCopy = {
   vsVibe: VsVibeCopy;
   vsLinear: VsLinearCopy;
   vsMultica: VsMulticaCopy;
+  vsTaskMaster: VsTaskMasterCopy;
 };

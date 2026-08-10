@@ -23,6 +23,16 @@ const es: VsLinearCopy = {
       name: "Linear",
       body: "Un espacio alojado donde personas y agentes coordinan el desarrollo de producto.",
     },
+    oursDiagramAlt:
+      "Una nota vaga entra en AI4Kanban y sale como una especificación con sus criterios de aceptación, guardada junto al código.",
+    theirsDiagramAlt:
+      "El trabajo de un equipo entra en Linear y sale como una lista común que muestra quién lleva cada cosa y en qué punto está.",
+    oursDiagramTop: "entra una idea vaga",
+    oursDiagramBottom:
+      "sale una spec que puedes construir, junto al código",
+    theirsDiagramTop: "entra el trabajo de todo un equipo",
+    theirsDiagramBottom:
+      "sale una lista común: quién lleva qué y cómo va",
   },
   summary: {
     heading: {

@@ -255,12 +255,18 @@ components/
   pages/              one file per page body, taking a `locale` — every language
                       renders the same component
   home/               the landing page's sections
-  vs/                 what all comparison pages share
+  vs/                 what all comparison pages share, including
+                      diagram.tsx — the canvas, palette, motion and figures
+                      (Person, Robot, Board, captions) every hero diagram
+                      pair is drawn from. See the `vs-diagram` skill before
+                      drawing one; a pair has to make the page's argument,
+                      not illustrate it.
   vs-github-issues/   each comparison's own sections, plus its *-content.ts
   vs-hermes-kanban/
   vs-vibe-kanban/
   vs-linear/
   vs-multica/
+  vs-task-master/
   recipes/            the index, the cards, and their art
   shots/              the board mockups the landing page draws
   Header.tsx          the one header, on every page — one row, sticky, the same
@@ -298,7 +304,7 @@ i18n/
     types.ts          HomeCopy: the shape all five declare
     index.ts          the five, keyed by locale
   shared/ vs-github-issues/ vs-hermes-kanban/ vs-vibe-kanban/ vs-linear/
-  vs-multica/
+  vs-multica/ vs-task-master/
 ```
 
 - Write new copy in that page's `en.ts` first, then run `/translate-sync`.

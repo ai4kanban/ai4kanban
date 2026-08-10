@@ -1,5 +1,6 @@
 import { LogoMark } from "@/components/ui/Logo";
 import type { ReactNode } from "react";
+import { FiArrowRight } from "react-icons/fi";
 import { GITHUB_URL } from "../content";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
@@ -37,10 +38,11 @@ function Guide({
       </div>
       <ul className="space-y-2.5">
         {items.map((it) => (
-          <li key={it} className="flex items-baseline gap-2.5 text-[0.95rem] text-muted">
-            <span className="select-none text-accent-deep" aria-hidden="true">
-              →
-            </span>
+          <li key={it} className="flex items-start gap-2.5 text-[0.95rem] text-muted">
+            <FiArrowRight
+              className="mt-[0.3rem] h-3.5 w-3.5 shrink-0 text-accent-deep"
+              aria-hidden="true"
+            />
             <span>{it}</span>
           </li>
         ))}

@@ -29,7 +29,7 @@ const fr: SharedCopy = {
   language: { label: "Langue" },
   vs: "vs",
   bottomLine: "En résumé",
-  cta: { install: "Installer ai4kanban", github: "Voir sur GitHub ↗" },
+  cta: { install: "Installer AI4Kanban", github: "Voir sur GitHub ↗" },
 };
 
 export default fr;

@@ -4,6 +4,10 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SectionHeading } from "@/components/SectionHeading";
 import { VsHeroSection } from "@/components/vs/VsHeroSection";
 import {
+  GithubHeroDiagram,
+  KanbanHeroDiagram,
+} from "@/components/vs-github-issues/GhDiagrams";
+import {
   ComparisonTable,
   ComparisonIntro,
 } from "@/components/vs/ComparisonTable";
@@ -63,7 +67,13 @@ export function VsGithubPage({ locale }: { locale: Locale }) {
       />
       <Header c={c} locale={locale} />
       <main className="mx-auto max-w-4xl px-6">
-        <VsHeroSection c={t.hero} shared={c.shared} theirsTag={githubMark} />
+        <VsHeroSection
+          c={t.hero}
+          shared={c.shared}
+          theirsTag={githubMark}
+          oursExtra={<KanbanHeroDiagram c={t.hero} />}
+          theirsExtra={<GithubHeroDiagram c={t.hero} />}
+        />
 
         <section className="mt-24">
           <SectionHeading num="01" {...t.comparison.heading} />

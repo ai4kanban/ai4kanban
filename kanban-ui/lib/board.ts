@@ -5,7 +5,7 @@ import { parseFrontmatter } from "./frontmatter";
 import { goalNeedsWork, goalWritten } from "./goal";
 import { archivePath, readmePath, todoDir } from "./paths";
 import { byPickOrder } from "./pick-order";
-import { readReleases } from "./releases";
+import { readReleaseGoals, readReleases } from "./releases";
 import { readSetup } from "./setup";
 import type { ArchiveGroup, Board, Card, Column, Subtask } from "./types";
 
@@ -322,6 +322,7 @@ export function readBoard(): Board {
     archive: readArchive(),
     openIds,
     releases: readReleases(),
+    releaseGoals: readReleaseGoals(),
     releaseCounts: countByRelease(every),
     goalNeedsWork: goalNeedsWork(),
     goalWritten: goalWritten(),

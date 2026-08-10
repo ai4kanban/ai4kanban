@@ -4,6 +4,7 @@ import type {
   TitleBody,
   VsDecision,
   VsHero,
+  VsHeroDiagrams,
 } from "../types";
 
 // Keys shared with `components/vs-linear/vs-linear-content.ts`.
@@ -34,7 +35,7 @@ export type VsLinearWinKey =
 
 export type VsLinearCopy = {
   meta: PageMeta;
-  hero: VsHero;
+  hero: VsHero & VsHeroDiagrams;
   summary: { heading: Heading; lead: string; panel: string };
   comparison: {
     heading: Heading;

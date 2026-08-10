@@ -89,9 +89,15 @@ re-ask a settled call.
   id so it can be put back. The board never clears the field and never refuses to run over
   it — but setting a release the list doesn't have is still an error, so a typo can't
   invent a version.
-- Filling a release takes the cards in no release that are high priority, have nothing
-  open blocking them, and are not a group root. It never reads a card to judge how big it
-  is: a plain rule the user can predict beats a smarter one they have to check.
+- A release with a goal is filled against that goal, by an agent run: it judges each open
+  card on whether it ships the goal, and writes the cards the goal needs that the board
+  hasn't got. The run's log is the record of what it moved, wrote and left out — that
+  report is what makes a judgment safe to trust where a plain rule needed no checking.
+- A release with **no** goal keeps the plain rule: the cards in no release that are high
+  priority, have nothing open blocking them, and are not a group root. With nothing to plan
+  against, a rule the user can predict is all there is.
+- Filling only ever adds — a card already in another release is left alone — so it can be
+  run as often as the goal changes, and taking a card back out is always the user's move.
 
 ## Installing and updating
 

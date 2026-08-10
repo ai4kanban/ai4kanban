@@ -29,7 +29,7 @@ const ja: SharedCopy = {
   language: { label: "言語" },
   vs: "vs",
   bottomLine: "結論",
-  cta: { install: "ai4kanban をインストール", github: "GitHub で見る ↗" },
+  cta: { install: "AI4Kanban をインストール", github: "GitHub で見る ↗" },
 };
 
 export default ja;

@@ -24,6 +24,14 @@ const ja: VsGithubCopy = {
       name: "GitHub Issues",
       body: "チームやコミュニティでタスク、議論、進捗を共有するためのホスティング型サービスです。",
     },
+    oursDiagramAlt:
+      "コードもボードも同じリポジトリのフォルダなので、エージェントはコードを読む場所でそのまま作業を更新できます。",
+    theirsDiagramAlt:
+      "手元のファイルは一つのウィンドウ、Issueは別のウィンドウで開くgithub.comのページなので、両者を合わせるのはあなたの仕事です。",
+    oursDiagramTop: "ボードはリポジトリの中",
+    oursDiagramBottom: "エージェントがコードを読み、そのままボードを更新",
+    theirsDiagramTop: "課題はサーバー上、コードは手元",
+    theirsDiagramBottom: "チームには最適 — 同期はあなたの仕事",
   },
   comparison: {
     heading: {

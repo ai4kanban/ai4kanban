@@ -23,6 +23,16 @@ const fr: VsLinearCopy = {
       name: "Linear",
       body: "Un espace hébergé où personnes et agents coordonnent le développement produit.",
     },
+    oursDiagramAlt:
+      "Une note floue entre dans AI4Kanban et en ressort comme une spec dont les critères d’acceptation sont écrits, rangée près du code.",
+    theirsDiagramAlt:
+      "Le travail d’une équipe entre dans Linear et en ressort comme une liste commune indiquant qui porte quoi et où en est chaque élément.",
+    oursDiagramTop: "en entrée : une idée floue",
+    oursDiagramBottom:
+      "en sortie : une spec réalisable, rangée près du code",
+    theirsDiagramTop: "en entrée : le travail de toute une équipe",
+    theirsDiagramBottom:
+      "en sortie : une liste commune, qui fait quoi et où ça en est",
   },
   summary: {
     heading: {

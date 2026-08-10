@@ -44,7 +44,7 @@ The header carries seven things:
 - **The goal** (the compass, on the left beside the folder path) — see below.
 - **Board / Queue** — the two views above.
 - **The release dropdown** — which version the board is showing, and where a release is
-  started or dropped; see below.
+  started, filled from its goal, or dropped; see below.
 - **Create task** — describe an idea in your words and the agent writes the card. The same
   dialog has a **Propose tasks** mode: pick a module (or let the agent pick one) and it
   proposes new tasks inside it. A **How many** row sets the count — 3 by default, 10 at
@@ -122,7 +122,8 @@ belongs to another release or to none.
 
 **All releases** is the way back to the whole board, and where the board opens. Each entry
 counts the open cards in it — "v1 (7)" — so you can see a version is nearly empty without
-opening it. Those are the same numbers `release list` prints in your terminal.
+opening it, and carries what that version is for under its name. Those are the same numbers
+and the same goals `release list` prints in your terminal.
 
 A few more things it does:
 
@@ -144,31 +145,84 @@ A few more things it does:
 ### Starting a release
 
 The dropdown's last entry is **New release**, on a board with five releases and on one with
-none. It asks for a version id and nothing else — `v1`, `0.5.0`, `august`, whatever you call
-your versions. That is all a release is: a name and a place in the order, which is the order
-you made them in. The note you can write beside a version in `releases.md` is yours, and
-nothing reads it.
+none. It asks for a version id — `v1`, `0.5.0`, `august`, whatever you call your versions —
+and, above that box, which kind of release this is. Two tabs:
 
-Under the name box sits one toggle: **put every unplanned high-priority card in**. It is on,
-and the cards it would move are named right under it, so you see the move before making the
-release — not a number you have to take on faith. The fill is a rule, not a judgment call —
-it looks only at the cards in no release, and a card goes in on three tests: its priority is
-high, nothing open is blocking it, and it is not a group root (a subtask is tested on its
-own). Nothing else is looked at, and it only ever adds — a
-card already in a release stays where it is. Every high-priority card the fill would leave
-behind is named there too, with the test it failed, so nothing is dropped silently. With
-no unplanned card to move, the toggle says so; turned off, the release is made empty. A
-card that shouldn't have gone in moves back the way any card does — its **Release** box.
+**From a goal.** The tab the dialog opens on. Under the version id is one more box: the
+release's goal, a sentence or two in your own words saying what this version is trying to
+ship. Those words are the whole choice — the release is planned against them, so the agent
+moves in the open cards that ship the goal and writes the ones your board hasn't got (see the
+next section). The goal goes on the release's own line in `releases.md` and shows under the
+version in the dropdown. **Make release** stays out of reach while the box is empty: there is
+nothing to plan a release against until it says something, and an empty goal is the other tab.
+
+**No goal.** No goal box. A version with nothing to plan against falls back to a plain rule,
+under one toggle: **put every unplanned high-priority card in**, with the cards it would move
+counted right under the switch, so you see the move before making the release. It is a rule,
+not a judgment call — it looks only at the cards in no release, and a card goes in on three
+tests: its priority is high, nothing open is blocking it, and it is not a group root (a
+subtask is tested on its own). Nothing else is looked at, and it only ever adds — a card
+already in a release stays where it is. Every high-priority card the rule leaves behind is
+counted there too, with the test it failed, so nothing is dropped silently. With no unplanned
+card to move, the toggle says so; turned off, the release is made empty. A card that
+shouldn't have gone in moves back the way any card does — its **Release** box.
+
+Either way, where a release sits in the order is the order you made them in. A release made
+on the **No goal** tab can be given a goal later — **What it is for** in the **⋯** menu — and
+filled from there.
 
 The board switches to the new release the moment it is made, so what you write next lands in
-it — **Create task** puts a new card in the release on screen. With the toggle off it is
-empty to begin with, so the "has no open cards" note is what greets you, with **All
-releases** one click away; with the toggle on, the cards it moved are what you see.
+it — **Create task** puts a new card in the release on screen. Made from a goal, the board
+says **it is being planned** and the cards appear as the run moves and writes them, with
+**Watch the run** on the note; made with no goal, you get the cards the rule moved, or the
+"has no open cards" note with **All releases** one click away.
+
+### Filling a release from its goal
+
+A version that says what it is for can be filled against those words. While the board is
+showing one release that has a goal, the **⋯** offers **Fill from its goal**. It is an agent
+run, so a dialog first shows the goal it will plan against and says what the run does:
+
+- it moves the open cards that ship the goal into the release, and
+- it writes the cards the goal needs that the board hasn't got.
+
+The new cards land plain — no open questions — and auto-refine takes them from there like any
+other new card. The agent decides all of it: nothing waits on you and there is nothing to
+approve.
+
+The run behaves like every other run on this board: it shows in the **runs panel** from the
+moment it starts, you can stop it there, and its log is where you read what it moved in, what
+it wrote, and what it left out and why. While it goes, the release says **it is being
+planned** across the top of the board — so a version that is empty because the agent is still
+writing its cards never reads as a version nothing happened to — and **Watch the run** on that
+note opens its log. The board picks the cards up as the run goes, and re-reads itself when the
+run ends, so nothing waits on a reload.
+
+A card already in another release is left where it is — filling only ever adds. So running it
+again is safe, and it is what to do when the goal changes: say what it is for, then fill it
+again, and it adds whatever the goal still lacks. To take a card back out, use its
+**Release** box.
+
+A release with no goal has no **Fill from its goal** entry — there is nothing to plan
+against. Say **What it is for** first, and it appears. In a terminal the same move is "plan
+release v1".
 
 A name the board can't take — one it already has, an empty one, or one that can't
 be a filename — is refused with the reason under the box, and the dialog stays open so you
 can fix the name where you typed it. Leaving without a name makes nothing and leaves the
 board on the release it was already showing.
+
+### Saying what a release is for
+
+While the board is showing one release, the **⋯** beside the dropdown offers **What it is
+for** — the whole goal in a box, and that box is where you change it. The dropdown clamps a
+long goal to two lines and the file keeps it on one, so this is the only place you read all
+of it at once. Save an empty box and the release goes back to having no goal.
+
+The version's goal ends up in one line in `releases.md` whatever you type, so a goal typed
+over three lines reads back as one sentence — and a goal with an em dash in it still reads
+back whole. In a terminal the same two moves are `release new v1 --goal ".."` and
+`release goal v1 ".."`.
 
 ### Closing a release
 
@@ -189,22 +243,24 @@ cards you archived while they named the version, and what was still open — the
 out of the version, and its line comes off the list. Afterwards the board shows **All
 releases**: the version it was showing no longer exists.
 
-The summary is a list of cards, not a changelog, and the board never edits it again. If a line
-in it is wrong, fix that file in your own editor, the way you'd fix a memory file.
+The summary also keeps what the version was for: the release's line is gone, so those words
+survive only there. The rest is a list of cards, not a changelog, and the board never edits
+it again. If a line in it is wrong, fix that file in your own editor, the way you'd fix a
+memory file.
 
 ### Dropping a release
 
 You gave up on the version — it will not ship. The same **⋯** menu offers **Drop release**.
 It never fires on one click either:
-a dialog first says what happens and lists the open cards that come out of the version — still
-wanted, no longer promised to it — and only confirming writes anything.
+a dialog first says what happens, lists the cards already archived under it, and lists the
+open cards that come out of the version — still wanted, no longer promised to it. Only
+confirming changes anything.
 
 The result is exactly what `release drop v1` does in a terminal: the version comes off the
-list with no shipped record, and the summary file in `docs/kanban/.release-summaries/` gets
-one dated **Dropped** section — the cards archived under the version, and the open ones
-sent back. Cards already archived stay archived; nothing written reads later as a shipped
-version. Why you gave up is yours to write down if you want it kept — the board records
-nothing about it.
+list with no shipped record, its open cards return to no release, and cards already
+archived stay archived. No summary file or section is written. If an earlier close of the
+same id left a summary file, the drop does not change or delete it. Why you gave up is
+yours to write down if you want it kept — the board records nothing about it.
 
 **Renaming and reordering a release are still terminal jobs** — `releases.md` is a short file
 and a hand edit is how those work.

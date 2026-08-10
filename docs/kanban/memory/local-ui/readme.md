@@ -28,13 +28,24 @@ except where another doc is named.
 - Move a card into a release, or back out of it, from the card page — no version id to
   type.
 - Start a release from the header dropdown, on every board including one that never
-  planned a version; a fill toggle states the rule and names the cards it would put in and
-  the ones it would leave, with the test each failed.
+  planned a version. Two tabs say which kind it is: **From a goal**, where the goal box is
+  the whole choice and the release is planned against it by an agent run, and **No goal**,
+  which applies the plain high-priority rule and counts its cards before you make the
+  release.
+- Fill a release from its goal — the ⋯ menu's **Fill from its goal**, on a release that has
+  one. It is an ordinary run: it shows in the runs panel from the moment it starts, can be
+  stopped, and its log says what it moved in, wrote and left out. While it goes the board
+  says the release is being planned, and re-reads itself when it ends. Running it again
+  only adds.
 - Show one release at a time from the header dropdown — other releases' cards are hidden,
   every blocker stays on screen, and the pick is remembered per project.
+- Say what a version is for in the New release dialog, read it under each version in the
+  release dropdown, and open it whole — and change it — from the ⋯ menu's **What it is
+  for**. Leaving it empty makes the release anyway.
 - Close a shipped version or drop one that won't ship from the ⋯ menu, with a confirm that
-  lists the open cards losing their release and, on close, any card whose todos are all
-  ticked but which was never archived.
+  lists the archived cards staying put and the open cards losing their release and, on
+  close, any card whose todos are all ticked but which was never archived. Close writes a
+  summary; drop leaves no summary record.
 
 ## Runs
 

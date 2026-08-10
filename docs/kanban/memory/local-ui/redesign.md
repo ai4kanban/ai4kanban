@@ -18,6 +18,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   script has.
 - ❌ **A board action stays terminal-only because it feels rare or administrative** → ✅ the
   UI offers what the script offers, with the consequences shown before the user confirms.
+- ❌ **One control changes meaning with a field above it** (the same switch is "fill from
+  the goal" or "put the high-priority cards in", depending on whether a box has words) →
+  ✅ two modes get two tabs that name them, and each tab shows only its own fields. A
+  control the user has to look elsewhere to read is worse than the extra control it saved.
 
 ## Runs
 
@@ -25,6 +29,15 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   after it) → ✅ the log is a place: every run's full output is written to a gitignored
   file, the card keeps its most recent run openable after a restart, and one global runs
   panel in the header browses all of them, live and past. Keep 30.
+- ❌ **A run's result waits in a new review state the user has to accept or discard**
+  (with a file to hold it, and rules for when it expires) → ✅ a run changes the board when
+  it finishes and the user reads the log. An approval step is a new notion to learn and a
+  new state to keep alive across restarts, for a question the user often can't answer.
+- ❌ **A run the server starts on the side is invisible to the tab that asked for it** (the
+  board jumps to the new release and shows it empty, the runs panel notices it seconds
+  later on an idle poll, and nothing refreshes when it ends) → ✅ a run a click starts is
+  that tab's own run: it is in the runs panel at once, the thing it works on says it is
+  running, and the board re-reads itself when it finishes.
 - ❌ **A full auto-refine status readout** (current card, last refined, next pick, a reason
   for every idle state) → ✅ one "Refining #<id>" label beside the switch while a run is
   live, nothing otherwise. A background switch gets at most one small live indicator.

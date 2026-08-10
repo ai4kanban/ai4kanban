@@ -20,6 +20,9 @@ before proposing so you don't re-suggest them.
 - **Open-questions notification center in the header** — no clear incentive to build it;
   open questions already show on the card. Worth revisiting if the board ever grows a
   human-in-the-loop center.
+- **Ticking several cards to move them into a release at once** — cards go into and out of
+  a release by asking the agent in plain words, not by hand-picking them in the UI. A
+  multi-select bar builds the manual path we don't want.
 
 ## Runs
 

@@ -18,10 +18,17 @@ _(none)_
 - [#57 Let a user choose where the board is stored](57-choose-where-the-board-is-stored/root.md)
 - [#67 Handle a failed agent run instead of just marking it red](features/67-handle-a-failed-agent-run-instead-of-just-marking-it-red.md)
 - [#77 Read the board's memory in the UI](77-memory-in-the-ui/root.md)
-- [#114 Move several cards into a release at once](features/114-bulk-set-release.md)
 - [#116 Unstick cards that sit on the board too long](116-stuck-cards/root.md)
 - [#140 Schedule a blocked card so it starts the moment its blocker is done](features/140-schedule-a-blocked-card-so-it-starts-the-moment-its-blocker.md)
-- [#148 Show which cards can be built at the same time](features/148-show-which-cards-can-be-built-at-the-same-time.md)
+- [#154 Show what a card unblocks, so the ones holding up work go first](features/154-show-what-a-card-unblocks-so-the-ones-holding-up-work-go-fir.md)
+- [#160 Run the board with an agent beyond Claude Code and Codex](features/160-run-the-board-with-an-agent-beyond-claude-code-and-codex.md)
+- [#169 Let the board UI do its work through the CLI](features/169-let-the-board-ui-do-its-work-through-the-cli.md)
+- [#171 Make a board from the UI, with no command to type](features/171-make-a-board-from-the-ui-with-no-command-to-type.md)
+- [#172 Walk a first-time user through setup in the UI](features/172-walk-a-first-time-user-through-setup-in-the-ui.md)
+- [#173 Let the UI finish the setup steps that need an agent](features/173-let-the-ui-finish-the-setup-steps-that-need-an-agent.md)
+- [#174 Add the coding agent skill later, from a button in the UI](features/174-add-the-coding-agent-skill-later-from-a-button-in-the-ui.md)
+- [#175 Open the board as a desktop app](features/175-open-the-board-as-a-desktop-app.md)
+- [#176 Answer the board's questions from your phone](features/176-answer-the-board-s-questions-from-your-phone.md)
 
 ## skill
 
@@ -29,19 +36,20 @@ _(none)_
 - [#112 Move a module's calls into its memory when the map gains that module](skill/112-move-a-module-s-calls-into-its-memory-when-the-map-gains-tha.md)
 - [#141 Update the sibling tasks when one task's plan changes](skill/141-update-the-sibling-tasks-when-one-task-s-plan-changes.md)
 - [#143 Plan UI tasks so the screen is agreed before it is built](143-ui-tasks/root.md)
-- [#144 Say how a card will be checked before it counts as done](skill/144-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
-- [#145 Turn a doc you already wrote into cards](skill/145-turn-a-doc-you-already-wrote-into-cards.md)
-- [#146 Name the one card to build next](skill/146-name-the-one-card-to-build-next.md)
-- [#147 Flag a card that is too big to build in one run](skill/147-flag-a-card-that-is-too-big-to-build-in-one-run.md)
-- [#149 Let two runs create cards at once without clobbering the board](skill/149-let-two-runs-create-cards-at-once-without-clobbering-the-boa.md)
-- [#150 Cut what the agent has to read to run one flow](skill/150-cut-what-the-agent-has-to-read-to-run-one-flow.md)
-- [#151 Make one install serve Cursor and Windsurf too](skill/151-make-one-install-serve-cursor-and-windsurf-too.md)
+- [#153 Name the one card to build next](skill/153-name-the-one-card-to-build-next.md)
+- [#155 Flag a card that is too big to build in one run](skill/155-flag-a-card-that-is-too-big-to-build-in-one-run.md)
+- [#156 Two runs writing cards at once must not clobber the board](skill/156-two-runs-writing-cards-at-once-must-not-clobber-the-board.md)
+- [#157 Turn a spec you already wrote into the cards that build it](skill/157-turn-a-spec-you-already-wrote-into-the-cards-that-build-it.md)
+- [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
+- [#159 Make one install serve Cursor and Windsurf too](skill/159-make-one-install-serve-cursor-and-windsurf-too.md)
+- [#167 Put every board command in one CLI](skill/167-put-every-board-command-in-one-cli.md)
+- [#168 Start, watch, stop and resume an agent run from the CLI](skill/168-start-watch-stop-and-resume-an-agent-run-from-the-cli.md)
+- [#170 Let the skill do everything the UI can](skill/170-let-the-skill-do-everything-the-ui-can.md)
 
 ## distribution
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
-- [#5 Research the Vibe Kanban comparison and build its vs page](distribution/5-vibe-kanban-vs-page.md)
-- [#152 Build the Task Master comparison page](distribution/152-build-the-task-master-comparison-page.md)
+- [#177 Make the board UI the way in, in the README and on the site](distribution/177-make-the-board-ui-the-way-in-in-the-readme-and-on-the-site.md)
 
 ## 77-memory-in-the-ui/features
 

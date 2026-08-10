@@ -41,8 +41,11 @@
 //   node kanban.mjs update-questions <id> [ops]         patch the open-question list (append/update/drop/clear)
 //   node kanban.mjs tag <id> <n[,n...]> <user|none>    set/clear the tag on one or more open questions
 //   node kanban.mjs list [--module <m>]                 the open cards at a glance, optionally one module's
-//   node kanban.mjs release new <id> [--fill]          add a release to docs/kanban/releases.md; --fill
-//                                                       puts the high-priority cards with no release in
+//   node kanban.mjs release new <id> [--goal ".."] [--fill]
+//                                                       add a release to docs/kanban/releases.md; --goal says
+//                                                       what the version is for; --fill puts the
+//                                                       high-priority cards with no release in
+//   node kanban.mjs release goal <id> ".."             change what a release is for ("" clears it)
 //   node kanban.mjs release list                       the releases in ship order + what each holds
 //   node kanban.mjs release close <id>                 close a shipped release: summary + leftovers' release cleared
 //   node kanban.mjs release drop <id>                  drop a release that won't ship: no shipped record,
@@ -204,16 +207,23 @@ Usage: node ${rel(SELF)} <command> [args]
                        (v1, 0.5.0, august), kept as typed, and has to work as a
                        filename — letters, numbers, dot, dash, underscore. Refused: an
                        empty id and one already on the list.
+                       --goal ".." says what the version is for, in the user's own words.
+                       It is kept on the release's own line, folded to one line whatever
+                       was typed, and is never required — a release with no goal works
+                       everywhere a release with one does.
                        --fill puts the high-priority cards with no release in as the
                        release is made: a card goes in when its priority is high,
                        nothing open is blocking it, and it is not a group root —
                        nothing else is looked at, and a card already in a release
                        stays where it is. One line per card moved; a high-priority
                        card left behind is named with the test it failed.
-  release list         the releases in ship order, each with how many open cards name it
-                       and how many of those are ready to build; the cards in no release
-                       are counted last. Names any card pointing at a release that is
-                       not on the list.
+  release goal <id> ".."
+                       change what a release is for, after it was made. An empty goal
+                       ("") clears it.
+  release list         the releases in ship order, each with what it is for, how many open
+                       cards name it and how many of those are ready to build; the cards in
+                       no release are counted last. Names any card pointing at a release
+                       that is not on the list.
   release close <id>   the version shipped: write what it held to
                        docs/kanban/.release-summaries/<id>.md (what shipped, from the
                        archived cards naming it; what didn't, from the open ones), clear
@@ -223,12 +233,10 @@ Usage: node ${rel(SELF)} <command> [args]
                        A card with every todo ticked but never archived counts as not
                        shipped; the close names it so you can archive it and fix that
                        one line by hand.
-  release drop <id>    the version will not ship: write one dated \`## Dropped\` section
-                       to docs/kanban/.release-summaries/<id>.md (the cards archived
-                       under it, and the open ones sent back), clear the release off
-                       every open card in it, and take its line off the list. Nothing it
-                       writes reads as a shipped version, and a later close of a remade
-                       <id> skips the cards the drop listed.
+  release drop <id>    the version will not ship: report the cards archived under it and
+                       the open ones sent back, clear the release off every open card in
+                       it, and take its line off the list. Writes no summary file or
+                       section; an existing summary for a reused id is left untouched.
   tag <id> <n[,n...]> <t>  set the tag on one or more open questions (1-based, e.g.
                        1 or 1,2,3): user | none (none strips it). Used by the
                        auto-refine loop to hand questions to the human without

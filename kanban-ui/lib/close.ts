@@ -1,6 +1,6 @@
 import { patchCard } from "./edit";
 import { appendSection, cardLine, endingCards, openCardLine, plural, today } from "./release-summary";
-import { readReleases, removeReleaseLine } from "./releases";
+import { readReleaseGoals, readReleases, removeReleaseLine } from "./releases";
 import { NO_RELEASE } from "./types";
 
 // Closing a release that shipped (#136) — the same move `release close` makes on
@@ -54,9 +54,17 @@ export function closeRelease(id: string): { ok: boolean; error?: string } {
       };
     }
     const { archived, left } = endingCards(id);
+    // Read while the line is still on the list — removing it is the last step
+    // below, and after that the summary is the only record of what the version
+    // was for (#164).
+    const goal = readReleaseGoals()[id];
     const out: string[] = [];
     out.push(`## Closed ${today()}`);
     out.push("");
+    if (goal) {
+      out.push(`What it was for — ${goal}`);
+      out.push("");
+    }
     out.push(
       archived.length
         ? `Shipped — ${plural(archived.length, "card")}, archived while naming \`${id}\`:`

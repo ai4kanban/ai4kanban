@@ -18,6 +18,17 @@ re-ask a settled call.
 - Setup from the UI asks the user nothing — not the tracks, not the project name, not the
   description. The agent reads the repo and proposes them.
 
+## How the board is run
+
+- **Which systems the desktop app ships on?**: macOS, Windows and Linux together, from the
+  first release that has an app. macOS is the one we test each release; the other two are
+  built and shipped untested until someone reports otherwise.
+- **How does a user get the board?**: the desktop app is the way in. Homebrew may come
+  later; npx is not how the app is handed out.
+- **What do we pay to sign the app?**: the Mac app only — macOS is the one we test, so it
+  opens with no warning. Windows and Linux ship unsigned and the download page says how to
+  open them. Revisit a Windows certificate when users ask.
+
 ## Propose and add-task
 
 - Propose runs on one module at a time; the picker is a single-module dropdown, never a
@@ -118,6 +129,11 @@ re-ask a settled call.
   since an unplanned blocker is usually blocking the version being planned.
 - Ticking cards to move several in or out of a release is worth having beside the agent's
   fill pass, which only ever adds — a version planned too full needs a fast way back out.
+- The New release dialog picks the kind of release with two tabs, **From a goal** and **No
+  goal**, not with a switch that means different things. On the goal tab the goal box is
+  the whole choice: words in it and the release is planned against them, and the release
+  can't be made without them. The no-goal tab keeps the high-priority switch and its count.
+  A goal can still be added later from the release's ⋯ menu.
 - Daily progress opens from a header icon, not a strip on the board, and shows a line
   chart rather than numbers alone.
 

@@ -22,7 +22,12 @@ AI4Kanban为小微团队而设计：用看板管理工作，把人从具体实�
 - [ ] Harness无关：任何Harness都可以使用，包括但不限于Claude Code、Codex、Cursor。
 - [x] 本地优先：看板任务默认存储为本地Markdown文件，无需MCP，无需数据库，节约token。一切以纯文本留存于git，可审查、可diff、可回滚。
 - [x] 开箱即用：一条prompt完成安装与升级；AI4Kanban专为项目管理打造，配置极简。
-- [x] 两种使用模式：既可通过skill在命令行内管理看板，也可在本地UI中操作。
+- [x] ~~两种使用模式：既可通过skill在命令行内管理看板，也可在本地UI中操作。~~
+- [ ] UI优先（或者说看板优先）：通过Skill进行首次安装和配置的不可控因素太多，用户的主要操作应该通过GUI，Skill只作为后续可选项。
+  - [ ] 桌面端：考虑到人负责取舍而非执行，人应该可以在任意设备上提供决策，而不仅是web浏览器。
+  - [ ] CLI：与agent harness的交互、看板管理都封装在CLI中，UI后端通过CLI进行看板/agent操作，这使得Skill能够实现UI同样的功能。
+  - [ ] Onboarding：首次使用时应该经过类似于typeless的引导，完成看板的初始化，包括设置 goal.md。
+  - [ ] Chat with Board：既然UI优先，那么交互方式应该能跳过agent，直接在UI中进行任务的讨论。
 
 人类项目经理用看板管理工作，agent也应如此。AI4Kanban不以聊天窗作为交互方式，而以看板为中心。
 

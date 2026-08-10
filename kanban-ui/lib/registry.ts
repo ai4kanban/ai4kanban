@@ -33,7 +33,17 @@ import type { AgentAction, CardStatus, SessionView, TokenUsage } from "./types";
 // lock. Propose allocates several ids in one run, so it belongs here too, and so
 // does a recurring run: recordRun bumps metrics.csv and rewrites the README
 // index at the close of one, the very files this lock exists for.
-const INDEX_ACTIONS = new Set<AgentAction>(["create", "propose", "archive", "reject", "run"]);
+// A plan-release run belongs here for the same reason propose does: it allocates
+// ids for the cards the goal is missing, and rewrites the README index as it
+// moves cards into the release.
+const INDEX_ACTIONS = new Set<AgentAction>([
+  "create",
+  "propose",
+  "archive",
+  "reject",
+  "run",
+  "plan-release",
+]);
 
 // Actions that may run only one at a time across the whole board. A create has
 // no card yet, so the per-card lock can't catch a duplicate — and the registry
@@ -43,7 +53,10 @@ const INDEX_ACTIONS = new Set<AgentAction>(["create", "propose", "archive", "rej
 // guard checks. This is the "single global create" rule — no separate lock file
 // needed, the registry (persisted to .sessions.json) is already the source of
 // truth.
-const SINGLETON_ACTIONS = new Set<AgentAction>(["create", "propose"]);
+// A plan-release run is one of them too: it has no card id either, and two of
+// them at once — on one release or on two — would read the same board and write
+// the same missing cards twice.
+const SINGLETON_ACTIONS = new Set<AgentAction>(["create", "propose", "plan-release"]);
 
 // Past-tense verb for the "already running" message, e.g. "#5 is already being
 // implemented".
@@ -57,6 +70,14 @@ const VERB: Record<AgentAction, string> = {
   propose: "proposed",
   "auto-refine": "auto-refined",
   resolve: "resolved",
+  "plan-release": "planned",
+};
+
+// The refusal a one-at-a-time action gets when one of its own is already going,
+// for the actions the "a task is already being …" sentence doesn't fit. A
+// plan-release run plans a version, not a task.
+const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
+  "plan-release": "a release is already being planned",
 };
 
 // A session's action maps to the saved stage it puts the card in while it runs.
@@ -717,7 +738,10 @@ export interface StartResult {
 // Trimmed; empty becomes undefined. Stored on the session so the sessions panel
 // shows the input alongside the log (#21).
 function sessionInput(req: AgentRequest): string | undefined {
-  const text = req.description ?? req.reason ?? req.notes ?? "";
+  // A plan-release run was never given text — the user picked a version. The
+  // version id is what that run is about, so it stands in as the input and the
+  // panel says which release was planned.
+  const text = req.action === "plan-release" ? (req.release ?? "") : (req.description ?? req.reason ?? req.notes ?? "");
   return text.trim() || undefined;
 }
 
@@ -779,7 +803,7 @@ function lockedBy(s: RegistryState, action: AgentAction, cardId: number | null):
   if (SINGLETON_ACTIONS.has(action)) {
     for (const r of s.sessions.values()) {
       if (r.status === "running" && r.action === action) {
-        return `a task is already being ${VERB[action]}`;
+        return SINGLETON_BUSY[action] ?? `a task is already being ${VERB[action]}`;
       }
     }
   }

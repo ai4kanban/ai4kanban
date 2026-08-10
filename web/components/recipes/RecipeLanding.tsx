@@ -98,7 +98,7 @@ export function RecipeLanding({
           <p className="text-sm text-muted">
             <span className="font-semibold text-ink">Prerequisite:</span>{" "}
             <a href="/#install" className="text-accent-deep no-underline hover:underline">
-              ai4kanban
+              AI4Kanban
             </a>{" "}
             installed in your repo. New here? Install the skill first, then paste
             the prompt above.

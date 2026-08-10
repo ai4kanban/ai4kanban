@@ -10,9 +10,9 @@ import type { SiteCopy } from "@/i18n/types";
 // nav; from `md` up the nav is back and this is gone. The language switcher and
 // the GitHub button stay out in the row — see `Header.tsx`.
 //
-// The five comparisons are listed flat under a heading rather than nested in
+// The comparisons are listed flat under a heading rather than nested in
 // `CompareMenu` — a menu that opens a menu is a tap you can miss on a touch
-// screen, and the list is only five lines.
+// screen, and the list is only a handful of lines.
 export function MobileNav({ c, locale }: { c: SiteCopy; locale: Locale }) {
   const nav = c.shared.nav;
 

@@ -43,7 +43,6 @@ export type VsHermesCopy = {
     /** Labels drawn inside the diagrams. */
     taskLayer: string;
     boardLayer: string;
-    runtimeLabel: string;
   };
   summary: {
     heading: Heading;

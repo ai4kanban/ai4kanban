@@ -8,6 +8,10 @@ import {
 } from "@/components/vs/ComparisonTable";
 import { VsHeroSection } from "@/components/vs/VsHeroSection";
 import { WinColumns } from "@/components/vs/WinColumns";
+import {
+  LinearHeroDiagram,
+  KanbanHeroDiagram,
+} from "@/components/vs-linear/LinearDiagrams";
 import { LinearModel } from "@/components/vs-linear/LinearModel";
 import { LinearSummary } from "@/components/vs-linear/LinearSummary";
 import {
@@ -69,7 +73,13 @@ export function VsLinearPage({ locale }: { locale: Locale }) {
       />
       <Header c={c} locale={locale} />
       <main className="mx-auto max-w-4xl px-6">
-        <VsHeroSection c={t.hero} shared={c.shared} theirsTag="◩" />
+        <VsHeroSection
+          c={t.hero}
+          shared={c.shared}
+          theirsTag="◩"
+          oursExtra={<KanbanHeroDiagram c={t.hero} />}
+          theirsExtra={<LinearHeroDiagram c={t.hero} />}
+        />
         <LinearSummary c={t.summary} />
 
         <section className="mt-24">

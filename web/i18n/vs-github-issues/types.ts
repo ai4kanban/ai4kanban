@@ -3,6 +3,7 @@ import type {
   PageMeta,
   VsDecision,
   VsHero,
+  VsHeroDiagrams,
 } from "../types";
 
 // Keys shared with `components/vs-github-issues/vs-content.ts`.
@@ -16,7 +17,7 @@ export type VsGithubRowKey =
 
 export type VsGithubCopy = {
   meta: PageMeta;
-  hero: VsHero;
+  hero: VsHero & VsHeroDiagrams;
   comparison: {
     heading: Heading;
     lead: string;

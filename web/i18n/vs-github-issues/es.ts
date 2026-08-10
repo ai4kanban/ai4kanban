@@ -24,6 +24,15 @@ const es: VsGithubCopy = {
       name: "GitHub Issues",
       body: "Un sistema de tareas alojado para compartir trabajo, conversaciones y estados con un equipo o una comunidad.",
     },
+    oursDiagramAlt:
+      "El código y el tablero son carpetas del mismo repositorio, así que el agente actualiza el trabajo allí donde lee el código.",
+    theirsDiagramAlt:
+      "Tus archivos están en una ventana y la incidencia es una página de github.com en otra, así que sincronizar ambas es tarea tuya.",
+    oursDiagramTop: "tu tablero vive en el repositorio",
+    oursDiagramBottom: "el agente lee el código y actualiza el tablero",
+    theirsDiagramTop:
+      "las incidencias están en un servidor; tu código no",
+    theirsDiagramBottom: "ideal para un equipo — tú los mantienes al día",
   },
   comparison: {
     heading: {

@@ -30,7 +30,6 @@ const es: VsHermesCopy = {
       "Un runtime de Hermes integrado, con el tablero SQLite, el despachador y los agentes con nombre fundidos dentro.",
     taskLayer: "capa de tareas · ejecución + mantenimiento",
     boardLayer: "kanban · archivos Markdown (git)",
-    runtimeLabel: "Runtime de Hermes",
   },
   summary: {
     heading: {

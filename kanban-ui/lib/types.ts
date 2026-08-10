@@ -162,6 +162,10 @@ export interface Board {
    *  board that plans no versions — then the UI says nothing about releases at
    *  all: no picker, no chip on a card. */
   releases: string[];
+  /** What each release is for, keyed by version id (#164) — the goal on its line
+   *  in `releases.md`. A release with no goal is absent, not an empty string:
+   *  every release may be made without one, and every screen works over that. */
+  releaseGoals: Record<string, string>;
   /** How many open cards name each release, keyed by version id, with the empty
    *  key for the cards in no release. It counts every open card — subtasks answer
    *  for themselves, the way they do on the CLI — so the number beside a release
@@ -219,6 +223,11 @@ export type AgentAction =
   | "edit"
   | "create"
   | "propose"
+  /** Fill one release with the open cards that ship its goal, and write the ones
+   *  the goal needs that the board is missing (#165). It touches no single card
+   *  — it moves many and creates more — so it carries a release id instead of an
+   *  id, like `create` and `propose` carry none. */
+  | "plan-release"
   | "auto-refine"
   | "resolve";
 

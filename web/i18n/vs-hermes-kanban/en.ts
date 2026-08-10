@@ -30,7 +30,6 @@ const en: VsHermesCopy = {
       "A single Hermes runtime contains the SQLite board, dispatcher, and named agents.",
     taskLayer: "task layer · execution + maintenance",
     boardLayer: "kanban · Markdown files (git)",
-    runtimeLabel: "Hermes runtime",
   },
   summary: {
     heading: {

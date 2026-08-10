@@ -4,6 +4,7 @@ import type {
   TitleBody,
   VsDecision,
   VsHero,
+  VsHeroDiagrams,
 } from "../types";
 
 export type VsMulticaRowKey =
@@ -33,14 +34,7 @@ export type VsMulticaStageKey =
 
 export type VsMulticaCopy = {
   meta: PageMeta;
-  hero: VsHero & {
-    oursDiagramAlt: string;
-    theirsDiagramAlt: string;
-    oursDiagramTop: string;
-    oursDiagramBottom: string;
-    theirsDiagramTop: string;
-    theirsDiagramBottom: string;
-  };
+  hero: VsHero & VsHeroDiagrams;
   boundary: {
     heading: Heading;
     lead: string;

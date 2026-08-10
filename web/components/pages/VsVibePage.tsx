@@ -8,6 +8,10 @@ import {
 } from "@/components/vs/ComparisonTable";
 import { WinColumns } from "@/components/vs/WinColumns";
 import { DecisionSection } from "@/components/vs/DecisionSection";
+import {
+  KanbanHeroDiagram,
+  VibeHeroDiagram,
+} from "@/components/vs-vibe-kanban/VkDiagrams";
 import { VkSummary } from "@/components/vs-vibe-kanban/VkSummary";
 import { VkPurpose } from "@/components/vs-vibe-kanban/VkPurpose";
 import { VibeKanbanMark } from "@/components/vs-vibe-kanban/VibeKanbanMark";
@@ -79,7 +83,13 @@ export function VsVibePage({ locale }: { locale: Locale }) {
       />
       <Header c={c} locale={locale} />
       <main className="mx-auto max-w-4xl px-6">
-        <VsHeroSection c={t.hero} shared={c.shared} theirsTag={vibeTag} />
+        <VsHeroSection
+          c={t.hero}
+          shared={c.shared}
+          theirsTag={vibeTag}
+          oursExtra={<KanbanHeroDiagram c={t.hero} />}
+          theirsExtra={<VibeHeroDiagram c={t.hero} />}
+        />
         <VkSummary c={t.summary} />
 
         <section className="mt-24">

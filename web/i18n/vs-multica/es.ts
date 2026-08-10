@@ -23,13 +23,15 @@ const es: VsMulticaCopy = {
       body: "Creas varios agentes y configuras sus responsabilidades, Skills y entornos de ejecución. Después gestionas desde un solo lugar el reparto, la ejecución, los reintentos, la revisión y la colaboración.",
     },
     oursDiagramAlt:
-      "AI4Kanban permite que personas y agentes planifiquen y ejecuten en torno a un objetivo común.",
+      "Dices qué quieres y el tablero planifica y ejecuta el trabajo solo; no hay ningún agente que crear, nombrar ni repartir.",
     theirsDiagramAlt:
-      "Multica permite configurar y operar varios agentes.",
-    oursDiagramTop: "las personas marcan el rumbo · deciden",
-    oursDiagramBottom: "los agentes planifican · aclaran · ejecutan",
-    theirsDiagramTop: "varios agentes + Skills + entornos",
-    theirsDiagramBottom: "repartir · asignar · colaborar · supervisar",
+      "Multica aporta la plataforma, no el equipo: cada agente lo creas tú y cada ejecución vuelve a ti para repartirla, vigilarla y reintentarla.",
+    oursDiagramTop: "dices qué quieres construir",
+    oursDiagramBottom:
+      "el tablero lo planifica y lo ejecuta — sin configurar agentes",
+    theirsDiagramTop: "cada agente lo creas tú",
+    theirsDiagramBottom:
+      "y luego repartes, vigilas y reintentas cada ejecución",
   },
   boundary: {
     heading: { eyebrow: "Posicionamiento", title: "Dos productos, dos necesidades" },

@@ -30,7 +30,6 @@ const ja: VsHermesCopy = {
       "SQLite のボード、ディスパッチャ、名前付きエージェントが内側に溶け込んだ、ひとつの Hermes ランタイム。",
     taskLayer: "タスク層 · 実行 + 保守",
     boardLayer: "カンバン · Markdown ファイル（git）",
-    runtimeLabel: "Hermes ランタイム",
   },
   summary: {
     heading: {

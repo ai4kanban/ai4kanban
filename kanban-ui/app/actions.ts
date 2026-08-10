@@ -24,7 +24,7 @@ import { readGoalText, writeGoalText } from "@/lib/goal";
 import { tickSetupStep } from "@/lib/setup";
 import { type MetricsResult, readMetrics } from "@/lib/metrics";
 import { readModules } from "@/lib/modules";
-import { addRelease } from "@/lib/releases";
+import { addRelease, foldGoal, readReleases, setReleaseGoal } from "@/lib/releases";
 import { setSecret } from "@/lib/secrets";
 import { testConnection } from "@/lib/test-connection";
 import {
@@ -65,11 +65,15 @@ const ACTIONS = new Set([
   "resolve",
   "propose",
   "auto-refine",
+  // Fill a release from its goal (#165) — started from the New release dialog
+  // and from a release's ⋯ menu, never from a card.
+  "plan-release",
 ]);
 
 // create and propose touch no existing card (create makes one, propose makes
-// several), so they carry no `id` — every other action needs one.
-const CARDLESS = new Set(["create", "propose"]);
+// several), so they carry no `id` — every other action needs one. plan-release
+// is the third: it moves and writes many cards, and names a release instead.
+const CARDLESS = new Set(["create", "propose", "plan-release"]);
 
 // Start an agent and return immediately with a sessionId (or a lock message). The
 // request never waits for the child — the client polls listSessionsAction() to
@@ -79,8 +83,33 @@ export async function startAgentAction(req: AgentRequest): Promise<StartResult> 
   if (!CARDLESS.has(req.action) && !Number.isInteger(req.id)) {
     throw new Error("action needs a card id");
   }
+  if (req.action === "plan-release" && !req.release?.trim()) {
+    throw new Error("planning a release needs a version id");
+  }
   const prompt = buildPrompt(req);
   return startSession(req, prompt);
+}
+
+// Fill a release from its goal (#165): a normal board run — it shows in the runs
+// panel, can be stopped, and keeps its log — that moves the open cards shipping
+// the goal into the release and writes the cards the goal needs that the board
+// hasn't got.
+//
+// It returns the moment the run is spawned, never when the run is done: the
+// release is already on the list, and what the run did is read in its log.
+// Refused for a release the list doesn't hold — a stale tab shouldn't send an
+// agent after a version that has been closed or dropped since.
+export async function planReleaseAction(id: string): Promise<StartResult> {
+  const release = typeof id === "string" ? id.trim() : "";
+  if (!release) return { ok: false, error: "no release named" };
+  if (!readReleases().includes(release)) {
+    return {
+      ok: false,
+      error: `"${release}" is not on the release list — it may already have been closed or dropped.`,
+    };
+  }
+  const req: AgentRequest = { action: "plan-release", release };
+  return startSession(req, buildPrompt(req));
 }
 
 // Continue a failed run's conversation: a new session on the same card and the
@@ -142,7 +171,8 @@ export async function saveGoalAction(text: string): Promise<{ ok: boolean; error
 }
 
 // Start a release from the header's New release entry (#115) — one line appended
-// to docs/kanban/releases.md, the same line `release new` writes.
+// to docs/kanban/releases.md, the same line `release new` writes, carrying what
+// the version is for (#164) when the dialog's goal box was filled in.
 //
 // No agent run: a release is a name and its place in the order, so there is
 // nothing for an agent to decide, and a run answers minutes later in a log —
@@ -152,15 +182,66 @@ export async function saveGoalAction(text: string): Promise<{ ok: boolean; error
 // A name that can't be a release comes back as { ok:false, error } rather than
 // throwing, so the dialog shows why and stays open on what was typed.
 //
-// `fill` is the dialog's toggle (#106): the high-priority cards with no release go in
-// as the release is made — the same move `release new <id> --fill` makes. It
-// runs only after the release is really on the list, so a refused name moves
-// nothing.
-export async function createReleaseAction(id: string, fill = false): Promise<{ ok: boolean; error?: string }> {
+// `fill` is what the dialog's tab asked for (#106, #165), because the two kinds
+// of release are filled by different jobs:
+//
+//   • a release WITH a goal is planned against it — an agent run that moves in
+//     the cards shipping the goal and writes the ones it is missing (#165). The
+//     release is written first and the run starts behind it, so making a release
+//     never waits on an agent.
+//   • a release with NO goal keeps the plain rule: the high-priority, unblocked,
+//     non-root cards with no release go in at once, the same move `release new
+//     <id> --fill` makes.
+//
+// Either way it runs only after the release is really on the list, so a refused
+// name moves nothing and starts nothing. And the release stands whatever the run
+// does: a run that can't start — another is already going — still leaves the
+// version on the list, so that comes back as `planError` beside `ok`, for the
+// board to say out loud rather than as a failure that would keep the dialog open
+// on a release it already made.
+//
+// A run that DID start comes back as `planSessionId`, so the board can take it on
+// as a run this tab started: the runs panel then has it from the moment the
+// release is made, rather than whenever the next poll happens to notice it.
+export async function createReleaseAction(
+  id: string,
+  fill = false,
+  goal = "",
+): Promise<{
+  ok: boolean;
+  error?: string;
+  planning?: boolean;
+  planSessionId?: string;
+  planError?: string;
+}> {
   if (typeof id !== "string") return { ok: false, error: "a version id is text" };
-  const res = addRelease(id);
-  if (res.ok && fill === true) fillRelease(id.trim());
-  return res;
+  const text = typeof goal === "string" ? goal : "";
+  const res = addRelease(id, text);
+  if (!res.ok || fill !== true) return res;
+  if (!foldGoal(text)) {
+    fillRelease(id.trim());
+    return res;
+  }
+  const run = await planReleaseAction(id.trim());
+  return {
+    ok: true,
+    planning: run.ok,
+    planSessionId: run.ok ? run.sessionId : undefined,
+    planError: run.ok ? undefined : run.error,
+  };
+}
+
+// Change what a release is for, after it was made (#164) — the ⋯ menu's goal
+// dialog, the same write `release goal` makes. Direct, like the release actions
+// around it: the words are the user's, so there is nothing for an agent to decide.
+// An empty goal clears it, which is why only the id is refused for being empty.
+export async function setReleaseGoalAction(
+  id: string,
+  goal: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (typeof id !== "string" || !id.trim()) return { ok: false, error: "no release named" };
+  if (typeof goal !== "string") return { ok: false, error: "a goal is text" };
+  return setReleaseGoal(id.trim(), goal);
 }
 
 // What the fill would do right now — the New release dialog reads this as it
@@ -169,18 +250,20 @@ export async function fillPlanAction(): Promise<FillPlan> {
   return fillPlan();
 }
 
-// Which open cards a drop would strip of their release — the confirm dialog reads
-// this as it opens (#131), so the user sees the move before anything is written.
+// Which archived cards stay put and which open cards a drop strips of their
+// release — the confirm dialog reads this as it opens (#131), so the user sees
+// the move before anything is changed.
 export async function dropPlanAction(id: string): Promise<DropPlan> {
-  if (typeof id !== "string" || !id) return { left: [] };
+  if (typeof id !== "string" || !id) return { archived: [], left: [] };
   return dropPlan(id);
 }
 
 // Give up on a release from the header's picker (#131) — the same move `release
-// drop` makes: one dated `## Dropped` section in the summary file, the open
-// cards' release cleared, the line off the list. Direct, like starting a release:
-// there is nothing for an agent to decide, and a stale board — the release
-// already gone — comes back as { ok:false, error } for the dialog to show.
+// drop` makes: report what stays archived and what is sent back, clear the open
+// cards' release, and take the line off the list without touching a summary file
+// (#166). Direct, like starting a release: there is nothing for an agent to
+// decide, and a stale board — the release already gone — comes back as
+// { ok:false, error } for the dialog to show.
 export async function dropReleaseAction(id: string): Promise<{ ok: boolean; error?: string }> {
   if (typeof id !== "string" || !id.trim()) return { ok: false, error: "no release named" };
   return dropRelease(id.trim());

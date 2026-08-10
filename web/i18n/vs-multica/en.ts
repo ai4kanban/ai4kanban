@@ -23,13 +23,14 @@ const en: VsMulticaCopy = {
       body: "You create multiple agents, give each one responsibilities, Skills, and a runtime, then manage assignments, execution, retries, reviews, and team collaboration in one place.",
     },
     oursDiagramAlt:
-      "AI4Kanban helps people and agents plan and execute around a shared project goal.",
+      "You say what you want and the board plans and runs the work itself; there is no agent to create, name or dispatch.",
     theirsDiagramAlt:
-      "Multica lets teams configure and operate multiple agents.",
-    oursDiagramTop: "people set direction · make the calls",
-    oursDiagramBottom: "agents plan · clarify · execute",
-    theirsDiagramTop: "multiple agents + Skills + runtimes",
-    theirsDiagramBottom: "assign · dispatch · collaborate · monitor",
+      "Multica ships the platform but not the team: you create each agent yourself, and every run comes back to you to assign, watch and retry.",
+    oursDiagramTop: "you say what you want built",
+    oursDiagramBottom:
+      "the board plans and runs it — no agents to set up",
+    theirsDiagramTop: "you create every agent yourself",
+    theirsDiagramBottom: "then you assign, watch and retry each run",
   },
   boundary: {
     heading: {

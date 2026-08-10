@@ -16,6 +16,10 @@ import {
   PATH as multicaPath,
   VsMulticaPage,
 } from "@/components/pages/VsMulticaPage";
+import {
+  PATH as taskMasterPath,
+  VsTaskMasterPage,
+} from "@/components/pages/VsTaskMasterPage";
 import { getCopy } from "@/i18n";
 import type { SiteCopy } from "@/i18n/types";
 import type { Locale } from "@/lib/i18n";
@@ -38,6 +42,7 @@ export const COMPARISONS: readonly Comparison[] = [
   { path: vibePath, copy: "vsVibe", Page: VsVibePage },
   { path: linearPath, copy: "vsLinear", Page: VsLinearPage },
   { path: multicaPath, copy: "vsMultica", Page: VsMulticaPage },
+  { path: taskMasterPath, copy: "vsTaskMaster", Page: VsTaskMasterPage },
 ];
 
 /** The `[vs]` segment of each comparison route — "vs-github-issues", and so on. */

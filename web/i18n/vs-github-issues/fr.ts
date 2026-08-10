@@ -24,6 +24,15 @@ const fr: VsGithubCopy = {
       name: "GitHub Issues",
       body: "Un service hébergé pour partager les tâches, les échanges et leur état avec une équipe ou une communauté.",
     },
+    oursDiagramAlt:
+      "Le code et le tableau sont deux dossiers du même dépôt : l’agent met à jour le travail là où il lit le code.",
+    theirsDiagramAlt:
+      "Vos fichiers sont dans une fenêtre et le ticket est une page github.com dans une autre : c’est à vous de garder les deux alignés.",
+    oursDiagramTop: "votre tableau vit dans le dépôt",
+    oursDiagramBottom: "l’agent lit le code et met à jour le tableau",
+    theirsDiagramTop:
+      "les tickets sont sur un serveur, pas votre code",
+    theirsDiagramBottom: "parfait à plusieurs — la synchro est pour vous",
   },
   comparison: {
     heading: {

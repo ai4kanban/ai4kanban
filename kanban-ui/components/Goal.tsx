@@ -3,8 +3,11 @@
 // The project's direction, one click from the board (#128). `docs/kanban/memory/goal.md`
 // is the file every proposal is judged against, and until now the UI only showed it while
 // the agent judged it weak — the moment it read fine it left the board for good. A quiet
-// icon beside the folder path opens the whole file, rendered, and lets the user edit it
-// there.
+// icon beside the folder path opens the whole file, rendered.
+//
+// Reading only: the goal is written once through the setup bar's "Write the goal", and
+// after that it is the file on disk (or an agent run) that changes it — the board doesn't
+// offer a second place to edit the same words.
 //
 // The button is deliberately lighter than the sticker buttons on the right: those four
 // start something, this is something you read now and then. It stays at every width — the
@@ -12,11 +15,6 @@
 //
 // It appears only when there is something to read (`goalWritten`, lib/goal.ts): a missing
 // or empty file has nothing to open, and the setup bar is what asks for the goal there.
-//
-// The editor here and the setup bar's "Write the goal" are one form (GoalForm) — same
-// textarea, same save, same rule that the words are the user's and the judgment is the
-// agent's: a save marks the goal `reviewed: pending` and leaves the rest of the
-// frontmatter alone (#108).
 
 import { useEffect, useState } from "react";
 import { FiCompass } from "react-icons/fi";
@@ -56,48 +54,27 @@ export function Goal({ written }: { written: boolean }) {
 
 // The whole of goal.md below its frontmatter, read fresh each time the dialog
 // opens — an agent run may have reshaped the file since the page loaded.
-// `flush`, so the goal scrolls under a footer that stays put: the file is long
-// and an Edit button at the end of it would be a scroll away.
+// `flush`, so the long file scrolls inside the dialog rather than the dialog
+// growing to hold it.
 function GoalPanel() {
-  const { text, setText, error } = useGoalText();
-  const [editing, setEditing] = useState(false);
+  const { text, error } = useGoalText();
 
   if (error) return <div className="min-w-0 flex-1 p-5"><Failure text={error} /></div>;
   if (text === null) {
     return <p className="min-w-0 flex-1 p-5 text-[13px] italic text-nb-ink-soft">Reading goal.md…</p>;
   }
 
-  if (editing) {
-    return (
-      <GoalForm
-        initial={text}
-        onCancel={() => setEditing(false)}
-        onSaved={(saved) => {
-          // Straight back to the rendered goal, showing what was just written —
-          // nothing is re-read, the text on screen is the text on disk.
-          setText(saved);
-          setEditing(false);
-        }}
-      />
-    );
-  }
-
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto p-5">
-        <Markdown body={text} />
-      </div>
-      <Footer>
-        <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
-          Edit
-        </Button>
-      </Footer>
+    <div className="min-h-0 flex-1 overflow-y-auto p-5">
+      <Markdown body={text} />
     </div>
   );
 }
 
-// The goal editor the setup bar opens (#53, #85) — the same form, in a dialog of
-// its own with the note about what belongs in the file.
+// The goal editor the setup bar opens (#53, #85) — the one place the goal is
+// typed, with the note about what belongs in the file. The words stay the user's
+// and the judgment stays the agent's: a save marks the goal `reviewed: pending`
+// and leaves the rest of the frontmatter alone (#108).
 export function GoalEditor({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const { text, setText, error } = useGoalText();
   return (
@@ -122,7 +99,6 @@ export function GoalEditor({ onClose, onSaved }: { onClose: () => void; onSaved:
       {text !== null && (
         <GoalForm
           initial={text}
-          bare
           onCancel={onClose}
           onSaved={(saved) => {
             setText(saved);
@@ -134,17 +110,14 @@ export function GoalEditor({ onClose, onSaved }: { onClose: () => void; onSaved:
   );
 }
 
-// The textarea and its Save / Cancel. `bare` drops the scrolling body and the
-// footer rule — the setup bar's dialog sizes to its content, so the buttons sit
-// under the box rather than on a fixed strip.
+// The textarea and its Save / Cancel. The setup bar's dialog sizes to its
+// content, so the buttons sit under the box rather than on a fixed strip.
 function GoalForm({
   initial,
-  bare = false,
   onCancel,
   onSaved,
 }: {
   initial: string;
-  bare?: boolean;
   onCancel: () => void;
   onSaved: (text: string) => void;
 }) {
@@ -164,54 +137,19 @@ function GoalForm({
     onSaved(text);
   };
 
-  const buttons = (
+  return (
     <>
-      <Button size="sm" variant="ghost" disabled={saving} onClick={onCancel}>
-        Cancel
-      </Button>
-      <Button size="sm" disabled={saving} onClick={save}>
-        {saving ? "Saving…" : "Save"}
-      </Button>
-    </>
-  );
-
-  if (bare) {
-    return (
-      <>
-        <textarea className={INPUT} value={text} onChange={(e) => setText(e.target.value)} autoFocus />
-        {error && <div className="mt-3"><Failure text={error} /></div>}
-        <div className="mt-4 flex justify-end gap-2.5">{buttons}</div>
-      </>
-    );
-  }
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {/* The box fills the pane, so the editor is as tall as the goal it
-          replaced and the dialog doesn't resize when you press Edit. */}
-      <div className="flex min-h-0 flex-1 flex-col gap-3 p-5">
-        <textarea
-          className={`${INPUT} min-h-0 flex-1 resize-none`}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          autoFocus
-        />
-        {error && <Failure text={error} />}
+      <textarea className={INPUT} value={text} onChange={(e) => setText(e.target.value)} autoFocus />
+      {error && <div className="mt-3"><Failure text={error} /></div>}
+      <div className="mt-4 flex justify-end gap-2.5">
+        <Button size="sm" variant="ghost" disabled={saving} onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button size="sm" disabled={saving} onClick={save}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
       </div>
-      <Footer>{buttons}</Footer>
-    </div>
-  );
-}
-
-// The dialog's own action strip, ruled off from the scrolling body above it.
-function Footer({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="flex shrink-0 justify-end gap-2.5 px-5 py-3"
-      style={{ borderTop: "1.5px solid color-mix(in srgb, var(--color-nb-ink) 14%, transparent)" }}
-    >
-      {children}
-    </div>
+    </>
   );
 }
 

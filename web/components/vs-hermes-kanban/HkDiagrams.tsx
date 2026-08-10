@@ -1,3 +1,13 @@
+import {
+  BOX,
+  INK,
+  KEY,
+  LINE,
+  MUT,
+  PAPER,
+  Robot,
+  VsDiagram,
+} from "@/components/vs/diagram";
 import type { VsHermesCopy } from "@/i18n/vs-hermes-kanban/types";
 
 // Two SVG diagrams that show the *layering*, which is the real difference.
@@ -15,16 +25,6 @@ import type { VsHermesCopy } from "@/i18n/vs-hermes-kanban/types";
 // Product names, agent names and file names inside the art aren't translated;
 // the two sentences that are (the layer captions) come in as copy.
 
-// Palette — the site's tokens, restated as hexes an SVG attribute can take.
-const INK = "#191c22";
-const MUT = "#4d5c73";
-// Hairline strokes and box outlines. Not a token: it is the one value here that
-// has to be lighter than `muted` and still hold its shape, so it is set to clear
-// the 3:1 a non-text element needs against the wash it is drawn on (3.12:1).
-const LINE = "#7d8899";
-const BOX = "#edeff3"; // fill for a box on the paper canvas
-const KEY = "#12509e"; // the blue — our layer, and only ours
-
 // Skill: a swappable runtime layered on top of a plain-Markdown board.
 export function SkillDiagram({ c }: { c: VsHermesCopy["hero"] }) {
   const runtimes = [
@@ -33,13 +33,7 @@ export function SkillDiagram({ c }: { c: VsHermesCopy["hero"] }) {
     { x: 200, label: "Hermes" },
   ];
   return (
-    <div className="rounded-xl bg-elev p-2.5">
-      <svg
-        viewBox="0 0 300 122"
-        className="block h-auto w-full"
-        role="img"
-        aria-label={c.oursDiagramAlt}
-      >
+    <VsDiagram alt={c.oursDiagramAlt}>
         {/* top: pluggable runtimes / agents */}
         {runtimes.map((r) => (
           <g key={r.label}>
@@ -60,65 +54,65 @@ export function SkillDiagram({ c }: { c: VsHermesCopy["hero"] }) {
 
         {/* bottom: the kanban board — plain Markdown files in git */}
         <rect x="24" y="84" width="252" height="30" rx="6" fill={BOX} stroke={KEY} strokeWidth="1.8" />
-        {[34, 47, 60].map((x) => (
-          <rect key={x} x={x} y="91" width="9" height="16" rx="1.5" fill="none" stroke={LINE} strokeWidth="1.2" />
-        ))}
-        <text x="164" y="102.5" textAnchor="middle" fontSize="8.5" fill={KEY}>
+        {/* our own mark on the band, rather than three anonymous columns: the
+            blue layer is the product, and it should say which one */}
+        <rect x="32" y="91" width="16" height="16" rx="4" fill={KEY} />
+        <g transform="translate(35 94) scale(0.1654)" fill={PAPER}>
+          <rect x="5" y="8" width="12" height="44" rx="3.5" />
+          <rect x="24" y="8" width="12" height="35" rx="3.5" />
+          <rect x="43" y="8" width="12" height="26" rx="3.5" />
+        </g>
+        <text x="168" y="102.5" textAnchor="middle" fontSize="8.5" fill={KEY}>
           {c.boardLayer}
         </text>
-      </svg>
-    </div>
+    </VsDiagram>
   );
 }
 
 // Hermes: the board is fused into one integrated runtime alongside its
 // dispatcher and named agents.
 export function HermesDiagram({ c }: { c: VsHermesCopy["hero"] }) {
-  const agents: { y: number; name: string; dot: string }[] = [
-    { y: 42, name: "eng", dot: "#7f56b8" },
-    { y: 66, name: "review", dot: "#bf8700" },
-    { y: 90, name: "ops", dot: "#1a7f37" },
+  // Named, standing agents — the site's robot glyph, because that is what an
+  // agent looks like on every other comparison page too.
+  const agents = [
+    { y: 20, name: "eng" },
+    { y: 52, name: "review" },
+    { y: 84, name: "ops" },
   ];
   return (
-    <div className="rounded-xl bg-elev p-2.5">
-      <svg
-        viewBox="0 0 300 122"
-        className="block h-auto w-full"
-        role="img"
-        aria-label={c.theirsDiagramAlt}
-      >
-        {/* the single integrated runtime — named, not boxed: everything below
-            sits inside it, and an outline here would be the third one in a row.
-            The parts are laid out to the same margins as the skill diagram, so
-            the pair reads as two drawings of the same size. */}
-        <text x="24" y="20" fontSize="9" fill={INK}>{c.runtimeLabel}</text>
+    <VsDiagram alt={c.theirsDiagramAlt}>
+        {/* The runtime is neither named nor boxed here: the chip above the
+            drawing already carries the Hermes mark and its name, and repeating
+            them inside the art labels the drawing twice. What's left is the
+            claim — the board, the dispatcher and the agents wired to each
+            other — spread over the same band the skill diagram uses, so the
+            pair reads as two drawings of the same size. */}
 
         {/* wiring — tightly coupled, all inside the runtime */}
         <g stroke={LINE} strokeWidth="1.4" fill="none">
-          <path d="M68 76 H100" />
-          <path d="M162 76 L190 52" />
-          <path d="M162 76 H190" />
-          <path d="M162 76 L190 100" />
+          <path d="M68 62 H100" />
+          <path d="M162 62 L190 30" />
+          <path d="M162 62 H190" />
+          <path d="M162 62 L190 94" />
         </g>
 
         {/* board (SQLite) */}
-        <path d="M24 62 V88 A22 6 0 0 0 68 88 V62" fill={BOX} stroke={MUT} strokeWidth="1.4" />
-        <ellipse cx="46" cy="62" rx="22" ry="6" fill={BOX} stroke={MUT} strokeWidth="1.4" />
-        <text x="46" y="106" textAnchor="middle" fontSize="8.5" fill={MUT}>kanban.db</text>
+        <path d="M24 49 V75 A22 6 0 0 0 68 75 V49" fill={BOX} stroke={MUT} strokeWidth="1.4" />
+        <ellipse cx="46" cy="49" rx="22" ry="6" fill={BOX} stroke={MUT} strokeWidth="1.4" />
+        <text x="46" y="93" textAnchor="middle" fontSize="8.5" fill={MUT}>kanban.db</text>
 
         {/* dispatcher */}
-        <rect x="100" y="62" width="62" height="28" rx="5" fill={BOX} stroke={LINE} strokeWidth="1.4" />
-        <text x="131" y="79" textAnchor="middle" fontSize="8.5" fill={INK}>dispatcher</text>
+        <rect x="100" y="48" width="62" height="28" rx="5" fill={BOX} stroke={LINE} strokeWidth="1.4" />
+        <text x="131" y="65" textAnchor="middle" fontSize="8.5" fill={INK}>dispatcher</text>
 
         {/* named agents */}
         {agents.map((a) => (
           <g key={a.name}>
             <rect x="190" y={a.y} width="86" height="20" rx="5" fill={BOX} stroke={LINE} strokeWidth="1.4" />
-            <circle cx="203" cy={a.y + 10} r="4.5" fill={a.dot} />
+            <Robot cx={203} cy={a.y + 10} s={1.05} />
             <text x="214" y={a.y + 13.5} fontSize="8.5" fill={INK}>{a.name}</text>
           </g>
         ))}
-      </svg>
-    </div>
+    </VsDiagram>
   );
 }

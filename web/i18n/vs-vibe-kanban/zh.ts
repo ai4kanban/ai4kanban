@@ -23,6 +23,12 @@ const zh: VsVibeCopy = {
       name: "Vibe Kanban",
       body: "每个任务在独立 worktree 中运行，并在一个界面里查看 diff、预览和 PR。",
     },
+    oursDiagramAlt: "一张卡片走过三列，每一列都更明确一分，直到写清验收标准，任何编码智能体都能接手。",
+    theirsDiagramAlt: "同一个已经定义好的任务同时交给多个智能体，回来的是同一份工作的多个版本，供你对比。",
+    oursDiagramTop: "开工之前，先把事情说清楚",
+    oursDiagramBottom: "之后交给任何编码智能体都能干",
+    theirsDiagramTop: "一个任务，多个智能体同时开跑",
+    theirsDiagramBottom: "对比结果，留下最好的那个",
   },
   summary: {
     heading: {

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { FiCheck, FiX } from "react-icons/fi";
+import { FiArrowDown, FiArrowUp, FiCheck, FiX } from "react-icons/fi";
 import { autonomyStops } from "./vs-hermes-content";
 import { Rich } from "../Rich";
 import { SectionHeading } from "../SectionHeading";
@@ -124,8 +124,9 @@ export function HkAutonomy({
           className="absolute bottom-1 left-0 top-1 w-1 rounded-full bg-gradient-to-b from-elev via-accent/40 to-accent"
           aria-hidden="true"
         />
-        <p className="font-mono text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted">
-          {c.scaleLeft} ↓
+        <p className="flex items-center gap-1.5 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted">
+          {c.scaleLeft}
+          <FiArrowDown className="h-3 w-3 shrink-0" aria-hidden="true" />
         </p>
         <div className="mt-3 space-y-4">
           {autonomyStops.map((s) => (
@@ -141,8 +142,9 @@ export function HkAutonomy({
             </div>
           ))}
         </div>
-        <p className="mt-3 text-right font-mono text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted">
-          ↑ {c.scaleRight}
+        <p className="mt-3 flex items-center justify-end gap-1.5 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted">
+          <FiArrowUp className="h-3 w-3 shrink-0" aria-hidden="true" />
+          {c.scaleRight}
         </p>
       </div>
 

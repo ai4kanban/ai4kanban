@@ -56,6 +56,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A release is a group task you drag work into** → ✅ a release is a field on a card,
   so an ordinary card never has to live inside someone else's folder. A card that names
   no release is simply in no release.
+- ❌ **Make the agent's judgement safe by parking it in a proposal the user accepts or
+  discards** → ✅ the agent decides and writes; the run's log is the record, and undo is
+  asking the agent to move a card back. A user who can't tell whether the proposal is
+  right is only being asked to click yes.
 
 ## Auto-refine
 

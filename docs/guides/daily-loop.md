@@ -37,17 +37,44 @@ never reads the name. Say **"create release v1"** and it joins the list in
 ships in that version. A card you never place is in no release — wanted, but not promised
 to a version.
 
-Say **"create release v1 and fill it"** and the unplaced high-priority cards go in as the
-version is made. The fill is a rule, not a judgment call: a card goes in when its priority
-is high, nothing open is blocking it, and it is not a group root — a subtask is tested on
-its own, and a card already in a release stays where it is. Every card that moved is named,
-and every high-priority card left behind is named with the test it failed, so you read the
-plan instead of guessing it. On the local board, the New release dialog carries the same
-move as a toggle, with the count of cards it would put in.
+Say what the version is for while you make it: **"create release v1 — the first version
+worth showing someone"**. Those words sit on the release's own line in `releases.md`, so
+you and the agent can both say what this version is trying to ship, and `release list`
+prints them under each version. Say **"v1 is for …"** to change them later. The goal is
+never required — a release made without one works everywhere one with a goal does.
 
-Say **"what's in v1?"** and you get every release in ship order, each with how many cards
-it holds and how many are ready to build — the cards in no release counted last. So the
-work you promised for this version sits on the same screen as the work nobody promised.
+Say **"plan release v1"** and the agent fills the version against its goal: it moves the
+open cards that ship the goal into the release, and it writes the cards the goal needs that
+your board hasn't got. The new cards land plain, and auto-refine takes them from there. It
+decides on its own — nothing waits on you — and it ends by saying what it moved in, what it
+wrote, and what it left out and why. A card already in another release stays where it is, so
+planning only ever adds: run it again whenever the goal changes and it adds what the goal
+still lacks. To take a card back out, say **"take #4 out of v1"**.
+
+A release with **no goal** has nothing to plan against, so it falls back to a plain rule.
+Say **"create release v1 and fill it"** and the unplaced high-priority cards go in as the
+version is made: a card goes in when its priority is high, nothing open is blocking it, and
+it is not a group root — a subtask is tested on its own, and a card already in a release
+stays where it is. Every card that moved is named, and every high-priority card left behind
+is named with the test it failed, so you read the plan instead of guessing it.
+
+On the local board, the New release dialog asks which kind of release this is with two tabs:
+**From a goal**, where the goal box is the whole choice and the release can't be made until it
+says something, and **No goal**, which has no goal box and applies the plain rule instead,
+counting the cards it would put in. The **⋯** beside the dropdown offers **Fill from its goal**
+on a release that already exists, so a release made without one can be given a goal later and
+filled from there. Planning is an ordinary run: it shows in the runs panel the moment the
+release is made, you can stop it, and its log is where you read what it did. While it goes the
+board says the release is being planned, and the cards it moves in appear as it writes them.
+
+Say **"what's in v1?"** and you get every release in ship order, each with what it is for,
+how many cards it holds and how many are ready to build — the cards in no release counted
+last. So the work you promised for this version sits on the same screen as the work nobody
+promised.
+
+On the local board, the New release dialog's **From a goal** tab asks for the goal under the
+version id, the release dropdown shows it under each version, and the **⋯** beside the
+dropdown opens the whole goal — that is where you change it.
 
 Releases are optional. Nothing asks you for one, and a board that never plans a version
 works exactly as it does without them.
@@ -69,20 +96,22 @@ at that version. It shows you what the close records and which open cards come o
 version before you confirm, and it names the ticked-but-never-archived cards there — early
 enough to cancel, archive them, and close after.
 
-The summary is a list of cards, not a changelog. Not every change goes through the board,
-so only you can say what the version changed — the summary is your source for writing that.
+The summary keeps what the version was for: the line in `releases.md` is gone, so those
+words survive only there. The rest of it is a list of cards, not a changelog. Not every
+change goes through the board, so only you can say what the version changed — the summary
+is your source for writing that.
 
 ## Drop a release
 
 You gave up on the version — it will not ship. Say **"drop v1"**. The version comes off
-the list with no shipped record: the summary file gets one dated `## Dropped` section
-listing the cards archived under it and the open ones sent back, and it says dropped,
-never shipped. The open cards come out of the version — back to no release. On the local
-board, the ⋯ beside the release dropdown offers the drop while you're looking at that
-version, and shows you which open cards it moves before you confirm.
+the list with no shipped record. It reports the cards already archived under it and the
+open ones it sends back to no release, but writes no summary file or summary section. If a
+close of the same id left a summary earlier, that file stays untouched. On the local board,
+the ⋯ beside the release dropdown offers the drop while you're looking at that version and
+shows both groups of cards before you confirm.
 
-The skill writes down nothing about why. If the reason is worth keeping, it's yours to
-write — in the summary file, or wherever you keep such notes.
+The skill writes down nothing about the drop or why it happened. If the reason is worth
+keeping, write it wherever you keep such notes.
 
 ## Add a task
 
@@ -161,7 +190,10 @@ by hand.
 ```bash
 node .claude/skills/kanban/kanban.mjs create [--count N]   # allocate ids
 node .claude/skills/kanban/kanban.mjs release new v1       # plan a version
+node .claude/skills/kanban/kanban.mjs release new v1 --goal ".." # …saying what it is for
 node .claude/skills/kanban/kanban.mjs release new v1 --fill # …with the high-priority cards in
+                                                           # (filling from the goal is a run: "plan release v1")
+node .claude/skills/kanban/kanban.mjs release goal v1 ".."  # change what it is for
 node .claude/skills/kanban/kanban.mjs release list         # what each version holds
 node .claude/skills/kanban/kanban.mjs release close v1     # the version shipped
 node .claude/skills/kanban/kanban.mjs release drop v1      # the version will not ship

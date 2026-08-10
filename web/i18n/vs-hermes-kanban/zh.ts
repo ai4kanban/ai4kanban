@@ -30,7 +30,6 @@ const zh: VsHermesCopy = {
       "单一 Hermes 运行时包含 SQLite 看板、调度器与具名智能体。",
     taskLayer: "任务层 · 执行 + 维护",
     boardLayer: "看板 · Markdown 文件（git）",
-    runtimeLabel: "Hermes 运行时",
   },
   summary: {
     heading: { eyebrow: "简要结论", title: "真正的区别" },

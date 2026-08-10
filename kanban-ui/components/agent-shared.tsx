@@ -134,6 +134,7 @@ export const RUNNING_VERB: Record<AgentAction, string> = {
   archive: "archiving",
   create: "creating",
   propose: "proposing",
+  "plan-release": "planning",
 };
 
 // The live tail is the agent's event stream — tool calls and turn text — so it
@@ -574,6 +575,19 @@ function StopButton({ sessionId }: { sessionId: string }) {
   );
 }
 
+// What to call a session that names no card: what it is doing while it runs,
+// what it did once it's over. A plan-release carries its version id as its
+// input, so the title says which release it planned.
+function cardlessTitle(session: SessionView): string {
+  const running = session.status === "running";
+  if (session.action === "plan-release") {
+    const of = session.input ? ` ${session.input}` : "";
+    return running ? `Planning${of}` : `Plan${of}`;
+  }
+  if (session.action === "propose") return running ? "Proposing tasks" : "Propose tasks";
+  return running ? "Creating task" : "Create task";
+}
+
 // The session log in a modal, opened from a running badge on a board card. Like
 // Dialog, the fixed scrim is portaled to <body>: the sticky
 // header has a `backdrop-filter`, which would otherwise become the containing
@@ -601,25 +615,17 @@ export function SessionLogOverlay({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // A create or propose session touches no card, so it has no `#id — action`
-  // handle: name it by what it's doing instead. Every other session is tied to a
-  // card and reads `#5 — refine`, with the id linking to that card the way every
-  // other `#id` in the UI does (see the sessions dialog for why it isn't gated on
-  // the card still being open).
+  // A create, propose or plan-release session touches no card, so it has no
+  // `#id — action` handle: name it by what it's doing instead. A plan-release
+  // names the version it planned, which is the whole of what that run was about
+  // and the only thing the panel could say to tell two of them apart. Every
+  // other session is tied to a card and reads `#5 — refine`, with the id linking
+  // to that card the way every other `#id` in the UI does (see the sessions
+  // dialog for why it isn't gated on the card still being open).
   const title = !session ? (
     "session log"
   ) : session.cardId === null ? (
-    session.action === "propose" ? (
-      session.status === "running" ? (
-        "Proposing tasks"
-      ) : (
-        "Propose tasks"
-      )
-    ) : session.status === "running" ? (
-      "Creating task"
-    ) : (
-      "Create task"
-    )
+    cardlessTitle(session)
   ) : (
     <>
       <Link href={`/${session.cardId}`} className="nb-idlink" onClick={onClose}>

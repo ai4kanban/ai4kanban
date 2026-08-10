@@ -23,6 +23,14 @@ const en: VsGithubCopy = {
       name: "GitHub Issues",
       body: "A hosted task system for sharing work, discussion, and status across a team or community.",
     },
+    oursDiagramAlt:
+      "The code and the board are both folders in one repository, so the agent updates the work where it reads the code.",
+    theirsDiagramAlt:
+      "Your files are in one window and the issue is a page on github.com in another, so keeping the two in sync is your job.",
+    oursDiagramTop: "your board lives in the repo",
+    oursDiagramBottom: "the agent reads the code and updates the board",
+    theirsDiagramTop: "issues live on a server, your code doesn’t",
+    theirsDiagramBottom: "great for a team — you keep the two in sync",
   },
   comparison: {
     heading: {

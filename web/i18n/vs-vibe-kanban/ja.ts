@@ -23,6 +23,14 @@ const ja: VsVibeCopy = {
       name: "Vibe Kanban",
       body: "複数のエージェントを実行し、成果をレビューするローカルアプリ。",
     },
+    oursDiagramAlt:
+      "一枚のカードが三つの列を進むごとに具体的になり、完了の条件が書かれた時点で、どのコーディングエージェントでも着手できます。",
+    theirsDiagramAlt:
+      "定義済みのタスクを複数のエージェントに同時に渡し、同じ作業の複数の版が戻ってきて見比べられます。",
+    oursDiagramTop: "動かす前に、やることを具体化する",
+    oursDiagramBottom: "あとはどのコーディングエージェントでも動かせる",
+    theirsDiagramTop: "一つのタスクを複数のエージェントで同時に実行",
+    theirsDiagramBottom: "結果を見比べて、いちばん良いものを残す",
   },
   summary: {
     heading: {

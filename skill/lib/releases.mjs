@@ -9,6 +9,11 @@
 // to it: reordering or renaming is an edit of two lines, which a person does faster than
 // any command. A version id is never parsed for meaning — it is a name, kept as typed, and
 // the ship order is the order of the lines.
+//
+// A release also says what it is for (#164): the goal sits on the same line, after the em
+// dash — `- **v1** — the first version worth showing someone`. One line per release stays
+// true, so a goal typed over several lines is folded into one before it is written, and a
+// line with nothing after the id is a release with no goal, which every command works over.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -30,8 +35,8 @@ file only ever shows what is still ahead.
 A card says which release it ships in. A card that says nothing is in no release —
 wanted, but not promised to a version.
 
-The order is whatever the lines say, so a hand edit is how you reorder. A note after the
-version id is yours to write; nothing reads it.
+The order is whatever the lines say, so a hand edit is how you reorder. What comes after
+the em dash is the release's goal — what this version is for, in your own words.
 
 ${EMPTY_MARK}
 `
@@ -58,28 +63,55 @@ function validNewId(raw) {
   return id
 }
 
-// The release one line of the file names, or null when the line isn't a release at all.
-// Both shapes a line can take are read: `- **v1** — a note` (what the script writes) and a
-// bare `- v1` (what a hand edit leaves).
-function lineId(line) {
+// The release one line of the file names and what it says that release is for, or null
+// when the line isn't a release at all. Every shape a line can take is read: `- **v1** —
+// what it is for` (what the script writes), `- **v1**` (a release with no goal) and a bare
+// `- v1` (what a hand edit leaves). Only the FIRST em dash splits the line, so a goal that
+// holds one of its own reads back whole.
+function lineEntry(line) {
   const m = line.match(/^\s*[-*]\s+(.*)$/)
   if (!m) return null
-  const head = m[1].split('—')[0].trim()
+  const cut = m[1].indexOf('—')
+  const head = (cut === -1 ? m[1] : m[1].slice(0, cut)).trim()
+  const goal = cut === -1 ? '' : m[1].slice(cut + 1).trim()
   const bold = head.match(/^\*\*(.+?)\*\*$/)
-  return (bold ? bold[1] : head).trim() || null
+  const id = (bold ? bold[1] : head).trim()
+  return id ? { id, goal } : null
 }
 
-// Every release on the list, in file order. A missing file reads as an empty list, so a
-// board that never planned a version keeps working.
-export function readReleases() {
+const lineId = (line) => (lineEntry(line) || {}).id || null
+
+// A goal as it goes on disk: one line, whatever the user typed. Line breaks and runs of
+// spaces fold into single spaces, so the file's shape never depends on how the goal was
+// typed into a box. Empty is a release with no goal — always allowed.
+export function foldGoal(raw) {
+  return String(raw === true ? '' : (raw ?? '')).replace(/\s+/g, ' ').trim()
+}
+
+// The line the file carries for one release. No goal, no em dash — an older line and a
+// hand-written one look the same as what this writes.
+const releaseLine = (id, goal) => `- **${id}**${goal ? ` — ${goal}` : ''}`
+
+// Every release on the list with its goal, in file order. A missing file reads as an empty
+// list, so a board that never planned a version keeps working.
+export function readReleaseEntries() {
   if (!fs.existsSync(RELEASES)) return []
   const out = []
   for (const line of fs.readFileSync(RELEASES, 'utf8').split('\n')) {
-    const id = lineId(line)
+    const entry = lineEntry(line)
     // A duplicate can only come from a hand edit; the first line wins so the order holds.
-    if (id && !out.includes(id)) out.push(id)
+    if (entry && !out.some((e) => e.id === entry.id)) out.push(entry)
   }
   return out
+}
+
+// Every release on the list, in file order — ids only, which is what most callers want.
+export const readReleases = () => readReleaseEntries().map((e) => e.id)
+
+// What one release is for, or '' when it has no goal (or isn't on the list).
+export function releaseGoal(id) {
+  const entry = readReleaseEntries().find((e) => e.id === id)
+  return entry ? entry.goal : ''
 }
 
 export function hasReleaseList() {
@@ -95,9 +127,11 @@ export function writeReleasesIfMissing() {
   return true
 }
 
-// Add one release to the end of the list. Returns the id as written.
-export function addRelease(raw) {
+// Add one release to the end of the list, with the goal it was made for (empty is fine —
+// a goal is never required). Returns the id as written.
+export function addRelease(raw, rawGoal) {
   const id = validNewId(raw)
+  const goal = foldGoal(rawGoal)
   writeReleasesIfMissing()
   const known = readReleases()
   if (known.includes(id)) die(`"${id}" is already on the list in ${rel(RELEASES)} — releases are ${known.join(', ')}`)
@@ -109,9 +143,32 @@ export function addRelease(raw) {
   // The new line joins the list at the end: straight after the last release, or after a
   // blank line when this is the first one.
   if (!/^\s*[-*]\s+/.test(lines[lines.length - 1] || '')) lines.push('')
-  lines.push(`- **${id}**`)
+  lines.push(releaseLine(id, goal))
   fs.writeFileSync(RELEASES, lines.join('\n') + '\n')
   return id
+}
+
+// Change what a release is for, after it was made. An empty goal clears it — a release
+// with no goal is a state the board supports, so unsaying it has to be possible too.
+// Rewriting the line normalizes it, so a hand-written `- v1` comes back as `- **v1**`.
+export function setReleaseGoal(id, rawGoal) {
+  const goal = foldGoal(rawGoal)
+  const known = readReleases()
+  if (!known.includes(id)) {
+    die(
+      `unknown release "${id}". releases on the list: ${known.join(', ') || '(none)'}. ` +
+        `Add it with \`release new ${quoteId(id)}\`.`,
+    )
+  }
+  const lines = fs.readFileSync(RELEASES, 'utf8').split('\n')
+  let done = false
+  const kept = lines.map((line) => {
+    if (done || lineId(line) !== id) return line
+    done = true
+    return releaseLine(id, goal)
+  })
+  fs.writeFileSync(RELEASES, kept.join('\n'))
+  return { id, goal }
 }
 
 // A card's `--release` must name a release on the list (or be empty — no release). A
@@ -201,7 +258,7 @@ export function countByRelease() {
 
 // ---- filling a new release ---------------------------------------------------
 //
-// `release new <id> --fill` (and the New release dialog's toggle) puts the high-priority
+// `release new <id> --fill` (and the New release dialog's No goal tab) puts the high-priority
 // cards in no release into the release the moment it is made. The fill is a rule, not
 // a judgment call — a card goes in on three tests: its priority is high, nothing open is
 // blocking it, and it is not a group root. Nothing else is looked at. It only ever adds:
@@ -297,12 +354,18 @@ const openCardLine = (card) => cardLine(card) + (card.done ? ' — every todo ti
 // One dated section per close. A version id can be made again after it was closed, so a
 // second close appends instead of writing over: the first version's record is the only one
 // there is.
-function writeSummary(id, shipped, left) {
+function writeSummary(id, shipped, left, goal) {
   fs.mkdirSync(RELEASE_SUMMARIES, { recursive: true })
   const file = summaryPath(id)
   const out = []
   out.push(`## Closed ${today()}`)
   out.push('')
+  // The goal comes first and only when there is one: the line in releases.md is about to
+  // go, so this becomes the only record of what the version was for.
+  if (goal) {
+    out.push(`What it was for — ${goal}`)
+    out.push('')
+  }
   out.push(
     shipped.length
       ? `Shipped — ${plural(shipped.length, 'card')}, archived while naming \`${id}\`:`
@@ -343,13 +406,14 @@ changelog — not every change goes through the board, so only a person can say 
 version changed.
 `
 
-// The ids an earlier close or drop of this id already accounted for. A version id can be
-// made again, and an archived card keeps naming it forever — without this, closing the
-// second `v1` would claim the first one's cards shipped all over again, whether the first
-// `v1` closed (its `Shipped` list) or was dropped (its `Archived under` list). A line
-// moved into either list by hand counts as well; that hand fix is how a missed card gets
-// there. A drop's `Sent back` cards are NOT counted: they left the version still open,
-// so if one later joins the remade version and really ships, the close may claim it.
+// The ids an earlier close of this id already accounted for. Legacy summaries may also
+// contain `Archived under` lists written by drops before #166; keep reading those so an
+// existing board's later close behaves as it did before. A version id can be made again,
+// and an archived card keeps naming it forever — without this, closing the second `v1`
+// would claim the first one's cards shipped all over again. A line moved into either list
+// by hand counts as well; that hand fix is how a missed card gets there. `Sent back` cards
+// are NOT counted: they left the version still open, so if one later joins the remade
+// version and really ships, the close may claim it.
 function alreadyCounted(file) {
   if (!fs.existsSync(file)) return new Set()
   const ids = new Set()
@@ -393,9 +457,11 @@ export function closeRelease(raw) {
   const counted = alreadyCounted(summaryPath(id))
   const shipped = archivedCards().filter((c) => c.release === id && !counted.has(c.id))
   const left = openCards().filter((c) => c.release === id)
+  // Read while the line is still there — removing it is the last step below.
+  const goal = releaseGoal(id)
   // The summary is written first: it is the only record of what the version was meant to
   // hold, and the next step is what erases that from the cards.
-  const summary = writeSummary(id, shipped, left)
+  const summary = writeSummary(id, shipped, left, goal)
   // The field is cleared: the work is not promised to a version nobody has picked yet.
   for (const card of left) setCardRelease(card.file, NO_RELEASE)
   removeReleaseLine(id)
@@ -406,45 +472,9 @@ export function closeRelease(raw) {
 //
 // The team gives up on a version: it comes off the list without a shipped record. The
 // open cards' release field is cleared exactly as a close clears it — the work is no
-// longer promised to a version — and one dated `## Dropped` section goes to the summary file,
-// saying dropped, never shipped. The why is the user's to write down if they want it
-// kept; the drop writes no memory line.
-
-// One dated section per drop, appended like a close's — the summary file is the only
-// record of what the version was meant to hold, whichever way it ended.
-function writeDropSection(id, archived, left) {
-  fs.mkdirSync(RELEASE_SUMMARIES, { recursive: true })
-  const file = summaryPath(id)
-  const out = []
-  out.push(`## Dropped ${today()}`)
-  out.push('')
-  out.push('This version was given up — nothing here shipped.')
-  out.push('')
-  out.push(
-    archived.length
-      ? `Archived under \`${id}\` — ${plural(archived.length, 'card')}, done before the drop:`
-      : `Archived under \`${id}\` — nothing was archived under this release.`,
-  )
-  if (archived.length) {
-    out.push('')
-    for (const card of archived) out.push(cardLine(card))
-  }
-  out.push('')
-  out.push(
-    left.length
-      ? `Sent back with no release — ${plural(left.length, 'card')} still open when it was dropped:`
-      : 'Sent back with no release — nothing was still open.',
-  )
-  if (left.length) {
-    out.push('')
-    for (const card of left) out.push(openCardLine(card))
-  }
-  out.push('')
-  const section = out.join('\n')
-  if (fs.existsSync(file)) fs.appendFileSync(file, `\n${section}`)
-  else fs.writeFileSync(file, `${HEADING(id)}\n${section}`)
-  return file
-}
+// longer promised to a version. Nothing is written to the release summaries: a release
+// that never shipped leaves no release record behind, and a summary left by an earlier
+// close of a reused id stays byte-for-byte unchanged.
 
 export function dropRelease(raw) {
   const id = String(raw === true ? '' : (raw ?? '')).trim()
@@ -456,13 +486,12 @@ export function dropRelease(raw) {
         `A dropped release is off the list for good — only a release on the list can be dropped.`,
     )
   }
-  // The cards an earlier close or drop of this id already listed stay theirs — this
-  // section records only what the version held this time around.
+  // Cards an earlier close (or a legacy pre-#166 drop) already listed stay theirs, so the
+  // on-screen report names only what this incarnation of the release held.
   const counted = alreadyCounted(summaryPath(id))
   const archived = archivedCards().filter((c) => c.release === id && !counted.has(c.id))
   const left = openCards().filter((c) => c.release === id)
-  const summary = writeDropSection(id, archived, left)
   for (const card of left) setCardRelease(card.file, NO_RELEASE)
   removeReleaseLine(id)
-  return { id, archived, left, summary, remaining: readReleases() }
+  return { id, archived, left, remaining: readReleases() }
 }

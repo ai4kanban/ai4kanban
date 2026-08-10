@@ -56,12 +56,15 @@ export function Header({
   view,
   onViewChange,
   releases = [],
+  releaseGoals = {},
   releaseCounts = {},
   release = null,
   onReleaseChange,
   onCreateRelease,
+  onPlanRelease,
   onDropRelease,
   onCloseRelease,
+  onSetReleaseGoal,
   createRelease = null,
   goalWritten = false,
 }: {
@@ -77,15 +80,23 @@ export function Header({
    *  the dropdown still shows, saying All releases and offering New release, so
    *  the first release can be started from here. */
   releases?: string[];
+  /** What each release is for (#164), keyed by version id — shown under the
+   *  version in the dropdown. A release with no goal is absent. */
+  releaseGoals?: Record<string, string>;
   /** How many open cards each release holds, the unplanned (no-release) ones
    *  included — those only feed the All-releases total. */
   releaseCounts?: Record<string, number>;
   release?: ReleasePick;
   onReleaseChange?: (r: ReleasePick) => void;
-  /** Make a release and put the board on it (#115). `fill` is the dialog's
-   *  toggle (#106): put the high-priority cards with no release in as it is made.
+  /** Make a release and put the board on it (#115). `fill` is what the dialog's
+   *  tab asked for: from a goal, an agent run planned against it (#165); with no
+   *  goal, the plain high-priority rule (#106).
    *  Passed with `onReleaseChange` or not at all — a card page has neither. */
-  onCreateRelease?: (id: string, fill: boolean) => Promise<{ ok: boolean; error?: string }>;
+  onCreateRelease?: (id: string, fill: boolean, goal: string) => Promise<{ ok: boolean; error?: string }>;
+  /** Fill a release that already exists from its goal (#165) — the ⋯ menu's
+   *  entry. The board starts the run so it can take it on: the runs panel has it
+   *  from the moment it starts. Board-only, like the other release handlers. */
+  onPlanRelease?: (id: string) => Promise<{ ok: boolean; error?: string }>;
   /** Give up on the release the board is showing (#131): no shipped record, its
    *  open cards' release cleared, its line off the list. Board-only, like the
    *  other release handlers. */
@@ -94,6 +105,9 @@ export function Header({
    *  its open cards' release cleared, its line off the list. Board-only, like the
    *  other release handlers. */
   onCloseRelease?: (id: string) => Promise<{ ok: boolean; error?: string }>;
+  /** Change what the release on screen is for (#164). Board-only, like the other
+   *  release handlers. */
+  onSetReleaseGoal?: (id: string, goal: string) => Promise<{ ok: boolean; error?: string }>;
   /** The version a card made from here ships in — the release on screen, or null
    *  when the whole board is showing and the new card lands wherever the agent
    *  puts it. A card page passes nothing: it shows one card, not a release. */
@@ -134,15 +148,18 @@ export function Header({
         <Goal written={goalWritten} />
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-        {onReleaseChange && onCreateRelease && onDropRelease && onCloseRelease && (
+        {onReleaseChange && onCreateRelease && onPlanRelease && onDropRelease && onCloseRelease && onSetReleaseGoal && (
           <ReleasePicker
             releases={releases}
+            goals={releaseGoals}
             counts={releaseCounts}
             value={release}
             onChange={onReleaseChange}
             onCreate={onCreateRelease}
+            onPlan={onPlanRelease}
             onDrop={onDropRelease}
             onCloseRelease={onCloseRelease}
+            onSetGoal={onSetReleaseGoal}
           />
         )}
         {view && onViewChange && <ViewSwitch view={view} onChange={onViewChange} />}

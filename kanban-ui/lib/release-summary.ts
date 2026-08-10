@@ -6,10 +6,8 @@ import { archiveDir, releaseSummariesDir } from "./paths";
 import { NO_RELEASE } from "./types";
 
 // What both ways a release ends — the close (#136) and the drop (#131) — share.
-// Ported from skill/lib/releases.mjs, where the two live in one file for the same
-// reason: they read the same cards, write the same lines, and their sections go
-// to the same summary file. Keeping the wording in one place is what makes the
-// button's file and the command's file the same file.
+// Both read the same archived and open cards. Only close writes card lines and a
+// summary section; drop stopped writing summaries in #166.
 
 export interface SummaryCard {
   id: number;
@@ -57,9 +55,9 @@ function archivedCards(): ArchivedCard[] {
   return rows.sort((a, b) => a.id - b.id);
 }
 
-// The ids an earlier close or drop of this id already accounted for — a close's
-// `Shipped` list and a drop's `Archived under` list. Same parse as the script's
-// alreadyCounted, so a remade version id never re-claims old cards.
+// The ids an earlier close of this id already accounted for. Legacy summary
+// files may also have a drop's `Archived under` list from before #166; keep
+// reading those so existing boards retain their old close behavior.
 function alreadyCounted(file: string): Set<number> {
   if (!fs.existsSync(file)) return new Set();
   const ids = new Set<number>();
@@ -73,9 +71,10 @@ function alreadyCounted(file: string): Set<number> {
   return ids;
 }
 
-// The cards this ending records: the ones archived under the release (minus what
-// an earlier close or drop of the same id already listed), and the ones still
-// open. Subtasks answer for themselves, like everywhere else releases are counted.
+// The cards this ending reports: the ones archived under the release (minus what
+// an earlier close or legacy drop of the same id already listed), and the ones
+// still open. Subtasks answer for themselves, like everywhere else releases are
+// counted.
 export function endingCards(id: string): { archived: SummaryCard[]; left: SummaryCard[] } {
   const counted = alreadyCounted(summaryPath(id));
   const archived = archivedCards().filter((c) => c.release === id && !counted.has(c.id));
@@ -110,8 +109,8 @@ version changed.
 
 export const today = () => new Date().toISOString().slice(0, 10);
 
-// One dated section per ending, appended to the release's summary file. A version
-// id can be made again after it ended, so a second ending appends instead of
+// One dated section per close, appended to the release's summary file. A version
+// id can be made again after it closed, so a second close appends instead of
 // writing over: the first version's record is the only one there is.
 export function appendSection(id: string, lines: string[]): string {
   fs.mkdirSync(releaseSummariesDir(), { recursive: true });

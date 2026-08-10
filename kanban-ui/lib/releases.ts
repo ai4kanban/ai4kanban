@@ -13,35 +13,102 @@ import { kanbanDir, releasesPath } from "./paths";
 // renaming and reordering stay terminal jobs: a close writes a summary and moves
 // cards, and the other two are a hand edit of a short file.
 //
-// Ported from skill/lib/releases.mjs — same two line shapes and the same rules
-// for a new id, so the UI and the script always agree on what is on the list.
+// A release also says what it is for (#164): the goal sits on the same line,
+// after the em dash, and is what the board and the agent read to say what this
+// version is trying to ship. It is never required — a release made before goals
+// existed, or made with the box left empty, works everywhere one with a goal does.
+//
+// Ported from skill/lib/releases.mjs — same line shapes and the same rules for a
+// new id and for folding a goal, so the UI and the script always agree on what is
+// on the list.
 
-// The release one line names, or null when the line isn't a release at all. Both
-// shapes are read: `- **v1** — a note` (what the script writes) and a bare `- v1`
-// (what a hand edit leaves).
-function lineId(line: string): string | null {
-  const m = line.match(/^\s*[-*]\s+(.*)$/);
-  if (!m) return null;
-  const head = m[1].split("—")[0].trim();
-  const bold = head.match(/^\*\*(.+?)\*\*$/);
-  return (bold ? bold[1] : head).trim() || null;
+/** One release as its line says it: the version id, and what the version is for
+ *  (empty when the line says nothing). */
+export interface ReleaseEntry {
+  id: string;
+  goal: string;
 }
 
-export function readReleases(): string[] {
+// The release one line names and its goal, or null when the line isn't a release
+// at all. Every shape is read: `- **v1** — what it is for` (what the script
+// writes), `- **v1**` (no goal) and a bare `- v1` (what a hand edit leaves). Only
+// the FIRST em dash splits the line, so a goal holding one of its own reads back
+// whole.
+function lineEntry(line: string): ReleaseEntry | null {
+  const m = line.match(/^\s*[-*]\s+(.*)$/);
+  if (!m) return null;
+  const cut = m[1].indexOf("—");
+  const head = (cut === -1 ? m[1] : m[1].slice(0, cut)).trim();
+  const goal = cut === -1 ? "" : m[1].slice(cut + 1).trim();
+  const bold = head.match(/^\*\*(.+?)\*\*$/);
+  const id = (bold ? bold[1] : head).trim();
+  return id ? { id, goal } : null;
+}
+
+const lineId = (line: string): string | null => lineEntry(line)?.id ?? null;
+
+// A goal as it goes on disk: one line, whatever was typed into the box. Line
+// breaks and runs of spaces fold into single spaces, so the file's shape never
+// depends on how the goal was typed.
+export const foldGoal = (raw: string): string => String(raw ?? "").replace(/\s+/g, " ").trim();
+
+// The line the file carries for one release. No goal, no em dash.
+const releaseLine = (id: string, goal: string) => `- **${id}**${goal ? ` — ${goal}` : ""}`;
+
+export function readReleaseEntries(): ReleaseEntry[] {
   let text: string;
   try {
     text = fs.readFileSync(releasesPath(), "utf8");
   } catch {
     return []; // no list yet — this board plans no versions
   }
-  const out: string[] = [];
+  const out: ReleaseEntry[] = [];
   for (const line of text.split("\n")) {
-    const id = lineId(line);
+    const entry = lineEntry(line);
     // A duplicate can only come from a hand edit; the first line wins so the
     // order holds.
-    if (id && !out.includes(id)) out.push(id);
+    if (entry && !out.some((e) => e.id === entry.id)) out.push(entry);
   }
   return out;
+}
+
+export const readReleases = (): string[] => readReleaseEntries().map((e) => e.id);
+
+/** What each release is for, keyed by version id. A release with no goal is
+ *  absent, not an empty string. */
+export function readReleaseGoals(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const entry of readReleaseEntries()) if (entry.goal) out[entry.id] = entry.goal;
+  return out;
+}
+
+// Change what a release is for, after it was made (#164) — the ⋯ menu's goal
+// dialog. An empty goal clears it: a release with no goal is a state the board
+// works over, so unsaying it has to be possible too. Rewriting the line
+// normalizes it, so a hand-written `- v1` comes back as `- **v1**`.
+export function setReleaseGoal(id: string, raw: string): { ok: boolean; error?: string } {
+  try {
+    if (!readReleases().includes(id)) {
+      return {
+        ok: false,
+        error: `"${id}" is not on the release list — it may already have been closed or dropped.`,
+      };
+    }
+    const goal = foldGoal(raw);
+    let done = false;
+    const kept = fs
+      .readFileSync(releasesPath(), "utf8")
+      .split("\n")
+      .map((line) => {
+        if (done || lineId(line) !== id) return line;
+        done = true;
+        return releaseLine(id, goal);
+      });
+    fs.writeFileSync(releasesPath(), kept.join("\n"));
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 // ---- starting a release ----------------------------------------------------
@@ -58,8 +125,8 @@ file only ever shows what is still ahead.
 A card says which release it ships in. A card that says nothing is in no release —
 wanted, but not promised to a version.
 
-The order is whatever the lines say, so a hand edit is how you reorder. A note after the
-version id is yours to write; nothing reads it.
+The order is whatever the lines say, so a hand edit is how you reorder. What comes after
+the em dash is the release's goal — what this version is for, in your own words.
 
 ${EMPTY_MARK}
 `;
@@ -101,15 +168,17 @@ export function removeReleaseLine(id: string): void {
   fs.writeFileSync(releasesPath(), kept.join("\n") + "\n");
 }
 
-// Add one release to the end of the list — the header's New release entry (#115).
+// Add one release to the end of the list — the header's New release entry (#115),
+// with what the version is for beside it (#164; empty is fine).
 // Everything that can go wrong comes back as { ok:false, error } so the dialog can
 // say why and stay open on the name the user typed, rather than throwing a server
 // error at a board that is otherwise fine.
 //
 // The name is checked here, against the file, at the moment of writing: a second
 // tab may have added the same release since this one drew its dropdown.
-export function addRelease(raw: string): { ok: boolean; error?: string } {
+export function addRelease(raw: string, rawGoal = ""): { ok: boolean; error?: string } {
   const id = String(raw ?? "").trim();
+  const goal = foldGoal(rawGoal);
   try {
     const file = releasesPath();
     if (!fs.existsSync(file)) {
@@ -126,7 +195,7 @@ export function addRelease(raw: string): { ok: boolean; error?: string } {
     // The new line joins the list at the end: straight after the last release, or
     // after a blank line when this is the first one.
     if (!/^\s*[-*]\s+/.test(lines[lines.length - 1] || "")) lines.push("");
-    lines.push(`- **${id}**`);
+    lines.push(releaseLine(id, goal));
     fs.writeFileSync(file, lines.join("\n") + "\n");
     return { ok: true };
   } catch (e) {

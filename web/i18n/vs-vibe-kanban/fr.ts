@@ -24,6 +24,15 @@ const fr: VsVibeCopy = {
       name: "Vibe Kanban",
       body: "Une application locale pour exécuter et relire plusieurs agents.",
     },
+    oursDiagramAlt:
+      "Une carte traverse trois colonnes en se précisant à chaque fois, jusqu’à dire ce que « terminé » veut dire ; n’importe quel agent de code peut alors la prendre.",
+    theirsDiagramAlt:
+      "Une tâche déjà définie est confiée à plusieurs agents en même temps, et plusieurs versions du même travail reviennent pour être comparées.",
+    oursDiagramTop: "précisez le travail avant de l’exécuter",
+    oursDiagramBottom:
+      "ensuite, n’importe quel agent de code s’en charge",
+    theirsDiagramTop: "une tâche, plusieurs agents en même temps",
+    theirsDiagramBottom: "comparez les résultats et gardez le meilleur",
   },
   summary: {
     heading: {

@@ -23,6 +23,13 @@ const zh: VsGithubCopy = {
       name: "GitHub Issues",
       body: "由 GitHub 托管，适合团队或社区共享任务、讨论进展和同步状态。",
     },
+    oursDiagramAlt: "代码和看板都是同一个仓库里的目录，智能体在读代码的地方就能更新任务。",
+    theirsDiagramAlt:
+      "你的文件在一个窗口里，Issue 是另一个窗口里 github.com 上的一个页面，两边的同步得你自己做。",
+    oursDiagramTop: "看板就在你的代码仓库里",
+    oursDiagramBottom: "智能体读代码，顺手更新看板",
+    theirsDiagramTop: "任务在服务器上，代码不在",
+    theirsDiagramBottom: "适合多人协作 — 但同步靠你",
   },
   comparison: {
     heading: { eyebrow: "核心对比", title: "本地工作区与共享服务有何不同" },

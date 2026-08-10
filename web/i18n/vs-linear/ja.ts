@@ -23,6 +23,14 @@ const ja: VsLinearCopy = {
       name: "Linear",
       body: "人とエージェントがプロダクト開発を調整する、ホスト型ワークスペースです。",
     },
+    oursDiagramAlt:
+      "曖昧なメモをAI4Kanbanに渡すと、受け入れ条件まで書かれた仕様になり、コードの隣に保存されます。",
+    theirsDiagramAlt:
+      "チームの仕事をLinearに集めると、誰が何を持ち、どこまで進んでいるかが分かる一つの共有リストになります。",
+    oursDiagramTop: "入るのは曖昧なアイデア",
+    oursDiagramBottom: "出るのは着手できる仕様、置き場所はコードの隣",
+    theirsDiagramTop: "入るのはチーム全体の仕事",
+    theirsDiagramBottom: "出るのは共有リスト：担当と進み具合が分かる",
   },
   summary: {
     heading: {

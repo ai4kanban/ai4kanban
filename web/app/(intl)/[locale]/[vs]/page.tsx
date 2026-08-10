@@ -7,7 +7,7 @@ import {
 import { TRANSLATED_LOCALES, isTranslatedLocale } from "@/lib/i18n";
 
 // The same comparison pages in the four translated languages —
-// /zh/vs-github-issues through /fr/vs-multica. English lives one route group
+// /zh/vs-github-issues through /fr/vs-task-master. English lives one route group
 // over, at `app/(en)/[vs]/page.tsx`, on the unprefixed paths.
 
 type Props = { params: Promise<{ locale: string; vs: string }> };

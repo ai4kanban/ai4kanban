@@ -936,7 +936,10 @@ export interface AgentRequest {
   notes?: string; // implement, edit, auto-refine, resolve, archive
   reason?: string; // reject
   description?: string; // create
-  release?: string; // create: the version the new card(s) ship in (#104)
+  // create: the version the new card(s) ship in (#104).
+  // plan-release: the version being planned (#165) — the whole of what that run
+  // is about, since it names no card.
+  release?: string;
   module?: string; // propose: the focus module (a name from modules.md)
   count?: number; // propose: how many tasks to write (1–PROPOSE_MAX, default PROPOSE_DEFAULT)
   boldness?: Boldness; // propose: how big a swing the tasks take
@@ -1069,6 +1072,22 @@ export function buildPrompt(req: AgentRequest): string {
         .filter(Boolean)
         .join(" ");
     }
+    // Plan one release against its goal (#165). The run reads the goal off the
+    // release's own line, moves in the open cards that ship it, and writes the
+    // cards the goal needs that the board hasn't got — deciding all of it on its
+    // own, and saying in its log what it moved, what it wrote, and what it left.
+    //
+    // The release id is all this prompt carries: the goal is on the board, and a
+    // copy pasted in here would go stale the moment the user changed it. A
+    // release with no goal falls back to the plain high-priority rule, and the
+    // guide is where that is written down rather than here.
+    case "plan-release":
+      return [
+        `${kb}. Plan the "${req.release || ""}" release following \`references/plan-release.md\`:`,
+        `move in the open cards that ship its goal, and write the cards the goal needs that the board is missing.`,
+        `Create the cards only, don't implement them.`,
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
+      ].join(" ");
     case "auto-refine":
       return [
         `${kb}. Auto-refine task ${req.id} ${named} following \`references/auto-refine.md\`.`,

@@ -23,6 +23,12 @@ const zh: VsLinearCopy = {
       name: "Linear",
       body: "供团队与智能体共同规划、分配和推进产品工作的托管平台。",
     },
+    oursDiagramAlt: "一个模糊的想法交给 AI4Kanban，出来的是写清了验收标准的需求，就存在代码旁边。",
+    theirsDiagramAlt: "团队的工作汇入 Linear，出来的是一张共享清单，标明每件事归谁、进展到哪一步。",
+    oursDiagramTop: "进去的是一个模糊想法",
+    oursDiagramBottom: "出来的是能直接开工的需求，就放在代码旁边",
+    theirsDiagramTop: "进去的是整个团队的活",
+    theirsDiagramBottom: "出来的是一张共享清单：谁负责什么，进展如何",
   },
   summary: {
     heading: {

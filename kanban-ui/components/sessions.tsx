@@ -118,12 +118,23 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
     [],
   );
 
+  // Take on a session this tab caused but didn't start through `start` above.
+  // A plan-release run is the case (#165): the server starts it as part of
+  // writing the release, so the session id comes back from that action rather
+  // than from here. Same effect either way — onFinish fires for it, and the poll
+  // wakes at once, so the run joins the runs panel in the same moment the
+  // release does rather than up to a slow tick later.
+  const watch = useCallback((sessionId: string, label: string, removes = false) => {
+    mine.current.set(sessionId, { sessionId, label, removes });
+    kickRef.current();
+  }, []);
+
   // Force an immediate poll. `start` does this itself; a caller that made the
   // registry move some other way (resuming a failed run) uses this so the new
   // session shows up now instead of on the next idle tick.
   const kick = useCallback(() => kickRef.current(), []);
 
-  return { sessions, start, kick };
+  return { sessions, start, watch, kick };
 }
 
 // Run `fn` each time the tab becomes visible again. A hidden tab stops polling,
