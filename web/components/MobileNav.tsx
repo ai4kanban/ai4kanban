@@ -27,11 +27,8 @@ export function MobileNav({ c, locale }: { c: SiteCopy; locale: Locale }) {
       summaryClass={`${buttonClass("secondary", "icon")} cursor-pointer`}
       label={<FiMenu className="h-4 w-4" aria-hidden="true" />}
     >
-      {/* Same two links, same paths, as the wide nav — see `Header.tsx` for why
-          install carries a path and recipes never carries a locale. */}
-      <a href={localeHref(locale, "/#install")} className={item}>
-        {nav.install}
-      </a>
+      {/* Same links, same paths, as the wide nav — see `Header.tsx` for why
+          download is the only way in and why recipes never takes a locale. */}
       <a href={localeHref(locale, "/download")} className={item}>
         {nav.download}
       </a>

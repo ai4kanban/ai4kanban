@@ -267,6 +267,10 @@ components/
   vs-linear/
   vs-multica/
   vs-task-master/
+  download/           the release: which file each system takes (`builds.ts`,
+                      joined to `lib/release.ts`, which reads the repo's
+                      VERSION at build time) and the one button, which aims
+                      itself at the reader's system in the browser
   recipes/            the index, the cards, and their art
   shots/              the board mockups the landing page draws
   Header.tsx          the one header, on every page — one row, sticky, the same

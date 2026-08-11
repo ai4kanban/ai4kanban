@@ -58,17 +58,11 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
         </div>
 
         <nav className="hidden items-center justify-center gap-x-5 text-[0.95rem] text-muted md:flex md:gap-x-6">
-          {/* The install section is on the landing page, so the link carries
-              its path: from the landing page itself that is a same-document
-              hash and still scrolls, and from anywhere else it goes home. */}
-          <a
-            href={localeHref(locale, "/#install")}
-            className="transition-colors hover:text-ink"
-          >
-            {nav.install}
-          </a>
-          {/* The board app. It gets a nav slot of its own because it is the
-              one thing on the site a reader leaves with. */}
+          {/* The one way in. The landing page also hands out the setup prompt,
+              under `#install`, but the header names a single way to get the
+              product — two of them in one row is a choice a reader has to make
+              before they know what either one is. The prompt is a section on a
+              page you are already reading; this is the page you leave with. */}
           <a
             href={localeHref(locale, "/download")}
             className="transition-colors hover:text-ink"

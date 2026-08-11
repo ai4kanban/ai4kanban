@@ -128,7 +128,7 @@ const en: HomeCopy = {
     app: {
       title: "Or open the board as an app",
       body:
-        "Download it, open it, point it at a project. Nothing to install first — no Node, no npx, no terminal. Running the board in a browser with `npx ai4kanban-ui` still works, but that way is deprecated.",
+        "Download it, open it, point it at a project. Nothing to install first — no Node, no npx, no terminal.",
       cta: "Get the app",
     },
   },

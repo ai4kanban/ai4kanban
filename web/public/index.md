@@ -63,13 +63,9 @@ chat.
 
 Download it at https://ai4kanban.dev/download — nothing to install first: no
 Node, no npx, no terminal. It asks which project folder to open the first time
-and remembers it. macOS, Windows and Linux; macOS is the build we test and sign.
+and remembers it. macOS, Windows and Linux; macOS is the build we test.
 
 It's optional — the install step ships nothing extra.
-
-Running the same board in a browser with `npx ai4kanban-ui` still works, but that
-way is deprecated: the package is frozen rather than pulled, so an existing setup
-keeps coming up, and no new release lands there.
 
 Each card's buttons hand a move to an agent, no chat needed:
 

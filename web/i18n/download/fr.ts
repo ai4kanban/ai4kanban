@@ -13,60 +13,37 @@ const fr: DownloadCopy = {
   },
 
   hero: {
-    title: "Ouvrez le tableau comme une application.",
-    lead: "Le même tableau, dans une fenêtre. Rien à installer au préalable : ni Node, ni npx, ni terminal à laisser ouvert. Au premier lancement, il demande quel dossier de projet ouvrir, puis s'en souvient.",
-    cta: "Télécharger pour votre système",
-    note: "Lancer un agent demande toujours votre agent de code sur la machine : Claude Code ou Codex. L'application lit votre propre environnement shell au démarrage, donc un agent installé normalement est bien trouvé.",
+    title: "Télécharger AI4Kanban",
+    lead: "Le tableau en application pour macOS, Windows et Linux. Rien à installer au préalable : ni Node, ni npx, ni terminal.",
+    cta: "Télécharger pour {system}",
+    ctaAny: "Télécharger",
+    note: "Lancer un agent demande toujours Claude Code ou Codex sur la machine.",
   },
 
   builds: {
-    title: "Quelle version prendre",
-    lead: "Une publication, trois systèmes, aucun signé pour l'instant. macOS est celui que nous testons à chaque version ; Windows et Linux sont compilés et publiés sans test tant que personne ne nous signale le contraire.",
-    columns: { system: "Système", file: "Fichier", signed: "Signé", tested: "Testé" },
-    yes: "Oui",
-    no: "Non",
-    systems: ["macOS (Apple Silicon, Intel)", "Windows", "Linux"],
+    title: "Tous les téléchargements",
+    note: "Rien n'est signé pour l'instant et seul macOS est testé à chaque version : chaque système avertit au premier lancement.",
   },
 
-  unsigned: {
-    title: "L'ouvrir la première fois",
-    lead: "Aucune version n'est signée cette fois-ci : chaque système avertit au premier lancement. Signer la version Mac est la prochaine chose sur la liste. En attendant, voici ce qu'il faut cliquer — une fois par système, et plus jamais ensuite :",
+  firstOpen: {
+    title: "Au premier lancement",
     mac: {
       title: "macOS",
       steps: [
-        "Ouvrez le `.dmg` et faites glisser **AI4Kanban** dans votre dossier Applications.",
-        "Double-cliquez dessus. macOS affiche *Apple n'a pas pu vérifier que « AI4Kanban » ne contient pas de logiciel malveillant* : cliquez sur **Terminé**. L'app ne s'ouvre pas encore, c'est normal.",
-        "Ouvrez **Réglages Système → Confidentialité et sécurité**, descendez jusqu'à **Sécurité** et, à côté de *« AI4Kanban » a été bloqué pour protéger votre Mac*, cliquez sur **Ouvrir quand même**.",
-        "Déverrouillez avec Touch ID ou votre mot de passe, puis cliquez encore une fois sur **Ouvrir quand même**. L'app s'ouvre, et tous les lancements suivants s'ouvrent directement.",
+        "Ouvrez le `.dmg` et faites glisser **AI4Kanban** dans Applications.",
+        "Double-cliquez dessus. macOS indique qu'il ne peut pas vérifier l'app : cliquez sur **Terminé**. Elle ne s'ouvre pas encore, c'est normal.",
+        "Dans **Réglages Système → Confidentialité et sécurité**, descendez jusqu'à **Sécurité** et cliquez sur **Ouvrir quand même**.",
+        "Déverrouillez, puis cliquez encore une fois sur **Ouvrir quand même**. Tous les lancements suivants s'ouvrent directement.",
       ],
     },
     windows: {
       title: "Windows",
-      body: "SmartScreen affiche *Windows a protégé votre ordinateur*. Cliquez sur **Informations complémentaires**, puis sur **Exécuter quand même**.",
+      body: "Dans SmartScreen : **Informations complémentaires**, puis **Exécuter quand même**.",
     },
     linux: {
       title: "Linux",
-      body: "Rendez le fichier exécutable, puis lancez-le : `chmod +x AI4Kanban-*.AppImage`, puis `./AI4Kanban-*.AppImage`.",
+      body: "`chmod +x AI4Kanban-*.AppImage`, puis lancez-le.",
     },
-  },
-
-  using: {
-    title: "Une fois ouverte",
-    items: [
-      {
-        title: "Un projet à la fois",
-        body: "Au premier lancement, elle demande quel dossier ouvrir, puis s'en souvient. Le chemin dans l'en-tête en ouvre un autre, et un dossier sans tableau convient aussi : elle propose d'en créer un sur place.",
-      },
-      {
-        title: "La mise à jour reste votre choix",
-        body: "L'application ne se met jamais à jour toute seule. Quand une version plus récente sort, elle le signale avec un lien vers cette page. Fermer la fenêtre arrête le tableau et tout ce qui tourne sous lui.",
-      },
-    ],
-  },
-
-  deprecated: {
-    title: "L'ancienne méthode : le lancer soi-même",
-    body: "`npx ai4kanban-ui` sert toujours le tableau dans un navigateur, mais cette voie est dépréciée. Elle continue de fonctionner et le paquet est gelé plutôt que retiré, donc une installation existante démarre encore, mais plus aucune version n'y arrivera. Les pages, elles, ne disparaissent pas : l'application, ce sont ces mêmes pages dans une fenêtre, et atteindre le tableau depuis un autre appareil demande toujours un serveur. Ce qui est déprécié, c'est de vous demander d'en lancer un et d'ouvrir un navigateur.",
   },
 };
 

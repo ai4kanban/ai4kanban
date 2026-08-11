@@ -132,7 +132,7 @@ const fr: HomeCopy = {
     app: {
       title: "Ou ouvrez le tableau comme une application",
       body:
-        "Téléchargez-la, ouvrez-la, pointez-la vers un projet. Rien à installer au préalable : ni Node, ni npx, ni terminal. Ouvrir le tableau dans un navigateur avec `npx ai4kanban-ui` fonctionne toujours, mais cette voie est dépréciée.",
+        "Téléchargez-la, ouvrez-la, pointez-la vers un projet. Rien à installer au préalable : ni Node, ni npx, ni terminal.",
       cta: "Obtenir l'application",
     },
   },

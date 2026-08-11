@@ -1,8 +1,9 @@
 /** Chrome that every page shares: nav, footer, copy button, switcher. */
 export type SharedCopy = {
   nav: {
-    install: string;
-    /** The download page — where the board app is handed out. */
+    /** The download page — the header's one way in, where the board app is
+     *  handed out. The landing page's setup prompt has no nav slot: see
+     *  `components/Header.tsx`. */
     download: string;
     recipes: string;
     compare: string;

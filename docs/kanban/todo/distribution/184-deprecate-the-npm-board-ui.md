@@ -3,7 +3,7 @@ title: Mark the npm board UI deprecated on the registry
 track: distribution
 priority: med
 roi: med
-status: ready
+status: todo
 release: 0.6.0
 blocked_by: []
 related: []

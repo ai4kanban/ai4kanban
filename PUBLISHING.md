@@ -13,7 +13,7 @@ repo directly.
 | Setup CLI | npm `ai4kanban` | `npm publish` from `cli/` |
 | Board app | GitHub release for the version tag | `npm run dist` from `desktop/`, then upload |
 | Board UI (frozen) | npm `ai4kanban-ui` | **deprecated — no new releases**, see below |
-| Landing page | ai4kanban.dev (Cloudflare Pages) | optional, `env -u NODE_ENV pnpm run deploy` from `web/` when the copy changes |
+| Landing page | ai4kanban.dev (Cloudflare Pages) | `env -u NODE_ENV pnpm run deploy` from `web/` — every release (below), and whenever the copy changes |
 
 The CLI carries the skill inside its tarball (`scripts/bundle-skill.mjs` copies `skill/` to
 `cli/skill/` at publish time; that copy is gitignored). So `npx ai4kanban install` is what a
@@ -50,6 +50,13 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
 5. Build the app (below) and check a run works end to end on macOS.
 6. `git push --follow-tags`, then create the GitHub release for `v<new-version>` and upload
    everything in `desktop/dist/`.
+7. Deploy the landing page — last, and not optional. Every asset name on a release carries
+   the version, so the download page links straight at this tag's files: `web/lib/release.ts`
+   reads the root `VERSION` at build time and writes
+   `…/releases/download/v<version>/AI4Kanban-<version>-arm64.dmg` and its four siblings. Until
+   the deploy, ai4kanban.dev/download hands out the previous release; deploy it before the
+   release exists and the buttons 404. If a build's file name changes, that page's
+   `components/download/builds.ts` is the one place to change it.
 
 Nothing to do for `kanban-ui/` — it is frozen (below).
 

@@ -4,7 +4,6 @@ import type { SharedCopy } from "./types";
 
 const zh: SharedCopy = {
   nav: {
-    install: "安装",
     download: "下载",
     recipes: "任务模板",
     compare: "对比",

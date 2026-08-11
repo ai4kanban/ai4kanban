@@ -38,8 +38,8 @@ export function Start({ c, locale }: { c: HomeCopy["start"]; locale: Locale }) {
 
       {/* The other way in: the board as an app you download (#175). It sits
           under the prompt rather than beside it because the two are alternatives
-          and a reader picks one — and this is where the deprecation of the old
-          browser way is said, in the same breath as the download. */}
+          and a reader picks one. The retired `npx ai4kanban-ui` way isn't named
+          here or anywhere on the site — see `pages/DownloadPage.tsx`. */}
       <div className="mt-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="max-w-2xl">
           <h3 className="text-lg font-bold">{c.app.title}</h3>
