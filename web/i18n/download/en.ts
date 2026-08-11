@@ -20,7 +20,7 @@ const en: DownloadCopy = {
 
   builds: {
     title: "Which build to take",
-    lead: "One release, three systems. macOS is the one we test each release; Windows and Linux are built and published untested until someone tells us otherwise.",
+    lead: "One release, three systems, none of them signed yet. macOS is the one we test each release; Windows and Linux are built and published untested until someone tells us otherwise.",
     columns: { system: "System", file: "File", signed: "Signed", tested: "Tested" },
     yes: "Yes",
     no: "No",
@@ -28,8 +28,17 @@ const en: DownloadCopy = {
   },
 
   unsigned: {
-    title: "Opening the unsigned builds",
-    lead: "The Mac build is signed, so it opens with a double-click. Windows and Linux ship unsigned this release, so each warns the first time. One step past it:",
+    title: "Opening it the first time",
+    lead: "Every build ships unsigned this release, so every system warns the first time you open it. Signing the Mac build is next on the list. Here is what to click until then — once per system, never again after that:",
+    mac: {
+      title: "macOS",
+      steps: [
+        "Open the `.dmg` and drag **AI4Kanban** into your Applications folder.",
+        "Double-click it. macOS says *Apple could not verify AI4Kanban is free of malware* — click **Done**. It will not open yet, and that is expected.",
+        "Open **System Settings → Privacy & Security**, scroll down to **Security**, and next to *AI4Kanban was blocked to protect your Mac* click **Open Anyway**.",
+        "Unlock with Touch ID or your password, then click **Open Anyway** once more. The app opens, and every launch after this one opens straight away.",
+      ],
+    },
     windows: {
       title: "Windows",
       body: "SmartScreen says *Windows protected your PC*. Click **More info**, then **Run anyway**.",

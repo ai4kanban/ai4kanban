@@ -29,7 +29,7 @@ const RELEASES_URL = "https://github.com/ai4kanban/ai4kanban/releases/latest";
 /** One row of the builds table, in the order it is listed. `system` is an index
  *  into the copy's own list, so the name is translated and the rest isn't. */
 const BUILDS = [
-  { file: ".dmg / .zip", signed: true, tested: true },
+  { file: ".dmg / .zip", signed: false, tested: true },
   { file: ".exe", signed: false, tested: false },
   { file: ".AppImage", signed: false, tested: false },
 ] as const;
@@ -112,7 +112,24 @@ export function DownloadPage({ locale }: { locale: Locale }) {
           <p className="max-w-3xl text-[1.05rem] leading-relaxed text-muted">
             {t.unsigned.lead}
           </p>
-          <div className="mt-7 grid gap-5 sm:grid-cols-2">
+          {/* macOS takes four clicks where the other two take one, so it gets
+              the full width and a numbered list — the count is the point. */}
+          <div className={`${panelInset} mt-7 p-6`}>
+            <h3 className="text-lg font-bold">{t.unsigned.mac.title}</h3>
+            <ol className="mt-3 space-y-2.5 text-[0.95rem] leading-relaxed text-muted">
+              {t.unsigned.mac.steps.map((step, i) => (
+                <li key={step} className="flex gap-3">
+                  <span className="mt-0.5 font-mono text-[0.8rem] font-semibold text-accent-deep">
+                    {i + 1}
+                  </span>
+                  <span>
+                    <Rich code="wash">{step}</Rich>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
             {[t.unsigned.windows, t.unsigned.linux].map((step) => (
               <div key={step.title} className={`${panelInset} p-6`}>
                 <h3 className="text-lg font-bold">{step.title}</h3>

@@ -127,13 +127,15 @@ npx ai4kanban install --tracks feature,bug,research
 
 | 系统 | 安装包 | 已签名 | 已测试 |
 | --- | --- | --- | --- |
-| macOS（Apple 芯片、Intel） | `.dmg` / `.zip` | 是 | 是 |
+| macOS（Apple 芯片、Intel） | `.dmg` / `.zip` | 否 | 是 |
 | Windows | `.exe` 安装包 | 否 | 否 |
 | Linux | `.AppImage` | 否 | 否 |
 
-每个版本我们只测试 macOS。Windows 和 Linux 这个版本未经测试、也未签名，首次打开时系统
-会警告：Windows 上点 **更多信息** → **仍要运行**；Linux 上先 `chmod +x AI4Kanban-*.AppImage`
-再运行。
+每个版本我们只测试 macOS，Windows 和 Linux 未经测试。三个系统的安装包目前都还没有签名，
+首次打开时都会警告：Windows 上点 **更多信息** → **仍要运行**；Linux 上先
+`chmod +x AI4Kanban-*.AppImage` 再运行。macOS 上要四步：从 `.dmg` 里把应用拖进“应用程序”，
+双击后在警告上点**完成**，再打开**系统设置 → 隐私与安全性 → 安全性**，在被拦下的应用旁边点
+**仍要打开**，弹出确认时再点一次**仍要打开**。[下载页](https://ai4kanban.dev/download)有每一步的详细说明。
 
 ![Web UI 的 Board 视图](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg)
 

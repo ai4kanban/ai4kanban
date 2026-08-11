@@ -21,7 +21,7 @@ const fr: DownloadCopy = {
 
   builds: {
     title: "Quelle version prendre",
-    lead: "Une publication, trois systèmes. macOS est celui que nous testons à chaque version ; Windows et Linux sont compilés et publiés sans test tant que personne ne nous signale le contraire.",
+    lead: "Une publication, trois systèmes, aucun signé pour l'instant. macOS est celui que nous testons à chaque version ; Windows et Linux sont compilés et publiés sans test tant que personne ne nous signale le contraire.",
     columns: { system: "Système", file: "Fichier", signed: "Signé", tested: "Testé" },
     yes: "Oui",
     no: "Non",
@@ -29,8 +29,17 @@ const fr: DownloadCopy = {
   },
 
   unsigned: {
-    title: "Ouvrir les versions non signées",
-    lead: "La version Mac est signée : un double-clic suffit. Windows et Linux sortent non signés cette fois-ci, et chacun avertit au premier lancement. Une seule étape pour passer :",
+    title: "L'ouvrir la première fois",
+    lead: "Aucune version n'est signée cette fois-ci : chaque système avertit au premier lancement. Signer la version Mac est la prochaine chose sur la liste. En attendant, voici ce qu'il faut cliquer — une fois par système, et plus jamais ensuite :",
+    mac: {
+      title: "macOS",
+      steps: [
+        "Ouvrez le `.dmg` et faites glisser **AI4Kanban** dans votre dossier Applications.",
+        "Double-cliquez dessus. macOS affiche *Apple n'a pas pu vérifier que « AI4Kanban » ne contient pas de logiciel malveillant* : cliquez sur **Terminé**. L'app ne s'ouvre pas encore, c'est normal.",
+        "Ouvrez **Réglages Système → Confidentialité et sécurité**, descendez jusqu'à **Sécurité** et, à côté de *« AI4Kanban » a été bloqué pour protéger votre Mac*, cliquez sur **Ouvrir quand même**.",
+        "Déverrouillez avec Touch ID ou votre mot de passe, puis cliquez encore une fois sur **Ouvrir quand même**. L'app s'ouvre, et tous les lancements suivants s'ouvrent directement.",
+      ],
+    },
     windows: {
       title: "Windows",
       body: "SmartScreen affiche *Windows a protégé votre ordinateur*. Cliquez sur **Informations complémentaires**, puis sur **Exécuter quand même**.",

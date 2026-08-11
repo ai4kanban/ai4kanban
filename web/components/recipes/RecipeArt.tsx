@@ -215,8 +215,8 @@ function Pull() {
 }
 
 // ── Normalize and dedup ──────────────────────────────────────────────────────
-// Two name variants (dashed) fold along curved connectors into one solid,
-// deduped product card.
+// Two dashed inputs fold along curved connectors into one solid, accented card —
+// a competitor's feature met with your board, resolved into one line.
 function Merge() {
   return (
     <>
@@ -262,8 +262,8 @@ function Triage() {
   );
 }
 
-// ── Study each real competitor ───────────────────────────────────────────────
-// A dedicated study doc under a magnifier, one line pulled out and highlighted.
+// ── One file per competitor ──────────────────────────────────────────────────
+// The competitor's own file under a magnifier, one line pulled out and highlighted.
 function Study() {
   return (
     <>
@@ -282,9 +282,10 @@ function Study() {
   );
 }
 
-// ── Scan its SEO content assets ──────────────────────────────────────────────
-// A site asset tree: existing assets (green check dot) branch off the root; the
-// one you're missing is flagged — an accent dashed card with a marker flag.
+// ── List every feature a competitor offers ───────────────────────────────────
+// A tree walked out from the competitor's site: the features you already have
+// carry a green check dot; the gap is flagged — an accent dashed card and a
+// marker flag.
 function Scan() {
   return (
     <>

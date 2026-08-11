@@ -20,7 +20,7 @@ const zh: DownloadCopy = {
 
   builds: {
     title: "该下载哪个版本",
-    lead: "同一个版本，三个系统。每个版本我们只测试 macOS；Windows 和 Linux 会一并构建发布，但在收到反馈之前都属于未经测试。",
+    lead: "同一个版本，三个系统，目前都还没有签名。每个版本我们只测试 macOS；Windows 和 Linux 会一并构建发布，但在收到反馈之前都属于未经测试。",
     columns: { system: "系统", file: "文件", signed: "已签名", tested: "已测试" },
     yes: "是",
     no: "否",
@@ -28,8 +28,17 @@ const zh: DownloadCopy = {
   },
 
   unsigned: {
-    title: "打开未签名的版本",
-    lead: "macOS 版本已签名，双击即可打开。Windows 和 Linux 这个版本未签名，首次打开时系统会警告。各自只需一步：",
+    title: "第一次打开",
+    lead: "这个版本三个系统的安装包都未签名，所以首次打开时每个系统都会警告。给 Mac 版签名是我们接下来要做的事。在那之前，按下面点一次就好，之后每次打开都不会再问：",
+    mac: {
+      title: "macOS",
+      steps: [
+        "打开 `.dmg`，把 **AI4Kanban** 拖进“应用程序”文件夹。",
+        "双击打开。macOS 会提示 *Apple 无法验证“AI4Kanban”是否含有恶意软件*，点**完成**。这一次打不开是正常的。",
+        "打开**系统设置 → 隐私与安全性**，向下找到**安全性**，在 *已阻止“AI4Kanban”以保护你的 Mac* 旁边点**仍要打开**。",
+        "用触控 ID 或密码解锁，再点一次**仍要打开**。应用就打开了，之后每次都会直接打开。",
+      ],
+    },
     windows: {
       title: "Windows",
       body: "SmartScreen 会提示 *Windows 已保护你的电脑*。点击**更多信息**，再点**仍要运行**。",

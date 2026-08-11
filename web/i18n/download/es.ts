@@ -21,7 +21,7 @@ const es: DownloadCopy = {
 
   builds: {
     title: "Qué versión llevarte",
-    lead: "Una publicación, tres sistemas. macOS es el que probamos en cada versión; Windows y Linux se compilan y publican sin probar hasta que alguien nos diga lo contrario.",
+    lead: "Una publicación, tres sistemas, y ninguno firmado todavía. macOS es el que probamos en cada versión; Windows y Linux se compilan y publican sin probar hasta que alguien nos diga lo contrario.",
     columns: { system: "Sistema", file: "Archivo", signed: "Firmado", tested: "Probado" },
     yes: "Sí",
     no: "No",
@@ -29,8 +29,17 @@ const es: DownloadCopy = {
   },
 
   unsigned: {
-    title: "Abrir las versiones sin firmar",
-    lead: "La versión de Mac está firmada, así que se abre con doble clic. Windows y Linux salen sin firmar en esta publicación, y cada uno avisa la primera vez. Un paso para pasarlo:",
+    title: "Abrirlo la primera vez",
+    lead: "En esta publicación ninguna versión va firmada, así que todos los sistemas avisan la primera vez que la abres. Firmar la de Mac es lo siguiente en la lista. Hasta entonces, esto es lo que hay que pulsar: una vez por sistema y nunca más.",
+    mac: {
+      title: "macOS",
+      steps: [
+        "Abre el `.dmg` y arrastra **AI4Kanban** a tu carpeta Aplicaciones.",
+        "Haz doble clic. macOS dice *Apple no ha podido verificar que “AI4Kanban” esté libre de malware*: pulsa **Listo**. Todavía no se abrirá, y es lo normal.",
+        "Abre **Ajustes del Sistema → Privacidad y seguridad**, baja hasta **Seguridad** y, junto a *Se ha bloqueado “AI4Kanban” para proteger el Mac*, pulsa **Abrir igualmente**.",
+        "Desbloquea con Touch ID o tu contraseña y pulsa **Abrir igualmente** una vez más. La app se abre, y a partir de ahí se abre directamente.",
+      ],
+    },
     windows: {
       title: "Windows",
       body: "SmartScreen dice *Windows protegió su PC*. Pulsa **Más información** y luego **Ejecutar de todas formas**.",

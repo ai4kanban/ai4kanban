@@ -87,9 +87,9 @@ export const recipes: Recipe[] = [
     title: "Competitor analysis loop",
     icon: "🔭",
     tagline:
-      "Pull the competitors people name in your dist0 Reddit signal, study each real one deeply, and turn what you find into cards — on a per-competitor cadence.",
+      "Keep one feature checklist per competitor — what you already ship, what a card is building, and the gaps nobody has touched — on a per-competitor cadence.",
     summary:
-      "A recurring competitor-intelligence task powered by dist0. Each run pulls the competitor mentions from your dist0 Reddit signal, filters the false positives out at the source, studies each real competitor deeply — features, offerings, SEO content assets — and files the build/grow/offer ideas as kanban cards. Every competitor gets its own study cadence, so the loop gets sharper each pass.",
+      "A recurring competitor-intelligence task powered by dist0. Each run pulls the competitor mentions from your dist0 Reddit signal, rules out the false positives, and keeps one plain checklist per real competitor: every feature it offers, one line each, ticked when you already ship it, tagged with the card id when one of your cards is building it, and bare when nobody has touched it. The bare lines are your gap list, and the run files cards for the ones worth closing. Every competitor gets its own read cadence, so each pass goes to the ones that matter.",
     mdFile: "/recipes/competitor-analysis-loop.md",
     installPrompt: [
       `/kanban Pull ${SITE_ORIGIN}/recipes/competitor-analysis-loop.md`,
@@ -110,18 +110,28 @@ export const recipes: Recipe[] = [
       },
       {
         art: "triage",
-        title: "Filter out false positives",
-        body: "For each product, decide: a real competitor solving the same job for the same buyer, or an unrelated one the pipeline over-matched. It automatically pushes that judgment back through dist0, so its competitor detection sharpens to your preference and stops surfacing the ones you've ruled out.",
+        title: "Rule out the false positives",
+        body: "For each product, decide: a real competitor solving the same job for the same buyer, or an unrelated one the pipeline over-matched. The ones you rule out are written down with the reason, so no later run spends time on them again.",
       },
       {
         art: "scan",
-        title: "Study each real competitor",
-        body: "Writes a doc per competitor, examining its features, offerings, and SEO content assets — then identifies where your own product falls short and files kanban cards with concrete ideas for closing those gaps.",
+        title: "List every feature it offers",
+        body: "Walks each real competitor — its site, pricing, docs, changelog, free tools, side products — and turns everything it offers users into one checkbox line per feature.",
+      },
+      {
+        art: "study",
+        title: "Keep one plain file per competitor",
+        body: "The lines go into that competitor's own file, under the date it was last read and the pages they came from. Nothing else goes in it — no prose study to re-read, nothing to go quietly stale.",
+      },
+      {
+        art: "merge",
+        title: "Tie the features to your cards",
+        body: "Ticks the features your users can already do today, tags the ones a card on your board is building with that card's id, and leaves the rest bare — your gap list. It files cards for the gaps worth closing and writes each new id back onto its line.",
       },
       {
         art: "cadence",
         title: "Set each competitor's cadence",
-        body: "Sets how often to revisit each competitor — frequently for the mature, serious ones, rarely for the thin or immature that develop too slowly to be worth close watching, never for the dead. Only due competitors get re-studied, so each pass goes to the ones that matter.",
+        body: "Sets how often to revisit each competitor — often for the ones shipping fast, rarely for the thin ones that grow too slowly to watch closely, never for the dead. Only due competitors get re-read, so each pass goes to the ones that matter.",
       },
     ],
   },

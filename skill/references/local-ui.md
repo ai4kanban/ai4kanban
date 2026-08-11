@@ -16,9 +16,11 @@ Nothing to install first — no Node, no npx, no terminal. It asks which project
 open the first time and remembers it; the folder path in its header opens another one. A
 folder with no board is fine — it offers to make one there.
 
-- **macOS** — the build we test and sign, so a fresh download opens with a double-click.
-- **Windows and Linux** — built and published untested this release, and unsigned, so the
-  system warns on first open. The download page says the one step past it.
+- **macOS** — the build we test each release. Unsigned this release, so it is blocked on
+  first open: the way past is **System Settings → Privacy & Security → Open Anyway**, and
+  the download page spells out every click.
+- **Windows and Linux** — built and published untested this release, and unsigned too, so
+  the system warns on first open. The download page says the one step past it.
 
 Starting runs still needs your coding agent on the machine, same as from a terminal. The app
 reads your own login shell environment when it starts, so an agent installed the normal way

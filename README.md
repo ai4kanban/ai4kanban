@@ -153,13 +153,17 @@ needs your coding agent on the machine, same as from a terminal.
 
 | System | Build | Signed | Tested |
 | --- | --- | --- | --- |
-| macOS (Apple Silicon, Intel) | `.dmg` / `.zip` | yes | yes |
+| macOS (Apple Silicon, Intel) | `.dmg` / `.zip` | no | yes |
 | Windows | `.exe` installer | no | no |
 | Linux | `.AppImage` | no | no |
 
-macOS is the one we test each release. Windows and Linux are published untested and
-unsigned this release, so each warns on first open: on Windows click **More info** →
-**Run anyway**; on Linux `chmod +x AI4Kanban-*.AppImage` and run it.
+macOS is the one we test each release; Windows and Linux are published untested. No build
+is signed yet, so every system warns the first time you open it. On Windows click **More
+info** → **Run anyway**; on Linux `chmod +x AI4Kanban-*.AppImage` and run it. On macOS it
+takes four steps: drag the app in from the `.dmg`, double-click it and click **Done** on
+the warning, then open **System Settings → Privacy & Security → Security** and click
+**Open Anyway** next to the blocked app, and **Open Anyway** again when it asks. The
+[download page](https://ai4kanban.dev/download) spells each one out.
 
 ![The board view in the Web UI](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg)
 

@@ -26,10 +26,13 @@ export type DownloadCopy = {
     /** The three systems, in the order the table lists them. */
     systems: [string, string, string];
   };
-  /** Opening a build the system warns about — one short step each. */
+  /** Opening a build the system warns about. Every build is unsigned this
+   *  release, so every system warns; macOS is the one that takes more than a
+   *  click, which is why it carries a list of steps and the other two a line. */
   unsigned: {
     title: string;
     lead: string;
+    mac: { title: string; steps: string[] };
     windows: { title: string; body: string };
     linux: { title: string; body: string };
   };

@@ -91,35 +91,40 @@ What each system gets, and what we promise about it:
 
 | System | Build | Signed | Tested |
 | --- | --- | --- | --- |
-| macOS arm64 + x64 | `.dmg`, `.zip` | yes | yes, each release |
+| macOS arm64 + x64 | `.dmg`, `.zip` | no | yes, each release |
 | Windows x64 + arm64 | `.exe` (NSIS) | no | no |
 | Linux x64 + arm64 | `.AppImage` | no | no |
 
-Windows and Linux are built and published untested. The download page and the READMEs say
-so, and say the one step past each system's warning. Revisit a Windows certificate when
-users ask.
+Nothing is signed this release, and Windows and Linux are built and published untested. The
+download page and the READMEs say so, and say what to click past each system's warning.
+Revisit a Windows certificate when users ask.
 
-### Signing the Mac build
+### The Mac build ships unsigned
 
-The Mac build is signed and notarized so a fresh download opens with a double-click and no
-warning. That needs an Apple Developer account ($99/year), its "Developer ID Application"
-certificate in the login keychain, and three variables in the environment:
+`npm run dist` needs no certificate and no Apple account — `electron-builder.yml` sets
+`identity: "-"`, `hardenedRuntime: false` and `notarize: false`, so the Mac build is ad-hoc
+signed and nothing else.
+
+Ad-hoc is not "no signature", and the difference matters: Apple Silicon refuses to launch a
+binary with no valid signature at all, so a truly unsigned arm64 build opens as *damaged*
+with no way past. Ad-hoc gives it a valid signature that names no developer — Gatekeeper
+still calls the app unidentified and blocks the first open, which is the warning the
+download page walks the user through. Confirm the build got one:
 
 ```
-export APPLE_ID="…"                    # the Apple ID that owns the account
-export APPLE_APP_SPECIFIC_PASSWORD="…" # made at appleid.apple.com, not the account password
-export APPLE_TEAM_ID="…"               # the 10-character team id
-cd desktop && npm run dist:mac
+codesign -dv --verbose=2 desktop/dist/mac-arm64/AI4Kanban.app   # Signature=adhoc
+spctl -a -vvv -t install desktop/dist/mac-arm64/AI4Kanban.app   # rejected — expected, until #182
 ```
 
-`electron-builder.yml` already sets `hardenedRuntime`, the entitlements notarizing requires,
-and `notarize: true`. Without the certificate or those variables the build fails at signing
-— build it unsigned with `npx electron-builder --mac -c.mac.notarize=false`, and say so
-wherever it is handed out.
+Check it the way a user meets it: download the `.dmg` on a machine that has never run the
+app and open it, following the download page's steps. If those steps do not get the app
+open, that is a build bug, not something to wait for a certificate to fix.
 
-Check a signed build the way a user meets it: download the `.dmg` on a machine that has
-never run the app, open it, and confirm no Gatekeeper warning. `spctl -a -vvv -t install
-/Applications/AI4Kanban.app` answers the same question from a terminal.
+Signing and notarizing for real is #182: an Apple Developer account ($99/year), its
+"Developer ID Application" certificate in the login keychain, `APPLE_ID` /
+`APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` in the environment, and `mac.identity`
+dropped with `hardenedRuntime` and `notarize` back to `true` — the entitlements that
+notarizing needs are already in `desktop/build/`.
 
 ## `ai4kanban-ui` is frozen
 

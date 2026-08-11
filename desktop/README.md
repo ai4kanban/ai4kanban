@@ -13,14 +13,18 @@ way is found even though nothing here came from a terminal.
 
 | System | Build | Signed | Tested |
 | --- | --- | --- | --- |
-| macOS (Apple Silicon, Intel) | `.dmg` / `.zip` | yes | yes |
+| macOS (Apple Silicon, Intel) | `.dmg` / `.zip` | no | yes |
 | Windows | `.exe` installer | no | no |
 | Linux | `.AppImage` | no | no |
 
-macOS is the one we test each release. Windows and Linux are built and published untested
-until someone reports otherwise, and both are unsigned this release, so the system warns on
-first open:
+macOS is the one we test each release; Windows and Linux are built and published untested
+until someone reports otherwise. No build is signed yet, so every system warns the first
+time it is opened:
 
+- **macOS** — drag the app in from the `.dmg`, double-click it, click **Done** on the
+  warning, then **System Settings → Privacy & Security → Security** and **Open Anyway**
+  next to the blocked app — once more when it asks. The
+  [download page](https://ai4kanban.dev/download) spells out every click.
 - **Windows** — SmartScreen says "Windows protected your PC". Click **More info** →
   **Run anyway**.
 - **Linux** — make it executable and run it: `chmod +x AI4Kanban-*.AppImage && ./AI4Kanban-*.AppImage`.

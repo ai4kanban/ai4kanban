@@ -73,7 +73,7 @@ import { cmdSetupDone, cmdSetupStatus } from './commands/setup.mjs'
 // VERSION file by scripts/sync-version.mjs (the one number for the whole repo; see
 // PUBLISHING.md). It's baked in because this file is copied into installed projects away
 // from the manifests, so `version` can answer without anything fetched.
-const SKILL_VERSION = '0.5.0'
+const SKILL_VERSION = '0.5.1'
 
 const SELF = fileURLToPath(import.meta.url)
 

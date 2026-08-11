@@ -29,12 +29,17 @@ files:
 # The hook runs before code signing, so what it copies is signed with the rest.
 afterPack: scripts/after-pack.js
 
-# --- macOS: the one we test, and the one we sign -----------------------------
-# Signed and notarized, so a fresh download opens with a double-click and no
-# warning. Signing needs an Apple Developer account and its certificate in the
-# keychain; notarizing needs APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and
-# APPLE_TEAM_ID in the environment. Without them, build with
-# `-c.mac.notarize=false` — see PUBLISHING.md.
+# --- macOS: the one we test, shipped unsigned this release -------------------
+# `identity: "-"` is an ad-hoc signature: Gatekeeper still treats the app as
+# unidentified and warns on first open, but the signature is valid, which is
+# what Apple Silicon needs before it will launch anything at all. Without it an
+# arm64 build opens as "damaged" and there is no way past that.
+#
+# Signing and notarizing for real is #182. It needs an Apple Developer account,
+# its "Developer ID Application" certificate in the keychain, and APPLE_ID /
+# APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID in the environment. When that is
+# in hand, drop `identity` and set `hardenedRuntime: true` and `notarize: true`
+# — the entitlements below are already the ones notarizing requires.
 mac:
   category: public.app-category.developer-tools
   target:
@@ -42,11 +47,12 @@ mac:
       arch: [arm64, x64]
     - target: zip # what an auto-update would read, and the smaller download
       arch: [arm64, x64]
-  hardenedRuntime: true
+  identity: "-"
+  hardenedRuntime: false
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.inherit.plist
-  notarize: true
+  notarize: false
 
 dmg:
   title: AI4Kanban ${version}
