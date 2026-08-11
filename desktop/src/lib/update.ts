@@ -1,5 +1,3 @@
-"use strict";
-
 // Whether a newer app is out, and where to get it.
 //
 // The app never updates itself. It reads the project's newest GitHub release,
@@ -11,16 +9,17 @@
 // down, a rate limit. The app is running fine either way, so a failed check
 // just means no notice this time.
 
-const https = require("node:https");
+import https from "node:https";
+import type { UpdateInfo } from "../shared/bridge";
 
 const LATEST_RELEASE_API = "https://api.github.com/repos/ai4kanban/ai4kanban/releases/latest";
 /** Where a person goes to get the newer build. The releases page lists every
  *  build for every system, which is what "where to get it" means here. */
-const DOWNLOADS_URL = "https://github.com/ai4kanban/ai4kanban/releases/latest";
+export const DOWNLOADS_URL = "https://github.com/ai4kanban/ai4kanban/releases/latest";
 
 const TIMEOUT_MS = 6000;
 
-function getJson(url) {
+function getJson(url: string): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const req = https.get(
       url,
@@ -56,28 +55,42 @@ function getJson(url) {
 
 /** Compare two `1.2.3` versions. Anything after the numbers (a `-rc1`) is
  *  ignored — the app only ever asks "is the release newer than what I am". */
-function isNewer(candidate, current) {
-  const parts = (v) => String(v).replace(/^v/, "").split(/[.\-+]/).slice(0, 3).map((n) => parseInt(n, 10) || 0);
+export function isNewer(candidate: string, current: string): boolean {
+  const parts = (v: string) =>
+    String(v)
+      .replace(/^v/, "")
+      .split(/[.\-+]/)
+      .slice(0, 3)
+      .map((n) => parseInt(n, 10) || 0);
   const [a, b] = [parts(candidate), parts(current)];
   for (let i = 0; i < 3; i++) {
-    if (a[i] !== b[i]) return a[i] > b[i];
+    // A version with fewer parts than three reads as zero in the ones it is
+    // missing, which is what `1.2` beating `1.1.9` means.
+    const [x, y] = [a[i] ?? 0, b[i] ?? 0];
+    if (x !== y) return x > y;
   }
   return false;
+}
+
+/** The release JSON, trusted no further than the two fields we read off it. */
+function releaseOf(value: unknown): { tag: string; url: string } | null {
+  if (!value || typeof value !== "object") return null;
+  const release = value as { tag_name?: unknown; html_url?: unknown };
+  const tag = typeof release.tag_name === "string" ? release.tag_name : "";
+  if (!tag) return null;
+  return { tag, url: typeof release.html_url === "string" ? release.html_url : DOWNLOADS_URL };
 }
 
 /**
  * `{ version, url }` when a newer release is out, or null — including when the
  * check simply couldn't be made.
  */
-async function newerRelease(currentVersion) {
+export async function newerRelease(currentVersion: string): Promise<UpdateInfo | null> {
   try {
-    const release = await getJson(LATEST_RELEASE_API);
-    const tag = typeof release?.tag_name === "string" ? release.tag_name : "";
-    if (!tag || !isNewer(tag, currentVersion)) return null;
-    return { version: tag.replace(/^v/, ""), url: release.html_url || DOWNLOADS_URL };
+    const release = releaseOf(await getJson(LATEST_RELEASE_API));
+    if (!release || !isNewer(release.tag, currentVersion)) return null;
+    return { version: release.tag.replace(/^v/, ""), url: release.url };
   } catch {
     return null;
   }
 }
-
-module.exports = { newerRelease, isNewer, DOWNLOADS_URL };

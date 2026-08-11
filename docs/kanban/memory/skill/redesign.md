@@ -38,6 +38,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   a read-only plugin cache) → ✅ it locates `docs/kanban/` from the working directory,
   since commands run from the repo root. Anything that moves per-project state out of the
   skill folder has to keep that true or the plugin channel silently breaks.
+- ❌ **Spell the command people type all day with the full project name (`ai4kanban card
+  update 12`)** → ✅ the day-to-day command is short (`akb`) and the long name stays as a
+  second name for it. Before teaching `npx <short name>`, check the short name on npm —
+  `akb` is already someone else's package.
 
 ## The goal
 

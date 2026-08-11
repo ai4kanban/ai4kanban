@@ -6,7 +6,12 @@ except where another doc is named.
 
 ## Running the board
 
+- Open the board as a desktop app, downloaded from `ai4kanban.dev/download` — nothing to
+  install first, it picks the repo on first launch and reopens there, finds your coding
+  agent, and says when a newer version is out. macOS, Windows and Linux all ship unsigned
+  and the download page says how to get past each system's warning.
 - Run the board from a browser with `npx ai4kanban-ui`: `skill/references/local-ui.md`.
+  Deprecated the day the app shipped — it keeps working, but the app is the way in.
 - Started where there is no board, the page says so, names the folder it searched, and
   gives what to run — instead of a crash screen.
 - A bar shows how far setup got and hands over the line to paste into your coding agent; a

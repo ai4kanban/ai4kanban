@@ -2,6 +2,7 @@ import { buildPrompt, type AgentRequest } from "./agent";
 import { readBoard } from "./board";
 import { nextDue } from "./cadence";
 import { readAutoRefine, readAutoRefineParallelism } from "./config";
+import { autoWorkAllowed } from "./desktop";
 import { canRefine } from "./refine";
 import { listSessions, startSession } from "./registry";
 import type { Card, SessionView } from "./types";
@@ -29,6 +30,12 @@ import type { Card, SessionView } from "./types";
 // ramp nobody asked for. Two runs writing the same board file is left as
 // last-write-wins; only create/propose/archive/reject serialize (see the index
 // lock in registry.ts).
+//
+// Both passes are held while this board is one the desktop app has been
+// switched away from (see autoWorkAllowed in lib/desktop.ts). A project's
+// server keeps running so a run someone started can finish, and starting fresh
+// work in a board nobody is looking at is the one thing that must not follow
+// from that.
 
 // Wake once a minute (#43: timed interval, 1 min per iteration). It is also the
 // floor under a cadence: a card set to repeat faster than the tick still runs
@@ -153,6 +160,10 @@ function runDue(sessions: SessionView[], cards: Card[], busy: Set<number | null>
 // failure) must not kill the timer, so the next minute still tries.
 function tick(): void {
   try {
+    // Both passes start work nobody asked for, so both stop while this board is
+    // one the user has switched away from in the app (#178). A run already
+    // going is untouched — it finishes and writes to this board, as it should.
+    if (!autoWorkAllowed()) return;
     const sessions = listSessions();
     const cards = readBoard().columns.flatMap((c) => c.cards);
     // A card already in any live session is skipped (startSession's per-card

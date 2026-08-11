@@ -1,0 +1,31 @@
+{
+  // The app's source is TypeScript, compiled to out/ before Electron ever sees
+  // it — `npm start` and every `npm run dist:*` do it for you. Two things about
+  // this file are load-bearing rather than taste:
+  //
+  //   - module CommonJS. A contextBridge preload script cannot be ESM, and the
+  //     main process here has no bundler, so both ends stay `require`-shaped.
+  //   - rootDir/outDir mirror src/ into out/ one-for-one. lib/resources.ts
+  //     walks up from __dirname to find the app folder when run from source,
+  //     and that walk counts on this layout.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "types": ["node"],
+
+    "rootDir": "src",
+    "outDir": "out",
+    "sourceMap": true,
+
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"]
+}

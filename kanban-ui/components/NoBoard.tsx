@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { PickAnotherProject } from "./desktop";
+import { MakeBoardHere, PickAnotherProject } from "./desktop";
 import { useOnTabFocus } from "./sessions";
 
 // Shown as the whole page when the walk up finds no `docs/kanban/todo/`. It
@@ -9,16 +9,19 @@ import { useOnTabFocus } from "./sessions";
 // no buttons, no Configuration dialog — every one of those reads a board, and
 // there isn't one.
 //
-// It is a message, not an offer. The UI never sets a board up itself; it says
-// what to run and gets out of the way.
+// In a browser it is a message, not an offer: the UI says what to run and gets
+// out of the way, because there is a terminal right there to run it in. In the
+// app there isn't one, so both ways out are buttons — make a board here, or open
+// a different folder. A folder with no board is a normal thing to pick in the
+// app, and it has to lead somewhere.
 export function NoBoard({
   searchedFrom,
   desktop = false,
 }: {
   searchedFrom: string;
   /** Whether this is the desktop app (#175). In the app there is no terminal to
-   *  send anyone to, so the second cause below is a button that opens another
-   *  project instead of a command to type. */
+   *  send anyone to, so both causes below end in a button rather than a command
+   *  to type (#178). */
   desktop?: boolean;
 }) {
   const router = useRouter();
@@ -36,16 +39,28 @@ export function NoBoard({
           <Code>{searchedFrom}</Code> and in every folder above it. Two things it could be:
         </p>
 
-        <Cause
-          title="This repo has no board yet."
-          what="Make one — run this in the repo root:"
-          command="npx ai4kanban install"
-        />
+        {desktop ? (
+          <section className="mt-5">
+            <h2 className="text-[14px] font-[700]">This project has no board yet.</h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-nb-ink-soft">
+              Make one here and setup starts in this window — the board, the skill your
+              coding agent reads, and a checklist that walks you through the rest.
+            </p>
+            <MakeBoardHere desktop />
+          </section>
+        ) : (
+          <Cause
+            title="This repo has no board yet."
+            what="Make one — run this in the repo root:"
+            command="npx ai4kanban install"
+          />
+        )}
         {desktop ? (
           <section className="mt-5">
             <h2 className="text-[14px] font-[700]">This is not the project you meant.</h2>
             <p className="mt-1 text-[13px] leading-relaxed text-nb-ink-soft">
-              Pick another folder — the app opens it in this window.
+              Pick another folder — the app opens it in this window. Everything you have
+              opened before is behind the folder name at the top of the board.
             </p>
             <PickAnotherProject desktop />
           </section>

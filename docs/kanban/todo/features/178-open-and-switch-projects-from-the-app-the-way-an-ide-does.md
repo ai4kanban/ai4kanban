@@ -3,9 +3,9 @@ title: Open and switch projects from the app, the way an IDE does
 track: features
 priority: high
 roi: high
-status: ready
+status: todo
 release: 0.6.0
-blocked_by: [175]
+blocked_by: []
 related: [172, 171]
 modules: [local-ui]
 questions: []
@@ -50,20 +50,25 @@ opened, the way an editor does, so one app covers every project on the machine.
   restarting and already start with nobody watching, so ending one because the user glanced
   at another project would be a surprise. The run has to remember the project it started
   in, or it finishes by writing into whichever board is open by then.
+- **Taking the open project off the list**: not offered. Forgetting the project on screen
+  would leave the window showing one the list no longer has. Open another project first,
+  then remove it.
 
 ## Todo
-- [ ] Add Open Folder to the app, and open the picked folder's board in the window.
-- [ ] Keep the projects the user opened, and let them switch between them from a list.
-- [ ] Send a folder with no board into onboarding instead of an error.
-- [ ] Let a user remove a project from the list, and say when a project's folder is gone.
-- [ ] Show which project is open, and make switching reload the whole board.
-- [ ] Tie a run to the project it started in, so it keeps writing to that board after the
+- [x] Add Open Folder to the app, and open the picked folder's board in the window.
+- [x] Keep the projects the user opened, and let them switch between them from a list.
+- [x] Send a folder with no board into onboarding instead of an error.
+- [x] Let a user remove a project from the list, and say when a project's folder is gone.
+- [x] Show which project is open, and make switching reload the whole board.
+- [x] Tie a run to the project it started in, so it keeps writing to that board after the
       user switches away, and keep the background refine and recurring runs on the open
       project alone.
-- [ ] Mark on the projects list which projects have a run going.
+- [x] Mark on the projects list which projects have a run going.
 - [ ] Open two different projects one after the other and check nothing from the first one
       is still on screen.
+- [ ] Open a folder with no board, make a board from the button, and check setup starts in
+      that folder.
 - [ ] Start a run in one project, switch to another and back, and check the run is still
       there with its log and that it changed the right board.
 - [ ] Update the UI's README and the download page so opening and switching projects is
-      taught where the app is.
+      taught where the app is, and re-sync the download page's other languages.

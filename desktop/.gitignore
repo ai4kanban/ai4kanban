@@ -1,5 +1,11 @@
 node_modules/
 dist/
+# The compiled app — `tsc` turns src/ into this, and package.json's `main`
+# points at out/main.js. A build product, like everything else here.
+out/
 # The board UI's prebuilt server, copied in by scripts/bundle-ui.mjs at build
 # time. It is a build product of ../kanban-ui, not a source file.
 resources/server/
+# The board installer (../cli plus the repo's skill/), copied in by
+# scripts/bundle-cli.mjs. A build product too.
+resources/cli/

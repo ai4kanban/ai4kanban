@@ -327,7 +327,7 @@ export function BoardView({
         />
 
         {/* How this board is being run, when that is worth saying: a newer app
-            inside the app, the deprecation notice in a browser (#175). Above the
+            inside the app, a pointer to the app in a browser (#175). Above the
             error strip because it is about the whole session, not this action. */}
         <RunningNotice desktop={desktop} />
 

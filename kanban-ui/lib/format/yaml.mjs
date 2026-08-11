@@ -1,3 +1,6 @@
+// Copied from skill/lib/yaml.mjs by scripts/sync-format.mjs — do not edit here.
+// Edit the original and re-run `node scripts/sync-format.mjs`.
+
 // Reading and writing a single YAML-ish scalar — the shared bottom layer under both
 // the frontmatter and the questions modules.
 //

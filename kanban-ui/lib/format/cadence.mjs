@@ -1,3 +1,6 @@
+// Copied from skill/lib/cadence.mjs by scripts/sync-format.mjs — do not edit here.
+// Edit the original and re-run `node scripts/sync-format.mjs`.
+
 // ---- the cadence a recurring card repeats on -------------------------------
 //
 // A recurring card can carry one line saying how often it repeats:

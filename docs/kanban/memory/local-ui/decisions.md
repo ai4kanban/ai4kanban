@@ -29,9 +29,12 @@ re-ask a settled call.
   loud — a warning from npm, a notice in the page, and no doc teaching it any more. The
   package is frozen, not pulled, so people already on it keep a working board. The pages
   live on inside the app; only starting a server and opening a browser goes away.
-- **What do we pay to sign the app?**: the Mac app only — macOS is the one we test, so it
-  opens with no warning. Windows and Linux ship unsigned and the download page says how to
-  open them. Revisit a Windows certificate when users ask.
+- **What do we pay to sign the app?**: the Mac app only, eventually — macOS is the one we
+  test. Windows stays unsigned; revisit a Windows certificate when users ask.
+- **Does signing hold a release back?**: no. Buying an Apple developer account takes days,
+  so the app ships unsigned on all three systems and the download page says what to click
+  past each warning. Signing lands in a later release. Nothing a paid account gates is ever
+  a reason to delay shipping.
 
 ## Propose and add-task
 

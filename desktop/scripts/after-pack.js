@@ -24,17 +24,33 @@ function resourcesDir(context) {
 }
 
 exports.default = async function afterPack(context) {
+  const resources = resourcesDir(context);
+
   const from = path.join(__dirname, "..", "resources", "server");
   if (!fs.existsSync(path.join(from, "server.js"))) {
     throw new Error(
       `after-pack: no board server at ${from} — run \`npm run bundle\` before packaging.`,
     );
   }
-  const to = path.join(resourcesDir(context), "server");
+  const to = path.join(resources, "server");
   fs.rmSync(to, { recursive: true, force: true });
   fs.cpSync(from, to, { recursive: true });
   if (!fs.existsSync(path.join(to, "node_modules"))) {
     throw new Error(`after-pack: the copy at ${to} has no node_modules — the app would not start.`);
   }
   console.log(`  • board server copied  to=${to}`);
+
+  // And the board installer (scripts/bundle-cli.mjs), so the app can make a
+  // board in a folder that has none. It rides here for the same reason: a Node
+  // program that reads its own files, which can't be done out of an asar.
+  const cliFrom = path.join(__dirname, "..", "resources", "cli");
+  if (!fs.existsSync(path.join(cliFrom, "bin", "ai4kanban.mjs"))) {
+    throw new Error(
+      `after-pack: no board installer at ${cliFrom} — run \`npm run bundle\` before packaging.`,
+    );
+  }
+  const cliTo = path.join(resources, "cli");
+  fs.rmSync(cliTo, { recursive: true, force: true });
+  fs.cpSync(cliFrom, cliTo, { recursive: true });
+  console.log(`  • board installer copied  to=${cliTo}`);
 };

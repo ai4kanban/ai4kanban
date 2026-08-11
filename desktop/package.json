@@ -12,18 +12,22 @@
     "url": "git+https://github.com/ai4kanban/ai4kanban.git",
     "directory": "desktop"
   },
-  "main": "main.js",
+  "main": "out/main.js",
   "scripts": {
-    "bundle": "node scripts/bundle-ui.mjs",
-    "start": "node scripts/bundle-ui.mjs --if-missing && electron .",
-    "dist": "node scripts/bundle-ui.mjs && electron-builder --mac --win --linux",
-    "dist:mac": "node scripts/bundle-ui.mjs && electron-builder --mac",
-    "dist:win": "node scripts/bundle-ui.mjs && electron-builder --win",
-    "dist:linux": "node scripts/bundle-ui.mjs && electron-builder --linux",
-    "lint": "node --check main.js && node --check preload.js && node --check lib/menu.js && node --check lib/server.js && node --check lib/shell-env.js && node --check lib/store.js && node --check lib/update.js"
+    "build": "tsc -p tsconfig.json",
+    "bundle": "node scripts/bundle-ui.mjs && node scripts/bundle-cli.mjs",
+    "start": "npm run build && node scripts/bundle-ui.mjs --if-missing && node scripts/bundle-cli.mjs && electron .",
+    "dist": "npm run build && npm run bundle && electron-builder --mac --win --linux",
+    "dist:mac": "npm run build && npm run bundle && electron-builder --mac",
+    "dist:win": "npm run build && npm run bundle && electron-builder --win",
+    "dist:linux": "npm run build && npm run bundle && electron-builder --linux",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "npm run typecheck && node --check scripts/after-pack.js && node --check scripts/bundle-cli.mjs && node --check scripts/bundle-ui.mjs"
   },
   "devDependencies": {
+    "@types/node": "^22.10.0",
     "electron": "^43.3.0",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.3",
+    "typescript": "^5.7.0"
   }
 }

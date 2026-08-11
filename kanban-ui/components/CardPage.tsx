@@ -259,8 +259,8 @@ export function CardPage({
           desktop={desktop}
         />
 
-        {/* Same line as the board's (#175) — a newer app in the app, the
-            deprecation notice in a browser. */}
+        {/* Same line as the board's (#175) — a newer app in the app, a pointer
+            to the app in a browser. */}
         <RunningNotice desktop={desktop} />
 
         <main className="mx-auto w-full max-w-[840px] px-6 py-6">

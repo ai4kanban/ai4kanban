@@ -11,10 +11,13 @@ directories:
 
 # The app itself is a handful of small files. Everything heavy — the board
 # server — rides along as a resource below.
+#
+# out/ is the compiled app, not the source: src/ is TypeScript, and `npm run
+# dist:*` runs `tsc` before this file is ever read. Package straight from a
+# checkout that hasn't been built and there is nothing here to package — which
+# is the loud failure, and the one we want.
 files:
-  - main.js
-  - preload.js
-  - lib/**/*
+  - out/**/*
   - package.json
 
 # The board UI's prebuilt Next server, copied in by scripts/bundle-ui.mjs. It
@@ -26,6 +29,9 @@ files:
 # drops any `node_modules` it finds inside an extra resource, assuming it is the
 # app's own and belongs in the asar — and the board server's `node_modules` is
 # Next's bundle, without which the packaged app ships a server that can't start.
+# The board installer (resources/cli, built by scripts/bundle-cli.mjs) rides
+# along in the same hook, for the same reason: it is a Node program that reads
+# its own skill files off disk.
 # The hook runs before code signing, so what it copies is signed with the rest.
 afterPack: scripts/after-pack.js
 

@@ -99,3 +99,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   number and a unit, down to the minute, plus an optional time of day — `30m`, `6h`,
   `1d at 09:30`. Real jobs don't fall into three buckets: a health check wants minutes and
   a report wants a fixed hour.
+
+## Shipping the desktop app
+
+- ❌ **A release waits on a paid developer account** (Apple's $99 program, days to approve)
+  → ✅ ship unsigned and write down the clicks that get past the warning. A signature is a
+  follow-up card, never a gate on the release.

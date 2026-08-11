@@ -3,8 +3,15 @@
 // the script does. The script stays the ONLY writer for id-touching moves; the UI
 // only rewrites these validated fields, and only for cards that already exist.
 
+import { unquote, yamlScalar } from "./format/yaml.mjs";
 import { hasOptions, type CardQuestion, type QuestionMode } from "./questions";
 import { NO_RELEASE, type CardMeta, type CardStatus } from "./types";
+
+// Quoting a scalar is the one thing this and the script have to agree on
+// character for character, so it comes from the shared copy rather than a second
+// implementation (scripts/sync-format.mjs). Re-exported because `yamlScalar` has
+// always been part of this module's surface.
+export { yamlScalar };
 
 const STATUSES: CardStatus[] = ["todo", "ready", "implementing"];
 
@@ -87,20 +94,6 @@ function parseQuestionsBlock(lines: string[]): CardQuestion[] {
   return out;
 }
 
-export function yamlScalar(input: unknown): string {
-  const s = String(input);
-  if (s === "") return '""';
-  if (
-    /^[-?:,[\]{}#&*!|>'"%@`]/.test(s) ||
-    /:\s/.test(s) ||
-    /[\n"]/.test(s) ||
-    /^\s|\s$/.test(s)
-  ) {
-    return JSON.stringify(s);
-  }
-  return s;
-}
-
 export function serializeFrontmatter(m: CardMeta): string {
   const out = ["---"];
   out.push(`title: ${yamlScalar(m.title)}`);
@@ -141,19 +134,6 @@ export function serializeFrontmatter(m: CardMeta): string {
   }
   out.push("---");
   return out.join("\n");
-}
-
-function unquote(v: string): string {
-  v = String(v).trim();
-  if (v.startsWith('"') && v.endsWith('"')) {
-    try {
-      return JSON.parse(v);
-    } catch {
-      return v.slice(1, -1);
-    }
-  }
-  if (v.startsWith("'") && v.endsWith("'")) return v.slice(1, -1);
-  return v;
 }
 
 export interface ParsedCard {
