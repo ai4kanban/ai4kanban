@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { FiColumns, FiList } from "react-icons/fi";
 import type { ReleasePick } from "@/lib/release-pick";
 import type { AgentInfo, SessionView } from "@/lib/types";
-import type { BoardViewMode } from "@/lib/view";
+import { ToolCluster } from "./chrome";
 import { Configuration } from "./Configuration";
 import { CreateTask } from "./CreateTask";
 import { ProjectPath } from "./desktop";
@@ -12,9 +11,10 @@ import { Progress } from "./Progress";
 import { ReleasePicker } from "./ReleasePicker";
 import { Sessions } from "./sessions";
 
-// Shared header for the board and the card detail page — identical on both: the
-// brand links home (the board), and the Create-task action, the daily-progress
-// chart and the Configuration gear sit on the right. Create task is
+// The window's top row (components/Window.tsx draws the rest of it), shared by
+// the board and the card detail page and identical on both: the mark leads home,
+// and the Create-task action, the daily-progress chart and the Configuration
+// gear sit on the right. Create task is
 // self-contained (see CreateTask) so both pages
 // get it without threading any session state through the header. `projectRoot` is
 // the repo the server is driving (holds docs/kanban/) — shown as a small badge so
@@ -25,13 +25,12 @@ import { Sessions } from "./sessions";
 // which card (#51); `onError` lets a save failure surface where the page already
 // shows errors, across its top.
 //
-// The view switch (#70) is the one thing that isn't on both pages: pass `view`
-// and `onViewChange` and it appears, leave them off and it doesn't. Only the
-// board has two layouts to switch between — on a card page the switch would
-// either do nothing or jump you off the card.
+// There was a view switch here (#70) — kanban columns or the queue. It is gone:
+// the board draws one layout now, so there is nothing to switch between and a
+// control offering the choice would be offering a board that no longer exists.
 //
-// The release dropdown (#104) rides beside it under the same rule, and on the
-// same board-only terms: it says which version the columns and the queue are
+// The release dropdown (#104) is the one thing that isn't on both pages, on
+// board-only terms: it says which version the columns are
 // showing, and a card page shows one card whatever is picked. It also decides
 // where a card made from here lands — a card written while `v1` is on screen
 // ships in `v1`, so it doesn't vanish the moment it is written. It is on every
@@ -40,13 +39,33 @@ import { Sessions } from "./sessions";
 // only user who hadn't met it.
 //
 // On a narrow screen the row has to stay one line, so the text that is only
-// context gives way first: the path badge drops to the folder name, the view
-// switch and Create task go icon-only. Nothing is removed — every control is
-// still there at the same 36px tap size, just without its label.
+// context gives way first: the path badge drops to the folder name and Create
+// task goes icon-only. Nothing is removed — every control is still there, just
+// without its label.
 //
-// The goal button (#128) sits on the left instead, after the path: that side says
-// what this board is — the name, then the folder it lives in — and what it is for
-// belongs there too. It survives every width, since one icon costs nothing.
+// The row is drawn at IDE weight (see app/design/layouts): 44px against the 60
+// it used to be, every control a 28px box, and the saving taken out of the
+// padding rather than out of the controls. It pays for the rail beside it. Two
+// things follow from that:
+//
+//   - The wordmark is gone. The mark says the product and the badge says the
+//     board, and a third label saying the product again is the width the rail
+//     needs. The mark still leads home, which is the whole of the way back on a
+//     window too narrow for the rail.
+//   - Runs, progress and settings share one frame with hairlines between them.
+//     They are all "look at the board's machinery" and none of them is a primary
+//     action, so they get one sticker between them instead of three hard shadows
+//     sitting a few pixels apart.
+//
+// The left is identity and nothing else — the mark, then the board it names — so
+// everything pressable is on the right and the eye has one place to go. The goal
+// button (#128) moved over with them: it is read rather than pressed, but it is
+// still a thing you open, and a lone control on the identity side would need a
+// divider to say so.
+//
+// Padding is 7 above and 8 below: a sticker's shadow falls 2px past its box
+// while the badge has none, so the odd pixel splits the difference and both
+// kinds land within half a pixel of the row's centre.
 export function Header({
   agent,
   projectRoot,
@@ -54,8 +73,6 @@ export function Header({
   autoRefineParallelism,
   sessions,
   onError,
-  view,
-  onViewChange,
   releases = [],
   releaseGoals = {},
   releaseCounts = {},
@@ -76,8 +93,6 @@ export function Header({
   autoRefineParallelism: number;
   sessions: SessionView[];
   onError?: (msg: string) => void;
-  view?: BoardViewMode;
-  onViewChange?: (v: BoardViewMode) => void;
   /** The open releases in ship order. Empty is a board that plans no versions —
    *  the dropdown still shows, saying All releases and offering New release, so
    *  the first release can be started from here. */
@@ -124,25 +139,18 @@ export function Header({
   desktop?: boolean;
 }) {
   return (
-    <header
-      className="sticky top-0 z-20 flex items-center justify-between gap-2 px-3 py-2.5 backdrop-blur-sm sm:gap-3 sm:px-6 sm:py-3.5"
-      style={{
-        background: "color-mix(in srgb, var(--color-nb-cream) 90%, transparent)",
-        borderBottom: "1.5px solid color-mix(in srgb, var(--color-nb-ink) 14%, transparent)",
-      }}
-    >
-      <div className="flex min-w-0 items-baseline gap-2 sm:gap-3">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 whitespace-nowrap text-[17px] font-[800] tracking-[-0.02em] hover:text-nb-accent-deep"
-        >
-          <LogoMark />
-          AI4Kanban
+    <header className="flex shrink-0 items-center gap-2 px-3 pb-2 pt-[7px]">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        {/* The mark is the way to the board on a window too narrow for the rail;
+            where the rail is up, All cards is the row that leads here and this
+            is simply which product you are in. */}
+        <Link href="/" title="All cards" aria-label="All cards">
+          <LogoMark className="size-[22px] rounded-[6px]" />
         </Link>
         <ProjectPath projectRoot={projectRoot} desktop={desktop} />
-        <Goal written={goalWritten} />
       </div>
-      <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+      <div className="flex shrink-0 items-center gap-2">
+        <Goal written={goalWritten} />
         {onReleaseChange && onCreateRelease && onPlanRelease && onDropRelease && onCloseRelease && onSetReleaseGoal && (
           <ReleasePicker
             releases={releases}
@@ -157,70 +165,19 @@ export function Header({
             onSetGoal={onSetReleaseGoal}
           />
         )}
-        {view && onViewChange && <ViewSwitch view={view} onChange={onViewChange} />}
-        <Progress />
-        <Sessions />
-        <Configuration
-          agent={agent}
-          autoRefine={autoRefine}
-          autoRefineParallelism={autoRefineParallelism}
-          sessions={sessions}
-          onError={onError}
-        />
+        <ToolCluster>
+          <Progress />
+          <Sessions />
+          <Configuration
+            agent={agent}
+            autoRefine={autoRefine}
+            autoRefineParallelism={autoRefineParallelism}
+            sessions={sessions}
+            onError={onError}
+          />
+        </ToolCluster>
         <CreateTask release={createRelease} />
       </div>
     </header>
-  );
-}
-
-// Which layout the board draws. A two-segment control rather than two separate
-// sticker buttons: the views are one choice with two answers, and the filled
-// segment says which one you are looking at without a second mark. It shares the
-// 36px frame of the header's other buttons so the row still reads as one strip.
-// Below `sm` the labels go screen-reader-only and the two icons carry it — the
-// filled segment still says which view is on, and `title` still names both.
-const VIEWS: { key: BoardViewMode; label: string; icon: typeof FiColumns }[] = [
-  { key: "kanban", label: "Board", icon: FiColumns },
-  { key: "queue", label: "Queue", icon: FiList },
-];
-
-function ViewSwitch({
-  view,
-  onChange,
-}: {
-  view: BoardViewMode;
-  onChange: (v: BoardViewMode) => void;
-}) {
-  return (
-    <div
-      role="group"
-      aria-label="Board layout"
-      className="inline-flex h-9 items-center gap-0.5 rounded-[9px] border-[1.5px] border-nb-ink bg-nb-paper p-0.5 shadow-[2px_2px_0_0_var(--color-nb-ink)]"
-    >
-      {VIEWS.map(({ key, label, icon: Icon }) => {
-        const on = view === key;
-        return (
-          <button
-            key={key}
-            type="button"
-            aria-pressed={on}
-            title={
-              key === "kanban"
-                ? "Board — one column per track"
-                : "Queue — what you can start now"
-            }
-            onClick={() => onChange(key)}
-            className="inline-flex h-full cursor-pointer items-center gap-1.5 rounded-[6px] px-2 text-[12px] font-[700] transition-colors sm:px-2.5"
-            style={{
-              background: on ? "var(--color-nb-accent-soft)" : "transparent",
-              color: on ? "var(--color-nb-accent-deep)" : "var(--color-nb-ink-soft)",
-            }}
-          >
-            <Icon aria-hidden style={{ width: 13, height: 13, flex: "0 0 auto" }} />
-            <span className="sr-only sm:not-sr-only">{label}</span>
-          </button>
-        );
-      })}
-    </div>
   );
 }

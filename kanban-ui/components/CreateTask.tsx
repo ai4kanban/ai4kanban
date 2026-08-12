@@ -82,11 +82,12 @@ export function CreateTask({ release = null }: { release?: string | null }) {
   );
 
   return (
-    <div className="relative flex items-center gap-3">
+    <div className="relative flex shrink-0 items-center">
       <Button
-        // Narrow screens keep the button but drop its label — a plus in the
-        // header's own square frame, still the same tap target.
-        className="h-9 w-9 gap-1.5 rounded-[9px] p-0 sm:h-auto sm:w-auto sm:rounded-[11px] sm:px-[18px] sm:py-[10px]"
+        // The top row's 28px box. Narrow screens keep the button but drop its
+        // label — a plus in the same square frame, still the same target.
+        size="xs"
+        className="shrink-0 max-sm:w-7 max-sm:px-0"
         aria-label="Create task"
         disabled={creating}
         onClick={() => {
@@ -94,7 +95,7 @@ export function CreateTask({ release = null }: { release?: string | null }) {
           setOpen(true);
         }}
       >
-        <FiPlus className="text-[16px]" aria-hidden />
+        <FiPlus className="text-[15px]" aria-hidden />
         <span className="sr-only sm:not-sr-only">Create task</span>
       </Button>
 

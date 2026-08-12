@@ -63,12 +63,18 @@ export const panelBare = "rounded-xl bg-elev";
 export const panelBareInset = "rounded-xl bg-code";
 
 // Not a surface — the one piece of spacing the whole site shares: the air
-// between the header's rule and the first thing on a page. Every hero takes it,
-// so the landing page, the five comparisons and the two recipe pages all open
-// at the same height rather than each guessing its own. It is deliberately more
-// than a section gap: the top of a page is the one place where the empty band
-// is doing work, and the old 3.5rem read as the header having been mis-cropped.
+// between the header and the first thing on a page. Every hero takes it, so the
+// landing page, the five comparisons and the two recipe pages all open at the
+// same height rather than each guessing its own. It is deliberately more than a
+// section gap: the top of a page is the one place where the empty band is doing
+// work, and 3.5rem read as the header having been mis-cropped.
 //
-// The landing page's watercolour banner is pinned to this value from the other
-// side (`home/Hero.tsx` pulls it up over the margin) — change one, change both.
-export const heroTop = "mt-20 lg:mt-32";
+// It is half what it was because the header now merges into it. At the top of
+// the page the header draws no fill and no rule (`Header.tsx`), so its row is
+// no longer a strip of chrome the band has to clear — it *is* the top of the
+// band, and the old value stacked one opening gap on another. What the reader
+// sees is the same air as before; it is just that ~52px of it is now the row
+// the logo sits in. That matters most on the landing page, whose hero stacks
+// the headline over a full-column screenshot: every pixel spent above the
+// headline is a pixel of the deck pushed under the fold.
+export const heroTop = "mt-10 lg:mt-16";

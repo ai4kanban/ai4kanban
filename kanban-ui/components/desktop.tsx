@@ -28,6 +28,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { FiAlertTriangle, FiDownload, FiFolder, FiFolderPlus, FiX } from "react-icons/fi";
 import { Button } from "./button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 /** Where a person gets the app. One place, named here, used by both notices. */
 export const DOWNLOAD_URL = "https://ai4kanban.dev/download";
@@ -79,8 +87,11 @@ function openLink(url: string) {
 
 // --- the folder badge, and the projects behind it ---------------------------
 
+// Two pixels shorter than the controls on the other side of the row: it is the
+// one thing in the header that is read rather than pressed, and a step behind
+// them is enough to say so without breaking the row.
 const BADGE =
-  "hidden min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[11px] text-nb-ink-soft sm:flex";
+  "hidden h-[26px] min-w-0 items-center gap-1.5 rounded-full px-2.5 font-mono text-[11px] text-nb-ink-soft sm:flex";
 const BADGE_STYLE = {
   background: "color-mix(in srgb, var(--color-nb-ink) 5%, transparent)",
   border: "1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent)",
@@ -122,90 +133,72 @@ export function ProjectPath({ projectRoot, desktop }: { projectRoot: string; des
  *  line off the list.
  *
  *  Picking one hands the whole window to the app, which loads that project's own
- *  board. Nothing here re-renders into the new project; the page is replaced. */
+ *  board. Nothing here re-renders into the new project; the page is replaced.
+ *
+ *  It is the board's own dropdown (ui/dropdown-menu) rather than a panel of its
+ *  own, so it dismisses the way every other menu here does — outside click,
+ *  Escape, focus returned to the badge — and reads as the same object. A
+ *  hand-rolled version can't get the first of those right from inside the
+ *  header: the header is backdrop-blurred, and a backdrop-filter makes its box
+ *  the containing block for `fixed` children, so a full-screen click catcher
+ *  covers only the header strip. This menu portals out to <body> instead. */
 function ProjectsMenu({ projectRoot, children }: { projectRoot: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
   const [projects, setProjects] = useState<ProjectEntry[] | null>(null);
 
+  // Every answer ends the "reading…" line, including no answer at all: the app
+  // says it is the app (KANBAN_DESKTOP=1, read on the server), so a window with
+  // no bridge on it is the app's own preload having failed, and the list would
+  // otherwise sit there reading forever.
   const reload = useCallback(() => {
-    bridge()
-      ?.projects()
-      .then(setProjects)
-      .catch(() => setProjects([]));
+    const app = bridge();
+    if (!app) return setProjects([]);
+    app.projects().then(setProjects).catch(() => setProjects([]));
   }, []);
 
-  // Read the list when the menu opens, not on mount: it says what is true right
-  // now (a run that has since finished, a folder since deleted), and nobody is
-  // looking at it the rest of the time.
-  useEffect(() => {
-    if (open) reload();
-  }, [open, reload]);
-
-  // Escape closes it, and so does a click anywhere else — the same two ways out
-  // every other panel on the board has.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
-
   return (
-    <div className="relative hidden min-w-0 sm:block">
-      <button
-        type="button"
-        title={`${projectRoot}/docs/kanban — click for your projects`}
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className={`${BADGE} max-w-full cursor-pointer hover:text-nb-ink`}
-        style={BADGE_STYLE}
-      >
-        {children}
-      </button>
-      {open && (
-        <>
-          {/* Click anywhere else to close. Escape does it too (above), so this
-              catcher carries no keyboard duty of its own. */}
-          <div className="fixed inset-0 z-[55]" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-[calc(100%+8px)] z-[60] w-[340px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1 shadow-[3px_3px_0_0_var(--color-nb-ink)]">
-            <p className="px-2.5 pb-1 pt-1.5 text-[11px] font-[700] uppercase tracking-wide text-nb-ink-soft">
-              Projects
-            </p>
-            <div className="max-h-[50vh] overflow-y-auto">
-              {projects === null && <Line muted>Reading your projects…</Line>}
-              {projects?.length === 0 && <Line muted>Only this one so far.</Line>}
-              {projects?.map((p) => (
-                <ProjectRow
-                  key={p.path}
-                  project={p}
-                  onOpen={() => {
-                    setOpen(false);
-                    void bridge()?.openProject(p.path);
-                  }}
-                  onForget={() => {
-                    bridge()
-                      ?.forgetProject(p.path)
-                      .then(setProjects)
-                      .catch(reload);
-                  }}
-                />
-              ))}
-            </div>
-            <div className="-mx-1 my-1 h-px bg-nb-ink/12" />
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                void bridge()?.pickRepo();
+    // Read the list on opening, not on mount: it says what is true right now (a
+    // run that has since finished, a folder since deleted), and nobody is
+    // looking at it the rest of the time. The last answer stays on screen while
+    // the new one is fetched, so reopening doesn't flash "reading…".
+    <DropdownMenu onOpenChange={(o) => o && reload()}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          title={`${projectRoot}/docs/kanban — click for your projects`}
+          className={`${BADGE} max-w-full cursor-pointer hover:text-nb-ink`}
+          style={BADGE_STYLE}
+        >
+          {children}
+        </button>
+      </DropdownMenuTrigger>
+      {/* No width of its own: the panel is as wide as its longest path, up to
+          what the window can hold, and paths past that ellipsise. A fixed width
+          was either too wide for `~/x` or too narrow for a real checkout. */}
+      <DropdownMenuContent align="start" className="max-w-[min(28rem,calc(100vw-1.5rem))]">
+        <DropdownMenuLabel>Projects</DropdownMenuLabel>
+        <div className="max-h-[50vh] overflow-y-auto overflow-x-hidden">
+          {projects === null && <Line muted>Reading your projects…</Line>}
+          {projects?.length === 0 && <Line muted>Only this one so far.</Line>}
+          {projects?.map((p) => (
+            <ProjectRow
+              key={p.path}
+              project={p}
+              onOpen={() => void bridge()?.openProject(p.path)}
+              onForget={() => {
+                bridge()
+                  ?.forgetProject(p.path)
+                  .then(setProjects)
+                  .catch(reload);
               }}
-              className="flex w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-[13px] font-[600] text-nb-ink hover:bg-nb-wash"
-            >
-              <FiFolderPlus size={14} /> Open folder…
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+            />
+          ))}
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="gap-2 py-2" onSelect={() => void bridge()?.pickRepo()}>
+          <FiFolderPlus aria-hidden className="size-[1em] shrink-0" /> Open folder…
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -219,37 +212,54 @@ function ProjectRow({
   onForget: () => void;
 }) {
   const { name, path, open, running, missing } = project;
+  // The board on screen and a folder that has gone are both rows with nothing to
+  // open. They stay in the list, and keep their hover, because each still says
+  // something — which one you are on, and which one to take off — but picking
+  // them does nothing, so they don't offer a pointer.
+  const inert = open || missing;
   return (
-    <div className="group flex items-center gap-1 rounded-[7px] pr-1 hover:bg-nb-wash">
-      <button
-        type="button"
-        disabled={missing || open}
-        onClick={onOpen}
-        title={missing ? `${path} — the folder is gone` : path}
-        className="min-w-0 flex-1 cursor-pointer rounded-[7px] px-2.5 py-1.5 text-left disabled:cursor-default"
-      >
-        <span className="flex items-center gap-1.5">
-          {open && <Dot tone="var(--color-nb-accent)" title="Open in this window" />}
-          {!open && running && <Dot tone="var(--color-nb-mint-ink)" title="A run is going here" pulse />}
-          {missing && <FiAlertTriangle size={12} className="shrink-0 text-nb-ink-soft" />}
-          <span className="truncate text-[13px] font-[700] text-nb-ink">{name}</span>
-          {missing && <span className="shrink-0 text-[11px] text-nb-ink-soft">folder is gone</span>}
-        </span>
-        <span className="mt-0.5 block truncate font-mono text-[11px] text-nb-ink-soft">{path}</span>
-      </button>
+    <DropdownMenuItem
+      className={`group flex-col items-stretch gap-0 pr-8 font-[400] ${inert ? "cursor-default" : ""}`}
+      title={missing ? `${path} — the folder is gone` : path}
+      onSelect={(e) => (inert ? e.preventDefault() : onOpen())}
+      // The ✕ is a pointer target inside a menu row, where the keyboard can't
+      // reach it — Tab leaves the menu. Delete is the same verb for the hands
+      // already on the arrow keys.
+      onKeyDown={(e) => {
+        if (open || (e.key !== "Delete" && e.key !== "Backspace")) return;
+        e.preventDefault();
+        onForget();
+      }}
+    >
+      <span className="flex items-center gap-1.5">
+        {open && <Dot tone="var(--color-nb-accent)" title="Open in this window" />}
+        {!open && running && <Dot tone="var(--color-nb-mint-ink)" title="A run is going here" pulse />}
+        {missing && <FiAlertTriangle size={12} className="shrink-0 text-nb-ink-soft" />}
+        <span className="truncate font-[700] text-nb-ink">{name}</span>
+        {missing && <span className="shrink-0 text-[11px] text-nb-ink-soft">folder is gone</span>}
+      </span>
+      <span className="mt-0.5 block truncate font-mono text-[11px] text-nb-ink-soft">{path}</span>
       {/* The open project has no ✕: forgetting the board on screen would leave
           the window showing a project the list no longer has. */}
       {!open && (
         <button
           type="button"
-          onClick={onForget}
+          tabIndex={-1}
+          onClick={(e) => {
+            e.stopPropagation();
+            onForget();
+          }}
+          // Every pointer event the row would read as "picked" — the menu must
+          // stay open, and the row underneath must not be opened.
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerUp={(e) => e.stopPropagation()}
           title="Take this project off the list — nothing on disk is touched"
-          className="shrink-0 cursor-pointer rounded-[6px] p-1.5 text-nb-ink-soft opacity-0 hover:text-nb-ink focus:opacity-100 group-hover:opacity-100"
+          className="absolute right-1.5 top-1/2 shrink-0 -translate-y-1/2 cursor-pointer rounded-[6px] p-1.5 text-nb-ink-soft opacity-0 hover:text-nb-ink group-hover:opacity-100 group-data-[highlighted]:opacity-100"
         >
           <FiX size={13} />
         </button>
       )}
-    </div>
+    </DropdownMenuItem>
   );
 }
 

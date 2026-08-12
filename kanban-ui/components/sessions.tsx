@@ -14,6 +14,7 @@ import { FiActivity, FiX } from "react-icons/fi";
 import { getSessionAction, listSessionsAction, startAgentAction } from "@/app/actions";
 import type { SessionView } from "@/lib/types";
 import { type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
+import { TOOL_BTN } from "./chrome";
 
 const POLL_MS = 1500; // while a session is live
 const IDLE_POLL_MS = 5000; // while nothing is running — see the effect below
@@ -317,27 +318,30 @@ export function Sessions() {
       <button
         type="button"
         onClick={() => sessionsPanel.toggle()}
-        title="session history"
+        title={runningCount > 0 ? `${runningCount} running — session history` : "Session history"}
         aria-label="Session history"
-        // Ghost sticker button (design.md .nb-cta-ghost): paper fill, solid ink
-        // border, hard offset shadow, press-down. Matched pair with the agent
-        // badge; both are the quiet siblings of the accent Create-task CTA.
-        className="relative grid h-9 w-9 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-nb-ink bg-nb-paper text-nb-ink shadow-[2px_2px_0_0_var(--color-nb-ink)] transition-[transform,box-shadow] duration-[120ms] hover:-translate-x-px hover:-translate-y-px hover:shadow-[3px_3px_0_0_var(--color-nb-ink)] active:translate-x-px active:translate-y-px active:shadow-[1px_1px_0_0_var(--color-nb-ink)]"
+        // The middle tool in the header's cluster (components/chrome.tsx): no
+        // frame of its own, a hairline on each side of it.
+        className={TOOL_BTN}
       >
-        <FiActivity className="text-[17px]" aria-hidden />
+        <FiActivity size={15} aria-hidden />
+        {/* A live run says so with an ember dot in the corner of the icon rather
+            than a counted badge on the button's shoulder: the cluster clips to
+            its own frame, so anything hanging off a tool's edge is cut in half.
+            The number moved into the tooltip and is on every row of the panel
+            this opens — what the dot has to carry is that something is going. */}
         {runningCount > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center">
+          <span className="absolute right-[5px] top-[5px] flex size-[7px] items-center justify-center">
             <span
               className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
               style={{ background: "var(--color-nb-accent)" }}
               aria-hidden
             />
             <span
-              className="relative inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-[800] leading-none text-white"
+              className="relative inline-flex h-full w-full rounded-full"
               style={{ background: "var(--color-nb-accent)" }}
-            >
-              {runningCount}
-            </span>
+              aria-hidden
+            />
           </span>
         )}
       </button>

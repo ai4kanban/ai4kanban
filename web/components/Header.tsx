@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { FiGithub } from "react-icons/fi";
 import { Button } from "./ui/Button";
 import { Logo } from "./ui/Logo";
@@ -8,10 +11,27 @@ import { MobileNav } from "./MobileNav";
 import { localeHref, localePath, type Locale } from "@/lib/i18n";
 import type { SiteCopy } from "@/i18n/types";
 
+// Whether the page has moved at all. The header only draws itself once it has —
+// see the comment on the band below. A few pixels rather than 0, so a browser
+// restoring a scroll position of 1px doesn't open the page with a rule on it.
+function useScrolled() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return scrolled;
+}
+
 // The chrome on top of every page — the landing page, the comparison pages and
 // the recipes.
 export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
   const nav = c.shared.nav;
+  const scrolled = useScrolled();
 
   return (
     // Sticky at every width — one row of chrome is cheap to pin, and on a phone
@@ -20,10 +40,21 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
     // z-index, so without it an open dropdown went behind the hero headline no
     // matter what `z-30` asked for.
     //
-    // The band is paper, one step up the ramp from the page it is laid on, and
-    // opaque: the hero's azure wash starts at this rule, and a translucent
-    // header took a blue cast off it as the page scrolled under.
-    <header className="sticky top-0 z-30 border-b-2 border-border bg-elev">
+    // At the top of the page the band is nothing: no fill and no rule, so the
+    // logo and the nav sit straight on the page ground and the header reads as
+    // the first line of the hero rather than a strip laid over it. The rule is
+    // what a header is *for* — it says the row is floating over content that
+    // has gone under it — so it arrives only once something has. Then the band
+    // is paper, one step up the ramp, and opaque, because whatever is sliding
+    // beneath it must not tint it.
+    //
+    // The border is transparent rather than absent at the top: a border changes
+    // a box's height, and the row must not jump 2px the moment you scroll.
+    <header
+      className={`sticky top-0 z-30 border-b-2 transition-colors duration-200 ${
+        scrolled ? "border-border bg-elev" : "border-transparent bg-transparent"
+      }`}
+    >
       {/* Same `py-3` at every width, so the row a phone gets and the row a
           desktop gets are the same height — the wide nav swaps items in, it
           doesn't make the chrome taller. */}

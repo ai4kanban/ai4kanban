@@ -49,7 +49,7 @@ export function setCardsRelease(ids: number[], release: string): BulkReleaseResu
   for (const id of ids) {
     // A group root is one card here like any other, and moves the way it does
     // on its own card page: patchCard writes its `root.md` and then the same
-    // release down every subtask, nested groups included. Neither board view
+    // release down every subtask, nested groups included. The board never
     // draws a subtask, so ticking a root is the only way those cards move at
     // all — and a group is one piece of work, so it ships as one.
     const res = patchCard(id, { release: target });

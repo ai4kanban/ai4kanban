@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { FiTrendingUp } from "react-icons/fi";
 import { getMetricsAction } from "@/app/actions";
 import type { MetricsDay, MetricsResult } from "@/lib/metrics";
+import { TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
 
 type SeriesKey = "completed" | "created" | "rejected";
@@ -32,16 +33,18 @@ export function Progress() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      {/* Ghost sticker button — the same 36px frame as the header's Sessions and
-          Configuration buttons, so the three read as one row of quiet controls. */}
+      {/* A tool in the header's cluster (components/chrome.tsx): no frame of its
+          own — it shares one with Sessions and Configuration, since the three
+          are all "look at the board's machinery" and none of them is a primary
+          action. */}
       <button
         type="button"
-        className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-[9px] border-[1.5px] border-nb-ink bg-nb-paper text-nb-ink shadow-[2px_2px_0_0_var(--color-nb-ink)] transition-[transform,box-shadow] duration-[120ms] hover:-translate-x-px hover:-translate-y-px hover:shadow-[3px_3px_0_0_var(--color-nb-ink)] active:translate-x-px active:translate-y-px active:shadow-[1px_1px_0_0_var(--color-nb-ink)]"
+        className={TOOL_BTN}
         title="Daily progress"
         aria-label="Daily progress"
         onClick={() => setOpen(true)}
       >
-        <FiTrendingUp className="text-[16px]" aria-hidden />
+        <FiTrendingUp size={15} aria-hidden />
       </button>
 
       {open && (

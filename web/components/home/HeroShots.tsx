@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { panelBareInset } from "../styles";
+import { printFrame } from "./Mat";
 import type { HomeCopy } from "@/i18n/home/types";
 
 // The two board views as a flip deck: the front shot sits top-left, the other
@@ -9,20 +9,17 @@ import type { HomeCopy } from "@/i18n/home/types";
 // full size instead of shrinking them side by side, and nothing is drawn on top
 // of the capture.
 //
-// Both cards cast the same hard ink offset — they are two blocks of the same
-// size lying on the same page, and a card that threw no shadow would read as
-// printed onto it rather than stacked under the other. The outline is the only
-// thing that separates them: the front card is framed, the back card isn't. One
-// difference, carrying one meaning — this is the view you are looking at.
+// The deck is mounted on the hero's watercolour (`Hero.tsx`), so both cards are
+// prints on a mat and take that treatment: `printFrame`'s soft shadow, and no
+// outline on either. They used to carry the site's hard ink offset and a 2px
+// ink frame on the front card, which is the right vocabulary on the page and
+// the wrong one on pigment — an ink box on a painted ground is a frame drawn
+// inside a frame, and the mat's own bleed is already the outer one.
 //
-// The outline moves on the flip, so it is state and not decoration, and the
-// front card's shadow lands on the back card's face rather than beside it,
-// which is what stacking actually looks like.
-//
-// The back card still reserves its 2px, drawn in nothing. A border changes a
-// box's size, and without this the pair would grow and shrink by 4px each way
-// every time you flipped them.
-const CARD_SHADOW = "shadow-[8px_8px_0_0_var(--color-ink)]";
+// What separates the two is then the wash: the back card is dimmed toward the
+// page and clears as it comes forward. One difference, carrying one meaning —
+// this is the view you are looking at. It also means the pair never changes
+// size on the flip, which the old border swap had to reserve 2px to avoid.
 
 type Mode = "board" | "queue";
 
@@ -35,22 +32,13 @@ function Frame({
   mode,
   alt,
   eager,
-  raised,
 }: {
   mode: Mode;
   alt: string;
   eager: boolean;
-  raised: boolean;
 }) {
   return (
-    // The outline is transitioned on the same 300ms the cards travel on, so it
-    // moves with the flip instead of snapping to the new front card before it
-    // has arrived.
-    <div
-      className={`${panelBareInset} ${CARD_SHADOW} overflow-hidden border-2 transition-[border-color] duration-300 ease-out ${
-        raised ? "border-border" : "border-transparent"
-      }`}
-    >
+    <div className={`${printFrame} bg-code`}>
       {/* Thin macOS title bar so the capture reads as a real app window. It
           names no fill and draws no rule: it is a strip of the card's own wash,
           and the capture's white underneath is the step that separates them. */}
@@ -71,8 +59,10 @@ function Frame({
   );
 }
 
-// How far the back card juts out from behind the front one (px). The deck lives
-// in half a hero row, not a full column, so the offset stays small.
+// How far the back card juts out from behind the front one (px). A fixed step
+// rather than a share of the width: it is the ledge you click, so it has to
+// stay a comfortable target on a phone, where a proportional offset would
+// shrink to a sliver, and it must not grow into a shelf on a wide deck.
 const PEEK = 40;
 
 export function HeroShots({ c }: { c: HomeCopy["hero"]["shots"] }) {
@@ -90,7 +80,7 @@ export function HeroShots({ c }: { c: HomeCopy["hero"]["shots"] }) {
     >
       {/* Invisible sizer sets the container height; the real cards float on top. */}
       <div aria-hidden className="pointer-events-none invisible">
-        <Frame mode={front} alt={c[front].alt} eager={false} raised={false} />
+        <Frame mode={front} alt={c[front].alt} eager={false} />
       </div>
 
       {order.map((mode) => {
@@ -105,7 +95,10 @@ export function HeroShots({ c }: { c: HomeCopy["hero"]["shots"] }) {
               c[mode].label,
             )}
             aria-pressed={isFront}
-            className="group absolute left-0 top-0 origin-top-left text-left transition-transform duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-deep focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+            // The focus ring hugs the card: on the page it took a 2px offset in
+            // the page ground, and on the mat that offset draws a neutral gap
+            // through the pigment.
+            className="group absolute left-0 top-0 origin-top-left text-left transition-transform duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-deep"
             style={{
               width: `calc(100% - ${PEEK}px)`,
               zIndex: isFront ? 20 : 10,
@@ -116,18 +109,15 @@ export function HeroShots({ c }: { c: HomeCopy["hero"]["shots"] }) {
             }}
             tabIndex={isFront ? -1 : 0}
           >
-            <Frame
-              mode={mode}
-              alt={c[mode].alt}
-              eager={mode === "board"}
-              raised={isFront}
-            />
+            <Frame mode={mode} alt={c[mode].alt} eager={mode === "board"} />
             {/* Washes the back card out toward the page; clears as it comes
-                forward, thins on hover. */}
+                forward, thins on hover. Now that the outline is gone this is
+                the whole of the front/back distinction, so it stays generous.
+                `rounded-lg` to match `printFrame`. */}
             <span
               aria-hidden
               className={
-                "pointer-events-none absolute inset-0 rounded-xl bg-bg/75 transition-opacity duration-300 " +
+                "pointer-events-none absolute inset-0 rounded-lg bg-bg/75 transition-opacity duration-300 " +
                 (isFront ? "opacity-0" : "opacity-100 group-hover:opacity-40")
               }
             />

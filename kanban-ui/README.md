@@ -35,9 +35,20 @@ Closing the window ends the board and every agent run under it.
 
 ## The board
 
-The home page is the board — one column per track, cards in priority order. Click a card to
-open it: the full card body, its meta (track, modules, release, priority, ROI, blockers), its
-open questions, and its buttons.
+The home page is the board. It answers one question — what can I start now? — with two
+columns: **Ready to build**, the cards marked ready and under them the ones already being
+implemented, and **Not ready**, everything still to be worked out. Each column counts what's
+in it, and the ready one counts both numbers ("5 ready · 1 implementing") so the first is
+what you can start today. Inside a column the cards keep their tracks, banded one under
+another. Click a card to open it: the full card body, its meta (track, modules, release,
+priority, ROI, blockers), its open questions, and its buttons.
+
+A third, narrower column holds the **recurring** cards — the jobs on a cadence that are run
+again and again and never finished. They stand apart because they are not part of the
+ready/not-ready question at all; the column is absent on a board that has none.
+
+The columns are a fixed width and the row scrolls sideways, so the cards lay out the same
+way on a laptop and on a monitor — a wider window shows more of the row, not wider cards.
 
 A card waiting on another card carries a small **lock** marker; hover it to see which cards
 are in the way. It shows only while a blocker is still on the board — once that card is
@@ -45,23 +56,13 @@ archived or rejected the marker goes. A recurring card never counts as a blocker
 never closes. The card stays in its column either way: the marker says the work has an
 order to it, it doesn't hide or gate anything.
 
-There are two ways to look at the same board, and the **Board / Queue** switch in the header
-flips between them. **Board** is the columns above, one per track. **Queue** drops the tracks
-and splits the screen in two instead: **Ready to build** on the left — the cards marked ready,
-and under them the ones already being implemented — and **Not ready** on the right, everything
-still to be worked out. Each half counts what's in it, and the ready half counts both numbers
-("5 ready · 1 implementing") so the first one is what you can start today.
+The board hides nothing: every open card is in one of the three columns. Inside a track band,
+the best card to start comes first — a card waiting on another sinks below the ones you can
+start, and a blocker rises to the top of the rest.
 
-The queue view hides nothing: every card the columns show is in one of the two halves. Inside
-a half, the best card to start comes first — a card waiting on another sinks below the ones
-you can start, and a blocker rises to the top of the rest, since there's no blockers column
-here to make it stand out. Cards carry their track in this view for the same reason. The view
-you pick is remembered in your browser, per board; nothing is written to the files.
-
-The header carries seven things:
+The header carries six things:
 
 - **The goal** (the compass, on the left beside the folder path) — see below.
-- **Board / Queue** — the two views above.
 - **The release dropdown** — which version the board is showing, and where a release is
   started, filled from its goal, or dropped; see below.
 - **Create task** — describe an idea in your words and the agent writes the card. The same
@@ -131,8 +132,7 @@ the box moves it onto a release that really exists.
 
 The dropdown in the header says which release you are looking at. Pick one and **the cards
 in every other release are hidden** — that is the point of it: you work on this version
-without the rest of the backlog in the way. Both views obey it, so the columns and the
-ready / not-ready halves regroup on the same cards.
+without the rest of the backlog in the way. The columns regroup on what is left.
 
 **Blockers are the exception: every blocker stays on screen whatever you pick.** A blocker
 is usually in the way of the very version you are planning, and a blocker is never out of
@@ -147,14 +147,14 @@ and the same goals `release list` prints in your terminal.
 A few more things it does:
 
 - A **group task** shows whenever the root or any of its subtasks is in the release you
-  picked. Neither view draws a subtask, so hiding the root would hide the whole group.
+  picked. The board never draws a subtask, so hiding the root would hide the whole group.
 - **Create task** puts the new card in the release on screen, so it doesn't vanish the
   moment you write it. **Propose tasks** doesn't — it offers work nobody has planned, and
   that work stays in no release.
 - A release with **nothing open in it says so**, with All releases one click away, instead
   of looking like a broken board. Blockers on screen don't count: a blocker belongs to
   whoever it blocks.
-- Your pick is remembered in your browser, per board, like the view switch. Nothing is
+- Your pick is remembered in your browser, per board. Nothing is
   written to the files, so a pick never changes what the agent works on — background
   refining still reads the whole board, and the progress chart still counts every card.
 - If the release you picked is gone — you closed it, or edited `releases.md` — the board

@@ -14,13 +14,12 @@ const BLOCKERS = "blockers";
 
 const PREFIX = "kanban-ui.release:";
 
-// The picked release lives in the browser, keyed by project root, exactly like
-// the view switch (see lib/view.ts): it changes what one tab is looking at, not
-// what the board says. Nothing is written to the files, so a pick never reaches
+// The picked release lives in the browser, keyed by project root: it changes
+// what one tab is looking at, not what the board says. Nothing is written to the files, so a pick never reaches
 // the agent — background refining still works the whole board and the daily
 // progress chart still counts every card.
 //
-// Seeded after mount, again like the view switch: localStorage is client-only,
+// Seeded after mount, like the dialog drafts (see lib/draft.ts): localStorage is client-only,
 // so reading it during the first render would desync SSR and hydration. All
 // releases shows for that first frame.
 //

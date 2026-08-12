@@ -40,8 +40,10 @@ export interface UpdateInfo {
 
 export type CreateBoardResult = { ok: true } | { ok: false; error: string };
 
-/** The channel names main.ts answers on and preload.ts calls. Both sides read
- *  them from here, so neither can drift onto a channel nobody is listening to. */
+/** The channel names main.ts answers on and preload.ts calls. main.ts reads
+ *  these values; preload.ts, which cannot require a file in a sandboxed
+ *  renderer, writes them out again and types that copy against this one — so
+ *  neither can drift onto a channel nobody is listening to. */
 export const CHANNELS = {
   info: "a4k:info",
   projects: "a4k:projects",

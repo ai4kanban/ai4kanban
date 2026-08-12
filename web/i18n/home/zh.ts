@@ -101,7 +101,6 @@ const zh: HomeCopy = {
     inputsLabel: "外部输入",
     inputs: ["用户反馈", "竞品调研", "行业报告", "Reddit 讨论"],
     context: ["决策记忆", "需求任务", "项目模块", "运行记录"],
-    skill: "AI4Kanban Skill",
     otherAgents: "其他 Agent",
     storage: "项目数据",
     outputsLabel: "迭代结果",

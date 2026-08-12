@@ -5,7 +5,7 @@
 // A select, not a row of chips: a board can plan several versions and the entries
 // carry counts, so the list belongs behind one control that says what you are
 // looking at — the header row has to stay one line. It wears the same 36px sticker
-// frame as the view switch beside it, and the sky fill the release chip on a card
+// frame as the header's other controls, and the sky fill the release chip on a card
 // already uses, so picking a version reads as the same thing in both places.
 //
 // While the board is on one release the frame carries a second segment: a ⋯
@@ -48,6 +48,7 @@ import type { DropPlan } from "@/lib/drop";
 import type { FillPlan } from "@/lib/fill";
 import type { ReleasePick } from "@/lib/release-pick";
 import { Button } from "./button";
+import { CHROME } from "./chrome";
 import { Dialog } from "./Dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "./ui/select";
@@ -119,12 +120,13 @@ export function ReleasePicker({
   const filtering = value !== null;
   return (
     <>
-      {/* The 36px sticker frame the view switch beside it wears, holding the
-          picker segment — and, while the board is on one release, a divider
-          and the ⋯ segment. The frame carries the fill and the ink so both
-          segments read as one control going sky together. */}
+      {/* The 28px sticker frame the header's other controls wear
+          (components/chrome.tsx), holding the picker segment — and, while the
+          board is on one release, a divider and the ⋯ segment. The frame
+          carries the fill and the ink so both segments read as one control
+          going sky together. */}
       <div
-        className="inline-flex h-9 items-center rounded-[9px] border-[1.5px] border-nb-ink p-0.5 shadow-[2px_2px_0_0_var(--color-nb-ink)]"
+        className={`inline-flex h-7 shrink-0 items-center rounded-[8px] p-0.5 ${CHROME}`}
         style={{
           background: filtering ? "var(--color-nb-sky-soft)" : "var(--color-nb-paper)",
           color: filtering ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
@@ -208,7 +210,7 @@ export function ReleasePicker({
             sees. */}
         {filtering && (
           <>
-            <span aria-hidden className="mx-0.5 h-[18px] w-px shrink-0 bg-current opacity-30" />
+            <span aria-hidden className="mx-0.5 h-[16px] w-px shrink-0 bg-current opacity-30" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button

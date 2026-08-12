@@ -19,6 +19,9 @@ const button = cva(
       size: {
         md: "gap-2 rounded-[11px] px-[18px] py-[10px] text-[14px] shadow-[3px_3px_0_0_var(--color-nb-ink)] enabled:hover:shadow-[4px_4px_0_0_var(--color-nb-ink)] enabled:active:shadow-[1px_1px_0_0_var(--color-nb-ink)]",
         sm: "gap-1.5 rounded-[9px] px-3 py-2 text-[13px] shadow-[2px_2px_0_0_var(--color-nb-ink)] enabled:hover:shadow-[3px_3px_0_0_var(--color-nb-ink)] enabled:active:shadow-[1px_1px_0_0_var(--color-nb-ink)]",
+        // The window chrome's own size (components/chrome.tsx): a 28px box, so a
+        // button in the top row lines up with the tool cluster beside it.
+        xs: "h-7 gap-1.5 rounded-[8px] px-2.5 text-[12px] shadow-[2px_2px_0_0_var(--color-nb-ink)] enabled:hover:shadow-[3px_3px_0_0_var(--color-nb-ink)] enabled:active:shadow-[1px_1px_0_0_var(--color-nb-ink)]",
       },
     },
     defaultVariants: { variant: "accent", size: "md" },

@@ -117,7 +117,6 @@ const ja: HomeCopy = {
       "プロジェクトモジュール",
       "実行記録",
     ],
-    skill: "AI4Kanban Skill",
     otherAgents: "その他のエージェント",
     storage: "プロジェクトデータ",
     outputsLabel: "改善結果",

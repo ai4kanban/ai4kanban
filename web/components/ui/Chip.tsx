@@ -6,9 +6,11 @@ import type { ReactNode } from "react";
 // - `neutral` — paper in an ink outline, for a plain aside (the install notes).
 //               Paper on paper is nothing without the line, so the line stays.
 // - `solid`   — the deep blue with a paper label, for a token that belongs to
-//               the product (the `Markdown` mark in the iteration diagram).
-//               Bare: a filled block is read by its fill, and framing this one
-//               only makes a pill the same weight as the panel around it.
+//               the product. Bare: a filled block is read by its fill, and
+//               framing this one only makes a pill the same weight as the panel
+//               around it. The iteration diagram draws this pill rather than
+//               importing it, because that whole picture is one SVG — so if you
+//               change this fill or this radius, change `Iterate.tsx` with it.
 //
 // There is no tinted tone. A blue is either the full-strength fill or it isn't
 // there: `bg-accent/10` is a blue diluted until it is a grey, which is neither

@@ -56,7 +56,6 @@ export type HomeCopy = {
     inputsLabel: string;
     inputs: [string, string, string, string];
     context: [string, string, string, string];
-    skill: string;
     /** Names the "…" tile that stands for agents beyond Claude Code and Codex. */
     otherAgents: string;
     storage: string;

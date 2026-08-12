@@ -180,8 +180,8 @@ export function BlockedChip({ blockers }: { blockers: { id: number; title: strin
   );
 }
 
-// The track a card came from — the card page's chip. Neither board view draws
-// it: both band their cards by track and head each band with its name.
+// The track a card came from — the card page's chip. The board doesn't draw
+// it: it bands its cards by track and heads each band with its name.
 // `blockers` and `recurring` are reserved folders, not tracks someone named, so
 // each says so — peach for the blocker (the colour the board gives work in the
 // way), a repeat icon for recurring, which comes round again instead of being

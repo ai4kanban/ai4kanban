@@ -9,15 +9,16 @@
 // after that it is the file on disk (or an agent run) that changes it — the board doesn't
 // offer a second place to edit the same words.
 //
-// The button is deliberately lighter than the sticker buttons on the right: those four
-// start something, this is something you read now and then. It stays at every width — the
-// path badge shrinks and drops on a narrow screen, one icon costs nothing.
+// It wears the ordinary control of the top row — ink frame, hard shadow, the same object
+// as everything else there — and carries its word: a compass alone said "navigate" and
+// nothing about the goal, so it is a north star with "Goal" beside it. The label goes on a
+// narrow window, like Create task's; the mark stays, since one icon costs nothing.
 //
 // It appears only when there is something to read (`goalWritten`, lib/goal.ts): a missing
 // or empty file has nothing to open, and the setup bar is what asks for the goal there.
 
 import { useEffect, useState } from "react";
-import { FiCompass } from "react-icons/fi";
+import { TbNorthStar } from "react-icons/tb";
 import { getGoalAction, saveGoalAction } from "@/app/actions";
 import { Button } from "./button";
 import { Dialog } from "./Dialog";
@@ -33,15 +34,17 @@ export function Goal({ written }: { written: boolean }) {
   if (!written) return null;
   return (
     <>
-      <button
-        type="button"
-        title="Goal"
+      <Button
+        variant="ghost"
+        size="xs"
+        className="shrink-0 font-[700] max-sm:w-7 max-sm:px-0"
+        title="What this board is for"
         aria-label="Goal"
         onClick={() => setOpen(true)}
-        className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center self-center rounded-[6px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90"
       >
-        <FiCompass className="h-[17px] w-[17px]" aria-hidden />
-      </button>
+        <TbNorthStar className="text-[15px]" aria-hidden />
+        <span className="sr-only sm:not-sr-only">Goal</span>
+      </Button>
 
       {open && (
         <Dialog title="Goal" width={720} height="min(660px, 85vh)" flush onClose={() => setOpen(false)}>

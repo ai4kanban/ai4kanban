@@ -91,12 +91,18 @@ takes one image per role and a tab, a Windows shortcut and an iOS home screen ea
 different one. The board UI carries the same glyph in its own palette — a mark belongs to
 the product, a colour and a frame belong to the surface it sits on.
 
-Two things break the page's `max-w-5xl` column and run the full width of the viewport:
+**The watercolour is a mat, never a page.** The blue is a ground in exactly one form: a
+painted rectangle with a print mounted on it, drawn by `components/home/Mat.tsx` and used
+four times on the landing page — under the hero's screenshot deck, under each of the four
+step shots, under the memory tree, and under the iteration diagram. The mat is bare (no outline, no hard shadow: an ink
+box around a watercolour is a frame around a picture), and what holds it is its own bleed
+to the edge and the soft shadow the print casts onto it. Nothing you have to read ever sits
+on pigment — the hero's headline is on the page ground above the mat, not on it. The mat is
+also the one place the site's hard ink shadow is wrong: a print on a mount casts a real one,
+so blocks inside a mat take `printFrame` instead.
 
-- **The watercolour banner** behind the landing page's hero. It is the one place the blue
-  is a ground and not an object, and what earns it that is that it is a wash: masked so it
-  dissolves into `--color-bg` before the section ends, never drawing an edge, with nothing
-  you have to read sitting on pigment.
+One thing breaks the page's `max-w-5xl` column and runs the full width of the viewport:
+
 - **The site footer**, the one dark block: the palette inverted rather than a new color —
   the ink as the ground, the paper as the type at 70% for body, 30% for separators and
   15% for the pixel wordmark. Nothing inside it may name its own color, so anything shared
@@ -166,14 +172,14 @@ bar, a `solid` `Chip`), and all artwork.
 - `panelBare`, `panelBareInset` — `rounded-xl` with the paper or the wash and nothing
   else. On another radius there is nothing to import: `rounded-lg bg-elev` is the style.
 
-**One thing in that file is not a surface.** `heroTop` — `mt-20 lg:mt-32` — is the band of
-air between the header's rule and the first thing on a page, and every hero takes it. It
-is shared rather than typed per page because each page guessing its own opening height is
-the one inconsistency a reader sees before they have read a word, and it is larger than a
-section gap on purpose — the top of a page is where the empty band is doing the work. The
-landing page's watercolour banner is pinned to the same value from the other side, so
-changing `heroTop` means changing that too or the wash starts below the header and draws
-an edge across the page.
+**One thing in that file is not a surface.** `heroTop` — `mt-10 lg:mt-16` — is the band of
+air between the header and the first thing on a page, and every hero takes it. It is
+shared rather than typed per page because each page guessing its own opening height is the
+one inconsistency a reader sees before they have read a word, and it is larger than a
+section gap on purpose — the top of a page is where the empty band is doing the work. It
+is half what it used to be because the header merges into it: at scroll top the header
+draws no fill and no rule, so its row isn't chrome this band has to clear, it is the top
+of the band. Measure the opening air from the top of the viewport, not from the logo.
 
 **And one modifier.** `framed` — the 2px `border-border` outline, composed onto a raised
 panel: `` `${panelStatic} ${framed}` ``. It composes where the fill can't, because no
@@ -214,6 +220,17 @@ of boxes again. If a block needs an edge, it takes the full 2px ink one.
 a picture that spells one idea two ways makes you learn both. And **a label in a node takes
 `break-words`, always** — a browser will overflow a box before it splits a word, and the
 longest noun in five languages is not the one you designed the cell around.
+
+**A diagram drawn as one SVG has to break its own lines.** `components/home/Iterate.tsx`
+is the landing page's iteration diagram and the one drawing that scales rather than
+reflows: a viewBox, mounted on a mat as a print, so the whole picture — type included —
+resizes the way a photograph does instead of re-laying itself out per breakpoint. The
+price is that SVG `<text>` does not wrap, and `break-words` has nothing to act on, so the
+wrapping is done in the component off Inter's own advance widths and everything below it
+(node height, column height, the viewBox) is derived from the line count. Each language
+therefore gets a viewBox of its own. Reach for this only for a picture whose proportions
+are the point; an HTML diagram that reflows is still the cheaper and more forgiving thing,
+and every other one on the site is one.
 
 None of this governs a *line*. Rails and the strokes inside SVG diagrams are rules and
 linework, not a block's border, and they are drawn at full strength like every other line
@@ -274,8 +291,10 @@ components/
   recipes/            the index, the cards, and their art
   shots/              the board mockups the landing page draws
   Header.tsx          the one header, on every page — one row, sticky, the same
-                      height at every width, and opaque so the hero's wash never
-                      tints it as the page scrolls under
+                      height at every width. Invisible at scroll top (no fill,
+                      no rule) so it merges into the hero; paper and ruled once
+                      the page has moved, and opaque then, because that is when
+                      content is passing under it
   MobileNav.tsx       below `md`, the nav collapses into this one button so the
                       header stays a single row
   SiteFooter.tsx      the dark band that ends the landing and comparison pages

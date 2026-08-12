@@ -68,7 +68,7 @@ export interface Subtask {
   title: string;
   track: string;
   /** The release this subtask ships in. A subtask carries its own — the root is
-   *  a tracking card — and neither board view draws a subtask, so this is what
+   *  a tracking card — and the board never draws a subtask, so this is what
    *  lets the root stand in for a group under a picked release (#104). */
   release: string;
   todos: { total: number; done: number };

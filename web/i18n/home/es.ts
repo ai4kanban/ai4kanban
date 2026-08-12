@@ -118,7 +118,6 @@ const es: HomeCopy = {
       "Módulos del proyecto",
       "Historial de ejecuciones",
     ],
-    skill: "AI4Kanban Skill",
     otherAgents: "Otros agentes",
     storage: "Datos del proyecto",
     outputsLabel: "Resultados de la iteración",

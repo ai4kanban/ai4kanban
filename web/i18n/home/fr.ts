@@ -112,7 +112,6 @@ const fr: HomeCopy = {
       "Modules du projet",
       "Historique des exécutions",
     ],
-    skill: "AI4Kanban Skill",
     otherAgents: "Autres agents",
     storage: "Données du projet",
     outputsLabel: "Résultats de l’itération",

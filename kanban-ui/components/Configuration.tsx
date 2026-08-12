@@ -33,6 +33,7 @@ import {
   MAX_PARALLEL,
   type SessionView,
 } from "@/lib/types";
+import { TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
@@ -94,13 +95,11 @@ export function Configuration({
   const router = useRouter();
   return (
     <>
-      {/* Ghost sticker button (design.md .nb-cta-ghost), a matched pair with the
-          header's Sessions button: same 36px frame, solid ink border, hard offset
-          shadow and press-down — the quiet siblings of the accent Create CTA. Now
-          a gear (settings) icon: it opens the Configuration dialog, not a badge. */}
+      {/* The last tool in the header's cluster (components/chrome.tsx) — no frame
+          of its own, one hairline between it and Sessions. */}
       <button
         type="button"
-        className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-[9px] border-[1.5px] border-nb-ink bg-nb-paper text-nb-ink shadow-[2px_2px_0_0_var(--color-nb-ink)] transition-[transform,box-shadow] duration-[120ms] hover:-translate-x-px hover:-translate-y-px hover:shadow-[3px_3px_0_0_var(--color-nb-ink)] active:translate-x-px active:translate-y-px active:shadow-[1px_1px_0_0_var(--color-nb-ink)]"
+        className={TOOL_BTN}
         title="Configuration"
         aria-label="Configuration"
         onClick={() => {
@@ -108,7 +107,7 @@ export function Configuration({
           setOpen(true);
         }}
       >
-        <FiSettings className="text-[16px]" aria-hidden />
+        <FiSettings size={15} aria-hidden />
       </button>
 
       {open && (

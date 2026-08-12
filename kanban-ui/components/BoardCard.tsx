@@ -14,12 +14,12 @@ import {
   TodoProgress,
 } from "./chips";
 
-// One card as both board views draw it — the kanban columns and the queue's two
-// halves. A card has to look the same wherever it sits, so there is one
-// component and the views only differ in what they pass in.
+// One card, as every column draws it. A card has to look the same wherever it
+// sits — a queue column, the recurring column — so there is one component and
+// the callers only differ in what they pass in.
 //
 // `liveSession` is the one running session on this card (if any); `onOpenLog`
-// makes its badge open that session's log overlay, which each view owns.
+// makes its badge open that session's log overlay, which the page owns.
 //
 // The track is NOT on the card. Both views band their cards by track and head
 // each band with its name — the kanban column heading, the queue's rule — so a

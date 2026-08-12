@@ -1,7 +1,7 @@
 import type { Card } from "./types";
 
 // How the board decides which card to start next. It lives here rather than in
-// `board.ts` because both views need it and `board.ts` reads the filesystem —
+// `board.ts` because the client needs it and `board.ts` reads the filesystem —
 // a client component importing it would pull `node:fs` into the browser bundle.
 
 // Pick-order for a column: the best card to start next sorts first. Vetted
@@ -22,10 +22,10 @@ export function byPickOrder(a: Card, b: Card): number {
   );
 }
 
-// The queue view's order, used within one track band. Same pick order, with one
+// The board's order, used within one track band. Same pick order, with one
 // rule ahead of priority, and only between cards at the same status so the
 // status ranking above still decides first: a card waiting on an open card sinks
-// below the ones you can start. The half promises the top is startable work, and
+// below the ones you can start. The column promises the top is startable work, and
 // a blocked card is not. It only moves — it is never hidden or gated (the line
 // #63 drew).
 export function byQueueOrder(a: Card, b: Card): number {
