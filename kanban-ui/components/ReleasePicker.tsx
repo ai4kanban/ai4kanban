@@ -48,7 +48,7 @@ import type { DropPlan } from "@/lib/drop";
 import type { FillPlan } from "@/lib/fill";
 import type { ReleasePick } from "@/lib/release-pick";
 import { Button } from "./button";
-import { CHROME } from "./chrome";
+import { CHROME, SegmentDivider } from "./chrome";
 import { Dialog } from "./Dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "./ui/select";
@@ -65,6 +65,16 @@ const NEW = "—new—";
 // id, so it is the dialogs' text size rather than the id box's mono.
 const GOAL_INPUT =
   "w-full resize-y rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2.5 text-[13px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait";
+
+// What both halves of the chip do under the pointer, under the keyboard, and
+// while their menu is open: a wash of the chip's own ink (`currentColor`), so a
+// sky chip washes sky and a resting one washes charcoal. It used to be a flat
+// ink/10 on both, which on a blue chip reads as a grey smudge rather than as the
+// chip pressing. The accent focus ring is traded for the same wash — focus comes
+// back to the trigger when the list closes, and a ring the width of the sticker
+// frame reads as the control shouting rather than as where the keyboard is.
+const SEGMENT_WASH =
+  "transition-colors duration-100 hover:bg-[color-mix(in_srgb,currentColor_12%,transparent)] focus-visible:bg-[color-mix(in_srgb,currentColor_12%,transparent)] focus-visible:outline-0 data-[state=open]:bg-[color-mix(in_srgb,currentColor_12%,transparent)]";
 
 export function ReleasePicker({
   releases,
@@ -152,16 +162,11 @@ export function ReleasePicker({
               only while it says All releases, which is the resting state the
               sky fill already distinguishes; a picked version id stays on
               screen, since which release is filtering is the one thing the
-              control has to say.
-
-              Both segments trade the accent focus ring for the same ink wash
-              they take on hover: focus comes back to the trigger when the list
-              closes, and a ring the width of the sticker frame reads as the
-              control shouting at you rather than as where the keyboard is. */}
+              control has to say. */}
           <SelectTrigger
             aria-label="Which release to show"
             title="Show one release at a time — blockers always stay on screen"
-            className={`h-full w-auto gap-1.5 rounded-[6px] border-0 bg-transparent px-1.5 py-0 text-[12px] font-[700] leading-none text-inherit shadow-none focus-visible:outline-0 focus-visible:bg-nb-ink/10 [&>span]:max-w-[104px] sm:[&>span]:max-w-[168px] ${
+            className={`h-full w-auto gap-1.5 rounded-[6px] border-0 bg-transparent px-1.5 py-0 text-[12px] font-[700] leading-none text-inherit shadow-none [&>span]:max-w-[104px] sm:[&>span]:max-w-[168px] ${SEGMENT_WASH} ${
               filtering ? "" : "max-sm:[&>span]:sr-only"
             }`}
           >
@@ -204,20 +209,23 @@ export function ReleasePicker({
         {/* The verbs that end the version on screen — only there, since they
             act on what is being looked at. Close leads: shipping is how a
             version is meant to end, and giving up on it is the other answer.
-            The segment breaks the frame's sky ink for ember: three dots in the
-            same blue as the label beside them read as more of the label, and
-            the one place the board ends a release can't be the thing nobody
-            sees. */}
+            The segment used to break the frame's sky for ember, so the one
+            place the board ends a release wouldn't be the thing nobody sees.
+            It is the chip's own ink now: ember on a sky wash is the one pairing
+            in the palette that fights, and it made a menu of ordinary verbs
+            look like a warning. What separates the dots from the label beside
+            them is the divider and the wash they light up under, which is what
+            separates the two halves of any segmented control. */}
         {filtering && (
           <>
-            <span aria-hidden className="mx-0.5 h-[16px] w-px shrink-0 bg-current opacity-30" />
+            <SegmentDivider />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   aria-label={`What to do with ${value}`}
                   title={`What to do with ${value}`}
-                  className="inline-flex h-full cursor-pointer items-center rounded-[6px] px-1 text-nb-accent-deep hover:bg-nb-ink/10 focus-visible:bg-nb-ink/10 focus-visible:outline-0 data-[state=open]:bg-nb-ink/10"
+                  className={`inline-flex h-full cursor-pointer items-center rounded-[6px] px-1 text-inherit ${SEGMENT_WASH}`}
                 >
                   <FiMoreHorizontal aria-hidden style={{ width: 14, height: 14, flex: "0 0 auto" }} />
                 </button>

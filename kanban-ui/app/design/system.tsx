@@ -77,7 +77,7 @@ const GROUPS: { title: string; note: string; tokens: { name: string; hex: string
     tokens: [
       { name: "nb-cream", hex: CREAM, use: "the page" },
       { name: "nb-paper", hex: PAPER, use: "a card, a dialog, a control" },
-      { name: "nb-wash", hex: WASH, use: "a board column, a log body, an inset" },
+      { name: "nb-wash", hex: WASH, use: "a column header, a log body, an inset" },
       { name: "nb-ink", hex: INK, use: "every outline, every shadow, body text" },
       { name: "nb-ink-soft", hex: INK_SOFT, use: "meta, captions, a resting icon" },
     ],
@@ -126,7 +126,7 @@ const PAIRS: {
   { fg: INK_SOFT, bg: CREAM, label: "ink-soft on cream", where: "meta and captions on the page" },
   { fg: INK, bg: PAPER, label: "ink on paper", where: "a card title, a dialog" },
   { fg: INK_SOFT, bg: PAPER, label: "ink-soft on paper", where: "a card's meta row, a blurb under a label" },
-  { fg: INK, bg: WASH, label: "ink on wash", where: "a board column, a log body" },
+  { fg: INK, bg: WASH, label: "ink on wash", where: "a column header, a log body" },
   { fg: INK_SOFT, bg: WASH, label: "ink-soft on wash", where: "the session log's mono tail" },
   {
     fg: PAPER,
@@ -503,13 +503,14 @@ export function DesignSystem() {
         </div>
 
         <div className="mt-7">
-          <Label>the wash — a board column, and what a card looks like on it</Label>
-          {/* The real column: 300px, a 14px radius, no frame and no shadow. It is
-              not a block — it is the ground the blocks sit on, and framing it
-              would put a box around every card twice over. */}
-          <div className="flex gap-4 overflow-x-auto">
-            <section className="flex w-[300px] shrink-0 flex-col rounded-[14px] bg-nb-wash p-3">
-              <div className="mb-3 flex items-center justify-between">
+          <Label>the wash — a column header, and what a card looks like under it</Label>
+          {/* The real column: 300px, and the wash is the header alone — a 32px
+              chip at a 10px radius, no frame and no shadow, with the cards on the
+              window's paper below it. Filling the whole column put a box inside
+              the body's paper panel and a framed card inside that. */}
+          <div className="flex gap-8 overflow-x-auto">
+            <section className="flex w-[300px] shrink-0 flex-col">
+              <div className="mb-3 flex h-8 items-center justify-between rounded-[10px] bg-nb-wash px-2.5">
                 <h4 className="nb-tag">
                   <span style={{ color: "var(--color-nb-accent)" }}>●</span>
                   ui
@@ -534,10 +535,10 @@ export function DesignSystem() {
                 />
               </div>
             </section>
-            <section className="flex w-[300px] shrink-0 flex-col rounded-[14px] bg-[color-mix(in_srgb,var(--color-nb-lilac)_16%,var(--color-nb-wash))] p-3">
-              <div className="mb-3 flex items-center justify-between">
+            <section className="flex w-[300px] shrink-0 flex-col">
+              <div className="mb-3 flex h-8 items-center justify-between rounded-[10px] bg-[color-mix(in_srgb,var(--color-nb-lilac)_16%,var(--color-nb-wash))] px-2.5">
                 <h4 className="nb-tag">
-                  <span style={{ color: "var(--color-nb-accent)" }}>●</span>
+                  <span style={{ color: "var(--color-nb-lilac-ink)" }}>●</span>
                   recurring
                 </h4>
                 <span className="text-[12px] text-nb-ink-soft">0</span>
@@ -546,7 +547,9 @@ export function DesignSystem() {
               <p className="mt-3 text-[12px] leading-relaxed text-nb-ink-soft">
                 A lilac cast over the same wash — these cards repeat instead of
                 finishing. Faint on purpose: it says &ldquo;these behave
-                differently&rdquo;, not &ldquo;look here&rdquo;.
+                differently&rdquo;, not &ldquo;look here&rdquo;. The bullet goes
+                lilac with it: an ember dot would be the only warm thing on the
+                band, and read as a warning.
               </p>
             </section>
           </div>
@@ -557,7 +560,7 @@ export function DesignSystem() {
           <div className="nb-outline overflow-hidden bg-nb-paper">
             {[
               { r: "16px", what: ".nb-panel — a dialog, a run panel" },
-              { r: "14px", what: ".nb-outline, and a board column" },
+              { r: "14px", what: ".nb-outline — the log window, an option row" },
               { r: "13px", what: ".nb-panel-sm — a card" },
               { r: "11px / 9px", what: "a button, md and sm" },
               { r: "10px", what: "a text input, a select trigger, an open list" },

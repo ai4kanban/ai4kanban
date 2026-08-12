@@ -8,9 +8,11 @@ import {
   FiEdit2,
   FiFeather,
   FiFolder,
+  FiMoreHorizontal,
   FiPlay,
   FiPlus,
   FiSettings,
+  FiTag,
   FiTrendingUp,
   FiX,
 } from "react-icons/fi";
@@ -84,35 +86,56 @@ const GoalBtn = () => (
 );
 
 /** A ghost icon button — no frame of its own; it lives inside a cluster that
- *  has one. 28px square, which is the smallest an icon stays legible at here. */
-const GhostBtn = ({ icon: Icon, first = false }: { icon: typeof FiSettings; first?: boolean }) => (
-  <span
-    className="inline-flex size-7 items-center justify-center text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]"
-    style={first ? undefined : { borderLeft: `1px solid ${HAIRLINE}` }}
-  >
+ *  has one. 28px wide, and as tall as the cluster's inside rather than 28px
+ *  again: the frame is 28px including its border, so a 28px button in it hangs
+ *  3px past the bottom and every icon sits low in the row. */
+const GhostBtn = ({ icon: Icon }: { icon: typeof FiSettings }) => (
+  <span className="inline-flex h-full w-7 items-center justify-center text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]">
     <Icon size={15} />
   </span>
 );
 
+/** The joint between two segments of one control. It stops short of the frame at
+ *  both ends: a rule run edge to edge cuts the sticker in two and reads as two
+ *  buttons pushed together, where an inset one reads as one control with a joint
+ *  in it. Drawn in the control's own ink, so a tinted chip's joint is tinted. */
+const Joint = () => (
+  <span aria-hidden className="mx-0.5 h-[15px] w-px self-center bg-current opacity-[0.16]" />
+);
+
 /** Runs, progress and settings in one frame. They are all "look at the board's
  *  machinery" and none of them is a primary action, so they get one sticker
- *  between them and hairlines instead of gaps. */
+ *  between them and joints instead of gaps. */
 const Tools = () => (
   <span className={`inline-flex h-7 items-stretch overflow-hidden rounded-[8px] bg-nb-paper ${CHROME}`}>
-    <GhostBtn icon={FiTrendingUp} first />
+    <GhostBtn icon={FiTrendingUp} />
+    <Joint />
     <GhostBtn icon={FiActivity} />
+    <Joint />
     <GhostBtn icon={FiSettings} />
   </span>
 );
 
+/** Which release the board is showing, and the ⋯ that ends it — two segments in
+ *  one sticker, joined the same way the tools are. Both are the chip's sky ink:
+ *  the ⋯ was ember once, to keep the one place a release ends from being the
+ *  thing nobody sees, but ember on a sky wash is the one pairing in the palette
+ *  that fights, and it made a menu of ordinary verbs look like a warning. The
+ *  joint and the wash under the pointer are what tell the halves apart. */
 const Release = () => (
   <span
-    className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[8px] px-2.5 text-[12px] font-[700] ${CHROME}`}
+    className={`inline-flex h-7 shrink-0 items-center rounded-[8px] p-0.5 text-[12px] font-[700] ${CHROME}`}
     style={{ background: "var(--color-nb-sky-soft)", color: "var(--color-nb-sky-ink)" }}
   >
-    0.6.0
-    <span className="opacity-60">14</span>
-    <FiChevronDown size={13} />
+    <span className="inline-flex h-full items-center gap-1.5 rounded-[6px] px-1.5">
+      <FiTag size={13} />
+      0.6.0 (14)
+      <FiChevronDown size={12} />
+    </span>
+    <Joint />
+    <span className="inline-flex h-full items-center rounded-[6px] px-1">
+      <FiMoreHorizontal size={14} />
+    </span>
   </span>
 );
 
@@ -231,58 +254,108 @@ function Rail({ active, onPick }: { active: number; onPick: (i: number) => void 
 // ── the stand-in body ───────────────────────────────────────────────────────
 
 const CardBlock = () => (
-  <div className="h-[74px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper shadow-[2px_2px_0_0_var(--color-nb-ink)]" />
+  <div className="h-[92px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper shadow-[2px_2px_0_0_var(--color-nb-ink)]" />
 );
 
-/** The queue as it now is: two fixed columns and the narrow recurring one,
- *  scrolling sideways. Drawn a little narrower than life (460 / 460 / 220 for
- *  560 / 560 / 300) so all three fit a mockup frame. */
+// ── the column: a header band, and nothing else ─────────────────────────────
+//
+// The board's paper panel already is a surface. A wash panel per column on top
+// of it was a box inside a box — two radii, two edges, and a framed card sitting
+// third. So the wash shrinks to the header: a chip the width of the column,
+// carrying the name, the count and the column's colour, with the cards on the
+// window's paper below it. That is all the fill was ever doing.
+//
+// Losing the fill costs the column its edges, so the gutter pays for them: 32px
+// instead of 16, or two 2-up grids side by side read as one 4-up grid.
+//
+// components/Queue.tsx ships this.
+
+// Real widths are 560 / 560 / 300; drawn at 460 / 460 / 460 here because
+// Recurring is 2-up now like the others, and because the row is meant to run
+// off the right edge — the board scrolls sideways and a mockup that fits
+// everything hides the one thing the gutter has to survive.
+const STUB_COLUMNS: {
+  title: string;
+  count: string;
+  w: number;
+  lilac?: boolean;
+  bands: { title: string | null; n: number }[];
+}[] = [
+  {
+    title: "Ready to build",
+    count: "4 ready · 1 implementing",
+    w: 460,
+    bands: [
+      { title: "Features", n: 4 },
+      { title: "Skill", n: 2 },
+    ],
+  },
+  {
+    title: "Not ready",
+    count: "10",
+    w: 460,
+    bands: [
+      { title: "Features", n: 4 },
+      { title: "Infra", n: 2 },
+    ],
+  },
+  // Recurring has no tracks on the real board — it is one list — so it is one
+  // unnamed band. Drawn 2-up here, which costs it the narrow width that used to
+  // say "this is a list you glance at", so the band is the whole of what marks
+  // it: the lilac cast, and a lilac bullet to match. On the shipped board it is
+  // still 300px and one card across.
+  { title: "Recurring", count: "4", w: 460, lilac: true, bands: [{ title: null, n: 4 }] },
+];
+
+const LILAC_FILL = "color-mix(in srgb, var(--color-nb-lilac) 16%, var(--color-nb-wash))";
+
 function BoardStub() {
   return (
-    <div className="flex h-full items-stretch gap-4 overflow-hidden p-4">
-      <StubColumn title="Ready to build" count="4 ready · 1 implementing" w={460} cols={2} rows={3} />
-      <StubColumn title="Not ready" count="9" w={460} cols={2} rows={3} />
-      <StubColumn
-        title="Recurring"
-        count="3"
-        w={220}
-        cols={1}
-        rows={3}
-        tint="color-mix(in srgb, var(--color-nb-lilac) 16%, var(--color-nb-wash))"
-      />
+    <div className="flex h-full items-stretch gap-8 overflow-hidden p-4">
+      {STUB_COLUMNS.map((col) => (
+        <StubColumn key={col.title} {...col} />
+      ))}
     </div>
   );
 }
 
-function StubColumn({
-  title,
-  count,
-  w,
-  cols,
-  rows,
-  tint,
-}: {
-  title: string;
-  count: string;
-  w: number;
-  cols: number;
-  rows: number;
-  tint?: string;
-}) {
+function StubColumn({ title, count, w, lilac, bands }: (typeof STUB_COLUMNS)[number]) {
   return (
-    <section
-      className="flex shrink-0 flex-col overflow-hidden rounded-[14px] p-3"
-      style={{ width: w, background: tint ?? "var(--color-nb-wash)" }}
-    >
-      <div className="mb-3 flex items-center justify-between gap-3">
+    <section className="flex shrink-0 flex-col overflow-hidden" style={{ width: w }}>
+      <div
+        className="mb-3 flex h-8 shrink-0 items-center justify-between gap-3 rounded-[10px] px-2.5"
+        style={{ background: lilac ? LILAC_FILL : "var(--color-nb-wash)" }}
+      >
         <h3 className="nb-tag">
-          <span style={{ color: "var(--color-nb-accent)" }}>●</span>
+          <span style={{ color: lilac ? "var(--color-nb-lilac-ink)" : "var(--color-nb-accent)" }}>●</span>
           {title}
         </h3>
         <span className="shrink-0 text-[12px] text-nb-ink-soft">{count}</span>
       </div>
-      <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-        {Array.from({ length: cols * rows }, (_, i) => (
+      <div className="flex min-h-0 flex-col gap-2">
+        {bands.map((band, i) => (
+          <StubBand key={band.title ?? i} title={band.title} n={band.n} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** A track inside a column — the rule, the name, the count, then two cards
+ *  across. Unchanged from the board; it is here so the header band is judged
+ *  against the lines it actually sits above. */
+function StubBand({ title, n }: { title: string | null; n: number }) {
+  return (
+    <section className="px-2 pb-3 pt-2">
+      {title && (
+        <div className="mb-2.5 flex items-center gap-2.5">
+          <h4 className="nb-tag whitespace-nowrap text-[10.5px]">{title}</h4>
+          <span aria-hidden className="h-px flex-1" style={{ background: HAIRLINE }} />
+          <span className="text-[11px] tabular-nums text-nb-ink-soft">{n}</span>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3">
+        {Array.from({ length: n }, (_, i) => (
           <CardBlock key={i} />
         ))}
       </div>
@@ -385,6 +458,9 @@ const NOTES = [
   ["Gutter", "16px of that cream down the two sides the chrome is on, half of it the chrome's own padding. The other two sides get none: the body runs into the window and takes the window's corners, so the only radius it draws is the top-left one, where it turns away from the chrome."],
   ["Rail", "216 × 30 rows, and the count rides on the section label so no row is spent on a label alone."],
   ["Selection", "The open row is paper with an inset ink outline — no hard shadow, which at row height would read as a lifted button rather than as where you are."],
+  ["Column", "A header band and nothing else: a 32px wash chip the width of the column, cards on the paper below it. The panel it replaces was a box inside the body's panel with a framed card inside that — three edges for two levels of meaning. Shipped in components/Queue.tsx."],
+  ["Gutter", "32px between columns, twice the panel's 16. Without a fill, the gap is the only thing keeping two 2-up grids from reading as one 4-up grid."],
+  ["Recurring", "The band is now the whole of what marks it, so the lilac cast moved there and the bullet went lilac with it — an ember dot on a lilac band is the one warm thing in the column and reads as a warning. Drawn 2-up here; the shipped column is still 300px and one across."],
 ];
 
 export function Layouts() {
@@ -408,8 +484,15 @@ export function Layouts() {
           cream around it rather than by a line. Rows are live — click one and the body changes.
           The frame is
           1280 × 560, the app&rsquo;s own default window; the
-          board columns are a little narrower than life (460 / 460 / 220 for 560 / 560 / 300) so
-          all three fit.
+          board columns are drawn a little narrower than life (460 against 560), two cards across
+          in each, and the row runs off the right edge the way it does on the board.
+        </p>
+        <p className="mt-3 text-[14px] leading-relaxed text-nb-ink-soft">
+          The column comes with it. The body is already a paper panel, so a wash panel per column
+          was a box inside a box, with a framed card inside that. The wash is now the header alone
+          — a chip the width of the column, carrying its name, its count and its colour — and the
+          cards sit on the paper. The gutter goes to 32px to pay for the edges the fill used to
+          draw.
         </p>
       </header>
 

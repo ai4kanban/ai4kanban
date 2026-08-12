@@ -50,7 +50,7 @@ const bandsFor = (columns: Column[], keep: (card: Card) => boolean): Band[] =>
     }))
     .filter((band) => band.cards.length > 0);
 
-// Two cards across (260px each) plus the column's own padding, and one card
+// Two cards across (265px each) plus the bands' own padding, and one card
 // across for Recurring. `min()` is what a phone gets: below the fixed width the
 // column takes the window instead of hanging off it, and the grid inside falls
 // back to one card per row on its own.
@@ -95,7 +95,11 @@ export function QueueView({
     // inside a body the rail has already taken 216px out of (components/Window)
     // — and this row scrolls sideways, so padding it wider on a wide screen
     // spends the width the rail was paid for.
-    <div className="flex min-h-0 flex-1 items-stretch gap-4 overflow-x-auto p-4">
+    //
+    // The gutter is 32px rather than 16: a column no longer has a fill marking
+    // where it ends, so the gap is the only thing keeping two 2-up grids from
+    // reading as one 4-up grid.
+    <div className="flex min-h-0 flex-1 items-stretch gap-8 overflow-x-auto p-4">
       <QueueColumn
         title="Ready to build"
         count={`${readyCount} ready · ${implementingCount} implementing`}
@@ -123,8 +127,9 @@ export function QueueView({
       {/* Recurring is a reserved folder, not a track someone named, and not part
           of the ready/not-ready question at all — so it stands as its own
           column, narrower because it is a list you glance at rather than the
-          work you came here to pick from. It carries the faint lilac cast the
-          board gives a schedule. Absent when nothing recurs: an empty column
+          work you came here to pick from. The faint lilac cast the board gives a
+          schedule now rides on the header band, which is the only surface the
+          column has left. Absent when nothing recurs: an empty column
           teaching a feature nobody on this board uses is just noise. */}
       {recurring.length > 0 && (
         <QueueColumn
@@ -132,6 +137,7 @@ export function QueueView({
           count={`${recurring.length}`}
           width={NARROW_W}
           tint="color-mix(in srgb, var(--color-nb-lilac) 16%, var(--color-nb-wash))"
+          dot="var(--color-nb-lilac-ink)"
         >
           <div className="flex flex-col gap-3">
             {recurring.map((card) => (
@@ -151,29 +157,39 @@ export function QueueView({
   );
 }
 
-// One column: a wash panel of its own width, scrolling on its own so filling one
-// never pushes the others off.
+// One column: no surface of its own, only a header band — a wash chip the width
+// of the column, with the cards below it on the window's paper. The column used
+// to be a rounded wash panel, which put a box inside the body's paper panel and
+// a framed card inside that, three edges deep for two levels of meaning. The
+// band keeps what the fill was actually for — a place for the column's name and
+// its colour — and gives the cards the paper back (/design/layouts).
+//
+// It still scrolls on its own, so filling one column never pushes the others off.
 function QueueColumn({
   title,
   count,
   width,
   tint,
+  dot,
   children,
 }: {
   title: string;
   count: string;
   width: string;
   tint?: string;
+  /** The bullet's colour. It follows the band: on a lilac band an ember dot is
+   *  the only ember left in the column, and it reads as a warning. */
+  dot?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section
-      className={`flex min-h-0 shrink-0 flex-col rounded-[14px] p-3 ${width}`}
-      style={{ background: tint ?? "var(--color-nb-wash)" }}
-    >
-      <div className="mb-3 flex items-center justify-between gap-3">
+    <section className={`flex min-h-0 shrink-0 flex-col ${width}`}>
+      <div
+        className="mb-3 flex h-8 shrink-0 items-center justify-between gap-3 rounded-[10px] px-2.5"
+        style={{ background: tint ?? "var(--color-nb-wash)" }}
+      >
         <h2 className="nb-tag">
-          <span style={{ color: "var(--color-nb-accent)" }}>●</span>
+          <span style={{ color: dot ?? "var(--color-nb-accent)" }}>●</span>
           {title}
         </h2>
         <span className="shrink-0 text-[12px] text-nb-ink-soft">{count}</span>
@@ -217,7 +233,7 @@ function Bands({
 
 // One track's cards inside a column: a rule carrying the track name and its
 // count, then the grid. The rule is what cuts one track from the next — the
-// bands sit on the same wash, so a line and a name are all it takes.
+// bands sit on the same paper, so a line and a name are all it takes.
 function TrackBand({
   band,
   sessions,

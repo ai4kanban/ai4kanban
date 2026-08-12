@@ -53,7 +53,7 @@ export function Rail({
 
   return (
     <nav
-      className="hidden shrink-0 flex-col gap-0.5 overflow-y-auto p-2 md:flex"
+      className="hidden shrink-0 flex-col gap-0.5 overflow-y-auto py-2 pl-3 pr-1 md:flex"
       style={{ width: RAIL_W }}
       aria-label="Open cards"
     >
