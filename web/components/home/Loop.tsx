@@ -76,7 +76,13 @@ export function Loop({ c }: { c: HomeCopy["loop"] }) {
         {/* `top` is ignored below lg, where the column isn't sticky at all. */}
         <div ref={ref} style={{ top }} className="lg:sticky lg:self-start">
           <SectionTitle num="02" title={c.title} />
-          <p className="text-[1.05rem] leading-relaxed text-muted">{c.lead}</p>
+          <p
+            data-reveal
+            data-delay="1"
+            className="text-[1.05rem] leading-relaxed text-muted"
+          >
+            {c.lead}
+          </p>
         </div>
 
         {/* The rail: one hairline behind the numbers ties the four steps
@@ -92,8 +98,13 @@ export function Loop({ c }: { c: HomeCopy["loop"] }) {
               the drawing inside — which sizes its type to its container — shrank
               with it. Below `sm` the mat runs the full column instead, and the
               rail still reads because the numbers above it are on it. */}
+          {/* The one section where the reveal is the section: the title holds
+              in the middle of the screen and the steps come up past it one at
+              a time, which is the order the loop runs in. Each step arrives
+              whole — number, words and shot together — because a step is one
+              thing. */}
           {c.steps.map((step, i) => (
-            <li key={step.title} className="relative">
+            <li key={step.title} data-reveal className="relative">
               <div className="flex gap-4 sm:gap-5">
                 {/* Borderless, like everything else in the section. The disc
                     is only there to break the rail behind the number — it is

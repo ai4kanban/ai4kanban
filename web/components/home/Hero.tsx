@@ -28,13 +28,28 @@ export function Hero({ c }: { c: HomeCopy["hero"] }) {
         {/* `text-balance` keeps the break off the middle of a word — Chinese and
             Japanese wrap anywhere, so an unbalanced line splits 规|划 down the
             middle. */}
-        <h1 className="text-balance text-[2.5rem] font-bold leading-[1.2] tracking-tight sm:text-5xl sm:leading-[1.15]">
+        {/* The hero arrives on load rather than on scroll — it is already on
+            screen, so there is nothing to wait for and nothing to observe.
+            `Reveal.tsx` owns both halves of that rule; the sentence, its lead
+            and the buttons come up in reading order. */}
+        <h1
+          data-enter
+          className="text-balance text-[2.5rem] font-bold leading-[1.2] tracking-tight sm:text-5xl sm:leading-[1.15]"
+        >
           {c.title}
         </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-balance text-lg leading-relaxed text-muted">
+        <p
+          data-enter
+          data-delay="1"
+          className="mx-auto mt-6 max-w-2xl text-balance text-lg leading-relaxed text-muted"
+        >
           {c.lead}
         </p>
-        <div className="mt-9 flex flex-wrap justify-center gap-3">
+        <div
+          data-enter
+          data-delay="2"
+          className="mt-9 flex flex-wrap justify-center gap-3"
+        >
           <Button href="#install" variant="primary">
             {c.ctaInstall}
           </Button>
@@ -54,7 +69,15 @@ export function Hero({ c }: { c: HomeCopy["hero"] }) {
           a border reads as a proportion of what it surrounds, and the 24px that
           frames a 464px drawing is a hairline around a print three times that
           wide. */}
-      <Mat paint={<HeroWash />} className="mt-14 p-4 sm:mt-16 sm:p-8 lg:p-10">
+      {/* The deck rises without fading, and that is not a preference: this is
+          the page's LCP element, and a block held at `opacity: 0` isn't painted
+          as far as the measurement is concerned. See `Reveal.tsx`. */}
+      <Mat
+        paint={<HeroWash />}
+        data-enter="lift"
+        data-delay="3"
+        className="mt-14 p-4 sm:mt-16 sm:p-8 lg:p-10"
+      >
         <HeroShots c={c.shots} />
       </Mat>
     </section>

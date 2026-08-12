@@ -49,7 +49,11 @@ export function Memory({ c }: { c: HomeCopy["memory"] }) {
   return (
     <section id="memory" className="mt-28 scroll-mt-24">
       <SectionTitle num="03" title={c.title} />
-      <p className="max-w-3xl text-[1.05rem] leading-relaxed text-muted">
+      <p
+        data-reveal
+        data-delay="1"
+        className="max-w-3xl text-[1.05rem] leading-relaxed text-muted"
+      >
         {c.lead}
       </p>
 
@@ -65,7 +69,12 @@ export function Memory({ c }: { c: HomeCopy["memory"] }) {
             anchors the left edge, the claim reads first, the evidence sits under
             it at a smaller size. The rows share the height evenly, which matches
             the tree beside them. */}
+        {/* The two halves of the row arrive a beat apart, left then right —
+            the claims are the sentence and the listing is the evidence for it,
+            so they land in that order. */}
         <div
+          data-reveal
+          data-delay="1"
           className={`${panelInset} flex flex-col divide-y-2 divide-border `}
         >
           {c.cards.map((card, i) => {
@@ -127,6 +136,8 @@ export function Memory({ c }: { c: HomeCopy["memory"] }) {
             near each other. */}
         <Mat
           src={TREE_MAT}
+          data-reveal
+          data-delay="2"
           className="flex items-center justify-center p-4 sm:p-6"
         >
           <div

@@ -600,7 +600,11 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
   return (
     <section className="mt-28">
       <SectionTitle num="04" title={c.title} />
-      <p className="max-w-3xl text-[1.05rem] leading-relaxed text-muted">
+      <p
+        data-reveal
+        data-delay="1"
+        className="max-w-3xl text-[1.05rem] leading-relaxed text-muted"
+      >
         {c.lead}
       </p>
 
@@ -608,7 +612,9 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
           `Loop.tsx` gives its shots and `Memory.tsx` gives its file tree. The
           print's own ground is the page's neutral, so the four-step ramp the
           drawing is built on starts where the page does. */}
-      <Mat src={MAT} className="mt-9 p-3 sm:p-5">
+      {/* The drawing's own circuit runs on its own clock; the reveal only
+          brings the print onto the page. */}
+      <Mat src={MAT} data-reveal data-delay="2" className="mt-9 p-3 sm:p-5">
         <div className={printFrame}>
           <svg
             viewBox={`0 0 ${W} ${h}`}

@@ -68,13 +68,23 @@ const BLOOMS = [
 // Either a painting is laid on the mat (`src`) or one is painted onto it
 // (`paint` — a layer this mounts behind the print). Never both: they are two
 // ways to draw the same ground.
-type MatProps = {
+// The landing page's scroll reveal rides on the mat rather than on a wrapper
+// around it: on that page the mat usually *is* the block that arrives, and a div
+// whose only job is to hold two attributes is a layout box the grid then has to
+// be told to ignore. `Reveal.tsx` owns what these mean.
+type Reveal = {
+  "data-reveal"?: boolean;
+  "data-enter"?: boolean | "lift";
+  "data-delay"?: "1" | "2" | "3";
+};
+
+type MatProps = Reveal & {
   className?: string;
   children: ReactNode;
 } & (
-  | { src: string; fit?: Fit; paint?: never }
-  | { src?: never; fit?: never; paint: ReactNode }
-);
+    | { src: string; fit?: Fit; paint?: never }
+    | { src?: never; fit?: never; paint: ReactNode }
+  );
 
 export function Mat({
   src,
@@ -82,10 +92,12 @@ export function Mat({
   className = "",
   paint,
   children,
+  ...reveal
 }: MatProps) {
   if (paint) {
     return (
       <div
+        {...reveal}
         className={`relative overflow-hidden rounded-xl ${className}`}
         style={{
           backgroundColor: "var(--color-elev)",
@@ -103,6 +115,7 @@ export function Mat({
   const wide = fit === "width";
   return (
     <div
+      {...reveal}
       className={`overflow-hidden rounded-xl ${className}`}
       style={{
         backgroundColor: wide ? PAPER : GROUND,

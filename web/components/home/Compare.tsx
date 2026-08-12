@@ -37,11 +37,22 @@ export function Compare({ c }: { c: HomeCopy["compare"] }) {
   return (
     <section id="method" className="mt-28 scroll-mt-24">
       <SectionTitle num="01" title={c.title} />
-      <p className="max-w-3xl text-[1.05rem] leading-relaxed text-muted">
+      <p
+        data-reveal
+        data-delay="1"
+        className="max-w-3xl text-[1.05rem] leading-relaxed text-muted"
+      >
         {c.lead}
       </p>
 
-      <div className="mt-10 hidden grid-cols-[7rem_minmax(0,1fr)_3.5rem_minmax(0,1fr)] sm:grid">
+      {/* The table arrives as one block, not row by row: it is a comparison,
+          and a comparison that assembles itself is three claims you read
+          before the thing they are being compared against exists. */}
+      <div
+        data-reveal
+        data-delay="2"
+        className="mt-10 hidden grid-cols-[7rem_minmax(0,1fr)_3.5rem_minmax(0,1fr)] sm:grid"
+      >
         {/* The two cards, spanning every comparison row behind the text. */}
         <div
           aria-hidden="true"
@@ -115,6 +126,7 @@ export function Compare({ c }: { c: HomeCopy["compare"] }) {
           return (
             <div
               key={row.dimension}
+              data-reveal
               className={`${panelStatic} overflow-hidden`}
             >
               <p className="flex items-center gap-2.5 border-b-2 border-border px-5 py-3 font-mono text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-ink">

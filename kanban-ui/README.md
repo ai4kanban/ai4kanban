@@ -302,7 +302,8 @@ paste into your coding agent, with a **Copy** button:
 ```
 
 The line follows the agent you picked, because agents trigger a skill differently: on Codex
-it reads `$kanban. Set up this board …` instead. Copy it and paste it as it comes.
+it reads `$kanban. Set up this board …`, and on Cursor and OpenCode it asks for the skill in
+a sentence, since neither has a name you can type. Copy it and paste it as it comes.
 
 The UI never runs setup itself — you paste that line, and the bar moves as boxes tick.
 Setup picks up at the first unticked box, so the same line restarts it wherever it stopped.
@@ -470,7 +471,7 @@ run you continued with **Resume** shows what that new run cost, not the whole co
 
 A run with no cost to report shows no number: one still going, one that failed, was
 interrupted or was stopped before it got there, and an agent whose output says nothing about
-cost — Codex is one, so a Codex run's log shows the duration and no dollar figure.
+cost — Codex and Cursor are two, so their logs show the duration and no dollar figure.
 
 ### Which model a run used
 

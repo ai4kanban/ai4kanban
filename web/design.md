@@ -137,9 +137,9 @@ hairline in `HkDiagrams.tsx` and the linework in `RecipeArt.tsx`. Both are comme
 where they are declared.
 
 **Motion is for a diagram, and it carries that diagram's sentence.** Outside the hover
-lift and the hero's wash — which is weather on a mat, not a drawing making an argument, and
-is the only ambient motion on the site — animation moves one thing along the path the
-picture is arguing about — never a part at a time. A drawing animated part by part is twenty things twitching and nothing to read,
+lift, the hero's wash — which is weather on a mat, not a drawing making an argument, and
+is the only ambient motion on the site — and the landing page's reveal below, animation
+moves one thing along the path the picture is arguing about — never a part at a time. A drawing animated part by part is twenty things twitching and nothing to read,
 so if a part moves it is because the signal is there *now*. Give every rule one period and
 let each part differ only in its delay: no part owns a clock, so no part can drift out of
 order.
@@ -150,6 +150,38 @@ undoing them, so no-preference is the only state that moves — which means the 
 style has to be the one you'd draw by hand. Keyframes live in a `<style>` block in the
 component that draws them: `globals.css` is tokens only, and a Tailwind class can't
 declare a keyframe.
+
+**The landing page's reveal is the one motion that isn't drawing anything**, and it is a
+block arriving rather than an animation: a block comes up 1.25rem and settles, once, on a
+hard-out curve. It exists because a long page of static panels reads as a document, and it
+is deliberately the *only* thing it does — nothing scales, nothing rotates, nothing tracks
+the scrollbar. `components/home/Reveal.tsx` is the whole implementation, and it is mounted
+once by `pages/HomePage.tsx`; a section opts in with an attribute:
+
+- `data-enter` — plays on load, for the hero. It is already on screen, so there is nothing
+  to wait for, and waiting for hydration to paint a headline is a slower page, not a
+  smoother one. `data-enter="lift"` is the same arrival **without the fade**, and the
+  hero's screenshot deck takes it because that deck is the page's LCP element — a block
+  held at `opacity: 0` is not painted as far as the measurement is concerned, so fading
+  the deck in would push the largest paint out by the length of the animation.
+- `data-reveal` — rests hidden, released by one `IntersectionObserver` when the block is a
+  tenth of the way into the viewport, and dropped from the observer once it lands. It
+  reveals, it does not track.
+- `data-delay="1|2|3"` — the stagger, three steps of 85ms and no more, on either of the
+  above. Past ~0.3s the last item is a second event rather than part of the same arrival.
+
+Three rules keep it from becoming a maintenance surface. **Nothing carrying `data-reveal`
+may contain something else that does** — nested reveals multiply their opacities and the
+inner block arrives twice. **`SectionTitle` carries its own**, because a title is always
+the undelayed step of its section, so a section only marks what comes *after* it.
+And **never put one on a block whose hover moves it**: `panel` sets `translate` on hover
+and so does the reveal, so the two would fight over the same property — `panelStatic` and
+`panelInset` are what the landing page uses and neither does.
+
+Under `prefers-reduced-motion` nothing above exists: the whole block is inside the
+no-preference query, so the resting style *is* the finished page. With JS off, a `noscript`
+rule releases every `data-reveal` — the keyframed half needs no such line, since a CSS
+animation runs either way.
 
 One trap, since half of the resting styles here are Tailwind utilities: **animate whichever
 property the resting style set.** Tailwind v4 writes `-translate-x-full` to the independent
@@ -291,7 +323,9 @@ components/
                       Everything here is on /design.
   pages/              one file per page body, taking a `locale` — every language
                       renders the same component
-  home/               the landing page's sections
+  home/               the landing page's sections, plus Reveal.tsx — the page's
+                      scroll motion, which draws nothing: the rules that hold a
+                      block back and the one observer that lets it go (§2)
   vs/                 what all comparison pages share, including
                       diagram.tsx — the canvas, palette, motion and figures
                       (Person, Robot, Board, captions) every hero diagram

@@ -5,6 +5,7 @@ import { Loop } from "@/components/home/Loop";
 import { Memory } from "@/components/home/Memory";
 import { Iterate } from "@/components/home/Iterate";
 import { Start } from "@/components/home/Start";
+import { Reveal } from "@/components/home/Reveal";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getCopy } from "@/i18n";
 import {
@@ -22,6 +23,11 @@ import type { Locale } from "@/lib/i18n";
 //
 // The chrome is the site's: `Header.tsx` on top and `SiteFooter.tsx` under,
 // the same pair the comparison pages carry.
+//
+// `Reveal` is the page's motion, and it draws nothing: it ships the rules that
+// hold a block back and the one observer that lets it go, and the sections
+// below opt in with `data-reveal` / `data-enter`. It is mounted once here
+// because those rules are document-wide — see the header comment in that file.
 export function HomePage({ locale }: { locale: Locale }) {
   const copy = getCopy(locale);
   const c = copy.home;
@@ -45,6 +51,7 @@ export function HomePage({ locale }: { locale: Locale }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: schema }}
       />
+      <Reveal />
       <Header c={copy} locale={locale} />
       <main className="mx-auto max-w-5xl px-6">
         <Hero c={c.hero} />
