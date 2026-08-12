@@ -5,7 +5,7 @@ priority: high
 roi: high
 status: todo
 release: 0.6.0
-blocked_by: [171]
+blocked_by: []
 related: []
 modules: [local-ui, skill]
 questions:

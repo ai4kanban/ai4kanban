@@ -1,17 +1,28 @@
 import fs from "node:fs";
 import path from "node:path";
 
-// Find the repo whose board we drive. Normally we walk up from the current
-// directory to the first `docs/kanban/todo/`, so the app works whether it's
-// started from `kanban-ui/` or the repo root. When run as an npx package the
-// server lives in the npm cache, far from the board, so `KANBAN_BOARD_DIR`
-// overrides the starting point — set it to the repo root (the folder that holds
-// `docs/kanban/`). Files stay the single source of truth: we never store the
-// board's location anywhere else.
+// Find the repo whose board we drive.
+//
+// `KANBAN_BOARD_DIR` names it outright, and then it IS the answer — the folder
+// someone named is the project, board or no board. Whoever set it knew which
+// folder they meant: the app passes the one you picked (desktop/src/lib/
+// server.ts), and the npx launcher passes `--board`, or your shell's directory
+// after doing its own looking (bin/kanban-ui.mjs).
+//
+// Only the fallback searches, because only the fallback is a guess: with nothing
+// set we walk up from `process.cwd()` to the first `docs/kanban/todo/`, so `pnpm
+// dev` works from `kanban-ui/` as well as from the repo root.
+//
+// The searching used to happen here in both cases, and it was wrong in the named
+// one: a folder with no board would climb out of itself and show whatever
+// board it happened to sit under — a stray `~/docs/kanban/` made every project in
+// the home directory show that one, under its own name in the header. Files stay
+// the single source of truth: we never store the board's location anywhere else.
 let cached: string | null = null;
 
-// Where the walk up starts — the folder the user pointed us at, or the one we
-// were run from.
+// Where the search starts — the folder the user pointed us at, or the one we
+// were run from. Named in the "no board here" message either way, so it says
+// which folder was actually looked at.
 export function boardSearchStart(): string {
   return process.env.KANBAN_BOARD_DIR
     ? path.resolve(process.env.KANBAN_BOARD_DIR)
@@ -27,12 +38,21 @@ export function boardSearchStart(): string {
 // up must still be found on the next look.
 export function findRepoRoot(): string | null {
   if (cached) return cached;
-  let dir = boardSearchStart();
+  const start = boardSearchStart();
+  // Named: that folder or nothing. Unset: walk up from where we were run.
+  const found = process.env.KANBAN_BOARD_DIR ? boardAt(start) : boardAtOrAbove(start);
+  if (found) cached = found;
+  return found;
+}
+
+const boardAt = (dir: string): string | null =>
+  fs.existsSync(path.join(dir, "docs", "kanban", "todo")) ? dir : null;
+
+function boardAtOrAbove(from: string): string | null {
+  let dir = from;
   for (let i = 0; i < 8; i++) {
-    if (fs.existsSync(path.join(dir, "docs", "kanban", "todo"))) {
-      cached = dir;
-      return dir;
-    }
+    const hit = boardAt(dir);
+    if (hit) return hit;
     const parent = path.dirname(dir);
     if (parent === dir) break;
     dir = parent;

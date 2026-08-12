@@ -13,22 +13,17 @@ import fs from "node:fs";
 import path from "node:path";
 import type { ProjectInfo } from "../shared/bridge";
 
-// The same walk up the board UI does (kanban-ui/lib/paths.ts): a user may point
-// the app at a folder inside the repo, and the board is wherever
-// `docs/kanban/todo/` first turns up above it.
-const MAX_WALK_UP = 8;
-
-/** The repo root holding this folder's board, or null when there is no board at
- *  or above it. */
+/** The board in this project, or null when it has none.
+ *
+ *  The folder the user picked is the project — this looks in it and nowhere
+ *  else, which is the same answer the board server gives the folder we hand it
+ *  (kanban-ui/lib/paths.ts). The two have to agree: this side decides what the
+ *  projects list says about a folder, that side decides what the window shows,
+ *  and a list naming one project over a window showing the board from two
+ *  folders up is worse than either being wrong alone. A folder with no board is
+ *  not a dead end — the app offers to make one there. */
 export function boardRootOf(dir: string): string | null {
-  let at = dir;
-  for (let i = 0; i < MAX_WALK_UP; i++) {
-    if (fs.existsSync(path.join(at, "docs", "kanban", "todo"))) return at;
-    const parent = path.dirname(at);
-    if (parent === at) break;
-    at = parent;
-  }
-  return null;
+  return fs.existsSync(path.join(dir, "docs", "kanban", "todo")) ? dir : null;
 }
 
 function isDir(dir: string): boolean {

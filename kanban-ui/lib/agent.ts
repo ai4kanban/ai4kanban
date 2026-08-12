@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import { createCodexStreamRenderer } from "./codex-stream";
+import { createCursorStreamRenderer } from "./cursor-stream";
+import { createOpencodeStreamRenderer } from "./opencode-stream";
 import { uiConfigPath } from "./paths";
 import { missingRequired, pickedProvider, providerSetting, shownForProvider } from "./providers";
 import { readEnvFile } from "./secrets";
@@ -78,6 +80,14 @@ export interface Harness extends HarnessOption {
    *  reads what to do instead of a raw spawn error. */
   install: string;
 }
+
+// How a prompt asks for the skill on an agent with no skill syntax of its own
+// (#160). Claude Code has a slash name and Codex a `$` name; Cursor's short
+// names are documented for its chat box rather than for a headless run, and
+// OpenCode has neither — its model picks a skill itself. So these two are asked
+// in a sentence, and the path is named because a sentence alone leaves the agent
+// searching for what "the kanban skill" means.
+const SKILL_SENTENCE = "Use this repo's ai4kanban board skill (`.agents/skills/kanban/SKILL.md`)";
 
 // `claude -p` in its default text mode prints nothing until the session ends, so
 // a live tail would stay empty the whole time. Ask claude to stream NDJSON events
@@ -404,8 +414,176 @@ const CODEX: Harness = {
   install: "npm install -g @openai/codex",
 };
 
+// What every `cursor-agent` run wants, added only when the user's own `command`
+// hasn't already named it.
+//
+// `-p` is what makes it headless at all: without it the CLI opens its
+// interactive chat and a board run would sit there forever.
+//
+// `--output-format stream-json` gives the NDJSON lib/cursor-stream.ts renders.
+// In its default text mode `cursor-agent -p` prints one blob when the run ends,
+// so the live tail would stay empty the whole time and no session id would ever
+// arrive.
+//
+// `--force` lets it run its tools without stopping to ask. A headless run has
+// nobody to answer the question, and Cursor's own answer to an unanswered
+// prompt is to refuse — so without this a board run would end having changed
+// nothing. Its own docs name this flag for exactly this case. A command that
+// names `--yolo` (the same thing) or `--auto-review` has chosen its own answer
+// and nothing is added on top.
+function cursorExtraArgs(argv: string[]): string[] {
+  const extra: string[] = [];
+  if (!namesFlag(argv, ["-p", "--print"])) extra.push("-p");
+  if (!namesFlag(argv, ["--output-format"])) extra.push("--output-format", "stream-json");
+  if (!namesFlag(argv, ["-f", "--force", "--yolo", "--auto-review"])) extra.push("--force");
+  return extra;
+}
+
+const CURSOR: Harness = {
+  name: "cursor",
+  label: "Cursor",
+  icon: "/agents/cursor.svg",
+  command: "cursor-agent -p --output-format stream-json --force",
+
+  // Nothing to pin: Cursor mints its own session id and takes none from us, so
+  // the generated session id is ignored here and the id arrives on the run's
+  // first event instead (see adoptsSessionId below).
+  extraArgs(argv) {
+    return cursorExtraArgs(argv);
+  },
+
+  resumes: true,
+
+  // `cursor-agent --resume <id> "<prompt>"` sends one more turn into an existing
+  // chat. `--resume` is a flag whose value is optional — left bare it would open
+  // a picker — so the id is always passed with it.
+  resumeArgs(argv, resumeId) {
+    return [...cursorExtraArgs(argv), "--resume", resumeId];
+  },
+
+  // What Cursor takes: a model, free text for the same reason the others' are —
+  // ids change between releases and a stale list would block one the agent
+  // already runs — and one optional key. Cursor carries its reasoning level
+  // inside the model id rather than in a flag of its own
+  // (`claude-opus-4-8[effort=high]`), so there is no separate box for it.
+  settings: [
+    {
+      key: "model",
+      label: "Model",
+      kind: "text",
+      placeholder: "sonnet-4-thinking",
+      flags: ["--model"],
+      help: "Empty runs the agent's default. A wrong id fails the run; the log says why.",
+      overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names a model, and that wins.`,
+    },
+    {
+      key: "apiKey",
+      label: "Cursor API key",
+      kind: "secret",
+      env: "CURSOR_API_KEY",
+      placeholder: "key_…",
+      help: "Optional — empty uses your cursor-agent CLI's own login. Saved to docs/kanban/.env, never shown back.",
+    },
+  ],
+
+  env: () => ({ ...process.env }),
+
+  renderer: createCursorStreamRenderer,
+
+  // Cursor names its own session, so our session id is only ever the board's key
+  // for the run. The real resume id rides on every event and the registry saves
+  // it from the first one (catchResumeId).
+  adoptsSessionId: false,
+
+  // Cursor's short skill names are documented for its chat box, not for a
+  // headless run, so the prompt asks for the skill in a sentence.
+  skillCall: SKILL_SENTENCE,
+
+  // The one agent of the four that doesn't come from npm.
+  install: "curl https://cursor.com/install -fsS | bash",
+};
+
+// The one flag every `opencode run` wants, added only when the user's own
+// `command` hasn't already named it. `--format json` gives the JSONL stream
+// lib/opencode-stream.ts renders — without it OpenCode prints a transcript
+// styled for a terminal, and no session id would ever arrive.
+//
+// Nothing about permissions. Left alone OpenCode writes inside the repo and
+// refuses to touch anything outside it, which is what a board run wants, so
+// there is nothing here to widen or narrow. The flag that would (`--auto`)
+// isn't in the version people install today: passing it makes the CLI print its
+// usage and exit without running anything.
+function opencodeExtraArgs(argv: string[]): string[] {
+  return namesFlag(argv, ["--format"]) ? [] : ["--format", "json"];
+}
+
+const OPENCODE: Harness = {
+  name: "opencode",
+  label: "OpenCode",
+  icon: "/agents/opencode.svg",
+  command: "opencode run --format json",
+
+  extraArgs(argv) {
+    return opencodeExtraArgs(argv);
+  },
+
+  resumes: true,
+
+  // `opencode run --session <id> "<prompt>"` sends one more turn into an
+  // existing session.
+  resumeArgs(argv, resumeId) {
+    return [...opencodeExtraArgs(argv), "--session", resumeId];
+  },
+
+  // What OpenCode takes. A model — `provider/model`, because OpenCode reaches
+  // every provider and the name alone wouldn't say which — and the level the
+  // model thinks at.
+  //
+  // No key box. OpenCode talks to any provider and each has its own key, so one
+  // box would be the wrong key for most people. Its runs use whatever
+  // `opencode auth login` already saved.
+  settings: [
+    {
+      key: "model",
+      label: "Model",
+      kind: "text",
+      placeholder: "anthropic/claude-opus-5",
+      flags: ["--model", "-m"],
+      help: "Written as provider/model. Empty runs the agent's default. A wrong id fails the run; the log says why.",
+      overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names a model, and that wins.`,
+    },
+    // A box rather than a list, unlike Claude Code's. Its levels are Claude
+    // Code's own vocabulary and can't go stale; these are the provider's, and
+    // they differ per provider — so a list written here would be wrong for
+    // somebody's model the day it shipped.
+    {
+      key: "variant",
+      label: "Reasoning effort",
+      kind: "text",
+      placeholder: "high",
+      flags: ["--variant"],
+      help: "Your provider's own level, e.g. minimal, high, max. Empty lets the model think however it thinks.",
+      overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names a variant, and that wins.`,
+    },
+  ],
+
+  env: () => ({ ...process.env }),
+
+  renderer: createOpencodeStreamRenderer,
+
+  // OpenCode names its own session; the id rides on every event and the registry
+  // saves it from the first one (catchResumeId).
+  adoptsSessionId: false,
+
+  // OpenCode has no slash or `$` skill syntax at all — its model picks a skill
+  // itself — so the prompt asks for the skill in a sentence.
+  skillCall: SKILL_SENTENCE,
+
+  install: "curl -fsSL https://opencode.ai/install | bash",
+};
+
 /** Every harness the UI can run, in the order the dialog lists them. */
-export const HARNESSES: Harness[] = [CLAUDE_CODE, CODEX];
+export const HARNESSES: Harness[] = [CLAUDE_CODE, CODEX, CURSOR, OPENCODE];
 
 /** What runs when the config names no harness, or names one we don't know. */
 export const DEFAULT_HARNESS = CLAUDE_CODE;

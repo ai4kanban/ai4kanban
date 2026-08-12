@@ -23,7 +23,6 @@ _(none)_
 - [#154 Show what a card unblocks, so the ones holding up work go first](features/154-show-what-a-card-unblocks-so-the-ones-holding-up-work-go-fir.md)
 - [#160 Run the board with an agent beyond Claude Code and Codex](features/160-run-the-board-with-an-agent-beyond-claude-code-and-codex.md)
 - [#169 Let the board UI do its work through the CLI](features/169-let-the-board-ui-do-its-work-through-the-cli.md)
-- [#171 Make a board from the UI, with no command to type](features/171-make-a-board-from-the-ui-with-no-command-to-type.md)
 - [#172 Walk a first-time user through setup in the UI](features/172-walk-a-first-time-user-through-setup-in-the-ui.md)
 - [#173 Let the UI finish the setup steps that need an agent](features/173-let-the-ui-finish-the-setup-steps-that-need-an-agent.md)
 - [#174 Add the coding agent skill later, from a button in the UI](features/174-add-the-coding-agent-skill-later-from-a-button-in-the-ui.md)
@@ -46,6 +45,7 @@ _(none)_
 - [#167 Put every board command in one CLI](skill/167-put-every-board-command-in-one-cli.md)
 - [#168 Start, watch, stop and resume an agent run from the CLI](skill/168-start-watch-stop-and-resume-an-agent-run-from-the-cli.md)
 - [#170 Let the skill do everything the UI can](skill/170-let-the-skill-do-everything-the-ui-can.md)
+- [#186 Let a specialist agent fill the part of a spec it knows best](186-spec-agents/root.md)
 
 ## distribution
 

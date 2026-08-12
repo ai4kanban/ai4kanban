@@ -747,6 +747,8 @@ export function DesignSystem() {
                     Claude Code
                   </SelectItem>
                   <SelectItem value="codex">Codex</SelectItem>
+                  <SelectItem value="cursor">Cursor</SelectItem>
+                  <SelectItem value="opencode">OpenCode</SelectItem>
                 </SelectContent>
               </Select>
             </div>

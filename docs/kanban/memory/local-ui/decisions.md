@@ -79,8 +79,13 @@ re-ask a settled call.
 
 ## Connectors and keys
 
-- **Which agents come next?**: Cursor, OpenClaw and OpenCode, after Claude Code and Codex.
-  Anything past those four waits for users to ask for it.
+- **Which agents come next?**: Cursor and OpenCode, after Claude Code and Codex. OpenClaw
+  was dropped — it is a chat-app assistant, not a coding CLI, and its headless run prints
+  nothing until it ends and can't resume. Anything past those four waits for users to ask.
+- **What does an agent have to do to ship?**: stream its log as it works, and resume a run
+  that stopped short. An agent that only prints a summary at the end isn't offered — a
+  blank box for the whole run reads as a hang, and no Resume means a failure is unfinished
+  work the user has to redo by hand.
 - Each connector declares the settings it takes and the dialog draws them. Two shapes
   only: a box to type in, and a list to pick one from.
 - Each connector keeps its own settings block beside its name, so switching loses nothing

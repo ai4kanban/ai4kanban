@@ -12,9 +12,9 @@
 //
 // The package ships a self-contained Next server (.next/standalone/server.js,
 // output: 'standalone'), so there's nothing to compile here. The server reads
-// the board through lib/paths.ts, which walks up to the first docs/kanban/todo/
-// starting at KANBAN_BOARD_DIR. Since this process runs from the npm cache, we
-// set KANBAN_BOARD_DIR to the user's directory so the walk-up finds their repo.
+// the board out of KANBAN_BOARD_DIR and looks nowhere else (lib/paths.ts). Since
+// this process runs from the npm cache, we work out which folder that is — the
+// repo at or above where you ran us — and set it before spawning.
 
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -80,6 +80,23 @@ for (let i = 0; i < argv.length; i++) {
   }
 }
 board = path.resolve(board || process.cwd());
+
+// The walk up to the repo root lives here, not in the server: the server is
+// handed a folder and takes it at its word (lib/paths.ts), because the app hands
+// it one the user picked and must show that project or none. A terminal is the
+// one place the folder is a guess — you may be several directories inside your
+// repo — so this is where the guess is resolved, before the server is told
+// anything. A miss leaves `board` as typed, so the page names the folder you
+// meant rather than your filesystem root.
+for (let dir = board, i = 0; i < 8; i++) {
+  if (fs.existsSync(path.join(dir, "docs", "kanban", "todo"))) {
+    board = dir;
+    break;
+  }
+  const parent = path.dirname(dir);
+  if (parent === dir) break;
+  dir = parent;
+}
 
 if (!fs.existsSync(server)) {
   process.stderr.write(
