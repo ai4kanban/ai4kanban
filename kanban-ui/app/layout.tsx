@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { insetTitleBar } from "@/lib/desktop";
 import "./globals.css";
 import "./markdown.css";
 
@@ -28,9 +29,20 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // In the app on macOS the window has no title bar and this page is it — the
+  // class is what turns the gutter and the drag region on (app/globals.css).
+  const inset = insetTitleBar();
   return (
     <html lang="en">
-      <body className="font-sans antialiased">{children}</body>
+      <body className={`font-sans antialiased${inset ? " a4k-inset" : ""}`}>
+        {/* The window has to be movable from every page, including the ones
+            with no header — "there is no board here" is a whole screen with no
+            top row on it. So the strip, not the header, is what makes the top
+            of the window draggable; the header paints over it and cuts its own
+            controls back out. */}
+        {inset && <div aria-hidden className="a4k-drag-strip" />}
+        {children}
+      </body>
     </html>
   );
 }

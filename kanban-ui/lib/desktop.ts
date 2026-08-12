@@ -17,6 +17,21 @@ export function isDesktop(): boolean {
   return process.env.KANBAN_DESKTOP === "1";
 }
 
+/** Whether this page IS the window's title bar — the app on macOS, where the
+ *  window is drawn without one and the board's top row stands in for it
+ *  (desktop/src/main.ts). It buys the page a gutter for the traffic lights and
+ *  a drag region; everything it turns on lives in app/globals.css under
+ *  `.a4k-inset`.
+ *
+ *  Read on the server like the answer above, so the gutter is in the first
+ *  paint rather than shoved in afterwards — the server is the app's own
+ *  process's child on the user's own machine, so its platform is the window's.
+ *  Not on Windows or Linux: the app keeps the native frame there, since hiding
+ *  it would take the window buttons with it. */
+export function insetTitleBar(): boolean {
+  return isDesktop() && process.platform === "darwin";
+}
+
 // --- is anybody looking at this board? --------------------------------------
 //
 // In the app a project keeps its own server, and a server the user has switched

@@ -31,6 +31,7 @@ const CHANNELS: typeof Channels = {
   update: "a4k:update",
   skipUpdate: "a4k:skip-update",
   openExternal: "a4k:open-external",
+  fullscreen: "a4k:fullscreen",
 };
 
 const bridge: Ai4kanbanBridge = {
@@ -46,3 +47,18 @@ const bridge: Ai4kanbanBridge = {
 };
 
 contextBridge.exposeInMainWorld("ai4kanban", bridge);
+
+// Full screen, said as a class rather than as a call: the page's title-bar
+// gutter is CSS, and CSS is where the answer is wanted. The isolated world this
+// runs in shares the page's DOM, so the class lands on the real <html>.
+//
+// It is kept and re-applied rather than written once: main sends the state on
+// every load, but a message can arrive before the document has an element to
+// put it on.
+let fullscreen = false;
+const paint = () => document.documentElement?.classList.toggle("a4k-fullscreen", fullscreen);
+ipcRenderer.on(CHANNELS.fullscreen, (_e, on: boolean) => {
+  fullscreen = !!on;
+  paint();
+});
+window.addEventListener("DOMContentLoaded", paint);

@@ -22,6 +22,10 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     ref={ref}
+    // The scrim covers the top of the window, which in the app on macOS is the
+    // title bar and drags it. Clicking a scrim closes the sheet; it must not
+    // move the window instead (app/globals.css).
+    data-a4k-overlay
     className={cn(
       "fixed inset-0 z-50 data-[state=open]:animate-[nbFadeIn_180ms_ease] data-[state=closed]:animate-[nbFadeOut_150ms_ease]",
       className,

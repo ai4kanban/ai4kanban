@@ -36,23 +36,70 @@ export const printFrame =
 // of the mat is paint.
 //
 // `width` — for a painting composed edge to edge, where cropping it would throw
-// away the composition. `bg-hero-v1.webp` is the one: a 2.33 banner with a bloom
-// in each top corner and nothing in the middle, and `cover` on a mat half that
-// wide crops off exactly the two corners the painting is made of. This lays the
-// full width across the top and lets its own paper carry the rest.
+// away the composition: a 2.33 banner with a bloom in each top corner and
+// nothing in the middle, where `cover` on a mat half that wide crops off exactly
+// the two corners the painting is made of. This lays the full width across the
+// top and lets its own paper carry the rest. It is the shape the hero's wash is
+// still composed to, now that the wash is painted rather than downloaded.
 type Fit = "cover" | "width";
+
+// The hero's ground, as CSS: the same composition `PixelWash.tsx` paints — a
+// wash off the top-right corner and one off the bottom-left, white between them
+// — drawn with two radial gradients. This is not a placeholder in the
+// loading-spinner sense; it is the mat's real ground. It ships inline in the
+// static HTML, needs no network and no script, and is what stands if JS never
+// runs. The canvas fades in over it and paints the same picture, moving.
+//
+// The white is the page's paper, `--color-elev`, named as the token rather than
+// typed as a hex — but `PixelWash.tsx` has to hardcode its RGB to build a
+// palette, so the two are coupled: change the token and change it there too, or
+// the canvas fades in against a ground a shade off its own and the crossfade
+// shows a seam.
+//
+// The radii are percentages of the mat's box where the canvas works in mat
+// widths, so the two drift apart on a very tall mat. That is acceptable for the
+// fraction of a second before the canvas lands — matching them exactly would
+// mean expressing a height as a share of a width, which CSS gradients cannot do.
+const BLOOMS = [
+  "radial-gradient(40% 36% at 98% -4%, rgba(47,127,245,0.54), rgba(47,127,245,0) 72%)",
+  "radial-gradient(42% 38% at 2% 104%, rgba(47,127,245,0.54), rgba(47,127,245,0) 72%)",
+].join(",");
+
+// Either a painting is laid on the mat (`src`) or one is painted onto it
+// (`paint` — a layer this mounts behind the print). Never both: they are two
+// ways to draw the same ground.
+type MatProps = {
+  className?: string;
+  children: ReactNode;
+} & (
+  | { src: string; fit?: Fit; paint?: never }
+  | { src?: never; fit?: never; paint: ReactNode }
+);
 
 export function Mat({
   src,
   fit = "cover",
   className = "",
+  paint,
   children,
-}: {
-  src: string;
-  fit?: Fit;
-  className?: string;
-  children: ReactNode;
-}) {
+}: MatProps) {
+  if (paint) {
+    return (
+      <div
+        className={`relative overflow-hidden rounded-xl ${className}`}
+        style={{
+          backgroundColor: "var(--color-elev)",
+          backgroundImage: BLOOMS,
+        }}
+      >
+        {paint}
+        {/* The print sits above the ground, and owns a stacking context of its
+            own so the canvas can never draw over a screenshot. */}
+        <div className="relative">{children}</div>
+      </div>
+    );
+  }
+
   const wide = fit === "width";
   return (
     <div

@@ -1,16 +1,10 @@
 import { Button } from "../ui/Button";
 import { GITHUB_URL } from "../content";
 import { HeroShots } from "./HeroShots";
+import { HeroWash } from "./HeroWash";
 import { Mat } from "./Mat";
-import { CDN } from "@/lib/site";
 import { heroTop } from "../styles";
 import type { HomeCopy } from "@/i18n/home/types";
-
-// The watercolour the hero is mounted on — the same paper and the same azure as
-// the mats in `Loop.tsx` and `Memory.tsx`, so the page opens in the palette it
-// goes on to use, and opens with the same gesture it repeats twice below: a
-// print laid on a painted ground.
-const BANNER = `${CDN}/bg-hero-v1.webp`;
 
 // The hero reads top to bottom: the sentence, then the thing it is about. Side
 // by side, the headline and the screenshot deck were each given half a row and
@@ -50,22 +44,17 @@ export function Hero({ c }: { c: HomeCopy["hero"] }) {
 
       {/* Same mount as every other picture on this page: a bare watercolour
           ground, the print laid on it with a soft shadow, and no outline around
-          either.
-
-          `fit="width"` because this painting is the wide banner and its whole
-          composition is the bloom in each top corner — cropped to fill a mat
-          this shape, both corners land outside the frame and what is left is
-          the blank middle. See `Mat.tsx`.
+          either. The three mats below carry a painting from the CDN; this one
+          is painted in the page — a wash off the top-right corner and one off
+          the bottom-left, the page's own white between them, drawn as pixels
+          and breathing. See `PixelWash.tsx` for the picture and `HeroWash.tsx`
+          for why it is nowhere near the first paint.
 
           The margin of paint is wider than `Loop.tsx`'s, because the print is:
           a border reads as a proportion of what it surrounds, and the 24px that
           frames a 464px drawing is a hairline around a print three times that
           wide. */}
-      <Mat
-        src={BANNER}
-        fit="width"
-        className="mt-14 p-4 sm:mt-16 sm:p-8 lg:p-10"
-      >
+      <Mat paint={<HeroWash />} className="mt-14 p-4 sm:mt-16 sm:p-8 lg:p-10">
         <HeroShots c={c.shots} />
       </Mat>
     </section>

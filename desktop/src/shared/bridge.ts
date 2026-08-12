@@ -54,6 +54,12 @@ export const CHANNELS = {
   update: "a4k:update",
   skipUpdate: "a4k:skip-update",
   openExternal: "a4k:open-external",
+  /** The one channel that runs the other way: main tells the page whether the
+   *  window is full screen, because the page holds a gutter for the traffic
+   *  lights and full screen has none. Nothing is asked for and nothing comes
+   *  back, so it isn't on the bridge below — preload puts the answer straight on
+   *  <html> as a class. */
+  fullscreen: "a4k:fullscreen",
 } as const;
 
 /**

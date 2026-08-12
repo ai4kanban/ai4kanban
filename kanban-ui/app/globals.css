@@ -243,3 +243,62 @@ body {
     transform: translateX(100%);
   }
 }
+
+/* ============================================================================
+   The window's own title bar — the app on macOS only.
+   ==========================================================================
+
+   The app draws its window without a title bar and lets this page be one
+   (desktop/src/main.ts): the traffic lights sit inside the board's top row, the
+   way an editor's do, instead of on a 28px strip above it that would repeat
+   what the row already says. `body.a4k-inset` is set on the server when that is
+   what we are (lib/desktop.ts), so it is true in the first paint. In a browser
+   none of this exists and every rule below is dead.
+
+   Two things follow. The row has to be given room it doesn't need in a browser —
+   the option picked at /design/header, "room only": the stickers are left
+   exactly as they are and the crowding is answered with space. And the window
+   has to be movable by that row, which in CSS means saying which parts of the
+   page are the title bar (`drag`) and which are things you press (`no-drag`): a
+   drag region swallows the click rather than passing it on. */
+.a4k-drag-strip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* The header's own height: 7 above + a 28px control + 8 below. */
+  height: 43px;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+body.a4k-inset header[data-titlebar] {
+  /* The third traffic light ends at 66px. 96 puts the mark a clear 30px past it
+     — the lights read as the system's and the mark as the board's, rather than
+     as one run of four buttons. */
+  padding-left: 96px;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+/* And the controls on the right get 12px between them instead of 8. Each one
+   carries a 2px hard shadow, so at 8px the gap between two stickers is nearer 6
+   — enough on a page, not enough in a title bar. */
+body.a4k-inset header[data-titlebar] [data-controls] {
+  gap: 12px;
+}
+/* Full screen has no traffic lights, so it gets no gutter — the app says which
+   it is on <html> (desktop/src/preload.ts). */
+html.a4k-fullscreen body.a4k-inset header[data-titlebar] {
+  padding-left: 12px;
+}
+/* Anything pressable in the top 43px, said once. Drag regions are worked out in
+   paint order and only a `no-drag` takes one back, so a dialog or a menu
+   painted OVER the strip is still inside it until it says otherwise — the
+   click would move the window instead of reaching the button. */
+.a4k-nodrag,
+.nb-scrim,
+[role="dialog"],
+[data-a4k-overlay],
+[data-radix-popper-content-wrapper] {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}

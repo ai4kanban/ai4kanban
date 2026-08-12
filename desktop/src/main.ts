@@ -78,6 +78,20 @@ async function start(): Promise<void> {
   await open(repo);
 }
 
+// On macOS the window has no title bar of its own: the board's own top row is
+// the title bar, the way an editor's is. The row is 43px and already holds the
+// board's identity on the left, so a separate 28px bar above it would say the
+// same thing twice and cost a line of the board. The traffic lights are put
+// where that row's controls sit — vertically centred against the 28px boxes —
+// and the page leaves them a gutter (`a4k-inset` in kanban-ui/app/globals.css),
+// which is the one thing the two ends have to agree on.
+//
+// macOS only. `hidden` keeps the traffic lights there and takes the bar away;
+// on Windows and Linux the same option takes the minimise/maximise/close
+// buttons with it, and the board's top row is full of its own controls on the
+// right with nowhere to put them back. Those systems keep the native frame.
+const MAC = process.platform === "darwin";
+
 function createWindow(): void {
   win = new BrowserWindow({
     width: 1280,
@@ -87,6 +101,7 @@ function createWindow(): void {
     show: false,
     backgroundColor: "#faf6ef", // the board's own cream, so the first paint doesn't flash white
     title: "AI4Kanban",
+    ...(MAC ? { titleBarStyle: "hidden" as const, trafficLightPosition: { x: 14, y: 14 } } : {}),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -97,6 +112,17 @@ function createWindow(): void {
   win.on("closed", () => {
     win = null;
   });
+  // Full screen takes the traffic lights away, and the gutter held for them
+  // would be 78px of nothing. The page is told either way it changes, and again
+  // on every load — loading another project's board is a whole new page, which
+  // starts out knowing nothing about the window it landed in.
+  if (MAC) {
+    const w = win;
+    const tell = () => w.webContents.send(CHANNELS.fullscreen, w.isFullScreen());
+    w.on("enter-full-screen", tell);
+    w.on("leave-full-screen", tell);
+    w.webContents.on("did-finish-load", tell);
+  }
   // A link out of the board — the download page, a doc — opens in the user's
   // browser. Nothing navigates this window away from the board.
   win.webContents.setWindowOpenHandler(({ url }) => {

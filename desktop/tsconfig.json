@@ -8,9 +8,11 @@
   //   - rootDir/outDir mirror src/ into out/ one-for-one. lib/resources.ts
   //     walks up from __dirname to find the app folder when run from source,
   //     and that walk counts on this layout.
+  //   - lib includes DOM. Not for the main process, which has no document —
+  //     for preload.ts, which runs in the page and touches one.
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM"],
     "module": "CommonJS",
     "moduleResolution": "Node",
     "types": ["node"],

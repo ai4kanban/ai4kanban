@@ -139,17 +139,26 @@ export function Header({
   desktop?: boolean;
 }) {
   return (
-    <header className="flex shrink-0 items-center gap-2 px-3 pb-2 pt-[7px]">
+    // `data-titlebar` is what the app on macOS hangs the window's own title bar
+    // off (app/globals.css): the window is drawn without one, so this row is it
+    // — the left gets a gutter for the traffic lights, and the row itself
+    // becomes the part of the window you drag it by. Everything pressable in it
+    // is marked `a4k-nodrag`, since a drag region takes the click. Elsewhere the
+    // attribute means nothing.
+    <header data-titlebar className="flex shrink-0 items-center gap-2 px-3 pb-2 pt-[7px]">
       <div className="flex min-w-0 flex-1 items-center gap-2">
         {/* The mark is the way to the board on a window too narrow for the rail;
             where the rail is up, All cards is the row that leads here and this
             is simply which product you are in. */}
-        <Link href="/" title="All cards" aria-label="All cards">
+        <Link href="/" title="All cards" aria-label="All cards" className="a4k-nodrag">
           <LogoMark className="size-[22px] rounded-[6px]" />
         </Link>
         <ProjectPath projectRoot={projectRoot} desktop={desktop} />
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      {/* `data-controls`: in the app's title bar these are given 12px between
+          them rather than 8, since a row of hard shadows needs more air beside
+          the traffic lights than it does on a page. */}
+      <div data-controls className="a4k-nodrag flex shrink-0 items-center gap-2">
         <Goal written={goalWritten} />
         {onReleaseChange && onCreateRelease && onPlanRelease && onDropRelease && onCloseRelease && onSetReleaseGoal && (
           <ReleasePicker

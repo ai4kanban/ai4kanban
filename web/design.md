@@ -101,6 +101,25 @@ on pigment — the hero's headline is on the page ground above the mat, not on i
 also the one place the site's hard ink shadow is wrong: a print on a mount casts a real one,
 so blocks inside a mat take `printFrame` instead.
 
+**Three of those mats carry a painting; the hero's is painted.** `components/home/PixelWash.tsx`
+draws the hero's ground on a canvas instead of downloading `bg-hero-v1.webp`, and draws a
+different picture: a diagonal, one azure wash off the top-right corner and one off the
+bottom-left, white through the middle where the print sits. It is sampled on a coarse grid
+and resolved to six tones of white-mixed-toward-azure, so it reads as pixels rather than as a
+gradient, and it breathes on a forty-second clock. **Six tones are a wash and not six flat
+layers only because of the ordered dither and the value noise** — the dither weaves each tone
+into the next instead of filling a band, and the noise pushes the contours off perfect
+ellipses. Round the field to the nearest step instead and the mat goes back to looking like a
+posterised gradient, which is what it looked like before both were there. Its white is `--color-elev`, the paper —
+this is the one mat whose ground the page draws itself, so it takes the site's own white
+rather than the warm off-white the three painted mats were sampled from. Three things
+keep it off the critical path, and a change that breaks any one of them is a change to the
+page's LCP: the mat's ground is a CSS gradient in the static HTML and stands on its own with
+no JS (`Mat.tsx`'s `paint` prop), the canvas is a separate chunk that is not requested until
+the browser goes idle (`HeroWash.tsx`), and it is `absolute inset-0`, so it costs no layout
+either way. Don't add an animation library to it — the whole thing is two sines and a
+`fillRect`, and a tween engine would be a download to compute them.
+
 One thing breaks the page's `max-w-5xl` column and runs the full width of the viewport:
 
 - **The site footer**, the one dark block: the palette inverted rather than a new color —
@@ -118,8 +137,9 @@ hairline in `HkDiagrams.tsx` and the linework in `RecipeArt.tsx`. Both are comme
 where they are declared.
 
 **Motion is for a diagram, and it carries that diagram's sentence.** Outside the hover
-lift, animation moves one thing along the path the picture is arguing about — never a part
-at a time. A drawing animated part by part is twenty things twitching and nothing to read,
+lift and the hero's wash — which is weather on a mat, not a drawing making an argument, and
+is the only ambient motion on the site — animation moves one thing along the path the
+picture is arguing about — never a part at a time. A drawing animated part by part is twenty things twitching and nothing to read,
 so if a part moves it is because the signal is there *now*. Give every rule one period and
 let each part differ only in its delay: no part owns a clock, so no part can drift out of
 order.

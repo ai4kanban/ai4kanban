@@ -90,8 +90,12 @@ function openLink(url: string) {
 // Two pixels shorter than the controls on the other side of the row: it is the
 // one thing in the header that is read rather than pressed, and a step behind
 // them is enough to say so without breaking the row.
+// `a4k-nodrag`: in the app on macOS the header is the window's title bar, so a
+// badge that is a button — the projects list — has to say it isn't the part you
+// drag the window by (app/globals.css). Harmless on the plain label and in a
+// browser.
 const BADGE =
-  "hidden h-[26px] min-w-0 items-center gap-1.5 rounded-full px-2.5 font-mono text-[11px] text-nb-ink-soft sm:flex";
+  "a4k-nodrag hidden h-[26px] min-w-0 items-center gap-1.5 rounded-full px-2.5 font-mono text-[11px] text-nb-ink-soft sm:flex";
 const BADGE_STYLE = {
   background: "color-mix(in srgb, var(--color-nb-ink) 5%, transparent)",
   border: "1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent)",
