@@ -5,8 +5,8 @@ priority: high
 roi: high
 status: ready
 release: 0.6.0
-blocked_by: [167]
-related: [160]
+blocked_by: [192]
+related: [160, 167]
 modules: [skill, local-ui]
 questions: []
 ---

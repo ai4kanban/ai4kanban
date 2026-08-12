@@ -20,7 +20,7 @@ import {
   TrackChip,
 } from "@/components/chips";
 import { Dialog } from "@/components/Dialog";
-import { LogoMark } from "@/components/Logo";
+import { Logo, LogoMark } from "@/components/Logo";
 import {
   Select,
   SelectContent,
@@ -405,11 +405,12 @@ export function DesignSystem() {
             ))}
           </div>
           <div className="mt-6">
-            <Label>in the header, where it sits with the name</Label>
-            <span className="inline-flex items-center gap-2 text-[17px] font-[800] tracking-[-0.02em]">
-              <LogoMark />
-              AI4Kanban
-            </span>
+            <Label>the lockup, at its three scales</Label>
+            <div className="flex flex-wrap items-center gap-6">
+              <Logo size="sm" />
+              <Logo size="md" />
+              <Logo size="lg" />
+            </div>
           </div>
           <p className="mt-4 max-w-3xl text-[12.5px] leading-relaxed text-nb-ink-soft">
             The tab icon in app/layout.tsx is the same three columns as a data URI —

@@ -15,8 +15,10 @@ re-ask a settled call.
   goal is the one file the UI writes.
 - A run never commits. Its changes stay in the working tree and the user reads `git diff`
   and commits. No branches, no worktrees, no pull requests.
-- Setup from the UI asks the user nothing — not the tracks, not the project name, not the
-  description. The agent reads the repo and proposes them.
+- Setup runs in the UI, as a guided first run that asks the user what only they know — the
+  project, its tracks, the goal, and which agent does the work. Defaults are offered so it
+  can be pressed through. The steps that read the repo and think run after it. This
+  replaces the older call that setup asked the user nothing.
 
 ## How the board is run
 
@@ -35,6 +37,9 @@ re-ask a settled call.
   so the app ships unsigned on all three systems and the download page says what to click
   past each warning. Signing lands in a later release. Nothing a paid account gates is ever
   a reason to delay shipping.
+- **Where the board's rules live?**: in the command, not in the UI. The UI keeps its buttons
+  and panels and drives its runs through the command, instead of holding a second copy of
+  how a card is written and how a run is started.
 
 ## Propose and add-task
 

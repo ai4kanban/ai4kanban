@@ -22,7 +22,6 @@ _(none)_
 - [#140 Schedule a blocked card so it starts the moment its blocker is done](features/140-schedule-a-blocked-card-so-it-starts-the-moment-its-blocker.md)
 - [#154 Show what a card unblocks, so the ones holding up work go first](features/154-show-what-a-card-unblocks-so-the-ones-holding-up-work-go-fir.md)
 - [#160 Run the board with an agent beyond Claude Code and Codex](features/160-run-the-board-with-an-agent-beyond-claude-code-and-codex.md)
-- [#169 Let the board UI do its work through the CLI](features/169-let-the-board-ui-do-its-work-through-the-cli.md)
 - [#172 Walk a first-time user through setup in the UI](features/172-walk-a-first-time-user-through-setup-in-the-ui.md)
 - [#173 Let the UI finish the setup steps that need an agent](features/173-let-the-ui-finish-the-setup-steps-that-need-an-agent.md)
 - [#174 Add the coding agent skill later, from a button in the UI](features/174-add-the-coding-agent-skill-later-from-a-button-in-the-ui.md)
@@ -42,10 +41,8 @@ _(none)_
 - [#156 Two runs writing cards at once must not clobber the board](skill/156-two-runs-writing-cards-at-once-must-not-clobber-the-board.md)
 - [#157 Turn a spec you already wrote into the cards that build it](skill/157-turn-a-spec-you-already-wrote-into-the-cards-that-build-it.md)
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
-- [#167 Put every board command in one CLI](skill/167-put-every-board-command-in-one-cli.md)
-- [#168 Start, watch, stop and resume an agent run from the CLI](skill/168-start-watch-stop-and-resume-an-agent-run-from-the-cli.md)
-- [#170 Let the skill do everything the UI can](skill/170-let-the-skill-do-everything-the-ui-can.md)
 - [#186 Let a specialist agent fill the part of a spec it knows best](186-spec-agents/root.md)
+- [#167 Make akb the one way to run the board](167-akb-cli/root.md)
 
 ## distribution
 
@@ -53,6 +50,7 @@ _(none)_
 - [#177 Make the board UI the way in, in the README and on the site](distribution/177-make-the-board-ui-the-way-in-in-the-readme-and-on-the-site.md)
 - [#184 Mark the npm board UI deprecated on the registry](distribution/184-deprecate-the-npm-board-ui.md)
 - [#185 Teach opening and switching projects where the app is](distribution/185-teach-opening-and-switching-projects-where-the-app-is.md)
+- [#202 Test whether the board changes what a coding agent builds](202-board-vs-no-board/root.md)
 
 ## 77-memory-in-the-ui/features
 
@@ -70,3 +68,10 @@ _(none)_
 ## recurring
 
 - [#181 Competitor analysis loop](recurring/181-competitor-analysis-loop.md)
+
+## 202-board-vs-no-board/distribution
+
+- [#203 Write 20 test requests and say what a pass looks like](202-board-vs-no-board/distribution/203-test-requests.md)
+- [#204 Run each test request twice — once with the board, once without](202-board-vs-no-board/distribution/204-run-both-ways.md)
+- [#205 Score the runs and keep the whole record in the repo](202-board-vs-no-board/distribution/205-score-and-record.md)
+- [#206 Show the result on the site and in the README](202-board-vs-no-board/distribution/206-publish-the-result.md)

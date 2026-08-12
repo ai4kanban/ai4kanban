@@ -398,11 +398,19 @@ function Close({ title, onClick }: { title: string; onClick: () => void }) {
 /** In the app, the way out of the "no board here" screen is a button: pick
  *  another folder. In a browser it is a command to run, which is what the screen
  *  already says. Returns null outside the app so that screen keeps its own
- *  wording untouched. */
+ *  wording untouched.
+ *
+ *  Sized to fill its card on that screen (components/NoBoard.tsx), which is the
+ *  only place either of these two is used. */
 export function PickAnotherProject({ desktop }: { desktop: boolean }) {
   if (!desktop) return null;
   return (
-    <Button variant="ghost" className="mt-4" onClick={() => void bridge()?.pickRepo()}>
+    <Button
+      variant="ghost"
+      size="sm"
+      className="w-full"
+      onClick={() => void bridge()?.pickRepo()}
+    >
       <FiFolder size={14} /> Open another project…
     </Button>
   );
@@ -420,8 +428,10 @@ export function MakeBoardHere({ desktop }: { desktop: boolean }) {
   const [error, setError] = useState<string | null>(null);
   if (!desktop) return null;
   return (
-    <div className="mt-4">
+    <div>
       <Button
+        size="sm"
+        className="w-full"
         disabled={busy}
         onClick={() => {
           setBusy(true);
@@ -446,7 +456,7 @@ export function MakeBoardHere({ desktop }: { desktop: boolean }) {
         <FiFolderPlus size={14} /> {busy ? "Making the board…" : "Make a board here"}
       </Button>
       {error && (
-        <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-[8px] border-[1.5px] border-nb-ink bg-nb-peach-soft px-3 py-2 text-[12px] leading-relaxed text-nb-ink">
+        <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-[8px] border-[1.5px] border-nb-ink bg-nb-peach-soft px-2.5 py-1.5 text-[11.5px] leading-relaxed text-nb-ink">
           {error}
         </pre>
       )}

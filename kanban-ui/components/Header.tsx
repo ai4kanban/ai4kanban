@@ -151,7 +151,7 @@ export function Header({
             where the rail is up, All cards is the row that leads here and this
             is simply which product you are in. */}
         <Link href="/" title="All cards" aria-label="All cards" className="a4k-nodrag">
-          <LogoMark className="size-[22px] rounded-[6px]" />
+          <LogoMark />
         </Link>
         <ProjectPath projectRoot={projectRoot} desktop={desktop} />
       </div>

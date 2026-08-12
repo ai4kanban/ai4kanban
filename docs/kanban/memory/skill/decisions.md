@@ -110,6 +110,19 @@ re-ask a settled call.
   `.claude/skills/kanban/` and `.agents/skills/kanban/`. The skill names no agent's folder
   in its own instructions, so it also runs from wherever another installer put it.
 
+## The command
+
+- One command owns every board and agent action, and the skill shrinks to a short note
+  pointing at it. The UI drives its runs through the same command, so there is one
+  implementation of every move rather than one per surface.
+- What we teach a person is the actions the UI's buttons stand for — implement, refine,
+  propose, archive. The board's own bookkeeping stays a command the agent calls and stays
+  out of the README: nobody wants to type "set card 12's priority to high".
+- The flows ship with the command instead of being copied into a project, so a fixed flow
+  reaches every project on upgrade rather than on re-install.
+- The command prints a flow on request, for an agent already working — filled in for the
+  board it was asked about, rather than read from a generic page.
+
 ## Storage
 
 - The GitHub Projects backend is wanted but parked — nothing is built until we pick it up.

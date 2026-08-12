@@ -42,6 +42,16 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   update 12`)** → ✅ the day-to-day command is short (`akb`) and the long name stays as a
   second name for it. Before teaching `npx <short name>`, check the short name on npm —
   `akb` is already someone else's package.
+- ❌ **Publish the board's bookkeeping verbs as the command a person types** → ✅ publish the
+  actions the UI's buttons stand for, and keep the bookkeeping as something the agent calls.
+  A published verb is a contract forever, and one that changes nothing a user sees earns
+  only documentation debt.
+- ❌ **Let a word mean a bookkeeping move at one layer and an agent run at another** → ✅ one
+  meaning per word. Archive, create and reject are agent runs that end in bookkeeping; the
+  bare move gets a different name.
+- ❌ **Ship the flows as reference pages copied into each project** → ✅ the command prints
+  the flow for the board it was asked about, so it can name that project's own tracks,
+  paths and memory files instead of describing them generically.
 
 ## The goal
 
