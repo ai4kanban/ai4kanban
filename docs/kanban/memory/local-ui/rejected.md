@@ -15,8 +15,7 @@ before proposing so you don't re-suggest them.
   archived card is a plain file next to the board; anyone can read it in their editor.
 - **Switching between projects from the browser UI** — a server serves the board it was
   started in, so a second board means a second server. This does not apply to the desktop
-  app: an app with no terminal has to open and switch folders itself, and the user asked
-  for it (#178).
+  app: an app with no terminal has to open and switch folders itself, and it ships there.
 - **Open-questions notification center in the header** — no clear incentive to build it;
   open questions already show on the card. Worth revisiting if the board ever grows a
   human-in-the-loop center.

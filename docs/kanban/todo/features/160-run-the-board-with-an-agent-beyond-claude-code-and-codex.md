@@ -8,14 +8,7 @@ release: 0.6.0
 blocked_by: []
 related: []
 modules: [local-ui]
-questions:
-  - question: "[user] OpenClaw turns out to be a personal assistant that lives in your chat apps, not a coding CLI. Its headless command prints nothing until the run ends and cannot resume — so a board run on it shows a blank log until it finishes, and never offers Resume. Keep it?"
-    mode: single
-    options:
-      - Drop OpenClaw and ship Cursor and OpenCode — save the third slot for an agent someone asks for
-      - Keep it, and accept the blank log and the missing Resume button
-      - Keep it, but only once its exec command can stream and resume
-    recommend: [1]
+questions: []
 ---
 
 The board can only run work through Claude Code or Codex. Someone who works in Cursor,

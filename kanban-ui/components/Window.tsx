@@ -17,7 +17,9 @@
 // See app/design/layouts for the mockup this is drawn from.
 
 import { useOpenCards } from "@/lib/open-cards";
+import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
 import { Rail } from "./Rail";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 
 export function Window({
   /** The top row — <Header>, built by the page so it can hand it the board-only
@@ -42,16 +44,37 @@ export function Window({
   children: React.ReactNode;
 }) {
   const { rows, close } = useOpenCards(projectRoot, openIds, currentId, currentTitle);
+  const { panel, onLayoutChanged, onDoubleClick } = useRailWidth();
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-nb-cream">
       {header}
-      <div className="flex min-h-0 flex-1">
-        <Rail rows={rows} activeId={currentId} total={openIds.length} onClose={close} />
-        {/* Without the rail (under `md`) the body still keeps the gutter, so the
-            paper sits inside the window rather than against it. */}
-        <div className="min-w-0 flex-1 pl-4 md:pl-2">
-          <div className="h-full overflow-hidden rounded-tl-[14px] bg-nb-paper">{children}</div>
-        </div>
+      {/* The rail and the body are a panel group so the rail can be dragged
+          wider — a title is the only thing a row has to say, and how much of one
+          fits is a judgement about the cards you happen to have open, not one we
+          can make for you once at 216px. `preserve-pixel-size` keeps that
+          judgement: widening the window gives the new room to the body, and the
+          rail stays the width you left it. */}
+      <div className="min-h-0 flex-1">
+        <ResizablePanelGroup orientation="horizontal" onLayoutChanged={onLayoutChanged}>
+          <ResizablePanel
+            id="rail"
+            panelRef={panel}
+            defaultSize={RAIL_W}
+            minSize={RAIL_MIN}
+            maxSize={RAIL_MAX}
+            groupResizeBehavior="preserve-pixel-size"
+          >
+            <Rail rows={rows} activeId={currentId} total={openIds.length} onClose={close} />
+          </ResizablePanel>
+          <ResizableHandle aria-label="Resize the rail" onDoubleClick={onDoubleClick} />
+          {/* Without the rail (under `md`) the body still keeps the gutter, so the
+              paper sits inside the window rather than against it. With it, the
+              gutter is shared with the handle and the rail's own padding, and
+              still comes to the same 12px of cream. */}
+          <ResizablePanel id="body" className="pl-4 md:pl-1" style={{ overflow: "hidden" }}>
+            <div className="h-full overflow-hidden rounded-tl-[14px] bg-nb-paper">{children}</div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );

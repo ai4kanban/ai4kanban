@@ -11,18 +11,18 @@
 // The rail has no surface of its own. It sits on the window's cream with the top
 // row, so the two read as one L-shaped chrome rather than as two regions that
 // each need an edge drawn to say where they stop.
+//
+// It doesn't own its width or its scrolling: it is the contents of a panel the
+// window makes resizable (components/Window.tsx, lib/rail-width.ts), and that
+// panel is also what drops the rail under `md` — at phone width it would take
+// most of the window, and a browser there has the back button the desktop window
+// doesn't. Rows are only kept tall enough to be aimed at with a trackpad.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FiColumns, FiX } from "react-icons/fi";
 import type { OpenCard } from "@/lib/open-cards";
 import { HAIRLINE } from "./chrome";
-
-// Wide enough that a title says something before it truncates, and rows tall
-// enough to be aimed at with a trackpad. Under `md` the rail is gone: at phone
-// width it would take most of the window, and a browser there has the back
-// button the desktop window doesn't.
-const RAIL_W = 216;
 
 export function Rail({
   rows,
@@ -52,11 +52,7 @@ export function Rail({
   };
 
   return (
-    <nav
-      className="hidden shrink-0 flex-col gap-0.5 overflow-y-auto py-2 pl-3 pr-1 md:flex"
-      style={{ width: RAIL_W }}
-      aria-label="Open cards"
-    >
+    <nav className="flex flex-col gap-0.5 py-2 pl-3 pr-1" aria-label="Open cards">
       <RailRow href="/" label="All cards" active={activeId === null} count={total} />
       {rows.length > 0 && <RailLabel text="Open cards" count={rows.length} />}
       {rows.map((card) => (

@@ -245,6 +245,23 @@ body {
 }
 
 /* ============================================================================
+   The rail, under `md`.
+   ==========================================================================
+
+   It goes, and the divider that drags it goes with it: at phone width a rail
+   takes most of the window, and a browser there has the back button the desktop
+   window doesn't (components/Rail.tsx). This is said here rather than as a class
+   on the rail because the rail is a resizable panel now, and a panel group sizes
+   and lays out its panels with inline styles — `display` has to be able to reach
+   past them. */
+@media (width < 48rem) {
+  #rail,
+  #rail + [data-separator] {
+    display: none !important;
+  }
+}
+
+/* ============================================================================
    The window's own title bar — the app on macOS only.
    ==========================================================================
 
@@ -272,6 +289,13 @@ body {
   app-region: drag;
 }
 body.a4k-inset header[data-titlebar] {
+  /* Above the strip, and it has to be said: the strip is `fixed` and the row is
+     an ordinary flex child, and a positioned box paints over a static one
+     however far down the page it sits. Left alone the strip covers the row —
+     every control under a drag region, which takes the press to move the window
+     instead of passing it on, so nothing in the row can be clicked. */
+  position: relative;
+  z-index: 1;
   /* The third traffic light ends at 66px. 96 puts the mark a clear 30px past it
      — the lights read as the system's and the mark as the board's, rather than
      as one run of four buttons. */

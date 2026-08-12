@@ -10,6 +10,11 @@ except where another doc is named.
   install first, it picks the repo on first launch and reopens there, finds your coding
   agent, and says when a newer version is out. macOS, Windows and Linux all ship unsigned
   and the download page says how to get past each system's warning.
+- Open any project from the app: **Open Folder** picks a folder on the machine, the
+  projects opened before are a click away, and a folder with no board starts onboarding
+  there. One project is open at a time — switching reloads the whole board and the window
+  says which project it is. A run keeps going in the project it started in, and the list
+  marks the projects that have one running.
 - Run the board from a browser with `npx ai4kanban-ui`: `skill/references/local-ui.md`.
   Deprecated the day the app shipped — it keeps working, but the app is the way in.
 - Started where there is no board, the page says so, names the folder it searched, and

@@ -28,7 +28,6 @@ _(none)_
 - [#173 Let the UI finish the setup steps that need an agent](features/173-let-the-ui-finish-the-setup-steps-that-need-an-agent.md)
 - [#174 Add the coding agent skill later, from a button in the UI](features/174-add-the-coding-agent-skill-later-from-a-button-in-the-ui.md)
 - [#176 Answer the board's questions from your phone](features/176-answer-the-board-s-questions-from-your-phone.md)
-- [#178 Open and switch projects from the app, the way an IDE does](features/178-open-and-switch-projects-from-the-app-the-way-an-ide-does.md)
 - [#179 Show a failed run on the card it was working on](features/179-show-a-failed-run-on-the-card-it-was-working-on.md)
 - [#182 Sign the Mac build so it opens with no warning](features/182-sign-the-mac-build-so-it-opens-with-no-warning.md)
 - [#183 Install the Mac app with one Homebrew command](features/183-install-the-mac-app-with-one-homebrew-command.md)
@@ -53,6 +52,7 @@ _(none)_
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#177 Make the board UI the way in, in the README and on the site](distribution/177-make-the-board-ui-the-way-in-in-the-readme-and-on-the-site.md)
 - [#184 Mark the npm board UI deprecated on the registry](distribution/184-deprecate-the-npm-board-ui.md)
+- [#185 Teach opening and switching projects where the app is](distribution/185-teach-opening-and-switching-projects-where-the-app-is.md)
 
 ## 77-memory-in-the-ui/features
 
