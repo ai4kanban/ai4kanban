@@ -1,0 +1,18 @@
+{
+  // Typechecking only — esbuild does the building (scripts/build.mjs). Imports are written
+  // without an extension, which "bundler" resolution allows and the bundler resolves.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true
+  },
+  "include": ["src"]
+}

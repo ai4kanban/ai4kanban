@@ -16,7 +16,14 @@ import { BulkReleaseBar } from "./BulkReleaseBar";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
-import { SetupBar } from "./SetupBar";
+import {
+  GoalNotice,
+  leftSetup,
+  needsFirstRun,
+  SetupFlow,
+  SetupNotice,
+  setupHasQuestionsLeft,
+} from "./Setup";
 import { QueueView } from "./Queue";
 import { Window } from "./Window";
 import { SessionLogOverlay } from "./agent-shared";
@@ -27,8 +34,6 @@ export function BoardView({
   initialError,
   agent,
   projectRoot,
-  autoRefine,
-  autoRefineParallelism,
   setupInstruction,
   desktop,
 }: {
@@ -36,10 +41,8 @@ export function BoardView({
   initialError: string | null;
   agent: AgentInfo;
   projectRoot: string;
-  autoRefine: boolean;
-  autoRefineParallelism: number;
-  /** The line the setup bar hands over for the coding harness. It comes from the
-   *  server (lib/agent.ts reads the filesystem, which a client can't import). */
+  /** The line a coding agent is handed to finish setup. It comes from the server
+   *  (lib/agent.ts reads the filesystem, which a client can't import). */
   setupInstruction: string;
   /** Whether this board is running inside the desktop app (#175). Read on the
    *  server so the first paint is already right. */
@@ -47,6 +50,33 @@ export function BoardView({
 }) {
   const [board, setBoard] = useState<Board | null>(initialBoard);
   const [error, setError] = useState<string | null>(initialError);
+  // Has the user stepped out of the guided first run to look at the board (#172)?
+  // `null` until the browser has been asked — sessionStorage doesn't exist during
+  // SSR, so the server and the first client render have to agree on the board, and
+  // the flow can only take over once that answer is in.
+  const [leftFlow, setLeftFlow] = useState<boolean | null>(null);
+  // Is the guided run on screen? It opens itself while setup still has questions,
+  // and from then on only the user closes it — the flow's own last screen comes
+  // after the last box ticks, and a board that took itself back the moment that
+  // happened would snatch it away.
+  const [inFlow, setInFlow] = useState(false);
+  useEffect(() => setLeftFlow(leftSetup.read()), []);
+  // The flow opens itself while setup has questions left and the user hasn't
+  // stepped out of it this session; from there `inFlow` holds it open.
+  const setupAsks = leftFlow === false && Boolean(board?.setup) && needsFirstRun(board?.setup ?? null);
+  useEffect(() => {
+    if (setupAsks) setInFlow(true);
+  }, [setupAsks]);
+  const resumeSetup = useCallback(() => {
+    leftSetup.set(false);
+    setLeftFlow(false);
+    setInFlow(true);
+  }, []);
+  const exitSetup = useCallback(() => {
+    leftSetup.set(true);
+    setLeftFlow(true);
+    setInFlow(false);
+  }, []);
   // The session whose log is open in the overlay, opened by clicking a card's
   // running badge. The board has no inline session log of its own.
   const [logSessionId, setLogSessionId] = useState<string | null>(null);
@@ -106,10 +136,16 @@ export function BoardView({
     });
   }, [onScreen]);
 
+  // The board comes back with its reason attached rather than thrown (#169): a board whose
+  // copy of the rules is missing or too old can't be read at all, and a thrown error from a
+  // server action reaches the browser redacted — "an error occurred" is exactly the empty
+  // answer the strip is here to avoid. The last board that DID read stays on screen under
+  // the message, so a rules folder deleted mid-session doesn't blank the page.
   const refresh = useCallback(async () => {
     try {
-      setBoard(await getBoard());
-      setError(null);
+      const res = await getBoard();
+      if (res.board) setBoard(res.board);
+      setError(res.error);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -286,6 +322,22 @@ export function BoardView({
   // focus is always correct regardless of what the diff saw.
   useOnTabFocus(refresh);
 
+  // A board whose setup still has questions of its own opens on the guided run
+  // instead of the columns — the questions come first, and a board being asked
+  // about is not yet a board to work in. Stepping out of it shows the columns,
+  // with the way back on them.
+  if (board?.setup && leftFlow === false && inFlow) {
+    return (
+      <SetupFlow
+        setup={board.setup}
+        agent={agent}
+        setupInstruction={setupInstruction}
+        onSaved={refresh}
+        onExit={exitSetup}
+      />
+    );
+  }
+
   return (
     <OpenIdsProvider ids={board?.openIds ?? []}>
       {/* The board is what the rail's All cards row shows — the window's own
@@ -299,9 +351,6 @@ export function BoardView({
           <Header
             agent={agent}
             projectRoot={projectRoot}
-            autoRefine={autoRefine}
-            autoRefineParallelism={autoRefineParallelism}
-            sessions={sessions}
             onError={setError}
             releases={board?.releases ?? []}
             releaseGoals={board?.releaseGoals ?? {}}
@@ -332,20 +381,21 @@ export function BoardView({
             </div>
           )}
 
-          {/* Unfinished setup (#85), else the goal nudge (#53) when goal.md is empty
-              or the agent has judged it weak again. Both drop out with the next board
-              refresh — the same refresh that already runs on session finish and tab
-              focus — so the card moves on its own as setup's boxes tick. It floats
-              over the bottom-right corner, so where it sits in this list doesn't
-              move anything. */}
-          {board && (
-            <SetupBar
+          {/* Setup left unfinished (#172) — the way back into the guided run for
+              someone who stepped out of it, and, once its questions are all
+              answered, the line that hands the rest to a coding agent. Else the
+              goal ask (#53), which rides on nothing: a board long set up can have
+              its goal judged weak again, and that is not setup. Both drop out
+              with the next board refresh — the same one that already runs on
+              session finish and tab focus — so they move as the files do. */}
+          {board?.setup && (
+            <SetupNotice
               setup={board.setup}
-              goalNeedsWork={board.goalNeedsWork}
-              setupInstruction={setupInstruction}
-              onSaved={refresh}
+              instruction={setupInstruction}
+              onResume={setupHasQuestionsLeft(board.setup) ? resumeSetup : undefined}
             />
           )}
+          {board && !board.setup && board.goalNeedsWork && <GoalNotice onSaved={refresh} />}
 
           {!board && !error && (
             <div className="p-10 text-nb-ink-soft">Reading the board…</div>

@@ -1,62 +1,86 @@
 "use server";
 
-// Server Actions — this is a local server, so the client calls these directly
-// instead of going through HTTP API routes. Reads the board, fires an agent, and
-// applies direct edits, all against the markdown files in docs/kanban/.
+// Server Actions — this is a local server, so the client calls these directly instead of
+// going through HTTP API routes.
+//
+// Every one of them is a thin pass to the CLI (lib/board.ts, lib/edit.ts, lib/agent.ts,
+// lib/registry.ts), which is where the board's rules live. What is left here is what a
+// server action owes its caller: refuse a request whose shape is wrong before it reaches
+// the board, and answer with a value rather than a throw, so the browser gets the reason
+// instead of a framework crash page.
 
+import { activeSettings, agentInfo, type AgentRequest, buildPrompt, settingSaveError } from "@/lib/agent";
 import {
-  activeSettings,
-  agentInfo,
-  type AgentRequest,
-  buildPrompt,
-  HARNESSES,
-  settingSaveError,
-} from "@/lib/agent";
-import { readBoard } from "@/lib/board";
-import { type BulkReleaseResult, setCardsRelease } from "@/lib/bulk-release";
-import { setAutoRefine, setAutoRefineParallelism, setHarness, setHarnessSetting } from "@/lib/config";
+  readBoard,
+  readGoalText,
+  readMetrics,
+  readModules,
+  readReleases,
+  readSetupDraft,
+} from "@/lib/board";
+import { setHarness, setHarnessSetting } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
-import { closePlan, type ClosePlan, closeRelease } from "@/lib/close";
-import { dropPlan, type DropPlan, dropRelease } from "@/lib/drop";
-import { patchCard, type CardPatch } from "@/lib/edit";
-import { fillPlan, type FillPlan, fillRelease } from "@/lib/fill";
-import { readGoalText, writeGoalText } from "@/lib/goal";
-import { tickSetupStep } from "@/lib/setup";
-import { type MetricsResult, readMetrics } from "@/lib/metrics";
-import { readModules } from "@/lib/modules";
-import { addRelease, foldGoal, readReleases, setReleaseGoal } from "@/lib/releases";
+import {
+  closePlan,
+  closeRelease,
+  dropPlan,
+  dropRelease,
+  fillPlan,
+  finishSetupStep,
+  newRelease,
+  patchCard,
+  saveGoal,
+  saveProject,
+  setCardsRelease,
+  setReleaseGoal,
+} from "@/lib/edit";
+import { getSession, listSessions, resumeSession, startSession, type StartResult, stopSession } from "@/lib/registry";
 import { setSecret } from "@/lib/secrets";
 import { testConnection } from "@/lib/test-connection";
-import {
-  getSession,
-  listSessions,
-  resumeSession,
-  startSession,
-  type StartResult,
-  stopSession,
-} from "@/lib/registry";
-import type { AgentInfo, Board, ConnectionTest, SessionView } from "@/lib/types";
+import type {
+  AgentInfo,
+  Board,
+  BulkReleaseResult,
+  CardPatch,
+  ClosePlan,
+  ConnectionTest,
+  DropPlan,
+  FillPlan,
+  MetricsResult,
+  SaveProjectResult,
+  SessionView,
+  SetupDraft,
+  TrackDraft,
+  WriteResult,
+} from "@/lib/types";
 
-export async function getBoard(): Promise<Board> {
-  return readBoard();
+/** The board, or the one line saying why it can't be read — a board whose copy of the
+ *  rules is missing or too old. Returned as a value rather than thrown: a thrown error
+ *  from a server action reaches the browser redacted, and "an error occurred" is exactly
+ *  the empty answer this is here to avoid. */
+export type BoardResult = { board: Board; error: null } | { board: null; error: string };
+
+export async function getBoard(): Promise<BoardResult> {
+  try {
+    return { board: await readBoard(), error: null };
+  } catch (e) {
+    return { board: null, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
-// The module names from docs/kanban/modules.md, for the create dialog's picker
-// (#38). Same shape as getBoard: a server action the client calls directly.
+/** The module names from docs/kanban/modules.md, for the create dialog's picker (#38). */
 export async function getModules(): Promise<string[]> {
   return readModules();
 }
 
-// The actions a client button can start. `auto-refine` is one of them (#99): the
-// card page's Refine button starts the very run the background dispatcher
-// (lib/dispatcher.ts) starts on its own — same action, same prompt — so a user
-// can refine the card in front of them instead of waiting for its turn. It never
-// waits for a free slot from the "cards at once" setting either; that setting is
-// the dispatcher's own budget, and this run isn't the dispatcher's.
+// The actions a client button can start. `auto-refine` is one of them (#99): the card
+// page's Refine button starts the very run a finished run starts on its own for each card
+// it touched (#211) — same action, same prompt — so a user can refine the card in front of
+// them whenever they want, not only after something else has run.
 const ACTIONS = new Set([
   "implement",
-  // One pass of a recurring card (#64) — the Run button that stands in for
-  // Implement on a card under todo/recurring/.
+  // One pass of a recurring card (#64) — the Run button that stands in for Implement on a
+  // card under todo/recurring/.
   "run",
   "reject",
   "archive",
@@ -65,19 +89,19 @@ const ACTIONS = new Set([
   "resolve",
   "propose",
   "auto-refine",
-  // Fill a release from its goal (#165) — started from the New release dialog
-  // and from a release's ⋯ menu, never from a card.
+  // Fill a release from its goal (#165) — started from the New release dialog and from a
+  // release's ⋯ menu, never from a card.
   "plan-release",
 ]);
 
-// create and propose touch no existing card (create makes one, propose makes
-// several), so they carry no `id` — every other action needs one. plan-release
-// is the third: it moves and writes many cards, and names a release instead.
+// create and propose touch no existing card (create makes one, propose makes several), so
+// they carry no `id` — every other action needs one. plan-release is the third: it moves and
+// writes many cards, and names a release instead.
 const CARDLESS = new Set(["create", "propose", "plan-release"]);
 
-// Start an agent and return immediately with a sessionId (or a lock message). The
-// request never waits for the child — the client polls listSessionsAction() to
-// see the session's progress and outcome.
+// Start an agent and return immediately with a sessionId (or a lock message). The request
+// never waits for the child — the client polls listSessionsAction() to see the session's
+// progress and outcome.
 export async function startAgentAction(req: AgentRequest): Promise<StartResult> {
   if (!req || !ACTIONS.has(req.action)) throw new Error("unknown action");
   if (!CARDLESS.has(req.action) && !Number.isInteger(req.id)) {
@@ -86,142 +110,150 @@ export async function startAgentAction(req: AgentRequest): Promise<StartResult> 
   if (req.action === "plan-release" && !req.release?.trim()) {
     throw new Error("planning a release needs a version id");
   }
-  const prompt = buildPrompt(req);
-  return startSession(req, prompt);
+  return startSession(req, await buildPrompt(req));
 }
 
-// Fill a release from its goal (#165): a normal board run — it shows in the runs
-// panel, can be stopped, and keeps its log — that moves the open cards shipping
-// the goal into the release and writes the cards the goal needs that the board
-// hasn't got.
+// Fill a release from its goal (#165): a normal board run — it shows in the runs panel, can
+// be stopped, and keeps its log — that moves the open cards shipping the goal into the
+// release and writes the cards the goal needs that the board hasn't got.
 //
-// It returns the moment the run is spawned, never when the run is done: the
-// release is already on the list, and what the run did is read in its log.
-// Refused for a release the list doesn't hold — a stale tab shouldn't send an
-// agent after a version that has been closed or dropped since.
+// It returns the moment the run is spawned, never when the run is done: the release is
+// already on the list, and what the run did is read in its log. Refused for a release the
+// list doesn't hold — a stale tab shouldn't send an agent after a version that has been
+// closed or dropped since.
 export async function planReleaseAction(id: string): Promise<StartResult> {
   const release = typeof id === "string" ? id.trim() : "";
   if (!release) return { ok: false, error: "no release named" };
-  if (!readReleases().includes(release)) {
+  if (!(await readReleases()).includes(release)) {
     return {
       ok: false,
       error: `"${release}" is not on the release list — it may already have been closed or dropped.`,
     };
   }
   const req: AgentRequest = { action: "plan-release", release };
-  return startSession(req, buildPrompt(req));
+  return startSession(req, await buildPrompt(req));
 }
 
-// Continue a failed run's conversation: a new session on the same card and the
-// same action, spawned with the agent's resume flags and a "continue" prompt.
-// Returns the NEW session's id (or a refusal message) exactly like starting one,
-// so the panel can select it and watch it the same way. The registry re-checks
-// that the run really did fail and really can be resumed — the button is drawn
-// from a poll that's up to a second and a half stale.
+// Continue a failed run's conversation: a new session on the same card and the same action,
+// spawned with the agent's resume flags and a "continue" prompt. Returns the NEW session's
+// id (or a refusal message) exactly like starting one, so the panel can select it and watch
+// it the same way. The CLI re-checks that the run really did fail and really can be resumed
+// — the button is drawn from a poll that's up to a second and a half stale.
 export async function resumeSessionAction(sessionId: string): Promise<StartResult> {
   if (typeof sessionId !== "string" || !sessionId) return { ok: false, error: "no session given" };
   return resumeSession(sessionId);
 }
 
-// End a running agent (#49): ask its process to stop, kill it if it doesn't, and
-// close the run out as `stopped`. The run's half-finished edits are left in the
-// working tree — the board never undoes work. Reports ok for a run that already
-// ended, since the button is drawn from a poll that can be a second and a half
-// stale.
+// End a running agent (#49): ask its process to stop, kill it if it doesn't, and close the
+// run out as `stopped`. The run's half-finished edits are left in the working tree — the
+// board never undoes work. Reports ok for a run that already ended, since the button is
+// drawn from a poll that can be a second and a half stale.
 export async function stopSessionAction(sessionId: string): Promise<StartResult> {
   if (typeof sessionId !== "string" || !sessionId) return { ok: false, error: "no session given" };
   return stopSession(sessionId);
 }
 
-// The shared session registry, for the UI's poll. Every tab reads the same picture.
-// The UI polls this continuously, so it's also where we make sure the background
-// auto-refine dispatcher (#43) is running — idempotent, so a poll from any tab
-// keeps it alive for the life of the UI server.
+// The shared run list, for the UI's poll. Every tab reads the same picture. The UI polls
+// this continuously, so it's also where we make sure the background dispatcher (#43) is
+// running — idempotent, so a poll from any tab keeps it alive for the life of the server.
 export async function listSessionsAction(): Promise<SessionView[]> {
   ensureDispatcher();
   return listSessions();
 }
 
-// One session with its log tail, read from the log file. The UI polls this while
-// a session is live to tail its output, and calls it once to open a finished
-// session's log.
+// One session with its log tail, read from the log file. The UI polls this while a session
+// is live to tail its output, and calls it once to open a finished session's log.
 export async function getSessionAction(sessionId: string): Promise<SessionView | null> {
   if (typeof sessionId !== "string" || !sessionId) return null;
   return getSession(sessionId);
 }
 
-// The goal editor behind the setup bar (#53, #85). Reading returns the user's
-// words (an empty box when goal.md doesn't exist yet); saving writes them back
-// and marks the goal `reviewed: pending` — written, and waiting on the agent's
-// judgment (#108).
+// ---- the goal ---------------------------------------------------------------
+
+// The goal editor — the first run's goal step, and the board's goal notice long after
+// setup (#53, #85, #172). Reading returns the user's words (an empty box when goal.md
+// doesn't exist yet); saving writes them back, marks the goal `reviewed: pending`, and
+// ticks setup's goal box, all of which is one move in the CLI.
 export async function getGoalAction(): Promise<string> {
   return readGoalText();
 }
 
-// Writing the goal IS setup's goal step, so a save ticks that box — the one box
-// the board finishes itself. On a board with no checklist the tick is a no-op,
-// which is the whole of the "a goal judged weak long after setup" case.
-export async function saveGoalAction(text: string): Promise<{ ok: boolean; error?: string }> {
-  if (typeof text !== "string" || !text.trim()) {
-    return { ok: false, error: "the goal must not be empty" };
-  }
-  const res = writeGoalText(text);
-  if (res.ok) tickSetupStep("goal");
-  return res;
+export async function saveGoalAction(text: string): Promise<WriteResult> {
+  if (typeof text !== "string") return { ok: false, error: "the goal is saved as text" };
+  return saveGoal(text);
 }
 
-// Start a release from the header's New release entry (#115) — one line appended
-// to docs/kanban/releases.md, the same line `release new` writes, carrying what
-// the version is for (#164) when the dialog's goal box was filled in.
+// ---- the guided first run (#172) --------------------------------------------
 //
-// No agent run: a release is a name and its place in the order, so there is
-// nothing for an agent to decide, and a run answers minutes later in a log —
-// which cannot refuse a bad name in the dialog the user is still typing in. The
-// UI already writes a card's release and the goal file the same direct way.
+// Three of setup's steps are the user's own — what the project is and its tracks, the goal,
+// and which agent runs the board. The flow asks for them one screen at a time; these are
+// what it reads and writes. Everything else setup does reads the repo and thinks, and is an
+// agent's job.
+
+/** What the flow opens with: the board's answers as they stand today. */
+export async function getSetupDraftAction(): Promise<SetupDraft> {
+  return readSetupDraft();
+}
+
+// Save the project and its tracks, and tick setup's `project` box. The tracks are folders
+// as well as words, so this is also where a new one is made and an empty one that was
+// dropped is removed. A track holding cards is kept and named in the answer rather than
+// deleted.
+export async function saveSetupProjectAction(
+  name: string,
+  description: string,
+  tracks: TrackDraft[],
+): Promise<SaveProjectResult> {
+  if (typeof name !== "string" || typeof description !== "string") {
+    return { ok: false, error: "the project is saved as text" };
+  }
+  if (!Array.isArray(tracks)) return { ok: false, error: "the tracks are saved as a list" };
+  const clean = tracks
+    .filter((t): t is TrackDraft => Boolean(t) && typeof t.name === "string")
+    .map((t) => ({
+      name: t.name,
+      note: typeof t.note === "string" ? t.note : "",
+      was: typeof t.was === "string" ? t.was : undefined,
+    }));
+  return saveProject(name, description, clean);
+}
+
+// Tick setup's `agent` box — the flow's last step, and the one it can't be pressed past. It
+// is ticked on either answer: an agent that answered a test here, or the user saying they
+// will drive the board from their own coding agent. Both mean something can run the work,
+// which is all the box asks.
+export async function finishSetupAgentStepAction(): Promise<WriteResult> {
+  return finishSetupStep("agent");
+}
+
+// ---- releases ---------------------------------------------------------------
+
+// Start a release from the header's New release entry (#115) — one line appended to
+// docs/kanban/releases.md, the same line `release new` writes, carrying what the version is
+// for (#164) when the dialog's goal box was filled in.
 //
-// A name that can't be a release comes back as { ok:false, error } rather than
-// throwing, so the dialog shows why and stays open on what was typed.
+// No agent run to make one: a release is a name and its place in the order, so there is
+// nothing for an agent to decide, and a run answers minutes later in a log — which cannot
+// refuse a bad name in the dialog the user is still typing in.
 //
-// `fill` is what the dialog's tab asked for (#106, #165), because the two kinds
-// of release are filled by different jobs:
+// `fill` is what the dialog's tab asked for (#106, #165). Which of the two fills that means
+// is the CLI's call, not this file's: a release WITH a goal is planned against it by an
+// agent run, one with NO goal takes the plain rule there and then. Either way the release is
+// written first, so making one never waits on an agent and a refused name moves nothing.
 //
-//   • a release WITH a goal is planned against it — an agent run that moves in
-//     the cards shipping the goal and writes the ones it is missing (#165). The
-//     release is written first and the run starts behind it, so making a release
-//     never waits on an agent.
-//   • a release with NO goal keeps the plain rule: the high-priority, unblocked,
-//     non-root cards with no release go in at once, the same move `release new
-//     <id> --fill` makes.
-//
-// Either way it runs only after the release is really on the list, so a refused
-// name moves nothing and starts nothing. And the release stands whatever the run
-// does: a run that can't start — another is already going — still leaves the
-// version on the list, so that comes back as `planError` beside `ok`, for the
-// board to say out loud rather than as a failure that would keep the dialog open
-// on a release it already made.
-//
-// A run that DID start comes back as `planSessionId`, so the board can take it on
-// as a run this tab started: the runs panel then has it from the moment the
-// release is made, rather than whenever the next poll happens to notice it.
+// The release stands whatever the run does: a run that can't start — another is already
+// going — still leaves the version on the list, so that comes back as `planError` beside
+// `ok`, for the board to say out loud rather than as a failure that would keep the dialog
+// open on a release it already made. A run that DID start comes back as `planSessionId`, so
+// the board can take it on as a run this tab started.
 export async function createReleaseAction(
   id: string,
   fill = false,
   goal = "",
-): Promise<{
-  ok: boolean;
-  error?: string;
-  planning?: boolean;
-  planSessionId?: string;
-  planError?: string;
-}> {
+): Promise<WriteResult & { planning?: boolean; planSessionId?: string; planError?: string }> {
   if (typeof id !== "string") return { ok: false, error: "a version id is text" };
-  const text = typeof goal === "string" ? goal : "";
-  const res = addRelease(id, text);
-  if (!res.ok || fill !== true) return res;
-  if (!foldGoal(text)) {
-    fillRelease(id.trim());
-    return res;
-  }
+  const made = await newRelease(id, typeof goal === "string" ? goal : "", fill === true);
+  if (!made.ok || made.fill !== "agent") return made;
   const run = await planReleaseAction(id.trim());
   return {
     ok: true,
@@ -231,91 +263,58 @@ export async function createReleaseAction(
   };
 }
 
-// Change what a release is for, after it was made (#164) — the ⋯ menu's goal
-// dialog, the same write `release goal` makes. Direct, like the release actions
-// around it: the words are the user's, so there is nothing for an agent to decide.
-// An empty goal clears it, which is why only the id is refused for being empty.
-export async function setReleaseGoalAction(
-  id: string,
-  goal: string,
-): Promise<{ ok: boolean; error?: string }> {
+// Change what a release is for, after it was made (#164) — the ⋯ menu's goal dialog, the
+// same write `release goal` makes. An empty goal clears it, which is why only the id is
+// refused for being empty.
+export async function setReleaseGoalAction(id: string, goal: string): Promise<WriteResult> {
   if (typeof id !== "string" || !id.trim()) return { ok: false, error: "no release named" };
   if (typeof goal !== "string") return { ok: false, error: "a goal is text" };
   return setReleaseGoal(id.trim(), goal);
 }
 
-// What the fill would do right now — the New release dialog reads this as it
-// opens, so the toggle carries the number of cards before the release is made.
+// What the fill would do right now — the New release dialog reads this as it opens, so the
+// toggle carries the number of cards before the release is made.
 export async function fillPlanAction(): Promise<FillPlan> {
   return fillPlan();
 }
 
-// Which archived cards stay put and which open cards a drop strips of their
-// release — the confirm dialog reads this as it opens (#131), so the user sees
-// the move before anything is changed.
+// Which archived cards stay put and which open cards a drop strips of their release — the
+// confirm dialog reads this as it opens (#131), so the user sees the move before anything
+// is changed.
 export async function dropPlanAction(id: string): Promise<DropPlan> {
   if (typeof id !== "string" || !id) return { archived: [], left: [] };
   return dropPlan(id);
 }
 
-// Give up on a release from the header's picker (#131) — the same move `release
-// drop` makes: report what stays archived and what is sent back, clear the open
-// cards' release, and take the line off the list without touching a summary file
-// (#166). Direct, like starting a release: there is nothing for an agent to
-// decide, and a stale board — the release already gone — comes back as
+// Give up on a release from the header's picker (#131) — the same move `release drop`
+// makes: clear the open cards' release and take the line off the list, without touching a
+// summary file (#166). A stale board — the release already gone — comes back as
 // { ok:false, error } for the dialog to show.
-export async function dropReleaseAction(id: string): Promise<{ ok: boolean; error?: string }> {
+export async function dropReleaseAction(id: string): Promise<WriteResult> {
   if (typeof id !== "string" || !id.trim()) return { ok: false, error: "no release named" };
   return dropRelease(id.trim());
 }
 
-// What a close would write down and move — the confirm dialog reads this as it
-// opens (#136). It carries the open cards with every todo ticked, since a close
-// counts those as not shipped and cannot be undone; seeing them here is what
-// lets the user cancel, archive the card, and close after.
+// What a close would write down and move — the confirm dialog reads this as it opens
+// (#136). It carries the open cards with every todo ticked, since a close counts those as
+// not shipped and cannot be undone; seeing them here is what lets the user cancel, archive
+// the card, and close after.
 export async function closePlanAction(id: string): Promise<ClosePlan> {
   if (typeof id !== "string" || !id) return { left: [], shipped: 0 };
   return closePlan(id);
 }
 
-// Close a shipped release from the header's picker (#136) — the same move
-// `release close` makes: one dated `## Closed` section in the summary file, the
-// open cards' release cleared, the line off the list. Direct, like the drop
-// beside it: there is nothing for an agent to decide, and a stale board — the
-// release already gone — comes back as { ok:false, error } for the dialog to show.
-export async function closeReleaseAction(id: string): Promise<{ ok: boolean; error?: string }> {
+// Close a shipped release from the header's picker (#136) — the same move `release close`
+// makes: one dated `## Closed` section in the summary file, the open cards' release
+// cleared, the line off the list.
+export async function closeReleaseAction(id: string): Promise<WriteResult> {
   if (typeof id !== "string" || !id.trim()) return { ok: false, error: "no release named" };
   return closeRelease(id.trim());
 }
 
-// The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv.
-// Read once each time the view opens; the file changes a few times a day at
-// most, so there's nothing to poll. A file that can't be read comes back as
-// { ok:false, error }, the way the other actions report failures, so the
-// message survives to the client instead of becoming a server-render error.
-export async function getMetricsAction(): Promise<MetricsResult> {
-  return readMetrics();
-}
-
-export async function patchCardAction(
-  id: number,
-  patch: CardPatch,
-): Promise<{ ok: boolean; error?: string }> {
-  return patchCard(id, patch);
-}
-
-// Move the cards ticked on the board into one release, or back out of one
-// (#114) — the same single-card write the card page's Release box makes, run
-// once per card. Direct, like the release actions above: there is nothing for an
-// agent to decide, and the user has already decided which cards these are.
-//
-// A release the list doesn't hold refuses the whole move before anything is
-// written; a card that can't be moved on its own — archived under the user
-// while the board was stale — comes back in `failed` while the rest go through.
-export async function setCardsReleaseAction(
-  ids: number[],
-  release: string,
-): Promise<BulkReleaseResult> {
+// Move the cards ticked on the board into one release, or back out of one (#114) — the same
+// single-card write the card page's Release box makes, run once per card.
+export async function setCardsReleaseAction(ids: number[], release: string): Promise<BulkReleaseResult> {
   if (!Array.isArray(ids) || typeof release !== "string") {
     return { moved: 0, failed: [], error: "a bulk move takes card ids and a release" };
   }
@@ -324,71 +323,60 @@ export async function setCardsReleaseAction(
   return setCardsRelease(clean, release);
 }
 
-// Flip the global auto-refine switch (#41), persisted to docs/kanban/ui.config.json.
-// Returns { ok:false, error } on a parse/write failure so the toggle can revert
-// and surface the message; keeps the `harness` setting untouched.
-export async function setAutoRefineAction(on: boolean): Promise<{ ok: boolean; error?: string }> {
-  return setAutoRefine(Boolean(on));
+// ---- a card, and the numbers -------------------------------------------------
+
+export async function patchCardAction(id: number, patch: CardPatch): Promise<WriteResult> {
+  return patchCard(id, patch);
 }
 
-// Save how many cards auto-refine works on at once (#88), persisted to the same
-// file. The number is clamped into the allowed range rather than refused, so a
-// stale client can't write a setting the dispatcher would have to second-guess;
-// anything that isn't a number is refused outright.
-export async function setAutoRefineParallelismAction(
-  n: number,
-): Promise<{ ok: boolean; error?: string }> {
-  if (typeof n !== "number" || !Number.isFinite(n)) {
-    return { ok: false, error: "how many refine at once must be a number" };
-  }
-  return setAutoRefineParallelism(n);
+// The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv. Read once
+// each time the view opens; the file changes a few times a day at most, so there's nothing
+// to poll. A file that can't be read comes back as { ok:false, error }, so the message
+// survives to the client instead of becoming a server-render error.
+export async function getMetricsAction(): Promise<MetricsResult> {
+  return readMetrics();
 }
 
-// Save the agent the user picked in the Configuration dialog (#68), persisted to
-// the same file. The name is checked against the harnesses this build ships, so
-// a stale client can't write a setting nothing can run. Running sessions are
-// untouched — each read the setting when it started.
+// ---- the agent settings ------------------------------------------------------
+
+// Save the agent the user picked in the Configuration dialog (#68), persisted to the same
+// file. The name is checked against the harnesses this build ships, so a stale client can't
+// write a setting nothing can run. Running sessions are untouched — each read the setting
+// when it started.
 //
-// A save comes back with the whole agent setting as it now reads, because
-// switching is the one change the dialog can't work out for itself: the new
-// agent's settings come back from where they were parked when it was last
-// picked, its keys are whatever docs/kanban/.env already holds, and its provider
-// is worked out from those keys. The file is the only thing that knows any of
-// it, so the fields are drawn from this rather than guessed and then corrected.
-export async function setHarnessAction(
-  name: string,
-): Promise<{ ok: boolean; error?: string; agent?: AgentInfo }> {
-  if (typeof name !== "string" || !HARNESSES.some((h) => h.name === name)) {
-    return { ok: false, error: `unknown agent "${name}"` };
-  }
-  const res = setHarness(name);
+// A save comes back with the whole agent setting as it now reads, because switching is the
+// one change the dialog can't work out for itself: the new agent's settings come back from
+// where they were parked when it was last picked, its keys are whatever docs/kanban/.env
+// already holds, and its provider is worked out from those keys.
+export async function setHarnessAction(name: string): Promise<WriteResult & { agent?: AgentInfo }> {
+  // The agents this build runs are the CLI's list, not a copy kept here — so a stale client
+  // can't write a setting nothing can run, and nothing here learns an agent's name.
+  const known = (await agentInfo()).options.some((o) => o.name === name);
+  if (typeof name !== "string" || !known) return { ok: false, error: `unknown agent "${name}"` };
+  const res = await setHarness(name);
   if (!res.ok) return res;
-  return { ok: true, agent: agentInfo() };
+  return { ok: true, agent: await agentInfo() };
 }
 
-// Save one of the settings the picked agent declares (#93), persisted to the
-// same file. The key is checked against that agent's own list, so nothing can
-// write a key it never declared — including a field the user left focused while
-// switching agents, whose late save belongs to an agent that is no longer
-// picked.
+// Save one of the settings the picked agent declares (#93), persisted to the same file. The
+// key is checked against that agent's own list, so nothing can write a key it never
+// declared — including a field the user left focused while switching agents, whose late
+// save belongs to an agent that is no longer picked.
 //
-// The value is checked only as far as the setting's shape allows: a list must be
-// given one of its own choices, a box takes free text. Model ids change between
-// agent releases, so a text setting is never validated here — the agent is the
-// only validator, and a bad id shows up as a failed run with the reason in its
-// log. Empty clears the setting, and the agent runs its own default.
-export async function setHarnessSettingAction(
-  key: string,
-  value: string,
-): Promise<{ ok: boolean; error?: string }> {
+// The value is checked only as far as the setting's shape allows: a list must be given one
+// of its own choices, a box takes free text. Model ids change between agent releases, so a
+// text setting is never validated here — the agent is the only validator, and a bad id
+// shows up as a failed run with the reason in its log. Empty clears the setting, and the
+// agent runs its own default.
+export async function setHarnessSettingAction(key: string, value: string): Promise<WriteResult> {
   if (typeof key !== "string" || typeof value !== "string") {
     return { ok: false, error: "a setting is saved as text" };
   }
-  const setting = activeSettings().find((s) => s.key === key);
+  const setting = (await activeSettings()).find((s) => s.key === key);
   if (!setting) return { ok: false, error: `the agent you picked has no "${key}" setting` };
-  // A key never goes near ui.config.json — it has its own action and its own
-  // file (#94). Refused here rather than quietly rerouted: a client sending a
-  // key down this path has a bug, and the file it would land in is committed.
+  // A key never goes near ui.config.json — it has its own action and its own file (#94).
+  // Refused here rather than quietly rerouted: a client sending a key down this path has a
+  // bug, and the file it would land in is committed.
   if (setting.kind === "secret") {
     return { ok: false, error: `"${setting.label}" is a key — it saves to docs/kanban/.env` };
   }
@@ -396,49 +384,44 @@ export async function setHarnessSettingAction(
   if (setting.kind === "select" && next && !setting.choices?.some((c) => c.value === next)) {
     return { ok: false, error: `"${next}" isn't one of the ${setting.label} choices` };
   }
-  // The provider pick, and the boxes it can't do without (#95). A pick that
-  // names no provider we ship, one whose base URL is still empty, and a base URL
-  // emptied while that pick is live are all refused here — so whatever a client
-  // does, the file never says a run goes somewhere it can't go.
-  const wrong = settingSaveError(key, next);
+  // The provider pick, and the boxes it can't do without (#95). A pick that names no
+  // provider we ship, one whose base URL is still empty, and a base URL emptied while that
+  // pick is live are all refused here — so whatever a client does, the file never says a
+  // run goes somewhere it can't go.
+  const wrong = await settingSaveError(key, next);
   if (wrong) return { ok: false, error: wrong };
   return setHarnessSetting(key, next);
 }
 
-// Save one of the picked agent's keys (#94) to docs/kanban/.env — the board's
-// one place for them. An empty value clears it, and the agent goes back to
-// whatever login its CLI has of its own.
+// Save one of the picked agent's keys (#94) to docs/kanban/.env — the board's one place for
+// them. An empty value clears it, and the agent goes back to whatever login its CLI has of
+// its own.
 //
-// The key is written to that file and nowhere else: not ui.config.json, not the
-// registry, not a run's log. Nothing comes back but ok — the value is never
-// returned, echoed, or read back into the browser. The setting has to be one
-// the picked agent declares as a secret, so a field left focused while
-// switching agents can't write a key the new agent never asked for.
-export async function setHarnessSecretAction(
-  key: string,
-  value: string,
-): Promise<{ ok: boolean; error?: string }> {
+// The key is written to that file and nowhere else: not ui.config.json, not the run record,
+// not a run's log. Nothing comes back but ok — the value is never returned, echoed, or read
+// back into the browser. The setting has to be one the picked agent declares as a secret,
+// so a field left focused while switching agents can't write a key the new agent never
+// asked for.
+export async function setHarnessSecretAction(key: string, value: string): Promise<WriteResult> {
   if (typeof key !== "string" || typeof value !== "string") {
     return { ok: false, error: "a key is saved as text" };
   }
-  const setting = activeSettings().find((s) => s.key === key);
+  const setting = (await activeSettings()).find((s) => s.key === key);
   if (!setting || setting.kind !== "secret" || !setting.env) {
     return { ok: false, error: `the agent you picked has no "${key}" key` };
   }
   return setSecret(setting.env, value);
 }
 
-// Send one small chat through the setup that is saved right now and say whether
-// it worked (#96) — the Test button in the Configuration dialog.
+// Send one small chat through the setup that is saved right now and say whether it worked
+// (#96) — the Test button in the Configuration dialog.
 //
-// It takes no arguments on purpose: there is nothing for the client to say. The
-// setup being tested is the one in the files, which is the one the next card run
-// will use, so a client can neither test something else nor test something that
-// isn't saved.
+// It takes no arguments on purpose: there is nothing for the client to say. The setup being
+// tested is the one in the files, which is the one the next card run will use, so a client
+// can neither test something else nor test something that isn't saved.
 //
-// It touches no card, holds no lock and starts no session — see
-// lib/test-connection.ts. It never throws either: every way it can go wrong is a
-// result the panel shows.
+// It touches no card, holds no lock and starts no session. It never throws either: every
+// way it can go wrong is a result the panel shows.
 export async function testConnectionAction(): Promise<ConnectionTest> {
   return testConnection();
 }

@@ -3,20 +3,21 @@ title: Run the board with an agent beyond Claude Code and Codex
 track: features
 priority: med
 roi: med
-status: todo
+status: ready
 release: 0.6.0
 blocked_by: []
-related: []
+related: [207]
 modules: [local-ui]
 questions: []
 ---
 
-The board can only run work through Claude Code or Codex. Someone who works in Cursor or
-OpenCode can read the board but never press Implement, so they leave. Add those two agents.
+Someone who works in Cursor or OpenCode can now press Implement — both agents run the
+board. What's left is the claim: every place we say which agents work still names only
+Claude Code and Codex, so a Cursor user reads "not supported" and leaves.
 
 ## Scope
-- Add two agents: Cursor and OpenCode. No third one is added on a guess — the next agent is
-  whichever users ask for.
+- Two agents ship: Cursor and OpenCode. No third one is added on a guess — the next agent
+  is whichever users ask for.
 - Everything the existing agents get, a new one gets as far as its CLI allows: a live log,
   a cost and model line where the agent reports them, stop, and resume.
 - Where a CLI can't do one of those, the board shows nothing rather than a number that
@@ -27,8 +28,8 @@ OpenCode can read the board but never press Implement, so they leave. Add those 
 - Every button must reach the skill under the new agent. Both read the shared `.agents`
   folder that install already writes, so nothing new is installed — but the prompt still
   has to name the skill in a way each agent understands.
-- Name the supported agents in the local UI docs, in both READMEs, and on the site's home
-  diagram, so the claim matches what ships.
+- Say what ships everywhere the claim lives: the local UI docs, both READMEs, and the
+  site — its home diagram and the comparison pages that count our agents.
 
 ## What each agent can show the user
 - **Cursor** — live log yes, model yes, resume yes. No cost and no token counts: its output
@@ -37,15 +38,18 @@ OpenCode can read the board but never press Implement, so they leave. Add those 
   output, so a run on it names no model.
 
 ## Todo
-- [ ] Add Cursor, with its live log and its settings.
-- [ ] Add OpenCode, with its live log and its settings.
-- [ ] Handle stop, resume, and the missing-CLI case for each, and say in the dialog what
+- [x] Add Cursor, with its live log and its settings.
+- [x] Add OpenCode, with its live log and its settings.
+- [x] Handle stop, resume, and the missing-CLI case for each, and say in the dialog what
       an agent can't do rather than offering it.
 - [ ] Run a real card end to end with each new agent — implement it, refine it, archive it.
-- [ ] Name the supported agents in `kanban-ui/README.md`, one short section each saying
-      what reads differently on that agent — "Running on Codex" is the shape to follow.
+- [ ] Name the supported agents in `kanban-ui/README.md`: the Configuration section still
+      offers a choice of two, and "Running on Codex" has no match for the new agents. One
+      short section each, saying what reads differently on that agent.
 - [ ] Update the agent list in `README.md` and `README-zh.md`, roadmap line included.
-- [ ] Replace the "…" agent tile on the site's home diagram with the agents that now ship.
+- [ ] Update the site everywhere it counts our agents: the "…" tile on the home diagram,
+      and the comparison pages that still say "Claude Code and Codex today"
+      (vs-task-master, vs-linear, vs-multica) — their translated copies with them.
 
 ## Decided by the agent
 - **Does install need a new skill folder for these two?** No. Both read
@@ -66,10 +70,12 @@ OpenCode can read the board but never press Implement, so they leave. Add those 
 - **OpenCode needs no permission flag.** Left alone it writes inside the repo and refuses
   anything outside it, which is what a board run wants. The flag that would widen that
   doesn't exist in the version people install today, and passing it stops the run dead.
+- **The home diagram doesn't close the list at four.** Show the four marks that ship, and
+  keep the "…" tile after them if the row still fits — more agents are expected, and that
+  tile is what says so.
 
 ## Source
 - Competitive analysis of Task Master, 2026-08-05 —
   https://github.com/eyaltoledano/claude-task-master; they run on a long list of providers
   and keep adding, including free and local ones (LM Studio, Ollama), so nobody is turned
   away for not having the one subscription. We support two paid CLIs.
-</content>

@@ -22,6 +22,10 @@ before proposing so you don't re-suggest them.
 - **Ticking several cards to move them into a release at once** — cards go into and out of
   a release by asking the agent in plain words, not by hand-picking them in the UI. A
   multi-select bar builds the manual path we don't want.
+- **Answering the board's open questions from your phone** — reaching the board from a
+  phone is too big to carry as one card: the way in, who can reach it, and every screen a
+  small display needs are each their own piece of work. The mobile board gets planned later
+  as a group task.
 - **Route every card read and write through the script** — listing cards and writing a
   card's frontmatter already go through it, and that covers what the board needs one owner
   for. A full read-and-write API on top changes nothing a user sees and slows down work

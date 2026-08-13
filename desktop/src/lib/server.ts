@@ -163,6 +163,11 @@ export class BoardServer {
         // running behind the window keeps its own runs going, but must not
         // spend money refining a board nobody is looking at.
         KANBAN_FOCUS_FILE: this.focusFile,
+        // The board's rules — which agent runs, the words each run sends it, the record of
+        // what is running (#168). The app carries its own copy, so a machine with nothing
+        // installed can still put an agent to work; without this the board would look for
+        // one in the project's skill folder and a fresh repo has none.
+        AI4KANBAN_CLI: bundledResource("cli", "skill", "kanban.mjs"),
       },
       // Its own process group, so ending it ends the coding-agent runs it
       // started too. Closing the window must not leave an agent writing to the

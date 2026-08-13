@@ -109,6 +109,58 @@ export function NoBoard({
   );
 }
 
+// Shown as the whole page when there IS a board but nothing to read it with — this project
+// has no copy of the board's rules, or the copy it has is too old for this board (#169).
+// The board is one file, `akb` carries it, and installing it is one command; so this says
+// what happened in a line and hands over that command, the same shape as the screen above.
+//
+// It takes over the screen for the same reason that one does: every button on a card page
+// goes through the rules, so there is nothing to draw underneath a warning. The board page
+// says the same thing in its own error strip instead, where the chrome is already up.
+export function NoRules({ why, desktop = false }: { why: string; desktop?: boolean }) {
+  const router = useRouter();
+  // Install it in a terminal, come back to the tab, and the board is there — the same
+  // re-read on tab focus the board itself does.
+  useOnTabFocus(() => router.refresh());
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-nb-cream p-6">
+      <Mat className="w-full max-w-[664px] p-4 sm:p-8">
+        <div className="nb-panel w-full overflow-hidden">
+          <header className="px-7 pt-6 pb-5">
+            <Logo size="sm" />
+            <h1 className="mt-4 text-[20px] leading-tight font-[700]">This board can&apos;t be read.</h1>
+            <p className="mt-2 text-[13px] leading-relaxed text-nb-ink-soft">{why}</p>
+          </header>
+
+          <Cause
+            title="Install the board's rules"
+            stack={!desktop}
+            body={
+              desktop
+                ? "The app carries its own copy — reopening this project picks it up."
+                : "One file, in this project. Run it in the repo root."
+            }
+          >
+            {desktop ? (
+              <PickAnotherProject desktop />
+            ) : (
+              <CopyCommand text="npx ai4kanban@latest update" />
+            )}
+          </Cause>
+
+          {!desktop && (
+            <p className="flex items-center gap-2 border-t-[1.5px] border-nb-ink bg-nb-wash px-7 py-3 text-[12px] text-nb-ink-soft">
+              <FiTerminal size={13} className="shrink-0" />
+              Run it, then come back to this tab — the board shows up on its own.
+            </p>
+          )}
+        </div>
+      </Mat>
+    </main>
+  );
+}
+
 // One cause and its way out, as a row across the panel.
 //
 // The action sits in a fixed column beside the words in the app, so the two

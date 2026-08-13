@@ -37,8 +37,8 @@ export function insetTitleBar(): boolean {
 // In the app a project keeps its own server, and a server the user has switched
 // away from keeps running so the run inside it can finish (#178). That is only
 // true of work someone asked for. Work the board starts on its own — the
-// auto-refine pass and the recurring cards, both on the dispatcher's timer —
-// must not go on spending money on a project nobody is looking at.
+// recurring cards on the dispatcher's timer — must not go on spending money on a
+// project nobody is looking at.
 //
 // The app says which project is on screen by writing its path into the file it
 // names in KANBAN_FOCUS_FILE, and rewrites it on every switch. Read fresh each

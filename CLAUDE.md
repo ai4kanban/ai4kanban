@@ -13,10 +13,13 @@ only; routing lives in comments in the files that own it. Read it before changin
 
 ## Pre-commit Checks
 - **Python**: `uv run pre-commit run --all-files`
-- **JavaScript/Typescript**: run in whichever app you touched — `web/` (the public site)
-  and `kanban-ui/` (the local board UI) each have their own checks. Don't use `pnpm build`.
+- **JavaScript/Typescript**: run in whichever app you touched — `web/` (the public site),
+  `kanban-ui/` (the local board UI) and `cli/` (the `akb` command and the board's rules)
+  each have their own checks. Don't use `pnpm build`.
   - `cd web && pnpm typecheck && pnpm run lint`
   - `cd kanban-ui && pnpm typecheck && pnpm run lint`
+  - `cd cli && npm run lint` — typechecks `src/` and fails if the committed
+    `skill/kanban.mjs` isn't what it builds to. Rebuild with `npm run build` and commit it.
 
 ## Long conversation
 

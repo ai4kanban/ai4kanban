@@ -15,8 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 // trigger drops the CONTROL frame (the wrapper's meaning fill is the only
 // chrome) and the open list shrinks its type to match. The 1em icons follow.
 const CHIP_TRIGGER =
-  "h-auto w-auto gap-1 rounded-[6px] border-0 px-[7px] py-[3px] text-[10.5px] font-[700] uppercase tracking-[0.04em] leading-none";
-const CHIP_ITEM = "py-1.5 pr-7 text-[10.5px] font-[700] uppercase tracking-[0.04em]";
+  "h-auto w-auto gap-1 rounded-[6px] border-0 px-[6px] py-[2.5px] text-[10px] font-[700] uppercase tracking-[0.04em] leading-none";
+const CHIP_ITEM = "py-1.5 pr-7 text-[10px] font-[700] uppercase tracking-[0.04em]";
 
 // One high/med/low scale shared by priority and roi. `dot` is the solid signal
 // colour; `soft`/`ink` are the filled-chip pair.
@@ -42,7 +42,7 @@ function Dot({ color }: { color: string }) {
   return (
     <span
       aria-hidden
-      style={{ display: "block", width: 6, height: 6, borderRadius: 999, flex: "0 0 auto", background: color }}
+      style={{ display: "block", width: 5, height: 5, borderRadius: 999, flex: "0 0 auto", background: color }}
     />
   );
 }
@@ -54,7 +54,7 @@ export function PriorityChip({ value }: { value: string }) {
   const c = LEVEL[value] || LEVEL.low;
   return (
     <span className="nb-chip" style={{ background: c.soft, color: c.ink }}>
-      <FiFlag aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+      <FiFlag aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
       {value}
     </span>
   );
@@ -65,7 +65,7 @@ export function PriorityChip({ value }: { value: string }) {
 export function RoiTag({ value }: { value: string }) {
   const c = LEVEL[value] || LEVEL.low;
   return (
-    <span className="inline-flex items-center gap-1.5 text-[10.5px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
+    <span className="inline-flex items-center gap-1.5 text-[10px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
       <Dot color={c.dot} />
       ROI {value}
     </span>
@@ -74,8 +74,8 @@ export function RoiTag({ value }: { value: string }) {
 
 // Todo progress — a thin bar + count for the card's top meta row. Reads as
 // status (empty → full, mint when complete) rather than yet another chip.
-// `width` lets the card page draw a longer bar than the board's 32px sliver.
-export function TodoProgress({ done, total, width = 32 }: { done: number; total: number; width?: number }) {
+// `width` lets the card page draw a longer bar than the board's 26px sliver.
+export function TodoProgress({ done, total, width = 26 }: { done: number; total: number; width?: number }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const complete = total > 0 && done >= total;
   return (
@@ -84,7 +84,7 @@ export function TodoProgress({ done, total, width = 32 }: { done: number; total:
         style={{
           display: "block",
           width,
-          height: 5,
+          height: 4,
           borderRadius: 999,
           overflow: "hidden",
           background: "color-mix(in srgb, var(--color-nb-ink) 12%, transparent)",
@@ -99,7 +99,7 @@ export function TodoProgress({ done, total, width = 32 }: { done: number; total:
           }}
         />
       </span>
-      <span className="text-[11px] font-[700] tabular-nums text-nb-ink-soft">
+      <span className="text-[10.5px] font-[700] tabular-nums text-nb-ink-soft">
         {done}/{total}
       </span>
     </span>
@@ -138,7 +138,7 @@ export function StatusPill({ status, detailed = false }: { status: CardStatus; d
   const Icon = c.icon;
   return (
     <span className="nb-chip" style={{ background: c.soft, color: c.ink }}>
-      <Icon aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+      <Icon aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
       {detailed ? c.long : c.label}
     </span>
   );
@@ -156,7 +156,7 @@ export function GroupChip() {
       data-tip="Group task — open its page for subtasks"
       style={{ background: "var(--color-nb-lilac-soft)", color: "var(--color-nb-lilac-ink)" }}
     >
-      <FiLayers aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+      <FiLayers aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
     </span>
   );
 }
@@ -175,7 +175,7 @@ export function BlockedChip({ blockers }: { blockers: { id: number; title: strin
       data-tip={`Blocked — ${ids} ${blockers.length === 1 ? "is" : "are"} still open`}
       style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
     >
-      <FiLock aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+      <FiLock aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
     </span>
   );
 }
@@ -201,7 +201,7 @@ export function TrackChip({ track }: { track: string }) {
           : "var(--color-nb-lilac-ink)",
       }}
     >
-      {recurring && <FiRepeat aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />}
+      {recurring && <FiRepeat aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />}
       {track}
     </span>
   );
@@ -217,7 +217,7 @@ export function ModuleChip({ module }: { module: string }) {
       className="nb-chip"
       style={{ background: "var(--color-nb-mint-soft)", color: "var(--color-nb-mint-ink)" }}
     >
-      <FiBox aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+      <FiBox aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
       {module}
     </span>
   );
@@ -275,7 +275,7 @@ export function ReleaseSelect({
           color: planned ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
         }}
       >
-        <FiTag aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+        <FiTag aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -330,10 +330,10 @@ export function QuestionTagBadge({ tag }: { tag: QuestionTag | null }) {
   const Icon = c.icon;
   return (
     <span
-      className="mr-1.5 inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[10.5px] font-[700] uppercase leading-[18px] tracking-[0.04em]"
+      className="mr-1.5 inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-[700] uppercase leading-[18px] tracking-[0.04em]"
       style={{ color: c.ink }}
     >
-      <Icon aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+      <Icon aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
       {c.label}
     </span>
   );
@@ -439,7 +439,7 @@ export function CadenceSelect({
             color: cadence ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
           }}
         >
-          <FiClock aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto" }} />
+          <FiClock aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

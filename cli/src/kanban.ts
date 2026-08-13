@@ -1,0 +1,122 @@
+// The board's bookkeeping, as the one file every copy of it ships as.
+//
+// The rules live in this package's `src/`, in TypeScript, and are built into a single
+// dependency-free file — `skill/kanban.mjs` — by `scripts/build.mjs`. That one built file
+// is what an installed skill folder holds (nothing beside it), what the npm package
+// carries, and what the desktop app runs. Edit the sources here; never the built file.
+//
+// It is both a program and a module, because the same rules are reached two ways:
+//   - run it (`node kanban.mjs <command>`) — the door an installed skill folder opens,
+//     with the same commands, words and exit codes it has always had,
+//   - import it (`akb board <move>`) — the CLI's door, which asks for the compact help
+//     and puts the command's own name in front of a refusal.
+//
+// What the moves are, and what each one does, is `node kanban.mjs help`.
+//
+//   init | memory-init | setup-done | setup-status     the board itself
+//   create | update | update-questions | tag | list    a card's fields
+//   release new | goal | list | close | drop           the versions being planned
+//   archive | reject | run | migrate | peek | metrics  taking a card off, and the rest
+//
+// It is the ONLY sanctioned writer of docs/kanban/next-id, of a card's frontmatter, and of
+// docs/kanban/metrics.csv. Write/Edit are for a card's body.
+
+import fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
+import { rel } from './lib/paths'
+import { runAgent } from './lib/agent-cli'
+import { runBoard } from './lib/board-cli'
+import { SKILL_VERSION } from './version'
+
+export { runBoard } from './lib/board-cli'
+export type { RunBoardOptions } from './lib/board-cli'
+export { runAgent } from './lib/agent-cli'
+export type { RunAgentOptions } from './lib/agent-cli'
+export { SKILL_VERSION } from './version'
+
+// What a board UI reaches for: the same run engine `akb` drives, so a run started from a
+// button and one started in a terminal are one thing — one record, one set of rules, one
+// copy of the words each run sends the agent. Nothing here is a second implementation of
+// anything the commands do.
+export {
+  getRun,
+  listRuns,
+  markSpawned,
+  openResume,
+  openRun,
+  stopRun,
+  titleOf,
+} from './lib/agent/sessions'
+export { spawnWatcher } from './lib/agent/launch'
+export { buildPrompt } from './lib/agent/prompts'
+export { agentInfo, activeSettings, setupInstruction, settingSaveError } from './lib/agent/resolve'
+export { setHarness, setHarnessSetting, setSecret } from './lib/agent/settings'
+export { testConnection } from './lib/agent/test'
+export { setBoardRoot } from './lib/paths'
+export type * from './lib/agent/types'
+
+// …and the board itself: the columns, one card in full, the releases, the metrics, the
+// setup checklist, the goal — plus every write a screen makes and the question the board's
+// background timer asks each tick. One door (lib/view/api.ts), the same rules the commands
+// run, so a button and a command can never disagree about what a card says.
+export {
+  allCards,
+  closePlan,
+  closeRelease,
+  dropPlan,
+  dropRelease,
+  fillPlan,
+  findCard,
+  finishSetupStep,
+  newRelease,
+  nextWork,
+  patchCard,
+  readBoard,
+  readGoalText,
+  readMetricsView,
+  readModules,
+  readReleases,
+  readSetupDraft,
+  readSetupState,
+  saveGoal,
+  saveProject,
+  setCardsRelease,
+  setReleaseGoal,
+} from './lib/view/api'
+export type { ReleaseFill } from './lib/view/api'
+export type * from './lib/view/types'
+
+const SELF = fileURLToPath(import.meta.url)
+
+// True when this file IS the program, rather than something another program imported.
+// Both sides are resolved through their real path first: this repo installs its own skill
+// as a symlink, and the two spellings of the same file must still count as one.
+function invokedDirectly(): boolean {
+  const entry = process.argv[1]
+  if (!entry) return false
+  try {
+    return fs.realpathSync(entry) === fs.realpathSync(SELF)
+  } catch {
+    return false
+  }
+}
+
+if (invokedDirectly()) {
+  const argv = process.argv.slice(2)
+  // The one word this door answers that the board's moves don't: the process that watches
+  // a run, spawned by whichever command started it. Spelled so it can never collide with a
+  // move — `run` has meant "record one pass of a recurring card" here since it existed.
+  if (argv[0] === '__watch') {
+    void runAgent(argv, { program: 'akb' }).then((code) => {
+      process.exitCode = code
+    })
+  } else {
+    process.exitCode = runBoard(argv, {
+      program: 'kanban',
+      style: 'legacy',
+      version: `ai4kanban ${SKILL_VERSION}`,
+      usage: `node ${rel(SELF)} <command> [args]`,
+    })
+  }
+}

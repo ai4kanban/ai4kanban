@@ -68,11 +68,11 @@ export function BoardCard({
       // (a flex stack) it would blow one card up to the column's full height.
       // A ticked card wears the accent ring so the group being moved reads at a
       // glance across a full column, not one 16px box at a time.
-      className={`nb-panel-sm nb-press flex cursor-pointer flex-col p-3.5 text-left ${
+      className={`nb-panel-sm nb-press flex cursor-pointer flex-col p-3 text-left ${
         selected ? "outline-2 outline-offset-2 outline-nb-accent" : ""
       }`}
     >
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-1.5 flex items-center justify-between gap-1.5">
         <span className="flex min-w-0 items-center gap-1.5">
           {onSelect && (
             <button
@@ -94,7 +94,7 @@ export function BoardCard({
               }`}
             >
               <span
-                className="inline-flex size-[15px] items-center justify-center rounded-[4px] border-[1.5px] border-nb-ink"
+                className="inline-flex size-[14px] items-center justify-center rounded-[4px] border-[1.5px] border-nb-ink"
                 style={{
                   background: selected ? "var(--color-nb-accent)" : "var(--color-nb-paper)",
                 }}
@@ -103,11 +103,11 @@ export function BoardCard({
               </span>
             </button>
           )}
-          <span className="text-[12px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
+          <span className="text-[11.5px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
             #{card.id}
           </span>
         </span>
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-1.5">
           {isGroup && <GroupChip />}
           {/* Something this card waits on is still open (#63). The card stays
               exactly where it is — this only says the work has an order to it. */}
@@ -131,8 +131,8 @@ export function BoardCard({
               const userCount = card.questions.filter(
                 (q) => parseQuestion(q.text).tag === "user",
               ).length;
-              // A `[user]` question waits on the human (accent); the rest
-              // auto-refine still works on its own (quieter).
+              // A `[user]` question waits on the human (accent); the rest a
+              // refine can settle on its own (quieter).
               const tip =
                 `${total} open question${total === 1 ? "" : "s"}` +
                 (userCount > 0
@@ -148,7 +148,7 @@ export function BoardCard({
                       userCount > 0 ? "var(--color-nb-accent)" : "var(--color-nb-ink-soft)",
                   }}
                 >
-                  <FiHelpCircle aria-hidden style={{ width: 14, height: 14 }} />
+                  <FiHelpCircle aria-hidden style={{ width: 13, height: 13 }} />
                 </span>
               );
             })()}
@@ -157,8 +157,11 @@ export function BoardCard({
           )}
         </span>
       </div>
-      <p className="mb-3 text-[14px] font-[700] leading-snug tracking-[-0.01em]">{card.title}</p>
-      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      {/* The title keeps its 14px while the meta around it shrinks — the card is
+          a sentence with annotations, and the annotations should read a rung
+          quieter, not the title a rung smaller. */}
+      <p className="mb-2.5 text-[14px] font-[700] leading-snug tracking-[-0.01em]">{card.title}</p>
+      <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <PriorityChip value={card.priority} />
         <RoiTag value={card.roi} />
       </div>

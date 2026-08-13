@@ -11,7 +11,7 @@ The task board lives in `docs/kanban/`. Read it before suggesting or adding work
 project's settings: name, tracks, planning sources, reference docs, optional preset.
 `kanban init` seeds it; install fills it in; until then its defaults apply. It lives with
 your board, so an update leaves it
-untouched — the skill folder (`SKILL.md`, `kanban.mjs` with its `lib/` and `commands/`, `references/`) is upstream-owned and
+untouched — the skill folder (`SKILL.md`, `kanban.mjs`, `references/`) is upstream-owned and
 overwritten wholesale (see "Updating the skill"). "Your tracks / planning sources / reference
 docs" below mean this file.
 
@@ -82,7 +82,8 @@ docs/kanban/
 `kanban.mjs`, in this skill's folder, is the **only** sanctioned way to scaffold the board,
 create, update, migrate, archive, or reject a task. It allocates ids, writes a card's
 **frontmatter**, moves/removes task files, keeps the README index, and records the daily
-metric.
+metric. It is one file with nothing beside it — never edit it: it is built upstream from the
+CLI's sources, and the next update overwrites it.
 
 Point `KB="node <this skill's folder>/kanban.mjs"` — the folder this SKILL.md sits in, which
 differs per agent (`.claude/skills/kanban/`, `.agents/skills/kanban/`, a plugin path). Set it

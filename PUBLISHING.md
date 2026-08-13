@@ -19,6 +19,13 @@ The CLI carries the skill inside its tarball (`scripts/bundle-skill.mjs` copies 
 `cli/skill/` at publish time; that copy is gitignored). So `npx ai4kanban install` is what a
 new user actually gets — a skill change isn't in anyone's hands until the CLI is republished.
 
+The board's rules are not a source file any more. They live in `cli/src/`, in TypeScript, and
+`cli/scripts/build.mjs` builds them into the single `skill/kanban.mjs` an installed skill
+folder holds. That built file **is** committed — the plugin channel installs the skill
+straight out of the repo — so a change to `cli/src/` is not shipped until it is rebuilt and
+committed. `npm run lint` in `cli/` fails when it is stale, and both bundlers refuse to copy
+a skill folder whose built file is missing or built at another version.
+
 ## One version, one place
 
 The canonical version is the root `VERSION` file.
@@ -29,8 +36,9 @@ node scripts/sync-version.mjs --check # verify in sync (both prepublishOnly hook
 ```
 
 Stamped spots: `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`,
-`SKILL_VERSION` in `skill/kanban.mjs` (what installed projects print, so they can tell
-they're behind), `cli/package.json`, `kanban-ui/package.json`, `desktop/package.json`. They
+`SKILL_VERSION` in `cli/src/version.ts` (what installed projects print, so they can tell
+they're behind — stamping it rebuilds `skill/kanban.mjs`, which carries the number in its
+first lines), `cli/package.json`, `kanban-ui/package.json`, `desktop/package.json`. They
 all share the one version, so they ship together. The app compares its own version against
 the newest GitHub release to tell the user a newer one is out — so an unstamped app would
 nag forever.
@@ -43,7 +51,8 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
 
 ## Release checklist
 
-1. `claude plugin validate .` passes.
+1. `claude plugin validate .` passes, and `npm run lint` in `cli/` passes (the board's rules
+   typecheck, and the committed `skill/kanban.mjs` is what they build to).
 2. `node scripts/sync-version.mjs <new-version>`; commit and `git tag v<new-version>`.
 3. README, `README-zh.md`, and the guides reflect any behavior change.
 4. `npm publish` from `cli/` — smoke-test `npx ai4kanban@latest install` in a throwaway repo.
@@ -139,12 +148,26 @@ The npm package is deprecated as of the release that shipped the app, and frozen
 last published version. It is **not** unpublished: a board someone opens tomorrow still
 comes up. Nothing new is built for it and no release lands there again.
 
-Marked once, on npm:
+Marked once, on npm — **already done**, on all three published versions:
 
 ```
 npm deprecate ai4kanban-ui "Deprecated — get the desktop app: https://ai4kanban.dev/download"
 ```
 
-(through the temp npmrc below, like a publish). `bin/kanban-ui.mjs` prints the same thing on
-every run, and the board it serves says it in a line above the board — so nobody finds out
-from a changelog.
+(through the temp npmrc above, like a publish). Two things to know before you touch it again:
+
+- **Pin the registry.** A shell started from a pnpm script carries
+  `npm_config_registry=https://registry.npmmirror.com`, and that env var beats the temp
+  npmrc — the write goes to the mirror and fails. Run it as
+  `env -u npm_config_registry NPM_CONFIG_USERCONFIG="$TMPRC" npm deprecate … --registry=https://registry.npmjs.org/`.
+- **A 422 is not proof it failed.** Re-running the command with the message already set
+  returns `422 Unprocessable Entity` while the live flag stays correct. Check the registry
+  rather than the exit code:
+  `curl -s https://registry.npmjs.org/ai4kanban-ui | node -e '…versions[v].deprecated'`, or
+  just `npm install ai4kanban-ui` in a throwaway folder and look for the `npm warn
+  deprecated` line.
+
+The repo's `bin/kanban-ui.mjs` prints the same thing on every run and the board says it in a
+line above the board — but both landed *after* 0.5.0 was published, and no release lands here
+again, so **nobody on npm ever sees them**. For an npm user the registry warning on install is
+the only notice there is. That is on purpose; freezing the version beat shipping one more.

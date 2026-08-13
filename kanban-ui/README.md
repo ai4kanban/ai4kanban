@@ -94,7 +94,8 @@ wrote them. Nothing is cut short or folded away; a long goal scrolls.
 your words back and the dialog shows what you just saved, with no reload.
 
 The compass only shows when there is something to read. A goal file that is missing or empty
-has nothing to open, and the setup bar is what asks you to write it there.
+has nothing to open, and the first run — or the board's goal notice — is what asks you to
+write it there.
 
 A save marks the goal `reviewed: pending` in its frontmatter and leaves the rest of the block
 alone. That field is how clear the goal looks to plan from: `strong`, `good` and `weak` are
@@ -205,8 +206,8 @@ run, so a dialog first shows the goal it will plan against and says what the run
 - it moves the open cards that ship the goal into the release, and
 - it writes the cards the goal needs that the board hasn't got.
 
-The new cards land plain — no open questions — and auto-refine takes them from there like any
-other new card. The agent decides all of it: nothing waits on you and there is nothing to
+The new cards land plain — no open questions — and each one is refined right after, as its own
+run, like any other card a run writes. The agent decides all of it: nothing waits on you and there is nothing to
 approve.
 
 The run behaves like every other run on this board: it shows in the **runs panel** from the
@@ -287,15 +288,26 @@ and a hand edit is how those work.
 A board that plans no versions sees the dropdown saying **All releases** and offering **New
 release**, and nothing more. Nothing asks you for a version.
 
-### The setup bar
+### The first run
 
-One bar sits between the header and the columns while something about the board is
-unfinished. It shows for two reasons.
+A board whose setup is unfinished opens on a short guided run instead of the columns. It
+asks for the three things only you can answer, one to a screen:
 
-**Setup isn't done.** Installing scaffolds the board and writes `setup-checklist.md` — the
-steps setup still owes you, one box each. The bar says how far setup got ("3 of 6 steps
-done") and what comes next. When the next step needs the agent, it hands you the line to
-paste into your coding agent, with a **Copy** button:
+1. **The project** — its name, one line saying what it is, and the tracks work falls into.
+   Everything starts filled in: the repo's folder name, and the tracks the board was
+   installed with. A track is a folder under `docs/kanban/todo/`, so adding one here makes
+   it, renaming one moves it with its cards, and dropping one removes it — unless it holds
+   cards, and then it stays and the screen says so.
+2. **The goal** — an empty box on `memory/goal.md`, your own words, with a note about what
+   belongs in it and a link to the longer guide. **Skip for now** leaves it for later.
+3. **The agent** — which agent every button on this board runs, with the same picker,
+   settings and **Test** the Configuration dialog has. This one can't be pressed past:
+   Continue opens on a test that passed, or on ticking *I'll drive this board from my own
+   coding agent*. Both name something that can do the work, and a board that finished setup
+   with neither could not run a thing.
+
+Then a closing screen names what is left — the steps that read your repo and think — and
+hands you the line to paste into a coding agent to finish them:
 
 ```
 /kanban. Set up this board — follow docs/kanban/setup-checklist.md.
@@ -303,28 +315,32 @@ paste into your coding agent, with a **Copy** button:
 
 The line follows the agent you picked, because agents trigger a skill differently: on Codex
 it reads `$kanban. Set up this board …`, and on Cursor and OpenCode it asks for the skill in
-a sentence, since neither has a name you can type. Copy it and paste it as it comes.
+a sentence, since neither has a name you can type. Copy it and paste it as it comes. It is
+on every screen of the run too, under **Rather set this up from your coding agent?** — you
+can hand over at any point, and setup picks up at the first unticked box, so nothing you
+answered here is asked again.
 
-The UI never runs setup itself — you paste that line, and the bar moves as boxes tick.
-Setup picks up at the first unticked box, so the same line restarts it wherever it stopped.
-The last box creates your first cards and deletes the checklist; the bar goes away at the
-same moment the cards appear. Before that the skill creates no cards at all — ask it for
-one and it tells you to finish setup first.
+Nothing here is a dead end. **Go to the board** leaves the run for the columns at any step,
+and the board then carries a strip saying how far setup got with **Continue setup** on it.
+The steps down the left show what has been settled and take you back to any of them. The
+run itself is remembered in `setup-checklist.md` and nowhere else, so closing the window and
+coming back lands on the same screen.
 
-**The goal needs writing.** One of setup's steps is the project goal, and the bar gives
-that one a **Write the goal** button instead of a line to copy. It opens an empty box on
-`memory/goal.md` — your own words, the agent never drafts it for you — with a note above it
-saying what belongs in the file and a link to the longer guide. Saving writes the file and
-ticks that step; the bar then moves on to setup's next step.
+Once the run is answered, the strip stays until setup is finished, now offering **Finish in
+your coding agent** — the same line to paste. Before setup ends, the skill creates no cards
+at all: ask it for one and it tells you to finish setup first. The last box creates your
+first cards and deletes the checklist; the strip goes at the same moment the cards appear.
 
-Long after setup, the bar comes back with just that one item when there is no goal to plan
-from — the file is empty, or the agent has judged it weak again (`reviewed: weak` in its
-frontmatter). Every proposal the agent makes is judged against that file. Writing a goal is
-enough to send the bar away; you never wait on an agent run for that.
+### When the goal needs writing
 
-The ✕ hides the bar for the browser session. The board works the same either way; the bar
-is a nudge, not a gate. A board that is set up and simply has no cards left shows nothing —
-empty columns aren't a signal, and neither is a board set up before the checklist existed.
+Long after setup, one notice comes back on its own when there is no goal to plan from — the
+file is empty, or the agent has judged it weak again (`reviewed: weak` in its frontmatter).
+Every proposal the agent makes is judged against that file. **Write the goal** opens the
+same box the first run used; writing one is enough to send the notice away, and you never
+wait on an agent run for that. The ✕ hides it for the browser session.
+
+A board that is set up and simply has no cards left shows nothing — empty columns aren't a
+signal, and neither is a board set up before the checklist existed.
 
 ## A card's buttons
 
@@ -359,11 +375,10 @@ When a card is blocked, **Waiting on #&lt;id&gt; — still open** sits next to *
 link to each blocking card. The button still works: it's there so you know what you're
 starting ahead of, not to stop you.
 
-**Refine** runs one refine on this card right now, instead of waiting for the board to get
-to it. Its dialog has nothing to type — it says what the agent will do, and you confirm. It
-is the same run the board makes on its own (see **Auto-refine** below), so it works whether
-that switch is on or off: the switch says whether the server refines cards by itself, not
-whether you may ask for one.
+**Refine** runs one refine on this card right now. Its dialog has nothing to type — it says
+what the agent will do, and you confirm. It is the same run the board starts by itself after
+something touches the card (see **The refine that follows a run**), so it is how you refine a
+card whenever you want rather than waiting for something else to happen.
 
 The button shows only while a refine would still move the card. It's gone once the card is
 **ready**, once every todo is checked, and when every open question is one only you can
@@ -375,6 +390,25 @@ button is off and the badge beside the title says what's going on.
 
 A run never commits. It leaves its changes in your working tree; you read `git diff` and
 commit.
+
+### The refine that follows a run
+
+A command does what you asked and stops. The board then refines the card, as a run of its
+own: it appears in the runs panel with its own log, and you can stop it like anything else.
+
+- **A run that wrote or changed a card gets a refine on it.** Add a card, change one, answer
+  its questions, propose, fill a release — each card that run touched comes back refined,
+  one run per card. Ask for three cards and three refines follow.
+- **Finishing or rejecting a card refines the ones it was holding up.** Every card it was
+  blocking that now has nothing left in its way gets its own refine. A group task's subtasks
+  come free one wave at a time, each refined when its turn comes.
+- **Cards a refine can't move are skipped** — one still waiting on a blocker, one the run
+  left **ready**, a recurring card, one whose todos are all ticked, and one whose open
+  questions are all yours to answer. **Resolve** is the button for that last one.
+- **Nothing hunts the backlog.** Every refine follows something that just happened, so a
+  card you write by hand in your editor gets none — press **Refine** on its page.
+- **It hangs off the end of a run**, so it works the same whether the run started here or
+  from a terminal, and a refine that failed or that you stopped is not started again.
 
 ### Recurring tasks
 
@@ -417,8 +451,7 @@ still runs once a minute. A job that was due while the board was closed runs onc
 open it, not once for every window it missed.
 
 Only one recurring job runs at a time, and it has its own slot — a refine going on doesn't
-hold back a job that is due, and neither does the **Auto-refine** switch, which is only
-about refining. If a run is stopped, fails, or ends without recording itself, the board
+hold back a job that is due. If a run is stopped, fails, or ends without recording itself, the board
 leaves that card alone rather than starting the same broken run every minute; click **Run**
 when you want it back on its cadence.
 
@@ -450,9 +483,9 @@ something else on it.
 `stopped` on the log. Nothing went wrong, so it never reads as a failure, and it offers no
 **Resume**: a run you ended is over, not one that stopped short.
 
-If the board was auto-refining that card, stopping holds: it won't be picked up again a
-minute later. Any later run on the card — a **Refine** you start, an **Implement**, an
-**Edit** — lifts that and the board can pick it up again.
+Stopping the refine that followed a run ends it there — nothing starts it again by itself,
+since a refine only ever follows something that just happened. Press **Refine** on the card
+when you want another.
 
 Stop ends the agent. A build or a test the agent kicked off is left to finish on its own.
 
@@ -507,9 +540,9 @@ the subtask files are gone.
 
 ## Configuration
 
-The gear in the header opens the **Configuration** dialog. A sidebar on its left splits it
-into two sections — **Agent** and **Auto-refine** — and a new group of settings joins as one
-more entry there. It holds:
+The gear in the header opens the **Configuration** dialog. A sidebar on its left names the
+sections — for now just **Agent** — and a new group of settings joins as one more entry
+there. It holds:
 
 - **Agent** — pick the agent that every button spawns: **Claude Code** or **Codex**. It runs
   in your repo root. See **Running on Codex** below for what changes when you switch.
@@ -541,24 +574,8 @@ more entry there. It holds:
 - **Test** — under those settings, a button that sends one tiny message through the setup you
   have saved and says whether it worked. On a failure it shows what the agent said. See
   **Testing the connection**.
-- **Auto-refine** — its own section, holding a switch. Turn it on and the server refines
-  cards in the background:
-  about once a minute it picks the highest-priority cards that still need refining and runs
-  a refine on each. It answers the questions it's confident about and
-  leaves the real judgment calls for you as open questions. A card the board marks **Blocked**
-  is passed over — its plan depends on a card that isn't built yet, so it waits until every
-  blocker is archived or rejected, then gets picked up on a later pass. So is a card whose
-  last run you stopped — see **Stopping a run**. With the switch off,
-  no card is refined *on its own* — the **Refine** button on a card page still works, and so
-  does a recurring card's cadence, which is its own switch (see **Recurring tasks**). While a
-  refine is running, **Refining #&lt;id&gt;** sits beside the switch and names every card it is
-  on, background runs and ones you started alike; when nothing is running the label is gone.
-- **Cards at once** — how many cards auto-refine works on at the same time. One by default,
-  so nothing changes until you raise it, and 5 is as high as it goes. Each run takes a
-  different card — the same card is never refined twice at once. More is faster on a big
-  backlog and heavier on your machine and your rate limit. The number saves whether or not
-  auto-refine is on; it's what the next run uses. A refine you start yourself never waits for
-  a free slot, but it fills one while it runs, so the board starts one fewer of its own.
+There is no Auto-refine section any more, and no switch: a refine follows the run that
+touched the card (see **The refine that follows a run**), so there is nothing to turn on.
 
 Settings live in `docs/kanban/ui.config.json`, next to your board — so `npx` always serves
 the latest UI and an update never touches your settings. Everything the dialog holds writes
@@ -577,14 +594,9 @@ file (see **Keys** below).
     "codex": {
       "model": "gpt-5.1-codex"
     }
-  },
-  "autoRefine": false,
-  "autoRefineParallelism": 1
+  }
 }
 ```
-
-`autoRefineParallelism` is a whole number from 1 to 5. Anything else — a 0, a negative, text,
-a missing key — reads as 1, so a hand-edit that doesn't mean anything never breaks the board.
 
 `harness` is the agent that runs — a name, and nothing else. It decides everything about how
 that agent runs: the command, the flags that make it stream its output into the live log, the

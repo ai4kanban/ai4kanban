@@ -15,12 +15,29 @@ except where another doc is named.
   there. One project is open at a time — switching reloads the whole board and the window
   says which project it is. A run keeps going in the project it started in, and the list
   marks the projects that have one running.
+- Go back and forward between the views you opened in the app: `desktop/README.md`.
 - Run the board from a browser with `npx ai4kanban-ui`: `skill/references/local-ui.md`.
   Deprecated the day the app shipped — it keeps working, but the app is the way in.
+  npm says so too: installing it warns and points at `ai4kanban.dev/download`.
 - Started where there is no board, the page says so, names the folder it searched, and
   gives what to run — instead of a crash screen.
 - A bar shows how far setup got and hands over the line to paste into your coding agent; a
   goal judged weak later brings the same bar back with just that item.
+- A button on the board and a command in a terminal do the same thing to a card. Every read
+  and every write a screen makes is the board's own command, so the two can never disagree
+  about what a card says. The board needs nothing installed in the project — the app carries
+  what it reads the board with — and where it finds nothing to read it with, every screen
+  says so in one line naming the command that fixes it.
+- An edit saved from the board waits its turn behind whatever else is writing, so it never
+  lands on top of the card an agent is writing at that moment. A run killed mid-write holds
+  nobody up: the next writer takes over at once instead of every screen going quiet for ten
+  seconds.
+
+- Set a board up in the app itself: a board whose setup is unfinished opens on a short
+  guided run that asks for the project and its tracks, the goal, and which agent does the
+  work — one to a screen, everything prefilled, and the agent step ending on a test that
+  passed or on saying you'll drive the board from your own coding agent. Leaving it for the
+  board keeps a way back in, and the rest of setup is still handed to a coding agent.
 
 ## Reading the board
 
@@ -64,14 +81,17 @@ except where another doc is named.
   id into a terminal.
 - See what a run cost in dollars beside its duration, marked an estimate, and which model
   did the work, taken from what the agent reported.
+- A run started in a terminal and one started from a button are the same run: both sides
+  read one list, either side can watch, stop or continue it, and a card being worked on
+  from either side shows busy on both: `cli/README.md`.
 
-## Auto-refine
+## Refining
 
-- Flip on the Auto-refine toggle to refine cards in the background, up to 5 at once, and
-  see which card it is on from a **Refining #<id>** label. It leaves a blocked card alone
-  until its blockers are gone.
-- Refine the card you are looking at from a **Refine** button on its page, with the switch
-  off.
+- A run that writes or changes a card is followed by a refine of that card, as its own run
+  in the panel — watchable and stoppable. Finishing or rejecting a card refines the ones it
+  was holding up: `kanban-ui/README.md`, "The refine that follows a run".
+- Refine the card you are looking at from a **Refine** button on its page, whenever you
+  want.
 
 ## Recurring tasks
 

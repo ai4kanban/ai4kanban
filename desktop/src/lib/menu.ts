@@ -1,12 +1,14 @@
 // The app menu. Small on purpose: the board's own buttons do the work, so this
 // carries only what a window can do and a page can't — open another project,
-// go back to one you had open before, ask whether a newer app is out, and the
-// standard window and edit items every desktop app is expected to have.
+// go back to one you had open before, move back and forward through the views
+// this window opened, ask whether a newer app is out, and the standard window
+// and edit items every desktop app is expected to have.
 //
 // It is rebuilt whenever the projects list changes, since Open Recent is drawn
-// from it. The list in the board's header is the fuller one — it says which
-// projects have a run going and lets a project be taken off — and this is the
-// same list where a person's hand already is.
+// from it, and again on every move between views, since Back and Forward grey
+// out at the ends. The list in the board's header is the fuller one — it says
+// which projects have a run going and lets a project be taken off — and this is
+// the same list where a person's hand already is.
 
 import { app, Menu, shell, type MenuItemConstructorOptions } from "electron";
 import { DOWNLOADS_URL } from "./update";
@@ -22,6 +24,12 @@ export interface MenuOptions {
   onOpenRepo: () => unknown;
   onOpenProject: (dir: string) => unknown;
   onCheckUpdates: () => unknown;
+  onBack: () => unknown;
+  onForward: () => unknown;
+  /** Whether there is a view to go back to, and one to go forward to, right
+   *  now. Both false before there is a window. */
+  canGoBack?: boolean;
+  canGoForward?: boolean;
   projects?: ProjectInfo[];
 }
 
@@ -46,6 +54,10 @@ export function buildMenu({
   onOpenRepo,
   onOpenProject,
   onCheckUpdates,
+  onBack,
+  onForward,
+  canGoBack = false,
+  canGoForward = false,
   projects = [],
 }: MenuOptions): void {
   const isMac = process.platform === "darwin";
@@ -90,6 +102,22 @@ export function buildMenu({
     {
       label: "View",
       submenu: [
+        // The way back for a mouse, and for a trackpad with the swipe turned
+        // off. The shortcuts are the ones the system's own browser uses, so a
+        // hand that knows one knows this.
+        {
+          label: "Back",
+          accelerator: isMac ? "Cmd+[" : "Alt+Left",
+          enabled: canGoBack,
+          click: onBack,
+        },
+        {
+          label: "Forward",
+          accelerator: isMac ? "Cmd+]" : "Alt+Right",
+          enabled: canGoForward,
+          click: onForward,
+        },
+        { type: "separator" },
         { role: "reload" },
         { role: "forceReload" },
         { role: "toggleDevTools" },

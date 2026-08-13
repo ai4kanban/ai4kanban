@@ -115,3 +115,9 @@ export function metricsPath(): string {
 export function setupChecklistPath(): string {
   return path.join(kanbanDir(), "setup-checklist.md");
 }
+// The board's own settings — what the project is, its tracks, what planning reads
+// (#172 writes the first two from the guided first run). The skill's own file:
+// the UI edits two of its bullets and leaves the rest exactly as it found them.
+export function configPath(): string {
+  return path.join(kanbanDir(), "config.md");
+}

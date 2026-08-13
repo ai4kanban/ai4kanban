@@ -39,11 +39,12 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
   // poll and wake the loop when it's dormant. See the effect below.
   const kickRef = useRef<() => void>(() => {});
 
-  // A quiet board CAN go stale on its own: the auto-refine dispatcher (#43)
-  // starts sessions from a server-side timer, with no user action in any tab. So
-  // an idle tab must keep polling — an idle loop that goes dormant would never
-  // witness a background refine start, finish, or rewrite the card, and the
-  // running-set diffs in Board/CardPage would have no transition to fire on.
+  // A quiet board CAN go stale on its own: the dispatcher (#43) starts recurring
+  // runs from a server-side timer, and a run that ends starts the refine of each
+  // card it touched (#211) — neither needs a user action in any tab. So an idle
+  // tab must keep polling: an idle loop that goes dormant would never witness one
+  // of those start, finish, or rewrite the card, and the running-set diffs in
+  // Board/CardPage would have no transition to fire on.
   // What we vary is the cadence, not whether we poll: fast while something is
   // live, slow while idle. A hidden tab still stops entirely and wakes on focus
   // (useOnTabFocus re-reads unconditionally), so a backgrounded board costs

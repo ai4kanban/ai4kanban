@@ -122,6 +122,19 @@ re-ask a settled call.
   reaches every project on upgrade rather than on re-install.
 - The command prints a flow on request, for an agent already working — filled in for the
   board it was asked about, rather than read from a generic page.
+- The command is a Node program, not a compiled binary. Everything the board already runs
+  on — the installer on npm, the desktop app's Electron, the agents driving the board —
+  carries Node, so a binary would remove no dependency and would add six signed builds per
+  release to the app and the download page.
+- It is written in TypeScript and built to one dependency-free file per consumer: the npm
+  package, the copy inside an installed skill folder, and the copy inside the desktop app.
+  Source and shipped file are no longer the same file, so anything that copies the command
+  builds it first.
+- The source lives in the CLI package, and an installed skill folder holds one built file
+  with nothing beside it — no `lib/`, no `commands/`. The board's rules belong to the
+  command that owns them, so a skill folder is the skill's words plus one file that runs it.
+- The desktop app keeps carrying the command and running it under Electron's own Node, so
+  the app still needs nothing installed on the machine.
 
 ## Storage
 

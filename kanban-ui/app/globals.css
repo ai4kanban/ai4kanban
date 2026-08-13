@@ -113,14 +113,17 @@ body {
    outlined controls built from Tailwind utilities inline in their components
    (AgentBadge / sessions.tsx) — no shared class here. */
 
-/* Borderless meaning chip (track / priority / roi) */
+/* Borderless meaning chip (track / priority / roi). Sized to sit under the
+   card title rather than beside it: a board card wears three or four of these
+   in one row, so every extra pixel of type and padding is a pixel the row
+   spends competing with the title it is meant to annotate. */
 .nb-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   border-radius: 6px;
-  padding: 3px 7px;
-  font-size: 10.5px;
+  padding: 2.5px 6px;
+  font-size: 10px;
   font-weight: 700;
   line-height: 1;
   text-transform: uppercase;
@@ -325,4 +328,56 @@ html.a4k-fullscreen body.a4k-inset header[data-titlebar] {
 [data-radix-popper-content-wrapper] {
   -webkit-app-region: no-drag;
   app-region: no-drag;
+}
+
+/* The mark a move between views leaves behind (#210).
+   A swipe is felt, not seen: the page simply becomes another page, and with no
+   answer at the edge it reads as a glitch rather than as something you did. So
+   the side the window went out of lights up for a moment — a hairline at the
+   very edge with a short wash falling away from it, so it says "out this way"
+   without drawing a border the board doesn't have.
+   It never takes a click and it is never read out; it is over before either
+   could matter. */
+.a4k-nav-edge {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 34px;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 0;
+  /* Out slowly — the fade is the whole of the animation, and a mark that
+     vanishes reads as a flicker. In fast, so it is already there by the time
+     the eye follows the hand. */
+  transition: opacity 320ms ease-out;
+}
+.a4k-nav-edge[data-show] {
+  opacity: 1;
+  transition-duration: 80ms;
+}
+/* The ember, not the ink: on a cream page a dark edge reads as a shadow — as
+   the window's own frame — and the whole point is that something happened. The
+   board's accent is already what it uses to say "this one, now". */
+.a4k-nav-edge[data-side="back"] {
+  left: 0;
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--color-nb-accent) 85%, transparent) 0 3px,
+    color-mix(in srgb, var(--color-nb-accent) 22%, transparent) 3px,
+    transparent 100%
+  );
+}
+.a4k-nav-edge[data-side="forward"] {
+  right: 0;
+  background: linear-gradient(
+    to left,
+    color-mix(in srgb, var(--color-nb-accent) 85%, transparent) 0 3px,
+    color-mix(in srgb, var(--color-nb-accent) 22%, transparent) 3px,
+    transparent 100%
+  );
+}
+/* On macOS the top 43px is the window's title bar, not the board — the mark
+   belongs to the content and starts under it. */
+body.a4k-inset .a4k-nav-edge {
+  top: 43px;
 }

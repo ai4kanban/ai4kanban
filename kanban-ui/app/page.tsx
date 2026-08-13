@@ -1,8 +1,7 @@
 import { BoardView } from "@/components/Board";
 import { NoBoard } from "@/components/NoBoard";
-import { agentInfo, setupInstruction } from "@/lib/agent";
+import { agentInfo, NO_AGENT, setupInstruction } from "@/lib/agent";
 import { readBoard } from "@/lib/board";
-import { readAutoRefine, readAutoRefineParallelism } from "@/lib/config";
 import { isDesktop } from "@/lib/desktop";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 import type { Board } from "@/lib/types";
@@ -11,7 +10,7 @@ import type { Board } from "@/lib/types";
 // client refreshes via the getBoard() action after each mutation.
 export const dynamic = "force-dynamic";
 
-export default function Page() {
+export default async function Page() {
   // No board at all is its own page, checked before anything reads one. The
   // board read below is caught, but every other call here resolves a board path
   // too, so without this they'd throw outside the catch and the user would get
@@ -21,19 +20,25 @@ export default function Page() {
   let initialBoard: Board | null = null;
   let initialError: string | null = null;
   try {
-    initialBoard = readBoard();
+    initialBoard = await readBoard();
   } catch (e) {
     initialError = e instanceof Error ? e.message : String(e);
   }
+  // The agent setting and the words it is sent live in the CLI now (lib/cli.ts), so these
+  // are read rather than called inline. A board with no copy of the rules to load still
+  // draws: the fields fall back to what an unconfigured board would show, and the run
+  // itself is what says the rules are missing.
+  const [agent, instruction] = await Promise.all([
+    agentInfo().catch(() => NO_AGENT),
+    setupInstruction().catch(() => ""),
+  ]);
   return (
     <BoardView
       initialBoard={initialBoard}
       initialError={initialError}
-      agent={agentInfo()}
+      agent={agent}
       projectRoot={repoRoot()}
-      autoRefine={readAutoRefine()}
-      autoRefineParallelism={readAutoRefineParallelism()}
-      setupInstruction={setupInstruction()}
+      setupInstruction={instruction}
       desktop={isDesktop()}
     />
   );

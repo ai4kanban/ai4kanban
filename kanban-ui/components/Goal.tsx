@@ -5,7 +5,7 @@
 // the agent judged it weak — the moment it read fine it left the board for good. A quiet
 // icon beside the folder path opens the whole file, rendered.
 //
-// Reading only: the goal is written once through the setup bar's "Write the goal", and
+// Reading only: the goal is written once through the first run's goal step, and
 // after that it is the file on disk (or an agent run) that changes it — the board doesn't
 // offer a second place to edit the same words.
 //
@@ -15,7 +15,8 @@
 // narrow window, like Create task's; the mark stays, since one icon costs nothing.
 //
 // It appears only when there is something to read (`goalWritten`, lib/goal.ts): a missing
-// or empty file has nothing to open, and the setup bar is what asks for the goal there.
+// or empty file has nothing to open, and the guided first run — or the board's goal
+// notice — is what asks for the goal there.
 
 import { useEffect, useState } from "react";
 import { TbNorthStar } from "react-icons/tb";
@@ -74,7 +75,7 @@ function GoalPanel() {
   );
 }
 
-// The goal editor the setup bar opens (#53, #85) — the one place the goal is
+// The goal editor the board's goal notice opens (#53, #85) — the second place the goal is
 // typed, with the note about what belongs in the file. The words stay the user's
 // and the judgment stays the agent's: a save marks the goal `reviewed: pending`
 // and leaves the rest of the frontmatter alone (#108).
@@ -113,7 +114,7 @@ export function GoalEditor({ onClose, onSaved }: { onClose: () => void; onSaved:
   );
 }
 
-// The textarea and its Save / Cancel. The setup bar's dialog sizes to its
+// The textarea and its Save / Cancel. The editor's dialog sizes to its
 // content, so the buttons sit under the box rather than on a fixed strip.
 function GoalForm({
   initial,
@@ -169,7 +170,7 @@ function Failure({ text }: { text: string }) {
 }
 
 // Read goal.md's body once, when whatever is showing it mounts. Both the goal
-// dialog and the setup bar's editor only mount while open, so every open is a
+// dialog and the goal editor only mount while open, so every open is a
 // fresh read. `null` means still reading.
 function useGoalText() {
   const [text, setText] = useState<string | null>(null);

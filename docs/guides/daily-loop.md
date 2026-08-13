@@ -45,8 +45,8 @@ never required — a release made without one works everywhere one with a goal d
 
 Say **"plan release v1"** and the agent fills the version against its goal: it moves the
 open cards that ship the goal into the release, and it writes the cards the goal needs that
-your board hasn't got. The new cards land plain, and auto-refine takes them from there. It
-decides on its own — nothing waits on you — and it ends by saying what it moved in, what it
+your board hasn't got. The new cards land plain, and each one is refined right after, as a
+run of its own. It decides on its own — nothing waits on you — and it ends by saying what it moved in, what it
 wrote, and what it left out and why. A card already in another release stays where it is, so
 planning only ever adds: run it again whenever the goal changes and it adds what the goal
 still lacks. To take a card back out, say **"take #4 out of v1"**.
@@ -149,6 +149,15 @@ Decisions only you can make land on the card as open questions.
 A card with open questions can't be refined again. Say **"resolve #4"** — the skill
 researches each question, decides the ones the evidence settles, asks you the real
 judgment calls, and clears the list.
+
+You rarely have to ask. Any run that writes or changes a card is followed by a refine of
+that card, started on its own once the run ends — so a card you add, revise or resolve comes
+back refined without a second instruction. Archiving or rejecting a card does the same for
+every card it was holding up. Each one is an ordinary run: you can watch its log and stop
+it. What has nothing to refine is skipped — a card still blocked, one already ready, a
+recurring card, one whose todos are all ticked, and one waiting only on your answers. A
+group's main card is skipped too when a subtask finishes — ticking its line is progress, not
+a new plan — so a big group doesn't refine its main card once per subtask.
 
 ## Review the board
 

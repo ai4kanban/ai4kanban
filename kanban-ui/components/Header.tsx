@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReleasePick } from "@/lib/release-pick";
-import type { AgentInfo, SessionView } from "@/lib/types";
+import type { AgentInfo } from "@/lib/types";
 import { ToolCluster } from "./chrome";
 import { Configuration } from "./Configuration";
 import { CreateTask } from "./CreateTask";
@@ -18,12 +18,8 @@ import { Sessions } from "./sessions";
 // self-contained (see CreateTask) so both pages
 // get it without threading any session state through the header. `projectRoot` is
 // the repo the server is driving (holds docs/kanban/) — shown as a small badge so
-// you can tell at a glance which board this is. `autoRefine` and
-// `autoRefineParallelism` seed the Configuration dialog's auto-refine controls
-// and `sessions` is the page's polled registry
-// list, which tells that dialog whether a background refine is running and on
-// which card (#51); `onError` lets a save failure surface where the page already
-// shows errors, across its top.
+// you can tell at a glance which board this is. `onError` lets a save failure
+// surface where the page already shows errors, across its top.
 //
 // There was a view switch here (#70) — kanban columns or the queue. It is gone:
 // the board draws one layout now, so there is nothing to switch between and a
@@ -69,9 +65,6 @@ import { Sessions } from "./sessions";
 export function Header({
   agent,
   projectRoot,
-  autoRefine,
-  autoRefineParallelism,
-  sessions,
   onError,
   releases = [],
   releaseGoals = {},
@@ -89,9 +82,6 @@ export function Header({
 }: {
   agent: AgentInfo;
   projectRoot: string;
-  autoRefine: boolean;
-  autoRefineParallelism: number;
-  sessions: SessionView[];
   onError?: (msg: string) => void;
   /** The open releases in ship order. Empty is a board that plans no versions —
    *  the dropdown still shows, saying All releases and offering New release, so
@@ -131,7 +121,8 @@ export function Header({
   createRelease?: string | null;
   /** Whether `memory/goal.md` holds the user's own words. False — the file is
    *  missing or empty — means there is nothing to open and the button stays
-   *  away; the setup bar is what asks for the goal then. */
+   *  away; the guided first run, or the board's goal notice, is what asks for
+   *  the goal then. */
   goalWritten?: boolean;
   /** Whether this board is running inside the desktop app (#175). All it changes
    *  here is the folder badge: in the app it opens another project, since there
@@ -177,13 +168,7 @@ export function Header({
         <ToolCluster>
           <Progress />
           <Sessions />
-          <Configuration
-            agent={agent}
-            autoRefine={autoRefine}
-            autoRefineParallelism={autoRefineParallelism}
-            sessions={sessions}
-            onError={onError}
-          />
+          <Configuration agent={agent} onError={onError} />
         </ToolCluster>
         <CreateTask release={createRelease} />
       </div>

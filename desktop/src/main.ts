@@ -26,6 +26,7 @@ import {
 import path from "node:path";
 import { makeBoard } from "./lib/board-init";
 import { buildMenu } from "./lib/menu";
+import { attachNavigation, type Navigation } from "./lib/navigation";
 import * as projects from "./lib/projects";
 import { BoardServers } from "./lib/server";
 import { loginShellEnv } from "./lib/shell-env";
@@ -41,6 +42,8 @@ import {
 
 let servers: BoardServers | null = null;
 let win: BrowserWindow | null = null;
+// Back and forward through the views the window opened. Set with the window.
+let nav: Navigation | null = null;
 // Set the first time the window is asked, so switching project or reloading
 // doesn't hit GitHub again in the same sitting.
 let updatePromise: Promise<UpdateInfo | null> | null = null;
@@ -73,8 +76,8 @@ async function start(): Promise<void> {
   const repo = store.lastRepo() ?? (await askForRepo({ firstTime: true }));
   if (!repo) return app.quit(); // asked, and the user said no folder.
 
-  refreshMenu();
   createWindow();
+  refreshMenu();
   await open(repo);
 }
 
@@ -111,7 +114,11 @@ function createWindow(): void {
   win.once("ready-to-show", () => win?.show());
   win.on("closed", () => {
     win = null;
+    nav = null;
   });
+  // A swipe, and the menu's Back and Forward, move between the pages the window
+  // opened. The menu is redrawn on every move so the two grey out at the ends.
+  nav = attachNavigation(win, refreshMenu);
   // Full screen takes the traffic lights away, and the gutter held for them
   // would be 78px of nothing. The page is told either way it changes, and again
   // on every load — loading another project's board is a whole new page, which
@@ -158,6 +165,10 @@ async function open(repo: string): Promise<void> {
   // bar and in the app switcher's window list; every other system shows it too.
   win?.setTitle(`${path.basename(repo) || repo} — AI4Kanban`);
   await win?.loadURL(url);
+  // ...so going back doesn't reach into the project you had open before. That
+  // board is a whole other page, on a whole other port, and coming back to it
+  // half-way is not what a swipe should mean.
+  nav?.reset();
 }
 
 /** Open a project the user picked from the list. A folder that has since been
@@ -244,6 +255,10 @@ function refreshMenu(): void {
     onOpenRepo: pickRepo,
     onOpenProject: openProject,
     onCheckUpdates: checkUpdatesFromMenu,
+    onBack: () => nav?.back(),
+    onForward: () => nav?.forward(),
+    canGoBack: nav?.canGoBack() ?? false,
+    canGoForward: nav?.canGoForward() ?? false,
     projects: listProjects(),
   });
 }

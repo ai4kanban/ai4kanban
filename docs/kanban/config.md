@@ -8,11 +8,12 @@
   keeps going until the spec is clear enough to build. The board is plain markdown in git.
 - **Tracks** — the buckets a task can live in, with a rough share of effort:
   - `features` 45% — new board behavior a user can see, in the skill or the local UI.
-  - `skill` 35% — the skill itself: `SKILL.md`, `kanban.mjs`, the references, the flows.
+  - `skill` 35% — the skill itself: `SKILL.md`, the references, the flows, and the board's
+    rules in `cli/`.
   - `distribution` 20% — the landing site, launch posts, and anything else that puts the
     project in front of people.
 - **Planning sources** — what to read when proposing new work:
-  - the code: `skill/`, `kanban-ui/`, `web/`.
+  - the code: `cli/` (the `akb` command and the board's rules), `skill/` (the words), `kanban-ui/`, `web/`.
   - the board itself: `docs/kanban/todo/` and the memory in `docs/kanban/memory/`.
   - `README.md` for what we promise today, `docs/guides/` for what we teach.
 - **Reference docs** — optional files the skill reads when they exist. Leave blank

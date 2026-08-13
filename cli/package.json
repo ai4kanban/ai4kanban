@@ -21,7 +21,8 @@
   },
   "type": "module",
   "bin": {
-    "ai4kanban": "bin/ai4kanban.mjs"
+    "ai4kanban": "bin/ai4kanban.mjs",
+    "akb": "bin/ai4kanban.mjs"
   },
   "files": [
     "bin/",
@@ -31,7 +32,15 @@
     "node": ">=18.0.0"
   },
   "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "npm run typecheck && node scripts/build.mjs --check",
     "bundle": "node scripts/bundle-skill.mjs",
-    "prepublishOnly": "node ../scripts/sync-version.mjs --check && npm run bundle"
+    "prepublishOnly": "node ../scripts/sync-version.mjs --check && npm run build && npm run bundle"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.3"
   }
 }

@@ -340,7 +340,7 @@ export function DesignSystem() {
       <Section
         id="contrast"
         title="Contrast"
-        note="WCAG 2.1, measured at build time by lib/contrast.ts. Body copy needs 4.5:1; anything you only need to see the shape of needs 3:1. The board sets nothing large enough for the 3:1 large-text bar, so every text row here is held to 4.5 — its 10.5px bold chips included. Add a pair whenever you add a surface, and leave the failures in: two of them are known and argued for below."
+        note="WCAG 2.1, measured at build time by lib/contrast.ts. Body copy needs 4.5:1; anything you only need to see the shape of needs 3:1. The board sets nothing large enough for the 3:1 large-text bar, so every text row here is held to 4.5 — its 10px bold chips included. Add a pair whenever you add a surface, and leave the failures in: two of them are known and argued for below."
       >
         <div className="nb-panel divide-y-[1.5px] divide-nb-ink/12">
           {PAIRS.map((p) => {
@@ -622,7 +622,7 @@ export function DesignSystem() {
       <Section
         id="chips"
         title="Chips and markers"
-        note="components/chips.tsx — .nb-chip is borderless by design: a card already carries three or four of these, and a frame on each would draw a row of boxes inside a box. Meaning comes from the fill, and every one of them is 10.5px bold uppercase, so the row reads as one strip of facts rather than a set of competing labels."
+        note="components/chips.tsx — .nb-chip is borderless by design: a card already carries three or four of these, and a frame on each would draw a row of boxes inside a box. Meaning comes from the fill, and every one of them is 10px bold uppercase, so the row reads as one strip of facts rather than a set of competing labels. It is deliberately the smallest type the board sets: a chip annotates the card title and must never rival it."
       >
         <div className="nb-panel space-y-6 px-5 py-5">
           <div>
@@ -883,7 +883,7 @@ export function DesignSystem() {
             { cls: "text-[12.5px] leading-relaxed", spec: "12.5 / 400", what: "an option row, a warning box" },
             { cls: "text-[12px] text-nb-ink-soft", spec: "12 / 400", what: "a count, a blurb under a label" },
             { cls: "text-[11px] text-nb-ink-soft tabular-nums", spec: "11 / 400 tabular", what: "a run's duration and cost" },
-            { cls: "text-[10.5px] font-[700] uppercase tracking-[0.04em]", spec: "10.5 / 700 / 0.04em", what: "every meaning chip" },
+            { cls: "text-[10px] font-[700] uppercase tracking-[0.04em]", spec: "10 / 700 / 0.04em", what: "every meaning chip" },
             { cls: "text-[11px] font-[700] uppercase tracking-[0.12em]", spec: "11 / 700 / 0.12em", what: ".nb-tag — a section kicker" },
             { cls: "font-mono text-[12px] text-nb-ink-soft", spec: "mono 12", what: "the agent's event tail" },
           ].map((t) => (

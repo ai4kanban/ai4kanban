@@ -22,6 +22,14 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   repointing the window, so a person with three projects repoints it all day) → ✅ the app
   works like an IDE: Open Folder, a list of the projects opened before, and one click to
   switch. A folder with no board opens onboarding, not an error.
+- ❌ **A control is kept alive for its leftover cases after the thing it served is
+  replaced** (a guided first run takes over setup, and the old setup card stays on for a
+  setup left halfway and a goal gone weak) → ✅ send each leftover case where it belongs —
+  resuming setup reopens the flow, and asking for a goal is not asking for setup — then
+  take the control away. A surface kept for scraps is a second way to do the same thing.
+- ❌ **Setup reports itself finished while the board still can't run anything** (every box
+  ticked, no agent and no key ever asked for) → ✅ whatever the board needs to do its first
+  piece of work is a step of setup, and setup doesn't end until it is answered.
 - ❌ **One control changes meaning with a field above it** (the same switch is "fill from
   the goal" or "put the high-priority cards in", depending on whether a box has words) →
   ✅ two modes get two tabs that name them, and each tab shows only its own fields. A
@@ -45,6 +53,14 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A full auto-refine status readout** (current card, last refined, next pick, a reason
   for every idle state) → ✅ one "Refining #<id>" label beside the switch while a run is
   live, nothing otherwise. A background switch gets at most one small live indicator.
+- ❌ **The board starts a refine on a blocked card on its own** → ✅ it waits: the automatic
+  refine that follows a run skips a card with an open blocker, and archiving or rejecting a
+  card starts a refine on whatever it was holding up. The Refine button still works on a
+  blocked card whenever the user wants it.
+- ❌ **Waiting for a blocker is built for one action** (a Schedule button that always means
+  implement) → ✅ scheduling is a modifier on an action, never an action itself: every run
+  a blocked card offers — implement, refine — can be scheduled instead of forced through
+  an "anyway".
 
 ## Settings
 
@@ -58,6 +74,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A dialog's fields are seeded once, from the page's first load** (a setting saved a
   moment ago reads back empty next time it opens) → ✅ a settings dialog shows what the
   file holds every time it opens, with no page reload.
+- ❌ **A background sweep with its own on/off switch, for work a run already causes**
+  (a timer walking the backlog for cards to refine, behind an Auto-refine switch) → ✅ work
+  follows the run that caused it: a run that touches a card starts the next step on that
+  card. No sweep, so no switch to turn the sweep off — and the frugality rules the sweep
+  needed (skip the blocked cards, cap how many at once) go with it.
 - ❌ **Say whether a setup can run by checking its pieces up front** (is the CLI installed,
   is it logged in, is the key set) → ✅ one **Test** button that really runs the thing once
   and shows what came back. A real run answers what a checklist can't see — a revoked key,
@@ -101,6 +122,12 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   a report wants a fixed hour.
 
 ## Shipping the desktop app
+
+- ❌ **A gesture ships behind a system setting the user has to go turn on** (the app hears
+  only the old three-finger swipe, so on a Mac as it comes the swipe does nothing, and the
+  README asks the user to change System Settings) → ✅ a gesture people already make in
+  their browser has to work in the app with no setup at all. If the toolkit only offers
+  the old path, that's a reason to keep looking, not a reason to ask the user.
 
 - ❌ **A release waits on a paid developer account** (Apple's $99 program, days to approve)
   → ✅ ship unsigned and write down the clicks that get past the warning. A signature is a

@@ -43,9 +43,7 @@
 import { useEffect, useState } from "react";
 import { FiCheckCircle, FiCompass, FiMoreHorizontal, FiTag, FiTarget, FiTrash2 } from "react-icons/fi";
 import { closePlanAction, dropPlanAction, fillPlanAction } from "@/app/actions";
-import type { ClosePlan } from "@/lib/close";
-import type { DropPlan } from "@/lib/drop";
-import type { FillPlan } from "@/lib/fill";
+import type { ClosePlan, DropPlan, FillPlan } from "@/lib/types";
 import type { ReleasePick } from "@/lib/release-pick";
 import { Button } from "./button";
 import { CHROME, SegmentDivider } from "./chrome";

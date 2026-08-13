@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { CardPage } from "@/components/CardPage";
-import { NoBoard } from "@/components/NoBoard";
-import { agentInfo } from "@/lib/agent";
+import { NoBoard, NoRules } from "@/components/NoBoard";
+import { agentInfo, NO_AGENT } from "@/lib/agent";
 import { findCard, readBoard } from "@/lib/board";
-import { readAutoRefine, readAutoRefineParallelism } from "@/lib/config";
 import { isDesktop } from "@/lib/desktop";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
+import type { Board, Card } from "@/lib/types";
 
 // Read the board on the server and hand the one card to the client page. The
 // files in docs/kanban/ are the source of truth; router.refresh() re-reads them
@@ -22,19 +22,27 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const cardId = Number(id);
   if (!Number.isInteger(cardId)) notFound();
 
-  const board = readBoard();
-  const card = findCard(cardId);
+  // The board is read through the CLI (#169). No copy of its rules to read it with is not
+  // a missing card — the card may be sitting right there — so it says so and names the
+  // fix, rather than showing "not on the board" for a card that is.
+  let board: Board;
+  let card: Card | null;
+  try {
+    board = await readBoard();
+    card = await findCard(cardId);
+  } catch (e) {
+    return <NoRules why={e instanceof Error ? e.message : String(e)} desktop={isDesktop()} />;
+  }
   if (!card) notFound();
 
+  const agent = await agentInfo().catch(() => NO_AGENT);
   return (
     <CardPage
       card={card}
       openIds={board.openIds}
       releases={board.releases}
-      agent={agentInfo()}
+      agent={agent}
       projectRoot={repoRoot()}
-      autoRefine={readAutoRefine()}
-      autoRefineParallelism={readAutoRefineParallelism()}
       goalWritten={board.goalWritten}
       desktop={isDesktop()}
     />

@@ -28,6 +28,10 @@ covers it, or a plain-words note.
 - Setup keeps its own steps in `docs/kanban/setup-checklist.md` and ticks each box as it
   goes — while the file is there the skill creates no cards, and the last tick deletes it:
   "Setup" in `skill/SKILL.md`.
+- Setup's first three boxes are the user's own — the project and its tracks, the goal, and
+  the agent that runs the board — so a board can no longer tick every box without anything
+  to run the work with. The board app asks for all three on its first run; a coding agent
+  running setup fills them in itself: `skill/references/setup.md`.
 - `goal.md` starts empty and carries a `reviewed: strong | good | pending | weak` field —
   the agent judges whether the goal is clear enough to plan from, and `pending` marks a
   goal written but not judged yet, so nothing asks for a goal that is already written:
@@ -69,6 +73,36 @@ covers it, or a plain-words note.
 - Every new board starts with one recurring card, "Prune the memory", seeded by the script
   with no cadence — setting its cadence prunes on that schedule, deleting it opts out for
   good, and nothing puts it back. No published doc covers this yet.
+
+## The command
+
+- Every bookkeeping move is a command of `akb` — `akb board create`, `update`,
+  `update-questions`, `archive`, `reject`, `release`, `init` — listed by `akb board help`,
+  with each move in full when named. They are the agent's to call, not the README's to
+  teach.
+- A board command works on any board: `--dir <path>` names one, and with none named it
+  finds the board from the folder it was run in, so a skill folder no longer has to be
+  installed to run the board: `akb board help`.
+- A refused move says why and exits 1 instead of ending whoever asked, and `--json` makes
+  any move answer as one object a program can read: `akb board help`.
+- An installed skill folder holds the skill's words and one file that runs them —
+  `kanban.mjs`, built from the CLI's TypeScript. No `lib/`, no `commands/`:
+  `skill/references/update.md`.
+- Every run the board can start is a command — `akb implement`, `refine`, `resolve`,
+  `create`, `propose`, `archive`, `reject`, a recurring card and a release plan — so a card
+  can be built from a terminal, over ssh or from a script, with no browser and no chat
+  session: `cli/README.md`.
+- A run outlives the command that started it: it keeps working after the terminal closes,
+  and `akb runs`, `akb log --follow`, `akb stop` and `akb resume` reach any run from
+  anywhere, whoever started it: `cli/README.md`.
+- A run goes through the settings the board saved, never what your shell exported, and the
+  same command changes them — which agent, its model, how hard it thinks, who pays, and
+  the key — and says which agents it can run and what each one takes: `cli/README.md`.
+- One writer at a time on a board: a move waits its turn behind whatever else is writing,
+  and says which process it is waiting on when it gives up. A lock left behind by a killed
+  run is taken over the moment that process is gone, so nothing waits on a writer that no
+  longer exists and there is never a folder to delete by hand. No published doc covers this
+  yet.
 
 ## Installing and updating
 

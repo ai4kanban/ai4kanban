@@ -1,167 +1,152 @@
-import fs from "node:fs";
-import path from "node:path";
-import { CADENCE_FORMS, formatCadence, parseCadence } from "./cadence";
-import { normalizeRelease, parseFrontmatter, serializeFrontmatter } from "./frontmatter";
-import { readmePath, todoDir } from "./paths";
-import { readReleases } from "./releases";
-import { NO_RELEASE } from "./types";
+import { boardRules } from "./cli";
+import type {
+  BulkReleaseResult,
+  CardPatch,
+  ClosePlan,
+  DropPlan,
+  FillPlan,
+  SaveProjectResult,
+  TrackDraft,
+  WriteResult,
+} from "./types";
 
-const LEVELS = ["high", "med", "low"];
-
-// Find a card file by id — a standalone `NN-slug.md` or a group `NN-slug/root.md`.
-function locate(id: number): string | null {
-  function walk(dir: string): string | null {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        const m = entry.name.match(/^(\d+)-/);
-        if (m && Number(m[1]) === id) {
-          const root = path.join(full, "root.md");
-          if (fs.existsSync(root)) return root;
-        }
-        const hit = walk(full);
-        if (hit) return hit;
-      } else if (entry.name.endsWith(".md") && entry.name !== "README.md") {
-        const m = entry.name.match(/^(\d+)-/);
-        if (m && Number(m[1]) === id) return full;
-      }
-    }
-    return null;
-  }
-  return walk(todoDir());
-}
-
-// Write `release` down every card inside a group folder — each subtask, and the
-// root and subtasks of a nested group, all the way down. Ported from
-// setSubtreeRelease in skill/lib/releases.mjs, which explains why a group moves
-// as one: the subtasks are the work, so a root promised to a version whose
-// subtasks name nothing would leave that work out of it.
+// --- writing the board, through the CLI (#169) -------------------------------
+// Every change a button makes: a card's fields and body, a bulk move into a release, a
+// release opened, given a goal, closed or dropped, the project goal, the project and its
+// tracks, a setup box ticked. Each one is the CLI's own move — the same code `akb` runs —
+// so a card edited from a screen and a card edited from a terminal come out identical.
 //
-// Only cards move. README.md, a sibling doc, a file with no frontmatter — none
-// of them carry a release. The group's own root is skipped: patchCard has just
-// written it.
-function setSubtreeRelease(dir: string, release: string): void {
-  const root = path.join(dir, "root.md");
-  function walk(current: string): void {
-    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
-      const full = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        walk(full);
-        continue;
-      }
-      if (!entry.name.endsWith(".md")) continue;
-      if (entry.name === "README.md" || full === root) continue;
-      const { meta, body } = parseFrontmatter(fs.readFileSync(full, "utf8"));
-      if (!meta) continue;
-      meta.release = release;
-      fs.writeFileSync(full, serializeFrontmatter(meta) + "\n" + body);
-    }
+// Two things they all share, and both belong to the CLI rather than to this file: a write
+// waits its turn behind whatever an agent is writing at that moment, and a refusal comes
+// back as `{ ok:false, error }` instead of throwing, so the dialog can say why and stay
+// open on what the user typed.
+//
+// A board with no copy of the rules refuses the same way, with the line that names the fix.
+
+const refused = (e: unknown): WriteResult => ({
+  ok: false,
+  error: e instanceof Error ? e.message : String(e),
+});
+
+/** Apply a direct edit to one card. */
+export async function patchCard(id: number, patch: CardPatch): Promise<WriteResult> {
+  try {
+    return (await boardRules()).patchCard(id, patch);
+  } catch (e) {
+    return refused(e);
   }
-  walk(dir);
 }
 
-// Rewrite the title in the README index bullet for this id, keeping its link.
-function syncReadmeTitle(id: number, title: string): void {
-  const rp = readmePath();
-  if (!fs.existsSync(rp)) return;
-  const src = fs.readFileSync(rp, "utf8");
-  const re = new RegExp(`(\\-\\s*\\[#${id}\\s+)([^\\]]*)(\\]\\()`);
-  if (!re.test(src)) return;
-  fs.writeFileSync(rp, src.replace(re, `$1${title}$3`));
+/** Move the ticked cards into one release, or back out of one. A release the list doesn't
+ *  hold refuses the whole move before anything is written; a card that can't be moved on
+ *  its own comes back in `failed` while the rest go through. */
+export async function setCardsRelease(ids: number[], release: string): Promise<BulkReleaseResult> {
+  try {
+    return (await boardRules()).setCardsRelease(ids, release);
+  } catch (e) {
+    return { moved: 0, failed: [], error: refused(e).error };
+  }
 }
 
-export interface CardPatch {
-  title?: string;
-  body?: string;
-  priority?: string;
-  roi?: string;
-  /** A version id from `releases.md`, or empty to take the card out of a
-   *  release. Nothing else is accepted — see patchCard. */
-  release?: string;
-  /** How often a recurring card repeats (#139) — one of lib/cadence.ts's forms,
-   *  or empty to take the cadence off and leave the card running only when
-   *  someone clicks Run. Recurring cards only. */
-  cadence?: string;
+/** Start a release. `fill` asks for it to be filled as it is made; which way that happens
+ *  is the CLI's call — a release with a goal is planned against it by an agent, one without
+ *  takes the plain rule there and then — and the answer says which, so the caller knows
+ *  whether a run still has to be started. */
+export async function newRelease(
+  id: string,
+  goal = "",
+  fill = false,
+): Promise<WriteResult & { fill?: "none" | "fill" | "agent" }> {
+  try {
+    return (await boardRules()).newRelease(id, goal, fill);
+  } catch (e) {
+    return refused(e);
+  }
 }
 
-export interface PatchResult {
-  ok: boolean;
-  error?: string;
+/** Change what a release is for, after it was made. An empty goal clears it. */
+export async function setReleaseGoal(id: string, goal: string): Promise<WriteResult> {
+  try {
+    return (await boardRules()).setReleaseGoal(id, goal);
+  } catch (e) {
+    return refused(e);
+  }
 }
 
-// Apply a direct edit to a card file. Only the validated fields of CardPatch are
-// writable here — everything else (track, id, links, questions) stays with the
-// agents and the script. Frontmatter is re-serialized with the script's exact
-// formatter so the diff is minimal and the script can still read the card.
-export function patchCard(id: number, patch: CardPatch): PatchResult {
-  if (!Number.isInteger(id)) return { ok: false, error: "bad id" };
-  const file = locate(id);
-  if (!file) return { ok: false, error: `no open card #${id}` };
+/** Close a shipped release. */
+export async function closeRelease(id: string): Promise<WriteResult> {
+  try {
+    return (await boardRules()).closeRelease(id);
+  } catch (e) {
+    return refused(e);
+  }
+}
 
-  const { meta, body } = parseFrontmatter(fs.readFileSync(file, "utf8"));
-  if (!meta) return { ok: false, error: `card #${id} has no frontmatter` };
+/** Give up on a release. */
+export async function dropRelease(id: string): Promise<WriteResult> {
+  try {
+    return (await boardRules()).dropRelease(id);
+  } catch (e) {
+    return refused(e);
+  }
+}
 
-  let titleChanged = false;
-  if (patch.title !== undefined) {
-    const t = patch.title.trim();
-    if (!t) return { ok: false, error: "title must not be empty" };
-    if (t !== meta.title) titleChanged = true;
-    meta.title = t;
+/** Save the project goal, which is also setup's goal step. */
+export async function saveGoal(text: string): Promise<WriteResult> {
+  try {
+    return (await boardRules()).saveGoal(text);
+  } catch (e) {
+    return refused(e);
   }
-  if (patch.priority !== undefined) {
-    if (!LEVELS.includes(patch.priority))
-      return { ok: false, error: `priority must be one of ${LEVELS.join(" | ")}` };
-    meta.priority = patch.priority;
-  }
-  if (patch.roi !== undefined) {
-    if (!LEVELS.includes(patch.roi))
-      return { ok: false, error: `roi must be one of ${LEVELS.join(" | ")}` };
-    meta.roi = patch.roi;
-  }
-  // A card can only be moved onto a release that exists, the same check the
-  // script makes — a typo must not quietly invent a version. An empty value is
-  // always allowed: it means no release, so writing it is how a card comes back
-  // out of a release. The card's OWN release
-  // isn't accepted just because the card names it: `releases.md` is a file a
-  // person edits, and a card left pointing at a line someone deleted still shows
-  // what it says but can only move onto a release that is really there.
-  if (patch.release !== undefined) {
-    const release = normalizeRelease(patch.release);
-    const known = readReleases();
-    if (release !== NO_RELEASE && !known.includes(release)) {
-      return {
-        ok: false,
-        error:
-          `unknown release "${release}" — releases on the list: ` +
-          `${known.join(", ") || "(none)"}. Make one with \`release new <id>\`.`,
-      };
-    }
-    meta.release = release;
-  }
-  // The cadence, written the same way the script writes it (#139): only a card
-  // that repeats can carry one, and only in a form the scheduler can read — a
-  // half-parsed line would look like a schedule and never run. Empty clears it,
-  // which is how a card goes back to running only when someone clicks Run.
-  if (patch.cadence !== undefined) {
-    if (path.relative(todoDir(), file).split(path.sep)[0] !== "recurring") {
-      return { ok: false, error: `#${id} is not a recurring card — only a card that repeats can have a cadence` };
-    }
-    const text = patch.cadence.trim();
-    const parsed = text ? parseCadence(text) : null;
-    if (text && !parsed) return { ok: false, error: `"${text}" isn't a cadence. Accepted: ${CADENCE_FORMS}` };
-    meta.cadence = parsed ? formatCadence(parsed) : "";
-  }
+}
 
-  const newBody = patch.body !== undefined ? patch.body : body;
-  const normalizedBody = newBody.replace(/^\n+/, "").replace(/\s+$/, "");
-  fs.writeFileSync(file, serializeFrontmatter(meta) + "\n\n" + normalizedBody + "\n");
-
-  // A group root's release is the whole group's: putting the root in a version
-  // puts every subtask in it, and taking the root out takes them all out.
-  if (patch.release !== undefined && path.basename(file) === "root.md") {
-    setSubtreeRelease(path.dirname(file), meta.release);
+/** Save what the project is and what tracks its work falls into — setup's `project` step,
+ *  folders and board index included. */
+export async function saveProject(
+  name: string,
+  description: string,
+  tracks: TrackDraft[],
+): Promise<SaveProjectResult> {
+  try {
+    return (await boardRules()).saveProject(name, description, tracks);
+  } catch (e) {
+    return refused(e);
   }
+}
 
-  if (titleChanged) syncReadmeTitle(id, meta.title);
-  return { ok: true };
+/** Tick one setup box by name. */
+export async function finishSetupStep(name: string): Promise<WriteResult> {
+  try {
+    return (await boardRules()).finishSetupStep(name);
+  } catch (e) {
+    return refused(e);
+  }
+}
+
+// ---- what a release move would do, before it does it ------------------------
+// Read as a dialog opens, so the user sees the move before anything is changed. A board
+// with no rules to read gives an empty plan; the move itself is what says why.
+
+export async function fillPlan(): Promise<FillPlan> {
+  try {
+    return (await boardRules()).fillPlan();
+  } catch {
+    return { fill: [], skipped: [] };
+  }
+}
+
+export async function closePlan(id: string): Promise<ClosePlan> {
+  try {
+    return (await boardRules()).closePlan(id);
+  } catch {
+    return { left: [], shipped: 0 };
+  }
+}
+
+export async function dropPlan(id: string): Promise<DropPlan> {
+  try {
+    return (await boardRules()).dropPlan(id);
+  } catch {
+    return { archived: [], left: [] };
+  }
 }

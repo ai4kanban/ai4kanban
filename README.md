@@ -47,10 +47,10 @@ Everything checked below is available today.
   questions. It makes decisions on its own when project memory and common sense provide
   enough context, and asks you only when they do not. The loop continues until the work
   is ready to begin or only decisions that require your input remain.
-- [x] **Keeps work moving in the background.** With Auto-refine enabled, the agent
-  automatically works through cards that are not yet ready, without waiting for
-  card-by-card instructions. Cards blocked by other work wait until their dependencies
-  are complete.
+- [x] **Keeps work moving on its own.** Every run that writes or changes a card is
+  followed by a refine of that card, started as a separate run you can watch and stop.
+  Finishing or rejecting a card refines whatever it was holding up. Cards still blocked by
+  other work wait until their dependencies are complete.
 - [x] **Breaks down tasks.** The agent divides a requirement into subtasks and separates
   unrelated requests into their own cards.
 - [x] **Manages dependencies and priorities.** The agent identifies dependencies,
@@ -105,9 +105,15 @@ The agent first reads your codebase, then runs:
 npx ai4kanban install --tracks feature,bug,research
 ```
 
-Setup asks for just one thing: your project goal. The agent uses it to establish module
+Setup asks you for three things: what the project is and the tracks its work falls into,
+your project goal, and which agent runs the board. The agent uses those to establish module
 memory, map the project's modules, and create the first ten initial task cards. From
 then on, you can manage the project directly through the board.
+
+In the [board app](https://ai4kanban.dev/download) those three questions are a short guided
+first run — one to a screen, everything prefilled, and nothing to paste. A board set up
+there is the same board: the same files, the same checklist, and the rest of setup still
+handed to an agent.
 
 If the agent cannot access the URL, open
 [`INSTALL_PROMPT.txt`](web/public/INSTALL_PROMPT.txt) and give it the contents instead.
@@ -137,6 +143,48 @@ See the [daily loop guide](docs/guides/daily-loop.md) for the complete workflow.
 
 This repository also uses the skill to manage its own development. `docs/kanban/` is a
 real, active board that you can explore as a complete example.
+
+### From a terminal
+
+The same work, started by hand. `akb` puts an agent on a card without a chat session and
+without a browser — over ssh, in a script, or in a second window while you work.
+
+```bash
+akb implement 12              # build the card
+akb refine 12                 # sharpen it until it is ready to build
+akb resolve 12                # answer its open questions
+akb revise 12 "drop the CSV"  # change what the card says
+akb create "add dark mode"    # write the card(s) for it
+akb propose                   # write the next tasks
+akb archive 12                # finish it
+```
+
+The run keeps working after the command returns — close the terminal and the agent carries
+on. Watch it, or stop it, from anywhere:
+
+```bash
+akb runs                      # what is running, and what ran lately
+akb log 3f2a1b04 --follow     # watch a run as it goes
+akb stop 3f2a1b04             # end one
+akb resume 3f2a1b04           # continue one that failed
+```
+
+A run started in a terminal is the same run the app shows, and the other way round: one
+list, one card at a time, and either side can stop or continue what the other started.
+
+Which agent runs them, and what it is set to, is one command:
+
+```bash
+akb agent                     # what runs, and how it is set up
+akb agent list                # the agents it can run
+akb agent use codex           # pick one
+akb agent set model gpt-5.1-codex
+akb agent set apiKey sk-…     # saved to docs/kanban/.env, never shown back
+akb agent test                # one small chat, to see it works
+```
+
+Runs use these settings, never what your shell happens to export — so the same command
+means the same thing wherever you type it. `akb help` lists everything.
 
 ### The board app (optional)
 

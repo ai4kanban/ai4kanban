@@ -40,6 +40,9 @@ import {
 /** Where a person gets the app. One place, named here, used by both notices. */
 export const DOWNLOAD_URL = "https://ai4kanban.dev/download";
 
+/** Which way the window moved, and so which edge it went out of. */
+export type NavSide = "back" | "forward";
+
 /** One line of the projects list, as the app describes it. */
 export interface ProjectEntry {
   path: string;
@@ -64,6 +67,9 @@ interface AppBridge {
   update(): Promise<{ version: string; url: string } | null>;
   skipUpdate(version: string): Promise<void>;
   openExternal(url: string): Promise<void>;
+  /** Told each time the window moves between views — a swipe, the menu, a
+   *  mouse's own buttons. Returns the way to stop being told. */
+  onNavigated(fn: (direction: NavSide) => void): () => void;
 }
 
 declare global {
@@ -83,6 +89,54 @@ function openLink(url: string) {
   const app = bridge();
   if (app) void app.openExternal(url);
   else window.open(url, "_blank", "noopener,noreferrer");
+}
+
+// --- the mark a move between views leaves behind ----------------------------
+
+/** How long the mark stays lit before it starts fading. Short: it is an answer
+ *  to something the user just did, not a thing to be read. */
+const NAV_EDGE_MS = 320;
+
+/** The edge the window went out of, lit for a moment (#210).
+ *
+ *  In the app a two-finger swipe moves between the board and the cards, and a
+ *  gesture that only ever changes the whole screen is hard to tell from a
+ *  glitch. This is the answer: the side you left by lights up and fades. It
+ *  also fires for the menu's Back and Forward and for a mouse's own buttons, so
+ *  the same move always looks the same.
+ *
+ *  Both edges are always in the page and only their opacity changes — a mark
+ *  that is added to the page when it is needed has nothing to fade in from.
+ *  Renders nothing in a browser, which draws its own. */
+export function NavEdge() {
+  const [side, setSide] = useState<NavSide | null>(null);
+
+  useEffect(() => {
+    const app = bridge();
+    if (!app) return;
+    let dim: ReturnType<typeof setTimeout> | undefined;
+    const stop = app.onNavigated((direction) => {
+      setSide(direction);
+      clearTimeout(dim);
+      dim = setTimeout(() => setSide(null), NAV_EDGE_MS);
+    });
+    return () => {
+      clearTimeout(dim);
+      stop();
+    };
+  }, []);
+
+  return (
+    <>
+      <div aria-hidden className="a4k-nav-edge" data-side="back" data-show={side === "back" || undefined} />
+      <div
+        aria-hidden
+        className="a4k-nav-edge"
+        data-side="forward"
+        data-show={side === "forward" || undefined}
+      />
+    </>
+  );
 }
 
 // --- the folder badge, and the projects behind it ---------------------------
@@ -419,8 +473,8 @@ export function PickAnotherProject({ desktop }: { desktop: boolean }) {
 /** Make a board in the folder that is open (#178). In a browser this is `npx
  *  ai4kanban install`, typed in a terminal — which a window doesn't have, so the
  *  app carries the installer and runs it here. It scaffolds `docs/kanban/` and
- *  puts setup's own checklist in it; the page reloads onto the new board, where
- *  the setup bar picks up from the first step.
+ *  puts setup's own checklist in it; the page reloads onto the new board, which
+ *  opens on the guided first run (#172).
  *
  *  Null outside the app: the browser screen keeps the command it already gives. */
 export function MakeBoardHere({ desktop }: { desktop: boolean }) {

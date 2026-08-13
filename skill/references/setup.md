@@ -3,12 +3,18 @@
 ```
 ${KB} setup-status                  # how far setup got; says finished when there's no checklist
 ${KB} setup-done <step>             # tick one box on setup's checklist as that step finishes
-                                    # steps: install, config, goal, decisions, modules, tasks
+                                    # steps: install, project, goal, agent, config, decisions,
+                                    #        modules, tasks
 ```
 
 Run `setup-status`, start at the first unticked box, and follow the matching section
 below, in order. Each step ticks its own box the moment it finishes. Never hand-edit
 `docs/kanban/setup-checklist.md` — the local UI reads its shape.
+
+The first three boxes are the user's own (`owner: you`) — what only they know. The board
+app asks for them one screen at a time on its first run, so on a board driven from the app
+they are ticked before you ever start. Ticked boxes are answered: never ask again for
+anything they settled.
 
 While the checklist exists, create no cards — not from propose, not from add. And never
 stop to ask the user anything except the goal: the moment you hit a call you can't make
@@ -16,10 +22,13 @@ on your own, append it to the questions card the install created —
 `${KB} update-questions <id> --append "[user] .."`, with options where the answer is a
 pick (`references/resolve.md`). `${KB} setup-status` prints the card's id.
 
-## `config`
+## `project`
 
-Fill every `{{PLACEHOLDER}}` in `docs/kanban/config.md` from the repo — each one's note
-says what goes in it. Then `setup-done config`.
+What the project is and what tracks its work falls into — the two things in
+`docs/kanban/config.md` a repo can't settle on its own. The board app asks the user for
+both; you only reach this box when nobody has. Fill `{{PROJECT_NAME}}`, `{{PROJECT_GOAL}}`
+and `{{TRACKS}}` from the repo, keep the track list to the folders that exist under
+`docs/kanban/todo/`, and add a folder for any track you add. Then `setup-done project`.
 
 ## `goal`
 
@@ -33,6 +42,22 @@ Put their answer below the frontmatter. A goal already written — the file has 
 — is taken as is. Either way, judge it now and set `reviewed:` in the frontmatter yourself
 (`strong | good | weak`, see "The memory set" in `SKILL.md`), then tick the box. No answer
 means stop the run; a later one resumes here.
+
+## `agent`
+
+Which agent runs this board's own buttons, and the key it uses. It is asked for in the
+board app's Agent settings, which saves it and ticks this box — so on a board driven from
+the app you never reach here.
+
+You reach it when the user is driving the board from a coding agent instead: that is you,
+and it is a complete answer. Tick it — `setup-done agent` — and say in one line that the
+board app can run the work itself once an agent is picked in its settings.
+
+## `config`
+
+Fill every `{{PLACEHOLDER}}` still left in `docs/kanban/config.md` from the repo — each
+one's note says what goes in it. The project and the tracks are settled by then; don't
+rewrite them. Then `setup-done config`.
 
 ## `decisions`
 

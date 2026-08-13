@@ -1,331 +1,73 @@
-import fs from "node:fs";
-import path from "node:path";
-import { formatStamp, nextDue } from "./cadence";
-import { parseFrontmatter } from "./frontmatter";
-import { goalNeedsWork, goalWritten } from "./goal";
-import { archivePath, readmePath, todoDir } from "./paths";
-import { byPickOrder } from "./pick-order";
-import { readReleaseGoals, readReleases } from "./releases";
-import { readSetup } from "./setup";
-import type { ArchiveGroup, Board, Card, Column, Subtask } from "./types";
+import { boardRules } from "./cli";
+import type { Board, Card, MetricsResult, SetupDraft } from "./types";
 
-const idPrefix = (name: string): number | null => {
-  const m = name.match(/^(\d+)-/);
-  return m ? Number(m[1]) : null;
-};
-
-function countTodos(body: string): { total: number; done: number } {
-  const matches = body.match(/^[ \t]*[-*]\s+\[( |x|X)\]/gm) || [];
-  const done = matches.filter((l) => /\[[xX]\]/.test(l)).length;
-  return { total: matches.length, done };
-}
-
-// A group root's subtask lines: the todo lines that carry a `#<subid>` ref. That
-// ref is how `kanban.mjs` finds the line, so it is what makes a line a subtask —
-// the root's own stray todos (a leftover doc-update line) carry none and are left
-// out, since the gate is "all subtasks resolved", not "all todos done".
+// --- reading the board, through the CLI (#169) -------------------------------
+// The columns, one card in full, the module map, the daily numbers, the answers a guided
+// first run opens with — all of it is the CLI's own read of `docs/kanban/`, which is the
+// read `akb` does. The UI walks no files of its own: a card said one thing on a page and
+// another on the command line for exactly as long as there were two readers.
 //
-// Resolved means the subtask is finished either way: `archive` ticks the box to
-// `[x]`, `reject` strikes the text with `~~…~~` and leaves the box `[ ]`. A
-// rejected subtask never becomes `[x]`, so a struck line has to count or one
-// rejection would block the root's Archive forever. This is why it can't reuse
-// `countTodos` — that one's plain done/total drives every card's progress bar and
-// must keep reading a struck-but-unticked line as unfinished.
-function countSubtaskLines(body: string): { total: number; resolved: number } {
-  let total = 0;
-  let resolved = 0;
-  for (const line of body.split("\n")) {
-    const m = line.match(/^[ \t]*[-*]\s+\[( |x|X)\]\s*(.*)$/);
-    if (!m || !/#\d+/.test(m[2])) continue;
-    total++;
-    if (/[xX]/.test(m[1]) || /~~[\s\S]*~~/.test(m[2])) resolved++;
-  }
-  return { total, resolved };
-}
-
-// When a recurring card comes round again, in words the card page can print as
-// it stands (#139). Empty when the card has no cadence — nothing will start it
-// but a person. "Due now" when the wait is already over, which covers a card
-// that has never run: it is due the moment it gets a cadence, so a new job is
-// seen working instead of waiting a day for its first pass.
-function dueLabel(lastRun: string, cadence: string): string {
-  const due = nextDue(lastRun, cadence);
-  if (!due) return "";
-  return due.getTime() <= Date.now() ? "Due now" : formatStamp(due);
-}
-
-// Read one card file into a Card. Returns null if it has no id or no frontmatter.
-function readCard(file: string, relFromTodo: string): Card | null {
-  const id = idPrefix(path.basename(relFromTodo));
-  if (id === null) {
-    // group root: id lives on the folder, file is root.md
-    const parts = relFromTodo.split(path.sep);
-    const folderId = idPrefix(parts[parts.length - 2] || "");
-    if (folderId === null) return null;
-    return buildCard(folderId, file, relFromTodo);
-  }
-  return buildCard(id, file, relFromTodo);
-}
-
-function buildCard(id: number, file: string, relFromTodo: string): Card | null {
-  const { meta, body } = parseFrontmatter(fs.readFileSync(file, "utf8"));
-  if (!meta) return null;
-  // The frontmatter `track` is authoritative — it decides which column the card
-  // shows under. A group root lives in `<id>-<slug>/root.md` (a folder that is
-  // NOT a track), so its column can only come from the frontmatter, not the path.
-  const track = meta.track || path.basename(path.dirname(relFromTodo));
-  const relPath = relFromTodo.split(path.sep).join("/");
-  // `recurring/` is a reserved folder, not a track someone named: a card in it
-  // repeats on a cadence instead of being built once. The path is what says so
-  // — the same test `kanban run` makes before it will record a run.
-  const recurring = relPath.split("/")[0] === "recurring";
-  return {
-    id,
-    relPath,
-    title: meta.title,
-    track,
-    priority: meta.priority,
-    roi: meta.roi,
-    status: meta.status,
-    release: meta.release,
-    blocked_by: meta.blocked_by,
-    related: meta.related,
-    questions: meta.questions,
-    modules: meta.modules,
-    last_run: meta.last_run,
-    cadence: meta.cadence,
-    // When the dispatcher will pick this card up next, worked out here — on the
-    // server, whose clock is the one the schedule runs on. A browser on another
-    // machine would otherwise show its own idea of the time (#139).
-    nextRun: recurring ? dueLabel(meta.last_run, meta.cadence) : "",
-    body: body.replace(/^\n+/, "").replace(/\s+$/, ""),
-    todos: countTodos(body),
-    isGroup: false, // readGroup flips this on the one card that is a root
-    recurring,
-    openBlockers: [], // filled by attachBlockers once every card has been read
-  };
-}
-
-// Work out what is really blocking each card. A `blocked_by` id counts only when
-// it names a card that is still open — an id no longer on the board was archived
-// or rejected, so that work is done and the block is cleared. A recurring blocker
-// and a card that names itself are skipped: neither can ever clear — a recurring
-// card is never archived, so a block on one would hold forever.
+// Everything is async because the rules are loaded from the built file this project has
+// (lib/cli.ts). Nothing else about them changed.
 //
-// Runs over every card at once (subtasks included), so a blocker inside a group
-// folder resolves like any other card.
-function attachBlockers(cards: Card[]): void {
-  const byId = new Map(cards.map((c) => [c.id, c]));
-  for (const card of cards) {
-    card.openBlockers = card.blocked_by
-      .filter((n) => n !== card.id)
-      .map((n) => byId.get(n))
-      .filter((b): b is Card => !!b && !b.recurring)
-      .map((b) => ({ id: b.id, title: b.title }));
+// A board with no copy of those rules to load can't be read at all, so `readBoard` lets the
+// refusal through — its message is the one line naming the fix, and the page shows it. The
+// smaller reads fall back instead: an empty module list means a picker doesn't show, and
+// that is better than a dialog that won't open.
+
+/** The whole board: the columns, the archive notes, the releases and what each is for, how
+ *  far setup got, whether the goal needs writing. */
+export async function readBoard(): Promise<Board> {
+  return (await boardRules()).readBoard();
+}
+
+/** Any open card by id, including a group subtask the columns don't show. */
+export async function findCard(id: number): Promise<Card | null> {
+  return (await boardRules()).findCard(id);
+}
+
+/** The module names from `docs/kanban/modules.md`, for the create dialog's picker. A board
+ *  with no map — or no rules to read one with — has nothing to pick from. */
+export async function readModules(): Promise<string[]> {
+  try {
+    return (await boardRules()).readModules();
+  } catch {
+    return [];
   }
 }
 
-// A group folder is `todo/<id>-<slug>/` holding a `root.md` (the tracking card)
-// plus its subtasks under `<track>/<subid>-<slug>.md`. It is detected by the
-// presence of root.md — the folder itself is never a track/column.
-function isGroupDir(dir: string): boolean {
-  return fs.existsSync(path.join(dir, "root.md"));
-}
-
-// Read a group folder: its root card (carrying a light list of its subtasks for
-// the root page) and the full subtask cards (each linked back to the root so a
-// subtask page can point up). Subtasks never surface as their own board cards.
-function readGroup(folderName: string): { root: Card; subCards: Card[] } | null {
-  const groupDir = path.join(todoDir(), folderName);
-  const root = readCard(path.join(groupDir, "root.md"), path.join(folderName, "root.md"));
-  if (!root) return null;
-  // Group-ness comes from the folder shape (it has a root.md), not from the
-  // subtask count below: a finished subtask's file is removed, so a group whose
-  // subtasks are all done reads as zero subtasks and would stop looking like a
-  // group right when it becomes archiveable.
-  root.isGroup = true;
-  root.subtaskLines = countSubtaskLines(root.body);
-
-  const subCards: Card[] = [];
-  const recurse = (dir: string, rel: string) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const childRel = path.join(rel, entry.name);
-      if (entry.isDirectory()) {
-        recurse(path.join(dir, entry.name), childRel);
-      } else if (entry.name.endsWith(".md") && entry.name !== "README.md" && entry.name !== "root.md") {
-        const c = readCard(path.join(dir, entry.name), childRel);
-        if (c) {
-          c.parent = { id: root.id, title: root.title };
-          subCards.push(c);
-        }
-      }
-    }
-  };
-  recurse(groupDir, folderName);
-  subCards.sort((a, b) => a.id - b.id);
-
-  root.subtasks = subCards.map<Subtask>((c) => ({
-    id: c.id,
-    title: c.title,
-    track: c.track,
-    release: c.release,
-    todos: c.todos,
-  }));
-  return { root, subCards };
-}
-
-// Standalone `NN-slug.md` cards directly under a track folder. Group folders are
-// read separately (they live at the top of todo/, not inside a track).
-function standaloneCards(track: string): Card[] {
-  const dir = path.join(todoDir(), track);
-  if (!fs.existsSync(dir)) return [];
-  const cards: Card[] = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.isFile() && entry.name.endsWith(".md") && entry.name !== "README.md") {
-      const c = readCard(path.join(dir, entry.name), path.join(track, entry.name));
-      if (c) cards.push(c);
-    }
+/** The open releases, in ship order. */
+export async function readReleases(): Promise<string[]> {
+  try {
+    return (await boardRules()).readReleases();
+  } catch {
+    return [];
   }
-  return cards.sort((a, b) => a.id - b.id);
 }
 
-// Read every card once. `board` is what the columns show: standalone cards and
-// group roots (never a subtask). `every` also includes each group's subtasks, so
-// a `#<id>` reference linkifies and its `/<id>` route resolves for any open card.
-function collectCards(): { board: Card[]; every: Card[] } {
-  const board: Card[] = [];
-  const every: Card[] = [];
-  for (const entry of fs.readdirSync(todoDir(), { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const dir = path.join(todoDir(), entry.name);
-    if (isGroupDir(dir)) {
-      const g = readGroup(entry.name);
-      if (g) {
-        board.push(g.root);
-        every.push(g.root, ...g.subCards);
-      }
-    } else {
-      const cards = standaloneCards(entry.name);
-      board.push(...cards);
-      every.push(...cards);
-    }
+/** The last 30 days of `docs/kanban/metrics.csv`. A failure comes back as `{ ok:false }`
+ *  rather than as an empty chart: telling someone with a damaged file that they have no
+ *  activity would read as their history being gone. */
+export async function readMetrics(): Promise<MetricsResult> {
+  try {
+    return (await boardRules()).readMetricsView();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
-  // The two arrays hold the same card objects, so annotating `every` covers the
-  // board cards as well.
-  attachBlockers(every);
-  return { board, every };
 }
 
-// Find any open card by id, including a group subtask the columns don't show.
-export function findCard(id: number): Card | null {
-  return collectCards().every.find((c) => c.id === id) ?? null;
-}
-
-// Every open card, subtasks included. Used to reconcile a stale `status` on
-// server start-up (a card left `implementing` by a session that no longer exists).
-export function allCards(): Card[] {
-  return collectCards().every;
-}
-
-// Track folders present on disk — every directory under todo/ except the index
-// and the group folders (a group is one card in its own track, not a column).
-function trackFolders(): string[] {
-  return fs
-    .readdirSync(todoDir(), { withFileTypes: true })
-    .filter((e) => e.isDirectory() && !isGroupDir(path.join(todoDir(), e.name)))
-    .map((e) => e.name);
-}
-
-// Column order follows the README's `## ` headings so the board matches the
-// board file, with any track folder missing from the README appended after.
-function orderedTracks(): { track: string; title: string }[] {
-  const folders = new Set(trackFolders());
-  const ordered: { track: string; title: string }[] = [];
-  const seen = new Set<string>();
-
-  if (fs.existsSync(readmePath())) {
-    for (const line of fs.readFileSync(readmePath(), "utf8").split("\n")) {
-      const m = line.match(/^##\s+(.+?)\s*$/);
-      if (!m) continue;
-      const heading = m[1];
-      const track = heading.toLowerCase() === "blockers" ? "blockers" : heading;
-      if (folders.has(track) && !seen.has(track)) {
-        ordered.push({ track, title: track === "blockers" ? "Blockers" : heading });
-        seen.add(track);
-      }
-    }
+/** The goal in the user's own words, for the editor — an empty box on a board that has
+ *  none, and on one with no rules to read it with: the save is what says why. */
+export async function readGoalText(): Promise<string> {
+  try {
+    return (await boardRules()).readGoalText();
+  } catch {
+    return "";
   }
-  // blockers always first, even if the README didn't list it
-  if (folders.has("blockers") && !seen.has("blockers")) {
-    ordered.unshift({ track: "blockers", title: "Blockers" });
-    seen.add("blockers");
-  }
-  for (const t of trackFolders()) {
-    if (!seen.has(t)) ordered.push({ track: t, title: t });
-  }
-  return ordered;
 }
 
-// Parse archive.md into groups keyed by topic heading. Read-only, no ids.
-function readArchive(): ArchiveGroup[] {
-  if (!fs.existsSync(archivePath())) return [];
-  const lines = fs.readFileSync(archivePath(), "utf8").split("\n");
-  const groups: ArchiveGroup[] = [];
-  let current: ArchiveGroup | null = null;
-  for (const line of lines) {
-    const h2 = line.match(/^##\s+(.+?)\s*$/);
-    if (h2) {
-      current = { category: h2[1], markdown: "" };
-      groups.push(current);
-      continue;
-    }
-    if (/^#\s/.test(line)) continue; // skip the top "# Archive" title
-    if (current) current.markdown += line + "\n";
-  }
-  return groups
-    .map((g) => ({ ...g, markdown: g.markdown.trim() }))
-    .filter((g) => g.markdown.length > 0);
-}
-
-// How many open cards name each release. Counted over EVERY open card, subtasks
-// included, so the number the board's release dropdown shows is the number
-// `release list` prints on the CLI — a group's subtasks answer for themselves
-// there too. A blocker counts once, in the release it names: it shows under every
-// release the user picks, and counting it everywhere would make each one look
-// fuller than it is.
-function countByRelease(cards: Card[]): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const card of cards) counts[card.release] = (counts[card.release] ?? 0) + 1;
-  return counts;
-}
-
-export function readBoard(): Board {
-  const { board, every } = collectCards();
-  // Bucket the board cards by their frontmatter track, then lay the columns out
-  // in README order. A group root lands in its declared track next to the plain
-  // cards, not in a column named after its folder.
-  const byTrack = new Map<string, Card[]>();
-  for (const card of board) {
-    const list = byTrack.get(card.track);
-    if (list) list.push(card);
-    else byTrack.set(card.track, [card]);
-  }
-  const columns: Column[] = orderedTracks().map(({ track, title }) => ({
-    track,
-    title,
-    cards: (byTrack.get(track) ?? []).sort(byPickOrder),
-  }));
-  // Linkify every open id, subtasks included — not just the cards the columns show.
-  const openIds = Array.from(new Set(every.map((card) => card.id)));
-  return {
-    columns,
-    archive: readArchive(),
-    openIds,
-    releases: readReleases(),
-    releaseGoals: readReleaseGoals(),
-    releaseCounts: countByRelease(every),
-    goalNeedsWork: goalNeedsWork(),
-    goalWritten: goalWritten(),
-    setup: readSetup(),
-  };
+/** What the guided first run opens with — the project, its tracks, and the goal as they
+ *  stand. */
+export async function readSetupDraft(): Promise<SetupDraft> {
+  return (await boardRules()).readSetupDraft();
 }

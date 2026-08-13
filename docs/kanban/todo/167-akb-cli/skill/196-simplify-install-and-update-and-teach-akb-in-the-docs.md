@@ -8,7 +8,8 @@ release: 0.6.0
 blocked_by: [195]
 related: [167]
 modules: [skill, docs]
-questions: []
+questions:
+  - The scope says installing copies nothing into the project beyond the short note and the board. But the board UI falls back to the built command in the skill folder when it is not running as the app, and the group already settled that an installed skill folder carries that one built file. Should installing keep writing it?
 ---
 
 Once the flows ship with the command, most of what install and update do is copying files

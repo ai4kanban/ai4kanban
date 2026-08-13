@@ -50,7 +50,7 @@ const INPUT =
 const INTRO = "mb-3 text-[13px] leading-relaxed text-nb-ink-soft";
 
 // The create dialog's picker chips — the focus module and the boldness: the
-// nb-chip shape a step up from the board's 10.5px meta chips, because these are
+// nb-chip shape a step up from the board's 10px meta chips, because these are
 // tap targets, not passive labels. ON is a row's single ember mark; OFF is the
 // resting look; DIM is the disabled look the not-in-effect side of the module
 // row wears (auto-pick ↔ the module names) — still clickable, hover wakes it.
@@ -773,7 +773,7 @@ export function ActionDialog({
             ackLabel="I know the plan may still be rough."
           >
             This card isn&apos;t marked <strong>ready</strong> yet — its plan may still be
-            rough. Let auto-refine take it to ready first.
+            rough. Press <strong>Refine</strong> on its page to take it to ready first.
           </WarningBox>
         )}
         <textarea className={INPUT} rows={4} placeholder="Optional extra notes for the agent…" value={text} onChange={(e) => setText(e.target.value)} />

@@ -1,48 +1,10 @@
-// Open questions, shared by the board reader, the dispatcher, and the UI.
+// Reading a card's open questions — the two shapes one can take, and the `[user]` tag that
+// says a question is the human's own judgment call.
+//
+// The rules are NOT here. They are `cli/src/lib/view/rules.ts`, copied to
+// ./format/view/rules.ts by scripts/sync-format.mjs, so a card the CLI writes and a dialog
+// that reads it can never disagree about what a question says. This file is the name the
+// UI imports them under — fix the rules in cli/src/lib/view/.
 
-export type QuestionTag = "user";
-
-export interface ParsedQuestion {
-  tag: QuestionTag | null;
-  text: string;
-}
-
-/** How many options the user may tick: `single` (one option) or `multi` (as many
- *  as they want). */
-export type QuestionMode = "single" | "multi";
-
-/** One open question on a card.
- *
- *  A PLAIN question is text only — the user answers it in a box, as they always
- *  have. An OPTIONS question carries choices to tick instead of choices buried
- *  in a sentence. Both shapes live side by side on a card, and the `[user]` tag
- *  reads the same on either: it sits at the front of `text`.
- *
- *  The frontmatter shape both this and `skill/kanban.mjs` read is documented in
- *  that script, under "questions". */
-export interface CardQuestion {
-  /** The question itself, `[user]` tag included. Split it with parseQuestion. */
-  text: string;
-  /** Absent on a plain question. */
-  mode?: QuestionMode;
-  /** Each option is one short line, with its reason inside that line. Absent or
-   *  empty on a plain question. */
-  options?: string[];
-  /** 1-based positions into `options` — the ones the resolve dialog opens
-   *  already ticked. Empty means the agent recommends nothing, so the list
-   *  opens with nothing ticked. */
-  recommend?: number[];
-}
-
-export function hasOptions(q: CardQuestion): boolean {
-  return Array.isArray(q.options) && q.options.length > 0;
-}
-
-// A question string may lead with a `[user] ...` tag token — a judgment call the
-// human must make. No token means untagged: freshly raised, not yet triaged.
-// There is no tag for an answered question — answering removes it from the list.
-// Kept in step with parseQuestion in skill/kanban.mjs.
-export function parseQuestion(raw: string): ParsedQuestion {
-  const m = raw.match(/^\[(user)\]\s+([\s\S]*)$/);
-  return m ? { tag: m[1] as QuestionTag, text: m[2] } : { tag: null, text: raw };
-}
+export { hasOptions, parseQuestion } from "./format/view/rules";
+export type { Question, Question as CardQuestion, QuestionMode, QuestionTag } from "./format/view/types";

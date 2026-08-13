@@ -15,9 +15,10 @@ don't re-ask a settled call.
 
 ## How far agents go alone
 
-- The auto-refine switch is the whole of the "auto-design" autonomy idea: one on/off
-  switch for the whole board, not a ladder of levels. Any further autonomy levels sit
-  next to it as sibling settings.
+- The board has no single on/off switch for what it does on its own, and there is no
+  ladder of levels. Work that needs no user follows the thing that caused it: a refine
+  follows the run that touched the card. Each further autonomy step brings its own setting
+  if it needs one.
 - The next level is auto-implement: the agent builds a `ready` card on its own. Letting
   the agent archive a card too waits until an archived card is kept instead of deleted.
   Letting it reject a card on its own is a separate feature — nothing today ever decides

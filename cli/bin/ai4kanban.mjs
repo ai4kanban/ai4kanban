@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 //
-// ai4kanban — the one command that sets up and updates the board.
+// ai4kanban — the one command that sets up and updates the board. Installed as `akb` too;
+// `npx ai4kanban <command>` is the way to run it without installing anything.
 //
-//   npx ai4kanban install [--tracks a,b,c]   copy the skill in, scaffold docs/kanban/
-//   npx ai4kanban update                     overwrite every installed skill folder, repair the board
-//   npx ai4kanban version                    print this package's version
+//   akb install [--tracks a,b,c]   copy the skill in, scaffold docs/kanban/
+//   akb update                     overwrite every installed skill folder, repair the board
+//   akb board <move>               the board's own bookkeeping — the agent's commands
+//   akb version                    print this package's version
 //
 // Why this exists: setup used to be a list of shell commands (`git clone`, `mkdir`, `cp -R`,
 // a `printf`) that the user had to approve one at a time. This is one command instead.
@@ -18,7 +20,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { spawnSync } from 'node:child_process'
 
 const PKG_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -77,21 +79,43 @@ function statOf(p) {
   }
 }
 
-// The skill folder to copy from: `skill/` inside the published package, or the repo's own
-// `skill/` when this file is run straight out of a source checkout.
+// The skill folder this command works out of: what it copies on install, and where the
+// board's own moves come from (`akb board`). It is `skill/` inside the published package,
+// or the repo's own `skill/` when this file is run straight out of a source checkout.
+//
+// A folder counts only if it holds SKILL.md and a BUILT kanban.mjs. A source checkout can
+// carry a stale `cli/skill/` from an older bundle run, and a half-copy silently shadowing
+// the real skill is worse than falling through to it; the stamp is what tells the built
+// file from anything else that ever sat under that name.
+const BUILT_STAMP = /^\/\/ ai4kanban (\S+) — built /m
+
+function isSkillFolder(dir) {
+  if (!fs.existsSync(path.join(dir, 'SKILL.md'))) return false
+  const built = read(path.join(dir, 'kanban.mjs'))
+  return Boolean(built && BUILT_STAMP.test(built.slice(0, 400)))
+}
+
 function bundledSkill() {
   for (const dir of [path.join(PKG_DIR, 'skill'), path.join(PKG_DIR, '..', 'skill')]) {
-    if (fs.existsSync(path.join(dir, 'SKILL.md'))) return dir
+    if (isSkillFolder(dir)) return dir
   }
-  fail('no skill folder inside this package — the published tarball is incomplete')
+  fail(
+    'no built skill folder inside this package — run `npm run build` in cli/ ' +
+      '(a published tarball carries it already, so this one is incomplete)',
+  )
 }
 
 // The released version baked into an installed `kanban.mjs`, so update can say where the
-// user is coming from. Null for an install made before the version was baked in.
+// user is coming from. The built file carries it in its stamp; a board installed before the
+// rules were built carries it as a constant instead, and both have to read. Null for an
+// install older than either.
 function installedVersion(skillDir) {
   const src = read(path.join(skillDir, 'kanban.mjs'))
-  const m = src && src.match(/const SKILL_VERSION = '([^']+)'/)
-  return m ? m[1] : null
+  if (!src) return null
+  const stamped = src.slice(0, 400).match(BUILT_STAMP)
+  if (stamped) return stamped[1]
+  const baked = src.match(/const SKILL_VERSION = '([^']+)'/)
+  return baked ? baked[1] : null
 }
 
 // ---- placing the skill -----------------------------------------------------
@@ -268,7 +292,7 @@ function cmdInstall(root, tracks) {
 }
 
 // The line the user copies into their coding harness to run setup's agent steps. One
-// wording for every harness, and the same one the local board UI shows on its setup bar
+// wording for every harness, and the same one the local board UI hands over (#172)
 // (kanban-ui/lib/agent.ts) — the two are separate packages, so it is repeated here rather
 // than shared. Keep them in step.
 const SETUP_INSTRUCTION = '/kanban. Set up this board — follow docs/kanban/setup-checklist.md.'
@@ -319,19 +343,39 @@ function sayNotes() {
 
 const HELP = `ai4kanban ${VERSION} — set up and update the AI4Kanban board.
 
-  npx ai4kanban install [--tracks a,b,c]   copy the skill into .claude/skills/kanban/ and
-                                           .agents/skills/kanban/, then scaffold docs/kanban/
-  npx ai4kanban update                     overwrite every skill folder that's already here
-                                           and repair a board written by an older version
-  npx ai4kanban version                    print this version
-  npx ai4kanban help                       this text
+Installed, this command is \`akb\`. Without installing anything, every line below also
+works as \`npx ai4kanban <command>\`.
+
+  akb install [--tracks a,b,c]   copy the skill into .claude/skills/kanban/ and
+                                 .agents/skills/kanban/, then scaffold docs/kanban/
+  akb update                     overwrite every skill folder that's already here
+                                 and repair a board written by an older version
+  akb version                    print this version
+  akb help                       this text
 
 Options
   --tracks a,b,c    the board's tracks (install only). Default: feature,bug,research
   --dir <path>      the project to work on. Default: the current folder
 
-Both commands are safe to run twice. Neither one edits your cards, your config, or your
-memory — filling those in is the agent's job.
+Install and update are safe to run twice. Neither one edits your cards, your config, or
+your memory — filling those in is the agent's job.
+
+Put an agent to work on the board:
+
+  akb implement 12               build the card
+  akb refine 12                  sharpen it until it is ready to build
+  akb create "what you want"     write the card(s) for it
+  akb propose                    write the next tasks
+  akb runs                       what is running
+  akb log 3f2a1b04 --follow      watch a run
+  akb stop 3f2a1b04              end one
+  akb agent                      which agent runs them, and how it is set up
+
+A run keeps working after the command returns. \`akb help\` inside a board lists all of
+them; \`akb agent\` is where you pick the agent, its model and its key.
+
+\`akb board <move>\` is the board's own bookkeeping — the commands the agent calls between
+runs. You never have to type one; \`akb board help\` lists them.
 
 Docs: ${REPO}
 `
@@ -361,7 +405,62 @@ function parse(argv) {
   return { opts, rest }
 }
 
-function main() {
+// The board's bookkeeping, out of the same one copy of the rules the skill folder ships.
+// Everything after `board` is passed through untouched — its options are the board's, not
+// this command's, and parsing them twice is how `--title "--tracks"` would go wrong.
+async function cmdBoard(args) {
+  const entry = path.join(bundledSkill(), 'kanban.mjs')
+  const { runBoard } = await import(pathToFileURL(entry).href)
+  return runBoard(args, {
+    program: 'akb board',
+    style: 'board',
+    installHint: '`akb install`',
+  })
+}
+
+// The runs themselves — implement a card, refine it, see what is going, stop one. Same
+// story as `board`: one built copy of the rules, reached by importing it, and the whole
+// command line is the command's own.
+const RUN_COMMANDS = new Set([
+  'implement',
+  'run',
+  'refine',
+  'resolve',
+  'revise',
+  'create',
+  'propose',
+  'plan-release',
+  'archive',
+  'reject',
+  'runs',
+  'log',
+  'stop',
+  'resume',
+  'agent',
+  // What a started run's watcher is spawned as. Never typed by a person.
+  '__watch',
+])
+
+async function cmdRun(args) {
+  const entry = path.join(bundledSkill(), 'kanban.mjs')
+  const { runAgent } = await import(pathToFileURL(entry).href)
+  if (typeof runAgent !== 'function') {
+    fail('this copy of the board rules is too old to run agents — reinstall with `npx ai4kanban@latest update`')
+  }
+  return runAgent(args, { program: 'akb', installHint: '`akb install`' })
+}
+
+async function main() {
+  // `board` takes over the whole command line, so its moves can carry any option they like.
+  if (process.argv[2] === 'board') {
+    process.exitCode = await cmdBoard(process.argv.slice(3))
+    return
+  }
+  // And so does a run: its options are the run's, not this command's.
+  if (RUN_COMMANDS.has(process.argv[2])) {
+    process.exitCode = await cmdRun(process.argv.slice(2))
+    return
+  }
   const { opts, rest } = parse(process.argv.slice(2))
   const command = rest[0]
   if (!fs.existsSync(opts.dir)) fail(`no such folder: ${opts.dir}`)
@@ -380,7 +479,7 @@ function main() {
     case '-h':
       return say(HELP)
     default:
-      fail(`unknown command "${command}" — try \`npx ai4kanban help\``)
+      fail(`unknown command "${command}" — try \`akb help\``)
   }
 }
 

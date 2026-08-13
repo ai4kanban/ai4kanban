@@ -40,6 +40,9 @@ export interface UpdateInfo {
 
 export type CreateBoardResult = { ok: true } | { ok: false; error: string };
 
+/** Which way through the views the window opened. */
+export type NavDirection = "back" | "forward";
+
 /** The channel names main.ts answers on and preload.ts calls. main.ts reads
  *  these values; preload.ts, which cannot require a file in a sandboxed
  *  renderer, writes them out again and types that copy against this one — so
@@ -60,6 +63,11 @@ export const CHANNELS = {
    *  back, so it isn't on the bridge below — preload puts the answer straight on
    *  <html> as a class. */
   fullscreen: "a4k:fullscreen",
+  /** The window has moved between views from outside the page — the menu's Back
+   *  and Forward, or a mouse's own buttons — so the page can mark the edge it
+   *  went out of. A swipe needs no message: the page reads that gesture itself
+   *  and moves its own history. */
+  navigated: "a4k:navigated",
 } as const;
 
 /**
@@ -92,4 +100,7 @@ export interface Ai4kanbanBridge {
   skipUpdate(version: string): Promise<null>;
   /** Open a link in the user's own browser. */
   openExternal(url: string): Promise<null>;
+  /** Be told each time the window moves between views, so the page can mark the
+   *  edge it went out of. Returns the way to stop being told. */
+  onNavigated(fn: (direction: NavDirection) => void): () => void;
 }

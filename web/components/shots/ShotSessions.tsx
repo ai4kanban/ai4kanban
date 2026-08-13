@@ -23,7 +23,7 @@ const ROWS: { action: string; card: string; active?: boolean }[] = [
 
 const SHIPPED: { file: string; text: React.ReactNode }[] = [
   {
-    file: "skill/lib/recurring.mjs",
+    file: "cli/src/lib/recurring.ts",
     text: (
       <>
         the seeded card&apos;s body no longer points at the recurring-task guide.

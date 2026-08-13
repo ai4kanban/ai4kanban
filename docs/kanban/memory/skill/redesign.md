@@ -22,6 +22,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   card that holds the shared plan, the ordering, and the questions that span all the
   pieces, with each piece as a subtask in its folder. Siblings hide that they are one
   feature and make the same question get asked on three cards.
+- ❌ **A card claims behavior the product already has** (a stopped run starts nothing, a
+  timer keeps doing its other job) → ✅ scope lists only what this task changes. Restating
+  what already holds reads as new work and grows the card past its point.
 
 ## Idea intake
 
@@ -52,6 +55,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Ship the flows as reference pages copied into each project** → ✅ the command prints
   the flow for the board it was asked about, so it can name that project's own tracks,
   paths and memory files instead of describing them generically.
+- ❌ **Give an action a second mode without saying when to pick it** → ✅ a card that adds a
+  mode also states the rule for choosing it, and where the agent reads that rule. A mode an
+  agent has to guess at is one it will use in the wrong half of the cases.
 
 ## The goal
 
@@ -83,3 +89,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **An auto-refined card mixes the human's original input with the agent's own
   additions** → ✅ split the card into two parts — the plan, then what the agent
   decided/refined on its own — so the additions are easy to read and audit.
+- ❌ **A run does its own follow-up work inside its own session** (a command writes a card,
+  then refines the card it just wrote, in one long run) → ✅ each step is its own run, so
+  the user can see it, read its log, and stop it.
+- ❌ **Refine a blocked card like any other** → ✅ a blocked card waits; building its blocker
+  often rewrites its plan. Refine it when the blocker leaves the board — finishing or
+  rejecting a card refines whatever it was holding up.

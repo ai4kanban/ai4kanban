@@ -1,38 +1,32 @@
 "use client";
 
 // The board's one configuration home (#41), opened from a quiet gear button in
-// the header. A sidebar on its left names the sections — Agent (which agent
-// runs every card action, #68, and the settings that agent declares, #93) and
-// Auto-refine (the global switch and how many cards at once). The sidebar is
-// how the dialog grows: a new group of settings is one more entry there with a
-// pane of its own, and the agent's growing field list (the model, the reasoning
-// level #97, #95's provider and base URL) never squeezes the auto-refine
-// controls.
+// the header. A sidebar on its left names the sections — for now just Agent
+// (which agent runs every card action, #68, and the settings that agent
+// declares, #93). The sidebar is how the dialog grows: a new group of settings
+// is one more entry there with a pane of its own, and the agent's growing field
+// list (the model, the reasoning level #97, #95's provider and base URL) never
+// squeezes what joins it.
+//
+// The Auto-refine section is gone (#211). There is no switch to keep: a refine
+// follows the run that touched the card, so nothing is left to turn on or to
+// budget.
 //
 // The agent's own settings are NOT written here: this file draws whatever list
 // the picked agent declares in lib/agent.ts, and knows no agent by name.
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiCheck, FiFeather, FiSettings, FiTerminal, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiSettings, FiTerminal, FiZap } from "react-icons/fi";
 import {
-  setAutoRefineAction,
-  setAutoRefineParallelismAction,
   setHarnessAction,
   setHarnessSecretAction,
   setHarnessSettingAction,
   testConnectionAction,
 } from "@/app/actions";
 import { missingRequired, pickedProvider, providerSetting, shownForProvider } from "@/lib/providers";
-import {
-  type AgentInfo,
-  type ConnectionTest,
-  type HarnessOption,
-  type HarnessSetting,
-  MAX_PARALLEL,
-  type SessionView,
-} from "@/lib/types";
+import type { AgentInfo, ConnectionTest, HarnessOption, HarnessSetting } from "@/lib/types";
 import { TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -61,31 +55,16 @@ function AgentMark({ src, size }: { src: string; size: number }) {
 
 // The dialog's sections, in sidebar order. Adding a settings group is one entry
 // here plus its pane below — nothing else moves.
-type Section = "agent" | "auto-refine";
+type Section = "agent";
 const SECTIONS: { id: Section; label: string; icon: IconType }[] = [
   { id: "agent", label: "Agent", icon: FiTerminal },
-  // The feather is the Refine button's own icon on a card page — same act, same mark.
-  { id: "auto-refine", label: "Auto-refine", icon: FiFeather },
 ];
 
 export function Configuration({
   agent,
-  autoRefine,
-  autoRefineParallelism,
-  sessions,
   onError,
 }: {
   agent: AgentInfo;
-  // The current auto-refine state, read on the server for the first paint. The
-  // toggle owns it from here — another tab picks up a change on its next load.
-  autoRefine: boolean;
-  // How many cards refine at once (#88), read the same way and owned by the
-  // stepper from here on.
-  autoRefineParallelism: number;
-  // The registry list the page already polls, passed down rather than polled
-  // again here (#51): it's the only thing that knows a background refine is
-  // running, and the dialog is not worth a second loop.
-  sessions: SessionView[];
   // Save failures surface where the page already shows errors, across its top.
   onError?: (msg: string) => void;
 }) {
@@ -124,7 +103,7 @@ export function Configuration({
             // would re-read the whole board for nobody.
             router.refresh();
           }}
-          width={640}
+          width={720}
           height="90vh"
           flush
         >
@@ -155,9 +134,9 @@ export function Configuration({
             })}
           </nav>
 
-          {/* The panes. Both stay mounted and the inactive one hides: the fields
-              hold optimistic state seeded from the server's first paint, so
-              unmounting on a section switch would throw away a value saved a
+          {/* The panes. Every one stays mounted and the inactive ones hide: the
+              fields hold optimistic state seeded from the server's first paint,
+              so unmounting on a section switch would throw away a value saved a
               moment ago. The dialog's fixed height keeps the panes steady;
               a pane taller than it scrolls here. */}
           <div className="min-h-0 flex-1 overflow-y-auto p-6">
@@ -165,16 +144,6 @@ export function Configuration({
                 and the settings that agent declares (#93). */}
             <div hidden={section !== "agent"}>
               <HarnessPicker agent={agent} onError={onError} />
-            </div>
-
-            {/* Auto-refine — the global switch that gates the whole feature (#41). */}
-            <div hidden={section !== "auto-refine"}>
-              <AutoRefineToggle
-                initial={autoRefine}
-                refiningIds={refiningCardIds(sessions)}
-                onError={onError}
-              />
-              <ParallelismStepper initial={autoRefineParallelism} onError={onError} />
             </div>
           </div>
         </Dialog>
@@ -188,8 +157,24 @@ export function Configuration({
 // Claude Code, the model it runs with (#71). Clicking a card saves
 // that harness's name to docs/kanban/ui.config.json — nothing else changes, and
 // a running session keeps the harness it started under. Selecting optimistically
-// and reverting on a failed save, like the auto-refine switch.
-function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: string) => void }) {
+// and reverting on a failed save.
+//
+// Exported, because the guided first run asks for the agent with this same pane
+// (#172): the agent step there is this picker and its Test, not a second screen
+// that asks the same questions in different words. `onTested` is how that flow
+// hears the answer — it is the one place that needs to know whether the setup on
+// screen has actually answered.
+export function HarnessPicker({
+  agent,
+  onError,
+  onTested,
+}: {
+  agent: AgentInfo;
+  onError?: (msg: string) => void;
+  /** The last test's result, or null when there is none to speak of — including
+   *  the moment a setting changes and the old result stops applying. */
+  onTested?: (result: ConnectionTest | null) => void;
+}) {
   // The agent setting as the file now reads it. It starts as the server's first
   // paint and is replaced by what a switch writes back, so the override note and
   // the notices below always describe the agent on screen rather than the one
@@ -387,8 +372,13 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
     <div className="flex flex-col gap-2">
       {/* One square card per agent, all of them visible at once — the name and
           the mark say what each is, no note needed. The ember frame alone marks
-          the active one. */}
-      <div className="flex flex-wrap gap-2">
+          the active one.
+
+          A fixed four-column grid rather than a wrapping row: the cards then sit
+          on the same four columns whatever the count, instead of the last row's
+          width drifting with however many agents we ship. The dialog is sized
+          for four, so a fifth starts a second row under the first. */}
+      <div className="grid grid-cols-4 gap-2">
         {info.options.map((option) => {
           const on = option.name === active;
           return (
@@ -398,7 +388,7 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
               aria-pressed={on}
               disabled={saving}
               onClick={() => pick(option)}
-              className="nb-outline flex w-[104px] cursor-pointer flex-col items-center gap-2 bg-nb-paper px-2 pb-2.5 pt-4 disabled:cursor-wait"
+              className="nb-outline flex cursor-pointer flex-col items-center gap-2 bg-nb-paper px-2 pb-2.5 pt-4 disabled:cursor-wait"
               style={{
                 borderColor: on
                   ? "var(--color-nb-accent-deep)"
@@ -498,6 +488,7 @@ function HarnessPicker({ agent, onError }: { agent: AgentInfo; onError?: (msg: s
         agentLabel={activeOption?.label ?? active}
         unsavedPick={Boolean(pending)}
         disabled={saving}
+        onResult={onTested}
       />
 
       {/* Never move a user to another agent silently: when the config asks for a
@@ -537,6 +528,7 @@ function ConnectionTester({
   agentLabel,
   unsavedPick,
   disabled,
+  onResult,
 }: {
   agentLabel: string;
   // A provider is picked but not written yet, so the saved setup isn't the one
@@ -544,9 +536,22 @@ function ConnectionTester({
   unsavedPick: boolean;
   // A save is in flight — the setup is mid-change.
   disabled: boolean;
+  // Told each time the answer changes, for the guided first run's agent step
+  // (#172), which can't be pressed past until this setup has answered once.
+  // Nothing in the dialog itself listens.
+  onResult?: (result: ConnectionTest | null) => void;
 }) {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<ConnectionTest | null>(null);
+
+  // Report the answer out, including the null this starts on: the tester is
+  // keyed on the saved setup, so a changed setting remounts it and that null is
+  // how a "Passed" for a setup the user has moved on from is taken back.
+  const report = useRef(onResult);
+  report.current = onResult;
+  useEffect(() => {
+    report.current?.(result);
+  }, [result]);
 
   const test = async () => {
     if (running || disabled || unsavedPick) return;
@@ -947,190 +952,6 @@ function SettingField({
       )}
       <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
         {ignored && setting.overriddenHelp ? setting.overriddenHelp : setting.help}
-      </p>
-    </div>
-  );
-}
-
-// The cards a refine is working on right now, in the order they started, or empty
-// when none is (#51). There can be several at once (#88), so the label names each
-// of them. Background runs and ones the user started from a card page (#99) both
-// count: the label answers "what is being refined right now", and showing half of
-// them would mislead. A running session always has a card, but the field is
-// nullable (a create has no card), so a null is dropped rather than printing
-// "Refining #null".
-function refiningCardIds(sessions: SessionView[]): number[] {
-  return sessions
-    .filter((r) => r.status === "running" && r.action === "auto-refine" && r.cardId !== null)
-    .map((r) => r.cardId as number);
-}
-
-// The auto-refine switch. Flips instantly and saves; on a save failure it flips
-// back and reports the error where the page shows errors across its top. Off
-// looks muted, on shows in the accent color.
-function AutoRefineToggle({
-  initial,
-  refiningIds,
-  onError,
-}: {
-  initial: boolean;
-  // The cards being refined right now, whoever started the run. Shown as a small
-  // label beside the switch while one is live, and nothing at all when none is —
-  // the switch never carries idle text.
-  refiningIds: number[];
-  onError?: (msg: string) => void;
-}) {
-  const [on, setOn] = useState(initial);
-  const [saving, setSaving] = useState(false);
-
-  const toggle = async () => {
-    if (saving) return;
-    const next = !on;
-    setOn(next); // optimistic — the switch responds right away
-    setSaving(true);
-    try {
-      const res = await setAutoRefineAction(next);
-      if (!res.ok) {
-        setOn(!next); // save failed — flip back
-        onError?.(res.error || "couldn't save the auto-refine setting");
-      }
-    } catch (e) {
-      setOn(!next);
-      onError?.(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-4">
-        <span className="flex items-center gap-2">
-          <span className="text-[14px] font-[800]">Auto-refine</span>
-          {/* Which cards a refine is on, while it is on any (#51) — background or
-              user-started alike. Read-only, and gone the moment the runs end — no
-              idle text, no "last refined". The pulse dot matches the running
-              badge on a card. */}
-          {refiningIds.length > 0 && (
-            <span
-              className="nb-chip"
-              style={{ background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}
-            >
-              <span
-                className="size-[6px] rounded-full bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]"
-                aria-hidden
-              />
-              Refining {refiningIds.map((id) => `#${id}`).join(", ")}
-            </span>
-          )}
-        </span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={on}
-          aria-label="Auto-refine"
-          disabled={saving}
-          onClick={toggle}
-          className={`relative cursor-pointer inline-flex h-6 w-11 shrink-0 items-center rounded-full border-[1.5px] border-nb-ink transition-colors duration-150 disabled:opacity-60 ${
-            on ? "bg-nb-accent" : "bg-nb-wash"
-          }`}
-        >
-          <span
-            className={`inline-block size-[16px] rounded-full border border-nb-ink bg-nb-paper transition-transform duration-150 ${
-              on ? "translate-x-[22px]" : "translate-x-[3px]"
-            }`}
-            aria-hidden
-          />
-        </button>
-      </div>
-      {/* The dialog has room, so what "on" means is an inline caption, not a
-          hover-only title. No confirmation popup — auto-refine only ever
-          auto-answers questions it is sure about. */}
-      <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-        The agent refines cards in the background and answers its own safe questions. With this
-        off, cards are only refined when you press <strong>Refine</strong> on their page.
-      </p>
-    </div>
-  );
-}
-
-// How many cards auto-refine works on at once (#88). A stepper, not a text
-// field: the range is 1..MAX_PARALLEL, every value in it is one tap away, and
-// there is nothing to type wrong. Each tap saves and, on a failure, steps back
-// and reports the error where the switch above does. The setting saves whether
-// or not auto-refine is on — it's what the next run will use, and hiding it
-// behind the switch would make it look like it had been forgotten.
-function ParallelismStepper({
-  initial,
-  onError,
-}: {
-  initial: number;
-  onError?: (msg: string) => void;
-}) {
-  const [n, setN] = useState(initial);
-  const [saving, setSaving] = useState(false);
-
-  const step = async (delta: number) => {
-    const next = n + delta;
-    if (saving || next < 1 || next > MAX_PARALLEL) return;
-    setN(next); // optimistic, like the switch
-    setSaving(true);
-    try {
-      const res = await setAutoRefineParallelismAction(next);
-      if (!res.ok) {
-        setN(n); // save failed — step back
-        onError?.(res.error || "couldn't save how many refine at once");
-      }
-    } catch (e) {
-      setN(n);
-      onError?.(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // The two ends are dead ends, not wraps: at 1 there is no minus, at the cap no
-  // plus, so the range shows itself without a line of text explaining it.
-  const stepBtn =
-    "inline-flex size-7 cursor-pointer items-center justify-center rounded-[8px] border-[1.5px] border-nb-ink bg-nb-paper text-[16px] leading-none font-[800] text-nb-ink transition-[transform,box-shadow] duration-[120ms] hover:-translate-x-px hover:-translate-y-px hover:shadow-[2px_2px_0_0_var(--color-nb-ink)] active:translate-x-px active:translate-y-px active:shadow-none disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-none";
-
-  return (
-    <div className="mt-4">
-      {/* A field label, not a heading — Auto-refine above is the setting, this
-          is one knob of it, and the label style says so. */}
-      <div className="flex items-center justify-between gap-4">
-        <span className="text-[11px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft">
-          Cards at once
-        </span>
-        <span className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="One fewer card at once"
-            disabled={saving || n <= 1}
-            onClick={() => step(-1)}
-            className={stepBtn}
-          >
-            −
-          </button>
-          <span
-            aria-live="polite"
-            className="min-w-[1.25rem] text-center text-[14px] font-[800] tabular-nums"
-          >
-            {n}
-          </span>
-          <button
-            type="button"
-            aria-label="One more card at once"
-            disabled={saving || n >= MAX_PARALLEL}
-            onClick={() => step(1)}
-            className={stepBtn}
-          >
-            +
-          </button>
-        </span>
-      </div>
-      <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-        More is faster on a big backlog and heavier on your machine; {MAX_PARALLEL} is the cap.
       </p>
     </div>
   );

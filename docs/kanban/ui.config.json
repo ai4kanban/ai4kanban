@@ -5,6 +5,5 @@
       "provider": "subscription",
       "model": "claude-opus-5"
     }
-  },
-  "autoRefine": false
+  }
 }

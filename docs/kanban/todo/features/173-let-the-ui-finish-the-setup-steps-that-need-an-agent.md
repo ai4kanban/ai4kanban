@@ -5,7 +5,7 @@ priority: med
 roi: high
 status: todo
 release: 0.6.0
-blocked_by: [172]
+blocked_by: []
 related: []
 modules: [local-ui, skill]
 questions: []

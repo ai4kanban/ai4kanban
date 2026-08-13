@@ -47,17 +47,14 @@ re-ask a settled call.
   multi-select. Picking a module is optional for both propose and add-task — with none
   picked, the agent chooses the focus itself.
 
-## Auto-refine
+## Refining on its own
 
-- The switch governs background runs only. With it off nothing is refined on its own, but
-  the card page's Refine button still works.
-- The dispatcher takes cards highest priority first; how many at once is a user setting,
-  default 1. The timer runs from server start — nothing waits for a browser tab.
+- A refine follows the run that touched the card, as a run of its own. Nothing hunts the
+  backlog, so there is no switch, no "cards at once" budget, and no timer for it.
 - It answers a card's open questions itself except the ones tagged `[user]`, and skips a
   card whose questions are all `[user]`.
-- One live label beside the switch, "Refining #<id>", and nothing else — no "last
-  refined", no "next up", no idle reason, and no word about a rate limit that paused it.
-  A failure is a run's business; the runs panel names its reason.
+- The card page's Refine button is unchanged — it is how you refine a card whenever you
+  want, including one nothing has just run on.
 - Stopping a background refine holds: the dispatcher doesn't pick that card again while
   its newest run is a stopped one.
 
@@ -153,6 +150,17 @@ re-ask a settled call.
   A goal can still be added later from the release's ⋯ menu.
 - Daily progress opens from a header icon, not a strip on the board, and shows a line
   chart rather than numbers alone.
+
+## Moving around the app
+
+- **Do a mouse's back and forward buttons work in the desktop app?**: yes, wherever the
+  system tells the app they were pressed — Windows and Linux today. A thumb button is a
+  common way back, so the app takes it alongside the swipe, the menu and the shortcuts.
+- **Which pages does the two-finger swipe move between?**: the card pages only. The board's
+  columns are scrolled sideways with the very same gesture and can usually scroll both
+  ways at once, so a board that answered the swipe would either stop scrolling or navigate
+  when the user meant to scroll. The columns keep it; from the board, Back and Forward are
+  the menu's. Back from a card is what the gesture almost always means anyway.
 
 ## Where the UI is documented
 

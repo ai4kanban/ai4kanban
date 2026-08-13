@@ -15,7 +15,8 @@
 import { useEffect, useState } from "react";
 import { FiTrendingUp } from "react-icons/fi";
 import { getMetricsAction } from "@/app/actions";
-import type { MetricsDay, MetricsResult } from "@/lib/metrics";
+import type { MetricsDay, MetricsResult } from "@/lib/types";
+
 import { TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
 

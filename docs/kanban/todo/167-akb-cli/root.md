@@ -6,7 +6,7 @@ roi: high
 status: ready
 release: 0.6.0
 blocked_by: []
-related: [168, 169, 170, 192, 194, 195, 196]
+related: [194, 195, 196]
 modules: [skill, local-ui]
 questions: []
 ---
@@ -41,15 +41,17 @@ is its own subtask in this folder.
   The flows ship with the command, so a fix lands in every project on upgrade.
 - The board's own bookkeeping stays available as commands — the printed flow ends by naming
   the one to run. They are for the agent to call, not something we teach a person to type.
+- One command, carried in three places — on npm, inside an installed skill folder, and
+  inside the desktop app — all three the same built copy of the same source. The app keeps
+  needing nothing installed on the machine.
 - Out of this group: the board files are untouched. Same cards, same folders, same markdown.
 
 ## Todo
-- [ ] Move the board script inside the CLI #192
-- [ ] Start, watch, stop and resume an agent run from the CLI #168
-- [ ] Let the board UI do its work through the CLI #169
+- [x] Move the board script inside the CLI #192
+- [x] Start, watch, stop and resume an agent run from the CLI #168
+- [x] Let the board UI do its work through the CLI #169
 - [ ] Let the CLI print a board flow instead of running it #194
-- [ ] Shrink the skill to a pointer at the CLI #195
-- [ ] Let the skill do everything the UI can #170
+- [ ] Make akb the agent's manual, and shrink the skill to a note #195
 - [ ] Simplify install and update, and teach akb in the docs #196
 
 ## Decided by the agent

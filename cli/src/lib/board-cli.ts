@@ -1,0 +1,314 @@
+// The one dispatcher behind every way of running a board move.
+//
+// `akb board <move>` and the `kanban.mjs` in an installed skill folder are two front doors
+// onto this file — the rules live here once, so a fix reaches both without a second copy to
+// keep in step.
+//
+// What it owns, and the commands below don't have to think about:
+//   - which board to work on: `--dir <path>`, or the nearest one at or above the folder the
+//     command was run in. Two boards at once never see each other's answers, because the
+//     paths are set per call (lib/paths.mjs),
+//   - one writer at a time, so two commands never hand out the same id (lib/lock.mjs),
+//   - refusing without ending the process: a move throws, this catches, says why, and
+//     returns an exit code (lib/io.mjs),
+//   - answering a program instead of a person: `--json` puts the move's own fields, its
+//     prose and its warnings in one object.
+
+import fs from 'node:fs'
+import path from 'node:path'
+
+import { die, setBoardRoot, readNextId, KANBAN, METRICS } from './paths'
+import { BoardError, say, startCollecting, stopCollecting, type Sink } from './io'
+import { withBoardLock } from './lock'
+import { boardHelp, findMove, legacyHelp, moveHelp, MOVE_NAMES } from './help'
+import { cmdInit, cmdMemoryInit } from '../commands/init'
+import { cmdCreate, cmdUpdate, cmdUpdateQuestions, cmdTag } from '../commands/card'
+import { cmdRemove } from '../commands/remove'
+import { cmdMigrate, cmdRun } from '../commands/misc'
+import { cmdList } from '../commands/list'
+import { cmdRelease } from '../commands/release'
+import { cmdSetupDone, cmdSetupStatus } from '../commands/setup'
+import type { MoveResult } from './types'
+
+// How a move is run: whatever argv had left after the shared options were taken out.
+type RunMove = (rest: string[]) => MoveResult | void
+
+// Every move, by its canonical name. Aliases are resolved before the lookup (help.mjs).
+const RUN: Record<string, RunMove> = {
+  init: (rest) => cmdInit(rest),
+  'memory-init': (rest) => cmdMemoryInit(rest[0]),
+  'setup-done': (rest) => cmdSetupDone(rest),
+  'setup-status': () => cmdSetupStatus(),
+  create: (rest) => cmdCreate(rest),
+  update: (rest) => cmdUpdate(rest),
+  'update-questions': (rest) => cmdUpdateQuestions(rest),
+  tag: (rest) => cmdTag(rest),
+  list: (rest) => cmdList(rest),
+  release: (rest) => cmdRelease(rest),
+  migrate: (rest) => cmdMigrate(rest),
+  archive: (rest) => cmdRemove(Number(rest[0]), 'completed'),
+  reject: (rest) => cmdRemove(Number(rest[0]), 'rejected'),
+  'record-run': (rest) => cmdRun(Number(rest[0])),
+  peek: () => {
+    const id = readNextId()
+    say(String(id))
+    return { next_id: id }
+  },
+  metrics: () => {
+    const csv = fs.existsSync(METRICS) ? fs.readFileSync(METRICS, 'utf8').trim() : ''
+    say(csv || '(no metrics yet)')
+    return { csv }
+  },
+}
+
+// Moves that only read. They take no lock — nothing they do can be half-written, and a
+// board someone is mid-write on is still readable.
+const READ_ONLY = new Set(['list', 'peek', 'metrics', 'setup-status'])
+
+// `init` is the one move that may run where no board exists yet — it is what makes one.
+const MAKES_A_BOARD = 'init'
+
+// ---- the shared options ----------------------------------------------------
+
+export function splitShared(argv: string[]): { rest: string[]; dir: string | null; json: boolean } {
+  const rest: string[] = []
+  let dir: string | null = null
+  let json = false
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!
+    if (arg === '--dir') {
+      dir = argv[++i] ?? null
+      if (dir === null) die('--dir needs a path after it', 'bad-option')
+    } else if (arg.startsWith('--dir=')) {
+      dir = arg.slice('--dir='.length)
+    } else if (arg === '--json') {
+      json = true
+    } else {
+      rest.push(arg)
+    }
+  }
+  return { rest, dir, json }
+}
+
+// ---- finding the board -----------------------------------------------------
+
+const hasBoard = (dir: string): boolean => fs.existsSync(path.join(dir, 'docs', 'kanban'))
+
+// A board with no `todo/` is half a board — a folder someone deleted from, or one an
+// install never finished. Every move but `init` would fall over reading it, so it is
+// turned away here with the one command that repairs it.
+function requireWholeBoard(root: string, move: string): string {
+  if (move === MAKES_A_BOARD) return root
+  if (!fs.existsSync(path.join(root, 'docs', 'kanban', 'todo'))) {
+    die(`the board in ${root} has no docs/kanban/todo/ — run \`init\` to add what is missing.`, {
+      kind: 'board-incomplete',
+      dir: root,
+    })
+  }
+  return root
+}
+
+// Walk up from `from` until a docs/kanban/ turns up. An agent's terminal is often a
+// subfolder deep, and "run it from the repo root" is a rule that gets forgotten.
+function findBoardUpward(from: string): string | null {
+  let dir = path.resolve(from)
+  for (;;) {
+    if (hasBoard(dir)) return dir
+    const up = path.dirname(dir)
+    if (up === dir) return null
+    dir = up
+  }
+}
+
+export function resolveBoard(
+  move: string,
+  { dir, cwd, installHint }: { dir: string | null; cwd: string; installHint: string },
+): string {
+  if (dir !== null) {
+    const root = path.resolve(dir)
+    if (!fs.existsSync(root)) die(`no such folder: ${root}`, { kind: 'no-such-folder', dir: root })
+    if (!hasBoard(root) && move !== MAKES_A_BOARD) {
+      die(`no board in ${root} — it has no docs/kanban/. Run ${installHint} there to make one.`, {
+        kind: 'no-board',
+        dir: root,
+      })
+    }
+    return requireWholeBoard(root, move)
+  }
+  const found = findBoardUpward(cwd)
+  if (found) return requireWholeBoard(found, move)
+  // `init` with nothing above it makes the board right here, which is what running it in a
+  // fresh repo has always meant.
+  if (move === MAKES_A_BOARD) return path.resolve(cwd)
+  die(
+    `no board here. Looked in ${path.resolve(cwd)} and every folder above it for docs/kanban/. ` +
+      `Run ${installHint} to make one, or name the project with --dir.`,
+    { kind: 'no-board', dir: path.resolve(cwd) },
+  )
+}
+
+// ---- refusals --------------------------------------------------------------
+
+// Levenshtein-based suggestion so a mistyped move auto-corrects to the closest match.
+function editDistance(a: string, b: string): number {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)])
+  for (let j = 0; j <= b.length; j++) dp[0]![j] = j
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      dp[i]![j] =
+        a[i - 1] === b[j - 1] ? dp[i - 1]![j - 1]! : 1 + Math.min(dp[i - 1]![j]!, dp[i]![j - 1]!, dp[i - 1]![j - 1]!)
+  return dp[a.length]![b.length]!
+}
+
+export function nearestMove(input: string, names: string[]): string | null {
+  let best: string | null = null
+  let bestDist = Infinity
+  for (const c of names) {
+    const d = editDistance(input, c)
+    if (d < bestDist) [best, bestDist] = [c, d]
+  }
+  // Only suggest when it's a plausible typo, not a wildly different word.
+  return best !== null && bestDist <= Math.max(2, Math.ceil(best.length / 2)) ? best : null
+}
+
+// ---- the entry point -------------------------------------------------------
+
+// What the front door hands in — see the fields' notes below.
+export interface RunBoardOptions {
+  program?: string
+  style?: 'board' | 'legacy'
+  cwd?: string
+  installHint?: string
+  version?: string | null
+  usage?: string
+}
+
+// Run one move and return the exit code. Never exits the process itself: the caller may be
+// the CLI, a UI holding a run open, or a test, and none of them should die because one
+// answer was wrong.
+//
+// Options:
+//   program     how the command is spelled in messages ("akb board", "kanban")
+//   style       'board' — the compact help; 'legacy' — the block installed skills print
+//   cwd         where the command was run, for finding the board
+//   installHint what to tell someone who has no board yet
+//   version     what `version` prints; without it the move is not offered
+//   usage       the Usage: line of the legacy help
+export function runBoard(argv: string[], options: RunBoardOptions = {}): number {
+  const {
+    program = 'kanban',
+    style = 'legacy',
+    cwd = process.cwd(),
+    installHint = '`npx ai4kanban install`',
+    version = null,
+    usage = 'node kanban.mjs <command> [args]',
+  } = options
+
+  // The move goes in front of a refusal only where the command has one ("akb board update:
+  // …"). An installed skill folder has said plain "kanban: …" since it existed, and a board
+  // installed before this landed must read exactly as it did.
+  const withMove = style === 'board'
+
+  // Seeded from a raw scan so that a refusal in the parse itself — `--dir` with nothing
+  // after it — still answers in the form the caller asked for.
+  let json = argv.includes('--json')
+  let rest: string[] = []
+  let dir: string | null = null
+  try {
+    ;({ rest, dir, json } = splitShared(argv))
+  } catch (err) {
+    return report(err, { program, json })
+  }
+  const [raw, ...args] = rest
+  const help = () => (style === 'board' ? boardHelp(program) : legacyHelp(usage))
+
+  // Help and version answer without a board — they are about the command, not a project.
+  if (raw === undefined || raw === 'help' || raw === '--help' || raw === '-h') {
+    const wanted = args[0] && findMove(args[0])
+    if (args[0] && !wanted) return report(unknownMove(args[0]), { program, json, help: help() })
+    say(wanted && style === 'board' ? moveHelp(wanted, program) : help())
+    return 0
+  }
+  if (raw === 'version' || raw === '--version' || raw === '-v') {
+    if (!version) {
+      const err = new BoardError(`\`${program}\` has no version move — \`akb version\` prints it.`, {
+        kind: 'unknown-move',
+        move: raw,
+      })
+      return report(err, { program, json })
+    }
+    say(version)
+    return 0
+  }
+
+  const found = findMove(raw)
+  const move = found && RUN[found.name] ? found.name : null
+  if (!move) return report(unknownMove(raw), { program, json, help: help() })
+
+  const box = json ? startCollecting() : null
+  try {
+    const root = resolveBoard(move, { dir, cwd, installHint })
+    setBoardRoot(root)
+    const invoke = () => RUN[move](args) || {}
+    const data = READ_ONLY.has(move) ? invoke() : withBoardLock(invoke)
+    if (json) answer({ ok: true, board: KANBAN, ...data, ...prose(box) })
+    return 0
+  } catch (err) {
+    return report(err, { program, json, box, move: withMove ? move : null })
+  } finally {
+    if (json) stopCollecting()
+  }
+}
+
+export const unknownMove = (raw: string): BoardError => {
+  const guess = nearestMove(raw, MOVE_NAMES)
+  return new BoardError(`unknown command "${raw}".${guess ? ` Did you mean \`${guess}\`?` : ''}`, {
+    kind: 'unknown-move',
+    move: raw,
+  })
+}
+
+export function prose(box: Sink | null): { output?: string; warnings?: string[] } {
+  if (!box) return {}
+  const out: { output?: string; warnings?: string[] } = {}
+  if (box.out.length) out.output = box.out.join('\n')
+  if (box.warnings.length) out.warnings = box.warnings
+  return out
+}
+
+export function answer(object: Record<string, unknown>): void {
+  process.stdout.write(JSON.stringify(object) + '\n')
+}
+
+// A refused move says why and stops there. Prose goes to stderr with the move in front of
+// it, so a terminal shows which command refused; --json puts the kind and whatever the
+// refusal knows (an id, a track, a folder) where a caller can read them, next to the lines
+// the move managed to print first — those are usually what explains the refusal.
+export function report(
+  err: unknown,
+  {
+    program,
+    json,
+    move = null,
+    box = null,
+    help = null,
+  }: { program: string; json: boolean; move?: string | null; box?: Sink | null; help?: string | null },
+): number {
+  if (!(err instanceof BoardError)) {
+    // Not a refusal — a bug. It still has to reach a caller that asked for JSON as JSON,
+    // or the answer is an unparseable stack trace; the stack goes to stderr either way,
+    // because a crash should stay loud.
+    if (!json) throw err
+    const bug = err as Error | undefined
+    console.error(bug?.stack || String(err))
+    answer({ ok: false, error: { kind: 'crashed', message: String(bug?.message || err) }, ...prose(box) })
+    return 1
+  }
+  if (json) {
+    answer({ ok: false, error: { kind: err.kind, message: err.message, ...err.details }, ...prose(box) })
+  } else {
+    console.error(err.bare ? err.message : `${[program, move].filter(Boolean).join(' ')}: ${err.message}`)
+    if (help) console.error(`\n${help}`)
+  }
+  return 1
+}

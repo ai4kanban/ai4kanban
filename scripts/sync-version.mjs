@@ -7,9 +7,11 @@
 // DERIVED — this script stamps them all from `VERSION` so you only ever edit one
 // number.
 //
-// Why copies exist at all: each is read by a different tool in its own format, and
-// `skill/kanban.mjs` gets physically copied into installed projects (`.claude/skills/`)
-// away from the manifests, so its version has to travel baked in. See PUBLISHING.md.
+// Why copies exist at all: each is read by a different tool in its own format, and the
+// board's rules get physically copied into installed projects (`.claude/skills/`) away from
+// the manifests, so their version has to travel baked in. Those rules are built from
+// `cli/src/` into `skill/kanban.mjs`, so the number is stamped on the source and the built
+// file is rebuilt from it — this script does both. See PUBLISHING.md.
 //
 //   node scripts/sync-version.mjs           # write VERSION into all targets
 //   node scripts/sync-version.mjs --check    # verify all match VERSION; exit 1 if not
@@ -20,6 +22,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { spawnSync } from 'node:child_process'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const VERSION_FILE = path.join(ROOT, 'VERSION')
@@ -60,11 +63,29 @@ const TARGETS = [
     label: 'desktop/package.json',
   },
   {
-    file: 'skill/kanban.mjs',
+    file: 'cli/src/version.ts',
+    // what an installed board prints, so it can tell it is behind. Built into skill/kanban.mjs.
     re: /(const SKILL_VERSION = ')(\d+\.\d+\.\d+[^']*)(')/,
-    label: 'skill/kanban.mjs (SKILL_VERSION)',
+    label: 'cli/src/version.ts (SKILL_VERSION)',
+  },
+  {
+    file: 'skill/kanban.mjs',
+    // the built file's own stamp — a rebuild is what moves it, so a mismatch here means
+    // the rules were stamped but never rebuilt.
+    re: /(\/\/ ai4kanban )(\d+\.\d+\.\d+[^\s]*)( — built )/,
+    label: 'skill/kanban.mjs (built)',
+    built: true,
   },
 ]
+
+// Build the rules again so the built file carries the new number. Needs cli's dev deps;
+// without them the caller is told what to run rather than left with a stale file.
+function rebuildSkill() {
+  const build = path.join(ROOT, 'cli', 'scripts', 'build.mjs')
+  if (!fs.existsSync(path.join(ROOT, 'cli', 'node_modules', 'esbuild'))) return false
+  const r = spawnSync(process.execPath, [build], { cwd: path.join(ROOT, 'cli'), stdio: 'inherit' })
+  return r.status === 0
+}
 
 function fail(msg) {
   process.stderr.write(`sync-version: ${msg}\n`)
@@ -101,10 +122,26 @@ for (const t of TARGETS) {
     mismatches++
     continue
   }
+  if (t.built) {
+    // Editing a build product would only be undone by the next build. Rebuild it instead.
+    if (!rebuildSkill()) {
+      process.stderr.write(
+        `  MISS  ${t.label} = ${current} (want ${version}) — could not rebuild.\n` +
+          '        Run `npm install && npm run build` in cli/, then re-run this.\n',
+      )
+      mismatches++
+      continue
+    }
+    process.stdout.write(`  built ${t.label}: ${current} -> ${version}\n`)
+    changed++
+    continue
+  }
   fs.writeFileSync(abs, src.replace(t.re, `$1${version}$3`))
   process.stdout.write(`  set   ${t.label}: ${current} -> ${version}\n`)
   changed++
 }
+
+if (mismatches) fail(`${mismatches} file(s) could not be stamped`)
 
 if (check && mismatches) fail(`${mismatches} file(s) out of sync with VERSION (${version})`)
 process.stdout.write(

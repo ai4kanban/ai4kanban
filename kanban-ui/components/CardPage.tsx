@@ -18,8 +18,8 @@ import {
   FiXCircle,
 } from "react-icons/fi";
 import { patchCardAction } from "@/app/actions";
-import type { CardPatch } from "@/lib/edit";
-import { NO_RELEASE, type AgentInfo, type Card, type SessionView } from "@/lib/types";
+
+import { NO_RELEASE, type AgentInfo, type Card, type CardPatch, type SessionView } from "@/lib/types";
 import { Button } from "./button";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
@@ -148,8 +148,6 @@ export function CardPage({
   releases,
   agent,
   projectRoot,
-  autoRefine,
-  autoRefineParallelism,
   goalWritten,
   desktop,
 }: {
@@ -158,8 +156,6 @@ export function CardPage({
   releases: string[];
   agent: AgentInfo;
   projectRoot: string;
-  autoRefine: boolean;
-  autoRefineParallelism: number;
   /** Whether the header's goal button has anything to open (#128). The header is
    *  the same on both pages, and direction is worth rereading wherever you are. */
   goalWritten: boolean;
@@ -262,9 +258,6 @@ export function CardPage({
           <Header
             agent={agent}
             projectRoot={projectRoot}
-            autoRefine={autoRefine}
-            autoRefineParallelism={autoRefineParallelism}
-            sessions={sessions}
             onError={setError}
             goalWritten={goalWritten}
             desktop={desktop}

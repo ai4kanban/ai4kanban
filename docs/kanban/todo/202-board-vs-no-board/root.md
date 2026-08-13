@@ -30,10 +30,10 @@ in this folder.
 - 20 requests, each one a thing a real user would ask a coding agent working in this repo.
 - Every request runs twice from the same repo state: one run with the board and its memory,
   one run with neither.
-- Example: ask for "walk a first-time user through setup in the UI". That is card #172,
-  already planned. The run with the board should find the card and not write the feature a
-  second time; the run without it should start building. When that is what happens, the
-  board did something a user can see.
+- Example: ask for a feature the board has already planned and shipped — walking a
+  first-time user through setup in the UI. The run with the board should find that work
+  already done and not write the feature a second time; the run without it should start
+  building. When that is what happens, the board did something a user can see.
 - For each request we say what a pass looks like **before** anyone runs it.
 - The whole record lives in the repo: every run's output, its verdict, and the count.
   Anyone can check our numbers instead of trusting them.
