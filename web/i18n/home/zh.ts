@@ -12,7 +12,7 @@ const zh: HomeCopy = {
   hero: {
     title: "一块由 Agent 自主规划的项目看板。",
     lead: "它结合项目目标、代码和记忆，管理任务从规划到完成的全过程；你只做产品取舍与最终验收。",
-    ctaInstall: "一句提示词开始",
+    ctaDownload: "下载看板应用",
     ctaGithub: "查看 GitHub ↗",
     shots: {
       board: { label: "Board", alt: "AI4Kanban 本地看板界面：Board 视图" },
@@ -108,16 +108,19 @@ const zh: HomeCopy = {
   },
 
   start: {
-    title: "一句开始",
-    lead: "它会读取代码库，建立项目目标与模块记忆，并创建首批任务。",
+    title: "从看板应用开始",
+    lead: "下载、打开、指向一个项目即可。无需预先安装任何东西 —— 不需要 Node，不需要 npx，也不需要终端。它会先问三件只有你能回答的事，一屏一个；然后读取代码库，建立项目目标与模块记忆，并创建首批任务。",
     notes: ["自主规划", "本地优先", "不绑定 Agent"],
-    cta: "复制安装提示词",
-    copied: "已复制",
-    app: {
-      title: "或者把看板作为应用打开",
-      body:
-        "下载、打开、指向一个项目即可。无需预先安装任何东西 —— 不需要 Node，不需要 npx，也不需要终端。",
-      cta: "获取应用",
+    cta: "下载应用",
+    shotAlt: "看板应用的引导式首次设置，正在询问这是个什么项目、工作分成哪些 track",
+    firstOpen:
+      "安装包还没有签名，所以 macOS 会拦下第一次打开：从 `.dmg` 里把应用拖进“应用程序”，再点过那条“无法验证”的警告即可。下载页有每一步，也有 Windows 和 Linux 的说明。",
+    terminal: {
+      title: "或者在终端里装",
+      body: "在项目根目录下敲一条命令。它只建出 `docs/kanban/` 这块看板，别的什么都不写。",
+      promptNote:
+        "更想让编码 Agent 全程代劳？把安装提示词交给它：它会读仓库、定下 track、跑这条命令，并把剩下的设置一路做完。",
+      promptLink: "查看安装提示词",
     },
   },
 };

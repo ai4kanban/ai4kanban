@@ -14,7 +14,8 @@ export type HomeCopy = {
   hero: {
     title: string;
     lead: string;
-    ctaInstall: string;
+    /** The one thing the page is for: the app. Aimed at `/download`. */
+    ctaDownload: string;
     ctaGithub: string;
     shots: {
       board: { label: string; alt: string };
@@ -62,15 +63,27 @@ export type HomeCopy = {
     outputsLabel: string;
     outputs: [string, string];
   };
+  /**
+   * Getting started, in the order a new reader does it: the app first, the
+   * terminal under it. The setup prompt is a link in the terminal block, never
+   * a second button — one page, one thing to press.
+   */
   start: {
     title: string;
     lead: string;
-    /** The chips beside the copy button. */
+    /** The chips beside the download button. */
     notes: string[];
     cta: string;
-    copied: string;
-    /** The other way in: the board as an app, beside the setup prompt. */
-    app: { title: string; body: string; cta: string };
+    /** The capture of the guided first run. */
+    shotAlt: string;
+    /** What a Mac user has to do the first time, beside the first step. */
+    firstOpen: string;
+    terminal: {
+      title: string;
+      body: string;
+      promptNote: string;
+      promptLink: string;
+    };
   };
 };
 

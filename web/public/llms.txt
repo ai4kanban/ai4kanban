@@ -10,7 +10,7 @@ content — no navigation, styling, or scripts.
 
 ## Pages
 
-- [Home — your task board in Markdown, right next to your code](https://ai4kanban.dev/index.md): What the skill is, how to install it in one prompt, driving the board in plain language, the board app, the indie-hacker preset, and Markdown project management (recurring tasks, group tasks, project memory, metrics).
+- [Home — your task board in Markdown, right next to your code](https://ai4kanban.dev/index.md): What AI4Kanban is, how to start — download the board app, or one command in a terminal — driving the board in plain language, what the app does past setup, the indie-hacker preset, and Markdown project management (recurring tasks, group tasks, project memory, metrics).
 - [Download — the board as a desktop app](https://ai4kanban.dev/download): Get the board as an app for macOS, Windows and Linux — nothing to install first. Every file on the current release (Apple Silicon and Intel `.dmg`, the Windows `.exe`, the x64 and arm64 `.AppImage`), and what to click past each system's first-open warning while the builds are unsigned.
 - [AI4Kanban vs. Task Master](https://ai4kanban.dev/vs-task-master.md): Task Master splits a PRD you already wrote into an ordered backlog; AI4Kanban starts from one rough line and asks questions until the card is buildable. Covers the starting point, JSON file vs. one Markdown file per card, what carries over between runs, batch execution, editor and model reach, and licensing.
 - [AI4Kanban vs. GitHub Issues](https://ai4kanban.dev/vs-github-issues.md): A head-to-head across storage, token cost, agent ergonomics, teams, and transparency — a local Markdown scratch-board vs. a shared, public system of record, and when to use each.

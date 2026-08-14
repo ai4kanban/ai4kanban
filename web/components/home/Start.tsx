@@ -1,17 +1,35 @@
 import { FiDownload } from "react-icons/fi";
-import { CopyPrompt } from "./CopyPrompt";
 import { SectionTitle } from "./SectionTitle";
+import { Mat, printFrame } from "./Mat";
 import { Rich } from "../Rich";
 import { Button } from "../ui/Button";
 import { Chip } from "../ui/Chip";
 import { panelInset } from "../styles";
+import { CDN } from "@/lib/site";
 import { localeHref, type Locale } from "@/lib/i18n";
 import type { HomeCopy } from "@/i18n/home/types";
 
-// The prompt itself stays English — it's what the agent reads, not what the
-// reader reads, so it isn't copy.
-const PROMPT = `Set up ai4kanban for this project. Read
-https://ai4kanban.dev/INSTALL_PROMPT.txt and follow it.`;
+// Getting started (#177). The app leads and the terminal sits under it, which is
+// the order a new reader actually does it in: a download needs nothing on the
+// machine, and the command needs Node and a shell. The skill is not here at all
+// — a board runs without one, so naming it on the way in is naming a step
+// nobody has to take.
+//
+// One thing to press on the page, and it is the same thing the hero's button and
+// the header's link point at. The setup prompt is a link under the command, not
+// a second button: two buttons here is a reader choosing between two ways in
+// before they know what either one is. The retired `npx ai4kanban-ui` way isn't
+// named here or anywhere else on the site — see `pages/DownloadPage.tsx`.
+
+// Not copy: a command is the same in every language (design.md §6). The `npx`
+// form rather than a global install plus `akb`, because the page shows one
+// command and never a list of shell steps.
+const COMMAND = "npx ai4kanban@latest install";
+
+// The guided first run, captured from the app. A drawing would have been the
+// other option — the four step shots above are drawings — but a README can only
+// carry a picture, and one capture serves the READMEs and this page both.
+const FIRST_RUN = `${CDN}/ai4kanban-first-run-v1.jpg`;
 
 export function Start({ c, locale }: { c: HomeCopy["start"]; locale: Locale }) {
   return (
@@ -25,20 +43,15 @@ export function Start({ c, locale }: { c: HomeCopy["start"]; locale: Locale }) {
         {c.lead}
       </p>
 
-      <pre
-        data-reveal
-        data-delay="2"
-        className={`${panelInset} mt-7 overflow-x-auto px-6 py-5 shadow-[8px_8px_0_0_var(--color-ink)]`}
-      >
-        <code className="font-mono text-sm leading-7 text-ink">{PROMPT}</code>
-      </pre>
-
       <div
         data-reveal
-        data-delay="3"
+        data-delay="2"
         className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-4"
       >
-        <CopyPrompt text={PROMPT} label={c.cta} copiedLabel={c.copied} />
+        <Button href={localeHref(locale, "/download")} variant="primary">
+          <FiDownload className="h-4 w-4" aria-hidden="true" />
+          {c.cta}
+        </Button>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           {c.notes.map((note) => (
             <Chip key={note}>{note}</Chip>
@@ -46,26 +59,53 @@ export function Start({ c, locale }: { c: HomeCopy["start"]; locale: Locale }) {
         </div>
       </div>
 
-      {/* The other way in: the board as an app you download (#175). It sits
-          under the prompt rather than beside it because the two are alternatives
-          and a reader picks one. The retired `npx ai4kanban-ui` way isn't named
-          here or anywhere on the site — see `pages/DownloadPage.tsx`. */}
-      <div
+      {/* What a Mac user runs into on the very first open, beside the step it
+          happens on rather than at the bottom of a page they have already left:
+          the app is unsigned, so failing to open it is the first thing that
+          happens to them. */}
+      <p
         data-reveal
-        className="mt-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"
+        data-delay="3"
+        className="mt-5 max-w-3xl text-[0.9rem] leading-relaxed text-muted"
       >
-        <div className="max-w-2xl">
-          <h3 className="text-lg font-bold">{c.app.title}</h3>
-          <p className="mt-2 text-[0.95rem] leading-relaxed text-muted">
-            <Rich>{c.app.body}</Rich>
-          </p>
-        </div>
-        <div className="shrink-0">
-          <Button href={localeHref(locale, "/download")}>
-            <FiDownload className="h-4 w-4" aria-hidden="true" />
-            {c.app.cta}
-          </Button>
-        </div>
+        <Rich>{c.firstOpen}</Rich>
+      </p>
+
+      {/* Same mount as every other picture on the page: a watercolour ground, the
+          print laid on it, no outline around either. */}
+      <Mat src={`${CDN}/bloom-2.jpg`} data-reveal className="mt-9 p-4 sm:p-8">
+        <img
+          src={FIRST_RUN}
+          alt={c.shotAlt}
+          width={1800}
+          height={1466}
+          loading="lazy"
+          decoding="async"
+          className={`${printFrame} w-full`}
+        />
+      </Mat>
+
+      {/* The terminal way in, under the app. It is one command and a link — the
+          list of shell steps this used to be is what the app replaced. */}
+      <div data-reveal className="mt-16">
+        <h3 className="text-lg font-bold">{c.terminal.title}</h3>
+        <p className="mt-2 max-w-3xl text-[0.95rem] leading-relaxed text-muted">
+          <Rich>{c.terminal.body}</Rich>
+        </p>
+        <pre
+          className={`${panelInset} mt-5 overflow-x-auto px-6 py-5 shadow-[8px_8px_0_0_var(--color-ink)]`}
+        >
+          <code className="font-mono text-sm leading-7 text-ink">{COMMAND}</code>
+        </pre>
+        <p className="mt-6 max-w-3xl text-[0.95rem] leading-relaxed text-muted">
+          <Rich>{c.terminal.promptNote}</Rich>
+        </p>
+        <a
+          href="/INSTALL_PROMPT.txt"
+          className="mt-2 inline-block text-[0.95rem] font-semibold text-accent-deep no-underline hover:underline"
+        >
+          {c.terminal.promptLink} →
+        </a>
       </div>
     </section>
   );

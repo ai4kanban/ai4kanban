@@ -24,22 +24,35 @@ readable by you and the agent. No database, no MCP. Just talk to the board.
 - **Built for solo founders.** Keep marketing, building, docs, and research side
   by side in one repo — so the model can compose across everything you have.
 
-## 01 · Setup — Install in one prompt
+## 01 · Setup — Start with the board app
 
-From your project root, tell Claude Code (or any agent that can run shell
-commands):
+Download the board as a desktop app at https://ai4kanban.dev/download — nothing
+to install first: no Node, no npx, no terminal. No build is signed yet, so macOS
+blocks the first open: drag the app in from the `.dmg`, then click through the
+warning that it cannot be checked. The download page has every step, and Windows
+and Linux.
+
+Open it, point it at a project folder, and it asks the three things only you can
+answer — one to a screen, everything prefilled: what the project is and the
+tracks its work falls into, your project goal, and which agent runs the board.
+Then it reads your codebase, settles the first decisions, maps the modules, and
+creates your first ten tasks.
+
+Or set it up from a terminal. One command, from your project root:
 
 ```
-Set up ai4kanban for this project. Read
-https://ai4kanban.dev/INSTALL_PROMPT.txt
-and follow it.
+npx ai4kanban@latest install
 ```
 
-The agent reads your codebase, then runs one command — `npx ai4kanban install` —
-which copies the skill in and scaffolds the board. It fills in the configuration,
-asks for your project goal — the one thing setup asks — settles the first
-decisions from it, and creates your first ten tasks. Updating later is one
-command too: `npx ai4kanban update`.
+That creates the board under `docs/kanban/` and writes nothing else. Rather your
+coding agent did the whole thing? Give it the setup prompt at
+https://ai4kanban.dev/INSTALL_PROMPT.txt — it reads the repo, picks the tracks,
+runs that command, and works down the rest of setup. Updating later is one
+command too: `npx ai4kanban@latest update`.
+
+Driving the board from a coding agent is a separate, optional step — installing a
+board does not install the skill. Add it with `npx ai4kanban@latest skill install`,
+or from the app's **Configuration → Skill** button.
 
 ## 02 · Usage — Using ai4kanban in Claude Code
 
@@ -54,18 +67,13 @@ Once installed, drive it in plain language:
 | "/kanban #4 is done" | notes what shipped, moves the card off the board |
 | "/kanban #4 was a bad idea" | records why in rejected.md so it's never re-proposed |
 
-## 03 · Board UI — A board you can open as an app
+## 03 · Board UI — What the app does past setup
 
-Prefer to look instead of ask? The board opens as a desktop app over the same
-Markdown files — read a task in full without hunting for its file in your IDE
-tree, and act on it with a click instead of re-typing the same prompt into the
-chat.
-
-Download it at https://ai4kanban.dev/download — nothing to install first: no
-Node, no npx, no terminal. It asks which project folder to open the first time
-and remembers it. macOS, Windows and Linux; macOS is the build we test.
-
-It's optional — the install step ships nothing extra.
+The app from step 01 stays the way in. It works over the same Markdown files —
+read a task in full without hunting for its file in your IDE tree, and act on it
+with a click instead of re-typing the same prompt into the chat. It asks which
+project folder to open the first time and remembers it. macOS, Windows and Linux;
+macOS is the build we test.
 
 Each card's buttons hand a move to an agent, no chat needed:
 

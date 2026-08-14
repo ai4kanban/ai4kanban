@@ -81,10 +81,10 @@ repetitive questions, and avoid directions that have already been rejected.
 - [x] **Local first.** Cards are stored as Markdown files by default, with no MCP server
   or database required, reducing token usage. Everything is plain text in Git, so it can
   be reviewed, diffed, and rolled back.
-- [x] **Works out of the box.** A single prompt installs or updates it. AI4Kanban focuses
+- [x] **Works out of the box.** Download the app, or one prompt. AI4Kanban focuses
   exclusively on project management, so there is almost nothing to configure.
-- [x] **Two ways to interact.** Manage the board from the command line through the skill,
-  or use the local UI.
+- [x] **Three ways to interact.** Press a button in the board app, type the `akb` command
+  yourself, or add the optional skill and drive the same board from your coding agent.
 
 The board is not an add-on interface. It is the agent's long-term project context, with a
 clear place for goals, tasks, decisions, dependencies, and progress. AI4Kanban is not
@@ -92,62 +92,82 @@ centered on a chat window; the board is the agent's project-management interface
 
 ## Quick start
 
-Everything the board does is one command, `akb`:
+### 1. Download the board app
+
+**[Download AI4Kanban →](https://ai4kanban.dev/download)** — nothing to install first: no
+Node, no npx, no terminal. macOS, Windows and Linux.
+
+No build is signed yet, so the first open takes a few extra clicks. On macOS: drag the app
+in from the `.dmg`, double-click it and click **Done** on the warning that it cannot be
+checked, then open **System Settings → Privacy & Security → Security**, click **Open
+Anyway** next to the blocked app, and **Open Anyway** once more when it asks. Every launch
+after that opens straight away. On Windows click **More info** → **Run anyway**; on Linux
+`chmod +x AI4Kanban-*.AppImage` and run it. The
+[download page](https://ai4kanban.dev/download) spells each one out.
+
+Open it, point it at your project folder, and it asks the three things only you can
+answer — one to a screen, everything prefilled, nothing to paste: what the project is and
+the tracks its work falls into, your project goal, and which agent runs the board.
+
+![The guided first run in the board app](https://cdn.ai4kanban.dev/ai4kanban-first-run-v1.jpg)
+
+Then press **Finish setup** and the board works down the rest itself: it reads your
+codebase, establishes module memory, maps the project's modules, and creates the first ten
+task cards. Starting runs needs your coding agent — Claude Code or Codex — on the machine,
+same as from a terminal.
+
+### 2. Or set it up from a terminal
+
+Everything the board does is one command, `akb`. Install it, then scaffold the board from
+your project root:
 
 ```bash
 npm install -g ai4kanban
+akb install --tracks feature,bug,research
 ```
 
-Then, from your project root, tell Claude Code (or any coding agent that can run shell
-commands):
+`akb install` creates the board under `docs/kanban/` and writes nothing else — pass the
+tracks your work actually splits into. What is left is the part that reads your repo and
+thinks, so hand it to a coding agent that can run shell commands, from the project root:
 
 ```
 Set up ai4kanban for this project. Read
 https://ai4kanban.dev/INSTALL_PROMPT.txt and follow it.
 ```
 
-The agent first reads your codebase, then runs:
-
-```bash
-akb install --tracks feature,bug,research
-```
-
-That scaffolds the board under `docs/kanban/` and writes nothing outside it. Then, so the
-agent can see that board:
-
-```bash
-akb skill install
-```
-
-That leaves two files per agent in your repo — a short note saying the board is here, and
-the command itself. Nothing else is copied in: the flows the agent works by ship inside
-`akb`, so updating the command updates every project at once. Working from the board app
-instead? Skip it — the app adds the skill from a button whenever you want it
-(**Configuration → Skill**), and the board runs without one.
-
-Setup asks you for three things: what the project is and the tracks its work falls into,
-your project goal, and which agent runs the board. The agent uses those to establish module
-memory, map the project's modules, and create the first ten initial task cards. From
-then on, you can manage the project directly through the board.
+It works down the same checklist the app's **Finish setup** button does, and answers the
+same three questions on the way. A board set up either way is the same board: the same
+files, the same checklist.
 
 Don't want a global install? Every `akb <command>` in this README also works as
 `npx --yes ai4kanban@latest <command>` — the same command, fetched each time.
-
-In the [board app](https://ai4kanban.dev/download) those three questions are a short guided
-first run — one to a screen, everything prefilled, and nothing to paste. A board set up
-there is the same board: the same files, the same checklist, and the rest of setup one
-button away — **Finish setup** runs the remaining steps for you, with no coding agent skill
-needed in the repo.
 
 If the agent cannot access the URL, open
 [`INSTALL_PROMPT.txt`](web/public/INSTALL_PROMPT.txt) and give it the contents instead.
 The result is the same. The only prerequisite is Node.js 18+; no other dependencies need
 to be installed.
 
+## Drive the board from your coding agent (optional)
+
+Nothing above installs a skill, and the board runs fine without one. Add it when you want
+Claude Code or Codex to work the same board from a chat — proposing tasks, refining them,
+and implementing them in the session you are already in, instead of pressing a button and
+watching a run:
+
+```bash
+akb skill install
+```
+
+That writes one short note per agent — into `.claude/skills/kanban/` (Claude Code) and
+`.agents/skills/kanban/` (Codex) — saying the board is here and that `akb` owns it. Nothing
+else is copied in: the flows the agent works by ship inside `akb`, so updating the command
+updates every project at once. The board app does the same thing from a button
+(**Configuration → Skill**).
+
 ## Using the board
 
-Two ways in, and they land the same thing: say it to your coding agent, or type the `akb`
-command yourself.
+Three ways in, and they land the same thing: press a button in the board app, say it to
+your coding agent, or type the `akb` command yourself.
 
 | You say | The agent does |
 | --- | --- |
@@ -245,10 +265,10 @@ behind. What lands in your repo is a short note telling the agent to ask.
 Beneath all of it sits `akb board` — the bookkeeping that owns ids, a card's frontmatter,
 and the index. You never type one of those; the agent does.
 
-### The board app (optional)
+### The board app
 
-**[Download it →](https://ai4kanban.dev/download)** — nothing to install first: no Node, no
-npx, no terminal.
+**[Download it →](https://ai4kanban.dev/download)** — the first step of the
+[quick start](#quick-start), and what most of this is easiest to do from.
 
 The board UI uses the same Markdown files as its single source of truth and provides both
 Board and Queue views. You can read complete cards and the project goal, create tasks or
@@ -265,12 +285,9 @@ needs your coding agent on the machine, same as from a terminal.
 | Linux | `.AppImage` | no | no |
 
 macOS is the one we test each release; Windows and Linux are published untested. No build
-is signed yet, so every system warns the first time you open it. On Windows click **More
-info** → **Run anyway**; on Linux `chmod +x AI4Kanban-*.AppImage` and run it. On macOS it
-takes four steps: drag the app in from the `.dmg`, double-click it and click **Done** on
-the warning, then open **System Settings → Privacy & Security → Security** and click
-**Open Anyway** next to the blocked app, and **Open Anyway** again when it asks. The
-[download page](https://ai4kanban.dev/download) spells each one out.
+is signed yet, so every system warns the first time you open it — what to click is in the
+[quick start](#quick-start), and the [download page](https://ai4kanban.dev/download) spells
+each step out.
 
 ![The board view in the Web UI](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg)
 
@@ -319,8 +336,8 @@ Then a repaired board, from the project root:
 akb update
 ```
 
-`akb update` rewrites the two installed files, adds whatever an older version never wrote,
-and leaves your cards, config, and memory alone. It can't replace the command while it is
+`akb update` adds whatever an older version never wrote to the board, refreshes the skill
+note if you have one — it never adds one — and leaves your cards, config, and memory alone. It can't replace the command while it is
 running, so when it is behind it says the first line instead of finishing quietly. There is
 no third step: the flows ship inside the command, so a newer command is newer flows in
 every project you have.

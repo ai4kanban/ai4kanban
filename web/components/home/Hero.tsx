@@ -4,6 +4,7 @@ import { HeroShots } from "./HeroShots";
 import { HeroWash } from "./HeroWash";
 import { Mat } from "./Mat";
 import { heroTop } from "../styles";
+import { localeHref, type Locale } from "@/lib/i18n";
 import type { HomeCopy } from "@/i18n/home/types";
 
 // The hero reads top to bottom: the sentence, then the thing it is about. Side
@@ -18,7 +19,7 @@ import type { HomeCopy } from "@/i18n/home/types";
 // and it is only good at the second. Text on pigment is the one thing the wash
 // can't carry (design.md §2), and pulling it under the deck means the header
 // has nothing to sit on and can vanish into the page until you scroll.
-export function Hero({ c }: { c: HomeCopy["hero"] }) {
+export function Hero({ c, locale }: { c: HomeCopy["hero"]; locale: Locale }) {
   return (
     <section className={heroTop}>
       {/* Centred, because the block below it is centred: a full-column image
@@ -50,8 +51,12 @@ export function Hero({ c }: { c: HomeCopy["hero"] }) {
           data-delay="2"
           className="mt-9 flex flex-wrap justify-center gap-3"
         >
-          <Button href="#install" variant="primary">
-            {c.ctaInstall}
+          {/* The download, not the setup section further down (#177): the app is
+              the way in now, and the one button at the top of the page has to be
+              the same thing the header's link and the getting-started section
+              lead with. */}
+          <Button href={localeHref(locale, "/download")} variant="primary">
+            {c.ctaDownload}
           </Button>
           <Button href={GITHUB_URL}>{c.ctaGithub}</Button>
         </div>

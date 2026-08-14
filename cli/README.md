@@ -10,6 +10,18 @@ versioned in git.
 This package is the command, the board's own bookkeeping, and the flows the agent works by.
 The board is the product.
 
+## Start with the board app
+
+Most people never type any of this. The board comes as a desktop app —
+<https://ai4kanban.dev/download>, nothing to install first: no Node, no npx, no terminal —
+and setting a board up there is a guided first run: three questions, one to a screen, then
+a **Finish setup** button that works down the rest. No build is signed yet, so macOS blocks
+the first open: drag the app in from the `.dmg`, then click through the warning that it
+cannot be checked.
+
+What follows is the same board from a terminal — and the way to put an agent on a card
+without a chat session and without a browser.
+
 ## Get the command
 
 ```bash
@@ -166,8 +178,8 @@ alone.
 
 ## Also
 
-- The board app: <https://ai4kanban.dev/download> — the same Markdown files, in a window.
-  (`npx ai4kanban-ui` still serves it in a browser, but that way is deprecated.)
 - Source and docs: <https://github.com/ai4kanban/ai4kanban>
+- `npx ai4kanban-ui` still serves the board in a browser, but that way is deprecated — the
+  app above is those same pages in a window.
 
 Node 18+. No dependencies.

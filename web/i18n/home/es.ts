@@ -13,7 +13,7 @@ const es: HomeCopy = {
   hero: {
     title: "Un tablero de proyecto que se planifica solo.",
     lead: "Reúne tus objetivos, tu código y la memoria del proyecto para gestionar el trabajo desde la planificación hasta la entrega. Tú tomas las decisiones de producto y das el visto bueno final.",
-    ctaInstall: "Empieza con un solo prompt",
+    ctaDownload: "Descargar la aplicación",
     ctaGithub: "Ver en GitHub ↗",
     shots: {
       board: {
@@ -125,20 +125,24 @@ const es: HomeCopy = {
   },
 
   start: {
-    title: "Empieza con un solo prompt",
-    lead: "Lee tu base de código, establece el objetivo del proyecto y la memoria de cada módulo, y crea el primer conjunto de tareas.",
+    title: "Empieza con la aplicación del tablero",
+    lead: "Descárgala, ábrela y apúntala a un proyecto. No hace falta instalar nada antes: ni Node, ni npx, ni terminal. Te pregunta las tres cosas que solo tú puedes responder, una por pantalla, y después lee tu base de código, establece el objetivo del proyecto y la memoria de cada módulo, y crea el primer conjunto de tareas.",
     notes: [
       "Planificación autónoma",
       "Local primero",
       "Independiente del agente",
     ],
-    cta: "Copiar prompt de instalación",
-    copied: "Copiado",
-    app: {
-      title: "O abre el tablero como una aplicación",
-      body:
-        "Descárgala, ábrela y apúntala a un proyecto. No hace falta instalar nada antes: ni Node, ni npx, ni terminal.",
-      cta: "Conseguir la aplicación",
+    cta: "Descargar la aplicación",
+    shotAlt:
+      "La configuración guiada de la aplicación, preguntando qué es el proyecto y en qué vías se divide su trabajo",
+    firstOpen:
+      "Todavía no hay compilación firmada, así que macOS bloquea la primera apertura: arrastra la aplicación desde el `.dmg` y luego salta el aviso de que no se puede verificar. La página de descarga detalla cada paso, y también Windows y Linux.",
+    terminal: {
+      title: "O configúralo desde una terminal",
+      body: "Un comando, desde la raíz de tu proyecto. Crea el tablero en `docs/kanban/` y no escribe nada más.",
+      promptNote:
+        "¿Prefieres que lo haga entero tu agente de código? Dale el prompt de instalación: lee el repositorio, elige las vías, ejecuta ese comando y completa el resto de la configuración.",
+      promptLink: "Ver el prompt de instalación",
     },
   },
 };

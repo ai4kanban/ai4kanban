@@ -42,9 +42,10 @@ _(none)_
 ## distribution
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
-- [#177 Make the board UI the way in, in the README and on the site](distribution/177-make-the-board-ui-the-way-in-in-the-readme-and-on-the-site.md)
 - [#202 Test whether the board changes what a coding agent builds](202-board-vs-no-board/root.md)
 - [#209 Teach the daily loop as buttons, not only as things you say](distribution/209-teach-the-daily-loop-as-buttons-not-only-as-things-you-say.md)
+- [#215 Bring the plain-Markdown mirror of the landing page back in line](distribution/215-bring-the-plain-markdown-mirror-of-the-landing-page-back-in.md)
+- [#216 Fix the memory file names the comparison pages still show](distribution/216-fix-the-memory-file-names-the-comparison-pages-still-show.md)
 
 ## 77-memory-in-the-ui/features
 

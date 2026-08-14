@@ -2,6 +2,11 @@
 
 Once the board exists, you drive it in plain language. Here's the rhythm.
 
+Everything you *say* below goes to a coding agent, which needs the skill in the repo —
+`akb skill install`, or **Configuration → Skill** in the board app. A board arrives without
+it. Every one of those asks is also a button in the app and a command you can type, so
+nothing here is closed to a board that has no skill.
+
 ## Two ways the work gets done
 
 Everything below happens one of two ways, and the difference is worth knowing.

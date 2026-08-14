@@ -64,62 +64,81 @@ AI4Kanban 面向小团队。它不是替你决定产品方向，而是把人的�
   Cursor 等其他运行环境在路线图中。
 - [x] **本地优先。** 卡片默认存储为 Markdown 文件，无需 MCP 或数据库，减少 token 消耗。
   所有内容都是 Git 中的纯文本，可以审查、对比和回滚。
-- [x] **开箱即用。** 一条提示词即可安装或更新。AI4Kanban 专注于项目管理，几乎无需配置。
-- [x] **两种交互方式。** 既可在命令行中通过 skill 管理看板，也可使用本地 UI。
+- [x] **开箱即用。** 下载应用，或一条提示词。AI4Kanban 专注于项目管理，几乎无需配置。
+- [x] **三种交互方式。** 在看板应用里按按钮、自己敲 `akb` 命令，或者装上可选的 skill，
+  让编码 Agent 驱动同一块看板。
 
 看板并非附加界面，而是 Agent 的长期项目上下文：目标、任务、决策、依赖和进度各有明确
 归属。AI4Kanban 不以聊天窗口为中心；看板就是 Agent 的项目管理界面。
 
 ## 快速开始
 
-看板的一切都由一条命令 `akb` 完成，先把它装上：
+### 1. 下载看板桌面应用
+
+**[下载 AI4Kanban →](https://ai4kanban.dev/download)** —— 无需预先安装任何东西：不需要
+Node，不需要 npx，也不需要开着终端。macOS、Windows、Linux 都有。
+
+安装包目前还没有签名，所以首次打开要多点几下。macOS 上：从 `.dmg` 里把应用拖进
+“应用程序”，双击后在“无法验证”的警告上点**完成**，再打开**系统设置 → 隐私与安全性 →
+安全性**，在被拦下的应用旁边点**仍要打开**，弹出确认时再点一次**仍要打开**；之后每次
+打开都是秒开。Windows 上点**更多信息** → **仍要运行**；Linux 上先
+`chmod +x AI4Kanban-*.AppImage` 再运行。[下载页](https://ai4kanban.dev/download)有每一步
+的详细说明。
+
+打开应用，选中你的项目文件夹，它会问三件只有你能回答的事：项目是什么、工作分成哪些
+track，项目目标，以及由哪个 Agent 来跑这块看板 —— 一屏一个问题，默认值都已填好，不用往
+任何地方粘贴命令。
+
+![桌面应用里的引导式首次设置](https://cdn.ai4kanban.dev/ai4kanban-first-run-v1.jpg)
+
+然后点 **Finish setup**，剩下的看板自己往下做：读代码库、建立模块记忆、画出模块图，并
+创建首批 10 张任务卡片。发起 Agent 运行仍然需要机器上装有 Claude Code 或 Codex，这一点
+和在终端里一样。
+
+### 2. 或者在终端里装
+
+看板的一切都由一条命令 `akb` 完成。先装上它，再在项目根目录下搭起看板：
 
 ```bash
 npm install -g ai4kanban
+akb install --tracks feature,bug,research
 ```
 
-然后在项目根目录下，对 Claude Code（或任何能执行 Shell 命令的编码 Agent）说：
+`akb install` 只建出 `docs/kanban/` 这块看板，别的什么都不写 —— track 按你项目实际的
+分法来传。剩下的是要读仓库、要动脑子的部分，交给一个能执行 Shell 命令的编码 Agent，在
+项目根目录下对它说：
 
 ```
 Set up ai4kanban for this project. Read
 https://ai4kanban.dev/INSTALL_PROMPT.txt and follow it.
 ```
 
-Agent 会先读取代码库，再运行：
+它走的是和应用里 **Finish setup** 完全相同的一份清单，路上也会问同样那三个问题。两条路
+建出来的看板完全一样：同样的文件、同样的清单。
 
-```bash
-akb install --tracks feature,bug,research
-```
+不想装全局命令？本文里每条 `akb <command>` 都可以写成
+`npx --yes ai4kanban@latest <command>`，是同一条命令，只是每次现拉一遍。
 
-这一步只搭起 `docs/kanban/` 这块看板，`docs/kanban/` 之外一个文件都不动。接着，让 agent
-能看见这块看板：
+如果 Agent 无法访问链接，可以打开 [`INSTALL_PROMPT.txt`](web/public/INSTALL_PROMPT.txt)
+并将内容交给它，效果相同。唯一的前置要求是 Node.js 18+，无需安装其他依赖。
+
+## 让编码 Agent 也能驱动这块看板（可选）
+
+上面两条路都不会装 skill，看板不装也照跑。想让 Claude Code 或 Codex 在对话里直接驱动
+同一块看板 —— 就在你已经开着的会话里提需求、细化、实现，而不是按个按钮看它跑 —— 再装：
 
 ```bash
 akb skill install
 ```
 
-装进仓库的只有两个文件（每个 agent 各一份）：一张短笺，说明看板在这儿；以及命令自身。
-别的什么都不拷 —— agent 照着干活的那些流程都随 `akb` 一起发布，所以命令一新，所有项目
-的流程就都跟着新了。要是你就在桌面应用里干活，这步可以跳过：应用里随时能一键装上
-（**Configuration → Skill**），看板本身不装也照跑。
-
-安装过程中需要你回答三件事：项目是什么、工作分成哪些 track，项目目标，以及由哪个 Agent
-来跑这块看板。Agent 会据此建立模块记忆与模块图，并创建首批 10 张基础任务卡片。此后即可
-直接通过看板管理项目。
-
-不想装全局命令？本文里每条 `akb <command>` 都可以写成
-`npx --yes ai4kanban@latest <command>`，是同一条命令，只是每次现拉一遍。
-
-在[桌面应用](https://ai4kanban.dev/download)里，这三个问题会变成一段引导式的首次设置：
-一屏一个问题，默认值都已填好，不用往任何地方粘贴命令。这样建出来的看板和上面完全一样：
-同样的文件、同样的清单，剩下的设置步骤照样交给 Agent 完成。
-
-如果 Agent 无法访问链接，可以打开 [`INSTALL_PROMPT.txt`](web/public/INSTALL_PROMPT.txt)
-并将内容交给它，效果相同。唯一的前置要求是 Node.js 18+，无需安装其他依赖。
+装进仓库的是每个 agent 各一张短笺：`.claude/skills/kanban/`（Claude Code）和
+`.agents/skills/kanban/`（Codex），说明看板在这儿、由 `akb` 说了算。别的什么都不拷 ——
+agent 照着干活的那些流程都随 `akb` 一起发布，所以命令一新，所有项目的流程就都跟着新了。
+桌面应用里也能一键装上：**Configuration → Skill**。
 
 ## 用起来
 
-两条路，落地的结果一样：跟你的编码 agent 说一声，或者自己敲 `akb`。
+三条路，落地的结果一样：在应用里按按钮、跟你的编码 agent 说一声，或者自己敲 `akb`。
 
 | 你说 | Agent 做什么 |
 | --- | --- |
@@ -214,10 +233,10 @@ akb agent test                # 发一句话试试通不通
 再往下是 `akb board` —— 分配 id、写卡片的 frontmatter、维护索引这些记账活。这些你从来
 不用敲，是 agent 敲的。
 
-### 看板桌面应用（可选）
+### 看板桌面应用
 
-**[下载 →](https://ai4kanban.dev/download)** —— 无需预先安装任何东西：不需要 Node，
-不需要 npx，也不需要开着终端。
+**[下载 →](https://ai4kanban.dev/download)** —— [快速开始](#快速开始)的第一步，
+下面这些事大多也是在它里面做最方便。
 
 看板 UI 以同一批 Markdown 文件为唯一数据源，提供 Board 和 Queue 两种视图。你可以查看
 完整卡片和项目目标、创建任务或让 Agent 提出需求、规划版本、运行 Agent、设置重复任务周期，
@@ -233,10 +252,8 @@ akb agent test                # 发一句话试试通不通
 | Linux | `.AppImage` | 否 | 否 |
 
 每个版本我们只测试 macOS，Windows 和 Linux 未经测试。三个系统的安装包目前都还没有签名，
-首次打开时都会警告：Windows 上点 **更多信息** → **仍要运行**；Linux 上先
-`chmod +x AI4Kanban-*.AppImage` 再运行。macOS 上要四步：从 `.dmg` 里把应用拖进“应用程序”，
-双击后在警告上点**完成**，再打开**系统设置 → 隐私与安全性 → 安全性**，在被拦下的应用旁边点
-**仍要打开**，弹出确认时再点一次**仍要打开**。[下载页](https://ai4kanban.dev/download)有每一步的详细说明。
+首次打开时都会警告 —— 该点哪几下写在[快速开始](#快速开始)里，
+[下载页](https://ai4kanban.dev/download)有每一步的详细说明。
 
 ![Web UI 的 Board 视图](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg)
 
@@ -282,8 +299,8 @@ npm install -g ai4kanban@latest
 akb update
 ```
 
-`akb update` 会重写装进仓库的那两个文件、补上旧版本没写过的东西，并且不动你的卡片、
-配置和 memory。它没法在自己正在运行时把自己换掉，所以当它落后于最新版时，会把上面那行
+`akb update` 会补上旧版本没写过的东西；如果你装了 skill，它会顺手刷新那张短笺 —— 但
+不会替你装一个 —— 并且不动你的卡片、配置和 memory。它没法在自己正在运行时把自己换掉，所以当它落后于最新版时，会把上面那行
 告诉你，而不是悄悄跑完。也不存在第三步：流程都在命令里，命令一新，你所有项目的流程就
 都新了。
 

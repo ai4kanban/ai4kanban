@@ -54,7 +54,7 @@ export function HomePage({ locale }: { locale: Locale }) {
       <Reveal />
       <Header c={copy} locale={locale} />
       <main className="mx-auto max-w-5xl px-6">
-        <Hero c={c.hero} />
+        <Hero c={c.hero} locale={locale} />
         <Compare c={c.compare} />
         <Loop c={c.loop} />
         <Memory c={c.memory} />

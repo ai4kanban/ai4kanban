@@ -13,7 +13,7 @@ const fr: HomeCopy = {
   hero: {
     title: "Un tableau projet qui planifie en autonomie.",
     lead: "Il réunit vos objectifs, votre code et la mémoire du projet pour piloter le travail, de la planification à la livraison. Vous arbitrez les choix produit et donnez la validation finale.",
-    ctaInstall: "Démarrer avec un seul prompt",
+    ctaDownload: "Télécharger l’application",
     ctaGithub: "Voir sur GitHub ↗",
     shots: {
       board: { label: "Board", alt: "Tableau local AI4Kanban : vue Board" },
@@ -119,20 +119,24 @@ const fr: HomeCopy = {
   },
 
   start: {
-    title: "Démarrer avec un seul prompt",
-    lead: "Il lit votre base de code, établit l’objectif du projet et la mémoire de chaque module, puis crée les premières tâches.",
+    title: "Commencez par l’application",
+    lead: "Téléchargez-la, ouvrez-la, pointez-la vers un projet. Rien à installer au préalable : ni Node, ni npx, ni terminal. Elle vous pose les trois questions auxquelles vous seul pouvez répondre, une par écran, puis lit votre base de code, établit l’objectif du projet et la mémoire de chaque module, et crée les premières tâches.",
     notes: [
       "Planification autonome",
       "Local d’abord",
       "Indépendant de l’agent",
     ],
-    cta: "Copier le prompt d’installation",
-    copied: "Copié",
-    app: {
-      title: "Ou ouvrez le tableau comme une application",
-      body:
-        "Téléchargez-la, ouvrez-la, pointez-la vers un projet. Rien à installer au préalable : ni Node, ni npx, ni terminal.",
-      cta: "Obtenir l'application",
+    cta: "Télécharger l’application",
+    shotAlt:
+      "La configuration guidée de l’application, qui demande ce qu’est le projet et en quelles pistes son travail se divise",
+    firstOpen:
+      "Aucune version n’est encore signée, donc macOS bloque la première ouverture : glissez l’application depuis le `.dmg`, puis passez l’avertissement indiquant qu’elle ne peut pas être vérifiée. La page de téléchargement détaille chaque étape, ainsi que Windows et Linux.",
+    terminal: {
+      title: "Ou configurez-le depuis un terminal",
+      body: "Une commande, à la racine de votre projet. Elle crée le tableau dans `docs/kanban/` et n’écrit rien d’autre.",
+      promptNote:
+        "Vous préférez que votre agent de code s’en charge entièrement ? Donnez-lui le prompt d’installation : il lit le dépôt, choisit les pistes, exécute cette commande et termine le reste de la configuration.",
+      promptLink: "Voir le prompt d’installation",
     },
   },
 };

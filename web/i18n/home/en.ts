@@ -13,7 +13,7 @@ const en: HomeCopy = {
   hero: {
     title: "A project board that plans itself.",
     lead: "It brings your goals, code, and project memory together to manage work from planning through completion. You make the product calls and give final approval.",
-    ctaInstall: "Start with one prompt",
+    ctaDownload: "Download the board app",
     ctaGithub: "View on GitHub ↗",
     shots: {
       board: { label: "Board", alt: "AI4Kanban local board: Board view" },
@@ -119,16 +119,19 @@ const en: HomeCopy = {
   },
 
   start: {
-    title: "Start with one prompt",
-    lead: "It reads your codebase, establishes the project goal and module memory, and creates the first set of tasks.",
+    title: "Start with the board app",
+    lead: "Download it, open it, point it at a project. Nothing to install first — no Node, no npx, no terminal. It asks the three things only you can answer, one to a screen, then reads your codebase, establishes the project goal and module memory, and creates the first set of tasks.",
     notes: ["Autonomous planning", "Local-first", "Agent-agnostic"],
-    cta: "Copy setup prompt",
-    copied: "Copied",
-    app: {
-      title: "Or open the board as an app",
-      body:
-        "Download it, open it, point it at a project. Nothing to install first — no Node, no npx, no terminal.",
-      cta: "Get the app",
+    cta: "Download the app",
+    shotAlt: "The board app's guided first run, asking what the project is and the tracks its work falls into",
+    firstOpen:
+      "No build is signed yet, so macOS blocks the first open: drag the app in from the `.dmg`, then click through the warning that it cannot be checked. The download page has every step, and Windows and Linux.",
+    terminal: {
+      title: "Or set it up from a terminal",
+      body: "One command, from your project root. It creates the board under `docs/kanban/` and writes nothing else.",
+      promptNote:
+        "Rather your coding agent did the whole thing? Give it the setup prompt: it reads the repo, picks the tracks, runs that command, and works down the rest of setup.",
+      promptLink: "Read the setup prompt",
     },
   },
 };
