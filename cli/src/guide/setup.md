@@ -16,6 +16,10 @@ app asks for them one screen at a time on its first run, so on a board driven fr
 they are ticked before you ever start. Ticked boxes are answered: never ask again for
 anything they settled.
 
+The boxes marked `owner: agent` are a run's, and that run comes from one of two places: the
+user pastes a line into their coding agent, or they press **Finish setup** in the board app
+and the board starts the run itself. You may be either one — nothing below changes.
+
 While the checklist exists, create no cards — not from propose, not from add. And never
 stop to ask the user anything except the goal: the moment you hit a call you can't make
 on your own, append it to the questions card the install created —
@@ -51,7 +55,8 @@ the app you never reach here.
 
 You reach it when the user is driving the board from a coding agent instead: that is you,
 and it is a complete answer. Tick it — `setup-done agent` — and say in one line that the
-board app can run the work itself once an agent is picked in its settings.
+board app can run the work itself, this setup included, once an agent is picked in its
+settings.
 
 ## `config`
 

@@ -68,4 +68,21 @@ Read "Card format" and "Writing style" in `akb guide board`.
   choices it carries them as options ("Ask the user the rest" in `akb guide resolve`).
 - **Mark it ready.** A concrete plan and no open questions finishes the card: `akb board update
   <id> --status ready` — only if this refine stopped at the code level, not one stage
-  short. The user scans for the `ready` pill to pick what to build next.
+  short. The user scans for the `ready` pill to pick what to build next. A rewritten card
+  passes step 3 first.
+
+## 3. Read it back with fresh eyes
+
+Only when this refine rewrote the body. Nothing rewritten, nothing to check.
+
+Whoever just wrote a card can't see what's unreadable in it — every term feels defined,
+because what it means is still in mind. Only a reader who wasn't there can tell. So hand
+it to one: spawn a subagent, give it the card file and "Writing style" and "Card format"
+from `akb guide board` and nothing else — no conversation, no codebase. Ask it for
+
+- every line it can't follow, and the word that lost it,
+- every bullet holding two rules, or a reason that belongs in `## Decided by the agent`.
+
+Fix what it names, then mark the card ready. It reports; it never edits the card. A line
+it couldn't follow is a line the next reader can't follow either — don't argue the term
+was fine.

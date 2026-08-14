@@ -20,6 +20,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
 import { FiAlertCircle, FiCheck, FiCode, FiSettings, FiTerminal, FiZap } from "react-icons/fi";
 import {
+  installedAgentsAction,
   setHarnessAction,
   setHarnessSecretAction,
   setHarnessSettingAction,
@@ -226,6 +227,11 @@ export function HarnessPicker({
   // the notices below always describe the agent on screen rather than the one
   // that was picked when the page loaded.
   const [info, setInfo] = useState(agent);
+  // The agents to offer, and which of them this machine can run (#207). Kept apart from
+  // `info` because it is the one part of the setting that changes without anybody saving
+  // anything: installing a CLI in a terminal makes an agent runnable, and the picker
+  // re-asks each time it opens so that shows up without a reload.
+  const [options, setOptions] = useState(agent.options);
   const [active, setActive] = useState(agent.name);
   const [saving, setSaving] = useState(false);
   // What the fields show, and what was last written to the file — keyed by the
@@ -249,7 +255,27 @@ export function HarnessPicker({
   // it is picked, and it can't be picked until the base URL is there.
   const [pending, setPending] = useState("");
 
-  const activeOption = info.options.find((o) => o.name === active);
+  // Look again the moment the picker draws — opening the dialog mounts it, and so does the
+  // agent step of the guided first run. The page load already answered this, and that
+  // answer is what the first paint shows, so nothing greys out a moment after the user
+  // sees it; this only catches a CLI installed since. A look that comes back with nothing
+  // (no rules to ask) leaves the page's answer standing.
+  useEffect(() => {
+    let live = true;
+    void installedAgentsAction()
+      .then((fresh) => {
+        if (live && fresh.length > 0) setOptions(fresh);
+      })
+      .catch(() => {
+        // Nothing to say: the agents on screen are still the agents, and the board has
+        // louder ways to report a server it can't reach.
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const activeOption = options.find((o) => o.name === active);
   const settings = activeOption?.settings ?? [];
 
   // What "filled in" means on this side: a key is filled when the server says
@@ -310,6 +336,9 @@ export function HarnessPicker({
       // it is written under, not to whoever was picked when you typed it, so the
       // new agent's keys can already be set and this is what says which.
       setInfo(res.agent);
+      // A switch is a fresh read of the whole setting, so it carries a fresh look at the
+      // PATH with it — one more moment the picker is right about what this machine has.
+      setOptions(res.agent.options);
       setValues(res.agent.values);
       setSaved(res.agent.values);
       setIgnored(res.agent.ignored);
@@ -412,7 +441,7 @@ export function HarnessPicker({
 
   // A hand-edited the agent's `command` override is the one thing worth a note under
   // the cards — it's what actually runs, and it's invisible otherwise.
-  const overridden = info.command !== info.options.find((o) => o.name === info.name)?.command;
+  const overridden = info.command !== options.find((o) => o.name === info.name)?.command;
 
   return (
     <div className="flex flex-col gap-2">
@@ -425,8 +454,19 @@ export function HarnessPicker({
           width drifting with however many agents we ship. The dialog is sized
           for four, so a fifth starts a second row under the first. */}
       <div className="grid grid-cols-4 gap-2">
-        {info.options.map((option) => {
+        {options.map((option) => {
           const on = option.name === active;
+          // This machine doesn't have that agent's CLI (#207), so a run under it would die
+          // at the spawn. The card dims and says "not installed" in words — never colour
+          // alone — but it is still a card you can press: someone whose CLI lives outside
+          // the PATH this board was started with would otherwise be shut out of the agent
+          // they use every day. `=== false` on purpose: a board reading older rules
+          // doesn't answer this at all, and an unanswered question greys out nothing.
+          //
+          // The picked agent never dims, whatever the answer. It is the agent this board
+          // runs; the line under the grid is where its missing CLI is said, in full, with
+          // the command that installs it.
+          const missing = option.installed === false && !on;
           return (
             <button
               key={option.name}
@@ -434,6 +474,7 @@ export function HarnessPicker({
               aria-pressed={on}
               disabled={saving}
               onClick={() => pick(option)}
+              title={missing ? `${option.binary} isn't on this machine` : undefined}
               className="nb-outline flex cursor-pointer flex-col items-center gap-2 bg-nb-paper px-2 pb-2.5 pt-4 disabled:cursor-wait"
               style={{
                 borderColor: on
@@ -447,15 +488,40 @@ export function HarnessPicker({
                   width: 38,
                   height: 38,
                   background: on ? "var(--color-nb-accent-soft)" : "var(--color-nb-wash)",
+                  opacity: missing ? 0.45 : 1,
                 }}
               >
                 <AgentMark src={option.icon} size={22} />
               </span>
-              <span className="text-[12px] font-[800]">{option.label}</span>
+              <span className={`text-[12px] font-[800] ${missing ? "text-nb-ink-soft" : ""}`}>
+                {option.label}
+              </span>
+              {missing && (
+                <span className="-mt-1 text-[10px] font-[700] uppercase leading-none tracking-[0.04em] text-nb-ink-soft">
+                  not installed
+                </span>
+              )}
             </button>
           );
         })}
       </div>
+
+      {/* The picked agent's CLI isn't here (#207). Said as a line rather than by dimming
+          the card, because this one has something to do about it: the command that
+          installs it. It shows the moment the agent is picked — including mid-switch,
+          before the save lands — since that is when the user is asking what this agent
+          needs. It says nothing about whether the CLI would then work: that is Test's
+          answer, from a real run. */}
+      {activeOption?.installed === false && (
+        <p className="flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
+          <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
+          <span>
+            <code>{activeOption.binary}</code> isn&rsquo;t on this machine, so a run would fail
+            to start. Install it:{" "}
+            <code className="rounded bg-nb-ink/8 px-1 py-0.5">{activeOption.install}</code>
+          </span>
+        </p>
+      )}
 
       {/* The override, when there is one, so what actually runs is never hidden.
           Only while the active card is the saved one — mid-switch it names the
@@ -545,7 +611,7 @@ export function HarnessPicker({
           <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
           <span>
             {info.unknownName
-              ? `Your ui.config.json asks for the agent "${info.unknownName}", which this UI doesn't know, so ${info.options.find((o) => o.name === info.name)?.label ?? info.name} is running instead.`
+              ? `Your ui.config.json asks for the agent "${info.unknownName}", which this UI doesn't know, so ${options.find((o) => o.name === info.name)?.label ?? info.name} is running instead.`
               : `Your ui.config.json still has the old top-level "command" key. Nothing reads it — the agent above is what runs. You can delete the key; it's your file, so nothing here touches it.`}
           </span>
         </p>

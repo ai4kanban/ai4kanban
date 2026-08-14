@@ -36,11 +36,19 @@ export function pageMetadata({
   socialTitle,
   social,
   type = "website",
+  translated = true,
 }: PageMeta & {
   locale: Locale;
   /** Route path, e.g. "/vs-github-issues". Empty string for the home page. */
   path: string;
   type?: "website" | "article";
+  /**
+   * Whether this route exists in every language (`TRANSLATED_PATHS` in
+   * `lib/i18n.ts`). The English-only pages — the recipes, the blog — pass
+   * `false`: an hreflang set is a promise that each URL in it resolves, and
+   * `/ja/blog` does not exist to resolve to.
+   */
+  translated?: boolean;
 }): Metadata {
   const url = localePath(locale, path);
   const ogTitle = socialTitle ?? title;
@@ -49,7 +57,10 @@ export function pageMetadata({
   return {
     title,
     description,
-    alternates: { canonical: url, languages: languageAlternates(path) },
+    alternates: {
+      canonical: url,
+      languages: translated ? languageAlternates(path) : undefined,
+    },
     openGraph: {
       type,
       url,

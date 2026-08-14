@@ -7,6 +7,7 @@
 // the NEXT run spawns, never this one.
 
 import { HARNESSES, type Harness, DEFAULT_HARNESS, harnessByName, namesFlag } from './harnesses'
+import { commandBinary, pathLookup } from './installed'
 import { missingRequired, pickedProvider, providerSetting, shownForProvider } from './providers'
 import { configBlock, readConfigRaw, readEnvFile } from './settings'
 import type { StreamRenderer } from './stream'
@@ -54,13 +55,27 @@ function activeProviderOf({ harness, values, secretsSet }: ResolvedHarness): Pro
   return pickedProvider(setting, values[setting.key] ?? '', isFilled(harness, values, secretsSet))
 }
 
-function resolveHarness(pin?: string): ResolvedHarness {
-  let cfg: Record<string, unknown> = {}
+// The settings file, or nothing: an unreadable or malformed one runs the defaults, like a
+// missing one.
+function readConfigSafely(): Record<string, unknown> {
   try {
-    cfg = readConfigRaw()
+    return readConfigRaw()
   } catch {
-    // an unreadable or malformed file runs the default, like a missing one
+    return {}
   }
+}
+
+/** The command one harness runs: the hand-written `command` override in its own block, or
+ *  the harness's own. Every harness has a block of its own, so this is asked per harness —
+ *  the picker looks up all of them, not only the one that is running. */
+function commandOf(cfg: Record<string, unknown>, harness: Harness): string {
+  const block = configBlock(configBlock(cfg.harnessSettings)[harness.name])
+  const override = typeof block.command === 'string' ? block.command.trim() : ''
+  return override || harness.command
+}
+
+function resolveHarness(pin?: string): ResolvedHarness {
+  const cfg = readConfigSafely()
   const staleCommand = typeof cfg.command === 'string' && cfg.command.trim() ? true : undefined
   // `pin` is the agent a run already committed to — a resumed run continues the
   // conversation of the agent that started it, and a queued run keeps the one it was
@@ -71,8 +86,7 @@ function resolveHarness(pin?: string): ResolvedHarness {
   // Always the running agent's own block, never the one the file asked for: a name we
   // don't ship runs the default, and the default's settings are the default's.
   const block = configBlock(configBlock(cfg.harnessSettings)[harness.name])
-  const override = typeof block.command === 'string' ? block.command.trim() : ''
-  const command = override || harness.command
+  const command = commandOf(cfg, harness)
   const argv = command.split(/\s+/).filter(Boolean)
   const values: Record<string, string> = {}
   const ignored: string[] = []
@@ -343,6 +357,12 @@ export function setupInstruction(): string {
 export function agentInfo(): AgentInfo {
   const { harness, command, isDefault, values, secretsSet, ignored, unknownName, staleCommand } =
     resolveHarness()
+  // Which of the agents this machine could actually run, asked once for the whole list: one
+  // read of the PATH, then every agent answered out of it. It happens on every read of the
+  // setting rather than once at startup, so a CLI installed while the board was open counts
+  // the next time anything asks.
+  const cfg = readConfigSafely()
+  const onPath = pathLookup()
   return {
     name: harness.name,
     command,
@@ -353,14 +373,27 @@ export function agentInfo(): AgentInfo {
     secretsSet,
     ignored,
     // Every agent's settings go down, not just the active one's: picking another draws its
-    // own list right away, with nothing filled in, without asking again.
-    options: HARNESSES.map(({ name, label, icon, command: cmd, settings }) => ({
-      name,
-      label,
-      icon,
-      command: cmd,
-      settings,
-    })),
+    // own list right away, with nothing filled in, without asking again. So does whether
+    // this machine can run it, and the command that installs it if it can't — a picker
+    // offering an agent that isn't here sends the user to a run that dies on the spawn.
+    //
+    // `command` stays the harness's own, never the override: it is what a front end
+    // compares against to notice there IS an override. What the override changes is which
+    // binary gets looked up, and that is `binary`.
+    options: HARNESSES.map((option) => {
+      const { name, label, icon, command: cmd, settings, install } = option
+      const runs = commandOf(cfg, option)
+      return {
+        name,
+        label,
+        icon,
+        command: cmd,
+        settings,
+        binary: commandBinary(runs),
+        installed: onPath(runs),
+        install,
+      }
+    }),
     unknownName,
     staleCommand,
   }

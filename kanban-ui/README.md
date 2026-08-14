@@ -336,12 +336,22 @@ asks for the three things only you can answer, one to a screen:
    belongs in it and a link to the longer guide. **Skip for now** leaves it for later.
 3. **The agent** — which agent every button on this board runs, with the same picker,
    settings and **Test** the Configuration dialog has. This one can't be pressed past:
-   Continue opens on a test that passed, or on ticking *I'll drive this board from my own
-   coding agent*. Both name something that can do the work, and a board that finished setup
-   with neither could not run a thing.
+   Continue opens on a test that passed, and on nothing else. Everything the board does
+   from here is a run, so an agent that hasn't answered once would fail on the first press
+   instead of here, where the picker is.
 
 Then a closing screen names what is left — the steps that read your repo and think — and
-hands you the line to paste into a coding agent to finish them:
+offers to do them for you: **Finish setup** starts one agent run that works down every step
+still unticked. It is an ordinary run, so it shows in the runs panel, its log reads like any
+other, and you can stop it. The board re-reads itself as it goes, so the bar ticks along and
+the first cards appear where you are looking. Only one setup run goes at a time — while one
+is going the button is replaced by **watch the run** — and starting one after a run failed
+or was stopped carries on from the first unfinished step rather than redoing what finished.
+
+One thing stands in for that offer: if you skipped the goal, the screen asks for it first —
+nothing after the goal can be planned from a goal nobody wrote.
+
+The line to paste is there either way, under the offer rather than instead of it:
 
 ```
 /kanban. Set up this board — follow docs/kanban/setup-checklist.md.
@@ -354,16 +364,24 @@ on every screen of the run too, under **Rather set this up from your coding agen
 can hand over at any point, and setup picks up at the first unticked box, so nothing you
 answered here is asked again.
 
+That line only works once the coding agent skill is in the repo, and a board arrives without
+it (see **The coding agent skill**). Where there is none, both places say so and hand you the
+one command that adds it — `npx ai4kanban@latest skill install` — above the line to paste.
+**Finish setup** needs none of it: the run the board starts is given the board's own command
+directly, so it works on a repo where the skill was never installed.
+
 Nothing here is a dead end. **Go to the board** leaves the run for the columns at any step,
 and the board then carries a strip saying how far setup got with **Continue setup** on it.
 The steps down the left show what has been settled and take you back to any of them. The
 run itself is remembered in `setup-checklist.md` and nowhere else, so closing the window and
 coming back lands on the same screen.
 
-Once the run is answered, the strip stays until setup is finished, now offering **Finish in
-your coding agent** — the same line to paste. Before setup ends, the skill creates no cards
-at all: ask it for one and it tells you to finish setup first. The last box creates your
-first cards and deletes the checklist; the strip goes at the same moment the cards appear.
+Once the run is answered, the strip stays until setup is finished, now carrying the same
+**Finish setup** button, with **Finish in your coding agent** beside it — the line to paste
+— or, on a repo with no skill in it, **Add the coding agent skill**, which opens the pane
+that writes it. Before setup ends, the skill creates no cards at all: ask it for one and it
+tells you to finish setup first. The last box creates your first cards and deletes the
+checklist; the strip goes at the same moment the cards appear.
 
 ### When the goal needs writing
 
@@ -617,6 +635,16 @@ there. It holds:
 
 - **Agent** — pick the agent that every button spawns: **Claude Code** or **Codex**. It runs
   in your repo root. See **Running on Codex** below for what changes when you switch.
+
+  The picker marks the agents this machine can actually run. One whose CLI isn't on the
+  board's `PATH` is dimmed and reads **not installed** — it can still be picked, and the
+  line under the row then names the command that installs it. The agent you have picked is
+  never dimmed; if its CLI is missing, that same line says so. It is a look at the `PATH`
+  and nothing more — no agent is started — so it says the CLI is there, not that a run
+  would work: that is **Test**. The look happens on every page load and every time the
+  picker opens, so a CLI you install in a terminal counts the next time you open it. One
+  installed somewhere the board's `PATH` doesn't reach stays dimmed until the board is
+  restarted, which is honest: a run would not have found it either.
 - **The agent's own settings** — under the agent rows, in the same section, sit the settings
   that agent takes. Each agent brings its own list, so the fields change when you pick
   another one. Claude Code takes these:
@@ -645,6 +673,9 @@ there. It holds:
 - **Test** — under those settings, a button that sends one tiny message through the setup you
   have saved and says whether it worked. On a failure it shows what the agent said. See
   **Testing the connection**.
+- **Skill** — a section of its own: driving this same board from your coding agent. See
+  **The coding agent skill** below.
+
 There is no Auto-refine section any more, and no switch: a refine follows the run that
 touched the card (see **The refine that follows a run**), so there is nothing to turn on.
 
@@ -737,6 +768,38 @@ working changes what the next run spawns, never the one in flight. And each run 
 agent it ran under, so **Resume** only ever offers to continue a run the agent you have
 picked can actually reach: switch agents and a run the old one started stops offering it,
 rather than handing its id to a CLI that never heard of it.
+
+### The coding agent skill
+
+Getting a board does not bring this with it. A new board is `docs/kanban/` and nothing else,
+and the board works that way for good — every button here runs without it. What it adds is a
+second way in: with it, you can say *"add a task"* or *"what's next"* to Claude Code or Codex
+in your repo and it works this same board — the same cards, the same runs, the same files.
+
+**Configuration → Skill** is where you turn that on. The pane says where the project stands
+and one button does the rest:
+
+- **Not installed** — nothing in either folder. **Add the skill** writes it.
+- **Installed** — the version in each folder, beside the version this board runs on.
+- **Out of date** — a folder written by an older release. The same button says **Bring it up
+  to date**, and refreshes it.
+
+Under the button it names the folders it touches — `.claude/skills/kanban/` for Claude Code,
+`.agents/skills/kanban/` for Codex — and after a press it says, folder by folder, what it
+wrote. Each folder gets one file, `SKILL.md`: a short note saying the board is here and that
+`akb` owns it. The rules themselves are not copied in — they live in the command. So this
+writes a few kB in your repo and nothing else, and it never runs a global install.
+
+That is why the pane sometimes carries one more line: when the `akb` on your PATH is older
+than the copy this board runs on, or isn't there at all, it hands you the line that fixes
+it, ready to copy, and leaves the running to you. The note this button writes points your
+agent at `akb`, and every flow it follows ships inside that command — so an old `akb` means
+old flows even in a project whose note was just refreshed.
+
+If you never want it, you never need it. Nothing else in the board asks for it — except the
+two places that hand you a line to paste into a coding agent (the first run's handover, and
+the setup strip on the board), which say the skill isn't there and offer this pane instead of
+a line that would reach nothing.
 
 ### Running on Codex
 
@@ -951,6 +1014,11 @@ Two things it could be, and the page gives both:
 
 The UI never sets a board up for you. Install one in a terminal, switch back to the tab, and
 the board is there — no reload.
+
+A board that exists but has no copy of the board's rules to read it with is its own page too:
+**This board can't be read**. The rules live in the `akb` command, not in your repo, so the
+line it hands over is `npm install -g ai4kanban`. In the app there is nothing to run: it
+carries its own copy, and reopening the project picks it up.
 
 A board that exists but has a card the UI can't read is a different thing: that board still
 opens, with the error in a strip above it.

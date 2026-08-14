@@ -126,6 +126,28 @@ if (invokedDirectly()) {
     void runAgent(argv, { program: 'akb' }).then((code) => {
       process.exitCode = code
     })
+  } else if (argv[0] === 'board' || argv[0] === 'guide') {
+    // The two doors every flow names by hand — `akb board <move>` and `akb guide <topic>` —
+    // answered here under the same spellings (#173). This file is the copy of the rules the
+    // board is actually running, and a setup run is told to call it: without these, an
+    // agent on a machine with no `akb` on its PATH would have to translate every line of
+    // every flow into the legacy door below, or fetch a different version off npm.
+    //
+    // Neither word collides: there is no `board` move and no `guide` move. The rest of the
+    // run commands are deliberately left out — they DO collide (`create`, `archive`,
+    // `reject` are board moves here), and a run never starts another run anyway.
+    if (argv[0] === 'guide') {
+      void runAgent(argv, { program: `node ${SELF}` }).then((code) => {
+        process.exitCode = code
+      })
+    } else {
+      process.exitCode = runBoard(argv.slice(1), {
+        program: `node ${SELF} board`,
+        style: 'board',
+        version: `ai4kanban ${SKILL_VERSION}`,
+        usage: `node ${SELF} board <move> [args]`,
+      })
+    }
   } else {
     process.exitCode = runBoard(argv, {
       program: 'kanban',

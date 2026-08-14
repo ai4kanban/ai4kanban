@@ -101,10 +101,15 @@ export function markBoard(): BoardMarks {
 // would rewrite the very plan being followed. `auto-refine` is the refine itself, and a
 // refine that starts a refine is a loop with no end.
 //
+// `setup` is the third, for a reason of size rather than of kind: its last step writes the
+// board's first ten cards, and ten refine runs firing the moment a user finishes onboarding
+// is not what they pressed the button for. Those cards are refined the way every other card
+// on the board is — when someone asks.
+//
 // The other half of the rule — a card whose last blocker just left — applies after every
-// action, these two included: an implement run is how a card usually leaves the board, so
+// action, these three included: an implement run is how a card usually leaves the board, so
 // it is how its subtasks and dependants usually come free.
-const NO_FOLLOW = new Set<AgentAction>(['implement', 'auto-refine'])
+const NO_FOLLOW = new Set<AgentAction>(['implement', 'auto-refine', 'setup'])
 
 /**
  * The refine runs to start now that one run has ended, in the order to start them.

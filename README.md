@@ -135,8 +135,9 @@ Don't want a global install? Every `akb <command>` in this README also works as
 
 In the [board app](https://ai4kanban.dev/download) those three questions are a short guided
 first run — one to a screen, everything prefilled, and nothing to paste. A board set up
-there is the same board: the same files, the same checklist, and the rest of setup still
-handed to an agent.
+there is the same board: the same files, the same checklist, and the rest of setup one
+button away — **Finish setup** runs the remaining steps for you, with no coding agent skill
+needed in the repo.
 
 If the agent cannot access the URL, open
 [`INSTALL_PROMPT.txt`](web/public/INSTALL_PROMPT.txt) and give it the contents instead.

@@ -83,7 +83,7 @@ function readRequest(
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
   }
 
-  // The three actions that name no card. Two of them name nothing at all; planning names
+  // The four actions that name no card. Three of them name nothing at all; planning names
   // a version.
   if (action === 'create') {
     const description = positional.join(' ').trim() || text('notes')
@@ -110,6 +110,8 @@ function readRequest(
     if (!release) die('name the version to plan: akb plan-release v1', { kind: 'needs-input' })
     return { req: { action, release }, follow, print }
   }
+  // The fourth: setting the board up names nothing at all. The checklist says what is left.
+  if (action === 'setup') return { req: { action }, follow, print }
 
   // Everything else works on one card.
   const id = Number(positional[0])
@@ -139,6 +141,7 @@ const FLAGS: Record<AgentAction, string[]> = {
   'plan-release': ['release'],
   'auto-refine': [],
   resolve: ['notes', 'and-implement'],
+  setup: [],
 }
 
 /** Send one more turn into a run that stopped short: same agent, same conversation, same

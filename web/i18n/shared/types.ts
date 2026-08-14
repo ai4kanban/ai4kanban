@@ -6,6 +6,8 @@ export type SharedCopy = {
      *  `components/Header.tsx`. */
     download: string;
     recipes: string;
+    /** The blog index. English-only, like the recipes. */
+    blog: string;
     compare: string;
     github: string;
     /** Only read out loud: the label on the phone header's menu button. */
@@ -15,6 +17,7 @@ export type SharedCopy = {
     github: string;
     docs: string;
     recipes: string;
+    blog: string;
     comparisons: string;
     license: string;
     credit: string;

@@ -1,0 +1,201 @@
+/* The long-form prose of a blog post, and the one stylesheet on the site that
+   is not tokens.
+
+   Everywhere else the styles are Tailwind utilities written next to the markup,
+   because there is markup to write them on. A post's body is compiled from
+   Markdown: nothing here has a class attribute to put a utility in, so the
+   only place the type scale can live is a stylesheet scoped to the block the
+   body is rendered into. That scope is `.blog-prose`, and it is the whole
+   reason this file is allowed to exist — it can style an `h2` without styling
+   every `h2` on the site.
+
+   It draws with the site's tokens and no others, so a post is the same paper,
+   the same ink and the same azure as the page around it: the wash for a code
+   block, the 4px hard ink shadow for anything raised, full-strength 2px ink for
+   a rule, and accent-deep for anything that is a link. */
+
+.blog-prose {
+  color: var(--color-ink);
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  text-wrap: pretty;
+}
+
+/* The body's rhythm: one gap between blocks, overridden below by the headings,
+   which own the air above themselves. */
+.blog-prose > * + * {
+  margin-top: 1.25rem;
+}
+
+.blog-prose h2,
+.blog-prose h3,
+.blog-prose h4 {
+  color: var(--color-ink);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  /* Clears the sticky header when a TOC link jumps to a heading. */
+  scroll-margin-top: 5.5rem;
+}
+
+.blog-prose h2 {
+  margin-top: 3rem;
+  font-size: 1.6rem;
+  line-height: 1.25;
+}
+.blog-prose h3 {
+  margin-top: 2.25rem;
+  font-size: 1.2rem;
+  line-height: 1.35;
+}
+.blog-prose h4 {
+  margin-top: 1.75rem;
+  font-size: 1.0625rem;
+  line-height: 1.45;
+}
+/* A heading and the paragraph under it are one unit — the air belongs above
+   the heading, not between it and what it names. */
+.blog-prose h2 + *,
+.blog-prose h3 + *,
+.blog-prose h4 + * {
+  margin-top: 0.75rem;
+}
+
+.blog-prose ul,
+.blog-prose ol {
+  padding-left: 1.4rem;
+}
+.blog-prose ul {
+  list-style: disc;
+}
+.blog-prose ol {
+  list-style: decimal;
+}
+.blog-prose li + li {
+  margin-top: 0.5rem;
+}
+.blog-prose li::marker {
+  color: var(--color-muted);
+}
+.blog-prose li > p {
+  margin: 0;
+}
+
+.blog-prose strong {
+  font-weight: 600;
+}
+.blog-prose em {
+  font-style: italic;
+}
+
+/* A link in prose is the blue as text, so it takes accent-deep — the cut that
+   clears 7:1 — and never the bright azure, which is only ever a shape. */
+.blog-prose a {
+  color: var(--color-accent-deep);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--color-accent-deep) 40%, transparent);
+  transition: text-decoration-color 150ms ease-out;
+}
+.blog-prose a:hover {
+  text-decoration-color: currentColor;
+}
+
+/* The same chip `Rich.tsx` draws: the neighbouring step of the ramp, no
+   outline. The body is on the page or on paper, so the chip is the wash. */
+.blog-prose code {
+  border-radius: 0.25rem;
+  background: var(--color-code);
+  padding: 0.1em 0.35em;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* A fenced block is the panel `CodeBlock.tsx` draws: the wash, the hard ink
+   shadow, and no outline. `ProseCode.tsx` puts the copy button on it. */
+.blog-prose pre {
+  overflow-x: auto;
+  border-radius: 0.75rem;
+  background: var(--color-code);
+  padding: 1.25rem 3.5rem 1.25rem 1.25rem;
+  box-shadow: 4px 4px 0 0 var(--color-ink);
+  font-size: 0.875rem;
+  line-height: 1.75;
+}
+.blog-prose pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  white-space: pre;
+}
+
+/* A quote is bare — a rail and an indent, not a second panel inside the page.
+   The rail is linework, so it is full-strength ink like every other line. */
+.blog-prose blockquote {
+  border-left: 2px solid var(--color-border);
+  padding-left: 1.25rem;
+  color: var(--color-muted);
+}
+.blog-prose blockquote p {
+  margin-top: 0.75rem;
+}
+
+/* One set of lines, which is what a table is: the rules between the rows and
+   nothing around them. The header row separates by the ramp instead. */
+.blog-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.blog-prose thead th {
+  background: var(--color-code);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.blog-prose th,
+.blog-prose td {
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 2px solid var(--color-border);
+}
+.blog-prose tbody tr:last-child td {
+  border-bottom: none;
+}
+/* A table wider than the column scrolls inside its own region rather than
+   making the whole page scroll sideways on a phone. */
+.blog-prose .prose-table {
+  overflow-x: auto;
+}
+
+.blog-prose hr {
+  width: 3.5rem;
+  margin: 3rem auto;
+  border: none;
+  border-top: 2px solid var(--color-border);
+}
+
+/* An image in a post is a print: paper radius, the ink outline that frames a
+   picture, and the block's own hard shadow. */
+.blog-prose img {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  border: 2px solid var(--color-border);
+  box-shadow: 4px 4px 0 0 var(--color-ink);
+}
+.blog-prose figure {
+  margin-top: 2rem;
+}
+.blog-prose figcaption {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  text-align: center;
+}

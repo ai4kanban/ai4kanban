@@ -7,7 +7,10 @@
 // Now the board asks for what only the user knows itself — what the project is
 // and its tracks, the goal, and which agent does the work — one question a
 // screen, in place of the board. Everything else setup does reads the repo and
-// thinks, and is still an agent's job (#173).
+// thinks, so it is an agent's job — and the board starts that agent itself when
+// asked (#173): one ordinary run, in the runs panel, doing every step still
+// unticked. The line to paste into a coding agent stays beside the offer, for
+// whoever would rather finish there.
 //
 // Three rules shape it:
 //
@@ -19,15 +22,14 @@
 //   • The agent step is the exception: it can't be pressed past. Setup says it is
 //     finished by deleting its checklist, and the steps after this flow are agent
 //     runs, so a board that finished setup without an agent was never set up. It
-//     ends on an agent that answered a test, or on the user saying they will
-//     drive the board from their own coding agent.
+//     ends on one thing only: an agent that answered a test.
 //
 // The checklist is the state. Which of setup's boxes are ticked decides what the
 // flow opens on and when it is over — there is no second record of how far the
 // user got, so closing the window and coming back lands on the same screen.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiArrowLeft, FiCheck, FiCopy, FiFlag, FiTerminal, FiX } from "react-icons/fi";
+import { FiArrowLeft, FiCheck, FiCopy, FiFlag, FiPlay, FiTerminal, FiX } from "react-icons/fi";
 import {
   finishSetupAgentStepAction,
   getSetupDraftAction,
@@ -40,6 +42,15 @@ import { Button } from "./button";
 import { configDialog, HarnessPicker } from "./Configuration";
 import { GoalEditor } from "./Goal";
 import { Logo } from "./Logo";
+import { SessionLogOverlay } from "./agent-shared";
+import { sessionsPanel, useSessionLog } from "./sessions";
+
+/** What starting the setup run answered. Same shape every board action comes back
+ *  with: it happened, or this line says why not. */
+export interface StartAnswer {
+  ok: boolean;
+  error?: string;
+}
 
 // The steps the flow asks for itself, in the order it asks them — only the ones
 // this board's checklist actually holds, so a board written by an older version
@@ -70,6 +81,71 @@ export function setupHasQuestionsLeft(setup: SetupState | null): boolean {
   return Boolean(setup) && guidedSteps(setup as SetupState).some((s) => !s.done);
 }
 
+// ---- finishing the rest here (#173) ----------------------------------------
+//
+// The steps setup has left read the repo and think, so they need an agent — but
+// not the user's own. The board starts one itself: an ordinary run, in the runs
+// panel, doing every step still unticked. Both screens that used to hand the work
+// over now offer it, with the line to paste beside the offer rather than instead
+// of it.
+//
+// The two things that stand in for the offer, and why:
+//
+//   • a run already going — one at a time, so the second press has nothing to do
+//     but watch the first
+//   • no goal written — nothing after the goal can be planned from a goal nobody
+//     wrote, so a run started there would stop on its first step
+
+/** Start the setup run, holding what the press is doing and what it answered. The
+ *  two screens share it because they are the same press in two places. */
+function useFinishSetup(onStart: () => Promise<StartAnswer>) {
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const start = useCallback(async () => {
+    setStarting(true);
+    setError(null);
+    try {
+      const res = await onStart();
+      if (!res.ok) setError(res.error || "the setup run didn't start");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setStarting(false);
+    }
+  }, [onStart]);
+  return { start, starting, error };
+}
+
+/** Is the goal still unwritten? Then the offer asks for it instead. A checklist
+ *  with no goal box at all — one written by an older version — can't be asked, so
+ *  it never stands in the way. */
+function goalMissing(setup: SetupState): boolean {
+  const goal = setup.steps.find((s) => s.name === "goal");
+  return Boolean(goal && !goal.done);
+}
+
+/** The way into a setup run that is already going — shown wherever the offer
+ *  would have been, so pressing again is never the way to find the log.
+ *
+ *  Where the log opens is the caller's, because the two screens are not the same
+ *  place: the board has the runs panel in its header, and the guided run has no
+ *  header at all, so it opens the log itself. */
+function WatchingSetup({ onWatch }: { onWatch: () => void }) {
+  return (
+    <span className="flex items-center gap-2 text-[13px] text-nb-ink-soft">
+      <span className="size-[8px] shrink-0 rounded-full bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]" aria-hidden />
+      Finishing setup —{" "}
+      <button
+        type="button"
+        className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
+        onClick={onWatch}
+      >
+        watch the run
+      </button>
+    </span>
+  );
+}
+
 // Whether the user stepped out to look at the board, for this browser session
 // only. Nothing is written to the board files: leaving the flow is not an answer,
 // and a board that remembered it on disk would be a board that never asks again.
@@ -80,6 +156,9 @@ export function SetupFlow({
   agent,
   setupInstruction,
   skillInstalled,
+  setupRunId,
+  onFinishSetup,
+  onAgentChanged,
   onSaved,
   onExit,
 }: {
@@ -92,6 +171,13 @@ export function SetupFlow({
    *  skill now, so handing the line over on a project that has none would be
    *  handing over a paste that answers "I don't know that skill". */
   skillInstalled: boolean;
+  /** The setup run going right now, from this tab or another (#173). */
+  setupRunId: string | null;
+  /** Start one. The board owns the run, so this only reports what it answered. */
+  onFinishSetup: () => Promise<StartAnswer>;
+  /** The agent step just answered the question this flow's last screen is drawn
+   *  from — which agent runs the board, or none of them. */
+  onAgentChanged: (agent: AgentInfo) => void;
   /** Re-read the board: every answer here changes a file the board is drawn from. */
   onSaved: () => void;
   /** Leave the flow for the board. The board keeps a way back in. */
@@ -190,7 +276,8 @@ export function SetupFlow({
                 <AgentStep
                   agent={agent}
                   answered={step.done}
-                  onDone={() => {
+                  onDone={(saved) => {
+                    if (saved) onAgentChanged(saved);
                     onSaved();
                     advance();
                   }}
@@ -202,6 +289,15 @@ export function SetupFlow({
                   setup={setup}
                   instruction={setupInstruction}
                   skillInstalled={skillInstalled}
+                  runId={setupRunId}
+                  onStart={onFinishSetup}
+                  // The goal was left for later, and the run needs it. Back to
+                  // that screen rather than a second goal box here: the one on
+                  // the goal step is the flow's own, and it ticks the box.
+                  onWriteGoal={() => {
+                    const at = steps.findIndex((s) => s.name === "goal");
+                    if (at >= 0) setIndex(at);
+                  }}
                   onExit={onExit}
                 />
               )}
@@ -547,9 +643,10 @@ function GoalStep({
 // is the same question, and a second screen asking it in other words would be a
 // second place to keep right.
 //
-// Continue opens on one of two answers: a test that passed, or the user saying
-// they will run the board from their own coding agent. Neither is skipping: both
-// name something that can do the work.
+// One thing opens Continue: a test that passed. There is no answer of the form
+// "none of them" — the board always runs the agent it was given, and everything
+// this flow leads to is a run, so an agent that hasn't answered once is a board
+// that will fail on its first press instead of here, where the picker is.
 function AgentStep({
   agent,
   answered,
@@ -560,18 +657,23 @@ function AgentStep({
    *  back only because an earlier step was left for later. Answered is answered:
    *  Continue moves on without asking for the test again. */
   answered: boolean;
-  onDone: () => void;
+  /** The agent setting as it reads after the answer is saved, when the save could
+   *  report one — the screens after this one are drawn from it. */
+  onDone: (agent?: AgentInfo) => void;
 }) {
   const [passed, setPassed] = useState(false);
-  const [ownAgent, setOwnAgent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const finish = async () => {
     setSaving(true);
     try {
-      await finishSetupAgentStepAction();
-      onDone();
+      const res = await finishSetupAgentStepAction();
+      if (!res.ok) {
+        setError(res.error || "couldn't save that answer");
+        return;
+      }
+      onDone(res.agent);
     } finally {
       setSaving(false);
     }
@@ -590,31 +692,13 @@ function AgentStep({
 
       {error && <div className="mt-4"><Failure text={error} /></div>}
 
-      <div className="mt-5 border-t border-nb-ink/12 pt-4">
-        <label className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-relaxed">
-          <input
-            type="checkbox"
-            checked={ownAgent}
-            onChange={(e) => setOwnAgent(e.target.checked)}
-            className="mt-[3px] size-[15px] shrink-0 cursor-pointer accent-[var(--color-nb-accent)]"
-          />
-          <span>
-            <span className="font-[700]">I&rsquo;ll drive this board from my own coding agent.</span>{" "}
-            <span className="text-nb-ink-soft">
-              The board&rsquo;s buttons stay quiet, and you do the work from the agent you already
-              have open. You can pick one here later — the gear in the header.
-            </span>
-          </span>
-        </label>
-      </div>
-
       <StepButtons>
         <p className="mr-auto text-[12px] leading-relaxed text-nb-ink-soft">
-          {passed || ownAgent || answered
+          {passed || answered
             ? "That’s everything only you could answer."
-            : "Press Test above, or say you’ll use your own coding agent."}
+            : "Press Test above — every button on this board runs through it."}
         </p>
-        <Button size="sm" disabled={saving || (!passed && !ownAgent && !answered)} onClick={finish}>
+        <Button size="sm" disabled={saving || (!passed && !answered)} onClick={finish}>
           {saving ? "Saving…" : "Continue"}
         </Button>
       </StepButtons>
@@ -625,20 +709,32 @@ function AgentStep({
 // ---- the closing screen ----------------------------------------------------
 
 // What is left after the questions: the steps that read the repo and think. The
-// board can't run them yet (#173), so this hands them over in one line and opens
-// the board.
+// board runs them itself now (#173) — one press, one run — and the line to paste
+// into a coding agent sits under it for whoever would rather finish there.
 function DoneStep({
   setup,
   instruction,
   skillInstalled,
+  runId,
+  onStart,
+  onWriteGoal,
   onExit,
 }: {
   setup: SetupState;
   instruction: string;
   skillInstalled: boolean;
+  runId: string | null;
+  onStart: () => Promise<StartAnswer>;
+  onWriteGoal: () => void;
   onExit: () => void;
 }) {
   const left = setup.steps.filter((s) => !s.done);
+  const { start, starting, error } = useFinishSetup(onStart);
+  const noGoal = goalMissing(setup);
+  // This screen has no header, so the runs panel isn't on it — the log opens
+  // here instead, in the same overlay a board card's running badge opens.
+  const [watching, setWatching] = useState(false);
+  const log = useSessionLog(watching ? runId : null);
   return (
     <StepBody
       title="Answered — the board is yours"
@@ -658,9 +754,38 @@ function DoneStep({
         </ul>
       )}
 
+      {/* The offer, or what stands in for it. */}
+      <div className="mt-5 nb-panel-sm p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
+        {runId ? (
+          <WatchingSetup onWatch={() => setWatching(true)} />
+        ) : noGoal ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] leading-relaxed">
+            <span className="min-w-0 flex-1">
+              <strong>The goal comes first.</strong> Every step left is planned from it, so
+              write it and the board can take the rest.
+            </span>
+            <Button size="sm" className="shrink-0" onClick={onWriteGoal}>
+              Write the goal
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] leading-relaxed">
+            <span className="min-w-0 flex-1">
+              <strong>Let the board finish them.</strong> It runs the agent you picked, here,
+              and you can watch or stop it like any other run.
+            </span>
+            <Button size="sm" className="shrink-0" disabled={starting} onClick={start}>
+              <FiPlay className="text-[13px]" aria-hidden />
+              {starting ? "Starting…" : "Finish setup"}
+            </Button>
+          </div>
+        )}
+        {error && <div className="mt-3"><Failure text={error} /></div>}
+      </div>
+
       <div className="mt-5">{!skillInstalled && <AddSkillFirst />}</div>
       <p className="text-[13px] leading-relaxed text-nb-ink-soft">
-        Paste this into your coding agent to finish them:
+        Or finish them in your own coding agent — paste this into it:
       </p>
       <CopyLine text={instruction} />
 
@@ -669,6 +794,8 @@ function DoneStep({
           Open the board
         </Button>
       </StepButtons>
+
+      {watching && <SessionLogOverlay session={log} onClose={() => setWatching(false)} />}
     </StepBody>
   );
 }
@@ -683,6 +810,8 @@ export function SetupNotice({
   setup,
   instruction,
   skillInstalled,
+  setupRunId,
+  onFinishSetup,
   onResume,
 }: {
   setup: SetupState;
@@ -691,10 +820,21 @@ export function SetupNotice({
    *  of this strip is the button that adds the skill, not a line that would reach
    *  nothing — and the gear is on screen here, so it can open that pane. */
   skillInstalled: boolean;
-  /** Reopen the guided run. Absent when there is nothing left in it to ask. */
+  /** The setup run going right now, from this tab or another. */
+  setupRunId: string | null;
+  /** Start one. */
+  onFinishSetup: () => Promise<StartAnswer>;
+  /** Reopen the guided run. Absent when there is nothing left in it to ask —
+   *  which is also how this strip knows the goal is written, since the goal is
+   *  the one question of the run that can be walked past. */
   onResume?: () => void;
 }) {
   const [handing, setHanding] = useState(false);
+  const { start, starting, error } = useFinishSetup(onFinishSetup);
+  // The offer stands only once the run's own questions are answered. While one is
+  // outstanding it is the goal — nothing after it can be planned — and Continue
+  // setup is the way back to it, so the two would be the same press said twice.
+  const canFinish = !onResume;
   return (
     <div
       className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6"
@@ -704,7 +844,11 @@ export function SetupNotice({
         <Meter done={setup.done} total={setup.total} />
         <span className="min-w-0 flex-1">
           <strong>Setting up this board.</strong>{" "}
-          {setup.next ? (
+          {setupRunId ? (
+            <span className="text-nb-ink-soft">
+              The agent is working down what is left; the steps tick off as it goes.
+            </span>
+          ) : setup.next ? (
             <span className="text-nb-ink-soft">
               Next: <Ticks text={setup.next.text} />
             </span>
@@ -712,37 +856,57 @@ export function SetupNotice({
             <span className="text-nb-ink-soft">Finishing the last step.</span>
           )}
         </span>
-        {onResume ? (
-          <Button size="sm" className="shrink-0" onClick={onResume}>
-            Continue setup
-          </Button>
-        ) : skillInstalled ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="shrink-0"
-            onClick={() => setHanding((on) => !on)}
-          >
-            <FiTerminal className="text-[13px]" aria-hidden />
-            Finish in your coding agent
-          </Button>
+        {/* The run in flight wins over every offer: one at a time, and the way to
+            it is the log, not a second press. */}
+        {setupRunId ? (
+          // The board has the runs panel in its header, so this opens it on the
+          // run rather than a log of its own.
+          <WatchingSetup onWatch={() => sessionsPanel.open(setupRunId)} />
         ) : (
-          // No skill here, so there is nothing to hand the line to. The gear is on
-          // screen from this strip, so this opens the pane that adds it rather
-          // than telling the user where to look.
-          <Button
-            size="sm"
-            variant="ghost"
-            className="shrink-0"
-            title="A board arrives without the skill — this adds it"
-            onClick={() => configDialog.open("skill")}
-          >
-            <FiTerminal className="text-[13px]" aria-hidden />
-            Add the coding agent skill
-          </Button>
+          <>
+            {onResume && (
+              <Button size="sm" className="shrink-0" onClick={onResume}>
+                Continue setup
+              </Button>
+            )}
+            {canFinish && (
+              <Button size="sm" className="shrink-0" disabled={starting} onClick={start}>
+                <FiPlay className="text-[13px]" aria-hidden />
+                {starting ? "Starting…" : "Finish setup"}
+              </Button>
+            )}
+            {/* The line to paste stays beside the offer, never instead of it —
+                the user may well prefer the agent they already have open. On a
+                project with no skill it would reach nothing, so what stands there
+                is the button that adds one; the gear is on screen from this
+                strip, so it opens that pane rather than naming a command. */}
+            {skillInstalled ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="shrink-0"
+                onClick={() => setHanding((on) => !on)}
+              >
+                <FiTerminal className="text-[13px]" aria-hidden />
+                Finish in your coding agent
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="shrink-0"
+                title="A board arrives without the skill — this adds it"
+                onClick={() => configDialog.open("skill")}
+              >
+                <FiTerminal className="text-[13px]" aria-hidden />
+                Add the coding agent skill
+              </Button>
+            )}
+          </>
         )}
       </div>
       {handing && skillInstalled && <CopyLine text={instruction} />}
+      {error && <div className="mt-3"><Failure text={error} /></div>}
     </div>
   );
 }

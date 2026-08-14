@@ -88,7 +88,14 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
           <MobileNav c={c} locale={locale} />
         </div>
 
-        <nav className="hidden items-center justify-center gap-x-5 text-[0.95rem] text-muted md:flex md:gap-x-6">
+        {/* The gap is tighter between `md` and `lg` than above it. At 768 the
+            row is six items and a button, and French is the longest set of
+            words in it — "Télécharger", "Comparatifs", "Français" — which at
+            the wide gap runs 29px past the viewport. Sixteen pixels there buys
+            forty back and reads the same at that width; the full gap returns at
+            `lg`, where there is room for it. A seventh item does not fit at any
+            gap: that is the point where the swap moves from `md` to `lg`. */}
+        <nav className="hidden items-center justify-center text-[0.95rem] text-muted md:flex md:gap-x-4 lg:gap-x-6">
           {/* The one way in. The landing page also hands out the setup prompt,
               under `#install`, but the header names a single way to get the
               product — two of them in one row is a choice a reader has to make
@@ -100,9 +107,13 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
           >
             {nav.download}
           </a>
-          {/* Recipes are English-only, so this link never takes a locale prefix. */}
+          {/* Recipes and the blog are English-only, so neither link ever takes a
+              locale prefix. */}
           <a href="/recipes" className="transition-colors hover:text-ink">
             {nav.recipes}
+          </a>
+          <a href="/blog" className="transition-colors hover:text-ink">
+            {nav.blog}
           </a>
           <CompareMenu label={nav.compare} locale={locale} />
           <HeaderLanguage locale={locale} label={c.shared.language.label} />

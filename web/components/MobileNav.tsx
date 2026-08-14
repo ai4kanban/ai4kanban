@@ -35,6 +35,9 @@ export function MobileNav({ c, locale }: { c: SiteCopy; locale: Locale }) {
       <a href="/recipes" className={item}>
         {nav.recipes}
       </a>
+      <a href="/blog" className={item}>
+        {nav.blog}
+      </a>
 
       <p className={heading}>{nav.compare}</p>
       {COMPARISONS.map((x) => (

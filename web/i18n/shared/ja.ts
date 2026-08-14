@@ -6,6 +6,7 @@ const ja: SharedCopy = {
   nav: {
     download: "ダウンロード",
     recipes: "レシピ",
+    blog: "ブログ",
     compare: "比較",
     github: "GitHub ↗",
     menu: "メニュー",
@@ -14,6 +15,7 @@ const ja: SharedCopy = {
     github: "GitHub",
     docs: "Documentation",
     recipes: "Recipes",
+    blog: "Blog",
     comparisons: "Comparisons",
     license: "Apache License 2.0",
     credit: "Tao Wu が作成",

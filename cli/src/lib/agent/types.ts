@@ -42,6 +42,11 @@ export type AgentAction =
   | 'plan-release'
   | 'auto-refine'
   | 'resolve'
+  /** Finish setting the board up — every step still unticked on
+   *  `docs/kanban/setup-checklist.md`, in one run. It names no card and no release: the
+   *  checklist is the plan, and the run starts at its first unticked box, so a run started
+   *  again after a failure carries on from where the last one stopped. */
+  | 'setup'
 
 /** Everything one run is asked for. What the user typed rides along so the run list can
  *  show it beside the log. */
@@ -195,6 +200,17 @@ export interface HarnessOption {
   /** The command this harness runs when the setting carries no override. */
   command: string
   settings: HarnessSetting[]
+  /** The binary a run would spawn: the first word of this agent's command — the `command`
+   *  override in its own block when it has one, its default otherwise. */
+  binary: string
+  /** True when that binary is on the PATH a run would be spawned on. Worked out fresh on
+   *  every read, never cached, and it starts nothing: it says the CLI is there, not that
+   *  it is logged in or that a run would pass. That is `testConnection`'s answer. */
+  installed: boolean
+  /** The command that installs this agent's CLI. Handed over wherever the CLI turns out
+   *  not to be on the machine — a picker offering it, a run that can't spawn, a failed
+   *  test — so the user reads what to do instead of a raw spawn error. */
+  install: string
 }
 
 /** Which agent runs the board, what it is set to, and what it could be switched to. */

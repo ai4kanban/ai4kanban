@@ -1,5 +1,5 @@
 import { boardRules } from "./cli";
-import type { Board, Card, CardRef, MetricsResult, SetupDraft } from "./types";
+import type { Board, Card, CardRef, MetricsResult, SetupDraft, SetupState } from "./types";
 
 // --- reading the board, through the CLI (#169) -------------------------------
 // The columns, one card in full, the module map, the daily numbers, the answers a guided
@@ -101,4 +101,12 @@ export async function readGoalText(): Promise<string> {
  *  stand. */
 export async function readSetupDraft(): Promise<SetupDraft> {
   return (await boardRules()).readSetupDraft();
+}
+
+/** How far setup got, or null when there is no checklist — this board is set up, or it
+ *  predates the file. Read on its own by the action that starts a setup run (#173), which
+ *  has to know what is really left before it spawns an agent: the button that asked is
+ *  drawn from a board read that can be a poll behind. */
+export async function readSetupState(): Promise<SetupState | null> {
+  return (await boardRules()).readSetupState();
 }

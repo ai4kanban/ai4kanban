@@ -42,14 +42,16 @@ const PENDING_MS = 30_000
 // these wait for one another. Propose allocates several ids in one run, so it belongs here
 // too, and so does a recurring run: its close bumps metrics.csv and rewrites the README
 // index, the very files this lock exists for. A plan-release run belongs here for the same
-// reason propose does — it allocates ids and rewrites the index as it moves cards in.
-const INDEX_ACTIONS = new Set<AgentAction>(['create', 'propose', 'archive', 'reject', 'run', 'plan-release'])
+// reason propose does — it allocates ids and rewrites the index as it moves cards in. So
+// does a setup run: its last step writes the board's first cards.
+const INDEX_ACTIONS = new Set<AgentAction>(['create', 'propose', 'archive', 'reject', 'run', 'plan-release', 'setup'])
 
 // Actions that may run only one at a time across the whole board. A create has no card
 // yet, so the per-card rule can't catch a duplicate. A plan-release run is one of them
 // too: it has no card id either, and two at once — on one release or on two — would read
-// the same board and write the same missing cards twice.
-const SINGLETON_ACTIONS = new Set<AgentAction>(['create', 'propose', 'plan-release'])
+// the same board and write the same missing cards twice. A setup run is the third, and the
+// starkest: two of them would work down the same checklist side by side.
+const SINGLETON_ACTIONS = new Set<AgentAction>(['create', 'propose', 'plan-release', 'setup'])
 
 // Past-tense verb for the "already running" refusal, e.g. "#5 is already being
 // implemented".
@@ -64,12 +66,14 @@ const VERB: Record<AgentAction, string> = {
   'auto-refine': 'auto-refined',
   resolve: 'resolved',
   'plan-release': 'planned',
+  setup: 'set up',
 }
 
 // The refusal a one-at-a-time action gets when one of its own is already going, where the
 // "a task is already being …" sentence doesn't fit.
 const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
   'plan-release': 'a release is already being planned',
+  setup: 'this board is already being set up',
 }
 
 // A run's action maps to the saved stage it puts the card in while it goes. Only implement

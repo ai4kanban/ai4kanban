@@ -9,6 +9,7 @@ import {
   planReleaseAction,
   setCardsReleaseAction,
   setReleaseGoalAction,
+  startSetupRunAction,
 } from "@/app/actions";
 import { filterColumns, pickIsEmpty, useReleasePick } from "@/lib/release-pick";
 import type { AgentInfo, Board } from "@/lib/types";
@@ -32,7 +33,7 @@ import { runningCardIds, sessionsPanel, useAgentSessions, useOnTabFocus, useSess
 export function BoardView({
   initialBoard,
   initialError,
-  agent,
+  agent: initialAgent,
   projectRoot,
   setupInstruction,
   skillInstalled,
@@ -54,6 +55,11 @@ export function BoardView({
   desktop: boolean;
 }) {
   const [board, setBoard] = useState<Board | null>(initialBoard);
+  // Which agent runs this board. It starts as the server's first paint and moves
+  // when a screen here answers that question — the guided run's agent step, or the
+  // Configuration dialog. What the runs panel names turns on it, so it can't be a
+  // page-load value.
+  const [agent, setAgent] = useState<AgentInfo>(initialAgent);
   const [error, setError] = useState<string | null>(initialError);
   // Has the user stepped out of the guided first run to look at the board (#172)?
   // `null` until the browser has been asked — sessionStorage doesn't exist during
@@ -245,6 +251,30 @@ export function BoardView({
     if (seen && seen.status !== "running") setPlanRun(null);
   }, [sessions, planRun]);
 
+  // Finishing setup (#173) — the run started from the guided run's closing screen
+  // and from the setup strip. It is one run at a time across the whole board, so
+  // the live one is looked up from the shared poll rather than remembered here:
+  // a run started in another tab, or from a terminal, holds the offer down in
+  // this one too.
+  const setupRun = sessions.find((r) => r.status === "running" && r.action === "setup");
+  const setupRunId = setupRun?.sessionId ?? null;
+  const finishSetup = useCallback(async () => {
+    const res = await startSetupRunAction();
+    // Take it on as this tab's, so the poll wakes at once and the run joins the
+    // panel in the same moment the strip says it started.
+    if (res.ok && res.sessionId) watch(res.sessionId, "finish setup");
+    return res;
+  }, [watch]);
+
+  // A setup run writes the board as it goes — a box ticked, the module map, the
+  // first cards — so while one is going the board is re-read on every poll rather
+  // than only when the run ends. That is what keeps the progress bar moving under
+  // it. Nothing else polls the board this way, and nothing needs to: every other
+  // run's work shows up on a card, which the finish below already catches.
+  useEffect(() => {
+    if (setupRunId) refresh();
+  }, [sessions, setupRunId, refresh]);
+
   // Send every ticked card into one release, or back out of one (#114). Each
   // card is written on its own on the server, so one card that can't be moved
   // costs the others nothing: the ones that went through are unticked and the
@@ -338,6 +368,9 @@ export function BoardView({
         agent={agent}
         setupInstruction={setupInstruction}
         skillInstalled={skillInstalled}
+        setupRunId={setupRunId}
+        onFinishSetup={finishSetup}
+        onAgentChanged={setAgent}
         onSaved={refresh}
         onExit={exitSetup}
       />
@@ -390,7 +423,8 @@ export function BoardView({
 
           {/* Setup left unfinished (#172) — the way back into the guided run for
               someone who stepped out of it, and, once its questions are all
-              answered, the line that hands the rest to a coding agent. Else the
+              answered, the offer to finish the rest here (#173) with the line
+              that hands it to a coding agent beside it. Else the
               goal ask (#53), which rides on nothing: a board long set up can have
               its goal judged weak again, and that is not setup. Both drop out
               with the next board refresh — the same one that already runs on
@@ -400,6 +434,8 @@ export function BoardView({
               setup={board.setup}
               instruction={setupInstruction}
               skillInstalled={skillInstalled}
+              setupRunId={setupRunId}
+              onFinishSetup={finishSetup}
               onResume={setupHasQuestionsLeft(board.setup) ? resumeSetup : undefined}
             />
           )}

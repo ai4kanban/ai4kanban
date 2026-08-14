@@ -265,7 +265,15 @@ export function saveGoal(text: string): WriteResult {
  *  and an empty one that was dropped is removed. A track holding cards is kept and named in
  *  the answer rather than deleted. */
 export function saveProject(name: string, description: string, tracks: TrackDraft[]): SaveProjectResult {
-  return write(() => saveProjectWrite(name, description, tracks))
+  return write(() => {
+    const result = saveProjectWrite(name, description, tracks)
+    // Saying what the project is IS setup's `project` step, so the save ticks that box —
+    // the same way saving the goal ticks its own. It matters more than the meter: setup
+    // starts at the first unticked box, so a box left open here is a run that comes back
+    // and asks the repo what the user already answered.
+    tickSetupStep('project')
+    return result
+  })
 }
 
 /** Tick one setup box by name. Silent about a board with no checklist, an unknown step, or

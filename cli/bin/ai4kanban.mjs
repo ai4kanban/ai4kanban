@@ -540,6 +540,9 @@ const RUN_COMMANDS = new Set([
   'create',
   'propose',
   'plan-release',
+  // Finish setting the board up (#173) — the steps that read the repo and think, as one
+  // run. It is a run like the rest: the board UI's button starts exactly this.
+  'setup',
   'archive',
   'reject',
   'runs',

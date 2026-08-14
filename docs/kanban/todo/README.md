@@ -21,12 +21,9 @@ _(none)_
 - [#116 Unstick cards that sit on the board too long](116-stuck-cards/root.md)
 - [#154 Show what a card unblocks, so the ones holding up work go first](features/154-show-what-a-card-unblocks-so-the-ones-holding-up-work-go-fir.md)
 - [#160 Run the board with an agent beyond Claude Code and Codex](features/160-run-the-board-with-an-agent-beyond-claude-code-and-codex.md)
-- [#173 Let the UI finish the setup steps that need an agent](features/173-let-the-ui-finish-the-setup-steps-that-need-an-agent.md)
-- [#174 Add the coding agent skill later, from a button in the UI](features/174-add-the-coding-agent-skill-later-from-a-button-in-the-ui.md)
 - [#179 Show a failed run on the card it was working on](features/179-show-a-failed-run-on-the-card-it-was-working-on.md)
 - [#182 Sign the Mac build so it opens with no warning](features/182-sign-the-mac-build-so-it-opens-with-no-warning.md)
 - [#183 Install the Mac app with one Homebrew command](features/183-install-the-mac-app-with-one-homebrew-command.md)
-- [#207 Show which agents are installed on this machine in the picker](features/207-show-which-agents-are-installed-on-this-machine-in-the-picke.md)
 
 ## skill
 
@@ -40,6 +37,7 @@ _(none)_
 - [#157 Turn a spec you already wrote into the cards that build it](skill/157-turn-a-spec-you-already-wrote-into-the-cards-that-build-it.md)
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
 - [#186 Let a specialist agent fill the part of a spec it knows best](186-spec-agents/root.md)
+- [#214 Mark the calls in a card that are not just common sense](skill/214-mark-the-calls-in-a-card-that-are-not-just-common-sense.md)
 
 ## distribution
 

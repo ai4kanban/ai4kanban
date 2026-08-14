@@ -17,6 +17,7 @@ import {
   readModules,
   readReleases,
   readSetupDraft,
+  readSetupState,
   searchCards,
 } from "@/lib/board";
 import { setHarness, setHarnessSetting } from "@/lib/config";
@@ -52,6 +53,7 @@ import type {
   ConnectionTest,
   DropPlan,
   FillPlan,
+  HarnessOption,
   MetricsResult,
   SaveProjectResult,
   SessionView,
@@ -109,12 +111,17 @@ const ACTIONS = new Set([
   // Fill a release from its goal (#165) — started from the New release dialog and from a
   // release's ⋯ menu, never from a card.
   "plan-release",
+  // Finish setting the board up (#173) — from the guided run's closing screen and from the
+  // setup strip. Started through startSetupRunAction below, which is where its own refusals
+  // live.
+  "setup",
 ]);
 
 // create and propose touch no existing card (create makes one, propose makes several), so
 // they carry no `id` — every other action needs one. plan-release is the third: it moves and
-// writes many cards, and names a release instead.
-const CARDLESS = new Set(["create", "propose", "plan-release"]);
+// writes many cards, and names a release instead. A setup run is the fourth and names
+// nothing at all: the checklist is what it works from.
+const CARDLESS = new Set(["create", "propose", "plan-release", "setup"]);
 
 // Start an agent and return immediately with a sessionId (or a lock message). The request
 // never waits for the child — the client polls listSessionsAction() to see the session's
@@ -235,12 +242,43 @@ export async function saveSetupProjectAction(
   return saveProject(name, description, clean);
 }
 
-// Tick setup's `agent` box — the flow's last step, and the one it can't be pressed past. It
-// is ticked on either answer: an agent that answered a test here, or the user saying they
-// will drive the board from their own coding agent. Both mean something can run the work,
-// which is all the box asks.
-export async function finishSetupAgentStepAction(): Promise<WriteResult> {
-  return finishSetupStep("agent");
+// Tick setup's `agent` box — the flow's last step, and the one it can't be pressed past. A
+// test that passed here is the only thing that ticks it: every step after this flow is an
+// agent run, so a board that finished setup without a working agent was never set up.
+//
+// It answers with the whole agent setting as it now reads, the way switching agents does:
+// the picker keeps the switch to itself while the step is open, so this is where the board
+// behind the flow hears which agent was settled on.
+export async function finishSetupAgentStepAction(): Promise<WriteResult & { agent?: AgentInfo }> {
+  const ticked = await finishSetupStep("agent");
+  if (!ticked.ok) return ticked;
+  return { ok: true, agent: await agentInfo().catch(() => undefined) };
+}
+
+// Finish setting the board up (#173) — the offer on the guided run's closing screen and on
+// the setup strip. One ordinary run: it shows in the runs panel, its log can be read, it can
+// be stopped, and the board re-reads itself when it ends. It does every step still unticked,
+// so a run started again after a failure carries on rather than redoing what finished.
+//
+// The two refusals are here rather than in the button, which is drawn from a board read that
+// can be a poll behind: a board someone else has already finished setting up, and a board
+// with no goal — nothing after the goal can be planned from a goal nobody wrote, so a run
+// started there would stop on its first step and read as a failure. The board being busy
+// with another setup run is the CLI's refusal, in the one place that sees every run.
+export async function startSetupRunAction(): Promise<StartResult> {
+  let setup: Awaited<ReturnType<typeof readSetupState>>;
+  try {
+    setup = await readSetupState();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+  if (!setup) return { ok: false, error: "this board is already set up" };
+  const goal = setup.steps.find((s) => s.name === "goal");
+  if (goal && !goal.done) {
+    return { ok: false, error: "write the project goal first — every step after it is planned from it" };
+  }
+  const req: AgentRequest = { action: "setup" };
+  return startSession(req, await buildPrompt(req));
 }
 
 // ---- releases ---------------------------------------------------------------
@@ -397,6 +435,22 @@ export async function setHarnessAction(name: string): Promise<WriteResult & { ag
   const res = await setHarness(name);
   if (!res.ok) return res;
   return { ok: true, agent: await agentInfo() };
+}
+
+// The agents the board can run and which of them this machine has (#207) — the picker asks
+// for this each time it opens, so a CLI installed while the board was open is offered the
+// next time you look rather than after a reload.
+//
+// It is a fresh look every time: the PATH is read again on the server, nothing is cached,
+// and nothing is spawned. An answer that can't be got at all (no copy of the rules) comes
+// back empty, and the picker keeps showing what the page load gave it — the wrong way to
+// fail here is greying out every agent.
+export async function installedAgentsAction(): Promise<HarnessOption[]> {
+  try {
+    return (await agentInfo()).options;
+  } catch {
+    return [];
+  }
 }
 
 // Save one of the settings the picked agent declares (#93), persisted to the same file. The

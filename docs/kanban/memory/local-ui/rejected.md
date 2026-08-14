@@ -53,6 +53,15 @@ before proposing so you don't re-suggest them.
 
 ## Setup
 
-- **A one-button in-UI setup run for a repo with no board** — the setup bar is the
-  onboarding UI, and it stays simple: it shows the instruction to copy into your coding
-  agent. The UI doesn't run setup itself.
+- **An "I'll drive this board from my own coding agent" answer** — shipped in 0.6.0 and
+  taken back out. It was a checkbox on the agent step that saved an `ownAgent` flag, and
+  the flag's only effect was hiding the offer to finish setup. Its own line promised the
+  board's buttons would stay quiet, and they didn't — every other button went on starting
+  runs under the default agent. The board always has an agent to run, so "none of them" was
+  never a state it could hold. The agent step ends on a passing test; the line to paste is
+  what serves the user who works from their own agent.
+
+- **A one-button in-UI setup run** — turned down once, then reversed in 0.6.0: the
+  board offers **Finish setup** and runs the leftover steps itself. The reason it was turned
+  down — the setup bar stays simple and just shows the line to copy — only held while a
+  coding agent was the way in. The line to copy is still there, beside the offer.

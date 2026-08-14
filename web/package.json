@@ -12,10 +12,15 @@
     "deploy": "next build && env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler pages deploy out --project-name kanban-skill"
   },
   "dependencies": {
+    "github-slugger": "^2.0.0",
+    "gray-matter": "^4.0.3",
     "next": "^15.1.6",
+    "next-mdx-remote": "^5.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-icons": "^5.7.0"
+    "react-icons": "^5.7.0",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",

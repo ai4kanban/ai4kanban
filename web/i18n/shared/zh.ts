@@ -6,6 +6,7 @@ const zh: SharedCopy = {
   nav: {
     download: "下载",
     recipes: "任务模板",
+    blog: "博客",
     compare: "对比",
     github: "GitHub ↗",
     menu: "菜单",
@@ -14,6 +15,7 @@ const zh: SharedCopy = {
     github: "GitHub",
     docs: "Documentation",
     recipes: "Recipes",
+    blog: "Blog",
     comparisons: "Comparisons",
     license: "Apache License 2.0",
     credit: "created by Tao Wu",

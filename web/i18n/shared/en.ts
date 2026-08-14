@@ -6,6 +6,7 @@ const en: SharedCopy = {
   nav: {
     download: "Download",
     recipes: "Recipes",
+    blog: "Blog",
     compare: "Compare",
     github: "GitHub ↗",
     menu: "Menu",
@@ -14,6 +15,7 @@ const en: SharedCopy = {
     github: "GitHub",
     docs: "Documentation",
     recipes: "Recipes",
+    blog: "Blog",
     comparisons: "Comparisons",
     license: "Apache License 2.0",
     credit: "created by Tao Wu",

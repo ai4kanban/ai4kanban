@@ -33,6 +33,7 @@ import { say } from '../io'
 import { findGuide } from '../guide'
 import { die, rel, GOAL, MEMORY, MODULES_MD, SETUP_CHECKLIST, TODO } from '../paths'
 import { readReleaseEntries } from '../releases'
+import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
 import { moduleNames } from '../validate'
 import { buildPrompt } from './prompts'
@@ -262,6 +263,7 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   'plan-release': ['board', 'releases', 'plan-release', 'add-task'],
   archive: ['board'],
   reject: ['board', 'reject'],
+  setup: ['board', 'setup'],
 }
 
 /** Build the flow for one action. A `board` command spelled out here is spelled with the
@@ -379,6 +381,41 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       next.push(`${program} refine <id> --print — for each card this one was holding up`)
       break
     }
+    // Setting the board up (#173). The checklist is the plan, so the facts are the boxes
+    // left rather than a card's steps — and the flow's own last tick is what closes the
+    // job, which is why nothing here names a command that finishes it.
+    case 'setup': {
+      const steps = readSetupChecklist()
+      const left = steps?.filter((s) => !s.done) ?? []
+      if (!steps) {
+        facts.push(...field('checklist', `gone — ${rel(SETUP_CHECKLIST)} is not there, so this board is already set up`))
+        close.push('nothing to close — there is no unfinished setup here, so do none of it')
+        break
+      }
+      facts.push(...field('checklist', rel(SETUP_CHECKLIST)))
+      facts.push(
+        ...field('steps', [
+          `${left.length} of ${steps.length} left:`,
+          ...numbered(left.map((s) => `\`${s.name}\` (${s.owner}) — ${s.text}`)).map((s) => `  ${s}`),
+        ]),
+      )
+      facts.push(...field('goal', rel(GOAL)))
+      const questions = findSetupQuestionsCard()
+      facts.push(
+        ...field(
+          'questions',
+          questions
+            ? `#${questions.id} — every call you can't settle is appended there, never asked`
+            : '(no questions card — append nothing; settle what you can and say what you left)',
+        ),
+      )
+      close.push(
+        `${board} setup-done <step> — one tick per box, as each step finishes`,
+        'the last tick deletes the checklist by itself — never delete it, and never edit it by hand',
+      )
+      next.push(`${program} refine <id> --print — for each of the first cards, once the board is set up`)
+      break
+    }
     case 'reject': {
       facts.push(...field('reason', req.reason ?? '(none given)'))
       facts.push(...field('memory', memoryFiles(card!.meta.modules, 'rejected.md')))
@@ -422,8 +459,9 @@ export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
   say(flow.lead)
   // The setup gate, when it is up. Not a refusal: setup's own last step is to write the
   // first cards, and refusing would block the one flow that has to run while the checklist
-  // is still there.
-  if (fs.existsSync(SETUP_CHECKLIST)) {
+  // is still there. Nor is it said to the setup job itself, which is the very job it asks
+  // for.
+  if (req.action !== 'setup' && fs.existsSync(SETUP_CHECKLIST)) {
     say('')
     say(`this board is not set up yet — ${rel(SETUP_CHECKLIST)} is still there.`)
     say(`finish it first: ${setupInstruction()}`)

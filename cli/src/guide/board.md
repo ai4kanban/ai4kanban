@@ -12,6 +12,22 @@ get it in one pass.
 - Bad: "Price it as a monthly retainer for an outcome stream."
 - Good: "Charge $300/month. The user gets a brief each week and a report each month."
 
+What that means line by line:
+
+- **Name things the reader can look up**: define a term the first time it appears, or
+  don't use it. A word that only means something to whoever wrote the card is a word the
+  card doesn't have.
+  - Bad: "one PATH read per screen draw" — "screen draw" is nobody's term.
+  - Good: "read the PATH once each time the board page loads".
+- **Say the thing, not a slogan for it**: a short line that has to be decoded costs more
+  than the plain one.
+  - Bad: "Say it in a word, not only in colour."
+  - Good: "The greyed-out agent also reads 'not installed' in text."
+- **One rule per bullet**: two rules in one line means one of them gets missed.
+- **`## Scope` holds rules, not reasons**: why a rule is the way it is belongs in
+  `## Decided by the agent`. A reason beside every rule doubles the card and buries what
+  to build.
+
 ## Card format
 
 A card is a minimal task spec, written for whoever implements the task, not whoever

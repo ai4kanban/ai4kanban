@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { recipes } from "@/components/recipes/recipes-content";
+import { getAllPosts, postPath } from "@/lib/blog";
 import { BASE_URL } from "@/lib/site";
 import { LOCALES, TRANSLATED_PATHS, localePath } from "@/lib/i18n";
 
@@ -87,6 +88,28 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entries.push({
       url: `${BASE_URL}${route}`,
       lastModified: gitLastModified(...routeSources(route, "en")),
+    });
+  }
+
+  // The blog, English-only too. These are the one set of routes whose `lastmod`
+  // doesn't come from git: a post carries the date it was published and the
+  // date it was edited in its own frontmatter, and that is the author saying
+  // the text changed — where a commit may only have moved the file. The index
+  // is as new as the newest post on it.
+  const posts = getAllPosts();
+  const postDate = (p: (typeof posts)[number]) =>
+    new Date(p.updatedAt ?? p.publishedAt);
+
+  entries.push({
+    url: `${BASE_URL}/blog`,
+    lastModified: posts.length
+      ? new Date(Math.max(...posts.map((p) => postDate(p).getTime())))
+      : undefined,
+  });
+  for (const post of posts) {
+    entries.push({
+      url: `${BASE_URL}${postPath(post)}`,
+      lastModified: postDate(post),
     });
   }
 

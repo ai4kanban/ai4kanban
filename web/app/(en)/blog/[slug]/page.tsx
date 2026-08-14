@@ -1,0 +1,143 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { BlogMdx } from "@/components/blog/BlogMdx";
+import { TocBlock, TocRail } from "@/components/blog/BlogToc";
+import { PostMeta } from "@/components/blog/PostMeta";
+import { getCopy } from "@/i18n";
+import {
+  AUTHOR,
+  extractToc,
+  getPost,
+  getRoutablePosts,
+  postPath,
+} from "@/lib/blog";
+import { pageMetadata } from "@/lib/metadata";
+import { article, jsonLd, webPage } from "@/lib/schema";
+import "../../../blog-prose.css";
+
+// The blog is English-only — see `TRANSLATED_PATHS` in lib/i18n.ts.
+const c = getCopy("en");
+
+// One static page per post, which is what `output: export` needs. Drafts are in
+// this list too: their page is built so it can be sent to someone to read, and
+// everything else about it is off — no index entry, no sitemap line, `noindex`.
+// It is also what lets the blog have nothing published, since an export refuses
+// a dynamic route that resolves to zero pages.
+export function generateStaticParams() {
+  return getRoutablePosts().map((post) => ({ slug: post.slug }));
+}
+
+type Params = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { slug } = await params;
+  const post = getPost(slug);
+  if (!post) return {};
+
+  return {
+    ...pageMetadata({
+      locale: "en",
+      path: postPath(post),
+      // `title_tag` exists for the post whose headline is right on the page and
+      // wrong in a result — a result has no page around it to explain it.
+      title: post.titleTag ?? post.title,
+      description: post.seoDescription,
+      socialTitle: post.title,
+      social: post.excerpt,
+      type: "article",
+      translated: false,
+    }),
+    // A draft is a URL you hand to one person. `follow` stays on: the links out
+    // of it point at pages that are published.
+    robots: post.draft ? { index: false, follow: true } : undefined,
+  };
+}
+
+export default async function BlogPostPage({ params }: Params) {
+  const { slug } = await params;
+  const post = getPost(slug);
+  if (!post) notFound();
+
+  const route = postPath(post);
+  const toc = extractToc(post.body);
+
+  // Nothing to say about a draft: the page is `noindex`, so an Article node
+  // describing it would be markup for a reader that has been told to leave.
+  const schema = post.draft
+    ? null
+    : jsonLd(
+        webPage(route, post.titleTag ?? post.title, post.seoDescription),
+        article({
+          path: route,
+          headline: post.title,
+          description: post.seoDescription,
+          datePublished: post.publishedAt,
+          dateModified: post.updatedAt ?? post.publishedAt,
+        }),
+      );
+
+  return (
+    <>
+      {schema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: schema }}
+        />
+      )}
+      <Header c={c} locale="en" />
+      <main className="mx-auto max-w-4xl px-6 pb-8">
+        <article>
+          {/* The opening. It ends on the site's rule rather than a panel: the
+              post is the page, so there is no card to put it in. */}
+          <header className="mt-10 border-b-2 border-border pb-10 lg:mt-16">
+            <a
+              href="/blog"
+              className="text-sm text-muted no-underline transition-colors hover:text-ink"
+            >
+              ← All posts
+            </a>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              {/* Says out loud what the meta tags say quietly, so nobody links
+                  to a draft thinking it went out. */}
+              {post.draft && (
+                <span className="rounded-full bg-accent-deep px-2.5 py-0.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-elev">
+                  Draft
+                </span>
+              )}
+              <PostMeta post={post} />
+            </div>
+            <h1 className="mt-3 text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl">
+              {post.title}
+            </h1>
+            <p className="mt-5 text-lg text-muted">{post.dek}</p>
+            <p className="mt-6 text-sm text-muted">
+              <span className="font-semibold text-ink">{AUTHOR.name}</span> ·{" "}
+              {AUTHOR.role}
+            </p>
+          </header>
+
+          {/* The body, with the rail beside it once there is room for one. */}
+          <div className="mt-12 lg:grid lg:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] lg:gap-10">
+            <TocRail items={toc} />
+            <div className="min-w-0">
+              <TocBlock items={toc} />
+              <BlogMdx source={post.body} />
+            </div>
+          </div>
+        </article>
+
+        <p className="mt-16 border-t-2 border-border pt-8 text-center">
+          <a
+            href="/blog"
+            className="text-sm font-semibold text-accent-deep no-underline"
+          >
+            ← All posts
+          </a>
+        </p>
+      </main>
+      <Footer c={c} locale="en" path={route} />
+    </>
+  );
+}

@@ -12,7 +12,11 @@ import { createOpencodeStreamRenderer } from './opencode-stream'
 import { createStreamRenderer, type StreamRenderer } from './stream'
 import type { HarnessOption, HarnessSetting } from './types'
 
-export interface Harness extends HarnessOption {
+// A harness declares everything about itself but the two things only this machine can
+// answer — whether its CLI is here, and which binary was looked for. Those are worked out
+// per read, against the PATH and the user's own `command` override (agent/installed.ts),
+// and joined on in `agentInfo`.
+export interface Harness extends Omit<HarnessOption, 'binary' | 'installed'> {
   /** The flags to append to the configured argv. `argv` is what the user's command
    *  already carries, so a harness never overrides a flag the user set by hand.
    *  `sessionId` is the id we generated up front — a harness that can't pin an id
@@ -57,10 +61,6 @@ export interface Harness extends HarnessOption {
    *  reads a slash as plain chat text and triggers on a `$` name instead. The rest of
    *  every prompt is the same for both. */
   skillCall: string
-  /** The command that installs this agent's CLI. Named when a run — or a test — can't
-   *  start because the binary isn't on the machine, so the user reads what to do
-   *  instead of a raw spawn error. */
-  install: string
 }
 
 // How a prompt asks for the skill on an agent with no skill syntax of its own. Claude Code

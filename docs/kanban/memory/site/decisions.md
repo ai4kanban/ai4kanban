@@ -34,6 +34,11 @@ re-ask a settled call.
 
 ## The quick start
 
+- **What is the landing page's main button?**: downloading the board app. The setup
+  prompt keeps its place on the page as a plain link beside it, never a second button.
+- **Do the pages say the last setup steps go to a coding agent?**: no. The app finishes
+  setup itself now, so the pages are rewritten once, for the app-first way in — there is no
+  interim wording to publish and take back out.
 - The site's quick start shows one command, `npx ai4kanban install` — never a list of
   shell steps and never a `curl … | sh` line.
 - **Which GitHub repo do the site's links point at?**: `ai4kanban/ai4kanban`. The project

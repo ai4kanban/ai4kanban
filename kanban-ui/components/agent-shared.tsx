@@ -136,6 +136,7 @@ export const RUNNING_VERB: Record<AgentAction, string> = {
   create: "creating",
   propose: "proposing",
   "plan-release": "planning",
+  setup: "setting up",
 };
 
 // The live tail is the agent's event stream — tool calls and turn text — so it
@@ -586,6 +587,7 @@ function cardlessTitle(session: SessionView): string {
     return running ? `Planning${of}` : `Plan${of}`;
   }
   if (session.action === "propose") return running ? "Proposing tasks" : "Propose tasks";
+  if (session.action === "setup") return running ? "Finishing setup" : "Finish setup";
   return running ? "Creating task" : "Create task";
 }
 

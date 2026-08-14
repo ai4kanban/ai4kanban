@@ -133,23 +133,24 @@ export function NoRules({ why, desktop = false }: { why: string; desktop?: boole
             <p className="mt-2 text-[13px] leading-relaxed text-nb-ink-soft">{why}</p>
           </header>
 
-          {/* Outside the app the rules come from this project's skill folder, and a
-              board no longer arrives with one (#174) — so the command that fixes
-              this screen is the one that adds the skill, not `update`, which only
-              refreshes a folder that is already there. */}
+          {/* The rules are the installed command's own copy (#213) — a project
+              carries none — so the fix is putting `akb` on the PATH. NOT `skill
+              install`, which writes the agent's note and no rules with it, and not
+              `update`, which repairs a board rather than installing a command. The
+              same line lib/cli.ts names in its refusal; the two must not disagree. */}
           <Cause
             title="Install the board's rules"
             stack={!desktop}
             body={
               desktop
                 ? "The app carries its own copy — reopening this project picks it up."
-                : "One file, in this project. Run it in the repo root."
+                : "The `akb` command carries them. Install it once, for every project."
             }
           >
             {desktop ? (
               <PickAnotherProject desktop />
             ) : (
-              <CopyCommand text="npx ai4kanban@latest skill install" />
+              <CopyCommand text="npm install -g ai4kanban" />
             )}
           </Cause>
 

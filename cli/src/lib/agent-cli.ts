@@ -41,6 +41,7 @@ const RUNS: Record<string, AgentAction> = {
   archive: 'archive',
   reject: 'reject',
   'plan-release': 'plan-release',
+  setup: 'setup',
 }
 
 // Everything else these commands do — reading and steering the runs, and the settings they
@@ -163,6 +164,8 @@ Runs — every one of them also takes --print, and the rule for it is below
   propose                   write the next tasks       (--module m, --count n,
                             --boldness safe|normal|bold)
   plan-release <version>    fill a release from its goal
+  setup                     finish setting the board up — every step still unticked
+                            on docs/kanban/setup-checklist.md, in one run
   archive <id>              finish the card
   reject <id> "<why>"       drop the card
 

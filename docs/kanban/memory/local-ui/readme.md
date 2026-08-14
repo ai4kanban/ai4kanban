@@ -37,8 +37,14 @@ except where another doc is named.
 - Set a board up in the app itself: a board whose setup is unfinished opens on a short
   guided run that asks for the project and its tracks, the goal, and which agent does the
   work — one to a screen, everything prefilled, and the agent step ending on a test that
-  passed or on saying you'll drive the board from your own coding agent. Leaving it for the
-  board keeps a way back in, and the rest of setup is still handed to a coding agent.
+  passed and nothing else. Leaving it for the board keeps a way back in.
+- Finish the rest of setup without ever opening a coding agent: **Finish setup**, on the
+  guided run's closing screen and on the board's setup strip, runs every step still left as
+  one ordinary run — in the runs panel, with its log, and stoppable. The bar ticks along as
+  it goes and the first cards appear without a reload; one runs at a time, and one started
+  again after a failure carries on from the first unfinished step. It needs no coding agent
+  skill in the project, the line to paste is still there beside it, and a board with no goal
+  written asks for the goal instead: `kanban-ui/README.md`, "The first run".
 
 ## Reading the board
 
@@ -119,6 +125,10 @@ except where another doc is named.
 
 - Pick the agent that runs the work, Claude Code or Codex CLI, and the dialog draws the
   settings that agent says it takes.
+- See which agents this machine can actually run: the picker dims the ones whose CLI isn't
+  on the board's PATH and marks them **not installed**, still lets you pick one, and names
+  the command that installs it. It looks again every time the picker opens, so a CLI
+  installed in a terminal counts without a reload: `kanban-ui/README.md`, "Configuration".
 - Pick how hard the model thinks — low to max — or leave it on the agent's default.
 - Pick who pays for a run — the Claude subscription, the Anthropic API, or any
   Anthropic-compatible gateway — and the run goes through that pick alone, not through
@@ -130,3 +140,8 @@ except where another doc is named.
 - The board reads its rules from the `akb` on your PATH when the app didn't bring its own,
   so a project needs no copy of them; with no command installed every screen says
   `npm install -g ai4kanban` instead of coming up empty.
+- Add the coding agent skill from **Configuration → Skill** whenever you want it — a new
+  board arrives without one. The pane says whether it is there and how current it is, one
+  button writes it or brings an older copy up to date and reports the folders it wrote, and
+  it hands over the line for a newer `akb` when yours is behind rather than running it:
+  `kanban-ui/README.md`, "The coding agent skill".

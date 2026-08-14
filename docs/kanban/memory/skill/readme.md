@@ -123,9 +123,11 @@ covers it, or a plain-words note.
 - `akb` is a command you install — `npm install -g ai4kanban`, and
   `npm install -g ai4kanban@latest` for a newer one; `npx --yes ai4kanban@latest <command>`
   runs it without installing anything: `README.md`, "Quick start".
-- `akb install` leaves two files per agent in a project — the short note and the command
-  itself — plus the board. Nothing else is copied in, so the flows can't fall behind:
-  `cli/README.md`, "Install into a project".
+- `akb install` scaffolds the board and writes nothing outside `docs/kanban/`. Letting a
+  coding agent drive that board is a separate, optional step — `akb skill` says where it
+  stands, `akb skill install` adds it or brings an older copy up to date, and `akb update`
+  refreshes one that is already there without ever adding one: `cli/README.md`, "Install
+  into a project" and "Drive the board from your coding agent".
 - Updating is two lines and no third: a newer command, then `akb update` to repair the
   board. `akb update` can't replace the running command, so it checks npm and names the
   line when it is behind: `akb guide update`.
@@ -145,3 +147,9 @@ covers it, or a plain-words note.
   where npm put it, so nothing generated lands in the user's git history, and an update
   clears the 350 kB copy older versions wrote beside the note: `cli/README.md`, "The
   coding agent skill".
+- `akb setup` finishes setting a board up as one run — every step still unticked on the
+  checklist, starting at the first one, so it can be run again after a failure without
+  redoing what finished. `--print` says what to do instead, like every other run. It is the
+  run the board app's **Finish setup** button starts, and it leans on no installed skill:
+  a machine with no `akb` on its PATH is told to call the board's own copy of the command
+  by path, which also answers `guide` and `board` for exactly this reason: `akb help runs`.

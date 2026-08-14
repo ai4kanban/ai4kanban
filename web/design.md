@@ -313,6 +313,11 @@ Two exceptions:
   and bare surfaces, the `framed` modifier, and `heroTop`. Don't add a string here for two
   or three call sites.
 - `web/app/globals.css` — tokens only. No utility classes, no component classes.
+- `web/app/blog-prose.css` — the type scale of a blog post, and nothing else. It is the
+  one stylesheet on the site that styles elements rather than tokens, because a post's
+  body is compiled from Markdown: there is no markup to write a utility on. It is scoped
+  to `.blog-prose` so it can set an `h2` without setting every `h2` on the site, and it
+  draws with the site's tokens only (§7).
 
 ## 5. Where a component goes
 
@@ -343,6 +348,11 @@ components/
                       VERSION at build time) and the one button, which aims
                       itself at the reader's system in the browser
   recipes/            the index, the cards, and their art
+  blog/               a post's parts: the compiled body (BlogMdx), the copy
+                      button on a fenced block (ProseCode), the "on this
+                      page" rail and its collapsed form (BlogToc), and the
+                      two ways the index lists a post. The prose itself is
+                      `app/blog-prose.css` (§4, §7)
   shots/              the board mockups the landing page draws
   Header.tsx          the one header, on every page — one row, sticky, the same
                       height at every width. Invisible at scroll top (no fill,
@@ -401,3 +411,36 @@ Its one prop, `code`, names the *ground* the text sits on, not the fill: `paper`
 default) for the page or a paper panel, `wash` for text already on a `bg-code` block. The
 chip takes the neighbouring step of the ramp either way, because a `bg-code` chip on a
 `bg-code` panel is invisible.
+
+## 7. The blog
+
+A post is a `.mdx` file in `web/blogs/`, and the filename is the URL. The frontmatter it
+carries is documented on `lib/blog/loader.ts`, and `blogs/example-post.mdx` is the
+template — it is a draft, which means its page is built but it is off the index, out of
+the sitemap and `noindex`. Keep one draft in the folder at all times: a static export
+refuses a dynamic route that resolves to zero pages, so the blog can only have nothing
+published while something unpublished is there to hold the route open.
+
+The blog is English-only, like the recipes — it takes the thin `Footer.tsx` and never a
+locale prefix.
+
+Four decisions about how a post looks, all of them the same rules as everywhere else:
+
+- **The post is the page.** The body sits on the page ground with no panel around it: the
+  reader is already inside the thing, so there is nothing to point at. What ends the
+  opening is the site's own 2px ink rule, and what separates one post in the index list
+  from the next is that same rule — a list is a composite, so its rows are bare (§3).
+- **One framed panel, and it is the newest post.** The index features it as a raised paper
+  card wearing the outline, above bare rows. That is the outline doing its one job — this
+  one — and it is why the rows below it don't have one.
+- **Nothing in a post is highlighted.** A fenced block is ink on the wash with the hard
+  shadow, the same block `CodeBlock.tsx` draws. There is no syntax highlighter in the
+  build, on purpose: six token colours in the middle of a page whose whole palette is
+  four is a second design competing with the first.
+- **The "on this page" rail marks the current heading with a bar in the bright azure**,
+  and an item you are not in draws no line at all. A rail is a shape, which is the one
+  job that colour has (§2) — and the alternative, a fainter line on every item, is the
+  faint grey border this system doesn't own.
+
+When a post is published, add it to `public/llms.txt` under a `## Blog` heading, the way
+the pages and the recipes are listed.

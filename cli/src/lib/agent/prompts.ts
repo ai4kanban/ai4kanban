@@ -4,8 +4,24 @@
 // button say exactly the same thing. Only the opening — how this agent is asked for the
 // skill — follows the agent that runs; everything after it is the same for all of them.
 
+import { pathLookup } from './installed'
+import { SELF } from './launch'
 import { skillCall } from './resolve'
 import { PROPOSE_DEFAULT, PROPOSE_MAX, type AgentRequest, type Boldness } from './types'
+
+/** How a prompt spells the board's command: `akb` when it is on the PATH a run would be
+ *  spawned on, and otherwise this very copy of the rules, called by its path.
+ *
+ *  Not `npx ai4kanban@latest`, which is what the skill's note offers a reader: what npm
+ *  hands back is a different copy from the one running this board — an older one, on the day
+ *  a release is being cut, or simply not the one the desktop app carries. The file below is
+ *  always here, always the version that started the run, and needs no network.
+ *
+ *  Only the setup prompt asks. Every other prompt opens with the skill, and the skill's own
+ *  note is what says which command owns the board. */
+function boardCommand(): string {
+  return pathLookup()('akb') ? 'akb' : `node ${SELF}`
+}
 
 // What a resumed run says. The conversation is already there — the card, the work done,
 // the error it died on — so this is the "continue" you would type in the terminal, not the
@@ -152,6 +168,33 @@ export function buildPrompt(req: AgentRequest): string {
       ]
         .filter(Boolean)
         .join(' ')
+    // Finish setting the board up (#173) — the one run the board offers before it is a
+    // board. It is the only prompt here that does NOT open with the skill call: a board
+    // arrives without the skill, and this is the run a user who never opens a coding agent
+    // presses, so a prompt leaning on the skill would be a prompt that only worked where
+    // the user had already done the thing this run exists to spare them. It names the
+    // command instead, and the flow comes back from the command.
+    //
+    // What it asks for is a place to start, not a list of steps: the checklist is the plan,
+    // and the flow picks up at its first unticked box — which is also why a run started
+    // again after a failure carries on rather than redoing what finished.
+    case 'setup': {
+      const cmd = boardCommand()
+      return [
+        `Finish setting up the AI4Kanban board in this repo — the one under \`docs/kanban/\`.`,
+        `Run \`${cmd} guide setup\` and follow it: start at the first unticked box in \`docs/kanban/setup-checklist.md\` and work down, ticking each box as it finishes.`,
+        `\`${cmd} guide board\` is how a card and the memory files are written — read it before you write either.`,
+        // The flows are written for a machine with `akb` installed, and this one may not
+        // have it. Said once, plainly, rather than left for the agent to work out when the
+        // first line it copies out of a flow isn't found.
+        cmd === 'akb'
+          ? ''
+          : `There is no \`akb\` on this machine's PATH, so \`${cmd}\` is the board's command here — the flows all spell it \`akb\`, and \`${cmd}\` is what to run wherever one does. Don't install anything and don't fetch it from npm.`,
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions, the way the setup flow says.`,
+      ]
+        .filter(Boolean)
+        .join(' ')
+    }
     case 'resolve':
       return [
         `${kb}. Resolve the open questions on task ${req.id} ${named} following \`akb guide resolve\`.`,
