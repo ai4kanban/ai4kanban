@@ -4,6 +4,7 @@ import { agentInfo, NO_AGENT, setupInstruction } from "@/lib/agent";
 import { readBoard } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
+import { skillState, UNKNOWN_SKILL } from "@/lib/skill";
 import type { Board } from "@/lib/types";
 
 // Read the board on the server for the first paint (no loading flash); the
@@ -28,9 +29,15 @@ export default async function Page() {
   // are read rather than called inline. A board with no copy of the rules to load still
   // draws: the fields fall back to what an unconfigured board would show, and the run
   // itself is what says the rules are missing.
-  const [agent, instruction] = await Promise.all([
+  //
+  // The skill is read here too — only whether it is there (#174). Every place that hands a
+  // line to a coding agent has to say so when nothing would answer that line, and it is a
+  // file check, cheap enough for the first paint. What `akb` on the PATH is stays out of
+  // this: that one spawns a process, and only the Configuration dialog asks for it.
+  const [agent, instruction, skill] = await Promise.all([
     agentInfo().catch(() => NO_AGENT),
     setupInstruction().catch(() => ""),
+    skillState().catch(() => UNKNOWN_SKILL),
   ]);
   return (
     <BoardView
@@ -39,6 +46,7 @@ export default async function Page() {
       agent={agent}
       projectRoot={repoRoot()}
       setupInstruction={instruction}
+      skillInstalled={skill.installed}
       desktop={isDesktop()}
     />
   );

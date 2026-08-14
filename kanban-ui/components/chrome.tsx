@@ -21,6 +21,15 @@ export const CHROME = "border-[1.5px] border-nb-ink shadow-[2px_2px_0_0_var(--co
  *  the same weight, but it takes the control's own ink. */
 export const HAIRLINE = "color-mix(in srgb, var(--color-nb-ink) 14%, transparent)";
 
+/** The mark that says an agent is working: a deep-ember dot, breathing. It lives
+ *  here rather than beside the first thing that used it because it is now the
+ *  board's one word for "running" and it is said in four places — the running
+ *  badge and the session log's title bar (agent-shared), the rail's rows and the
+ *  card page's subtasks. Wherever a card can be named while an agent is inside
+ *  it, this is the dot. The nbPulse keyframe is in globals.css. */
+export const PULSE_DOT =
+  "size-[7px] shrink-0 rounded-full bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]";
+
 /** A tool button: 28px wide and the full inner height of the cluster it sits in,
  *  no frame of its own, no press-down. It lives inside a cluster that carries
  *  the frame for all of them, and lifting one out of a shared sticker would be a

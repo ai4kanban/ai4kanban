@@ -27,7 +27,7 @@ import {
 import { QueueView } from "./Queue";
 import { Window } from "./Window";
 import { SessionLogOverlay } from "./agent-shared";
-import { sessionsPanel, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
+import { runningCardIds, sessionsPanel, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 export function BoardView({
   initialBoard,
@@ -35,6 +35,7 @@ export function BoardView({
   agent,
   projectRoot,
   setupInstruction,
+  skillInstalled,
   desktop,
 }: {
   initialBoard: Board | null;
@@ -44,6 +45,10 @@ export function BoardView({
   /** The line a coding agent is handed to finish setup. It comes from the server
    *  (lib/agent.ts reads the filesystem, which a client can't import). */
   setupInstruction: string;
+  /** Whether a coding agent can see this board at all (#174). A board no longer
+   *  arrives with the skill, so the line above only works once someone has added
+   *  it — every place that hands that line over says so when it isn't there. */
+  skillInstalled: boolean;
   /** Whether this board is running inside the desktop app (#175). Read on the
    *  server so the first paint is already right. */
   desktop: boolean;
@@ -332,6 +337,7 @@ export function BoardView({
         setup={board.setup}
         agent={agent}
         setupInstruction={setupInstruction}
+        skillInstalled={skillInstalled}
         onSaved={refresh}
         onExit={exitSetup}
       />
@@ -347,6 +353,7 @@ export function BoardView({
       <Window
         projectRoot={projectRoot}
         openIds={board?.openIds ?? []}
+        running={runningCardIds(sessions)}
         header={
           <Header
             agent={agent}
@@ -392,6 +399,7 @@ export function BoardView({
             <SetupNotice
               setup={board.setup}
               instruction={setupInstruction}
+              skillInstalled={skillInstalled}
               onResume={setupHasQuestionsLeft(board.setup) ? resumeSetup : undefined}
             />
           )}

@@ -6,6 +6,7 @@
 import { STATUSES, normalizeRelease } from './validate'
 import { yamlScalar, unquote } from './yaml'
 import { hasOptions, normalizeQuestion, parseQuestionsBlock } from './questions'
+import { normalizeSchedule, parseScheduleBlock, serializeSchedule } from './schedule'
 import type { Meta, Question } from './types'
 
 // Takes a partial meta on purpose: a card being written names only the fields it has,
@@ -29,6 +30,10 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
   // carries one, so a one-shot card's frontmatter is untouched — and re-emitted
   // whenever it is there, so an `update` in between can't erase the stamp.
   if (m.last_run) out.push(`last_run: ${yamlScalar(m.last_run)}`)
+  // What this card is waiting to run once the last card in its way leaves the board (see
+  // ./schedule.ts). Written only while the card carries one — and re-emitted whenever it is
+  // there, so nothing that rewrites a card can quietly take a schedule off it.
+  out.push(...serializeSchedule(m.schedule))
   if (!m.questions || m.questions.length === 0) out.push('questions: []')
   else {
     out.push('questions:')
@@ -81,6 +86,22 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
       }
       continue
     }
+    // `schedule:` is the other block field — an action and its notes, indented under it.
+    if (key === 'schedule') {
+      if (val === '') {
+        const block: string[] = []
+        while (j + 1 < fm.length && /^\s/.test(fm[j + 1]!) && fm[j + 1]!.trim() !== '') {
+          block.push(fm[j + 1]!)
+          j++
+        }
+        meta.schedule = parseScheduleBlock(block)
+      } else {
+        // `schedule: implement` — nothing writes it, but it is what a person types by hand,
+        // and reading it beats leaving them with a line the board ignores.
+        meta.schedule = normalizeSchedule({ action: unquote(val) })
+      }
+      continue
+    }
     if (val === '') {
       const items: string[] = []
       while (j + 1 < fm.length && /^\s*-\s+/.test(fm[j + 1]!)) {
@@ -119,6 +140,9 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   // (./cadence.ts); a line that isn't one of the accepted forms means the card
   // has no working cadence and only runs by hand.
   meta.cadence = typeof meta.cadence === 'string' && meta.cadence.trim() ? meta.cadence.trim() : ''
+  // The action the card is waiting to run. A card written before this field, and one whose
+  // block names something the board can't start, both read as not scheduled.
+  meta.schedule = normalizeSchedule(meta.schedule)
   return { meta: meta as unknown as Meta, body: lines.slice(i + 1).join('\n') }
 }
 

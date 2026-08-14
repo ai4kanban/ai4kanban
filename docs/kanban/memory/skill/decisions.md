@@ -106,9 +106,13 @@ re-ask a settled call.
 - A user installs and updates by running one Node script published on npm —
   `npx ai4kanban install` and `npx ai4kanban update`. No shell script, no `curl … | sh`,
   no git clone: the package carries the skill folder. The plugin channel is unaffected.
-- Install never asks which agents you use; it copies the skill into both
+- Install never asks which agents you use; when it writes the skill it writes both
   `.claude/skills/kanban/` and `.agents/skills/kanban/`. The skill names no agent's folder
   in its own instructions, so it also runs from wherever another installer put it.
+- **Does installing a board also install the skill?**: no. Install scaffolds the board and
+  leaves the agent folders alone — the skill is a later extra, added on purpose from the
+  UI's button or one terminal command. Updating still refreshes a skill that is already
+  there.
 
 ## The command
 

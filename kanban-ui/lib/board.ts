@@ -1,5 +1,5 @@
 import { boardRules } from "./cli";
-import type { Board, Card, MetricsResult, SetupDraft } from "./types";
+import type { Board, Card, CardRef, MetricsResult, SetupDraft } from "./types";
 
 // --- reading the board, through the CLI (#169) -------------------------------
 // The columns, one card in full, the module map, the daily numbers, the answers a guided
@@ -24,6 +24,37 @@ export async function readBoard(): Promise<Board> {
 /** Any open card by id, including a group subtask the columns don't show. */
 export async function findCard(id: number): Promise<Card | null> {
   return (await boardRules()).findCard(id);
+}
+
+/** The open cards carrying `query` in their title or body, for the rail's search box.
+ *
+ *  It searches `allCards()` — every open card, a group's subtasks included — and never the
+ *  archive: the rail is about what you are working on now. Read on each search rather than
+ *  held as an index, so a card a run has just written matches on the words it has now.
+ *
+ *  Title matches lead, then the ones matched on their body alone, each by id. The word you
+ *  half-remember is often in a scope line, but a card whose title says it is the one you
+ *  meant. A blank query matches nothing — the rail keeps its own list — and a board with no
+ *  rules to read it with comes back empty rather than throwing: a search box is no place to
+ *  learn the board is unreadable, and every other screen already says so. */
+export async function searchCards(query: string): Promise<CardRef[]> {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  let cards: Card[];
+  try {
+    cards = (await boardRules()).allCards();
+  } catch {
+    return [];
+  }
+  const titled: CardRef[] = [];
+  const bodied: CardRef[] = [];
+  for (const card of cards) {
+    const hit = { id: card.id, title: card.title };
+    if (card.title.toLowerCase().includes(q)) titled.push(hit);
+    else if (card.body.toLowerCase().includes(q)) bodied.push(hit);
+  }
+  const byId = (a: CardRef, b: CardRef) => a.id - b.id;
+  return [...titled.sort(byId), ...bodied.sort(byId)];
 }
 
 /** The module names from `docs/kanban/modules.md`, for the create dialog's picker. A board

@@ -37,6 +37,9 @@ re-ask a settled call.
   so the app ships unsigned on all three systems and the download page says what to click
   past each warning. Signing lands in a later release. Nothing a paid account gates is ever
   a reason to delay shipping.
+- **Is the coding agent skill part of getting a board?**: no — a new board arrives without
+  it, and it is added later from a button in the Configuration dialog. Driving the board
+  from a coding agent is an extra you turn on, not the way in.
 - **Where the board's rules live?**: in the command, not in the UI. The UI keeps its buttons
   and panels and drives its runs through the command, instead of holding a second copy of
   how a card is written and how a run is started.
@@ -150,6 +153,8 @@ re-ask a settled call.
   A goal can still be added later from the release's ⋯ menu.
 - Daily progress opens from a header icon, not a strip on the board, and shows a line
   chart rather than numbers alone.
+- **Does the rail's search reach archived cards?**: no — open cards only. The rail is about
+  what you are working on now, so an archived or rejected card never comes back through it.
 
 ## Moving around the app
 
@@ -166,5 +171,5 @@ re-ask a settled call.
 
 - `kanban-ui/README.md` is the user-facing guide: what the buttons do, the Configuration
   dialog, group tasks. Any card that changes visible UI behavior updates that file.
-- The skill's `references/local-ui.md` covers installation only — how to run it, the
+- The skill's `akb guide local-ui` covers installation only — how to run it, the
   options, updating. It never describes using the UI.

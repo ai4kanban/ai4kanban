@@ -6,11 +6,11 @@ shipped behavior.
 
 ## Add one
 
-Validate it with "Add one task idea" in `references/add-task.md`, then create it with
+Validate it with "Add one task idea" in `akb guide add-task`, then create it with
 `--track recurring`:
 
 ```
-${KB} create --title "Prune the memory" --track recurring \
+akb board create --title "Prune the memory" --track recurring \
              --priority med --roi med --modules skill
 ```
 
@@ -50,10 +50,10 @@ imperative sentences.
   card for the user to confirm later —
 
   ```
-  ${KB} update-questions <id> --append ".."
+  akb board update-questions <id> --append ".."
   ```
 
-  Leave it untagged: a run doesn't decide who answers. `references/resolve.md` does that
+  Leave it untagged: a run doesn't decide who answers. `akb guide resolve` does that
   later — it settles what it can itself under `## Decided by the agent` and hands the
   user only the rest. Write the question the way that guide says to: one plain line,
   answerable at a glance.
@@ -62,5 +62,5 @@ imperative sentences.
 
 1. Do the `## Process` steps in order.
 2. Hand the card and its untagged questions to a subagent, which resolves them with a
-   fresh context following `references/resolve.md`. Nothing else on the board resolves a
+   fresh context following `akb guide resolve`. Nothing else on the board resolves a
    recurring card, so a question left here is one nobody triages.

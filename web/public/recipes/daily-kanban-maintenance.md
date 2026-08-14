@@ -34,13 +34,13 @@ Run these in order. Tags: `[script]` · `[ask]`.
 
 2. **Propose new tasks.** Follow the skill's "Propose the next things to do". From the
    changed sources, find user-standpoint gaps not already on the board, in `archive.md`,
-   or in `rejected.md`. Review each candidate against the checks in `references/refine.md`
-   and `redesign.md`; add only those that pass — allocate ids with `kanban.mjs create`, write
-   via a subagent given `references/add-task.md`, then re-review. Up to 3, fewer is fine.
+   or in `rejected.md`. Review each candidate against the checks in `akb guide refine`
+   and `redesign.md`; add only those that pass — allocate ids with `akb board create`, write
+   via a subagent given `akb guide add-task`, then re-review. Up to 3, fewer is fine.
    Don't pad the board with weak tasks.
 
 3. **Prune.** Compress `memory.md`, `archive.md`, `rejected.md`, and `redesign.md` per
-   `references/prune-memory.md`. Bump the watermarks you reviewed this run.
+   `akb guide prune-memory`. Bump the watermarks you reviewed this run.
 
 4. **Cap high-priority at 6.** The board holds at most 6 `**Priority:** high` product
    cards (this maintenance card doesn't count). Rank every high card by importance — your
@@ -49,16 +49,16 @@ Run these in order. Tags: `[script]` · `[ask]`.
 
 5. **Refine the 6 high tasks — one subagent per card, in parallel.** Skip a card whose
    frontmatter `questions` list isn't empty — it's waiting on your answers, not a refine.
-   Each subagent reads `references/refine.md` and `redesign.md`; runs the card through
+   Each subagent reads `akb guide refine` and `redesign.md`; runs the card through
    refine's checks; then moves it one step forward
    (vague→concrete, stop at the code level) and writes the advance back into its own card.
-   Subagents edit ONLY their own card file — no `kanban.mjs`, and no touching `README.md`,
+   Subagents edit ONLY their own card file — no `akb board`, and no touching `README.md`,
    `memory.md`, `next-id`, or `metrics.csv` (those race under parallelism). They report
    any archive/reject/flag recommendation and any open question back; the main loop
    applies archives/rejects serially (step 6) and logs questions (step 7).
 
 6. **Apply archives / rejects serially.** For any card a subagent flagged as done or
-   dead, run `kanban.mjs archive <id>` or `kanban.mjs reject <id>` yourself, one at a
+   dead, run `akb board archive <id>` or `akb board reject <id>` yourself, one at a
    time — never in parallel, since the script rewrites shared files. Add the
    archive/rejected line first per the skill.
 
@@ -74,7 +74,7 @@ Run these in order. Tags: `[script]` · `[ask]`.
    running job id, then `CronCreate` with cron `13 9 * * *`, recurring true, durable true,
    and the slim prompt below. Confirm the new job id.
 
-9. `[script]` **Record the run:** `node .claude/skills/kanban/kanban.mjs run <this card's id>`.
+9. `[script]` **Record the run:** `akb board run <this card's id>`.
 
 ### Slim cron prompt (what the schedule carries)
 

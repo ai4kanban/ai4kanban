@@ -22,7 +22,7 @@ import { BoardError, say, startCollecting, stopCollecting, type Sink } from './i
 import { withBoardLock } from './lock'
 import { boardHelp, findMove, legacyHelp, moveHelp, MOVE_NAMES } from './help'
 import { cmdInit, cmdMemoryInit } from '../commands/init'
-import { cmdCreate, cmdUpdate, cmdUpdateQuestions, cmdTag } from '../commands/card'
+import { cmdCreate, cmdUpdate, cmdUpdateQuestions, cmdSchedule, cmdTag } from '../commands/card'
 import { cmdRemove } from '../commands/remove'
 import { cmdMigrate, cmdRun } from '../commands/misc'
 import { cmdList } from '../commands/list'
@@ -42,6 +42,7 @@ const RUN: Record<string, RunMove> = {
   create: (rest) => cmdCreate(rest),
   update: (rest) => cmdUpdate(rest),
   'update-questions': (rest) => cmdUpdateQuestions(rest),
+  schedule: (rest) => cmdSchedule(rest),
   tag: (rest) => cmdTag(rest),
   list: (rest) => cmdList(rest),
   release: (rest) => cmdRelease(rest),
@@ -199,7 +200,7 @@ export function runBoard(argv: string[], options: RunBoardOptions = {}): number 
     program = 'kanban',
     style = 'legacy',
     cwd = process.cwd(),
-    installHint = '`npx ai4kanban install`',
+    installHint = '`akb install`',
     version = null,
     usage = 'node kanban.mjs <command> [args]',
   } = options

@@ -55,6 +55,27 @@ export interface CardRef {
   title: string
 }
 
+/** The action a card can be scheduled to run once nothing is standing in its way.
+ *
+ *  The two the board runs on a one-shot card without stopping for anybody: `implement`
+ *  builds it, `refine` sharpens its plan. Resolve is not one — it waits on the user's
+ *  answers, so a run nobody is watching would only sit there — and a recurring card's Run is
+ *  not either, since a recurring card is never blocked and its cadence is already its
+ *  schedule. */
+export type ScheduledAction = 'implement' | 'refine'
+
+/** What a card is waiting to do, once the last card in its way leaves the board.
+ *
+ *  A card holds one at a time; scheduling a second replaces the first. It is a mark, not a
+ *  status — the card keeps whatever stage it was in — and it lives in the card's own
+ *  frontmatter, so it survives a restart and travels with the card. */
+export interface CardSchedule {
+  action: ScheduledAction
+  /** What the user typed when they scheduled it, handed to the run when it fires. Empty when
+   *  they typed nothing. */
+  notes: string
+}
+
 /** A group root's subtask, as shown on the root's page. Light meta only — clicking through
  *  opens the subtask's own page for the full card. */
 export interface Subtask {
@@ -93,6 +114,9 @@ export interface Card {
   /** How often this card repeats — `30m`, `6h`, `1d at 09:30`. Recurring cards only, and
    *  optional there: empty means the card runs only when someone asks for it. */
   cadence: string
+  /** The action waiting to run on this card once every card it waits on has left the board,
+   *  or null on a card nobody scheduled. Only a blocked card can carry one. */
+  schedule: CardSchedule | null
   /** The card body below the frontmatter (markdown). */
   body: string
   todos: { total: number; done: number }

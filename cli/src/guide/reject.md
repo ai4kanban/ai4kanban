@@ -1,6 +1,6 @@
 # Reject an idea
 
-Start with `${KB} reject <id>`. It deletes the card file. Before deleting, it prints the
+Start with `akb board reject <id>`. It deletes the card file. Before deleting, it prints the
 whole card — that printout is your copy, and you write the note from it.
 
 The rest of its output names two jobs. Do both.
@@ -21,6 +21,6 @@ what still holds, or drop the claim. Striking out the `#58` and leaving the rest
 thing that doesn't work — it reads as if the card were still there.
 
 A mention in a card's frontmatter is an open question. Rewrite it with
-`${KB} update-questions <id> --update <n> ".."` — the script owns frontmatter (see "The script" in `SKILL.md`).
+`akb board update-questions <id> --update <n> ".."` — `akb board` owns the frontmatter.
 
 Use that list. Searching for the id yourself also turns up dates and longer ids.

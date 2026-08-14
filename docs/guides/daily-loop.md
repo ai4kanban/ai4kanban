@@ -2,6 +2,32 @@
 
 Once the board exists, you drive it in plain language. Here's the rhythm.
 
+## Two ways the work gets done
+
+Everything below happens one of two ways, and the difference is worth knowing.
+
+**In the conversation you're in.** You ask your coding agent for a board action — "refine
+#4", "#4 is done" — and it does the job itself, right there. It's already reading your
+code, it has the context, and nothing extra is billed. If it takes a wrong turn, "not that
+one" is your next message. Under the hood it asks the CLI for the steps with `--print`:
+the CLI hands back what to do for *your* board — the card's own path, the steps it has
+left, the memory file to write the note in, the command that closes the job — and the
+agent follows it.
+
+**Sent off as a run.** You press a button on the local board, or type `akb refine 4`, and
+a second agent starts on its own. It keeps working when you close the terminal, it shows
+in the runs panel with its own log, and you can stop it. Nothing you say reaches it while
+it goes, so a correction costs the whole run.
+
+Send it off when you want the work to happen while you do something else, or on the long
+read-heavy jobs — proposing across the repo, planning a release, refining round after
+round. Otherwise just ask, in the session you're already in. When your agent isn't sure
+which you meant, it asks the CLI to print: that costs nothing and you can still say "no,
+start a run".
+
+A run never starts another run. An agent working inside one that's asked for a board
+action gets the steps printed and does them itself, so one run can't quietly become five.
+
 ## Pick what to work on
 
 Ask **"what's next?"**. The skill:
@@ -119,7 +145,7 @@ Say **"add a task: <idea>"**. Before writing, the skill reviews the idea (busine
 feasibility, duplication) and checks `redesign.md` so it doesn't repeat a known design
 mistake. Then it:
 
-- allocates an id with `kanban.mjs create`,
+- allocates an id with `akb board create`,
 - writes a self-contained card in plain language, split into checkable todos,
 - adds it to `todo/README.md` under its track.
 
@@ -154,10 +180,41 @@ You rarely have to ask. Any run that writes or changes a card is followed by a r
 that card, started on its own once the run ends — so a card you add, revise or resolve comes
 back refined without a second instruction. Archiving or rejecting a card does the same for
 every card it was holding up. Each one is an ordinary run: you can watch its log and stop
-it. What has nothing to refine is skipped — a card still blocked, one already ready, a
+it. What has nothing to refine is skipped — a card still blocked (schedule that one, below),
+one already ready, a
 recurring card, one whose todos are all ticked, and one waiting only on your answers. A
 group's main card is skipped too when a subtask finishes — ticking its line is progress, not
 a new plan — so a big group doesn't refine its main card once per subtask.
+
+## Queue a card that is waiting on another
+
+A card whose `blocked_by` still names an open card can be built or refined anyway — the
+board warns, it never stops you. It can also wait properly: schedule the action, and the
+board runs it by itself the moment the last card in its way leaves the board, archived or
+rejected alike.
+
+```bash
+akb board schedule 4 --action implement --notes "start with the parser"
+akb board schedule 4 --action refine
+akb board schedule 4 --clear
+```
+
+In the local UI it is the **Schedule** button beside **Implement anyway** in the Implement
+dialog, and beside **Refine anyway** in the Refine one.
+
+- A card holds **one** schedule at a time; a second replaces the first.
+- It reads **pending** in place of its stage until it fires — the card keeps its stage and
+  its place on the board.
+- It fires **once**, within a minute of coming free, and the mark comes off as the run
+  starts. A run that fails or is stopped doesn't come back on its own.
+- A schedule that has gone pointless is dropped rather than run — a refine queued on a card
+  that has since reached `ready` has nothing left to do.
+- The mark lives in the card's own frontmatter, so it survives a restart and travels with
+  the card.
+
+Scheduling the refine is the answer to the refine that gets skipped: a card still blocked is
+passed over, because sharpening a plan whose foundation could still change shape is work you
+throw away. Queue it and it happens at the right moment instead.
 
 ## Review the board
 
@@ -169,11 +226,11 @@ archives finished ones and flags the rest.
 
 Say **"#4 is done"**. The skill updates the published doc the change touched (via the
 card's doc todos) and adds one line to `readme.md` — a link to that doc, or a short
-plain-words note when no doc covers the behavior yet — then runs `kanban.mjs archive 4`
+plain-words note when no doc covers the behavior yet — then runs `akb board archive 4`
 to take the card off the board and record the metric.
 
 ```bash
-node .claude/skills/kanban/kanban.mjs archive 4
+akb board archive 4
 ```
 
 The card file isn't deleted — it moves to `docs/kanban/.archive/`, which stays in git. So
@@ -182,7 +239,7 @@ you can still read a finished card, or diff it, long after it left the board.
 ## Reject an idea
 
 Say **"reject #4"** (rare). The skill adds a one-line "why not" to `rejected.md` and runs
-`kanban.mjs reject 4`. Future loops won't re-propose it.
+`akb board reject 4`. Future loops won't re-propose it.
 
 ## Keep it lean
 
@@ -191,24 +248,57 @@ Over time the memory set — `readme.md`, `decisions.md`, `rejected.md`, and
 planning-useful summaries grouped by topic, so scans stay cheap. The board itself stays
 small because finished work is a note, not a card.
 
+## Driving a run, and the agent behind it
+
+Everything above is a card. The rest of what the board app's buttons do can be asked for
+just as plainly, and your agent runs the matching command:
+
+| You say | What runs |
+| --- | --- |
+| "build #4 in the background" | `akb implement 4` — starts a run and returns |
+| "what's running?" | `akb runs` |
+| "show me that run's log" | `akb log <run>`, `--follow` to watch it go |
+| "stop it" | `akb stop <run>` |
+| "that run died — carry on" | `akb resume <run>` |
+| "use Codex instead" | `akb agent use codex` |
+| "switch to Opus" / "make it think harder" | `akb agent set model …`, `akb agent set reasoning high` |
+| "check my setup works" | `akb agent test` |
+| "save my API key" | it hands **you** `akb agent set apiKey <key>` to type yourself |
+
+A key is the one thing your agent hands back instead of running: a key it types lands in
+its transcript and in your shell history, and the board never reads a saved key back.
+
+When an ask can't run, the answer names the one line that fixes it — `akb install` for a
+project with no board, `npm install -g ai4kanban@latest` for an `akb` that is behind,
+`akb agent test` for an agent that isn't installed, `akb agent` for a key or provider that
+isn't set.
+
 ## The commands, for reference
 
-Only `kanban.mjs` allocates ids or touches metrics — never edit `next-id` or `metrics.csv`
+Only `akb board` allocates ids or touches metrics — never edit `next-id` or `metrics.csv`
 by hand.
 
 ```bash
-node .claude/skills/kanban/kanban.mjs create [--count N]   # allocate ids
-node .claude/skills/kanban/kanban.mjs release new v1       # plan a version
-node .claude/skills/kanban/kanban.mjs release new v1 --goal ".." # …saying what it is for
-node .claude/skills/kanban/kanban.mjs release new v1 --fill # …with the high-priority cards in
-                                                           # (filling from the goal is a run: "plan release v1")
-node .claude/skills/kanban/kanban.mjs release goal v1 ".."  # change what it is for
-node .claude/skills/kanban/kanban.mjs release list         # what each version holds
-node .claude/skills/kanban/kanban.mjs release close v1     # the version shipped
-node .claude/skills/kanban/kanban.mjs release drop v1      # the version will not ship
-node .claude/skills/kanban/kanban.mjs archive <id>         # finish a task
-node .claude/skills/kanban/kanban.mjs reject  <id>         # drop an idea
-node .claude/skills/kanban/kanban.mjs peek                 # next free id
-node .claude/skills/kanban/kanban.mjs metrics              # the daily CSV
-node .claude/skills/kanban/kanban.mjs help                 # full usage
+akb board create [--count N]      # allocate ids
+akb board release new v1          # plan a version
+akb board release new v1 --goal ".."  # …saying what it is for
+akb board release new v1 --fill   # …with the high-priority cards in
+                                  # (filling from the goal is a run: "plan release v1")
+akb board release goal v1 ".."    # change what it is for
+akb board release list            # what each version holds
+akb board release close v1        # the version shipped
+akb board release drop v1         # the version will not ship
+akb board schedule <id> --action implement|refine
+                                  # run it by itself once the card comes free
+                                  # (--clear takes the schedule off)
+akb board archive <id>            # finish a task
+akb board reject  <id>            # drop an idea
+akb board peek                    # next free id
+akb board metrics                 # the daily CSV
+akb board help                    # full usage
 ```
+
+The flows themselves — how a card is refined, what goes in memory, how a release is
+planned — ship with the command too: `akb guide` lists them, `akb guide board` is how the
+board works at all. Your project keeps only a short note pointing there, so `akb update`
+upgrades every flow at once.

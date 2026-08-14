@@ -144,6 +144,28 @@ export function StatusPill({ status, detailed = false }: { status: CardStatus; d
   );
 }
 
+// The mark a scheduled card wears INSTEAD of its status pill (#140): something is queued to
+// run on it, and it can't start until the cards it waits on are done. It is not a fourth
+// status — the card keeps whatever stage it was in, and the queue view still groups it there
+// — so this reads `pending`, the word for the wait rather than for the stage.
+//
+// Peach, the one colour the board gives work that is in the way, and the colour of the
+// blocked chip beside it: a pending card is a blocked card the user has already answered
+// for. The hover carries the whole of it — what will run, and what it is waiting on.
+export function PendingPill({ label, detailed = false }: { label: string; detailed?: boolean }) {
+  return (
+    <span
+      className="nb-chip nb-tip"
+      tabIndex={0}
+      data-tip={label}
+      style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
+    >
+      <FiClock aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
+      {detailed ? label : "pending"}
+    </span>
+  );
+}
+
 // Group marker — flags a board card as a group root. A layers icon reads as
 // "stacked cards" so the group is obvious at a glance; the progress bar next to
 // it already carries the tally (root todos), so the chip stays a pure marker and

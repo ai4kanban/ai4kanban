@@ -106,7 +106,7 @@ function scaffoldMemoryDir(dir: string, set: Record<string, string>): Scaffolded
   return made.length ? { dir, made, fresh: false } : null
 }
 
-// Which copy of a memory file a card's note belongs in — SKILL.md's "The memory set" rule
+// Which copy of a memory file a card's note belongs in — "The memory set" in `akb guide board`
 // in code, so a flow about to write a note stops re-deriving it: the named module's copy,
 // both when the card names two, the project-wide one when it names none. Never a module
 // copy AND the project-wide one — that copy is the whole project's memory, not a mirror.

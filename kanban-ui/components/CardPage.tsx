@@ -17,9 +17,16 @@ import {
   FiSquare,
   FiXCircle,
 } from "react-icons/fi";
-import { patchCardAction } from "@/app/actions";
+import { patchCardAction, scheduleCardAction, unscheduleCardAction } from "@/app/actions";
 
-import { NO_RELEASE, type AgentInfo, type Card, type CardPatch, type SessionView } from "@/lib/types";
+import {
+  NO_RELEASE,
+  type AgentInfo,
+  type Card,
+  type CardPatch,
+  type ScheduledAction,
+  type SessionView,
+} from "@/lib/types";
 import { Button } from "./button";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
@@ -35,14 +42,17 @@ import {
   CadenceSelect,
   LevelSelect,
   ModuleChip,
+  PendingPill,
   QuestionTagBadge,
   ReleaseSelect,
   StatusPill,
   TodoProgress,
   TrackChip,
 } from "./chips";
+import { PULSE_DOT } from "./chrome";
 import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
-import { canRefine } from "@/lib/refine";
+import { canImplement, canRefine } from "@/lib/refine";
+import { scheduleLabel } from "@/lib/schedule";
 import { Markdown } from "./Markdown";
 import { OpenIdsProvider } from "./open-ids";
 import { Window } from "./Window";
@@ -114,7 +124,10 @@ function visibleActions(card: Card): Set<CardButton> {
   const groupDone = !!sub && sub.total > 0 && sub.resolved === sub.total;
   const buttons = new Set<CardButton>();
   if (card.recurring) buttons.add("run"); // Run — a recurring card, always: a job you can start again
-  else if (!allDone && !card.isGroup) buttons.add("implement"); // Implement — unless all todos are checked, and never on a group root
+  // Implement — unless all todos are checked, and never on a group root. The board's own
+  // rule (canImplement), the same one a schedule is refused by, so the button and the
+  // schedule behind it can never disagree about whether this card is one to build.
+  else if (canImplement(card)) buttons.add("implement");
   buttons.add("edit"); // Edit — always
   // Refine (#99) — only when a refine would really move the card (canRefine): the
   // background dispatcher would arrive at a `ready` card, a finished one, or one
@@ -203,7 +216,10 @@ export function CardPage({
   useOnTabFocus(refresh);
 
   // A live session on this card (from any tab) blocks a second one and shows a badge.
-  const busy = runningCardIds(sessions).has(card.id);
+  // The whole set is kept: the rail draws every open card, and a subtask can be
+  // running while the root you're reading isn't.
+  const running = runningCardIds(sessions);
+  const busy = running.has(card.id);
   // The session itself, so the badge can name the action in flight (refining, etc.).
   const liveSession = runningSessionForCard(sessions, card.id);
   const { total, done } = card.todos;
@@ -225,6 +241,23 @@ export function CardPage({
     const removes = req.action === "reject" || req.action === "archive";
     const res = await start(req, label, removes);
     if (!res.ok) setError(res.error || "could not start the agent");
+  };
+
+  // Queue an action on this card instead of starting it (#140). The card keeps its stage and
+  // its place on the board; what changes is that the server starts this run by itself once
+  // the last card in its way has gone. Nothing spawns here, so the dialog closes on a plain
+  // re-read rather than on a session to watch.
+  const scheduleAgent = async (action: ScheduledAction, notes: string) => {
+    setDialog(null);
+    const res = await scheduleCardAction(card.id, action, notes);
+    if (!res.ok) setError(res.error || "could not schedule the action");
+    else router.refresh();
+  };
+
+  const unschedule = async () => {
+    const res = await unscheduleCardAction(card.id);
+    if (!res.ok) setError(res.error || "could not take the schedule off");
+    else router.refresh();
   };
 
   const patchCard = async (id: number, patch: CardPatch) => {
@@ -254,6 +287,7 @@ export function CardPage({
         openIds={openIds}
         currentId={card.id}
         currentTitle={card.title}
+        running={running}
         header={
           <Header
             agent={agent}
@@ -297,6 +331,10 @@ export function CardPage({
               <h1 className="text-[20px] font-[800] tracking-[-0.02em] leading-tight">{card.title}</h1>
               {busy ? (
                 <RunningBadge label={liveSession ? `${RUNNING_VERB[liveSession.action]} this card…` : "working…"} />
+              ) : card.schedule ? (
+                // Waiting on its blockers, with a run already queued (#140) — the mark
+                // stands in for the stage, and says what will run and what it waits for.
+                <PendingPill label={scheduleLabel(card)} detailed />
               ) : (
                 card.status !== "todo" && <StatusPill status={card.status} detailed />
               )}
@@ -490,6 +528,32 @@ export function CardPage({
                 </MetaItem>
               )}
 
+              {/* What is queued on this card, and the one control that takes it off (#140).
+                  It sits beside "Blocked by" because the two are one sentence: what will
+                  run, and what it is waiting for. Taking it off is a plain write — nothing
+                  has started, so there is nothing to stop and nothing to undo. */}
+              {card.schedule && (
+                <MetaItem label="Scheduled">
+                  <span
+                    className="nb-chip"
+                    style={{
+                      background: "var(--color-nb-peach-soft)",
+                      color: "var(--color-nb-peach-ink)",
+                    }}
+                  >
+                    {scheduleLabel(card)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={unschedule}
+                    className="cursor-pointer text-[12px] font-[700] text-nb-ink-soft underline decoration-dotted underline-offset-2 hover:text-nb-ink"
+                    title="Take the schedule off — nothing will start on its own"
+                  >
+                    take it off
+                  </button>
+                </MetaItem>
+              )}
+
               {card.related.length > 0 && (
                 <MetaItem label="Related">
                   {card.related.map((n) => (
@@ -523,6 +587,17 @@ export function CardPage({
                           #{s.id}
                         </span>
                         <span className="min-w-0 flex-1 truncate text-[13.5px] font-[700] leading-snug">{s.title}</span>
+                        {/* An agent is inside this subtask right now — the same
+                            dot the rail and the board's badge use. A root is
+                            where you watch a group being built, and its rows are
+                            the only place here that name a card other than the
+                            one on screen. */}
+                        {running.has(s.id) && (
+                          <>
+                            <span className={PULSE_DOT} aria-hidden />
+                            <span className="sr-only">running</span>
+                          </>
+                        )}
                         {s.todos.total > 0 && <TodoProgress done={s.todos.done} total={s.todos.total} />}
                         <FiChevronRight className="shrink-0 text-[14px] text-nb-ink-soft" aria-hidden />
                       </Link>
@@ -561,7 +636,14 @@ export function CardPage({
             </div>
           </main>
 
-          {dialog && <ActionDialog dialog={dialog} onClose={() => setDialog(null)} onRun={runAgent} />}
+          {dialog && (
+            <ActionDialog
+              dialog={dialog}
+              onClose={() => setDialog(null)}
+              onRun={runAgent}
+              onSchedule={scheduleAgent}
+            />
+          )}
         </div>
       </Window>
     </OpenIdsProvider>

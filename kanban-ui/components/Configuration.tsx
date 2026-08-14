@@ -1,12 +1,12 @@
 "use client";
 
 // The board's one configuration home (#41), opened from a quiet gear button in
-// the header. A sidebar on its left names the sections — for now just Agent
-// (which agent runs every card action, #68, and the settings that agent
-// declares, #93). The sidebar is how the dialog grows: a new group of settings
-// is one more entry there with a pane of its own, and the agent's growing field
-// list (the model, the reasoning level #97, #95's provider and base URL) never
-// squeezes what joins it.
+// the header. A sidebar on its left names the sections — Agent (which agent runs
+// every card action, #68, and the settings that agent declares, #93) and Skill
+// (driving this same board from a coding agent, #174). The sidebar is how the
+// dialog grows: a new group of settings is one more entry there with a pane of
+// its own, and the agent's growing field list (the model, the reasoning level
+// #97, #95's provider and base URL) never squeezes what joins it.
 //
 // The Auto-refine section is gone (#211). There is no switch to keep: a refine
 // follows the run that touched the card, so nothing is left to turn on or to
@@ -16,9 +16,9 @@
 // the picked agent declares in lib/agent.ts, and knows no agent by name.
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiCheck, FiSettings, FiTerminal, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiCode, FiSettings, FiTerminal, FiZap } from "react-icons/fi";
 import {
   setHarnessAction,
   setHarnessSecretAction,
@@ -29,6 +29,7 @@ import { missingRequired, pickedProvider, providerSetting, shownForProvider } fr
 import type { AgentInfo, ConnectionTest, HarnessOption, HarnessSetting } from "@/lib/types";
 import { TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
+import { SkillPanel } from "./Skill";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 // The look of every box and list in this pane. One string, because the provider
@@ -55,10 +56,39 @@ function AgentMark({ src, size }: { src: string; size: number }) {
 
 // The dialog's sections, in sidebar order. Adding a settings group is one entry
 // here plus its pane below — nothing else moves.
-type Section = "agent";
+type Section = "agent" | "skill";
 const SECTIONS: { id: Section; label: string; icon: IconType }[] = [
   { id: "agent", label: "Agent", icon: FiTerminal },
+  { id: "skill", label: "Skill", icon: FiCode },
 ];
+
+// --- opening the dialog from elsewhere (#174) --------------------------------
+// A tiny shared store, the same shape as the sessions panel's (components/
+// sessions.tsx), so a sibling that isn't in this tree can open the dialog on one
+// section. The setup strip uses it: the line it hands to a coding agent only
+// works once the skill is installed, so when it isn't, the way out of that strip
+// is this dialog's Skill pane rather than a sentence telling the user to go
+// find the gear.
+let openRequest: { at: number; section: Section } | null = null;
+const requestSubs = new Set<() => void>();
+export const configDialog = {
+  open(section: Section = "agent") {
+    // A fresh object every time, so asking for the same section twice still
+    // reaches a dialog the user closed in between.
+    openRequest = { at: openRequest ? openRequest.at + 1 : 1, section };
+    for (const fn of requestSubs) fn();
+  },
+};
+function useOpenRequest() {
+  return useSyncExternalStore(
+    (fn) => {
+      requestSubs.add(fn);
+      return () => requestSubs.delete(fn);
+    },
+    () => openRequest,
+    () => openRequest,
+  );
+}
 
 export function Configuration({
   agent,
@@ -72,6 +102,17 @@ export function Configuration({
   // Which pane shows. Reopening the dialog starts back on Agent.
   const [section, setSection] = useState<Section>("agent");
   const router = useRouter();
+
+  // Someone outside this tree asked for the dialog — open it on the section they
+  // named. Keyed on the request object, so a second ask for the same section
+  // reopens rather than doing nothing.
+  const request = useOpenRequest();
+  useEffect(() => {
+    if (!request) return;
+    setSection(request.section);
+    setOpen(true);
+  }, [request]);
+
   return (
     <>
       {/* The last tool in the header's cluster (components/chrome.tsx) — no frame
@@ -145,6 +186,11 @@ export function Configuration({
             <div hidden={section !== "agent"}>
               <HarnessPicker agent={agent} onError={onError} />
             </div>
+            {/* Driving this same board from a coding agent (#174) — an extra a
+                board does not arrive with. Mounted only while it is the section
+                on screen: it reads the project when it draws, and one of those
+                reads spawns a process to ask what `akb` on the PATH is. */}
+            {section === "skill" && <SkillPanel onError={onError} />}
           </div>
         </Dialog>
       )}

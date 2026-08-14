@@ -9,7 +9,7 @@
 // Declared with the shapes a reader is handed (./view/types.ts), because a question is one
 // of the few things both sides of the board see — the writers here, and every front end.
 export type { Question, QuestionMode } from './view/types'
-import type { Question } from './view/types'
+import type { CardSchedule, Question } from './view/types'
 
 // A question still being built out of the flags that describe it.
 export interface QuestionDraft {
@@ -34,6 +34,9 @@ export interface Meta {
   modules: string[]
   cadence: string
   last_run: string
+  /** The action waiting to run once nothing is in this card's way, or null on a card nobody
+   *  scheduled (./schedule.ts). */
+  schedule: CardSchedule | null
   questions: Question[]
 }
 

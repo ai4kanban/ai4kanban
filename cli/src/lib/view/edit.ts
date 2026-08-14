@@ -1,8 +1,9 @@
 // ---- a direct edit to one card ---------------------------------------------
 //
 // The fields a person changes from a screen rather than by asking an agent: the title, the
-// body, priority, roi, the release, a recurring card's cadence. Everything else about a
-// card — its track, its links, its questions — stays with the agents and the commands.
+// body, priority, roi, the release, a recurring card's cadence, and the action a blocked
+// card is waiting to run. Everything else about a card — its track, its links, its
+// questions — stays with the agents and the commands.
 //
 // It is one write, in the frontmatter serializer every other writer uses, so a card edited
 // from a board and a card edited by `update` come out byte-identical.
@@ -17,8 +18,11 @@ import { parseFrontmatter, serializeFrontmatter } from '../frontmatter'
 import { repointReadmeLink } from '../readme'
 import { setSubtreeRelease, validRelease } from '../releases'
 import { RECURRING } from '../recurring'
+import { normalizeSchedule } from '../schedule'
 import { LEVELS, normalizeRelease } from '../validate'
-import type { CardPatch } from './types'
+import { findCard } from './read'
+import { scheduleRefusal } from './rules'
+import type { CardPatch, CardSchedule } from './types'
 
 /** Apply a direct edit to card `id`. Refuses — by throwing the board's own refusal, which
  *  the surface above turns into a line — when the id is unknown, a level is not one of the
@@ -76,4 +80,38 @@ export function patchCard(id: number, patch: CardPatch): void {
     const relFromTodo = path.relative(TODO, file)
     repointReadmeLink(id, relFromTodo, relFromTodo, meta.title)
   }
+}
+
+/**
+ * Put a scheduled action on card `id`, or take one off with `null`. Answers with the
+ * schedule that was there before, so a caller can say which one it replaced.
+ *
+ * A card holds one at a time: writing a second is what replaces the first, which is why
+ * there is no separate "replace" move. Putting one ON is refused when the card has nothing
+ * in its way or the action wouldn't move it (`scheduleRefusal`); taking one OFF is always
+ * allowed — a mark the user wants gone must never be stuck on the card.
+ *
+ * Only the frontmatter is rewritten; the body is put back exactly as it was read.
+ */
+export function setCardSchedule(id: number, schedule: CardSchedule | null): CardSchedule | null {
+  if (!Number.isInteger(id)) die('a card is scheduled by its number', 'bad-id')
+  const wanted = normalizeSchedule(schedule)
+  if (schedule && !wanted) die('a schedule names the action to run: implement or refine', 'bad-schedule')
+  const found = locate(id)
+  if (!found) die(`no open card #${id}`, { kind: 'card-not-found', id })
+  // The board's own rule, read off the whole board — whether this card really is waiting on
+  // something is a fact about every other card, not about this file.
+  if (wanted) {
+    const card = findCard(id)
+    if (!card) die(`no open card #${id}`, { kind: 'card-not-found', id })
+    const refusal = scheduleRefusal(card, wanted.action)
+    if (refusal) die(refusal, { kind: 'cannot-schedule', id })
+  }
+  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+  const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+  if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`, { kind: 'no-frontmatter', id })
+  const was = meta.schedule
+  meta.schedule = wanted
+  fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
+  return was
 }

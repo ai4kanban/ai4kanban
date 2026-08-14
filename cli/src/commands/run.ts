@@ -5,6 +5,7 @@
 // run's id and exits — the run outlives it — so the same run can be followed, stopped or
 // continued from anywhere, by anyone, including a process that never saw it start.
 
+import { insideRun, printFlow } from '../lib/agent/flow'
 import { spawnWatcher } from '../lib/agent/launch'
 import { readLogTail, splitLog } from '../lib/agent/log'
 import {
@@ -35,9 +36,18 @@ const FOLLOW_MS = 400
 // ---- starting --------------------------------------------------------------
 
 /** The one door every kind of run goes through: work out what was asked for, write it
- *  down, hand it to a watcher, and say which run started. */
-export function cmdStartRun(action: AgentAction, args: string[]): MoveResult {
-  const { req, follow } = readRequest(action, args)
+ *  down, hand it to a watcher, and say which run started.
+ *
+ *  Or print the flow and start nothing — `--print`, and the one case the caller doesn't
+ *  pick: an agent already working inside a run the board started, which never starts
+ *  another (see `lib/agent/flow.ts`). */
+export function cmdStartRun(action: AgentAction, args: string[], program = 'akb'): MoveResult {
+  const { req, follow, print } = readRequest(action, args)
+  const inside = insideRun()
+  if (print || inside) {
+    if (!print) say(`inside run ${short(inside!)} — a run never starts another, so here is the flow instead.`)
+    return printFlow(req, program)
+  }
   const started = startRun(req)
   if ('error' in started) die(started.error, { kind: 'run-refused', action })
   const { run, spawned } = started
@@ -49,14 +59,25 @@ export function cmdStartRun(action: AgentAction, args: string[]): MoveResult {
   return { sessionId: run.sessionId, action, cardId: run.cardId }
 }
 
-// What each action takes, and what it means. Everything past `--follow` is the action's
-// own; a flag an action doesn't take is refused rather than ignored.
+// What each action takes, and what it means. Everything past these is the action's own; a
+// flag an action doesn't take is refused rather than ignored.
 const SHARED = ['follow', 'dir', 'json']
 
-function readRequest(action: AgentAction, args: string[]): { req: AgentRequest; follow: boolean } {
-  const allowed = [...SHARED, ...FLAGS[action]]
+// `--print` is every starting command's, and only theirs: an action that can start a run can
+// instead print its steps, and there is nothing to print about stopping or reading one.
+const START_SHARED = [...SHARED, 'print']
+
+function readRequest(
+  action: AgentAction,
+  args: string[],
+): { req: AgentRequest; follow: boolean; print: boolean } {
+  const allowed = [...START_SHARED, ...FLAGS[action]]
   const { flags, positional } = parseFlags(args, allowed)
   const follow = flags.follow === true
+  const print = flags.print === true
+  // Nothing starts, so there is no log to watch. Refused rather than quietly dropped: one
+  // of the two words was meant, and guessing which is how a background run gets lost.
+  if (print && follow) die('--print starts nothing, so there is no run to --follow', { kind: 'bad-option' })
   const text = (key: string): string | undefined => {
     const value = flags[key]
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
@@ -67,7 +88,7 @@ function readRequest(action: AgentAction, args: string[]): { req: AgentRequest; 
   if (action === 'create') {
     const description = positional.join(' ').trim() || text('notes')
     if (!description) die('say what to create: akb create "what you want"', { kind: 'needs-input' })
-    return { req: { action, description, release: text('release') }, follow }
+    return { req: { action, description, release: text('release') }, follow, print }
   }
   if (action === 'propose') {
     const count = flags.count === undefined ? undefined : Number(flags.count)
@@ -81,12 +102,13 @@ function readRequest(action: AgentAction, args: string[]): { req: AgentRequest; 
     return {
       req: { action, module: text('module'), count, boldness: boldness as Boldness | undefined },
       follow,
+      print,
     }
   }
   if (action === 'plan-release') {
     const release = positional[0]?.trim() || text('release')
     if (!release) die('name the version to plan: akb plan-release v1', { kind: 'needs-input' })
-    return { req: { action, release }, follow }
+    return { req: { action, release }, follow, print }
   }
 
   // Everything else works on one card.
@@ -103,7 +125,7 @@ function readRequest(action: AgentAction, args: string[]): { req: AgentRequest; 
     req.notes = positional.slice(1).join(' ').trim() || text('notes')
   }
   if (action === 'resolve' && flags['and-implement'] === true) req.andImplement = true
-  return { req, follow }
+  return { req, follow, print }
 }
 
 const FLAGS: Record<AgentAction, string[]> = {

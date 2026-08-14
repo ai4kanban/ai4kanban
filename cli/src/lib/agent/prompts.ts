@@ -16,14 +16,14 @@ export const RESUME_PROMPT = [
   `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
 ].join(' ')
 
-// What each boldness level tells a propose run. The rule lives in the skill ("Boldness" in
-// `references/propose.md`); these lines name the level and gloss it in one clause, so the
-// agent doesn't have to guess what the user meant by the word. `normal` is the skill's
+// What each boldness level tells a propose run. The rule lives in the flow ("Boldness" in
+// `akb guide propose`); these lines name the level and gloss it in one clause, so the
+// agent doesn't have to guess what the user meant by the word. `normal` is the flow's
 // default size, so it adds nothing.
 const BOLDNESS_LINE: Record<Boldness, string> = {
-  safe: `Boldness: **safe** (see "Boldness" in references/propose.md) — small moves that polish or fill gaps in what already works.`,
+  safe: `Boldness: **safe** (see "Boldness" in \`akb guide propose\`) — small moves that polish or fill gaps in what already works.`,
   normal: '',
-  bold: `Boldness: **bold** (see "Boldness" in references/propose.md) — each task is a big leap: a capability the module doesn't have at all, still sized so one session finishes it.`,
+  bold: `Boldness: **bold** (see "Boldness" in \`akb guide propose\`) — each task is a big leap: a capability the module doesn't have at all, still sized so one session finishes it.`,
 }
 
 // The count a propose run is asked for, made safe: a whole number between 1 and the cap,
@@ -70,7 +70,7 @@ export function buildPrompt(req: AgentRequest): string {
     // every recurring card, so it belongs in the guide, not in a prompt rebuilt every run.
     case 'run':
       return [
-        `${kb}. Run recurring task ${req.id} ${named} — one pass, following \`references/recurring-task.md\`.`,
+        `${kb}. Run recurring task ${req.id} ${named} — one pass, following \`akb guide recurring-task\`.`,
         req.notes ? `Extra notes: ${req.notes}` : '',
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ]
@@ -79,13 +79,13 @@ export function buildPrompt(req: AgentRequest): string {
     case 'reject':
       return [
         `${kb}. Reject task ${req.id} ${named}. Reason: ${req.reason || '(none given)'}.`,
-        `Follow the skill's reject flow.`,
+        `Follow \`akb guide reject\`.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
     case 'archive':
       return [
         `${kb}. Archive task ${req.id} ${named}.`,
-        `Follow the skill's archive flow.`,
+        `Follow "Finish a task" in \`akb guide board\`.`,
         req.notes ? `Extra notes: ${req.notes}` : '',
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ]
@@ -100,7 +100,7 @@ export function buildPrompt(req: AgentRequest): string {
     case 'create':
       return [
         `${kb}. Add task(s) from this requirement: "${req.description || ''}".`,
-        `Follow the skill's add-task flow. Create task only, don't implement it.`,
+        `Follow \`akb guide add-task\`. Create task only, don't implement it.`,
         // The board was showing one release when this was asked for, so the card ships in
         // it — otherwise it would land in no release, off the screen of the person who
         // just wrote it.
@@ -110,15 +110,15 @@ export function buildPrompt(req: AgentRequest): string {
         .filter(Boolean)
         .join(' ')
     case 'propose': {
-      // How many cards this run writes. The skill has its own default and cap ("How many"
-      // in references/propose.md); this clamps whatever came in so a hand-made request
+      // How many cards this run writes. The flow has its own default and cap ("How many"
+      // in `akb guide propose`); this clamps whatever came in so a hand-made request
       // can't ask for fifty cards.
       const n = clampCount(req.count)
       return [
-        `${kb}. Propose ${n} new task${n === 1 ? '' : 's'} following \`references/propose.md\`.`,
+        `${kb}. Propose ${n} new task${n === 1 ? '' : 's'} following \`akb guide propose\`.`,
         req.module
           ? `Focus on the "${req.module}" module — read its memory set and write every one of them inside it.`
-          : `Pick one focus module yourself (per references/propose.md) and write every one of them inside it.`,
+          : `Pick one focus module yourself (per \`akb guide propose\`) and write every one of them inside it.`,
         BOLDNESS_LINE[req.boldness ?? 'normal'],
         `Create the cards only, don't implement them.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
@@ -135,22 +135,26 @@ export function buildPrompt(req: AgentRequest): string {
     // pasted in here would go stale the moment the user changed it.
     case 'plan-release':
       return [
-        `${kb}. Plan the "${req.release || ''}" release following \`references/plan-release.md\`:`,
+        `${kb}. Plan the "${req.release || ''}" release following \`akb guide plan-release\`:`,
         `move in the open cards that ship its goal, and write the cards the goal needs that the board is missing.`,
         `Create the cards only, don't implement them.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
     case 'auto-refine':
       return [
-        `${kb}. Auto-refine task ${req.id} ${named} following \`references/auto-refine.md\`.`,
+        `${kb}. Auto-refine task ${req.id} ${named} following \`akb guide auto-refine\`.`,
         `Don't ask me questions with human-in-the-loop — the \`[user]\` tag is how you defer to me.`,
+        // A refine has no note box of its own, but a refine SCHEDULED on a blocked card
+        // carries whatever was typed when it was scheduled — often the very reason the user
+        // wanted it to wait — so it has to reach the run when it finally fires.
+        req.notes ? `Extra notes: ${req.notes}` : '',
         NO_IMPLEMENT,
       ]
         .filter(Boolean)
         .join(' ')
     case 'resolve':
       return [
-        `${kb}. Resolve the open questions on task ${req.id} ${named} following \`references/resolve.md\`.`,
+        `${kb}. Resolve the open questions on task ${req.id} ${named} following \`akb guide resolve\`.`,
         req.andImplement
           ? `Then, if resolving settles every question and nothing genuine is left for me to decide, go straight on to implementing the task — one continuous session. But if any real judgment call stays open, stop there and report it: don't implement on a guess.`
           : NO_IMPLEMENT,

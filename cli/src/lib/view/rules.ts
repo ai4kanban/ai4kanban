@@ -6,7 +6,7 @@
 // to offer Refine, and the refine that follows a run decides which cards it is worth
 // starting on, from this one set of rules rather than two that agree until they don't.
 
-import type { Card, OptionsQuestion, Question, QuestionTag } from './types'
+import type { Card, OptionsQuestion, Question, QuestionTag, ScheduledAction } from './types'
 
 // ---- questions -------------------------------------------------------------
 
@@ -110,4 +110,72 @@ export function canRefine(card: Card): boolean {
     return false
   }
   return true
+}
+
+// ---- would an implement move this card? ------------------------------------
+
+/**
+ * True when building this card is a move that fits it.
+ *
+ * A recurring card is run, not built — it is a job that repeats and has no end state. A
+ * group root is built by finishing its subtasks, so there is nothing on the root itself to
+ * do. And a card whose every box is ticked is finished: what it is waiting for is an
+ * archive, not another build.
+ *
+ * Being blocked is not part of this, the same as with `canRefine`: it is a judgment about
+ * when to spend a turn, not a fact about the card.
+ */
+export function canImplement(card: Card): boolean {
+  if (card.recurring) return false
+  if (card.isGroup) return false
+  const { total, done } = card.todos
+  return !(total > 0 && done === total)
+}
+
+// ---- the action a blocked card is waiting to run ---------------------------
+
+/**
+ * Why this card can't be scheduled for `action`, or null when it can.
+ *
+ * Scheduling is what a card waiting on another card gets INSTEAD of being started now, so
+ * the one hard rule is that something must really be in the way: a card you can start today
+ * has nothing to wait for, and a schedule on it would never fire. The rest is the same test
+ * the button for that action is drawn by — scheduling a run the board would refuse to start
+ * is a promise it can't keep.
+ */
+export function scheduleRefusal(card: Card, action: ScheduledAction): string | null {
+  if (card.recurring) {
+    return `#${card.id} is a recurring job — it repeats on its cadence and is never blocked.`
+  }
+  if (card.openBlockers.length === 0) {
+    return `#${card.id} is not waiting on anything — start it now instead of scheduling it.`
+  }
+  if (action === 'refine' && !canRefine(card)) {
+    return `a refine would not move #${card.id}, so there is nothing to schedule.`
+  }
+  if (action === 'implement' && !canImplement(card)) {
+    return `#${card.id} is not a card to build${card.isGroup ? ' — a group is built by finishing its subtasks' : ''}.`
+  }
+  return null
+}
+
+/**
+ * True when the action this card is scheduled for would no longer do anything.
+ *
+ * The board checks this at the moment it would fire, not when the schedule was written: a
+ * refine scheduled on a rough card is pointless once somebody has taken that card to `ready`
+ * themselves, and an implement is pointless once every box is ticked. Then the mark is
+ * dropped and no run starts, rather than spending an agent on a card that has moved on.
+ */
+export function scheduleWouldDoNothing(card: Card): boolean {
+  if (!card.schedule) return false
+  return card.schedule.action === 'refine' ? !canRefine(card) : !canImplement(card)
+}
+
+/** What a scheduled card is waiting to do, in one line: `implement · waiting on #57`. Empty
+ *  on a card with no schedule. */
+export function scheduleLabel(card: Card): string {
+  if (!card.schedule) return ''
+  const waiting = card.openBlockers.map((b) => `#${b.id}`).join(', ')
+  return `${card.schedule.action} · ${waiting ? `waiting on ${waiting}` : 'nothing left in the way'}`
 }

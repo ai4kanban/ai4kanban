@@ -30,8 +30,9 @@ import {
   setReleaseGoal as setReleaseGoalMove,
   type CardRow,
 } from '../releases'
+import { asScheduledAction, SCHEDULED_ACTIONS } from '../schedule'
 import { NO_RELEASE, normalizeRelease } from '../validate'
-import { patchCard as patchCardWrite } from './edit'
+import { patchCard as patchCardWrite, setCardSchedule } from './edit'
 import { writeGoalText } from './goal'
 import { saveProject as saveProjectWrite } from './first-run'
 import type {
@@ -81,6 +82,34 @@ function read<T>(fn: () => T, fallback: T): T {
 export function patchCard(id: number, patch: CardPatch): WriteResult {
   return write(() => {
     patchCardWrite(id, patch)
+    return {}
+  })
+}
+
+/**
+ * Schedule an action on a blocked card, so the board runs it by itself once the last card in
+ * its way leaves the board.
+ *
+ * The action is checked here rather than trusted, so a stale screen can't write a mark
+ * nothing will ever fire; everything else about whether this card may carry a schedule is
+ * the board's own rule, and the refusal comes back as the line it wrote.
+ */
+export function setSchedule(id: number, action: string, notes = ''): WriteResult {
+  const wanted = asScheduledAction(action)
+  if (!wanted) {
+    return { ok: false, error: `"${action}" isn't an action the board can schedule — ${SCHEDULED_ACTIONS.join(' or ')}.` }
+  }
+  return write(() => {
+    setCardSchedule(id, { action: wanted, notes: typeof notes === 'string' ? notes : '' })
+    return {}
+  })
+}
+
+/** Take a card's schedule off. Nothing fires after this. Silent about a card that had none:
+ *  the button and the mark it takes off are drawn from a read that can be a moment old. */
+export function clearSchedule(id: number): WriteResult {
+  return write(() => {
+    setCardSchedule(id, null)
     return {}
   })
 }

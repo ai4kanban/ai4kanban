@@ -7,45 +7,78 @@ breaks the idea down, settles what it can on its own, asks you the rest, and kee
 until the spec is clear enough to build. The board is plain Markdown in `docs/kanban/`,
 versioned in git.
 
-This package is the setup command. The board and the skill are the product.
+This package is the command, the board's own bookkeeping, and the flows the agent works by.
+The board is the product.
 
-## Install
+## Get the command
+
+```bash
+npm install -g ai4kanban
+```
+
+That puts `akb` on your path. Every example below also works as
+`npx --yes ai4kanban@latest <command>` — the same command, fetched each time, if you would
+rather not install anything.
+
+## Install into a project
 
 From your project root:
 
 ```bash
-npx ai4kanban install
+akb install --tracks feature,bug,research
 ```
 
-That copies the skill into `.claude/skills/kanban/` (Claude Code) and
-`.agents/skills/kanban/` (Codex), then scaffolds `docs/kanban/` — the track folders, the
-board index, the memory set, and a blank `config.md`.
+That scaffolds `docs/kanban/`: the track folders, the board index, the memory set, and a
+blank `config.md`. Nothing is written outside that folder — that is the whole footprint.
 
-Pass the tracks your project actually splits into:
+Pass the tracks your project actually splits into. Normally you don't run this by hand —
+you paste the install prompt from <https://ai4kanban.dev/INSTALL_PROMPT.txt> and your agent
+reads the repo, picks the tracks, runs this command, and fills in the config afterwards.
+
+## Drive the board from your coding agent
+
+Optional, and separate from the board on purpose: a board works from the app on its own.
+Add it when you want Claude Code or Codex to work the same board too.
 
 ```bash
-npx ai4kanban install --tracks feature,bug,research
+akb skill            # is it here, and how current
+akb skill install    # add it, or bring an older copy up to date
 ```
 
-Normally you don't run this by hand. You paste the install prompt from
-<https://ai4kanban.dev/INSTALL_PROMPT.txt> and your agent reads the repo, picks the tracks,
-runs this command, and fills in the config afterwards.
+That writes one file into `.claude/skills/kanban/` (Claude Code) and
+`.agents/skills/kanban/` (Codex): `SKILL.md`, a short note telling a coding agent the board
+is here and that `akb` owns it. The board app does the same thing from a button:
+**Configuration → Skill**.
+
+Nothing else is copied in. The flows ship inside the command (`akb guide`), so a newer
+command is newer flows in every project at once — and the command itself stays where npm put
+it, so a project's git history never carries 350 kB of it. An agent that finds no `akb` on
+the PATH runs `npx --yes ai4kanban@latest <command>` instead; the note says so.
 
 ## Update
 
+Two lines, and there is no third:
+
 ```bash
-npx ai4kanban update
+npm install -g ai4kanban@latest   # a newer command
+akb update                        # a repaired board, from the project root
 ```
 
-Overwrites every skill folder it finds with this version, repairs a board written by an
-older release, and prints which version you moved from and to with a link to everything
-that changed in between. Your cards, config, and memory are never touched.
+`akb update` refreshes a skill folder that is already there — it never adds one, since not
+having it is an ordinary state now — adds whatever an older release never wrote to the
+board, clears out what it no longer writes, and prints which version you moved from and to
+with a link to everything that changed in between. Your cards, config, and memory are never
+touched.
+
+It can't do the first line to itself — replacing the file that is running is how you get
+half a command — so it checks npm and names that line when it is behind, rather than
+reporting success a release late.
 
 ## Put an agent to work
 
-Installed, this command is `akb`. It starts the board's runs, watches them, and holds the
-settings they run under — so a card can be built from a terminal, over ssh, or from a
-script, without a chat session and without a browser.
+`akb` starts the board's runs, watches them, and holds the settings they run under — so a
+card can be built from a terminal, over ssh, or from a script, without a chat session and
+without a browser.
 
 ```bash
 akb implement 12              # build the card
@@ -54,6 +87,20 @@ akb create "add dark mode"    # write the card(s) for it
 akb propose                   # write the next tasks
 akb archive 12                # finish it
 ```
+
+Add `--print` to any of them and nothing starts: it prints what to do instead, filled in
+for this board — the card's own path, the steps it has left, the memory file its modules
+point at, and the command that closes the job.
+
+```bash
+akb implement 12 --print      # the steps, for whoever is asking
+```
+
+That is the mode for an agent already in a session: it does the job in the conversation
+it is already in, rather than paying for a second agent to do the job it is sitting there
+to do. Start a run when you want the work to happen on its own. `akb help runs` carries
+the whole rule, beside the commands it applies to. An agent working inside a run the board
+started always gets the printed flow, so a run can't spawn a copy of itself.
 
 The run keeps working after the command returns. Watch it, or stop it, from anywhere —
 including from the board app, which drives its buttons through these same commands:
@@ -79,6 +126,28 @@ akb agent test                # one small chat, to see it works
 Runs use these settings, never what your shell happens to export. `akb help` lists
 everything, and `--json` on any command answers a program instead of a person.
 
+An API key is the one thing to leave to the user. Hand them the line rather than typing it
+for them: a key an agent types lands in its transcript and in the shell history, and a
+saved key is never read back.
+
+## The manual
+
+`akb help runs` is what a coding agent reads: every command it may call — the card work,
+the runs, the agent settings — and when to call each. `akb board help` is the board's own
+bookkeeping beneath it: ids, a card's fields, the index, the releases.
+
+The flows are `akb guide`:
+
+```bash
+akb guide                     # every flow, one line each
+akb guide board               # how the board works: card format, layout, memory
+akb guide refine              # one card, vague to ready
+akb guide plan-release        # fill a release from its goal
+```
+
+A printed flow already carries the ones its action needs, in full, so this is for the
+rest.
+
 A run that writes or changes a card is followed by `akb refine` on that card, started as a
 run of its own once the first one ends — so `akb create "…"`, `akb revise`, `akb resolve`,
 `akb propose` and `akb plan-release` all come back with their cards refined. Archiving or
@@ -93,7 +162,7 @@ tasks — all of that needs a judgement call, so it stays the agent's job. When 
 hits something it can't decide, it prints it under **Needs your attention** and leaves it
 alone.
 
-Both commands are safe to run twice.
+`akb install`, `akb skill install` and `akb update` are all safe to run twice.
 
 ## Also
 

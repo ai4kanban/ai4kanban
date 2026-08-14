@@ -17,10 +17,12 @@ import {
   readModules,
   readReleases,
   readSetupDraft,
+  searchCards,
 } from "@/lib/board";
 import { setHarness, setHarnessSetting } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
 import {
+  clearSchedule,
   closePlan,
   closeRelease,
   dropPlan,
@@ -33,16 +35,20 @@ import {
   saveProject,
   setCardsRelease,
   setReleaseGoal,
+  setSchedule,
 } from "@/lib/edit";
 import { getSession, listSessions, resumeSession, startSession, type StartResult, stopSession } from "@/lib/registry";
 import { setSecret } from "@/lib/secrets";
+import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
 import { testConnection } from "@/lib/test-connection";
 import type {
   AgentInfo,
   Board,
   BulkReleaseResult,
   CardPatch,
+  CardRef,
   ClosePlan,
+  CommandState,
   ConnectionTest,
   DropPlan,
   FillPlan,
@@ -50,6 +56,8 @@ import type {
   SaveProjectResult,
   SessionView,
   SetupDraft,
+  SkillInstall,
+  SkillState,
   TrackDraft,
   WriteResult,
 } from "@/lib/types";
@@ -71,6 +79,15 @@ export async function getBoard(): Promise<BoardResult> {
 /** The module names from docs/kanban/modules.md, for the create dialog's picker (#38). */
 export async function getModules(): Promise<string[]> {
   return readModules();
+}
+
+/** The open cards matching what is typed in the rail's search box (#212). The search runs
+ *  here and not in the browser: the card page hands its client nothing but the one card it
+ *  is showing, and the board's bodies are the better part of a megabyte on a board of any
+ *  age — neither page has the words to search, and neither should have to be given them. */
+export async function searchCardsAction(query: string): Promise<CardRef[]> {
+  if (typeof query !== "string") return [];
+  return searchCards(query);
 }
 
 // The actions a client button can start. `auto-refine` is one of them (#99): the card
@@ -329,6 +346,30 @@ export async function patchCardAction(id: number, patch: CardPatch): Promise<Wri
   return patchCard(id, patch);
 }
 
+// Schedule an action on a blocked card (#140) — the second way out of a card that is waiting
+// on another one: instead of building it anyway, the user says what should happen, and the
+// board starts it by itself once the last card in its way has left the board.
+//
+// No agent run to write the mark: it is one field on the card, so there is nothing for an
+// agent to decide, and a run would answer minutes later in a log that can't refuse a card
+// with nothing in its way while the dialog is still open. Everything about whether this card
+// may carry a schedule is the CLI's rule; a refusal comes back as the line it wrote.
+export async function scheduleCardAction(
+  id: number,
+  action: string,
+  notes = "",
+): Promise<WriteResult> {
+  if (!Number.isInteger(id)) return { ok: false, error: "a card is scheduled by its number" };
+  if (typeof action !== "string") return { ok: false, error: "an action is text" };
+  return setSchedule(id, action, typeof notes === "string" ? notes : "");
+}
+
+// Take a card's schedule off — the card page's one control for it. Nothing fires after this.
+export async function unscheduleCardAction(id: number): Promise<WriteResult> {
+  if (!Number.isInteger(id)) return { ok: false, error: "a card is scheduled by its number" };
+  return clearSchedule(id);
+}
+
 // The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv. Read once
 // each time the view opens; the file changes a few times a day at most, so there's nothing
 // to poll. A file that can't be read comes back as { ok:false, error }, so the message
@@ -424,4 +465,37 @@ export async function setHarnessSecretAction(key: string, value: string): Promis
 // way it can go wrong is a result the panel shows.
 export async function testConnectionAction(): Promise<ConnectionTest> {
   return testConnection();
+}
+
+// --- the coding agent skill (#174) -------------------------------------------
+// Whether a coding agent can drive this board, and the button that makes it able to. Both
+// are the board's own move; these say when, and turn a failure into a value the panel can
+// show rather than a crash page.
+
+/** Where the skill stands in this project, plus how the `akb` on this machine compares to
+ *  the copy the board runs on. Asked when the Skill section opens — the command check
+ *  spawns a process, so it never rides along with the board's poll. */
+export async function skillStateAction(): Promise<{ skill: SkillState; command: CommandState | null; error?: string }> {
+  try {
+    const [skill, command] = await Promise.all([skillState(), commandState()]);
+    return { skill, command };
+  } catch (e) {
+    return { skill: UNKNOWN_SKILL, command: null, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Add the skill to this project, or bring an older copy up to date. It writes files in
+ *  the repo and nothing else: no global install, and no command replaced. */
+export async function installSkillAction(): Promise<SkillInstall> {
+  try {
+    return await installSkill();
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+      wrote: [],
+      skipped: [],
+      state: UNKNOWN_SKILL,
+    };
+  }
 }

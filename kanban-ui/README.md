@@ -21,17 +21,33 @@ needs them. What is deprecated is asking a person to start a server and open a b
 npx ai4kanban-ui        # deprecated — http://localhost:7420, localhost only
 ```
 
-Installing it, pointing it at a board elsewhere, changing the port, updating: the skill's
-`references/local-ui.md`. This file is about **using** it.
+Installing it, pointing it at a board elsewhere, changing the port, updating: run
+`akb guide local-ui`. This file is about **using** it.
 
 ## In the app
 
-Two things are the app's and not the browser's. The folder path in the header opens another
-project — the app has no terminal to be restarted from — and **File → Open Project…** does
-the same. And when a newer version is out, a line above the board says so with a link; the
-app never updates itself.
+On the first launch, pick a project folder. It does not need a board yet: if there is no
+`docs/kanban/` there, the app offers to make one and then opens its guided first run.
 
-Closing the window ends the board and every agent run under it.
+The folder path in the header opens the **Projects** list. Pick a project there to go back
+to a folder you opened before, or choose **Open folder…** to add another one. **File → Open
+Project…** opens the same folder picker, and **File → Open Recent** is another way back to a
+recent project.
+
+One project is open in the window at a time. Switching replaces the whole page with that
+project's board; no card, dialog, filter or half-written field from the previous project
+stays on screen. An agent run is different: it stays with the project where it started and
+keeps going after you switch away. A pulsing dot on that project's line says a run is still
+going there.
+
+The **×** on a project takes it off the list without touching its folder, board or history;
+open the folder again to put it back. The project on screen has no **×**, so switch away
+before removing it. If a remembered folder has been moved or deleted, its line says
+**folder is gone** and offers only the **×**.
+
+When a newer version is out, a line above the board says so with a link; the app never
+updates itself. Closing the window ends every board server and agent run across the
+projects the app has open.
 
 ## The board
 
@@ -79,6 +95,24 @@ The header carries six things:
   `docs/kanban/metrics.csv`, which the script keeps as you work; the view only reads it. A
   board with nothing recorded yet says so instead.
 - **Configuration** (the gear) — see below.
+
+### Finding a card
+
+Down the left is the **rail**: **All cards** at the top, which is the board, and under it
+every card this window has opened, each one closeable. It is on the board and on a card page
+alike, and you can drag its right edge to make it wider.
+
+Above those rows is a **Find a card** box. Type part of what you remember and the rail lists
+the cards that carry it, in their titles or anywhere in their bodies — upper and lower case
+make no difference, so `ui` finds a card that says `UI`. Click a match to open it.
+
+It searches every open card, including a group's subtasks, which the board's columns don't
+show — often the cards hardest to reach any other way. It never reaches the archive: the
+rail is about what you are working on now. A word that matches most of the board is fine —
+the matches scroll inside the rail. Nothing matching says so in a line, and clearing the box
+(the **×**, or Escape) puts the rail's own list back.
+
+The rail is hidden on a narrow window, and the box goes with it.
 
 ### The goal
 
@@ -371,9 +405,42 @@ so you can read them without opening the dialog.
 it can settle itself, and if nothing is left for you to decide it goes straight on to build
 the card in the same run. If a real judgment call remains, it stops and leaves it for you.
 
-When a card is blocked, **Waiting on #&lt;id&gt; — still open** sits next to **Implement**, with a
-link to each blocking card. The button still works: it's there so you know what you're
-starting ahead of, not to stop you.
+When a card is blocked, the **Implement** dialog names each card still in the way and asks
+you to tick that you know before **Implement anyway** wakes up. The button still works: the
+warning is there so you know what you're starting ahead of, not to stop you.
+
+### Schedule it instead
+
+Beside **Implement anyway** sits **Schedule**. It starts nothing now: it writes on the card
+what you want done, and the board runs it by itself within a minute of the last card in the
+way leaving the board — archived or rejected, either way that card is gone. The waiting is
+the machine's job, not yours.
+
+- **Two actions can be scheduled**: **Schedule** in the Implement dialog builds the card, and
+  **Schedule** in the Refine dialog sharpens its plan. Scheduling is never a move of its own
+  — it always follows one of those two.
+- **Nothing to tick.** Nothing starts ahead of the blocker, so Schedule needs no "I know".
+  A card that isn't **ready** still asks for its "the plan may still be rough" tick before you
+  can schedule a build, the same as building it now.
+- **The note you type goes with it** and reaches the run when it fires.
+- **One at a time.** Scheduling a second action replaces the first, and the dialog says which
+  one was on.
+- **The card reads `pending`** in place of its stage, on the board and on its own page.
+  Hover it and it says what will run and what it waits for — `implement · waiting on #57`.
+  It is not a new stage: the card keeps the one it had and stays where it is in the queue.
+- **Take it off** on the card page, next to **Scheduled**. Nothing fires after that.
+- **It has its own slot.** One scheduled run starts per minute, and neither a refine in
+  flight nor a recurring job that is due can hold back a card whose blocker just cleared.
+- **It fires once.** The mark comes off the moment the run starts, so a run that fails or
+  that you stop doesn't come back on its own — the card is plain again and you start it by
+  hand.
+- **A schedule that has gone pointless is dropped**, not run: a refine you queued on a card
+  someone has since taken to **ready** has nothing left to do.
+- **A card whose blocker is never finished stays pending forever.** That costs nothing, and
+  taking the schedule off is one click.
+
+The mark lives in the card's own frontmatter, so it survives closing the board, a reboot,
+and a clone on another machine — and it travels with the card if you move it.
 
 **Refine** runs one refine on this card right now. Its dialog has nothing to type — it says
 what the agent will do, and you confirm. It is the same run the board starts by itself after
@@ -383,7 +450,8 @@ card whenever you want rather than waiting for something else to happen.
 The button shows only while a refine would still move the card. It's gone once the card is
 **ready**, once every todo is checked, and when every open question is one only you can
 answer — **Resolve** is the button for that last one. A **Blocked** card keeps the button;
-the dialog names the blocker in one line and refines anyway.
+the dialog names the blocker in one line and offers both ways on — **Refine anyway** now, or
+**Schedule** it for when that card is done.
 
 A card can only have one run at a time. If the board is already refining this card, the
 button is off and the badge beside the title says what's going on.
@@ -402,6 +470,9 @@ own: it appears in the runs panel with its own log, and you can stop it like any
 - **Finishing or rejecting a card refines the ones it was holding up.** Every card it was
   blocking that now has nothing left in its way gets its own refine. A group task's subtasks
   come free one wave at a time, each refined when its turn comes.
+- **A group's main card is not refined by a subtask finishing.** Ticking its line is the
+  group's progress, not a new plan, so a group of ten subtasks doesn't refine its main card
+  ten times. Change the main card itself and it is refined like any other.
 - **Cards a refine can't move are skipped** — one still waiting on a blocker, one the run
   left **ready**, a recurring card, one whose todos are all ticked, and one whose open
   questions are all yours to answer. **Resolve** is the button for that last one.
@@ -541,7 +612,7 @@ the subtask files are gone.
 ## Configuration
 
 The gear in the header opens the **Configuration** dialog. A sidebar on its left names the
-sections — for now just **Agent** — and a new group of settings joins as one more entry
+sections — **Agent** and **Skill** — and a new group of settings joins as one more entry
 there. It holds:
 
 - **Agent** — pick the agent that every button spawns: **Claude Code** or **Codex**. It runs

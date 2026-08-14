@@ -2,9 +2,11 @@
 .claude/
 .agents/
 
-# The skill copy the `ai4kanban` npm package ships — rebuilt by cli/scripts/bundle-skill.mjs
-# on every publish, so it never belongs in git.
-cli/skill/
+# The board's rules: cli/src/ built into one file by cli/scripts/build.mjs. `npm install`
+# in cli/ makes it (the `prepare` script) and a publish rebuilds it, so it never belongs in
+# git — it used to be committed at skill/kanban.mjs, back when installing a skill copied it
+# into the user's project beside the note (#213).
+cli/dist/
 
 # Local UI session registry: live agent sessions + their captured logs (task #12)
 docs/kanban/.sessions.json

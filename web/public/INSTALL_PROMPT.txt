@@ -1,33 +1,47 @@
 Set up ai4kanban for this project.
 
-Setup is one command plus the steps only an agent in this repo can do. The command copies
-the skill in and scaffolds the board; the skill's own setup guide walks you through the
-rest. Your settings live with the board at `docs/kanban/config.md`, never inside the skill
-folder, so the skill can be replaced wholesale on every update.
+Setup is the `akb` command plus the steps only an agent in this repo can do. `akb` scaffolds
+the board and then tells you the rest — the flows ship inside it, so nothing about how the
+board works is copied into this repo to go stale. Your settings live with the board at
+`docs/kanban/config.md`.
 
-1. Read this repository first, before running anything — enough to pick the tracks the
+1. Get the command:
+
+       npm install -g ai4kanban
+
+   Check it with `akb version`. If a global install isn't wanted here, every `akb <command>`
+   below also works as `npx --yes ai4kanban@latest <command>` — same command, fetched each
+   time. To move to a newer one later: `npm install -g ai4kanban@latest`.
+
+2. Read this repository, before installing anything into it — enough to pick the tracks the
    work naturally splits into: the buckets a task can live in. The default is
    `feature bug research`; pick something that fits this project better if it does. A solo
-   product being launched fits the indie-hacker preset (the skill's
-   `references/presets/indie-hacker.md`) better than the default tracks.
+   product being launched fits the indie-hacker preset (`akb guide preset-indie-hacker`)
+   better than the default tracks.
 
-2. Run the one setup command from the project root, passing those tracks:
+3. Install into the project, from its root, passing those tracks:
 
-       npx --yes ai4kanban@latest install --tracks <track1>,<track2>,...
+       akb install --tracks <track1>,<track2>,...
 
-   That copies the skill into `.claude/skills/kanban/` (Claude Code) and
-   `.agents/skills/kanban/` (Codex), scaffolds the board under `docs/kanban/`, and writes
-   `docs/kanban/setup-checklist.md` — setup's remaining steps, one box each. It's safe to
-   run twice and it never edits a board that's already there.
+   That writes one file per agent — `SKILL.md`, a short note saying the board is here — into
+   `.claude/skills/kanban/` (Claude Code) and `.agents/skills/kanban/` (Codex), scaffolds
+   the board under `docs/kanban/`, and writes
+   `docs/kanban/setup-checklist.md`: setup's remaining steps, one box each. It's safe to run
+   twice and it never edits a board that's already there.
 
    Already added the skill as a plugin (`/plugin marketplace add ai4kanban/ai4kanban` then
-   `/plugin install kanban@kanban`)? The plugin makes the skill available but does not
+   `/plugin install kanban@kanban`)? The plugin makes the note available but does not
    configure a board, so still run the command — it scaffolds the board either way.
 
-3. Read the skill's `SKILL.md`, at `.claude/skills/kanban/SKILL.md` — note how its "The
-   script" section says to run the script. Then follow the skill's `references/setup.md`:
-   it is the guide for every box left on the checklist, from filling the config to
-   creating the first tasks. Start at the first unticked box.
+4. Run `akb guide setup` and follow it: it is the guide for every box left on the checklist,
+   from filling the config to creating the first tasks. Start at the first unticked box.
 
-To pull a newer version later, run `npx --yes ai4kanban@latest update` — same shape, one
-command. The skill's `references/update.md` covers what it does and what it leaves to you.
+Everything else the board does is that same command:
+
+    akb help                 every command
+    akb help runs            the manual an agent reads — what to call, and when
+    akb <action> <id> --print   one job, filled in for this board, to do in this session
+    akb guide                the flows themselves, by name
+
+To update later: `npm install -g ai4kanban@latest` for a newer command, then `akb update`
+to repair the board. Those two are the whole of it — `akb guide update` spells them out.

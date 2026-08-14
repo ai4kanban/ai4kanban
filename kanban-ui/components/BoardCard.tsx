@@ -4,10 +4,12 @@ import Link from "next/link";
 import { FiCheck, FiHelpCircle } from "react-icons/fi";
 import { type Card, type SessionView } from "@/lib/types";
 import { parseQuestion } from "@/lib/questions";
+import { scheduleLabel } from "@/lib/schedule";
 import { RUNNING_VERB, RunningBadge } from "./agent-shared";
 import {
   BlockedChip,
   GroupChip,
+  PendingPill,
   PriorityChip,
   RoiTag,
   StatusPill,
@@ -122,6 +124,11 @@ export function BoardCard({
                 onOpenLog(liveSession.sessionId);
               }}
             />
+          ) : card.schedule ? (
+            // Something is queued to run on this card the moment its blockers clear (#140).
+            // It stands in for the status pill — one mark per card — and the card keeps its
+            // place in the column: it is the same card, just not startable yet.
+            <PendingPill label={scheduleLabel(card)} />
           ) : (
             <StatusPill status={card.status} />
           )}
@@ -157,10 +164,10 @@ export function BoardCard({
           )}
         </span>
       </div>
-      {/* The title keeps its 14px while the meta around it shrinks — the card is
-          a sentence with annotations, and the annotations should read a rung
-          quieter, not the title a rung smaller. */}
-      <p className="mb-2.5 text-[14px] font-[700] leading-snug tracking-[-0.01em]">{card.title}</p>
+      {/* A board can hold hundreds of cards, so the title sits just one rung
+          above the meta around it (13 vs 11.5) — still the loudest thing on the
+          card, but small enough that a long column stays scannable. */}
+      <p className="mb-2.5 text-[13px] font-[700] leading-snug tracking-[-0.01em]">{card.title}</p>
       <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <PriorityChip value={card.priority} />
         <RoiTag value={card.roi} />

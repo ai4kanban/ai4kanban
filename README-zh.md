@@ -72,7 +72,13 @@ AI4Kanban 面向小团队。它不是替你决定产品方向，而是把人的�
 
 ## 快速开始
 
-在项目根目录下，对 Claude Code（或任何能执行 Shell 命令的编码 Agent）说：
+看板的一切都由一条命令 `akb` 完成，先把它装上：
+
+```bash
+npm install -g ai4kanban
+```
+
+然后在项目根目录下，对 Claude Code（或任何能执行 Shell 命令的编码 Agent）说：
 
 ```
 Set up ai4kanban for this project. Read
@@ -82,12 +88,27 @@ https://ai4kanban.dev/INSTALL_PROMPT.txt and follow it.
 Agent 会先读取代码库，再运行：
 
 ```bash
-npx ai4kanban install --tracks feature,bug,research
+akb install --tracks feature,bug,research
 ```
+
+这一步只搭起 `docs/kanban/` 这块看板，`docs/kanban/` 之外一个文件都不动。接着，让 agent
+能看见这块看板：
+
+```bash
+akb skill install
+```
+
+装进仓库的只有两个文件（每个 agent 各一份）：一张短笺，说明看板在这儿；以及命令自身。
+别的什么都不拷 —— agent 照着干活的那些流程都随 `akb` 一起发布，所以命令一新，所有项目
+的流程就都跟着新了。要是你就在桌面应用里干活，这步可以跳过：应用里随时能一键装上
+（**Configuration → Skill**），看板本身不装也照跑。
 
 安装过程中需要你回答三件事：项目是什么、工作分成哪些 track，项目目标，以及由哪个 Agent
 来跑这块看板。Agent 会据此建立模块记忆与模块图，并创建首批 10 张基础任务卡片。此后即可
 直接通过看板管理项目。
+
+不想装全局命令？本文里每条 `akb <command>` 都可以写成
+`npx --yes ai4kanban@latest <command>`，是同一条命令，只是每次现拉一遍。
 
 在[桌面应用](https://ai4kanban.dev/download)里，这三个问题会变成一段引导式的首次设置：
 一屏一个问题，默认值都已填好，不用往任何地方粘贴命令。这样建出来的看板和上面完全一样：
@@ -96,7 +117,9 @@ npx ai4kanban install --tracks feature,bug,research
 如果 Agent 无法访问链接，可以打开 [`INSTALL_PROMPT.txt`](web/public/INSTALL_PROMPT.txt)
 并将内容交给它，效果相同。唯一的前置要求是 Node.js 18+，无需安装其他依赖。
 
-## 使用 skill
+## 用起来
+
+两条路，落地的结果一样：跟你的编码 agent 说一声，或者自己敲 `akb`。
 
 | 你说 | Agent 做什么 |
 | --- | --- |
@@ -112,14 +135,28 @@ npx ai4kanban install --tracks feature,bug,research
 | "add a recurring task: …" | 创建不会归档的重复任务；说 "run #4" 即可运行一次 |
 | "create release v1" | 规划一个版本；随后可使用 "put #4 in v1"、"what's in v1?"、"close v1" |
 
+看板应用里那些按钮能做的事，同样可以直接说出来 —— agent 会执行对应的命令，落地的结果
+和按按钮完全一样：
+
+| 你说 | Agent 做什么 |
+| --- | --- |
+| "在后台做 #4" | 起一趟跑 4 号卡，命令返回后这趟还在跑 |
+| "现在在跑什么？" | 列出正在跑的和最近跑过的 |
+| "把那趟的日志给我看看" | 拉出这趟的日志，也可以边跑边看 |
+| "停掉" | 停掉这趟；已经改的文件留在工作区，不回滚 |
+| "那趟挂了，接着跑" | 接着原来的对话继续，而不是从头再来 |
+| "换成 Codex" / "换 Opus" | 换 agent、换模型、换思考强度 |
+| "试试我这套配置通不通" | 发一句话过去，把结果告诉你 |
+| "帮我存一下 API key" | 把该敲的那行**给你**，让你自己敲 —— key 不经过 agent |
+
 表中是英文示例，使用中文指令同样有效。
 
 完整流程见[日常循环指南](docs/guides/daily-loop.md)。
 
-本仓库也使用这套 skill 管理自身开发：`docs/kanban/` 是一块真实运行的看板，可作为完整
+本仓库也用这块看板管理自身开发：`docs/kanban/` 是一块真实运行的看板，可作为完整
 示例参考。
 
-### 在终端里干活
+### 你自己敲的那些命令
 
 同样的活儿，手动开工。`akb` 让 agent 直接开做某张卡，不用开对话、也不用开浏览器 ——
 可以走 ssh、写进脚本，或者在你干别的活时另开一个窗口跑。
@@ -132,6 +169,15 @@ akb revise 12 "去掉 CSV 那条"  # 改卡上写的内容
 akb create "加个深色模式"      # 为这个需求写卡
 akb propose                   # 写出接下来该做的任务
 akb archive 12                # 收尾归档
+```
+
+任何一条后面加 `--print`，就什么都不起：它改为把该做的步骤打印出来，而且是照着这块看板
+填好的 —— 卡自己的路径、还剩哪些没做、笔记该写进哪个 memory 文件、最后用哪条命令收尾。
+已经在对话里的 agent 就靠它把活儿在当前对话里做掉，而不是再起一个 agent 来做它本来就该
+做的事。
+
+```bash
+akb implement 12 --print      # 把步骤给正在问的人
 ```
 
 命令返回后这一趟还在跑 —— 关掉终端，agent 照样继续。在哪儿都能看、都能停：
@@ -159,6 +205,14 @@ akb agent test                # 发一句话试试通不通
 
 跑起来只认这些配置，不认你 shell 里 export 了什么 —— 所以同一条命令在哪儿敲都是一个
 意思。`akb help` 里是全部命令。
+
+`akb` 也是 coding agent 用来搞懂这块看板怎么运作的地方。`akb <action> --print` 把这件活
+照着你的看板填好交给它，`akb guide` 里是各套流程本身 —— 一张卡怎么打磨、一个版本怎么
+规划、memory 里该写什么。这些都跟着命令走，所以命令一新，全部流程就都新了，任何项目都
+不会留着一份逐渐过时的副本。落进你仓库的只是一张短笺，告诉 agent 来问。
+
+再往下是 `akb board` —— 分配 id、写卡片的 frontmatter、维护索引这些记账活。这些你从来
+不用敲，是 agent 敲的。
 
 ### 看板桌面应用（可选）
 
@@ -216,11 +270,27 @@ npx ai4kanban-ui        # 已弃用 —— http://localhost:7420，仅本机
 
 ## 更新
 
-使用一条提示词即可完成更新：
+两条命令，没有第三条。先换一条新的命令：
+
+```bash
+npm install -g ai4kanban@latest
+```
+
+再在项目根目录下把看板修一遍：
+
+```bash
+akb update
+```
+
+`akb update` 会重写装进仓库的那两个文件、补上旧版本没写过的东西，并且不动你的卡片、
+配置和 memory。它没法在自己正在运行时把自己换掉，所以当它落后于最新版时，会把上面那行
+告诉你，而不是悄悄跑完。也不存在第三步：流程都在命令里，命令一新，你所有项目的流程就
+都新了。
+
+或者直接告诉你的 coding agent：
 
 ```
-Update ai4kanban in this project. Read
-.claude/skills/kanban/references/update.md and follow it.
+Update ai4kanban in this project. Run `akb guide update` and follow it.
 ```
 
 ## 许可证

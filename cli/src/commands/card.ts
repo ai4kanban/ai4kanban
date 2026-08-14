@@ -16,6 +16,8 @@ import { CADENCE_FORMS, formatCadence, parseCadence } from '../lib/cadence'
 import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards'
 import { RECURRING } from '../lib/recurring'
 import { validRelease, setSubtreeRelease } from '../lib/releases'
+import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
+import { setCardSchedule } from '../lib/view/edit'
 import { readmeHeadingFor, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme'
 import { reconcileBoard } from '../lib/reconcile'
 import type { FlagValue, Meta, MoveResult } from '../lib/types'
@@ -251,6 +253,47 @@ export function cmdUpdate(args: string[]): MoveResult {
   }
   say(`updated #${id}: ${changes.join(', ') || '(nothing changed)'}`)
   return { id, changes, file: rel(dest) }
+}
+
+const SCHEDULE_FLAGS = ['action', 'notes', 'clear']
+
+// Schedule an action on a card that is waiting on another card, so the board starts it by
+// itself the moment the last card in its way leaves the board — or take that schedule off
+// again with `--clear`.
+//
+// A card holds one schedule at a time: a second one replaces the first, and the receipt says
+// which one it replaced. Only a card that really is waiting on something can carry one, and
+// only the two actions a run can finish without anybody watching (see lib/schedule.ts).
+export function cmdSchedule(args: string[]): MoveResult {
+  const { flags, positional } = parseFlags(args, SCHEDULE_FLAGS)
+  const id = Number(positional[0])
+  if (!Number.isInteger(id)) {
+    die(`need a numeric task id: schedule <id> --action ${SCHEDULED_ACTIONS.join('|')}`)
+  }
+
+  if (flags.clear !== undefined) {
+    if (flags.action !== undefined || flags.notes !== undefined) {
+      die('--clear takes a schedule off — it goes with nothing else')
+    }
+    const was = setCardSchedule(id, null)
+    say(was ? `#${id} is no longer scheduled (was ${was.action})` : `#${id} had no schedule`)
+    return { id, schedule: null, was: was?.action ?? null }
+  }
+
+  if (flags.action === undefined) {
+    die(`schedule <id> needs --action ${SCHEDULED_ACTIONS.join('|')}, or --clear to take one off`)
+  }
+  const action = asScheduledAction(flags.action)
+  if (!action) {
+    die(`--action must be one of ${SCHEDULED_ACTIONS.join(' | ')} (got "${String(flags.action)}")`)
+  }
+  const notes = flags.notes !== undefined && flags.notes !== true ? String(flags.notes).trim() : ''
+  const was = setCardSchedule(id, { action, notes })
+  say(
+    `#${id} is scheduled to ${action} when the cards it waits on are done` +
+      (was ? ` (replacing the ${was.action} that was scheduled)` : ''),
+  )
+  return { id, schedule: action, notes, was: was?.action ?? null }
 }
 
 // Patch a card's open-question list. Every op edits in place — append one, rewrite

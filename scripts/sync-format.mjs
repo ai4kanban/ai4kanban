@@ -50,11 +50,15 @@ const TO = path.join(ROOT, "kanban-ui", "lib", "format");
 //   view/types, view/rules   the board as a screen draws it, and the judgments it
 //                            makes about a card — is this card refinable, where does
 //                            it sort. Both run in the browser.
+//   skill/types              whether this project can be driven from a coding agent,
+//                            and what one install wrote. The Configuration dialog
+//                            draws that answer.
 const SHARED = [
   "cadence.ts",
   "yaml.ts",
   "agent/types.ts",
   "agent/providers.ts",
+  "skill/types.ts",
   "view/types.ts",
   "view/rules.ts",
 ];

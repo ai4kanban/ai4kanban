@@ -2,8 +2,11 @@
 
 ## Skill Writing
 
-Add minimal, only necessary information to SKILL.md and references/*.md. The context is precious.
-When writing a skill/reference, it's recommended to use `- **bold title**: one liner` format to make the requirements scannable.
+The words live in two places and nowhere else: `skill/SKILL.md` — the short note installed
+into a project, which only says the board is here and that `akb` owns it — and
+`cli/src/guide/*.md`, the flows, which ship with the command. Add minimal, only necessary
+information to either. The context is precious.
+When writing a flow, it's recommended to use `- **bold title**: one liner` format to make the requirements scannable.
 
 ## The public site
 
@@ -18,8 +21,9 @@ only; routing lives in comments in the files that own it. Read it before changin
   each have their own checks. Don't use `pnpm build`.
   - `cd web && pnpm typecheck && pnpm run lint`
   - `cd kanban-ui && pnpm typecheck && pnpm run lint`
-  - `cd cli && npm run lint` — typechecks `src/` and fails if the committed
-    `skill/kanban.mjs` isn't what it builds to. Rebuild with `npm run build` and commit it.
+  - `cd cli && npm run lint` — typechecks `src/`. The rules build to `cli/dist/kanban.mjs`,
+    which is a build product and not in git: `npm install` in `cli/` makes it, and there is
+    nothing to commit or keep in sync.
 
 ## Long conversation
 

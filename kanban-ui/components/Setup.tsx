@@ -37,7 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { type AgentInfo, GUIDED_STEPS, type SetupDraft, type SetupState, type SetupStep } from "@/lib/types";
 import { Button } from "./button";
-import { HarnessPicker } from "./Configuration";
+import { configDialog, HarnessPicker } from "./Configuration";
 import { GoalEditor } from "./Goal";
 import { Logo } from "./Logo";
 
@@ -79,6 +79,7 @@ export function SetupFlow({
   setup,
   agent,
   setupInstruction,
+  skillInstalled,
   onSaved,
   onExit,
 }: {
@@ -87,6 +88,10 @@ export function SetupFlow({
   /** The line to paste into a coding agent, for the user who would rather finish
    *  there — from lib/agent.ts, so it is worded for the agent they picked. */
   setupInstruction: string;
+  /** Whether that line would reach anything (#174). A board arrives without the
+   *  skill now, so handing the line over on a project that has none would be
+   *  handing over a paste that answers "I don't know that skill". */
+  skillInstalled: boolean;
   /** Re-read the board: every answer here changes a file the board is drawn from. */
   onSaved: () => void;
   /** Leave the flow for the board. The board keeps a way back in. */
@@ -192,13 +197,20 @@ export function SetupFlow({
                 />
               )}
 
-              {draft && !step && <DoneStep setup={setup} instruction={setupInstruction} onExit={onExit} />}
+              {draft && !step && (
+                <DoneStep
+                  setup={setup}
+                  instruction={setupInstruction}
+                  skillInstalled={skillInstalled}
+                  onExit={onExit}
+                />
+              )}
             </div>
           </div>
 
           {/* The way to hand what is left to a coding agent, from any step. The way
               out to the board is up in the header, beside the run's own title. */}
-          <Handover instruction={setupInstruction} />
+          <Handover instruction={setupInstruction} skillInstalled={skillInstalled} />
         </div>
       </div>
     </main>
@@ -618,10 +630,12 @@ function AgentStep({
 function DoneStep({
   setup,
   instruction,
+  skillInstalled,
   onExit,
 }: {
   setup: SetupState;
   instruction: string;
+  skillInstalled: boolean;
   onExit: () => void;
 }) {
   const left = setup.steps.filter((s) => !s.done);
@@ -644,7 +658,8 @@ function DoneStep({
         </ul>
       )}
 
-      <p className="mt-5 text-[13px] leading-relaxed text-nb-ink-soft">
+      <div className="mt-5">{!skillInstalled && <AddSkillFirst />}</div>
+      <p className="text-[13px] leading-relaxed text-nb-ink-soft">
         Paste this into your coding agent to finish them:
       </p>
       <CopyLine text={instruction} />
@@ -667,10 +682,15 @@ function DoneStep({
 export function SetupNotice({
   setup,
   instruction,
+  skillInstalled,
   onResume,
 }: {
   setup: SetupState;
   instruction: string;
+  /** Whether a coding agent can see this board (#174). When it can't, the way out
+   *  of this strip is the button that adds the skill, not a line that would reach
+   *  nothing — and the gear is on screen here, so it can open that pane. */
+  skillInstalled: boolean;
   /** Reopen the guided run. Absent when there is nothing left in it to ask. */
   onResume?: () => void;
 }) {
@@ -696,7 +716,7 @@ export function SetupNotice({
           <Button size="sm" className="shrink-0" onClick={onResume}>
             Continue setup
           </Button>
-        ) : (
+        ) : skillInstalled ? (
           <Button
             size="sm"
             variant="ghost"
@@ -706,9 +726,23 @@ export function SetupNotice({
             <FiTerminal className="text-[13px]" aria-hidden />
             Finish in your coding agent
           </Button>
+        ) : (
+          // No skill here, so there is nothing to hand the line to. The gear is on
+          // screen from this strip, so this opens the pane that adds it rather
+          // than telling the user where to look.
+          <Button
+            size="sm"
+            variant="ghost"
+            className="shrink-0"
+            title="A board arrives without the skill — this adds it"
+            onClick={() => configDialog.open("skill")}
+          >
+            <FiTerminal className="text-[13px]" aria-hidden />
+            Add the coding agent skill
+          </Button>
         )}
       </div>
-      {handing && <CopyLine text={instruction} />}
+      {handing && skillInstalled && <CopyLine text={instruction} />}
     </div>
   );
 }
@@ -827,7 +861,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 // The footer every screen carries: the way to hand the rest to a coding agent,
 // for someone who would rather work there. It sits on the footer rather than on
 // one screen, because wanting it is a fair thing at any point in the run.
-function Handover({ instruction }: { instruction: string }) {
+function Handover({ instruction, skillInstalled }: { instruction: string; skillInstalled: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="border-t-[1.5px] border-nb-ink bg-nb-wash px-7 py-3">
@@ -841,6 +875,7 @@ function Handover({ instruction }: { instruction: string }) {
       </button>
       {open && (
         <div className="mt-2">
+          {!skillInstalled && <AddSkillFirst />}
           <p className="mb-2 text-[12px] leading-relaxed text-nb-ink-soft">
             Paste this into it. It picks up wherever setup got to, so nothing you answered here
             is asked again.
@@ -851,6 +886,28 @@ function Handover({ instruction }: { instruction: string }) {
     </div>
   );
 }
+
+/** The line that adds the skill, without which a paste into a coding agent reaches nothing
+ *  (#174). Shown wherever the board hands that paste over on a project that has no skill.
+ *
+ *  It is the command rather than a button, because these two places sit on the guided
+ *  setup screen — which has no header, so there is no Configuration dialog mounted to open.
+ *  On the board itself the strip offers the button instead. `npx` rather than `akb`, since
+ *  someone who never installed the command can still run it. */
+export function AddSkillFirst() {
+  return (
+    <div className="mb-3">
+      <p className="mb-1 text-[12px] leading-relaxed text-nb-ink-soft">
+        <strong className="text-nb-ink">Your coding agent can&rsquo;t see this board yet.</strong>{" "}
+        A board arrives without the skill — run this in the repo first, then paste the line
+        below. (Configuration → Skill does the same from here.)
+      </p>
+      <CopyLine text={ADD_SKILL_COMMAND} />
+    </div>
+  );
+}
+
+const ADD_SKILL_COMMAND = "npx ai4kanban@latest skill install";
 
 // The checklist writes a step's file paths in backticks. Render those as code and
 // leave the rest as plain text — the wording is the script's, shown as written.

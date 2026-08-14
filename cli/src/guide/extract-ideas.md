@@ -17,7 +17,7 @@ Read `docs/kanban/config.md`, `docs/kanban/memory/goal.md`, and
 change.
 
 Group candidates by module and send each group to a subagent. Split a large group when
-useful. Give it the relevant source excerpts, module memory, `${KB} list --module
+useful. Give it the relevant source excerpts, module memory, `akb board list --module
 <module>`, code, and docs. If no subagent is available, run the same checks in the main
 agent.
 
@@ -33,7 +33,7 @@ Return `add`, `update #<id>`, or `skip`, with one-line evidence.
 ## 3. Reconcile and create
 
 Merge duplicate drafts across modules and group tightly coupled work. Apply updates,
-send each surviving `add` draft to "Add one task idea" in `references/add-task.md`, then
+send each surviving `add` draft to "Add one task idea" in `akb guide add-task`, then
 report what was created, updated, and skipped.
 
 **Rules**:

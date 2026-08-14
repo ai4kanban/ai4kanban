@@ -14,9 +14,10 @@ except where another doc is named.
   projects opened before are a click away, and a folder with no board starts onboarding
   there. One project is open at a time — switching reloads the whole board and the window
   says which project it is. A run keeps going in the project it started in, and the list
-  marks the projects that have one running.
+  marks the projects that have one running. The **×** takes a project off the list without
+  touching its folder, and a folder that has moved or gone says so and offers only the **×**.
 - Go back and forward between the views you opened in the app: `desktop/README.md`.
-- Run the board from a browser with `npx ai4kanban-ui`: `skill/references/local-ui.md`.
+- Run the board from a browser with `npx ai4kanban-ui`: `akb guide local-ui`.
   Deprecated the day the app shipped — it keeps working, but the app is the way in.
   npm says so too: installing it warns and points at `ai4kanban.dev/download`.
 - Started where there is no board, the page says so, names the folder it searched, and
@@ -49,6 +50,8 @@ except where another doc is named.
   guide above it, and saving stops the board asking for a goal right away.
 - See the last 30 days of completed, created, and rejected cards as a chart in the Daily
   progress view.
+- Find a card by typing part of its title or body into the rail's search box, on the board
+  and on a card page alike — "Finding a card" in `kanban-ui/README.md`.
 
 ## Releases
 
@@ -89,7 +92,8 @@ except where another doc is named.
 
 - A run that writes or changes a card is followed by a refine of that card, as its own run
   in the panel — watchable and stoppable. Finishing or rejecting a card refines the ones it
-  was holding up: `kanban-ui/README.md`, "The refine that follows a run".
+  was holding up, and a group's main card is left alone when a subtask finishes:
+  `kanban-ui/README.md`, "The refine that follows a run".
 - Refine the card you are looking at from a **Refine** button on its page, whenever you
   want.
 
@@ -103,6 +107,10 @@ except where another doc is named.
 
 ## Cards
 
+- Schedule an implement or a refine on a card that is waiting on another card, and the
+  board runs it by itself once the last card in its way leaves the board — the card reads
+  **pending** until then, and one control takes the schedule off:
+  `kanban-ui/README.md`, "Schedule it instead".
 - Answer a question with choices by ticking a list, with the recommended ones already
   ticked.
 - Archive a group root once all its subtasks are done or rejected.
@@ -119,3 +127,6 @@ except where another doc is named.
   the board keeps the file out of git.
 - Press **Test** to send one tiny message through the setup you saved, with the agent's
   own reason when it doesn't work.
+- The board reads its rules from the `akb` on your PATH when the app didn't bring its own,
+  so a project needs no copy of them; with no command installed every screen says
+  `npm install -g ai4kanban` instead of coming up empty.

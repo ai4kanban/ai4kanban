@@ -92,7 +92,14 @@ centered on a chat window; the board is the agent's project-management interface
 
 ## Quick start
 
-From your project root, tell Claude Code (or any coding agent that can run shell commands):
+Everything the board does is one command, `akb`:
+
+```bash
+npm install -g ai4kanban
+```
+
+Then, from your project root, tell Claude Code (or any coding agent that can run shell
+commands):
 
 ```
 Set up ai4kanban for this project. Read
@@ -102,13 +109,29 @@ https://ai4kanban.dev/INSTALL_PROMPT.txt and follow it.
 The agent first reads your codebase, then runs:
 
 ```bash
-npx ai4kanban install --tracks feature,bug,research
+akb install --tracks feature,bug,research
 ```
+
+That scaffolds the board under `docs/kanban/` and writes nothing outside it. Then, so the
+agent can see that board:
+
+```bash
+akb skill install
+```
+
+That leaves two files per agent in your repo — a short note saying the board is here, and
+the command itself. Nothing else is copied in: the flows the agent works by ship inside
+`akb`, so updating the command updates every project at once. Working from the board app
+instead? Skip it — the app adds the skill from a button whenever you want it
+(**Configuration → Skill**), and the board runs without one.
 
 Setup asks you for three things: what the project is and the tracks its work falls into,
 your project goal, and which agent runs the board. The agent uses those to establish module
 memory, map the project's modules, and create the first ten initial task cards. From
 then on, you can manage the project directly through the board.
+
+Don't want a global install? Every `akb <command>` in this README also works as
+`npx --yes ai4kanban@latest <command>` — the same command, fetched each time.
 
 In the [board app](https://ai4kanban.dev/download) those three questions are a short guided
 first run — one to a screen, everything prefilled, and nothing to paste. A board set up
@@ -120,7 +143,10 @@ If the agent cannot access the URL, open
 The result is the same. The only prerequisite is Node.js 18+; no other dependencies need
 to be installed.
 
-## Using the skill
+## Using the board
+
+Two ways in, and they land the same thing: say it to your coding agent, or type the `akb`
+command yourself.
 
 | You say | The agent does |
 | --- | --- |
@@ -137,14 +163,28 @@ to be installed.
 | "add a recurring task: …" | creates a recurring task that is never archived; say "run #4" to run it once |
 | "create release v1" | plans a release; you can then use "put #4 in v1", "what's in v1?", and "close v1" |
 
+Everything the board app's buttons do can be asked for the same way — the agent runs the
+matching command and lands exactly what the button lands:
+
+| You say | The agent does |
+| --- | --- |
+| "build #4 in the background" | starts a run on card #4 and returns; the run outlives the session |
+| "what's running?" | lists the runs in flight and the ones that ran lately |
+| "show me that run's log" | tails the run's log, or follows it as it goes |
+| "stop it" | ends the run; its half-finished edits stay in the working tree |
+| "that run died — carry on" | continues the same conversation instead of starting over |
+| "use Codex instead" / "switch to Opus" | picks the agent, its model, and how hard it thinks |
+| "check my setup works" | sends one small chat through and says what came back |
+| "save my API key" | hands **you** the line to type — a key never passes through the agent |
+
 The table uses English examples, but instructions in Chinese work as well.
 
 See the [daily loop guide](docs/guides/daily-loop.md) for the complete workflow.
 
-This repository also uses the skill to manage its own development. `docs/kanban/` is a
+This repository also uses the board to manage its own development. `docs/kanban/` is a
 real, active board that you can explore as a complete example.
 
-### From a terminal
+### The commands you type
 
 The same work, started by hand. `akb` puts an agent on a card without a chat session and
 without a browser — over ssh, in a script, or in a second window while you work.
@@ -157,6 +197,15 @@ akb revise 12 "drop the CSV"  # change what the card says
 akb create "add dark mode"    # write the card(s) for it
 akb propose                   # write the next tasks
 akb archive 12                # finish it
+```
+
+Add `--print` to any of them and nothing starts: it prints the steps instead, filled in for
+this board — the card's own path, what it has left to do, the memory file the note goes in,
+the command that closes the job. That is how an agent already in a session does the job
+itself, in the conversation it is already in, instead of starting a second one to do it.
+
+```bash
+akb implement 12 --print      # the steps, for whoever is asking
 ```
 
 The run keeps working after the command returns — close the terminal and the agent carries
@@ -185,6 +234,15 @@ akb agent test                # one small chat, to see it works
 
 Runs use these settings, never what your shell happens to export — so the same command
 means the same thing wherever you type it. `akb help` lists everything.
+
+`akb` is also what a coding agent reads to know how the board works. `akb <action> --print`
+hands it the job filled in for your board, and `akb guide` carries the flows themselves —
+how a card is refined, how a release is planned, what goes in memory. Those ship with the
+command, so a newer `akb` upgrades every flow at once and no project keeps a copy that falls
+behind. What lands in your repo is a short note telling the agent to ask.
+
+Beneath all of it sits `akb board` — the bookkeeping that owns ids, a card's frontmatter,
+and the index. You never type one of those; the agent does.
 
 ### The board app (optional)
 
@@ -248,11 +306,28 @@ window. What is deprecated is asking you to start a server and open a browser.
 
 ## Updating
 
-Update with a single prompt:
+Two lines, and nothing else. A newer command:
+
+```bash
+npm install -g ai4kanban@latest
+```
+
+Then a repaired board, from the project root:
+
+```bash
+akb update
+```
+
+`akb update` rewrites the two installed files, adds whatever an older version never wrote,
+and leaves your cards, config, and memory alone. It can't replace the command while it is
+running, so when it is behind it says the first line instead of finishing quietly. There is
+no third step: the flows ship inside the command, so a newer command is newer flows in
+every project you have.
+
+Or tell your coding agent:
 
 ```
-Update ai4kanban in this project. Read
-.claude/skills/kanban/references/update.md and follow it.
+Update ai4kanban in this project. Run `akb guide update` and follow it.
 ```
 
 ## License

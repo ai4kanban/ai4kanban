@@ -1,7 +1,7 @@
 {
   "name": "ai4kanban",
   "version": "0.5.1",
-  "description": "Set up and update AI4Kanban in one command — copies the skill into your project and scaffolds the Markdown board under docs/kanban/.",
+  "description": "AI4Kanban's `akb` command — scaffold the Markdown board under docs/kanban/, put an agent on a card, and carry the flows the agent works by.",
   "keywords": [
     "kanban",
     "claude",
@@ -26,17 +26,17 @@
   },
   "files": [
     "bin/",
-    "skill/"
+    "dist/"
   ],
   "engines": {
     "node": ">=18.0.0"
   },
   "scripts": {
     "build": "node scripts/build.mjs",
+    "prepare": "node scripts/build.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "npm run typecheck && node scripts/build.mjs --check",
-    "bundle": "node scripts/bundle-skill.mjs",
-    "prepublishOnly": "node ../scripts/sync-version.mjs --check && npm run build && npm run bundle"
+    "lint": "npm run typecheck",
+    "prepublishOnly": "npm run build && node ../scripts/sync-version.mjs --check"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",

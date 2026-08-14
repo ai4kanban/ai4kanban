@@ -25,19 +25,20 @@ import {
   type AgentAction,
   type Boldness,
   type Card,
+  type ScheduledAction,
   type SessionView,
   type TokenUsage,
 } from "@/lib/types";
 import { Button } from "./button";
 import { QuestionTagBadge } from "./chips";
+import { PULSE_DOT } from "./chrome";
 import { Dialog } from "./Dialog";
 import { Markdown } from "./Markdown";
 
 // Session-log chrome as Tailwind utilities, colocated with the markup that uses it.
-// The pulse dot (shared by the running badge and the live title bar) references
-// the nbPulse keyframe still defined in globals.css.
-const PULSE_DOT =
-  "size-[7px] rounded-full bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]";
+// The pulse dot the running badge and the live title bar wear is the board's
+// shared one (components/chrome.tsx) — the rail and the card page's subtasks say
+// "running" with the same mark.
 
 // The dialog textarea, styled per design.md's input rules: paper fill inside a
 // 1.5px ink border (borders are reserved for structural elements), ember focus
@@ -706,12 +707,17 @@ export function ActionDialog({
   dialog,
   onClose,
   onRun,
+  onSchedule,
   modules = [],
   release = null,
 }: {
   dialog: Exclude<DialogState, null>;
   onClose: () => void;
   onRun: (req: AgentReq, label: string) => void;
+  // Queue this action instead of starting it (#140) — offered only on a card
+  // with an open blocker, and only where the owner passed a handler. A view that
+  // doesn't schedule (the board's Create dialog) simply doesn't offer it.
+  onSchedule?: (action: ScheduledAction, notes: string) => void;
   // The module names for the create dialog's picker (from modules.md, read
   // server-side). Only the create kind uses it; the per-card dialogs ignore it.
   modules?: string[];
@@ -726,29 +732,42 @@ export function ActionDialog({
   const [text, setText, clearDraft] = useDraft(draftKey);
   // "Yes, I know" for a warned action (see the implement branch). Deliberately NOT
   // persisted like the note draft is: closing the dialog drops it, so every open
-  // asks again. The dialog unmounts on close, so this resets on its own.
+  // asks again. The dialog unmounts on close, so this resets on its own. There is
+  // one per warning, because a card can wear both at once and each tick answers
+  // its own box.
   const [ack, setAck] = useState(false);
+  const [ackRough, setAckRough] = useState(false);
   const run = (req: AgentReq, label: string) => {
     clearDraft();
     onRun(req, label);
   };
+  const schedule = (action: ScheduledAction) => {
+    clearDraft();
+    onSchedule?.(action, text.trim());
+  };
 
   if (dialog.kind === "implement") {
-    // Two warnings, and never both at once — the stronger one wins. `blocked_by`
-    // is the strong one: another open card has to land first, so building this
-    // now means building on something that isn't there. It only ever names live
+    // Two warnings, and they stand together when the card earns both. `blocked_by`
+    // is the hard one: another open card has to land first, so building this now
+    // means building on something that isn't there. It only ever names live
     // cards — archiving or rejecting a card drops its id from every other card's
     // blocked_by (kanban.mjs), so a leftover blocker can't linger here. `ready`
     // is the soft one: the plan may still be rough.
     //
-    // Either way the user can still go ahead — they know things the board doesn't
-    // — but going ahead is never the easy path. The warning box carries its own
-    // "I know" checkbox, and until it's ticked the confirm button is dead: no
-    // single click reaches an agent run the board said not to start. Ticking it
-    // wakes a quiet outlined button, not the ember CTA — the eye lands on Cancel.
+    // The user can still go ahead — they know things the board doesn't — but
+    // going ahead is never the easy path. Each warning box carries its own "I
+    // know" checkbox, and until every one shown is ticked the confirm button is
+    // dead: no single click reaches an agent run the board said not to start.
+    // Ticking them wakes a quiet outlined button, not the ember CTA.
+    //
+    // Schedule (#140) is the other way out of a blocker, and it is the plain one:
+    // nothing starts ahead of the blocker, so it answers the blocker warning
+    // without a tick. It still answers the rough one, because a scheduled
+    // implement on a rough card is the same call as building it now — only later.
     const blockers = dialog.card.blocked_by;
-    const notReady = blockers.length === 0 && dialog.card.status !== "ready";
+    const notReady = dialog.card.status !== "ready";
     const warned = blockers.length > 0 || notReady;
+    const canSchedule = onSchedule && dialog.card.openBlockers.length > 0;
     return (
       <Dialog title={`Implement #${dialog.card.id}`} onClose={onClose}>
         <p className={INTRO}>
@@ -762,14 +781,23 @@ export function ActionDialog({
             ackLabel={`I know ${blockers.map((n) => `#${n}`).join(", ")} ${blockers.length === 1 ? "isn't" : "aren't"} done yet.`}
           >
             This card is blocked by {blockers.map((n) => `#${n}`).join(", ")}, still open on the
-            board. Finish {blockers.length === 1 ? "that card" : "those cards"} first.
+            board. Finish {blockers.length === 1 ? "that card" : "those cards"} first
+            {canSchedule ? (
+              <>
+                {" "}
+                — or <strong>Schedule</strong> the build and the board will start it by itself
+                once {blockers.length === 1 ? "that card is" : "those cards are"} done.
+              </>
+            ) : (
+              "."
+            )}
           </WarningBox>
         )}
         {notReady && (
           <WarningBox
             tone="accent"
-            ack={ack}
-            onAck={setAck}
+            ack={ackRough}
+            onAck={setAckRough}
             ackLabel="I know the plan may still be rough."
           >
             This card isn&apos;t marked <strong>ready</strong> yet — its plan may still be
@@ -781,8 +809,18 @@ export function ActionDialog({
           onClose={onClose}
           confirmLabel={warned ? "Implement anyway" : "Implement"}
           risky={warned}
-          disabled={warned && !ack}
+          disabled={(blockers.length > 0 && !ack) || (notReady && !ackRough)}
           onConfirm={() => run({ action: "implement", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Implement #${dialog.card.id}`)}
+          alternate={
+            canSchedule
+              ? {
+                  label: "Schedule",
+                  title: "Build this card by itself, once nothing is in its way",
+                  disabled: notReady && !ackRough,
+                  onClick: () => schedule("implement"),
+                }
+              : undefined
+          }
         />
       </Dialog>
     );
@@ -841,6 +879,7 @@ export function ActionDialog({
     // "I know" checkbox either: a refine writes a plan, never code, so there is
     // nothing here to warn about.
     const blockers = dialog.card.openBlockers;
+    const canSchedule = onSchedule && blockers.length > 0;
     return (
       <Dialog title={`Refine #${dialog.card.id}`} onClose={onClose}>
         <p className={INTRO}>
@@ -850,21 +889,43 @@ export function ActionDialog({
         </p>
         {/* A blocked card is refined all the same — the board's rule for blocked
             is warn, don't stop — so this is one plain line saying what's still
-            open, with nothing to tick. */}
+            open, with nothing to tick. Scheduling (#140) is the answer it now
+            offers: refining a card whose foundation could still change shape is
+            the wasted work the dispatcher already skips, and waiting for the
+            blocker is exactly the fix. */}
         {blockers.length > 0 && (
           <p className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
             This card is blocked by {blockers.map((b) => `#${b.id}`).join(", ")}, still open on
-            the board. The plan may change once {blockers.length === 1 ? "that card is" : "those cards are"} done.
+            the board. The plan may change once {blockers.length === 1 ? "that card is" : "those cards are"} done
+            {canSchedule ? (
+              <>
+                {" "}
+                — <strong>Schedule</strong> it and the board refines it by itself once{" "}
+                {blockers.length === 1 ? "that card is" : "they are"} off the board.
+              </>
+            ) : (
+              "."
+            )}
           </p>
         )}
         <DialogButtons
           onClose={onClose}
-          confirmLabel="Refine"
+          confirmLabel={blockers.length > 0 ? "Refine anyway" : "Refine"}
+          risky={blockers.length > 0}
           onConfirm={() =>
             run(
               { action: "auto-refine", id: dialog.card.id, title: dialog.card.title },
               `Refine #${dialog.card.id}`,
             )
+          }
+          alternate={
+            canSchedule
+              ? {
+                  label: "Schedule",
+                  title: "Refine this card by itself, once nothing is in its way",
+                  onClick: () => schedule("refine"),
+                }
+              : undefined
           }
         />
       </Dialog>
@@ -942,9 +1003,9 @@ export function ActionDialog({
 // (design.md's tab-strip pattern: hairline rule, bold-ink active tab over a
 // short ember underline) switches the dialog's whole shape:
 //   • Describe — a textarea for what you want; the agent runs add-task and
-//     infers the modules itself (references/add-task.md step 1).
+//     infers the modules itself (`akb guide add-task` step 1).
 //   • Propose — no textarea (there's nothing to describe); the agent walks one
-//     module as a user and proposes new tasks inside it (references/propose.md).
+//     module as a user and proposes new tasks inside it (`akb guide propose`).
 //     Three chip rows steer it instead: WHERE the tasks land (the focus module,
 //     with "auto-pick" as the default chip), HOW MANY there are, and HOW BIG
 //     they are (the boldness).
@@ -1071,7 +1132,7 @@ function CreateDialog({
           {/* How many cards the run writes. Single digits, so the whole range
               fits one wrapped row and every count is one tap — no stepper to
               click up ten times. PROPOSE_MAX is the skill's cap ("How many" in
-              references/propose.md), not a UI limit. */}
+              `akb guide propose`), not a UI limit. */}
           <PickerSection
             label="How many"
             blurb="Tasks this run writes. More tasks means a longer run and a thinner idea each."
@@ -1152,7 +1213,7 @@ function CreateDialog({
 
 // The three boldness levels, in order of how big a swing they take, with the
 // words the dialog shows for each. What the levels MEAN to the agent is the
-// skill's ("Boldness" in references/propose.md) — these blurbs say the same
+// skill's ("Boldness" in `akb guide propose`) — these blurbs say the same
 // thing in the user's terms, so the row isn't three bare adjectives.
 const BOLDNESS_LEVELS: { key: Boldness; label: string; blurb: string }[] = [
   {
@@ -1199,7 +1260,7 @@ function PickerSection({
 // Resolve is the one action with structured input: a card carries a *list* of
 // open questions, so the dialog gives each its own answer box instead of one
 // catch-all note. Answers are optional — leave a box blank and the agent
-// researches that question itself (see references/resolve.md). Its own component
+// researches that question itself (see `akb guide resolve`). Its own component
 // so the per-question answer array is a clean, unconditional hook.
 function ResolveDialog({
   card,
@@ -1399,6 +1460,7 @@ export function DialogButtons({
   confirmLabel,
   disabled,
   risky,
+  alternate,
 }: {
   onClose: () => void;
   onConfirm: () => void;
@@ -1410,18 +1472,33 @@ export function DialogButtons({
   // is the one the eye lands on. Pair it with `disabled` until the user ticks
   // the warning's checkbox, so the button is never a single stray click away.
   risky?: boolean;
+  // The way out the board would rather the user took (#140): scheduling the
+  // action instead of forcing it past a blocker. It sits last, wearing the ember
+  // fill the risky confirm just gave up, so the plain path is the one the eye
+  // lands on and "anyway" stays the deliberate choice it is.
+  alternate?: { label: string; title?: string; disabled?: boolean; onClick: () => void };
 }) {
   return (
     <div className="mt-4 flex justify-end gap-2.5">
       <Button variant="ghost" onClick={onClose}>Cancel</Button>
       <Button
-        variant={risky ? "ghost" : "accent"}
+        variant={risky || alternate ? "ghost" : "accent"}
         className={risky ? "border-nb-peach-ink text-nb-peach-ink" : undefined}
         disabled={disabled}
         onClick={onConfirm}
       >
         {confirmLabel}
       </Button>
+      {alternate && (
+        <Button
+          variant="accent"
+          title={alternate.title}
+          disabled={alternate.disabled}
+          onClick={alternate.onClick}
+        >
+          {alternate.label}
+        </Button>
+      )}
     </div>
   );
 }

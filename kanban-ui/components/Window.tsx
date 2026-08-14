@@ -21,6 +21,10 @@ import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
 import { Rail } from "./Rail";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 
+/** Stood in for a caller that doesn't watch sessions. One instance, so a page
+ *  without it doesn't hand the rail a fresh empty set on every render. */
+const EMPTY: Set<number> = new Set();
+
 export function Window({
   /** The top row — <Header>, built by the page so it can hand it the board-only
    *  controls a card page has nothing to say about. */
@@ -34,6 +38,7 @@ export function Window({
    *  there is nothing for a board card or a `#12` link to remember to do. */
   currentId = null,
   currentTitle = "",
+  running,
   children,
 }: {
   header: React.ReactNode;
@@ -41,6 +46,10 @@ export function Window({
   openIds: number[];
   currentId?: number | null;
   currentTitle?: string;
+  /** The cards an agent is inside, for the rail's pulsing rows. Handed down
+   *  rather than polled for here: both pages already watch the registry, and a
+   *  fourth poll for one dot would be a poll to say nothing new. */
+  running?: Set<number>;
   children: React.ReactNode;
 }) {
   const { rows, close } = useOpenCards(projectRoot, openIds, currentId, currentTitle);
@@ -64,7 +73,13 @@ export function Window({
             maxSize={RAIL_MAX}
             groupResizeBehavior="preserve-pixel-size"
           >
-            <Rail rows={rows} activeId={currentId} total={openIds.length} onClose={close} />
+            <Rail
+              rows={rows}
+              activeId={currentId}
+              total={openIds.length}
+              running={running ?? EMPTY}
+              onClose={close}
+            />
           </ResizablePanel>
           <ResizableHandle aria-label="Resize the rail" onDoubleClick={onDoubleClick} />
           {/* Without the rail (under `md`) the body still keeps the gutter, so the

@@ -179,15 +179,16 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
 //
 // Written to be read by an agent as much as by a person: full repo-relative paths so a
 // named file can be opened without joining anything, `file:line` so it can be jumped to,
-// and one numbered item per thing that still has to happen. It points at the skill for how
-// to write the note rather than restating the rule — that rule lives in SKILL.md.
+// and one numbered item per thing that still has to happen. It names the guide that says
+// how to write the note rather than restating the rule — one copy of the rule, and it is
+// the one the flows read.
 
 // `topics` says whether the target file groups its entries under `## ` headings, so the
 // receipt only offers a section to file under where there are sections. `readme.md` is one
 // flat list of shipped work by design; `rejected.md` is grouped by topic.
-const NOTE_KIND: Record<Metric, { file: string; what: string; section: string; topics: boolean }> = {
-  completed: { file: 'readme.md', what: 'record the shipped work', section: 'Finish a task', topics: false },
-  rejected: { file: 'rejected.md', what: 'write the rejection note', section: 'Reject an idea', topics: true },
+const NOTE_KIND: Record<Metric, { file: string; what: string; guide: string; topics: boolean }> = {
+  completed: { file: 'readme.md', what: 'record the shipped work', guide: '"Finish a task" in `akb guide board`', topics: false },
+  rejected: { file: 'rejected.md', what: 'write the rejection note', guide: '`akb guide reject`', topics: true },
 }
 
 // Long lines are quoted for recognition, not for copying — the file:line above each one is
@@ -204,7 +205,7 @@ function printHandoff(id: number, metric: Metric, meta: Meta | null, mentions: M
   const targets = memoryTargets(meta?.modules ?? [], kind.file)
   say(`\nnext — what the script can't do:\n`)
 
-  say(`  1. ${kind.what} — follow "${kind.section}" in the skill`)
+  say(`  1. ${kind.what} — follow ${kind.guide}`)
   for (const t of targets) {
     say(`       file    ${rel(t.file)}`)
     if (!kind.topics) continue

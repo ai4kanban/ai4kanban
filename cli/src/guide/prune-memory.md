@@ -1,6 +1,6 @@
 # Prune the memory set
 
-Prune every file in the memory set (see "The memory set" in `SKILL.md`). Prune whichever
+Prune every file in the memory set (see "The memory set" in `akb guide board`). Prune whichever
 copy you're compressing: the project-wide one at `docs/kanban/memory/` or a module's at
 `docs/kanban/memory/<module>/`. `goal.md` is not in the set — it's user-owned, leave it alone.
 
@@ -25,6 +25,6 @@ On top of that, per file:
   document it. Anything else — watermarks, a last focus, open gaps, internal detail —
   doesn't belong here; drop it.
 - `decisions.md` — one line per live decision, in plain user-facing words. Drop anything
-  that fails its bar in SKILL.md ("The memory set"): a call about code detail, or one the
+  that fails its bar in `akb guide board` ("The memory set"): a call about code detail, or one the
   published docs now cover. Drop a decision once the question no longer arises or
   `redesign.md` states it as a rule.

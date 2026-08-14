@@ -6,7 +6,7 @@ roi: high
 status: todo
 release: 0.6.0
 blocked_by: [173, 174]
-related: [185, 196]
+related: []
 modules: [site, docs]
 questions:
   - question: "[user] The landing page's main button today says \"Start with one prompt\". Does it become the app download?"
@@ -47,10 +47,9 @@ Everything we publish still teaches the old first step: install the skill into y
 - **Does the site still show one setup command?**: yes. The rule that the quick start shows
   one command and never a list of shell steps still holds. The command just stops being
   the first thing on the page.
-- **Who owns what, next to #196 and #185**: this card owns which step comes first; #196
-  owns which command a person types; #185 owns the download page and its languages. They
-  touch the same files on different lines, so whichever lands second keeps the other's
-  work.
+- **Where the download page fits**: this card owns which step comes first. Which command a
+  person types is already settled — `npm install -g ai4kanban`, then `akb install` — and the
+  download page's own copy, in every language, is not this card's to rewrite.
 
 ## Todo
 - [ ] Rewrite the getting-started step in `README.md` and `README-zh.md` so downloading the

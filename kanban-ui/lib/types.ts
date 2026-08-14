@@ -7,6 +7,8 @@
 //
 //   format/view/types   the board: cards, columns, releases, setup, the daily numbers
 //   format/agent/types  a run: which agents there are, what each one takes, what it cost
+//   format/skill/types  the coding agent skill: whether this project has one, and what
+//                       adding it wrote
 //
 // What IS declared here is the one shape the CLI has no opinion about: `SessionView`, a run
 // as the browser reads it. The record the CLI keeps carries a couple of fields the UI has
@@ -37,6 +39,7 @@ export type {
   Card,
   CardPatch,
   CardRef,
+  CardSchedule,
   CardStatus,
   ClosePlan,
   ClosePlanCard,
@@ -53,6 +56,7 @@ export type {
   QuestionMode,
   QuestionTag,
   SaveProjectResult,
+  ScheduledAction,
   SetupDraft,
   SetupState,
   // The board's own name for a checklist box; `SetupStepView` there only because the
@@ -63,6 +67,15 @@ export type {
   WriteResult,
 } from "./format/view/types";
 export { GUIDED_STEPS, METRICS_WINDOW_DAYS, NO_RELEASE } from "./format/view/types";
+
+export type {
+  CommandState,
+  SkillFolder,
+  SkillFolderState,
+  SkillInstall,
+  SkillState,
+  SkillWrite,
+} from "./format/skill/types";
 
 /** A running or finished agent run, as the UI sees it when it polls the server. One shared
  *  picture across every tab. */

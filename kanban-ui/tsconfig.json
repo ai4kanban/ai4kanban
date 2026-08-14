@@ -31,9 +31,10 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".next-cadence/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-cadence/types/**/*.ts"
+    "./.next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

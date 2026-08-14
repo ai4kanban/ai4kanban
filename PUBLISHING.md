@@ -15,16 +15,19 @@ repo directly.
 | Board UI (frozen) | npm `ai4kanban-ui` | **deprecated — no new releases**, see below |
 | Landing page | ai4kanban.dev (Cloudflare Pages) | `env -u NODE_ENV pnpm run deploy` from `web/` — every release (below), and whenever the copy changes |
 
-The CLI carries the skill inside its tarball (`scripts/bundle-skill.mjs` copies `skill/` to
-`cli/skill/` at publish time; that copy is gitignored). So `npx ai4kanban install` is what a
-new user actually gets — a skill change isn't in anyone's hands until the CLI is republished.
+The CLI carries the note inside its build: `skill/SKILL.md` is a source file that
+`cli/src/lib/skill/install.ts` imports as a string, so it ships baked into the rules. A
+change to the note isn't in anyone's hands until the CLI is republished.
 
-The board's rules are not a source file any more. They live in `cli/src/`, in TypeScript, and
-`cli/scripts/build.mjs` builds them into the single `skill/kanban.mjs` an installed skill
-folder holds. That built file **is** committed — the plugin channel installs the skill
-straight out of the repo — so a change to `cli/src/` is not shipped until it is rebuilt and
-committed. `npm run lint` in `cli/` fails when it is stale, and both bundlers refuse to copy
-a skill folder whose built file is missing or built at another version.
+The board's rules are not a source file either. They live in `cli/src/`, in TypeScript, and
+`cli/scripts/build.mjs` builds them into a single `cli/dist/kanban.mjs` — what `akb` runs,
+what the tarball carries, and what the desktop app copies in. That built file is **not**
+committed (#213): `npm install` in `cli/` builds it through the `prepare` script, and
+`prepublishOnly` rebuilds it before every publish. Nothing to keep in sync, nothing to
+forget to rebuild.
+
+A skill folder is `SKILL.md` and nothing else, in a project and in the plugin alike, so the
+plugin channel ships the note straight out of the repo with no build step in the way.
 
 ## One version, one place
 
@@ -36,9 +39,11 @@ node scripts/sync-version.mjs --check # verify in sync (both prepublishOnly hook
 ```
 
 Stamped spots: `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`,
-`SKILL_VERSION` in `cli/src/version.ts` (what installed projects print, so they can tell
-they're behind — stamping it rebuilds `skill/kanban.mjs`, which carries the number in its
-first lines), `cli/package.json`, `kanban-ui/package.json`, `desktop/package.json`. They
+`SKILL_VERSION` in `cli/src/version.ts` (what an installed skill folder is stamped with, so
+a project can tell it is behind — stamping it rebuilds `cli/dist/kanban.mjs`, which carries
+the number in its first lines; a checkout that has never been built has no file there, and
+`--check` says so instead of failing), `cli/package.json`, `kanban-ui/package.json`,
+`desktop/package.json`. They
 all share the one version, so they ship together. The app compares its own version against
 the newest GitHub release to tell the user a newer one is out — so an unstamped app would
 nag forever.
@@ -52,7 +57,7 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
 ## Release checklist
 
 1. `claude plugin validate .` passes, and `npm run lint` in `cli/` passes (the board's rules
-   typecheck, and the committed `skill/kanban.mjs` is what they build to).
+   typecheck).
 2. `node scripts/sync-version.mjs <new-version>`; commit and `git tag v<new-version>`.
 3. README, `README-zh.md`, and the guides reflect any behavior change.
 4. `npm publish` from `cli/` — smoke-test `npx ai4kanban@latest install` in a throwaway repo.

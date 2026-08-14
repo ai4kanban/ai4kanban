@@ -167,7 +167,7 @@ export class BoardServer {
         // what is running (#168). The app carries its own copy, so a machine with nothing
         // installed can still put an agent to work; without this the board would look for
         // one in the project's skill folder and a fresh repo has none.
-        AI4KANBAN_CLI: bundledResource("cli", "skill", "kanban.mjs"),
+        AI4KANBAN_CLI: bundledResource("cli", "dist", "kanban.mjs"),
       },
       // Its own process group, so ending it ends the coding-agent runs it
       // started too. Closing the window must not leave an agent writing to the

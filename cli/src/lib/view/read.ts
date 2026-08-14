@@ -108,6 +108,7 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     modules: meta.modules,
     last_run: meta.last_run,
     cadence: meta.cadence,
+    schedule: meta.schedule,
     nextRun: recurring ? dueLabel(meta.last_run, meta.cadence) : '',
     body: body.replace(/^\n+/, '').replace(/\s+$/, ''),
     todos: countTodos(body),

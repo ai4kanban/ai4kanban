@@ -62,7 +62,7 @@ export interface TickResult {
 // `agent` is a step because a board that ticked every box without one can't run anything:
 // the steps below it are agent runs, and so is every button on the board.
 export const SETUP_STEPS: SetupStep[] = [
-  { name: 'install', owner: 'script', text: 'Install the skill and scaffold the board.' },
+  { name: 'install', owner: 'script', text: 'Install the `akb` command and scaffold the board.' },
   { name: 'project', owner: 'you', text: 'Say what this project is and what tracks its work falls into, in `docs/kanban/config.md`.' },
   { name: 'goal', owner: 'you', text: 'Write the project goal in `docs/kanban/memory/goal.md`.' },
   { name: 'agent', owner: 'you', text: 'Pick the agent that runs this board, and give it a key.' },
@@ -81,11 +81,11 @@ const HEADER = `# Setup checklist
 Setup's own steps, in order. Each step ticks its box when it finishes; the tick that closes
 the last box deletes this file, so a board without it is a board that is set up.
 
-The guide for each step is the skill's \`references/setup.md\` — start at the first
-unticked box and follow it in order.
+The guide for each step is \`akb guide setup\` — start at the first unticked box and follow
+it in order.
 
-The script writes this file — \`kanban.mjs setup-done <step>\` ticks one box. Don't edit it
-by hand: the local board UI reads its shape to show how far setup got and what comes next.
+The board writes this file — \`akb board setup-done <step>\` ticks one box. Don't edit it by
+hand: the local board UI reads its shape to show how far setup got and what comes next.
 
 `
 

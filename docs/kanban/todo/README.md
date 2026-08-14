@@ -27,9 +27,6 @@ _(none)_
 - [#182 Sign the Mac build so it opens with no warning](features/182-sign-the-mac-build-so-it-opens-with-no-warning.md)
 - [#183 Install the Mac app with one Homebrew command](features/183-install-the-mac-app-with-one-homebrew-command.md)
 - [#207 Show which agents are installed on this machine in the picker](features/207-show-which-agents-are-installed-on-this-machine-in-the-picke.md)
-- [#208 Fix the board UI's production build](features/208-fix-the-board-ui-s-production-build.md)
-- [#140 Schedule an action on a blocked card so it runs when the blocker is done](features/140-schedule-an-action-on-a-blocked-card.md)
-- [#211 Drop the auto-refine switch — a refine follows the run that touched the card](features/211-refine-follows-the-run-that-touched-the-card.md)
 
 ## skill
 
@@ -43,13 +40,11 @@ _(none)_
 - [#157 Turn a spec you already wrote into the cards that build it](skill/157-turn-a-spec-you-already-wrote-into-the-cards-that-build-it.md)
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
 - [#186 Let a specialist agent fill the part of a spec it knows best](186-spec-agents/root.md)
-- [#167 Make akb the one way to run the board](167-akb-cli/root.md)
 
 ## distribution
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#177 Make the board UI the way in, in the README and on the site](distribution/177-make-the-board-ui-the-way-in-in-the-readme-and-on-the-site.md)
-- [#185 Teach opening and switching projects where the app is](distribution/185-teach-opening-and-switching-projects-where-the-app-is.md)
 - [#202 Test whether the board changes what a coding agent builds](202-board-vs-no-board/root.md)
 - [#209 Teach the daily loop as buttons, not only as things you say](distribution/209-teach-the-daily-loop-as-buttons-not-only-as-things-you-say.md)
 

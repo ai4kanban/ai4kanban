@@ -5,19 +5,18 @@ one focus close a gap, scattered ideas just skim the product.
 
 - **Count:** the user says how many; **3** if they don't.
 - **Setup unfinished** (`docs/kanban/setup-checklist.md` exists)? Propose nothing —
-  follow `references/setup.md` instead.
+  follow `akb guide setup` instead.
 
 ## 1. Pick the module
 
 - **Ask the user to pick one or more modules from the map.** Left open, pick the one
   where memory says users stumble most.
-- Read its memory set at `docs/kanban/memory/<module>/` (see "The memory set" in
-  `SKILL.md`) and `docs/kanban/memory/goal.md` for the direction.
+- Read its memory set at `docs/kanban/memory/<module>/` (see "The memory set" in `akb guide board`) and `docs/kanban/memory/goal.md` for the direction.
 - Judge goal.md while you have it open and set its `reviewed:` field (`strong | good |
   weak`) — you are the only judge of it, this is the run that re-judges it, and it takes
   no question to the user. Then propose either way: a weak goal makes proposals guesses,
   not something to stop for.
-- Run `${KB} list --module <module>` — every open card tagged with the focus module, so
+- Run `akb board list --module <module>` — every open card tagged with the focus module, so
   you don't re-propose planned work.
 
 ## 2. Drill down to submodules
@@ -35,7 +34,7 @@ cards**; the main agent creates the cards, so ids never race.
 ## 3. Write the tasks
 
 Create each surviving draft with "Add one task idea" in
-`references/add-task.md`. Every proposal:
+`akb guide add-task`. Every proposal:
 
 - **Inside the module(s).**
 - **From a user walkthrough (optional)** — play one real user story in the focus, step by

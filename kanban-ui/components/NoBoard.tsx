@@ -74,8 +74,8 @@ export function NoBoard({
             stack={!desktop}
             body={
               desktop
-                ? "The board, the skill your agent reads, and a setup checklist — in this window."
-                : "Scaffolds the board and the skill your agent reads. Run it in the repo root."
+                ? "The board and a setup checklist — in this window."
+                : "Scaffolds the board under docs/kanban/. Run it in the repo root."
             }
           >
             {desktop ? <MakeBoardHere desktop /> : <CopyCommand text="npx ai4kanban install" />}
@@ -133,6 +133,10 @@ export function NoRules({ why, desktop = false }: { why: string; desktop?: boole
             <p className="mt-2 text-[13px] leading-relaxed text-nb-ink-soft">{why}</p>
           </header>
 
+          {/* Outside the app the rules come from this project's skill folder, and a
+              board no longer arrives with one (#174) — so the command that fixes
+              this screen is the one that adds the skill, not `update`, which only
+              refreshes a folder that is already there. */}
           <Cause
             title="Install the board's rules"
             stack={!desktop}
@@ -145,7 +149,7 @@ export function NoRules({ why, desktop = false }: { why: string; desktop?: boole
             {desktop ? (
               <PickAnotherProject desktop />
             ) : (
-              <CopyCommand text="npx ai4kanban@latest update" />
+              <CopyCommand text="npx ai4kanban@latest skill install" />
             )}
           </Cause>
 

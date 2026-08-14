@@ -16,7 +16,7 @@ three track values below into the `TRACKS` field.
   roadmap features not built yet, and for built features uncommon in the market. Method:
   post an honest, unbiased question on Reddit / X, or share a free trial on a
   build-in-public community. To run a Reddit validation, follow
-  `references/presets/validate-on-reddit.md`. Save results to `docs/validations/<name>.md`
+  `akb guide preset-validate-on-reddit`. Save results to `docs/validations/<name>.md`
   (or wherever you keep them). Skip subjective tests ("ask your mom").
 - **building (20%)** — stay at MVP; don't over-build. Build when it: scales internal work
   an agent can own, strengthens product positioning, or is strongly demanded by users.

@@ -30,20 +30,39 @@ interface Mark {
 /** The whole board as a moment, keyed by card id. */
 export type BoardMarks = Map<number, Mark>
 
-// A group root's subtask lines, with the board's own marks taken back off: `archive` ticks
-// the box, `reject` strikes the text. Neither is a change of plan — they are the group's
-// progress bar — and counting them would earn the root a refine every time one of its
-// subtasks finished, which on a big group is one root refine per subtask. Only the marks
-// are wiped, so a run that actually rewrites a subtask line still changes the root.
-const unmarkSubtasks = (body: string): string =>
-  body
-    .split('\n')
-    .map((line) => {
-      const m = line.match(/^([ \t]*[-*]\s+)(?:\[[ xX]\]\s*)?(.*#\d+.*)$/)
-      if (!m) return line
-      return `${m[1]}[ ] ${m[2]!.replace(/~~/g, '')}`
-    })
-    .join('\n')
+// A group root's body, with its subtask lines reduced to the ids they point at.
+//
+// Finishing a subtask leaves marks all over its line on the root: `archive` ticks the box
+// and `reject` strikes the text, and the flow's own handoff has the agent rewrite what is
+// left — "#7" becomes "#7 (archived)", and the line rewraps. None of that is a change of
+// plan; it is the group's progress bar. Counting it would earn the root a refine every
+// time one of its subtasks finished, which on a big group is one root refine per subtask.
+//
+// So the text of a subtask line is dropped and its ids kept. Which subtasks a root has, and
+// in what order, is the root's plan — add or drop one and it is refined. How each line is
+// worded is the subtask's own card's business, and every subtask card gets its own refine.
+//
+// A subtask line is a checkbox bullet whose text names a card — the same shape the board
+// itself counts a group's progress by. A plain bullet mentioning an id in prose isn't one,
+// and is compared as written.
+const subtaskLinesToIds = (body: string): string => {
+  const out: string[] = []
+  let inSubtask = false
+  for (const line of body.split('\n')) {
+    const m = line.match(/^[ \t]*[-*]\s+\[[ xX]\]\s*(.*)$/)
+    const ids = m ? m[1]!.match(/#\d+/g) : null
+    if (ids) {
+      out.push(`- [ ] ${ids.join(' ')}`)
+      inSubtask = true
+      continue
+    }
+    // A wrapped subtask line: indented, not blank, and not a bullet starting something new.
+    if (inSubtask && line.trim() && /^[ \t]/.test(line) && !/^[ \t]*[-*]\s/.test(line)) continue
+    inSubtask = false
+    out.push(line)
+  }
+  return out.join('\n')
+}
 
 // `last_run` and `cadence` are left out on purpose: they are the board's own bookkeeping
 // on a recurring card, and a recurring card is never refined anyway.
@@ -60,7 +79,7 @@ const wroteOf = (c: Card): string =>
     c.related,
     c.questions.map((q) => [q.text, q.mode ?? '', q.options ?? [], q.recommend ?? []]),
     c.modules,
-    c.isGroup ? unmarkSubtasks(c.body) : c.body,
+    c.isGroup ? subtaskLinesToIds(c.body) : c.body,
   ])
 
 /** Read the board as it stands. Taken by a watcher just before its agent starts, and again
@@ -97,8 +116,8 @@ const NO_FOLLOW = new Set<AgentAction>(['implement', 'auto-refine'])
  * A card still blocked is dropped too, for the reason the board has always skipped one:
  * building the blocker often changes the plan of what comes after it.
  *
- * A group root is the one card the tick of a finished subtask does NOT count as a change
- * to, so a group of ten subtasks doesn't refine its root ten times (`unmarkSubtasks`).
+ * A group root is the one card a finished subtask does NOT count as a change to, so a group
+ * of ten subtasks doesn't refine its root ten times (`subtaskLinesToIds`).
  *
  * An empty list means nothing follows. It never throws — the run is over either way.
  */
@@ -117,7 +136,11 @@ export function refinesAfter(action: AgentAction, before: BoardMarks): AgentRequ
       const freed = !!was && was.blocked && card.openBlockers.length === 0
       return touched || freed
     })
-    .filter((card) => card.openBlockers.length === 0 && canRefine(card))
+    // A card carrying a schedule is left alone: the user already said what should happen to
+    // it the moment it came free, and the dispatcher is about to start exactly that. A
+    // refine slipped in first would either be the very run that is queued, twice over, or a
+    // rewrite of the plan a scheduled implement is about to follow.
+    .filter((card) => card.openBlockers.length === 0 && !card.schedule && canRefine(card))
     .sort(byDispatchOrder)
     .map((card) => ({ action: 'auto-refine' as const, id: card.id, title: card.title }))
 }

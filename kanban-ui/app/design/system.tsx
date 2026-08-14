@@ -11,6 +11,7 @@ import {
   GroupChip,
   LevelSelect,
   ModuleChip,
+  PendingPill,
   PriorityChip,
   QuestionTagBadge,
   ReleaseSelect,
@@ -233,6 +234,7 @@ const CARD: Card = {
   modules: ["board"],
   last_run: "",
   cadence: "",
+  schedule: null,
   relPath: "ui/42-give-the-board-a-design-page.md",
   body: "",
   todos: { total: 5, done: 2 },
@@ -469,7 +471,10 @@ export function DesignSystem() {
               It drops the ember for blocker ink, so the only CTA-weight mark in the
               row is Cancel — the safe way out is the one the eye lands on. Paired
               with disabled until the warning box is ticked, so no single click ever
-              reaches a run the board advised against.
+              reaches a run the board advised against. Where the dialog offers a way
+              out that isn&apos;t risky — <strong>Schedule</strong>, which starts
+              nothing until the blocker is done — that one takes the ember the confirm
+              gave up, and sits last.
             </p>
           </div>
         </div>
@@ -646,11 +651,20 @@ export function DesignSystem() {
               <StatusPill status="ready" />
               <StatusPill status="ready" detailed />
               <StatusPill status="implementing" />
+              <PendingPill label="implement · waiting on #17" />
+              <PendingPill label="refine · waiting on #17" detailed />
               <span className="text-[12.5px] text-nb-ink-soft">
                 todo draws nothing — the board stays quiet until a card is vetted
                 or in flight
               </span>
             </Row>
+            <p className="mt-2.5 max-w-3xl text-[12.5px] leading-relaxed text-nb-ink-soft">
+              <strong>pending</strong> is not a fourth stage — the card keeps the one
+              it had, and the queue still groups it there. It stands in for the pill
+              while a run is queued behind the card&apos;s blockers, in the peach the
+              board gives everything that is in the way, and the hover carries what
+              will run and what it waits for.
+            </p>
           </div>
           <div>
             <Label>markers — icon-only, named on hover</Label>
@@ -877,7 +891,7 @@ export function DesignSystem() {
             { cls: "text-[34px] font-[800] tracking-[-0.03em]", spec: "34 / 800 / -0.03em", what: "this page's title, and nothing in the board" },
             { cls: "text-[17px] font-[800] tracking-[-0.02em]", spec: "17 / 800 / -0.02em", what: "the brand in the header — the largest type the board sets" },
             { cls: "text-[15px] font-[800] tracking-[-0.02em]", spec: "15 / 800", what: "a dialog title" },
-            { cls: "text-[14px] font-[700] tracking-[-0.01em]", spec: "14 / 700", what: "a card title" },
+            { cls: "text-[13px] font-[700] tracking-[-0.01em]", spec: "13 / 700", what: "a card title" },
             { cls: "text-[14px]", spec: "14 / 400", what: "a button label, a select, an input" },
             { cls: "text-[13px] leading-relaxed", spec: "13 / 400", what: "dialog copy, an open question" },
             { cls: "text-[12.5px] leading-relaxed", spec: "12.5 / 400", what: "an option row, a warning box" },

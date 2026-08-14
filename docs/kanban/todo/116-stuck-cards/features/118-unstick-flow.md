@@ -37,5 +37,5 @@ Part of #116. Finds its cards with the stale listing (#117).
 - [ ] Split: create the smaller cards through the script, wire blocked-by and related,
       fold the old card into them.
 - [ ] Rewrite: redo the body against today's project; never touch ticked boxes.
-- [ ] Reject: follow `references/reject.md`, honoring the sign-off call from #116.
+- [ ] Reject: follow `akb guide reject`, honoring the sign-off call from #116.
 - [ ] Run the flow by hand on one real stuck card and fix what reads wrong.

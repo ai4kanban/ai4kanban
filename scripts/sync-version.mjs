@@ -8,9 +8,9 @@
 // number.
 //
 // Why copies exist at all: each is read by a different tool in its own format, and the
-// board's rules get physically copied into installed projects (`.claude/skills/`) away from
-// the manifests, so their version has to travel baked in. Those rules are built from
-// `cli/src/` into `skill/kanban.mjs`, so the number is stamped on the source and the built
+// number has to travel baked into the board's rules — the desktop app carries its own copy
+// of them, and an installed skill folder is stamped from it. Those rules are built from
+// `cli/src/` into `cli/dist/kanban.mjs`, so the number is stamped on the source and the built
 // file is rebuilt from it — this script does both. See PUBLISHING.md.
 //
 //   node scripts/sync-version.mjs           # write VERSION into all targets
@@ -64,16 +64,17 @@ const TARGETS = [
   },
   {
     file: 'cli/src/version.ts',
-    // what an installed board prints, so it can tell it is behind. Built into skill/kanban.mjs.
+    // what an installed board prints, so it can tell it is behind. Built into cli/dist/kanban.mjs.
     re: /(const SKILL_VERSION = ')(\d+\.\d+\.\d+[^']*)(')/,
     label: 'cli/src/version.ts (SKILL_VERSION)',
   },
   {
-    file: 'skill/kanban.mjs',
+    file: 'cli/dist/kanban.mjs',
     // the built file's own stamp — a rebuild is what moves it, so a mismatch here means
-    // the rules were stamped but never rebuilt.
+    // the rules were stamped but never rebuilt. Not in git (#213): a checkout that has
+    // never been built has no file here at all, which is why `missing` is allowed below.
     re: /(\/\/ ai4kanban )(\d+\.\d+\.\d+[^\s]*)( — built )/,
-    label: 'skill/kanban.mjs (built)',
+    label: 'cli/dist/kanban.mjs (built)',
     built: true,
   },
 ]
@@ -109,6 +110,26 @@ let mismatches = 0
 let changed = 0
 for (const t of TARGETS) {
   const abs = path.join(ROOT, t.file)
+  // A build product that hasn't been built here yet. It is not in git (#213), so a fresh
+  // checkout simply has no file — nothing to compare, and nothing wrong: the number it
+  // would carry comes from cli/src/version.ts, which is stamped and checked above it.
+  if (t.built && !fs.existsSync(abs)) {
+    if (check) {
+      process.stdout.write(`  --    ${t.label} — not built here, nothing to check\n`)
+      continue
+    }
+    if (!rebuildSkill()) {
+      process.stderr.write(
+        `  MISS  ${t.label} — not built, and could not build it.\n` +
+          '        Run `npm install && npm run build` in cli/, then re-run this.\n',
+      )
+      mismatches++
+      continue
+    }
+    process.stdout.write(`  built ${t.label} at ${version}\n`)
+    changed++
+    continue
+  }
   const src = fs.readFileSync(abs, 'utf8')
   const m = src.match(t.re)
   if (!m) fail(`could not find a version to stamp in ${t.file}`)

@@ -185,6 +185,31 @@ export const MOVES: Move[] = [
     ],
   },
   {
+    name: 'schedule',
+    group: 'Cards',
+    brief: [
+      [
+        'schedule <id>',
+        'run an action by itself once the card is unblocked:\n--action implement|refine, --notes "..", --clear to take\nit off',
+      ],
+    ],
+    legacy: [
+      [
+        'schedule <id> --action implement|refine',
+        [
+          'have the board run that action on this card by itself, the',
+          'moment every card it waits on has left the board (archived or',
+          'rejected — either way that card is gone). --notes ".." rides',
+          'along and reaches the run when it fires. A card holds one',
+          'schedule at a time, so a second one replaces the first, and',
+          'only a card that really is waiting on another card can carry',
+          'one — start an unblocked card instead. --clear takes the',
+          'schedule off and nothing fires after that.',
+        ],
+      ],
+    ],
+  },
+  {
     name: 'tag',
     group: 'Cards',
     brief: [['tag <id> <n[,n...]> <tag>', "mark a question as the human's call, or clear the mark"]],

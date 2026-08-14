@@ -6,7 +6,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, warn, rel, writeNextId, SKILL_DIR, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MODULES_MD, RELEASES, MEMORY, GOAL, SETUP_CHECKLIST } from '../lib/paths'
+import { die, warn, rel, writeNextId, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MODULES_MD, RELEASES, MEMORY, GOAL, SETUP_CHECKLIST } from '../lib/paths'
+import { CONFIG_TEMPLATE } from '../lib/config-template'
 import { say } from '../lib/io'
 import { LOCK_IGNORE_LINE } from '../lib/lock'
 import { RUN_IGNORE_LINES } from '../lib/agent/sessions'
@@ -19,7 +20,7 @@ import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestions
 import type { MoveResult } from '../lib/types'
 
 // Default tracks when `init` is run with no track args. Swap by passing your own,
-// e.g. `init growth validation building`. Keep in step with the SKILL.md defaults.
+// e.g. `init growth validation building`. Keep in step with `akb help`'s defaults.
 const DEFAULT_TRACKS = ['feature', 'bug', 'research']
 
 // The blank module map. `init` seeds it, the module-map flow fills it in from the repo.
@@ -51,16 +52,14 @@ Blockers gate the next milestone; clear them first. Everything else sits under a
 ${sections.join('\n')}`
 }
 
-// Seed the per-project config at docs/kanban/config.md from the blank template shipped
-// beside this script. The config lives WITH the board (not in the skill folder) so a
+// Seed the per-project config at docs/kanban/config.md from the blank template this
+// command carries. The config lives WITH the board (not in the skill folder) so a
 // read-only plugin cache still yields an editable, per-project file. Idempotent: it never
 // overwrites a config that's already there, so a filled-in config survives a re-run.
 function writeConfigIfMissing() {
   if (fs.existsSync(CONFIG)) return false
-  const template = path.join(SKILL_DIR, 'config.md')
-  if (!fs.existsSync(template)) die(`missing config template at ${template}`)
   fs.mkdirSync(KANBAN, { recursive: true })
-  fs.copyFileSync(template, CONFIG)
+  fs.writeFileSync(CONFIG, CONFIG_TEMPLATE)
   return true
 }
 

@@ -7,10 +7,10 @@
 // transcripts. Anything that moves shows up as a line; anything that shouldn't have moved
 // is the bug.
 //
-//   cp skill/kanban.mjs /tmp/kanban-before.mjs   # the built file, before your change
+//   cp cli/dist/kanban.mjs /tmp/kanban-before.mjs   # the built file, before your change
 //   node scripts/board-probe.mjs /tmp/kanban-before.mjs /tmp/before.txt
 //   (cd cli && npm run build)                    # build the rules again
-//   node scripts/board-probe.mjs skill/kanban.mjs /tmp/after.txt
+//   node scripts/board-probe.mjs cli/dist/kanban.mjs /tmp/after.txt
 //   diff /tmp/before.txt /tmp/after.txt
 //
 // Point it at `cli/bin/ai4kanban.mjs board` instead and the same transcript comes out of

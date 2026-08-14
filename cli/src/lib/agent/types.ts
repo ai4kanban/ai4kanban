@@ -6,12 +6,12 @@
 // its own list of agents or of the settings each one takes.
 
 /** How many tasks a propose run writes when nobody says, and the most it will ever write.
- *  The cap is the skill's ("How many" in `references/propose.md`). */
+ *  The cap is the flow's ("How many" in `akb guide propose`). */
 export const PROPOSE_DEFAULT = 3
 export const PROPOSE_MAX = 10
 
 /** How big a swing a propose run takes. The levels are the skill's
- *  (`references/propose.md`, "Boldness"); this is only the name a run sends. */
+ *  (`akb guide propose`, "Boldness"); this is only the name a run sends. */
 export type Boldness = 'safe' | 'normal' | 'bold'
 
 /** The tokens one run consumed, as the agent's own closing event counted them. Four

@@ -37,6 +37,26 @@ export async function patchCard(id: number, patch: CardPatch): Promise<WriteResu
   }
 }
 
+/** Schedule an action on a blocked card, so the board runs it by itself once the last card
+ *  in its way leaves the board. A card that isn't waiting on anything, or an action that
+ *  wouldn't move it, refuses with the line saying why. */
+export async function setSchedule(id: number, action: string, notes = ""): Promise<WriteResult> {
+  try {
+    return (await boardRules()).setSchedule(id, action, notes);
+  } catch (e) {
+    return refused(e);
+  }
+}
+
+/** Take a card's schedule off. Nothing fires after this. */
+export async function clearSchedule(id: number): Promise<WriteResult> {
+  try {
+    return (await boardRules()).clearSchedule(id);
+  } catch (e) {
+    return refused(e);
+  }
+}
+
 /** Move the ticked cards into one release, or back out of one. A release the list doesn't
  *  hold refuses the whole move before anything is written; a card that can't be moved on
  *  its own comes back in `failed` while the rest go through. */

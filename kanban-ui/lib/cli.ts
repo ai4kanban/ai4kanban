@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -10,6 +11,7 @@ import type {
   RunRecord,
   RunView,
 } from "./format/agent/types";
+import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
 import type {
   Board,
   BulkReleaseResult,
@@ -39,10 +41,14 @@ import type {
 // Where the file is:
 //   • `AI4KANBAN_CLI` names it outright — the desktop app passes the copy it carries, so
 //     an app on a machine with nothing installed still runs the board.
-//   • otherwise the skill folder in this repo, either harness's.
+//   • otherwise the installed `akb`, asked where its own copy is. A project stopped
+//     carrying one of its own (#213): the note in a skill folder is the whole skill, and
+//     the command it names comes from npm.
+//   • otherwise the skill folder in this repo, either harness's — where a board installed
+//     before that release still has one.
 //
-// A repo with no copy at all has nothing to read the board with, and every screen says so
-// in one line that names the fix rather than coming up empty.
+// Nothing to read the board with at all, and every screen says so in one line that names
+// the fix rather than coming up empty.
 
 /** What the built file gives us. It is the CLI's own public surface — see the exports at
  *  the top of `cli/src/kanban.ts`. */
@@ -86,6 +92,8 @@ export interface BoardRules {
 
   // the board, written
   patchCard(id: number, patch: CardPatch): WriteResult;
+  setSchedule(id: number, action: string, notes?: string): WriteResult;
+  clearSchedule(id: number): WriteResult;
   setCardsRelease(ids: number[], release: string): BulkReleaseResult;
   newRelease(id: string, goal?: string, fill?: boolean): WriteResult & { fill?: "none" | "fill" | "agent" };
   setReleaseGoal(id: string, goal: string): WriteResult;
@@ -94,6 +102,13 @@ export interface BoardRules {
   saveGoal(text: string): WriteResult;
   saveProject(name: string, description: string, tracks: TrackDraft[]): SaveProjectResult;
   finishSetupStep(name: string): WriteResult;
+
+  // the coding agent skill — whether this project has one, and the move that adds it
+  // (#174). Optional because a project can be running rules older than the release that
+  // added them, and the panel says so rather than the whole dialog failing to draw.
+  readSkillState?(root?: string): SkillState;
+  installSkill?(root?: string, only?: "present"): SkillInstall;
+  readCommandState?(): CommandState;
 
   // what the board would start on its own, this minute
   nextWork(): AgentRequest[];
@@ -106,7 +121,10 @@ export type { AgentRequest, RunRecord, RunView } from "./format/agent/types";
  *  one command. */
 export class NoRulesError extends Error {
   constructor(what: string) {
-    super(`${what} Run \`npx ai4kanban@latest update\` in this project to install one.`);
+    // The rules are the installed command's own copy (#213), so the fix is putting the
+    // command on the PATH — not `skill install`, which writes the agent's note and carries
+    // no rules with it, and not `update`, which refreshes a board that is already here.
+    super(`${what} Run \`npm install -g ai4kanban\` to install one.`);
     this.name = "NoRulesError";
   }
 }
@@ -123,16 +141,38 @@ function cached(): { rules?: Promise<BoardRules> } {
 function candidates(): string[] {
   const named = process.env.AI4KANBAN_CLI;
   if (named) return [named];
-  let root: string;
+  const found: string[] = [];
+  const asked = installedCommand();
+  if (asked) found.push(asked);
   try {
-    root = repoRoot();
+    const root = repoRoot();
+    found.push(
+      path.join(root, ".claude", "skills", "kanban", "kanban.mjs"),
+      path.join(root, ".agents", "skills", "kanban", "kanban.mjs"),
+    );
   } catch {
-    return [];
+    // No board here — the two paths below it are a board's, so there is nothing to add.
   }
-  return [
-    path.join(root, ".claude", "skills", "kanban", "kanban.mjs"),
-    path.join(root, ".agents", "skills", "kanban", "kanban.mjs"),
-  ];
+  return found;
+}
+
+/** The `akb` on the PATH, asked where its own copy of the rules is (`akb __rules`).
+ *
+ *  One process, on the first read of the server's life — `boardRules()` caches what this
+ *  finds, and the board polls every second and a half, so this may never be per request.
+ *  Best effort: no `akb`, or one too old to answer, comes back null and the caller falls
+ *  through to the folders a board installed by an older release still has. */
+function installedCommand(): string | null {
+  const result = spawnSync("akb", ["__rules"], {
+    encoding: "utf8",
+    timeout: 10_000,
+    stdio: ["ignore", "pipe", "ignore"],
+    // On Windows npm installs `akb` as a `.cmd` shim, which only a shell will run.
+    shell: process.platform === "win32",
+  });
+  if (result.status !== 0 || !result.stdout) return null;
+  const named = result.stdout.trim().split("\n").pop()?.trim() ?? "";
+  return named && fs.existsSync(named) ? named : null;
 }
 
 // The newest thing the UI asks of the rules. A copy that predates it is a copy that cannot
@@ -149,7 +189,7 @@ export function boardRules(): Promise<BoardRules> {
   if (!found) {
     return Promise.reject(
       new NoRulesError(
-        `This board has no copy of the board's rules to read it with — looked at ${looked.join(", ") || "nowhere: there is no board here"}.`,
+        `This board has no copy of the board's rules to read it with — there is no \`akb\` on the PATH${looked.length ? `, and nothing at ${looked.join(", ")}` : ""}.`,
       ),
     );
   }

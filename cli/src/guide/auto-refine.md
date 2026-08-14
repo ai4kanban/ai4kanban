@@ -1,6 +1,6 @@
 # Auto-refine
 
-Loop refining a card (`references/refine.md`) **and resolving its open questions** (`references/resolve.md`),
+Loop refining a card (`akb guide refine`) **and resolving its open questions** (`akb guide resolve`),
 until any of the conditions is met:
 1. status !== "todo"
 2. all todos checked
@@ -10,9 +10,9 @@ until any of the conditions is met:
 
 Never pause to ask the user.
 
-1. Run `references/refine.md`.
+1. Run `akb guide refine`.
 2. If questions is not empty, spawn a subagent and hand it the card and the whole batch
    of untagged questions at once. Questions should be answered with a fresh context.
-   It researches and decides according to `references/resolve.md`:
+   It researches and decides according to `akb guide resolve`:
    If answering surfaces new questions, add them untagged and run one more subagent for
    the new batch.

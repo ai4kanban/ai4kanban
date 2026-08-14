@@ -4,8 +4,9 @@
 // screen says so. In the app there is no terminal to type it into and no Node to
 // run npx with, so the app carries that very command — `resources/cli`, the same
 // `cli/` package published to npm — and runs it under Electron's own Node. Same
-// script, same result: the skill copied into the repo and `docs/kanban/`
-// scaffolded, with setup's own checklist waiting inside it.
+// script, same result: `docs/kanban/` scaffolded, with setup's own checklist
+// waiting inside it, and nothing written outside it. The coding agent skill is
+// not part of this (#174) — it is added later, from Configuration → Skill.
 //
 // Nothing here decides anything the CLI wouldn't: no tracks are passed, so the
 // board gets the defaults, and everything past that is setup's job — which is

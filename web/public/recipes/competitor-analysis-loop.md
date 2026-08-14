@@ -11,7 +11,7 @@
 > to keep.
 
 Recurring task — it never archives. Each pass is one **run**: record it with
-`node .claude/skills/kanban/kanban.mjs run <this card's id>` (+1 completed, card kept).
+`akb board run <this card's id>` (+1 completed, card kept).
 
 Each run keeps **one feature checklist per competitor** — every feature that competitor
 offers its users, one line each, marked as something you already ship, something one of
@@ -124,7 +124,7 @@ nearly-done match does not: leave it unticked.
    (`docs/kanban/memory/**/readme.md`) and your user-facing docs. Tick only the features a
    user can use today; leave the rest unticked.
 9. **Tag the lines a card is already building.** Run
-   `node .claude/skills/kanban/kanban.mjs list`, match the open cards against the unticked
+   `akb board list`, match the open cards against the unticked
    lines, and write `(#id)` on each line that already has one.
 10. **File cards for the gaps worth closing.** Take the unticked lines with no id and file
     the high- and medium-value ones as cards via the `kanban` skill (it dedups against the
@@ -133,7 +133,7 @@ nearly-done match does not: leave it unticked.
     file no card — that's fine when the gaps are genuinely covered or not worth it.
 11. **Set its cadence** (see **Cadence** below) and write the read/cadence/next line back
     to the todo list in `result.md`.
-12. Record the run: `node .claude/skills/kanban/kanban.mjs run <this card's id>`.
+12. Record the run: `akb board run <this card's id>`.
 
 ## Cadence
 

@@ -3,14 +3,14 @@
 Route every request that may create a card through this file.
 
 **Stop if setup is unfinished** — `docs/kanban/setup-checklist.md` being there says it is.
-Create no card; follow `references/setup.md` instead.
+Create no card; follow `akb guide setup` instead.
 
 ## Route the request
 
-- No idea supplied; find missing work → `references/propose.md`.
+- No idea supplied; find missing work → `akb guide propose`.
 - Article, analysis, research, complaint, or other source supplied →
-  `references/extract-ideas.md`.
-- Repeating job → `references/recurring-task.md`.
+  `akb guide extract-ideas`.
+- Repeating job → `akb guide recurring-task`.
 - Direct task idea → "Add one task idea" below.
 
 A research task is a direct idea; a research report is source material. Reading or
@@ -23,14 +23,14 @@ Turn one direct task idea or one validated draft into a card.
 1. **Resolve the modules.** If the modules are not explicitly given, infer them
    yourself: read `docs/kanban/modules.md` and decide which modules the idea
    touches. Never ask the user which modules to use.
-   If no module fits, repair `modules.md` according to `references/module-map.md`.
+   If no module fits, repair `modules.md` according to `akb guide module-map`.
 2. **Validate the idea.** Read `docs/kanban/memory/goal.md`, the resolved modules'
-   memory, `${KB} list --module <module>`, and relevant code and docs. Skip work already
+   memory, `akb board list --module <module>`, and relevant code and docs. Skip work already
    supported or rejected; update the card that already owns planned work. If value,
    direction, or feasibility is unclear, explain the concern and ask before creating.
-3. **Scaffold, then write the body.** Run `create --title "..." --track <track>
-   --modules <the step-1 modules>` plus any other meta flags (see "The script" in
-   `SKILL.md`) to write the file, its frontmatter, and the README entry.
+3. **Scaffold, then write the body.** Run `akb board create --title "..." --track <track>
+   --modules <the step-1 modules>` plus any other meta flags (`akb board help create`) to
+   write the file, its frontmatter, and the README entry.
 
 ## Tightly coupled tasks go in one group
 
@@ -41,7 +41,7 @@ Example: "build a plugin system with a Slack and a Notion
 demo plugin" → 4 ids: a group root for the plugin system + a subtask for the
 system + a subtask for the Slack plugin + a subtask for the Notion plugin.
 
-See "## Group task" in `SKILL.md` for the folder layout and how to allocate the ids.
+See "Group task" in `akb guide board` for the folder layout and how to allocate the ids.
 Cards that stand on their own stay loose.
 
 ## Don't split off near-duplicates
@@ -53,25 +53,25 @@ for genuinely separate work — a different file, system, or deliverable.
 ## Scaffold the card
 
 Every meta field comes from a `create` flag. The frontmatter is not hand-editable — pass
-the fields to `${KB} create`:
+the fields to `akb board create`:
 
 `--blocked-by` and `--related` are optional, based on the task dependencies.
 
 ```
-${KB} create --title "Continue a run's conversation instead of copying its id" \
+akb board create --title "Continue a run's conversation instead of copying its id" \
              --track features --priority med --roi med --modules local-ui
 
-${KB} create --title "Stop saving a card's implementing stage" --track features \
+akb board create --title "Stop saving a card's implementing stage" --track features \
              --priority med --roi high --modules local-ui,skill --related 58
 
-${KB} create --title "Add a GitHub Projects storage backend for the board" \
+akb board create --title "Add a GitHub Projects storage backend for the board" \
              --track features --priority low --roi med --modules skill,local-ui \
              --blocked-by 55,61 --related 57
 ```
 
-A new card carries no open questions — that's refine's job (`references/refine.md`).
+A new card carries no open questions — that's refine's job (`akb guide refine`).
 
-Got a field wrong, or learned something after the fact? `${KB} update <id> --priority low`
+Got a field wrong, or learned something after the fact? `akb board update <id> --priority low`
 — never an editor.
 
 ## Write the card's body

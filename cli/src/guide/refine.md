@@ -2,7 +2,7 @@
 
 Take one task one step forward — from vague to concrete. First **check** the card, then
 **rewrite it or raise a question**. **Gate:** a card whose `questions` frontmatter isn't
-empty can't be refined — resolve them first (`references/resolve.md`).
+empty can't be refined — resolve them first (`akb guide resolve`).
 
 ## 1. Check
 
@@ -11,8 +11,8 @@ what's wrong. Flag real problems, not hypotheticals.
 
 - **Format — is it written like a card?**
   - **On topic**: does the body do what the title says? Anything else is another task.
-  - **Plain language**: is every line plain and short ("Writing style" in `SKILL.md`)?
-  - **No meta**: free of planning notes and meta-todos ("Card format" in `SKILL.md`)?
+  - **Plain language**: is every line plain and short ("Writing style" in `akb guide board`)?
+  - **No meta**: free of planning notes and meta-todos ("Card format" in `akb guide board`)?
   - **A build plan**: is it split into `## Todo` boxes, one step of real work each?
 - **Value — should this task exist at all?**
   - **Direction**: does it move the project toward the long-term goal and roadmap in
@@ -27,7 +27,7 @@ what's wrong. Flag real problems, not hypotheticals.
     plan builds "a history of all runs".
   - **Missing updates/verification**: does the plan skip work it implies — tests, a review pass, landing
     copy? If a user can see the change, it carries doc-update todos so it isn't hidden
-    after it ships (`references/document-feature.md`); none needs a why.
+    after it ships (`akb guide document-feature`); none needs a why.
   - **Over-complication**: is the design more machinery than the value justifies?
   - **Grouping**: does this card only make sense with another one? Then they're one group.
 - **Design — will the plan work?**
@@ -48,24 +48,24 @@ what's wrong. Flag real problems, not hypotheticals.
 
 Every NO turns into exactly one move below; a card with no problems skips them.
 **Never write the review notes into the card** The card holds the plan and nothing else.
-Read the "Card format" and "Writing style" of `SKILL.md`.
+Read "Card format" and "Writing style" in `akb guide board`.
 
 - **Rewrite.** Fix the issues while maintaining a minimal task spec.
-- **Reject.** A failed Value check. "Reject an idea" in `SKILL.md`: a line in
-  `rejected.md`, then `${KB} reject <id>`. Unsure the value is real? Raise a question.
+- **Reject.** A failed Value check. `akb guide reject`: a line in
+  `rejected.md`, then `akb board reject <id>`. Unsure the value is real? Raise a question.
 - **Add a card.** A side idea, an unplanned, separate concern that doesn't
-  belong to this card. Use "Add one task idea" in `references/add-task.md`, minding its
+  belong to this card. Use "Add one task idea" in `akb guide add-task`, minding its
   rule against near-duplicate splits.
-- **Group.** Cards that only make sense together: "Group task" in `SKILL.md` and "Tightly
-  coupled tasks go in one group" in `references/add-task.md`.
-- **Archive.** Everything done and the goal met: "Finish a task" in `SKILL.md`.
+- **Group.** Cards that only make sense together: "Group task" in `akb guide board` and "Tightly
+  coupled tasks go in one group" in `akb guide add-task`.
+- **Archive.** Everything done and the goal met: "Finish a task" in `akb guide board`.
 - **Raise a question** instead of rewriting when the call is the user's (taste, priorities,
   money, product direction), or a **spec-level** problem is significant and you can't
   settle it — is this what the user wants, which of two shapes should the feature take,
-  what's the rule in a case the card never names. Record it with `${KB} update-questions
+  what's the rule in a case the card never names. Record it with `akb board update-questions
   <id> --append ".."` (repeat the flag), leave that part alone; small calls, make them.
   A question only the user can settle is tagged `[user]`, and when it's a pick between
-  choices it carries them as options ("Ask the user the rest" in `references/resolve.md`).
-- **Mark it ready.** A concrete plan and no open questions finishes the card: `${KB} update
+  choices it carries them as options ("Ask the user the rest" in `akb guide resolve`).
+- **Mark it ready.** A concrete plan and no open questions finishes the card: `akb board update
   <id> --status ready` — only if this refine stopped at the code level, not one stage
   short. The user scans for the `ready` pill to pick what to build next.

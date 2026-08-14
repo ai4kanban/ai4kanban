@@ -14,6 +14,7 @@ import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 
 import { SESSIONS_DIR } from '../paths'
+import { RUN_ENV } from './flow'
 import { markBoard, refinesAfter, type BoardMarks } from './follow'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { RESUME_PROMPT } from './prompts'
@@ -99,7 +100,12 @@ export async function watchRun(sessionId: string): Promise<number> {
   try {
     child = spawn(cmd!, [...args, prompt], {
       cwd: process.cwd(),
-      env: active.env,
+      // The run's own id goes into the agent's environment, and this is the one place it
+      // can: the environment a run starts under is settled by the settings (resolve.ts),
+      // which never see a session id. It is what stops a run spawning a copy of itself —
+      // an agent inside a run that asks for a board action gets the flow printed instead
+      // (lib/agent/flow.ts).
+      env: { ...active.env, [RUN_ENV]: sessionId },
       shell: false,
       // `claude -p` waits ~3s on a piped stdin, then logs a "no stdin data" warning into
       // our log. Close stdin so the log is only agent output.

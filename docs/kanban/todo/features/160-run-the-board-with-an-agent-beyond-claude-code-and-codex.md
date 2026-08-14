@@ -4,7 +4,7 @@ track: features
 priority: med
 roi: med
 status: ready
-release: 0.6.0
+release: ""
 blocked_by: []
 related: [207]
 modules: [local-ui]
