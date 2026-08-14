@@ -123,7 +123,6 @@ const en: HomeCopy = {
     lead: "Download it, open it, point it at a project. Nothing to install first — no Node, no npx, no terminal. It asks the three things only you can answer, one to a screen, then reads your codebase, establishes the project goal and module memory, and creates the first set of tasks.",
     notes: ["Autonomous planning", "Local-first", "Agent-agnostic"],
     cta: "Download the app",
-    shotAlt: "The board app's guided first run, asking what the project is and the tracks its work falls into",
     firstOpen:
       "No build is signed yet, so macOS blocks the first open: drag the app in from the `.dmg`, then click through the warning that it cannot be checked. The download page has every step, and Windows and Linux.",
     terminal: {

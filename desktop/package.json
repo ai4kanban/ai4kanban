@@ -1,7 +1,7 @@
 {
   "name": "ai4kanban-desktop",
   "productName": "AI4Kanban",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "private": true,
   "description": "The AI4Kanban board as a desktop app — no terminal, no Node, nothing to install first.",
   "license": "Apache-2.0",

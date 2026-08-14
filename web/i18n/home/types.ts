@@ -74,8 +74,6 @@ export type HomeCopy = {
     /** The chips beside the download button. */
     notes: string[];
     cta: string;
-    /** The capture of the guided first run. */
-    shotAlt: string;
     /** What a Mac user has to do the first time, beside the first step. */
     firstOpen: string;
     terminal: {

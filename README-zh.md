@@ -89,8 +89,6 @@ Node，不需要 npx，也不需要开着终端。macOS、Windows、Linux 都有
 track，项目目标，以及由哪个 Agent 来跑这块看板 —— 一屏一个问题，默认值都已填好，不用往
 任何地方粘贴命令。
 
-![桌面应用里的引导式首次设置](https://cdn.ai4kanban.dev/ai4kanban-first-run-v1.jpg)
-
 然后点 **Finish setup**，剩下的看板自己往下做：读代码库、建立模块记忆、画出模块图，并
 创建首批 10 张任务卡片。发起 Agent 运行仍然需要机器上装有 Claude Code 或 Codex，这一点
 和在终端里一样。

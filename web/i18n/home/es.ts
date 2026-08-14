@@ -133,8 +133,6 @@ const es: HomeCopy = {
       "Independiente del agente",
     ],
     cta: "Descargar la aplicación",
-    shotAlt:
-      "La configuración guiada de la aplicación, preguntando qué es el proyecto y en qué vías se divide su trabajo",
     firstOpen:
       "Todavía no hay compilación firmada, así que macOS bloquea la primera apertura: arrastra la aplicación desde el `.dmg` y luego salta el aviso de que no se puede verificar. La página de descarga detalla cada paso, y también Windows y Linux.",
     terminal: {

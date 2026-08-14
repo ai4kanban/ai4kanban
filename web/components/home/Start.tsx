@@ -1,11 +1,9 @@
 import { FiDownload } from "react-icons/fi";
 import { SectionTitle } from "./SectionTitle";
-import { Mat, printFrame } from "./Mat";
 import { Rich } from "../Rich";
 import { Button } from "../ui/Button";
 import { Chip } from "../ui/Chip";
 import { panelInset } from "../styles";
-import { CDN } from "@/lib/site";
 import { localeHref, type Locale } from "@/lib/i18n";
 import type { HomeCopy } from "@/i18n/home/types";
 
@@ -25,11 +23,6 @@ import type { HomeCopy } from "@/i18n/home/types";
 // form rather than a global install plus `akb`, because the page shows one
 // command and never a list of shell steps.
 const COMMAND = "npx ai4kanban@latest install";
-
-// The guided first run, captured from the app. A drawing would have been the
-// other option — the four step shots above are drawings — but a README can only
-// carry a picture, and one capture serves the READMEs and this page both.
-const FIRST_RUN = `${CDN}/ai4kanban-first-run-v1.jpg`;
 
 export function Start({ c, locale }: { c: HomeCopy["start"]; locale: Locale }) {
   return (
@@ -70,20 +63,6 @@ export function Start({ c, locale }: { c: HomeCopy["start"]; locale: Locale }) {
       >
         <Rich>{c.firstOpen}</Rich>
       </p>
-
-      {/* Same mount as every other picture on the page: a watercolour ground, the
-          print laid on it, no outline around either. */}
-      <Mat src={`${CDN}/bloom-2.jpg`} data-reveal className="mt-9 p-4 sm:p-8">
-        <img
-          src={FIRST_RUN}
-          alt={c.shotAlt}
-          width={1800}
-          height={1466}
-          loading="lazy"
-          decoding="async"
-          className={`${printFrame} w-full`}
-        />
-      </Mat>
 
       {/* The terminal way in, under the app. It is one command and a link — the
           list of shell steps this used to be is what the app replaced. */}

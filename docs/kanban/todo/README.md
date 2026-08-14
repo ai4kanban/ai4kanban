@@ -38,6 +38,7 @@ _(none)_
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
 - [#186 Let a specialist agent fill the part of a spec it knows best](186-spec-agents/root.md)
 - [#214 Mark the calls in a card that are not just common sense](skill/214-mark-the-calls-in-a-card-that-are-not-just-common-sense.md)
+- [#221 Score how well the board does its own job](221-board-score/root.md)
 
 ## distribution
 
@@ -70,3 +71,12 @@ _(none)_
 - [#204 Run each test request twice — once with the board, once without](202-board-vs-no-board/distribution/204-run-both-ways.md)
 - [#205 Score the runs and keep the whole record in the repo](202-board-vs-no-board/distribution/205-score-and-record.md)
 - [#206 Show the result on the site and in the README](202-board-vs-no-board/distribution/206-publish-the-result.md)
+
+## 221-board-score/skill
+
+- [#222 Pick the few numbers that say how well the board plans](221-board-score/skill/222-pick-the-metrics.md)
+- [#223 Keep the record the numbers need, as the board runs](221-board-score/skill/223-keep-the-record.md)
+
+## 221-board-score/features
+
+- [#224 Show the board's score, and write it into every release](221-board-score/features/224-show-the-score.md)

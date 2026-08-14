@@ -127,8 +127,6 @@ const fr: HomeCopy = {
       "Indépendant de l’agent",
     ],
     cta: "Télécharger l’application",
-    shotAlt:
-      "La configuration guidée de l’application, qui demande ce qu’est le projet et en quelles pistes son travail se divise",
     firstOpen:
       "Aucune version n’est encore signée, donc macOS bloque la première ouverture : glissez l’application depuis le `.dmg`, puis passez l’avertissement indiquant qu’elle ne peut pas être vérifiée. La page de téléchargement détaille chaque étape, ainsi que Windows et Linux.",
     terminal: {

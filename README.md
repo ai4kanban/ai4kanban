@@ -109,8 +109,6 @@ Open it, point it at your project folder, and it asks the three things only you 
 answer — one to a screen, everything prefilled, nothing to paste: what the project is and
 the tracks its work falls into, your project goal, and which agent runs the board.
 
-![The guided first run in the board app](https://cdn.ai4kanban.dev/ai4kanban-first-run-v1.jpg)
-
 Then press **Finish setup** and the board works down the rest itself: it reads your
 codebase, establishes module memory, maps the project's modules, and creates the first ten
 task cards. Starting runs needs your coding agent — Claude Code or Codex — on the machine,

@@ -4,7 +4,7 @@ track: distribution
 priority: med
 roi: med
 status: todo
-release: ""
+release: 0.7.0
 blocked_by: [205]
 related: [202]
 modules: [site, docs]
