@@ -44,6 +44,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       agent={agent}
       projectRoot={repoRoot()}
       goalWritten={board.goalWritten}
+      memoryModules={board.memoryModules}
       desktop={isDesktop()}
     />
   );

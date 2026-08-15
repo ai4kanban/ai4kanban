@@ -18,6 +18,7 @@ import { parseFrontmatter } from '../frontmatter'
 import { readReleaseEntries } from '../releases'
 import { readSetupChecklist } from '../setup'
 import { goalNeedsWork, goalWritten } from './goal'
+import { readMemoryModules } from './memory'
 import { byPickOrder } from './rules'
 import type { ArchiveGroup, Board, Card, CardStatus, Column, SetupState, Subtask } from './types'
 
@@ -343,6 +344,7 @@ export function readBoard(): Board {
     releaseCounts: countByRelease(every),
     goalNeedsWork: goalNeedsWork(),
     goalWritten: goalWritten(),
+    memoryModules: readMemoryModules(),
     setup: readSetupState(),
   }
 }

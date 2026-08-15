@@ -49,6 +49,7 @@ export type {
   FillSkip,
   Level,
   MemoryFile,
+  MemoryModule,
   MemoryName,
   MemoryRef,
   MetricsDay,

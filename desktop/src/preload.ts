@@ -114,12 +114,12 @@ const SWIPE_TRAVEL = 90;
 const SWIPE_IDLE_MS = 250;
 
 /** Is this one of the pages the swipe belongs to? A card is `/<id>`, a memory
- *  file is `/memory/<name>` (#129), and the board is `/` — see the note above for
- *  why the board is left out. The board's columns are what the gesture was kept
- *  from; nothing on a memory page scrolls sideways, so back is what it means
- *  there, exactly as on a card. */
+ *  file is `/memory/<name>` or `/memory/<module>/<name>` (#129, #130), and the
+ *  board is `/` — see the note above for why the board is left out. The board's
+ *  columns are what the gesture was kept from; nothing on a memory page scrolls
+ *  sideways, so back is what it means there, exactly as on a card. */
 function swipeablePage(): boolean {
-  return /^\/\d+$/.test(location.pathname) || /^\/memory\/[^/]+$/.test(location.pathname);
+  return /^\/\d+$/.test(location.pathname) || /^\/memory\/[^/]+(\/[^/]+)?$/.test(location.pathname);
 }
 
 /** Is anything from `target` up to the root still able to scroll `delta`'s way?

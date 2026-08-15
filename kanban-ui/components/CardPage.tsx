@@ -24,6 +24,7 @@ import {
   type AgentInfo,
   type Card,
   type CardPatch,
+  type MemoryModule,
   type ScheduledAction,
   type SessionView,
 } from "@/lib/types";
@@ -162,6 +163,7 @@ export function CardPage({
   agent,
   projectRoot,
   goalWritten,
+  memoryModules,
   desktop,
 }: {
   card: Card;
@@ -172,6 +174,9 @@ export function CardPage({
   /** Whether the header's goal button has anything to open (#128). The header is
    *  the same on both pages, and direction is worth rereading wherever you are. */
   goalWritten: boolean;
+  /** The modules the rail's Memory panel offers (#130). The rail is the same on
+   *  every page, so this is too. */
+  memoryModules: MemoryModule[];
   /** Whether this board is running inside the desktop app (#175). The header and
    *  the running notice are the same on both pages, so this is too. */
   desktop: boolean;
@@ -287,6 +292,7 @@ export function CardPage({
         openIds={openIds}
         currentId={card.id}
         currentTitle={card.title}
+        memoryModules={memoryModules}
         running={running}
         header={
           <Header

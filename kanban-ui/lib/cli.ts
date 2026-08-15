@@ -85,10 +85,11 @@ export interface BoardRules {
   readMetricsView(): MetricsResult;
   readReleases(): string[];
   readGoalText(): string;
-  /** One of the four memory files, whole (#129). Optional: a board can be running rules
-   *  older than the release that added it, and the memory page then says so rather than
-   *  the whole app failing to draw. */
-  readMemoryFile?(name: string): MemoryFile | null;
+  /** One of the four memory files, whole — the project's copy, or a module's when `module`
+   *  names one the map knows (#129, #130). Optional: a board can be running rules older than
+   *  the release that added it, and the memory page then says so rather than the whole app
+   *  failing to draw. */
+  readMemoryFile?(name: string, module?: string): MemoryFile | null;
   readSetupDraft(): SetupDraft;
   readSetupState(): SetupState | null;
   fillPlan(): FillPlan;

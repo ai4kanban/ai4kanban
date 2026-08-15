@@ -51,7 +51,7 @@ export { readBoard, findCard, allCards, readSetupState } from './read'
 export { readMetricsView } from './metrics'
 export { readModules, readSetupDraft } from './first-run'
 export { readGoalText } from './goal'
-export { readMemoryFile } from './memory'
+export { readMemoryFile, readMemoryModules } from './memory'
 export { nextWork } from './dispatch'
 export { readReleases } from '../releases'
 

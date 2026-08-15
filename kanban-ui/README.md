@@ -112,7 +112,7 @@ rail is about what you are working on now. A word that matches most of the board
 the matches scroll inside the rail. Nothing matching says so in a line, and clearing the box
 (the **×**, or Escape) puts the rail's own list back.
 
-At the foot of the rail is the **Memory** panel — see **The project's memory** below.
+At the foot of the rail is the **Memory** panel — see **The board's memory** below.
 
 The rail is hidden on a narrow window, and the box and the panel go with it.
 
@@ -139,15 +139,16 @@ the agent's judgment — it writes them when it sets the board up and every time
 work — and `pending` just means you wrote something nobody has read yet. Only `weak` (or an
 empty file) makes the board ask you for a goal, so writing one is enough to stop it asking.
 
-### The project's memory
+### The board's memory
 
 Under the open cards, at the foot of the rail, is **Memory** — what the agent remembers about
 this project. Every proposal it makes is judged against these files, every question it settles
 by itself leans on them, and every idea you turned down stays turned down because it is
 written there. This is where you read them without opening files in an editor.
 
-It starts collapsed: one row with an arrow. Click it — anywhere on the row — and four rows
-appear, one per file:
+It starts collapsed: one row with an arrow. Click it — anywhere on the row — and the panel
+opens on two halves, **Project** and **Modules**. The project's own four files are the four
+rows under **Project**:
 
 | Row | The file |
 | --- | --- |
@@ -157,13 +158,21 @@ appear, one per file:
 | **Rejected ideas** | `docs/kanban/memory/rejected.md` |
 
 Hover a row and it names the file it opens. Click one and the file opens in the body, whole
-and rendered, headed by the row's name with the file's path from the repo root under it — and
-that row stays highlighted while you read, the same as the row of a card you are on. The panel
+and rendered, headed by the row's name — with the module's name over it when the file is a
+module's — and the file's path from the repo root under it. That row stays highlighted while
+you read, the same as the row of a card you are on. The panel
 grows with its rows up to half the rail and scrolls past that, so the cards above it are never
 pushed off. Whether you left it open is remembered.
 
-These are the project's own four files. A module's memory — `docs/kanban/memory/<module>/` —
-is not in the panel; open those in your editor.
+Under **Modules** is one row per module your `docs/kanban/modules.md` names, in the map's own
+order. Click one and it opens under itself into that module's own four files —
+`docs/kanban/memory/<module>/` — the same four names, indented. They open and read exactly
+like the project's. Any number of modules can be open at once, and a module nothing has been
+written about yet says so in a line instead of four rows that lead nowhere.
+
+Modules start closed every time you load the board, and nothing remembers which you had open
+— except the module holding the file you landed on, so its highlighted row is on screen after
+a reload. A board whose map names no modules keeps the four project rows and no labels.
 
 An open memory file is a page of its own, so Back, Forward and a reload all keep you on it,
 and landing on one opens the panel however you left it, so the highlighted row is on screen

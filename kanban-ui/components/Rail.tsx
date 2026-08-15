@@ -31,9 +31,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FiChevronRight, FiColumns, FiFileText, FiSearch, FiX } from "react-icons/fi";
 import { searchCardsAction } from "@/app/actions";
-import { useMemoryPanel } from "@/lib/memory-panel";
+import { memoryKey, memoryModuleOf, useMemoryPanel, useOpenModules } from "@/lib/memory-panel";
 import type { OpenCard } from "@/lib/open-cards";
-import { MEMORY_FILES, type CardRef } from "@/lib/types";
+import { MEMORY_FILES, type CardRef, type MemoryModule } from "@/lib/types";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 
 /** How long the typing has to stop before the board is searched. Long enough that a
@@ -45,6 +45,7 @@ export function Rail({
   rows,
   activeId,
   activeMemory = null,
+  memoryModules = [],
   total,
   running,
   onClose,
@@ -53,8 +54,10 @@ export function Rail({
   rows: OpenCard[];
   /** The card this window is showing, or null for the board. */
   activeId: number | null;
-  /** The memory file this window is showing, or null (#129). */
+  /** The memory file this window is showing, as a memory key, or null (#129). */
   activeMemory?: string | null;
+  /** The modules the memory panel offers, in the map's order (#130). */
+  memoryModules?: MemoryModule[];
   /** How many cards the board holds open — the count on All cards. */
   total: number;
   /** The cards an agent is inside right now. A row for one of them pulses, so a
@@ -129,15 +132,16 @@ export function Rail({
           </>
         )}
       </nav>
-      <MemoryPanel active={activeMemory} />
+      <MemoryPanel active={activeMemory} modules={memoryModules} />
     </div>
   );
 }
 
-/** The project's memory, at the foot of the rail (#129) — what shipped, what was settled,
- *  what to avoid, what was turned down. It sits below the cards and outside the list that
- *  scrolls, so it stays put however many cards are open and whatever is typed in the search
- *  box: it is not one of the cards, and a search is no reason to lose it.
+/** The board's memory, at the foot of the rail (#129, #130) — what shipped, what was
+ *  settled, what to avoid, what was turned down, for the project and for each module the map
+ *  names. It sits below the cards and outside the list that scrolls, so it stays put however
+ *  many cards are open and whatever is typed in the search box: it is not one of the cards,
+ *  and a search is no reason to lose it.
  *
  *  Collapsed it is one section label with an arrow, and the whole row is the button — a
  *  10px arrow is not something to have to hit. Expanded it grows with its rows to half the
@@ -146,9 +150,13 @@ export function Rail({
  *  It slides rather than appears: the rows push the cards up from under the label, so where
  *  they came from is visible instead of guessed at. The height is animated with a grid row
  *  going 0fr → 1fr, which needs no measuring and so keeps working when the list grows. */
-function MemoryPanel({ active }: { active: string | null }) {
+function MemoryPanel({ active, modules }: { active: string | null; modules: MemoryModule[] }) {
   const { open, toggle, animate } = useMemoryPanel(active);
+  const { isOpen, toggle: toggleModule } = useOpenModules(memoryModuleOf(active));
   const slide = animate ? "transition-[grid-template-rows,opacity] duration-200 ease-out" : "";
+  // The two halves are only worth naming when there is a second half to name. A board whose
+  // map has no modules keeps the four rows it had.
+  const split = modules.length > 0;
   return (
     <div className="flex max-h-[50%] shrink-0 flex-col">
       <button
@@ -180,21 +188,85 @@ function MemoryPanel({ active }: { active: string | null }) {
           {/* The rows' own breathing room is inside the scroller, not padding on it: padding
               is floor a 0fr track can't shrink past, and closed has to close all the way. */}
           <div className="flex flex-col gap-0.5 py-1">
-            {MEMORY_FILES.map((file) => (
-              <RailRow
-                key={file.name}
-                href={`/memory/${file.name}`}
-                label={file.label}
-                // The path is what a hover says, not the row's own words back at it: the
-                // words are already on screen, the file they open is not.
-                title={`docs/kanban/memory/${file.name}.md`}
-                icon={<FiFileText size={13} className="shrink-0" aria-hidden />}
-                active={active === file.name}
-              />
+            {split && <PanelLabel text="Project" />}
+            <MemoryFileRows module="" active={active} />
+            {split && <PanelLabel text="Modules" divider />}
+            {modules.map((module) => (
+              <div key={module.name}>
+                <button
+                  type="button"
+                  onClick={() => toggleModule(module.name)}
+                  aria-expanded={isOpen(module.name)}
+                  title={`docs/kanban/memory/${module.name}/`}
+                  className="flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-[8px] px-2.5 text-left text-[12.5px] font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-ink"
+                >
+                  <FiChevronRight
+                    size={13}
+                    aria-hidden
+                    className={`shrink-0 transition-transform duration-150 ease-out ${
+                      isOpen(module.name) ? "rotate-90" : ""
+                    }`}
+                  />
+                  <span className="truncate">{module.name}</span>
+                </button>
+                {/* Indented under the row that opened them, so the panel reads as a tree
+                    rather than as a flat list with a heading in it. */}
+                {isOpen(module.name) && (
+                  <div className="flex flex-col gap-0.5 pl-3.5 pt-0.5">
+                    {module.hasMemory ? (
+                      <MemoryFileRows module={module.name} active={active} />
+                    ) : (
+                      // Four rows that all lead nowhere would read as four empty files
+                      // rather than as a module nothing has been written about yet.
+                      <p className="px-2.5 pb-1 text-[12px] leading-snug text-nb-ink-soft">
+                        Nothing remembered about this module yet.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </nav>
       </div>
+    </div>
+  );
+}
+
+/** The four memory rows of one set — the project's, or a module's (#130). The same four
+ *  names in the same order either way, so a module's set is read the way the project's is. */
+function MemoryFileRows({ module, active }: { module: string; active: string | null }) {
+  const folder = module ? `docs/kanban/memory/${module}` : "docs/kanban/memory";
+  return (
+    <>
+      {MEMORY_FILES.map((file) => (
+        <RailRow
+          key={file.name}
+          href={`/memory/${memoryKey(module, file.name)}`}
+          label={file.label}
+          // The path is what a hover says, not the row's own words back at it: the words
+          // are already on screen, the file they open is not.
+          title={`${folder}/${file.name}.md`}
+          icon={<FiFileText size={13} className="shrink-0" aria-hidden />}
+          active={active === memoryKey(module, file.name)}
+        />
+      ))}
+    </>
+  );
+}
+
+/** Project / Modules — the two halves of the Memory panel, in the rail's own section-label
+ *  look at panel scale. No count: the project's half is always four, and the panel's rows
+ *  are what say how many modules there are. */
+function PanelLabel({ text, divider = false }: { text: string; divider?: boolean }) {
+  return (
+    <div
+      className={`px-2.5 pb-1 ${divider ? "mt-1.5 pt-2" : ""}`}
+      style={divider ? { borderTop: `1px solid ${HAIRLINE}` } : undefined}
+    >
+      <span className="text-[10px] font-[800] uppercase tracking-[0.12em] text-nb-ink-soft">
+        {text}
+      </span>
     </div>
   );
 }

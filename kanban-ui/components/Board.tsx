@@ -391,6 +391,7 @@ export function BoardView({
       <Window
         projectRoot={projectRoot}
         openIds={board?.openIds ?? []}
+        memoryModules={board?.memoryModules ?? []}
         running={runningCardIds(sessions)}
         header={
           <Header

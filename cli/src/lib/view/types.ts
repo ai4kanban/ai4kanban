@@ -238,6 +238,9 @@ export interface Board {
   /** True when `memory/goal.md` holds the user's own words, so a goal button has something
    *  to open. */
   goalWritten: boolean
+  /** The modules the memory panel offers, in the map's order (#130). Empty on a board whose
+   *  map names none — then the panel is the project's four files and nothing else. */
+  memoryModules: MemoryModule[]
   /** Setup's checklist while it exists, null once setup deleted it. */
   setup: SetupState | null
 }
@@ -344,9 +347,21 @@ export const MEMORY_FILES: readonly MemoryRef[] = [
   { name: 'rejected', label: 'Rejected ideas' },
 ]
 
+/** One module the memory panel can open — a name from `docs/kanban/modules.md`, in the
+ *  order the map lists it. A module the map doesn't name is not one of these, whatever is
+ *  in the memory folder. */
+export interface MemoryModule {
+  name: string
+  /** True once `docs/kanban/memory/<name>/` exists. False means nothing has been remembered
+   *  about this module yet, and its four rows would all lead nowhere. */
+  hasMemory: boolean
+}
+
 /** One memory file, whole. A file nobody has written keeps its place with an empty `text`
  *  and `written: false`, so the four rows never change shape from one board to the next. */
 export interface MemoryFile extends MemoryRef {
+  /** The module whose set this file belongs to, or empty for the project's own copy. */
+  module: string
   /** The full path on disk — what "Copy path" copies. */
   path: string
   /** The path from the repo root, forward slashes — what "Copy relative path" copies, and

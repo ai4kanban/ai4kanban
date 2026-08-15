@@ -63,7 +63,12 @@ except where another doc is named.
   a page of its own, with Back, Forward, reload and the app's swipe all working on it. The
   page re-reads itself when a run finishes and when you come back to the window, an
   unwritten file keeps its row and says so, and a ⋯ menu copies the file's path. Read-only,
-  and no run starts from it: `kanban-ui/README.md`, "The project's memory".
+  and no run starts from it: `kanban-ui/README.md`, "The board's memory".
+- Read what the agent remembers about one module in that same panel: under **Modules**, one
+  row per module the map names, each opening under itself into that module's own four files.
+  Any number can be open at once, they start closed except the one holding the file you
+  landed on, and a module nothing has been written about yet says so in a line:
+  `kanban-ui/README.md`, "The board's memory".
 
 ## Releases
 

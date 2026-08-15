@@ -97,18 +97,20 @@ export async function readGoalText(): Promise<string> {
   }
 }
 
-/** One of the four memory files, whole (#129) — `null` for a name that isn't one of them.
+/** One of the four memory files, whole (#129) — the project's copy, or a module's when
+ *  `module` names one. `null` for a name that isn't one of the four, and for a module the
+ *  map doesn't name (#130).
  *
  *  Read on each open rather than held, so a file a run has just rewritten reads as it is
  *  now. A board with no rules to read it with, or rules older than the release that added
  *  this, throws: the memory page is the one screen this is the whole of, and a page that
  *  quietly showed nothing would read as an empty memory. */
-export async function readMemory(name: string): Promise<MemoryFile | null> {
+export async function readMemory(name: string, module = ""): Promise<MemoryFile | null> {
   const rules = await boardRules();
   if (!rules.readMemoryFile) {
     throw new NoRulesError("The board's rules this board runs are too old to read its memory.");
   }
-  return rules.readMemoryFile(name);
+  return rules.readMemoryFile(name, module);
 }
 
 /** What the guided first run opens with — the project, its tracks, and the goal as they

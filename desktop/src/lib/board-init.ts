@@ -15,6 +15,7 @@
 import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { nodeBinary } from "./node-binary";
 import { bundledResource } from "./resources";
 
 // Long enough for a slow disk to copy a few hundred small files, short enough
@@ -35,7 +36,7 @@ export function makeBoard(dir: string): Promise<void> {
   }
   return new Promise((resolve, reject) => {
     execFile(
-      process.execPath,
+      nodeBinary(),
       [entry, "install", "--dir", dir],
       {
         cwd: dir,

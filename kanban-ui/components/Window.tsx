@@ -18,6 +18,7 @@
 
 import { useOpenCards } from "@/lib/open-cards";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
+import type { MemoryModule } from "@/lib/types";
 import { Rail } from "./Rail";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 
@@ -39,6 +40,7 @@ export function Window({
   currentId = null,
   currentTitle = "",
   currentMemory = null,
+  memoryModules = [],
   running,
   children,
 }: {
@@ -47,9 +49,13 @@ export function Window({
   openIds: number[];
   currentId?: number | null;
   currentTitle?: string;
-  /** The memory file this page is showing, if it is showing one (#129) — what highlights
-   *  its row in the rail's Memory panel, and what opens that panel on landing. */
+  /** The memory file this page is showing, if it is showing one (#129) — as a memory key,
+   *  which is what highlights its row in the rail's Memory panel, opens that panel on
+   *  landing, and opens the module the file belongs to (#130). */
   currentMemory?: string | null;
+  /** The modules the rail's Memory panel offers, from the board read every page already
+   *  does (#130). Empty on a board whose map names none. */
+  memoryModules?: MemoryModule[];
   /** The cards an agent is inside, for the rail's pulsing rows. Handed down
    *  rather than polled for here: both pages already watch the registry, and a
    *  fourth poll for one dot would be a poll to say nothing new. */
@@ -81,6 +87,7 @@ export function Window({
               rows={rows}
               activeId={currentId}
               activeMemory={currentMemory}
+              memoryModules={memoryModules}
               total={openIds.length}
               running={running ?? EMPTY}
               onClose={close}

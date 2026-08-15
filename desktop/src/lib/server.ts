@@ -12,8 +12,8 @@
 // what closing the window has to do.
 //
 // There is no Node on the machine to run it with — that is the whole point of
-// the app — so it runs under Electron's own Node, which every build carries:
-// `process.execPath` with `ELECTRON_RUN_AS_NODE=1` IS a Node binary.
+// the app — so it runs under Electron's own Node, which every build carries
+// (see ./node-binary for which of Electron's binaries, and why it matters).
 //
 // Why a POOL of them rather than one restarted on every switch (#178): the
 // server is built around one board — its runs, its locks and every file path it
@@ -29,6 +29,7 @@ import fs from "node:fs";
 import http from "node:http";
 import net from "node:net";
 import path from "node:path";
+import { nodeBinary } from "./node-binary";
 import { hasLiveRun } from "./projects";
 import { bundledResource } from "./resources";
 import type { Env } from "./shell-env";
@@ -141,7 +142,9 @@ export class BoardServer {
           "Built from source? Run `npm run bundle` in desktop/ first.",
       );
     }
-    const child = spawn(process.execPath, [entry], {
+    // Electron's Node, from the binary that doesn't take a Dock tile — and
+    // every process the server itself starts inherits it (../lib/node-binary).
+    const child = spawn(nodeBinary(), [entry], {
       // The server finds its own bundled assets through __dirname; the board is
       // found through KANBAN_BOARD_DIR, never through cwd.
       cwd: path.dirname(entry),
