@@ -13,7 +13,7 @@ export const CDN = "https://cdn.ai4kanban.dev";
 // captured PNG is served from the CDN and referenced by every page's OG/Twitter
 // tags. Re-capture `/og-image/` and re-upload when the card design changes.
 export const OG_IMAGE = {
-  url: `${CDN}/og-image-v4.jpg`,
+  url: `${CDN}/og-image-v5.jpg`,
   width: 4800,
   height: 2520,
   alt: "AI4Kanban — a project board that plans itself.",

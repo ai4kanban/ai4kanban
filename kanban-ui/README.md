@@ -174,10 +174,13 @@ is usually in the way of the very version you are planning, and a blocker is nev
 sight. You see it in the Blockers column, and at the top of the queue's halves, even when it
 belongs to another release or to none.
 
-**All releases** is the way back to the whole board, and where the board opens. Each entry
-counts the open cards in it — "v1 (7)" — so you can see a version is nearly empty without
-opening it, and carries what that version is for under its name. Those are the same numbers
-and the same goals `release list` prints in your terminal.
+**No release** is the first entry and where the board opens: the open cards that aren't
+promised to a version yet — the pile every release is picked out of. There is no whole-board
+view, because a card already planned into a version is one you review in that version.
+
+Each entry counts the open cards in it — "v1 (7)" — so you can see a version is nearly empty
+without opening it, and carries what that version is for under its name. Those are the same
+numbers and the same goals `release list` prints in your terminal.
 
 A few more things it does:
 
@@ -186,15 +189,17 @@ A few more things it does:
 - **Create task** puts the new card in the release on screen, so it doesn't vanish the
   moment you write it. **Propose tasks** doesn't — it offers work nobody has planned, and
   that work stays in no release.
-- A release with **nothing open in it says so**, with All releases one click away, instead
+- A release with **nothing open in it says so**, with **No release** one click away, instead
   of looking like a broken board. Blockers on screen don't count: a blocker belongs to
-  whoever it blocks.
+  whoever it blocks. On No release an empty screen says so too — every open card is in a
+  version, and there is nothing left to plan.
 - Your pick is remembered in your browser, per board. Nothing is
   written to the files, so a pick never changes what the agent works on — background
   refining still reads the whole board, and the progress chart still counts every card.
 - If the release you picked is gone — you closed it, or edited `releases.md` — the board
-  opens on All releases rather than hiding your cards behind a version that no longer
-  exists.
+  opens on No release rather than hiding your cards behind a version that no longer exists.
+  That is also where closing or dropping one leaves you: the cards it let go are exactly
+  what No release shows.
 
 ### Starting a release
 
@@ -229,7 +234,7 @@ The board switches to the new release the moment it is made, so what you write n
 it — **Create task** puts a new card in the release on screen. Made from a goal, the board
 says **it is being planned** and the cards appear as the run moves and writes them, with
 **Watch the run** on the note; made with no goal, you get the cards the rule moved, or the
-"has no open cards" note with **All releases** one click away.
+"has no open cards" note with **No release** one click away.
 
 ### Filling a release from its goal
 
@@ -319,8 +324,8 @@ yours to write down if you want it kept — the board records nothing about it.
 **Renaming and reordering a release are still terminal jobs** — `releases.md` is a short file
 and a hand edit is how those work.
 
-A board that plans no versions sees the dropdown saying **All releases** and offering **New
-release**, and nothing more. Nothing asks you for a version.
+A board that plans no versions sees the dropdown saying **No release** — which there is
+every card — and offering **New release**, and nothing more. Nothing asks you for a version.
 
 ### The first run
 

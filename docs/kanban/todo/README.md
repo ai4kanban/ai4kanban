@@ -24,6 +24,7 @@ _(none)_
 - [#179 Show a failed run on the card it was working on](features/179-show-a-failed-run-on-the-card-it-was-working-on.md)
 - [#182 Sign the Mac build so it opens with no warning](features/182-sign-the-mac-build-so-it-opens-with-no-warning.md)
 - [#183 Install the Mac app with one Homebrew command](features/183-install-the-mac-app-with-one-homebrew-command.md)
+- [#225 Run the board on DeepSeek Harness (dsh)](features/225-run-the-board-on-deepseek-harness-dsh.md)
 
 ## skill
 

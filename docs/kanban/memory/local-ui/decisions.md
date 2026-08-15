@@ -91,6 +91,9 @@ re-ask a settled call.
   that stopped short. An agent that only prints a summary at the end isn't offered — a
   blank box for the whole run reads as a hang, and no Resume means a failure is unfinished
   work the user has to redo by hand.
+- **How does the board reach an agent?**: by starting a command and reading what it prints,
+  and no other way. An agent whose live view only exists in a browser app of its own is not
+  offered — talking to a server would change how every agent is wired.
 - Each connector declares the settings it takes and the dialog draws them. Two shapes
   only: a box to type in, and a list to pick one from.
 - Each connector keeps its own settings block beside its name, so switching loses nothing
@@ -141,9 +144,11 @@ re-ask a settled call.
 
 - The queue view regroups the whole board and hides nothing — it is a second way to group,
   not the rejected ready-only filter.
-- The release dropdown is the one place the board hides cards, and only on a deliberate
-  pick; All releases is the default. Blockers stay on screen whatever release is picked,
-  since an unplanned blocker is usually blocking the version being planned.
+- The release dropdown is the one place the board hides cards. Its entries are the open
+  versions plus **No release** — the cards not promised to one — which is the first entry
+  and the default; there is no whole-board view, since a card already in a version is
+  reviewed in that version. Blockers stay on screen whatever release is picked, since an
+  unplanned blocker is usually blocking the version being planned.
 - Ticking cards to move several in or out of a release is worth having beside the agent's
   fill pass, which only ever adds — a version planned too full needs a fast way back out.
 - The New release dialog picks the kind of release with two tabs, **From a goal** and **No

@@ -16,12 +16,19 @@
 // what to look at, plus New release — and the verbs sit on the version they act
 // on, shown only while it is unambiguous which one that is.
 //
+// The first entry is No release — the open cards not promised to a version — and
+// it is where the board rests. It used to be All releases, the whole board, and
+// that is the one screen a user never needs: a card already planned into a
+// version is reviewed in that version, so the default view was every one of them
+// again, mixed in with the cards that still have to be placed. The list is the
+// versions plus the pile they are picked from, and nothing shows twice.
+//
 // It is on every board, including one that has never planned a version. #104 hid
 // it there so a user who never plans a release is never shown one, but hiding the
 // only place the feature lives means the UI can never teach it — and that is the
 // state where the user most needs telling it is there. One quiet select in the
-// header costs that user nothing: it says All releases and offers New release,
-// and nothing asks them for a version.
+// header costs that user nothing: on that board No release is every card, so the
+// entry it rests on is the board itself, and nothing asks them for a version.
 //
 // The last entry is always New release, on a board with none and on one with
 // five: a second release is made the same way as the first. Picking it asks
@@ -43,7 +50,7 @@
 import { useEffect, useState } from "react";
 import { FiCheckCircle, FiCompass, FiMoreHorizontal, FiTag, FiTarget, FiTrash2 } from "react-icons/fi";
 import { closePlanAction, dropPlanAction, fillPlanAction } from "@/app/actions";
-import type { ClosePlan, DropPlan, FillPlan } from "@/lib/types";
+import { NO_RELEASE, type ClosePlan, type DropPlan, type FillPlan } from "@/lib/types";
 import type { ReleasePick } from "@/lib/release-pick";
 import { Button } from "./button";
 import { CHROME, SegmentDivider } from "./chrome";
@@ -54,8 +61,8 @@ import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, Sele
 // The values the entries that aren't releases carry. `readReleases` cuts a
 // line at the em dash, so a release id can never hold one — not even from a
 // hand edit — which makes these the values no entry can collide with. (Radix
-// refuses an empty-string value, so All can't just be "".)
-const ALL = "—all—";
+// refuses an empty-string value, so No release can't just be `NO_RELEASE`.)
+const NONE = "—none—";
 const NEW = "—new—";
 
 // The goal box, in both dialogs that hold one (#164) — design.md's input rules:
@@ -91,8 +98,8 @@ export function ReleasePicker({
   /** What each release is for (#164), keyed by version id. A release with no
    *  goal is absent — every screen here works over that. */
   goals: Record<string, string>;
-  /** How many open cards each release holds. The unplanned (no-release) cards
-   *  get no entry of their own — they only count toward the All-releases total. */
+  /** How many open cards each release holds, keyed by version id, with the empty
+   *  key for the cards in no release — the count the first entry wears. */
   counts: Record<string, number>;
   value: ReleasePick;
   onChange: (r: ReleasePick) => void;
@@ -123,8 +130,10 @@ export function ReleasePicker({
   const [closing, setClosing] = useState<string | null>(null);
   const [goalOf, setGoalOf] = useState<string | null>(null);
   const [planning, setPlanning] = useState<string | null>(null);
-  const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
   const entry = (id: string) => `${id} (${counts[id] ?? 0})`;
+  // On a version, rather than on the pile versions are picked from. It is what
+  // the sky fill says and what the ⋯ segment needs: the verbs there end a
+  // version, and No release is not one.
   const filtering = value !== null;
   return (
     <>
@@ -141,7 +150,7 @@ export function ReleasePicker({
         }}
       >
         <Select
-          value={value ?? ALL}
+          value={value ?? NONE}
           onValueChange={(v) => {
             // New release is an action, not a thing to be showing. The pick
             // isn't passed on, and the select is controlled, so it stays on the
@@ -151,19 +160,19 @@ export function ReleasePicker({
               setMaking(true);
               return;
             }
-            onChange(v === ALL ? null : v);
+            onChange(v === NONE ? null : v);
           }}
         >
           {/* The entry span is capped: a long version id truncates instead of
               pushing the header's other controls off a narrow screen. On a
               phone it goes icon-only like the header's other controls — but
-              only while it says All releases, which is the resting state the
-              sky fill already distinguishes; a picked version id stays on
-              screen, since which release is filtering is the one thing the
-              control has to say. */}
+              only while it says No release, the resting state the sky fill
+              already distinguishes; a picked version id stays on screen, since
+              which release is filtering is the one thing the control has to
+              say. */}
           <SelectTrigger
             aria-label="Which release to show"
-            title="Show one release at a time — blockers always stay on screen"
+            title="Show one release at a time, or the cards in none — blockers always stay on screen"
             className={`h-full w-auto gap-1.5 rounded-[6px] border-0 bg-transparent px-1.5 py-0 text-[12px] font-[700] leading-none text-inherit shadow-none [&>span]:max-w-[104px] sm:[&>span]:max-w-[168px] ${SEGMENT_WASH} ${
               filtering ? "" : "max-sm:[&>span]:sr-only"
             }`}
@@ -172,7 +181,20 @@ export function ReleasePicker({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All releases ({total})</SelectItem>
+            {/* The cards nobody has placed yet, first and always — it is the
+                board's resting screen, and the pile every version below it is
+                picked out of. On a board that plans no versions it is the only
+                entry that shows cards, and it shows all of them. */}
+            <SelectItem
+              value={NONE}
+              hint={
+                <span className="max-w-[240px] text-[11.5px] font-[500] leading-snug text-nb-ink-soft">
+                  Not promised to a version yet
+                </span>
+              }
+            >
+              No release ({counts[NO_RELEASE] ?? 0})
+            </SelectItem>
             {/* What the version is for, under its id — the one place the list
                 says why these releases exist. Two lines at most: the whole goal
                 is a sentence or two, and this is a dropdown, not a document —
@@ -193,9 +215,6 @@ export function ReleasePicker({
                 {entry(r)}
               </SelectItem>
             ))}
-            {/* No entry for the cards in no release: that isn't a version, so
-                it has no place in a list of versions. The unplanned cards are
-                seen under All releases. */}
             {/* New release is a command in a menu of answers, and stays
                 anyway: on a board that has never planned a version this menu
                 is the only place the feature can teach itself. The verbs that

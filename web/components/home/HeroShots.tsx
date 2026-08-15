@@ -4,7 +4,7 @@ import { useState } from "react";
 import { printFrame } from "./Mat";
 import type { HomeCopy } from "@/i18n/home/types";
 
-// The two board views as a flip deck: the front shot sits top-left, the other
+// The board and one card as a flip deck: the front shot sits top-left, the other
 // peeks out from behind — click it to bring it forward. Keeps both screenshots
 // full size instead of shrinking them side by side, and nothing is drawn on top
 // of the capture.
@@ -21,11 +21,11 @@ import type { HomeCopy } from "@/i18n/home/types";
 // this is the view you are looking at. It also means the pair never changes
 // size on the flip, which the old border swap had to reserve 2px to avoid.
 
-type Mode = "board" | "queue";
+type Mode = "board" | "card";
 
 const SRC: Record<Mode, string> = {
-  board: "https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg",
-  queue: "https://cdn.ai4kanban.dev/ai4kanban-ui-v4-queue-view.jpg",
+  board: "https://cdn.ai4kanban.dev/ai4kanban-ui-v5-board-view.jpg",
+  card: "https://cdn.ai4kanban.dev/ai4kanban-ui-v5-card-view.jpg",
 };
 
 function Frame({
@@ -38,15 +38,11 @@ function Frame({
   eager: boolean;
 }) {
   return (
+    // No title bar is drawn here. The deck used to carry a thin macOS strip so
+    // the capture read as a real app window; these captures are of the desktop
+    // app and bring their own — window buttons inline with the toolbar — and a
+    // second strip above that reads as a window inside a window.
     <div className={`${printFrame} bg-code`}>
-      {/* Thin macOS title bar so the capture reads as a real app window. It
-          names no fill and draws no rule: it is a strip of the card's own wash,
-          and the capture's white underneath is the step that separates them. */}
-      <div aria-hidden className="flex h-6 items-center gap-1.5 px-3">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-      </div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={SRC[mode]}
@@ -67,7 +63,7 @@ const PEEK = 40;
 
 export function HeroShots({ c }: { c: HomeCopy["hero"]["shots"] }) {
   const [front, setFront] = useState<Mode>("board");
-  const back: Mode = front === "board" ? "queue" : "board";
+  const back: Mode = front === "board" ? "card" : "board";
   // Paint back-to-front so the front card wins the stacking order naturally.
   const order: Mode[] = [back, front];
 

@@ -17,7 +17,10 @@ const fr: HomeCopy = {
     ctaGithub: "Voir sur GitHub ↗",
     shots: {
       board: { label: "Board", alt: "Tableau local AI4Kanban : vue Board" },
-      queue: { label: "Queue", alt: "Tableau local AI4Kanban : vue Queue" },
+      card: {
+        label: "Card",
+        alt: "Tableau local AI4Kanban : une carte et sa spécification",
+      },
       frontAria: "Vue {view} (actuelle)",
       flipAria: "Passer à la vue {view}",
     },

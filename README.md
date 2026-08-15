@@ -10,7 +10,7 @@ A Kanban board that plans autonomously, shaped by every decision.
 
 [Website](https://ai4kanban.dev) · [Quick start](#quick-start) · [Roadmap](#roadmap)
 
-<img src="https://cdn.ai4kanban.dev/og-image-v4.jpg" alt="AI4Kanban — AI project management that grows with you" width="720">
+<img src="https://cdn.ai4kanban.dev/og-image-v5.jpg" alt="AI4Kanban — AI project management that grows with you" width="720">
 
 </div>
 
@@ -287,9 +287,9 @@ is signed yet, so every system warns the first time you open it — what to clic
 [quick start](#quick-start), and the [download page](https://ai4kanban.dev/download) spells
 each step out.
 
-![The board view in the Web UI](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg)
+![The board view in the Web UI](https://cdn.ai4kanban.dev/ai4kanban-ui-v5-board-view.jpg)
 
-![The queue view in the Web UI](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-queue-view.jpg)
+![A card and its spec in the Web UI](https://cdn.ai4kanban.dev/ai4kanban-ui-v5-card-view.jpg)
 
 What the buttons do: [kanban-ui/](kanban-ui/README.md).
 

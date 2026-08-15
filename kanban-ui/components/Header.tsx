@@ -84,14 +84,14 @@ export function Header({
   projectRoot: string;
   onError?: (msg: string) => void;
   /** The open releases in ship order. Empty is a board that plans no versions —
-   *  the dropdown still shows, saying All releases and offering New release, so
-   *  the first release can be started from here. */
+   *  the dropdown still shows, resting on No release (which is then every card)
+   *  and offering New release, so the first one can be started from here. */
   releases?: string[];
   /** What each release is for (#164), keyed by version id — shown under the
    *  version in the dropdown. A release with no goal is absent. */
   releaseGoals?: Record<string, string>;
-  /** How many open cards each release holds, the unplanned (no-release) ones
-   *  included — those only feed the All-releases total. */
+  /** How many open cards each release holds, keyed by version id, with the empty
+   *  key for the cards in no release — the count the first entry wears. */
   releaseCounts?: Record<string, number>;
   release?: ReleasePick;
   onReleaseChange?: (r: ReleasePick) => void;

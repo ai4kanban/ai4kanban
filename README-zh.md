@@ -10,7 +10,7 @@
 
 [官网](https://ai4kanban.dev) · [快速开始](#快速开始) · [路线图](#路线图)
 
-<img src="https://cdn.ai4kanban.dev/og-image-v4.jpg" alt="AI4Kanban——越用越懂你的 AI 项目管理" width="720">
+<img src="https://cdn.ai4kanban.dev/og-image-v5.jpg" alt="AI4Kanban——越用越懂你的 AI 项目管理" width="720">
 
 </div>
 
@@ -253,9 +253,9 @@ akb agent test                # 发一句话试试通不通
 首次打开时都会警告 —— 该点哪几下写在[快速开始](#快速开始)里，
 [下载页](https://ai4kanban.dev/download)有每一步的详细说明。
 
-![Web UI 的 Board 视图](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg)
+![Web UI 的 Board 视图](https://cdn.ai4kanban.dev/ai4kanban-ui-v5-board-view.jpg)
 
-![Web UI 的 Queue 视图](https://cdn.ai4kanban.dev/ai4kanban-ui-v4-queue-view.jpg)
+![Web UI 的卡片详情与需求](https://cdn.ai4kanban.dev/ai4kanban-ui-v5-card-view.jpg)
 
 每个按钮的作用见 [kanban-ui/](kanban-ui/README.md)。
 

@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 };
 
 const SHOTS = {
-  board: "https://cdn.ai4kanban.dev/ai4kanban-ui-v4-board-view.jpg",
-  queue: "https://cdn.ai4kanban.dev/ai4kanban-ui-v4-queue-view.jpg",
+  board: "https://cdn.ai4kanban.dev/ai4kanban-ui-v5-board-view.jpg",
+  card: "https://cdn.ai4kanban.dev/ai4kanban-ui-v5-card-view.jpg",
 };
 
 const c = getCopy("en").home;
@@ -29,12 +29,10 @@ function Frame({
   dim?: boolean;
 }) {
   return (
+    // The captures are of the desktop app and carry their own window buttons,
+    // so this frame draws no title bar of its own — one above them would read
+    // as a window inside a window. Same call as the landing hero's deck.
     <div className="w-[548px] overflow-hidden rounded-xl border-2 border-border bg-code shadow-[8px_8px_0_0_var(--color-ink)]">
-      <div className="flex h-7 items-center gap-1.5 border-b-2 border-border bg-elev px-3.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-      </div>
       <div className="relative">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={src} alt={alt} className="block w-full" />
@@ -82,11 +80,11 @@ export default function OgImage() {
         </div>
       </div>
 
-      {/* Right column: the new Board and Queue views in the landing hero's
-          flip-deck composition, with Board in front by default. */}
+      {/* Right column: the board and a card in the landing hero's flip-deck
+          composition, with the board in front by default. */}
       <div className="absolute left-[636px] top-1/2 -translate-y-1/2">
         <div className="absolute left-13 top-13">
-          <Frame src={SHOTS.queue} alt={c.hero.shots.queue.alt} dim />
+          <Frame src={SHOTS.card} alt={c.hero.shots.card.alt} dim />
         </div>
         <div className="relative">
           <Frame src={SHOTS.board} alt={c.hero.shots.board.alt} />

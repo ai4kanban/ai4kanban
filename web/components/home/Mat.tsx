@@ -27,7 +27,7 @@ const PAPER = "#fbf9f7";
 // a mounted print casts a real one. No edge line either: the shadow is what
 // lifts it, and an outline on top of that reads as a frame in a frame.
 export const printFrame =
-  "overflow-hidden rounded-lg shadow-[0_6px_18px_-6px_rgba(25,28,34,0.45)]";
+  "overflow-hidden rounded-xl shadow-[0_6px_18px_-6px_rgba(25,28,34,0.45)]";
 
 // How the painting is laid on the mat.
 //

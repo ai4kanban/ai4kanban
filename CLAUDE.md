@@ -32,3 +32,7 @@ If the current session is long and all about a plan, when we finalize the plan, 
 ## Git worktree
 
 Don't use worktree/branching. Keep everything in the main branch.
+
+## Code Style
+
+When you see a lengthy comment, trim it down to key notes for future writers, or just remove it. Code is enough to explain itself. Add comments only when necessary.

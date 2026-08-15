@@ -19,7 +19,7 @@ export type HomeCopy = {
     ctaGithub: string;
     shots: {
       board: { label: string; alt: string };
-      queue: { label: string; alt: string };
+      card: { label: string; alt: string };
       /** `{view}` is replaced by the card's label. */
       frontAria: string;
       flipAria: string;

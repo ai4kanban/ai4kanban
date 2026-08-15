@@ -17,7 +17,7 @@ const en: HomeCopy = {
     ctaGithub: "View on GitHub ↗",
     shots: {
       board: { label: "Board", alt: "AI4Kanban local board: Board view" },
-      queue: { label: "Queue", alt: "AI4Kanban local board: Queue view" },
+      card: { label: "Card", alt: "AI4Kanban local board: a card and its spec" },
       frontAria: "{view} view (current)",
       flipAria: "Switch to {view} view",
     },

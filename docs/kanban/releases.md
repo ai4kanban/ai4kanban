@@ -11,3 +11,4 @@ The order is whatever the lines say, so a hand edit is how you reorder. What com
 the em dash is the release's goal — what this version is for, in your own words.
 
 - **0.7.0** — our focus is #202: to setup the eval framework for ai4kanban. define metrics for the quality of its key operations (social-posts/xiaohongshu/5.md) like details-coverage and clarificaation-correctness, they are not all necssary metrics. propose a few metrics that are really measurable and collectible.
+- **0.6.1**

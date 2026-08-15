@@ -19,9 +19,9 @@ const ja: HomeCopy = {
         label: "Board",
         alt: "AI4Kanban のローカルボード：Board ビュー",
       },
-      queue: {
-        label: "Queue",
-        alt: "AI4Kanban のローカルボード：Queue ビュー",
+      card: {
+        label: "Card",
+        alt: "AI4Kanban のローカルボード：カードとその仕様",
       },
       frontAria: "{view}ビュー（現在）",
       flipAria: "{view}ビューに切り替え",

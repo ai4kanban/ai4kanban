@@ -16,7 +16,7 @@ const zh: HomeCopy = {
     ctaGithub: "查看 GitHub ↗",
     shots: {
       board: { label: "Board", alt: "AI4Kanban 本地看板界面：Board 视图" },
-      queue: { label: "Queue", alt: "AI4Kanban 本地看板界面：Queue 视图" },
+      card: { label: "Card", alt: "AI4Kanban 本地看板界面：卡片详情与需求" },
       frontAria: "{view} 视图（当前）",
       flipAria: "切换到 {view} 视图",
     },

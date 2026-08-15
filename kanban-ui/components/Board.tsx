@@ -11,7 +11,7 @@ import {
   setReleaseGoalAction,
   startSetupRunAction,
 } from "@/app/actions";
-import { filterColumns, pickIsEmpty, useReleasePick } from "@/lib/release-pick";
+import { filterColumns, hasOwnCards, useReleasePick } from "@/lib/release-pick";
 import type { AgentInfo, Board } from "@/lib/types";
 import { BulkReleaseBar } from "./BulkReleaseBar";
 import { RunningNotice } from "./desktop";
@@ -93,7 +93,7 @@ export function BoardView({
   const [logSessionId, setLogSessionId] = useState<string | null>(null);
   const openLog = useSessionLog(logSessionId);
   // Which release the board shows (#104). Remembered per project in the browser;
-  // All releases is the default and the whole board.
+  // No release is the default — the cards not promised to a version yet.
   const [release, setRelease] = useReleasePick(projectRoot, board?.releases ?? []);
   // The cards the queue splits — filtered once here, so what the pick hides is
   // decided in one place and every column below draws from the same set.
@@ -101,7 +101,11 @@ export function BoardView({
     () => filterColumns(board?.columns ?? [], release),
     [board, release],
   );
-  const emptyRelease = pickIsEmpty(columns, release);
+  // The pick has nothing of its own on screen — and the board does have cards, so
+  // this is the filter emptying the screen rather than an empty board. Without
+  // that second half a board whose every card is planned reads the same as a
+  // board with no cards at all, and only one of those is worth a note.
+  const emptyPick = !hasOwnCards(columns) && hasOwnCards(board?.columns ?? []);
   // The cards ticked for a bulk release move (#114), and what the last move
   // couldn't do. Not remembered anywhere: a selection is one action in progress,
   // not a way of looking at the board.
@@ -189,7 +193,7 @@ export function BoardView({
 
   // Start a release from the header (#115). The board is re-read before the pick
   // moves, so the new release is on the list the pick is checked against — a pick
-  // the list doesn't hold yet would be dropped back to All releases in the same
+  // the list doesn't hold yet would be dropped back to No release in the same
   // render. Then the board switches to it: the user asked for this version to
   // work in it, and a card made while it is picked lands in it. It is empty, so
   // the "no open cards" note — or, while it is being filled, the "being planned"
@@ -297,11 +301,12 @@ export function BoardView({
     [selected, refresh],
   );
 
-  // Give up on a release from the header (#131). The pick moves back to All
-  // releases first — the release is about to be gone, and the fallback in
+  // Give up on a release from the header (#131). The pick moves back to No
+  // release first — the release is about to be gone, and the fallback in
   // useReleasePick would land there anyway, this just skips the frame where a
   // dead version is picked. Then the board is re-read: its cards have no
-  // release and the version is off the list.
+  // release and the version is off the list, so the screen the user lands on is
+  // the one now holding the cards that came back.
   const dropRelease = useCallback(
     async (id: string) => {
       const res = await dropReleaseAction(id);
@@ -314,8 +319,8 @@ export function BoardView({
   );
 
   // Close a shipped release from the header (#136). The pick moves the same way
-  // the drop moves it: back to All releases before the re-read, since the
-  // version it was showing no longer exists.
+  // the drop moves it: back to No release before the re-read, since the version
+  // it was showing no longer exists.
   const closeRelease = useCallback(
     async (id: string) => {
       const res = await closeReleaseAction(id);
@@ -469,19 +474,28 @@ export function BoardView({
           {/* A filter that can empty the screen has to explain itself, or the user
               reads it as a broken board and goes looking for their cards. Above both
               views, so it says the same thing in either one, with the way back one
-              click away. Blockers on screen don't make the release non-empty — a
-              blocker belongs to whoever it blocks. */}
-          {board && emptyRelease && !planSessionId && (
+              click away. Blockers on screen don't make the pick non-empty — a
+              blocker belongs to whoever it blocks.
+              On No release the way back is the picker itself: there is no view
+              above this one, and an empty screen there is the good news that
+              every card is promised to a version. */}
+          {board && emptyPick && !planSessionId && (
             <div className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6" style={{ background: "var(--color-nb-sky-soft)" }}>
-              <strong>{release}</strong> has no open cards.{" "}
-              <button
-                type="button"
-                className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
-                onClick={() => setRelease(null)}
-              >
-                Show all releases
-              </button>
-              .
+              {release === null ? (
+                <>Every open card is in a release — nothing is waiting to be planned. Pick a version above to see it.</>
+              ) : (
+                <>
+                  <strong>{release}</strong> has no open cards.{" "}
+                  <button
+                    type="button"
+                    className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
+                    onClick={() => setRelease(null)}
+                  >
+                    Show the cards in no release
+                  </button>
+                  .
+                </>
+              )}
             </div>
           )}
 

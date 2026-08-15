@@ -20,9 +20,9 @@ const es: HomeCopy = {
         label: "Board",
         alt: "Tablero local de AI4Kanban: vista Board",
       },
-      queue: {
-        label: "Queue",
-        alt: "Tablero local de AI4Kanban: vista Queue",
+      card: {
+        label: "Card",
+        alt: "Tablero local de AI4Kanban: una tarjeta y su especificación",
       },
       frontAria: "Vista {view} (actual)",
       flipAria: "Cambiar a la vista {view}",
