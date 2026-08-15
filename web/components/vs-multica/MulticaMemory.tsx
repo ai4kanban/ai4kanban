@@ -76,7 +76,7 @@ export function MulticaMemory({ c }: { c: VsMulticaCopy["memory"] }) {
       </div>
       {c.note && (
         <div className="mt-5 flex items-start gap-3 text-sm text-muted">
-          <FiBookOpen className="mt-0.5 h-4 w-4 shrink-0 text-accent-deep" />
+          <FiBookOpen className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
           <Rich>{c.note}</Rich>
         </div>
       )}

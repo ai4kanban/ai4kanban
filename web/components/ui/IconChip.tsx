@@ -4,12 +4,13 @@ import type { IconType } from "react-icons";
 // column of nodes read as a single drawing rather than a list that happens to
 // have pictures.
 //
-// It is filled, always, and only in a color dark enough to carry a paper glyph:
-// the deep blue for a mark that belongs to the product, the ink for a neutral
-// one. A tinted block can't hold a glyph — `accent` is 3.84:1 against paper, so
-// a blue glyph on a 10% blue wash is a shape you have to hunt for.
+// It is filled, always, and at full strength: the ember for a mark that belongs
+// to the product, the ink for a neutral one. A tinted block can't hold a glyph —
+// an ember diluted to a wash is a shape you have to hunt for. The glyph is
+// drawing, not prose, so the bar it clears is 3:1 and the resting ember carries
+// it at 4.03:1; there is no reason for this block to be the deep cut.
 const TONE = {
-  blue: "bg-accent-deep text-elev",
+  ember: "bg-accent text-elev",
   ink: "bg-ink text-elev",
 } as const;
 
@@ -22,7 +23,7 @@ const SIZE = {
 
 export function IconChip({
   icon: Icon,
-  tone = "blue",
+  tone = "ember",
   size = "sm",
   className = "",
 }: {

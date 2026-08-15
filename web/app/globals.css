@@ -1,52 +1,27 @@
 @import "tailwindcss";
 
-/* Tailwind v4 theme — Neo-Brutalism on paper, exposed as utilities/vars. The
-   ground is neutral: white paper on a light neutral page, near-black ink
-   outlines, hard offset shadows, and one azure that is only ever an object.
-
-   The three neutrals are a ramp, not three shades of white: the page is the
-   light neutral, a panel is the paper laid on it, and anything inset back into
-   a panel drops to the wash. Keep that order — a white panel on a white page is
-   what makes a section glare.
-
-   The azure is sampled off the watercolour mats the landing page mounts its
-   screenshots on (cdn.ai4kanban.dev/bloom-*.jpg), where the pigment lands
-   between #5fa5f5 and #7ab2f3. Every value here is measured on /design. */
+/* Visual rules and token rationale: web/design.md. Keep /design in sync. */
 @theme {
-  --color-bg: #f5f6f8;
+  --color-bg: #ffffff;
+  --color-band: #f8f5ef;
   --color-elev: #ffffff;
-  --color-border: #191c22;
-  --color-ink: #191c22;
-  --color-muted: #4d5c73;
-  --color-accent: #2f7ff5;
-  --color-accent-deep: #12509e;
-  --color-code: #edeff3;
+  --color-border: #24231f;
+  --color-ink: #24231f;
+  --color-muted: #635a4e;
+  --color-accent: #dd4f1e;
+  --color-accent-deep: #b83a12;
+  --color-code: #f0ebe1;
 
-  /* The one green and the one red: a win and a loss, nothing else. Both are set
-     dark enough to clear 4.5:1 on the page — they label text, not shapes. */
-  --color-growth: #0f7350;
-  --color-caution: #b32438;
+  --color-growth: #2f6b46;
+  --color-caution: #9e1b45;
 
-  /* Inter, loaded by `next/font` in lib/fonts.ts and self-hosted. The old
-     system stack stays behind it: it draws the first paint, every CJK glyph on
-     the zh and ja pages, and anything Inter's latin subset doesn't cover. */
   --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --font-pixel: Silkscreen, ui-monospace, monospace;
 }
 
-/* Silkscreen (SIL Open Font License) — the pixel face used for the AI4KANBAN
-   wordmark in the footer, and nothing else. It is subset to the six letters that
-   word needs (A I 4 K N B) and inlined, which takes it from a 3.5 KB fetch to
-   876 bytes of base64 riding along in this stylesheet. Keep it inlined: it is
-   six letters, and off the network it can never swap in late on the one place
-   that would be conspicuous.
-   Changing the word means re-subsetting — this face has no other glyphs. Pull
-   the full Silkscreen regular from fonts.google.com/specimen/Silkscreen, then:
-     pyftsubset silkscreen-400.woff2 --text="<the new letters>" --flavor=woff2 \
-       --layout-features="" --no-hinting --desubroutinize
-   and base64 the result back into the src below. */
+/* Inlined Silkscreen subset for the footer wordmark. */
 @font-face {
   font-family: Silkscreen;
   font-style: normal;
@@ -58,8 +33,6 @@
 
 html {
   scroll-behavior: smooth;
-  /* The site is light only — tell the browser, so a scrollbar, a form control
-     and a focus ring are drawn for paper and not inverted by the OS setting. */
   color-scheme: light;
 }
 

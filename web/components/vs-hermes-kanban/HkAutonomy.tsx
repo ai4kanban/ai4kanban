@@ -90,7 +90,7 @@ export function HkAutonomy({
             <span key={s.key} aria-hidden="true">
               <span
                 className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-bg ${
-                  s.ours ? "bg-accent-deep ring-2 ring-accent-deep" : "bg-muted"
+                  s.ours ? "bg-accent ring-2 ring-accent" : "bg-muted"
                 }`}
                 style={{ left: s.left }}
               />

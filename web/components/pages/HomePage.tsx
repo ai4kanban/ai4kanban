@@ -1,3 +1,4 @@
+import { Band } from "@/components/Band";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/home/Hero";
 import { Compare } from "@/components/home/Compare";
@@ -7,6 +8,7 @@ import { Iterate } from "@/components/home/Iterate";
 import { Start } from "@/components/home/Start";
 import { Reveal } from "@/components/home/Reveal";
 import { SiteFooter } from "@/components/SiteFooter";
+import { column } from "@/components/styles";
 import { getCopy } from "@/i18n";
 import {
   APP_ID,
@@ -53,13 +55,25 @@ export function HomePage({ locale }: { locale: Locale }) {
       />
       <Reveal />
       <Header c={copy} locale={locale} />
-      <main className="mx-auto max-w-5xl px-6">
-        <Hero c={c.hero} locale={locale} />
-        <Compare c={c.compare} />
-        <Loop c={c.loop} />
-        <Memory c={c.memory} />
-        <Iterate c={c.iterate} />
-        <Start c={c.start} locale={locale} />
+      {/* Two bands on a white page. `Compare` needs one — it says which column
+          wins with the neutral ramp, and on white its paper card has nothing to
+          be brighter than. `Start` takes the other so the page warms on the way
+          into the ink footer. Everything between is pictures and type. */}
+      <main>
+        <div className={column}>
+          <Hero c={c.hero} locale={locale} />
+        </div>
+        <Band>
+          <Compare c={c.compare} />
+        </Band>
+        <div className={column}>
+          <Loop c={c.loop} />
+          <Memory c={c.memory} />
+          <Iterate c={c.iterate} />
+        </div>
+        <Band flush>
+          <Start c={c.start} locale={locale} />
+        </Band>
       </main>
       <SiteFooter c={copy} locale={locale} path="" />
     </>

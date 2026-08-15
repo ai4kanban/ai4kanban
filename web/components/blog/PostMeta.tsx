@@ -4,8 +4,8 @@ import { formatDate, primaryCategory, type BlogPost } from "@/lib/blog";
 // it takes to read. One component, so the card, the featured block and the post
 // itself all say it the same way and in the same order.
 //
-// The topic is text in the deep blue rather than a filled pill: a pill on every
-// card in a list is a row of blue blocks competing with the titles, and the
+// The topic is text in the deep ember rather than a filled pill: a pill on every
+// card in a list is a row of ember blocks competing with the titles, and the
 // meta line is a caption, not a control.
 export function PostMeta({ post }: { post: BlogPost }) {
   const category = primaryCategory(post);

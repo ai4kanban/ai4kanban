@@ -1,5 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 74 74" width="74" height="74" role="img" aria-label="AI4Kanban"><metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:creator>RealFaviconGenerator</dc:creator><dc:source>https://realfavicongenerator.net</dc:source></rdf:Description></rdf:RDF></metadata><title>AI4Kanban</title><rect x="6" y="6" width="68" height="68" rx="17" fill="#191c22"></rect><rect x="2" y="2" width="64" height="64" rx="15" fill="#12509e" stroke="#191c22" stroke-width="4"></rect><g transform="translate(12.9 12.9) scale(0.703)" fill="#ffffff">
-    <rect x="5" y="8" width="12" height="44" rx="3.5"></rect>
-    <rect x="24" y="8" width="12" height="35" rx="3.5"></rect>
-    <rect x="43" y="8" width="12" height="26" rx="3.5"></rect>
+<!-- AI4Kanban — the tab icon: the same mark as public/logo-mark.svg, double
+     offset and all. The board app drops the offset because a 22px block in its
+     own header can't carry one (kanban-ui/components/Logo.tsx); the official
+     mark keeps it, and this is the official mark. Tokens: #dd4f1e accent,
+     #b83a12 accent-deep, #24231f ink, #ffffff paper. The PNG favicons beside
+     this file are renders of it — see lib/metadata.ts. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 78 78" width="78" height="78" role="img" aria-label="AI4Kanban"><title>AI4Kanban</title><rect x="10" y="10" width="68" height="68" rx="17" fill="#24231f"/><rect x="5" y="5" width="68" height="68" rx="17" fill="#b83a12"/><rect x="2" y="2" width="64" height="64" rx="15" fill="#dd4f1e" stroke="#24231f" stroke-width="4"/><g transform="translate(12.9 12.9) scale(0.703)" fill="#ffffff">
+    <rect x="5" y="8" width="12" height="44" rx="3.5"/>
+    <rect x="24" y="8" width="12" height="35" rx="3.5"/>
+    <rect x="43" y="8" width="12" height="26" rx="3.5"/>
   </g></svg>

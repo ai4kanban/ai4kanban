@@ -19,7 +19,7 @@ import type { VsHermesCopy } from "@/i18n/vs-hermes-kanban/types";
 // Both are drawn on a paper island, with the boxes inside it in the wash, so the
 // layers read against the inset panel behind them. Neither drawing carries a
 // frame of its own: the card and the diagram well already draw two, and a third
-// outline around the art reads as a box in a box. The blue only ever marks *our*
+// outline around the art reads as a box in a box. The ember only ever marks *our*
 // side of the argument — the board layer below.
 //
 // Product names, agent names and file names inside the art aren't translated;
@@ -55,7 +55,7 @@ export function SkillDiagram({ c }: { c: VsHermesCopy["hero"] }) {
         {/* bottom: the kanban board — plain Markdown files in git */}
         <rect x="24" y="84" width="252" height="30" rx="6" fill={BOX} stroke={KEY} strokeWidth="1.8" />
         {/* our own mark on the band, rather than three anonymous columns: the
-            blue layer is the product, and it should say which one */}
+            ember layer is the product, and it should say which one */}
         <rect x="32" y="91" width="16" height="16" rx="4" fill={KEY} />
         <g transform="translate(35 94) scale(0.1654)" fill={PAPER}>
           <rect x="5" y="8" width="12" height="44" rx="3.5" />

@@ -7,10 +7,13 @@ import {
   FiGithub,
   FiList,
 } from "react-icons/fi";
+import { Band } from "@/components/Band";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { IconChip } from "@/components/ui/IconChip";
 import { Logo, LogoMark } from "@/components/ui/Logo";
+import { Mat, printFrame } from "@/components/home/Mat";
+import type { WashName } from "@/components/home/washes";
 import {
   framed,
   panel,
@@ -30,10 +33,11 @@ import { contrast, format, verdict } from "@/lib/contrast";
 //
 // The theme in four lines:
 //
-//   The ground is neutral — white paper on a light neutral page, near-black
-//   ink. It is the ground every tool a developer already has open uses.
+//   The page is white and mostly stays white; the warm off-white is a band
+//   under one section, and the mat under a picture. The ink is the board's own
+//   near-black (kanban-ui/app/globals.css).
 //
-//   The blue is an object: a fill, a bar, a mark. Never a page, never a panel,
+//   The ember is an object: a fill, a bar, a mark. Never a page, never a panel,
 //   never an outline.
 //
 //   The hard ink shadow is what makes a block. The outline is the exception —
@@ -41,7 +45,8 @@ import { contrast, format, verdict } from "@/lib/contrast";
 //   is there it is ink, in every state. Hover moves the block, and on a button
 //   it moves the fill.
 //
-//   `accent` is a shape. `accent-deep` is the only blue that carries a label.
+//   `accent` is the ember at rest. `accent-deep` is what it darkens to under
+//   the pointer, and the only cut of it that can be read as prose.
 
 export const metadata = {
   title: "Design system · AI4Kanban",
@@ -53,28 +58,29 @@ export const metadata = {
 // truth — they are restated here because the contrast math runs at build time
 // and can't read a CSS variable. Change one there, change it here.
 //
-// The neutrals are a three-step ramp — page, paper, wash — kept genuinely
-// neutral so nothing on them casts a color, and light so the page reads bright.
-// The azure is sampled off cdn.ai4kanban.dev/bloom-*.jpg, where the pigment
-// lands between #5fa5f5 and #7ab2f3.
-const BG = "#f5f6f8"; // the page
+// The page and paper are the same white; `band` is the warm the page steps to
+// under one section, and `code` the wash a block sinks to. The ink and the
+// ember are the board's own values, so the site and the app are one product.
+const BG = "#ffffff"; // the page
+const BAND = "#f8f5ef"; // the warm band — a section ground, used sparingly
 const ELEV = "#ffffff"; // paper — the panel fill
-const CODE = "#edeff3"; // the wash — inset on a panel
-const INK = "#191c22"; // every outline, every shadow, body text
-const MUTED = "#4d5c73"; // leads, captions, nav links
-const ACCENT = "#2f7ff5"; // the azure: fills and bars
-const DEEP = "#12509e"; // the blue as text, and the blue you put a label on
-const GROWTH = "#0f7350";
-const CAUTION = "#b32438";
+const CODE = "#f0ebe1"; // the wash — inset on a panel
+const INK = "#24231f"; // every outline, every shadow, body text
+const MUTED = "#635a4e"; // leads, captions, nav links
+const ACCENT = "#dd4f1e"; // the ember: fills, bars, the mark
+const DEEP = "#b83a12"; // the pressed ember, and the ember a word can sit on
+const GROWTH = "#2f6b46";
+const CAUTION = "#9e1b45";
 
 const TOKENS = [
-  { name: "bg", hex: BG, use: "the page — a light neutral, no cast" },
+  { name: "bg", hex: BG, use: "the page — white, and most of it stays white" },
+  { name: "band", hex: BAND, use: "the warm band — one section's ground, and the mat under a picture" },
   { name: "elev", hex: ELEV, use: "paper — the panel fill" },
   { name: "code", hex: CODE, use: "the wash — inset on a panel" },
   { name: "border / ink", hex: INK, use: "every outline, every shadow, body text" },
   { name: "muted", hex: MUTED, use: "leads, captions, nav links" },
-  { name: "accent", hex: ACCENT, use: "fills and bars" },
-  { name: "accent-deep", hex: DEEP, use: "the blue as text, and under a label" },
+  { name: "accent", hex: ACCENT, use: "the resting ember — fills, bars, glyphs, the mark" },
+  { name: "accent-deep", hex: DEEP, use: "the pressed ember, and the ember as text" },
   { name: "growth", hex: GROWTH, use: "a win on the comparison pages" },
   { name: "caution", hex: CAUTION, use: "a loss on the comparison pages" },
 ];
@@ -91,35 +97,46 @@ const PAIRS: {
 }[] = [
   { fg: INK, bg: BG, label: "ink on bg", where: "headings, body" },
   { fg: MUTED, bg: BG, label: "muted on bg", where: "leads, captions" },
+  { fg: INK, bg: BAND, label: "ink on band", where: "headings, body in a banded section" },
+  { fg: MUTED, bg: BAND, label: "muted on band", where: "leads, captions in a banded section" },
+  { fg: DEEP, bg: BAND, label: "accent-deep on band", where: "eyebrows, links in a banded section" },
   { fg: INK, bg: ELEV, label: "ink on elev", where: "text on a panel" },
   { fg: MUTED, bg: ELEV, label: "muted on elev", where: "secondary text on a panel" },
   { fg: INK, bg: CODE, label: "ink on code", where: "terminals, inset panels" },
   { fg: MUTED, bg: CODE, label: "muted on code", where: "the losing half of a comparison row" },
   { fg: DEEP, bg: BG, label: "accent-deep on bg", where: "eyebrows, links" },
-  { fg: DEEP, bg: ELEV, label: "accent-deep on elev", where: "icons, column heads" },
-  { fg: DEEP, bg: CODE, label: "accent-deep on code", where: "tree dirs, terminal accents" },
-  { fg: ELEV, bg: DEEP, label: "elev on accent-deep", where: "the label on every blue fill" },
+  { fg: DEEP, bg: ELEV, label: "accent-deep on elev", where: "column heads, prose links on a panel" },
+  { fg: DEEP, bg: CODE, label: "accent-deep on code", where: "tree dirs, terminal accents — the tightest of the three, and what caps how bright accent-deep can go" },
+  { fg: ELEV, bg: DEEP, label: "elev on accent-deep", where: "a chip's label, and the primary button held under the pointer" },
   { fg: ELEV, bg: INK, label: "elev on ink", where: "footer body, dark blocks" },
   {
     fg: ACCENT,
     bg: BG,
     label: "accent block vs bg",
     size: "non-text",
-    where: "how far the azure separates from the page as a shape",
+    where: "how far the ember separates from the page as a shape",
   },
   {
     fg: DEEP,
     bg: BG,
     label: "accent-deep block vs bg",
     size: "non-text",
-    where: "the same for the deep blue — this is why the CTA is filled with it",
+    where: "the same for the deep ember — this is why the CTA is filled with it",
   },
   {
     fg: ELEV,
     bg: ACCENT,
-    label: "elev on accent",
-    size: "large",
-    where: "a primary button held on hover, where the fill brightens",
+    label: "elev on accent · glyphs",
+    size: "non-text",
+    where:
+      "the logo's white glyph and the paper mark on an icon block — drawing, not prose, so the bar is 3:1",
+  },
+  {
+    fg: ELEV,
+    bg: ACCENT,
+    label: "elev on accent · the CTA label",
+    where:
+      "the one pair on the site that is knowingly short, and the only one. The primary button rests on the ember the board's own Create task rests on; filling it with accent-deep bought 2.4 points and cost the page its mood. No brighter ember clears 4.5:1 — accent-deep already sits at that ceiling. The label is bold, the block is outlined and shadowed, and colour is never its only marker.",
   },
   { fg: GROWTH, bg: BG, label: "growth on bg", where: "a win" },
   { fg: CAUTION, bg: BG, label: "caution on bg", where: "a loss" },
@@ -162,11 +179,20 @@ function Label({ children }: { children: string }) {
   );
 }
 
-// The mats the landing page mounts its screenshots on. They are on the page so
-// the palette can be judged against the artwork it has to sit next to, rather
-// than against a memory of it: the blue is taken from these, and the paper
-// under them is why the page is white.
-const BLOOMS = [1, 2, 3, 4].map((n) => `https://cdn.ai4kanban.dev/bloom-${n}.jpg`);
+// The five paintings the landing page mounts its screenshots on, drawn by the
+// same module the page draws them with. They are here so the palette can be
+// judged against the artwork it has to sit next to rather than against a memory
+// of it — and so the set can be read as a set: five two-pigment washes on
+// alternating diagonals, and the one warm paper under all of them, which is what
+// gives a mat an edge on a white page and gives its white print something to sit
+// against.
+const MATS: { name: WashName; note: string }[] = [
+  { name: "emberLilac", note: "hero — the brand pair, and the only one that moves" },
+  { name: "mintSky", note: "loop 01, and the memory tree" },
+  { name: "peachEmber", note: "loop 02, and the iteration diagram" },
+  { name: "skyLilac", note: "loop 03" },
+  { name: "emberMint", note: "loop 04 — the ember lands last" },
+];
 
 export default function DesignPage() {
   return (
@@ -182,42 +208,39 @@ export default function DesignPage() {
         </p>
 
         <Section
-          id="tone"
-          title="The tone we're matching"
-          note="The watercolour mats under the landing page's screenshots: white paper, one clean azure, nothing dusty in it. The blue below is sampled off these, and the paper under them is the argument for a white page."
+          id="washes"
+          title="The washes"
+          note="Every watercolour under a landing-page screenshot, painted rather than downloaded (components/home/washes.ts). Two pigments per mat, on a diagonal that flips from one mat to the next, with the paper left empty through the middle where the print sits. Nothing you have to read ever sits on pigment, which is what buys a page whose palette is otherwise four colours five two-colour paintings."
         >
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {BLOOMS.map((src) => (
-              <div key={src} className={`${panelStatic} overflow-hidden`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={src}
-                  alt=""
-                  className="h-28 w-full object-cover"
-                  loading="lazy"
-                />
-                <div className="flex" aria-hidden="true">
-                  {[BG, CODE, ACCENT, DEEP].map((hex) => (
-                    <span
-                      key={hex}
-                      className="h-7 flex-1 border-t-2 border-border"
-                      style={{ background: hex }}
-                    />
-                  ))}
-                </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {MATS.map((m) => (
+              <div key={m.name}>
+                {/* The mat exactly as a page mounts one: bare, with a print
+                    laid on it. The print here is blank paper, because what is
+                    being judged is the ground under a screenshot. */}
+                <Mat wash={m.name} className="p-5">
+                  <div className={`${printFrame} h-24 bg-elev`} />
+                </Mat>
+                <p className="mt-2 font-mono text-[0.8rem] text-ink">{m.name}</p>
+                <p className="text-[0.85rem] leading-snug text-muted">
+                  {m.note}
+                </p>
               </div>
             ))}
           </div>
-          <p className="mt-3 text-[0.9rem] text-muted">
-            Each strip under a mat is the page, the wash, the azure and the deep
-            blue — the four values that have to belong to that picture.
+          <p className="mt-4 text-[0.9rem] leading-relaxed text-muted">
+            The pigments are saturated cuts of the colours the board tints its
+            cards with, so the site&apos;s artwork and the product&apos;s chips
+            come out of one box. They are not tokens — a wash is illustration,
+            and a value that can never touch type does not belong in a table
+            that exists to be measured.
           </p>
         </Section>
 
         <Section
           id="palette"
           title="Palette"
-          note="A neutral three-step ramp — page, paper, wash — plus near-black ink and one azure in two strengths. Nine values, and only two of them are coloured."
+          note="A white page and its paper, the warm band a section can step to, and the wash a block sinks to — plus a warm near-black ink and one ember in two strengths. Ten values, and only two of them are coloured."
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {TOKENS.map((t) => (
@@ -291,7 +314,7 @@ export default function DesignPage() {
         <Section
           id="logo"
           title="The logo"
-          note="components/ui/Logo.tsx — the square block and the name, on one line. The block is the page's rule at mark size: the deep blue fill, the ink outline, the hard ink shadow. The glyph is a board reduced to three columns that step down as work leaves it, in paper white, because a filled blue block carries a paper glyph or it carries nothing."
+          note="components/ui/Logo.tsx — the square block and the name, on one line. It is the bright ember, the same fill the board's own mark takes, and it is the one place on the site the shadow is doubled: the deep ember one step out, the ink two, so the block reads as lit twice rather than as a swatch with a drop. The glyph is a board reduced to three columns that step down as work leaves it, in paper white, because a filled ember block carries a paper glyph or it carries nothing."
         >
           <div className={`${panelStatic} space-y-7 px-6 py-6`}>
             <div>
@@ -315,7 +338,7 @@ export default function DesignPage() {
                 </span>
                 {/* On the ink the outline is the ground, so the block is read
                     by its fill and its glyph alone — which is why the fill is
-                    the deep blue and never a tint of it. */}
+                    the ember at full strength and never a tint of it. */}
                 <span className="flex items-center gap-4 rounded-lg border-2 border-border bg-ink px-5 py-4 text-elev">
                   <Logo size="md" tone="ink" />
                 </span>
@@ -327,7 +350,7 @@ export default function DesignPage() {
                 {[16, 20, 24, 32].map((px) => (
                   <span key={px} className="text-center">
                     <img
-                      src="/logo-mark.svg"
+                      src="/favicon.svg"
                       alt=""
                       width={px}
                       height={px}
@@ -343,7 +366,10 @@ export default function DesignPage() {
                 public/logo-mark.svg and public/logo.svg are the same geometry
                 as the component, for anywhere off the site. The mark is pure
                 shape; the lockup sets the name in live text, so a renderer with
-                no fonts should take the mark and set the name itself.
+                no fonts should take the mark and set the name itself. The row
+                above is public/favicon.svg — the same mark, double offset and
+                all. The board app is the one place that drops it, because a
+                22px block in its own header can&apos;t carry one.
               </p>
             </div>
           </div>
@@ -352,7 +378,7 @@ export default function DesignPage() {
         <Section
           id="buttons"
           title="Buttons"
-          note="components/ui/Button.tsx — one block, two fills, and the 2px ink outline in every state. The button is the one thing that carries the outline by default, which is what separates it from the panels around it: a panel is lifted, a button is lifted and drawn. Hover lifts it further, grows the shadow and changes the fill — the primary brightens to the azure, the paper one drops to the wash."
+          note="components/ui/Button.tsx — one block, two fills, and the 2px ink outline in every state. The button is the one thing that carries the outline by default, which is what separates it from the panels around it: a panel is lifted, a button is lifted and drawn. Hover lifts it further, grows the shadow and changes the fill — the primary brightens to the ember, the paper one drops to the wash."
         >
           <div className={`${panelStatic} space-y-7 px-6 py-6`}>
             <div>
@@ -477,7 +503,7 @@ export default function DesignPage() {
                     list.
                   </p>
                 </div>
-                <div className="rounded-xl bg-accent-deep p-5 text-elev">
+                <div className="rounded-xl bg-accent p-5 text-elev">
                   <p className="font-mono text-[0.85rem] font-semibold">
                     a filled block
                   </p>
@@ -486,15 +512,9 @@ export default function DesignPage() {
                     would only make it weigh the same as the tiles beside it.
                   </p>
                 </div>
-                <div className="overflow-hidden rounded-xl">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={BLOOMS[0]}
-                    alt=""
-                    className="h-full min-h-28 w-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
+                <Mat wash="skyLilac" className="min-h-28" >
+                  <span className="sr-only">A wash, bare</span>
+                </Mat>
               </div>
             </div>
             <p className="mt-3 text-[0.9rem] text-muted">
@@ -508,13 +528,38 @@ export default function DesignPage() {
         </Section>
 
         <Section
+          id="bands"
+          title="Bands"
+          note="components/Band.tsx — the page is white and stays white, so the warm is a ground one section steps to, two or three times down a page. A band is not a surface: no outline, no shadow, and a raised panel sits on it exactly as it sits on the page. Its edges dissolve in the mats' own pixels rather than starting on a rule — a line across the page announces a boundary, and this one has nothing to announce. Shown inset here; on a real page it runs the full viewport."
+        >
+          <Band>
+            <p className="max-w-3xl text-[0.95rem] leading-relaxed text-muted">
+              Give a band to a section that needs paper to read as paper — a
+              comparison whose winning column is the brighter one has nothing to
+              be brighter than on white — or to the section that closes a page.
+              A band that runs into the ink footer drops its lower edge: the
+              footer is already the hardest edge on the site.
+            </p>
+            <div className={`${panelStatic} mt-6 p-5`}>
+              <p className="font-mono text-[0.85rem] font-semibold">
+                panelStatic, on a band
+              </p>
+              <p className="mt-2 text-[0.9rem] leading-relaxed text-muted">
+                Paper again, and read by its fill as well as its shadow. This is
+                what a band buys.
+              </p>
+            </div>
+          </Band>
+        </Section>
+
+        <Section
           id="icons"
           title="Icons and chips"
-          note="components/ui/IconChip.tsx and Chip.tsx. Both are filled, and a blue one is filled with accent-deep so it can carry a paper glyph or a paper label."
+          note="components/ui/IconChip.tsx and Chip.tsx. Both are filled at full strength. The icon block takes the resting ember — a glyph is drawing, so 3:1 — and the chip takes accent-deep, because a chip carries a word."
         >
           <div className={`${panelStatic} space-y-7 px-6 py-6`}>
             <div>
-              <Label>iconChip · blue / ink · sm and md</Label>
+              <Label>iconChip · ember / ink · sm and md</Label>
               <div className="flex flex-wrap items-center gap-3">
                 <IconChip icon={FiBookmark} />
                 <IconChip icon={FiActivity} tone="ink" />
@@ -553,10 +598,10 @@ export default function DesignPage() {
                     </div>
                   ))}
                 </div>
-                {/* The one filled blue block on a screen: the piece everything
-                    above and below it connects to, and the only thing in the
-                    diagram that raises its voice. */}
-                <div className="mt-2.5 rounded-lg bg-accent-deep px-4 py-3.5 text-center font-mono text-[0.95rem] font-semibold text-elev">
+                {/* The one filled ember block on a screen: the piece
+                    everything above and below it connects to, and the only
+                    thing in the diagram that raises its voice. */}
+                <div className="mt-2.5 rounded-lg bg-accent px-4 py-3.5 text-center font-mono text-[0.95rem] font-bold text-elev">
                   AI4Kanban Skill
                 </div>
               </div>
@@ -567,7 +612,7 @@ export default function DesignPage() {
         <Section
           id="heading"
           title="Section heading"
-          note="components/SectionHeading.tsx — an azure bar, the number in mono, then the H2. The bar carries no text, which is the one job the bright azure does on its own."
+          note="components/SectionHeading.tsx — an ember bar, the number in mono, then the H2. The bar carries no text, which is the one job the bright ember does on its own."
         >
           <div className={`${panelStatic} px-6 py-6`}>
             <div className="flex items-center gap-3">

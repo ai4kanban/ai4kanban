@@ -28,14 +28,15 @@ const ROWS = ["row-start-2", "row-start-3", "row-start-4"];
 // traditional board sits in the wash, AI4Kanban on the paper above it, so the
 // answer column is literally the brighter of the two. (A border color can't say
 // it — `border-accent` appended to a panel loses to the `border-border` already
-// in the string, which is why this read as two identical cards before.) The blue
+// in the string, which is why this read as two identical cards before.) The ember
 // is left to the column head and the per-row icons.
 //
 // Below `sm` it becomes one panel with a block per row, each value naming its
 // column.
 export function Compare({ c }: { c: HomeCopy["compare"] }) {
   return (
-    <section id="method" className="mt-28 scroll-mt-24">
+    // No top margin: this section sits in a `Band`, which owns its own air.
+    <section id="method" className="scroll-mt-24">
       <SectionTitle num="01" title={c.title} />
       <p
         data-reveal
@@ -89,14 +90,14 @@ export function Compare({ c }: { c: HomeCopy["compare"] }) {
                 aria-hidden="true"
                 className={`${ROWS[i]} col-start-3 flex items-center justify-center`}
               >
-                <FiArrowRight className="h-4 w-4 text-accent-deep" />
+                <FiArrowRight className="h-4 w-4 text-accent" />
               </span>
               <p
                 className={`${ROWS[i]} ${divider} col-start-4 flex items-center gap-3 border-border px-7 py-6 text-[1rem] font-medium text-ink`}
               >
                 <Icon
                   aria-hidden="true"
-                  className="h-[1.15rem] w-[1.15rem] shrink-0 text-accent-deep"
+                  className="h-[1.15rem] w-[1.15rem] shrink-0 text-accent"
                 />
                 {row.kanban}
               </p>
@@ -118,7 +119,7 @@ export function Compare({ c }: { c: HomeCopy["compare"] }) {
           the wide layout.
           The title bar takes the accent bar `SectionTitle` puts in front of a
           section number: on this page that mark means "what follows is
-          titled", and it is the one blue here that isn't the AI4Kanban
+          titled", and it is the one ember here that isn't the AI4Kanban
           label. */}
       <div className="mt-9 space-y-4 sm:hidden">
         {c.rows.map((row, i) => {

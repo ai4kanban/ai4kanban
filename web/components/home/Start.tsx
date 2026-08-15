@@ -26,7 +26,8 @@ const COMMAND = "npx ai4kanban@latest install";
 
 export function Start({ c, locale }: { c: HomeCopy["start"]; locale: Locale }) {
   return (
-    <section id="install" className="mt-28 scroll-mt-24">
+    // No top margin: this section sits in a `Band`, which owns its own air.
+    <section id="install" className="scroll-mt-24">
       <SectionTitle num="05" title={c.title} />
       <p
         data-reveal

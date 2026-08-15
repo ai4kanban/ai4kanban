@@ -6,13 +6,13 @@
 // Illustration palette — mirrors globals.css so the art reads as one system.
 // Each scene is mounted on `bg-code`, so the fills below are read against the
 // wash, not against paper.
-const A = "#12509e"; // the blue — `accent-deep`, so 2px strokes and labels hold
-const AF = "rgba(47,127,245,0.15)"; // accent fill: the azure, as a tint only here
-const L = "#4d5c73"; // linework — the muted ink
-const LS = "#d3d8e0"; // soft line — the dimmed half of a scene, on purpose
+const A = "#b83a12"; // the ember — `accent-deep`, so 2px strokes and labels hold
+const AF = "rgba(221,79,30,0.15)"; // accent fill: the resting ember, a tint only here
+const L = "#635a4e"; // linework — the muted ink
+const LS = "#ded8cc"; // soft line — the dimmed half of a scene, on purpose
 const C = "#ffffff"; // card fill (the paper, a step up from the code bg)
-const MUT = "#7d8899"; // muted content bars
-const GRN = "#0f7350";
+const MUT = "#8a8172"; // muted content bars
+const GRN = "#2f6b46"; // growth
 const YEL = "#bf8700"; // a warning dot; no token covers it
 
 // ── See what changed ─────────────────────────────────────────────────────────
@@ -275,7 +275,7 @@ function Study() {
       <rect x="64" y="68" width="82" height="5" rx="2.5" fill={MUT} opacity="0.5" />
       <rect x="64" y="94" width="46" height="5" rx="2.5" fill={MUT} opacity="0.35" />
       {/* magnifier */}
-      <circle cx="150" cy="84" r="22" fill="rgba(88,166,255,0.10)" stroke={A} strokeWidth="2.5" />
+      <circle cx="150" cy="84" r="22" fill={AF} stroke={A} strokeWidth="2.5" />
       <rect x="136" y="82" width="26" height="4.5" rx="2.25" fill={A} opacity="0.8" />
       <line x1="166" y1="100" x2="182" y2="116" stroke={A} strokeWidth="3.5" strokeLinecap="round" />
     </>

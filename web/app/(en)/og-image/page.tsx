@@ -52,10 +52,10 @@ export default function OgImage() {
     // takes the footer's inversion exactly: the ink as the ground, the paper as
     // the type at full for the headline and 70% for the lead.
     //
-    // What it is *not* is the navy field with two diffused accent glows this
-    // card used to carry. That ground was a blurred blue page, which is the one
-    // thing the azure may not be, and it was a colour the palette does not
-    // otherwise contain. Inverting the ramp gets the dark without either.
+    // What it is *not* is a field with two diffused accent glows, which is what
+    // this card used to carry. That ground was a blurred coloured page, which is
+    // the one thing the accent may not be. Inverting the ramp gets the dark
+    // without it.
     <div className="relative flex h-[630px] w-[1200px] overflow-hidden bg-ink">
       {/* Left column: the logo, then the landing page's headline and lead. */}
       <div className="relative z-10 flex w-[640px] shrink-0 flex-col justify-center px-16 py-14">
@@ -70,7 +70,7 @@ export default function OgImage() {
         <p className="mt-7 max-w-[530px] text-[21px] leading-[1.42] text-elev/70">
           {c.hero.lead}
         </p>
-        {/* The name takes the bright azure, not `accent-deep`: on the ink it is
+        {/* The name takes the bright ember, not `accent-deep`: on the ink it is
             the readable one of the two, and the deep cut is nearly the ground.
             The TLD steps back to dimmed paper, so the string reads as the brand
             with a suffix rather than as nine characters of equal weight — the

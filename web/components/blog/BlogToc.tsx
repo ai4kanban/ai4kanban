@@ -9,7 +9,7 @@ import type { TocItem } from "@/lib/blog";
 // current heading from one observer each, which is cheap and keeps the state
 // out of the server component that lays the page out.
 //
-// The mark for the heading you are in is a bar in the bright azure — a rail is
+// The mark for the heading you are in is a bar in the resting ember — a rail is
 // a shape, which is the one job that colour has. An item you are not in draws
 // no line at all rather than a fainter one.
 

@@ -1,114 +1,79 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { WASHES, type Wash, type WashName } from "./washes";
 
-// The hero's watercolour, painted instead of downloaded.
+// Every watercolour on the landing page, painted instead of downloaded.
 //
-// It replaces `bg-hero-v1.webp` and does not reproduce it: that banner put a
-// bloom in each top corner, and this is a diagonal — one wash in the top right,
-// one in the bottom left, white through the middle where the print sits. The
-// mat is no longer laid out around a banner's proportions, so the geometry here
-// is in the mat's own space (see `UNIT` below) rather than in a 2.33 band, and
-// `Mat.tsx`'s `fit="width"` no longer applies to this one.
+// A painting is two blooms on a diagonal with the paper left empty through the
+// middle where the print sits — `washes.ts` picks the corners and pigments. The
+// field is sampled on a coarse grid (one canvas pixel per 11 CSS px, upscaled
+// with `image-rendering: pixelated`) and resolved to six tones per pigment.
 //
-// The pair breathes: each bloom swells on a slow clock and its centre drifts a
-// little around its corner. Two objects and no third — an extra lobe crossing
-// the middle reads as a stray blob rather than as weather, and the middle
-// staying empty is the composition.
+// Two things make six tones read as a wash rather than as six flat rings with a
+// staircase between them: an ordered dither (`BAYER`) weaving adjacent tones,
+// and value noise (`mottle`) pushing the contours off concentric ellipses.
 //
-// Painted as pixels rather than as a smooth gradient. The field is sampled on a
-// coarse grid — one canvas pixel per 7 CSS px, upscaled by the browser with
-// `image-rendering: pixelated` — and resolved to six tones. That is the site's
-// own pixel vocabulary (the footer wordmark is a pixel font).
-//
-// Two things do the work of making six tones a wash rather than six layers, and
-// both matter — the first version had neither and read as a stack of flat rings
-// with a staircase between them:
-//
-// - **An ordered dither** (`BAYER`) picks between adjacent tones by position, so
-//   a value between two steps comes out as one woven into the other instead of
-//   as a flat band with an edge. Depth comes from the weave, not the palette.
-// - **Value noise** (`mottle`) multiplies into the field, so the contours are
-//   irregular stains rather than concentric ellipses. Dithering alone fixes the
-//   fill and leaves perfect arcs behind, which still reads as a machine's idea
-//   of a bloom.
-//
-// It is also cheap, which is the point — see `HeroWash.tsx` for why none of this
-// is allowed near the critical path. ~23k cells at the widest, ~1.5ms a frame,
-// repainted ~9 times a second into one `ImageData`, and the loop stops dead when
-// the hero scrolls off or the tab is hidden. No shader, no animation library: a
-// tween engine here would be a bundle download to move four numbers this
-// component already computes per frame.
-//
-// Under `prefers-reduced-motion` it paints one frame and stops. The resting
-// picture is the whole picture — the motion is the wash settling, never the
-// thing you have to see (design.md §2).
+// Only the hero's moves (design.md §2), and it repaints ~9 times a second into
+// one `ImageData`, stopping dead off-screen or in a hidden tab. See `Wash.tsx`
+// for how all of it is kept off the critical path.
 
-// The ground the wash is painted on: `--color-elev` #ffffff, the site's paper —
-// the fill under a panel and under the hero's own second CTA. The mat used to
-// take the warm off-white the banner was painted on; on a ground the page draws
-// itself there is nothing to match, and the white the buttons sit on is the one
-// the section is already made of. `Mat.tsx` names the token for the CSS ground
-// under this canvas, and the two have to agree: the canvas covers the mat edge
-// to edge, so any drift between them shows up as a seam while it fades in.
-const WHITE = [255, 255, 255];
-// `--color-accent` #2f7ff5, the site's one azure. Every pixel is that white
-// mixed toward this and nothing else.
-const AZURE = [47, 127, 245];
+// `--color-band` #f8f5ef — the same paper `Mat.tsx` puts under this canvas. Any
+// drift between the two shows up as a seam while the canvas fades in.
+const PAPER = [248, 245, 239];
 
-// Six steps of wash plus bare white. It stays this coarse *because* of the
-// dither below: six flat rings is a posterised gradient, but six tones woven
-// into each other is a wash with a hundred, and the weave is the drawing.
+// Six steps of wash plus bare paper, per pigment. This coarse *because* of the
+// dither: the weave is the drawing, not the palette.
 const LEVELS = 6;
-// How far the darkest step is mixed toward the azure — the one knob for how
-// vibrant the wash is, since every step is a share of it. Mixing with white
-// costs saturation as fast as it costs depth, so a pale peak reads washed out
-// rather than delicate: this is set where the core of a bloom is a colour and
-// the outer rings are still a breath. Past ~0.7 it stops being pigment on paper
-// and starts being a blue panel, which is the one thing the mat must not be.
-const PEAK = 0.58;
+// How far the darkest step mixes toward its pigment — the one knob for how
+// vibrant a wash is. Past ~0.7 it stops being pigment on paper and starts being
+// a coloured panel.
+const PEAK = 0.68;
 
-// The steps as flat RGB, read straight into the pixel buffer.
-const PALETTE = Array.from({ length: LEVELS + 1 }, (_, i) => {
-  const t = (i / LEVELS) * PEAK;
-  return WHITE.map((p, k) => Math.round(p + (AZURE[k] - p) * t));
-});
+// The blooms are quantised separately and composited, so the table is square:
+// paper mixed toward the top pigment by one level, then the bottom by the other.
+const STRIDE = LEVELS + 1;
+const palettes = new Map<WashName, Uint8Array>();
+function paletteFor(name: WashName) {
+  const cached = palettes.get(name);
+  if (cached) return cached;
+  const { top, bottom } = WASHES[name];
+  const table = new Uint8Array(STRIDE * STRIDE * 3);
+  for (let la = 0; la <= LEVELS; la++) {
+    const ta = (la / LEVELS) * PEAK;
+    for (let lb = 0; lb <= LEVELS; lb++) {
+      const tb = (lb / LEVELS) * PEAK;
+      for (let k = 0; k < 3; k++) {
+        const a = PAPER[k] + (top[k] - PAPER[k]) * ta;
+        table[(la * STRIDE + lb) * 3 + k] = Math.round(a + (bottom[k] - a) * tb);
+      }
+    }
+  }
+  palettes.set(name, table);
+  return table;
+}
 
 // CSS px per painted pixel. Small enough that a bloom's edge is a curve rather
-// than a staircase, large enough that the dither reads as woven pixels and not
-// as film grain.
+// than a staircase, large enough that the dither reads as pixels, not grain.
 const PIXEL = 11;
 
-// ~9 repaints a second. Pixel art has no business running at 60: the steps are
-// the animation, and a slower clock makes them read as steps.
+// ~9 repaints a second. The steps are the animation, and a slow clock is what
+// makes them read as steps.
 const FRAME_MS = 110;
-// Radians per millisecond. One full breath is about forty seconds — slow enough
-// that you never catch it moving, only notice it has moved.
+// Radians per ms — one full breath is about forty seconds.
 const SPEED = 0.00016;
 
-// The ordered dither, and the whole reason this doesn't read as layers.
-//
-// Rounding a smooth field to six levels fills each ring with one flat colour and
-// puts a clean staircase between rings — you see the quantiser, not a wash.
-// Adding this threshold before truncating makes the choice between two adjacent
-// tones depend on *where* the cell sits in a 4×4 tile, so a value four-tenths of
-// the way between two steps comes out as four cells of the darker tone woven
-// into six of the lighter one. The ring boundaries stop existing; what is left
-// is a weave that gets denser toward the core. Six tones then carry the depth of
-// about a hundred.
-//
-// Ordered rather than random. Random thresholds give the same average and look
-// like dust on the pale end — every cell an independent coin flip — where a
-// repeating tile puts the dark cells as far from each other as they go, which is
-// what makes a halftone read as a tone instead of as noise. 4×4 over 8×8 because
-// the tile repeats every `PIXEL × 4` — 28px here, small enough to read as
-// texture; an 8×8 tile is 56px and starts reading as a pattern in the wash.
+// The ordered dither. Added to the value before truncating, so the choice
+// between two adjacent tones depends on where the cell sits in a 4×4 tile: the
+// ring boundaries stop existing and six tones carry the depth of about a
+// hundred. Ordered rather than random — random thresholds read as dust on the
+// pale end. 4×4 over 8×8 because the tile repeats every `PIXEL × 4` = 44px,
+// still texture; 88px starts reading as a pattern.
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(
   (v) => (v + 0.5) / 16,
 );
 
-// A fixed field of random values, built once from a seeded generator so the
-// painting is the same on every visit rather than a different one per reload.
+// Seeded, so a painting is the same on every visit.
 const SEEDS = new Uint8Array(256);
 for (let i = 0, s = 1337; i < 256; i++) {
   s = (s * 1664525 + 1013904223) >>> 0;
@@ -116,9 +81,9 @@ for (let i = 0, s = 1337; i < 256; i++) {
 }
 const seed = (x: number, y: number) => SEEDS[(SEEDS[x & 255] + y) & 255] / 255;
 
-// Value noise: the seed field sampled on a lattice and smoothed between the four
-// corners. Table lookups rather than a hash function per sample, because this
-// runs on every cell that has any wash in it.
+// Value noise: the seed field sampled on a lattice, smoothed between the four
+// corners. Table lookups rather than a hash per sample — this runs on every
+// cell that has any wash in it.
 function vnoise(x: number, y: number) {
   const xi = Math.floor(x);
   const yi = Math.floor(y);
@@ -134,11 +99,9 @@ function vnoise(x: number, y: number) {
   return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
 }
 
-// Two octaves of it — a broad one for where the pigment pools and a finer one
-// for the mottle inside a pool. This is what the dither alone can't do: dithering
-// breaks the flat fill, but the *boundaries* are still concentric ellipses, and
-// a real wash doesn't have those. Multiplied into the field, it pushes the whole
-// contour in and out, so what reaches the edge is an irregular stain.
+// Two octaves — a broad one for where the pigment pools, a finer one for the
+// mottle inside a pool. Multiplied into the field, so the contour itself moves
+// in and out; the dither alone leaves perfect ellipses behind.
 const NOISE = 2;
 const NOISE_LO = 0.55;
 const NOISE_HI = 1.45;
@@ -149,49 +112,54 @@ function mottle(x: number, y: number) {
   return NOISE_LO + (NOISE_HI - NOISE_LO) * n;
 }
 
-// One bloom: an ellipse of falloff, zero outside it. The box test before the
-// distance is what makes the whole thing cheap — most of a mat this tall is
-// outside both blooms, and those cells cost four comparisons instead of a
-// `hypot` and a `pow`.
+// The second bloom reads the noise field elsewhere, so the two stains in one
+// painting aren't the same stain twice.
+const MOTTLE_OFFSET = 37.4;
+
+// An ellipse of falloff, zero outside it. The box test before the distance is
+// what makes this cheap — most cells are outside both blooms and cost four
+// comparisons instead of a `hypot` and a `pow`.
 function bloom(dx: number, dy: number, rx: number, ry: number) {
   if (dx < -rx || dx > rx || dy < -ry || dy > ry) return 0;
   const d = Math.hypot(dx / rx, dy / ry);
   return d >= 1 ? 0 : Math.pow(1 - d, 1.7);
 }
 
-export default function PixelWash() {
+export default function PixelWash({
+  name,
+  animated = false,
+}: {
+  name: WashName;
+  animated?: boolean;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = ref.current;
     const host = canvas?.parentElement;
-    // `alpha: false` — the canvas paints the paper too, so it is opaque, and an
-    // opaque context is the cheaper one to composite.
+    // The canvas paints the paper too, so it's opaque — the cheaper composite.
     const ctx = canvas?.getContext("2d", { alpha: false });
     if (!canvas || !host || !ctx) return;
 
+    const wash: Wash = WASHES[name];
+    const table = paletteFor(name);
+
     let cols = 0;
     let rows = 0;
-    // The mat's own space: one unit is the mat's width, so a cell's height in
-    // those units is `UNIT` and the mat's bottom edge is at `matH`. Everything
-    // the painting is composed from is expressed this way, which is what keeps a
-    // bloom round instead of stretching it into a lens on a tall mat — and what
-    // lets the bottom-left one be anchored to a bottom edge that moves.
+    // The mat's own space: one unit is the mat's width, `matH` its bottom edge.
+    // Composing in these keeps a bloom round on a tall mat instead of
+    // stretching it into a lens.
     let unit = 0;
     let matH = 0;
-    // The frame, written cell by cell and pushed in one `putImageData`. Once
-    // every cell can differ from the one beside it there are no runs left to
-    // coalesce, and a `fillRect` per cell would be twenty thousand draw calls
-    // for a picture that is exactly a pixel buffer.
+    // The frame, written cell by cell and pushed in one `putImageData` — every
+    // cell can differ from its neighbour, so there is nothing to coalesce.
     let buffer: ImageData | null = null;
-    // The phase the canvas is currently showing, so a repaint that isn't driven
-    // by the clock (a resize) redraws the picture that was there rather than
-    // jumping the wash back to its opening frame.
-    let lastPhase = 0;
+    // What the canvas is currently showing, so a resize repaints that picture
+    // rather than jumping back to the opening frame.
+    let lastPhase = wash.phase;
 
-    // The canvas is sized in painted pixels — one backing pixel per cell — and
-    // stretched to the mat by CSS. That is why device pixel ratio never enters
-    // into it: upscaling is the look, so there is nothing to correct for.
+    // Sized in painted pixels — one backing pixel per cell — and stretched by
+    // CSS. Upscaling is the look, so device pixel ratio never enters into it.
     function measure() {
       const w = host!.clientWidth;
       const h = host!.clientHeight;
@@ -207,74 +175,84 @@ export default function PixelWash() {
     }
 
     function paint(phase: number) {
-      // Nothing measured yet, so there is nothing to paint.
       if (!cols || !rows || !buffer) return;
       lastPhase = phase;
       const px = buffer.data;
 
-      // Where each bloom is this frame, hoisted: both are the same for every
-      // cell in it. Each centre sits just outside its own corner and drifts a
-      // couple of percent around it on a clock of its own, so the two never
-      // swing together and the pair never reads as one object being scaled.
-      const topX = 0.98 + 0.025 * Math.sin(phase * 0.45);
+      // Where each bloom is this frame, hoisted out of the cell loop. Each
+      // centre sits just outside its corner and drifts on a clock of its own,
+      // so the pair never reads as one object being scaled.
+      const right = 0.98 + 0.025 * Math.sin(phase * 0.45);
+      const left = 0.02 + 0.025 * Math.cos(phase * 0.5);
+      const topX = wash.flip ? left : right;
+      const botX = wash.flip ? right : left;
       const topY = -0.04 + 0.02 * Math.cos(phase * 0.6);
-      const botX = 0.02 + 0.025 * Math.cos(phase * 0.5);
       const botY = matH + 0.04 + 0.02 * Math.sin(phase * 0.4);
 
       let i = 0;
       for (let cy = 0; cy < rows; cy++) {
-        // Distance down the mat, in mat widths.
         const y = (cy + 0.5) * unit;
         const dithRow = (cy & 3) * 4;
 
         for (let cx = 0; cx < cols; cx++) {
           const x = (cx + 0.5) * unit;
-          // One wobble drives both blooms, applied to one and inverted on the
-          // other, so they breathe out of step. It stays small because the
-          // composition is the middle staying empty, and a swing big enough to
-          // see is a swing big enough to close the diagonal.
+          // One wobble drives both blooms, inverted on the second so they
+          // breathe out of step. Small, because a swing big enough to see is a
+          // swing big enough to close the empty diagonal.
           const wob =
             0.055 * Math.sin(x * 4.6 + phase * 0.7) +
             0.045 * Math.cos(y * 3.4 - phase * 0.5);
-          // How far each wash reaches in from its corner, in mat widths — the
-          // size of the whole thing. `mottle` below multiplies this by up to
-          // `NOISE_HI`, so the loosest edge lands about half again as far out as
-          // these numbers say.
-          let v =
-            bloom(
-              x - topX,
-              y - topY,
-              0.34 * (1 + wob),
-              0.36 * (1 - wob * 0.5),
-            ) +
-            bloom(x - botX, y - botY, 0.36 * (1 - wob), 0.37 * (1 + wob * 0.5));
+          const dith = BAYER[dithRow + (cx & 3)];
 
-          let level = 0;
+          // How far each wash reaches in from its corner, in mat widths.
+          // `mottle` multiplies by up to `NOISE_HI`, so the loosest edge lands
+          // about half again as far out as these radii say.
+          let la = 0;
+          let lb = 0;
+          let v = bloom(
+            x - topX,
+            y - topY,
+            0.38 * (1 + wob),
+            0.4 * (1 - wob * 0.5),
+          );
           if (v > 0) {
-            // Pigment pools unevenly. Only where there is wash to pool: on the
-            // bare white it would do nothing anyway, and skipping it there is
-            // what keeps eight table lookups off most of the mat.
+            // Only where there is wash to pool — this keeps eight table
+            // lookups off most of the mat.
             v *= mottle(x, y);
-            // Truncate *with* the tile's threshold rather than rounding — see
-            // `BAYER`. This is the line that turns rings into a weave.
-            level = Math.floor(v * LEVELS + BAYER[dithRow + (cx & 3)]);
-            if (level < 0) level = 0;
-            else if (level > LEVELS) level = LEVELS;
+            // Truncate *with* the tile's threshold rather than rounding; this
+            // is the line that turns rings into a weave.
+            la = Math.min(LEVELS, Math.max(0, Math.floor(v * LEVELS + dith)));
+          }
+          v = bloom(x - botX, y - botY, 0.4 * (1 - wob), 0.41 * (1 + wob * 0.5));
+          if (v > 0) {
+            v *= mottle(x + MOTTLE_OFFSET, y + MOTTLE_OFFSET);
+            lb = Math.min(LEVELS, Math.max(0, Math.floor(v * LEVELS + dith)));
           }
 
-          const c = PALETTE[level];
-          px[i++] = c[0];
-          px[i++] = c[1];
-          px[i++] = c[2];
+          const o = (la * STRIDE + lb) * 3;
+          px[i++] = table[o];
+          px[i++] = table[o + 1];
+          px[i++] = table[o + 2];
           px[i++] = 255;
         }
       }
       ctx!.putImageData(buffer, 0, 0);
-      // First frame lands: fade the painting up over whatever CSS ground the
-      // mat was showing while this chunk loaded, so the swap is a wash settling
-      // rather than a flash.
+      // Fade up over the CSS ground the mat was showing, so the swap is a wash
+      // settling rather than a flash.
       canvas!.style.opacity = "1";
     }
+
+    if (measure()) paint(wash.phase);
+
+    // Repaint on every resize, running clock or not: setting `canvas.width`
+    // clears the context, and on an opaque one "cleared" is black.
+    const ro = new ResizeObserver(() => {
+      if (measure()) paint(lastPhase);
+    });
+    ro.observe(host);
+
+    // A still painting is finished here. Everything below is the hero's clock.
+    if (!animated) return () => ro.disconnect();
 
     const still = window.matchMedia("(prefers-reduced-motion: reduce)");
     let raf = 0;
@@ -287,26 +265,22 @@ export default function PixelWash() {
       if (!t0) t0 = ts;
       if (ts - last < FRAME_MS) return;
       last = ts;
-      paint((ts - t0) * SPEED);
+      paint(wash.phase + (ts - t0) * SPEED);
     };
 
-    // The one place that decides whether the clock runs: off-screen, hidden
-    // tab, or a reader who asked for no motion all stop it the same way, and
-    // stopping means the hero costs nothing at all while you read the rest of
-    // the page.
+    // The one place that decides whether the clock runs — off-screen, hidden
+    // tab and reduced-motion all stop it the same way.
     function sync() {
       const run = onScreen && !document.hidden && !still.matches;
       if (run && !raf) raf = requestAnimationFrame(frame);
       if (!run && raf) {
         cancelAnimationFrame(raf);
         raf = 0;
-        // A stopped clock still owes a picture: repaint the resting frame so
-        // the reduced-motion state is the drawing, not a blank canvas.
-        if (still.matches) paint(0);
+        // Reduced motion still owes a picture — the resting frame.
+        if (still.matches) paint(wash.phase);
       }
     }
 
-    if (measure()) paint(0);
     sync();
 
     const io = new IntersectionObserver(
@@ -318,15 +292,6 @@ export default function PixelWash() {
     );
     io.observe(host);
 
-    // Repaint on every resize, running clock or not. Setting `canvas.width`
-    // clears the context, and on an opaque one "cleared" is black — waiting up
-    // to a frame interval for the loop to come round would be a black flash
-    // through the mat on every drag of a window edge.
-    const ro = new ResizeObserver(() => {
-      if (measure()) paint(lastPhase);
-    });
-    ro.observe(host);
-
     document.addEventListener("visibilitychange", sync);
     still.addEventListener("change", sync);
 
@@ -337,7 +302,7 @@ export default function PixelWash() {
       document.removeEventListener("visibilitychange", sync);
       still.removeEventListener("change", sync);
     };
-  }, []);
+  }, [name, animated]);
 
   return (
     <canvas

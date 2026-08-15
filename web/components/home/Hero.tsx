@@ -1,7 +1,6 @@
 import { Button } from "../ui/Button";
 import { GITHUB_URL } from "../content";
 import { HeroShots } from "./HeroShots";
-import { HeroWash } from "./HeroWash";
 import { Mat } from "./Mat";
 import { heroTop } from "../styles";
 import { localeHref, type Locale } from "@/lib/i18n";
@@ -64,11 +63,11 @@ export function Hero({ c, locale }: { c: HomeCopy["hero"]; locale: Locale }) {
 
       {/* Same mount as every other picture on this page: a bare watercolour
           ground, the print laid on it with a soft shadow, and no outline around
-          either. The three mats below carry a painting from the CDN; this one
-          is painted in the page — a wash off the top-right corner and one off
-          the bottom-left, the page's own white between them, drawn as pixels
-          and breathing. See `PixelWash.tsx` for the picture and `HeroWash.tsx`
-          for why it is nowhere near the first paint.
+          either. It takes the ember pair, because the ember is the brand and
+          this is where the brand is stated, and it is the one mat that breathes
+          — six mats of weather down a page is six things moving beside the
+          words. See `PixelWash.tsx` for the picture and `Wash.tsx` for why it
+          is nowhere near the first paint.
 
           The margin of paint is wider than `Loop.tsx`'s, because the print is:
           a border reads as a proportion of what it surrounds, and the 24px that
@@ -78,7 +77,8 @@ export function Hero({ c, locale }: { c: HomeCopy["hero"]; locale: Locale }) {
           the page's LCP element, and a block held at `opacity: 0` isn't painted
           as far as the measurement is concerned. See `Reveal.tsx`. */}
       <Mat
-        paint={<HeroWash />}
+        wash="emberLilac"
+        animated
         data-enter="lift"
         data-delay="3"
         className="mt-14 p-4 sm:mt-16 sm:p-8 lg:p-10"

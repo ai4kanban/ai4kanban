@@ -7,7 +7,7 @@ import { ShotCardQuestions } from "../shots/ShotCardQuestions";
 import { ShotCardReady } from "../shots/ShotCardReady";
 import { ShotDecisions } from "../shots/ShotDecisions";
 import { ShotSessions } from "../shots/ShotSessions";
-import { CDN } from "@/lib/site";
+import type { WashName } from "./washes";
 import type { HomeCopy } from "@/i18n/home/types";
 
 // Keep work moving — the four steps as a scrollytelling column: the title and
@@ -60,12 +60,13 @@ function useCenteredStickyTop() {
 // share of their container, so they stay legible at whatever width the mat has —
 // see the header comment in components/shots/nb.tsx. The first three draw a
 // board screen; step 04's memory files have no UI, so that one draws the file.
-// Ordered so the blooms swap diagonals card to card and the strongest lands last.
-const SHOTS: { mat: string; art: ReactNode }[] = [
-  { mat: `${CDN}/bloom-1.jpg`, art: <ShotCardReady /> },
-  { mat: `${CDN}/bloom-2.jpg`, art: <ShotCardQuestions /> },
-  { mat: `${CDN}/bloom-3.jpg`, art: <ShotSessions /> },
-  { mat: `${CDN}/bloom-4.jpg`, art: <ShotDecisions /> },
+// Ordered so the blooms swap diagonals card to card and the ember lands last —
+// the step that ends the loop is the one that takes the brand's own pigment.
+const SHOTS: { mat: WashName; art: ReactNode }[] = [
+  { mat: "mintSky", art: <ShotCardReady /> },
+  { mat: "peachEmber", art: <ShotCardQuestions /> },
+  { mat: "skyLilac", art: <ShotSessions /> },
+  { mat: "emberMint", art: <ShotDecisions /> },
 ];
 
 export function Loop({ c }: { c: HomeCopy["loop"] }) {
@@ -109,7 +110,7 @@ export function Loop({ c }: { c: HomeCopy["loop"] }) {
                 {/* Borderless, like everything else in the section. The disc
                     is only there to break the rail behind the number — it is
                     opaque, so it does that at any strength — and the number
-                    itself is the marker: mono, bold, and the one blue in the
+                    itself is the marker: mono, bold, and the one ember in the
                     column. Ringed in ink it was the last neo-brutalist block
                     left here, four hard circles down a page of soft edges. */}
                 <span className="z-10 flex h-13 w-13 shrink-0 items-center justify-center rounded-full bg-code font-mono text-sm font-bold text-accent-deep">
@@ -124,7 +125,7 @@ export function Loop({ c }: { c: HomeCopy["loop"] }) {
                   </p>
                 </div>
               </div>
-              <Mat src={SHOTS[i].mat} className="p-3 sm:ml-[4.5rem] sm:p-6">
+              <Mat wash={SHOTS[i].mat} className="p-3 sm:ml-[4.5rem] sm:p-6">
                 {/* The drawing is decoration, not content — the step's title
                     and body above it already say everything it shows, so it
                     carries no label of its own for a screen reader to read

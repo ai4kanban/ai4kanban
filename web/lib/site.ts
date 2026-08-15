@@ -2,11 +2,13 @@
 // canonical URL, sitemap entry, and JSON-LD `url` derives from this.
 export const BASE_URL = "https://ai4kanban.dev";
 
-// The site's large images — the watercolour mats, the hero banner, the share
-// card — live in the `kanbanskill` R2 bucket behind this origin rather than in
-// `public/`, so a Pages deploy doesn't re-upload a megabyte of artwork it never
-// changed. Every name carries a version suffix and is served `immutable`, so
-// replacing an asset means uploading a new name — never overwriting one.
+// The site's large images live in the `kanbanskill` R2 bucket behind this origin
+// rather than in `public/`, so a Pages deploy doesn't re-upload a megabyte of
+// artwork it never changed. Every name carries a version suffix and is served
+// `immutable`, so replacing an asset means uploading a new name — never
+// overwriting one. Today that is the share card and nothing else: the landing
+// page's watercolour mats used to be four JPEGs here and are now painted in the
+// page (components/home/washes.ts).
 export const CDN = "https://cdn.ai4kanban.dev";
 
 // Social share card. The design lives at the `/og-image/` route (1200×630); the

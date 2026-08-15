@@ -14,86 +14,35 @@ import {
 } from "react-icons/fi";
 import { SectionTitle } from "./SectionTitle";
 import { Mat, printFrame } from "./Mat";
-import { CDN } from "@/lib/site";
 import type { HomeCopy } from "@/i18n/home/types";
 
-// Drive continuous product iteration — an architecture diagram rather than a set
-// of claims: outside information flows in on the left, AI4Kanban sits in the
-// middle as a three-tier bento, product and release iteration come out on the
-// right.
+// Drive continuous product iteration — an architecture diagram: outside
+// information flows in on the left, AI4Kanban sits in the middle as a
+// three-tier bento (context, the skill that plans and drives, what runs and
+// stores the work), product and release iteration come out on the right. The
+// tier names are never drawn; vertical position says it.
 //
-// The three tiers are context (top), the skill that plans and drives (middle),
-// and what runs and stores the work (bottom). Those tier names are never drawn —
-// vertical position already says it — so the diagram stays nouns and wires.
+// Nothing is framed and nothing casts a shadow — twenty parts nested three deep
+// would draw a grid of boxes over the flow. Every edge is a change of fill
+// instead: the print's ground, each column's wash, the paper its nodes are cut
+// from, and back to the wash for the tiles under the agent marks (near-black
+// artwork that needs a ground of its own). The only thing that raises its voice
+// is the filled ember bar where everything meets.
 //
-// All three columns are one surface each: a wash panel with its eyebrow set
-// inside it, so the picture reads as three grounds with wiring between them
-// rather than as one panel flanked by two loose lists. The nodes are paper cut
-// on that wash — the same ramp step the middle already used, now applied on all
-// three. The middle doesn't outrank the flanks by taking a rung of its own,
-// because there isn't one above paper to give it; it outranks them by being the
-// only column with a blue eyebrow, the only one two nodes wide, and the only one
-// with the bar.
-//
-// Every node in the drawing is the same object — an icon block with a noun
-// beside it — at every one of the three stops, and the middle's are two across
-// so a label gets about twice the measure. The blue is an object here and never
-// a tint: the bar is filled with it, and so is every icon block, each carrying a
-// paper glyph. The two washed tiles holding the agent marks stay neutral on
-// purpose — those are near-black artwork and need a ground of their own to be
-// seen at all.
-//
-// Nothing in the diagram is framed and nothing casts a shadow. It is a drawing
-// of about twenty parts, and the ink frame is for a block that is an object on
-// the page — twenty of them nested three deep drew a grid of boxes over the top
-// of the flow, which is the one thing the picture is for. So every edge here is
-// a change of fill: the print's ground, the wash each column sits in, the paper
-// every node is cut from, and back to the wash for the tiles under the agent
-// marks. Four steps and each node lands on the one next to its ground, which is
-// the whole reason the ramp is a ramp. The only thing that raises its voice is
-// the blue bar at the middle where everything meets — filled, and unframed for
-// exactly that reason.
-
-// ── Why it is one SVG, and what that costs ──────────────────────────────────
-// The diagram is drawn once, at one size, and scaled to whatever width it is
-// given — the whole picture, type included, the way a photograph resizes. It
-// used to be a responsive HTML grid that re-laid itself out at each breakpoint,
-// which meant the drawing you designed was one of several the reader might get.
-// This is the only one.
-//
-// It is mounted the way `Loop.tsx` and `Memory.tsx` mount their artwork: a
-// watercolour mat with a print laid on it. That is what the change buys — once
-// the diagram holds its proportions it *is* a print, so it can be mounted like
-// one, and the rest of the page's pictures already are.
-//
-// What it costs is text layout. SVG `<text>` does not wrap: a line is a line,
-// and a label too long for its box runs straight out through the side of it.
-// So the wrapping a browser would have done is done here instead, off Inter's
-// own advance widths — see `ADVANCE` below. Everything downstream of that
-// follows: a node's height comes from how many lines its longest label needs,
-// the column height comes from the nodes, and the viewBox comes from the
-// column. Each language therefore gets a viewBox of its own, which is right —
-// Spanish sets two lines in every node and English sets one in half of them.
-//
-// The trade the drawing does *not* make is a floor on the type size. At phone
-// width the whole picture is about a third of its drawn size, labels included.
-// That is the deal a print makes: it is a picture of the architecture, and the
-// prose above it is what has to carry the argument at any width.
-
-const MAT = `${CDN}/bloom-1.jpg`;
+// It is one SVG drawn at one size and scaled like a photograph, so every reader
+// gets the drawing that was designed — and so it can be mounted on a mat the
+// way `Loop.tsx` and `Memory.tsx` mount theirs. The cost is text layout: SVG
+// `<text>` does not wrap, so the wrapping is done here off Inter's advance
+// widths. Node height follows the line count, column height follows the nodes,
+// and the viewBox follows the column — so each language gets its own viewBox.
 
 // ── Text metrics ────────────────────────────────────────────────────────────
-// Inter's own advance widths, in thousandths of an em, at wght 400 — the weight
-// the labels are set in. Read out of the variable font `next/font` ships (the
-// woff2 files it emits into `.next/static/media`), so the breaks chosen below
-// are the breaks a browser would choose.
-//
-// It covers exactly the characters the five translations of this diagram use.
-// Anything else falls back to `WIDE`, which is wider than all but four glyphs
-// in the face — an unknown character can then only ever break a line early,
-// never overflow one. Adding a language means re-running the dump and adding
-// its letters; the alternative, shipping the whole Latin-1 table, is 200 rows
-// of data to serve five short lists of nouns.
+// Inter's advance widths in thousandths of an em at wght 400, read out of the
+// variable font `next/font` ships, so these breaks are the browser's breaks.
+// Covers exactly the characters the five translations use; anything else falls
+// back to `WIDE`, which is wider than all but four glyphs in the face — an
+// unknown character can only break a line early, never overflow one. A new
+// language means re-running the dump and adding its letters.
 const WIDE = 0.7;
 const ADVANCE: Record<string, number> = Object.fromEntries(
   (
@@ -137,21 +86,17 @@ const ADVANCE: Record<string, number> = Object.fromEntries(
   ).flatMap(([w, chars]) => [...chars].map((ch) => [ch, w / 1000] as const)),
 );
 
-// The one width that is not measured. CJK glyphs come from the reader's system
-// stack — we ship no CJK face, on purpose — but they are full-width by
-// definition, so one em each is exact rather than a guess.
+// Unmeasured, but exact: we ship no CJK face, and these come full-width from
+// the reader's system stack.
 const CJK = /[⺀-鿿＀-｠]/;
 
-// Kinsoku, the short version: these may not begin a line. Without it the
-// Japanese board module wrapped as プロジェクトモ|ジュール's worse cousin —
-// a small ゅ orphaned at the head of the second line, which is the one break
-// a Japanese reader is certain to notice.
+// Kinsoku, the short version — these may not begin a line. Without it a small
+// ゅ gets orphaned at the head of the second line.
 const NEVER_STARTS_A_LINE =
   "ー・ャュョッァィゥェォヵヶゃゅょっぁぃぅぇぉ、。，．）」』】〕〉》！？：；";
 
-// Monospace is one advance for every Latin glyph, and `--font-mono` is a system
-// stack we can't measure — but every face in it is a 0.6em mono, so the eyebrow
-// and the `Markdown` pill measure exactly too.
+// `--font-mono` is a system stack we can't measure, but every face in it is a
+// 0.6em mono, so the eyebrow and the `Markdown` pill measure exactly too.
 const MONO = 0.6;
 
 function textWidth(s: string, size: number, mono: boolean, tracking = 0) {
@@ -164,8 +109,7 @@ function textWidth(s: string, size: number, mono: boolean, tracking = 0) {
   return ems * size + chars.length * tracking;
 }
 
-// A line breaks between words in Latin and between characters in CJK, so the
-// unit the greedy fill works in is: a run of Latin, or one CJK character.
+// The unit the greedy fill works in: a run of Latin, or one CJK character.
 function atoms(text: string) {
   const out: string[] = [];
   let word = "";
@@ -213,9 +157,8 @@ function wrap(
 }
 
 // ── The drawing's coordinate system ─────────────────────────────────────────
-// One unit is one CSS pixel at the size the diagram was drawn — roughly the
-// width the page's `max-w-5xl` column gives it, so on a desktop it renders
-// about 1:1 and every number below can be read as the length it looks like.
+// One unit is one CSS pixel at the size the diagram was drawn — about the width
+// `max-w-5xl` gives it, so on a desktop it renders roughly 1:1.
 const PAD = 24; // the print's own margin, inside its edge
 const GAP = 16; // between a column and the wire beside it
 const FLANK = 216; // the two lists — sized for the longest noun in any language
@@ -380,7 +323,7 @@ const WORD_TRACKING = -0.025 * WORD_FS;
 const WORD_W = 5.685 * WORD_FS + (WORD.length - 1) * WORD_TRACKING;
 
 // The glyph is set without its block. Everywhere else on the site the mark is a
-// blue square carrying a paper glyph — here the bar already *is* that square,
+// ember square carrying a paper glyph — here the bar already *is* that square,
 // so repeating it inside would be a block in a block. What the bar carries is
 // the mark's other half: the glyph and the word, both paper, at the mark's own
 // proportions.
@@ -493,7 +436,7 @@ function TierWire({ cx, y, delay }: { cx: number; y: number; delay: number }) {
 
 // One column of the diagram: the wash it sits in, and the eyebrow set inside
 // that wash with the nodes it names — which is what makes the three read as
-// three grounds. `blue` is the middle one, and the only thing that marks it as
+// three grounds. `ember` is the middle one, and the only thing that marks it as
 // ours at the top of the panel.
 function Column({
   x,
@@ -507,7 +450,7 @@ function Column({
   w: number;
   h: number;
   lines: string[];
-  tone?: "muted" | "blue";
+  tone?: "muted" | "ember";
   children: ReactNode;
 }) {
   return (
@@ -521,7 +464,7 @@ function Column({
         className="fill-code"
       />
       <text
-        className={`font-mono ${tone === "blue" ? "fill-accent-deep" : "fill-muted"}`}
+        className={`font-mono ${tone === "ember" ? "fill-accent-deep" : "fill-muted"}`}
         fontSize={EB.size}
         fontWeight={600}
         letterSpacing={EB.tracking}
@@ -614,7 +557,7 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
           drawing is built on starts where the page does. */}
       {/* The drawing's own circuit runs on its own clock; the reveal only
           brings the print onto the page. */}
-      <Mat src={MAT} data-reveal data-delay="2" className="mt-9 p-3 sm:p-5">
+      <Mat wash="peachEmber" data-reveal data-delay="2" className="mt-9 p-3 sm:p-5">
         <div className={printFrame}>
           <svg
             viewBox={`0 0 ${W} ${h}`}
@@ -626,7 +569,7 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
             <defs>
               {/* The pass of light across the bar is lighting, not a second
                   colour: paper feathered at both ends and clipped to the bar.
-                  The rule against tinting the blue is about diluting it into a
+                  The rule against tinting the ember is about diluting it into a
                   grey — this leaves the fill exactly where it is and moves a
                   highlight over it, which is the only way to say *running*
                   without adding a part. 18% is where that highlight stops being
@@ -671,7 +614,7 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
               w={MID}
               h={colH}
               lines={["AI4KANBAN"]}
-              tone="blue"
+              tone="ember"
             >
               {/* Tier one: what the board already knows about the project. */}
               {context.map((lines, i) => (
@@ -694,8 +637,8 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
 
               {/* Tier two: the one thing that plans and drives — the widest
                   filled block in the diagram, since everything above and below
-                  meets here. Same fill as the primary button, `accent-deep`
-                  with a paper mark. No outline: it is the only block here read
+                  meets here. Same fill as the primary button, `accent` with a
+                  paper mark. No outline: it is the only block here read
                   by its fill, and an ink frame would only put it back in the
                   same box as the nodes above.
 
@@ -709,7 +652,7 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
                 width={BAR_W}
                 height={BAR_H}
                 rx={10}
-                className="fill-accent-deep"
+                className="fill-accent"
               />
               <g clipPath="url(#itr-bar)">
                 <rect

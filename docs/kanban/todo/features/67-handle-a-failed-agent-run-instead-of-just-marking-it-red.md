@@ -4,6 +4,7 @@ track: features
 priority: high
 roi: high
 status: ready
+release: 0.6.1
 blocked_by: []
 related: [16, 51]
 modules: [local-ui]

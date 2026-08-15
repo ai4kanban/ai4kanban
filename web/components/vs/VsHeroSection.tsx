@@ -52,7 +52,7 @@ export function VsHeroSection({
 }) {
   return (
     <section className={`${heroTop} text-center`}>
-      {/* The one filled blue object on this page's hero — a mark, not a tint. */}
+      {/* The one filled ember object on this page's hero — a mark, not a tint. */}
       <p className="mb-5 inline-block rounded-full border-2 border-border bg-accent-deep px-3 py-1 text-[0.78rem] font-semibold uppercase tracking-wider text-elev">
         {c.badge}
       </p>

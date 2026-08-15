@@ -1,7 +1,7 @@
 // Numbered eyebrow + H2, with an accent bar so sections are scannable at a
 // glance and read as ordered chapters instead of one uniform wall. The bar
-// carries no text, which is the one job the bright azure does on its own — the
-// eyebrow beside it is `accent-deep`, the blue you can actually read.
+// carries no text, which is the one job the resting ember does on its own — the
+// eyebrow beside it is `accent-deep`, the cut you can actually read.
 export function SectionHeading({
   num,
   eyebrow,

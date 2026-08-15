@@ -4,7 +4,7 @@ track: skill
 priority: med
 roi: high
 status: ready
-release: ""
+release: 0.7.0
 blocked_by: [187]
 related: [186, 137]
 modules: [skill]

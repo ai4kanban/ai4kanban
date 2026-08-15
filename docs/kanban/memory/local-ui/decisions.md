@@ -131,6 +131,9 @@ re-ask a settled call.
 - To someone reading the board the goal is a reminder, not a file they work in: a quiet
   header control opens the whole file, and editing sits one click in. The memory view
   never shows it — one file, one place.
+- **Does the goal become a row in the Memory panel?**: no. It keeps its header button and
+  gets no row — it is the one memory file the UI writes, and it is read far more often than
+  the rest.
 - The nudge bar is a nudge, not a gate: it can be dismissed, it comes back if the goal
   turns weak again long after setup, and it stops as soon as the user writes anything.
 
@@ -158,6 +161,8 @@ re-ask a settled call.
   A goal can still be added later from the release's ⋯ menu.
 - Daily progress opens from a header icon, not a strip on the board, and shows a line
   chart rather than numbers alone.
+- **Which sections live in the rail as foldable panels?**: Memory only. Runs and Daily
+  progress keep their header dialogs until we have seen how the Memory panel reads.
 - **Does the rail's search reach archived cards?**: no — open cards only. The rail is about
   what you are working on now, so an archived or rejected card never comes back through it.
 

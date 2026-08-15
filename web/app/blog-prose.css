@@ -10,7 +10,7 @@
    every `h2` on the site.
 
    It draws with the site's tokens and no others, so a post is the same paper,
-   the same ink and the same azure as the page around it: the wash for a code
+   the same ink and the same ember as the page around it: the wash for a code
    block, the 4px hard ink shadow for anything raised, full-strength 2px ink for
    a rule, and accent-deep for anything that is a link. */
 
@@ -87,8 +87,8 @@
   font-style: italic;
 }
 
-/* A link in prose is the blue as text, so it takes accent-deep — the cut that
-   clears 7:1 — and never the bright azure, which is only ever a shape. */
+/* A link in prose is the ember as text, so it takes accent-deep — the readable
+   cut — and never the resting ember, which is only ever a shape. */
 .blog-prose a {
   color: var(--color-accent-deep);
   text-decoration: underline;

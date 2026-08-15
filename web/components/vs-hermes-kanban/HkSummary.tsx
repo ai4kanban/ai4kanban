@@ -33,7 +33,7 @@ function DiffCard({
         {items.map((it) => (
           <li key={it} className="flex items-start gap-2.5 text-[0.95rem] text-muted">
             <FiArrowRight
-              className="mt-[0.3rem] h-3.5 w-3.5 shrink-0 text-accent-deep"
+              className="mt-[0.3rem] h-3.5 w-3.5 shrink-0 text-accent"
               aria-hidden="true"
             />
             <span>{it}</span>

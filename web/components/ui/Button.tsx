@@ -8,27 +8,30 @@ import type { ReactNode } from "react";
 // keeps the block's bottom-right edge pinned as the face lifts off it.
 const BASE =
   "inline-flex items-center justify-center gap-2 rounded-lg border-2 " +
-  "border-border font-semibold no-underline " +
+  "border-border no-underline " +
   "shadow-[4px_4px_0_0_var(--color-ink)] transition-all duration-150 " +
   "hover:-translate-x-0.5 hover:-translate-y-0.5 " +
   "hover:shadow-[6px_6px_0_0_var(--color-ink)] " +
   "active:translate-x-0 active:translate-y-0 " +
   "active:shadow-[2px_2px_0_0_var(--color-ink)]";
 
-// One block, two fills: the primary is the deep blue with a paper label, the
+// One block, two fills: the primary is the ember with a paper label, the
 // secondary the paper with an ink label. Both are outlined in the same ink — in
 // every state, hover included — and both cast the same ink shadow. What hover
-// moves is the fill: the primary brightens to the azure it is a deep cut of, the
-// paper one drops to the wash. That is the one moment the bright azure is a
-// ground, and nothing sits on it that isn't paper-white.
+// moves is the fill, and it moves the way the board's does: the ember settles
+// to `accent-deep`, the paper one drops to the wash.
 //
-// The primary fill is `accent-deep`, not `accent`, and /design is where that was
-// settled rather than argued: `accent` carries a paper label at only 3.84:1,
-// under the 4.5:1 a button label needs. `accent-deep` is 7.28:1 from the page
-// and carries the paper label at 7.87:1.
+// The resting fill is `accent`, the same ember the board's Create task rests on,
+// and this is the deliberate exception to the 4.5:1 in design.md: the paper
+// label on it measures 4.03:1. It was `accent-deep` at 6.41:1, and the cost of
+// those two points was a brick-dark block that made the whole page read heavy —
+// the CTA is the largest area of colour on the landing page, so whatever it is
+// filled with is the site's mood. There is no brighter ember that clears 4.5:1;
+// `accent-deep` is already at that ceiling. The label is bold, the block is
+// outlined in ink and shadowed, and it is never the only marker of an action.
 const VARIANT = {
-  primary: "bg-accent-deep text-elev hover:bg-accent",
-  secondary: "bg-elev text-ink hover:bg-code",
+  primary: "bg-accent font-bold text-elev hover:bg-accent-deep",
+  secondary: "bg-elev font-semibold text-ink hover:bg-code",
 } as const;
 
 // `icon` is `sm` squared up: the same block with no label in it, for the phone

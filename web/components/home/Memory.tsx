@@ -3,13 +3,7 @@ import { SectionTitle } from "./SectionTitle";
 import { Mat, printFrame } from "./Mat";
 import { IconChip } from "../ui/IconChip";
 import { panelInset } from "../styles";
-import { CDN } from "@/lib/site";
 import type { HomeCopy } from "@/i18n/home/types";
-
-// The watercolour the tree is mounted on — the same set `Loop.tsx` mounts its
-// four shots on, so a listing and a screenshot read as the same kind of object
-// wherever the page shows one.
-const TREE_MAT = `${CDN}/bloom-2.jpg`;
 
 // The memory is a directory of Markdown files, so the visual is that directory —
 // real paths, one module expanded, a second left collapsed to show there's one
@@ -65,7 +59,7 @@ export function Memory({ c }: { c: HomeCopy["memory"] }) {
           language. The mat takes the half and the print sits centred on it —
           that is the mat's job, and a picture is allowed to have a margin. */}
       <div className="mt-9 grid gap-5 lg:grid-cols-2">
-        {/* Three ranks per row so the panel isn't flat: a filled blue icon block
+        {/* Three ranks per row so the panel isn't flat: a filled ember icon block
             anchors the left edge, the claim reads first, the evidence sits under
             it at a smaller size. The rows share the height evenly, which matches
             the tree beside them. */}
@@ -135,7 +129,7 @@ export function Memory({ c }: { c: HomeCopy["memory"] }) {
             tree is a shape; loosen it and it is eight lines that happen to be
             near each other. */}
         <Mat
-          src={TREE_MAT}
+          wash="mintSky"
           data-reveal
           data-delay="2"
           className="flex items-center justify-center p-4 sm:p-6"

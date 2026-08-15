@@ -16,14 +16,19 @@ import type { ReactNode } from "react";
 // See `.claude/skills/vs-diagram/SKILL.md` for how to design one.
 
 // Palette — the site's tokens, restated as hexes an SVG attribute can take.
-export const INK = "#191c22";
-export const MUT = "#4d5c73";
+// Warm all the way through, like the page these drawings sit on: a cool grey
+// ramp here is what made the comparison pages read as a different product.
+export const INK = "#24231f";
+export const MUT = "#635a4e";
 // Hairline strokes and box outlines. Not a token, and the one stroke here that
 // has to be lighter than `muted` and still hold its shape, so it is set to
-// clear the 3:1 a non-text element needs against the wash (3.12:1).
-export const LINE = "#7d8899";
-export const BOX = "#edeff3"; // a box on the paper canvas
-export const KEY = "#12509e"; // the blue — ours, and only ever ours
+// clear the 3:1 a non-text element needs against the wash (3.15:1).
+export const LINE = "#8f8474";
+export const BOX = "#f2ede4"; // a box on the paper canvas
+export const KEY = "#b83a12"; // the ember — ours, and only ever ours
+// The resting ember, for the one thing here that is the logo rather than a
+// reference to it. `KEY` is the readable cut, because it also draws captions.
+export const EMBER = "#dd4f1e";
 export const PAPER = "#ffffff"; // a card, and a glyph on a filled block
 
 // Motion carries the argument and nothing else: dashes march along what is
@@ -73,7 +78,7 @@ export function VsDiagram({ alt, children }: { alt: string; children: ReactNode 
 }
 
 // The line above the art says what the product is; the line below says what it
-// costs you. Ours takes the blue, theirs stays ink, so the eye can tell the two
+// costs you. Ours takes the ember, theirs stays ink, so the eye can tell the two
 // sides apart before it has read either.
 export function TopCaption({ ours, children }: { ours?: boolean; children: string }) {
   return (
@@ -157,12 +162,12 @@ export function Robot({
 // stretched to fit its drawing would stop reading as one.
 export const BLOCK = 36;
 
-// Ours is the mark itself: the azure block and the three descending board
+// Ours is the mark itself: the ember block and the three descending board
 // columns `LogoMark` draws, at the 62% of the block it sets them at.
 export function OursBlock({ x, y }: { x: number; y: number }) {
   return (
     <>
-      <rect x={x} y={y} width={BLOCK} height={BLOCK} rx="8" fill={KEY} />
+      <rect x={x} y={y} width={BLOCK} height={BLOCK} rx="8" fill={EMBER} />
       <g transform={`translate(${x + 6.84} ${y + 6.82}) scale(0.372)`} fill={PAPER}>
         <rect x="5" y="8" width="12" height="44" rx="3.5" />
         <rect x="24" y="8" width="12" height="35" rx="3.5" />
@@ -174,7 +179,7 @@ export function OursBlock({ x, y }: { x: number; y: number }) {
 
 // Theirs is the same square, in paper with a hairline, carrying the rival's own
 // mark at its own colours. Paper rather than ink because most of these marks
-// are dark and would vanish reversed out — and because the filled azure block
+// are dark and would vanish reversed out — and because the filled ember block
 // should stay the one solid object in a pair, on our side only.
 export function TheirsBlock({
   x,

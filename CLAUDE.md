@@ -1,12 +1,9 @@
 # Quick Dev Notes
 
-## Skill Writing
+## Skill/Design.md Writing
 
-The words live in two places and nowhere else: `skill/SKILL.md` — the short note installed
-into a project, which only says the board is here and that `akb` owns it — and
-`cli/src/guide/*.md`, the flows, which ship with the command. Add minimal, only necessary
-information to either. The context is precious.
-When writing a flow, it's recommended to use `- **bold title**: one liner` format to make the requirements scannable.
+- Add minimal, only necessary information to SKILL.md, design.md or `references/*.md`. The context is precious.
+- When writing a flow, it's recommended to use `- **bold title**: one liner` format to make the requirements scannable.
 
 ## The public site
 

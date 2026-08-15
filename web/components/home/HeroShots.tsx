@@ -106,14 +106,14 @@ export function HeroShots({ c }: { c: HomeCopy["hero"]["shots"] }) {
             tabIndex={isFront ? -1 : 0}
           >
             <Frame mode={mode} alt={c[mode].alt} eager={mode === "board"} />
-            {/* Washes the back card out toward the page; clears as it comes
+            {/* Washes the back card out toward the mat; clears as it comes
                 forward, thins on hover. Now that the outline is gone this is
                 the whole of the front/back distinction, so it stays generous.
                 `rounded-lg` to match `printFrame`. */}
             <span
               aria-hidden
               className={
-                "pointer-events-none absolute inset-0 rounded-lg bg-bg/75 transition-opacity duration-300 " +
+                "pointer-events-none absolute inset-0 rounded-lg bg-band/75 transition-opacity duration-300 " +
                 (isFront ? "opacity-0" : "opacity-100 group-hover:opacity-40")
               }
             />

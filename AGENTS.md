@@ -1,23 +1,26 @@
 # Quick Dev Notes
 
-## Skill docs don't know their caller
+## Skill/Design.md Writing
 
-A skill doesn't care who calls it. Files under `skill/` never mention the local-UI
-dispatcher, `ui.config.json`, or `Codex -p` — how a skill gets invoked is the caller's
-concern, documented on the caller's side.
+- Add minimal, only necessary information to SKILL.md, design.md or `references/*.md`. The context is precious.
+- When writing a flow, it's recommended to use `- **bold title**: one liner` format to make the requirements scannable.
 
 ## The public site
 
 `web/design.md` describes how the site in `web/` looks and is put together — the color
-tokens, the panel, where the styling goes, the routes, and where the copy lives. Read it
-before changing a page.
+tokens, the panel, where the styling goes, and where the copy lives. It is about design
+only; routing lives in comments in the files that own it. Read it before changing a page.
 
 ## Pre-commit Checks
 - **Python**: `uv run pre-commit run --all-files`
-- **JavaScript/Typescript**: run in whichever app you touched — `web/` (the public site)
-  and `kanban-ui/` (the local board UI) each have their own checks. Don't use `pnpm build`.
+- **JavaScript/Typescript**: run in whichever app you touched — `web/` (the public site),
+  `kanban-ui/` (the local board UI) and `cli/` (the `akb` command and the board's rules)
+  each have their own checks. Don't use `pnpm build`.
   - `cd web && pnpm typecheck && pnpm run lint`
   - `cd kanban-ui && pnpm typecheck && pnpm run lint`
+  - `cd cli && npm run lint` — typechecks `src/`. The rules build to `cli/dist/kanban.mjs`,
+    which is a build product and not in git: `npm install` in `cli/` makes it, and there is
+    nothing to commit or keep in sync.
 
 ## Long conversation
 
@@ -26,3 +29,7 @@ If the current session is long and all about a plan, when we finalize the plan, 
 ## Git worktree
 
 Don't use worktree/branching. Keep everything in the main branch.
+
+## Code Style
+
+When you see a lengthy comment, trim it down to key notes for future writers, or just remove it. Code is enough to explain itself. Add comments only when necessary.
