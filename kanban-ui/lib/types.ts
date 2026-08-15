@@ -48,6 +48,9 @@ export type {
   FillPlan,
   FillSkip,
   Level,
+  MemoryFile,
+  MemoryName,
+  MemoryRef,
   MetricsDay,
   MetricsResult,
   MetricsView,
@@ -66,7 +69,7 @@ export type {
   TrackDraft,
   WriteResult,
 } from "./format/view/types";
-export { GUIDED_STEPS, METRICS_WINDOW_DAYS, NO_RELEASE } from "./format/view/types";
+export { GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE } from "./format/view/types";
 
 export type {
   CommandState,

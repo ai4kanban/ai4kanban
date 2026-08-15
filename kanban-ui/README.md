@@ -112,7 +112,9 @@ rail is about what you are working on now. A word that matches most of the board
 the matches scroll inside the rail. Nothing matching says so in a line, and clearing the box
 (the **×**, or Escape) puts the rail's own list back.
 
-The rail is hidden on a narrow window, and the box goes with it.
+At the foot of the rail is the **Memory** panel — see **The project's memory** below.
+
+The rail is hidden on a narrow window, and the box and the panel go with it.
 
 ### The goal
 
@@ -136,6 +138,50 @@ alone. That field is how clear the goal looks to plan from: `strong`, `good` and
 the agent's judgment — it writes them when it sets the board up and every time it proposes
 work — and `pending` just means you wrote something nobody has read yet. Only `weak` (or an
 empty file) makes the board ask you for a goal, so writing one is enough to stop it asking.
+
+### The project's memory
+
+Under the open cards, at the foot of the rail, is **Memory** — what the agent remembers about
+this project. Every proposal it makes is judged against these files, every question it settles
+by itself leans on them, and every idea you turned down stays turned down because it is
+written there. This is where you read them without opening files in an editor.
+
+It starts collapsed: one row with an arrow. Click it — anywhere on the row — and four rows
+appear, one per file:
+
+| Row | The file |
+| --- | --- |
+| **What shipped** | `docs/kanban/memory/readme.md` |
+| **Settled decisions** | `docs/kanban/memory/decisions.md` |
+| **Design mistakes** | `docs/kanban/memory/redesign.md` |
+| **Rejected ideas** | `docs/kanban/memory/rejected.md` |
+
+Hover a row and it names the file it opens. Click one and the file opens in the body, whole
+and rendered, headed by the row's name with the file's path from the repo root under it — and
+that row stays highlighted while you read, the same as the row of a card you are on. The panel
+grows with its rows up to half the rail and scrolls past that, so the cards above it are never
+pushed off. Whether you left it open is remembered.
+
+These are the project's own four files. A module's memory — `docs/kanban/memory/<module>/` —
+is not in the panel; open those in your editor.
+
+An open memory file is a page of its own, so Back, Forward and a reload all keep you on it,
+and landing on one opens the panel however you left it, so the highlighted row is on screen
+whichever way you got there. In the app a two-finger swipe goes back from it, as it does from
+a card.
+
+The page keeps up with the file on its own: it re-reads when a run finishes and when you come
+back to the window, so a file an agent has just rewritten catches up without clicking the row
+again. A file nobody has written yet keeps its row and says so when you open it.
+
+**Everything here is read-only, and nothing starts a run.** To fix a line you disagree with,
+the **⋯** beside the heading offers **Copy path** (the full path on disk) and **Copy relative
+path** (`docs/kanban/memory/decisions.md` — the form to paste to a coding agent working in
+this repo); it says when the copy worked. The board never opens the file for you.
+
+The goal is not in this panel — it keeps its own button in the header (see above). And on a
+narrow window the rail is hidden, so memory goes with it, like the search box; a memory file
+you are already on still reads.
 
 ### The release a card ships in
 

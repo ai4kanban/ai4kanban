@@ -51,7 +51,6 @@ _(none)_
 
 ## 77-memory-in-the-ui/features
 
-- [#129 Read the project's memory in the UI](77-memory-in-the-ui/features/129-read-the-project-s-memory-in-the-ui.md)
 - [#130 Read a module's memory in the UI](77-memory-in-the-ui/features/130-read-a-module-s-memory-in-the-ui.md)
 
 ## 143-ui-tasks/features

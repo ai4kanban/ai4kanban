@@ -6,7 +6,7 @@ roi: high
 status: ready
 release: 0.6.1
 blocked_by: []
-related: [129, 130]
+related: [130]
 modules: [local-ui]
 questions: []
 ---
@@ -31,7 +31,7 @@ open. This is a group task; each piece is its own subtask in this folder.
   area to the right, where a card is drawn.
 - An open memory file is a page of its own, the way a card is.
 - The project's four memory files — what shipped, settled decisions, design mistakes,
-  rejected ideas (#129).
+  rejected ideas.
 - Then one expandable row per module, holding that module's four files (#130).
 - Memory is read-only in the UI.
 - The goal keeps its own header button and gets no row in the panel.
@@ -47,7 +47,7 @@ open. This is a group task; each piece is its own subtask in this folder.
 
 ## Todo
 - [x] Open the whole goal from a header button #128
-- [ ] Read the project's four memory files #129
+- [x] Read the project's four memory files #129
 - [ ] Read a module's four memory files #130
 
 ## Decided by the agent

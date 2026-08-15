@@ -72,7 +72,10 @@ const FADE = "30%";
 export const CROP = 1.5;
 
 /** The frame every shot sits in: establishes the container the `cqw` above
- *  measures, and sets the one font-size everything inside is relative to. */
+ *  measures, and sets the one font-size everything inside is relative to. Its
+ *  ground is paper, not cream — kanban-ui's `Window.tsx` draws the body pane in
+ *  paper and keeps cream for the chrome around it, and these shots are of the
+ *  body. */
 export function Shot({
   children,
   crop,
@@ -94,7 +97,7 @@ export function Shot({
         fontFamily: SANS,
         lineHeight: 1.45,
         color: NB.ink,
-        background: NB.cream,
+        background: NB.paper,
         WebkitFontSmoothing: "antialiased",
       }}
     >
@@ -110,7 +113,7 @@ export function Shot({
             position: "relative",
             aspectRatio: String(crop),
             overflow: "hidden",
-            background: NB.cream,
+            background: NB.paper,
           }}
         >
           {inner}
@@ -124,7 +127,7 @@ export function Shot({
               insetInline: 0,
               bottom: 0,
               height: FADE,
-              background: `linear-gradient(to bottom, transparent, ${NB.cream})`,
+              background: `linear-gradient(to bottom, transparent, ${NB.paper})`,
             }}
           />
         </div>

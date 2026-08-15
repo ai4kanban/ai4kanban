@@ -1,5 +1,5 @@
-import { boardRules } from "./cli";
-import type { Board, Card, CardRef, MetricsResult, SetupDraft, SetupState } from "./types";
+import { boardRules, NoRulesError } from "./cli";
+import type { Board, Card, CardRef, MemoryFile, MetricsResult, SetupDraft, SetupState } from "./types";
 
 // --- reading the board, through the CLI (#169) -------------------------------
 // The columns, one card in full, the module map, the daily numbers, the answers a guided
@@ -95,6 +95,20 @@ export async function readGoalText(): Promise<string> {
   } catch {
     return "";
   }
+}
+
+/** One of the four memory files, whole (#129) — `null` for a name that isn't one of them.
+ *
+ *  Read on each open rather than held, so a file a run has just rewritten reads as it is
+ *  now. A board with no rules to read it with, or rules older than the release that added
+ *  this, throws: the memory page is the one screen this is the whole of, and a page that
+ *  quietly showed nothing would read as an empty memory. */
+export async function readMemory(name: string): Promise<MemoryFile | null> {
+  const rules = await boardRules();
+  if (!rules.readMemoryFile) {
+    throw new NoRulesError("The board's rules this board runs are too old to read its memory.");
+  }
+  return rules.readMemoryFile(name);
 }
 
 /** What the guided first run opens with — the project, its tracks, and the goal as they

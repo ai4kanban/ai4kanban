@@ -42,7 +42,7 @@ function Frame({
     // the capture read as a real app window; these captures are of the desktop
     // app and bring their own — window buttons inline with the toolbar — and a
     // second strip above that reads as a window inside a window.
-    <div className={`${printFrame} bg-code`}>
+    <div className={`${printFrame} bg-elev`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={SRC[mode]}

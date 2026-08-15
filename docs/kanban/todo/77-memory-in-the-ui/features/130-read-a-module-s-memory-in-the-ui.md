@@ -5,7 +5,7 @@ priority: med
 roi: med
 status: ready
 release: 0.6.1
-blocked_by: [129]
+blocked_by: []
 related: [77]
 modules: [local-ui]
 questions: []
@@ -17,7 +17,7 @@ panel too, so you can read what the agent remembers about the part you are worki
 Part of #77.
 
 ## Today
-- The Memory panel carries the project's four files only (#129). The four files each module
+- The Memory panel carries the project's four files only. The four files each module
   keeps stay invisible.
 - The agent proposes work one module at a time, so the memory that shaped the last proposal
   is usually a module's, not the project's.
@@ -34,11 +34,11 @@ Part of #77.
   rail's own section-label look.
 - **The labels appear only on a board whose map names at least one module.**
 - **Any number of modules can be open at once.** The panel scrolls once it is as tall as it
-  is allowed to get — half the rail (#129).
+  is allowed to get — half the rail.
 - **Modules start closed on every load**, except the one holding the file you landed on.
 - **A module with no memory folder yet** shows one line saying so, instead of four rows
   that lead nowhere. A module whose folder is missing one file keeps all four rows, the
-  same as the project does (#129).
+  same as the project does.
 
 ## What the user does
 - Reads what the agent remembers about the module the card they are holding belongs to.
@@ -63,7 +63,7 @@ Part of #77.
 - **Modules start closed, and nothing remembers which were open.** The only view state the
   board keeps is its chrome — the rail's width, the panel being open — and a remembered
   module goes stale the day you drop it from the map. The one exception is the module
-  holding the file you landed on: a memory file is a page of its own (#129), so a reload
+  holding the file you landed on: a memory file is a page of its own, so a reload
   can land inside a module, and its row has to be on screen to be highlighted.
 - **You cannot open a module's memory from a card that names it.** The panel is the one
   way in. Memory belongs to a module, not to the card you happen to be reading.

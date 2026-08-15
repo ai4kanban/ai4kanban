@@ -321,6 +321,42 @@ export interface FillPlan {
   skipped: FillSkip[]
 }
 
+// ---- the project's memory --------------------------------------------------
+
+/** Which of the four memory files. The name is also the file's own, without `.md`, and the
+ *  word an address carries — `/memory/decisions`. */
+export type MemoryName = 'readme' | 'decisions' | 'redesign' | 'rejected'
+
+/** One of the four, named as a reader meets it. `label` is what a row and a heading say:
+ *  the file is called `decisions.md`, but a page headed that reads as a different thing. */
+export interface MemoryRef {
+  name: MemoryName
+  label: string
+}
+
+/** The four, in the order they are listed — what shipped, what was settled, what to avoid,
+ *  what was turned down. Shipped work leads because it is the one a reader wants oftenest;
+ *  the two the agent writes against sit in the middle, and rejected ideas close. */
+export const MEMORY_FILES: readonly MemoryRef[] = [
+  { name: 'readme', label: 'What shipped' },
+  { name: 'decisions', label: 'Settled decisions' },
+  { name: 'redesign', label: 'Design mistakes' },
+  { name: 'rejected', label: 'Rejected ideas' },
+]
+
+/** One memory file, whole. A file nobody has written keeps its place with an empty `text`
+ *  and `written: false`, so the four rows never change shape from one board to the next. */
+export interface MemoryFile extends MemoryRef {
+  /** The full path on disk — what "Copy path" copies. */
+  path: string
+  /** The path from the repo root, forward slashes — what "Copy relative path" copies, and
+   *  the form pasted to an agent working in that repo. */
+  relPath: string
+  /** The file as it stands, frontmatter and all. Empty when there is nothing to read. */
+  text: string
+  written: boolean
+}
+
 // ---- the daily numbers -----------------------------------------------------
 
 /** How many days a progress view covers, ending today. */

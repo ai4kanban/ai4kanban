@@ -38,6 +38,7 @@ export function Window({
    *  there is nothing for a board card or a `#12` link to remember to do. */
   currentId = null,
   currentTitle = "",
+  currentMemory = null,
   running,
   children,
 }: {
@@ -46,6 +47,9 @@ export function Window({
   openIds: number[];
   currentId?: number | null;
   currentTitle?: string;
+  /** The memory file this page is showing, if it is showing one (#129) — what highlights
+   *  its row in the rail's Memory panel, and what opens that panel on landing. */
+  currentMemory?: string | null;
   /** The cards an agent is inside, for the rail's pulsing rows. Handed down
    *  rather than polled for here: both pages already watch the registry, and a
    *  fourth poll for one dot would be a poll to say nothing new. */
@@ -76,6 +80,7 @@ export function Window({
             <Rail
               rows={rows}
               activeId={currentId}
+              activeMemory={currentMemory}
               total={openIds.length}
               running={running ?? EMPTY}
               onClose={close}

@@ -20,6 +20,7 @@ import type {
   ClosePlan,
   DropPlan,
   FillPlan,
+  MemoryFile,
   MetricsResult,
   SaveProjectResult,
   SetupDraft,
@@ -84,6 +85,10 @@ export interface BoardRules {
   readMetricsView(): MetricsResult;
   readReleases(): string[];
   readGoalText(): string;
+  /** One of the four memory files, whole (#129). Optional: a board can be running rules
+   *  older than the release that added it, and the memory page then says so rather than
+   *  the whole app failing to draw. */
+  readMemoryFile?(name: string): MemoryFile | null;
   readSetupDraft(): SetupDraft;
   readSetupState(): SetupState | null;
   fillPlan(): FillPlan;

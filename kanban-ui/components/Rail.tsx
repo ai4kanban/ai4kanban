@@ -23,15 +23,17 @@
 //
 // The rows scroll and the box above them does not: a one-letter search matches
 // most of the board, and a window is not tall enough to be the limit on what can
-// be found.
+// be found. The Memory panel at the foot (#129) doesn't scroll with them either —
+// see MemoryPanel below.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FiColumns, FiSearch, FiX } from "react-icons/fi";
+import { FiChevronRight, FiColumns, FiFileText, FiSearch, FiX } from "react-icons/fi";
 import { searchCardsAction } from "@/app/actions";
+import { useMemoryPanel } from "@/lib/memory-panel";
 import type { OpenCard } from "@/lib/open-cards";
-import type { CardRef } from "@/lib/types";
+import { MEMORY_FILES, type CardRef } from "@/lib/types";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 
 /** How long the typing has to stop before the board is searched. Long enough that a
@@ -42,6 +44,7 @@ const SEARCH_PAUSE = 120;
 export function Rail({
   rows,
   activeId,
+  activeMemory = null,
   total,
   running,
   onClose,
@@ -50,6 +53,8 @@ export function Rail({
   rows: OpenCard[];
   /** The card this window is showing, or null for the board. */
   activeId: number | null;
+  /** The memory file this window is showing, or null (#129). */
+  activeMemory?: string | null;
   /** How many cards the board holds open — the count on All cards. */
   total: number;
   /** The cards an agent is inside right now. A row for one of them pulses, so a
@@ -85,7 +90,9 @@ export function Rail({
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto"
         aria-label={searching ? "Matching cards" : "Open cards"}
       >
-        <RailRow href="/" label="All cards" active={activeId === null} count={total} />
+        {/* A memory page is neither a card nor the board, so All cards is not where
+            you are while one is open. */}
+        <RailRow href="/" label="All cards" active={activeId === null && !activeMemory} count={total} />
         {searching ? (
           <>
             {matches !== null && <RailLabel text="Matches" count={matches.length} />}
@@ -122,6 +129,72 @@ export function Rail({
           </>
         )}
       </nav>
+      <MemoryPanel active={activeMemory} />
+    </div>
+  );
+}
+
+/** The project's memory, at the foot of the rail (#129) — what shipped, what was settled,
+ *  what to avoid, what was turned down. It sits below the cards and outside the list that
+ *  scrolls, so it stays put however many cards are open and whatever is typed in the search
+ *  box: it is not one of the cards, and a search is no reason to lose it.
+ *
+ *  Collapsed it is one section label with an arrow, and the whole row is the button — a
+ *  10px arrow is not something to have to hit. Expanded it grows with its rows to half the
+ *  rail and scrolls past that, so the cards you were reading are never pushed off.
+ *
+ *  It slides rather than appears: the rows push the cards up from under the label, so where
+ *  they came from is visible instead of guessed at. The height is animated with a grid row
+ *  going 0fr → 1fr, which needs no measuring and so keeps working when the list grows. */
+function MemoryPanel({ active }: { active: string | null }) {
+  const { open, toggle, animate } = useMemoryPanel(active);
+  const slide = animate ? "transition-[grid-template-rows,opacity] duration-200 ease-out" : "";
+  return (
+    <div className="flex max-h-[50%] shrink-0 flex-col">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        aria-controls="memory-files"
+        title={open ? "Hide the project's memory" : "What the agent remembers about this project"}
+        className="mt-2.5 flex w-full shrink-0 cursor-pointer items-center justify-between px-2.5 pb-1.5 pt-2.5 text-nb-ink-soft hover:text-nb-ink"
+        style={{ borderTop: `1px solid ${HAIRLINE}` }}
+      >
+        <span className="text-[10px] font-[800] uppercase tracking-[0.12em]">Memory</span>
+        <FiChevronRight
+          size={13}
+          aria-hidden
+          className={`${animate ? "transition-transform duration-200 ease-out" : ""} ${
+            open ? "rotate-90" : ""
+          }`}
+        />
+      </button>
+      {/* The rows stay mounted while closed — a slide has to have something to slide — so
+          they are taken out of the tab order and off the screen reader until they are open. */}
+      <div
+        className={`grid min-h-0 overflow-hidden ${slide} ${
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <nav id="memory-files" inert={!open} className="min-h-0 overflow-y-auto" aria-label="Memory">
+          {/* The rows' own breathing room is inside the scroller, not padding on it: padding
+              is floor a 0fr track can't shrink past, and closed has to close all the way. */}
+          <div className="flex flex-col gap-0.5 py-1">
+            {MEMORY_FILES.map((file) => (
+              <RailRow
+                key={file.name}
+                href={`/memory/${file.name}`}
+                label={file.label}
+                // The path is what a hover says, not the row's own words back at it: the
+                // words are already on screen, the file they open is not.
+                title={`docs/kanban/memory/${file.name}.md`}
+                icon={<FiFileText size={13} className="shrink-0" aria-hidden />}
+                active={active === file.name}
+              />
+            ))}
+          </div>
+        </nav>
+      </div>
     </div>
   );
 }
@@ -232,6 +305,8 @@ function RailRow({
   label,
   id,
   count,
+  icon,
+  title,
   active,
   running = false,
   onClose,
@@ -240,6 +315,11 @@ function RailRow({
   label: string;
   id?: number;
   count?: number;
+  /** What leads the row when it carries no card number. The board's own row is columns; a
+   *  memory row is a file. */
+  icon?: React.ReactNode;
+  /** What a hover says, when the label isn't it. */
+  title?: string;
   active: boolean;
   running?: boolean;
   onClose?: () => void;
@@ -248,7 +328,7 @@ function RailRow({
     <div className="group relative">
       <Link
         href={href}
-        title={running ? `${label} — running` : label}
+        title={running ? `${label} — running` : (title ?? label)}
         className={`flex h-[30px] w-full items-center gap-2 rounded-[8px] pl-2.5 text-left text-[12.5px] ${
           onClose ? "pr-7" : "pr-2"
         } ${
@@ -258,7 +338,7 @@ function RailRow({
         }`}
       >
         {id === undefined ? (
-          <FiColumns size={13} className="shrink-0" aria-hidden />
+          (icon ?? <FiColumns size={13} className="shrink-0" aria-hidden />)
         ) : (
           <span
             className="shrink-0 font-mono text-[11px] tabular-nums"

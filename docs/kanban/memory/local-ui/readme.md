@@ -58,6 +58,12 @@ except where another doc is named.
   progress view.
 - Find a card by typing part of its title or body into the rail's search box, on the board
   and on a card page alike — "Finding a card" in `kanban-ui/README.md`.
+- Read what the agent remembers about the project from a **Memory** panel at the foot of
+  the rail: the four project-wide memory files as rows, each opening whole and rendered as
+  a page of its own, with Back, Forward, reload and the app's swipe all working on it. The
+  page re-reads itself when a run finishes and when you come back to the window, an
+  unwritten file keeps its row and says so, and a ⋯ menu copies the file's path. Read-only,
+  and no run starts from it: `kanban-ui/README.md`, "The project's memory".
 
 ## Releases
 

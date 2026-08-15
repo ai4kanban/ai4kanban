@@ -32,7 +32,7 @@ function Frame({
     // The captures are of the desktop app and carry their own window buttons,
     // so this frame draws no title bar of its own — one above them would read
     // as a window inside a window. Same call as the landing hero's deck.
-    <div className="w-[548px] overflow-hidden rounded-xl border-2 border-border bg-code shadow-[8px_8px_0_0_var(--color-ink)]">
+    <div className="w-[548px] overflow-hidden rounded-xl border-2 border-border bg-elev shadow-[8px_8px_0_0_var(--color-ink)]">
       <div className="relative">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={src} alt={alt} className="block w-full" />
