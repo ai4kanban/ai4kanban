@@ -8,9 +8,6 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **UI lets people hand-edit the board** (toggle todos, write cards, move, mark done) →
   ✅ the UI spawns agent runs to do the kanban work; on-card buttons call the agent
   connector. Only priority/roi and a title/body edit are direct.
-- ❌ **UI adds human-in-the-loop / a mid-run reply channel to the agent** → ✅ no live
-  replies: the agent raises open questions on the card and the user answers those. The
-  only live view of a run is a read-only tail of its log.
 - ❌ **A control is hidden when the thing it drives doesn't exist yet** (no releases → no
   release dropdown, so the UI never says releases exist and gives no way to make one) →
   ✅ the empty state is where the UI teaches the feature: keep the control and let it offer
@@ -18,10 +15,6 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   script has.
 - ❌ **A board action stays terminal-only because it feels rare or administrative** → ✅ the
   UI offers what the script offers, with the consequences shown before the user confirms.
-- ❌ **The desktop app remembers one folder and nothing else** (switching project means
-  repointing the window, so a person with three projects repoints it all day) → ✅ the app
-  works like an IDE: Open Folder, a list of the projects opened before, and one click to
-  switch. A folder with no board opens onboarding, not an error.
 - ❌ **A control is kept alive for its leftover cases after the thing it served is
   replaced** (a guided first run takes over setup, and the old setup card stays on for a
   setup left halfway and a goal gone weak) → ✅ send each leftover case where it belongs —
@@ -50,13 +43,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   later on an idle poll, and nothing refreshes when it ends) → ✅ a run a click starts is
   that tab's own run: it is in the runs panel at once, the thing it works on says it is
   running, and the board re-reads itself when it finishes.
-- ❌ **A full auto-refine status readout** (current card, last refined, next pick, a reason
-  for every idle state) → ✅ one "Refining #<id>" label beside the switch while a run is
-  live, nothing otherwise. A background switch gets at most one small live indicator.
-- ❌ **The board starts a refine on a blocked card on its own** → ✅ it waits: the automatic
-  refine that follows a run skips a card with an open blocker, and archiving or rejecting a
-  card starts a refine on whatever it was holding up. The Refine button still works on a
-  blocked card whenever the user wants it.
+- ❌ **The board starts a refine on a blocked card on its own** → ✅ it waits; archiving or
+  rejecting a card starts a refine on whatever it was holding up. The Refine button still
+  works on a blocked card whenever the user wants it.
 - ❌ **Waiting for a blocker is built for one action** (a Schedule button that always means
   implement) → ✅ scheduling is a modifier on an action, never an action itself: every run
   a blocked card offers — implement, refine — can be scheduled instead of forced through
@@ -96,20 +85,15 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   it does — Claude Code turns the user's claude.ai connectors off the moment
   `ANTHROPIC_API_KEY` is set.
 
-## The header and the goal
+## The header
 
-- ❌ **The goal is one section inside a bigger memory view, shipped with it** → ✅ the goal
-  is its own lightweight element, built first: a quiet header button that opens the whole
-  file. It is rarely edited and often reread — the opposite of the memory files, which are
-  read-only and live in a view you open on purpose.
 - ❌ **Put a long file on the board as one summarized line** (a headline stripped out of
   `goal.md`, truncated to fit a row) → ✅ a file the user wrote in full is opened in full,
   from a control that costs no space. A one-line squeeze drops the part worth rereading and
   takes a row from every board, every day.
-- ❌ **A read-only reference control joins the header's action cluster on the right, in the
-  same sticker frame** → ✅ it goes on the left, beside the board's name and folder path,
-  with no border, no shadow, icon only. The left of the header says what this board is; the
-  right is the things you do.
+- ❌ **A read-only reference control joins the header's action cluster on the right** → ✅ it
+  goes on the left, beside the board's name and folder path, with no border, no shadow,
+  icon only. The left of the header says what this board is; the right is what you do.
 
 ## Recurring tasks
 
@@ -128,7 +112,6 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   README asks the user to change System Settings) → ✅ a gesture people already make in
   their browser has to work in the app with no setup at all. If the toolkit only offers
   the old path, that's a reason to keep looking, not a reason to ask the user.
-
 - ❌ **A release waits on a paid developer account** (Apple's $99 program, days to approve)
   → ✅ ship unsigned and write down the clicks that get past the warning. A signature is a
   follow-up card, never a gate on the release.

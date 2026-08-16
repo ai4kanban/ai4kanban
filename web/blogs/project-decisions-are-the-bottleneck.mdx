@@ -1,0 +1,60 @@
+---
+title: "When coding gets faster, project planning becomes the bottleneck"
+dek: "AI can implement clear requirements quickly. Producing and maintaining those requirements is now the slower part of the work."
+excerpt: "A codebase shows what was built, but it does not contain the full planning context behind the product. AI needs structured project memory to turn goals into well-scoped, correctly sequenced work."
+date: 2026-08-15
+categories: ["workflow", "board"]
+tags: ["kanban", "project-management", "planning"]
+---
+
+AI coding tools are increasingly effective at turning clear requirements into working code. This changes the shape of software development. Implementation is no longer always the slowest part. The greater constraint is often the planning required before implementation can begin.
+
+A coding agent can complete a well-defined task quickly. If the task is incomplete, poorly scoped, or based on the wrong priority, the same speed produces rework. Faster implementation only creates value when the work has a clear purpose, sufficient context, and an appropriate place in the project plan.
+
+This is why the bottleneck is moving from coding to project planning.
+
+## Planning becomes harder as a product matures
+
+Planning an initial version is comparatively simple. There is little project history, the dependency graph is small, and the scope can be defined around a limited set of assumptions.
+
+After the first release, planning becomes more demanding. Each proposed change must be considered alongside existing behavior, technical constraints, user feedback, current priorities, and work already in progress. The team must determine which problem to address, define an appropriate scope, identify dependencies, establish acceptance criteria, and decide when the work should happen.
+
+Neither people nor AI systems can plan reliably from the codebase alone. Repository access provides implementation context, but not a complete understanding of the product or the reasons behind its current direction.
+
+A codebase records what was built, but usually not the full planning context: the user need behind a feature, the alternatives considered, the reason an idea was deferred, or the evidence that changed a priority. That information is often distributed across conversations, meetings, documents, issue trackers, and individual memory.
+
+Without this context, a planning agent must reconstruct the project state each time it evaluates new work. It may repeat earlier questions, propose incompatible changes, overlook dependencies, or reintroduce ideas that were already rejected. The result is not merely an inefficient conversation; it is an unreliable plan.
+
+## Effective planning requires project memory
+
+Chat is useful for immediate instructions, but a long-running project needs structured, persistent context. A Kanban board can provide that structure by keeping planning information attached to the work it affects.
+
+The board should do more than display task status. It should connect goals to proposed work and record scope, requirements, dependencies, open questions, relevant decisions, and delivery progress. Each task then becomes part of the project's planning history rather than an isolated instruction.
+
+This supports a repeatable planning process:
+
+1. A person defines a goal, problem, or initial proposal.
+2. The AI reviews relevant project history, identifies missing information, and develops a proposed scope.
+3. The AI checks dependencies, constraints, acceptance criteria, and the proposal's relationship to current priorities.
+4. A person resolves questions that require product judgment, business context, or a significant tradeoff.
+5. The resulting plan and its rationale are stored with the work and used when future tasks are evaluated.
+
+Over time, this process reduces repeated investigation and makes plans more consistent with the team's objectives and constraints. Deferred and rejected proposals are also useful planning records. Their rationale helps the system distinguish between an idea that has not been considered and one that should not be pursued under current conditions.
+
+## Automation changes where human judgment is needed
+
+The purpose of planning automation is not to remove people from product development. It is to use their attention where judgment has the greatest value.
+
+AI can support routine planning work by gathering context, decomposing proposals, identifying dependencies, refining requirements, and maintaining the board. People remain responsible for product direction, business judgment, important tradeoffs, and final approval.
+
+This shifts the human role from manually preparing every task to reviewing proposed plans, correcting assumptions, and resolving the questions that cannot be answered from recorded project context.
+
+## From a task board to an active planning system
+
+Traditional task tools primarily record and track work that people have already planned. A planning agent can take a more active role: evaluating proposals, turning broad goals into clear requirements, sequencing dependent tasks, preparing releases, and revising plans as the project changes.
+
+AI4Kanban is an open-source project exploring this approach. Its cards are stored as Markdown files, so plans, requirements, and their supporting context remain local, readable, and versioned in Git. The board works with coding agents such as Claude Code and Codex rather than depending on a single implementation tool.
+
+The broader principle is more important than any individual product: when implementation becomes faster, planning quality has greater influence on delivery quality. Structured, persistent project memory allows AI to support planning without taking authority away from the people responsible for the product.
+
+Software teams need a reliable connection between goals, plans, and execution. Building and maintaining that connection is the problem Kanban Engineering aims to solve.

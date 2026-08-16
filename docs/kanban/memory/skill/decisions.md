@@ -91,8 +91,7 @@ re-ask a settled call.
   invent a version.
 - A release with a goal is filled against that goal, by an agent run: it judges each open
   card on whether it ships the goal, and writes the cards the goal needs that the board
-  hasn't got. The run's log is the record of what it moved, wrote and left out — that
-  report is what makes a judgment safe to trust where a plain rule needed no checking.
+  hasn't got. The run's log is the record of what it moved, wrote and left out.
 - A release with **no** goal keeps the plain rule: the cards in no release that are high
   priority, have nothing open blocking them, and are not a group root. With nothing to plan
   against, a rule the user can predict is all there is.
@@ -122,21 +121,10 @@ re-ask a settled call.
 - What we teach a person is the actions the UI's buttons stand for — implement, refine,
   propose, archive. The board's own bookkeeping stays a command the agent calls and stays
   out of the README: nobody wants to type "set card 12's priority to high".
-- The flows ship with the command instead of being copied into a project, so a fixed flow
-  reaches every project on upgrade rather than on re-install.
-- The command prints a flow on request, for an agent already working — filled in for the
-  board it was asked about, rather than read from a generic page.
 - The command is a Node program, not a compiled binary. Everything the board already runs
   on — the installer on npm, the desktop app's Electron, the agents driving the board —
   carries Node, so a binary would remove no dependency and would add six signed builds per
   release to the app and the download page.
-- It is written in TypeScript and built to one dependency-free file per consumer: the npm
-  package, the copy inside an installed skill folder, and the copy inside the desktop app.
-  Source and shipped file are no longer the same file, so anything that copies the command
-  builds it first.
-- The source lives in the CLI package, and an installed skill folder holds one built file
-  with nothing beside it — no `lib/`, no `commands/`. The board's rules belong to the
-  command that owns them, so a skill folder is the skill's words plus one file that runs it.
 - The desktop app keeps carrying the command and running it under Electron's own Node, so
   the app still needs nothing installed on the machine.
 
@@ -147,4 +135,4 @@ re-ask a settled call.
 - We require and ship no Obsidian community plugin, so the board shows there as a grouped
   table, never as drag-and-drop columns.
 - The memory set, `metrics.csv` and `next-id` stay local markdown on every backend — only
-  cards ever move. One backend per project; the board is never mirrored to a second one.
+  cards ever move. One backend per project.

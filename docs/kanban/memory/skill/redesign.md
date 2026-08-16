@@ -31,20 +31,16 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Send an article, analysis, or complaint straight to add-task** → ✅ treat it as
   evidence, extract the user problems, route them to the right modules, and validate them
   against shipped, planned, rejected, and remembered work before creating cards.
-- ❌ **Route propose, source extraction, and direct ideas separately from `SKILL.md`** →
-  ✅ keep one short link in `SKILL.md`; let `add-task.md` route every card-creation request
-  to the specialized reference it needs.
 
-## The script
+## The command
 
 - ❌ **Assume the script can find the board from where its own file sits** (it can't, from
   a read-only plugin cache) → ✅ it locates `docs/kanban/` from the working directory,
   since commands run from the repo root. Anything that moves per-project state out of the
   skill folder has to keep that true or the plugin channel silently breaks.
-- ❌ **Spell the command people type all day with the full project name (`ai4kanban card
-  update 12`)** → ✅ the day-to-day command is short (`akb`) and the long name stays as a
-  second name for it. Before teaching `npx <short name>`, check the short name on npm —
-  `akb` is already someone else's package.
+- ❌ **Teach `npx <short name>` without checking npm first** → ✅ the day-to-day command is
+  short (`akb`) and the long name stays a second name for it, but a short name is often
+  already someone else's package — `akb` is. Check before publishing it as the way in.
 - ❌ **Publish the board's bookkeeping verbs as the command a person types** → ✅ publish the
   actions the UI's buttons stand for, and keep the bookkeeping as something the agent calls.
   A published verb is a contract forever, and one that changes nothing a user sees earns

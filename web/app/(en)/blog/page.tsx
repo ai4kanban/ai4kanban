@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { SiteFooter } from "@/components/SiteFooter";
 import { FeaturedPost } from "@/components/blog/FeaturedPost";
 import { PostRow } from "@/components/blog/PostRow";
 import { heroTop, panelInset } from "@/components/styles";
@@ -104,7 +104,7 @@ export default function BlogIndexPage() {
           </section>
         )}
       </main>
-      <Footer c={c} locale="en" path={PATH} />
+      <SiteFooter c={c} locale="en" path={PATH} />
     </>
   );
 }

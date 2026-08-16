@@ -17,7 +17,6 @@ _(none)_
 - [#56 Let a user read and edit the board in Obsidian](features/56-read-and-edit-the-board-in-obsidian.md)
 - [#57 Let a user choose where the board is stored](57-choose-where-the-board-is-stored/root.md)
 - [#67 Handle a failed agent run instead of just marking it red](features/67-handle-a-failed-agent-run-instead-of-just-marking-it-red.md)
-- [#77 Read the board's memory in the UI](77-memory-in-the-ui/root.md)
 - [#116 Unstick cards that sit on the board too long](116-stuck-cards/root.md)
 - [#154 Show what a card unblocks, so the ones holding up work go first](features/154-show-what-a-card-unblocks-so-the-ones-holding-up-work-go-fir.md)
 - [#160 Run the board with an agent beyond Claude Code and Codex](features/160-run-the-board-with-an-agent-beyond-claude-code-and-codex.md)
@@ -48,9 +47,6 @@ _(none)_
 - [#209 Teach the daily loop as buttons, not only as things you say](distribution/209-teach-the-daily-loop-as-buttons-not-only-as-things-you-say.md)
 - [#215 Bring the plain-Markdown mirror of the landing page back in line](distribution/215-bring-the-plain-markdown-mirror-of-the-landing-page-back-in.md)
 - [#216 Fix the memory file names the comparison pages still show](distribution/216-fix-the-memory-file-names-the-comparison-pages-still-show.md)
-
-## 77-memory-in-the-ui/features
-
 
 ## 143-ui-tasks/features
 

@@ -28,10 +28,9 @@ before proposing so you don't re-suggest them.
   day one, so setup must not ask for one. The board makes a release easy to see and easy
   to create when the user wants one, and never requires it. Setup ends with the first
   tasks, not with a version split.
-- **Reading a deadline from the goal and splitting decisions by it** — the board does not
-  support deadlines for now. Setup reads no date out of `goal.md`, no step asks for one,
-  and no `decisions-v2.md` parks the calls that could wait — every settled call lands in
-  `decisions.md` alike. Timing may come back later as its own feature.
+- **Reading a deadline from the goal and splitting decisions by it** — the board has no
+  deadlines, so nothing reads a date out of `goal.md` and every settled call lands in one
+  `decisions.md`. Timing may come back later as its own feature.
 
 ## Storage
 

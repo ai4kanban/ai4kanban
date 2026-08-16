@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { SiteFooter } from "@/components/SiteFooter";
 import { BlogMdx } from "@/components/blog/BlogMdx";
 import { TocBlock, TocRail } from "@/components/blog/BlogToc";
 import { PostMeta } from "@/components/blog/PostMeta";
@@ -92,13 +92,7 @@ export default async function BlogPostPage({ params }: Params) {
           {/* The opening. It ends on the site's rule rather than a panel: the
               post is the page, so there is no card to put it in. */}
           <header className="mt-10 border-b-2 border-border pb-10 lg:mt-16">
-            <a
-              href="/blog"
-              className="text-sm text-muted no-underline transition-colors hover:text-ink"
-            >
-              ← All posts
-            </a>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {/* Says out loud what the meta tags say quietly, so nobody links
                   to a draft thinking it went out. */}
               {post.draft && (
@@ -127,17 +121,8 @@ export default async function BlogPostPage({ params }: Params) {
             </div>
           </div>
         </article>
-
-        <p className="mt-16 border-t-2 border-border pt-8 text-center">
-          <a
-            href="/blog"
-            className="text-sm font-semibold text-accent-deep no-underline"
-          >
-            ← All posts
-          </a>
-        </p>
       </main>
-      <Footer c={c} locale="en" path={route} />
+      <SiteFooter c={c} locale="en" path={route} />
     </>
   );
 }
