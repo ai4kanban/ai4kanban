@@ -112,12 +112,12 @@ const es: HomeCopy = {
       "Informes del sector",
       "Conversaciones en Reddit",
     ],
-    context: [
-      "Historial de decisiones",
-      "Requisitos y tareas",
-      "Módulos del proyecto",
-      "Historial de ejecuciones",
-    ],
+    internalLabel: "Entradas internas",
+    internal: ["Hoja de ruta del producto"],
+    board: {
+      columns: ["Listo para empezar", "Sin preparar"],
+      ready: "listo",
+    },
     otherAgents: "Otros agentes",
     storage: "Datos del proyecto",
     outputsLabel: "Resultados de la iteración",

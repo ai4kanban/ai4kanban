@@ -1,11 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { IconType } from "react-icons";
 import {
-  FiActivity,
-  FiBookmark,
-  FiBox,
   FiFileText,
-  FiList,
+  FiMap,
   FiMessageSquare,
   FiSearch,
   FiTag,
@@ -16,18 +13,23 @@ import { SectionTitle } from "./SectionTitle";
 import { Mat, printFrame } from "./Mat";
 import type { HomeCopy } from "@/i18n/home/types";
 
-// Drive continuous product iteration — an architecture diagram: outside
-// information flows in on the left, AI4Kanban sits in the middle as a
-// three-tier bento (context, the skill that plans and drives, what runs and
-// stores the work), product and release iteration come out on the right. The
-// tier names are never drawn; vertical position says it.
+// Drive continuous product iteration — what feeds the work comes in on the
+// left, in two groups: what arrives from outside, and the roadmap the team
+// already holds. The board sits in the middle with work on it and what runs and
+// stores that work under it, and product and release iteration come out on the
+// right. The tiers are never named; vertical position says it.
 //
-// Nothing is framed and nothing casts a shadow — twenty parts nested three deep
-// would draw a grid of boxes over the flow. Every edge is a change of fill
-// instead: the print's ground, each column's wash, the paper its nodes are cut
-// from, and back to the wash for the tiles under the agent marks (near-black
-// artwork that needs a ground of its own). The only thing that raises its voice
-// is the filled ember bar where everything meets.
+// Nothing is framed and nothing casts a shadow, save the cards on the board,
+// which cast the one the real board gives them. Every other edge is a change of
+// fill: the print's ground, each column's wash, the paper the window and the
+// nodes are cut from, and back to the wash for the tiles under the agent marks
+// (near-black artwork that needs a ground of its own).
+//
+// Ember is spent on a ramp rather than spread flat. Ten identical ember tiles
+// made the drawing one colour and left the eye nowhere to start; now the inputs
+// are neutral and take ember only as the signal passes over them, and the
+// outcomes are the only ember blocks in the drawing — they are the one tier the
+// product produces. Cool in, worked in the middle, warm out.
 //
 // It is one SVG drawn at one size and scaled like a photograph, so every reader
 // gets the drawing that was designed — and so it can be mounted on a mat the
@@ -61,6 +63,7 @@ const ADVANCE: Record<string, number> = Object.fromEntries(
       [562, "avyáâ"],
       [571, "c"],
       [583, "eé"],
+      [590, "F"],
       [591, "hnuñ"],
       [600, "oó"],
       [601, "EÉ"],
@@ -181,19 +184,79 @@ const FS = 15; // a node's label
 const LH = 20;
 const ICON = 32; // the block a glyph sits in
 const GLYPH = 17;
-const NODE = { px: 12, py: 10, gap: 12 }; // inside a node
+const NODE = { py: 10, gap: 12 }; // inside a node
 const ROW = 10; // between two nodes
+const GROUP = 20; // between a group's last node and the next group's eyebrow
 const TIER = { pad: 8, len: 18 }; // the upright wire between two tiers
 const TIER_H = TIER.pad * 2 + TIER.len;
-const BAR_H = 56;
 const BOTTOM_H = 68;
 const STORAGE_W = 150;
 
-const NODE_W = { flank: FLANK - CP * 2, mid: (MID - CP * 2 - ROW) / 2 };
-const LABEL_W = {
-  flank: NODE_W.flank - NODE.px * 2 - ICON - NODE.gap,
-  mid: NODE_W.mid - NODE.px * 2 - ICON - NODE.gap,
+const NODE_W = FLANK - CP * 2;
+const LABEL_W = NODE_W - ICON - NODE.gap;
+
+// ── The board at the centre ─────────────────────────────────────────────────
+// Drawn from kanban-ui: `Queue.tsx` for the column headings and `BoardCard.tsx`
+// for the card, at the two sizes this figure has room for. It is a drawing and
+// not a capture, for the same reason `components/shots/nb.tsx` gives — a real
+// window landed here would put its 11px card ids under 4px.
+const BOARD = {
+  chrome: 26, // the window's title bar
+  pad: 12, // inside the window, around the columns
+  colGap: 12,
+  head: 22, // a column's heading bar
+  headGap: 10,
+  rowGap: 9, // between two cards
+  card: { pad: 9, radius: 8, stroke: 1.3, drop: 2, gap: 7 },
+  id: 11.5, // `#67`, the size the real card sets it
+  pill: { h: 15, fs: 9, pad: 7, radius: 7.5 },
+  title: { h: 7, line: 13 }, // a line of the title, drawn rather than set
+  tag: { fs: 9.5, tracking: 1.1 }, // the mono heading, and the card's count
 };
+const BOARD_W = MID - CP * 2;
+const BOARD_COL_W = (BOARD_W - BOARD.pad * 2 - BOARD.colGap) / 2;
+
+// The four cards on it, in reading order: two ready, two not. All of it is the
+// board's own numbers and shapes, so none of it is copy.
+//
+// `title` is the title drawn rather than written: one bar per line, each a
+// share of the card's width. Four real titles here were four sentences to read
+// in a picture whose subject is that cards move, and in five languages they
+// re-wrapped the whole board. The bars say "a card has a title on it", which is
+// all this figure needs them to say — and it is the same reason the path field
+// in the chrome above is a shape and not a string.
+const BOARD_CARDS = [
+  { id: 67, todo: "0/13", ready: true, title: [1, 0.54] },
+  { id: 50, todo: "0/9", ready: false, title: [0.86] },
+  { id: 77, todo: "1/3", ready: true, title: [1, 0.72] },
+  { id: 116, todo: "0/3", ready: false, title: [1, 0.41] },
+];
+// The real board's tallies, not the four drawn — two cards showing out of a
+// column of eleven is what a column looks like.
+// A card is as tall as its own title, the way the real column stacks them —
+// one height for all four left a short card with an inch of nothing under it,
+// which on the real board is where its priority and ROI row sits.
+const cardHeight = (lines: number) =>
+  BOARD.card.pad * 2 +
+  BOARD.pill.h +
+  BOARD.card.gap +
+  lines * BOARD.title.line -
+  (BOARD.title.line - BOARD.title.h);
+
+// Two cards to a column, so a column is its two and the gap between them, and
+// the board is the taller of the two columns.
+const columnHeight = (c: number) =>
+  cardHeight(BOARD_CARDS[c].title.length) +
+  BOARD.rowGap +
+  cardHeight(BOARD_CARDS[c + 2].title.length);
+const BOARD_H =
+  BOARD.chrome +
+  BOARD.pad * 2 +
+  BOARD.head +
+  BOARD.headGap +
+  Math.max(columnHeight(0), columnHeight(1));
+
+const BOARD_COUNTS = ["11", "19"];
 
 // A baseline sits 72% of the way down its line box. One rule for every string
 // in the drawing, Latin and CJK alike, so nothing needs a face-specific metric
@@ -201,20 +264,19 @@ const LABEL_W = {
 const baseline = (top: number, lineHeight: number) => top + lineHeight * 0.72;
 
 // ── Motion ──────────────────────────────────────────────────────────────────
-// One signal makes one circuit of the diagram every 6.4 seconds, and every
-// moving part is that same signal at a different point on its way round: the
-// four inputs light in turn as they arrive, the wire into the panel carries a
-// pulse, the four things the board knows light as they are read, a pulse drops
-// into the bar, the bar takes a pass of light while it plans, a pulse drops out
-// of it into the runtime, the wire out carries it, and the two outcomes light.
-// Then it rests for the best part of a second and goes again.
+// One signal crosses the diagram every 6.4 seconds, and every moving part is
+// that same signal at a different point on its way: the inputs light in turn as
+// they arrive, the wire into the board carries a pulse, the four cards
+// light as the work lands on them, a pulse drops out of the board into what
+// runs it, the files it writes light, the wire out carries it, and the two
+// outcomes light.
 //
 // That is the whole reason there is motion here at all. A diagram animated part
-// by part is twenty things twitching and no sentence; one packet on a circuit is
+// by part is twenty things twitching and no sentence; one packet crossing it is
 // the sentence, and the schedule below is the sentence's word order. It is why
-// every rule shares one 6.4s period and differs only in `--d`, the delay that
-// places it on the timeline — the parts cannot drift out of order because none
-// of them owns a clock.
+// every rule shares one period and differs only in `--d`, the delay that places
+// it on the timeline — the parts cannot drift out of order because none of them
+// owns a clock.
 //
 // Each keyframe puts its active moment at the very start of the period and idles
 // for the rest, so `--d` alone says *when*. `both` fill matters: during the
@@ -223,8 +285,7 @@ const baseline = (top: number, lineHeight: number) => top + lineHeight * 0.72;
 //
 // Standing still the picture says the same thing — which is what it does under
 // `prefers-reduced-motion`, where the rules never apply: a wire's resting style
-// is the whole line drawn, and the bar's sweep is parked off its left edge by
-// the transform in its own attributes.
+// is the whole line drawn.
 //
 // The one thing the SVG changed is what `itr-lit` animates. On an HTML block it
 // was `background-color`; a `<rect>` has none, so it is the fill.
@@ -234,46 +295,50 @@ const CYCLE = 6.4;
 // list top to bottom is watching the animation.
 const T = {
   input: (i: number) => 0 + i * 0.15, // signals arrive, top to bottom
-  railIn: 1.1, // …and travel the wire into the panel
-  context: (i: number) => 1.8 + i * 0.15, // the board reads what it knows
-  dropIn: 2.75, // that drops into the skill
-  // the bar's sweep is timed inside its own keyframe — it is the one part with
-  // no second copy, so there is nothing for a delay to keep it in step with
-  dropOut: 4.1, // the plan drops into the runtime
-  railOut: 4.5, // …and travels the wire out
-  output: (i: number) => 5.1 + i * 0.2, // outcomes light
+  railIn: 1.1, // …and travel the wire into the board
+  card: (i: number) => 1.9 + i * 0.18, // the work lands on the board, card by card
+  drop: 3.1, // and drops into what runs it
+  store: 3.5, // …which writes the files
+  railOut: 4.2, // the wire out carries the result
+  output: (i: number) => 4.8 + i * 0.2, // outcomes light
 } as const;
+
+// How long each moving part is actually moving, in seconds. Everything else in
+// its period is the part sitting still — which is what lets one delay place it.
+const D = {
+  lit: 0.58, // a tile up to ember and back
+  pulse: 0.64, // a pulse over a wire
+} as const;
+
+// Keyframe stops are written in seconds and converted here, so the schedule
+// above is the only place the timing lives. Change `CYCLE` and every part keeps
+// the duration it was given.
+const pct = (seconds: number) => `${(seconds / CYCLE) * 100}%`;
 
 // A wire is drawn by a dash exactly as long as the path it lies on: offset at
 // +length parks it before the start, 0 lays it over the whole path, -length
 // carries it off the end. Running those three in order grows a segment in from
 // one end and shrinks it out of the other, which is a pulse travelling the wire
 // and not a line blinking on. `--w` is that length, so one keyframe serves the
-// long horizontal wires and the short vertical ones alike.
-//
-// The sweep travels in user units, and exactly one bar width in each direction:
-// that is the only distance where "off the left edge" and "off the right edge"
-// need no arithmetic and no over-throw, at any width the drawing is rendered.
-const BAR_W = MID - CP * 2;
+// horizontal wires between the columns and the short upright one alike.
+
+// `--rest` and `--lit` are the tile's own two fills, set on the node: a wash
+// tile lights to ember, and an ember tile presses to `accent-deep`. The rule
+// stays one line either way.
 const MOTION = `
 @keyframes itr-lit {
-  0%, 100% { fill: var(--color-accent-deep) }
-  4% { fill: var(--color-accent) }
-  9% { fill: var(--color-accent-deep) }
+  0%, 100% { fill: var(--rest) }
+  ${pct(D.lit * 0.45)} { fill: var(--lit) }
+  ${pct(D.lit)} { fill: var(--rest) }
 }
 @keyframes itr-pulse {
   0% { stroke-dashoffset: var(--w) }
-  5% { stroke-dashoffset: 0 }
-  10%, 100% { stroke-dashoffset: calc(var(--w) * -1) }
-}
-@keyframes itr-sweep {
-  0%, 49% { transform: translateX(-${BAR_W}px) }
-  63%, 100% { transform: translateX(${BAR_W}px) }
+  ${pct(D.pulse / 2)} { stroke-dashoffset: 0 }
+  ${pct(D.pulse)}, 100% { stroke-dashoffset: calc(var(--w) * -1) }
 }
 @media (prefers-reduced-motion: no-preference) {
   .itr-lit { animation: itr-lit ${CYCLE}s ease-in-out var(--d, 0s) infinite both }
   .itr-pulse { animation: itr-pulse ${CYCLE}s ease-in-out var(--d, 0s) infinite both }
-  .itr-sweep { animation: itr-sweep ${CYCLE}s ease-in-out infinite both }
 }
 `;
 
@@ -289,7 +354,7 @@ const INPUT_ICONS: IconType[] = [
   FiFileText,
   FiUsers,
 ];
-const CONTEXT_ICONS: IconType[] = [FiBookmark, FiList, FiBox, FiActivity];
+const INTERNAL_ICONS: IconType[] = [FiMap];
 const OUTPUT_ICONS: IconType[] = [FiTrendingUp, FiTag];
 
 // The agents the board can run. Claude Code and Codex use their own marks; the
@@ -299,10 +364,14 @@ const AGENT_LOGOS = [
   { src: "/agents/codex.svg", alt: "Codex" },
 ];
 
-// The mark at the centre of the diagram, drawn to `components/ui/Logo.tsx` —
-// the same three board columns, shared top, stepping down as work leaves the
-// board, in their own 60×60 box so they keep their proportions at any size.
-// Change one and change the other, and `public/logo-mark.svg` with them.
+// The mark in the window's title bar, drawn to `components/ui/Logo.tsx` — the
+// same three board columns, shared top, stepping down as work leaves the board,
+// in their own 60×60 box so they keep their proportions at any size. Change one
+// and change the other, and `public/logo-mark.svg` with them.
+//
+// It sits where the real app puts it, which is the only place a logo earns in a
+// diagram of what the product does: a mark floating in the middle of the flow
+// said nothing, and a mark on the window says the board is ours.
 const LOGO_COLUMNS = [
   { x: 5, h: 44 },
   { x: 24, h: 35 },
@@ -312,79 +381,77 @@ const LOGO_COLUMNS = [
 // centred — the box itself has air on every side.
 const LOGO_BOX = { x: 5, y: 8, w: 50, h: 44 };
 
-// `AI4Kanban` set in the heaviest cut of the sans, measured the same way every
-// label here is: 5.685em of advance at wght 900, less the eight gaps that
-// `tracking-tight` closes up. It is the one string in the drawing that has to
-// be centred rather than filled from the left, and the only one whose width is
-// wanted as a number rather than as a line count.
-const WORD = "AI4Kanban";
-const WORD_FS = 24;
-const WORD_TRACKING = -0.025 * WORD_FS;
-const WORD_W = 5.685 * WORD_FS + (WORD.length - 1) * WORD_TRACKING;
-
-// The glyph is set without its block. Everywhere else on the site the mark is a
-// ember square carrying a paper glyph — here the bar already *is* that square,
-// so repeating it inside would be a block in a block. What the bar carries is
-// the mark's other half: the glyph and the word, both paper, at the mark's own
-// proportions.
-// Its own 60×60 box is set to 34, which puts the tallest column half again the
-// word's cap height — the proportion the square block and the word hold in the
-// header lockup. Drawn any smaller the three columns read as a barcode rather
-// than as a board, because without the block around them nothing says how big
-// the mark is meant to be.
-const LOGO_H = 34;
-const LOGO_SCALE = LOGO_H / 60;
-const LOGO_GAP = 12;
-
 // ── The parts ───────────────────────────────────────────────────────────────
 
 const nodeHeight = (lines: number) => NODE.py * 2 + Math.max(ICON, lines * LH);
 
-// The one node the whole diagram is built from: icon block left, noun right,
-// paper on the column's wash. It lights when the signal reaches it.
+// The two weights a node comes in, and the only place in the drawing that
+// decides ember. `paper` is the inputs — neutral, and ember only for the moment
+// the signal is standing on them; `ember` is the outcomes, which rest lit and
+// press instead, because they have nowhere hotter to go.
+//
+// The pairing of tile and glyph is the constraint: a tile always sits one step
+// off whatever it is drawn on, and its glyph always clears 3:1 against the tile
+// in both of the tile's states — ink on paper, ink on the ember it flashes to,
+// paper on ember, paper on the deep ember it presses to.
+const TONE = {
+  paper: { tile: "fill-elev", rest: "elev", lit: "accent", glyph: "ink" },
+  ember: { tile: "fill-accent", rest: "accent", lit: "accent-deep", glyph: "elev" },
+} as const;
+type Tone = keyof typeof TONE;
+
+// The node the flanks are built from: icon block left, noun right, sitting
+// straight on the column's wash. It wears no card — a signal from outside and a
+// result that leaves are not objects the product owns, and ten identical cards
+// across the drawing were the reason nothing in here led the eye.
 function Node({
   x,
   y,
-  w,
   icon: Icon,
   lines,
   delay,
+  tone,
 }: {
   x: number;
   y: number;
-  w: number;
   icon: IconType;
   lines: string[];
   delay: number;
+  tone: Tone;
 }) {
+  const t = TONE[tone];
   const h = nodeHeight(lines.length);
   const iconY = y + (h - ICON) / 2;
   const textTop = y + (h - lines.length * LH) / 2;
+  const labelX = x + ICON + NODE.gap;
   return (
-    <g style={at(delay)}>
-      <rect x={x} y={y} width={w} height={h} rx={RADIUS} className="fill-elev" />
+    <g
+      style={
+        {
+          ...at(delay),
+          "--rest": `var(--color-${t.rest})`,
+          "--lit": `var(--color-${t.lit})`,
+        } as CSSProperties
+      }
+    >
       <rect
-        x={x + NODE.px}
+        x={x}
         y={iconY}
         width={ICON}
         height={ICON}
         rx={8}
-        className="itr-lit fill-accent-deep"
+        className={`itr-lit ${t.tile}`}
       />
       <Icon
-        x={x + NODE.px + (ICON - GLYPH) / 2}
+        x={x + (ICON - GLYPH) / 2}
         y={iconY + (ICON - GLYPH) / 2}
         size={GLYPH}
-        color="var(--color-elev)"
+        color={`var(--color-${t.glyph})`}
         aria-hidden="true"
       />
-      <text
-        x={x + NODE.px + ICON + NODE.gap}
-        className="fill-ink font-sans"
-        fontSize={FS}
-      >
+      <text x={labelX} className="fill-ink font-sans" fontSize={FS}>
         {lines.map((line, i) => (
-          <tspan key={line} x={x + NODE.px + ICON + NODE.gap} y={baseline(textTop + i * LH, LH)}>
+          <tspan key={line} x={labelX} y={baseline(textTop + i * LH, LH)}>
             {line}
           </tspan>
         ))}
@@ -416,6 +483,274 @@ function FlowWire({ x, cy, delay }: { x: number; cy: number; delay: number }) {
   );
 }
 
+// ── The board ───────────────────────────────────────────────────────────────
+// What the middle column holds: the app, drawn small. It replaced four tiles
+// naming what the board knows and a logo bar under them — a list of parts and a
+// badge, where the section is about work moving. A board with cards on it says
+// what arrives here and what it turns into, and it is the same board the reader
+// will open.
+//
+// Faithful to kanban-ui at the parts that identify it and silent everywhere
+// else: the window chrome, the two heading bars with their dot and count, the
+// outlined card with its hard shadow, the ember id, the ready pill, the todo
+// count. The priority and ROI row every real card carries is left off — at this
+// size it is two more chips of noise on a card whose job here is to be legibly
+// a card.
+
+// One card on that board. `nb-panel-sm`: paper, a full ink outline, and a hard
+// shadow — the board's own grammar, and the reason the cards read as cards on a
+// page that otherwise frames nothing.
+function BoardCard({
+  x,
+  y,
+  w,
+  card,
+  ready,
+  delay,
+}: {
+  x: number;
+  y: number;
+  w: number;
+  card: (typeof BOARD_CARDS)[number];
+  ready: string;
+  delay: number;
+}) {
+  const { pad, radius, stroke, drop, gap } = BOARD.card;
+  const h = cardHeight(card.title.length);
+  const rowY = y + pad;
+  const titleTop = rowY + BOARD.pill.h + gap;
+  const pillW = textWidth(ready, BOARD.pill.fs, false) + BOARD.pill.pad * 2;
+  // What the todo count needs at the right end of the meta row, so the pill
+  // beside it never has to guess.
+  const todoW = textWidth(card.todo, BOARD.tag.fs, true) + 8;
+  return (
+    <g
+      style={
+        {
+          ...at(delay),
+          "--rest": "var(--color-elev)",
+          "--lit": "var(--color-code)",
+        } as CSSProperties
+      }
+    >
+      <rect
+        x={x + drop}
+        y={y + drop}
+        width={w}
+        height={h}
+        rx={radius}
+        className="fill-border"
+      />
+      <rect
+        x={x}
+        y={y}
+        width={w}
+        height={h}
+        rx={radius}
+        className="itr-lit fill-elev stroke-border"
+        strokeWidth={stroke}
+      />
+      <text
+        x={x + pad}
+        y={baseline(rowY, BOARD.pill.h)}
+        className="fill-accent-deep font-sans"
+        fontSize={BOARD.id}
+        fontWeight={800}
+      >
+        #{card.id}
+      </text>
+      {/* The ready pill, in the site's own positive signal rather than the
+          board's paler mint — a word on a pigment the site does not own is the
+          one thing artwork here may not carry. */}
+      {card.ready && (
+        <>
+          <rect
+            x={x + w - pad - pillW - todoW}
+            y={rowY}
+            width={pillW}
+            height={BOARD.pill.h}
+            rx={BOARD.pill.radius}
+            className="fill-growth"
+          />
+          <text
+            x={x + w - pad - pillW / 2 - todoW}
+            y={baseline(rowY, BOARD.pill.h)}
+            textAnchor="middle"
+            className="fill-elev font-mono"
+            fontSize={BOARD.pill.fs}
+          >
+            {ready}
+          </text>
+        </>
+      )}
+      <text
+        x={x + w - pad}
+        y={baseline(rowY, BOARD.pill.h)}
+        textAnchor="end"
+        className="fill-muted font-mono"
+        fontSize={BOARD.tag.fs}
+      >
+        {card.todo}
+      </text>
+      {/* The title, as the lines it takes rather than the words on them. Ink
+          at a sixth: the weight a run of 12px type actually leaves on paper,
+          where a solid bar would read as a filled field. */}
+      {card.title.map((share, i) => (
+        <rect
+          key={i}
+          x={x + pad}
+          y={titleTop + i * BOARD.title.line}
+          width={(w - pad * 2) * share}
+          height={BOARD.title.h}
+          rx={BOARD.title.h / 2}
+          className="fill-border"
+          opacity="0.17"
+        />
+      ))}
+    </g>
+  );
+}
+
+// The board itself: a window on the middle column's wash, chrome across the
+// top, two of its columns under that. Paper on wash is the whole edge — the
+// drawing frames nothing, and the cards inside are the only outlined thing in
+// it because that is what a card is.
+function Board({
+  x,
+  y,
+  headings,
+  ready,
+}: {
+  x: number;
+  y: number;
+  headings: string[][];
+  ready: string;
+}) {
+  const { chrome, pad, colGap, head, headGap, rowGap } = BOARD;
+  const dotY = y + chrome / 2;
+  const mark = 15; // the ember square the glyph sits in, at the app's own ratio
+  const markScale = (mark * 0.62) / 60;
+  const colsY = y + chrome + pad;
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={BOARD_W}
+        height={BOARD_H}
+        rx={10}
+        className="fill-elev"
+      />
+
+      {/* Chrome. `band` and not the wash: the wash is what the column behind
+          this window is painted in, so a chrome bar in it had no title bar at
+          all — the window appeared to start at the board. Column wash, then
+          chrome, then the paper the board is on, is three steps of one ramp,
+          which is the order the real app's cream chrome and white body sit in.
+
+          The rounded rect gets its bottom corners squared off by a second one,
+          which is cheaper than a clip path for two corners. */}
+      <rect
+        x={x}
+        y={y}
+        width={BOARD_W}
+        height={chrome}
+        rx={10}
+        className="fill-band"
+      />
+      <rect
+        x={x}
+        y={y + chrome - 10}
+        width={BOARD_W}
+        height={10}
+        className="fill-band"
+      />
+      {/* The window's own three, in the system's colours. Artwork pigment: it
+          belongs to macOS, carries no text, and is the fastest thing on the
+          page to read as "an application window". */}
+      {["#ff5f57", "#febc2e", "#28c840"].map((fill, i) => (
+        <circle key={fill} cx={x + 13 + i * 11} cy={dotY} r={3.2} fill={fill} />
+      ))}
+      <rect
+        x={x + 48}
+        y={dotY - mark / 2}
+        width={mark}
+        height={mark}
+        rx={4}
+        className="fill-accent"
+      />
+      <g
+        transform={`translate(${x + 48 + mark / 2 - (LOGO_BOX.x + LOGO_BOX.w / 2) * markScale} ${dotY - (LOGO_BOX.y + LOGO_BOX.h / 2) * markScale}) scale(${markScale})`}
+        className="fill-elev"
+        aria-hidden="true"
+      >
+        {LOGO_COLUMNS.map((col) => (
+          <rect key={col.x} x={col.x} y={8} width={12} height={col.h} rx={3.5} />
+        ))}
+      </g>
+      {headings.map((lines, c) => {
+        const cx = x + pad + c * (BOARD_COL_W + colGap);
+        return (
+          <g key={BOARD_COUNTS[c]}>
+            <rect
+              x={cx}
+              y={colsY}
+              width={BOARD_COL_W}
+              height={head}
+              rx={7}
+              className="fill-code"
+            />
+            <circle
+              cx={cx + 11}
+              cy={colsY + head / 2}
+              r={3}
+              className="fill-accent"
+            />
+            <text
+              x={cx + 20}
+              y={baseline(colsY, head)}
+              className="fill-ink font-mono"
+              fontSize={BOARD.tag.fs}
+              fontWeight={600}
+              letterSpacing={BOARD.tag.tracking}
+            >
+              {lines[0]}
+            </text>
+            <text
+              x={cx + BOARD_COL_W - 9}
+              y={baseline(colsY, head)}
+              textAnchor="end"
+              className="fill-muted font-mono"
+              fontSize={BOARD.tag.fs}
+            >
+              {BOARD_COUNTS[c]}
+            </text>
+            {[0, 1].map((r) => {
+              const i = r * 2 + c;
+              return (
+                <BoardCard
+                  key={BOARD_CARDS[i].id}
+                  x={cx}
+                  y={
+                    colsY +
+                    head +
+                    headGap +
+                    (r ? cardHeight(BOARD_CARDS[c].title.length) + rowGap : 0)
+                  }
+                  w={BOARD_COL_W}
+                  card={BOARD_CARDS[i]}
+                  ready={ready}
+                  delay={T.card(i)}
+                />
+              );
+            })}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
 // The same wire, upright and short, between two tiers of the middle column.
 // Without these the three tiers were three strips stacked with a gap; with them
 // the column is a thing with something running through it, which is the claim.
@@ -434,47 +769,60 @@ function TierWire({ cx, y, delay }: { cx: number; y: number; delay: number }) {
   );
 }
 
-// One column of the diagram: the wash it sits in, and the eyebrow set inside
-// that wash with the nodes it names — which is what makes the three read as
-// three grounds. `ember` is the middle one, and the only thing that marks it as
-// ours at the top of the panel.
-function Column({
+// The label over a group of nodes, set straight on the wash the group sits in.
+// A column may hold more than one: the inputs column names its two kinds of
+// input, and each name has to sit with the nodes it names.
+function Eyebrow({
   x,
-  w,
-  h,
+  y,
   lines,
   tone = "muted",
+}: {
+  x: number;
+  y: number;
+  lines: string[];
+  tone?: "muted" | "ember";
+}) {
+  return (
+    <text
+      className={`font-mono ${tone === "ember" ? "fill-accent-deep" : "fill-muted"}`}
+      fontSize={EB.size}
+      fontWeight={600}
+      letterSpacing={EB.tracking}
+    >
+      {lines.map((line, i) => (
+        <tspan key={line} x={x} y={baseline(y + i * EB.line, EB.line)}>
+          {line}
+        </tspan>
+      ))}
+    </text>
+  );
+}
+
+// One column of the diagram: the wash its groups sit in, which is what makes
+// the three read as three grounds.
+//
+// Each takes its own height and is centred on the line the wires run along,
+// rather than all three being stretched to the tallest. Two outcomes held at
+// arm's length in a box built for six were two blocks adrift in a wash; sized
+// to what they hold, the middle is plainly the machine and the flanks are
+// plainly its two ends.
+function Column({
+  x,
+  y,
+  w,
+  h,
   children,
 }: {
   x: number;
+  y: number;
   w: number;
   h: number;
-  lines: string[];
-  tone?: "muted" | "ember";
   children: ReactNode;
 }) {
   return (
     <g>
-      <rect
-        x={x}
-        y={PAD}
-        width={w}
-        height={h}
-        rx={RADIUS}
-        className="fill-code"
-      />
-      <text
-        className={`font-mono ${tone === "ember" ? "fill-accent-deep" : "fill-muted"}`}
-        fontSize={EB.size}
-        fontWeight={600}
-        letterSpacing={EB.tracking}
-      >
-        {lines.map((line, i) => (
-          <tspan key={line} x={x + CP} y={baseline(PAD + CP + i * EB.line, EB.line)}>
-            {line}
-          </tspan>
-        ))}
-      </text>
+      <rect x={x} y={y} width={w} height={h} rx={RADIUS} className="fill-code" />
       {children}
     </g>
   );
@@ -483,56 +831,64 @@ function Column({
 export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
   // Every label's lines, measured first, because the height of everything below
   // is a function of how many of them there are.
-  const inputs = c.inputs.map((s) => wrap(s, LABEL_W.flank, FS));
-  const context = c.context.map((s) => wrap(s, LABEL_W.mid, FS));
-  const outputs = c.outputs.map((s) => wrap(s, LABEL_W.flank, FS));
+  const inputs = c.inputs.map((s) => wrap(s, LABEL_W, FS));
+  const internal = c.internal.map((s) => wrap(s, LABEL_W, FS));
+  const outputs = c.outputs.map((s) => wrap(s, LABEL_W, FS));
   const eyebrow = (s: string) =>
     wrap(s.toUpperCase(), FLANK - CP * 2, EB.size, true, EB.tracking);
   const inputsEyebrow = eyebrow(c.inputsLabel);
+  const internalEyebrow = eyebrow(c.internalLabel);
   const outputsEyebrow = eyebrow(c.outputsLabel);
 
-  // One node height for the whole drawing, and one eyebrow band across all
-  // three columns. A node is the same object at every stop, so it is the same
-  // size at every stop; and three eyebrows that don't start on the same line
-  // are three columns that don't look like a row.
+  // The board's own strings. Its headings are set in mono, which measures
+  // exactly at any character, and clipped to one line — a column heading that
+  // wraps is a column heading that no longer fits its bar.
+  const headings = c.board.columns.map((s) =>
+    wrap(s.toUpperCase(), BOARD_COL_W - 42, BOARD.tag.fs, true, BOARD.tag.tracking),
+  );
+  // One node height and one eyebrow band for the whole drawing. A node is the
+  // same object at every stop, so it is the same size at every stop, and the
+  // three eyebrows sit the same distance inside their own column.
   const nodeH = nodeHeight(
-    Math.max(...[...inputs, ...context, ...outputs].map((l) => l.length)),
+    Math.max(...[...inputs, ...internal, ...outputs].map((l) => l.length)),
   );
   const ebH =
-    Math.max(inputsEyebrow.length, outputsEyebrow.length) * EB.line;
+    Math.max(
+      inputsEyebrow.length,
+      internalEyebrow.length,
+      outputsEyebrow.length,
+    ) * EB.line;
 
-  // The middle column sets the height, and the flanks take it: it is the one
-  // with three tiers in it, and nothing else in the drawing is taller.
-  const nodesTop = PAD + CP + ebH + EB.below;
-  const contextH = nodeH * 2 + ROW;
-  const barY = nodesTop + contextH + TIER_H;
-  const bottomY = barY + BAR_H + TIER_H;
-  const colH = bottomY + BOTTOM_H + CP - PAD;
-  const h = colH + PAD * 2;
-  const cy = PAD + colH / 2;
+  // A group is an eyebrow and the nodes it names; a column is its groups inside
+  // its own padding. Both flanks measure the same way, so the two groups on the
+  // left stack the way one group does.
+  const groupH = (n: number) => ebH + EB.below + n * nodeH + (n - 1) * ROW;
+  const nodeAt = (top: number, i: number) =>
+    top + ebH + EB.below + i * (nodeH + ROW);
 
-  // The flanks distribute what's left below their own eyebrow: four nodes sit
-  // centred in it, two sit evenly spaced — so the space goes into the gaps
-  // rather than into the cards, and every node on the diagram stays one size.
-  const listH = colH - CP - ebH - EB.below - CP;
-  const centred = (n: number, i: number) => {
-    const stack = n * nodeH + (n - 1) * ROW;
-    return nodesTop + (listH - stack) / 2 + i * (nodeH + ROW);
-  };
-  const evenly = (n: number, i: number) => {
-    const space = (listH - n * nodeH) / (n + 1);
-    return nodesTop + space * (i + 1) + i * nodeH;
-  };
+  const midH =
+    CP + ebH + EB.below + BOARD_H + TIER_H + BOTTOM_H + CP;
+  const inputsH =
+    CP + groupH(inputs.length) + GROUP + groupH(internal.length) + CP;
+  const outputsH = CP + groupH(outputs.length) + CP;
 
-  // The bar's lockup: glyph, gap, word, centred as one object.
-  const barCx = X.mid + CP + BAR_W / 2;
-  const barCy = barY + BAR_H / 2;
-  const lockupW = LOGO_BOX.w * LOGO_SCALE + LOGO_GAP + WORD_W;
-  const lockupX = barCx - lockupW / 2;
+  // Every column hangs off the line the wires run along, and the drawing is as
+  // tall as the tallest of them.
+  const contentH = Math.max(midH, inputsH, outputsH);
+  const cy = PAD + contentH / 2;
+  const h = PAD * 2 + contentH;
 
-  // The bottom tier: what runs the work, and where the work is stored. The two
-  // are separate blocks so Markdown never reads as an agent.
-  const agentsW = BAR_W - ROW - STORAGE_W;
+  const midTop = cy - midH / 2;
+  const boardY = midTop + CP + ebH + EB.below;
+  const bottomY = boardY + BOARD_H + TIER_H;
+
+  const inputsTop = cy - inputsH / 2;
+  const internalTop = inputsTop + CP + groupH(inputs.length) + GROUP;
+  const outputsTop = cy - outputsH / 2;
+
+  // The row under the board: what runs the work, and where the work is stored.
+  // The two are separate blocks so Markdown never reads as an agent.
+  const agentsW = BOARD_W - ROW - STORAGE_W;
   const agentsX = X.mid + CP;
   const storageX = agentsX + agentsW + ROW;
   const tileGap = 20;
@@ -566,135 +922,73 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
             aria-label={c.title}
           >
             <style>{MOTION}</style>
-            <defs>
-              {/* The pass of light across the bar is lighting, not a second
-                  colour: paper feathered at both ends and clipped to the bar.
-                  The rule against tinting the ember is about diluting it into a
-                  grey — this leaves the fill exactly where it is and moves a
-                  highlight over it, which is the only way to say *running*
-                  without adding a part. 18% is where that highlight stops being
-                  a contrast problem: the label is paper, and at the crest of the
-                  gradient a quarter lit the ground to 4.22:1 under it, where 18%
-                  holds 4.98:1 and is still plainly a sweep. */}
-              <linearGradient id="itr-sweep-fill">
-                <stop offset="0%" stopColor="var(--color-elev)" stopOpacity="0" />
-                <stop offset="50%" stopColor="var(--color-elev)" stopOpacity="0.18" />
-                <stop offset="100%" stopColor="var(--color-elev)" stopOpacity="0" />
-              </linearGradient>
-              <clipPath id="itr-bar">
-                <rect x={X.mid + CP} y={barY} width={BAR_W} height={BAR_H} rx={10} />
-              </clipPath>
-            </defs>
 
             <rect width={W} height={h} className="fill-bg" />
 
-            <Column
-              x={X.inputs}
-              w={FLANK}
-              h={colH}
-              lines={inputsEyebrow}
-            >
+            {/* What feeds the work: the signals that arrive from outside, and
+                under them the plan the team already holds. Two groups on one
+                wash and not two columns — they are one end of the flow, and the
+                wire leaves the column once. */}
+            <Column x={X.inputs} y={inputsTop} w={FLANK} h={inputsH}>
+              <Eyebrow
+                x={X.inputs + CP}
+                y={inputsTop + CP}
+                lines={inputsEyebrow}
+              />
               {inputs.map((lines, i) => (
                 <Node
                   key={c.inputs[i]}
                   x={X.inputs + CP}
-                  y={centred(inputs.length, i)}
-                  w={NODE_W.flank}
+                  y={nodeAt(inputsTop + CP, i)}
                   icon={INPUT_ICONS[i]}
                   lines={lines}
                   delay={T.input(i)}
+                  tone="paper"
+                />
+              ))}
+              <Eyebrow
+                x={X.inputs + CP}
+                y={internalTop}
+                lines={internalEyebrow}
+              />
+              {internal.map((lines, i) => (
+                <Node
+                  key={c.internal[i]}
+                  x={X.inputs + CP}
+                  y={nodeAt(internalTop, i)}
+                  icon={INTERNAL_ICONS[i]}
+                  lines={lines}
+                  delay={T.input(inputs.length + i)}
+                  tone="paper"
                 />
               ))}
             </Column>
 
             <FlowWire x={X.wireIn} cy={cy} delay={T.railIn} />
 
-            <Column
-              x={X.mid}
-              w={MID}
-              h={colH}
-              lines={["AI4KANBAN"]}
-              tone="ember"
-            >
-              {/* Tier one: what the board already knows about the project. */}
-              {context.map((lines, i) => (
-                <Node
-                  key={c.context[i]}
-                  x={X.mid + CP + (i % 2) * (NODE_W.mid + ROW)}
-                  y={nodesTop + Math.floor(i / 2) * (nodeH + ROW)}
-                  w={NODE_W.mid}
-                  icon={CONTEXT_ICONS[i]}
-                  lines={lines}
-                  delay={T.context(i)}
-                />
-              ))}
+            <Column x={X.mid} y={midTop} w={MID} h={midH}>
+              <Eyebrow
+                x={X.mid + CP}
+                y={midTop + CP}
+                lines={["AI4KANBAN"]}
+                tone="ember"
+              />
+
+              {/* The board, with work on it. */}
+              <Board
+                x={X.mid + CP}
+                y={boardY}
+                headings={headings}
+                ready={c.board.ready}
+              />
 
               <TierWire
-                cx={barCx}
-                y={nodesTop + contextH}
-                delay={T.dropIn}
+                cx={X.mid + CP + BOARD_W / 2}
+                y={boardY + BOARD_H}
+                delay={T.drop}
               />
 
-              {/* Tier two: the one thing that plans and drives — the widest
-                  filled block in the diagram, since everything above and below
-                  meets here. Same fill as the primary button, `accent` with a
-                  paper mark. No outline: it is the only block here read
-                  by its fill, and an ink frame would only put it back in the
-                  same box as the nodes above.
-
-                  It carries the logo rather than a name. "AI4Kanban Skill" was
-                  a label for the reader to parse; the mark is the product, and
-                  it is the one place in the drawing where the thing being
-                  described is ours. */}
-              <rect
-                x={X.mid + CP}
-                y={barY}
-                width={BAR_W}
-                height={BAR_H}
-                rx={10}
-                className="fill-accent"
-              />
-              <g clipPath="url(#itr-bar)">
-                <rect
-                  className="itr-sweep"
-                  x={X.mid + CP}
-                  y={barY}
-                  width={BAR_W}
-                  height={BAR_H}
-                  fill="url(#itr-sweep-fill)"
-                />
-              </g>
-              <g
-                transform={`translate(${lockupX - LOGO_BOX.x * LOGO_SCALE} ${barCy - (LOGO_BOX.y + LOGO_BOX.h / 2) * LOGO_SCALE}) scale(${LOGO_SCALE})`}
-                className="fill-elev"
-                aria-hidden="true"
-              >
-                {LOGO_COLUMNS.map((col) => (
-                  <rect
-                    key={col.x}
-                    x={col.x}
-                    y={8}
-                    width={12}
-                    height={col.h}
-                    rx={3.5}
-                  />
-                ))}
-              </g>
-              <text
-                x={lockupX + LOGO_BOX.w * LOGO_SCALE + LOGO_GAP}
-                // Cap height rather than the 72% rule: this one is a mark, and
-                // a mark is centred on its letters, not on its line box.
-                y={barCy + 0.7275 * WORD_FS * 0.5}
-                className="fill-elev font-sans"
-                fontSize={WORD_FS}
-                fontWeight={900}
-                letterSpacing={WORD_TRACKING}
-              >
-                {WORD}
-              </text>
-
-              <TierWire cx={barCx} y={barY + BAR_H} delay={T.dropOut} />
-
+              {/* What runs it, and what it writes. */}
               {/* Tier three: the agents, and the files. */}
               <rect
                 x={agentsX}
@@ -774,7 +1068,14 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
                 width={chipW}
                 height={22}
                 rx={11}
-                className="fill-accent-deep"
+                className="itr-lit fill-accent-deep"
+                style={
+                  {
+                    ...at(T.store),
+                    "--rest": "var(--color-accent-deep)",
+                    "--lit": "var(--color-accent)",
+                  } as CSSProperties
+                }
               />
               <text
                 x={storageX + STORAGE_W / 2}
@@ -789,21 +1090,21 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
 
             <FlowWire x={X.wireOut} cy={cy} delay={T.railOut} />
 
-            <Column
-              x={X.outputs}
-              w={FLANK}
-              h={colH}
-              lines={outputsEyebrow}
-            >
+            <Column x={X.outputs} y={outputsTop} w={FLANK} h={outputsH}>
+              <Eyebrow
+                x={X.outputs + CP}
+                y={outputsTop + CP}
+                lines={outputsEyebrow}
+              />
               {outputs.map((lines, i) => (
                 <Node
                   key={c.outputs[i]}
                   x={X.outputs + CP}
-                  y={evenly(outputs.length, i)}
-                  w={NODE_W.flank}
+                  y={nodeAt(outputsTop + CP, i)}
                   icon={OUTPUT_ICONS[i]}
                   lines={lines}
                   delay={T.output(i)}
+                  tone="ember"
                 />
               ))}
             </Column>

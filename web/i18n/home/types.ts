@@ -56,7 +56,19 @@ export type HomeCopy = {
     lead: string;
     inputsLabel: string;
     inputs: [string, string, string, string];
-    context: [string, string, string, string];
+    /** The second group in the same column: what the team already plans from. */
+    internalLabel: string;
+    internal: [string];
+    /**
+     * The board drawn at the centre. Only the two column headings and the pill
+     * on a ready card are words — the cards themselves are drawn, not written.
+     * A heading is set in a fixed-width bar and never wraps: keep it short.
+     */
+    board: {
+      columns: [string, string];
+      /** The pill a ready card wears. One word. */
+      ready: string;
+    };
     /** Names the "…" tile that stands for agents beyond Claude Code and Codex. */
     otherAgents: string;
     storage: string;

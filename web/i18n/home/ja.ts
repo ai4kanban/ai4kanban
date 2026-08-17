@@ -111,12 +111,12 @@ const ja: HomeCopy = {
       "業界レポート",
       "Reddit の議論",
     ],
-    context: [
-      "意思決定の記憶",
-      "要件とタスク",
-      "プロジェクトモジュール",
-      "実行記録",
-    ],
+    internalLabel: "内部入力",
+    internal: ["プロダクトロードマップ"],
+    board: {
+      columns: ["着手できる", "未整理"],
+      ready: "準備完了",
+    },
     otherAgents: "その他のエージェント",
     storage: "プロジェクトデータ",
     outputsLabel: "改善結果",

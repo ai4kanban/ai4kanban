@@ -106,12 +106,12 @@ const en: HomeCopy = {
       "Industry reports",
       "Reddit discussions",
     ],
-    context: [
-      "Decision history",
-      "Requirements and tasks",
-      "Project modules",
-      "Run history",
-    ],
+    internalLabel: "Internal inputs",
+    internal: ["Product roadmap"],
+    board: {
+      columns: ["Ready to build", "Not ready"],
+      ready: "ready",
+    },
     otherAgents: "Other agents",
     storage: "Project data",
     outputsLabel: "Iteration outcomes",

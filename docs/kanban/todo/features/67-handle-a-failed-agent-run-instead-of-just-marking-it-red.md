@@ -11,13 +11,19 @@ modules: [local-ui]
 questions: []
 ---
 
-Say why an agent run failed, and stop the dispatcher from retrying a failure it can't fix.
+Say why an agent run failed, and don't let a usage limit quietly swallow the work the
+board was about to do.
 
-Right now every failure looks the same: the board marks a run failed when the exit code
-isn't 0, and that is all anyone learns. A run that hit the plan's usage limit, a run that
-crashed, and a run where `claude` isn't installed can't be told apart. Worse, auto-refine
-wakes a minute later and starts the same run again — this board once logged 12 runs in a
-row on one card, one a minute, every one of them the same limit.
+Today every failure looks the same: the board marks a run failed when the exit code isn't
+0, and that is all anyone learns. A run that hit the plan's usage limit, a run that
+crashed, and a run where `claude` isn't installed can't be told apart.
+
+The cost is more than a poor message. Work the board starts on its own is started once and
+never again: a scheduled card loses its mark the moment its run starts, a recurring card is
+passed over once a run exists for the window it is due in, and a refine that follows a run
+is never started twice. A usage limit kills any of these in seconds and the work is lost
+with it — the scheduled card reads plain again, the daily job simply doesn't run, and
+nothing on screen says why.
 
 ## Scope
 
@@ -27,82 +33,81 @@ row on one card, one a minute, every one of them the same limit.
   - **rate limit** — the plan's usage limit, or the service turning requests away.
   - **can't start** — the agent command isn't installed, or the user isn't logged in.
   - **everything else** — the fallback kind.
-- The three kinds are the same for every harness, but each harness recognises its own —
-  Claude Code and Codex report a usage limit differently.
+- The three kinds are the same for every harness, but each harness recognises its own.
 - For Claude Code the signal is structured, not words: a rate-limited run ends with an HTTP
   429 and reports the reset time and which limit was hit — the 5-hour session limit or the
-  weekly one. Two traps: the reset time arrives partway through the run, not at the end;
-  and a healthy run reports the same thing to say the limit is fine, so only a run the
-  limit turned away counts. Miss that and every good run pauses the board.
-- "Can't start" has no such signal. A logged-out run looks like a rate limit without the
-  429, and a missing command prints nothing at all — read that one off the fact that the
-  command never launched.
-- Show the kind on the failed run, in plain words next to the log: which limit was hit, and
-  when background refining starts again.
+  weekly one.
+- The reset time arrives partway through the run, not at the end, so catch it as the run
+  goes.
+- A healthy run reports the same reset time to say the limit is fine, so count only a run
+  the limit turned away. Miss this and every good run pauses the board.
+- Codex needs no rate-limit signal: it retries inside its own CLI, so a limit never reaches
+  the board as a failed run.
+- Show the kind on the failed run, in plain words next to its log.
+- Say on that same run when the board will try again.
 
-**Make the dispatcher wait**
-- After a rate-limited run, no auto-refine until the reset time the run reported. Without
-  one, wait 30 minutes. Cap the wait at 6 hours either way — a weekly limit would otherwise
-  park the board for days.
-- After a "can't start" run, no auto-refine for 5 minutes. Nothing about a missing command
-  belongs to one card; the next card would fail the same way. Each new one re-arms the
-  wait, and a run that starts normally clears it.
-- Any run arms the wait — the dispatcher's, a button the user pressed, or a create or
-  propose that belongs to no card. A usage limit belongs to the account, not to one card.
-  A run that succeeds clears the wait.
-- The wait is per harness. A Claude limit must not keep the board paused after the user
+**Make the board wait**
+- After a rate-limited run, the board starts nothing of its own until the reset time that
+  run reported. With no reset time, wait 30 minutes. Cap the wait at 6 hours either way.
+- After a "can't start" run, wait 5 minutes. Each new one restarts the 5 minutes.
+- The wait is per harness. A Claude limit must not keep the board quiet after the user
   switches to Codex.
-- The wait never blocks the user. Card buttons stay live and are the way to re-test whether
-  the limit lifted.
+- A wait never blocks a person. Every button stays live, and pressing one is how you find
+  out whether the limit lifted.
+- The first run that gets through ends the wait, whoever started it.
 
-**Stop re-picking a card that keeps failing**
-- After 3 runs the dispatcher started on one card fail in a row, stop picking that card.
-- Only a run that really failed on the card counts. A rate limit, a run that couldn't
-  start, a stopped run, and a run cut short when the UI died all leave the count where it
-  was. A failure nobody can place does count — that loop is what the count is there to
-  break.
-- A run the dispatcher did not start clears the count the moment it begins — Implement,
-  Edit, Resolve, or Resume. A dispatcher run that passes resets it too.
-- So the board has to record who started each run. Today it can only guess from the run's
-  name, and Resume already breaks the guess.
-- Say it on the card. A skipped card shows a notice bar at the top of its page: the
-  dispatcher stopped picking it after 3 failed runs in a row, and starting a run yourself
-  puts it back in the rotation. It reads as a warning, not a nudge. It is the shared notice
-  bar the goal bar already uses, so pull that strip out into one bar carrying both.
-- Mark a skipped card on the board with a small icon chip, in the row that already carries
-  the blocked lock. Without it a skipped card looks like any other once its failed runs age
-  out of the 30-run history.
+**Start again what the limit killed**
+- Record who started each run: the board on its own, or a person.
+- When a wait ends, start again every run of the board's own that a rate limit or a "can't
+  start" killed — the scheduled card that lost its mark, the recurring pass that was
+  skipped, the refine that was following a run.
+- Start one only if it would still do something. A card someone has since taken to `ready`
+  needs no refine, and a card already in a live run is left alone.
+- One restart per card, from the newest run a limit killed on it.
+- A run a person started is never restarted. The button they pressed is still there.
 
 **Remember it across a restart**
-- Keep the wait and the per-card failure counts in `docs/kanban/.dispatcher.json`, next to
-  the session registry and out of git, so a UI restart doesn't forget a wait and resume
-  hammering. The session history can't hold this — it keeps only the last 30 runs and drops
-  them with their logs.
+- Read the wait and the runs to start again off `docs/kanban/.sessions.json` — the record
+  the board already keeps across a restart and already keeps out of git.
+- Add no state file of this card's own.
 
 ## Scope out
-- No paused state beside the auto-refine switch. The failed run in the runs panel is where
-  the reason is named.
-- No manual Refine button and no control to end a wait early. Resolve and Resume already
-  move a card forward while the dispatcher is waiting.
+- No per-card "give up after N failed runs" count, and no board chip or notice bar for one.
+- No global paused indicator anywhere in the header. The failed run in the runs panel is
+  where the reason and the wait are named.
+- No control to end a wait early. Starting any run yourself already does it.
+- No line about a stopped-short run on the card's own page — that is #179's, and it shows
+  whatever this card writes onto the run.
 
 ## Already true
 - The server runs `claude` with `CLAUDE_CODE_MAX_RETRIES=0`, so a failure ends the run at
   once rather than backing off inside the CLI for an hour.
+- Nothing repeats a run on a card by itself: nothing hunts the backlog for refines, a
+  refine never follows a refine, a scheduled card loses its mark as it fires, and a
+  recurring card is passed over once a run exists for its window.
 
 ## Decided by the agent
 - Where does the reason live? On the run's record, beside its pass/fail result — the same
   record the board already polls.
 - How do we spot a rate limit? From the 429 and the reset number the run emits, not the
   words in the message. The wording changes between versions and differs per harness; the
-  number does not. Checked against the real CLI, so no word matching is kept as a fallback.
-- Who owns the "don't re-pick a failing card" rule? This card. #16 (auto-implement) needs
-  the same rule and points here instead of writing its own.
-- Does the skipped card's bar carry its own button? No. Implement, Refine, Resolve and Edit
-  already sit on the toolbar above it, and any of them clears the skip.
-- Does the state file need cleaning up? No. It holds only the cards being counted right
-  now, a cleared count drops its entry, and a wait is never more than 6 hours out. A
-  missing or unreadable file reads as no waits and no failures, so deleting it by hand is a
-  fine way to start over.
+  number does not.
+- Does Codex need its own rate-limit signal? No. It retries inside its own CLI until it
+  gets through, so a limit never reaches the board as a failed run.
+- Is the old "stop picking a card after 3 failed runs in a row" rule still needed? No, and
+  it is cut. It guarded a loop the board can no longer have: the auto-refine sweep that
+  walked the backlog is gone, and every remaining way the board starts work fires once. The
+  per-card count, its state file, the shared notice bar and the board chip all went with
+  it.
+- What is the harm now, if not a loop? A limit no longer repeats work — it loses it. So
+  this card gives the lost work back instead of counting failures.
+- Does the wait need a file of its own? No. The run record already holds every failure with
+  its time and its harness. A wait whose run ages out of the 30 runs the record keeps costs
+  one wasted run, which starts the wait again.
+- Why per harness rather than per board? A limit belongs to one account under one agent,
+  and switching agents is the other way to carry on working.
+- Who owns the give-up rule now? #16 (auto-implement), if it ships. It is the one thing
+  that would pick the same card again, so the rule is its own to write.
 
 ## Todo
 - [ ] Read the failure reason out of the finished run instead of guessing it from the exit
@@ -110,23 +115,20 @@ row on one card, one a minute, every one of them the same limit.
       recognises its own signal.
 - [ ] Keep the reset time and which limit was hit — caught while the run goes, and only
       from a run the limit actually turned away.
-- [ ] Show the kind on the failed run in the UI, in plain words, and say when background
-      refining starts again.
-- [ ] Record who started each run, so the user's runs can be told from the dispatcher's.
-- [ ] Make the dispatcher wait after a rate limit — until the reported reset time, capped
-      at 6 hours, or 30 minutes when the run reports none. Keep the wait per harness.
-- [ ] Make the dispatcher wait 5 minutes after a "can't start" run, re-armed by each new one
-      and cleared by a run that starts normally.
-- [ ] Make the dispatcher stop picking a card after 3 straight failed runs it started, and
-      clear the count when a run it didn't start begins.
-- [ ] Remember the wait and the per-card failure counts across a UI restart, in
-      `docs/kanban/.dispatcher.json` and out of git.
-- [ ] Pull the goal bar's strip out into one shared notice bar, and keep the goal bar on it.
-- [ ] Show that bar on a skipped card's page: why it was skipped, and that starting a run
-      yourself puts it back.
-- [ ] Mark a skipped card on the board with a small icon chip, beside the blocked lock.
+- [ ] Show the kind on the failed run in the UI, in plain words, and say when the board
+      will try again.
+- [ ] Record who started each run, so the board's own runs can be told from a person's.
+- [ ] Make the board wait after a rate limit before it starts anything of its own — until
+      the reported reset time, capped at 6 hours, or 30 minutes when the run reports none.
+      Keep the wait per harness.
+- [ ] Make it wait 5 minutes after a "can't start" run, with each new one restarting the 5
+      minutes.
+- [ ] End the wait on the first run that gets through, and leave every button live while a
+      wait is on.
+- [ ] Start again, once the wait ends, each run of the board's own that a limit killed —
+      one per card, only where it would still do something, never one a person started.
 - [ ] Add a "when a run fails" section to `kanban-ui/README.md`: the three kinds, what the
-      dispatcher does about each, and what a card it gave up on looks like.
-- [ ] Fix the three passages in `kanban-ui/README.md` this card makes wrong — the
-      auto-refine section, the `CLAUDE_CODE_MAX_RETRIES` paragraph, and "the reason is in
-      its output".
+      board does about each, and that a limit no longer loses a scheduled or recurring pass.
+- [ ] Fix the four passages in `kanban-ui/README.md` this card makes wrong — "the reason is
+      in its output", the `CLAUDE_CODE_MAX_RETRIES` paragraph, the scheduled "it fires once"
+      line, and the recurring "the board leaves that card alone" line.

@@ -109,12 +109,12 @@ const fr: HomeCopy = {
       "Études sectorielles",
       "Discussions sur Reddit",
     ],
-    context: [
-      "Historique des décisions",
-      "Exigences et tâches",
-      "Modules du projet",
-      "Historique des exécutions",
-    ],
+    internalLabel: "Sources internes",
+    internal: ["Feuille de route produit"],
+    board: {
+      columns: ["Prêt à démarrer", "Pas prêt"],
+      ready: "prêt",
+    },
     otherAgents: "Autres agents",
     storage: "Données du projet",
     outputsLabel: "Résultats de l’itération",

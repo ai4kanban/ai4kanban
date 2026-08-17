@@ -127,9 +127,10 @@ re-ask a settled call.
 
 ## Notice bars
 
-- One shared bar carries every condition the UI can't fix itself — the goal nudge,
-  warnings, a card the dispatcher gave up on after repeated failed runs. It shows by
-  default, stays while the condition holds, and a ✕ closes it without writing to the board.
+- One shared bar carries every condition the UI can't fix itself — the goal nudge and
+  warnings like it. It shows by default, stays while the condition holds, and a ✕ closes it
+  without writing to the board. Nothing needs a second condition yet, so the bar is not
+  built.
 
 ## Views and filters
 

@@ -100,7 +100,12 @@ const zh: HomeCopy = {
     lead: "把外部信息转化为需求，持续推进产品和版本迭代。",
     inputsLabel: "外部输入",
     inputs: ["用户反馈", "竞品调研", "行业报告", "Reddit 讨论"],
-    context: ["决策记忆", "需求任务", "项目模块", "运行记录"],
+    internalLabel: "内部输入",
+    internal: ["产品路线图"],
+    board: {
+      columns: ["可以开工", "尚未就绪"],
+      ready: "就绪",
+    },
     otherAgents: "其他 Agent",
     storage: "项目数据",
     outputsLabel: "迭代结果",

@@ -31,8 +31,8 @@ that are not startable yet (see "Not in this card").
 - A card is eligible when its status is `ready`, it has no open questions, and its todos
   are not all ticked.
 - A card whose last auto-implement run failed, or ended with its todos unchanged, is not
-  picked again. The failure rule itself is card #67's — this card reuses it, adding only
-  the todos-unchanged check.
+  picked again. This rule is this card's own to write: #67 no longer carries it, because
+  nothing else on the board picks the same card twice.
 - The run leaves its code uncommitted in the working tree. It does not commit, branch, or
   open a pull request. You read `git diff` and commit, like after any run today.
 - The run does not archive the card. You still review the work and click Archive.
