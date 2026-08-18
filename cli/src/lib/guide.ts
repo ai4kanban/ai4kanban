@@ -30,6 +30,7 @@ import refine from '../guide/refine.md'
 import reject from '../guide/reject.md'
 import releases from '../guide/releases.md'
 import resolve from '../guide/resolve.md'
+import revise from '../guide/revise.md'
 import setup from '../guide/setup.md'
 import update from '../guide/update.md'
 
@@ -50,6 +51,7 @@ export const GUIDES: Guide[] = [
   { name: 'propose', when: 'find the work the board is missing and write it', text: propose },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
   { name: 'refine', when: 'take one card from vague to ready — refine and resolve in a loop', text: refine },
+  { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
   { name: 'resolve', when: "answer a card's open questions, and hand the user's own back", text: resolve },
   { name: 'reject', when: 'drop a card, and write down why', text: reject },
   { name: 'recurring-task', when: 'run one pass of a job we repeat', text: recurringTask },

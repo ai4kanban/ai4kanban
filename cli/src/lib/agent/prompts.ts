@@ -38,12 +38,12 @@ function clampCount(count: number | undefined): number {
 // the refine that follows is a run of its own, started once this one has ended (see
 // `follow.ts`), so it has its own log and can be stopped on its own.
 
-// Every action that revises a card revises the CARD — the note says what the text should
-// say, not "go build it". Without this line an agent reads a note like "make it handle
-// empty input" as the work itself and writes code. The escape hatch is the note: one that
-// asks for the change to be made outright still gets it. Not on create/propose (they carry
-// their own "create only" line) and not on a resolve asked to carry on and implement.
-const NO_IMPLEMENT = `(Unless the task note specifies, don't implement it.)`
+// Every action that revises a card revises the CARD — the revision request says what the
+// text should say, not "go build it". Without this line an agent reads a request like
+// "make it handle empty input" as the work itself and writes code. A request that explicitly
+// asks for implementation still gets it. Not on create/propose (they carry their own
+// "create only" line) and not on a resolve asked to carry on and implement.
+const NO_IMPLEMENT = `(Unless the request explicitly asks for implementation, don't implement it.)`
 
 /** The words one run is given.
  *

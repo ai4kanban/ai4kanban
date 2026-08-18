@@ -31,7 +31,7 @@ import { idPrefix, locate } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
-import { die, rel, GOAL, MEMORY, MODULES_MD, SETUP_CHECKLIST, TODO } from '../paths'
+import { die, rel, CONFIG, GOAL, MEMORY, MODULES_MD, SETUP_CHECKLIST, TODO } from '../paths'
 import { readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
@@ -66,6 +66,8 @@ interface CardFacts {
   id: number
   /** The card file, repo-relative — the path as it really is, ready to open. */
   file: string
+  /** The whole card. A revise certainly reads it, so its printed flow carries it. */
+  text: string
   meta: Meta
   /** The unticked `## Todo` boxes, in order. */
   steps: string[]
@@ -104,6 +106,7 @@ function readCard(id: number): CardFacts {
   return {
     id,
     file: rel(file),
+    text,
     meta,
     steps,
     ticked,
@@ -164,6 +167,20 @@ function trackNames(): string[] {
 function memoryFiles(modules: string[], name: string): string[] {
   const dirs = modules.length ? modules.map((m) => path.join(MEMORY, m)) : [MEMORY]
   return dirs.map((dir) => rel(path.join(dir, name)))
+}
+
+// The jobs `akb guide board` tells to read the project's settings before they start:
+// proposing, adding, refining. For those it is a certain read, and a certain read costs
+// less printed here than fetched in a round of its own.
+const CONFIG_FOR = new Set<AgentAction>(['propose', 'create', 'refine'])
+
+// The settings file as it stands, or null when the board has none.
+function configText(): string | null {
+  try {
+    return fs.readFileSync(CONFIG, 'utf8').trim() || null
+  } catch {
+    return null
+  }
 }
 
 // ---- laying one out --------------------------------------------------------
@@ -257,7 +274,7 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   run: ['board', 'recurring-task'],
   refine: ['board', 'refine', 'resolve'],
   resolve: ['board', 'resolve'],
-  edit: ['board', 'refine'],
+  edit: ['board', 'revise'],
   create: ['board', 'add-task'],
   propose: ['board', 'propose', 'add-task'],
   'plan-release': ['board', 'releases', 'plan-release', 'add-task'],
@@ -340,8 +357,19 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       break
     }
     case 'edit': {
-      facts.push(...field('note', req.notes ?? '(none)'))
-      facts.push(...stepsCount(card!))
+      facts.push(
+        ...field('contents', [
+          'the whole card, printed so you do not have to open it:',
+          ...card!.text.trimEnd().split('\n').map((line) => `  ${line}`),
+        ]),
+      )
+      facts.push(
+        ...field('memory', [
+          'open only when the request needs planning context:',
+          ...memoryFiles(card!.meta.modules, 'decisions.md').map((file) => `  ${file}`),
+          ...memoryFiles(card!.meta.modules, 'redesign.md').map((file) => `  ${file}`),
+        ]),
+      )
       close.push(
         `${board} update ${req.id} [--title|--priority|--roi|--release|--modules|--track|--blocked-by|--related] — the fields are the command's, never hand-written`,
         'the body is yours to write — the summary, ## Scope and ## Todo',
@@ -478,6 +506,15 @@ export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
     say(section.head)
     say('')
     for (const line of section.lines) say(`  ${line}`)
+  }
+  // The settings, for the jobs that are told to read them. Printed before the flows, because
+  // the flows are what send the reader here.
+  const config = CONFIG_FOR.has(req.action) ? configText() : null
+  if (config) {
+    say('')
+    say(`this project's settings — ${rel(CONFIG)}, printed so you don't have to open it:`)
+    say('')
+    say(config)
   }
   // Last, and unindented: the flows themselves, in full. They are markdown and they are
   // long, so they go after the short board-specific part rather than burying it — and they
