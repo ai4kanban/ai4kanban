@@ -255,7 +255,7 @@ interface Flow {
 const GUIDES_FOR: Record<AgentAction, string[]> = {
   implement: ['board', 'document-feature'],
   run: ['board', 'recurring-task'],
-  'auto-refine': ['board', 'auto-refine', 'refine', 'resolve'],
+  refine: ['board', 'refine', 'resolve'],
   resolve: ['board', 'resolve'],
   edit: ['board', 'refine'],
   create: ['board', 'add-task'],
@@ -310,7 +310,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       break
     }
-    case 'auto-refine': {
+    case 'refine': {
       facts.push(...stepsField(card!), ...questionsField(card!.meta))
       facts.push(...field('tracks', trackNames().join(', ') || '(none)'))
       facts.push(...field('goal', rel(GOAL)))

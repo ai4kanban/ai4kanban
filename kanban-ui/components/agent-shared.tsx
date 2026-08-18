@@ -125,11 +125,7 @@ export const RUNNING_VERB: Record<AgentAction, string> = {
   implement: "implementing",
   run: "running",
   edit: "editing",
-  // "refining", not "auto-refining" — the same run reaches here whether the
-  // dispatcher picked the card or the user pressed Refine (#99), and while it is
-  // going the difference doesn't matter: the work is identical. The shorter word
-  // also keeps the card's badge on one line.
-  "auto-refine": "refining",
+  refine: "refining",
   resolve: "resolving",
   reject: "rejecting",
   archive: "archiving",
@@ -916,7 +912,7 @@ export function ActionDialog({
           risky={blockers.length > 0}
           onConfirm={() =>
             run(
-              { action: "auto-refine", id: dialog.card.id, title: dialog.card.title },
+              { action: "refine", id: dialog.card.id, title: dialog.card.title },
               `Refine #${dialog.card.id}`,
             )
           }

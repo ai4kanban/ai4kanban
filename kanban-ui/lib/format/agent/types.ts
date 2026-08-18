@@ -43,7 +43,9 @@ export type AgentAction =
    *  needs that the board is missing. It touches no single card, so it carries a release
    *  id instead of a card id. */
   | 'plan-release'
-  | 'auto-refine'
+  /** Take a card from vague to ready. Always the loop — check, rewrite, resolve, round
+   *  again — never a single pass; `akb guide refine` is the whole of it. */
+  | 'refine'
   | 'resolve'
   /** Finish setting the board up — every step still unticked on
    *  `docs/kanban/setup-checklist.md`, in one run. It names no card and no release: the
@@ -57,7 +59,7 @@ export interface AgentRequest {
   action: AgentAction
   id?: number
   title?: string
-  notes?: string // implement, edit, auto-refine, resolve, archive, run
+  notes?: string // implement, edit, refine, resolve, archive, run
   reason?: string // reject
   description?: string // create
   /** create: the version the new card(s) ship in. plan-release: the version being

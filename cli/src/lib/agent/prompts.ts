@@ -152,9 +152,9 @@ function actionPrompt(req: AgentRequest, command: string): string {
         `Create the cards only, don't implement them.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
-    case 'auto-refine':
+    case 'refine':
       return [
-        `${kb}. Auto-refine task ${req.id} ${named} following \`akb guide auto-refine\`.`,
+        `${kb}. Refine task ${req.id} ${named} following \`akb guide refine\` — the loop, until it is ready or only my own calls are left.`,
         `Don't ask me questions with human-in-the-loop — the \`[user]\` tag is how you defer to me.`,
         // A refine has no note box of its own, but a refine SCHEDULED on a blocked card
         // carries whatever was typed when it was scheduled — often the very reason the user

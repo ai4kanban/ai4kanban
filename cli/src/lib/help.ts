@@ -219,7 +219,7 @@ export const MOVES: Move[] = [
         [
           'set the tag on one or more open questions (1-based, e.g.',
           '1 or 1,2,3): user | none (none strips it). Used by the',
-          'auto-refine loop to hand questions to the human without',
+          'refine loop to hand questions to the human without',
           'rewriting the list.',
         ],
         { inline: true },

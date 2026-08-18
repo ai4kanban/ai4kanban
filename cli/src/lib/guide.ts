@@ -15,7 +15,6 @@
 //     full beside the board's own facts, so the agent needs one command and not two.
 
 import addTask from '../guide/add-task.md'
-import autoRefine from '../guide/auto-refine.md'
 import board from '../guide/board.md'
 import documentFeature from '../guide/document-feature.md'
 import extractIdeas from '../guide/extract-ideas.md'
@@ -50,8 +49,7 @@ export const GUIDES: Guide[] = [
   { name: 'add-task', when: 'turn one idea into a card', text: addTask },
   { name: 'propose', when: 'find the work the board is missing and write it', text: propose },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
-  { name: 'refine', when: 'take one card from vague to ready — one pass', text: refine },
-  { name: 'auto-refine', when: 'refine and resolve in a loop until the card is ready', text: autoRefine },
+  { name: 'refine', when: 'take one card from vague to ready — refine and resolve in a loop', text: refine },
   { name: 'resolve', when: "answer a card's open questions, and hand the user's own back", text: resolve },
   { name: 'reject', when: 'drop a card, and write down why', text: reject },
   { name: 'recurring-task', when: 'run one pass of a job we repeat', text: recurringTask },

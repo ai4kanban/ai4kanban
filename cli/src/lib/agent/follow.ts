@@ -98,8 +98,8 @@ export function markBoard(): BoardMarks {
 // The actions after which a card the run touched is NOT refined.
 //
 // `implement` is building the plan, not writing it — a refine landing on a card mid-build
-// would rewrite the very plan being followed. `auto-refine` is the refine itself, and a
-// refine that starts a refine is a loop with no end.
+// would rewrite the very plan being followed. `refine` is the refine itself, and a refine
+// that starts a refine is a loop with no end.
 //
 // `setup` is the third, for a reason of size rather than of kind: its last step writes the
 // board's first ten cards, and ten refine runs firing the moment a user finishes onboarding
@@ -109,7 +109,7 @@ export function markBoard(): BoardMarks {
 // The other half of the rule — a card whose last blocker just left — applies after every
 // action, these three included: an implement run is how a card usually leaves the board, so
 // it is how its subtasks and dependants usually come free.
-const NO_FOLLOW = new Set<AgentAction>(['implement', 'auto-refine', 'setup'])
+const NO_FOLLOW = new Set<AgentAction>(['implement', 'refine', 'setup'])
 
 /**
  * The refine runs to start now that one run has ended, in the order to start them.
@@ -147,5 +147,5 @@ export function refinesAfter(action: AgentAction, before: BoardMarks): AgentRequ
     // rewrite of the plan a scheduled implement is about to follow.
     .filter((card) => card.openBlockers.length === 0 && !card.schedule && canRefine(card))
     .sort(byDispatchOrder)
-    .map((card) => ({ action: 'auto-refine' as const, id: card.id, title: card.title }))
+    .map((card) => ({ action: 'refine' as const, id: card.id, title: card.title }))
 }

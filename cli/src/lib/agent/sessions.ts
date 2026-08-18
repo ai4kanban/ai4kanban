@@ -63,7 +63,7 @@ const VERB: Record<AgentAction, string> = {
   edit: 'edited',
   create: 'created',
   propose: 'proposed',
-  'auto-refine': 'auto-refined',
+  refine: 'refined',
   resolve: 'resolved',
   'plan-release': 'planned',
   setup: 'set up',
@@ -110,6 +110,11 @@ export const RUN_IGNORE_LINES = [
 export const logPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.log`)
 const specPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.plan.json`)
 
+// `auto-refine` was this action's name until refine became the loop and there was only one
+// of them. A board's history outlives a version, so an old record still reads.
+export const readAction = (action: unknown): AgentAction =>
+  action === 'auto-refine' ? 'refine' : (action as AgentAction)
+
 /** Every run the record holds, newest last. Reads only — no lock, because a half-written
  *  file is never what a reader sees: every write is atomic (write, then rename). */
 export function readRuns(): RunRecord[] {
@@ -131,7 +136,7 @@ export function readRuns(): RunRecord[] {
     runs.push({
       sessionId: entry.sessionId,
       cardId: typeof entry.cardId === 'number' ? entry.cardId : null,
-      action: entry.action as AgentAction,
+      action: readAction(entry.action),
       status: asStatus(entry.status),
       startedAt: typeof entry.startedAt === 'number' ? entry.startedAt : Date.now(),
       endedAt: typeof entry.endedAt === 'number' ? entry.endedAt : undefined,

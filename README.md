@@ -172,8 +172,7 @@ your coding agent, or type the `akb` command yourself.
 | "what's next?" / "propose new tasks" | selects a module, reads its memory, and drafts cards for unplanned work; creates 3 by default |
 | "read this article and create tasks" | extracts user problems, validates them by module, and creates only work that is not already supported or planned |
 | "add a task: …" | evaluates the idea, then creates a card and adds it to the index |
-| "refine #4" | refines card #4 from a vague idea into something more concrete |
-| "auto-refine #4" | keeps refining card #4 automatically until only decisions that require your input remain |
+| "refine #4" | keeps refining card #4 and answering the questions that raises, until it is ready to build or only decisions that require your input remain |
 | "resolve #4" | works through the open questions on card #4 one by one |
 | "review the board" | checks whether cards are clear, duplicates, already complete, or no longer worth pursuing |
 | "implement #4" | implements card #4 and completes its checklist |

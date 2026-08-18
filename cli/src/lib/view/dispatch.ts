@@ -62,11 +62,11 @@ function dueRecurring(cards: Card[], runs: RunView[], busy: Set<number>): Card[]
     .sort(byDispatchOrder)
 }
 
-// The action a scheduled card runs, as a request. `refine` is the word the card carries,
-// because it is the word the user picked; `auto-refine` is what the record calls the same
-// run. The notes typed when it was scheduled ride along and reach the agent.
+// The action a scheduled card runs, as a request. A card's schedule is written in the same
+// words a run is started by, so it carries straight over. The notes typed when it was
+// scheduled ride along and reach the agent.
 const scheduledRequest = (card: Card): AgentRequest => ({
-  action: card.schedule!.action === 'refine' ? 'auto-refine' : 'implement',
+  action: card.schedule!.action,
   id: card.id,
   title: card.title,
   notes: card.schedule!.notes || undefined,

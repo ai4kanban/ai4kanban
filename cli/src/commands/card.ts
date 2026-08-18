@@ -342,7 +342,7 @@ export function cmdUpdateQuestions(args: string[]): MoveResult {
   return { id, changes, open: meta.questions.length, file: rel(file) }
 }
 
-// Set (or clear) the tag on open questions, so the auto-refine loop can hand a
+// Set (or clear) the tag on open questions, so the refine loop can hand a
 // batch of questions to the human in one call without rewriting the whole list.
 // `nRaw` is one 1-based position or a comma-separated list (`1,2,3`); `tag` is
 // user | none (none strips any tag). Reads and rewrites the frontmatter

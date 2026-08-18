@@ -1,10 +1,34 @@
 # Refine
 
-Take one task one step forward — from vague to concrete. First **check** the card, then
-**rewrite it or raise a question**. **Gate:** a card whose `questions` frontmatter isn't
-empty can't be refined — resolve them first (`akb guide resolve`).
+Take one task from vague to ready. A refine is a **loop**, never a single pass: one pass
+raises questions, answering them changes the plan, and the changed plan needs checking
+again. `akb refine <id>` is the whole loop.
+
+Never pause to ask the user.
+
+**Revising is not refining.** `akb revise` was handed one change to make: make it, to the
+standards in the passes below, and stop. The refine that follows it does the looping.
+
+## The loop
+
+Go round until any one of these is true:
+
+1. status !== "todo"
+2. all todos checked
+3. questions.length > 0 && every question tag === "user"
+
+Each round:
+
+1. Do one pass — **Check**, then **Rewrite, or raise a question**, below.
+2. If `questions` is not empty, spawn a subagent and hand it the card and the whole batch
+   of untagged questions at once. Questions should be answered with a fresh context. It
+   researches and decides according to `akb guide resolve`. If answering surfaces new
+   questions, add them untagged and run one more subagent for the new batch.
 
 ## 1. Check
+
+**Gate:** a card whose `questions` frontmatter isn't empty can't be checked — the loop's
+resolve step clears them first.
 
 Each line below is one plain question. Answer yes or no; a no needs one line saying
 what's wrong. Flag real problems, not hypotheticals.

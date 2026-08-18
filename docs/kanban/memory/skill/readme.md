@@ -15,8 +15,8 @@ covers it, or a plain-words note.
   `docs/kanban/.archive/` where it stays in git, and the refine that follows every run —
   each as its own run, with a group's main card left alone when a subtask finishes:
   `docs/guides/daily-loop.md`.
-- Auto-refine — the agent answers a card's safe questions itself and refines not-ready
-  cards on its own: `akb guide auto-refine`.
+- Refine is a loop, never one pass — the agent checks and rewrites the card, answers the
+  safe questions it raised itself, and goes round again: `akb guide refine`.
 - A question for the user with choices is written as options they tick, not as prose with
   the choices inside the line: `akb guide resolve`.
 - Source-to-task extraction treats articles, research, analyses, and user feedback as

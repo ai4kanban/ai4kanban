@@ -28,12 +28,12 @@ import type { AgentAction } from './agent/types'
 import type { MoveResult } from './types'
 
 // The word a person types, and the kind of run it starts. The spellings are the ones the
-// board's buttons already stand for; `refine` and `revise` read better than the names the
-// record keeps them under, and both go to the same run.
+// board's buttons already stand for; `revise` reads better than the name the record keeps
+// it under, and both go to the same run.
 const RUNS: Record<string, AgentAction> = {
   implement: 'implement',
   run: 'run',
-  refine: 'auto-refine',
+  refine: 'refine',
   resolve: 'resolve',
   revise: 'edit',
   create: 'create',

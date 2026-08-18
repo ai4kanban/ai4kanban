@@ -139,7 +139,7 @@ const FLAGS: Record<AgentAction, string[]> = {
   create: ['notes', 'release'],
   propose: ['module', 'count', 'boldness'],
   'plan-release': ['release'],
-  'auto-refine': [],
+  refine: [],
   resolve: ['notes', 'and-implement'],
   setup: [],
 }

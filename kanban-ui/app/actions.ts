@@ -92,9 +92,9 @@ export async function searchCardsAction(query: string): Promise<CardRef[]> {
   return searchCards(query);
 }
 
-// The actions a client button can start. `auto-refine` is one of them (#99): the card
-// page's Refine button starts the very run a finished run starts on its own for each card
-// it touched (#211) — same action, same prompt — so a user can refine the card in front of
+// The actions a client button can start. `refine` is one of them (#99): the card page's
+// Refine button starts the very run a finished run starts on its own for each card it
+// touched (#211) — same action, same prompt — so a user can refine the card in front of
 // them whenever they want, not only after something else has run.
 const ACTIONS = new Set([
   "implement",
@@ -107,7 +107,7 @@ const ACTIONS = new Set([
   "create",
   "resolve",
   "propose",
-  "auto-refine",
+  "refine",
   // Fill a release from its goal (#165) — started from the New release dialog and from a
   // release's ⋯ menu, never from a card.
   "plan-release",
@@ -127,6 +127,8 @@ const CARDLESS = new Set(["create", "propose", "plan-release", "setup"]);
 // never waits for the child — the client polls listSessionsAction() to see the session's
 // progress and outcome.
 export async function startAgentAction(req: AgentRequest): Promise<StartResult> {
+  // A tab left open across the upgrade that made refine the loop still posts the old name.
+  if (req && (req.action as string) === "auto-refine") req = { ...req, action: "refine" };
   if (!req || !ACTIONS.has(req.action)) throw new Error("unknown action");
   if (!CARDLESS.has(req.action) && !Number.isInteger(req.id)) {
     throw new Error("action needs a card id");
