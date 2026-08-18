@@ -122,8 +122,8 @@ plainly.
   discussion, notifications, permissions, and persistent agent identities
   support a real human-and-agent organization.
 - **Far broader runtime support** — Multica supports roughly twenty agent CLIs
-  through local daemons and cloud runtimes. AI4Kanban wires up Claude Code and
-  Codex today.
+  through local daemons and cloud runtimes. AI4Kanban wires up Claude Code,
+  Codex, Cursor, and OpenCode today.
 
 ## 07 · The call — Which should you use?
 

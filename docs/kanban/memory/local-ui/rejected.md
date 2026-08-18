@@ -43,11 +43,18 @@ before proposing so you don't re-suggest them.
 - **Telling the user what the agent must be allowed to do before a button works** — written
   from a guess. Nobody has reported a button that quietly does nothing because of
   permissions; raise it again from the actual case if it turns out to be real.
+- **A plain-words reason beside a failed run** — the only reason on offer was the tail of
+  the agent's own output, which the log already shows; putting it on the run tells the user
+  no more than they can read today.
 
 ## Connectors
 
 - **A Gemini CLI connector** — not one of the agents we want to reach. Cursor and OpenCode
   come first, and any agent past them waits for users to ask.
+- **A pi connector** — a user asked for it, and pi does show its log and pick up a stopped
+  run. We still said no: pi never asks permission and nothing holds a run to the project,
+  so picking it in the agent dialog would hand a run the whole machine. The other four
+  agents stay in the repo, and no wording in the dialog makes that safe.
 
 ## Setup
 

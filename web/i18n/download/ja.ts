@@ -16,7 +16,7 @@ const ja: DownloadCopy = {
     lead: "macOS、Windows、Linux 向けのボードアプリ。事前に入れるものはありません — Node も npx もターミナルも不要です。",
     cta: "{system} 版をダウンロード",
     ctaAny: "ダウンロード",
-    note: "エージェントの実行には、マシン上の Claude Code または Codex が必要です。",
+    note: "エージェントの実行には、マシン上の Claude Code、Codex、Cursor、OpenCode のいずれかが必要です。",
   },
 
   builds: {

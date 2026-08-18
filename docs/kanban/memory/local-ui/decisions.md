@@ -85,12 +85,16 @@ re-ask a settled call.
 ## Connectors and keys
 
 - **Which agents come next?**: Cursor and OpenCode, after Claude Code and Codex. OpenClaw
-  was dropped — it is a chat-app assistant, not a coding CLI. Anything past those four
-  waits for users to ask.
+  was dropped — it is a chat-app assistant, not a coding CLI. DeepSeek Harness (dsh) is the
+  fifth, added because a user asked. Anything further waits for users to ask.
 - **What does an agent have to do to ship?**: stream its log as it works, and resume a run
   that stopped short. An agent that only prints a summary at the end isn't offered — a
   blank box for the whole run reads as a hang, and no Resume means a failure is unfinished
   work the user has to redo by hand.
+- **Does the agent's own command line have to provide the log and the resume?**: no — a
+  bridge counts, as long as it is still a command the board starts and reads. dsh ships
+  driven over ACP (JSON-RPC over stdio), and keeping a bridge package of our own alive is
+  accepted if the community one stops keeping up.
 - **How does the board reach an agent?**: by starting a command and reading what it prints,
   and no other way. An agent whose live view only exists in a browser app of its own is not
   offered — talking to a server would change how every agent is wired.

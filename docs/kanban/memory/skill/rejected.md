@@ -3,6 +3,13 @@
 Ideas we turned down, grouped by topic. One line each: the idea, and why we said no. Read
 before proposing so you don't re-suggest them.
 
+## Agents
+
+- **The pi coding agent as an agent the board runs** — pi has no permission prompts and
+  nothing keeps a run inside the project: it reads, writes and runs shell commands anywhere
+  the user can. A container is the only fence it offers. Every agent we run stays in the
+  repo, and we don't ship one that can write outside it.
+
 ## Goal
 
 - **A fixed template for `goal.md`** — we don't pin down what the goal file must contain,

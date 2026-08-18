@@ -69,7 +69,7 @@ export type HomeCopy = {
       /** The pill a ready card wears. One word. */
       ready: string;
     };
-    /** Names the "…" tile that stands for agents beyond Claude Code and Codex. */
+    /** Names the "…" tile that stands for agents beyond the four that ship. */
     otherAgents: string;
     storage: string;
     outputsLabel: string;

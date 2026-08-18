@@ -1,7 +1,7 @@
 // Putting the coding agent skill into a project, and reading whether it is there.
 //
 // Installing a board no longer writes this (#174). A board is scaffolded on its own, and
-// the skill — driving that same board from Claude Code or Codex — is added afterwards, on
+// the skill — driving that same board from your coding agent — is added afterwards, on
 // purpose: from the button in the UI's Configuration dialog, or `akb skill install` in a
 // terminal. Both doors come here, so what a skill folder holds is decided once.
 //
@@ -31,12 +31,14 @@ import { REPO_ROOT } from '../paths'
 import { SKILL_VERSION } from '../../version'
 import type { CommandState, SkillFolder, SkillInstall, SkillState, SkillWrite } from './types'
 
-/** Every harness that reads skills from a folder in the repo. An install writes both, so
- *  the same board answers whichever agent the user opens tomorrow — the note names no
- *  agent's folder in its own words, so it runs from either. */
+/** The two folders agents read skills from. An install writes both, so the same board
+ *  answers whichever agent the user opens tomorrow — the note names no agent's folder in
+ *  its own words, so it runs from any of them. The `agent` label is what the skill pane
+ *  shows beside a folder, so it names every agent that reads it: a Cursor user who sees
+ *  only "Codex" there reads it as "not supported". */
 const TARGETS: { rel: string; agent: string }[] = [
   { rel: path.join('.claude', 'skills', 'kanban'), agent: 'Claude Code' },
-  { rel: path.join('.agents', 'skills', 'kanban'), agent: 'Codex' },
+  { rel: path.join('.agents', 'skills', 'kanban'), agent: 'Codex, Cursor, OpenCode' },
 ]
 
 /** What lands in a folder, and nothing else. Named rather than counted so the report can

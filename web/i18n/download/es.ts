@@ -17,7 +17,7 @@ const es: DownloadCopy = {
     lead: "El tablero como aplicación para macOS, Windows y Linux. No hace falta instalar nada antes: ni Node, ni npx, ni terminal.",
     cta: "Descargar para {system}",
     ctaAny: "Descargar",
-    note: "Lanzar ejecuciones sigue necesitando Claude Code o Codex en la máquina.",
+    note: "Lanzar ejecuciones sigue necesitando Claude Code, Codex, Cursor u OpenCode en la máquina.",
   },
 
   builds: {

@@ -357,12 +357,20 @@ const INPUT_ICONS: IconType[] = [
 const INTERNAL_ICONS: IconType[] = [FiMap];
 const OUTPUT_ICONS: IconType[] = [FiTrendingUp, FiTag];
 
-// The agents the board can run. Claude Code and Codex use their own marks; the
-// rest share one generic glyph. No names in the block — the logos carry it.
+// The agents the board can run, each with its own mark. No names in the block —
+// the logos carry it. An ellipsis tile follows them; see where it is drawn.
 const AGENT_LOGOS = [
   { src: "/agents/claude.svg", alt: "Claude Code" },
   { src: "/agents/codex.svg", alt: "Codex" },
+  { src: "/agents/cursor.svg", alt: "Cursor" },
+  { src: "/agents/opencode.svg", alt: "OpenCode" },
 ];
+
+// One washed tile per agent, plus one for the ellipsis. The tile shrank when the
+// row went from three to five: `agentsW` is what the block under the board gets,
+// and five 40px tiles would not fit inside it.
+const TILE = 36;
+const TILE_ICON = 16;
 
 // The mark in the window's title bar, drawn to `components/ui/Logo.tsx` — the
 // same three board columns, shared top, stepping down as work leaves the board,
@@ -891,8 +899,9 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
   const agentsW = BOARD_W - ROW - STORAGE_W;
   const agentsX = X.mid + CP;
   const storageX = agentsX + agentsW + ROW;
-  const tileGap = 20;
-  const tilesW = 3 * 40 + 2 * tileGap;
+  const tileGap = 12;
+  const tileCount = AGENT_LOGOS.length + 1; // the marks, then the ellipsis
+  const tilesW = tileCount * TILE + (tileCount - 1) * tileGap;
   const tilesX = agentsX + (agentsW - tilesW) / 2;
   const chipW = textWidth("Markdown", 12, true) + 24;
 
@@ -1006,41 +1015,41 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
                 // three unrelated marks together as one row.
                 <g key={logo.src}>
                   <rect
-                    x={tilesX + i * (40 + tileGap)}
-                    y={bottomY + (BOTTOM_H - 40) / 2}
-                    width={40}
-                    height={40}
+                    x={tilesX + i * (TILE + tileGap)}
+                    y={bottomY + (BOTTOM_H - TILE) / 2}
+                    width={TILE}
+                    height={TILE}
                     rx={8}
                     className="fill-code"
                   />
                   <image
                     href={logo.src}
-                    x={tilesX + i * (40 + tileGap) + 12}
-                    y={bottomY + (BOTTOM_H - 40) / 2 + 12}
-                    width={16}
-                    height={16}
+                    x={tilesX + i * (TILE + tileGap) + (TILE - TILE_ICON) / 2}
+                    y={bottomY + (BOTTOM_H - TILE_ICON) / 2}
+                    width={TILE_ICON}
+                    height={TILE_ICON}
                   >
                     <title>{logo.alt}</title>
                   </image>
                 </g>
               ))}
-              {/* An ellipsis, not a third mark. The board runs Claude Code and
-                  Codex today, so anything logo-shaped here would claim an agent
-                  that doesn't ship. Same washed tile as the two beside it. */}
+              {/* An ellipsis, not a fifth mark. Four agents ship, so anything
+                  logo-shaped here would claim one that doesn't — and the list is
+                  not closed at four. Same washed tile as the marks beside it. */}
               <rect
-                x={tilesX + 2 * (40 + tileGap)}
-                y={bottomY + (BOTTOM_H - 40) / 2}
-                width={40}
-                height={40}
+                x={tilesX + AGENT_LOGOS.length * (TILE + tileGap)}
+                y={bottomY + (BOTTOM_H - TILE) / 2}
+                width={TILE}
+                height={TILE}
                 rx={8}
                 className="fill-code"
               />
               <text
-                x={tilesX + 2 * (40 + tileGap) + 20}
+                x={tilesX + AGENT_LOGOS.length * (TILE + tileGap) + TILE / 2}
                 y={bottomY + BOTTOM_H / 2 + 4}
                 textAnchor="middle"
                 className="fill-muted font-mono"
-                fontSize={20}
+                fontSize={18}
               >
                 <title>{c.otherAgents}</title>…
               </text>

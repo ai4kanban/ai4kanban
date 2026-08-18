@@ -111,7 +111,7 @@ const es: VsMulticaCopy = {
       execution: {
         dimension: "Gestión de la ejecución",
         kanban:
-          "Puede lanzar Claude Code o Codex sobre una tarjeta y gestionar todo su ciclo, desde la propuesta hasta el archivo.",
+          "Puede lanzar Claude Code, Codex, Cursor u OpenCode sobre una tarjeta y gestionar todo su ciclo, desde la propuesta hasta el archivo.",
         multica:
           "Ejecuta varios agentes en paralelo con colas, reintentos, replay, costes, controles de revisión y enlaces con PR y CI.",
       },
@@ -205,7 +205,7 @@ const es: VsMulticaCopy = {
       },
       runtimeReach: {
         title: "Mayor compatibilidad de entornos",
-        body: "Un daemon local conecta muchas CLI de agentes. AI4Kanban admite hoy Claude Code y Codex.",
+        body: "Un daemon local conecta muchas CLI de agentes. AI4Kanban admite hoy Claude Code, Codex, Cursor y OpenCode.",
       },
     },
   },

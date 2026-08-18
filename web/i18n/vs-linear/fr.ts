@@ -66,7 +66,7 @@ const fr: VsLinearCopy = {
       },
       agentModel: {
         dimension: "Modèle d'agents",
-        kanban: "L’environnement de code de votre choix lit et écrit le tableau ; Claude Code et Codex sont actuellement pris en charge.",
+        kanban: "L’environnement de code de votre choix lit et écrit le tableau ; Claude Code, Codex, Cursor et OpenCode sont actuellement pris en charge.",
         linear: "Linear Agent, des app users installables, des tickets délégués, des consignes pour agents et un MCP server hébergé.",
       },
       execution: {
@@ -135,7 +135,7 @@ const fr: VsLinearCopy = {
       },
       anyHarness: {
         title: "Fonctionne avec votre environnement de code",
-        body: "Le tableau n’est pas lié à un runtime d’agent propriétaire. Claude Code et Codex sont déjà pris en charge, et le format de fichier ouvert permet d’utiliser d’autres environnements.",
+        body: "Le tableau n’est pas lié à un runtime d’agent propriétaire. Claude Code, Codex, Cursor et OpenCode sont déjà pris en charge, et le format de fichier ouvert permet d’utiliser d’autres environnements.",
       },
       noSaas: {
         title: "Ne nécessite aucun service de gestion de projet",

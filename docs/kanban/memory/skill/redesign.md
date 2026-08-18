@@ -25,6 +25,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A card claims behavior the product already has** (a stopped run starts nothing, a
   timer keeps doing its other job) → ✅ scope lists only what this task changes. Restating
   what already holds reads as new work and grows the card past its point.
+- ❌ **A user-facing answer planned as a command only** → ✅ a card whose result the user
+  would want while looking at the board says where it shows in the board's UI too. The
+  command and the UI are both surfaces; naming one leaves half the feature unwritten.
 
 ## Idea intake
 

@@ -34,9 +34,9 @@ board works is copied into this repo to go stale. Your settings live with the bo
 
        akb skill install
 
-   That writes one short note per agent — `SKILL.md`, saying the board is here and that
-   `akb` owns it — into `.claude/skills/kanban/` (Claude Code) and `.agents/skills/kanban/`
-   (Codex). Nothing else is copied in; the flows ship inside `akb`. The board app adds the
+   That writes one short note — `SKILL.md`, saying the board is here and that `akb` owns
+   it — into `.claude/skills/kanban/` (Claude Code) and `.agents/skills/kanban/` (Codex,
+   Cursor, OpenCode). Nothing else is copied in; the flows ship inside `akb`. The board app adds the
    same note from a button (**Configuration → Skill**), and a board runs without one.
 
    Already added the skill as a plugin (`/plugin marketplace add ai4kanban/ai4kanban` then

@@ -1,30 +1,95 @@
-# AI4Kanban — your task board in Markdown, right next to your code
+# AI4Kanban — a project board that plans itself
 
-> A Claude Code skill that runs a kanban board from plain Markdown files in your
-> repo — versioned in git, no database, no MCP.
+> It brings your goals, code, and project memory together to manage work from
+> planning through completion. You make the product calls and give final
+> approval.
 
-Claude proposes the next work, writes the cards, and archives what's done. Your
-backlog lives as plain Markdown files in `docs/kanban/` — in git, diffable,
-readable by you and the agent. No database, no MCP. Just talk to the board.
-
-- Install in one prompt
+- Download the board app: https://ai4kanban.dev/download
 - View on GitHub: https://github.com/ai4kanban/ai4kanban
 
-## Why it's different
+## From task tracking to autonomous planning
 
-- **Plain Markdown, in your repo.** Every card is a Markdown file under
-  `docs/kanban/`. Diffable, reviewable, versioned with your code — not locked in
-  a SaaS.
-- **Steered in plain language.** Say "/kanban what's next?" or "/kanban #4 is
-  done." Claude reads the board and your sources, then proposes, writes, and
-  archives for you.
-- **No database, no MCP.** Just a skill file and a small Node script. The board
-  is plain Markdown any agent can read, so Cursor or Codex can drive it too —
-  nothing to install, host, or pay for, and it keeps working offline.
-- **Built for solo founders.** Keep marketing, building, docs, and research side
-  by side in one repo — so the model can compose across everything you have.
+Traditional boards only record and track tasks, and every input has to be
+written by hand. AI4Kanban uses your long-term goals and the decisions already
+in project memory to plan work and move it forward autonomously.
 
-## 01 · Setup — Start with the board app
+| | Traditional board | AI4Kanban |
+| --- | --- | --- |
+| Input | Detailed tasks written by hand | Long-term goals and rough ideas |
+| Primary role | Record and track tasks | Plan and drive work autonomously |
+| Your role | Maintain the board by hand | Make decisions and approve the result |
+
+## Keep work moving
+
+Give it a goal or a rough idea. The agent reads your code and project memory,
+determines what comes next, clarifies requirements, breaks the work down, orders
+dependencies and priorities, and moves into execution.
+
+- **Define the next task** — Use the goal, code, and module memory to determine
+  what should happen next.
+- **Clarify requirements** — The agent resolves anything it can from the code and
+  project memory, bringing you only the product tradeoffs that require your
+  judgment.
+- **Execute** — Once the requirements are clear enough to begin, the agent
+  follows the scope and steps defined in the task.
+- **Record decisions** — Write product decisions back to project memory so the
+  next planning and development cycle can build on them.
+
+## Learns as you build
+
+Conversations end. Product decisions stay. AI4Kanban saves your project goals and
+keeps a module-by-module record of shipped features, product decisions, reasons
+behind rejected ideas, and design lessons. It brings that context back when
+planning and clarifying new work.
+
+- **No need to repeat yourself** — Established preferences and constraints carry
+  straight into planning the next task.
+- **Avoid the same dead ends** — Rejected directions and known design problems
+  are not proposed again.
+- **Pick up where you left off** — Before planning new work, it reads what has
+  already shipped and checks the current code.
+
+```
+docs/kanban/memory/
+├─ goal.md            # the project goal
+├─ local-ui/          # one folder per module
+│  ├─ readme.md       # shipped features
+│  ├─ decisions.md    # product decisions
+│  ├─ rejected.md     # reasons for rejection
+│  └─ redesign.md     # design lessons
+└─ site/
+```
+
+## Drive continuous product iteration
+
+Turn external signals into requirements that keep the product — and each
+release — moving forward.
+
+External inputs:
+
+- User feedback
+- Competitor research
+- Industry reports
+- Reddit discussions
+
+Internal inputs:
+
+- Product roadmap
+
+The project data it reads and writes:
+
+- The board itself — the cards that are ready to build, and the ones that are
+  not yet.
+- Project memory — the goal, shipped features, product decisions, rejected
+  ideas, and design lessons.
+- All of it plain Markdown in your repo, so any agent can run the work.
+
+Iteration outcomes:
+
+- Product improvements
+- Release iterations
+
+## Start with the board app
 
 Download the board as a desktop app at https://ai4kanban.dev/download — nothing
 to install first: no Node, no npx, no terminal. No build is signed yet, so macOS
@@ -53,138 +118,6 @@ command too: `npx ai4kanban@latest update`.
 Driving the board from a coding agent is a separate, optional step — installing a
 board does not install the skill. Add it with `npx ai4kanban@latest skill install`,
 or from the app's **Configuration → Skill** button.
-
-## 02 · Usage — Using ai4kanban in Claude Code
-
-Once installed, drive it in plain language:
-
-| You say | What Claude does |
-| --- | --- |
-| "/kanban what's next?" | reads the board + your sources, proposes 3 new tasks |
-| "/kanban add a task: …" | reviews the idea, writes a card, adds it to the index |
-| "/kanban refine #4" | reviews card #4, then pushes it one stage toward concrete |
-| "/kanban review the board" | checks cards for clarity, duplication, done-ness |
-| "/kanban #4 is done" | notes what shipped, moves the card off the board |
-| "/kanban #4 was a bad idea" | records why in rejected.md so it's never re-proposed |
-
-## 03 · Board UI — What the app does past setup
-
-The app from step 01 stays the way in. It works over the same Markdown files —
-read a task in full without hunting for its file in your IDE tree, and act on it
-with a click instead of re-typing the same prompt into the chat. It asks which
-project folder to open the first time and remembers it. macOS, Windows and Linux;
-macOS is the build we test.
-
-Each card's buttons hand a move to an agent, no chat needed:
-
-- **Implement** — hand the card to Claude to build
-- **Edit** — revise the card, don't run it
-- **Refine** — push a stuck card one step on
-- **Resolve** — answer the card's open questions
-- **Archive** — file a finished card away
-- **Reject** — drop a card and note why
-
-## 04 · Presets — The indie-hacker preset
-
-Building all day while nobody's watching is the classic solo-founder trap. This
-preset splits your time three ways — finding users, checking demand, and
-building — and Claude keeps new work spread across all three instead of piling it
-onto one.
-
-- **growth (50%)** — Get in front of users — posts, outreach, launches. Claude
-  suggests methods worth trying and drafts them.
-- **validation (30%)** — Check the market wants it before you build deep. Post an
-  honest question, share a trial, save the verdict.
-- **building (20%)** — Stay at MVP. Build when it scales your work, strengthens
-  the product, or users clearly ask for it.
-
-The `indie-hacker` preset also adds review gates — a moat test and a trust
-test — plus a market-validation method for posting to Reddit or X before you
-build. Swap in your own tracks and weights at install time.
-
-## 05 · Features — Project management in Markdown, not a flat list
-
-A flat to-do list is just a list. This one does four things a list can't —
-recurring work, subtasks for the big jobs, a memory of what's done, and a
-throughput count.
-
-### Recurring tasks
-
-Some work is never one-and-done. Keep each as a card in
-`docs/kanban/todo/recurring/` — a job that never gets archived — and let Claude
-Code's `/loop` run it on the cadence you pick, like every morning.
-
-- **Competitor tracking** — See what rivals shipped or changed, and flag anything
-  worth a response.
-- **Social listening** — Pull fresh posts from Reddit or Slack and surface the
-  ones that matter.
-- **Board review** — Sweep the backlog for stale, duplicate, or already-done
-  cards.
-
-Not every job needs the same level of automation. A card can sit at any rung —
-from one you drive by hand, to one Claude handles for you, to a script that runs
-on its own:
-
-- `[ask]` — you do it by hand
-- `[agent]` — Claude does it for you
-- `[script]` — a command runs it, no human
-
-Push each job as far up as it earns — some stay hands-on, others run themselves.
-
-### Group tasks
-
-A task too big to start tends to just sit there. When one card can't hold it, it
-becomes a **group task** — its own folder with a tracking `root.md` and one card
-per piece. Each piece gets its own id and is wired with `Blocked by` and
-`Related` links, so you always know the next thing to pick up.
-
-```
-todo/42-payments/
-  root.md                  # the tracking task
-  feature/43-checkout.md   # a subtask, its own card + id
-  feature/44-refunds.md
-  bug/45-webhook-retry.md
-```
-
-### Project memory
-
-Working the board is a loop. Each round, Claude proposes new work by pulling from
-three sources, you make the call, and it folds the result into a memory hub — so
-the next round builds on the last instead of repeating it.
-
-The three stages of one loop:
-
-1. **Propose** — Pulls from three sources for work that isn't already shipped or
-   shelved.
-2. **You decide** — Ship it, skip it, or fix the plan. A few words back to Claude
-   is enough.
-3. **Learn** — Folds the outcome and your feedback into the hub, so the next
-   round starts sharper.
-
-The three sources it pulls from:
-
-- **Your project** — Codebase, board, docs, team chat — it connects what's
-  already here into work worth doing.
-- **The outside** — Reddit, Slack, your CRM. Recurring jobs pull in fresh signal
-  and drop the findings on the board.
-- **You** — Your own steer and feedback, kept in the board so a good call is never
-  lost or asked twice.
-
-The hub — `docs/kanban/`, the files that hold your feedback:
-
-- **memory.md** — Notes from each scan carry to the next, with a watermark per
-  source — so it re-reads only what changed.
-- **archive.md** — Shipped work shrinks to a plain line. It reads this before
-  proposing, so it won't re-suggest what's done.
-- **rejected.md** — Ideas you turned down are kept with the reason, so it never
-  floats them at you again.
-- **redesign.md** — A design mistake you corrected becomes a note, so the next
-  card doesn't repeat the wrong plan.
-
-### Task metrics
-
-Each archived card is one shipped unit, so your velocity is just a number in git
-next to the work — no external tool to keep in sync.
 
 ---
 

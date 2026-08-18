@@ -16,7 +16,7 @@ const zh: DownloadCopy = {
     lead: "看板的桌面应用，支持 macOS、Windows 和 Linux。无需预先安装任何东西 —— 不需要 Node，不需要 npx，也不需要终端。",
     cta: "下载 {system} 版",
     ctaAny: "下载",
-    note: "发起 Agent 运行仍然需要机器上装有 Claude Code 或 Codex。",
+    note: "发起 Agent 运行仍然需要机器上装有 Claude Code、Codex、Cursor 或 OpenCode。",
   },
 
   builds: {

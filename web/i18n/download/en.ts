@@ -16,7 +16,7 @@ const en: DownloadCopy = {
     lead: "The board as an app for macOS, Windows and Linux. Nothing to install first — no Node, no npx, no terminal.",
     cta: "Download for {system}",
     ctaAny: "Download",
-    note: "Starting agent runs still needs Claude Code or Codex on the machine.",
+    note: "Starting agent runs still needs Claude Code, Codex, Cursor, or OpenCode on the machine.",
   },
 
   builds: {

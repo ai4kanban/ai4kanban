@@ -60,8 +60,8 @@ AI4Kanban 面向小团队。它不是替你决定产品方向，而是把人的�
 
 ## 实现方式
 
-- [x] **不绑定单一 Agent。** 看板与运行工具解耦，目前已接入 Claude Code 和 Codex；
-  Cursor 等其他运行环境在路线图中。
+- [x] **不绑定单一 Agent。** 看板与运行工具解耦，Claude Code、Codex、Cursor、OpenCode
+  现在都能跑这块看板；下一个接谁，看大家要什么。
 - [x] **本地优先。** 卡片默认存储为 Markdown 文件，无需 MCP 或数据库，减少 token 消耗。
   所有内容都是 Git 中的纯文本，可以审查、对比和回滚。
 - [x] **开箱即用。** 下载应用，或一条提示词。AI4Kanban 专注于项目管理，几乎无需配置。
@@ -90,8 +90,8 @@ track，项目目标，以及由哪个 Agent 来跑这块看板 —— 一屏一
 任何地方粘贴命令。
 
 然后点 **Finish setup**，剩下的看板自己往下做：读代码库、建立模块记忆、画出模块图，并
-创建首批 10 张任务卡片。发起 Agent 运行仍然需要机器上装有 Claude Code 或 Codex，这一点
-和在终端里一样。
+创建首批 10 张任务卡片。发起 Agent 运行仍然需要机器上装有 Claude Code、Codex、Cursor
+或 OpenCode，这一点和在终端里一样。
 
 ### 2. 或者在终端里装
 
@@ -122,15 +122,16 @@ https://ai4kanban.dev/INSTALL_PROMPT.txt and follow it.
 
 ## 让编码 Agent 也能驱动这块看板（可选）
 
-上面两条路都不会装 skill，看板不装也照跑。想让 Claude Code 或 Codex 在对话里直接驱动
+上面两条路都不会装 skill，看板不装也照跑。想让你的编码 Agent 在对话里直接驱动
 同一块看板 —— 就在你已经开着的会话里提需求、细化、实现，而不是按个按钮看它跑 —— 再装：
 
 ```bash
 akb skill install
 ```
 
-装进仓库的是每个 agent 各一张短笺：`.claude/skills/kanban/`（Claude Code）和
-`.agents/skills/kanban/`（Codex），说明看板在这儿、由 `akb` 说了算。别的什么都不拷 ——
+装进仓库的是 agent 会读的两个目录各一张短笺：`.claude/skills/kanban/`（Claude Code）和
+`.agents/skills/kanban/`（Codex、Cursor、OpenCode），说明看板在这儿、由 `akb` 说了算。
+别的什么都不拷 ——
 agent 照着干活的那些流程都随 `akb` 一起发布，所以命令一新，所有项目的流程就都跟着新了。
 桌面应用里也能一键装上：**Configuration → Skill**。
 
@@ -274,8 +275,8 @@ npx ai4kanban-ui        # 已弃用 —— http://localhost:7420，仅本机
 ## 路线图
 
 - [ ] **可插拔存储**（即将）：将看板存储在 Obsidian、Notion 或 GitHub Issues 中。
-- [ ] **更多 Agent 运行环境**（进行中）：目前已支持 Claude Code 和 Codex，后续接入
-  Cursor。
+- [ ] **更多 Agent 运行环境**（进行中）：目前已支持 Claude Code、Codex、Cursor 和
+  OpenCode，下一个接谁，看大家要什么。
 - [ ] **Git worktrees**（即将）：让多个任务分别在独立 worktree 中并行执行，互不干扰。
 - [ ] **外部输入连接器**（即将）：通过 Webhook 接入用户反馈、竞品研究和行业信号，再由
   看板转成可以评估的任务。

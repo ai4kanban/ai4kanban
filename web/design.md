@@ -191,6 +191,20 @@ artwork and never carry readable content on pigment.
 - Treat reduced motion, keyboard navigation, zoom, and translated copy as core design
   states rather than exceptions.
 
+## Page copy
+
+The words every page renders live in `i18n/<page>/<locale>.ts`; English is the source
+the other four languages follow (`i18n/index.ts`).
+
+- **Keep the Markdown mirrors in step with the copy**: a change to the landing copy in
+  `i18n/home/` is not finished until `public/index.md` says the same thing, and
+  `public/llms.txt` — the site's description and the home entry's title and summary —
+  matches the new mirror. The mirrors are what AI crawlers read instead of the page, so
+  a stale one describes a site we no longer have.
+- **Mirror the page, don't extend it**: a mirror carries the page's sections, in the
+  page's order, in plain Markdown. Content the page dropped is dropped here too.
+- **Mirrors stay English**: they are not translated.
+
 ## Styling rules
 
 - Write Tailwind utilities next to the markup by default.

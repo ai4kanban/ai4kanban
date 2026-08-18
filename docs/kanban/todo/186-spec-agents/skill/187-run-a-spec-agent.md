@@ -47,7 +47,7 @@ part of that card's spec written. This is what the two first agents run on.
   first, and the section arrives when the agent is done. A run that waited for it would
   leave the user staring at a flow that has stopped for minutes with nothing on the board.
 - **A failed agent leaves the card alone** — no section, the plan as it was, and the
-  failure shown the way any failed run is (#67, #179). A half-written spec is worse than
+  failure shown the way any failed run is (#179). A half-written spec is worse than
   none.
 - **Two agents may work one card** — they write different sections. Two runs writing the
   same card file at the same time is the same problem #156 already owns.

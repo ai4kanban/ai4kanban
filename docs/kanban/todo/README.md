@@ -18,13 +18,12 @@ _(none)_
 - [#57 Let a user choose where the board is stored](57-choose-where-the-board-is-stored/root.md)
 - [#116 Unstick cards that sit on the board too long](116-stuck-cards/root.md)
 - [#154 Show what a card unblocks, so the ones holding up work go first](features/154-show-what-a-card-unblocks-so-the-ones-holding-up-work-go-fir.md)
-- [#160 Run the board with an agent beyond Claude Code and Codex](features/160-run-the-board-with-an-agent-beyond-claude-code-and-codex.md)
 - [#179 Show a failed run on the card it was working on](features/179-show-a-failed-run-on-the-card-it-was-working-on.md)
 - [#182 Sign the Mac build so it opens with no warning](features/182-sign-the-mac-build-so-it-opens-with-no-warning.md)
 - [#183 Install the Mac app with one Homebrew command](features/183-install-the-mac-app-with-one-homebrew-command.md)
 - [#225 Run the board on DeepSeek Harness (dsh)](features/225-run-the-board-on-deepseek-harness-dsh.md)
-- [#67 Say why a run failed, not only that it failed](features/67-say-why-a-run-failed-not-only-that-it-failed.md)
 - [#226 Install the akb command from the desktop app](features/226-install-the-akb-command-from-the-desktop-app.md)
+- [#229 Tell the user how to log in to the agent, not just how to install it](features/229-tell-the-user-how-to-log-in-to-the-agent-not-just-how-to-ins.md)
 
 ## skill
 
@@ -46,8 +45,8 @@ _(none)_
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#202 Test whether the board changes what a coding agent builds](202-board-vs-no-board/root.md)
 - [#209 Teach the daily loop as buttons, not only as things you say](distribution/209-teach-the-daily-loop-as-buttons-not-only-as-things-you-say.md)
-- [#215 Bring the plain-Markdown mirror of the landing page back in line](distribution/215-bring-the-plain-markdown-mirror-of-the-landing-page-back-in.md)
 - [#216 Fix the memory file names the comparison pages still show](distribution/216-fix-the-memory-file-names-the-comparison-pages-still-show.md)
+- [#228 The daily maintenance recipe describes a board that no longer exists](distribution/228-daily-maintenance-recipe-describes-a-board-that-no-longer-ex.md)
 
 ## 143-ui-tasks/features
 

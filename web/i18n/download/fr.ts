@@ -17,7 +17,7 @@ const fr: DownloadCopy = {
     lead: "Le tableau en application pour macOS, Windows et Linux. Rien à installer au préalable : ni Node, ni npx, ni terminal.",
     cta: "Télécharger pour {system}",
     ctaAny: "Télécharger",
-    note: "Lancer un agent demande toujours Claude Code ou Codex sur la machine.",
+    note: "Lancer un agent demande toujours Claude Code, Codex, Cursor ou OpenCode sur la machine.",
   },
 
   builds: {

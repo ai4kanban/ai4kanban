@@ -20,7 +20,9 @@ covers it, or a plain-words note.
 - The install section says what setup actually does: the agent asks only for the project
   goal, settles the first decisions from it, and creates the first ten tasks.
 - The plain-Markdown mirror at `/index.md` and the file index at `/llms.txt` say the same
-  as the page they mirror.
+  as the page they mirror: the opening pitch, the comparison with a traditional board,
+  the four steps that keep work moving, the project-memory file tree, continuous
+  iteration, and getting started last.
 
 ## Comparison pages
 

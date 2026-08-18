@@ -6,7 +6,7 @@ roi: high
 status: ready
 release: ""
 blocked_by: []
-related: [67, 50]
+related: [50]
 modules: [local-ui]
 questions: []
 ---
@@ -45,16 +45,13 @@ run only leaves a mark while it is live.
 - No list of past runs on a card. The newest run is what a card shows; the runs panel is
   where you browse.
 - No mark on the board's card grid. The card page is what this card is about.
-- No sorting the failure into a kind — rate limit, can't start, everything else. That is
-  #67's work; this card shows whatever #67 writes onto the run.
+- No sorting the failure into a kind — rate limit, can't start, everything else. The line
+  says the run stopped short; why it stopped stays in the log.
 
 ## Decided by the agent
-- Does this overlap #67? No. #67 works out **why** a run failed and what the dispatcher
-  does about it; this card is only about the card page showing that a run stopped. Either
-  can ship first, so neither blocks the other.
-- Where does the line live — the shared notice bar #67 builds, or the log window? The log
-  window. #67's bar carries card state (the dispatcher gave up on this card); this is one
-  run's outcome, and putting it in the log window keeps the two cards independent.
+- Where does the line live — the card's own notice strip or the log window? The log
+  window. The strip carries facts about the card; this is one run's outcome, and it goes
+  when a newer run replaces it.
 - Does a run cut off by a UI restart count? Yes. It stopped short the same way and can be
   resumed the same way — the board already treats the two together.
 - What if the run is too old to resume, or the user has since switched agents? The line

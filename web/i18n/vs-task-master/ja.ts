@@ -119,7 +119,7 @@ const ja: VsTaskMasterCopy = {
       reach: {
         dimension: "どこで動くか",
         kanban:
-          "現時点では Claude Code と Codex。ボードはただのファイルなので、別のハーネスでも新しい形式は不要で、つなぐだけです。",
+          "現時点では Claude Code、Codex、Cursor、OpenCode。ボードはただのファイルなので、別のハーネスでも新しい形式は不要で、つなぐだけです。",
         taskMaster:
           "Cursor、Windsurf、VS Code、Claude Code、Codex、Kiro、Amazon Q ほか。MCP または CLI 経由で、15 を超えるモデルプロバイダーに対応します。",
       },

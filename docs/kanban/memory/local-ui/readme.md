@@ -129,3 +129,7 @@ except where another doc is named.
   board arrives without one. The pane says whether it is there and how current it is, one
   button writes it or updates an older copy, and it hands over the line for a newer `akb`
   when yours is behind rather than running it: "The coding agent skill".
+- Run the board on Cursor or OpenCode as well as Claude Code and Codex — pick one in
+  **Configuration → Agent** and every button spawns it, with its own settings, live log,
+  stop and resume. Where a CLI reports no cost or no model name the log leaves that blank
+  rather than guessing: "Running on Cursor", "Running on OpenCode" in the UI docs.

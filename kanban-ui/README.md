@@ -666,8 +666,8 @@ It shows from the run's first seconds, so you can see what a live run is using, 
 exactly as the agent said it — the board never tidies up or invents a model name.
 
 A run whose agent never named a model shows nothing there: an older run from before the board
-tracked this, and any agent whose output doesn't say — Codex never does, so a Codex run names
-no model even with the Model box filled in.
+tracked this, and any agent whose output doesn't say — Codex and OpenCode never do, so a run
+on either names no model even with the Model box filled in.
 
 ## Group tasks
 
@@ -693,8 +693,9 @@ The gear in the header opens the **Configuration** dialog. A sidebar on its left
 sections — **Agent** and **Skill** — and a new group of settings joins as one more entry
 there. It holds:
 
-- **Agent** — pick the agent that every button spawns: **Claude Code** or **Codex**. It runs
-  in your repo root. See **Running on Codex** below for what changes when you switch.
+- **Agent** — pick the agent that every button spawns: **Claude Code**, **Codex**, **Cursor**
+  or **OpenCode**. It runs in your repo root. See **Running on Codex**, **Running on Cursor**
+  and **Running on OpenCode** below for what changes when you switch.
 
   The picker marks the agents this machine can actually run. One whose CLI isn't on the
   board's `PATH` is dimmed and reads **not installed** — it can still be picked, and the
@@ -727,6 +728,24 @@ there. It holds:
     empty for its own default.
   - **OpenAI API key** — optional. Leave it empty and runs use the login your `codex` CLI
     already has. Fill it in and every run uses that key instead. See **Keys** below.
+
+  Cursor takes two:
+  - **Model** — the id Cursor runs with, passed to it as `--model`. There is no separate
+    reasoning box: Cursor carries the level inside the model id itself, written like
+    `claude-opus-4-8[effort=high]`.
+  - **Cursor API key** — optional. Empty and runs use the login your `cursor-agent` CLI
+    already has.
+
+  OpenCode takes two:
+  - **Model** — written as `provider/model`, because OpenCode reaches every provider and the
+    name on its own wouldn't say which. `anthropic/claude-opus-5`, for instance.
+  - **Reasoning effort** — a box you type in rather than a list, because the level is your
+    provider's own word (`minimal`, `high`, `max`) and providers don't agree on the words.
+    Empty lets the model think however it thinks.
+
+  OpenCode has no key box, and that is deliberate: it reaches any provider and each one has
+  its own key, so one box would hold the wrong key for most people. Its runs use the login
+  `opencode auth login` already made.
 
   Switching agents empties the fields — a Claude model id means nothing to Codex — and leaves
   your saved keys alone.
@@ -762,8 +781,9 @@ file (see **Keys** below).
 
 `harness` is the agent that runs — a name, and nothing else. It decides everything about how
 that agent runs: the command, the flags that make it stream its output into the live log, the
-env vars, the flags the **Resume** button uses, and how a prompt calls the skill. Two agents
-ship: `claude-code`, the default, and `codex`. If the file names an agent this UI doesn't
+env vars, the flags the **Resume** button uses, and how a prompt calls the skill. Four agents
+ship: `claude-code`, the default, plus `codex`, `cursor` and `opencode`. If the file names an
+agent this UI doesn't
 know, Claude Code runs and the dialog says so — you are never moved to a different agent
 without being told.
 
@@ -777,8 +797,9 @@ block instead of sharing one. Only the running agent's block is read.
 Inside a block, each key is one of the settings that agent takes. Each agent says which
 settings it has and what each one is called, and the dialog draws that list — so the fields
 you see always belong to the agent you picked, and a new agent is one entry rather than a new
-box in the UI. Claude Code has four: `provider`, `baseUrl`, `model` and `reasoning`. Codex has
-one, `model`. Their API keys are settings too, but a key is never written to this file — keys
+box in the UI. Claude Code has four: `provider`, `baseUrl`, `model` and `reasoning`. Codex and Cursor have
+one each, `model`. OpenCode has two, `model` and `variant`. Their API keys are settings too,
+but a key is never written to this file — keys
 have their own place (see **Keys**), and they stay under the variable they were written for, so
 switching agents never touches them.
 
@@ -833,8 +854,8 @@ rather than handing its id to a CLI that never heard of it.
 
 Getting a board does not bring this with it. A new board is `docs/kanban/` and nothing else,
 and the board works that way for good — every button here runs without it. What it adds is a
-second way in: with it, you can say *"add a task"* or *"what's next"* to Claude Code or Codex
-in your repo and it works this same board — the same cards, the same runs, the same files.
+second way in: with it, you can say *"add a task"* or *"what's next"* to your coding agent in
+your repo and it works this same board — the same cards, the same runs, the same files.
 
 **Configuration → Skill** is where you turn that on. The pane says where the project stands
 and one button does the rest:
@@ -845,7 +866,8 @@ and one button does the rest:
   to date**, and refreshes it.
 
 Under the button it names the folders it touches — `.claude/skills/kanban/` for Claude Code,
-`.agents/skills/kanban/` for Codex — and after a press it says, folder by folder, what it
+`.agents/skills/kanban/` for Codex, Cursor and OpenCode — and after a press it says, folder by
+folder, what it
 wrote. Each folder gets one file, `SKILL.md`: a short note saying the board is here and that
 `akb` owns it. The rules themselves are not copied in — they live in the command. So this
 writes a few kB in your repo and nothing else, and it never runs a global install.
@@ -870,7 +892,7 @@ the same cards, the same buttons, the same files.
 You need the `codex` CLI on your PATH, signed in — a ChatGPT subscription runs the board the
 same way a Claude one does. **Codex 0.94 or newer**, which is when it started reading skills
 from `.agents/skills/`; the board's install writes the skill there as well as into
-`.claude/skills/`, so both agents find it with nothing to set up. (Resuming a run needs
+`.claude/skills/`, so every agent finds it with nothing to set up. (Resuming a run needs
 `codex exec resume`, which has been there since 0.35, so the skills version is the one that
 matters.)
 
@@ -897,6 +919,66 @@ Four things read differently on Codex:
 **Resume** works: Codex mints its own thread id, the board catches it from the run's first
 event and keeps it with the session, and Resume continues that thread with
 `codex exec resume <thread-id>`.
+
+### Running on Cursor
+
+Pick **Cursor** and every button spawns `cursor-agent -p --output-format stream-json --force`
+instead. Same cards, same buttons, same files.
+
+You need the `cursor-agent` CLI on your PATH, signed in. It is the one agent of the four that
+doesn't come from npm — it installs from a script, `curl https://cursor.com/install -fsS | bash`,
+which is the line the picker hands you when it isn't there.
+
+Its two settings sit under the agent rows: a **Model** box, passed as `--model`, and an
+optional **Cursor API key** (`CURSOR_API_KEY`) — leave that empty and runs use the login your
+`cursor-agent` CLI already has.
+
+Three things read differently on Cursor:
+
+- **A run answers its own prompts.** `--force` lets it use its tools without stopping to ask.
+  A board run has nobody to answer, and Cursor's own answer to an unanswered question is to
+  refuse — so without this the run would end having changed nothing. Cursor's docs name this
+  flag for exactly this case.
+- **No cost.** Cursor's output reports no price and no token counts, so its log shows the
+  duration and nothing where Claude Code shows `est. $0.42`.
+- **No reasoning box.** Cursor carries the thinking level inside the model id itself —
+  `claude-opus-4-8[effort=high]` — so there is nothing separate to set.
+
+The model name does show: Cursor names it in the run's opening event, so a Cursor log reads
+like a Claude Code one there. **Resume** works too — Cursor mints its own session id, the
+board catches it from the first event, and Resume continues with `cursor-agent --resume <id>`.
+
+### Running on OpenCode
+
+Pick **OpenCode** and every button spawns `opencode run --format json` instead. Same cards,
+same buttons, same files.
+
+You need the `opencode` CLI on your PATH and logged in with `opencode auth login`. It
+installs from a script rather than npm: `curl -fsSL https://opencode.ai/install | bash`.
+
+Its two settings are a **Model** box and a **Reasoning effort** box. Both differ from the
+other agents:
+
+- **The model is written `provider/model`** — `anthropic/claude-opus-5`, `openai/gpt-5.1`.
+  OpenCode reaches every provider, so the model name alone wouldn't say which one to use.
+- **Reasoning effort is a box, not a list.** The level is your provider's own word for it —
+  `minimal`, `high`, `max` — and providers don't agree on the words, so the board offers no
+  list that could go stale.
+
+Three things read differently on OpenCode:
+
+- **No API key box.** OpenCode reaches any provider and each has its own key, so one box
+  would be the wrong key for most people. Runs use whatever `opencode auth login` saved.
+- **No model name.** OpenCode names the model only in its formatted output, never in the
+  event stream the board reads — so an OpenCode log names no model, even with the Model box
+  filled in.
+- **A run stays inside your repo, with nothing to set.** Left alone OpenCode writes in the
+  working folder and refuses anything outside it, which is what a board run wants. There is
+  no flag to widen it in the version people install today.
+
+Cost does show, and token counts with it: OpenCode reports both per model call and the board
+adds them up, so its log reads like a Claude Code one there. **Resume** works — the session
+id rides on every event, and Resume continues with `opencode run --session <id>`.
 
 ### Which provider a run goes through
 
@@ -937,8 +1019,10 @@ else. An OpenAI model reaches it through a gateway that answers in the Anthropic
 that's the endpoint entry, with the gateway's own base URL. To run Codex on an OpenAI account,
 pick Codex.
 
-Codex has no provider list yet: it runs on whatever login its CLI has, plus the optional key
-below, and its runs inherit your shell environment as they always did.
+Codex, Cursor and OpenCode have no provider list: each runs on whatever login its own CLI
+has, plus the optional key where it takes one, and their runs inherit your shell environment
+as they always did. OpenCode is the one that reaches every provider by itself — you pick that
+provider in its model id, `provider/model`, and its own `opencode auth login` holds the key.
 
 ### Testing the connection
 
@@ -1015,19 +1099,22 @@ key there as its own login and turns your claude.ai connectors off when it finds
 belongs to the provider you picked: on the **Claude subscription** it isn't sent at all,
 even when it's saved.
 
-Each agent takes one key, and it is **optional** either way: Claude Code's is
-`ANTHROPIC_API_KEY`, Codex's is `OPENAI_API_KEY`. Leave it empty and runs use whatever login
-that CLI already has, which is how the board has always worked. Clear it and the next run goes
-straight back to that login. The two keys sit side by side in the file — switching agents,
-or providers, never touches either one, so a key you gave once is still there when you come
+Three of the four agents take one key each, and it is **optional** every time: Claude Code's
+is `ANTHROPIC_API_KEY`, Codex's is `OPENAI_API_KEY`, Cursor's is `CURSOR_API_KEY`. Leave it
+empty and runs use whatever login that CLI already has, which is how the board has always
+worked. Clear it and the next run goes straight back to that login. OpenCode takes no key
+here at all: it reaches any provider and each has its own, so its runs use the login
+`opencode auth login` made. The keys sit side by side in the file — switching agents, or
+providers, never touches any of them, so a key you gave once is still there when you come
 back.
 
 ### When a run fails or is interrupted
 
 A run that stopped short — the peach dot in the sessions panel — shows a **Resume** button. It
-sends one more turn into that same conversation (`claude --resume <id>`, or
-`codex exec resume <thread-id>`, run for you), so the agent picks up where it stopped instead
-of starting the task over. Nothing is copied and you never see an id.
+sends one more turn into that same conversation (`claude --resume <id>`,
+`codex exec resume <thread-id>`, `cursor-agent --resume <id>` or `opencode run --session <id>`,
+run for you), so the agent picks up where it stopped instead of starting the task over.
+Nothing is copied and you never see an id.
 
 Two things stop a run short, and the log says which. It **exited** with a non-zero code: the
 agent itself gave up, and the reason is in its output. Or it was **interrupted**: the board
@@ -1057,8 +1144,8 @@ away and the board shows it failed. Note this is not a spend control: whether hi
 plan's limit spills into paid extra usage is an account setting on claude.ai, not something
 the CLI can turn off.
 
-Codex has no equivalent switch, so a rate-limited Codex run waits it out and holds its card
-while it does — see **Running on Codex**.
+No other agent has an equivalent switch, so a rate-limited Codex, Cursor or OpenCode run
+waits it out and holds its card while it does — see **Running on Codex**.
 
 ## When it finds no board
 

@@ -30,7 +30,7 @@ planning memory in git.
 | Best fit | Solo developers and small teams whose coding agent drives the work. | Product and engineering teams coordinating people, projects, and agents. | Trade-off |
 | Source of truth | Markdown in the project repo, versioned with the code. | A shared Linear workspace reached through its apps, API, or MCP. | AI4Kanban |
 | From rough idea to ready task | A repeated refine-and-resolve loop answers what it can, records the rest, and stops only when the card is concrete. | Linear Agent can draft, summarize, update, and help scope work; issue quality still drives coding-session results. | AI4Kanban |
-| Agent model | Your existing harness reads and writes the board; Claude Code and Codex are wired up today. | Linear Agent plus installable app users, delegated issues, agent guidance, and a hosted MCP server. | Trade-off |
+| Agent model | Your existing harness reads and writes the board; Claude Code, Codex, Cursor, and OpenCode are wired up today. | Linear Agent plus installable app users, delegated issues, agent guidance, and a hosted MCP server. | Trade-off |
 | Coding and review | The chosen harness implements the ready card; review stays in that harness and git workflow. | Coding Sessions run Claude Code or Codex in the cloud, open a PR, and put diffs and review in Linear. | Linear |
 | Human collaboration | Small-team git collaboration; concurrent board editing is not its strength. | Real-time workspace with members, assignees, comments, private teams, guests, and permissions. | Linear |
 | Planning breadth | Cards, dependencies, priority, ROI, releases, and module memory. | Issues, projects, cycles, initiatives, milestones, timelines, triage, insights, and customer requests. | Linear |
@@ -62,7 +62,8 @@ developer, two sources of truth are usually more process than value.
 - **Planning memory lives beside the code** — Decisions, rejected ideas, dependencies,
   and cards are plain, diffable files the next agent run reads by default.
 - **Bring your own harness** — The board is not tied to Linear Agent or one coding-agent
-  integration. Claude Code and Codex work today; the file format is open to any harness.
+  integration. Claude Code, Codex, Cursor, and OpenCode work today; the file format is open
+  to any harness.
 - **No board SaaS to administer** — No workspace, seats, auth, database, or sync layer for
   the planning surface itself.
 

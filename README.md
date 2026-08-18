@@ -76,8 +76,8 @@ repetitive questions, and avoid directions that have already been rejected.
 ## How it works
 
 - [x] **Not tied to a single agent.** The board is decoupled from agent runtimes. Claude
-  Code and Codex are supported today, with Cursor and other environments
-  on the roadmap.
+  Code, Codex, Cursor, and OpenCode all run it today, and the next one is whichever
+  people ask for.
 - [x] **Local first.** Cards are stored as Markdown files by default, with no MCP server
   or database required, reducing token usage. Everything is plain text in Git, so it can
   be reviewed, diffed, and rolled back.
@@ -111,8 +111,8 @@ the tracks its work falls into, your project goal, and which agent runs the boar
 
 Then press **Finish setup** and the board works down the rest itself: it reads your
 codebase, establishes module memory, maps the project's modules, and creates the first ten
-task cards. Starting runs needs your coding agent — Claude Code or Codex — on the machine,
-same as from a terminal.
+task cards. Starting runs needs your coding agent — Claude Code, Codex, Cursor, or
+OpenCode — on the machine, same as from a terminal.
 
 ### 2. Or set it up from a terminal
 
@@ -148,7 +148,7 @@ to be installed.
 ## Drive the board from your coding agent (optional)
 
 Nothing above installs a skill, and the board runs fine without one. Add it when you want
-Claude Code or Codex to work the same board from a chat — proposing tasks, refining them,
+your coding agent to work the same board from a chat — proposing tasks, refining them,
 and implementing them in the session you are already in, instead of pressing a button and
 watching a run:
 
@@ -156,8 +156,9 @@ watching a run:
 akb skill install
 ```
 
-That writes one short note per agent — into `.claude/skills/kanban/` (Claude Code) and
-`.agents/skills/kanban/` (Codex) — saying the board is here and that `akb` owns it. Nothing
+That writes one short note into each of the two folders agents read — `.claude/skills/kanban/`
+(Claude Code) and `.agents/skills/kanban/` (Codex, Cursor, and OpenCode) — saying the board
+is here and that `akb` owns it. Nothing
 else is copied in: the flows the agent works by ship inside `akb`, so updating the command
 updates every project at once. The board app does the same thing from a button
 (**Configuration → Skill**).
@@ -309,8 +310,8 @@ window. What is deprecated is asking you to start a server and open a browser.
 ## Roadmap
 
 - [ ] **Pluggable storage** (soon): store the board in Obsidian, Notion, or GitHub Issues.
-- [ ] **More agent runtimes** (in progress): Claude Code and Codex are supported
-  today, with Cursor next.
+- [ ] **More agent runtimes** (in progress): Claude Code, Codex, Cursor, and OpenCode
+  are supported today. The next one is whichever people ask for.
 - [ ] **Git worktrees** (soon): run multiple tasks in parallel, each in an isolated
   worktree.
 - [ ] **External input connectors** (soon): bring in user feedback, competitor research,
