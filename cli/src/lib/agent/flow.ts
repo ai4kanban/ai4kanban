@@ -457,6 +457,13 @@ export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
   if (flow.next.length) sections.push({ head: 'handing over — the action to reach for, and when:', lines: flow.next })
 
   say(flow.lead)
+  // The flows below are the shipped text and spell the command `akb` throughout. On a
+  // machine without one, that is a page of lines the reader can't run — so the translation
+  // is given once, before any of them, rather than rewriting text this command didn't write.
+  if (program !== 'akb') {
+    say('')
+    say(`there is no \`akb\` on this machine — every \`akb\` below, in the flows too, is \`${program}\` here.`)
+  }
   // The setup gate, when it is up. Not a refusal: setup's own last step is to write the
   // first cards, and refusing would block the one flow that has to run while the checklist
   // is still there. Nor is it said to the setup job itself, which is the very job it asks

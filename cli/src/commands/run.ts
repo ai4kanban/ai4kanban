@@ -53,8 +53,8 @@ export function cmdStartRun(action: AgentAction, args: string[], program = 'akb'
   const { run, spawned } = started
   if (!spawned) die(`couldn't start a process to run ${run.sessionId}`, { kind: 'spawn-failed' })
   say(`${action} — run ${run.sessionId}`)
-  say(`  follow it: akb log ${short(run.sessionId)} --follow`)
-  say(`  stop it:   akb stop ${short(run.sessionId)}`)
+  say(`  follow it: ${program} log ${short(run.sessionId)} --follow`)
+  say(`  stop it:   ${program} stop ${short(run.sessionId)}`)
   if (follow) return { sessionId: run.sessionId, ...followRun(run.sessionId) }
   return { sessionId: run.sessionId, action, cardId: run.cardId }
 }

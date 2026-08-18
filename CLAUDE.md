@@ -22,6 +22,12 @@ only; routing lives in comments in the files that own it. Read it before changin
     which is a build product and not in git: `npm install` in `cli/` makes it, and there is
     nothing to commit or keep in sync.
 
+## The `akb` command in this repo
+
+There is no `akb` on PATH here — `.claude/skills/kanban` is a symlink to `skill/`, so the
+skill note gives the general answer. In this checkout `akb` means `node cli/bin/ai4kanban.mjs`.
+Use that instead of `npx`, and never install the command globally.
+
 ## Long conversation
 
 If the current session is long and all about a plan, when we finalize the plan, write a HANDOFF.md file so we can implement it in a fresh session.

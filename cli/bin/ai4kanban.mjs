@@ -44,6 +44,44 @@ const REPO = 'https://github.com/ai4kanban/ai4kanban'
 const GET_LINE = `npm install -g ${NAME}`
 const NEWER_LINE = `npm install -g ${NAME}@latest`
 
+// How this command was reached, spelled so what it prints can be pasted straight back.
+//
+// A global install puts it on the PATH as `akb`, and every example everywhere spells it
+// that way. It is also run as a path — `node cli/bin/ai4kanban.mjs` in a source checkout,
+// the copy inside the desktop app — and printing `akb` to a reader who has none is printing
+// a line that ends in `command not found`. Whoever typed it is right here in argv, so ask
+// that rather than guessing: only the PATH spellings are `akb`, `.mjs` never is.
+//
+// Not what's on the PATH, which is a different question with a different answer: `npx` puts
+// an `akb` on the PATH of THIS process and nothing else, so the reader would still be given
+// a line their own shell can't run. That one is spotted by the cache it runs out of, and
+// answered with the same fetch pinned to this version — never `@latest`, which is how a
+// board comes to be driven by two versions of its own rules.
+const PROGRAM = (() => {
+  const entry = process.argv[1] || ''
+  if (/[\\/](_npx|dlx)[\\/]/.test(entry)) return `npx --yes ${NAME}@${VERSION}`
+  const base = path.basename(entry).toLowerCase().replace(/\.(cmd|ps1|exe)$/, '')
+  if (base === 'akb' || base === NAME) return 'akb'
+  // Relative to where it was typed when that is shorter and still runs — a checkout says
+  // `node cli/bin/ai4kanban.mjs`, which reads inside a sentence; an absolute path doesn't.
+  const near = path.relative(process.cwd(), entry)
+  return `node ${near && !near.startsWith('..') ? near : entry}`
+})()
+
+// One line, when this copy isn't `akb`, for the text that spells it `akb` throughout — the
+// help, and the flows a `--print` hands over. Cheaper than rewriting either, and it holds
+// for the lines inside them that this command never wrote.
+const SPELLED = PROGRAM === 'akb' ? '' : `This copy isn't on your PATH as \`akb\` — every \`akb\` below is \`${PROGRAM}\` here.`
+
+// How the help opens: what the command is called, plus that line when it isn't called that.
+const INTRO = [
+  'Installed, it is `akb`. Without installing anything, every line below also works as\n' +
+    '`npx --yes ai4kanban@latest <command>` — the same command, fetched each time.',
+  SPELLED,
+]
+  .filter(Boolean)
+  .join('\n\n')
+
 // The memory set used to sit at the board root before it moved into `memory/`.
 const MEMORY_FILES = ['readme.md', 'goal.md', 'decisions.md', 'redesign.md', 'rejected.md']
 
@@ -127,7 +165,10 @@ async function placeSkill(root, mode) {
   for (const folder of before) {
     if (folder.state !== 'absent' && folder.state !== 'linked') rescueSkillConfig(root, path.join(root, folder.path))
   }
-  const result = installSkill(root, mode === 'update' ? 'present' : undefined)
+  // How this command was typed goes into the note: an install run through `npx` is the one
+  // case the rules can't read off the machine, because npx's `akb` is on this process's
+  // PATH and no shell the agent will ever open.
+  const result = installSkill(root, mode === 'update' ? 'present' : undefined, PROGRAM)
   for (const w of result.wrote) did.push(`${w.refreshed ? 'refreshed' : 'wrote'} ${w.path}/ — ${w.files} (${w.agent})`)
   for (const s of result.skipped) notes.push(`${s.path} — ${s.why}`)
   // A project that has one agent's folder but not the other's. Update never writes a folder
@@ -284,7 +325,7 @@ function cmdInstall(root, tracks) {
   say('To drive this board from your coding agent, add the skill — from the button in the')
   say('board UI (Configuration → Skill), or here:')
   say('')
-  say('    akb skill')
+  say(`    ${PROGRAM} skill`)
 }
 
 // Add the skill to a project, or say where it stands. The whole move belongs to the built
@@ -300,9 +341,10 @@ async function cmdSkill(root, install) {
     say('')
     for (const folder of state.folders) say(`  ${folder.path}/ — ${sayFolder(folder)} (${folder.agent})`)
     say('')
-    if (!state.installed) say('Not installed. `akb skill install` writes it, and so does the board UI\'s button.')
-    else if (state.outdated) say('Older than this command. `akb skill install` brings it up to date.')
+    if (!state.installed) say(`Not installed. \`${PROGRAM} skill install\` writes it, and so does the board UI's button.`)
+    else if (state.outdated) say(`Older than this command. \`${PROGRAM} skill install\` brings it up to date.`)
     else say('Up to date. Your coding agent can drive this board.')
+    await sayPathState()
     return
   }
   say(`ai4kanban ${VERSION} — adding the coding agent skill to ${root}`)
@@ -312,12 +354,31 @@ async function cmdSkill(root, install) {
   sayNotes()
   if (!result.ok) fail(result.error || 'nothing was written')
   say('')
-  say('The flows the agent works by ship with the command — `akb guide` — so they upgrade')
-  say('with it and no copy in this repo can fall behind.')
+  say(`The flows the agent works by ship with the command — \`${PROGRAM} guide\` — so they`)
+  say('upgrade with it and no copy in this repo can fall behind.')
+  await sayPathState()
   say('')
   say('Now say this to your coding agent to try it:')
   say('')
   say(`    ${SETUP_INSTRUCTION}`)
+}
+
+// Whether the agent that reads the note it just got will find the command the note tells it
+// to type. Said here, where the skill lands, rather than left for the agent's first board
+// command to discover — that one comes back `command not found`, and an agent that meets
+// that mid-task stops and asks instead of doing the work.
+//
+// The note itself carries the fallback, so nothing is broken either way. This is so the
+// user knows what their agent is about to do, and what one line would spare it.
+async function sayPathState() {
+  const { readCommandState } = await rules()
+  const command = typeof readCommandState === 'function' ? readCommandState() : null
+  if (!command || command.onPath) return
+  say('')
+  say('There is no `akb` on your PATH. The note tells your agent what to run instead — the')
+  say(`copy in this project, or \`npx --yes ${NAME}@${VERSION}\`. One line makes it direct:`)
+  say('')
+  say(`    ${GET_LINE}`)
 }
 
 function sayFolder(folder) {
@@ -438,13 +499,12 @@ const HELP = `ai4kanban ${VERSION} — set up and update the AI4Kanban board.
 Get the command:  ${GET_LINE}
 Move to a newer one:  ${NEWER_LINE}
 
-Installed, it is \`akb\`. Without installing anything, every line below also works as
-\`npx --yes ai4kanban@latest <command>\` — the same command, fetched each time.
+${INTRO}
 
   akb install [--tracks a,b,c]   scaffold docs/kanban/ — the board, and nothing else
   akb skill                      whether a coding agent can drive this board
-  akb skill install              add the skill: SKILL.md and kanban.mjs into
-                                 .claude/skills/kanban/ and .agents/skills/kanban/
+  akb skill install              add the skill: SKILL.md into .claude/skills/kanban/
+                                 and .agents/skills/kanban/
   akb update                     refresh an installed skill, repair a board written by an
                                  older version, and say if a newer command is out
   akb version                    print this version
@@ -522,9 +582,9 @@ function parse(argv) {
 async function cmdBoard(args) {
   const { runBoard } = await rules()
   return runBoard(args, {
-    program: 'akb board',
+    program: `${PROGRAM} board`,
     style: 'board',
-    installHint: '`akb install`',
+    installHint: `\`${PROGRAM} install\``,
   })
 }
 
@@ -561,7 +621,7 @@ async function cmdRun(args) {
   if (typeof runAgent !== 'function') {
     fail('this copy of the board rules is too old to run agents — `npm install -g ai4kanban@latest`, then `akb update`')
   }
-  return runAgent(args, { program: 'akb', installHint: '`akb install`' })
+  return runAgent(args, { program: PROGRAM, installHint: `\`${PROGRAM} install\`` })
 }
 
 async function main() {

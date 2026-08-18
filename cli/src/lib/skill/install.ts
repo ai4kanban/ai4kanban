@@ -11,10 +11,11 @@
 // the skill out of the copy it carries.
 //
 // The command itself is NOT written beside the note (#213). Every line of the note tells the
-// agent to type `akb`, and names the `npx` line for when nothing is installed, so a copy in
-// the project was 350 kB of build product the agent never opened — committed by whoever
-// commits `.claude/`, and re-committed on every release. What reads the built file is the
-// local UI, and it asks the installed command where its own copy is (`akb __rules`).
+// agent to type `akb`, and its first section says what to run when there is no such command
+// here, so a copy in the project was 350 kB of build product the agent never opened —
+// committed by whoever commits `.claude/`, and re-committed on every release. What reads the
+// built file is the local UI, and it asks the installed command where its own copy is
+// (`akb __rules`).
 
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -25,6 +26,7 @@ import { fileURLToPath } from 'node:url'
 // scripts/build.mjs), the same way the flows in src/guide/ are. It lives at the repo's
 // `skill/SKILL.md` — the one copy, which is also what the npm tarball ships.
 import note from '../../../../skill/SKILL.md'
+import { noteCommand } from '../agent/command'
 import { REPO_ROOT } from '../paths'
 import { SKILL_VERSION } from '../../version'
 import type { CommandState, SkillFolder, SkillInstall, SkillState, SkillWrite } from './types'
@@ -151,6 +153,49 @@ export function readSkillState(root?: string): SkillState {
   }
 }
 
+/** The paragraph in the note that says how the command is spelled, and the markers around
+ *  it in the source. The note ships with the general answer — every way there is to reach
+ *  the command, since a copy read out of a plugin cache was installed by nobody. An install
+ *  is not general: it is being run BY the command, on this machine, so it knows the answer
+ *  and writes it down. That is a line the agent reads instead of a sequence it works
+ *  through, and working through it is where a session goes wrong. */
+const COMMAND_BLOCK = /<!-- command -->\n[\s\S]*?\n<!-- \/command -->/
+
+const NPX = `npx --yes ai4kanban@${SKILL_VERSION}`
+
+function commandParagraph(command: string): string {
+  // `akb` is only ever what a reader on ANOTHER machine finds — this note is committed, and
+  // the teammate who clones the repo installed nothing. So the fallback survives either way;
+  // what changes is which one leads.
+  if (command === 'akb') {
+    return [
+      'Use `akb` in the commands below. If it is not on `PATH`, use `' + NPX + '` instead,',
+      'state that once, and never install the command globally.',
+    ].join('\n')
+  }
+  // Fetched rather than installed: there is no copy on this machine to fall back to, so
+  // this one is the whole answer.
+  if (command.startsWith('npx ')) {
+    return [
+      '`akb` is not installed on this machine. Use `' + command + '` wherever a command',
+      'below says `akb`. Never install the command globally; you may suggest',
+      '`npm install -g ai4kanban` to the user.',
+    ].join('\n')
+  }
+  // The command on its own line, in a block: it can be a long absolute path, and a path
+  // wrapped mid-sentence is a path that gets copied wrong.
+  return [
+    '`akb` is not installed on this machine. Wherever a command below says `akb`, run:',
+    '',
+    '```text',
+    command,
+    '```',
+    '',
+    'If that is missing too, use `' + NPX + '` instead. Never install the command globally;',
+    'you may suggest `npm install -g ai4kanban` to the user.',
+  ].join('\n')
+}
+
 /** Write the skill into `dir`, replacing whatever is there.
  *
  *  Wholesale, so what an older version left behind goes with it — the `references/` folder
@@ -158,10 +203,11 @@ export function readSkillState(root?: string): SkillState {
  *  350 kB file (#213). All three stopped being installed; none should linger in a project
  *  that once had them, and clearing them is what turns an update into two deletions the
  *  user commits without working out what they were. */
-function writeFolder(dir: string): void {
+function writeFolder(dir: string, command: string): void {
   fs.rmSync(dir, { recursive: true, force: true })
   fs.mkdirSync(dir, { recursive: true })
-  fs.writeFileSync(path.join(dir, 'SKILL.md'), `${note.trimEnd()}\n\n<!-- ai4kanban ${SKILL_VERSION} -->\n`)
+  const filled = note.replace(COMMAND_BLOCK, commandParagraph(command))
+  fs.writeFileSync(path.join(dir, 'SKILL.md'), `${filled.trimEnd()}\n\n<!-- ai4kanban ${SKILL_VERSION} -->\n`)
 }
 
 /** Add the skill to a project, or bring the copy it has up to date.
@@ -169,14 +215,18 @@ function writeFolder(dir: string): void {
  *  `only` is 'present' for an update, which refreshes a folder that is already there and
  *  writes none that isn't: an absent folder is usually deliberate — a plugin install keeps
  *  the skill in a read-only cache, and now that installing a board no longer writes one,
- *  not having it is the ordinary state. */
-export function installSkill(root?: string, only?: 'present'): SkillInstall {
+ *  not having it is the ordinary state.
+ *
+ *  `invoked` is how the caller was typed, when it knows — `npx` is the one spelling that
+ *  can't be worked out from here (see `noteCommand`). */
+export function installSkill(root?: string, only?: 'present', invoked?: string): SkillInstall {
   let dir: string
   try {
     dir = rootOr(root)
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e), wrote: [], skipped: [], state: emptyState() }
   }
+  const command = noteCommand(dir, invoked)
   const wrote: SkillWrite[] = []
   const skipped: SkillInstall['skipped'] = []
   for (const target of TARGETS) {
@@ -189,7 +239,7 @@ export function installSkill(root?: string, only?: 'present'): SkillInstall {
     }
     if (state === 'absent' && only === 'present') continue
     try {
-      writeFolder(dest)
+      writeFolder(dest, command)
     } catch (e) {
       skipped.push({ path: shown, agent: target.agent, why: e instanceof Error ? e.message : String(e) })
       continue

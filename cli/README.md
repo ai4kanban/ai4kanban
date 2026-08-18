@@ -64,8 +64,13 @@ is here and that `akb` owns it. The board app does the same thing from a button:
 
 Nothing else is copied in. The flows ship inside the command (`akb guide`), so a newer
 command is newer flows in every project at once — and the command itself stays where npm put
-it, so a project's git history never carries 350 kB of it. An agent that finds no `akb` on
-the PATH runs `npx --yes ai4kanban@latest <command>` instead; the note says so.
+it, so a project's git history never carries 350 kB of it.
+
+An agent that finds no `akb` on the PATH doesn't stop: the note's first section says what to
+run instead — the copy in this project where there is one, and otherwise `npx --yes
+ai4kanban@<the version that wrote the note>`, pinned so the rules match the board. A run
+started from the app or the CLI is told the same thing in its own words, and `akb skill`
+says it to you at the moment the note lands.
 
 ## Update
 

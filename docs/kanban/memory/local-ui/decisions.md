@@ -66,6 +66,13 @@ re-ask a settled call.
   session.
 - The model shown on a run is what the agent reported as it ran, not the model setting.
   Most people leave that setting empty, so reading it would leave most runs blank.
+- **What happens after a run fails?**: nothing on the board's side. The run stays failed
+  with its progress in it, and Resume is how the user carries it on. The board never waits,
+  backs off, or starts the work again by itself — a usage limit is the user's to wait out
+  or to buy their way out of.
+- **Does the board learn one agent's errors from another's?**: no. Nothing reads a
+  particular agent's error format or signals. Whatever the agent printed last is the reason
+  the run shows.
 
 ## Seeing what changed
 
