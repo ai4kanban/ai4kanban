@@ -1,7 +1,7 @@
 {
   "name": "kanban",
   "description": "Organize your task board in Markdown, right next to your code. Claude proposes the next work, writes the cards, and archives what's done — you steer the backlog in plain language from the terminal. The board lives in docs/kanban/: in git, diffable, readable by both you and the agent. No database, no MCP.\n\nExample 1: say \"what's next?\" — Claude reads the board and your sources and proposes 3 new tasks.\nExample 2: say \"add a task: …\" — Claude reviews the idea, writes a clear card, and adds it to the index.\nExample 3: say \"dive deeper on #4\" — Claude pushes card #4 one stage toward a concrete plan.\nExample 4: say \"#4 is done\" — Claude compresses it into the archive and removes the card.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "author": {
     "name": "neverchanje"
   },
