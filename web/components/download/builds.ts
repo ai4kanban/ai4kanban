@@ -1,5 +1,3 @@
-import { FaApple, FaLinux, FaWindows } from "react-icons/fa";
-import type { IconType } from "react-icons";
 import { assetUrl } from "@/lib/release";
 
 // What the release holds, and which file a system takes. None of it is copy
@@ -77,11 +75,3 @@ export function releaseBuilds(version: string): ResolvedSystem[] {
     })),
   }));
 }
-
-/** The mark on each card. A function isn't serializable, so it is looked up by
- *  `os` where the card is drawn rather than carried on the data. */
-export const SYSTEM_ICON: Record<OS, IconType> = {
-  mac: FaApple,
-  windows: FaWindows,
-  linux: FaLinux,
-};

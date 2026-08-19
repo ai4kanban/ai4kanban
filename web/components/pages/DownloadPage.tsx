@@ -2,8 +2,9 @@ import { Header } from "@/components/Header";
 import { Rich } from "@/components/Rich";
 import { SiteFooter } from "@/components/SiteFooter";
 import { IconChip } from "@/components/ui/IconChip";
-import { PlatformCta } from "@/components/download/PlatformCta";
-import { SYSTEM_ICON, releaseBuilds } from "@/components/download/builds";
+import { PlatformCta } from "@/components/PlatformCta";
+import { releaseBuilds } from "@/components/download/builds";
+import { SYSTEM_ICON } from "@/components/download/icons";
 import { panelInset, panelStatic, heroTop } from "@/components/styles";
 import { getCopy } from "@/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -69,13 +70,9 @@ export function DownloadPage({ locale }: { locale: Locale }) {
               systems={systems}
               version={VERSION}
               label={t.hero.cta}
-              labelAny={t.hero.ctaAny}
-              releasesUrl={RELEASES_URL}
+              fallback={RELEASES_URL}
             />
           </div>
-          <p className="mt-7 max-w-2xl text-[0.9rem] leading-relaxed text-muted">
-            {t.hero.note}
-          </p>
         </section>
 
         {/* A card per system, holding every file that system has — this is the

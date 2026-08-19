@@ -6,17 +6,15 @@ const ja: DownloadCopy = {
   meta: {
     title: "AI4Kanban をダウンロード — デスクトップアプリ版のボード",
     description:
-      "macOS、Windows、Linux 向けの AI4Kanban ボードアプリ。事前に入れるものはありません。Node も npx もターミナルも不要です。",
+      "macOS、Windows、Linux 向けの AI4Kanban デスクトップアプリ。",
     socialTitle: "AI4Kanban をダウンロード",
-    social: "macOS、Windows、Linux 向けのボードアプリ。事前に入れるものはありません。",
+    social: "macOS、Windows、Linux 向けのボードのデスクトップアプリ。",
   },
 
   hero: {
     title: "AI4Kanban をダウンロード",
-    lead: "macOS、Windows、Linux 向けのボードアプリ。事前に入れるものはありません — Node も npx もターミナルも不要です。",
-    cta: "{system} 版をダウンロード",
-    ctaAny: "ダウンロード",
-    note: "エージェントの実行には、マシン上の Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness のいずれかが必要です。",
+    lead: "macOS、Windows、Linux 向けのボードのデスクトップアプリ。",
+    cta: "ダウンロード",
   },
 
   builds: {
@@ -46,8 +44,8 @@ const ja: DownloadCopy = {
   },
   command: {
     title: "`akb` コマンド",
-    body: "アプリは `akb`——コーディングエージェントがボードを操作するためのコマンド——を同梱していて、初回起動時に PATH へ通すかどうかを尋ねます。macOS では `/usr/local/bin/akb` にリンクを1つ書き込むため、管理者パスワードを求めます。Windows ではインストーラーがアプリ自身のフォルダーを PATH に追加しますが、これが効くのはその後に開いたターミナルだけです。アプリの外へは何もコピーされないので、アプリを更新すればコマンドも更新されます。",
-    later: "断っても失うものはありません。ボタンは **Configuration → Skill** に残ります。Linux では提供していません。AppImage は実行のたびに新しい場所へ自分を展開するため、`npm install -g ai4kanban` がそのまま方法です。",
+    body: "アプリは `akb`——コーディングエージェントがボードを操作するためのコマンド——を同梱し、初回起動時に PATH へ通すかどうかを尋ねます。macOS は `/usr/local/bin/akb` にリンクを 1 つ書き込むため管理者パスワードを求め、Windows はアプリのフォルダーを PATH に追加します（効くのはその後に開いたターミナルだけです）。アプリの外へは何もコピーされないので、アプリを更新すればコマンドも更新されます。",
+    later: "断った場合もボタンは **Configuration → Skill** に残ります。Linux では提供していません。AppImage は実行のたびに新しい場所へ展開されるため、`npm install -g ai4kanban` がそのまま方法です。",
   },
 };
 

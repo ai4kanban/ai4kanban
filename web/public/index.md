@@ -4,7 +4,7 @@
 > long-term memory together to manage work from planning through completion.
 > Product direction and final approval remain human decisions.
 
-- Download the board app: https://ai4kanban.dev/download
+- Download: https://ai4kanban.dev/download
 - View on GitHub: https://github.com/ai4kanban/ai4kanban
 
 ## From task tracking to autonomous planning
@@ -84,10 +84,9 @@ Iteration outcomes:
 - Product improvements
 - Release iterations
 
-## Start with the board app
+## Start with the desktop app
 
-Download the app, open it, and select a project. No prior Node.js, npx, or terminal
-setup is required. The app asks three questions that need human input, one per
+Download the app, open it, and select a project. It asks three questions, one per
 screen, then reads the codebase, establishes the project goal and module memory,
 and creates the first tasks.
 
@@ -95,13 +94,12 @@ and creates the first tasks.
 - Local-first
 - Agent-agnostic
 
-Current builds are unsigned. On macOS, drag the app from the `.dmg` into
-Applications, then follow the prompts to allow the first launch. The download
-page provides complete instructions for macOS, Windows, and Linux.
+Builds are unsigned, so macOS blocks the first open: drag the app in from the
+`.dmg`, then click through the warning. The download page has the full steps for
+macOS, Windows, and Linux.
 
-AI4Kanban requires the desktop app. It includes the `akb` CLI and automatically
-adds the coding-agent skills when a project is opened. The CLI and skills are
-part of the desktop workflow and are not intended for standalone installation.
+The app includes the `akb` CLI and adds the coding-agent skills when a project is
+opened. Neither is meant to be installed on its own.
 
 Download the app: https://ai4kanban.dev/download
 

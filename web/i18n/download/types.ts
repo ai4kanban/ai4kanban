@@ -15,14 +15,8 @@ export type DownloadCopy = {
   hero: {
     title: string;
     lead: string;
-    /** The one button, once the browser has said which system it is on.
-     *  `{system}` is filled with a product name — macOS, Windows, Linux — so
-     *  it stays a placeholder in every language. */
+    /** The one button. One word — the platform is the icon beside it. */
     cta: string;
-    /** The same button before that, and on anything we don't build for. */
-    ctaAny: string;
-    /** Under the button: what you still need on the machine to start runs. */
-    note: string;
   };
   /** The card per system. Nothing in the cards is copy — a system name, an
    *  architecture and a file type read the same in every language. */

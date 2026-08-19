@@ -13,7 +13,7 @@ const es: HomeCopy = {
   hero: {
     title: "Un tablero de proyecto que se planifica solo.",
     lead: "Reúne tus objetivos, tu código y la memoria del proyecto para gestionar el trabajo desde la planificación hasta la entrega. Tú tomas las decisiones de producto y das el visto bueno final.",
-    ctaDownload: "Descargar la aplicación",
+    ctaDownload: "Descargar",
     ctaGithub: "Ver en GitHub ↗",
     shots: {
       board: {
@@ -125,18 +125,18 @@ const es: HomeCopy = {
   },
 
   start: {
-    title: "Empieza con la aplicación del tablero",
-    lead: "Descarga la aplicación, ábrela y selecciona un proyecto. No necesitas configurar Node.js, npx ni un terminal. La aplicación plantea tres preguntas que requieren tu criterio, una por pantalla, y después lee la base de código, establece el objetivo y la memoria de cada módulo, y crea las primeras tareas.",
+    title: "Empieza con la aplicación de escritorio",
+    lead: "Descarga la aplicación, ábrela y selecciona un proyecto. Plantea tres preguntas, una por pantalla, y después lee la base de código, establece el objetivo del proyecto y la memoria de cada módulo, y crea las primeras tareas.",
     notes: [
       "Planificación autónoma",
       "Local primero",
       "Independiente del agente",
     ],
-    cta: "Descargar la aplicación",
+    cta: "Descargar",
     firstOpen:
-      "Las compilaciones aún no están firmadas, por lo que macOS bloquea la primera apertura. Arrastra la aplicación desde el `.dmg` y sigue los pasos para autorizarla. La página de descargas incluye instrucciones completas para macOS, Windows y Linux.",
+      "Las compilaciones no están firmadas, así que macOS bloquea la primera apertura: arrastra la aplicación desde el `.dmg` y acepta el aviso. La página de descargas tiene los pasos completos para macOS, Windows y Linux.",
     command:
-      "AI4Kanban requiere la aplicación de escritorio. Esta incluye la CLI `akb` y añade automáticamente los skills para agentes de código al abrir un proyecto. La CLI y los skills complementan la aplicación de escritorio; no son opciones de instalación independientes.",
+      "La aplicación incluye la CLI `akb` y añade los skills para agentes de código al abrir un proyecto. Ninguno está pensado para instalarse por separado.",
   },
 };
 

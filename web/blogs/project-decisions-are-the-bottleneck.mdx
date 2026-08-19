@@ -13,9 +13,13 @@ A coding agent can complete a well-defined task quickly. If the task is incomple
 
 This is why the bottleneck is moving from coding to project planning.
 
+<BottleneckShift />
+
 ## Planning becomes harder as a product matures
 
 Planning an initial version is comparatively simple. There is little project history, the dependency graph is small, and the scope can be defined around a limited set of assumptions.
+
+<PlanningLoad />
 
 After the first release, planning becomes more demanding. Each proposed change must be considered alongside existing behavior, technical constraints, user feedback, current priorities, and work already in progress. The team must determine which problem to address, define an appropriate scope, identify dependencies, establish acceptance criteria, and decide when the work should happen.
 
@@ -28,6 +32,8 @@ Without this context, a planning agent must reconstruct the project state each t
 ## Effective planning requires project memory
 
 Chat is useful for immediate instructions, but a long-running project needs structured, persistent context. A Kanban board can provide that structure by keeping planning information attached to the work it affects.
+
+<ContextOnCard />
 
 The board should do more than display task status. It should connect goals to proposed work and record scope, requirements, dependencies, open questions, relevant decisions, and delivery progress. Each task then becomes part of the project's planning history rather than an isolated instruction.
 

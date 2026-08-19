@@ -12,7 +12,7 @@ const zh: HomeCopy = {
   hero: {
     title: "一块由 Agent 自主规划的项目看板。",
     lead: "它结合项目目标、代码和记忆，管理任务从规划到完成的全过程；你只做产品取舍与最终验收。",
-    ctaDownload: "下载看板应用",
+    ctaDownload: "下载",
     ctaGithub: "查看 GitHub ↗",
     shots: {
       board: { label: "Board", alt: "AI4Kanban 本地看板界面：Board 视图" },
@@ -113,14 +113,14 @@ const zh: HomeCopy = {
   },
 
   start: {
-    title: "从看板应用开始",
-    lead: "下载应用，打开后选择项目即可。无需预先安装 Node.js 或 npx，也不用打开终端。应用会逐屏询问三项需要你确认的信息，然后读取代码库，建立项目目标和模块记忆，并创建首批任务。",
+    title: "从桌面应用开始",
+    lead: "下载应用，打开后选择项目。应用会逐屏询问三个问题，然后读取代码库，建立项目目标和模块记忆，并创建首批任务。",
     notes: ["自主规划", "本地优先", "不绑定 Agent"],
-    cta: "下载应用",
+    cta: "下载",
     firstOpen:
-      "安装包目前还没有签名，因此 macOS 会拦截首次打开。从 `.dmg` 中将应用拖入“应用程序”，再按提示处理“无法验证”的警告即可。下载页提供 macOS、Windows 和 Linux 的完整操作说明。",
+      "安装包没有签名，macOS 会拦截首次打开：从 `.dmg` 中拖入应用，再确认警告即可。下载页提供 macOS、Windows 和 Linux 的完整步骤。",
     command:
-      "使用 AI4Kanban 必须安装桌面应用。应用内置 `akb` CLI，并会在打开项目时自动写入编码 Agent 所需的 skill。CLI 和 skill 用于配合桌面应用，不能代替桌面应用单独使用。",
+      "应用内置 `akb` CLI，并在打开项目时写入编码 Agent 所需的 skill。两者都不用单独安装。",
   },
 };
 

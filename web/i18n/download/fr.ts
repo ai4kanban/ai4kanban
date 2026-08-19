@@ -6,18 +6,15 @@ const fr: DownloadCopy = {
   meta: {
     title: "Télécharger AI4Kanban — le tableau en application de bureau",
     description:
-      "Obtenez le tableau AI4Kanban en application pour macOS, Windows et Linux. Rien à installer au préalable : ni Node, ni npx, ni terminal.",
+      "Obtenez AI4Kanban en application de bureau pour macOS, Windows et Linux.",
     socialTitle: "Télécharger AI4Kanban",
-    social:
-      "Le tableau en application pour macOS, Windows et Linux. Rien à installer au préalable.",
+    social: "Le tableau en application de bureau pour macOS, Windows et Linux.",
   },
 
   hero: {
     title: "Télécharger AI4Kanban",
-    lead: "Le tableau en application pour macOS, Windows et Linux. Rien à installer au préalable : ni Node, ni npx, ni terminal.",
-    cta: "Télécharger pour {system}",
-    ctaAny: "Télécharger",
-    note: "Lancer un agent demande toujours Claude Code, Codex, Cursor, OpenCode ou DeepSeek Harness sur la machine.",
+    lead: "Le tableau en application de bureau pour macOS, Windows et Linux.",
+    cta: "Télécharger",
   },
 
   builds: {
@@ -47,8 +44,8 @@ const fr: DownloadCopy = {
   },
   command: {
     title: "La commande `akb`",
-    body: "L'app embarque `akb` — la commande avec laquelle un agent de code pilote le tableau — et propose de la mettre dans votre PATH au premier lancement. Sur macOS, elle écrit un lien dans `/usr/local/bin/akb` et demande votre mot de passe administrateur pour le faire. Sur Windows, l'installateur ajoute le dossier de l'app à votre PATH, ce qui ne vaut que pour les terminaux ouverts ensuite. Rien n'est copié hors de l'app : mettre l'app à jour met la commande à jour.",
-    later: "Refuser ne coûte rien — le bouton reste dans **Configuration → Skill**. Linux n'y a pas droit : l'AppImage se décompresse ailleurs à chaque exécution, donc `npm install -g ai4kanban` reste la voie.",
+    body: "L'app embarque `akb` — la commande avec laquelle un agent de code pilote le tableau — et propose de la mettre dans votre PATH au premier lancement. macOS écrit un lien dans `/usr/local/bin/akb` et demande votre mot de passe administrateur ; Windows ajoute le dossier de l'app au PATH, ce qui ne vaut que pour les terminaux ouverts ensuite. Rien n'est copié hors de l'app : mettre l'app à jour met la commande à jour.",
+    later: "Si vous refusez, le bouton reste dans **Configuration → Skill**. Linux n'y a pas droit : l'AppImage se décompresse ailleurs à chaque exécution, donc `npm install -g ai4kanban` reste la voie.",
   },
 };
 

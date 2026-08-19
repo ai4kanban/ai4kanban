@@ -8,6 +8,7 @@ import { Iterate } from "@/components/home/Iterate";
 import { Start } from "@/components/home/Start";
 import { Reveal } from "@/components/home/Reveal";
 import { SiteFooter } from "@/components/SiteFooter";
+import { releaseBuilds } from "@/components/download/builds";
 import { column } from "@/components/styles";
 import { getCopy } from "@/i18n";
 import {
@@ -19,6 +20,7 @@ import {
   webPage,
 } from "@/lib/schema";
 import type { Locale } from "@/lib/i18n";
+import { VERSION } from "@/lib/release";
 
 // The landing page, rendered once per language. `app/(en)/page.tsx` builds the
 // English copy at `/`; `app/(intl)/[locale]/page.tsx` builds the other four.
@@ -34,6 +36,10 @@ export function HomePage({ locale }: { locale: Locale }) {
   const copy = getCopy(locale);
   const c = copy.home;
   const home = webPage("", c.meta.title, c.meta.description, { locale });
+  // The two download buttons on this page are the download page's button. They
+  // hand over the file for the system the reader is on, so the release has to
+  // resolve here, on the server — see `PlatformCta.tsx`.
+  const systems = releaseBuilds(VERSION);
 
   const schema = jsonLd(home, {
     ...softwareApplication({
@@ -61,7 +67,7 @@ export function HomePage({ locale }: { locale: Locale }) {
           into the ink footer. Everything between is pictures and type. */}
       <main>
         <div className={column}>
-          <Hero c={c.hero} locale={locale} />
+          <Hero c={c.hero} locale={locale} systems={systems} />
         </div>
         <Band>
           <Compare c={c.compare} />
@@ -72,7 +78,7 @@ export function HomePage({ locale }: { locale: Locale }) {
           <Iterate c={c.iterate} />
         </div>
         <Band flush>
-          <Start c={c.start} locale={locale} />
+          <Start c={c.start} locale={locale} systems={systems} />
         </Band>
       </main>
       <SiteFooter c={copy} locale={locale} path="" />

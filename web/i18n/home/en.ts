@@ -13,7 +13,7 @@ const en: HomeCopy = {
   hero: {
     title: "A project board that plans itself.",
     lead: "It brings your goals, code, and project memory together to manage work from planning through completion. You make the product calls and give final approval.",
-    ctaDownload: "Download the board app",
+    ctaDownload: "Download",
     ctaGithub: "View on GitHub ↗",
     shots: {
       board: { label: "Board", alt: "AI4Kanban local board: Board view" },
@@ -119,14 +119,14 @@ const en: HomeCopy = {
   },
 
   start: {
-    title: "Start with the board app",
-    lead: "Download the app, open it, and select a project. No prior Node.js, npx, or terminal setup is required. The app asks three questions that need your input, one per screen, then reads the codebase, establishes the project goal and module memory, and creates the first tasks.",
+    title: "Start with the desktop app",
+    lead: "Download the app, open it, and select a project. It asks three questions, one per screen, then reads the codebase, establishes the project goal and module memory, and creates the first tasks.",
     notes: ["Autonomous planning", "Local-first", "Agent-agnostic"],
-    cta: "Download the app",
+    cta: "Download",
     firstOpen:
-      "No build is signed yet, so macOS blocks the first open: drag the app in from the `.dmg`, then click through the warning that it cannot be checked. The download page provides complete instructions for macOS, Windows, and Linux.",
+      "Builds are unsigned, so macOS blocks the first open: drag the app in from the `.dmg`, then click through the warning. The download page has the full steps for macOS, Windows, and Linux.",
     command:
-      "AI4Kanban requires the desktop app. It includes the `akb` CLI and automatically adds the coding-agent skills when you open a project. The CLI and skills are part of the desktop workflow and are not intended for standalone installation.",
+      "The app includes the `akb` CLI and adds the coding-agent skills when you open a project. Neither is meant to be installed on its own.",
   },
 };
 
