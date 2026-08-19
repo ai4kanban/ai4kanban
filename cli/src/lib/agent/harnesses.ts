@@ -6,6 +6,9 @@
 // end. Adding an agent is adding one object to HARNESSES — nothing outside this file
 // learns its name.
 
+import fs from 'node:fs'
+import path from 'node:path'
+
 import { createAcpClient } from './acp'
 import type { RunClient } from './client'
 import { createCodexStreamRenderer } from './codex-stream'
@@ -551,8 +554,57 @@ const OPENCODE: Harness = {
 //
 // Nothing about streaming or about a session id: an ACP command streams by nature, and its
 // session is opened in the conversation rather than on the command line.
+// The folder `dsh-acp` was installed into, so the dsh it boots is the one sitting beside
+// it.
+//
+// `dsh-acp` finds a dsh to run in this order: `--dsh-path`, the directory the run starts
+// in, then a `dsh` on the PATH. On a machine that has dsh installed as well — which is
+// most machines that want this agent — the PATH wins, and dsh then loads from a different
+// folder than the bridge's own code does. Two copies of the same plugin system are live at
+// once, they don't recognise each other's sessions, and every run dies as it opens with
+// `agent-presets: refusing to compose an unscoped context`. Naming the bridge's own folder
+// pins both halves to one copy: the dsh its install already put beside it, which is the
+// version it was built against.
+//
+// Undefined when the binary isn't where the PATH says — the flag is then left off and
+// dsh-acp looks for a dsh exactly as it did before.
+function dshHome(argv: string[]): string | undefined {
+  const binary = argv[0]
+  if (!binary) return undefined
+  const candidates = binary.includes('/') || binary.includes('\\')
+    ? [binary]
+    : (process.env.PATH ?? '')
+        .split(path.delimiter)
+        .filter(Boolean)
+        .map((dir) => path.join(dir, binary))
+  let dir: string
+  try {
+    const found = candidates.find((candidate) => fs.existsSync(candidate))
+    if (!found) return undefined
+    dir = path.dirname(fs.realpathSync(found))
+  } catch {
+    return undefined
+  }
+  // Up from wherever the entry file sits to the package root — the folder holding the
+  // `node_modules` the bridge's own dsh was installed into.
+  for (let up = path.dirname(dir); dir !== up; up = path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, 'package.json'))) return dir
+    dir = up
+  }
+  return undefined
+}
+
+// What every `dsh-acp` run wants, added only when the user's own `command` hasn't already
+// named it.
 function dshExtraArgs(argv: string[]): string[] {
-  return namesFlag(argv, ['--permission-mode']) ? [] : ['--permission-mode', 'workspace-write']
+  const args = namesFlag(argv, ['--permission-mode'])
+    ? []
+    : ['--permission-mode', 'workspace-write']
+  if (!namesFlag(argv, ['--dsh-path'])) {
+    const home = dshHome(argv)
+    if (home) args.push('--dsh-path', home)
+  }
+  return args
 }
 
 // DeepSeek Harness, reached through ACP (#225).
@@ -618,8 +670,12 @@ const DSH: Harness = {
   // skill in a sentence. It reads `.agents/skills/`, the folder an install already writes.
   skillCall: SKILL_SENTENCE,
 
-  // Two packages: the agent, and the bridge that makes it answer.
-  install: 'npm install -g @deepseek-ai/dsh @openma/deepseek-harness-acp',
+  // Two packages: the agent, and the bridge that makes it answer. They are asked for one
+  // at a time on purpose — npm hands everything named in one command its own folder, and
+  // the bridge would come out with no dsh underneath it at all, dying on its first import.
+  // Installed in turn, the bridge brings the dsh it was built against along with it.
+  install:
+    'npm install -g @deepseek-ai/dsh && npm install -g @openma/deepseek-harness-acp',
 }
 
 /** Every agent the board can run, in the order they are listed. */

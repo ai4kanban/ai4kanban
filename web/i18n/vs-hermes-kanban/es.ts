@@ -149,7 +149,7 @@ const es: VsHermesCopy = {
     ours: {
       heading: "AI4Kanban",
       verdict: "Conserva decisiones, no cada evento.",
-      body: "Cuatro archivos pequeños, **podados a propósito**: `archive.md` (qué se entregó), `rejected.md` (qué descartamos y por qué), `redesign.md` (errores de diseño a no repetir), `memory.md` (lo que aprendieron los barridos anteriores). El agente los lee todos antes de proponer o escribir una tarjeta; el historial completo es cosa de git.",
+      body: "Cuatro archivos pequeños, **podados a propósito**, una carpeta por módulo: `readme.md` (qué se entregó), `decisions.md` (las decisiones tomadas y por qué), `rejected.md` (qué descartamos y por qué), `redesign.md` (errores de diseño a no repetir). `goal.md` vive solo, en lo alto de la carpeta de memoria. El agente los lee todos antes de proponer o escribir una tarjeta; el historial completo es cosa de git.",
       q: "¿Por qué la idea X no está en el tablero?",
       a: "Una línea en `rejected.md`: la idea y por qué se descartó. Las ideas muertas siguen muertas.",
     },

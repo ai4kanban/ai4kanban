@@ -34,12 +34,15 @@ re-ask a settled call.
 
 ## The quick start
 
-- **What is the landing page's main button?**: downloading the board app. The setup
-  prompt keeps its place on the page as a plain link beside it, never a second button.
+- **What is the landing page's main button?**: downloading the board app.
+- **Does the landing page offer any way in but the download?**: no. The app carries `akb`
+  and installs it at first open, so a terminal install is a second, worse route to the same
+  board. No npm or npx line, and no setup-prompt link, on the landing page. One line says
+  the app brings the command with it, for the reader who wanted a terminal.
 - **Do the pages say the last setup steps go to a coding agent?**: no. The app finishes
   setup itself, so the pages are written for the app-first way in.
-- The site's quick start shows one command, `npx ai4kanban install` — never a list of
-  shell steps and never a `curl … | sh` line.
+- The setup prompt stays linked from the READMEs and the npm page — read by someone who is
+  already in a terminal — never from the landing page.
 - **Which GitHub repo do the site's links point at?**: `ai4kanban/ai4kanban`. No page
   leans on the old `dist0com` redirect.
 

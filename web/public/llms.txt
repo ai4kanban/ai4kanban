@@ -1,31 +1,31 @@
 # AI4Kanban
 
-> A project board that plans itself. It brings your goals, code, and project
-> memory together to manage work from planning through completion — defining the
-> next task, clarifying requirements, ordering dependencies and priorities, and
-> keeping every product decision. You make the product calls and give final
-> approval. The board lives as plain Markdown in `docs/kanban/`, versioned in
-> git and readable by you and the agent.
+> Once coding agents can implement clear requirements reliably, project
+> management becomes the bottleneck. AI4Kanban is a project-management agent
+> built around a Kanban board. It uses project goals, code, and long-term memory
+> to decide what should happen next, clarify requirements, coordinate execution,
+> and preserve the decisions that inform future planning. The board is plain
+> Markdown in `docs/kanban/`, versioned in Git and readable by people and agents.
 
 Each page below has a plain-Markdown mirror (the `.md` links) with the full page
 content — no navigation, styling, or scripts.
 
 ## Pages
 
-- [Home — a project board that plans itself](https://ai4kanban.dev/index.md): What AI4Kanban is — how it moves from task tracking to autonomous planning, the loop that keeps work moving (define the next task, clarify requirements, execute, record decisions), the project memory it learns from, how external signals drive continuous product iteration, and how to start: the board app, or one command in a terminal.
+- [Home — a project board that plans itself](https://ai4kanban.dev/index.md): How AI4Kanban moves beyond task tracking to plan and drive work autonomously; how it clarifies requirements, carries product decisions into long-term project memory, turns external signals into continued product iteration, and starts from the desktop app.
 - [Download — the board as a desktop app](https://ai4kanban.dev/download): Get the board as an app for macOS, Windows and Linux — nothing to install first. Every file on the current release (Apple Silicon and Intel `.dmg`, the Windows `.exe`, the x64 and arm64 `.AppImage`), and what to click past each system's first-open warning while the builds are unsigned.
 - [AI4Kanban vs. Task Master](https://ai4kanban.dev/vs-task-master.md): Task Master splits a PRD you already wrote into an ordered backlog; AI4Kanban starts from one rough line and asks questions until the card is buildable. Covers the starting point, JSON file vs. one Markdown file per card, what carries over between runs, batch execution, editor and model reach, and licensing.
-- [AI4Kanban vs. GitHub Issues](https://ai4kanban.dev/vs-github-issues.md): A head-to-head across storage, token cost, agent ergonomics, teams, and transparency — a local Markdown scratch-board vs. a shared, public system of record, and when to use each.
-- [AI4Kanban vs. Hermes Agent Kanban](https://ai4kanban.dev/vs-hermes-kanban.md): Two overlapping agent kanban boards — plain diffable files that run on any agent (even Hermes) vs. a durable, shared SQLite queue many named agents claim tasks from. Covers harness support, memory vs. audit, autonomy level, dashboards, and trade-offs.
-- [AI4Kanban vs. Vibe Kanban](https://ai4kanban.dev/vs-vibe-kanban.md): Vibe Kanban shut down when Bloop wound down in April 2026. A planning board your agent edits as plain files in your repo vs. a cockpit that runs many coding agents in parallel — the honest difference, and what carries over.
-- [AI4Kanban vs. Linear](https://ai4kanban.dev/vs-linear.md): A repo-local planning board an agent refines from rough idea to build-ready card vs. a hosted workspace where a whole team and its agents coordinate. Covers where the plan lives, Linear Agent and Coding Sessions, collaboration, planning breadth, portability, and pricing.
-- [AI4Kanban vs. Multica](https://ai4kanban.dev/vs-multica.md): Both put coding agents on a kanban board, but at different points in the work lifecycle — AI4Kanban discovers and refines which tasks should exist; Multica assigns ready issues and operates the agent runs.
+- [AI4Kanban vs. GitHub Issues](https://ai4kanban.dev/vs-github-issues.md): A head-to-head across storage, token cost, agent ergonomics, teams, and transparency — a repo-local project-management agent backed by Markdown vs. a shared, public system of record, and when to use each.
+- [AI4Kanban vs. Hermes Agent Kanban](https://ai4kanban.dev/vs-hermes-kanban.md): Two agent kanban systems — a project-management agent that plans from goals and preserves product memory in diffable files vs. a durable, shared SQLite queue where named agents claim tasks. Covers harness support, memory vs. audit, autonomy, dashboards, and trade-offs.
+- [AI4Kanban vs. Vibe Kanban](https://ai4kanban.dev/vs-vibe-kanban.md): Vibe Kanban shut down when Bloop wound down in April 2026. A project-management agent that discovers and refines what to build vs. a cockpit for running many coding agents in parallel — the honest difference, and what carries over.
+- [AI4Kanban vs. Linear](https://ai4kanban.dev/vs-linear.md): A repo-local project-management agent that plans and refines work from rough ideas vs. a hosted workspace where a team and its agents coordinate. Covers where the plan lives, Linear Agent and Coding Sessions, collaboration, planning breadth, portability, and pricing.
+- [AI4Kanban vs. Multica](https://ai4kanban.dev/vs-multica.md): Both place coding agents on a kanban board, but at different points in the lifecycle — AI4Kanban plans and refines which tasks should exist; Multica assigns ready issues and operates the runs.
 
 ## Recipes
 
-- [Daily kanban maintenance](https://ai4kanban.dev/recipes/daily-kanban-maintenance.md): A recurring upkeep task — each pass proposes new work, prunes stale cards, and keeps priorities short, so the board stays sharp on its own.
+- [Prune the memory](https://ai4kanban.dev/recipes/prune-the-memory.md): A recurring task that rewrites project-wide and per-module memory into concise topic summaries, keeping only what still helps plan future work.
 - [Competitor analysis loop](https://ai4kanban.dev/recipes/competitor-analysis-loop.md): A recurring competitor-intelligence task powered by dist0 — pull the competitors people name in your Reddit signal, study each real one deeply, and file build/grow/offer ideas as cards.
 
 ## More
 
-- [GitHub repository](https://github.com/ai4kanban/ai4kanban): Source, install prompt, and the skill files.
+- [GitHub repository](https://github.com/ai4kanban/ai4kanban): Source, user guides, and an example of AI4Kanban managing its own development.

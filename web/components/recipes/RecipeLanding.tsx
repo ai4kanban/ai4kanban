@@ -79,8 +79,8 @@ export function RecipeLanding({
             <code className="rounded bg-code px-1.5 py-0.5 font-mono text-[0.9em] text-ink">
               docs/kanban/todo/recurring/
             </code>
-            , and runs it on the cadence you choose. Prefer to work offline? Grab
-            the file or copy it in full below.
+            . Run it by hand or give it a cadence. Prefer to work offline? Grab the
+            file or copy it in full below.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <DownloadButton href={recipe.mdFile} label="Download the card (.md)" />
@@ -126,13 +126,21 @@ export function RecipeLanding({
 
       {/* ── What it does (key steps, as cards) ───────────────────────────── */}
       <section className="mt-24">
-        <SectionHeading num="01" eyebrow="What it does" title="One run, step by step" />
+        <SectionHeading
+          num="01"
+          eyebrow="What it does"
+          title={recipe.does.length === 1 ? "What one run does" : "One run, step by step"}
+        />
         <p className="text-ink">
           This card is a recurring task — it never gets checked off and filed
-          away. Instead, you run it again and again (say, every morning), and each
-          time it does a little upkeep on your board. Here&apos;s what one run does.
+          away. Run it by hand or give it a cadence, and each pass follows the
+          process below.
         </p>
-        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <div
+          className={`mt-8 grid grid-cols-1 gap-5 ${
+            recipe.does.length === 1 ? "mx-auto max-w-xl" : "sm:grid-cols-2"
+          }`}
+        >
           {recipe.does.map((s) => (
             <div key={s.title} className={`${panel} overflow-hidden p-0`}>
               <div className="flex h-44 items-center justify-center border-b-2 border-border bg-code py-5">
@@ -147,11 +155,6 @@ export function RecipeLanding({
             </div>
           ))}
         </div>
-        <p className="mt-6 text-sm text-muted">
-          If you still have questions from a previous run waiting for an answer, it
-          holds off and skips the run — so it never piles new work onto a board
-          that&apos;s waiting on you.
-        </p>
       </section>
 
       {/* ── The full card (copy, at the bottom) ──────────────────────────── */}
@@ -159,8 +162,8 @@ export function RecipeLanding({
         <SectionHeading num="02" eyebrow="The card" title="Copy the full card" />
         <p className="text-ink">
           The whole recipe is one Markdown file. Copy it, drop it into your board,
-          and reshape it to your project — the priority, the cap, and the cadence
-          are all yours to change.
+          and reshape it to your project — its priority, process, and cadence are
+          yours to change.
         </p>
         <div className="mt-6">
           <CodeBlock labels={CODE_LABELS}>{markdown}</CodeBlock>

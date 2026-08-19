@@ -120,18 +120,13 @@ const en: HomeCopy = {
 
   start: {
     title: "Start with the board app",
-    lead: "Download it, open it, point it at a project. Nothing to install first — no Node, no npx, no terminal. It asks the three things only you can answer, one to a screen, then reads your codebase, establishes the project goal and module memory, and creates the first set of tasks.",
+    lead: "Download the app, open it, and select a project. No prior Node.js, npx, or terminal setup is required. The app asks three questions that need your input, one per screen, then reads the codebase, establishes the project goal and module memory, and creates the first tasks.",
     notes: ["Autonomous planning", "Local-first", "Agent-agnostic"],
     cta: "Download the app",
     firstOpen:
-      "No build is signed yet, so macOS blocks the first open: drag the app in from the `.dmg`, then click through the warning that it cannot be checked. The download page has every step, and Windows and Linux.",
-    terminal: {
-      title: "Or set it up from a terminal",
-      body: "One command, from your project root. It creates the board under `docs/kanban/` and writes nothing else.",
-      promptNote:
-        "Rather your coding agent did the whole thing? Give it the setup prompt: it reads the repo, picks the tracks, runs that command, and works down the rest of setup.",
-      promptLink: "Read the setup prompt",
-    },
+      "No build is signed yet, so macOS blocks the first open: drag the app in from the `.dmg`, then click through the warning that it cannot be checked. The download page provides complete instructions for macOS, Windows, and Linux.",
+    command:
+      "AI4Kanban requires the desktop app. It includes the `akb` CLI and automatically adds the coding-agent skills when you open a project. The CLI and skills are part of the desktop workflow and are not intended for standalone installation.",
   },
 };
 

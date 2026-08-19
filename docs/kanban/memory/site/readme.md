@@ -15,8 +15,9 @@ covers it, or a plain-words note.
 - The landing page starts you on the board app, in all five languages: the button at the
   top is the download, the getting-started section leads with the app and what a Mac user
   has to click through on first open, and carries a picture of the guided first run. The
-  terminal way sits under it as one command, `npx ai4kanban install`, with the setup prompt
-  as a plain link rather than a second button.
+  download is the only way in the section offers — no npm or npx line and no setup-prompt
+  link. One line under it says the app installs the `akb` command at first open, so a reader
+  who wanted a terminal knows the download already gave them one.
 - The install section says what setup actually does: the agent asks only for the project
   goal, settles the first decisions from it, and creates the first ten tasks.
 - The plain-Markdown mirror at `/index.md` and the file index at `/llms.txt` say the same
@@ -35,6 +36,10 @@ covers it, or a plain-words note.
 - `/vs-vibe-kanban` — where Vibe Kanban stands after Bloop closed in April 2026, what it
   still does better (running many coding agents in parallel, which we don't do), and who
   should pick which. The page names no forks and no other alternatives.
+- `/vs-hermes-kanban` — the memory section names the files the board really writes
+  (`readme.md`, `decisions.md`, `rejected.md`, `redesign.md`, one folder per module, with
+  `goal.md` on its own at the top of the memory folder), in all five languages and in the
+  page's plain-Markdown mirror; the Multica mirror says the same as its page.
 
 ## Recipes
 
@@ -43,3 +48,6 @@ covers it, or a plain-words note.
   ticked when your users can already do it, carrying a card id when one of your cards is
   building it, and bare when nobody has touched it — the bare lines are the gap list the
   run files cards from. The published card is `web/public/recipes/competitor-analysis-loop.md`.
+- The memory-pruning recipe at `/recipes/daily-kanban-maintenance` rewrites the project-wide
+  and per-module memory sets to retain only what still helps plan future work. The
+  published card is `web/public/recipes/prune-the-memory.md`.

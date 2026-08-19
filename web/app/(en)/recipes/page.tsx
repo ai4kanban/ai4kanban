@@ -14,7 +14,7 @@ const c = getCopy("en");
 const PATH = "/recipes";
 const TITLE = "Recipes — ready-made recurring tasks for your kanban board";
 const DESCRIPTION =
-  "Ready-made recurring tasks you add to your board in one prompt. Claude pulls the recipe by URL and runs it on the cadence you choose — starting with daily kanban maintenance.";
+  "Ready-made recurring tasks you add to your board in one prompt. Claude pulls the recipe by URL and runs it on the cadence you choose — starting with project-memory pruning.";
 const SOCIAL =
   "Ready-made recurring tasks you add to your board in one prompt. Claude pulls the recipe by URL and runs it on the cadence you choose.";
 

@@ -1,17 +1,19 @@
 Set up ai4kanban for this project.
 
-Setup is the `akb` command plus the steps only an agent in this repo can do. `akb` scaffolds
-the board and then tells you the rest — the flows ship inside it, so nothing about how the
-board works is copied into this repo to go stale. Your settings live with the board at
-`docs/kanban/config.md`.
+AI4Kanban must be installed and used through the desktop app. The app includes the `akb`
+CLI and automatically adds the coding-agent skills when it opens a project. The CLI and
+skills extend the desktop workflow; they are not alternative distributions. Project
+settings live with the board at `docs/kanban/config.md`.
 
-1. Get the command:
+1. Verify that the desktop app is installed and that this project has been opened in it.
+   Then run `akb version`.
 
-       npm install -g ai4kanban
+   The app puts its bundled CLI on the PATH and updates it with the app. If the command
+   succeeds, continue to step 2.
 
-   Check it with `akb version`. If a global install isn't wanted here, every `akb <command>`
-   below also works as `npx --yes ai4kanban@latest <command>` — same command, fetched each
-   time. To move to a newer one later: `npm install -g ai4kanban@latest`.
+   If the command is unavailable, stop and ask the user to install and open the desktop app
+   from https://ai4kanban.dev/download. Do not install the npm package globally or use
+   `npx` as a substitute, because neither provides the required desktop app.
 
 2. Read this repository, before installing anything into it — enough to pick the tracks the
    work naturally splits into: the buckets a task can live in. The default is
@@ -29,20 +31,10 @@ board works is copied into this repo to go stale. Your settings live with the bo
    outside that folder. It's safe to run twice and it never edits a board that's already
    there.
 
-4. Add the skill, so a coding agent can see the board afterwards. This is its own step —
-   installing a board does not install it:
-
-       akb skill install
-
-   That writes one short note — `SKILL.md`, saying the board is here and that `akb` owns
-   it — into `.claude/skills/kanban/` (Claude Code) and `.agents/skills/kanban/` (Codex,
-   Cursor, OpenCode, DeepSeek Harness). Nothing else is copied in; the flows ship inside
-   `akb`. The board app adds the
-   same note from a button (**Configuration → Skill**), and a board runs without one.
-
-   Already added the skill as a plugin (`/plugin marketplace add ai4kanban/ai4kanban` then
-   `/plugin install kanban@kanban`)? The plugin makes the note available, so skip this step;
-   it does not configure a board, so step 3 still stands.
+4. No separate skill installation is required. When the board app opens this project, it
+   writes and maintains short `SKILL.md` integration notes in `.claude/skills/kanban/`
+   (Claude Code) and `.agents/skills/kanban/` (Codex, Cursor, OpenCode, DeepSeek Harness).
+   The workflows remain in the app's bundled CLI instead of being copied into this repo.
 
 5. Run `akb guide setup` and follow it: it is the guide for every box left on the checklist,
    from filling the config to creating the first tasks. Start at the first unticked box.
@@ -54,5 +46,6 @@ Everything else the board does is that same command:
     akb <action> <id> --print   one job, filled in for this board, to do in this session
     akb guide                the flows themselves, by name
 
-To update later: `npm install -g ai4kanban@latest` for a newer command, then `akb update`
-to repair the board. Those two are the whole of it — `akb guide update` spells them out.
+To update later, install the latest desktop release, then run `akb update` for the project.
+The desktop release updates both the app and its bundled workflows; `akb guide update`
+describes the project step.

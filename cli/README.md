@@ -24,6 +24,11 @@ without a chat session and without a browser.
 
 ## Get the command
 
+The [board app](https://ai4kanban.dev/download) brings `akb` with it — the first open puts
+it on your PATH and it updates when the app does, so if you have the app you have the
+command. Install it on its own where the app can't run — a server, a container, or a Linux
+box, whose AppImage leaves no command behind:
+
 ```bash
 npm install -g ai4kanban
 ```

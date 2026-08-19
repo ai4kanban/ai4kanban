@@ -37,48 +37,23 @@ export type Recipe = {
 export const recipes: Recipe[] = [
   {
     slug: "daily-kanban-maintenance",
-    title: "Daily kanban maintenance",
+    title: "Prune the memory",
     icon: "🧹",
     tagline:
-      "Daily cleanup for your kanban board — it proposes new work, prunes stale cards, and keeps priorities short, so the board stays sharp on its own.",
+      "Keep your board's memory concise, so each planning run reads only the shipped facts, decisions, rejections, and design lessons that still matter.",
     summary:
-      "A recurring upkeep task for a markdown kanban board — you run it on a cadence and each pass keeps the board tidy and sharp instead of letting it pile up. Built for solo developers who run their board through Claude Code.",
-    mdFile: "/recipes/daily-kanban-maintenance.md",
+      "A recurring maintenance task for AI4Kanban's project-wide and per-module memory. Each run rewrites the four memory files into concise topic summaries that retain only what still helps plan future work.",
+    mdFile: "/recipes/prune-the-memory.md",
     installPrompt: [
-      `/kanban Pull ${SITE_ORIGIN}/recipes/daily-kanban-maintenance.md`,
-      "and create a recurring task for it. Run every step in its",
-      "`## Process`, including the cron re-arm at the end.",
+      `/kanban Pull ${SITE_ORIGIN}/recipes/prune-the-memory.md`,
+      "and create a recurring task from it. Keep its `## Process`",
+      "unchanged and run every step.",
     ].join("\n"),
     does: [
       {
-        art: "orient",
-        title: "See what changed",
-        body: "Looks at your board and what you've touched in your git repo since last time, so it only reviews the new stuff — not everything from scratch.",
-      },
-      {
-        art: "propose",
-        title: "Suggest new tasks",
-        body: "Spots gaps worth working on and adds a few new cards — only ones that pass a quick quality check, so the board doesn't fill up with noise.",
-      },
-      {
         art: "prune",
-        title: "Tidy the board's memory",
-        body: "Compresses the board's memory — what's done, what got dropped, what to remember — and clears out stale, long-idle cards, so the board stays short and useful instead of piling up.",
-      },
-      {
-        art: "cap",
-        title: "Keep the priority list short",
-        body: "Sorts your high-priority cards and keeps only the top 6. The rest are nudged down to medium (never deleted), so you always know what matters most.",
-      },
-      {
-        art: "advance",
-        title: "Push top cards forward",
-        body: "Takes your most important cards and refines each one a step more concrete — turning a fuzzy idea into a clearer, more actionable plan.",
-      },
-      {
-        art: "questions",
-        title: "Raise questions for human input",
-        body: "If something needs a decision from you, it writes the question down instead of stopping. You answer whenever you like, and the next run picks it up.",
+        title: "Prune project and module memory",
+        body: "Rewrites the project-wide memory and each module's four memory files as concise topic summaries, keeping only shipped facts, live decisions, rejected ideas, and design lessons that still help plan future work.",
       },
     ],
   },

@@ -21,8 +21,6 @@ _(none)_
 - [#179 Show a failed run on the card it was working on](features/179-show-a-failed-run-on-the-card-it-was-working-on.md)
 - [#182 Sign the Mac build so it opens with no warning](features/182-sign-the-mac-build-so-it-opens-with-no-warning.md)
 - [#183 Install the Mac app with one Homebrew command](features/183-install-the-mac-app-with-one-homebrew-command.md)
-- [#225 Run the board on DeepSeek Harness (dsh)](features/225-run-the-board-on-deepseek-harness-dsh.md)
-- [#226 Install the akb command from the desktop app](features/226-install-the-akb-command-from-the-desktop-app.md)
 - [#229 Tell the user how to log in to the agent, not just how to install it](features/229-tell-the-user-how-to-log-in-to-the-agent-not-just-how-to-ins.md)
 - [#232 Write a release's changelog with AI when it closes](features/232-write-a-release-s-changelog-with-ai-when-it-closes.md)
 
@@ -47,8 +45,6 @@ _(none)_
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#202 Test whether the board changes what a coding agent builds](202-board-vs-no-board/root.md)
 - [#209 Teach the daily loop as buttons, not only as things you say](distribution/209-teach-the-daily-loop-as-buttons-not-only-as-things-you-say.md)
-- [#216 Fix the memory file names the comparison pages still show](distribution/216-fix-the-memory-file-names-the-comparison-pages-still-show.md)
-- [#228 The daily maintenance recipe describes a board that no longer exists](distribution/228-daily-maintenance-recipe-describes-a-board-that-no-longer-ex.md)
 
 ## 143-ui-tasks/features
 
@@ -61,6 +57,7 @@ _(none)_
 ## recurring
 
 - [#181 Competitor analysis loop](recurring/181-competitor-analysis-loop.md)
+- [#236 Prune oversized documentation](recurring/236-prune-oversized-documentation.md)
 
 ## 202-board-vs-no-board/distribution
 

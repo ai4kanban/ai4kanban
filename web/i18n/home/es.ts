@@ -126,7 +126,7 @@ const es: HomeCopy = {
 
   start: {
     title: "Empieza con la aplicación del tablero",
-    lead: "Descárgala, ábrela y apúntala a un proyecto. No hace falta instalar nada antes: ni Node, ni npx, ni terminal. Te pregunta las tres cosas que solo tú puedes responder, una por pantalla, y después lee tu base de código, establece el objetivo del proyecto y la memoria de cada módulo, y crea el primer conjunto de tareas.",
+    lead: "Descarga la aplicación, ábrela y selecciona un proyecto. No necesitas configurar Node.js, npx ni un terminal. La aplicación plantea tres preguntas que requieren tu criterio, una por pantalla, y después lee la base de código, establece el objetivo y la memoria de cada módulo, y crea las primeras tareas.",
     notes: [
       "Planificación autónoma",
       "Local primero",
@@ -134,14 +134,9 @@ const es: HomeCopy = {
     ],
     cta: "Descargar la aplicación",
     firstOpen:
-      "Todavía no hay compilación firmada, así que macOS bloquea la primera apertura: arrastra la aplicación desde el `.dmg` y luego salta el aviso de que no se puede verificar. La página de descarga detalla cada paso, y también Windows y Linux.",
-    terminal: {
-      title: "O configúralo desde una terminal",
-      body: "Un comando, desde la raíz de tu proyecto. Crea el tablero en `docs/kanban/` y no escribe nada más.",
-      promptNote:
-        "¿Prefieres que lo haga entero tu agente de código? Dale el prompt de instalación: lee el repositorio, elige las vías, ejecuta ese comando y completa el resto de la configuración.",
-      promptLink: "Ver el prompt de instalación",
-    },
+      "Las compilaciones aún no están firmadas, por lo que macOS bloquea la primera apertura. Arrastra la aplicación desde el `.dmg` y sigue los pasos para autorizarla. La página de descargas incluye instrucciones completas para macOS, Windows y Linux.",
+    command:
+      "AI4Kanban requiere la aplicación de escritorio. Esta incluye la CLI `akb` y añade automáticamente los skills para agentes de código al abrir un proyecto. La CLI y los skills complementan la aplicación de escritorio; no son opciones de instalación independientes.",
   },
 };
 

@@ -241,7 +241,7 @@ function CommandBehind({ command, button }: { command: CommandState; button: boo
 
   const said = command.onPath
     ? `The \`akb\` on your PATH is ${command.onPath}; this board runs ${command.version}.`
-    : "There is no `akb` on your PATH.";
+    : "There is no working `akb` on your PATH.";
 
   if (button) {
     return (

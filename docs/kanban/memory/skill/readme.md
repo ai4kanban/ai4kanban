@@ -92,10 +92,16 @@ covers it, or a plain-words note.
   same command changes them — which agent, its model, how hard it thinks, who pays, and the
   key — and says which agents it can run and what each takes: `cli/README.md`.
 - A fifth agent runs the board: **DeepSeek Harness**, with `akb agent use dsh`. It needs
-  `npm install -g @deepseek-ai/dsh @openma/deepseek-harness-acp` — dsh, and the bridge the
-  board talks to it through — and then takes a model and a DeepSeek key, both optional,
-  since an empty key uses the one dsh already saved: `cli/README.md` and "Running on
-  DeepSeek Harness" in `kanban-ui/README.md`.
+  `npm install -g @deepseek-ai/dsh` and then `npm install -g @openma/deepseek-harness-acp`
+  — two commands, never one, since npm gives everything named together its own folder and
+  the bridge would come out with no dsh under it. It then takes a model and a DeepSeek key,
+  both optional, since an empty key uses the one dsh already saved: `cli/README.md` and
+  "Running on DeepSeek Harness" in `kanban-ui/README.md`.
+- A dsh run is pinned to the dsh sitting beside the bridge, with `--dsh-path`. `dsh-acp`
+  otherwise takes the first `dsh` on the PATH, and on a machine that has one that is a
+  second copy of the same plugin system — every run then dies as it opens, on
+  `agent-presets: refusing to compose an unscoped context`. No published doc covers this
+  yet.
 - One writer at a time on a board: a move waits its turn and says which process it is
   waiting on when it gives up. A lock left by a killed run is taken over the moment that
   process is gone, so there is never a folder to delete by hand. No published doc covers
@@ -117,6 +123,9 @@ covers it, or a plain-words note.
 - Adding the skill writes one file, `SKILL.md`; the command it names stays where npm put
   it, so nothing generated lands in the user's git history: "The coding agent skill" in
   `cli/README.md`.
+- A desktop user needs no npm: the app carries `akb` and installs it as one symlink, so
+  updating the app updates the command, and after an install that answers it rewrites the
+  open project's skill note to say `akb`: `desktop/README.md`.
 - Updating is two lines and no third: a newer command, then `akb update` to repair the
   board. `akb update` can't replace the running command, so it checks npm and names the
   line when it is behind: `akb guide update`.

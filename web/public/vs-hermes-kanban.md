@@ -78,10 +78,11 @@ exists so the next proposal is smarter. Hermes's log is an **output of
 execution** — it exists so the past can be replayed.
 
 **AI4Kanban — remembers conclusions, forgets the rest.** Four small files,
-pruned on purpose: `archive.md` (what shipped), `rejected.md` (what we turned
-down, and why), `redesign.md` (design mistakes not to repeat), `memory.md` (what
-past scans learned). The agent reads them all before proposing or writing a card;
-the full history is git's job.
+pruned on purpose, one folder per module: `readme.md` (what shipped),
+`decisions.md` (the calls that were settled, and why), `rejected.md` (what we
+turned down, and why), `redesign.md` (design mistakes not to repeat). `goal.md`
+sits on its own at the top of the memory folder. The agent reads them all before
+proposing or writing a card; the full history is git's job.
 
 > "Why isn't idea X on the board?" — One line in `rejected.md`: the idea and why
 > it was turned down. Dead ideas stay dead.

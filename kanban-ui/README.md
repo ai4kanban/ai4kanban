@@ -1016,11 +1016,29 @@ id rides on every event, and Resume continues with `opencode run --session <id>`
 Pick **DeepSeek Harness** and every button spawns `dsh-acp --permission-mode workspace-write`
 instead. Same cards, same buttons, same files.
 
-You need two npm packages, not one: `npm install -g @deepseek-ai/dsh @openma/deepseek-harness-acp`.
+You need two npm packages, not one, and they go in one at a time:
+
+```sh
+npm install -g @deepseek-ai/dsh
+npm install -g @openma/deepseek-harness-acp
+```
+
 The first is DeepSeek Harness itself; the second is the bridge that lets the board talk to
-it. dsh's own headless command says nothing until it has finished and can't carry on an
-earlier run, so the board uses neither — it holds a conversation with `dsh-acp` instead, and
-that is what makes a dsh log live and a dsh **Resume** work.
+it. Asking for both in a single `npm install -g` looks tidier and leaves you with a bridge
+that has no dsh underneath it — it exits on its first import. Run in turn, the bridge brings
+its own dsh along, which is the one the board points it at.
+
+If you already asked for both at once, **Test** says the agent did not answer. Put the
+bridge in again on its own to repair it:
+
+```sh
+npm uninstall -g @openma/deepseek-harness-acp
+npm install -g @openma/deepseek-harness-acp
+```
+
+dsh's own headless command says nothing until it has finished and can't carry on an earlier
+run, so the board uses neither — it holds a conversation with `dsh-acp` instead, and that is
+what makes a dsh log live and a dsh **Resume** work.
 
 Its two settings are a **Model** box and a **DeepSeek API key** box, and both can stay empty:
 

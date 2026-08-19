@@ -70,7 +70,7 @@ agent proposes or refines work:
 - `rejected.md` records an idea and why it was declined, so it stays out unless
   new evidence changes the decision.
 - `redesign.md` records design mistakes and directions to avoid.
-- `memory.md` records useful module findings for the next planning pass.
+- `decisions.md` records the calls that were settled, and why.
 
 This memory answers: **“Why did the board stop proposing idea X?”**
 

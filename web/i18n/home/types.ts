@@ -76,9 +76,8 @@ export type HomeCopy = {
     outputs: [string, string];
   };
   /**
-   * Getting started, in the order a new reader does it: the app first, the
-   * terminal under it. The setup prompt is a link in the terminal block, never
-   * a second button — one page, one thing to press.
+   * Getting started: the app, and nothing beside it. One page, one thing to
+   * press.
    */
   start: {
     title: string;
@@ -88,12 +87,8 @@ export type HomeCopy = {
     cta: string;
     /** What a Mac user has to do the first time, beside the first step. */
     firstOpen: string;
-    terminal: {
-      title: string;
-      body: string;
-      promptNote: string;
-      promptLink: string;
-    };
+    /** How the app, bundled CLI, and automatically added skills fit together. */
+    command: string;
   };
 };
 

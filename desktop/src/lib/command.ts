@@ -145,13 +145,13 @@ function linkStateAt(link: string): {
   const st = lstat(link);
   if (!st) return { state: "absent", points: null, holder: null };
   if (!st.isSymbolicLink()) {
-    return { state: "foreign", points: null, holder: `a file of its own at ${link}` };
+    return { state: "foreign", points: null, holder: "a file of its own" };
   }
   let target: string;
   try {
     target = linkTarget(link);
   } catch {
-    return { state: "foreign", points: null, holder: `a symlink we cannot read at ${link}` };
+    return { state: "foreign", points: null, holder: "a symlink we cannot read" };
   }
   if (!target.endsWith(OURS)) {
     return { state: "foreign", points: target, holder: `a symlink to ${target}` };

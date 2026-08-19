@@ -123,7 +123,7 @@ const fr: HomeCopy = {
 
   start: {
     title: "Commencez par l’application",
-    lead: "Téléchargez-la, ouvrez-la, pointez-la vers un projet. Rien à installer au préalable : ni Node, ni npx, ni terminal. Elle vous pose les trois questions auxquelles vous seul pouvez répondre, une par écran, puis lit votre base de code, établit l’objectif du projet et la mémoire de chaque module, et crée les premières tâches.",
+    lead: "Téléchargez l’application, ouvrez-la et sélectionnez un projet. Vous n’avez besoin de configurer ni Node.js, ni npx, ni un terminal. L’application pose trois questions qui nécessitent votre avis, une par écran, puis lit le code, établit l’objectif et la mémoire de chaque module, et crée les premières tâches.",
     notes: [
       "Planification autonome",
       "Local d’abord",
@@ -131,14 +131,9 @@ const fr: HomeCopy = {
     ],
     cta: "Télécharger l’application",
     firstOpen:
-      "Aucune version n’est encore signée, donc macOS bloque la première ouverture : glissez l’application depuis le `.dmg`, puis passez l’avertissement indiquant qu’elle ne peut pas être vérifiée. La page de téléchargement détaille chaque étape, ainsi que Windows et Linux.",
-    terminal: {
-      title: "Ou configurez-le depuis un terminal",
-      body: "Une commande, à la racine de votre projet. Elle crée le tableau dans `docs/kanban/` et n’écrit rien d’autre.",
-      promptNote:
-        "Vous préférez que votre agent de code s’en charge entièrement ? Donnez-lui le prompt d’installation : il lit le dépôt, choisit les pistes, exécute cette commande et termine le reste de la configuration.",
-      promptLink: "Voir le prompt d’installation",
-    },
+      "Les versions ne sont pas encore signées, donc macOS bloque la première ouverture. Faites glisser l’application depuis le `.dmg`, puis suivez la procédure pour l’autoriser. La page de téléchargement fournit les instructions complètes pour macOS, Windows et Linux.",
+    command:
+      "AI4Kanban nécessite l’application de bureau. Celle-ci inclut l’outil en ligne de commande `akb` et ajoute automatiquement les skills pour agents de code à l’ouverture d’un projet. L’outil et les skills complètent l’application de bureau ; ils ne constituent pas des modes d’installation autonomes.",
   },
 };
 

@@ -151,7 +151,7 @@ const en: VsHermesCopy = {
     ours: {
       heading: "AI4Kanban",
       verdict: "Preserves decisions, not every event.",
-      body: "Four deliberately concise files capture what matters next: `archive.md` records shipped work, `rejected.md` records declined ideas and their rationale, `redesign.md` records design mistakes to avoid, and `memory.md` records useful findings from earlier scans. Agents read them before proposing or refining work; git retains the full change history.",
+      body: "Four deliberately concise files capture what matters next, kept in one folder per module: `readme.md` records what shipped, `decisions.md` records the calls that were settled and why, `rejected.md` records what we turned down and why, and `redesign.md` records design mistakes not to repeat. `goal.md` sits on its own at the top of the memory folder. Agents read them before proposing or refining work; git retains the full change history.",
       q: "Why isn't idea X on the board?",
       a: "`rejected.md` records the idea and the reason it was declined, so it is not proposed again without new evidence.",
     },

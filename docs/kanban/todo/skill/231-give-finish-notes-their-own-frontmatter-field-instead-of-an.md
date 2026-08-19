@@ -6,7 +6,7 @@ roi: med
 status: ready
 release: ""
 blocked_by: []
-related: [226]
+related: []
 modules: [skill, local-ui]
 questions: []
 ---
@@ -14,7 +14,8 @@ questions: []
 When a build ends, the agent often has a note for the user that is not a question — what
 is still unchecked, what to try on a real build. Call that a **finish note**. Today the
 only place in the frontmatter for it is `questions:`, so it lands there as a `[user]`
-question (#226 is an example). That is wrong twice: the user is not meant to answer it,
+question (the archived card that installed `akb` from the desktop app carried one this
+way). That is wrong twice: the user is not meant to answer it,
 and an open question reads like something is broken — scary on a card that is actually
 done.
 
@@ -63,4 +64,3 @@ done.
 - [ ] Add the new command to the frontmatter-commands line in the skill note,
       `skill/SKILL.md`.
 - [ ] Say in the daily-loop guide what a verify line is and what to do with one.
-- [ ] Move #226's finish note into `verify:` as the first real use.

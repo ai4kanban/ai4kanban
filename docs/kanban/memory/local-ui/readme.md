@@ -120,6 +120,12 @@ except where another doc is named.
   streams text, thinking and tool calls as they arrive, **Test**, **Stop** and **Resume**
   all work, and a resumed run carries on in the same dsh session with its history:
   "Running on DeepSeek Harness" in `kanban-ui/README.md`.
+- Install dsh in two commands, never one — `npm install -g @deepseek-ai/dsh` and then
+  `npm install -g @openma/deepseek-harness-acp`. Named together, npm gives each its own
+  folder and the bridge comes out with no dsh under it. A run then points the bridge at the
+  dsh its own install put beside it, so a dsh already on the PATH no longer breaks it, and
+  someone who installed both at once is told to put the bridge in again on its own:
+  "Running on DeepSeek Harness" in `kanban-ui/README.md`.
 - See which agents this machine can actually run: the picker dims the ones whose CLI isn't
   on the board's PATH and marks them **not installed**, still lets you pick one, and names
   the command that installs it. It looks again every time the picker opens: "Configuration".
@@ -138,6 +144,11 @@ except where another doc is named.
   board arrives without one. The pane says whether it is there and how current it is, one
   button writes it or updates an older copy, and it hands over the line for a newer `akb`
   when yours is behind rather than running it: "The coding agent skill".
+- Get `akb` from the app itself: the first launch that finds none on the PATH writes one
+  symlink into a bin folder of your own with no dialog, and asks for the administrator
+  password only when `/usr/local/bin` is the only place left. A launch that finds its own
+  link dead repairs it the same silent way, and **Configuration → Skill** says what holds
+  the path — installed, dead, or an `akb` the app didn't put there: `desktop/README.md`.
 - Run the board on Cursor or OpenCode as well as Claude Code and Codex — pick one in
   **Configuration → Agent** and every button spawns it, with its own settings, live log,
   stop and resume. Where a CLI reports no cost or no model name the log leaves that blank
