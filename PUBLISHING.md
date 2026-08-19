@@ -63,7 +63,16 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
 4. `npm publish` from `cli/` — smoke-test `npx ai4kanban@latest install` in a throwaway repo.
 5. Build the app (below) and check a run works end to end on macOS.
 6. `git push --follow-tags`, then create the GitHub release for `v<new-version>` and upload
-   everything in `desktop/dist/`.
+   this version's files from `desktop/dist/` — the folder keeps every past release's builds
+   too, so upload by name, not `dist/*`. Three traps, all silent:
+   - **`--follow-tags` doesn't push a lightweight tag.** `git tag v<x>` makes one, so the
+     push leaves the tag behind. `git ls-remote --tags origin | grep <x>`, and
+     `git push origin v<x>` if it isn't there.
+   - **Unset the proxies, like the deploy does.** `gh` uploads through
+     `127.0.0.1:7890` and the big files reset mid-transfer.
+   - **`gh release create` exits 0 even when an upload failed**, leaving a draft with some
+     of the assets. Count them before publishing: `gh release view v<x> --json assets -q
+     '.assets[].name' | wc -l` — 16. Then `gh release edit v<x> --draft=false --latest`.
 7. Deploy the landing page — last, and not optional. Every asset name on a release carries
    the version, so the download page links straight at this tag's files: `web/lib/release.ts`
    reads the root `VERSION` at build time and writes
@@ -71,6 +80,11 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
    the deploy, ai4kanban.dev/download hands out the previous release; deploy it before the
    release exists and the buttons 404. If a build's file name changes, that page's
    `components/download/builds.ts` is the one place to change it.
+
+   Build it from the tag, not from the working tree. `next build` compiles whatever is on
+   disk, so half-finished page work — yours or another session's — ships to production
+   under the release's name. Clone and build there:
+   `git clone --local <repo> /tmp/rel && cd /tmp/rel && git checkout v<x>`.
 
 Nothing to do for `kanban-ui/` — it is frozen (below).
 
