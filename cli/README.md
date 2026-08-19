@@ -129,7 +129,8 @@ akb stop 3f2a1b04             # end one
 akb resume 3f2a1b04           # continue one that failed
 ```
 
-Which agent runs them — Claude Code, Codex, Cursor or OpenCode — and what it is set to:
+Which agent runs them — Claude Code, Codex, Cursor, OpenCode or DeepSeek Harness — and
+what it is set to:
 
 ```bash
 akb agent                     # what runs, and how it is set up

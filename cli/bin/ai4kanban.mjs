@@ -4,8 +4,8 @@
 // `npx --yes ai4kanban@latest <command>` runs it without installing anything.
 //
 //   akb install [--tracks a,b,c]   scaffold docs/kanban/
-//   akb skill [install]            add the coding agent skill to this project, or say
-//                                  whether it is there
+//   akb skill [install|refresh]    add the coding agent skill to this project, rewrite the
+//                                  copy it has, or say whether it is there
 //   akb update                     refresh an installed skill, repair the board, and say
 //                                  the one line that puts a newer command on your path
 //   akb board <move>               the board's own bookkeeping — the agent's commands
@@ -57,7 +57,13 @@ const NEWER_LINE = `npm install -g ${NAME}@latest`
 // a line their own shell can't run. That one is spotted by the cache it runs out of, and
 // answered with the same fetch pinned to this version — never `@latest`, which is how a
 // board comes to be driven by two versions of its own rules.
+//
+// AI4KANBAN_COMMAND is how the desktop app's launcher says what it was typed as. That
+// launcher is reached as `akb` on the PATH and then runs this file by its path, so argv
+// alone would report the copy inside the app — a line no reader can paste.
 const PROGRAM = (() => {
+  const named = (process.env.AI4KANBAN_COMMAND || '').trim()
+  if (named) return named
   const entry = process.argv[1] || ''
   if (/[\\/](_npx|dlx)[\\/]/.test(entry)) return `npx --yes ${NAME}@${VERSION}`
   const base = path.basename(entry).toLowerCase().replace(/\.(cmd|ps1|exe)$/, '')
@@ -328,14 +334,27 @@ function cmdInstall(root, tracks) {
   say(`    ${PROGRAM} skill`)
 }
 
-// Add the skill to a project, or say where it stands. The whole move belongs to the built
-// rules; this prints what they did.
-async function cmdSkill(root, install) {
+// Add the skill to a project, rewrite the copy it has, or say where it stands. The whole
+// move belongs to the built rules; this prints what they did.
+//
+// `refresh` writes no folder that isn't already there. It is how a note learns a new
+// spelling of the command without a project gaining a skill it never asked for — the
+// desktop app runs it right after putting `akb` on the PATH, so the note stops naming the
+// copy inside the app.
+async function cmdSkill(root, mode) {
   const { readSkillState } = await rules()
   if (typeof readSkillState !== 'function') {
     fail('this copy of the board rules is too old to install the skill — `npm install -g ai4kanban@latest`')
   }
-  if (!install) {
+  if (mode === 'refresh') {
+    const { result } = await placeSkill(root, 'update')
+    sayDid()
+    sayNotes()
+    if (!result.ok && result.error) fail(result.error)
+    if (!result.wrote.length) say('No skill in this project — nothing to rewrite.')
+    return
+  }
+  if (!mode) {
     const state = readSkillState(root)
     say(`ai4kanban ${VERSION} — the coding agent skill in ${root}`)
     say('')
@@ -505,6 +524,9 @@ ${INTRO}
   akb skill                      whether a coding agent can drive this board
   akb skill install              add the skill: SKILL.md into .claude/skills/kanban/
                                  and .agents/skills/kanban/
+  akb skill refresh              rewrite a skill that is already here, and write none
+                                 that isn't — how the note learns a new spelling of the
+                                 command
   akb update                     refresh an installed skill, repair a board written by an
                                  older version, and say if a newer command is out
   akb version                    print this version
@@ -661,7 +683,7 @@ async function main() {
     // one on purpose — the same rule the run commands follow, where the move that changes
     // something is asked for by name.
     case 'skill':
-      return cmdSkill(opts.dir, rest[1] === 'install')
+      return cmdSkill(opts.dir, rest[1] === 'install' ? 'install' : rest[1] === 'refresh' ? 'refresh' : null)
     case 'update':
       return cmdUpdate(opts.dir)
     case 'version':

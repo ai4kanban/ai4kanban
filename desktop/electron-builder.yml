@@ -75,6 +75,9 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
+  # Puts the app's own bin folder — which holds akb.cmd — on the user's PATH, and takes it
+  # off again on uninstall (#226). Windows has no symlink to hand out the way macOS does.
+  include: build/installer.nsh
 
 linux:
   category: Development

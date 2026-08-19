@@ -329,9 +329,12 @@ function resumeIdOf(r: RunRecord): string | undefined {
   return r.resumeId
 }
 
-// A run that stopped short of finishing, so there is something left to continue: it failed,
-// or it was cut off. The one test behind both the offer and the refusal.
-const canPickUp = (r: RunRecord): boolean => r.status === 'error' || r.status === 'interrupted'
+// A run that ended before finishing, so there is something left to continue: it failed, it
+// was cut off, or the user stopped it. A stop ends the run, not the conversation — changing
+// their mind is one click, and the alternative is redoing the work from the top. The one
+// test behind both the offer and the refusal.
+const canPickUp = (r: RunRecord): boolean =>
+  r.status === 'error' || r.status === 'interrupted' || r.status === 'stopped'
 
 function toView(r: RunRecord, resumable: string | null): RunView {
   return {
@@ -486,7 +489,7 @@ export function openResume(id: string): { run: RunRecord; spec: RunSpec } | { er
   if (prev === null) return { error: `"${id}" matches more than one run — give more of the id` }
   if (!prev) return { error: `no run here answers to "${id}"` }
   if (prev.status === 'running') return { error: 'that run is still going' }
-  if (!canPickUp(prev)) return { error: 'only a failed or interrupted run can be continued' }
+  if (!canPickUp(prev)) return { error: 'only a failed, interrupted or stopped run can be continued' }
   const resumeId = resumeIdOf(prev)
   if (!resumeId) return { error: 'that run never reported an id to continue by' }
   const plan = planResume(prev.harness, resumeId)

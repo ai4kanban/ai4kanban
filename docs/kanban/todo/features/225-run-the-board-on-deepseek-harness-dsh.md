@@ -3,12 +3,14 @@ title: Run the board on DeepSeek Harness (dsh)
 track: features
 priority: med
 roi: med
-status: implementing
+status: todo
 release: 0.6.1
 blocked_by: []
 related: []
 modules: [skill, local-ui]
-questions: []
+questions:
+  - "[user] Run a card end to end on dsh with a real DeepSeek key. Everything else here was proved against the real `dsh-acp` — the session opens, the model is picked, the id comes back, a resume reopens the same session, a stop ends it — but nobody on this machine has a key, so no dsh run has ever reached the model. Until one does, the last box stays unticked."
+  - Does ordinary work inside the project ever raise a permission request on dsh? The board answers every request with no, on the reading that its permission preset already allows writing in the project and only a wider ask can raise one. If a real run shows dsh asking before an ordinary edit, that answer has to change to yes for anything inside the project.
 ---
 
 Add DeepSeek Harness (`dsh`) as a fifth agent the board can run, so someone already paying
@@ -70,23 +72,23 @@ A dsh user installs both packages:
 ## Todo
 - [x] Check what a dsh headless run can do.
 - [x] Work out how a dsh run reaches the kanban skill.
-- [ ] Prove the ACP way once by hand: install dsh and the bridge, start `dsh-acp`, send it
+- [x] Prove the ACP way once by hand: install dsh and the bridge, start `dsh-acp`, send it
       a prompt, watch the stream, reopen the session. Note the versions it was proved on.
-- [ ] Teach the board's runner to answer the command it started, for a run and for Test
+- [x] Teach the board's runner to answer the command it started, for a run and for Test
       connection alike, leaving the four agents that only print exactly as they are.
-- [ ] Add dsh to the board's list of agents (`cli/src/lib/agent/harnesses.ts`), and show a
+- [x] Add dsh to the board's list of agents (`cli/src/lib/agent/harnesses.ts`), and show a
       dsh run's log as it works.
-- [ ] Keep a dsh run's session, so a run that failed or was stopped carries on where it
+- [x] Keep a dsh run's session, so a run that failed or was stopped carries on where it
       stopped.
-- [ ] Set what a dsh run may do: write inside the project without stopping to ask, and
+- [x] Set what a dsh run may do: write inside the project without stopping to ask, and
       reach no further into the machine than the four agents already do.
-- [ ] Give the agent dialog dsh's two boxes — the DeepSeek key and a model — and leave
+- [x] Give the agent dialog dsh's two boxes — the DeepSeek key and a model — and leave
       someone already set up with dsh nothing to type.
-- [ ] Add dsh's logo, so it can be picked in the agent list (`kanban-ui/public/agents/`)
+- [x] Add dsh's logo, so it can be picked in the agent list (`kanban-ui/public/agents/`)
       and shown on the site's home diagram (`web/public/agents/`).
 - [ ] Run a real card end to end on dsh — implement it, refine it, archive it — and see a
       failure and a stop on it too.
-- [ ] Name dsh everywhere we count our agents: `README.md`, `README-zh.md`,
+- [x] Name dsh everywhere we count our agents: `README.md`, `README-zh.md`,
       `kanban-ui/README.md`, `cli/README.md`, the agents named beside `.agents/skills/` in
       the skill pane, and the site's home diagram, download page and comparison pages in
       all five languages, the plain-markdown copies under `web/public/` included.
@@ -105,3 +107,19 @@ A dsh user installs both packages:
 - **The runner answers the agent, or a command of our own hides that it has to?** The
   runner answers. Hiding it means the command the board starts is ours, and the agent list
   would then show dsh as installed on a machine that never had it.
+- **What does the runner learn — ACP, or that a command can answer back?** The second. A
+  harness now declares either a parser for a command that prints or a client for one that
+  talks, and the runner branches on which. ACP lives entirely in dsh's client, so the next
+  agent that answers back brings its own protocol and changes nothing else.
+- **What does the board answer when dsh asks to reach outside the project?** No. Under the
+  preset the command starts on, writing inside the project raises no question at all — so a
+  question is dsh asking to go further than Codex or OpenCode can, and the log says it was
+  refused. Nothing is left waiting for a human either way.
+- **Where is the model chosen?** On the session, the moment it opens. dsh carries its model
+  catalog per session, so a `--model` flag would be a second place to say it, and the box is
+  the one that means anything.
+- **How is a dsh run resumed?** In the same dsh session, reopened with the history it holds.
+  Nothing changes on the command line — the id is said inside the conversation.
+- **Is a run's tokens-and-cost number this run's own?** On a fresh session, yes. dsh counts
+  both for the session, so a resumed run reports what the whole conversation has used. It is
+  the agent's own number either way, and the board never adds runs together itself.

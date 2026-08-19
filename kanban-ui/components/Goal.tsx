@@ -23,6 +23,7 @@ import { TbNorthStar } from "react-icons/tb";
 import { getGoalAction, saveGoalAction } from "@/app/actions";
 import { Button } from "./button";
 import { Dialog } from "./Dialog";
+import { GuideDrawer } from "./Guide";
 import { Markdown } from "./Markdown";
 
 // Same input rules as the agent dialogs' textarea, taller: the goal is a few
@@ -85,19 +86,15 @@ export function GoalEditor({ onClose, onSaved }: { onClose: () => void; onSaved:
     <Dialog title="Write the goal" width={640} onClose={onClose}>
       {/* The box starts empty (#108), so what belongs in a goal is said here — the
           file no longer opens with a paragraph the user has to delete first. */}
-      <p className="mb-3 text-[13px] leading-relaxed text-nb-ink-soft">
+      <GuideDrawer
+        guide="what-makes-a-good-goal"
+        title="What makes a good goal"
+        className="mb-3 text-[13px] leading-relaxed text-nb-ink-soft"
+      >
         Where the project is headed, in your own words: what you want, how far out, and roughly
         what comes next. Rough and short is fine, and you can change it later — the agent never
-        drafts the goal for you.{" "}
-        <a
-          href="https://github.com/ai4kanban/ai4kanban/blob/main/docs/guides/what-makes-a-good-goal.md"
-          target="_blank"
-          rel="noreferrer"
-          className="underline underline-offset-2 hover:text-nb-ink"
-        >
-          What makes a good goal
-        </a>
-      </p>
+        drafts the goal for you.
+      </GuideDrawer>
       {error && <Failure text={error} />}
       {text === null && !error && <p className="text-[13px] italic text-nb-ink-soft">Reading goal.md…</p>}
       {text !== null && (

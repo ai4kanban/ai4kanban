@@ -10,8 +10,10 @@ current, board-specific instructions instead of encoding its workflow in this fi
 
 ## Select the command
 
+<!-- command -->
 Use `akb` in the commands below. If it is not on `PATH`, use `npx --yes ai4kanban@latest`
 instead, state that once, and never install the command globally.
+<!-- /command -->
 
 ## Work in the current conversation
 
@@ -64,7 +66,7 @@ akb runs                  list current and recent runs
 akb log <run>             print the run's log so far, then return
 akb log <run> --follow    print new output as it arrives, until the run ends
 akb stop <run>            stop a run
-akb resume <run>          resume a failed or interrupted run
+akb resume <run>          resume a failed, interrupted or stopped run
 akb agent                 show the configured agent
 akb guide                 list board workflows; `akb guide board` explains the board
 akb board help            show card IDs, fields, and index commands

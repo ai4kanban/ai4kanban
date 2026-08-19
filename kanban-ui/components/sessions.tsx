@@ -488,11 +488,11 @@ function SessionsDialog({
                   {/* A run started by Resume says so — otherwise it reads as a
                       second identical run of the same action out of nowhere. */}
                   {selected.resumedFrom && <span className="nb-tag">resumed</span>}
-                  {/* Only a run that stopped short — failed or interrupted —
-                      offers Resume, and the freshly polled `log` wins over the
-                      list entry: the poll that drew this row may be a second and
-                      a half old. Selecting the new session moves the panel onto
-                      it, so the log tail plays on. */}
+                  {/* Only a run that ended before finishing — failed,
+                      interrupted or stopped — offers Resume, and the freshly
+                      polled `log` wins over the list entry: the poll that drew
+                      this row may be a second and a half old. Selecting the new
+                      session moves the panel onto it, so the log tail plays on. */}
                   {(log?.canResume ?? selected.canResume) && (
                     <span className="ml-auto">
                       <ResumeButton

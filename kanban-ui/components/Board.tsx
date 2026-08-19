@@ -12,7 +12,7 @@ import {
   startSetupRunAction,
 } from "@/app/actions";
 import { filterColumns, hasOwnCards, useReleasePick } from "@/lib/release-pick";
-import type { AgentInfo, Board } from "@/lib/types";
+import type { AgentInfo, Board, SessionView } from "@/lib/types";
 import { BulkReleaseBar } from "./BulkReleaseBar";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
@@ -262,6 +262,19 @@ export function BoardView({
   // this one too.
   const setupRun = sessions.find((r) => r.status === "running" && r.action === "setup");
   const setupRunId = setupRun?.sessionId ?? null;
+  // …and the newest setup run when it stopped short (#230), so the strip and the
+  // guided run's closing screen say a run was tried and died instead of falling
+  // silently back to the offer. Only the newest one is asked: a failure the user
+  // has since run past is history. A run the user stopped is not a failure, and a
+  // run cut off by a dead server is — the board treats those two apart already.
+  const lastSetupRun = sessions.reduce<SessionView | undefined>(
+    (best, r) => (r.action === "setup" && (!best || r.startedAt > best.startedAt) ? r : best),
+    undefined,
+  );
+  const failedSetupRunId =
+    lastSetupRun && (lastSetupRun.status === "error" || lastSetupRun.status === "interrupted")
+      ? lastSetupRun.sessionId
+      : null;
   const finishSetup = useCallback(async () => {
     const res = await startSetupRunAction();
     // Take it on as this tab's, so the poll wakes at once and the run joins the
@@ -364,16 +377,22 @@ export function BoardView({
 
   // A board whose setup still has questions of its own opens on the guided run
   // instead of the columns — the questions come first, and a board being asked
-  // about is not yet a board to work in. Stepping out of it shows the columns,
-  // with the way back on them.
+  // about is not yet a board to work in. It draws the window's own top row (in
+  // the app that row is the title bar the traffic lights sit in), which is why
+  // it gets the header's props too. Stepping out of it shows the columns, with
+  // the way back on them.
   if (board?.setup && leftFlow === false && inFlow) {
     return (
       <SetupFlow
         setup={board.setup}
         agent={agent}
+        projectRoot={projectRoot}
+        goalWritten={board.goalWritten ?? false}
+        desktop={desktop}
         setupInstruction={setupInstruction}
         skillInstalled={skillInstalled}
         setupRunId={setupRunId}
+        failedSetupRunId={failedSetupRunId}
         onFinishSetup={finishSetup}
         onAgentChanged={setAgent}
         onSaved={refresh}
@@ -427,24 +446,10 @@ export function BoardView({
             </div>
           )}
 
-          {/* Setup left unfinished (#172) — the way back into the guided run for
-              someone who stepped out of it, and, once its questions are all
-              answered, the offer to finish the rest here (#173) with the line
-              that hands it to a coding agent beside it. Else the
-              goal ask (#53), which rides on nothing: a board long set up can have
-              its goal judged weak again, and that is not setup. Both drop out
+          {/* The goal ask (#53), which rides on nothing: a board long set up can
+              have its goal judged weak again, and that is not setup. It drops out
               with the next board refresh — the same one that already runs on
-              session finish and tab focus — so they move as the files do. */}
-          {board?.setup && (
-            <SetupNotice
-              setup={board.setup}
-              instruction={setupInstruction}
-              skillInstalled={skillInstalled}
-              setupRunId={setupRunId}
-              onFinishSetup={finishSetup}
-              onResume={setupHasQuestionsLeft(board.setup) ? resumeSetup : undefined}
-            />
-          )}
+              session finish and tab focus — so it moves as the files do. */}
           {board && !board.setup && board.goalNeedsWork && <GoalNotice onSaved={refresh} />}
 
           {!board && !error && (
@@ -521,6 +526,23 @@ export function BoardView({
               onOpenLog={setLogSessionId}
               selected={selected}
               onSelect={toggleSelected}
+            />
+          )}
+
+          {/* Setup left unfinished (#172) — the way back into the guided run for
+              someone who stepped out of it, and, once its questions are all
+              answered, the offer to finish the rest here (#173). It sits under the
+              columns rather than over them: the cards are what the board is for, and
+              a strip this wide at the top pushes them off the first screen. Outside
+              the scrolling row, so it stays put as the columns move. */}
+          {board?.setup && (
+            <SetupNotice
+              setup={board.setup}
+              skillInstalled={skillInstalled}
+              setupRunId={setupRunId}
+              failedSetupRunId={failedSetupRunId}
+              onFinishSetup={finishSetup}
+              onResume={setupHasQuestionsLeft(board.setup) ? resumeSetup : undefined}
             />
           )}
 

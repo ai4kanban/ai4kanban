@@ -24,6 +24,7 @@ import { FiAlertCircle, FiCheck, FiCopy, FiRefreshCw } from "react-icons/fi";
 import { installSkillAction, skillStateAction } from "@/app/actions";
 import type { CommandState, SkillFolder, SkillInstall, SkillState } from "@/lib/types";
 import { Button } from "./button";
+import { InstallCommand } from "./desktop";
 
 /** The section in the Configuration dialog. It reads its own state when it first draws —
  *  the board's poll never carries it, since one of the two answers spawns a process. */
@@ -35,6 +36,10 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
   // What the last press wrote, folder by folder. Cleared by nothing: it is the receipt for
   // the press, and it stands until the dialog closes.
   const [done, setDone] = useState<SkillInstall | null>(null);
+  // Whether the app's own button below would put a working `akb` on the PATH. False in a
+  // browser, on Linux, and when the `akb` a terminal runs came from somewhere else — the
+  // three cases where a line to type is still the only answer.
+  const [buttonFixes, setButtonFixes] = useState(false);
 
   const load = useCallback(async () => {
     const res = await skillStateAction();
@@ -122,7 +127,11 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
 
       {done && <Receipt result={done} />}
 
-      {command?.behind && <CommandBehind command={command} />}
+      {/* The second button: this one writes outside the repo (#226). Nothing at all in a
+          browser or on Linux, where the line below is still the whole answer. */}
+      <InstallCommand onInstalled={() => void load()} onFixable={setButtonFixes} />
+
+      {command?.behind && <CommandBehind command={command} button={buttonFixes} />}
     </div>
   );
 }
@@ -216,8 +225,13 @@ function Receipt({ result }: { result: SkillInstall }) {
 
 // The `akb` on this machine is older than the board, or isn't there at all. The flows the
 // coding agent works by come out of that command, so this is worth saying even when the
-// files in the repo are current — and it is the user's line to run, never ours.
-function CommandBehind({ command }: { command: CommandState }) {
+// files in the repo are current.
+//
+// In the app the button above is the answer, and the line to type is not shown at all —
+// pressing it beats pasting it. The line stays for the two cases a press can't fix: the
+// board in a browser, and an `akb` that came from somewhere else and comes first on the
+// PATH. Then it is the user's line to run, never ours.
+function CommandBehind({ command, button }: { command: CommandState; button: boolean }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -225,12 +239,25 @@ function CommandBehind({ command }: { command: CommandState }) {
     return () => clearTimeout(t);
   }, [copied]);
 
+  const said = command.onPath
+    ? `The \`akb\` on your PATH is ${command.onPath}; this board runs ${command.version}.`
+    : "There is no `akb` on your PATH.";
+
+  if (button) {
+    return (
+      <div className="border-t border-nb-ink/12 pt-4">
+        <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">
+          {said} The flows your coding agent follows come out of that command, so an old one
+          means old flows. The button above puts this app&rsquo;s own copy there.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="border-t border-nb-ink/12 pt-4">
       <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">
-        {command.onPath
-          ? `The \`akb\` on your PATH is ${command.onPath}; this board runs ${command.version}.`
-          : "There is no `akb` on your PATH."}{" "}
+        {said}{" "}
         The flows your coding agent follows come out of that command, so an old one means
         old flows. Run this yourself — nothing here does:
       </p>

@@ -364,13 +364,14 @@ const AGENT_LOGOS = [
   { src: "/agents/codex.svg", alt: "Codex" },
   { src: "/agents/cursor.svg", alt: "Cursor" },
   { src: "/agents/opencode.svg", alt: "OpenCode" },
+  { src: "/agents/dsh.svg", alt: "DeepSeek Harness" },
 ];
 
-// One washed tile per agent, plus one for the ellipsis. The tile shrank when the
-// row went from three to five: `agentsW` is what the block under the board gets,
-// and five 40px tiles would not fit inside it.
-const TILE = 36;
-const TILE_ICON = 16;
+// One washed tile per agent, plus one for the ellipsis. The tile shrinks as the
+// row grows: `agentsW` is what the block under the board gets, and the tiles have
+// to fit inside it — five 40px ones didn't, and at six 36px ones don't either.
+const TILE = 30;
+const TILE_ICON = 14;
 
 // The mark in the window's title bar, drawn to `components/ui/Logo.tsx` — the
 // same three board columns, shared top, stepping down as work leaves the board,
@@ -899,7 +900,7 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
   const agentsW = BOARD_W - ROW - STORAGE_W;
   const agentsX = X.mid + CP;
   const storageX = agentsX + agentsW + ROW;
-  const tileGap = 12;
+  const tileGap = 9;
   const tileCount = AGENT_LOGOS.length + 1; // the marks, then the ellipsis
   const tilesW = tileCount * TILE + (tileCount - 1) * tileGap;
   const tilesX = agentsX + (agentsW - tilesW) / 2;
@@ -1012,7 +1013,7 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
                 // tile of its own rather than being dropped straight onto the
                 // paper — the same tile the ellipsis beside them sits in. The
                 // step down to the wash is the whole tile: it is what holds
-                // three unrelated marks together as one row.
+                // unrelated marks together as one row.
                 <g key={logo.src}>
                   <rect
                     x={tilesX + i * (TILE + tileGap)}
@@ -1033,9 +1034,9 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
                   </image>
                 </g>
               ))}
-              {/* An ellipsis, not a fifth mark. Four agents ship, so anything
+              {/* An ellipsis, not one more mark. Five agents ship, so anything
                   logo-shaped here would claim one that doesn't — and the list is
-                  not closed at four. Same washed tile as the marks beside it. */}
+                  not closed at five. Same washed tile as the marks beside it. */}
               <rect
                 x={tilesX + AGENT_LOGOS.length * (TILE + tileGap)}
                 y={bottomY + (BOTTOM_H - TILE) / 2}

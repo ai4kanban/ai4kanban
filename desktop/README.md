@@ -54,6 +54,18 @@ What the app adds, and all it adds:
   it — the server child leads its own process group for exactly this reason.
 - **Saying a newer version is out.** Read from the newest GitHub release, shown as a line
   above the board with a link. The app never updates itself.
+- **Installing the `akb` command.** The app carries the command (`resources/bin/akb`, a
+  launcher beside the bundled CLI) and offers to put it on the PATH at the first launch that
+  finds none — before the user has done anything. macOS gets one symlink at
+  `/usr/local/bin/akb`, written through the system's own administrator dialog; Windows gets
+  the app's own `bin` folder on the user's PATH, put there by the installer
+  (`build/installer.nsh`) and repairable from the same button. Nothing is copied out of the
+  app, so updating the app updates the command. Linux is offered nothing: an AppImage
+  unpacks itself somewhere new every run, so there is no lasting path to point at. Declining
+  leaves the button in the board's **Configuration → Skill** pane; the offer itself comes
+  back only when a command that was installed stops working. Typed with no action at all,
+  `akb` opens the app — on the folder you are standing in when it has a board, and otherwise
+  on the project the app had open last (`--cwd`, read in `src/main.ts`).
 
 ## Working on it
 

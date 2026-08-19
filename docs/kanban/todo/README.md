@@ -24,6 +24,7 @@ _(none)_
 - [#225 Run the board on DeepSeek Harness (dsh)](features/225-run-the-board-on-deepseek-harness-dsh.md)
 - [#226 Install the akb command from the desktop app](features/226-install-the-akb-command-from-the-desktop-app.md)
 - [#229 Tell the user how to log in to the agent, not just how to install it](features/229-tell-the-user-how-to-log-in-to-the-agent-not-just-how-to-ins.md)
+- [#232 Write a release's changelog with AI when it closes](features/232-write-a-release-s-changelog-with-ai-when-it-closes.md)
 
 ## skill
 
@@ -39,6 +40,7 @@ _(none)_
 - [#186 Let a specialist agent fill the part of a spec it knows best](186-spec-agents/root.md)
 - [#214 Mark the calls in a card that are not just common sense](skill/214-mark-the-calls-in-a-card-that-are-not-just-common-sense.md)
 - [#221 Score how well the board does its own job](221-board-score/root.md)
+- [#231 Give finish notes their own frontmatter field instead of an open question](skill/231-give-finish-notes-their-own-frontmatter-field-instead-of-an.md)
 
 ## distribution
 

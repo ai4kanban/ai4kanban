@@ -26,7 +26,7 @@
 // call below checks first.
 
 import { useCallback, useEffect, useState } from "react";
-import { FiAlertTriangle, FiDownload, FiFolder, FiFolderPlus, FiX } from "react-icons/fi";
+import { FiAlertTriangle, FiCheck, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } from "react-icons/fi";
 import { Button } from "./button";
 import {
   DropdownMenu,
@@ -57,6 +57,31 @@ export interface ProjectEntry {
   hasBoard: boolean;
 }
 
+/** Where the `akb` command stands on this machine (#226) — see desktop/src/lib/command.ts,
+ *  which answers this. `kind` is how this system installs it at all: one symlink on macOS,
+ *  a PATH entry holding the app's own folder on Windows, and no way at all on Linux. */
+export interface CommandInstall {
+  kind: "symlink" | "path" | "none";
+  /** The path a press writes — named on screen before the press. */
+  writes: string;
+  /** Whether writing there raises the administrator dialog — only `/usr/local/bin` can,
+   *  never a bin folder of the user's own. */
+  needsPassword: boolean;
+  state: "absent" | "installed" | "dangling" | "foreign";
+  points: string | null;
+  holder: string | null;
+  /** The `akb` a terminal runs right now, when it isn't the one at our path. */
+  otherFirst: string | null;
+  /** Why the button is off: this app sits somewhere that won't still be there next launch. */
+  blocked: string | null;
+}
+
+export interface CommandInstallResult {
+  ok: boolean;
+  error?: string;
+  state: CommandInstall;
+}
+
 interface AppBridge {
   info(): Promise<{ version: string; platform: string; boardDir: string | null; downloadsUrl: string }>;
   projects(): Promise<ProjectEntry[]>;
@@ -64,6 +89,8 @@ interface AppBridge {
   forgetProject(dir: string): Promise<ProjectEntry[]>;
   pickRepo(): Promise<string | null>;
   createBoard(): Promise<{ ok: boolean; error?: string }>;
+  command(): Promise<CommandInstall>;
+  installCommand(): Promise<CommandInstallResult>;
   update(): Promise<{ version: string; url: string } | null>;
   skipUpdate(version: string): Promise<void>;
   openExternal(url: string): Promise<void>;
@@ -516,4 +543,141 @@ export function MakeBoardHere({ desktop }: { desktop: boolean }) {
       )}
     </div>
   );
+}
+
+// --- putting `akb` on the PATH ----------------------------------------------
+
+/** The button in the Skill pane that installs the board's command, and the four things it
+ *  can find on this machine (#226).
+ *
+ *  The app carries `akb` already — installing only points the system at it, so nothing is
+ *  copied out and updating the app updates the command. On macOS that is one symlink — in
+ *  a user-owned bin folder the PATH already reads when there is one, else at
+ *  `/usr/local/bin/akb` with the system's own password dialog; on Windows it is the app's
+ *  own `bin` folder on the user's PATH.
+ *
+ *  Renders nothing in a browser and nothing on Linux, where an AppImage unpacks itself
+ *  somewhere new every run and there is no lasting path to point at. Both keep the
+ *  `npm install -g` line the pane already gives.
+ *
+ *  `onFixable` says whether a press would put a working `akb` on the PATH, so the paragraph
+ *  under it can point at the button instead of handing over a line to type. */
+export function InstallCommand({
+  onInstalled,
+  onFixable,
+}: {
+  onInstalled?: () => void;
+  onFixable?: (fixable: boolean) => void;
+}) {
+  const [state, setState] = useState<CommandInstall | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  const load = useCallback(() => {
+    const app = bridge();
+    if (!app) return;
+    app.command().then(setState).catch(() => {});
+  }, []);
+
+  useEffect(() => load(), [load]);
+
+  // What the button can and can't put right, told to whoever draws the paragraph under it.
+  // An `akb` that came from somewhere else stays that machine's business: writing our path
+  // wouldn't change which one a terminal runs.
+  const fixable =
+    !!state &&
+    state.kind !== "none" &&
+    !state.blocked &&
+    !state.otherFirst &&
+    (state.state === "absent" || state.state === "dangling");
+  useEffect(() => onFixable?.(fixable), [fixable, onFixable]);
+
+  if (!state || state.kind === "none") return null;
+
+  const off = !!state.blocked || state.state === "foreign";
+  // Plain words on the button, like its neighbour that adds the skill — the backticks the
+  // card spells it with are markdown, and a button is not prose.
+  const label =
+    state.state === "dangling" ? "Repair it" : state.state === "installed" ? "Write it again" : "Install the akb command";
+
+  const install = () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    setDone(false);
+    bridge()
+      ?.installCommand()
+      .then((res) => {
+        setState(res.state);
+        if (res.ok) setDone(true);
+        else setError(res.error ?? "the command was not installed");
+        // The PATH has changed under the rest of the pane: the notice about a missing or
+        // old `akb` is read from the command itself, and it has to be asked again.
+        if (res.ok) onInstalled?.();
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setBusy(false));
+  };
+
+  return (
+    <div className="border-t border-nb-ink/12 pt-4">
+      <p className="mb-3 text-[13px] font-[700]">{commandHeadline(state)}</p>
+      <p className="mb-3 text-[12.5px] leading-relaxed text-nb-ink-soft">
+        {state.kind === "path"
+          ? "The app carries the command; this puts the app's own folder on your PATH. Updating the app updates the command — there is nothing separate to keep fresh. A new PATH entry only reaches terminals opened after it."
+          : "The app carries the command; this only points your system at it. Nothing is copied out, so updating the app updates the command — there is nothing separate to keep fresh."}
+      </p>
+      <div className="flex items-center gap-3">
+        <Button size="sm" disabled={busy || off} onClick={install}>
+          {busy ? "Writing…" : <>{<FiTerminal className="text-[13px]" aria-hidden />}{label}</>}
+        </Button>
+        {!off && (
+          <p className="text-[12px] leading-relaxed text-nb-ink-soft">
+            Writes <code className="font-mono text-[11.5px]">{state.writes}</code>.
+            {state.needsPassword && " macOS asks for your administrator password."}
+          </p>
+        )}
+      </div>
+      {state.otherFirst && (
+        <p className="mt-2 text-[12px] leading-relaxed text-nb-ink-soft">
+          Your terminal runs <code className="font-mono text-[11.5px]">{state.otherFirst}</code> — it
+          comes earlier on your PATH than {state.writes}.
+        </p>
+      )}
+      {done && (
+        <p className="mt-2 flex items-start gap-1.5 text-[12.5px] leading-relaxed text-nb-mint-ink">
+          <FiCheck className="mt-[3px] shrink-0" aria-hidden />
+          <span>
+            {state.kind === "path"
+              ? "Done. Open a new terminal and run `akb version`."
+              : "Done. Run `akb version` in a terminal — typing `akb` on its own opens this app on the project you are standing in."}
+          </span>
+        </p>
+      )}
+      {error && (
+        <p className="mt-2 flex items-start gap-1.5 text-[12.5px] leading-relaxed text-nb-ink-soft">
+          <FiAlertTriangle className="mt-[3px] shrink-0" aria-hidden />
+          <span>{error}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Which of the four this machine is, in one line. */
+function commandHeadline(state: CommandInstall): string {
+  if (state.blocked) return state.blocked;
+  switch (state.state) {
+    case "installed":
+      return `Installed at ${state.writes}.`;
+    case "dangling":
+      return `Installed at ${state.writes}, but it points at an app that is no longer there — ${state.points}.`;
+    case "foreign":
+      // The npm note only fits the system path — npm's global bin is /usr/local/bin, not
+      // a bin folder of the user's own.
+      return `${state.writes} is held by ${state.holder ?? "something the app didn't put there"}${state.writes === "/usr/local/bin/akb" ? " — an `akb` installed from npm lands at that same path, so this is yours to sort out" : " — this is yours to sort out"}.`;
+    default:
+      return "Not installed — your terminal has no `akb` from this app.";
+  }
 }

@@ -23,18 +23,22 @@ import {
   type MessageBoxOptions,
   type OpenDialogOptions,
 } from "electron";
+import fs from "node:fs";
 import path from "node:path";
 import { makeBoard } from "./lib/board-init";
+import { commandAnswers, commandState, installCommand, refreshSkillNote } from "./lib/command";
 import { buildMenu } from "./lib/menu";
 import { attachNavigation, type Navigation } from "./lib/navigation";
 import * as projects from "./lib/projects";
 import { BoardServers } from "./lib/server";
-import { loginShellEnv } from "./lib/shell-env";
+import { loginShellEnv, type Env } from "./lib/shell-env";
 import * as store from "./lib/store";
 import { newerRelease, DOWNLOADS_URL } from "./lib/update";
 import {
   CHANNELS,
   type AppInfo,
+  type CommandInstall,
+  type CommandInstallResult,
   type CreateBoardResult,
   type ProjectInfo,
   type UpdateInfo,
@@ -42,6 +46,10 @@ import {
 
 let servers: BoardServers | null = null;
 let win: BrowserWindow | null = null;
+// The environment a terminal would have given us, read once at start. Every run inherits
+// it, and it is also the PATH the `akb` question is asked against — what a terminal would
+// find, not what this process was launched with.
+let shellEnv: Env = process.env as Env;
 // Back and forward through the views the window opened. Set with the window.
 let nav: Navigation | null = null;
 // Set the first time the window is asked, so switching project or reloading
@@ -50,11 +58,22 @@ let updatePromise: Promise<UpdateInfo | null> | null = null;
 
 // One window, one board. A second launch raises the window that is already
 // there rather than starting a second app over the same projects.
-if (!app.requestSingleInstanceLock()) app.exit(0);
-app.on("second-instance", () => {
+//
+// The folder the second launch stood in rides along as the lock's data, read from that
+// process's own untouched argv. The `argv` the event hands over is Chromium's retelling —
+// switches are reordered and split from their values, so `--cwd <dir>` arrives in pieces
+// and must not be parsed there.
+if (!app.requestSingleInstanceLock({ dir: namedCwd(process.argv) ?? process.cwd() })) app.exit(0);
+app.on("second-instance", (_e, _argv, workingDirectory, data) => {
   if (!win) return;
   if (win.isMinimized()) win.restore();
   win.focus();
+  // `akb` typed on its own in a project opens that project. The launcher inside the app
+  // (resources/bin/akb) starts the app again with the folder it was standing in, and a
+  // second launch of a single-instance app arrives right here.
+  const dir = (data as { dir?: string } | undefined)?.dir ?? workingDirectory;
+  const near = boardNear(dir);
+  if (near && near !== servers?.boardDir) void open(near);
 });
 
 app.whenReady().then(start).catch(fatal);
@@ -63,9 +82,9 @@ async function start(): Promise<void> {
   // Before anything else: the environment a terminal would have given us. Every
   // run the board starts inherits it, so an agent installed the normal way is
   // found even though nothing here came from a terminal.
-  const env = await loginShellEnv();
+  shellEnv = await loginShellEnv();
   servers = new BoardServers({
-    env,
+    env: shellEnv,
     version: app.getVersion(),
     // Which project is on screen, in the app's own folder rather than in any
     // repo — it is a fact about this window, not about a board. Each board
@@ -73,12 +92,40 @@ async function start(): Promise<void> {
     focusFile: path.join(app.getPath("userData"), "open-project"),
   });
 
-  const repo = store.lastRepo() ?? (await askForRepo({ firstTime: true }));
+  // Started by the launcher from a project folder — that board is the one to show, ahead
+  // of whatever was open last.
+  const repo =
+    boardNear(namedCwd(process.argv)) ??
+    store.lastRepo() ??
+    (await askForRepo({ firstTime: true }));
   if (!repo) return app.quit(); // asked, and the user said no folder.
 
   createWindow();
   refreshMenu();
   await open(repo);
+  // And then, on a machine with no `akb`, the one offer this app makes on its own.
+  await offerCommand();
+}
+
+/** The folder a launch names with `--cwd`, when one does. */
+function namedCwd(argv: string[]): string | null {
+  const at = argv.indexOf("--cwd");
+  const dir = at >= 0 ? argv[at + 1] : undefined;
+  return dir ? path.resolve(dir) : null;
+}
+
+/** The project holding `dir`'s board — that folder or the nearest one above it with a
+ *  `docs/kanban/`. Null when there is no board over it, which is when a launch falls back
+ *  to the project the app had open last. */
+function boardNear(dir: string | null | undefined): string | null {
+  if (!dir) return null;
+  let at = path.resolve(dir);
+  for (;;) {
+    if (fs.existsSync(path.join(at, "docs", "kanban"))) return at;
+    const up = path.dirname(at);
+    if (up === at) return null;
+    at = up;
+  }
 }
 
 // On macOS the window has no title bar of its own: the board's own top row is
@@ -250,6 +297,82 @@ async function createBoard(): Promise<CreateBoardResult> {
   return { ok: true };
 }
 
+// --- the `akb` command (#226) ------------------------------------------------
+// The app carries the command already; installing only points the system at it. The offer
+// is made once, on the first launch that finds no `akb` on the PATH — before the user has
+// done anything, since a Mac app dragged out of a disk image has no installer to have asked
+// during. Declining costs nothing: the button in Configuration → Skill stays, and the offer
+// itself comes back only when a command that was installed stops working.
+
+/** Offer to install, if this is the launch that should. */
+async function offerCommand(): Promise<void> {
+  const state = commandState(shellEnv);
+  if (state.kind === "none" || state.blocked) return;
+  // Our own link, pointing at an app that has been moved or deleted: the shell says "no
+  // such file" and only this can put it right. It is the one thing that earns a second ask.
+  const broken = state.state === "dangling";
+  if (!broken && (state.state !== "absent" || state.otherFirst)) {
+    // Something answers to `akb` already — ours, npm's, or one from somewhere else. Nothing
+    // to offer, and a break that has since been mended is a break we would ask about again.
+    store.clearCommandBreak();
+    return;
+  }
+  // A write that needs no password isn't worth a dialog: the symlink goes into the user's
+  // own bin folder on the spot, the way Cursor's command appears without a word. The Skill
+  // pane still says where it went, and deleting it is one line. A failure stays quiet too —
+  // the button in the pane remains, and the next launch simply tries again.
+  if (state.kind === "symlink" && !state.needsPassword) {
+    const result = await putCommandOnPath();
+    if (result.ok) store.clearCommandBreak();
+    return;
+  }
+
+  if (broken ? store.commandBreakAsked() : store.commandOffered()) return;
+  // Written before the dialog, not after: a user who quits from the dialog has still been
+  // asked, and being asked again every launch is what makes an offer a nag.
+  if (broken) store.rememberCommandBreak();
+  else store.rememberCommandOffer();
+
+  const windows = state.kind === "path";
+  const { response } = await messageBox({
+    type: "question",
+    message: "Put the akb command on your PATH?",
+    detail: windows
+      ? `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This puts the app's own folder (${state.writes}) on your PATH. Updating the app updates the command.\n\nA new PATH entry only reaches terminals opened after it.\n\nYou can do this later from Configuration → Skill.`
+      : `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This points ${state.writes} at the copy inside the app, so updating the app updates the command.${state.needsPassword ? " macOS asks for your administrator password to write there." : ""}\n\nYou can do this later from Configuration → Skill.`,
+    buttons: ["Install", "Not now"],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (response !== 0) return;
+
+  const result = await putCommandOnPath();
+  if (!result.ok) {
+    if (result.error) await messageBox({ type: "warning", message: "akb was not installed.", detail: result.error });
+    return;
+  }
+  await messageBox({
+    type: "info",
+    message: "akb is ready.",
+    detail: windows
+      ? "Open a new terminal and run `akb version`. Typing `akb` on its own opens this app."
+      : "Run `akb version` in a terminal. Typing `akb` on its own opens this app on the project you are standing in.",
+  });
+}
+
+/** Install, and then let the open project's note learn the new spelling. The whole move,
+ *  wherever it was asked for — the offer above, or the button in the Skill pane. */
+async function putCommandOnPath(): Promise<CommandInstallResult> {
+  const result = await installCommand(shellEnv);
+  if (!result.ok) return result;
+  const boardDir = servers?.boardDir;
+  // Only the open project's note, and only once `akb` really answers on the PATH a run is
+  // spawned on: a note naming a command that isn't there is worse than one naming the long
+  // path that is.
+  if (boardDir && (await commandAnswers(shellEnv))) await refreshSkillNote(shellEnv, boardDir);
+  return result;
+}
+
 function refreshMenu(): void {
   buildMenu({
     onOpenRepo: pickRepo,
@@ -320,6 +443,10 @@ ipcMain.handle(CHANNELS.forgetProject, (_e, repo: unknown) => forgetProject(repo
 ipcMain.handle(CHANNELS.pickRepo, () => pickRepo());
 
 ipcMain.handle(CHANNELS.createBoard, () => createBoard());
+
+ipcMain.handle(CHANNELS.command, (): CommandInstall => commandState(shellEnv));
+
+ipcMain.handle(CHANNELS.installCommand, (): Promise<CommandInstallResult> => putCommandOnPath());
 
 ipcMain.handle(CHANNELS.update, async () => {
   const found = await pendingUpdate();

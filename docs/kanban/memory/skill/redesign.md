@@ -91,6 +91,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A run does its own follow-up work inside its own session** (a command writes a card,
   then refines the card it just wrote, in one long run) → ✅ each step is its own run, so
   the user can see it, read its log, and stop it.
+- ❌ **A printed flow hands over to refine without saying where it runs** → ✅ every
+  handover line naming refine says "in a fresh session, not this one" — an agent following
+  the flow would otherwise refine inside the context that just wrote the card.
 - ❌ **Refine a blocked card like any other** → ✅ a blocked card waits; building its blocker
   often rewrites its plan. Refine it when the blocker leaves the board — finishing or
   rejecting a card refines whatever it was holding up.

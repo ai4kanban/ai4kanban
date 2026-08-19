@@ -16,7 +16,7 @@ const ja: DownloadCopy = {
     lead: "macOS、Windows、Linux 向けのボードアプリ。事前に入れるものはありません — Node も npx もターミナルも不要です。",
     cta: "{system} 版をダウンロード",
     ctaAny: "ダウンロード",
-    note: "エージェントの実行には、マシン上の Claude Code、Codex、Cursor、OpenCode のいずれかが必要です。",
+    note: "エージェントの実行には、マシン上の Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness のいずれかが必要です。",
   },
 
   builds: {
@@ -43,6 +43,11 @@ const ja: DownloadCopy = {
       title: "Linux",
       body: "`chmod +x AI4Kanban-*.AppImage` のあと、実行します。",
     },
+  },
+  command: {
+    title: "`akb` コマンド",
+    body: "アプリは `akb`——コーディングエージェントがボードを操作するためのコマンド——を同梱していて、初回起動時に PATH へ通すかどうかを尋ねます。macOS では `/usr/local/bin/akb` にリンクを1つ書き込むため、管理者パスワードを求めます。Windows ではインストーラーがアプリ自身のフォルダーを PATH に追加しますが、これが効くのはその後に開いたターミナルだけです。アプリの外へは何もコピーされないので、アプリを更新すればコマンドも更新されます。",
+    later: "断っても失うものはありません。ボタンは **Configuration → Skill** に残ります。Linux では提供していません。AppImage は実行のたびに新しい場所へ自分を展開するため、`npm install -g ai4kanban` がそのまま方法です。",
   },
 };
 

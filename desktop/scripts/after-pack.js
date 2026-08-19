@@ -53,4 +53,19 @@ exports.default = async function afterPack(context) {
   fs.rmSync(cliTo, { recursive: true, force: true });
   fs.cpSync(cliFrom, cliTo, { recursive: true });
   console.log(`  • board installer copied  to=${cliTo}`);
+
+  // And the `akb` launcher (#226) — the file /usr/local/bin/akb is a symlink to, and the
+  // folder Windows puts on the PATH. It rides here rather than in `extraResources` so it
+  // is inside the bundle before signing, like everything else the app carries.
+  const binFrom = path.join(__dirname, "..", "resources", "bin");
+  const binTo = path.join(resources, "bin");
+  fs.rmSync(binTo, { recursive: true, force: true });
+  fs.cpSync(binFrom, binTo, { recursive: true });
+  // The executable bit is what makes it a command rather than a text file, and it does not
+  // survive every way a checkout reaches a build machine.
+  for (const name of ["akb"]) {
+    const file = path.join(binTo, name);
+    if (fs.existsSync(file)) fs.chmodSync(file, 0o755);
+  }
+  console.log(`  • akb launcher copied  to=${binTo}`);
 };

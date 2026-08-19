@@ -205,7 +205,7 @@ Runs in flight
   runs [--card <id>] [--all]   what is running, and what ran lately
   log [<run>] [--follow]       one run's log; --full for all of it
   stop [<run>]                 end a run
-  resume [<run>]               continue one that failed or was cut off
+  resume [<run>]               continue one that failed, was cut off or was stopped
 
 A <run> is a run's id, any prefix of one that names only one run, or \`last\`.
 Left out, it means the newest run.

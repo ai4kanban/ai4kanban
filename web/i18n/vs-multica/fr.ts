@@ -117,7 +117,7 @@ const fr: VsMulticaCopy = {
       execution: {
         dimension: "Gestion de l’exécution",
         kanban:
-          "Peut lancer Claude Code, Codex, Cursor ou OpenCode sur une carte et suivre tout son cycle, de la proposition à l’archivage.",
+          "Peut lancer Claude Code, Codex, Cursor, OpenCode ou DeepSeek Harness sur une carte et suivre tout son cycle, de la proposition à l’archivage.",
         multica:
           "Exécute plusieurs agents en parallèle avec files, relances, replay, mesure des coûts, contrôles de revue et liens PR et CI.",
       },
@@ -217,7 +217,7 @@ const fr: VsMulticaCopy = {
       },
       runtimeReach: {
         title: "Compatibilité plus large",
-        body: "Un daemon local relie de nombreuses CLI d’agents. AI4Kanban prend aujourd’hui en charge Claude Code, Codex, Cursor et OpenCode.",
+        body: "Un daemon local relie de nombreuses CLI d’agents. AI4Kanban prend aujourd’hui en charge Claude Code, Codex, Cursor, OpenCode et DeepSeek Harness.",
       },
     },
   },

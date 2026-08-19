@@ -39,6 +39,18 @@ re-ask a settled call.
 - **Is the coding agent skill part of getting a board?**: no — a new board arrives without
   it, and it is added later from a button in the Configuration dialog. Driving the board
   from a coding agent is an extra you turn on, not the way in.
+- **How does the app install the `akb` command?**: one symlink pointing at a launcher
+  inside the app, written into the first of the user's own bin folders the PATH already
+  reads (`~/.local/bin`, then `~/bin`) — no password — and into `/usr/local/bin` with the
+  system's administrator dialog only when the PATH reads neither. Updating the app updates
+  the command; there is nothing separate to keep fresh.
+- **When does the app install the command?**: on first launch, before the user has done
+  anything — silently when writing needs no password, as a dialog only when macOS will ask
+  for the administrator password. A drag out of a disk image runs no code of ours, so first
+  open is the earliest moment there is.
+- **Does an administrator password wait for the signed build?**: no. A feature that asks for
+  one ships in an unsigned release as long as declining costs the user nothing and the old
+  way still works.
 
 ## Propose and add-task
 
@@ -61,9 +73,11 @@ re-ask a settled call.
   it. Stop ends the agent only — a build or test it started finishes on its own — and the
   half-finished edits stay in the working tree for git to undo. It takes a confirmation
   beside the ✕; one click never ends a run.
-- Only a failed run can be continued; a run that passed shows no button. Continuing starts
-  a new run, and the live view stays a read-only log — nothing is typed into a running
-  session.
+- Any run that ended before finishing — failed, interrupted or stopped — can be continued;
+  a run that passed shows no button. A stop ends the run, not the conversation: changing
+  your mind is one click, and nothing restarts a stopped run on its own — Resume is always
+  the user's act. Continuing starts a new run, and the live view stays a read-only log —
+  nothing is typed into a running session.
 - The model shown on a run is what the agent reported as it ran, not the model setting.
   Most people leave that setting empty, so reading it would leave most runs blank.
 - **What happens after a run fails?**: nothing on the board's side. The run stays failed

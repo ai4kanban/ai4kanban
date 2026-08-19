@@ -27,6 +27,10 @@ except where another doc is named.
   run's closing screen and on the board's setup strip, runs every step still left as one
   ordinary run — watchable, stoppable, and picking up from the first unfinished step when
   started again after a failure. A board with no goal written asks for the goal instead.
+- Learn that a setup run died without going looking for it: when the newest one stopped
+  short, the setup strip and the guided run's closing screen both say so where the live run
+  said it was working, with a link into its log for why, and **Finish setup** still beside
+  it as the retry. A run you stopped yourself reads as the plain offer: "The first run".
 - A bar shows how far setup got and hands over the line to paste into your coding agent; a
   goal judged weak later brings the same bar back with just that item.
 - A button on the board and a command in a terminal do the same thing to a card. Every read
@@ -111,6 +115,11 @@ except where another doc is named.
 
 - Pick the agent that runs the work, Claude Code or Codex CLI, and the dialog draws the
   settings that agent says it takes.
+- Run the board on **DeepSeek Harness**: pick it in the same list, fill in a model and a
+  DeepSeek key or leave both empty, and every button spawns dsh through `dsh-acp`. Its log
+  streams text, thinking and tool calls as they arrive, **Test**, **Stop** and **Resume**
+  all work, and a resumed run carries on in the same dsh session with its history:
+  "Running on DeepSeek Harness" in `kanban-ui/README.md`.
 - See which agents this machine can actually run: the picker dims the ones whose CLI isn't
   on the board's PATH and marks them **not installed**, still lets you pick one, and names
   the command that installs it. It looks again every time the picker opens: "Configuration".

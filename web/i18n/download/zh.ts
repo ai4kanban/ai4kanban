@@ -16,7 +16,7 @@ const zh: DownloadCopy = {
     lead: "看板的桌面应用，支持 macOS、Windows 和 Linux。无需预先安装任何东西 —— 不需要 Node，不需要 npx，也不需要终端。",
     cta: "下载 {system} 版",
     ctaAny: "下载",
-    note: "发起 Agent 运行仍然需要机器上装有 Claude Code、Codex、Cursor 或 OpenCode。",
+    note: "发起 Agent 运行仍然需要机器上装有 Claude Code、Codex、Cursor、OpenCode 或 DeepSeek Harness。",
   },
 
   builds: {
@@ -43,6 +43,11 @@ const zh: DownloadCopy = {
       title: "Linux",
       body: "先 `chmod +x AI4Kanban-*.AppImage`，然后运行它。",
     },
+  },
+  command: {
+    title: "`akb` 命令",
+    body: "应用自带 `akb`——编码智能体驱动看板所用的命令——并在首次打开时主动提出把它加入 PATH。在 macOS 上，它会在 `/usr/local/bin/akb` 写入一个链接，为此需要你输入管理员密码。在 Windows 上，安装程序会把应用自己的目录加入 PATH，该改动只对之后新开的终端生效。命令不会被复制到应用之外，因此更新应用就等于更新命令。",
+    later: "拒绝不会有任何损失——按钮一直留在 **Configuration → Skill** 里。Linux 不提供这一项：AppImage 每次运行都会把自己解包到新的临时目录，因此仍然使用 `npm install -g ai4kanban`。",
   },
 };
 

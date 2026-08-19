@@ -411,9 +411,10 @@ export function SessionLog({
 // `claude --resume <id>`, done here, so nothing is copied and no id is ever
 // shown: the server knows which agent ran and how that agent resumes.
 //
-// Rendered only when the server says `canResume` — the run failed or was
-// interrupted, its id is known, and the agent that ran it is still the configured
-// one. A passing run has nothing to continue, so it shows no button at all.
+// Rendered only when the server says `canResume` — the run failed, was
+// interrupted or was stopped, its id is known, and the agent that ran it is
+// still the configured one. A passing run has nothing to continue, so it shows
+// no button at all.
 export function ResumeButton({
   sessionId,
   onResumed,

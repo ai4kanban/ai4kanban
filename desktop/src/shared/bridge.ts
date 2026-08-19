@@ -40,6 +40,47 @@ export interface UpdateInfo {
 
 export type CreateBoardResult = { ok: true } | { ok: false; error: string };
 
+/** How this system puts `akb` on the PATH: one symlink (macOS), a PATH entry holding the
+ *  app's own `bin` folder (Windows), or no way at all (Linux, where the AppImage unpacks
+ *  itself somewhere new every run). */
+export type CommandKind = "symlink" | "path" | "none";
+
+/** What is at the path the button writes:
+ *   - `absent`    — nothing installed.
+ *   - `installed` — ours, pointing at an app that is there.
+ *   - `dangling`  — ours, pointing at an app that is no longer there.
+ *   - `foreign`   — held by an `akb` the app didn't put there. An npm install lands at the
+ *                   same path, so this is the ordinary way it happens. */
+export type CommandLinkState = "absent" | "installed" | "dangling" | "foreign";
+
+/** Where the `akb` command stands on this machine (#226). */
+export interface CommandInstall {
+  kind: CommandKind;
+  /** The path a press would write — named on screen before the press. A user-owned bin
+   *  folder the PATH already reads when there is one, else `/usr/local/bin/akb`; an
+   *  existing install keeps its own path. */
+  writes: string;
+  /** Whether writing there raises the administrator dialog — `/usr/local/bin` when it
+   *  isn't the user's to write, never a folder of the user's own. */
+  needsPassword: boolean;
+  state: CommandLinkState;
+  /** What the installed link points at. */
+  points: string | null;
+  /** What is holding that path, when it isn't ours. */
+  holder: string | null;
+  /** The `akb` a terminal runs right now, when it isn't the one at our path. */
+  otherFirst: string | null;
+  /** Why the button is off — this app sits somewhere that won't last. */
+  blocked: string | null;
+}
+
+export interface CommandInstallResult {
+  ok: boolean;
+  error?: string;
+  /** How the machine stands afterwards, so one answer redraws the pane. */
+  state: CommandInstall;
+}
+
 /** Which way through the views the window opened. */
 export type NavDirection = "back" | "forward";
 
@@ -54,6 +95,9 @@ export const CHANNELS = {
   forgetProject: "a4k:forget-project",
   pickRepo: "a4k:pick-repo",
   createBoard: "a4k:create-board",
+  /** Where `akb` stands on this machine, and the press that puts it there (#226). */
+  command: "a4k:command",
+  installCommand: "a4k:install-command",
   update: "a4k:update",
   skipUpdate: "a4k:skip-update",
   openExternal: "a4k:open-external",
@@ -94,6 +138,11 @@ export interface Ai4kanbanBridge {
   /** Make a board in the open project — the way out of "there is no board here"
    *  in a window with no terminal. */
   createBoard(): Promise<CreateBoardResult>;
+  /** Where the `akb` command stands on this machine (#226). */
+  command(): Promise<CommandInstall>;
+  /** Put `akb` on the PATH. On macOS this is where the system asks for an
+   *  administrator password, when the folder being written needs one. */
+  installCommand(): Promise<CommandInstallResult>;
   /** A newer app, when one is out and the user hasn't waved this one off. */
   update(): Promise<UpdateInfo | null>;
   /** Don't mention this version again. */

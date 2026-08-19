@@ -1,0 +1,88 @@
+#!/bin/sh
+# The `akb` command, as the app carries it (#226).
+#
+# `/usr/local/bin/akb` is a symlink to this file inside AI4Kanban.app, the way
+# `/usr/local/bin/cursor` is a symlink into Cursor.app. Nothing is copied out of
+# the app, so updating the app updates the command and there is no second thing
+# to keep fresh.
+#
+# It finds its own app by following that symlink back to what it points at, and
+# then does one of two things:
+#
+#   akb <anything>   run the app's own copy of the command, under the app's own
+#                    Node — the machine needs no Node of its own, which is the
+#                    whole promise of the app.
+#   akb             open the app, on the folder you are standing in.
+#
+# Move or delete the app and this file goes with it: the shell says "no such
+# file or directory" and nothing here can dress that up. The next launch of the
+# app spots the dead symlink and offers to write it again.
+
+set -e
+
+# Follow the symlink chain to this file's real home. `readlink -f` would do it in
+# one line and is not on macOS before 12, so it is walked by hand.
+self=$0
+while [ -L "$self" ]; do
+  link=$(readlink "$self")
+  case $link in
+    /*) self=$link ;;
+    *) self=$(dirname "$self")/$link ;;
+  esac
+done
+
+bin=$(cd -- "$(dirname -- "$self")" && pwd)
+resources=$(dirname "$bin")
+# macOS: <App>.app/Contents/Resources/bin/akb, so this is Contents/ and the app
+# bundle is above it. Elsewhere it is the folder holding resources/.
+contents=$(dirname "$resources")
+cli="$resources/cli/bin/ai4kanban.mjs"
+
+if [ ! -f "$cli" ]; then
+  echo "akb: the command is missing from this AI4Kanban app ($cli)" >&2
+  exit 1
+fi
+
+# The app's own executable, and the Node to run children with.
+if [ -d "$contents/MacOS" ]; then
+  app=$(dirname "$contents")
+  name=$(basename "$app" .app)
+  exe="$contents/MacOS/$name"
+  # Electron's helper binary is the same Node inside a bundle marked LSUIElement,
+  # so a command run from a terminal takes no Dock tile (see lib/node-binary.ts).
+  node="$contents/Frameworks/$name Helper.app/Contents/MacOS/$name Helper"
+  [ -x "$node" ] || node=$exe
+else
+  # Linux and Windows layouts keep the executable beside resources/. The app
+  # offers no button on Linux (an AppImage has no lasting path to point at), so
+  # this branch is only ever reached by someone who made the link themselves.
+  exe=$(find "$contents" -maxdepth 1 -type f -perm -u+x 2>/dev/null | head -n 1)
+  node=$exe
+fi
+
+if [ -z "$exe" ] || [ ! -x "$exe" ]; then
+  echo "akb: could not find the AI4Kanban app around $resources" >&2
+  exit 1
+fi
+
+# No action at all: open the app rather than printing help, the way `cursor` and
+# `code` do. The app decides what to show — this folder's board when it has one,
+# and otherwise the project it had open last.
+#
+# ELECTRON_RUN_AS_NODE is cleared first: a shell that already exports it — the
+# app's own `npm start` does — would otherwise start the app as a bare Node
+# process, and no window would ever appear.
+if [ $# -eq 0 ]; then
+  unset ELECTRON_RUN_AS_NODE
+  nohup "$exe" --cwd "$PWD" >/dev/null 2>&1 &
+  exit 0
+fi
+
+# Every other line is the command itself, run under the app's Node. The name it
+# was typed as goes with it, so what it prints back can be pasted straight into
+# the same terminal.
+AI4KANBAN_COMMAND=$(basename "$0")
+export AI4KANBAN_COMMAND
+ELECTRON_RUN_AS_NODE=1
+export ELECTRON_RUN_AS_NODE
+exec "$node" "$cli" "$@"

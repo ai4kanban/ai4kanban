@@ -106,6 +106,33 @@ export function forgetProject(dir: string): void {
   write(patch);
 }
 
+/** Has the app already offered to put `akb` on the PATH? The offer is made once, at the
+ *  first launch that finds no command — after that the button in the Skill pane is where it
+ *  lives, and declining costs nothing. Someone updating from an app that never offered it
+ *  has nothing written here, so they get the offer too. */
+export function commandOffered(): boolean {
+  return read().commandOffered === true;
+}
+
+export function rememberCommandOffer(): void {
+  write({ commandOffered: true });
+}
+
+/** The one case that earns a second ask: a command that was installed and has since stopped
+ *  working, because the app it points at was moved or deleted. Asked once per breakage —
+ *  a launch that finds `akb` working again clears it, so a later breakage asks afresh. */
+export function commandBreakAsked(): boolean {
+  return read().commandBreakAsked === true;
+}
+
+export function rememberCommandBreak(): void {
+  write({ commandBreakAsked: true });
+}
+
+export function clearCommandBreak(): void {
+  if (read().commandBreakAsked) write({ commandBreakAsked: false });
+}
+
 /** The newest version the user has already been told about and waved off. */
 export function skippedVersion(): string | null {
   const v = read().skippedVersion;

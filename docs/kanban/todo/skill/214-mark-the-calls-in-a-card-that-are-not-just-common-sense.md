@@ -4,7 +4,7 @@ track: skill
 priority: med
 roi: high
 status: todo
-release: ""
+release: 0.7.0
 blocked_by: []
 related: []
 modules: [skill]

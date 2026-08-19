@@ -127,6 +127,9 @@ re-ask a settled call.
   release to the app and the download page.
 - The desktop app keeps carrying the command and running it under Electron's own Node, so
   the app still needs nothing installed on the machine.
+- **What does `akb` typed alone do?**: installed by the app, it opens the app — the same
+  command is the CLI when given an action, the way `cursor` works. The npm copy keeps
+  printing help; it has no app to open.
 
 ## Storage
 

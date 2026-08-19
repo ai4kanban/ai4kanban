@@ -91,6 +91,11 @@ covers it, or a plain-words note.
 - A run goes through the settings the board saved, never what your shell exported, and the
   same command changes them — which agent, its model, how hard it thinks, who pays, and the
   key — and says which agents it can run and what each takes: `cli/README.md`.
+- A fifth agent runs the board: **DeepSeek Harness**, with `akb agent use dsh`. It needs
+  `npm install -g @deepseek-ai/dsh @openma/deepseek-harness-acp` — dsh, and the bridge the
+  board talks to it through — and then takes a model and a DeepSeek key, both optional,
+  since an empty key uses the one dsh already saved: `cli/README.md` and "Running on
+  DeepSeek Harness" in `kanban-ui/README.md`.
 - One writer at a time on a board: a move waits its turn and says which process it is
   waiting on when it gives up. A lock left by a killed run is taken over the moment that
   process is gone, so there is never a folder to delete by hand. No published doc covers

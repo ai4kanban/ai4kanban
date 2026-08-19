@@ -14,6 +14,8 @@ docs/kanban/.sessions/
 # Archived proposals
 docs/kanban/.archive/
 
+kanban-ui/.next-guide-test/
+
 researches/
 .env
 social-posts/

@@ -10,7 +10,8 @@
 // The board reads the exit code and nothing else. Whether the agent answered "OK" or
 // something else is not the question — that it answered at all is.
 
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcessByStdio, type StdioNull, type StdioPipe } from 'node:child_process'
+import type { Readable, Writable } from 'node:stream'
 import { randomUUID } from 'node:crypto'
 
 import { openPlan, planRun } from './resolve'
@@ -73,6 +74,11 @@ export function testConnection(): Promise<ConnectionTest> {
   const run = openPlan(planRun(randomUUID()))
   const startedAt = Date.now()
   const [cmd, ...args] = run.argv
+  // The same two shapes a run has (agent/watch.ts): a command that prints is handed the
+  // prompt on its command line and judged by its exit code, and one that answers back is
+  // asked the same small question inside a conversation and judged by how the turn ended.
+  const client = run.client
+  const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client ? 'pipe' : 'ignore', 'pipe', 'pipe']
 
   return new Promise<ConnectionTest>((resolve) => {
     let events = ''
@@ -99,19 +105,21 @@ export function testConnection(): Promise<ConnectionTest> {
       }
       // Any other spawn failure is already a real message from the operating system (a
       // binary that isn't executable, say), so it is shown as it came.
-      done({ ok: false, output: said(events, run.renderer.result(), `${stderr}\n${String(e)}`) })
+      done({ ok: false, output: said(events, run.renderer?.result(), `${stderr}\n${String(e)}`) })
     }
 
-    let child
+    // stdout and stderr are pipes whichever shape this is; only stdin differs.
+    let child: ChildProcessByStdio<Writable | null, Readable, Readable>
     try {
-      child = spawn(cmd!, [...args, TEST_PROMPT], {
+      child = spawn(cmd!, client ? args : [...args, TEST_PROMPT], {
         cwd: process.cwd(),
         env: run.env,
         shell: false,
         // Same as a run: a piped stdin makes `claude -p` wait and then warn, which would
-        // land in the output as if it were the failure.
-        stdio: ['ignore', 'pipe', 'pipe'],
-      })
+        // land in the output as if it were the failure — and it is a pipe, and stays open,
+        // for the agent this end has to answer.
+        stdio,
+      }) as ChildProcessByStdio<Writable | null, Readable, Readable>
     } catch (e) {
       spawnFailed(e)
       return
@@ -126,7 +134,7 @@ export function testConnection(): Promise<ConnectionTest> {
       done({
         ok: false,
         timedOut: true,
-        output: said(events + run.renderer.flush(), run.renderer.result(), stderr),
+        output: said(events + (run.renderer?.flush() ?? ''), run.renderer?.result(), stderr),
       })
     }, TIMEOUT_MS)
     if (typeof timer.unref === 'function') timer.unref()
@@ -134,19 +142,56 @@ export function testConnection(): Promise<ConnectionTest> {
 
     // Both streams are kept, because a CLI splits the reason across them: the event stream
     // on stdout, a warning on stderr. Neither alone is the story.
-    child.stdout.on('data', (d: Buffer) => {
-      events += run.renderer.push(d.toString())
-    })
+    const renderer = run.renderer
+    if (renderer) {
+      child.stdout.on('data', (d: Buffer) => {
+        events += renderer.push(d.toString())
+      })
+    }
     child.stderr.on('data', (d: Buffer) => {
       stderr += d.toString()
     })
     child.on('error', spawnFailed)
+
+    // The same one small question, asked inside a conversation. How the turn ended is the
+    // verdict here — the command is a server and exits only when we end it, so its code
+    // says nothing — and the conversation itself is the test: a setup that can open a
+    // session and get an answer is a setup a run starts on.
+    const toAgent = client ? child.stdin : null
+    if (client && !toAgent) {
+      // Nothing to write to means the question can never be asked — said now rather than
+      // sat through until the give-up timer.
+      done({ ok: false, output: said(`nothing could be written to ${cmd}`, undefined, stderr) })
+    } else if (client && toAgent) {
+      void client
+        .turn({
+          stdout: child.stdout,
+          stdin: toAgent,
+          prompt: TEST_PROMPT,
+          cwd: process.cwd(),
+          log: (text) => {
+            events += text
+          },
+          // The session this opens is thrown away with the test — nothing tracks it, the
+          // same way nothing tracks the run id above.
+          gotResumeId: () => {},
+          gotModel: () => {},
+        })
+        .then((end) => {
+          child.kill('SIGTERM')
+          if (end.ok) done({ ok: true })
+          else done({ ok: false, output: said(events, end.result, stderr) })
+        })
+    }
+
     child.on('close', (code) => {
-      events += run.renderer.flush()
+      events += renderer?.flush() ?? ''
       // The exit code is the whole verdict. The agent answered or it didn't; what the
       // answer said is not the board's business — so a pass carries no output at all.
-      if (code === 0) done({ ok: true })
-      else done({ ok: false, output: said(events, run.renderer.result(), stderr) })
+      // A conversation has already settled this by the time its command closes; only a
+      // command that died before the turn ended reaches here, and that is a failure.
+      if (code === 0 && !client) done({ ok: true })
+      else done({ ok: false, output: said(events, renderer?.result(), stderr) })
     })
   })
 }

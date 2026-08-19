@@ -102,8 +102,8 @@ export interface SessionView {
    *  is NOT a finish: it reads as unfinished work and offers Resume, the same as a failure.
    *
    *  `stopped` is the state of a run the user ended. Nothing went wrong with it, so it is
-   *  never shown as a failure — and it offers no Resume: a run you ended is over, not one
-   *  that stopped short. */
+   *  never shown as a failure — and it still offers Resume: the conversation is intact, and
+   *  changing your mind about a stop shouldn't cost the work already done. */
   status: "running" | "done" | "error" | "interrupted" | "stopped";
   startedAt: number;
   endedAt?: number;
@@ -140,9 +140,10 @@ export interface SessionView {
    *  present the UI leads with it and folds the event tail away; absent, the tail is all
    *  there is. */
   result?: string;
-  /** This run stopped short — it failed or was interrupted — AND can be picked up again:
-   *  the agent that ran it can continue a conversation, it has told us the id to continue
-   *  by, and it is still the agent the board runs. The Resume button appears only then. */
+  /** This run ended before finishing — it failed, was interrupted or was stopped — AND can
+   *  be picked up again: the agent that ran it can continue a conversation, it has told us
+   *  the id to continue by, and it is still the agent the board runs. The Resume button
+   *  appears only then. */
   canResume?: boolean;
   /** The session this one continued, when it was started by Resume. Marks the run in the
    *  panel as a second turn of an earlier conversation. The session it names is gone — a

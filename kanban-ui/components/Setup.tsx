@@ -29,7 +29,7 @@
 // user got, so closing the window and coming back lands on the same screen.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiArrowLeft, FiCheck, FiCopy, FiFlag, FiPlay, FiTerminal, FiX } from "react-icons/fi";
+import { FiCheck, FiChevronUp, FiCopy, FiFlag, FiPlay, FiTerminal, FiX } from "react-icons/fi";
 import {
   finishSetupAgentStepAction,
   getSetupDraftAction,
@@ -41,9 +41,9 @@ import { type AgentInfo, GUIDED_STEPS, type SetupDraft, type SetupState, type Se
 import { Button } from "./button";
 import { configDialog, HarnessPicker } from "./Configuration";
 import { GoalEditor } from "./Goal";
-import { Logo } from "./Logo";
-import { SessionLogOverlay } from "./agent-shared";
-import { sessionsPanel, useSessionLog } from "./sessions";
+import { GuideDrawer } from "./Guide";
+import { Header } from "./Header";
+import { sessionsPanel } from "./sessions";
 
 /** What starting the setup run answered. Same shape every board action comes back
  *  with: it happened, or this line says why not. */
@@ -125,12 +125,9 @@ function goalMissing(setup: SetupState): boolean {
 }
 
 /** The way into a setup run that is already going — shown wherever the offer
- *  would have been, so pressing again is never the way to find the log.
- *
- *  Where the log opens is the caller's, because the two screens are not the same
- *  place: the board has the runs panel in its header, and the guided run has no
- *  header at all, so it opens the log itself. */
-function WatchingSetup({ onWatch }: { onWatch: () => void }) {
+ *  would have been, so pressing again is never the way to find the log. Both
+ *  screens wear the window's header, so the runs panel is always there to open. */
+function WatchingSetup({ runId }: { runId: string }) {
   return (
     <span className="flex items-center gap-2 text-[13px] text-nb-ink-soft">
       <span className="size-[8px] shrink-0 rounded-full bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]" aria-hidden />
@@ -138,10 +135,35 @@ function WatchingSetup({ onWatch }: { onWatch: () => void }) {
       <button
         type="button"
         className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
-        onClick={onWatch}
+        onClick={() => sessionsPanel.open(runId)}
       >
         watch the run
       </button>
+    </span>
+  );
+}
+
+/** The newest setup run stopped short (#230) — it failed, or it was cut off. Said
+ *  where the live run said it was working, so one spot carries the whole of a
+ *  run's life instead of the strip going quiet on the half that went wrong. Why
+ *  it stopped stays in the log; this only says that it did. The offer stands
+ *  beside it unchanged — pressing it again is the retry, and the run picks up
+ *  from the first step still unticked. */
+function SetupRunFailed({ runId }: { runId: string }) {
+  return (
+    <span className="text-[13px]" style={{ color: "var(--color-nb-peach-ink)" }}>
+      <span className="mr-1" aria-hidden>
+        ⚠
+      </span>
+      The last setup run stopped short —{" "}
+      <button
+        type="button"
+        className="cursor-pointer underline underline-offset-2 hover:text-nb-ink"
+        onClick={() => sessionsPanel.open(runId)}
+      >
+        read its log
+      </button>{" "}
+      for why. Starting one again picks up from the first step still left.
     </span>
   );
 }
@@ -154,9 +176,13 @@ const LEFT_KEY = "kanban-ui.setup-left";
 export function SetupFlow({
   setup,
   agent,
+  projectRoot,
+  goalWritten,
+  desktop,
   setupInstruction,
   skillInstalled,
   setupRunId,
+  failedSetupRunId,
   onFinishSetup,
   onAgentChanged,
   onSaved,
@@ -164,6 +190,15 @@ export function SetupFlow({
 }: {
   setup: SetupState;
   agent: AgentInfo;
+  /** The repo the header's badge names. The flow wears the window's own top row:
+   *  in the app that row is the window's title bar (#175) — the traffic lights
+   *  sit in it and it is what the window is dragged by — so a screen drawn
+   *  without it is a window with lights over its content and nothing to hold. */
+  projectRoot: string;
+  /** Whether `memory/goal.md` holds the user's words — the header's goal chip. */
+  goalWritten: boolean;
+  /** Running inside the desktop app (#175), for the header's folder badge. */
+  desktop: boolean;
   /** The line to paste into a coding agent, for the user who would rather finish
    *  there — from lib/agent.ts, so it is worded for the agent they picked. */
   setupInstruction: string;
@@ -173,6 +208,10 @@ export function SetupFlow({
   skillInstalled: boolean;
   /** The setup run going right now, from this tab or another (#173). */
   setupRunId: string | null;
+  /** The newest setup run, when it stopped short and none has been started since
+   *  (#230). Null while one is going, after one passed, and after one the user
+   *  stopped — that one is not a failure. */
+  failedSetupRunId: string | null;
   /** Start one. The board owns the run, so this only reports what it answered. */
   onFinishSetup: () => Promise<StartAnswer>;
   /** The agent step just answered the question this flow's last screen is drawn
@@ -196,6 +235,8 @@ export function SetupFlow({
   // The goal left for later. Kept for this run only — it changes nothing on disk,
   // it just stops the flow from parking on a screen the user walked past.
   const [goalSkipped, setGoalSkipped] = useState(false);
+  // What a header control couldn't save — surfaced here, where the user is.
+  const [chromeError, setChromeError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -211,35 +252,39 @@ export function SetupFlow({
   const advance = useCallback(() => setIndex((i) => i + 1), []);
 
   return (
-    <main className="min-h-screen overflow-y-auto bg-nb-cream p-4 sm:p-8">
-      <div className="mx-auto w-full max-w-[860px]">
-        <div className="nb-panel flex min-h-[520px] flex-col overflow-hidden">
-          <header className="flex items-start gap-4 border-b-[1.5px] border-nb-ink px-7 pb-5 pt-6">
-            <div className="min-w-0 flex-1">
-              <Logo size="sm" />
-              <h1 className="mt-3 text-[20px] font-[700] leading-tight">Set up this board</h1>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-nb-ink-soft">
-                Three questions only you can answer. Everything else is worked out from your
-                repo afterwards.
-              </p>
-            </div>
-            <Button variant="ghost" size="sm" className="mt-1 shrink-0" onClick={onExit}>
-              Go to the board
-            </Button>
-          </header>
+    // The same frame the board is drawn in (components/Window.tsx): the top row
+    // and a rail sit straight on the window's cream, and the body says where it
+    // starts by being paper. The rail holds the steps instead of open cards, so
+    // setup reads as this window asking, not as a web page floating over it.
+    <div className="flex h-screen flex-col overflow-hidden bg-nb-cream">
+      <Header
+        agent={agent}
+        projectRoot={projectRoot}
+        onError={setChromeError}
+        goalWritten={goalWritten}
+        desktop={desktop}
+      />
+      <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+        {/* What has been settled so far, the way back to any of it, and the way
+            out to the board at its foot. */}
+        <StepRail
+          steps={steps}
+          index={index}
+          draft={draft}
+          agent={agent}
+          goalSkipped={goalSkipped}
+          onGo={setIndex}
+          onExit={onExit}
+        />
 
-          <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
-            {/* What has been settled so far, and the way back to any of it. */}
-            <StepRail
-              steps={steps}
-              index={index}
-              draft={draft}
-              agent={agent}
-              goalSkipped={goalSkipped}
-              onGo={setIndex}
-            />
-
-            <div className="min-w-0 flex-1 p-6">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-[14px] bg-nb-paper">
+          <main className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-10 sm:py-8">
+            <div className="w-full max-w-[720px]">
+              {chromeError && (
+                <div className="mb-4">
+                  <Failure text={chromeError} />
+                </div>
+              )}
               {readError && <Failure text={readError} />}
               {!draft && !readError && (
                 <p className="text-[13px] italic text-nb-ink-soft">Reading the board…</p>
@@ -290,6 +335,7 @@ export function SetupFlow({
                   instruction={setupInstruction}
                   skillInstalled={skillInstalled}
                   runId={setupRunId}
+                  failedRunId={failedSetupRunId}
                   onStart={onFinishSetup}
                   // The goal was left for later, and the run needs it. Back to
                   // that screen rather than a second goal box here: the one on
@@ -302,21 +348,21 @@ export function SetupFlow({
                 />
               )}
             </div>
-          </div>
+          </main>
 
-          {/* The way to hand what is left to a coding agent, from any step. The way
-              out to the board is up in the header, beside the run's own title. */}
+          {/* The way to hand what is left to a coding agent, from any step. */}
           <Handover instruction={setupInstruction} skillInstalled={skillInstalled} />
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
-// The steps down the side, each showing what it has settled. A step already
-// answered can be gone back to — nothing here is one-way — and the one being
-// asked is marked. Steps ahead are listed but not reachable: they read the
-// answers before them.
+// The window's rail, worn by setup: what the flow is, the steps down the side —
+// each showing what it has settled — and the way out to the board at its foot. A
+// step already answered can be gone back to — nothing here is one-way — and the
+// one being asked is marked. Steps ahead are listed but not reachable: they read
+// the answers before them.
 function StepRail({
   steps,
   index,
@@ -324,6 +370,7 @@ function StepRail({
   agent,
   goalSkipped,
   onGo,
+  onExit,
 }: {
   steps: SetupStep[];
   index: number;
@@ -331,6 +378,7 @@ function StepRail({
   agent: AgentInfo;
   goalSkipped: boolean;
   onGo: (index: number) => void;
+  onExit: () => void;
 }) {
   const settled = (name: string): string => {
     if (!draft) return "";
@@ -350,47 +398,59 @@ function StepRail({
   };
 
   return (
-    <nav
-      aria-label="Setup steps"
-      className="flex shrink-0 flex-col gap-1 border-b border-nb-ink/12 bg-nb-wash p-3 sm:w-[212px] sm:border-b-0 sm:border-r"
-    >
-      {steps.map((step, i) => {
-        const on = i === index;
-        const reachable = step.done || i <= index;
-        const note = step.done || on ? settled(step.name) : "";
-        return (
-          <button
-            key={step.name}
-            type="button"
-            aria-current={on}
-            disabled={!reachable}
-            onClick={() => onGo(i)}
-            className={`flex w-full items-start gap-2 rounded-[8px] px-3 py-2 text-left transition-colors duration-100 ${
-              on
-                ? "bg-nb-accent-soft text-nb-accent-deep"
-                : reachable
-                  ? "cursor-pointer text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink"
-                  : "text-nb-ink-soft/50"
-            }`}
-          >
-            <span className="mt-[3px] shrink-0">
-              {step.done ? (
-                <FiCheck className="text-[13px]" aria-hidden />
-              ) : (
-                <span
-                  className="block size-[9px] rounded-full border-[1.5px] border-current"
-                  aria-hidden
-                />
-              )}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[13px] font-[700]">{STEP_TITLES[step.name] ?? step.name}</span>
-              {note && <span className="mt-0.5 block truncate text-[11.5px]">{note}</span>}
-            </span>
-          </button>
-        );
-      })}
-    </nav>
+    <div className="flex shrink-0 flex-col p-3 sm:w-[248px]">
+      <div className="px-3 pb-4 pt-1">
+        <h1 className="text-[15px] font-[800] leading-tight">Set up this board</h1>
+        <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
+          Three questions only you can answer. Everything else is worked out from your repo
+          afterwards.
+        </p>
+      </div>
+      <nav aria-label="Setup steps" className="flex flex-col gap-1">
+        {steps.map((step, i) => {
+          const on = i === index;
+          const reachable = step.done || i <= index;
+          const note = step.done || on ? settled(step.name) : "";
+          return (
+            <button
+              key={step.name}
+              type="button"
+              aria-current={on}
+              disabled={!reachable}
+              onClick={() => onGo(i)}
+              className={`flex w-full items-start gap-2 rounded-[8px] px-3 py-2 text-left transition-colors duration-100 ${
+                on
+                  ? "bg-nb-accent-soft text-nb-accent-deep"
+                  : reachable
+                    ? "cursor-pointer text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink"
+                    : "text-nb-ink-soft/50"
+              }`}
+            >
+              <span className="mt-[3px] shrink-0">
+                {step.done ? (
+                  <FiCheck className="text-[13px]" aria-hidden />
+                ) : (
+                  <span
+                    className="block size-[9px] rounded-full border-[1.5px] border-current"
+                    aria-hidden
+                  />
+                )}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[13px] font-[700]">{STEP_TITLES[step.name] ?? step.name}</span>
+                {note && <span className="mt-0.5 block truncate text-[11.5px]">{note}</span>}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+      {/* Leaving is never losing (the rules above) — the board keeps a way back in. */}
+      <div className="mt-auto pt-3">
+        <Button variant="ghost" size="sm" className="w-full" onClick={onExit}>
+          Go to the board
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -610,17 +670,13 @@ function GoalStep({
         placeholder="In a year I want…"
         onChange={(e) => setText(e.target.value)}
       />
-      <p className="mt-2 text-[12px] leading-relaxed text-nb-ink-soft">
-        The agent never drafts this for you.{" "}
-        <a
-          href="https://github.com/ai4kanban/ai4kanban/blob/main/docs/guides/what-makes-a-good-goal.md"
-          target="_blank"
-          rel="noreferrer"
-          className="underline underline-offset-2 hover:text-nb-ink"
-        >
-          What makes a good goal
-        </a>
-      </p>
+      <GuideDrawer
+        guide="what-makes-a-good-goal"
+        title="What makes a good goal"
+        className="mt-2 text-[12px] leading-relaxed text-nb-ink-soft"
+      >
+        The agent never drafts this for you.
+      </GuideDrawer>
 
       {error && <div className="mt-4"><Failure text={error} /></div>}
 
@@ -716,6 +772,7 @@ function DoneStep({
   instruction,
   skillInstalled,
   runId,
+  failedRunId,
   onStart,
   onWriteGoal,
   onExit,
@@ -724,6 +781,7 @@ function DoneStep({
   instruction: string;
   skillInstalled: boolean;
   runId: string | null;
+  failedRunId: string | null;
   onStart: () => Promise<StartAnswer>;
   onWriteGoal: () => void;
   onExit: () => void;
@@ -731,10 +789,6 @@ function DoneStep({
   const left = setup.steps.filter((s) => !s.done);
   const { start, starting, error } = useFinishSetup(onStart);
   const noGoal = goalMissing(setup);
-  // This screen has no header, so the runs panel isn't on it — the log opens
-  // here instead, in the same overlay a board card's running badge opens.
-  const [watching, setWatching] = useState(false);
-  const log = useSessionLog(watching ? runId : null);
   return (
     <StepBody
       title="Answered — the board is yours"
@@ -757,7 +811,7 @@ function DoneStep({
       {/* The offer, or what stands in for it. */}
       <div className="mt-5 nb-panel-sm p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
         {runId ? (
-          <WatchingSetup onWatch={() => setWatching(true)} />
+          <WatchingSetup runId={runId} />
         ) : noGoal ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] leading-relaxed">
             <span className="min-w-0 flex-1">
@@ -771,8 +825,14 @@ function DoneStep({
         ) : (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] leading-relaxed">
             <span className="min-w-0 flex-1">
-              <strong>Let the board finish them.</strong> It runs the agent you picked, here,
-              and you can watch or stop it like any other run.
+              {failedRunId ? (
+                <SetupRunFailed runId={failedRunId} />
+              ) : (
+                <>
+                  <strong>Let the board finish them.</strong> It runs the agent you picked,
+                  here, and you can watch or stop it like any other run.
+                </>
+              )}
             </span>
             <Button size="sm" className="shrink-0" disabled={starting} onClick={start}>
               <FiPlay className="text-[13px]" aria-hidden />
@@ -794,8 +854,6 @@ function DoneStep({
           Open the board
         </Button>
       </StepButtons>
-
-      {watching && <SessionLogOverlay session={log} onClose={() => setWatching(false)} />}
     </StepBody>
   );
 }
@@ -803,25 +861,28 @@ function DoneStep({
 // ---- the board's own notices -----------------------------------------------
 
 /** The way back into an unfinished setup, on the board itself (#172). A plain
- *  strip above the columns, not a card floating in a corner: the corner card
+ *  strip under the columns, not a card floating in a corner: the corner card
  *  could be hidden for the session and then never found again, and setup left
  *  half-done is a state of the board, not a nudge to dismiss. */
 export function SetupNotice({
   setup,
-  instruction,
   skillInstalled,
   setupRunId,
+  failedSetupRunId,
   onFinishSetup,
   onResume,
 }: {
   setup: SetupState;
-  instruction: string;
   /** Whether a coding agent can see this board (#174). When it can't, the way out
-   *  of this strip is the button that adds the skill, not a line that would reach
-   *  nothing — and the gear is on screen here, so it can open that pane. */
+   *  of this strip is the button that adds the skill — and the gear is on screen
+   *  here, so it can open that pane. */
   skillInstalled: boolean;
   /** The setup run going right now, from this tab or another. */
   setupRunId: string | null;
+  /** The newest setup run, when it stopped short and none has been started since
+   *  (#230). Null while one is going, after one passed, and after one the user
+   *  stopped. */
+  failedSetupRunId: string | null;
   /** Start one. */
   onFinishSetup: () => Promise<StartAnswer>;
   /** Reopen the guided run. Absent when there is nothing left in it to ask —
@@ -829,7 +890,6 @@ export function SetupNotice({
    *  the one question of the run that can be walked past. */
   onResume?: () => void;
 }) {
-  const [handing, setHanding] = useState(false);
   const { start, starting, error } = useFinishSetup(onFinishSetup);
   // The offer stands only once the run's own questions are answered. While one is
   // outstanding it is the goal — nothing after it can be planned — and Continue
@@ -837,7 +897,7 @@ export function SetupNotice({
   const canFinish = !onResume;
   return (
     <div
-      className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6"
+      className="mx-4 mb-4 shrink-0 nb-panel-sm p-3 text-[13px] sm:mx-6"
       style={{ background: "var(--color-nb-accent-soft)" }}
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -848,6 +908,8 @@ export function SetupNotice({
             <span className="text-nb-ink-soft">
               The agent is working down what is left; the steps tick off as it goes.
             </span>
+          ) : failedSetupRunId ? (
+            <SetupRunFailed runId={failedSetupRunId} />
           ) : setup.next ? (
             <span className="text-nb-ink-soft">
               Next: <Ticks text={setup.next.text} />
@@ -859,9 +921,7 @@ export function SetupNotice({
         {/* The run in flight wins over every offer: one at a time, and the way to
             it is the log, not a second press. */}
         {setupRunId ? (
-          // The board has the runs panel in its header, so this opens it on the
-          // run rather than a log of its own.
-          <WatchingSetup onWatch={() => sessionsPanel.open(setupRunId)} />
+          <WatchingSetup runId={setupRunId} />
         ) : (
           <>
             {onResume && (
@@ -875,22 +935,12 @@ export function SetupNotice({
                 {starting ? "Starting…" : "Finish setup"}
               </Button>
             )}
-            {/* The line to paste stays beside the offer, never instead of it —
-                the user may well prefer the agent they already have open. On a
-                project with no skill it would reach nothing, so what stands there
-                is the button that adds one; the gear is on screen from this
-                strip, so it opens that pane rather than naming a command. */}
-            {skillInstalled ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="shrink-0"
-                onClick={() => setHanding((on) => !on)}
-              >
-                <FiTerminal className="text-[13px]" aria-hidden />
-                Finish in your coding agent
-              </Button>
-            ) : (
+            {/* Handing the rest to a coding agent lives inside the run, one
+                press away through Continue setup, so it isn't repeated here. What
+                the strip does carry is the board with no skill at all, where that
+                path would reach nothing; the gear is on screen from here, so it
+                opens that pane rather than naming a command. */}
+            {!skillInstalled && (
               <Button
                 size="sm"
                 variant="ghost"
@@ -905,7 +955,6 @@ export function SetupNotice({
           </>
         )}
       </div>
-      {handing && skillInstalled && <CopyLine text={instruction} />}
       {error && <div className="mt-3"><Failure text={error} /></div>}
     </div>
   );
@@ -1025,28 +1074,59 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 // The footer every screen carries: the way to hand the rest to a coding agent,
 // for someone who would rather work there. It sits on the footer rather than on
 // one screen, because wanting it is a fair thing at any point in the run.
+//
+// It is a drawer, not a note. The whole bar is the button — chevron at its far
+// edge, hover on the row — and opening it raises half the window: this path
+// REPLACES the guided one, so it gets the room the questions have rather than a
+// strip under them. The slide is the rail's Memory panel's: a 0fr → 1fr grid
+// row, which needs no measuring, with the content mounted throughout so there
+// is something to slide — just off the tab order until it is open.
 function Handover({ instruction, skillInstalled }: { instruction: string; skillInstalled: boolean }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-t-[1.5px] border-nb-ink bg-nb-wash px-7 py-3">
+    <div className="shrink-0 border-t border-nb-ink/12 bg-nb-wash">
       <button
         type="button"
         onClick={() => setOpen((on) => !on)}
-        className="flex cursor-pointer items-center gap-2 text-[12px] text-nb-ink-soft transition-colors hover:text-nb-ink"
+        aria-expanded={open}
+        aria-controls="setup-handover"
+        className="flex w-full cursor-pointer items-center justify-between gap-2 px-6 py-3 text-[12px] font-[600] text-nb-ink-soft transition-colors duration-100 hover:bg-nb-ink/5 hover:text-nb-ink sm:px-10"
       >
-        {open ? <FiArrowLeft className="text-[13px]" aria-hidden /> : <FiTerminal className="text-[13px]" aria-hidden />}
-        {open ? "Never mind — keep going here" : "Rather set this up from your coding agent?"}
+        <span className="flex items-center gap-2">
+          <FiTerminal className="text-[13px]" aria-hidden />
+          {open ? "Never mind — keep going here" : "Rather set this up from your coding agent?"}
+        </span>
+        <FiChevronUp
+          aria-hidden
+          className={`text-[14px] transition-transform duration-200 ease-out ${open ? "rotate-180" : ""}`}
+        />
       </button>
-      {open && (
-        <div className="mt-2">
-          {!skillInstalled && <AddSkillFirst />}
-          <p className="mb-2 text-[12px] leading-relaxed text-nb-ink-soft">
-            Paste this into it. It picks up wherever setup got to, so nothing you answered here
-            is asked again.
-          </p>
-          <CopyLine text={instruction} />
+      <div
+        className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-200 ease-out ${
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        {/* The height and breathing room live inside the sliding row, not on it:
+            padding is floor a 0fr track can't shrink past, and closed has to
+            close all the way. */}
+        <div id="setup-handover" inert={!open} className="min-h-0">
+          <div className="h-[50vh] overflow-y-auto px-6 pb-6 pt-2 sm:px-10">
+            <div className="max-w-[720px]">
+              <h3 className="text-[17px] font-[750] leading-tight">
+                Finish from your coding agent
+              </h3>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-nb-ink-soft">
+                Paste this into it. It picks up wherever setup got to, so nothing you answered
+                here is asked again.
+              </p>
+              <div className="mt-4">
+                {!skillInstalled && <AddSkillFirst />}
+                <CopyLine text={instruction} />
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -1054,10 +1134,10 @@ function Handover({ instruction, skillInstalled }: { instruction: string; skillI
 /** The line that adds the skill, without which a paste into a coding agent reaches nothing
  *  (#174). Shown wherever the board hands that paste over on a project that has no skill.
  *
- *  It is the command rather than a button, because these two places sit on the guided
- *  setup screen — which has no header, so there is no Configuration dialog mounted to open.
- *  On the board itself the strip offers the button instead. `npx` rather than `akb`, since
- *  someone who never installed the command can still run it. */
+ *  It is the command rather than a button: whoever is reading it is already headed for a
+ *  terminal to paste the line below, so both lines land in the same place. On the board
+ *  itself the strip offers the button instead. `npx` rather than `akb`, since someone who
+ *  never installed the command can still run it. */
 export function AddSkillFirst() {
   return (
     <div className="mb-3">

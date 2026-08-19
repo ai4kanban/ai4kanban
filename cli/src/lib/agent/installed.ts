@@ -1,6 +1,6 @@
 // Which agents this machine can actually run.
 //
-// A picker that offers four agents to someone who has one installed sends them to a run
+// A picker that offers five agents to someone who has one installed sends them to a run
 // that dies on `spawn cursor-agent ENOENT`. So each agent's command is looked up on the
 // same PATH a run would be spawned on, before the agent is offered.
 //

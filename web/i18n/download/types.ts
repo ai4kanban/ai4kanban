@@ -40,4 +40,13 @@ export type DownloadCopy = {
     windows: { title: string; body: string };
     linux: { title: string; body: string };
   };
+  /** The app carries `akb` and offers to put it on the PATH (#226). Worth a
+   *  block here because it happens on first launch, before the reader has been
+   *  anywhere else — and because it asks for a password on macOS. */
+  command: {
+    title: string;
+    body: string;
+    /** What a reader who said no, or who is on Linux, does instead. */
+    later: string;
+  };
 };

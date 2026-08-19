@@ -152,6 +152,23 @@ export function DownloadPage({ locale }: { locale: Locale }) {
             </div>
           </div>
         </section>
+
+        {/* The app carries `akb` and offers it on first launch (#226). It sits
+            after first open because that is the order a reader meets them: get
+            past the warning, then the app asks this. Prose in a wash inset, not
+            a third panel of rows — there is one thing to say per system and no
+            steps to walk. */}
+        <section className="mt-20">
+          <h2 className="text-2xl font-bold tracking-tight">{t.command.title}</h2>
+          <div className={`${panelInset} mt-6 p-6 sm:p-7`}>
+            <p className="text-[0.95rem] leading-relaxed text-muted">
+              <Rich code="wash">{t.command.body}</Rich>
+            </p>
+            <p className="mt-4 text-[0.95rem] leading-relaxed text-muted">
+              <Rich code="wash">{t.command.later}</Rich>
+            </p>
+          </div>
+        </section>
       </main>
       <SiteFooter c={copy} locale={locale} path={PATH} />
     </>

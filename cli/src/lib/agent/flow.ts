@@ -292,6 +292,12 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   const next: string[] = []
   const card = req.id !== undefined ? readCard(req.id) : null
 
+  // The refine a job hands over to. A run starts each follow-up refine as its own run,
+  // never inside the job that wrote the card — so the handover says fresh session, or an
+  // agent reading the flow refines right here, in a context already full of the writing.
+  const refineNext = (target: number | '<id>', when: string) =>
+    `${program} refine ${target === '<id>' ? target : String(target)} --print — ${when}; in a fresh session, not this one — a run gives each refine its own clean context, and so should you`
+
   // Every card action opens the same way: where the card is, and what it says about itself.
   if (card) {
     facts.push(...field('card', card.file), ...field('meta', metaLine(card.meta)))
@@ -374,7 +380,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${board} update ${req.id} [--title|--priority|--roi|--release|--modules|--track|--blocked-by|--related] — the fields are the command's, never hand-written`,
         'the body is yours to write — the summary, ## Scope and ## Todo',
       )
-      next.push(`${program} refine ${req.id} --print — a run would have refined this card afterwards`)
+      next.push(refineNext(req.id!, 'the follow-up a run would have started'))
       break
     }
     case 'create':
@@ -396,7 +402,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${board} create --title ".." --track <track>${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
         'then write only the body: the summary line, ## Scope, ## Todo',
       )
-      next.push(`${program} refine <id> --print — a run would have refined each new card`)
+      next.push(refineNext('<id>', 'for each new card'))
       break
     }
     case 'archive': {
@@ -406,7 +412,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'write the shipped line first — one line for what a user can now see or do, nothing for an internal-only change',
         `${board} archive ${req.id} — it files the card, drops it from the index, and prints what still mentions it`,
       )
-      next.push(`${program} refine <id> --print — for each card this one was holding up`)
+      next.push(refineNext('<id>', 'for each card this one was holding up'))
       break
     }
     // Setting the board up (#173). The checklist is the plan, so the facts are the boxes
@@ -441,7 +447,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${board} setup-done <step> — one tick per box, as each step finishes`,
         'the last tick deletes the checklist by itself — never delete it, and never edit it by hand',
       )
-      next.push(`${program} refine <id> --print — for each of the first cards, once the board is set up`)
+      next.push(refineNext('<id>', 'for each of the first cards, once the board is set up'))
       break
     }
     case 'reject': {
@@ -451,7 +457,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'write the rejection note first — the idea and why we said no',
         `${board} reject ${req.id} — this deletes the card; the receipt prints it out one last time`,
       )
-      next.push(`${program} refine <id> --print — for each card this one was holding up`)
+      next.push(refineNext('<id>', 'for each card this one was holding up'))
       break
     }
   }

@@ -64,7 +64,7 @@ const ja: VsLinearCopy = {
       },
       agentModel: {
         dimension: "エージェントの仕組み",
-        kanban: "選択したコーディング環境がボードを読み書きします。現在は Claude Code、Codex、Cursor、OpenCode に対応しています。",
+        kanban: "選択したコーディング環境がボードを読み書きします。現在は Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness に対応しています。",
         linear: "Linear Agent、インストール可能な app user、課題の委任、エージェント向けガイド、ホスト型 MCP server を提供します。",
       },
       execution: {
@@ -133,7 +133,7 @@ const ja: VsLinearCopy = {
       },
       anyHarness: {
         title: "選んだコーディング環境で使える",
-        body: "ボードは独自のエージェントランタイムに縛られません。現在は Claude Code、Codex、Cursor、OpenCode に対応し、オープンなファイル形式は他の環境でも利用できます。",
+        body: "ボードは独自のエージェントランタイムに縛られません。現在は Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness に対応し、オープンなファイル形式は他の環境でも利用できます。",
       },
       noSaas: {
         title: "別のプロジェクト管理サービスが不要",

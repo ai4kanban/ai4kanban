@@ -408,6 +408,13 @@ the first cards appear where you are looking. Only one setup run goes at a time 
 is going the button is replaced by **watch the run** — and starting one after a run failed
 or was stopped carries on from the first unfinished step rather than redoing what finished.
 
+When that run stops short — the agent isn't logged in, a connector is set up wrong — you are
+told rather than left watching a bar. The closing screen and the board's setup strip both say
+**The last setup run stopped short**, in the spot the live run wrote in, with **read its log**
+in the line for why. The reason stays in the log; the strip never repeats it. **Finish setup**
+stays where it is — pressing it again is how you retry. A run you stopped yourself is not a
+failure: the offer reads exactly as it did before.
+
 One thing stands in for that offer: if you skipped the goal, the screen asks for it first —
 nothing after the goal can be planned from a goal nobody wrote.
 
@@ -418,8 +425,8 @@ The line to paste is there either way, under the offer rather than instead of it
 ```
 
 The line follows the agent you picked, because agents trigger a skill differently: on Codex
-it reads `$kanban. Set up this board …`, and on Cursor and OpenCode it asks for the skill in
-a sentence, since neither has a name you can type. Copy it and paste it as it comes. It is
+it reads `$kanban. Set up this board …`, and on Cursor, OpenCode and DeepSeek Harness it
+asks for the skill in a sentence, since none of them has a name you can type. Copy it and paste it as it comes. It is
 on every screen of the run too, under **Rather set this up from your coding agent?** — you
 can hand over at any point, and setup picks up at the first unticked box, so nothing you
 answered here is asked again.
@@ -667,7 +674,8 @@ exactly as the agent said it — the board never tidies up or invents a model na
 
 A run whose agent never named a model shows nothing there: an older run from before the board
 tracked this, and any agent whose output doesn't say — Codex and OpenCode never do, so a run
-on either names no model even with the Model box filled in.
+on either names no model even with the Model box filled in. DeepSeek Harness names one from
+the session it opens, so a dsh run says what it is on from its first seconds.
 
 ## Group tasks
 
@@ -693,9 +701,10 @@ The gear in the header opens the **Configuration** dialog. A sidebar on its left
 sections — **Agent** and **Skill** — and a new group of settings joins as one more entry
 there. It holds:
 
-- **Agent** — pick the agent that every button spawns: **Claude Code**, **Codex**, **Cursor**
-  or **OpenCode**. It runs in your repo root. See **Running on Codex**, **Running on Cursor**
-  and **Running on OpenCode** below for what changes when you switch.
+- **Agent** — pick the agent that every button spawns: **Claude Code**, **Codex**, **Cursor**,
+  **OpenCode** or **DeepSeek Harness**. It runs in your repo root. See **Running on Codex**,
+  **Running on Cursor**, **Running on OpenCode** and **Running on DeepSeek Harness** below
+  for what changes when you switch.
 
   The picker marks the agents this machine can actually run. One whose CLI isn't on the
   board's `PATH` is dimmed and reads **not installed** — it can still be picked, and the
@@ -747,6 +756,13 @@ there. It holds:
   its own key, so one box would hold the wrong key for most people. Its runs use the login
   `opencode auth login` already made.
 
+  DeepSeek Harness takes two:
+  - **Model** — the id dsh runs with, e.g. `deepseek-v4-flash`. It is chosen as the run's
+    session opens rather than passed on the command line, because dsh carries its model
+    catalog per session. Empty runs whatever dsh itself defaults to.
+  - **DeepSeek API key** — optional. Empty and runs use the key dsh already saved in its own
+    `$DSH_HOME`, so someone set up with `dsh web` types nothing here.
+
   Switching agents empties the fields — a Claude model id means nothing to Codex — and leaves
   your saved keys alone.
 - **Test** — under those settings, a button that sends one tiny message through the setup you
@@ -781,9 +797,9 @@ file (see **Keys** below).
 
 `harness` is the agent that runs — a name, and nothing else. It decides everything about how
 that agent runs: the command, the flags that make it stream its output into the live log, the
-env vars, the flags the **Resume** button uses, and how a prompt calls the skill. Four agents
-ship: `claude-code`, the default, plus `codex`, `cursor` and `opencode`. If the file names an
-agent this UI doesn't
+env vars, the flags the **Resume** button uses, and how a prompt calls the skill. Five agents
+ship: `claude-code`, the default, plus `codex`, `cursor`, `opencode` and `dsh`. If the file
+names an agent this UI doesn't
 know, Claude Code runs and the dialog says so — you are never moved to a different agent
 without being told.
 
@@ -798,7 +814,8 @@ Inside a block, each key is one of the settings that agent takes. Each agent say
 settings it has and what each one is called, and the dialog draws that list — so the fields
 you see always belong to the agent you picked, and a new agent is one entry rather than a new
 box in the UI. Claude Code has four: `provider`, `baseUrl`, `model` and `reasoning`. Codex and Cursor have
-one each, `model`. OpenCode has two, `model` and `variant`. Their API keys are settings too,
+one each, `model`. OpenCode has two, `model` and `variant`, and DeepSeek Harness one,
+`model`. Their API keys are settings too,
 but a key is never written to this file — keys
 have their own place (see **Keys**), and they stay under the variable they were written for, so
 switching agents never touches them.
@@ -866,17 +883,31 @@ and one button does the rest:
   to date**, and refreshes it.
 
 Under the button it names the folders it touches — `.claude/skills/kanban/` for Claude Code,
-`.agents/skills/kanban/` for Codex, Cursor and OpenCode — and after a press it says, folder by
+`.agents/skills/kanban/` for Codex, Cursor, OpenCode and DeepSeek Harness — and after a press
+it says, folder by
 folder, what it
 wrote. Each folder gets one file, `SKILL.md`: a short note saying the board is here and that
 `akb` owns it. The rules themselves are not copied in — they live in the command. So this
 writes a few kB in your repo and nothing else, and it never runs a global install.
 
-That is why the pane sometimes carries one more line: when the `akb` on your PATH is older
-than the copy this board runs on, or isn't there at all, it hands you the line that fixes
-it, ready to copy, and leaves the running to you. The note this button writes points your
-agent at `akb`, and every flow it follows ships inside that command — so an old `akb` means
-old flows even in a project whose note was just refreshed.
+That is why the pane carries one more thing: an answer to the `akb` on your PATH being
+older than the copy this board runs on, or not being there at all. The note this button
+writes points your agent at `akb`, and every flow it follows ships inside that command — so
+an old `akb` means old flows even in a project whose note was just refreshed.
+
+In the desktop app that answer is a second button, **Install the `akb` command**. The app
+already carries the command; the button only points your system at the copy inside it, so
+updating the app updates the command and there is nothing separate to keep fresh. It is one
+link at `/usr/local/bin/akb` on macOS, written with the system's own password dialog, and
+the app's own folder on your PATH on Windows. Before you press it the pane names the path it
+would write, and which of four things is true right now: nothing installed; installed at
+that path; installed but pointing at an app that is no longer there; or that path held by an
+`akb` the app didn't put there — an npm install lands there too, and the button leaves it
+alone. The app offers this once by itself, at the first launch that finds no `akb`; saying
+no costs nothing.
+
+In a browser, and on Linux where the AppImage has no lasting path to point at, the pane
+hands you the line that fixes it instead — ready to copy, and yours to run.
 
 If you never want it, you never need it. Nothing else in the board asks for it — except the
 two places that hand you a line to paste into a coding agent (the first run's handover, and
@@ -925,7 +956,7 @@ event and keeps it with the session, and Resume continues that thread with
 Pick **Cursor** and every button spawns `cursor-agent -p --output-format stream-json --force`
 instead. Same cards, same buttons, same files.
 
-You need the `cursor-agent` CLI on your PATH, signed in. It is the one agent of the four that
+You need the `cursor-agent` CLI on your PATH, signed in. It is the one agent of the five that
 doesn't come from npm — it installs from a script, `curl https://cursor.com/install -fsS | bash`,
 which is the line the picker hands you when it isn't there.
 
@@ -980,6 +1011,42 @@ Cost does show, and token counts with it: OpenCode reports both per model call a
 adds them up, so its log reads like a Claude Code one there. **Resume** works — the session
 id rides on every event, and Resume continues with `opencode run --session <id>`.
 
+### Running on DeepSeek Harness
+
+Pick **DeepSeek Harness** and every button spawns `dsh-acp --permission-mode workspace-write`
+instead. Same cards, same buttons, same files.
+
+You need two npm packages, not one: `npm install -g @deepseek-ai/dsh @openma/deepseek-harness-acp`.
+The first is DeepSeek Harness itself; the second is the bridge that lets the board talk to
+it. dsh's own headless command says nothing until it has finished and can't carry on an
+earlier run, so the board uses neither — it holds a conversation with `dsh-acp` instead, and
+that is what makes a dsh log live and a dsh **Resume** work.
+
+Its two settings are a **Model** box and a **DeepSeek API key** box, and both can stay empty:
+
+- **The model is chosen as the run's session opens**, not passed on the command line, because
+  dsh carries its model catalog per session. Type an id like `deepseek-v4-flash`, or leave it
+  empty for dsh's own default. An id dsh doesn't have fails the run and the log says which.
+- **The key is optional.** Empty and a run uses whatever key dsh already saved in `$DSH_HOME`
+  — the same one `dsh web` writes — so someone already set up with dsh types nothing here.
+  Fill it in and every run uses that key instead.
+
+Two things read differently on DeepSeek Harness:
+
+- **The board answers it, rather than only reading it.** Every other agent prints its work
+  and exits. dsh keeps talking, and the board keeps answering, for as long as the run lasts.
+  Nothing about the board changes because of it: the log, the stop, the resume and the refine
+  that follows all work as they always did.
+- **A run stays inside your repo, and a request to leave it is turned down.** The permission
+  preset the command starts under lets a run write in the working folder without asking, and
+  raises a question for anything beyond it. The board answers that question with no, and
+  writes `[refused]` into the log, so a run that couldn't reach something says so.
+
+The model name shows — dsh names the model on the session it opens, so a dsh log says what it
+is on from its first seconds. Cost and token counts show when dsh reports them. **Resume**
+works: the session id comes back the moment the session opens, and Resume carries on in that
+same dsh session, with the history it already holds.
+
 ### Which provider a run goes through
 
 Every run has to go through somebody's account. **Provider**, at the top of the Agent
@@ -1019,10 +1086,11 @@ else. An OpenAI model reaches it through a gateway that answers in the Anthropic
 that's the endpoint entry, with the gateway's own base URL. To run Codex on an OpenAI account,
 pick Codex.
 
-Codex, Cursor and OpenCode have no provider list: each runs on whatever login its own CLI
-has, plus the optional key where it takes one, and their runs inherit your shell environment
-as they always did. OpenCode is the one that reaches every provider by itself — you pick that
-provider in its model id, `provider/model`, and its own `opencode auth login` holds the key.
+Codex, Cursor, OpenCode and DeepSeek Harness have no provider list: each runs on whatever
+login its own CLI has, plus the optional key where it takes one, and their runs inherit your
+shell environment as they always did. OpenCode is the one that reaches every provider by
+itself — you pick that provider in its model id, `provider/model`, and its own
+`opencode auth login` holds the key. DeepSeek Harness reads the key dsh itself saved.
 
 ### Testing the connection
 
@@ -1099,11 +1167,12 @@ key there as its own login and turns your claude.ai connectors off when it finds
 belongs to the provider you picked: on the **Claude subscription** it isn't sent at all,
 even when it's saved.
 
-Three of the four agents take one key each, and it is **optional** every time: Claude Code's
-is `ANTHROPIC_API_KEY`, Codex's is `OPENAI_API_KEY`, Cursor's is `CURSOR_API_KEY`. Leave it
-empty and runs use whatever login that CLI already has, which is how the board has always
-worked. Clear it and the next run goes straight back to that login. OpenCode takes no key
-here at all: it reaches any provider and each has its own, so its runs use the login
+Four of the five agents take one key each, and it is **optional** every time: Claude Code's
+is `ANTHROPIC_API_KEY`, Codex's is `OPENAI_API_KEY`, Cursor's is `CURSOR_API_KEY`, and
+DeepSeek Harness's is `DEEPSEEK_API_KEY`. Leave it empty and runs use whatever login that CLI
+already has — for dsh, the key it saved in its own `$DSH_HOME` — which is how the board has
+always worked. Clear it and the next run goes straight back to that login. OpenCode takes no
+key here at all: it reaches any provider and each has its own, so its runs use the login
 `opencode auth login` made. The keys sit side by side in the file — switching agents, or
 providers, never touches any of them, so a key you gave once is still there when you come
 back.
@@ -1113,8 +1182,9 @@ back.
 A run that stopped short — the peach dot in the sessions panel — shows a **Resume** button. It
 sends one more turn into that same conversation (`claude --resume <id>`,
 `codex exec resume <thread-id>`, `cursor-agent --resume <id>` or `opencode run --session <id>`,
-run for you), so the agent picks up where it stopped instead of starting the task over.
-Nothing is copied and you never see an id.
+run for you — and on DeepSeek Harness, the same dsh session reopened with its history), so the
+agent picks up where it stopped instead of starting the task over. Nothing is copied and you
+never see an id.
 
 Two things stop a run short, and the log says which. It **exited** with a non-zero code: the
 agent itself gave up, and the reason is in its output. Or it was **interrupted**: the board
@@ -1144,8 +1214,8 @@ away and the board shows it failed. Note this is not a spend control: whether hi
 plan's limit spills into paid extra usage is an account setting on claude.ai, not something
 the CLI can turn off.
 
-No other agent has an equivalent switch, so a rate-limited Codex, Cursor or OpenCode run
-waits it out and holds its card while it does — see **Running on Codex**.
+No other agent has an equivalent switch, so a rate-limited Codex, Cursor, OpenCode or
+DeepSeek Harness run waits it out and holds its card while it does — see **Running on Codex**.
 
 ## When it finds no board
 

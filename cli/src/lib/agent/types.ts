@@ -129,8 +129,9 @@ export interface RunRecord {
  *  fresh on every read (how long it took, whether it can be resumed). */
 export interface RunView extends RunRecord {
   durationMs?: number
-  /** This run stopped short — it failed or was cut off — and can be picked up: we know
-   *  the id to continue by, and the agent that ran it is still the one the board runs. */
+  /** This run ended before finishing — it failed, was cut off or was stopped — and can be
+   *  picked up: we know the id to continue by, and the agent that ran it is still the one
+   *  the board runs. */
   canResume?: boolean
   /** The run's log, when it was asked for. */
   tail?: string

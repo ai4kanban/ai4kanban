@@ -6,6 +6,7 @@
 // be split across two agents — switching the picker while an agent is working changes what
 // the NEXT run spawns, never this one.
 
+import type { RunClient } from './client'
 import { HARNESSES, type Harness, DEFAULT_HARNESS, harnessByName, namesFlag } from './harnesses'
 import { commandBinary, pathLookup } from './installed'
 import { missingRequired, pickedProvider, providerSetting, shownForProvider } from './providers'
@@ -269,10 +270,15 @@ export interface RunPlan {
   install: string
 }
 
-/** Everything one run needs at the moment it spawns. */
+/** Everything one run needs at the moment it spawns. Exactly one of `renderer` and
+ *  `client` is here, because a command either prints its work or holds a conversation
+ *  about it — the harness says which, and the runner branches on it. */
 export interface ActiveRun extends RunPlan {
   env: NodeJS.ProcessEnv
-  renderer: StreamRenderer
+  /** Reads this agent's stdout into log lines. */
+  renderer?: StreamRenderer
+  /** Talks to this agent over its own pipes (agent/client.ts). */
+  client?: RunClient
 }
 
 /** Work out how to start a fresh run under the agent the board is set to. */
@@ -315,7 +321,32 @@ export function planResume(harnessName: string, resumeId: string): RunPlan | nul
  *  docs/kanban/.env here, into the child's environment and nowhere else. */
 export function openPlan(plan: RunPlan): ActiveRun {
   const resolved = resolveHarness(plan.harness)
-  return { ...plan, env: runEnv(resolved), renderer: resolved.harness.renderer() }
+  const { harness } = resolved
+  return {
+    ...plan,
+    env: runEnv(resolved),
+    renderer: harness.renderer?.(),
+    // The client is handed the settings that are actually in effect — the same ones that
+    // would have reached the run as flags, minus whatever the picked provider doesn't
+    // need — because for a connector that talks, a setting is something the conversation
+    // opens with rather than something argv carries.
+    client: harness.client?.(effectiveValues(resolved)),
+  }
+}
+
+// What this harness's settings are set to, as a run would use them: the provider's own
+// picks only, and never a secret (a key reaches a run in its environment, and nowhere a
+// client could hand it on).
+function effectiveValues(resolved: ResolvedHarness): Record<string, string> {
+  const picked = activeProviderOf(resolved)
+  const out: Record<string, string> = {}
+  for (const setting of resolved.harness.settings) {
+    const value = resolved.values[setting.key]
+    if (!value || setting.kind === 'secret') continue
+    if (!shownForProvider(resolved.harness.settings, setting.key, picked)) continue
+    out[setting.key] = value
+  }
+  return out
 }
 
 /** The name of the agent a run that stopped short can be resumed under right now — the

@@ -115,3 +115,12 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A release waits on a paid developer account** (Apple's $99 program, days to approve)
   → ✅ ship unsigned and write down the clicks that get past the warning. A signature is a
   follow-up card, never a gate on the release.
+- ❌ **A password dialog on every machine** (copy Cursor to the letter: every install
+  writes `/usr/local/bin` and raises the administrator dialog) → ✅ keep Cursor's shape — a
+  symlink to a launcher inside the app — but write it into a user-owned bin folder the PATH
+  already reads (`~/.local/bin`, then `~/bin`) with no password, and keep `/usr/local/bin`
+  and its dialog only as the fallback. Never edit a shell startup file to make a folder
+  qualify.
+- ❌ **A dialog before a write that needs no privilege** (offer the no-password install and
+  wait for a press) → ✅ when nothing has to be asked for, do it and say where it went;
+  a dialog is only earned by the password it warns about.

@@ -10,7 +10,8 @@
 // and what lets a run queued behind the shared-file lock keep waiting after whoever asked
 // for it has gone home.
 
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcessByStdio, type StdioNull, type StdioPipe } from 'node:child_process'
+import type { Readable, Writable } from 'node:stream'
 import fs from 'node:fs'
 
 import { SESSIONS_DIR } from '../paths'
@@ -29,6 +30,7 @@ import {
   readSpec,
 } from './sessions'
 import { startRun } from './start'
+import type { TurnEnd } from './client'
 import type { AgentAction } from './types'
 
 // How long a run gets to end on its own after a stop asks it to, before it is killed
@@ -96,9 +98,17 @@ export async function watchRun(sessionId: string): Promise<number> {
   const before = markBoard()
 
   const [cmd, ...args] = active.argv
-  let child
+  // A connector the board talks to is started differently in two ways: the prompt is sent
+  // in the conversation rather than spelled on the command line, and its stdin stays open,
+  // because that is the half of the conversation this end writes (agent/client.ts).
+  const client = active.client
+  // Spelled out rather than written inline so both shapes stay one spawn: stdin is a pipe
+  // for a conversation and closed for a command that only prints.
+  const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client ? 'pipe' : 'ignore', 'pipe', 'pipe']
+  // stdout and stderr are pipes whichever shape this is; only stdin differs.
+  let child: ChildProcessByStdio<Writable | null, Readable, Readable>
   try {
-    child = spawn(cmd!, [...args, prompt], {
+    child = spawn(cmd!, client ? args : [...args, prompt], {
       cwd: process.cwd(),
       // The run's own id goes into the agent's environment, and this is the one place it
       // can: the environment a run starts under is settled by the settings (resolve.ts),
@@ -109,8 +119,8 @@ export async function watchRun(sessionId: string): Promise<number> {
       shell: false,
       // `claude -p` waits ~3s on a piped stdin, then logs a "no stdin data" warning into
       // our log. Close stdin so the log is only agent output.
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
+      stdio,
+    }) as ChildProcessByStdio<Writable | null, Readable, Readable>
   } catch (e) {
     log.end()
     closeRun(sessionId, { status: 'error', ok: false, code: null, error: String(e) })
@@ -127,17 +137,23 @@ export async function watchRun(sessionId: string): Promise<number> {
   // hundreds of chunks.
   let sawResumeId = !!record.resumeId
   let sawModel = false
-  const catchIds = () => {
-    if (!sawResumeId) sawResumeId = catchResumeId(sessionId, renderer.resumeId?.())
-    if (!sawModel) sawModel = catchModel(sessionId, renderer.model?.())
+  const gotResumeId = (id: string | undefined) => {
+    if (!sawResumeId) sawResumeId = catchResumeId(sessionId, id)
+  }
+  const gotModel = (model: string | undefined) => {
+    if (!sawModel) sawModel = catchModel(sessionId, model)
   }
 
   // stdout is the agent's event stream — render it to readable lines as it arrives, with
-  // the parser its own agent brings. stderr is plain text and passes through.
-  child.stdout.on('data', (d: Buffer) => {
-    append(renderer.push(d.toString()))
-    catchIds()
-  })
+  // the parser its own agent brings. stderr is plain text and passes through, whichever
+  // kind of command this is: it is where a CLI puts its warnings either way.
+  if (renderer) {
+    child.stdout.on('data', (d: Buffer) => {
+      append(renderer.push(d.toString()))
+      gotResumeId(renderer.resumeId?.())
+      gotModel(renderer.model?.())
+    })
+  }
   child.stderr.on('data', (d: Buffer) => append(d.toString()))
 
   let spawnError: string | undefined
@@ -156,26 +172,33 @@ export async function watchRun(sessionId: string): Promise<number> {
     // Whichever path gets here first wins and the rest are no-ops: the child's own close,
     // and the backstop below.
     let done = false
+    // How the conversation ended, on a run the board talked to. It stands in for
+    // everything a printing agent's own output would have said.
+    let spoken: TurnEnd | undefined
     const finish = (code: number | null, asked: boolean) => {
       if (done) return
       done = true
-      append(renderer.flush())
-      catchIds() // the ids may have been in the last partial line, on a very short run
+      if (renderer) {
+        append(renderer.flush())
+        // The ids may have been in the last partial line, on a very short run.
+        gotResumeId(renderer.resumeId?.())
+        gotModel(renderer.model?.())
+      }
 
       const endedAt = Date.now()
       // Stamp the elapsed time through the same stream (not an append after the stream is
       // closed, which would race its pending flush), and hand the same instant to the
       // record so the file and the record agree.
       log.write(durationLine(endedAt - record.startedAt))
-      const cost = renderer.costUsd?.()
+      const cost = spoken ? spoken.costUsd : renderer?.costUsd?.()
       if (cost !== undefined) log.write(costLine(cost))
-      const usage = renderer.usage?.()
+      const usage = spoken ? spoken.usage : renderer?.usage?.()
       if (usage) log.write(usageLine(usage))
       const model = peekRun(sessionId)?.model
       if (model) log.write(modelLine(model))
       // The final message goes to the log behind a marker line, so the file alone is the
       // complete durable record and a later read can split events from message again.
-      const final = renderer.result()
+      const final = spoken ? spoken.result : renderer?.result()
       if (final) log.write(`\n${RESULT_MARKER}\n${final}\n`)
       log.end()
 
@@ -193,7 +216,9 @@ export async function watchRun(sessionId: string): Promise<number> {
         // neither passed nor failed, it was ended.
         ok: asked ? undefined : code === 0,
         code: asked ? null : code,
-        error: spawnError,
+        // What went wrong, in whoever's words know: ours when the command wouldn't start,
+        // the agent's own when the conversation ended badly.
+        error: spawnError ?? (asked ? undefined : spoken?.error),
         endedAt,
       })
       letGo()
@@ -210,10 +235,14 @@ export async function watchRun(sessionId: string): Promise<number> {
     // not on the process: a tool the agent left behind inherits that pipe and can hold it
     // open long after the agent itself is gone, which would leave the run reading as
     // running and its card locked for good. So the ending is ours to declare.
-    let stopped = false
-    const askToStop = () => {
-      if (stopped || done) return
-      stopped = true
+    // Ending the command ourselves, whether because a stop asked or because the
+    // conversation is over. It gets a moment to end on its own, then it is killed.
+    const endChild = () => {
+      try {
+        child.stdin?.end()
+      } catch {
+        // already gone
+      }
       try {
         child.kill('SIGTERM')
       } catch {
@@ -226,6 +255,13 @@ export async function watchRun(sessionId: string): Promise<number> {
           // already gone
         }
       })
+    }
+
+    let stopped = false
+    const askToStop = () => {
+      if (stopped || done) return
+      stopped = true
+      endChild()
       after(STOP_GRACE_MS + STOP_CLOSE_MS, () => {
         finish(null, true)
         // Nothing else is waiting on this process, and something is still holding a pipe
@@ -235,6 +271,37 @@ export async function watchRun(sessionId: string): Promise<number> {
     }
     process.on('SIGTERM', askToStop)
     process.on('SIGINT', askToStop)
+
+    // The conversation, on a run the board talks to. It is the run: a command that answers
+    // back is a server and never exits on its own, so the turn's ending is the run's
+    // ending, and the process is closed out after it rather than waited on. What the turn
+    // says happened is the verdict — the exit code of a process we killed says nothing.
+    if (client) {
+      const toAgent = child.stdin
+      if (!toAgent) {
+        log.write(`\n[error] nothing could be written to ${cmd}, so there was no way to send it the task\n`)
+        finish(1, false)
+      } else {
+        void client
+          .turn({
+            stdout: child.stdout,
+            stdin: toAgent,
+            prompt,
+            cwd: process.cwd(),
+            // Only a resumed run carries a conversation to continue. A fresh run's session
+            // is opened inside the conversation, and its id comes back here.
+            resumeId: record.resumedFrom ? record.resumeId : undefined,
+            log: append,
+            gotResumeId: (id) => gotResumeId(id),
+            gotModel: (model) => gotModel(model),
+          })
+          .then((end) => {
+            spoken = end
+            endChild()
+            finish(end.ok ? 0 : 1, peekRun(sessionId)?.stopping === true || stopped)
+          })
+      }
+    }
 
     child.on('close', (code) => finish(code, peekRun(sessionId)?.stopping === true || stopped))
   })

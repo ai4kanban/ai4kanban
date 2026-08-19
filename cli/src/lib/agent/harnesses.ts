@@ -6,6 +6,8 @@
 // end. Adding an agent is adding one object to HARNESSES — nothing outside this file
 // learns its name.
 
+import { createAcpClient } from './acp'
+import type { RunClient } from './client'
 import { createCodexStreamRenderer } from './codex-stream'
 import { createCursorStreamRenderer } from './cursor-stream'
 import { createOpencodeStreamRenderer } from './opencode-stream'
@@ -49,8 +51,17 @@ export interface Harness extends Omit<HarnessOption, 'binary' | 'installed'> {
   providerEnv?: string[]
   /** The environment the child runs under, on top of the one this process has. */
   env(): NodeJS.ProcessEnv
-  /** Parses this harness's stdout into readable log lines + a final message. */
-  renderer(): StreamRenderer
+  /** Parses this harness's stdout into readable log lines + a final message. Left out by
+   *  a harness that declares a `client` instead: then stdout is a protocol, not a log. */
+  renderer?(): StreamRenderer
+  /** The client that holds the conversation, for a command that answers back rather than
+   *  printing a report and exiting (agent/client.ts). A harness declares this OR a
+   *  `renderer`, never both — a command either talks or it prints.
+   *
+   *  It is handed the settings this harness is set to, because what a conversation opens
+   *  with is part of the conversation: an ACP agent picks its model on the session it just
+   *  opened, not from a flag on the command line. */
+  client?(values: Record<string, string>): RunClient
   /** True when this harness adopts the session id we generate before the run starts
    *  (Claude Code takes `--session-id`), so its own resume id IS ours and is known from
    *  the first moment. False when the harness mints its own id instead — then the id
@@ -66,8 +77,8 @@ export interface Harness extends Omit<HarnessOption, 'binary' | 'installed'> {
 // How a prompt asks for the skill on an agent with no skill syntax of its own. Claude Code
 // has a slash name and Codex a `$` name; Cursor's short names are documented for its chat
 // box rather than for a headless run, and OpenCode has neither — its model picks a skill
-// itself. So these two are asked in a sentence, and the path is named because a sentence
-// alone leaves the agent searching for what "the kanban skill" means.
+// itself, and dsh is the same. So the rest are asked in a sentence, and the path is named
+// because a sentence alone leaves the agent searching for what "the kanban skill" means.
 const SKILL_SENTENCE = "Use this repo's ai4kanban board skill (`.agents/skills/kanban/SKILL.md`)"
 
 /** True when this argv already names a flag — `--model id` or `--model=id`, in any of the
@@ -449,7 +460,7 @@ const CURSOR: Harness = {
   // the prompt asks for the skill in a sentence.
   skillCall: SKILL_SENTENCE,
 
-  // The one agent of the four that doesn't come from npm.
+  // The one agent that doesn't come from npm.
   install: 'curl https://cursor.com/install -fsS | bash',
 }
 
@@ -528,8 +539,91 @@ const OPENCODE: Harness = {
   install: 'curl -fsSL https://opencode.ai/install | bash',
 }
 
+// What every `dsh-acp` run wants, added only when the user's own `command` hasn't already
+// named it.
+//
+// `--permission-mode workspace-write` is the whole of what a dsh run may do, and it is
+// what the command starts at anyway — named here so a `settings.yaml` on this machine
+// can't quietly widen a board run. Under it the agent writes inside the project without
+// stopping to ask, and anything further raises a question the board answers with no (see
+// `decide` in agent/acp.ts). `--permission-mode danger-full-access` in a hand-written
+// command is someone choosing otherwise, and nothing is added on top.
+//
+// Nothing about streaming or about a session id: an ACP command streams by nature, and its
+// session is opened in the conversation rather than on the command line.
+function dshExtraArgs(argv: string[]): string[] {
+  return namesFlag(argv, ['--permission-mode']) ? [] : ['--permission-mode', 'workspace-write']
+}
+
+// DeepSeek Harness, reached through ACP (#225).
+//
+// dsh's own headless command says nothing until it is finished and can't carry on an
+// earlier run, so the board doesn't use it. It speaks ACP instead, and `dsh-acp` — the
+// community bridge — is the command that answers: it streams the agent's text, thinking
+// and tool calls as they are written, and reopens an earlier session with its history. It
+// reads and writes dsh's own `$DSH_HOME`, so the key and the sessions are the ones dsh
+// already has.
+const DSH: Harness = {
+  name: 'dsh',
+  label: 'DeepSeek Harness',
+  icon: '/agents/dsh.svg',
+  command: 'dsh-acp --permission-mode workspace-write',
+
+  extraArgs(argv) {
+    return dshExtraArgs(argv)
+  },
+
+  resumes: true,
+
+  // Nothing changes on the command line for a resumed run: which conversation to carry on
+  // is said inside it, as `session/load` (agent/acp.ts).
+  resumeArgs(argv) {
+    return dshExtraArgs(argv)
+  },
+
+  // What dsh takes: a model, and the DeepSeek key. Both boxes can stay empty — someone
+  // already set up with dsh has a key in `$DSH_HOME` and a model in their own settings,
+  // and a board run uses exactly what `dsh web` would.
+  settings: [
+    // Free text, for the same reason the others' are: model ids change between releases
+    // and a stale list would block one the agent already runs. It carries no flag — an
+    // ACP session picks its model once it is open, so this reaches the run inside the
+    // conversation instead (agent/acp.ts).
+    {
+      key: 'model',
+      label: 'Model',
+      kind: 'text',
+      placeholder: 'deepseek-v4-flash',
+      help: "Chosen as the run's session opens. Empty runs the agent's default. A wrong id fails the run; the log says why.",
+    },
+    {
+      key: 'apiKey',
+      label: 'DeepSeek API key',
+      kind: 'secret',
+      env: 'DEEPSEEK_API_KEY',
+      placeholder: 'sk-…',
+      help: 'Optional — empty uses the key dsh itself saved. Saved to docs/kanban/.env, never shown back.',
+    },
+  ],
+
+  env: () => ({ ...process.env }),
+
+  client: (values) => createAcpClient({ model: values.model }),
+
+  // The conversation names its own session, on the first thing it answers, and the record
+  // saves the id there — so a run that dies a minute later can still be picked up.
+  adoptsSessionId: false,
+
+  // dsh has no slash or `$` skill syntax a headless run can use, so the prompt asks for the
+  // skill in a sentence. It reads `.agents/skills/`, the folder an install already writes.
+  skillCall: SKILL_SENTENCE,
+
+  // Two packages: the agent, and the bridge that makes it answer.
+  install: 'npm install -g @deepseek-ai/dsh @openma/deepseek-harness-acp',
+}
+
 /** Every agent the board can run, in the order they are listed. */
-export const HARNESSES: Harness[] = [CLAUDE_CODE, CODEX, CURSOR, OPENCODE]
+export const HARNESSES: Harness[] = [CLAUDE_CODE, CODEX, CURSOR, OPENCODE, DSH]
 
 /** What runs when the config names no agent, or names one we don't know. */
 export const DEFAULT_HARNESS = CLAUDE_CODE
@@ -548,6 +642,11 @@ const RESERVED_SETTING_KEYS = ['command']
 // only one who can ever see this. Better a loud failure the moment it's added than a
 // setting that quietly overwrites the override.
 for (const harness of HARNESSES) {
+  // A command either prints or it talks, and the runner asks this file which. Both would
+  // be two readers on one stdout; neither would be a run nobody can read.
+  if (!harness.renderer === !harness.client) {
+    throw new Error(`harness "${harness.name}": declare a renderer for a command that prints, or a client for one that answers back — not both, and not neither`)
+  }
   const seen = new Set<string>()
   const seenEnv = new Set<string>()
   for (const setting of harness.settings) {
