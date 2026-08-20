@@ -1,6 +1,6 @@
 {
   "name": "ai4kanban-ui",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Local kanban board UI \u2014 run it on your machine to see the board and spawn agents (claude -p) to do the kanban work. Files in docs/kanban/ stay the source of truth.",
   "keywords": [
     "kanban",

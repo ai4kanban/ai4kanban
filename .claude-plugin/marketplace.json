@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "AI4Kanban — a file-based task board Claude runs for you.",
-    "version": "0.6.1"
+    "version": "0.7.0"
   },
   "plugins": [
     {
