@@ -184,6 +184,65 @@ export function TaskCard({
   );
 }
 
+// A pill with a word in it: one piece of planning work, named. Two figures put
+// rows and rings of these together, and both need them to be the same object —
+// so the width comes from the label rather than a number chosen by eye, and a
+// caller can lay a row out without measuring anything twice.
+//
+// `lead` is the stage number, and it is the one thing on a chip drawn in ember:
+// the chips are the planning work, and the number is which pass of it this is.
+const CHIP = { h: 18, pad: 10, font: 8.8, per: 4.9, lead: 12 };
+
+export const CHIP_H = CHIP.h;
+
+export function chipWidth(label: string, lead = false) {
+  return CHIP.pad * 2 + label.length * CHIP.per + (lead ? CHIP.lead : 0);
+}
+
+export function Chip({
+  x,
+  y,
+  label,
+  lead,
+}: {
+  x: number;
+  y: number;
+  label: string;
+  lead?: string;
+}) {
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={chipWidth(label, Boolean(lead))}
+        height={CHIP.h}
+        rx={CHIP.h / 2}
+        className="fill-code"
+      />
+      {lead && (
+        <text
+          x={x + CHIP.pad}
+          y={y + 12.4}
+          className="fill-accent-deep font-sans"
+          fontSize={CHIP.font}
+          fontWeight={800}
+        >
+          {lead}
+        </text>
+      )}
+      <text
+        x={x + CHIP.pad + (lead ? CHIP.lead : 0)}
+        y={y + 12.4}
+        className="fill-ink font-sans"
+        fontSize={CHIP.font}
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
 // A connector: the dashed track between the card and something it has to be
 // reconciled with. It marches, so the drawing says the link is live; where a
 // figure needs to say a link is *not* live it draws a stub that stops in the

@@ -20,6 +20,14 @@ re-ask a settled call.
 - Where the board's rules live: in the command, not in the UI. The UI keeps its buttons and
   panels and drives its runs through the command, rather than holding a second copy of how
   a card is written and how a run is started.
+- **Where do the spec agents live in the UI?**: a Spec agents section inside the
+  Configuration dialog, beside Agent and Skill — not a button of its own in the header.
+  It lists each spec agent and gives each one an on/off switch, on by default. The user
+  never puts an agent on a card; the flow working the card decides which one it needs.
+- **Does the Spec agents section ship with the agents themselves?**: yes — it ships in the
+  same group as `ui-design` and `recommend-tech-stack`, not as a card of its own later. The
+  first release with spec agents is also the first release where the user can see and
+  switch them off.
 
 ## How the board is run
 

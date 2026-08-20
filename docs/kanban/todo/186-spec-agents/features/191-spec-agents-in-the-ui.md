@@ -1,79 +1,73 @@
 ---
-title: See and run the spec agents from the board UI
+title: See the spec agents in the board UI and switch them on or off
 track: features
 priority: med
 roi: med
-status: todo
+status: ready
 release: 0.7.0
 blocked_by: [187]
 related: [186]
 modules: [local-ui]
-questions:
-  - question: "[user] Where does the Agents entry live? See the two sketches on the card."
-    mode: single
-    options:
-      - A — its own button in the tool cluster, opening an Agents panel
-      - B — a tab inside the Configuration dialog
-    recommend: [1]
+questions: []
 ---
 
-Agents that only ever run on their own are invisible: the user cannot see what exists, what
-each one is for, or put one on a card themselves. Give them a way in from the header and a
-panel of their own.
+Spec agents that only ever run on their own are invisible: the user cannot see what exists,
+what each one is for, or turn off one they do not want. Give them a place in the
+Configuration dialog, with a switch each.
 
 ## Where the entry goes
 
-Two shapes. `A` is the one to build unless the user says otherwise.
+A **Spec agents** section in the Configuration dialog, beside Agent and Skill.
 
 ```
-A — its own button in the tool cluster, opening a panel
-
-  [logo] ~/my-project              [Goal] [0.6.0 v] | (~) (::) (=) (@) | [+ Task]
-                                                       ^^^^^^^^^^^^^^^^^^^^^ @ = Agents
-  +-------------------------- Agents ---------------------------+
-  | ui-design              draws the screen a card needs         |
-  |                        called on a card that changes a screen|
-  |                                              [Run on a card] |
-  | recommend-tech-stack   picks the library or service          |
-  |                        called when a card needs an outside   |
-  |                        library, tool, or service             |
-  |                                              [Run on a card] |
-  +--------------------------------------------------------------+
-
-B — a tab inside the Configuration dialog
-
-  +---------------------- Configuration ------------------------+
-  | [ Agent ] [ Auto-refine ] [ Spec agents ]                    |
-  |                                                              |
-  | ui-design              draws the screen a card needs   [Run] |
-  | recommend-tech-stack   picks the library or service    [Run] |
-  +--------------------------------------------------------------+
++------------------------ Configuration -----------------------+
+| Agent       | ui-design                                 [on]  |
+| Skill       |   draws the screen a card needs                 |
+| Spec agents |   called on a card that changes a screen        |
+|             |                                                 |
+|             | recommend-tech-stack                      [on]  |
+|             |   picks the library or service                  |
+|             |   called when a card needs an outside library,  |
+|             |   tool or service                               |
++--------------------------------------------------------------+
 ```
 
 ## Scope
-- An entry in the board UI's header opens the Agents panel.
-- The panel lists every agent: its name, the part of a spec it fills, and when the board
-  calls it by itself.
-- From the panel or from a card, run an agent on a card by hand, with an optional note
-  saying what to look at.
-- A running agent looks like any other run — it shows in the runs panel, can be stopped,
-  and its log can be read.
-- On a card page, the section an agent wrote is marked as that agent's, with the run that
-  produced it reachable from there.
-- Rerunning an agent on a card replaces its section, and the page says so before it does.
+- The Configuration dialog gets a **Spec agents** section, opened from the header's gear
+  like its other sections.
+- The section lists every spec agent: its name, the part of a spec it fills, and when the
+  board calls it — while a card is being planned, never while it is being built.
+- Every spec agent is on from the day the board is installed. The user never picks an agent
+  for a card — the planning flow working on the card decides which one it needs.
+- Each agent has one switch, on or off. Off means no flow calls that agent, on any card,
+  until it is switched back on.
+- The switch is saved with the board, so it holds across restarts and reads the same for
+  everyone working on that board.
+- An agent that is off stays in the list, greyed, and reads "off" in text beside the switch.
+- On a card page, a section a spec agent wrote is marked as that agent's, so the user can
+  see which part of the spec came from where.
 
 ## Todo
-- [ ] Add the header entry that opens the Agents panel.
-- [ ] List each agent in the panel with what it fills and when it is called on its own.
-- [ ] Run an agent on a card by hand, with an optional note.
-- [ ] Show the run beside the other runs, stoppable, with its log.
-- [ ] Mark an agent's section on the card page and link it to the run that wrote it.
-- [ ] Warn before a rerun replaces a section the user has already read.
-- [ ] Open the panel, run an agent on a card, and check the section lands on the page.
-- [ ] Document the panel and running an agent by hand.
+- [ ] Add the Spec agents section to the Configuration dialog.
+- [ ] List each spec agent with the part it fills and when the board calls it.
+- [ ] Give each agent an on/off switch, on by default, saved with the board.
+- [ ] Keep a switched-off agent in the list, greyed and labelled off.
+- [ ] Make a flow skip a spec agent that is switched off.
+- [ ] Mark a spec agent's section on the card page as that agent's.
+- [ ] Switch an agent off, run the flow that would have called it, and check it stays out.
+- [ ] Document the section and what switching an agent off changes.
 
 ## Decided by the agent
-- **Read and run, not edit** — the panel shows what an agent is and starts one. Writing an
-  agent's prompt is not something the UI does yet.
-- **An agent run is a normal run** — reusing the runs panel means stopping, logs, and
-  failures already work the way the user expects.
+- **Which flow calls one** — the planning flows: add-task, refine and edit. That is what
+  #186 and #188 are built on, and a part of the spec written after the build starts is too
+  late to plan from.
+- **Read and switch, not edit** — the section shows what a spec agent is and whether it is
+  on. Writing an agent's prompt is not something the UI does yet.
+- **It is called "Spec agents"** — the dialog already has an Agent section for the coding
+  agent the board runs on, and two entries named "Agent" would be read as one thing.
+- **On from the start** — an agent the user has to switch on first is an agent nobody uses.
+  A flow deciding a card does not need one costs the user nothing; deciding it themselves,
+  card after card, costs them the feature.
+- **Off is a setting the user can see** — a greyed entry that still reads "off" keeps the
+  user's own choice in front of them, so a card that came back with no screen design has
+  its explanation in the same place.

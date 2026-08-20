@@ -67,3 +67,5 @@ AI4Kanban 是一个以看板为工作界面的项目管理 Agent。它结合项�
 ## 许可证
 
 [Apache License 2.0](LICENSE)。可自由使用、修改和再分发。
+
+[`web/`](web/) 下的官网是例外：源码公开仅供阅读，适用其[单独的许可证](web/LICENSE)。

@@ -41,7 +41,7 @@ planned by guess. Say when each flow calls one, and when it leaves it alone.
 - [ ] Document when the board calls an agent by itself.
 
 ## Decided by the agent
-- **The flow decides, not the user** — a user who wanted an agent on a card can always run
-  one by hand (#191). Asking every time would make the feature a chore.
+- **The flow decides, not the user** — the user's only choice is switching an agent off
+  (#191). Asking every time would make the feature a chore.
 - **Refine and edit stay quiet by default** — a card that has settled should not be
   reopened by an agent that has nothing new to add.

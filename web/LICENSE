@@ -1,0 +1,81 @@
+AI4Kanban Website Source License
+Copyright (c) 2026 Tao Wu. All rights reserved.
+
+This license applies to everything in this directory (`web/`) and its
+subdirectories — source code, stylesheets, configuration, blog posts,
+translations, marketing copy, images, and any other material — except where a
+file states a different license, and except for third-party dependencies, which
+remain under their own licenses.
+
+The rest of this repository is licensed separately; see the LICENSE file at the
+repository root. Nothing here changes those terms, and nothing there grants
+rights to the material covered by this license.
+
+THIS IS NOT AN OPEN SOURCE LICENSE.
+
+The material is published so that it can be read: to show how the site is built,
+to make the project auditable, and to let contributions be discussed against
+real code. Publication is not permission to use it.
+
+1. Permitted
+
+   You may:
+
+   (a) view, read, and study the material;
+
+   (b) reproduce it locally, and run it locally, solely to read, review, or
+       evaluate it, or to prepare a contribution under section 3;
+
+   (c) quote short excerpts in commentary, reviews, teaching material, or
+       technical discussion, with attribution to this project.
+
+2. Not permitted
+
+   Except as section 1 or section 3 allows, and except as applicable law allows
+   regardless of this license, you may not:
+
+   (a) run, host, serve, or deploy the material, in whole or in part, for
+       anyone other than yourself;
+
+   (b) copy, publish, distribute, sublicense, sell, or otherwise share the
+       material or any part of it;
+
+   (c) modify the material or create derivative works from it, including
+       translations and ports;
+
+   (d) use the material, in whole or in part, in any other product, site, or
+       service, whether commercial or noncommercial;
+
+   (e) remove or alter this license, the copyright notice, or any attribution.
+
+   The names, logos, and trademarks of this project are not licensed here.
+
+3. Contributions
+
+   You may fork this repository and modify the material for the sole purpose of
+   preparing a contribution back to it. Any contribution you submit is offered
+   under this license, and you grant the copyright holder a perpetual,
+   worldwide, irrevocable, royalty-free license to use, modify, and relicense
+   it. Once your contribution is submitted or abandoned, section 2 applies to
+   your copy again.
+
+4. Termination
+
+   Your rights under this license end automatically if you breach it. They are
+   reinstated if you cure the breach within 30 days of becoming aware of it,
+   unless the copyright holder has already notified you of the breach.
+
+5. No other rights
+
+   No rights are granted other than those stated above. No patent license is
+   granted, by implication, estoppel, or otherwise. To request rights beyond
+   this license, contact the copyright holder.
+
+6. No warranty and no liability
+
+   THE MATERIAL IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY,
+   WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF,
+   OR IN CONNECTION WITH THE MATERIAL OR ITS USE.

@@ -28,6 +28,12 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   ✅ two modes get two tabs that name them, and each tab shows only its own fields. A
   control the user has to look elsewhere to read is worse than the extra control it saved.
 
+- ❌ **A feature the board can do on its own also gets a "run it on this thing" button**
+  (a spec agents panel that asks which card, plus the same button on every card page) →
+  ✅ an automatic feature is switched on or off, never aimed by hand: the flow working the
+  card picks the agent it needs, and the UI's job is to list what exists and let the user
+  turn one off. A per-card trigger makes the user do the deciding, every card.
+
 ## Runs
 
 - ❌ **A run's log is a moment** (in memory only, or visible while the run is live and gone

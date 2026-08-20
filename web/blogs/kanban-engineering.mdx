@@ -1,0 +1,79 @@
+---
+title: "What is Kanban Engineering—and why did we coin the term?"
+title_tag: "What is Kanban Engineering? A planning layer for coding agents"
+dek: "Loop engineering keeps individual agents moving. Graph engineering coordinates multiple agents. Kanban Engineering connects both to product direction: what should they build, in what order, and why?"
+excerpt: "Kanban Engineering is the planning layer around coding agents, connecting product goals to requirements, releases, and durable decisions."
+date: 2026-08-20
+categories: ["agents", "workflow"]
+tags: ["kanban-engineering", "product-planning", "requirements", "coding-agents"]
+read_minutes: 4
+author: "AI4Kanban"
+featured_image: "https://cdn.ai4kanban.dev/ai4kanban-ui-v5-board-view.jpg"
+featured_image_alt: "Kanban Engineering board connecting product goals, requirements, and planned work."
+seo:
+  description: "Kanban Engineering connects product goals, requirements, releases, and project memory so coding agents can serve one coherent product direction."
+---
+
+In 2026, terms such as [loop engineering](https://addyo.substack.com/p/loop-engineering) and [graph engineering](https://www.aibuilderclub.com/blog/graph-engineering-guide-2026) gained traction as teams looked beyond one-shot prompts. Reliable agent work needs a harness: a repeatable way to perform the work, check the result, and coordinate multiple steps.
+
+Both ideas are useful, but the vocabulary can obscure their practical purpose. Each new label can make agent-assisted development feel like another methodology teams must master.
+
+We coined **Kanban Engineering** partly as a wry response to that jargon boom. Yet the term describes a real gap. Loop engineering structures the cycle an agent repeats. Graph engineering coordinates multiple agents or steps. Both address how work runs; neither determines which requirements matter, which release the work belongs in, or how earlier product decisions should shape the next task.
+
+<ThreeLayers />
+
+Coding agents are increasingly effective at turning a clear requirement into working code. That does not mean they know which requirement should exist, what product decisions it depends on, or whether it belongs in the next release. As implementation becomes cheaper, these planning decisions account for a larger share of the work.
+
+Kanban Engineering is our term for that missing planning layer: the system that **turns vague goals into requirements**, **routes unresolved decisions to a person**, **keeps dependencies and releases coherent**, and **preserves product context between sessions**.
+
+<PlanningLayer />
+
+## The board plans the work, not just tracks it
+
+Traditional boards record work that people have already planned. Someone chooses a feature, writes the issue, answers the implementation questions, and places it in a sprint. The board displays the result of that thinking.
+
+A Kanban Engineering system participates in the planning. Starting from a goal, it can propose work, challenge a vague idea, answer routine product questions from project context, identify dependencies, and group related cards into a release. A person remains accountable for direction, taste, commercial judgment, and consequential tradeoffs.
+
+The aim is not to remove people from product decisions. It is to stop requiring them to write every requirement by hand before an agent can contribute.
+
+## The unit of work is a decision loop
+
+In AI4Kanban, we are implementing this discipline as a five-stage loop:
+
+1. **Goal:** A person states the outcome the product should move toward.
+2. **Proposal:** The planning agent suggests work that could advance the goal.
+3. **Clarification:** It develops a promising idea into an implementable requirement, answering routine questions from project context and escalating decisions that require human judgment.
+4. **Release:** It groups a coherent set of cards around a short-term outcome instead of filling a version with whatever tasks happen to be available.
+5. **Memory:** Accepted decisions, corrections, rejected ideas, and shipped work become context for the next proposal.
+
+<DecisionLoop />
+
+The loop matters more than any individual card. A rejected proposal still has value if its rationale prevents the same unsuitable idea from returning later. A correction becomes more than review feedback when the next requirement can reuse it. With each pass, the system should reduce the amount of product context a person must reconstruct.
+
+## Chat history and source code are not enough
+
+The codebase shows an agent how the product works today. It rarely explains why a behavior was chosen, which alternative was rejected, what users complained about, or which idea was deliberately deferred.
+
+Chat contains some of that information, but conversations are organized by time. Long-running planning needs context organized by goals, modules, releases, and decisions. Without that structure, each new session resembles a capable employee arriving without the project's institutional memory.
+
+That is why [project planning becomes the bottleneck with AI coding tools](/blog/project-decisions-are-the-bottleneck): execution speeds up, but the decisions that give the work its direction still need to be made and retained.
+
+The board adds a top-down map. Cards carry current requirements and open questions. Release goals explain why a group of work belongs together. Project memory retains decisions that future work can reuse. The coding agent still uses the repository for technical context, but no longer has to infer product strategy from code alone.
+
+## The hard part starts after the first demo
+
+Early development often feels effortless because there is little history to respect. The product has few dependencies, most decisions remain reversible, and a broad goal can organize the work. After version 1, development becomes more demanding. Progress comes from many smaller goals, each constrained by existing behavior and earlier decisions.
+
+We saw this shift while using AI4Kanban to manage its own development. During the project's first 31 days, the board recorded more than 200 proposed tasks and more than 100 delivered tasks. At that volume, knowing which cards remained open was easy. The harder work was deciding which changes served the product goal, keeping dependent work aligned, and preventing rejected ideas or corrected assumptions from returning as if they were new.
+
+<SelfBoardProgress />
+
+Adding more agents does not remove that work. Ten agents can refine ten ideas in parallel, but without shared memory they may repeat the same questions, make conflicting assumptions, or produce features that do not belong in the same release. Faster execution simply allows weak planning to spread through more work before anyone catches it.
+
+Kanban Engineering keeps local work connected to product direction through requirement clarification, decision memory, dependency management, release planning, and proposals grounded in user feedback or market signals. These concerns sit above any individual agent's execution loop.
+
+## The human sets direction instead of writing every requirement
+
+When this loop works, the human role changes. Instead of writing every specification, the person sets direction, reviews proposals, resolves the smaller set of questions that require judgment, and evaluates shipped outcomes. The planning agent handles more of the connective work while operating within explicit goals and recorded decisions.
+
+Kanban Engineering is therefore not simply "Kanban with AI." It is the discipline of making many fast coding agents serve one coherent product direction. The board is the interface where that direction, the work, and the memory meet.

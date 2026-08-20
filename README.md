@@ -78,3 +78,6 @@ terminal use, run `akb` after installing the app; do not install the npm package
 ## License
 
 [Apache License 2.0](LICENSE). Free to use, modify, and redistribute.
+
+The public site in [`web/`](web/) is the exception: it is source-available for
+reading only, under its own [license](web/LICENSE).
