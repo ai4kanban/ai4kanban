@@ -20,7 +20,6 @@ const zh: SharedCopy = {
     license: "Apache License 2.0",
     credit: "created by Tao Wu",
     x: "Tao Wu 的 X 主页",
-    origin: "最初是为以下项目打造的技能：",
   },
   code: {
     copy: "复制",

@@ -460,7 +460,9 @@ function StepRail({
 const STEP_TITLES: Record<string, string> = {
   project: "Project",
   goal: "Goal",
-  agent: "Agent",
+  // The checklist's own name for this step is `agent` and stays that way — the rename is
+  // what the user reads, not what the command prints (#191).
+  agent: "Harness",
 };
 
 // ---- step 1: the project and its tracks ------------------------------------
@@ -692,12 +694,14 @@ function GoalStep({
   );
 }
 
-// ---- step 3: the agent -----------------------------------------------------
+// ---- step 3: the harness ----------------------------------------------------
 
 // The one step that can't be pressed past. It is the Configuration dialog's own
-// Agent pane — the same picker, the same settings, the same Test — because this
+// Harness pane — the same picker, the same settings, the same Test — because this
 // is the same question, and a second screen asking it in other words would be a
-// second place to keep right.
+// second place to keep right. It is called Harness here for the same reason it is
+// called that in the dialog (#191): a first run that says Agent and a dialog that
+// says Harness are two names for one thing, and a new user meets both.
 //
 // One thing opens Continue: a test that passed. There is no answer of the form
 // "none of them" — the board always runs the agent it was given, and everything
@@ -737,8 +741,8 @@ function AgentStep({
 
   return (
     <StepBody
-      title="Which agent does the work?"
-      blurb="Every button on this board starts a run — refine a card, propose work, implement it. Pick the agent those runs go to, then press Test: it sends one tiny message through and says what came back."
+      title="Which harness runs the work?"
+      blurb="The coding tool that runs the board's work. Every button here starts a run on it — refine a card, propose work, implement it. Pick it, then press Test: it sends one tiny message through and says what came back."
     >
       <HarnessPicker
         agent={agent}

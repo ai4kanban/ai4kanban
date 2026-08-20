@@ -142,6 +142,9 @@ const FLAGS: Record<AgentAction, string[]> = {
   refine: [],
   resolve: ['notes', 'and-implement'],
   setup: [],
+  // Never reached: a spec run is started by `akb spec` (commands/spec.ts), which reads its
+  // own arguments. It is here so the table still covers every action.
+  spec: ['notes'],
 }
 
 /** Send one more turn into a run that stopped short: same agent, same conversation, same
@@ -226,7 +229,7 @@ export function cmdLog(args: string[]): MoveResult {
 //
 // It reads the file rather than the run's own output, so it works on any run, including
 // one this machine did not start.
-function followRun(sessionId: string, already = ''): MoveResult {
+export function followRun(sessionId: string, already = ''): MoveResult {
   const view = getRun(sessionId)
   if (!view) return {}
   let seen = already.length
@@ -276,7 +279,10 @@ const MARK: Record<string, string> = {
 }
 
 function runLine(r: RunView): string {
-  const what = r.cardId !== null ? `${r.action} #${r.cardId}` : r.action
+  // A spec run says which agent it is: `spec` alone would read the same for every one of
+  // them, and which agent is working is the whole of what that row has to say.
+  const kind = r.specAgent ? `${r.action} ${r.specAgent}` : r.action
+  const what = r.cardId !== null ? `${kind} #${r.cardId}` : kind
   const bits = [
     `${MARK[r.status] ?? '?'} ${short(r.sessionId)}`,
     what.padEnd(18),

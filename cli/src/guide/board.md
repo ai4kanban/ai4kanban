@@ -50,6 +50,30 @@ plans it.
   `## Todo`) is the human's input; this section is what the agent complements, so anyone
   can see what it decided and overrule it. What the **user** decided isn't an agent call
   — that goes to `decisions.md` (see "The memory set").
+- **`### Worth noting`**: inside `## Decided by the agent`, holds only calls a human could
+  reasonably make another way, one short line each.
+- **``## By `<name>` agent``**: a spec agent's own section — the part of the spec that
+  named agent owns and answered (`akb guide spec-agent`). Read it and plan on top of it;
+  never reword it, move it, or drop it. Only that agent rewrites it, by being run again.
+
+## Mockups
+
+A card can show layout options as mockups written by the `ui-design` agent. The board UI
+renders each file where its tag appears in the card body.
+
+- **Files**: put one per option in `docs/kanban/mockups/<card id>/`: `a.tsx` for `A`,
+  `b.tsx` for `B`, and so on.
+- **Format**: prefer `.tsx`, with one default-exported React component using only React,
+  Tailwind classes, and inline icons. A `.html` mockup must be a complete, self-styled page.
+- **Content**: draw one static screen in its normal state. Do not handle clicks, load from
+  the network, or read board data.
+- **Tag**: put `<Mockup src="mockups/239/a.tsx" label="A" />` on its own line. `src` is
+  relative to `docs/kanban/`; `label` is optional.
+- **HTML**: `<Mockup>` is the only HTML tag allowed in a card body. Inside backticks or a
+  fenced block it remains text.
+- **Lifetime**: keyed by the card's id, so moving track keeps them. Archiving or rejecting
+  the card deletes its folder — a group takes its subtasks' folders too. They are in git,
+  which is where a drawing worth keeping is read back from.
 
 ## Layout
 
@@ -60,6 +84,8 @@ docs/kanban/
 │   ├── blockers/   hard blockers; they gate the next milestone — clear them first
 │   ├── <track>/    one folder per track (see "Configuration"), one card per file
 │   └── recurring/  jobs we repeat (`akb guide recurring-task`) — never archived
+├── mockups/        drawings of the screens cards change — see "Mockups"
+│   └── <card id>/  one folder per card, one file per mockup
 ├── memory/         all memory — see "The memory set"
 │   ├── readme.md, decisions.md, rejected.md, redesign.md
 │   │               the four-file set for the project as a whole

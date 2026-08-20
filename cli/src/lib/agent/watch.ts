@@ -16,18 +16,20 @@ import fs from 'node:fs'
 
 import { SESSIONS_DIR } from '../paths'
 import { RUN_ENV } from './flow'
-import { markBoard, refinesAfter, type BoardMarks } from './follow'
+import { markBoard, refinesAfter, specRunsAfter, type BoardMarks } from './follow'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { RESUME_PROMPT } from './prompts'
 import { openPlan } from './resolve'
 import {
   acquireIndexLock,
   claimCard,
+  clearSpecAsks,
   closeRun,
   needsIndexLock,
   patch,
   peekRun,
   readSpec,
+  readSpecAsks,
 } from './sessions'
 import { startRun } from './start'
 import type { TurnEnd } from './client'
@@ -223,8 +225,9 @@ export async function watchRun(sessionId: string): Promise<number> {
       })
       letGo()
       // Only after a run that finished. One that failed or was ended left the board
-      // half-written, and a refine of half a card is a refine you throw away.
-      if (status === 'done') followUp(record.action, before)
+      // half-written, and a refine of half a card is a refine you throw away — and a spec
+      // agent sent at half a plan would answer the wrong plan.
+      if (status === 'done') followUp(sessionId, record.action, before)
       resolve(code === 0 ? 0 : 1)
     }
 
@@ -307,14 +310,21 @@ export async function watchRun(sessionId: string): Promise<number> {
   })
 }
 
-// Start a refine on each card this run wrote, changed, or set free — each one an ordinary
-// run of its own, so it shows in the panel with its own log and can be stopped.
+// What follows this run: the spec agents it asked for, and a refine on each card it wrote,
+// changed, or set free. Each one is an ordinary run of its own, so it shows in the panel
+// with its own log and can be stopped.
+//
+// The spec agents go first — they were asked for by name, and a refine was not.
 //
 // A refusal is not worth reporting: the only one that comes up is a card that already has a
 // run on it, and that run is doing more than this one would have. Nothing here can fail the
 // run that just ended — it is over.
-function followUp(action: AgentAction, before: BoardMarks): void {
+function followUp(sessionId: string, action: AgentAction, before: BoardMarks): void {
   try {
+    // Started first, then forgotten — so a crash between the two costs a repeated agent at
+    // worst, and never a section nobody ever writes.
+    for (const req of specRunsAfter(readSpecAsks(sessionId))) startRun(req)
+    clearSpecAsks(sessionId)
     for (const req of refinesAfter(action, before)) startRun(req)
   } catch {
     // an unreadable board, or a spawn that wouldn't — the run it followed is done either way

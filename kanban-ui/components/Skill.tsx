@@ -73,16 +73,15 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[13px] leading-relaxed text-nb-ink-soft">
-        Adds a short note to this repo that tells your coding agent the board is here. Then
-        you can say <em>&ldquo;add a task&rdquo;</em> or <em>&ldquo;what&rsquo;s
-        next&rdquo;</em> to Claude Code or Codex and it works this same board — the same
-        cards, the same runs.
-      </p>
-      <p className="text-[13px] leading-relaxed text-nb-ink-soft">
-        Optional. The board works without it; this is only for driving it from a coding
-        agent as well as from here.
-      </p>
+      <div>
+        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">
+          Coding agent skill
+        </h3>
+        <p className="mt-1 max-w-[56ch] text-[13px] leading-relaxed text-nb-ink-soft">
+          Add the optional project instructions that let Claude Code or Codex work with
+          this board directly.
+        </p>
+      </div>
 
       {loadError && (
         <p className="flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">

@@ -59,6 +59,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Settings
 
+- ❌ **A new settings section is named by adding a qualifier to a section that already
+  exists** (an Agent section for the coding tool, a Spec agents section beside it) → ✅ two
+  sections get two names that stand apart — Harness and Agents. A reader should not have to
+  hold a qualifier in mind to tell two entries of the same sidebar apart.
 - ❌ **A new global setting gets its own labeled control in the header** → ✅ one
   configuration (gear) icon that opens a single Configuration dialog; global settings live
   inside it, so the header stays quiet instead of growing a control per setting.

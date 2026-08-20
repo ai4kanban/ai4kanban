@@ -28,6 +28,7 @@ import { cmdMigrate, cmdRun } from '../commands/misc'
 import { cmdList } from '../commands/list'
 import { cmdRelease } from '../commands/release'
 import { cmdSetupDone, cmdSetupStatus } from '../commands/setup'
+import { cmdSpecWrite } from '../commands/spec-write'
 import type { MoveResult } from './types'
 
 // How a move is run: whatever argv had left after the shared options were taken out.
@@ -50,6 +51,7 @@ const RUN: Record<string, RunMove> = {
   archive: (rest) => cmdRemove(Number(rest[0]), 'completed'),
   reject: (rest) => cmdRemove(Number(rest[0]), 'rejected'),
   'record-run': (rest) => cmdRun(Number(rest[0])),
+  'spec-write': (rest) => cmdSpecWrite(rest),
   peek: () => {
     const id = readNextId()
     say(String(id))

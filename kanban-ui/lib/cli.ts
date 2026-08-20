@@ -10,6 +10,7 @@ import type {
   HarnessSetting,
   RunRecord,
   RunView,
+  SpecAgentView,
 } from "./format/agent/types";
 import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
 import type {
@@ -108,6 +109,12 @@ export interface BoardRules {
   saveGoal(text: string): WriteResult;
   saveProject(name: string, description: string, tracks: TrackDraft[]): SaveProjectResult;
   finishSetupStep(name: string): WriteResult;
+
+  // the spec agents, and which of them may run (#191). Optional for the same reason as the
+  // skill moves below: a project can be running rules older than the release that added
+  // them, and the Agents section says so rather than the dialog failing to draw.
+  readSpecAgents?(): SpecAgentView[];
+  setSpecAgentEnabled?(name: string, on: boolean): WriteResult;
 
   // the coding agent skill — whether this project has one, and the move that adds it
   // (#174). Optional because a project can be running rules older than the release that

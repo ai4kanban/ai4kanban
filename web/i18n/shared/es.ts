@@ -20,7 +20,6 @@ const es: SharedCopy = {
     license: "Licencia Apache 2.0",
     credit: "creado por Tao Wu",
     x: "Tao Wu en X",
-    origin: "Generalizado a partir de una skill hecha para",
   },
   code: {
     copy: "Copiar",

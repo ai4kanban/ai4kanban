@@ -46,6 +46,9 @@ export let RELEASE_SUMMARIES = ''
 // and the tick that closes the last box deletes it. A board with no file is a board that
 // is set up — which is why boards made before this file existed stay quiet.
 export let SETUP_CHECKLIST = ''
+// Drawings of the screens cards change — one folder per card id (see "Mockups" in
+// `akb guide board`). Keyed by id, so a card leaving the board takes its folder with it.
+export let MOCKUPS = ''
 // All memory lives under docs/kanban/memory/: the project-wide set sits in this folder
 // itself, each module's set in a subfolder named after the module.
 export let MEMORY = ''
@@ -90,6 +93,7 @@ export function setBoardRoot(root: string): string {
   RELEASES = path.join(KANBAN, 'releases.md')
   RELEASE_SUMMARIES = path.join(KANBAN, '.release-summaries')
   SETUP_CHECKLIST = path.join(KANBAN, 'setup-checklist.md')
+  MOCKUPS = path.join(KANBAN, 'mockups')
   MEMORY = path.join(KANBAN, 'memory')
   GOAL = path.join(MEMORY, 'goal.md')
   LOCK = path.join(KANBAN, '.lock')

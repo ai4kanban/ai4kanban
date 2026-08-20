@@ -133,6 +133,9 @@ export const RUNNING_VERB: Record<AgentAction, string> = {
   propose: "proposing",
   "plan-release": "planning",
   setup: "setting up",
+  // A spec agent filling one part of the card's spec (#187). It writes one section and
+  // never the plan, so the card is not "being planned" while it works.
+  spec: "drafting a spec",
 };
 
 // The live tail is the agent's event stream — tool calls and turn text — so it

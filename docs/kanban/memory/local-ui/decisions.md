@@ -20,12 +20,15 @@ re-ask a settled call.
 - Where the board's rules live: in the command, not in the UI. The UI keeps its buttons and
   panels and drives its runs through the command, rather than holding a second copy of how
   a card is written and how a run is started.
-- **Where do the spec agents live in the UI?**: a Spec agents section inside the
-  Configuration dialog, beside Agent and Skill — not a button of its own in the header.
+- **Where do the spec agents live in the UI?**: an **Agents** section inside the
+  Configuration dialog, beside Harness and Skill — not a button of its own in the header.
   It lists each spec agent and gives each one an on/off switch, on by default. The user
   never puts an agent on a card; the flow working the card decides which one it needs.
-- **Does the Spec agents section ship with the agents themselves?**: yes — it ships in the
-  same group as `ui-design` and `recommend-tech-stack`, not as a card of its own later. The
+- **What the coding tool's section is called**: **Harness**, renamed from Agent when the
+  Agents section landed beside it. Two sections both reading "agent" were read as one
+  thing. The command's own words (`akb agent`, `akb spec`) are unchanged.
+- **Does the Agents section ship with the agents themselves?**: yes — it ships in the
+  same group as `ui-design` and `technology-selection`, not as a card of its own later. The
   first release with spec agents is also the first release where the user can see and
   switch them off.
 
@@ -182,10 +185,17 @@ re-ask a settled call.
   from the release's ⋯ menu.
 - Daily progress opens from a header icon, not a strip on the board, and shows a line
   chart rather than numbers alone.
-- **Which sections live in the rail as foldable panels?**: Memory only. Runs and Daily
+- **Which sections live in the left rail as foldable panels?**: Memory only. Runs and Daily
   progress keep their header dialogs until we have seen how the Memory panel reads.
 - **Does the rail's search reach archived cards?**: no — open cards only. The rail is about
   what you are working on now.
+
+## Chat in the UI
+
+- **Where does the board's chat live?**: in a rail down the right side of the window, full
+  height, a rail like the one on the left. It is folded away by default, so the board and
+  the card stay the centre of the app, and a **Chat** button in the header, beside **Create
+  task**, opens and folds it.
 
 ## Moving around the app
 
@@ -195,6 +205,13 @@ re-ask a settled call.
   columns are scrolled sideways with the very same gesture, so a board that answered the
   swipe would either stop scrolling or navigate when the user meant to scroll. From the
   board, Back and Forward are the menu's.
+
+## Mockups on a card
+
+- **How does a card body point at a mockup file?**: with a tag the board UI knows, on a line
+  of its own — `<Mockup src="mockups/239/a.html" label="A" />`. The card page draws it as the
+  screen that file holds. A markdown link is never drawn as a mockup, so nothing a card
+  already says turns into one by accident.
 
 ## Where the UI is documented
 

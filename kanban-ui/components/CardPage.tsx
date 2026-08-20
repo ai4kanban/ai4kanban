@@ -51,6 +51,7 @@ import {
   TrackChip,
 } from "./chips";
 import { PULSE_DOT } from "./chrome";
+import type { MockupSet } from "@/lib/mockup-tag";
 import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
 import { canImplement, canRefine } from "@/lib/refine";
 import { scheduleLabel } from "@/lib/schedule";
@@ -164,6 +165,7 @@ export function CardPage({
   projectRoot,
   goalWritten,
   memoryModules,
+  mockups,
   desktop,
 }: {
   card: Card;
@@ -177,6 +179,9 @@ export function CardPage({
   /** The modules the rail's Memory panel offers (#130). The rail is the same on
    *  every page, so this is too. */
   memoryModules: MemoryModule[];
+  /** The screens this card's `<Mockup>` tags point at, already read and drawn (#239).
+   *  The card page is the only page that shows them. */
+  mockups: MockupSet;
   /** Whether this board is running inside the desktop app (#175). The header and
    *  the running notice are the same on both pages, so this is too. */
   desktop: boolean;
@@ -638,7 +643,7 @@ export function CardPage({
             )}
 
             <div className="nb-panel-sm p-5">
-              <Markdown body={card.body} />
+              <Markdown body={card.body} mockups={mockups} />
             </div>
           </main>
 

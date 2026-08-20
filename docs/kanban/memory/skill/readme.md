@@ -19,6 +19,21 @@ covers it, or a plain-words note.
   safe questions it raised itself, and goes round again: `akb guide refine`.
 - A question for the user with choices is written as options they tick, not as prose with
   the choices inside the line: `akb guide resolve`.
+- A card's calls that a human could have made the other way sit under their own
+  `### Worth noting` heading inside `## Decided by the agent`, so a reviewer sees in one
+  pass what to check. Refine looks for unmarked ones, and a work item that drifted off the
+  card is split out, dropped, or kept there: `akb guide board` and `akb guide refine`.
+- A card that changes a screen points at its mockups with one tag on a line of its own —
+  `<Mockup src="mockups/239/a.tsx" label="A" />` — and they live in
+  `docs/kanban/mockups/<card id>/`, one file each: a `.tsx` component styled with Tailwind, or
+  a plain `.html` page. It is the only tag a card body may carry: `akb guide board`.
+- A card that changes something users see and click is planned against the board's UI design
+  reference, `akb guide ui-design`: the screen is matched to the ones the project already
+  has, its colours and spacing come from the project, it says what it shows with nothing to
+  show and when it fails, and a layout choice is put to the user as drawn options labelled
+  `A`, `B`, `C` rather than in prose — so the question is one short line and the options are
+  the labels. add-task, refine and revise each read it when the card has a screen in it, and
+  no run pays for it otherwise.
 - Source-to-task extraction treats articles, research, analyses, and user feedback as
   evidence, validates ideas by module, and skips work already supported or planned:
   `akb guide extract-ideas`.
@@ -135,3 +150,31 @@ covers it, or a plain-words note.
   starting and stopping a build, reading a run's log, continuing a failed one, picking the
   agent and its model, testing the setup. An API key is the one thing handed back instead:
   the agent gives the user the line to type: `docs/guides/daily-loop.md`.
+- A **spec agent** fills one part of a card's spec in a run of its own: `akb spec` lists
+  them, `akb spec <name> <id>` puts one on a card. It starts clean — the card and a note,
+  never the conversation that asked — writes one ``## By `<name>` agent`` section and
+  nothing else, and rewrites that same section when it runs again. Asked for from inside a
+  run, the board starts it once that run ends, so nothing waits for it: "Let a specialist
+  fill part of the spec" in `docs/guides/daily-loop.md`, and `akb guide spec-agent` for the
+  flow one follows.
+- The `ui-design` spec agent answers with the screen drawn, not described: on a card that
+  changes or adds a screen, it writes two or three mockup files under
+  `docs/kanban/mockups/<card id>/`, points at each from its own section with a `<Mockup>` tag
+  and a line saying what that layout is good for and what it costs, and recommends one. The
+  card page draws them, so the user picks a layout by looking. Run again on the same card it
+  writes over its old mockups and deletes the ones its new answer dropped: "Let a specialist
+  fill part of the spec" in `docs/guides/daily-loop.md`.
+- The second spec agent is `technology-selection`: on a card that leans on an outside
+  library, tool, or service, it comes back with two or three candidates, what each gives
+  you and what it costs, and one recommended. Keeping what the project already uses and
+  writing it yourself are candidates on the same terms, so a card doesn't come back with
+  something new to install by default, and every name is looked up before it is written
+  down — a renamed or abandoned package never reaches the card: "Let a specialist fill part
+  of the spec" in `docs/guides/daily-loop.md`.
+- The board asks for a spec agent by itself, so most spec runs are ones nobody typed: the
+  flow that writes a card asks for the part it would otherwise guess at, a refine or a
+  revise asks only when that part of the spec is still open, and propose and plan-release
+  ask for none — each card's own refine does. A card that needs neither a screen nor a
+  library goes through all of them without a spec run, and a second ask is turned down
+  while that agent is still working the card: "When one shows up on its own" in
+  `docs/guides/daily-loop.md`.

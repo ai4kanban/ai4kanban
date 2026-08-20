@@ -52,6 +52,10 @@ export type AgentAction =
    *  checklist is the plan, and the run starts at its first unticked box, so a run started
    *  again after a failure carries on from where the last one stopped. */
   | 'setup'
+  /** One spec agent filling the part of a card's spec it owns (#187). It is named by
+   *  `specAgent`, it starts clean, and it writes one section of that card and nothing
+   *  else. A flow asks for one; the board starts it once that flow's own run has ended. */
+  | 'spec'
 
 /** Everything one run is asked for. What the user typed rides along so the run list can
  *  show it beside the log. */
@@ -69,6 +73,9 @@ export interface AgentRequest {
   count?: number // propose: how many tasks to write (1–PROPOSE_MAX)
   boldness?: Boldness // propose: how big a swing the tasks take
   andImplement?: boolean // resolve: keep going and implement once the questions settle
+  /** spec: which spec agent this run is — a name from `lib/spec-agents.ts`. It decides
+   *  the prompt the run is given and the section it is allowed to write. */
+  specAgent?: string
 }
 
 /** How a run ended, or that it hasn't.
@@ -126,6 +133,26 @@ export interface RunRecord {
   /** A stop has been asked for. Written so the supervisor's own end, whichever path
    *  witnesses it, records `stopped` rather than a failure. */
   stopping?: boolean
+  /** Which spec agent this run is, on a `spec` run. Kept on the record so the run list can
+   *  say which one is working, and so a resume starts the same agent again. */
+  specAgent?: string
+}
+
+/** One ask for a spec agent, as the run that wanted it wrote it down.
+ *
+ *  These do NOT live on the record. They are a handoff one process writes and one process
+ *  reads once — the run's own watcher, at its close — so they sit beside the run's plan,
+ *  in a file of the run's own. That also keeps them out of reach of an older copy of these
+ *  rules polling the record: the record is rebuilt field by field on every read, so a
+ *  reader that predates a field drops it, and a dropped ask is a spec agent that silently
+ *  never runs. */
+export interface SpecAsk {
+  /** The agent's name — a name from `lib/spec-agents.ts`. */
+  specAgent: string
+  cardId: number
+  /** What the flow wants looked at, in a line or two. Everything else the agent is given
+   *  is the card itself: the conversation that asked is deliberately not passed on. */
+  notes?: string
 }
 
 /** One run as a reader is told about it — the record, plus the few things worked out
@@ -241,6 +268,20 @@ export interface AgentInfo {
   unknownName?: string
   /** The file still holds the old top-level `command` key. Nothing reads it. */
   staleCommand?: boolean
+}
+
+/** One spec agent, as a screen reads it (#191) — the two lines it is shown by, and
+ *  whether it is switched on. The words are the board's own (`lib/spec-agents.ts`), so a
+ *  screen listing them never keeps a copy that could say something else. */
+export interface SpecAgentView {
+  name: string
+  /** What that agent fills in, in one line. */
+  owns: string
+  /** The kind of card the board calls it for, in one line. */
+  calledOn: string
+  /** False only when somebody switched it off. While it is off the board starts no new run
+   *  of it, on any card, from a screen or a terminal. */
+  enabled: boolean
 }
 
 /** What one connection test found out. */

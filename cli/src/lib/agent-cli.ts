@@ -24,6 +24,7 @@ import { KANBAN, setBoardRoot } from './paths'
 import { cmdAgent } from '../commands/agent'
 import { cmdGuide } from '../commands/guide'
 import { cmdLog, cmdResume, cmdRuns, cmdStartRun, cmdStop, cmdWatch } from '../commands/run'
+import { cmdSpec } from '../commands/spec'
 import type { AgentAction } from './agent/types'
 import type { MoveResult } from './types'
 
@@ -46,8 +47,11 @@ const RUNS: Record<string, AgentAction> = {
 
 // Everything else these commands do — reading and steering the runs, and the settings they
 // run under.
-const OTHER: Record<string, (args: string[]) => MoveResult | Promise<MoveResult>> = {
+const OTHER: Record<string, (args: string[], program: string) => MoveResult | Promise<MoveResult>> = {
   runs: cmdRuns,
+  // Not in RUNS above: a spec run is asked for by agent name rather than by card alone,
+  // and asked for from inside a run it is written down instead of started (#187).
+  spec: (args, program) => cmdSpec(args, program),
   log: cmdLog,
   stop: cmdStop,
   resume: cmdResume,
@@ -135,7 +139,7 @@ export async function runAgent(argv: string[], options: RunAgentOptions = {}): P
 
   const box = json ? startCollecting() : null
   try {
-    const data = action ? cmdStartRun(action, args, program) : await other!(args)
+    const data = action ? cmdStartRun(action, args, program) : await other!(args, program)
     if (json) answer({ ok: true, board: KANBAN, ...data, ...prose(box) })
     return 0
   } catch (err) {
@@ -200,6 +204,19 @@ Print it, or run it — the two modes every command above has
 
   An agent already working inside a run the board started always prints, whether or not
   it says --print. A run never starts another run, so it cannot spawn a copy of itself.
+
+Spec agents — a named agent that fills one part of a card's spec
+  spec                         the spec agents this board has, and what each one owns
+  spec <agent> <id> [note]     put one on a card
+
+  It is a run of its own: it starts clean, with the card and your note and nothing
+  else, and it writes one section of that card — \`## By \`<agent>\` agent\` — and
+  changes nothing more. That is why it has no --print: doing it in the conversation
+  that asked for it is the one thing it exists not to be.
+
+  Asked for from inside a run, it is written down rather than started, and the board
+  starts it the moment that run ends. So a flow asks and carries straight on — it
+  never waits for the agent, and never writes the agent's section itself.
 
 Runs in flight
   runs [--card <id>] [--all]   what is running, and what ran lately

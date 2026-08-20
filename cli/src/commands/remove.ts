@@ -7,14 +7,14 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, warn, rel, TODO, MEMORY, ARCHIVE } from '../lib/paths'
+import { die, warn, rel, TODO, MEMORY, ARCHIVE, MOCKUPS } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
-import { walkMd, locate, enclosingGroupRoot, markSubtask, archiveDest } from '../lib/cards'
+import { walkMd, walkDirs, idPrefix, locate, enclosingGroupRoot, markSubtask, archiveDest } from '../lib/cards'
 import { stripReadmeRefs } from '../lib/readme'
 import { parseFrontmatter, frontmatterEnd, frontmatterField } from '../lib/frontmatter'
 import { memoryTargets } from '../lib/memory'
-import type { Meta, MoveResult } from '../lib/types'
+import type { Found, Meta, MoveResult } from '../lib/types'
 
 // One `#id` a human wrote, and where it sits.
 interface Mention {
@@ -64,6 +64,38 @@ function dropCrossRefs(id: number): string[] {
     touched.push(`${path.relative(TODO, file).split(path.sep).join('/')} (${fields.join(', ')})`)
   }
   return touched
+}
+
+// ---- drop mockups ----------------------------------------------------------
+
+// Every id this removal takes off the board: the card's own, plus a group's subtasks,
+// each of which can have mockups of its own. Read before the move — a group's folder is
+// about to stop existing.
+function leavingIds(id: number, found: Found): number[] {
+  const ids = new Set([id])
+  if (found.kind === 'group') {
+    const names = [...walkMd(found.target), ...walkDirs(found.target)].map((f) => path.basename(f))
+    for (const name of names) {
+      const n = idPrefix(name)
+      if (n !== null) ids.add(n)
+    }
+  }
+  return [...ids]
+}
+
+// A mockup only ever describes the card it is keyed to, and a card off the board has
+// nothing left to draw — so its folder goes with it, on archive as on reject. The files
+// are in git, which is where a drawing worth keeping is read back from.
+function dropMockups(ids: number[]): { dir: string; files: number }[] {
+  const dropped: { dir: string; files: number }[] = []
+  for (const id of ids) {
+    const dir = path.join(MOCKUPS, String(id))
+    if (!fs.existsSync(dir)) continue
+    const files = fs.readdirSync(dir).length
+    fs.rmSync(dir, { recursive: true, force: true })
+    dropped.push({ dir: rel(dir), files })
+  }
+  return dropped
 }
 
 // ---- find prose mentions of a leaving id -----------------------------------
@@ -123,6 +155,8 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
     found.kind === 'group'
       ? walkMd(found.target).filter((f) => f !== cardFile).map((f) => rel(f)).sort()
       : []
+  // Read while the group's folder is still there; the folders themselves go after the move.
+  const mockupIds = leavingIds(id, found)
   const removedRefs = stripReadmeRefs(found)
   // A subtask's fate is reflected in its group's root.md ## Todo, so the tracking card
   // stays accurate after the subtask file is gone: archive ticks it done, reject strikes
@@ -145,6 +179,7 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
   // The card is off the board now, so every blocked_by/related pointing at it is stale.
   // Runs after the move/delete, so the card's own frontmatter is already out of `todo/`.
   const unlinked = dropCrossRefs(id)
+  const droppedMockups = dropMockups(mockupIds)
   bumpMetric(metric)
   const what = found.kind === 'group' ? `folder ${found.rel}/` : `file ${found.rel}`
   if (dest) say(`archived #${id}: moved ${what} → ${rel(dest)}${found.kind === 'group' ? '/' : ''}`)
@@ -153,6 +188,9 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
   else say('  no README entry (subtask or untracked)')
   if (marked) say(`  ${marked === 'tick' ? 'ticked' : 'struck'} #${id} in ${rel(groupRoot!)}`)
   for (const card of unlinked) say(`  unlinked #${id} from ${card}`)
+  for (const m of droppedMockups) {
+    say(`  deleted ${m.dir}/ — ${m.files} mockup file(s), in git history`)
+  }
   // Everything above is done. What follows is the part no script can do: the memory note,
   // and the sentences other cards wrote about an id that just left the board.
   const mentions = findMentions(id)
@@ -165,6 +203,7 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
     archived_to: dest ? rel(dest) : null,
     unlinked,
     also_removed: alsoRemoved,
+    mockups_removed: droppedMockups.map((m) => m.dir),
     // What the caller still has to do by hand: write the note, rewrite the sentences.
     note,
     mentions: mentions.map((m) => ({ file: rel(m.file), line: m.line, where: m.where, text: m.text })),

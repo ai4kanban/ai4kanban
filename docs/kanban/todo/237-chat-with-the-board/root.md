@@ -1,15 +1,15 @@
 ---
-title: Discuss a card in the board UI without starting an agent run
+title: Chat with the board, or with one card, without leaving the app
 track: features
-priority: med
-roi: med
+priority: high
+roi: high
 status: todo
-release: ""
+release: 0.7.1
 blocked_by: []
-related: []
-modules: [local-ui]
+related: [240, 241, 242, 243, 248]
+modules: [skill, local-ui]
 questions:
-  - question: "[user] Who writes the reply in a card's discussion panel?"
+  - question: "[user] Who writes a chat's replies?"
     mode: single
     options:
       - the coding agent already set up for this board — nothing new to configure, and it works on a Claude subscription with no API key

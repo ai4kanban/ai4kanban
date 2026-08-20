@@ -24,7 +24,6 @@ export type SharedCopy = {
     /** Label for the X link on the credit line. */
     x: string;
     /** Sentence before the dist0 link, e.g. "Generalized from a skill built for". */
-    origin: string;
   };
   code: { copy: string; copied: string; copyAria: string; copiedAria: string };
   language: { label: string };

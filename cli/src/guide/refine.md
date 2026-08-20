@@ -38,6 +38,7 @@ what's wrong. Flag real problems, not hypotheticals.
   - **Plain language**: is every line plain and short ("Writing style" in `akb guide board`)?
   - **No meta**: free of planning notes and meta-todos ("Card format" in `akb guide board`)?
   - **A build plan**: is it split into `## Todo` boxes, one step of real work each?
+  - **Odd calls marked**: is every debatable agent call under `### Worth noting`?
 - **Value — should this task exist at all?**
   - **Direction**: does it move the project toward the long-term goal and roadmap in
     `docs/kanban/memory/goal.md`? Suggest rejection in `questions` on a task that's off-goal.
@@ -70,16 +71,19 @@ what's wrong. Flag real problems, not hypotheticals.
 
 ## 2. Rewrite, or raise a question
 
-Every NO turns into exactly one move below; a card with no problems skips them.
-**Never write the review notes into the card** The card holds the plan and nothing else.
-Read "Card format" and "Writing style" in `akb guide board`.
+Every NO turns into exactly one move below; a card with no problems skips them. Never put
+review notes in the card. Keep only the plan and agent decisions, using `### Worth noting`
+for debatable calls. See "Card format" and "Writing style" in `akb guide board`.
 
-- **Rewrite.** Fix the issues while maintaining a minimal task spec.
+- **Rewrite.** Fix the issues while keeping a minimal spec. Preserve every
+  ``## By `<name>` agent`` section. For a screen/UI change, first read `akb guide ui-design`.
 - **Reject.** A failed Value check. `akb guide reject`: a line in
   `rejected.md`, then `akb board reject <id>`. Unsure the value is real? Raise a question.
 - **Add a card.** A side idea, an unplanned, separate concern that doesn't
   belong to this card. Use "Add one task idea" in `akb guide add-task`, minding its
   rule against near-duplicate splits.
+- **Resolve drift.** Split a useful side goal into its own card, drop unrelated work, or
+  keep a doubtful item under `### Worth noting` for the user to review.
 - **Group.** Cards that only make sense together: "Group task" in `akb guide board` and "Tightly
   coupled tasks go in one group" in `akb guide add-task`.
 - **Archive.** Everything done and the goal met: "Finish a task" in `akb guide board`.
@@ -110,3 +114,14 @@ from `akb guide board` and nothing else — no conversation, no codebase. Ask it
 Fix what it names, then mark the card ready. It reports; it never edits the card. A line
 it couldn't follow is a line the next reader can't follow either — don't argue the term
 was fine.
+
+## 4. Fill open parts of the spec
+
+After the loop stops, use `akb spec` to find an agent for any part of the spec still open:
+
+```
+akb spec <agent> <id> <short note>
+```
+
+Ask only when nobody has answered that part, or when a rewrite invalidated its existing
+agent section. The agent starts after this run; do not wait or change the card's status.

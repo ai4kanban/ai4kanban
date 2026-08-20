@@ -627,6 +627,8 @@ const RUN_COMMANDS = new Set([
   'setup',
   'archive',
   'reject',
+  // Put a spec agent on a card — a named agent that fills one part of its spec (#187).
+  'spec',
   'runs',
   'log',
   'stop',

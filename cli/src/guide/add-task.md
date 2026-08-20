@@ -78,6 +78,8 @@ Got a field wrong, or learned something after the fact? `akb board update <id> -
 
 Replace the template — the summary line, `## Scope`, and `## Todo` only.
 
+If the card changes a screen/UI, read `akb guide ui-design` before writing it.
+
 The body is what you write. The shape is rough, not a strict form. Keep lines short and
 plain — a non-native reader skimming should get each line in one pass. Add any section
 that helps; drop any that doesn't.

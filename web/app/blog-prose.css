@@ -190,6 +190,17 @@
   border: 2px solid var(--color-border);
   box-shadow: 4px 4px 0 0 var(--color-ink);
 }
+/* Except inside a figure. Those mount their own print on a watercolour mat
+   (`components/blog/figures/kit.tsx`), so the rule above draws a second frame
+   around a picture that is already framed — and an ink box on pigment is the
+   one thing `Mat.tsx` refuses to do. */
+.blog-prose figure img {
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .blog-prose figure {
   margin-top: 2rem;
 }

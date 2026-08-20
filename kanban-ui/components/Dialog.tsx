@@ -70,7 +70,9 @@ export function Dialog({
           // background (Configuration's wash sidebar) would otherwise paint
           // square over the bottom corners.
           // flex-1 fills a fixed `height`; with a content-sized panel it's inert.
-          <div className="flex min-h-0 flex-1 overflow-hidden rounded-b-[14px]">{children}</div>
+          <div className="flex min-h-0 flex-1 overflow-hidden rounded-b-[14px] max-sm:flex-col">
+            {children}
+          </div>
         ) : (
           <div className="overflow-y-auto p-5">{children}</div>
         )}

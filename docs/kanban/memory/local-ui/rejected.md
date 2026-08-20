@@ -28,6 +28,13 @@ before proposing so you don't re-suggest them.
   card's frontmatter already go through it, and that covers what the board needs one owner
   for. A full read-and-write API on top changes nothing a user sees and slows down work
   that reads files today.
+- **A separate group for the UI work behind design questions** — the pieces are small enough
+  to sit with the spec agents work that raises those questions in the first place. A group of
+  its own would hold a card or two.
+- **Rendering a drawing of a screen inside an open question** — we don't put a drawing in a
+  question. A question lives in the card's frontmatter, which is no place for full detail, so
+  there is nothing for the Resolve dialog to draw. The drawing stays in the card body, where
+  the card page renders it.
 
 ## Runs
 

@@ -24,36 +24,33 @@ _(none)_
 - [#229 Tell the user how to log in to the agent, not just how to install it](features/229-tell-the-user-how-to-log-in-to-the-agent-not-just-how-to-ins.md)
 - [#232 Write a release's changelog with AI when it closes](features/232-write-a-release-s-changelog-with-ai-when-it-closes.md)
 - [#237 Discuss a card in the board UI without starting an agent run](features/237-discuss-a-card-in-the-board-ui-without-starting-an-agent-run.md)
+- [#242 Chat with the whole board, not only with one card](features/242-board-chat.md)
+- [#243 Let a chat do the board work it is talking about](features/243-chat-acts-on-the-board.md)
+- [#247 Set a spec agent's harness and model where its switch is](features/247-set-a-spec-agent-s-harness-and-model-where-its-switch-is.md)
+- [#248 Chat about one card, from the card's page](features/248-card-chat.md)
+- [#237 Chat with the board, or with one card, without leaving the app](237-chat-with-the-board/root.md)
 
 ## skill
 
 - [#16 auto-implement: let the agent build a ready card on its own](skill/16-auto-implement-let-the-agent-build-a-ready-card-on-its-own.md)
 - [#112 Move a module's calls into its memory when the map gains that module](skill/112-move-a-module-s-calls-into-its-memory-when-the-map-gains-tha.md)
 - [#141 Update the sibling tasks when one task's plan changes](skill/141-update-the-sibling-tasks-when-one-task-s-plan-changes.md)
-- [#143 Plan UI tasks so the screen is agreed before it is built](143-ui-tasks/root.md)
 - [#153 Name the one card to build next](skill/153-name-the-one-card-to-build-next.md)
 - [#155 Flag a card that is too big to build in one run](skill/155-flag-a-card-that-is-too-big-to-build-in-one-run.md)
 - [#156 Two runs writing cards at once must not clobber the board](skill/156-two-runs-writing-cards-at-once-must-not-clobber-the-board.md)
 - [#157 Turn a spec you already wrote into the cards that build it](skill/157-turn-a-spec-you-already-wrote-into-the-cards-that-build-it.md)
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
-- [#186 Let a specialist agent fill the part of a spec it knows best](186-spec-agents/root.md)
-- [#214 Mark the calls in a card that are not just common sense](skill/214-mark-the-calls-in-a-card-that-are-not-just-common-sense.md)
 - [#221 Score how well the board does its own job](221-board-score/root.md)
 - [#231 Give finish notes their own frontmatter field instead of an open question](skill/231-give-finish-notes-their-own-frontmatter-field-instead-of-an.md)
+- [#240 Keep one conversation with the agent open, turn after turn](skill/240-chat-session.md)
+- [#241 Open a chat knowing what a coding agent knows after /kanban](skill/241-chat-opening-context.md)
+- [#246 Give each spec agent its own harness and model](skill/246-give-each-spec-agent-its-own-harness-and-model.md)
 
 ## distribution
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#202 Test whether the board changes what a coding agent builds](202-board-vs-no-board/root.md)
 - [#209 Teach the daily loop as buttons, not only as things you say](distribution/209-teach-the-daily-loop-as-buttons-not-only-as-things-you-say.md)
-
-## 143-ui-tasks/features
-
-- [#138 Let an open question carry an ASCII sketch of the UI](143-ui-tasks/features/138-let-an-open-question-carry-an-ascii-sketch-of-the-ui.md)
-
-## 143-ui-tasks/skill
-
-- [#137 Add a short UI design reference that UI features go through](143-ui-tasks/skill/137-add-a-short-ui-design-reference-that-ui-features-go-through.md)
 
 ## recurring
 

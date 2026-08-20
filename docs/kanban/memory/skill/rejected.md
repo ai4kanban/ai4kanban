@@ -29,6 +29,20 @@ before proposing so you don't re-suggest them.
   user prompt can supply the material to the idea-extraction flow. The missing connector
   belongs outside the open core; the skill only evaluates material it can already read.
 
+## Planning
+
+- **A second group for planning UI cards** — getting a screen agreed before it is built is
+  what the spec agents group already does: its `ui-design` agent draws the layout options.
+  The one piece that was needed anyway — the skill's UI design reference — moved into that
+  group. One group, not two.
+
+## Questions
+
+- **A drawing of a screen inside an open question** — a question lives in the card's
+  frontmatter, which is no place for full detail. Questions stay one short line each; when a
+  card needs a screen drawn, the drawing goes in the card body as a fenced `html` block, and
+  the question points at it.
+
 ## Setup
 
 - **Ending setup with a v1 and a vnext group task** — not every project plans releases on

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { SiteFooter } from "@/components/SiteFooter";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { recipes } from "@/components/recipes/recipes-content";
 import { heroTop, panelInset } from "@/components/styles";
@@ -83,7 +83,7 @@ export default function RecipesPage() {
           </div>
         </section>
       </main>
-      <Footer c={c} locale="en" path={PATH} />
+      <SiteFooter c={c} locale="en" path={PATH} />
     </>
   );
 }

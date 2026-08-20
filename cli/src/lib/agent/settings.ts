@@ -15,7 +15,8 @@
 //   "harnessSettings": {
 //     "claude-code": { "model": "claude-opus-5", "command": "claude -p" },
 //     "codex": { "model": "gpt-5.1-codex" }
-//   }
+//   },
+//   "specAgents": { "technology-selection": false }
 //
 // `harness` is the name of the agent that runs, and nothing else. Every agent keeps its
 // own settings in `harnessSettings`, under its own name, whether or not it is the one
@@ -92,6 +93,49 @@ export function setHarnessSetting(key: string, value: string): { ok: boolean; er
     else delete blocks[name]
     if (Object.keys(blocks).length) cfg.harnessSettings = blocks
     else delete cfg.harnessSettings
+  })
+}
+
+// ---- the spec agents' switches (#191) ---------------------------------------
+//
+// The same file also holds which spec agents may run:
+//
+//   "specAgents": { "technology-selection": false }
+//
+// A name the file doesn't carry is on. Switching one back on drops its line rather than
+// writing `true`, so the file only ever records what somebody turned off — and a board set
+// up before the switches existed has every agent on with nothing to undo.
+
+/** Which spec agents have a switch saved, and what it says. A malformed file reads as no
+ *  switches at all: an agent nobody can decide about is an agent that runs. */
+export function specAgentSwitches(): Record<string, boolean> {
+  let cfg: Record<string, unknown>
+  try {
+    cfg = readConfigRaw()
+  } catch {
+    return {}
+  }
+  const saved: Record<string, boolean> = {}
+  for (const [name, value] of Object.entries(configBlock(cfg.specAgents))) {
+    if (typeof value === 'boolean') saved[name] = value
+  }
+  return saved
+}
+
+/** Save one spec agent's switch. Every other key in the file is left as it is — this is
+ *  the same file the harness settings live in. */
+export function setSpecAgentSwitch(
+  name: string,
+  on: boolean,
+  legacyNames: string[] = [],
+): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => {
+    const block = { ...configBlock(cfg.specAgents) }
+    for (const legacy of legacyNames) delete block[legacy]
+    if (on) delete block[name]
+    else block[name] = false
+    if (Object.keys(block).length) cfg.specAgents = block
+    else delete cfg.specAgents
   })
 }
 

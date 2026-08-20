@@ -32,6 +32,8 @@ import releases from '../guide/releases.md'
 import resolve from '../guide/resolve.md'
 import revise from '../guide/revise.md'
 import setup from '../guide/setup.md'
+import specAgent from '../guide/spec-agent.md'
+import uiDesign from '../guide/ui-design.md'
 import update from '../guide/update.md'
 
 /** One flow: the name it is asked for by, the one line the list shows, and the text. */
@@ -59,6 +61,8 @@ export const GUIDES: Guide[] = [
   { name: 'plan-release', when: 'fill a release from its goal', text: planRelease },
   { name: 'document-feature', when: 'which docs a change has to update', text: documentFeature },
   { name: 'prune-memory', when: 'compress the memory set back to what helps planning', text: pruneMemory },
+  { name: 'spec-agent', when: "fill one part of a card's spec, as the named agent that owns it", text: specAgent },
+  { name: 'ui-design', when: 'plan a card that changes a screen — how to describe it, and how to ask which layout', text: uiDesign },
   { name: 'module-map', when: 'write or rebuild docs/kanban/modules.md', text: moduleMap },
   { name: 'setup', when: "setup's own steps, while the checklist is still there", text: setup },
   { name: 'update', when: 'pull a newer version into a project that already has one', text: update },

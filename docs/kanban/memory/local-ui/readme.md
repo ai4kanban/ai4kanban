@@ -110,6 +110,13 @@ except where another doc is named.
   then, and one control takes the schedule off: "Schedule it instead".
 - Answer a question with choices by ticking a list, with the recommended ones already ticked.
 - Archive a group root once all its subtasks are done or rejected.
+- Read a card's mockups on its page: a card that changes a screen can carry small files that
+  draw the layouts it could take, and each one is drawn where its tag sits. Both kinds — a
+  `.tsx` component styled with Tailwind, and a plain `.html` page — get the same frame: one
+  desktop screen scaled to fit, its label and file name over it, a switch to the code behind
+  it, and the file name opening that mockup on its own at full size. Nothing in one runs,
+  loads anything or answers a click, and a tag the board cannot draw reads as one plain note
+  naming the file: "Mockups on a card".
 
 ## Configuration
 
@@ -153,3 +160,12 @@ except where another doc is named.
   **Configuration → Agent** and every button spawns it, with its own settings, live log,
   stop and resume. Where a CLI reports no cost or no model name the log leaves that blank
   rather than guessing: "Running on Cursor", "Running on OpenCode" in the UI docs.
+- See the spec agents and switch one off: the Configuration dialog's sections read
+  **Harness** (the coding tool the work runs on, renamed from Agent, in the setup wizard
+  too), **Agents** and **Skill**. **Agents** lists every spec agent the board ships with two
+  lines each — what it fills in, and the kind of card it is called for — taken from the
+  command, and one switch each. Switch one off and the board starts no new run of it
+  anywhere, from a button or a terminal: it leaves the list a planning flow picks from, an
+  ask for it by name is turned away, and the flow plans that part itself. The switch is
+  saved with the board, a run already going finishes, and what an agent already wrote on a
+  card stays: "The spec agents".

@@ -77,6 +77,12 @@ export function kanbanDir(): string {
 export function todoDir(): string {
   return path.join(kanbanDir(), "todo");
 }
+// Where a card's mockups live (#239) — one folder per card, named after its id. The
+// `ui-design` agent makes it when it writes the first mockup; the board never does, and a
+// tag pointing into a folder that isn't there reads as a missing file.
+export function mockupsDir(): string {
+  return path.join(kanbanDir(), "mockups");
+}
 export function readmePath(): string {
   return path.join(todoDir(), "README.md");
 }

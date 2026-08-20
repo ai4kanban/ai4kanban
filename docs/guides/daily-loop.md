@@ -191,6 +191,90 @@ recurring card, one whose todos are all ticked, and one waiting only on your ans
 group's main card is skipped too when a subtask finishes — ticking its line is progress, not
 a new plan — so a big group doesn't refine its main card once per subtask.
 
+## Let a specialist fill part of the spec
+
+Some parts of a card nobody should plan by guess — the screen a feature puts in front of
+the user, the outside library a feature leans on. Those go to a **spec agent**: a named
+agent that owns one part of a card's spec and fills only that part.
+
+The board ships two, and `akb spec` lists them:
+
+- **`ui-design`** — draws the screen a card needs. Its answer is two or three mockup files,
+  one layout each, that the card page draws as pictures of the screen — with one line under
+  each saying what it is good for and what it costs, and one of them recommended. You pick by
+  looking, not by reading a description. Run it again on the same card and it draws over its
+  old mockups and clears away the ones it no longer uses.
+- **`technology-selection`** — picks the library, tool, or service a card leans on: two or
+  three candidates, what each gives you and what it costs, one recommended. Keeping what
+  the project already uses and writing it yourself are candidates too, so a card doesn't
+  come back with something new to install by default. It looks each one up before naming
+  it, so a package that was renamed or abandoned never reaches the card.
+
+### Picking a layout by looking at it
+
+A card that changes a screen can carry **mockups** of it — small files under
+`docs/kanban/mockups/<card id>/`, each drawing one layout the card could take. The card body
+points at each one with a short tag, and the card page draws the screen that file holds where
+the tag sits, so you pick a layout by looking at it instead of by reading a description of it.
+
+A mockup is a `.tsx` component styled with Tailwind, or a plain `.html` page. Either way it
+gets the same frame on the card: one desktop screen scaled down to fit, its label and its file
+name across the top, and a switch to the code behind it. The file name opens that mockup on
+its own at full size, where the words in it can be read; Back returns to the card.
+
+Nothing in a mockup runs, loads anything, or answers a click — it is a drawing of one screen
+in its normal state, and it is thrown away when the build starts. A tag pointing at a file
+that isn't there, or at one the board can't draw, reads as one plain note naming the file, and
+the rest of the card draws as usual.
+
+It is a run like any other — its own log, stoppable — with three things that make it
+different:
+
+- **It starts clean.** It is given the card and a short note, never the conversation that
+  asked for it. That is the point: a second opinion, not an echo.
+- **It writes one section and nothing else.** The section carries its name —
+  ``## By `ui-design` agent`` — so you can see who is answerable for that part of the
+  spec. Run it again and that section is rewritten, never doubled. The rest of the card —
+  your summary, the scope, the todo list — is closed to it, and every other flow leaves
+  its section alone in return.
+- **Nothing waits for it.** A planning flow asks for one and carries on; the board starts
+  it the moment that flow's run ends, and the section arrives on the card when it is done.
+  When the answer is a pick only you can make, it leaves an open question beside its
+  section instead of choosing.
+
+You rarely ask for one yourself — the flow working the card asks when the card needs it.
+When you do want one: **"put the ui-design agent on #4"**, or `akb spec ui-design 4`.
+
+### When one shows up on its own
+
+Most spec runs in the panel are ones you never typed. The flow working the card asked for
+them, and the board started them:
+
+- **After adding a card** — the flow that wrote the card asks for whatever part of the spec
+  it would otherwise have guessed at.
+- **After a refine** — only when that part of the spec is still open: the card changes a
+  screen and only describes it, or leans on a library nobody picked. A refine that sharpened
+  the wording or re-ordered the todos asks for none.
+- **After a revise** — only when your change moved the screen the card draws or the library
+  it picks.
+- **After a propose or a release plan** — never from the run itself. Those write rough cards
+  in bulk; each card's own refine follows, and that is what asks.
+
+So a card that needs neither a screen nor a library goes through every one of those without
+a spec run, and nothing tells you it did — that is the normal case, not a miss. A card that
+already carries an agent's section is not sent back to it unless the plan under it moved,
+and the board turns down a second ask while that agent is still working the card.
+
+### Switching one off
+
+The board app lists the spec agents in **Configuration → Agents**, each with one switch. An
+agent you switch off is greyed and reads **off**, and the board starts no new run of it, on
+any card: it leaves the list a planning flow picks from, and a flow that asks for it by name
+plans that part of the card itself instead. The switch is saved with the board, so it holds
+across restarts, reads the same for everyone working on it, and applies to a flow run in a
+terminal as much as to a button. Whatever an agent already wrote on a card stays there, and
+switching it back on has the next flow calling it again.
+
 ## Queue a card that is waiting on another
 
 A card whose `blocked_by` still names an open card can be built or refined anyway — the
@@ -298,6 +382,8 @@ akb board schedule <id> --action implement|refine
                                   # (--clear takes the schedule off)
 akb board archive <id>            # finish a task
 akb board reject  <id>            # drop an idea
+akb spec                          # the spec agents, and what each one fills
+akb spec <agent> <id> [note]      # put one on a card — its own run, starting clean
 akb board peek                    # next free id
 akb board metrics                 # the daily CSV
 akb board help                    # full usage

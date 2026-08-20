@@ -281,6 +281,10 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   archive: ['board'],
   reject: ['board', 'reject'],
   setup: ['board', 'setup'],
+  // A spec agent gets its own flow and NOT `board`: it writes one section, never a card,
+  // so the card format, the memory set and the tracks are a page of rules about work it is
+  // not allowed to do. `akb spec` has no --print, so this is only ever read by the run.
+  spec: ['spec-agent'],
 }
 
 /** Build the flow for one action. A `board` command spelled out here is spelled with the

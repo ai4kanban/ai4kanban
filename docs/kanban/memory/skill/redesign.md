@@ -22,6 +22,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   card that holds the shared plan, the ordering, and the questions that span all the
   pieces, with each piece as a subtask in its folder. Siblings hide that they are one
   feature and make the same question get asked on three cards.
+- ❌ **A second group for a goal an open group already carries** (one group to get a screen
+  agreed, another whose spec agent draws that screen) → ✅ before opening a group, read the
+  open groups' root cards and, when one already aims at the same outcome, add the piece
+  there as a subtask. Two groups on one goal duplicate the plan and split the ordering.
 - ❌ **A card claims behavior the product already has** (a stopped run starts nothing, a
   timer keeps doing its other job) → ✅ scope lists only what this task changes. Restating
   what already holds reads as new work and grows the card past its point.
@@ -97,3 +101,18 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Refine a blocked card like any other** → ✅ a blocked card waits; building its blocker
   often rewrites its plan. Refine it when the blocker leaves the board — finishing or
   rejecting a card refines whatever it was holding up.
+
+## UI design
+
+- ❌ **Draw a screen as an ASCII sketch, because it reads the same everywhere** → ✅ draw it
+  as a small self-contained HTML mockup, styled like the project's own screens. A drawing the
+  user can look at beats one they have to decode, and the UI showing it as the real screen is
+  worth the work it takes.
+- ❌ **Put the mockup's markup in the card body** (a fenced `html` block per option) → ✅ each
+  mockup is its own file, under a folder keyed by the card's id, and the card body carries one
+  short line pointing at it. A card is a spec people and flows read; pages of markup in the
+  middle of it bury the plan and fill the diff.
+- ❌ **A mockup is plain HTML, styled by hand to look like the project** → ✅ a mockup is written
+  in the stack the board UI already runs — a `.tsx` component styled with Tailwind — so the file
+  is the screen and not a page of scaffolding around it. A plain `.html` page stays accepted for
+  a screen that is not a component.

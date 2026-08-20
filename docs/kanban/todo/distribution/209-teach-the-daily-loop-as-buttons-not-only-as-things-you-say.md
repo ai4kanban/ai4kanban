@@ -3,7 +3,7 @@ title: Teach the daily loop as buttons, not only as things you say
 track: distribution
 priority: med
 roi: med
-status: todo
+status: ready
 release: ""
 blocked_by: []
 related: []
@@ -20,7 +20,6 @@ questions: []
   match how a new user got here.
 - Where the app already has its own page for a screen, the guide points at it instead of
   describing the screen again.
-- The Chinese README's link to this guide still lands somewhere that makes sense.
 
 ## Todo
 - [ ] Go through each step of the guide and add the button that does the same thing.
@@ -29,3 +28,11 @@ questions: []
       it.
 - [ ] Read the guide as someone who only has the app and never opens a terminal, and check
       every step is doable.
+
+## Decided by the agent
+
+### Worth noting
+- **The Chinese README's link to this guide is out of the plan** — this rewrite doesn't
+  move or rename the guide, so the link keeps working; what a Chinese reader lands on is
+  an English page, and translating it is its own card. Put it back if it should ship with
+  the buttons.

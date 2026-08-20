@@ -28,6 +28,7 @@ export type {
   Provider,
   RunStatus,
   SettingChoice,
+  SpecAgentView,
   TokenUsage,
 } from "./format/agent/types";
 export { PROPOSE_DEFAULT, PROPOSE_MAX } from "./format/agent/types";

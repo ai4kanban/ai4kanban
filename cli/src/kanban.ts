@@ -67,6 +67,11 @@ export { agentInfo, activeSettings, setupInstruction, settingSaveError } from '.
 export { setHarness, setHarnessSetting, setSecret } from './lib/agent/settings'
 export { testConnection } from './lib/agent/test'
 export { setBoardRoot } from './lib/paths'
+
+// The spec agents (#191): the list a screen draws — each one's two lines and whether it is
+// switched on — and the switch itself. The words and the order are the board's own, so the
+// Agents section in the Configuration dialog and `akb spec` can never say different things.
+export { readSpecAgents, setSpecAgentEnabled } from './lib/spec-agents'
 export type * from './lib/agent/types'
 
 // …and the board itself: the columns, one card in full, the releases, the metrics, the

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import fs from "node:fs";
 import path from "node:path";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { SiteFooter } from "@/components/SiteFooter";
 import { RecipeLanding } from "@/components/recipes/RecipeLanding";
 import { getRecipe, recipes } from "@/components/recipes/recipes-content";
 import { getCopy } from "@/i18n";
@@ -86,7 +86,7 @@ export default async function RecipePage({ params }: Params) {
       />
       <Header c={c} locale="en" />
       <RecipeLanding recipe={recipe} markdown={markdown} />
-      <Footer c={c} locale="en" path={route} />
+      <SiteFooter c={c} locale="en" path={route} />
     </>
   );
 }

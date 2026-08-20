@@ -227,6 +227,25 @@ export const MOVES: Move[] = [
     ],
   },
   {
+    name: 'spec-write',
+    group: 'Cards',
+    brief: [['spec-write <id> <agent>', "write a spec agent's own section onto the card:\n--file <path>, or --text \"..\""]],
+    legacy: [
+      [
+        'spec-write <id> <agent> --file <path>',
+        [
+          "put a spec agent's answer on the card as one section headed",
+          '`## By `<agent>` agent`, and change nothing else. --file <path>',
+          'is the answer (markdown, written to a file first); --text ".."',
+          'for a one-liner. Run again for the same agent and the section',
+          'is REPLACED, never added twice. The section goes before',
+          '## Decided by the agent, or at the end. Only a name the command',
+          'ships as a spec agent is accepted — `akb spec` lists them.',
+        ],
+      ],
+    ],
+  },
+  {
     name: 'list',
     group: 'Cards',
     brief: [['list [--module <m>]', 'the open cards: id, title, meta, summary, path']],
@@ -344,7 +363,7 @@ export const MOVES: Move[] = [
         [
           'finish task <id>: move its file/folder into docs/kanban/.archive/,',
           "strip its README entry, drop the id from every other card's",
-          'blocked_by/related, count completed',
+          'blocked_by/related, delete its mockups, count completed',
         ],
       ],
     ],

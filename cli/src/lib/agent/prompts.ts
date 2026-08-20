@@ -4,6 +4,7 @@
 // button say exactly the same thing. Only the opening — how this agent is asked for the
 // skill — follows the agent that runs; everything after it is the same for all of them.
 
+import { findSpecAgent, specHeading } from '../spec-agents'
 import { boardCommand, commandNote } from './command'
 import { skillCall } from './resolve'
 import { PROPOSE_DEFAULT, PROPOSE_MAX, type AgentRequest, type Boldness } from './types'
@@ -181,6 +182,27 @@ function actionPrompt(req: AgentRequest, command: string): string {
         `\`${command} guide board\` is how a card and the memory files are written — read it before you write either.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions, the way the setup flow says.`,
       ].join(' ')
+    // One spec agent on one card (#187). Its own prompt is inlined rather than named: a
+    // pointer to a second command is a step an agent skips, and the whole of what this run
+    // is comes from that text.
+    //
+    // Nothing here says what the card is about. The card is on the board and the agent is
+    // told to read it — a summary pasted in would be the planning flow's reading of it,
+    // which is the one thing this run exists to be free of.
+    case 'spec': {
+      const agent = findSpecAgent(req.specAgent ?? '')
+      const heading = specHeading(req.specAgent ?? '')
+      return [
+        `${kb}. You are the \`${req.specAgent}\` spec agent on task ${req.id} ${named}.`,
+        `Follow \`akb guide spec-agent\`: read the card, answer only the part you own, and write it into that card's "${heading}" section with \`akb board spec-write ${req.id} ${req.specAgent} --file <path>\`.`,
+        `Change nothing else — not the rest of the card, not another card, not the code.`,
+        req.notes ? `What the flow that asked for you wants looked at: ${req.notes}` : '',
+        `Don't ask me questions with human-in-the-loop — an open question on the card is how you defer to me.`,
+        agent ? `\n\n——— your prompt: the \`${agent.name}\` spec agent ———\n\n${agent.prompt.trim()}` : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+    }
     case 'resolve':
       return [
         `${kb}. Resolve the open questions on task ${req.id} ${named} following \`akb guide resolve\`.`,

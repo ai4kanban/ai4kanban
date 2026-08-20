@@ -20,7 +20,6 @@ const ja: SharedCopy = {
     license: "Apache License 2.0",
     credit: "Tao Wu が作成",
     x: "Tao Wu の X",
-    origin: "もとは次のプロダクト向けに作ったスキルです：",
   },
   code: {
     copy: "コピー",

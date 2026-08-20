@@ -12,10 +12,12 @@
 // The judgment of whether a refine would move a card at all is the board's own
 // (`canRefine`), the same rule a card page shows its Refine button by.
 
+import { findSpecAgent, specAgentEnabled } from '../spec-agents'
 import { allCards } from '../view/read'
 import { byDispatchOrder, canRefine } from '../view/rules'
 import type { Card } from '../view/types'
-import type { AgentAction, AgentRequest } from './types'
+import { specAgentSwitches } from './settings'
+import type { AgentAction, AgentRequest, SpecAsk } from './types'
 
 /** What one card looked like at a moment in time, in the two ways a follow-up cares
  *  about. */
@@ -106,10 +108,15 @@ export function markBoard(): BoardMarks {
 // is not what they pressed the button for. Those cards are refined the way every other card
 // on the board is — when someone asks.
 //
+// `spec` is the fourth. A spec agent writes one section of a card and never its plan, so
+// the change it leaves is an answer to the plan, not a new plan to sharpen — and a refine
+// that followed it would be a refine free to reword the very section the agent was asked
+// for.
+//
 // The other half of the rule — a card whose last blocker just left — applies after every
-// action, these three included: an implement run is how a card usually leaves the board, so
+// action, these four included: an implement run is how a card usually leaves the board, so
 // it is how its subtasks and dependants usually come free.
-const NO_FOLLOW = new Set<AgentAction>(['implement', 'refine', 'setup'])
+const NO_FOLLOW = new Set<AgentAction>(['implement', 'refine', 'setup', 'spec'])
 
 /**
  * The refine runs to start now that one run has ended, in the order to start them.
@@ -148,4 +155,37 @@ export function refinesAfter(action: AgentAction, before: BoardMarks): AgentRequ
     .filter((card) => card.openBlockers.length === 0 && !card.schedule && canRefine(card))
     .sort(byDispatchOrder)
     .map((card) => ({ action: 'refine' as const, id: card.id, title: card.title }))
+}
+
+/**
+ * The spec agents this run asked for while it was going, as runs to start now that it has
+ * ended (#187).
+ *
+ * A flow asks with `akb spec <agent> <id>`, which starts nothing: a run never starts
+ * another, so the ask was written down (`askForSpec`) and this is where it is finally
+ * spawned. By now the conversation that wanted it is over, which is the whole point — the
+ * agent reads the card, not the reading of it.
+ *
+ * An ask for a card that is no longer there is dropped: the run that asked went on to
+ * archive or reject it, and there is nothing left to write a section on. So is an ask for
+ * an agent that has been switched off since (#191) — the switch is read here, as the run
+ * is about to start, so the last flip is the one that counts.
+ */
+export function specRunsAfter(asks: SpecAsk[]): AgentRequest[] {
+  if (!asks.length) return []
+  const switches = specAgentSwitches()
+  let cards: Card[]
+  try {
+    cards = allCards()
+  } catch {
+    return []
+  }
+  const byId = new Map(cards.map((c) => [c.id, c]))
+  return asks.flatMap((ask) => {
+    const card = byId.get(ask.cardId)
+    if (!card) return []
+    const agent = findSpecAgent(ask.specAgent)
+    if (!agent || !specAgentEnabled(agent.name, switches)) return []
+    return [{ action: 'spec' as const, id: ask.cardId, title: card.title, specAgent: agent.name, notes: ask.notes }]
+  })
 }

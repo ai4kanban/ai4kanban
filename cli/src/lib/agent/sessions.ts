@@ -27,7 +27,7 @@ import { pidAlive, withBoardLock, withLock } from '../lock'
 import { INDEX_LOCK, SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { asUsage, durationLine, KEEP_LOGS, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumableHarness, type RunPlan } from './resolve'
-import type { AgentAction, AgentRequest, RunRecord, RunStatus, RunView } from './types'
+import type { AgentAction, AgentRequest, RunRecord, RunStatus, RunView, SpecAsk } from './types'
 
 /** How many finished runs the record keeps. The logs outlive them by the same count. */
 const KEEP_RUNS = 30
@@ -67,6 +67,7 @@ const VERB: Record<AgentAction, string> = {
   resolve: 'resolved',
   'plan-release': 'planned',
   setup: 'set up',
+  spec: 'specified',
 }
 
 // The refusal a one-at-a-time action gets when one of its own is already going, where the
@@ -109,6 +110,8 @@ export const RUN_IGNORE_LINES = [
 
 export const logPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.log`)
 const specPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.plan.json`)
+// The spec agents a run asked for while it went, waiting for its watcher to start them.
+const asksPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.asks.json`)
 
 // `auto-refine` was this action's name until refine became the loop and there was only one
 // of them. A board's history outlives a version, so an old record still reads.
@@ -159,6 +162,7 @@ export function readRuns(): RunRecord[] {
       resumedFrom: typeof entry.resumedFrom === 'string' ? entry.resumedFrom : undefined,
       priorStatus: typeof entry.priorStatus === 'string' ? entry.priorStatus : undefined,
       stopping: entry.stopping === true ? true : undefined,
+      specAgent: typeof entry.specAgent === 'string' && entry.specAgent ? entry.specAgent : undefined,
     })
   }
   return runs.sort((a, b) => a.startedAt - b.startedAt)
@@ -406,8 +410,13 @@ export function getRun(id: string, bytes?: number): RunView | null {
 // run per card, and one live create/propose/plan-release across the whole board. Checked
 // with the record's lock held, so two processes can't both slip past.
 function lockedBy(runs: RunRecord[], action: AgentAction, cardId: number | null): string | undefined {
-  if (cardId !== null) {
-    const live = runs.find((r) => r.status === 'running' && r.cardId === cardId)
+  // A spec agent is out of that rule at both ends: it fills one section and never the
+  // plan, so it neither takes the card nor waits for one. Two agents may work a card —
+  // they write different sections — and a card being refined can still have its screen
+  // drawn. Two runs writing one card file at the same moment is the problem #156 owns,
+  // and it is that problem whether or not this rule pretends otherwise.
+  if (cardId !== null && action !== 'spec') {
+    const live = runs.find((r) => r.status === 'running' && r.cardId === cardId && r.action !== 'spec')
     if (live) return `#${cardId} is already being ${VERB[live.action]}`
   }
   if (SINGLETON_ACTIONS.has(action)) {
@@ -459,6 +468,9 @@ export function openRun(req: AgentRequest, prompt: string): { run: RunRecord; sp
     // No `resumeId` here on purpose. A fresh run under an agent that takes our id needs
     // none, and one that mints its own has nothing to record yet.
     logPath: logPathOf(sessionId),
+    // Which spec agent this is, on the one action that has one — so the run list can name
+    // it, and so a resume starts the same agent rather than a different one.
+    specAgent: req.action === 'spec' ? req.specAgent : undefined,
   }
   const out = withRuns<{ run: RunRecord } | { error: string }>((runs) => {
     const locked = lockedBy(runs, req.action, cardId)
@@ -508,6 +520,7 @@ export function openResume(id: string): { run: RunRecord; spec: RunSpec } | { er
     resumeId: plan.resumeId ?? undefined,
     resumedFrom: prev.sessionId,
     logPath: logPathOf(sessionId),
+    specAgent: prev.specAgent,
   }
   const out = withRuns<{ run: RunRecord } | { error: string }>((all) => {
     const locked = lockedBy(all, prev.action, prev.cardId)
@@ -521,6 +534,11 @@ export function openResume(id: string): { run: RunRecord; spec: RunSpec } | { er
     return { run: record }
   })
   if ('error' in out) return out
+  // The asks the run being taken over collected come with it. It never got as far as
+  // starting them — that is why it is being resumed — and the flow asked once.
+  const inherited = readSpecAsks(prev.sessionId)
+  for (const ask of inherited) askForSpec(sessionId, ask)
+  clearSpecAsks(prev.sessionId)
   try {
     fs.unlinkSync(prev.logPath)
   } catch {
@@ -529,6 +547,57 @@ export function openResume(id: string): { run: RunRecord; spec: RunSpec } | { er
   const spec: RunSpec = { sessionId, plan, prompt: '' } // the prompt is the watcher's
   writeSpec(spec)
   return { run: record, spec }
+}
+
+/** Ask for a spec agent from inside a run.
+ *
+ *  A run never starts another, so nothing spawns here: the ask is written into the asking
+ *  run's own asks file, and that run's watcher starts it once the run has ended
+ *  (`readSpecAsks`). That is also what keeps a spec agent clean — by the time it starts,
+ *  the conversation that wanted it is over, so there is nothing of it to inherit.
+ *
+ *  `already` means this run has asked for that agent on that card before; a second ask
+ *  would be the same run twice. */
+export function askForSpec(sessionId: string, ask: SpecAsk): 'queued' | 'already' | 'no-run' {
+  if (!peekRun(sessionId)) return 'no-run'
+  const asks = readSpecAsks(sessionId)
+  if (asks.some((a) => a.specAgent === ask.specAgent && a.cardId === ask.cardId)) return 'already'
+  asks.push(ask)
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+  const tmp = `${asksPathOf(sessionId)}.tmp`
+  fs.writeFileSync(tmp, JSON.stringify({ asks }, null, 2) + '\n')
+  fs.renameSync(tmp, asksPathOf(sessionId))
+  return 'queued'
+}
+
+/** The spec agents this run has been asked for. Empty when it was asked for none, and
+ *  empty rather than thrown when the file is damaged: a run's own ending must not fail on
+ *  the follow-up it was going to start. A malformed entry is dropped rather than started —
+ *  an ask names an agent and a card, and half of one names neither. */
+export function readSpecAsks(sessionId: string): SpecAsk[] {
+  let data: unknown
+  try {
+    data = JSON.parse(fs.readFileSync(asksPathOf(sessionId), 'utf8'))
+  } catch {
+    return []
+  }
+  const raw = (data as { asks?: unknown })?.asks
+  if (!Array.isArray(raw)) return []
+  return raw.flatMap((entry) => {
+    const a = entry as Partial<SpecAsk>
+    if (!a || typeof a.specAgent !== 'string' || !a.specAgent || !Number.isInteger(a.cardId)) return []
+    return [{ specAgent: a.specAgent, cardId: a.cardId as number, notes: typeof a.notes === 'string' ? a.notes : undefined }]
+  })
+}
+
+/** Forget a run's asks — once they have been started, and when the run they were written
+ *  for is taken over by a resume. */
+export function clearSpecAsks(sessionId: string): void {
+  try {
+    fs.unlinkSync(asksPathOf(sessionId))
+  } catch {
+    // never written, or already gone
+  }
 }
 
 /** Record the process now watching a run, so a stop can reach it and a reader can tell a

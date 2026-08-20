@@ -156,6 +156,38 @@ The board never opens the file for you.
 
 The goal is not in this panel — it keeps its own button in the header.
 
+### Mockups on a card
+
+A card that changes a screen can carry **mockups** of it — small files under
+`docs/kanban/mockups/<card id>/`, each drawing one layout the card could take. The card body
+points at each one with a tag on a line of its own, and the card page draws the screen that file
+holds where the tag sits, so you pick a layout by looking at it. The `ui-design` agent writes
+them; only a card page shows them, and the card file is never written to.
+
+A mockup is written as one of two things:
+
+| The file | What it is |
+| --- | --- |
+| **`.tsx`** | One React component drawing the whole screen, styled with Tailwind and importing React and nothing else. This is the one an agent writes. |
+| **`.html`** | A whole page carrying its own styling — for a drawing that already exists as a page. |
+
+Both get the same frame: the mockup's **label** and its **file name** across the top, a switch to
+the **code** the file holds, and under that one desktop screen — 1280 by 800 — scaled down to fit
+the width the card page gives it. Every option is the same size on the page, because that is the
+only way they compare. A mockup taller than one screen scrolls inside its own frame, and never
+sideways. Switching one to its code leaves the others as they are.
+
+**Click the file name to see that mockup on its own, at full size** — a page with nothing else on
+it, where the words in a scaled-down screen can be read, and which scrolls sideways when the
+window is narrower than the mockup. Back returns to the card.
+
+Nothing in a mockup runs, loads anything from the network, reads anything else in the board, or
+answers a click: it is drawn inside a sandbox, and the board's own fonts, colours and layout stop
+at the frame — what you look at is what the file holds. A tag pointing at a file that isn't there,
+at one outside the mockups folder, at one that is neither `.tsx` nor `.html`, or at a `.tsx` the
+board cannot draw, reads as one plain note naming the file, and the rest of the card draws as
+usual.
+
 ## Releases
 
 A release is a version in `docs/kanban/releases.md`. The dropdown in the header says which one
@@ -492,16 +524,17 @@ struck through, so the outcome survives after the subtask files are gone.
 ## Configuration
 
 The gear in the header opens the **Configuration** dialog. A sidebar names its sections —
-**Agent** and **Skill**. Settings live in `docs/kanban/ui.config.json`, next to your board, so
+**Harness**, **Agents** and **Skill**. Settings live in `docs/kanban/ui.config.json`, next to your board, so
 `npx` always serves the latest UI and an update never touches them. Everything the dialog holds
 writes itself there, with one exception: a key goes to `docs/kanban/.env` and never to this file.
 
 There is no Auto-refine section and no switch: a refine follows the run that touched the card, so
 there is nothing to turn on.
 
-### The agents
+### The harness
 
-**Agent** picks the agent that every button spawns, in your repo root. Five ship:
+**Harness** is the coding tool that runs the board's work — every button here starts a run on it, in
+your repo root. Five ship:
 
 | Agent | It spawns | Settings | Optional key | Cost | Model name |
 | --- | --- | --- | --- | --- | --- |
@@ -709,6 +742,10 @@ with the reason in its log, and a reasoning level the agent doesn't know makes i
 its own default. A key no agent declares is left exactly where it is, and saving in the dialog writes
 the one setting you changed and touches nothing else in the file.
 
+`specAgents` holds the spec agents you have switched off — `{ "technology-selection": false }`. A
+name the file doesn't carry is on, and switching one back on drops its line rather than writing
+`true`, so the file only ever records what somebody turned off.
+
 `provider` is who pays for the run: `subscription`, `anthropic-api` or `endpoint`. Leave it out and
 the board picks for you — `anthropic-api` on a board whose `.env` already holds an Anthropic key,
 `subscription` otherwise — and a value this UI doesn't know reads as that same default. `baseUrl`
@@ -731,6 +768,37 @@ says the field isn't in effect.
 Each run reads the settings once, when it starts, so flipping the picker while an agent is working
 changes what the next run spawns. Each run also records the agent it ran under, so **Resume** only
 ever offers to continue a run the agent you have picked can actually reach.
+
+### The spec agents
+
+**Agents** lists the spec agents this board ships. A **spec agent** is a named agent the board puts
+on a card to fill one part of that card's spec: **UI design** draws the screen the card changes,
+and **Technology selection** picks the library it leans on. Each one runs on its own, while a card is
+being planned — never while it is being built — and writes one section of that card and nothing
+else.
+
+The pane lists them in the board's own order, with one readable name and two lines each: what that
+agent fills in, and the kind of card the board calls it for. The command/file identifier is not
+repeated in the UI. Both descriptions come from the command, so this section and `akb spec` can
+never say different things. There is nothing to edit here and no way to put an agent on a card by
+hand: that is what the board does for you.
+
+Each agent has one switch, on until you turn it off:
+
+- A switched-off agent is greyed and reads **Paused** beside its switch. The switch still works — that
+  is how it goes back on.
+- While it is off the board starts no new run of it, on any card. It leaves the list a planning flow
+  picks from, and a flow that asks for it by name is turned away and plans that part of the card
+  itself.
+- The switch is saved with the board, so everyone working on it reads the same one, and a flow run
+  from a terminal reads it too.
+- An agent already running when you switch it off finishes its run, and whatever a spec agent
+  already wrote on a card stays there.
+- `akb spec`, typed in a terminal, still names a switched-off agent in a closing line, so an agent
+  that stopped appearing is never a mystery.
+
+Every agent is on until somebody switches one off, so a board set up before this shipped has all of
+them on with nothing to undo.
 
 ### The coding agent skill
 

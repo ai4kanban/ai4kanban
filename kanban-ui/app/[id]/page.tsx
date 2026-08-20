@@ -4,6 +4,7 @@ import { NoBoard, NoRules } from "@/components/NoBoard";
 import { agentInfo, NO_AGENT } from "@/lib/agent";
 import { findCard, readBoard } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
+import { readMockups } from "@/lib/mockup";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 import type { Board, Card } from "@/lib/types";
 
@@ -36,6 +37,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (!card) notFound();
 
   const agent = await agentInfo().catch(() => NO_AGENT);
+  // The screens this card points at, drawn here rather than fetched by the page: a mockup
+  // is a file on this machine, and reading it is the same server read the card was.
+  const mockups = await readMockups(card.body);
   return (
     <CardPage
       card={card}
@@ -45,6 +49,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       projectRoot={repoRoot()}
       goalWritten={board.goalWritten}
       memoryModules={board.memoryModules}
+      mockups={mockups}
       desktop={isDesktop()}
     />
   );

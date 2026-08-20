@@ -41,6 +41,7 @@ import {
 import { getSession, listSessions, resumeSession, startSession, type StartResult, stopSession } from "@/lib/registry";
 import { setSecret } from "@/lib/secrets";
 import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
+import { setSpecAgentEnabled, specAgents } from "@/lib/spec-agents";
 import { testConnection } from "@/lib/test-connection";
 import type {
   AgentInfo,
@@ -60,6 +61,7 @@ import type {
   SetupDraft,
   SkillInstall,
   SkillState,
+  SpecAgentView,
   TrackDraft,
   WriteResult,
 } from "@/lib/types";
@@ -521,6 +523,35 @@ export async function setHarnessSecretAction(key: string, value: string): Promis
 // way it can go wrong is a result the panel shows.
 export async function testConnectionAction(): Promise<ConnectionTest> {
   return testConnection();
+}
+
+// --- the spec agents (#191) ---------------------------------------------------
+// Which spec agents this board ships, and the switch that keeps one from running. Both are
+// the board's own — these only say when, and turn a failure into a value the Agents
+// section can show rather than a crash page.
+
+/** The list the Agents section draws: each agent's two lines and whether it is on. `null`
+ *  when this project's rules are older than the switches, so the section can say that
+ *  instead of showing an empty list. */
+export async function specAgentsAction(): Promise<{ agents: SpecAgentView[] | null; error?: string }> {
+  try {
+    return { agents: await specAgents() };
+  } catch (e) {
+    return { agents: null, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Switch one spec agent on or off. The name is checked against the board's own list, so a
+ *  stale client can't write a switch for an agent that doesn't exist. */
+export async function setSpecAgentAction(name: string, on: boolean): Promise<WriteResult> {
+  if (typeof name !== "string" || typeof on !== "boolean") {
+    return { ok: false, error: "a spec agent is switched by name" };
+  }
+  try {
+    return await setSpecAgentEnabled(name, on);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 // --- the coding agent skill (#174) -------------------------------------------

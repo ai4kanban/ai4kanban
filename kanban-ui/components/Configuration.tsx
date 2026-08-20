@@ -1,12 +1,20 @@
 "use client";
 
 // The board's one configuration home (#41), opened from a quiet gear button in
-// the header. A sidebar on its left names the sections — Agent (which agent runs
-// every card action, #68, and the settings that agent declares, #93) and Skill
-// (driving this same board from a coding agent, #174). The sidebar is how the
-// dialog grows: a new group of settings is one more entry there with a pane of
-// its own, and the agent's growing field list (the model, the reasoning level
-// #97, #95's provider and base URL) never squeezes what joins it.
+// the header. A sidebar on its left names the sections — Harness (the coding tool
+// every card action runs on, #68, and the settings it declares, #93), Agents (the
+// spec agents that fill part of a card's spec, and the switch that keeps one from
+// running, #191) and Skill (driving this same board from a coding agent, #174).
+// The sidebar is how the dialog grows: a new group of settings is one more entry
+// there with a pane of its own, and the harness's growing field list (the model,
+// the reasoning level #97, #95's provider and base URL) never squeezes what joins
+// it.
+//
+// Harness and Agents are two different things with one word between them (#191):
+// the harness is the tool the work is done on, the agents are what the board puts
+// on a card while it is being planned. The section named Agent became Harness so
+// the pair reads as two names rather than the same word twice. Nothing the command
+// prints moved with it — `akb agent` and `akb spec` are as they were.
 //
 // The Auto-refine section is gone (#211). There is no switch to keep: a refine
 // follows the run that touched the card, so nothing is left to turn on or to
@@ -18,7 +26,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiCheck, FiCode, FiSettings, FiTerminal, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiCode, FiSettings, FiTerminal, FiUsers, FiZap } from "react-icons/fi";
 import {
   installedAgentsAction,
   setHarnessAction,
@@ -31,6 +39,7 @@ import type { AgentInfo, ConnectionTest, HarnessOption, HarnessSetting } from "@
 import { TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
 import { SkillPanel } from "./Skill";
+import { SpecAgentsPanel } from "./SpecAgents";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 // The look of every box and list in this pane. One string, because the provider
@@ -57,9 +66,10 @@ function AgentMark({ src, size }: { src: string; size: number }) {
 
 // The dialog's sections, in sidebar order. Adding a settings group is one entry
 // here plus its pane below — nothing else moves.
-type Section = "agent" | "skill";
+type Section = "harness" | "agents" | "skill";
 const SECTIONS: { id: Section; label: string; icon: IconType }[] = [
-  { id: "agent", label: "Agent", icon: FiTerminal },
+  { id: "harness", label: "Harness", icon: FiTerminal },
+  { id: "agents", label: "Agents", icon: FiUsers },
   { id: "skill", label: "Skill", icon: FiCode },
 ];
 
@@ -73,7 +83,7 @@ const SECTIONS: { id: Section; label: string; icon: IconType }[] = [
 let openRequest: { at: number; section: Section } | null = null;
 const requestSubs = new Set<() => void>();
 export const configDialog = {
-  open(section: Section = "agent") {
+  open(section: Section = "harness") {
     // A fresh object every time, so asking for the same section twice still
     // reaches a dialog the user closed in between.
     openRequest = { at: openRequest ? openRequest.at + 1 : 1, section };
@@ -100,8 +110,8 @@ export function Configuration({
   onError?: (msg: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  // Which pane shows. Reopening the dialog starts back on Agent.
-  const [section, setSection] = useState<Section>("agent");
+  // Which pane shows. Reopening the dialog starts back on Harness.
+  const [section, setSection] = useState<Section>("harness");
   const router = useRouter();
 
   // Someone outside this tree asked for the dialog — open it on the section they
@@ -124,7 +134,7 @@ export function Configuration({
         title="Configuration"
         aria-label="Configuration"
         onClick={() => {
-          setSection("agent");
+          setSection("harness");
           setOpen(true);
         }}
       >
@@ -145,15 +155,15 @@ export function Configuration({
             // would re-read the whole board for nobody.
             router.refresh();
           }}
-          width={720}
-          height="90vh"
+          width={760}
+          height="min(600px, calc(100dvh - 2rem))"
           flush
         >
           {/* The section list. A quiet vertical nav on the wash, the active entry
               in the ember tint — the same active language as the harness rows. */}
           <nav
             aria-label="Configuration sections"
-            className="flex w-[150px] shrink-0 flex-col gap-1 border-r border-nb-ink/12 bg-nb-wash p-3"
+            className="flex w-[168px] shrink-0 flex-col gap-1 border-r border-nb-ink/12 bg-nb-wash p-3 max-sm:w-full max-sm:flex-row max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
           >
             {SECTIONS.map(({ id, label, icon: Icon }) => {
               const on = id === section;
@@ -163,7 +173,7 @@ export function Configuration({
                   type="button"
                   aria-current={on}
                   onClick={() => setSection(id)}
-                  className={`flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] transition-colors duration-100 ${
+                  className={`flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent max-sm:w-auto max-sm:shrink-0 ${
                     on
                       ? "bg-nb-accent-soft text-nb-accent-deep"
                       : "text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink"
@@ -181,12 +191,21 @@ export function Configuration({
               so unmounting on a section switch would throw away a value saved a
               moment ago. The dialog's fixed height keeps the panes steady;
               a pane taller than it scrolls here. */}
-          <div className="min-h-0 flex-1 overflow-y-auto p-6">
-            {/* The agent harness — pick which agent runs every card action (#68),
-                and the settings that agent declares (#93). */}
-            <div hidden={section !== "agent"}>
+          <div className="min-h-0 flex-1 overflow-y-auto p-6 max-sm:p-4">
+            {/* The harness — pick the coding tool every card action runs on (#68),
+                and the settings it declares (#93). */}
+            <div hidden={section !== "harness"}>
+              <PaneHeading
+                title="Default harness"
+                description="Choose the coding tool and model used for every board run."
+              />
               <HarnessPicker agent={agent} onError={onError} />
             </div>
+            {/* The spec agents (#191) — what each one fills in, and whether it may run.
+                Mounted only while it is the section on screen: it asks the board for its
+                own list when it draws, and that list carries the switches as they read
+                right now. */}
+            {section === "agents" && <SpecAgentsPanel onError={onError} />}
             {/* Driving this same board from a coding agent (#174) — an extra a
                 board does not arrive with. Mounted only while it is the section
                 on screen: it reads the project when it draws, and one of those
@@ -196,6 +215,15 @@ export function Configuration({
         </Dialog>
       )}
     </>
+  );
+}
+
+function PaneHeading({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="mb-5">
+      <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{title}</h3>
+      <p className="mt-1 text-[13px] leading-relaxed text-nb-ink-soft">{description}</p>
+    </div>
   );
 }
 

@@ -67,6 +67,8 @@ akb log <run>             print the run's log so far, then return
 akb log <run> --follow    print new output as it arrives, until the run ends
 akb stop <run>            stop a run
 akb resume <run>          resume a failed, interrupted or stopped run
+akb spec                  list the spec agents and what part of a spec each one fills
+akb spec <name> <id>      put one on a card — always its own run, never `--print`
 akb agent                 show the configured agent
 akb guide                 list board workflows; `akb guide board` explains the board
 akb board help            show card IDs, fields, and index commands
