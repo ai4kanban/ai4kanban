@@ -14,7 +14,7 @@
 /** The one author. A post never names one — every post here is written by us. */
 export const AUTHOR = {
   name: "Tao Wu",
-  role: "Maintainer of AI4Kanban",
+  role: "Builder of AI4Kanban",
 } as const;
 
 // The topics a post can be filed under. A category is a *label* on the card and

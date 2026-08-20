@@ -139,3 +139,9 @@ re-ask a settled call.
   table, never as drag-and-drop columns.
 - The memory set, `metrics.csv` and `next-id` stay local markdown on every backend — only
   cards ever move. One backend per project.
+
+## Spec agents
+
+- Two spec agents ship, and only two: `ui-design` and `recommend-tech-stack`. No third.
+  Adding one later is writing a prompt, not changing the machinery — worth doing once the
+  two we ship prove the shape.

@@ -23,6 +23,7 @@ _(none)_
 - [#183 Install the Mac app with one Homebrew command](features/183-install-the-mac-app-with-one-homebrew-command.md)
 - [#229 Tell the user how to log in to the agent, not just how to install it](features/229-tell-the-user-how-to-log-in-to-the-agent-not-just-how-to-ins.md)
 - [#232 Write a release's changelog with AI when it closes](features/232-write-a-release-s-changelog-with-ai-when-it-closes.md)
+- [#237 Discuss a card in the board UI without starting an agent run](features/237-discuss-a-card-in-the-board-ui-without-starting-an-agent-run.md)
 
 ## skill
 

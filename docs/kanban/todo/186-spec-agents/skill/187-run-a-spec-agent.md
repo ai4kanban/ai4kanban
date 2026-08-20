@@ -27,6 +27,8 @@ part of that card's spec written. This is what the two first agents run on.
 - The rest of the card is off limits to it: the summary, `## Scope`, and `## Todo` stay the
   human's and the planning pass's.
 - It can be run on a card that has no section from it yet, or on one that does.
+- The section is off limits to the other flows too: add-task, refine, revise and the
+  rest read it and leave it as it stands.
 
 ## Todo
 - [ ] Say what an agent is — its name, its prompt, and where it lives in the skill.
@@ -34,6 +36,7 @@ part of that card's spec written. This is what the two first agents run on.
 - [ ] Hand it the card and an optional note, and nothing more.
 - [ ] Write its answer as one `## By \`<name>\` agent` section, replaced on a rerun.
 - [ ] Stop it writing anywhere else on the card.
+- [ ] Tell the other flows to leave the section alone — read it, never reword or drop it.
 - [ ] Run one on a real card twice, and check the section lands once and is rewritten, not
       doubled.
 - [ ] Document what an agent is and how one is run.
