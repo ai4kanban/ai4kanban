@@ -20,7 +20,7 @@
 // old flows in a project that was just refreshed.
 
 import { useCallback, useEffect, useState } from "react";
-import { FiAlertCircle, FiCheck, FiCopy, FiRefreshCw } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiChevronDown, FiCopy, FiRefreshCw } from "react-icons/fi";
 import { installSkillAction, skillStateAction } from "@/app/actions";
 import type { CommandState, SkillFolder, SkillInstall, SkillState } from "@/lib/types";
 import { Button } from "./button";
@@ -32,6 +32,7 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
   const [skill, setSkill] = useState<SkillState | null>(null);
   const [command, setCommand] = useState<CommandState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
   const [installing, setInstalling] = useState(false);
   // What the last press wrote, folder by folder. Cleared by nothing: it is the receipt for
   // the press, and it stands until the dialog closes.
@@ -42,10 +43,15 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
   const [buttonFixes, setButtonFixes] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await skillStateAction();
-    setSkill(res.skill);
-    setCommand(res.command);
-    setLoadError(res.error ?? null);
+    setChecking(true);
+    try {
+      const res = await skillStateAction();
+      setSkill(res.skill);
+      setCommand(res.command);
+      setLoadError(res.error ?? null);
+    } finally {
+      setChecking(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -71,15 +77,17 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
     }
   };
 
+  const missing = skill?.folders.some((folder) => folder.state === "absent") ?? false;
+  const instructionsNeedWork = !!skill && (!skill.installed || skill.outdated || missing);
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div>
         <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">
-          Coding agent skill
+          Coding agent access
         </h3>
-        <p className="mt-1 max-w-[56ch] text-[13px] leading-relaxed text-nb-ink-soft">
-          Add the optional project instructions that let Claude Code or Codex work with
-          this board directly.
+        <p className="mt-1 max-w-[58ch] text-[13px] leading-relaxed text-nb-ink-soft">
+          Check that coding agents in this project can find AI4Kanban and use this board.
         </p>
       </div>
 
@@ -90,64 +98,166 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
         </p>
       )}
 
-      <div className="border-t border-nb-ink/12 pt-4">
+      <div className="rounded-[10px] bg-nb-wash p-4" aria-live="polite">
         {!skill ? (
-          <p className="text-[13px] text-nb-ink-soft">Looking at this project…</p>
+          <p className="text-[13px] text-nb-ink-soft">Checking this project…</p>
         ) : (
-          <>
-            <p className="mb-3 text-[13px] font-[700]">{headline(skill)}</p>
-            <ul className="flex flex-col gap-2">
-              {skill.folders.map((folder) => (
-                <FolderRow key={folder.path} folder={folder} carries={skill.version} />
-              ))}
-            </ul>
-            <div className="mt-4 flex items-center gap-3">
+          <div className="flex items-start justify-between gap-4 max-sm:flex-col">
+            <div className="flex min-w-0 items-start gap-3">
+              <StatusMark ready={!checking && !instructionsNeedWork && !!command && !command.behind} />
+              <div>
+                <p className="text-[14px] font-[800] text-nb-ink">{headline(skill, command)}</p>
+                <p className="mt-0.5 text-[12.5px] leading-relaxed text-nb-ink-soft">
+                  {statusDetail(skill, command)}
+                </p>
+              </div>
+            </div>
+            {instructionsNeedWork ? (
               <Button
                 size="sm"
+                className="shrink-0"
                 disabled={installing || !skill.folders.length}
                 onClick={() => void install()}
               >
-                {installing ? (
-                  "Writing…"
-                ) : (
-                  <>
-                    <FiRefreshCw className="text-[13px]" aria-hidden />
-                    {buttonLabel(skill)}
-                  </>
-                )}
+                {installing ? "Writing…" : buttonLabel(skill)}
               </Button>
-              <p className="text-[12px] leading-relaxed text-nb-ink-soft">
-                Writes files in this repo. Review <code>git diff</code> before committing.
-              </p>
-            </div>
-          </>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="shrink-0"
+                disabled={checking}
+                onClick={() => void load()}
+              >
+                <FiRefreshCw className="text-[13px]" aria-hidden />
+                {checking ? "Checking…" : "Check again"}
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
       {done && <Receipt result={done} />}
 
-      {/* The second button: this one writes outside the repo (#226). Nothing at all in a
-          browser or on Linux, where the line below is still the whole answer. */}
+      {skill && (
+        <dl className="flex flex-col gap-2">
+          <CheckRow
+            label="Project instructions"
+            status={instructionStatus(skill)}
+            ready={!instructionsNeedWork}
+          />
+          <CheckRow
+            label="akb command"
+            status={commandStatus(command, checking)}
+            ready={!checking && !!command && !command.behind}
+          />
+        </dl>
+      )}
+
+      {/* The desktop app can repair a missing command. Browsers and source builds leave
+          the small copyable command below as the answer. */}
       <InstallCommand onInstalled={() => void load()} onFixable={setButtonFixes} />
 
       {command?.behind && <CommandBehind command={command} button={buttonFixes} />}
+
+      {skill?.folders.length ? (
+        <details className="group border-t border-nb-ink/12 pt-3">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent [&::-webkit-details-marker]:hidden">
+            <FiChevronDown className="transition-transform duration-100 group-open:rotate-180" aria-hidden />
+            Technical details
+          </summary>
+          <div className="mt-3 pl-5">
+            <p className="mb-2 text-[11.5px] text-nb-ink-soft">
+              Project instructions provided by AI4Kanban {skill.version}
+            </p>
+            <ul className="flex flex-col gap-2">
+              {skill.folders.map((folder) => (
+                <FolderRow key={folder.path} folder={folder} carries={skill.version} />
+              ))}
+            </ul>
+            {!instructionsNeedWork && (
+              <div className="mt-3 flex items-center gap-3 max-sm:items-start max-sm:flex-col">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={installing}
+                  onClick={() => void install()}
+                >
+                  <FiRefreshCw className="text-[13px]" aria-hidden />
+                  {installing ? "Writing…" : "Reinstall instructions"}
+                </Button>
+                <p className="text-[11.5px] leading-relaxed text-nb-ink-soft">
+                  Changes project files. Review <code>git diff</code> before committing.
+                </p>
+              </div>
+            )}
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }
 
-// The one line at the top of the state block: where this project stands, in words rather
-// than in the folder list under it.
-function headline(skill: SkillState): string {
-  if (!skill.folders.length) return "This project's copy of the board's rules is too old to say.";
-  if (!skill.installed) return "Not installed — your coding agent can't see this board yet.";
-  if (skill.outdated) return `Older than this board (${skill.version}) — the button brings it up to date.`;
-  return "Installed and up to date.";
+function StatusMark({ ready }: { ready: boolean }) {
+  return (
+    <span
+      className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full ${
+        ready ? "bg-nb-mint-soft text-nb-mint-ink" : "bg-nb-peach-soft text-nb-peach-ink"
+      }`}
+    >
+      {ready ? <FiCheck aria-hidden /> : <FiAlertCircle aria-hidden />}
+    </span>
+  );
+}
+
+function CheckRow({ label, status, ready }: { label: string; status: string; ready: boolean }) {
+  return (
+    <div className="grid grid-cols-[10rem_minmax(0,1fr)] items-baseline gap-x-4 px-1 text-[12.5px] max-sm:grid-cols-1 max-sm:gap-y-0.5">
+      <dt className="font-[700] text-nb-ink">{label}</dt>
+      <dd className={ready ? "text-nb-mint-ink" : "text-nb-ink-soft"}>{status}</dd>
+    </div>
+  );
+}
+
+function headline(skill: SkillState, command: CommandState | null): string {
+  if (!skill.folders.length) return "Unable to verify agent setup";
+  if (!skill.installed || skill.folders.some((folder) => folder.state === "absent")) return "Setup incomplete";
+  if (skill.outdated || command?.behind) return "Update needed";
+  return "Coding agent access is ready";
+}
+
+function statusDetail(skill: SkillState, command: CommandState | null): string {
+  if (!skill.folders.length) return "Update AI4Kanban before checking this project.";
+  const available = skill.folders.filter((folder) => folder.state !== "absent").map((folder) => folder.agent);
+  if (!available.length) return "Install the project instructions to connect a coding agent.";
+  if (skill.folders.some((folder) => folder.state === "absent")) {
+    return `${available.join(", ")} connected. Finish setup to connect the remaining agents.`;
+  }
+  if (skill.outdated) return "The project instructions are older than this version of AI4Kanban.";
+  if (command?.behind) return "Project instructions are ready, but the akb command needs an update.";
+  return `${available.join(", ")} can find and use this board.`;
+}
+
+function instructionStatus(skill: SkillState): string {
+  if (!skill.folders.length) return "Could not check";
+  if (!skill.installed) return "Not installed";
+  if (skill.folders.some((folder) => folder.state === "absent")) return "Incomplete";
+  if (skill.outdated) return "Update available";
+  return `Ready · ${skill.version}`;
+}
+
+function commandStatus(command: CommandState | null, checking: boolean): string {
+  if (checking) return "Checking…";
+  if (!command) return "Could not check";
+  if (!command.onPath) return "Not found";
+  if (command.behind) return `${command.onPath} · update available`;
+  return `Ready · ${command.onPath}`;
 }
 
 function buttonLabel(skill: SkillState): string {
-  if (!skill.installed) return "Add the skill";
-  if (skill.outdated) return "Bring it up to date";
-  return "Write it again";
+  if (!skill.installed) return "Install instructions";
+  if (skill.folders.some((folder) => folder.state === "absent")) return "Finish setup";
+  return "Update instructions";
 }
 
 // One folder, and what is in it. The state words are the board's own answer, not a guess
@@ -244,21 +354,17 @@ function CommandBehind({ command, button }: { command: CommandState; button: boo
 
   if (button) {
     return (
-      <div className="border-t border-nb-ink/12 pt-4">
-        <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">
-          {said} The flows your coding agent follows come out of that command, so an old one
-          means old flows. The button above puts this app&rsquo;s own copy there.
-        </p>
-      </div>
+      <p className="text-[12px] leading-relaxed text-nb-ink-soft">
+        {said} Use the button above to connect this app&rsquo;s current command.
+      </p>
     );
   }
 
   return (
-    <div className="border-t border-nb-ink/12 pt-4">
-      <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">
-        {said}{" "}
-        The flows your coding agent follows come out of that command, so an old one means
-        old flows. Run this yourself — nothing here does:
+    <div className="rounded-[10px] bg-nb-peach-soft p-3">
+      <p className="text-[12.5px] font-[700] text-nb-peach-ink">Update the akb command</p>
+      <p className="mt-1 text-[12px] leading-relaxed text-nb-ink-soft">
+        {said} Run this in a terminal to use the current AI4Kanban flows:
       </p>
       <div className="mt-2 flex items-center gap-1 rounded-[9px] bg-nb-wash py-1 pr-1 pl-3">
         <code className="min-w-0 flex-1 font-mono text-[12px] break-words text-nb-ink">{command.line}</code>

@@ -547,7 +547,7 @@ export function MakeBoardHere({ desktop }: { desktop: boolean }) {
 
 // --- putting `akb` on the PATH ----------------------------------------------
 
-/** The button in the Skill pane that installs the board's command, and the four things it
+/** The button in Agent setup that installs the board's command, and the four things it
  *  can find on this machine (#226).
  *
  *  The app carries `akb` already — installing only points the system at it, so nothing is
@@ -593,9 +593,8 @@ export function InstallCommand({
     (state.state === "absent" || state.state === "dangling");
   useEffect(() => onFixable?.(fixable), [fixable, onFixable]);
 
-  if (!state || state.kind === "none") return null;
+  if (!fixable) return null;
 
-  const off = !!state.blocked || state.state === "foreign";
   // Plain words on the button, like its neighbour that adds the skill — the backticks the
   // card spells it with are markdown, and a button is not prose.
   const label =
@@ -621,30 +620,16 @@ export function InstallCommand({
   };
 
   return (
-    <div className="border-t border-nb-ink/12 pt-4">
-      <p className="mb-3 text-[13px] font-[700]">{commandHeadline(state)}</p>
-      <p className="mb-3 text-[12.5px] leading-relaxed text-nb-ink-soft">
-        {state.kind === "path"
-          ? "The app carries the command; this puts the app's own folder on your PATH. Updating the app updates the command — there is nothing separate to keep fresh. A new PATH entry only reaches terminals opened after it."
-          : "The app carries the command; this only points your system at it. Nothing is copied out, so updating the app updates the command — there is nothing separate to keep fresh."}
-      </p>
-      <div className="flex items-center gap-3">
-        <Button size="sm" disabled={busy || off} onClick={install}>
+    <div className="rounded-[10px] bg-nb-peach-soft p-3">
+      <div className="flex items-center justify-between gap-4 max-sm:items-start max-sm:flex-col">
+        <div>
+          <p className="text-[12.5px] font-[700] text-nb-peach-ink">Connect the akb command</p>
+          <p className="mt-0.5 text-[12px] leading-relaxed text-nb-ink-soft">{commandHeadline(state)}</p>
+        </div>
+        <Button size="sm" disabled={busy} onClick={install}>
           {busy ? "Writing…" : <>{<FiTerminal className="text-[13px]" aria-hidden />}{label}</>}
         </Button>
-        {!off && (
-          <p className="text-[12px] leading-relaxed text-nb-ink-soft">
-            Writes <code className="font-mono text-[11.5px]">{state.writes}</code>.
-            {state.needsPassword && " macOS asks for your administrator password."}
-          </p>
-        )}
       </div>
-      {state.otherFirst && (
-        <p className="mt-2 text-[12px] leading-relaxed text-nb-ink-soft">
-          Your terminal runs <code className="font-mono text-[11.5px]">{state.otherFirst}</code> — it
-          comes earlier on your PATH than {state.writes}.
-        </p>
-      )}
       {done && (
         <p className="mt-2 flex items-start gap-1.5 text-[12.5px] leading-relaxed text-nb-mint-ink">
           <FiCheck className="mt-[3px] shrink-0" aria-hidden />

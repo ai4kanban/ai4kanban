@@ -329,7 +329,7 @@ function cmdInstall(root, tracks) {
   say('That is the board. Nothing was written outside docs/kanban/.')
   say('')
   say('To drive this board from your coding agent, add the skill — from the button in the')
-  say('board UI (Configuration → Skill), or here:')
+  say('board UI (Configuration → Agent setup), or here:')
   say('')
   say(`    ${PROGRAM} skill`)
 }
@@ -538,7 +538,7 @@ Options
 
 Installing writes the board and nothing outside docs/kanban/. Driving that board from a
 coding agent is a later extra — \`akb skill install\`, or the button in the board UI under
-Configuration → Skill. The flows the agent works by are not copied anywhere either: they
+Configuration → Agent setup. The flows the agent works by are not copied anywhere either: they
 ship inside this command (\`akb guide\`), so updating the command updates every flow in
 every project at once.
 

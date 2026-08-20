@@ -46,7 +46,7 @@ const es: DownloadCopy = {
   command: {
     title: "El comando `akb`",
     body: "La app lleva `akb` dentro — el comando con el que un agente de código maneja el tablero — y la primera vez que se abre te ofrece ponerlo en tu PATH. macOS escribe un enlace en `/usr/local/bin/akb` y pide tu contraseña de administrador; Windows añade la carpeta de la app al PATH, y eso solo llega a las terminales que abras después. Nada se copia fuera, así que actualizar la app actualiza el comando.",
-    later: "Si dices que no, el botón te espera en **Configuration → Skill**. En Linux no se ofrece: el AppImage se descomprime en un sitio nuevo cada vez, así que `npm install -g ai4kanban` sigue siendo el camino.",
+    later: "Si dices que no, el botón te espera en **Configuration → Agent setup**. En Linux no se ofrece: el AppImage se descomprime en un sitio nuevo cada vez, así que `npm install -g ai4kanban` sigue siendo el camino.",
   },
 };
 

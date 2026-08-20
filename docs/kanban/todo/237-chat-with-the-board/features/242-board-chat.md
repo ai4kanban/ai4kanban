@@ -12,14 +12,14 @@ questions:
   - question: "[user] The chat rail is on every page, including a card's. What does it show while a card is open?"
     mode: single
     options:
-      - that card's own chat — the rail follows what you are reading, and #237's panel moves into it, so only one chat is ever on screen
-      - the board chat, always — the card keeps #237's own panel in the page, so a card page can show two chats
-      - the board chat, always, and #237's card panel is dropped — you name the card in your message instead
+      - that card's own chat — the rail follows what you are reading, and #248 lives in it, so only one chat is ever on screen
+      - the board chat, always — the card page carries #248 as a panel of its own, so a card page can show two chats
+      - the board chat, always, and #248 is dropped — you name the card in your message instead
     recommend: [1]
 ---
 
-Every chat the board is growing sits on a card (#237). But most of what a user wants to say
-is not about one card: "what should I build next", "what is holding everything up", "add a
+A chat about one card (#248) only answers what that card is about. But most of what a user
+wants to say is not about one card: "what should I build next", "what is holding everything up", "add a
 task for the thing I just thought of", "is this version too full". Today that means leaving
 the app for a coding agent. Give the board a chat of its own, about the whole board.
 
@@ -68,7 +68,7 @@ the app for a coding agent. Give the board a chat of its own, about the whole bo
 ## Decided by the agent
 - **One board chat or several?**: one per project. A second one is a second history to keep
   and nothing on the board points at either.
-- **Does the board chat replace the card chat?**: no. #237 stays — asking about one card
+- **Does the board chat replace the card chat?**: no. #248 stays — asking about one card
   from that card's page is where most of it happens. This is the chat for everything else.
 - **Does the chat show what it cost?**: no. Cost belongs to runs, which is the call #237
   already made.

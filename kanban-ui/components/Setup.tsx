@@ -953,7 +953,7 @@ export function SetupNotice({
                 onClick={() => configDialog.open("skill")}
               >
                 <FiTerminal className="text-[13px]" aria-hidden />
-                Add the coding agent skill
+                Set up agent access
               </Button>
             )}
           </>
@@ -1148,7 +1148,7 @@ export function AddSkillFirst() {
       <p className="mb-1 text-[12px] leading-relaxed text-nb-ink-soft">
         <strong className="text-nb-ink">Your coding agent can&rsquo;t see this board yet.</strong>{" "}
         A board arrives without the skill — run this in the repo first, then paste the line
-        below. (Configuration → Skill does the same from here.)
+        below. (Configuration → Agent setup does the same from here.)
       </p>
       <CopyLine text={ADD_SKILL_COMMAND} />
     </div>

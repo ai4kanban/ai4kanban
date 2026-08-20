@@ -59,7 +59,7 @@ the first and the agent still has everything said before. Give the board that.
   stopped and resumed, and they cost money the board reports. A chat is the user typing, so
   it stays out of the runs panel and out of every rule that keeps two runs off one card.
 - **Where is a conversation kept?**: on the user's machine, beside the run logs, never in
-  git — the same call #237 already made for a card discussion.
+  git — the same call #237 already made for this group.
 - **One conversation per card, or many?**: one, and one for the board. It stays until the
   user clears it.
 - **Can a chat be open while a run works the same card?**: yes. Reading and talking never

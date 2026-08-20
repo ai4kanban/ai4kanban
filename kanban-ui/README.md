@@ -524,7 +524,7 @@ struck through, so the outcome survives after the subtask files are gone.
 ## Configuration
 
 The gear in the header opens the **Configuration** dialog. A sidebar names its sections —
-**Harness**, **Agents** and **Skill**. Settings live in `docs/kanban/ui.config.json`, next to your board, so
+**Harness**, **Agents** and **Agent setup**. Settings live in `docs/kanban/ui.config.json`, next to your board, so
 `npx` always serves the latest UI and an update never touches them. Everything the dialog holds
 writes itself there, with one exception: a key goes to `docs/kanban/.env` and never to this file.
 
@@ -807,7 +807,7 @@ every button here runs without it. What it adds is a second way in: you can say 
 *"what's next"* to your coding agent in your repo and it works this same board — the same cards, the
 same runs, the same files.
 
-**Configuration → Skill** is where you turn that on. The pane says where the project stands and one
+**Configuration → Agent setup** is where you turn that on. The pane says where the project stands and one
 button does the rest:
 
 - **Not installed** — nothing in either folder. **Add the skill** writes it.

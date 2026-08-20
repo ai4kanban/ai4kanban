@@ -6,15 +6,15 @@ roi: high
 status: todo
 release: 0.7.1
 blocked_by: [241]
-related: [237, 248]
+related: [237, 242, 248]
 modules: [skill, local-ui]
 questions:
-  - question: "[user] #237 decided a card's discussion never writes the card — it only hands a change request to the Edit and Resolve buttons. This version asks for a chat that can act. Which one holds?"
+  - question: "[user] #248 says a card's chat writes nothing by itself — it hands a change request to the card's Edit and Resolve buttons. This card asks for a chat that acts. Which one holds?"
     mode: single
     options:
       - "keep both: the chat writes what it would do, the user reads it, and one click carries it out — nothing lands unseen"
-      - the chat does the work itself as soon as it is asked, and #237's panel becomes that chat
-      - the card's panel stays a discussion that changes nothing, and only the board chat is allowed to act
+      - the chat does the work itself as soon as it is asked, and #248 becomes that chat
+      - a card's chat stays a discussion that changes nothing, and only the board chat is allowed to act
     recommend: [1]
   - question: "[user] Which actions may a chat take without asking first?"
     mode: single
@@ -56,6 +56,8 @@ same work a coding agent does when you say it there.
 - [ ] Update `kanban-ui/README.md` and `docs/guides/daily-loop.md`.
 - [ ] Check it end to end: from one chat, write a card, sharpen it, put it in a version, and
       start a build on it, then confirm the board and the files agree.
+- [ ] Check it from a card's page too: talk a vague card over, send the change through, and
+      confirm the card changed only where the user asked.
 
 ## Decided by the agent
 - **Does the chat write files itself?**: only the board's own files, and only through the

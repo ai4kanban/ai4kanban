@@ -17,61 +17,57 @@ questions:
     recommend: [1]
 ---
 
-The board gives a user no way to discuss a card. Someone who wants to think out loud about
-one — what it is really for, whether it is the right shape — has to leave the app and go
-say it to a coding agent. Give them a **discussion panel** on the card page: a box where
-they write a message about the card and read the reply. A card can then be argued over and
-corrected before any work starts on it.
+Today the only way to talk about this project is to leave the app and open a coding agent.
+Everything the board knows — the goal, the memory, the cards — is right there on screen, and
+the user still has to explain it again somewhere else. Give the board a chat of its own: ask
+about the whole board, or about the one card you are reading, and get an answer that already
+knows this project. This is a group task; each piece is its own subtask in this folder.
 
 ## Scope
-- The card page has a discussion panel.
-- The user writes a message in the panel, and the reply appears under it.
-- The reply appears word by word as it is written, not all at once at the end.
-- The card and its open questions are sent along with every message.
-- The reply can also read the board's memory files — what this project has already decided
-  and already turned down.
-- A discussion changes nothing in the project. It never writes the card and never writes
-  any other file the user works in.
-- The panel can turn what was discussed into a short change request for the card.
-- That change request goes to the card's own **Edit** button.
-- The panel can turn what was discussed into an answer to one of the card's open questions.
-- That answer goes to the card's own **Resolve** button.
-- The user sees what the panel wrote before it goes anywhere.
-- The user can rewrite it first.
-- A discussion never shows up in the runs panel.
-- A user can discuss a card while work is running on it.
-- Sending a change to **Edit** or **Resolve** is refused while work is running on the card.
-- A discussion belongs to one card and is never shared with another card.
-- A discussion is still there after the app is closed and reopened.
-- The user can clear a card's discussion.
-- Where no coding agent has been set up, the panel says so, and says where to set one up.
-- Where a reply stops part way, the panel says so, and keeps what arrived.
+- A chat answers from this project — the goal, the module map, the memory, and the cards —
+  not from general advice.
+- Two things to talk about: the whole board, and one card. Both run on the same conversation
+  underneath, so they answer the same way.
+- A chat is as good as opening a coding agent and saying `/kanban` or `/kanban #12` — that is
+  the bar this group is measured against.
+- A conversation stays open: the second message lands in the same session as the first, and
+  the agent still has everything said before.
+- A reply arrives as it is written, not all at once at the end.
+- A chat is not a run. It never shows in the runs panel, never locks a card, and never stops
+  a run from starting.
+- A conversation is still there after the app is closed and reopened, and is per project.
+- A chat can do the board work it is talking about — write a card, sharpen it, answer its
+  questions, start a build — through the board's own moves, never by hand.
+- A chat never edits the project's code. Building is a run's job, and the chat starts one.
+- Order: the conversation itself (#240), then what it knows when it opens (#241), then the
+  board chat in the UI (#242), then the card chat (#248). Acting on the board (#243) needs
+  only #241 and can be built beside the UI work.
+- Out of this group: showing what a chat cost, more than one conversation per card, and any
+  chat between people rather than with the agent.
 
 ## Todo
-- [ ] Put the discussion panel on the card page: write a message, get a reply, and see the
-      whole exchange so far.
-- [ ] Make the reply appear word by word as it is written.
-- [ ] Send the card and its open questions along with every message.
-- [ ] Let the reply read the board's memory files too.
-- [ ] Add the step that writes a change request from the discussion and sends it to
-      **Edit**.
-- [ ] Add the same step for an open question, sending it to **Resolve**.
-- [ ] Show the user what the panel wrote, and let them rewrite it, before it goes.
-- [ ] Keep a discussion after the app is closed and reopened.
-- [ ] Give the user a way to clear a card's discussion.
-- [ ] Show the panel's empty state where no coding agent has been set up.
-- [ ] Show what happened where a reply stops part way.
-- [ ] Update the UI guide, `kanban-ui/README.md`.
-- [ ] Check that a discussion alone leaves the card untouched.
-- [ ] Check the whole path end to end: discuss a vague card, send the change, and confirm
-      the card changed only where the user asked.
+- [ ] Keep one conversation with the agent open, turn after turn #240
+- [ ] Open a chat knowing what a coding agent knows after /kanban #241
+- [ ] Chat with the whole board, not only with one card #242
+- [ ] Let a chat do the board work it is talking about #243
+- [ ] Chat about one card, from the card's page #248
 
 ## Decided by the agent
-- **Is this a chat window for the whole board?**: no. Each discussion sits on one card page
-  and is about that card. The board is still where work starts.
-- **Does the discussion change the card itself?**: no. An ordinary **Edit** or **Resolve**
-  does that, so the card is written the same way it always was.
-- **Where is a discussion kept?**: on the user's machine, beside the run logs, and never in
-  git. Only what the user sends reaches the card.
-- **One discussion per card, or many?**: one. It stays until the user clears it.
-- **Does a discussion show what it cost in money?**: no. That belongs to runs.
+- **Why the pieces cannot ship one at a time**: the command holds no conversation until
+  #240, a conversation knows nothing about this project until #241, and a user sees none of
+  it until #242 and #248. Chat is one feature, cut into pieces small enough to build.
+- **Does the board become a chat app?**: no. The board stays the centre — `goal.md` says so
+  plainly. A chat is a second way in, folded away until the user asks for it.
+- **Where is a conversation kept?**: on the user's machine, beside the run logs, and never in
+  git. Only what the user sends through a board move reaches a card.
+- **One conversation per card, or many?**: one, and one for the board. It stays until the
+  user clears it.
+- **Does a chat show what it cost in money?**: no. That belongs to runs.
+- **Does the chat write the card itself?**: that is #243's open question, not this card's.
+  Whichever way it lands, a card is written by the board's own move.
+
+### Worth noting
+- **The card chat (#248) waits on the board chat (#242)**: #242 settles whether the right
+  rail follows the page or always shows the board. That answer decides whether the card chat
+  is a panel in the page or the rail showing the open card, so building it first would risk
+  building the wrong one.

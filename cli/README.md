@@ -65,7 +65,7 @@ akb skill install    # add it, or bring an older copy up to date
 That writes one file into `.claude/skills/kanban/` (Claude Code) and
 `.agents/skills/kanban/` (Codex): `SKILL.md`, a short note telling a coding agent the board
 is here and that `akb` owns it. The board app does the same thing from a button:
-**Configuration → Skill**.
+**Configuration → Agent setup**.
 
 Nothing else is copied in. The flows ship inside the command (`akb guide`), so a newer
 command is newer flows in every project at once — and the command itself stays where npm put

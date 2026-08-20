@@ -23,12 +23,9 @@ _(none)_
 - [#183 Install the Mac app with one Homebrew command](features/183-install-the-mac-app-with-one-homebrew-command.md)
 - [#229 Tell the user how to log in to the agent, not just how to install it](features/229-tell-the-user-how-to-log-in-to-the-agent-not-just-how-to-ins.md)
 - [#232 Write a release's changelog with AI when it closes](features/232-write-a-release-s-changelog-with-ai-when-it-closes.md)
-- [#237 Discuss a card in the board UI without starting an agent run](features/237-discuss-a-card-in-the-board-ui-without-starting-an-agent-run.md)
-- [#242 Chat with the whole board, not only with one card](features/242-board-chat.md)
-- [#243 Let a chat do the board work it is talking about](features/243-chat-acts-on-the-board.md)
-- [#247 Set a spec agent's harness and model where its switch is](features/247-set-a-spec-agent-s-harness-and-model-where-its-switch-is.md)
-- [#248 Chat about one card, from the card's page](features/248-card-chat.md)
 - [#237 Chat with the board, or with one card, without leaving the app](237-chat-with-the-board/root.md)
+- [#247 Set a spec agent's harness and model where its switch is](features/247-set-a-spec-agent-s-harness-and-model-where-its-switch-is.md)
+- [#250 Bring a task in from a file or your voice, not only typed text](250-friendly-task-import/root.md)
 
 ## skill
 
@@ -42,9 +39,8 @@ _(none)_
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
 - [#221 Score how well the board does its own job](221-board-score/root.md)
 - [#231 Give finish notes their own frontmatter field instead of an open question](skill/231-give-finish-notes-their-own-frontmatter-field-instead-of-an.md)
-- [#240 Keep one conversation with the agent open, turn after turn](skill/240-chat-session.md)
-- [#241 Open a chat knowing what a coding agent knows after /kanban](skill/241-chat-opening-context.md)
 - [#246 Give each spec agent its own harness and model](skill/246-give-each-spec-agent-its-own-harness-and-model.md)
+- [#249 Group the cards a release plan creates, instead of writing them all loose](skill/249-group-the-cards-a-release-plan-creates-instead-of-writing-th.md)
 
 ## distribution
 
@@ -72,3 +68,23 @@ _(none)_
 ## 221-board-score/features
 
 - [#224 Show the board's score, and write it into every release](221-board-score/features/224-show-the-score.md)
+
+## 237-chat-with-the-board/skill
+
+- [#240 Keep one conversation with the agent open, turn after turn](237-chat-with-the-board/skill/240-chat-session.md)
+- [#241 Open a chat knowing what a coding agent knows after /kanban](237-chat-with-the-board/skill/241-chat-opening-context.md)
+
+## 237-chat-with-the-board/features
+
+- [#242 Chat with the whole board, not only with one card](237-chat-with-the-board/features/242-board-chat.md)
+- [#243 Let a chat do the board work it is talking about](237-chat-with-the-board/features/243-chat-acts-on-the-board.md)
+- [#248 Chat about one card, from the card's page](237-chat-with-the-board/features/248-card-chat.md)
+
+## 250-friendly-task-import/skill
+
+- [#251 Rewrite raw material into a short brief before any card is written](250-friendly-task-import/skill/251-intake-rewriter.md)
+
+## 250-friendly-task-import/features
+
+- [#252 Attach a file to Create task instead of retyping it](250-friendly-task-import/features/252-attach-a-file.md)
+- [#253 Speak a task instead of typing it](250-friendly-task-import/features/253-speak-a-task.md)

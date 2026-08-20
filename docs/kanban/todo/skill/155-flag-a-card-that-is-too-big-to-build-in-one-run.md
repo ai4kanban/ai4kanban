@@ -6,7 +6,7 @@ roi: high
 status: todo
 release: ""
 blocked_by: []
-related: [118]
+related: [118, 249]
 modules: [skill]
 questions: []
 ---
@@ -28,6 +28,9 @@ refining, and split the card that is too big.
 - [ ] Add the size check to the refine flow, with a plain rule for what counts as too big.
 - [ ] Have a card that fails it become a group task, or a question naming the proposed
       split when the split is a judgment call.
+- [ ] Let the split be made by the command: turn a card that is already open into a group
+      root. #249 adds the flag that writes a new group and its subtasks; nothing yet
+      converts a card that exists.
 - [ ] Make sure the check never fires on a card that is already a group subtask.
 - [ ] Cover it in the daily-loop guide, so the user knows why a card became a group.
 
