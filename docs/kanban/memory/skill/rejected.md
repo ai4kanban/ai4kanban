@@ -10,6 +10,12 @@ before proposing so you don't re-suggest them.
   the user can. A container is the only fence it offers. Every agent we run stays in the
   repo, and we don't ship one that can write outside it.
 
+## Chat
+
+- **A separate flow that limits what chat may do** — the chat rail is just a kanban-skill
+  session, like chatting with Claude Code. Users may run any `akb` command in it, so chat
+  needs no second workflow or permission layer.
+
 ## Goal
 
 - **A fixed template for `goal.md`** — we don't pin down what the goal file must contain,
@@ -36,6 +42,9 @@ before proposing so you don't re-suggest them.
   is a guess about order, while "don't start this yet" is a fact. Where a chain of work
   matters, we make it a group task and let the tree show itself; the card listing carries
   `blocked_by` and nothing derived from it.
+- **Grouping the cards a release plan writes** — a release is already the group: its cards
+  share one goal and the board lists them together. Cards that each deliver something on
+  their own gain nothing from a root card written above them.
 - **A second group for planning UI cards** — getting a screen agreed before it is built is
   what the spec agents group already does: its `ui-design` agent draws the layout options.
   The one piece that was needed anyway — the skill's UI design reference — moved into that

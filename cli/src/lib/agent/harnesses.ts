@@ -98,19 +98,15 @@ export interface Harness extends Omit<HarnessOption, 'binary' | 'installed' | 'g
    *  an hour — so a connector with a switch for it turns retries off in `env()` and says so
    *  here. False is not a fault: most of these CLIs have no such switch. */
   stopsOnRateLimit: boolean
-  /** How a prompt calls the ai4kanban skill for this agent. Every prompt the board sends
-   *  opens with it. Claude Code triggers a skill from a slash name (`/kanban`); Codex
-   *  reads a slash as plain chat text and triggers on a `$` name instead. The rest of
-   *  every prompt is the same for both. */
+  /** How a fresh prompt calls the ai4kanban skill for this agent. Claude Code triggers a
+   *  skill from a slash name (`/kanban`); Codex reads a slash as plain chat text and
+   *  triggers on a `$` name instead. */
   skillCall: string
 }
 
-// How a prompt asks for the skill on an agent with no skill syntax of its own. Claude Code
-// has a slash name and Codex a `$` name; Cursor's short names are documented for its chat
-// box rather than for a headless run, and OpenCode has neither — its model picks a skill
-// itself, and dsh is the same. So the rest are asked in a sentence, and the path is named
-// because a sentence alone leaves the agent searching for what "the kanban skill" means.
-export const SKILL_SENTENCE = "Use this repo's ai4kanban board skill (`.agents/skills/kanban/SKILL.md`)"
+// How a prompt asks for the skill on an agent with no direct skill syntax. A fresh chat
+// ensures the skill is installed before using this sentence.
+export const SKILL_SENTENCE = 'Use the kanban skill'
 
 /** True when this argv already names a flag — `--model id` or `--model=id`, in any of the
  *  names that harness answers to. Used for a setting's flags, and by a harness deciding

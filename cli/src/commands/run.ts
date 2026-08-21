@@ -5,7 +5,7 @@
 // run's id and exits — the run outlives it — so the same run can be followed, stopped or
 // continued from anywhere, by anyone, including a process that never saw it start.
 
-import { insideChat, insideRun, printFlow } from '../lib/agent/flow'
+import { insideRun, printFlow } from '../lib/agent/flow'
 import { spawnWatcher } from '../lib/agent/launch'
 import { readLogTail, splitLog } from '../lib/agent/log'
 import {
@@ -25,7 +25,7 @@ import {
   type RunView,
 } from '../lib/agent/types'
 import { say } from '../lib/io'
-import { die } from '../lib/paths'
+import { die, DIR_FLAG } from '../lib/paths'
 import { findCard } from '../lib/view/read'
 import type { MoveResult } from '../lib/types'
 import { parseFlags } from '../lib/validate'
@@ -39,28 +39,25 @@ const FOLLOW_MS = 400
 /** The one door every kind of run goes through: work out what was asked for, write it
  *  down, hand it to a watcher, and say which run started.
  *
- *  Or print the flow and start nothing — `--print`. Two callers don't pick, and they pick
- *  opposite ways (see `lib/agent/flow.ts`): an agent inside a run the board started always
- *  prints, because a run never starts another; an agent answering in a conversation always
- *  starts the run, because a conversation never does a run's work. */
+ *  Or print the flow and start nothing — `--print`. An agent inside a run the board started
+ *  always prints because a run never starts another. A chat follows the same choice as any
+ *  coding-agent conversation: `--print` works here, and omitting it starts a run. */
 export function cmdStartRun(action: AgentAction, args: string[], program = 'akb'): MoveResult {
   const { req, follow, print } = readRequest(action, args)
   const inside = insideRun()
-  const chat = insideChat()
-  if (inside || (print && !chat)) {
+  if (inside || print) {
     if (!print) say(`inside run ${short(inside!)} — a run never starts another, so here is the flow instead.`)
     return printFlow(req, program)
   }
-  if (print) say('in a conversation — a chat never does a run\'s work itself, so it started the run instead.')
   sayIfBlocked(req)
   const started = startRun(req)
   if ('error' in started) die(started.error, { kind: 'run-refused', action })
   const { run, spawned } = started
   if (!spawned) die(`couldn't start a process to run ${run.sessionId}`, { kind: 'spawn-failed' })
   say(`${action} — run ${run.sessionId}`)
-  say(`  follow it: ${program} log ${short(run.sessionId)} --follow`)
-  say(`  stop it:   ${program} stop ${short(run.sessionId)}`)
-  if (follow) return { sessionId: run.sessionId, ...followRun(run.sessionId) }
+  say(`  follow it: ${program} log ${short(run.sessionId)} --follow${DIR_FLAG}`)
+  say(`  stop it:   ${program} stop ${short(run.sessionId)}${DIR_FLAG}`)
+  if (follow) return { sessionId: run.sessionId, ...followRun(run.sessionId, '', program) }
   return { sessionId: run.sessionId, action, cardId: run.cardId }
 }
 
@@ -192,7 +189,7 @@ export function cmdStop(args: string[]): MoveResult {
 // ---- reading ---------------------------------------------------------------
 
 /** What is running, and what ran lately. */
-export function cmdRuns(args: string[]): MoveResult {
+export function cmdRuns(args: string[], program = 'akb'): MoveResult {
   const { flags } = parseFlags(args, [...SHARED, 'card', 'all'])
   let runs = listRuns()
   const card = flags.card === undefined ? null : Number(flags.card)
@@ -206,27 +203,27 @@ export function cmdRuns(args: string[]): MoveResult {
     say(card !== null ? `nothing has run on #${card}` : 'nothing is running, and nothing has lately')
     return { runs: [] }
   }
-  for (const r of shown) say(runLine(r))
+  for (const r of shown) say(runLine(r, program))
   if (live.length) say('')
   say(
     live.length
-      ? `${live.length} running. Follow one with \`akb log <id> --follow\`.`
+      ? `${live.length} running. Follow one with \`${program} log <id> --follow${DIR_FLAG}\`.`
       : 'nothing running.',
   )
   return { runs: shown }
 }
 
 /** One run's log — what it is doing, or what it did. */
-export function cmdLog(args: string[]): MoveResult {
+export function cmdLog(args: string[], program = 'akb'): MoveResult {
   const { flags, positional } = parseFlags(args, [...SHARED, 'full'])
   const id = positional[0] ?? 'last'
   const view = getRun(id, flags.full === true ? Infinity : undefined)
   if (!view) die(`no run here answers to "${id}"`, { kind: 'no-such-run', run: id })
   if (flags.follow === true) {
-    say(runLine(view))
-    return { sessionId: view.sessionId, ...followRun(view.sessionId, view.tail ?? '') }
+    say(runLine(view, program))
+    return { sessionId: view.sessionId, ...followRun(view.sessionId, view.tail ?? '', program) }
   }
-  say(runLine(view))
+  say(runLine(view, program))
   say('')
   if (view.tail) say(view.tail)
   if (view.result) {
@@ -246,7 +243,7 @@ export function cmdLog(args: string[]): MoveResult {
 //
 // It reads the file rather than the run's own output, so it works on any run, including
 // one this machine did not start.
-export function followRun(sessionId: string, already = ''): MoveResult {
+export function followRun(sessionId: string, already = '', program = 'akb'): MoveResult {
   const view = getRun(sessionId)
   if (!view) return {}
   let seen = already.length
@@ -272,7 +269,7 @@ export function followRun(sessionId: string, already = ''): MoveResult {
         say(now.result)
       }
       say('')
-      say(runLine(now ?? view))
+      say(runLine(now ?? view, program))
       return { status: now?.status, result: now?.result }
     }
     sleep(FOLLOW_MS)
@@ -295,7 +292,7 @@ const MARK: Record<string, string> = {
   stopped: '■',
 }
 
-function runLine(r: RunView): string {
+function runLine(r: RunView, program = 'akb'): string {
   // A spec run says which agent it is: `spec` alone would read the same for every one of
   // them, and which agent is working is the whole of what that row has to say.
   const kind = r.specAgent ? `${r.action} ${r.specAgent}` : r.action
@@ -308,7 +305,7 @@ function runLine(r: RunView): string {
   if (r.durationMs !== undefined) bits.push(`in ${ago(r.durationMs)}`)
   if (r.model) bits.push(r.model)
   if (r.costUsd !== undefined) bits.push(`$${r.costUsd.toFixed(4)}`)
-  if (r.canResume) bits.push('— continue it with `akb resume ' + short(r.sessionId) + '`')
+  if (r.canResume) bits.push(`— continue it with \`${program} resume ${short(r.sessionId)}${DIR_FLAG}\``)
   const line = bits.join('  ')
   return r.input ? `${line}\n    ${firstLine(r.input)}` : line
 }

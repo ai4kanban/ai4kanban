@@ -6,7 +6,7 @@ roi: high
 status: todo
 release: 0.7.1
 blocked_by: []
-related: [263]
+related: []
 modules: [skill]
 questions:
   - question: "[user] Should what the chat passes to the run also be written onto the card, so it survives the conversation?"

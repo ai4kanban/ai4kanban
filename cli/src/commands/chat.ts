@@ -44,7 +44,7 @@ export async function cmdChat(args: string[], program = 'akb'): Promise<MoveResu
     return { cardId, cleared: had }
   }
 
-  const title = cardId === null ? undefined : cardTitle(cardId)
+  if (cardId !== null) assertCardExists(cardId)
   const view = readChatView(cardId)
   if (!message) {
     printChat(view, program)
@@ -58,7 +58,6 @@ export async function cmdChat(args: string[], program = 'akb'): Promise<MoveResu
   const live = !collecting()
   if (live) process.stdout.write('\n')
   const sent = await sendChatMessage(cardId, message, {
-    title,
     onText: live ? (chunk) => process.stdout.write(chunk) : undefined,
     // Ctrl-C ends the reply rather than this command: what arrived is still kept, and the
     // conversation carries on from the next message.
@@ -84,10 +83,9 @@ export async function cmdChat(args: string[], program = 'akb'): Promise<MoveResu
 }
 
 // A conversation about a card the board hasn't got is a typo, not a conversation.
-function cardTitle(cardId: number): string {
+function assertCardExists(cardId: number): void {
   const title = titleOf(cardId)
   if (!title) die(`no card #${cardId} on this board. \`akb board list\` says what is open.`, { kind: 'card-not-found', id: cardId })
-  return title
 }
 
 // ---- how a conversation reads ----------------------------------------------

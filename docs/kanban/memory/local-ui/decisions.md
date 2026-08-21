@@ -207,10 +207,9 @@ re-ask a settled call.
   buttons. The board redraws where it stands.
 - **Does any of it ask first?**: no. Every action goes straight through, archive, reject and
   starting a build included; the changes sit in the working tree for git to undo.
-- **How does a chat choose between doing a flow here and starting a run?**: the chat
-  decides, ask by ask — a flow that ends in a call only the user can make stays in the
-  conversation, and everything else starts a run. The user is never asked which way, but
-  saying which way still wins.
+- **How does chat choose between doing work here and starting a run?**: it adds no rule of
+  its own. The rail is an ordinary kanban-skill session: `--print` does a flow there, no
+  flag starts a run, and users may run any `akb` command they want.
 
 ## Moving around the app
 

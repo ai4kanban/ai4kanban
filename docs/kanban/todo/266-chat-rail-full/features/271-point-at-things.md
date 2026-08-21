@@ -100,8 +100,8 @@ text that clips rather than wraps.
   strongest part of it and the folders quiet behind. A path too long for the rail loses its
   front, never its name.
 - **A flow**: the flow's name, then what it does in one quiet line — *Refine — sharpen a
-  card until it can be built*. No row shows the words the pick will write, because #263 has
-  not settled them.
+  card until it can be built*. No row previews the prompt it inserts; the name and one-line
+  explanation are enough to choose it.
 
 ### The options
 
@@ -137,9 +137,9 @@ readability the board needs only for its longest paths and pays four entries for
 the conversation under the reader every time the list opens.
 
 ## Decided by the agent
-- **Why a pick writes plain words instead of a command**: #263 has not settled whether a
-  flow runs inside the conversation or goes to a background run. Words work either way; a
-  command would settle it early, and in the wrong place.
+- **Why a pick writes plain words instead of a command**: the rail is an ordinary
+  kanban-skill conversation. Plain words are the request; the skill chooses the matching
+  `akb` command, and the user may type a command directly whenever they want.
 - **Which memory notes are listed**: the four each module keeps — `readme.md`,
   `decisions.md`, `rejected.md`, `redesign.md` — and `goal.md`. The same files the Memory
   panel in the left rail already offers.

@@ -30,5 +30,5 @@ section and nobody noticing. The refine flow already has the step; add-task does
 - The agents themselves, and the wording of what each is called on.
 
 ## Todo
-- [ ] Add the spec-agent step to `cli/src/guide/add-task.md`.
-- [ ] Keep it under four lines — the flow is read on every card written.
+- [x] Add the spec-agent step to `cli/src/guide/add-task.md`.
+- [x] Keep it under four lines — the flow is read on every card written.

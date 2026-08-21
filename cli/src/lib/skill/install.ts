@@ -1,9 +1,9 @@
 // Putting the coding agent skill into a project, and reading whether it is there.
 //
 // Installing a board no longer writes this (#174). A board is scaffolded on its own, and
-// the skill — driving that same board from your coding agent — is added afterwards, on
-// purpose: from the button in the UI's Configuration dialog, or `akb skill install` in a
-// terminal. Both doors come here, so what a skill folder holds is decided once.
+// the skill — driving that same board from your coding agent — is added afterwards: from
+// the UI, `akb skill install`, or automatically before a fresh chat. Every door comes here,
+// so what a skill folder holds is decided once.
 //
 // A folder is one file: the short note the agent reads, bundled into this build the way the
 // flows are. So a lone `kanban.mjs`, wherever it was loaded from, can write a whole skill
@@ -253,6 +253,29 @@ export function installSkill(root?: string, only?: 'present', invoked?: string):
     return { ok: false, error: `nothing was written — ${skipped.map((s) => `${s.path}: ${s.why}`).join('; ')}`, wrote, skipped, state }
   }
   return { ok: true, wrote, skipped, state }
+}
+
+/** Make both harness skill folders current without rewriting one that already is. A fresh
+ *  chat calls this before invoking the skill by name. */
+export function ensureSkillInstalled(root?: string, invoked?: string): SkillInstall {
+  let state: SkillState
+  try {
+    state = readSkillState(root)
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e), wrote: [], skipped: [], state: emptyState() }
+  }
+  const ready = (folder: SkillFolder): boolean => folder.state === 'current' || folder.state === 'linked'
+  if (state.folders.every(ready)) {
+    return { ok: true, wrote: [], skipped: [], state }
+  }
+  const installed = installSkill(root, undefined, invoked)
+  const unavailable = installed.state.folders.filter((folder) => !ready(folder))
+  if (!unavailable.length) return installed
+  return {
+    ...installed,
+    ok: false,
+    error: `the kanban skill could not be installed at ${unavailable.map((folder) => folder.path).join(', ')}`,
+  }
 }
 
 function emptyState(): SkillState {

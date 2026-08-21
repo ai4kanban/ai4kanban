@@ -51,10 +51,9 @@ Print it, or run it — the two modes every command above has
   still be followed by starting a run; a started run costs a second agent, a second
   context, and money nobody asked to spend.
 
-  Two callers don't choose, and they choose opposite ways. An agent already working
-  inside a run the board started always prints: a run never starts another run, so it
-  cannot spawn a copy of itself. An agent answering in a conversation always starts the
-  run: a chat never does a run's work itself, so --print there is ignored.
+  One caller does not choose: an agent already working inside a run the board started
+  always prints, because a run never starts another run. Chat follows the ordinary rule
+  above: --print does the work in that conversation; no flag starts another agent.
 
 Spec agents — a named agent that fills one part of a card's spec
   spec                         the spec agents this board has, and what each one owns
@@ -75,20 +74,18 @@ Talking to the agent — a conversation that also does the board work
   chat <id> "<message>"        say something about that card
   chat [<id>] --clear          forget that conversation and start fresh
 
-  The first message opens with the board — the goal, the modules, the tracks, every open
-  card in one line, the card itself when one is named, and the flow a conversation
-  follows (\`${program} guide chat\`). Nothing has to be explained to it.
+  Before opening a fresh conversation, chat ensures the kanban skill is installed. Its
+  first prompt is only that agent's skill invocation followed by your message: /kanban
+  for Claude Code, $kanban for Codex, or "Use the kanban skill:" for an agent without
+  direct invocation syntax.
 
   The reply arrives as it is written, and the next message lands in the same session —
   the agent still has everything said before. The board's conversation and each card's
   are separate, and both live on this machine until they are cleared.
 
-  It changes the board. Once the conversation has settled a change, the chat makes it —
-  writes a card, rewords one, answers its questions, moves it into a release or out,
-  archives it, drops it — with the same moves a button calls, and without asking to be
-  told to go ahead. Work the board goes away and does is a run it starts instead:
-  building a card, sharpening one, proposing tasks, filling a release. It never writes
-  this project's code itself, and it leaves what it wrote uncommitted.
+  From there it is an ordinary conversation with the kanban skill. The skill chooses
+  whether to print a flow and do it here or start a background run; saying which one you
+  want wins.
 
   A change to a card a run is working on is refused, and the refusal names the card and
   what that run is doing.

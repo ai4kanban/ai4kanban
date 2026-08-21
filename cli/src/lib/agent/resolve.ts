@@ -8,7 +8,7 @@
 
 import { harnessGaps } from './capabilities'
 import type { RunClient } from './client'
-import { HARNESSES, type Harness, DEFAULT_HARNESS, harnessByName, namesFlag } from './harnesses'
+import { HARNESSES, type Harness, DEFAULT_HARNESS, SKILL_SENTENCE, harnessByName, namesFlag } from './harnesses'
 import { commandBinary, pathLookup } from './installed'
 import { missingRequired, pickedProvider, providerSetting, shownForProvider } from './providers'
 import { configBlock, readConfigRaw, readEnvFile } from './settings'
@@ -392,10 +392,16 @@ export function adoptsSessionId(harnessName: string): boolean {
   return !!harness && harness.resumes && harness.adoptsSessionId
 }
 
-/** How a prompt calls the skill under the agent the board runs right now — `/kanban` for
- *  Claude Code, `$kanban` for Codex. Every prompt opens with it. */
+/** How a fresh prompt calls the skill under the configured agent — `/kanban` for Claude
+ *  Code, `$kanban` for Codex, or a sentence when the harness has no direct syntax. */
 export function skillCall(): string {
   return resolveHarness().harness.skillCall
+}
+
+/** Invoke the configured agent's skill with one user's words and no extra prompt. */
+export function skillPrompt(message: string): string {
+  const call = skillCall()
+  return call === SKILL_SENTENCE ? `${call}: ${message}` : `${call} ${message}`
 }
 
 /** The one line the board hands the user to paste into their coding agent for the setup

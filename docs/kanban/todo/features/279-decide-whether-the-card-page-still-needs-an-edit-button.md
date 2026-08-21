@@ -5,7 +5,7 @@ priority: med
 roi: med
 status: todo
 release: ""
-blocked_by: [263, 274]
+blocked_by: [274]
 related: [266]
 modules: [local-ui]
 questions:
@@ -28,7 +28,7 @@ either cut it or give it a job the chat doesn't already do.
 - **Edit opens a box and starts a run.** You type what should change, wait out a run, and
   read the result. You cannot correct it except by starting another one.
 - **The chat rail, on the same page, is that card's chat.** Ask it for the same rewrite and
-  it makes the change itself (#263) and a correction is one more message.
+  the kanban skill can make the change in that session, and a correction is one more message.
 - **#274 takes the rest.** Title, body, track, modules, blocked-by and related start saving
   straight to the file, with no run at all.
 - What Edit is left with is "ask an agent to rewrite the plan" — which is what the chat is.

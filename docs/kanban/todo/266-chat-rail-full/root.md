@@ -71,8 +71,8 @@ Common to the coding agents' own chats — Claude Code and Codex both:
 - The rail stays a rail: folded by default, the board still the centre of the app.
 
 ## Scope out
-- Nothing about what the chat is allowed to do to the board — that is #263 and #264.
-- The chat still never writes this project's code.
+- Nothing about what the chat is allowed to do — the rail is an ordinary kanban-skill
+  session and adds no restrictions. Carrying conversation context into a run remains #264.
 - No second chat window and no full-screen chat page.
 
 ## Todo

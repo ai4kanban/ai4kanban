@@ -29,8 +29,6 @@ import { cmdList } from '../commands/list'
 import { cmdRelease } from '../commands/release'
 import { cmdSetupDone, cmdSetupStatus } from '../commands/setup'
 import { cmdSpecWrite } from '../commands/spec-write'
-import { insideChat } from './agent/flow'
-import { heldByRun } from './agent/sessions'
 import type { MoveResult } from './types'
 
 // How a move is run: whatever argv had left after the shared options were taken out.
@@ -73,29 +71,6 @@ const READ_ONLY = new Set(['list', 'peek', 'metrics', 'setup-status'])
 
 // `init` is the one move that may run where no board exists yet — it is what makes one.
 const MAKES_A_BOARD = 'init'
-
-// Moves that change one card, named by the id they take first. A conversation is refused
-// one of these while a run holds that card (`heldByRun`) — the card's own buttons already
-// go grey while a run has it, and the board says no where they do.
-//
-// The check is the BOARD's, not the chat's: a chat could skip its own, and the board is
-// what knows which runs are live. It is asked only of a conversation, because the other two
-// callers are the ones it would break — the run working on that very card calls these moves
-// to do its job, and a person at a terminal is not a thing the board second-guesses.
-//
-// `spec-write` and `record-run` are out of it for the same reason a spec run holds no card:
-// they are a run's own bookkeeping, not a change to the plan.
-const CARD_MOVES = new Set(['update', 'update-questions', 'update-verify', 'schedule', 'tag', 'archive', 'reject'])
-
-/** Refuse a card move a conversation may not make right now. Asked before the board's lock
- *  is taken: reading the run record can reach for that lock from the other side. */
-function refuseHeldCard(move: string, args: string[]): void {
-  if (!CARD_MOVES.has(move) || !insideChat()) return
-  const id = Number(args[0])
-  if (!Number.isInteger(id)) return
-  const held = heldByRun(id)
-  if (held) die(held, { kind: 'card-held', id })
-}
 
 // ---- the shared options ----------------------------------------------------
 
@@ -277,8 +252,7 @@ export function runBoard(argv: string[], options: RunBoardOptions = {}): number 
   const box = json ? startCollecting() : null
   try {
     const root = resolveBoard(move, { dir, cwd, installHint })
-    setBoardRoot(root)
-    refuseHeldCard(move, args)
+    setBoardRoot(root, dir !== null)
     const invoke = () => RUN[move](args) || {}
     const data = READ_ONLY.has(move) ? invoke() : withBoardLock(invoke)
     if (json) answer({ ok: true, board: KANBAN, ...data, ...prose(box) })

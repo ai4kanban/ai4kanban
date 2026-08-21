@@ -15,3 +15,8 @@ covers it, or a plain-words note.
 - Which coding agents the board runs, what each reports back, what a run may touch, and
   every agent's own settings — including ZCode, where the command comes from a package that
   isn't Z.ai's and a run has no fence around the project: `docs/guides/connectors.md`.
+- Which GLM Coding Plan tier to buy to run the board on ZCode — the three tiers, their
+  credit caps on both the 5-hour and weekly clocks, the models every tier reaches, and that
+  the plan bought through BigModel in mainland China is the same plan. The tier numbers come
+  from Z.ai's and BigModel's own docs and are marked untested; `README-zh.md` points at the
+  section, `README.md` does not: `docs/guides/connectors.md`.

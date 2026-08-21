@@ -42,6 +42,9 @@ before proposing so you don't re-suggest them.
 
 ## Runs
 
+- **A separate flow that limits what chat may do** — the chat rail is just a kanban-skill
+  session, like chatting with Claude Code. Users may run any `akb` command in it, so chat
+  needs no second workflow or permission layer.
 - **Human-in-the-loop / mid-run reply to the agent** — no live reply channel. The agent
   raises open questions on the card and the user answers those; watching a run is a
   read-only tail of its log.

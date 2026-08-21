@@ -6,7 +6,7 @@ roi: high
 status: todo
 release: ""
 blocked_by: []
-related: [229, 266, 263]
+related: [229, 266]
 modules: [local-ui, skill]
 questions:
   - question: "[user] Nothing is configured yet on a first run, so what does the setup conversation itself run on?"

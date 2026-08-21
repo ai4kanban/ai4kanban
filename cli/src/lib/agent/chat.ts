@@ -26,9 +26,8 @@ import type { Readable, Writable } from 'node:stream'
 
 import { pidAlive } from '../lock'
 import { CHATS_DIR, REPO_ROOT } from '../paths'
-import { markedEnv } from './flow'
-import { chatOpening } from './opening'
-import { chatAgent, harnessLabel, openPlan, planResume, planRun, type RunPlan } from './resolve'
+import { ensureSkillInstalled } from '../skill/install'
+import { chatAgent, harnessLabel, openPlan, planResume, planRun, skillPrompt, type RunPlan } from './resolve'
 import { createStderrFilter } from './stream'
 import type { Chat, ChatMessage, ChatReply, ChatView } from './types'
 
@@ -208,8 +207,6 @@ export interface SendOptions {
   /** Handed a way to end the reply early, once the agent is running. What arrives before
    *  it is called is kept, the same as a reply that dies on its own. */
   onOpen?(stop: () => void): void
-  /** The card's title, so the first message can say what the card is called. */
-  title?: string
 }
 
 /** Send one message and answer with the reply. Never throws: everything that can go wrong
@@ -237,25 +234,28 @@ export async function sendChatMessage(
       startedAt: now,
       updatedAt: now,
     }
+    if (!held.resumeId) {
+      const skill = ensureSkillInstalled(REPO_ROOT)
+      if (!skill.ok) return { error: skill.error || 'the kanban skill could not be installed.' }
+    }
     // Written down before the agent is asked anything, so a reply that never arrives still
     // leaves the conversation holding what the user said.
     held.messages.push({ role: 'you', text, at: now })
     held.updatedAt = now
     writeChat(held)
 
-    // Carrying the conversation on, or opening it. A first message opens with what this
-    // conversation is about; every one after it is the user's words and nothing else — the
-    // agent already has the rest.
+    // A fresh session is the configured harness's direct skill call and the user's words,
+    // nothing else. Every later turn is only the user's words; the skill and the exchange
+    // are already in that agent's session.
     const plan = held.resumeId ? planResume(held.harness, held.resumeId) : planRun(randomUUID())
     if (!plan) {
       return { error: `${agent.label} can't carry on a ${harnessLabel(held.harness)} conversation. Clear it to start fresh.` }
     }
-    const prompt = held.resumeId ? text : `${chatOpening(cardId, options.title)}\n\n${text}`
+    const prompt = held.resumeId ? text : skillPrompt(text)
 
     const spoken = await speak({
       plan,
       prompt,
-      chatKey: keyOf(cardId),
       continuing: held.resumeId,
       onText: options.onText ?? (() => {}),
       onOpen: options.onOpen,
@@ -313,9 +313,6 @@ const CLOSE_GRACE_MS = 3_000
 async function speak(io: {
   plan: RunPlan
   prompt: string
-  /** Which conversation this is, put on the agent's own environment — what makes a board
-   *  move called from here answer as a chat's rather than as a person's at a terminal. */
-  chatKey: string
   continuing?: string
   onText(chunk: string): void
   onOpen?(stop: () => void): void
@@ -344,7 +341,7 @@ async function speak(io: {
       // The project, not this process's cwd: a chat runs inside the board server, whose cwd
       // is its own bundled folder in the app. See the note in agent/test.ts.
       cwd: REPO_ROOT,
-      env: markedEnv(active.env, 'chat', io.chatKey),
+      env: active.env,
       shell: false,
       stdio,
     }) as ChildProcessByStdio<Writable | null, Readable, Readable>

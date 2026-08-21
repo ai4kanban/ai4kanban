@@ -49,43 +49,15 @@ import type { AgentAction, AgentRequest } from './types'
  *  run a user deliberately asked for. */
 export const RUN_ENV = 'KANBAN_RUN'
 
-/** The variable a conversation puts on the agent it spawns, naming which conversation it is
- *  — `board`, or `card-12` (lib/agent/chat.ts).
- *
- *  It is the mirror of the one above, and it settles the mode the same way. A run never
- *  starts another run; a conversation never does a run's work. So an agent answering in a
- *  chat that asks for a board action gets the run started, whether or not it said --print —
- *  the conversation is where the user is sitting, and the work it would have done there is
- *  work the board is meant to go away and do. */
-export const CHAT_ENV = 'KANBAN_CHAT'
-
 /** The run this process is working inside, when the board started it — otherwise null. */
 export function insideRun(): string | null {
   const id = process.env[RUN_ENV]
   return id && id.trim() ? id.trim() : null
 }
 
-/** The conversation this process is answering in, when a chat spawned it — otherwise null. */
-export function insideChat(): string | null {
-  const key = process.env[CHAT_ENV]
-  return key && key.trim() ? key.trim() : null
-}
-
-/** One environment carrying exactly one of the two marks.
- *
- *  Both spawns start from this process's own environment, so the mark it was started under
- *  travels into the child unless it is taken out — and a run started from a conversation
- *  would then read as both at once, print instead of running and refuse its own card's
- *  moves. The modes are opposite, so a child is only ever in one of them. */
-export function markedEnv(
-  env: NodeJS.ProcessEnv,
-  mark: 'run' | 'chat',
-  value: string,
-): NodeJS.ProcessEnv {
-  const [mine, theirs] = mark === 'run' ? [RUN_ENV, CHAT_ENV] : [CHAT_ENV, RUN_ENV]
-  const out = { ...env, [mine]: value }
-  delete out[theirs]
-  return out
+/** Put the run's id into the environment its agent receives. */
+export function runEnv(env: NodeJS.ProcessEnv, value: string): NodeJS.ProcessEnv {
+  return { ...env, [RUN_ENV]: value }
 }
 
 // How many of a card's remaining steps are printed before the rest are counted instead. A

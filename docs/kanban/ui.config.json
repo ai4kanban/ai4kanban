@@ -4,6 +4,9 @@
     "claude-code": {
       "provider": "subscription",
       "model": "claude-opus-5"
+    },
+    "zcode": {
+      "provider": "coding-plan"
     }
   }
 }

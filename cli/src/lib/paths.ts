@@ -81,11 +81,17 @@ export let CHATS_DIR = ''
 // README index, metrics.csv). Across processes, so the UI and a terminal wait for each
 // other and not only for themselves.
 export let INDEX_LOCK = ''
+// ` --dir <path>` when this command was told which board with `--dir`, empty when it found
+// one from the working directory. Every hint the board prints for a person to paste back —
+// follow it, stop it, resume it — carries this, or the paste lands on whatever board the
+// folder they are standing in has, which is usually none.
+export let DIR_FLAG = ''
 
 // Point every path above at one project's board. Called once per command, before the
-// command runs.
-export function setBoardRoot(root: string): string {
+// command runs. `named` is whether `--dir` chose it, which is what DIR_FLAG reports.
+export function setBoardRoot(root: string, named = false): string {
   REPO_ROOT = path.resolve(root)
+  DIR_FLAG = named ? ` --dir ${REPO_ROOT}` : ''
   KANBAN = path.join(REPO_ROOT, 'docs', 'kanban')
   TODO = path.join(KANBAN, 'todo')
   ARCHIVE = path.join(KANBAN, '.archive')

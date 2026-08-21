@@ -95,26 +95,21 @@ Reach for it when:
 | to understand a card before you approve it | it answers |
 | to compare two cards, or spot a duplicate | it answers |
 | a change you have already settled — reword it, put it in v1, archive it | it makes the change |
-| the card worked out, or the code written | it starts a run — `akb refine 4`, `akb implement 4` |
+| the card worked out, or the code written | the skill does its printed flow here unless you ask for a background run |
 
-What it changes is the board, never your code. It writes cards, rewords them, answers their
-open questions, moves them between releases, archives and drops them — with the board's own
-moves, straight away, without asking you to confirm. What it leaves is uncommitted, the same
-as a run does.
-
-Anything the board goes away and works out is a run it starts for you, and that run is an
-ordinary one: it is in `akb runs`, its log streams, you can stop or resume it. Ask for
-something to happen in the background and you get a run for that too.
+Chat is the kanban skill in a persistent agent session. It follows the same board-specific
+flows as the skill in your coding agent, including writing code when that is the flow. By
+default it prints the flow and does the work here; ask for a background run when you want
+another agent to take it independently.
 
 A card a run is already working on is off limits — the change is refused, and the refusal
 names the card and what that run is doing. The chat itself is still not a run: it shows in
 no runs panel and holds no card, so it never gets in the way of work already going.
 
-Two things to know. The board it was shown is the board as it stood when the conversation
-started, so on anything that may have moved it goes and reads the card again rather than
-answering from memory. And each conversation is separate and lives on your machine, under
-`docs/kanban/.chats/` and out of git — `akb chat 241` picks yours up from any terminal,
-`akb chat 241 --clear` starts it fresh on the board as it stands then.
+Two things to know. A fresh chat prompt is only the harness's kanban-skill invocation plus
+your message; the skill reads the live board itself. And each conversation is separate and
+lives on your machine, under `docs/kanban/.chats/` and out of git — `akb chat 241` picks
+yours up from any terminal, and `akb chat 241 --clear` starts it fresh.
 
 ## Plan a release
 

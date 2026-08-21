@@ -3,12 +3,13 @@ title: Turn a spec you already wrote into the cards that build it
 track: skill
 priority: med
 roi: high
-status: ready
+status: todo
 release: ""
-blocked_by: [249]
-related: [249, 250, 251, 252]
+blocked_by: []
+related: [250, 251, 252]
 modules: [skill]
-questions: []
+questions:
+  - Rejecting the release-plan grouping card took away the plan to let a command write a group root and its subtasks. Should this flow still group tightly coupled pieces, and if so, how are the cards written?
 ---
 
 Most people arrive with a plan already written — a spec, a design doc, a list in a

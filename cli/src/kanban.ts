@@ -44,8 +44,8 @@ export { CONFIG_TEMPLATE, missingConfigKeys } from './lib/config-template'
 
 // The coding agent skill: whether this project has one, and the move that adds it. Not
 // part of installing a board (#174) — `akb install` scaffolds the board and stops there,
-// and this is what the UI's button and `akb skill install` both call.
-export { installSkill, readCommandState, readSkillState, rulesPath, NEWER_COMMAND_LINE } from './lib/skill/install'
+// and this is what the UI, `akb skill install`, and a fresh chat call.
+export { ensureSkillInstalled, installSkill, readCommandState, readSkillState, rulesPath, NEWER_COMMAND_LINE } from './lib/skill/install'
 export type * from './lib/skill/types'
 
 // What a board UI reaches for: the same run engine `akb` drives, so a run started from a

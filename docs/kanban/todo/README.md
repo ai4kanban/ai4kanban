@@ -44,17 +44,15 @@ _(none)_
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
 - [#221 Score how well the board does its own job](221-board-score/root.md)
 - [#246 Give each spec agent its own harness and model](skill/246-give-each-spec-agent-its-own-harness-and-model.md)
-- [#249 Group the cards a release plan creates, instead of writing them all loose](skill/249-group-the-cards-a-release-plan-creates-instead-of-writing-th.md)
 - [#261 Put what a human must read at the top of a card, and the agent's own notes at the bottom](skill/261-put-what-a-human-must-read-at-the-top-of-a-card-and-the-agen.md)
-- [#263 Do a card's flow in the chat, instead of only handing it to a run](skill/263-do-a-card-s-flow-in-the-chat-instead-of-only-handing-it-to-a.md)
 - [#264 Carry what the conversation settled into the run a chat starts](skill/264-carry-what-the-conversation-settled-into-the-run-a-chat-star.md)
 - [#281 Ask for a spec agent when a card is written, not only when it is refined](skill/281-ask-for-a-spec-agent-when-a-card-is-written-not-only-when-it.md)
+- [#282 ZCode's 'The login ZCode has' sign-in fails, and two places say it works](skill/282-zcode-s-the-login-zcode-has-sign-in-fails-and-two-places-say.md)
 
 ## distribution
 
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#202 Test whether the board changes what a coding agent builds](202-board-vs-no-board/root.md)
-- [#278 Say how to run the board on a Z.ai GLM Coding Plan](distribution/278-glm-coding-plan-route.md)
 
 ## recurring
 

@@ -38,8 +38,8 @@ lead with them. This is a group task; each piece is its own subtask in this fold
 - The guide reads as if the app is the normal way and the sentence is the other one.
 - Where `kanban-ui/README.md` already covers a screen, the guide points at it instead of
   describing the screen again.
-- Out of this group: doing a card's flow inside the chat instead of a run (#263), and
-  handing the board a file or your voice (#250). Those are other ways in, not missing
+- Out of this group: how the kanban skill handles a request in its ordinary chat session,
+  and handing the board a file or your voice (#250). Those are other ways in, not missing
   buttons.
 
 ## Todo

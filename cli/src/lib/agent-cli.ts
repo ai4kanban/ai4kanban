@@ -133,7 +133,7 @@ export async function runAgent(argv: string[], options: RunAgentOptions = {}): P
   let root: string
   try {
     root = resolveBoard('runs', { dir, cwd, installHint })
-    setBoardRoot(root)
+    setBoardRoot(root, dir !== null)
   } catch (err) {
     return report(err, { program, json })
   }

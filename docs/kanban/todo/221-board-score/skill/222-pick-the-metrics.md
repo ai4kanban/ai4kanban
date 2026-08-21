@@ -3,7 +3,7 @@ title: Pick the few numbers that say how well the board plans
 track: skill
 priority: high
 roi: high
-status: ready
+status: implementing
 release: 0.7.1
 blocked_by: []
 related: [221]

@@ -76,6 +76,37 @@ GLM Coding Plan.
   already set to. Write `zai/glm-5.3` to name the provider as well.
 - **The board's rules**: ZCode finds them in `.agents/skills/kanban/` by itself.
 
+#### Which Coding Plan to buy
+
+A GLM Coding Plan is sold in three tiers. All of them reach the same models — the tier
+buys quota, not a better model. Quota is spent as credits, on two clocks at once: a
+5-hour allowance that refreshes as it ages, and a weekly one that resets every 7 days.
+A run stops when either runs out.
+
+| Tier | Credits per 5 hours | Credits per week |
+| --- | --- | --- |
+| Lite | 2,000 | 10,000 |
+| Pro | 12,000 | 60,000 |
+| Max | 28,000 | 140,000 |
+
+Every tier reaches GLM-5.3, GLM-5-Turbo and GLM-4.7. Asking for GLM-5.2 or GLM-5.1 on a
+Coding Plan gets you GLM-5.3 — the older names still work, they just don't get you an
+older model.
+
+The plan sold through [BigModel](https://bigmodel.cn/glm-coding), Z.ai's mainland-China
+storefront, lists the same three tiers with the same credits and the same models. A key
+from either one goes in the same box.
+
+Tiers and quotas change. [Z.ai's plan page](https://z.ai/subscribe) and BigModel's are the
+current list; the table above is a snapshot.
+
+**Untested here.** The tier table is copied from Z.ai's and BigModel's own documentation —
+no one has watched a run exhaust each tier to confirm the numbers. What has been run: a
+BigModel-bought Coding Plan key drives cards end to end. A Z.ai-bought key has not been
+tried, and neither has GLM-4.7. `akb resume` does not work on ZCode — a resumed run is
+refused with a message about the model no longer being available — so a run that stops
+partway has to be started again.
+
 Press **Test** (or run `akb agent test`) to send one small message through the setup, so a
 bad login turns up here rather than on your next card.
 

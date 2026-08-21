@@ -202,23 +202,12 @@ covers it, or a plain-words note.
   chat is not a run — it never shows in `akb runs` and never holds a card — and it is offered
   only on an agent whose command takes a second message into its own session, which today is
   every agent the board ships: `cli/README.md`, "Talk to it about the board".
-- A conversation opens knowing what a coding agent knows after `/kanban`, so nothing has to
-  be explained to it: the goal, the module map, the tracks, the releases, every open card in
-  one line, the project's settings, and — on a card chat — that card whole, with its fields,
-  its open questions, and the cards it waits on and belongs to, by title. It is told where
-  the memory files are and to read them before it suggests anything, it is given the same
-  command list a coding agent gets. What it was shown is the board as it stood when the
-  conversation started, so it re-reads anything that may have moved:
-  `docs/guides/daily-loop.md`, "Talk it over, and let it do it", and `akb guide chat` for the
-  flow one follows.
-- A chat does the board work it is talking about, instead of handing back a command to type.
-  Once the conversation has settled a change it makes it — writes a card, rewords one,
-  answers its open questions, moves it into a release or out, archives it, drops it — with
-  the board's own moves, without asking to confirm first, and it says in one line what it did
-  and to which card. Work the board goes away and does is a run it starts instead: building a
-  card, sharpening a vague one, proposing tasks, filling a release, or anything asked for in
-  the background. That run is an ordinary run, in `akb runs` with its log, its stop and its
-  resume, and the chat never writes the project's code itself. A change to a card a run is
-  already working on is refused, and the refusal names the card and what that run is doing:
-  `cli/README.md`, "Talk to it about the board", and `akb guide chat`.
-
+- A fresh conversation is only the configured harness's kanban-skill invocation plus the
+  user's message: `/kanban` on Claude Code, `$kanban` on Codex, and a plain request on agents
+  without direct syntax. Chat installs the one shared skill first and sends no copied board
+  snapshot, command manual, environment rules, or separate chat flow:
+  `cli/README.md`, "Talk to it about the board".
+- Chat now behaves exactly like the kanban skill in a coding-agent conversation: `--print`
+  does the flow here, omitting it starts a background run, and the user's explicit choice
+  wins. The skill is the only maintained behavior source; there is no `akb guide chat`:
+  `docs/guides/daily-loop.md`, "Talk it over, and let it do it".

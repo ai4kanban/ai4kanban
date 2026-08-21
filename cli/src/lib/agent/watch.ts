@@ -15,7 +15,7 @@ import type { Readable, Writable } from 'node:stream'
 import fs from 'node:fs'
 
 import { REPO_ROOT, SESSIONS_DIR } from '../paths'
-import { markedEnv } from './flow'
+import { runEnv } from './flow'
 import { markBoard, refinesAfter, specRunsAfter, type BoardMarks } from './follow'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter } from './stream'
@@ -119,9 +119,8 @@ export async function watchRun(sessionId: string): Promise<number> {
       // can: the environment a run starts under is settled by the settings (resolve.ts),
       // which never see a session id. It is what stops a run spawning a copy of itself —
       // an agent inside a run that asks for a board action gets the flow printed instead
-      // (lib/agent/flow.ts). `markedEnv` also takes the conversation's mark back off: this
-      // run may have been started by a chat, and it is a run now.
-      env: markedEnv(active.env, 'run', sessionId),
+      // (lib/agent/flow.ts).
+      env: runEnv(active.env, sessionId),
       shell: false,
       // `claude -p` waits ~3s on a piped stdin, then logs a "no stdin data" warning into
       // our log. Close stdin so the log is only agent output.

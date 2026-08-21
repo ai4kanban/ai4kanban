@@ -168,15 +168,11 @@ akb chat 12                   # the conversation so far
 akb chat 12 --clear           # forget it and start fresh
 ```
 
-You explain nothing to open one. A conversation starts knowing what a coding agent
-knows after you type `/kanban`: your goal, your modules, your tracks, every open card in one
-line, and — when you name one — that card in full, with its fields, its open questions, and
-the cards it waits on and belongs to. It knows where your memory files are and reads them
-before it suggests anything, and it knows which `akb` command answers which ask.
-
-What it was shown is the board as it stood when the conversation started, so on anything
-that may have moved since — a card that was refined, a run that finished — it goes and reads
-again instead of answering from that snapshot.
+Before opening a fresh conversation, `akb chat` ensures this repo has the kanban skill. The
+first prompt is only the skill invocation and your message: `/kanban …` for Claude Code,
+`$kanban …` for Codex, and `Use the kanban skill: …` for an agent without direct skill-call
+syntax. There is no second chat flow or copied board snapshot; the skill reads the current
+board when it needs it.
 
 The reply arrives as it is written, and the next message lands in the same session — the
 agent still has everything said before, so you can ask a follow-up without explaining your
@@ -184,17 +180,10 @@ project again. Every message is its own command, so the conversation is picked u
 terminal and survives closing one. The board's conversation and each card's are separate,
 and both live under `docs/kanban/.chats/`, on your machine and out of git.
 
-**It changes the board.** Once the conversation has settled a change, the chat makes it
-rather than telling you which command to type — writes a card, rewords one, answers its
-open questions, moves it into a release or out of one, archives it, drops it. It uses the
-board's own moves, it doesn't ask you to confirm first, and it leaves what it wrote
-uncommitted, the same as a run does.
-
-**Work the board goes away and does is a run it starts** — building a card, sharpening a
-vague one, proposing tasks, filling a release. That run is an ordinary run: it shows in
-`akb runs`, streams its log, and can be stopped or resumed. Ask for something to happen in
-the background and you get a run for that too. The chat never writes your project's code
-itself.
+From there, chat behaves exactly like using the kanban skill in your coding agent. The skill
+prints the board-specific flow and does the work in the conversation by default; ask for a
+background run when you want another agent to take it independently. If you explicitly say
+which way, that wins.
 
 A change to a card a run is already working on is refused, and the refusal names the card
 and what that run is doing — the same rule that keeps two runs off one card.

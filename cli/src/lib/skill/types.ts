@@ -2,9 +2,9 @@
 //
 // The skill is the short note a coding agent reads plus the command beside it, written into
 // one folder per harness. It is NOT part of getting a board (#174): a board is scaffolded
-// without it, and it is added later, on purpose — from the button in the UI or one command
-// in a terminal. These shapes are what says whether a project has it, how current it is,
-// and what one install wrote.
+// without it, and it is added later — from the UI, one command in a terminal, or the first
+// chat. These shapes say whether a project has it, how current it is, and what one install
+// wrote.
 //
 // Pure types, no imports — so the board UI takes a copy (scripts/sync-format.mjs) and names
 // the same shapes the command does.
