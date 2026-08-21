@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FiCheck, FiHelpCircle } from "react-icons/fi";
+import { FiCheck, FiClipboard, FiHelpCircle } from "react-icons/fi";
 import { type Card, type SessionView } from "@/lib/types";
 import { parseQuestion } from "@/lib/questions";
 import { scheduleLabel } from "@/lib/schedule";
@@ -159,6 +159,21 @@ export function BoardCard({
                 </span>
               );
             })()}
+          {/* Things the build left for the user to check by hand (#231). Sky, never
+              the accent: the accent marks a question waiting on the user, and a
+              verify line waits on nobody — the card is done, this is what to look
+              at before accepting it. Its own mark, so it can't be read as one more
+              open question. */}
+          {card.verify.length > 0 && (
+            <span
+              tabIndex={0}
+              className="nb-tip inline-flex"
+              data-tip={`${card.verify.length} to check by hand`}
+              style={{ color: "var(--color-nb-sky-ink)" }}
+            >
+              <FiClipboard aria-hidden style={{ width: 12.5, height: 12.5 }} />
+            </span>
+          )}
           {card.todos.total > 0 && (
             <TodoProgress done={card.todos.done} total={card.todos.total} />
           )}

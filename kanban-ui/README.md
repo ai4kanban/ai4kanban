@@ -83,7 +83,8 @@ The header carries seven things:
   rejected cards, with totals above. The numbers come from `docs/kanban/metrics.csv`; the view
   only reads it. A board with nothing recorded yet says so.
 - **Configuration** (the gear) — see below.
-- **Chat** — a conversation about this project, in a rail down the right; see below.
+- **Chat** — a conversation about this project that also does the board work, in a rail down
+  the right; see below.
 
 ### Finding a card
 
@@ -109,16 +110,29 @@ file.
 
 The chat follows what is on screen: the board and a memory file get the conversation about the
 whole board, a card's page gets that card's own. Each one is separate — a card's is never mixed
-with the board's or with another card's.
+with the board's or with another card's. Walk to another card and nothing of the last one is
+left: not its messages, not a message you half typed, not the error its last send left behind.
+
+Before anything is said, the rail says where its answers come from — this card and the rest of
+the board, or the whole board — and offers three things worth asking. On a card those are what
+is unclear about it, whether it is too big to build in one go, and what could be cut.
 
 It answers from this project — the goal, the module map, the open cards, the memory, this
 board's settings — so you never have to explain the project. The reply appears as it is
 written, and where it names a card the name is a link to that card's page.
 
-- **It is not a run.** It shows in no runs panel, locks no card, and keeps no run off one — you
-  can talk about a card an agent is building.
-- **It changes nothing.** No card, no memory file, no code. When the answer is work, you get
-  the command to run.
+- **It changes the board.** Once you have settled a change, it makes it — writes a card,
+  rewords one, answers its open questions, puts it in a release or takes it out, archives it,
+  drops it. Straight away, with no "shall I?" first, and it says what it did.
+- **Work goes to a run.** Building a card, sharpening a vague one, proposing tasks, filling a
+  release — it starts a run and that run joins the runs panel like any other, with its log,
+  its Stop and its Resume. It never writes your project's code itself.
+- **The board keeps up.** A card it changes moves on the board while the reply is still
+  arriving. Archive or drop the card whose page you are on and the app goes back to the board.
+- **A card a run has is off limits.** The change is refused, and the refusal names the card
+  and what that run is doing.
+- **It is still not a run.** It shows in no runs panel, locks no card, and keeps no run off
+  one — you can talk about a card an agent is building.
 - **One message at a time.** The box is shut while a reply is coming.
 - **Folding it doesn't stop it.** The reply keeps arriving, and the Chat button marks that
   there is something to read.

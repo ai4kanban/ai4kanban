@@ -5,7 +5,7 @@
 // run's id and exits — the run outlives it — so the same run can be followed, stopped or
 // continued from anywhere, by anyone, including a process that never saw it start.
 
-import { insideRun, printFlow } from '../lib/agent/flow'
+import { insideChat, insideRun, printFlow } from '../lib/agent/flow'
 import { spawnWatcher } from '../lib/agent/launch'
 import { readLogTail, splitLog } from '../lib/agent/log'
 import {
@@ -38,16 +38,19 @@ const FOLLOW_MS = 400
 /** The one door every kind of run goes through: work out what was asked for, write it
  *  down, hand it to a watcher, and say which run started.
  *
- *  Or print the flow and start nothing — `--print`, and the one case the caller doesn't
- *  pick: an agent already working inside a run the board started, which never starts
- *  another (see `lib/agent/flow.ts`). */
+ *  Or print the flow and start nothing — `--print`. Two callers don't pick, and they pick
+ *  opposite ways (see `lib/agent/flow.ts`): an agent inside a run the board started always
+ *  prints, because a run never starts another; an agent answering in a conversation always
+ *  starts the run, because a conversation never does a run's work. */
 export function cmdStartRun(action: AgentAction, args: string[], program = 'akb'): MoveResult {
   const { req, follow, print } = readRequest(action, args)
   const inside = insideRun()
-  if (print || inside) {
+  const chat = insideChat()
+  if (inside || (print && !chat)) {
     if (!print) say(`inside run ${short(inside!)} — a run never starts another, so here is the flow instead.`)
     return printFlow(req, program)
   }
+  if (print) say('in a conversation — a chat never does a run\'s work itself, so it started the run instead.')
   const started = startRun(req)
   if ('error' in started) die(started.error, { kind: 'run-refused', action })
   const { run, spawned } = started

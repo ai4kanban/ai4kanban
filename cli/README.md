@@ -156,11 +156,14 @@ saved key is never read back.
 ## Talk to it about the board
 
 Sometimes the answer is a conversation, not a job. `akb chat` opens one about the whole
-board; `akb chat <id>` opens one about that card.
+board; `akb chat <id>` opens one about that card. It answers, and it does the board work
+you settle on in it.
 
 ```bash
 akb chat "what should I build next, and why?"
 akb chat 12 "what is still unclear about this card?"
+akb chat 12 "put this in v1 and drop the last todo"   # it makes the change
+akb chat "start a build on 12"                        # it starts the run
 akb chat 12                   # the conversation so far
 akb chat 12 --clear           # forget it and start fresh
 ```
@@ -169,8 +172,7 @@ You explain nothing to open one. A conversation starts knowing what a coding age
 knows after you type `/kanban`: your goal, your modules, your tracks, every open card in one
 line, and — when you name one — that card in full, with its fields, its open questions, and
 the cards it waits on and belongs to. It knows where your memory files are and reads them
-before it suggests anything, and it knows which `akb` command answers which ask, so when the
-answer turns out to be work it hands you the line to run rather than running it.
+before it suggests anything, and it knows which `akb` command answers which ask.
 
 What it was shown is the board as it stood when the conversation started, so on anything
 that may have moved since — a card that was refined, a run that finished — it goes and reads
@@ -182,9 +184,23 @@ project again. Every message is its own command, so the conversation is picked u
 terminal and survives closing one. The board's conversation and each card's are separate,
 and both live under `docs/kanban/.chats/`, on your machine and out of git.
 
-A chat is not a run: it never shows in `akb runs`, never holds a card, and never keeps a
-run off the card it is about. It builds nothing either — when the answer is work, start the
-run for it.
+**It changes the board.** Once the conversation has settled a change, the chat makes it
+rather than telling you which command to type — writes a card, rewords one, answers its
+open questions, moves it into a release or out of one, archives it, drops it. It uses the
+board's own moves, it doesn't ask you to confirm first, and it leaves what it wrote
+uncommitted, the same as a run does.
+
+**Work the board goes away and does is a run it starts** — building a card, sharpening a
+vague one, proposing tasks, filling a release. That run is an ordinary run: it shows in
+`akb runs`, streams its log, and can be stopped or resumed. Ask for something to happen in
+the background and you get a run for that too. The chat never writes your project's code
+itself.
+
+A change to a card a run is already working on is refused, and the refusal names the card
+and what that run is doing — the same rule that keeps two runs off one card.
+
+A chat is still not a run: it never shows in `akb runs`, never holds a card, and never keeps
+a run off the card it is about.
 
 Only an agent whose command can take a second message into its own session can hold a
 conversation. On any other one, chat says so and names the agents that can.

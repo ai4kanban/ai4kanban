@@ -106,6 +106,7 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     blocked_by: meta.blocked_by,
     related: meta.related,
     questions: meta.questions,
+    verify: meta.verify,
     modules: meta.modules,
     last_run: meta.last_run,
     cadence: meta.cadence,

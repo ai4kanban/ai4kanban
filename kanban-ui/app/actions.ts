@@ -216,7 +216,18 @@ function chatTarget(cardId: unknown): number | null | undefined {
 export async function readChatAction(cardId: number | null): Promise<ChatRead> {
   const target = chatTarget(cardId);
   if (target === undefined) {
-    return { chat: null, live: null, canChat: false, agent: "", able: [], missing: false, blocked: "that is not a card on this board." };
+    return {
+      chat: null,
+      live: null,
+      answering: false,
+      stamp: null,
+      cardGone: false,
+      canChat: false,
+      agent: "",
+      able: [],
+      missing: false,
+      blocked: "that is not a card on this board.",
+    };
   }
   return readChat(target);
 }

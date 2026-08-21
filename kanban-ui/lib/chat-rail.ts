@@ -15,6 +15,12 @@ import type { ChatRead } from "./chat";
 // What is kept in the browser is how the user likes the rail, not what was said: the fold
 // and the width belong to the window (like lib/rail-width.ts), and the conversation itself
 // is a file on this machine, read from the server.
+//
+// The same poll is what keeps the page under it honest (#243). A chat writes the board as
+// it answers, so every read carries the board's fingerprint; when that moves, the page is
+// told, and it re-reads. That is why a card archived mid-reply leaves the board in the same
+// second rather than at the end of the reply — and why the poll runs fast for any reply
+// being written on this machine, not only for one this window asked for.
 
 const OPEN_KEY = "kanban-ui.chat-open";
 const WIDTH_KEY = "kanban-ui.chat-width";
@@ -38,6 +44,13 @@ const OVERLAY_UNDER = "(width < 60rem)";
 const LIVE_MS = 350;
 const OPEN_MS = 2500;
 const FOLDED_MS = 8000;
+
+/** What a poll saw change on the board, handed to whoever is drawing the page. */
+export interface BoardChange {
+  /** This is a card's conversation and that card has gone — archived or rejected. The card's
+   *  page has nothing left to draw, so it goes back to the board. */
+  cardGone: boolean;
+}
 
 export interface ChatRail {
   /** The conversation on screen: a card id, or null for the board's own. */
@@ -72,15 +85,32 @@ export function useChatRail({
   projectRoot,
   cardId,
   cardTitle = "",
+  onBoardChanged,
 }: {
   projectRoot: string;
   cardId: number | null;
   cardTitle?: string;
+  /** Called when the board has moved since the last poll — by this chat, by a terminal one,
+   *  or by anything else on this machine. The page re-reads itself on it. */
+  onBoardChanged?(change: BoardChange): void;
 }): ChatRail {
   const [open, setOpen] = useState(false);
   const [read, setRead] = useState<ChatRead | null>(null);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Another card's page is another conversation, and nothing of the last one carries over
+  // to it: not its messages, not a half-typed message, not the error its last send left.
+  // Done while rendering rather than in an effect, so the new page never paints a frame of
+  // the old card's exchange before the first read of its own lands.
+  const [showing, setShowing] = useState(cardId);
+  if (showing !== cardId) {
+    setShowing(cardId);
+    setRead(null);
+    setDraft("");
+    setError(null);
+  }
+
   const overlay = useMatches(OVERLAY_UNDER);
   const { panel, onLayoutChanged, onDoubleClick } = useWidth();
   const seen = useSeen(projectRoot, cardId);
@@ -99,7 +129,26 @@ export function useChatRail({
   }, []);
 
   const live = read?.live ?? null;
-  const answering = live !== null;
+  // Any reply being written on this machine, not only one this window started: a
+  // conversation carried on from a terminal writes this same board, and the page under the
+  // rail has to keep up with it too.
+  const answering = live !== null || Boolean(read?.answering);
+
+  // The board's fingerprint as this window last saw it, and the callback to fire when it
+  // moves. Both in refs: they change what a poll DOES, never how often it runs, so neither
+  // belongs in the poll effect's dependencies — restarting the loop on a fresh closure
+  // would reset its cadence on every render.
+  const stampRef = useRef<string | null>(null);
+  const changedRef = useRef<typeof onBoardChanged>(onBoardChanged);
+  changedRef.current = onBoardChanged;
+
+  // A different conversation is a different page, freshly rendered from the board as it is,
+  // so whatever the last one had seen says nothing about this one. Kept out of the poll
+  // effect below, which also restarts when the cadence changes — losing the fingerprint
+  // there would swallow the very change that started a reply.
+  useEffect(() => {
+    stampRef.current = null;
+  }, [cardId]);
 
   useEffect(() => {
     let alive = true;
@@ -112,8 +161,15 @@ export function useChatRail({
       try {
         const next = await readChatAction(cardId);
         if (!alive) return;
-        answeringNow = next.live !== null;
+        answeringNow = next.live !== null || next.answering;
         setRead(next);
+        // The first read only takes the fingerprint down — there is nothing to compare it
+        // against yet, and firing on it would re-read a page that had only just rendered.
+        if (next.stamp !== null && next.stamp !== stampRef.current) {
+          const first = stampRef.current === null;
+          stampRef.current = next.stamp;
+          if (!first) changedRef.current?.({ cardGone: next.cardGone });
+        }
       } catch {
         // transient — the next tick tries again
       } finally {

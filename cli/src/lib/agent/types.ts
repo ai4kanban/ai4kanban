@@ -219,6 +219,10 @@ export interface ChatView {
   agent: string
   /** The labels of every agent that can hold one — what a refusal names. */
   able: string[]
+  /** A reply is being written this second — by this process or by any other on this
+   *  machine. A screen watches it to follow a conversation held in a terminal, and to keep
+   *  the board it is changing up to date while it writes. */
+  answering: boolean
   /** Why a message can't be sent right now, when something is in the way: the agent can't
    *  hold a conversation, this one belongs to another agent, or a reply is still coming. */
   blocked?: string

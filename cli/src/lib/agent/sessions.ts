@@ -426,6 +426,27 @@ function lockedBy(runs: RunRecord[], action: AgentAction, cardId: number | null)
   return undefined
 }
 
+/** Why this card can't be changed from outside a run this second — a live run is working on
+ *  it — or nothing when it is free. The sentence names the card and what that run is doing,
+ *  because "try again later" without either is a refusal nobody can act on.
+ *
+ *  A spec run holds nothing: it fills one section of the card and never the plan, which is
+ *  the same rule `lockedBy` follows when it decides whether a run may start.
+ *
+ *  Read through `listRuns`, so a run whose process died has already stopped counting as
+ *  live. That read takes the record's lock and may reach for the board's, so this is asked
+ *  BEFORE the board's own lock is taken, never while it is held. */
+export function heldByRun(cardId: number): string | undefined {
+  const live = listRuns().find(
+    (r) => r.status === 'running' && r.cardId === cardId && r.action !== 'spec',
+  )
+  if (!live) return undefined
+  return (
+    `#${cardId} is being ${VERB[live.action]} by run ${live.sessionId.slice(0, 8)} right now, ` +
+    `so the board won't change it. Wait for that run to end, or stop it.`
+  )
+}
+
 // The text the user typed for a run, pulled from whichever field carries it. A plan-release
 // run was never given text — the user named a version, and that version is what the run is
 // about, so it stands in.

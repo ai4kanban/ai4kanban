@@ -40,6 +40,15 @@ covers it, or a plain-words note.
   evidence, validates ideas by module, and skips work already supported or planned:
   `akb guide extract-ideas`.
 
+- A finished build leaves what only the user can confirm on the card's own `verify:` field
+  instead of as a fake open question — one short line each, written with
+  `akb board update-verify <id> --append ".."` and taken off with `--drop`/`--clear`. A
+  verify line is a note to read: nothing waits on it, and the card still reaches `ready`,
+  still resolves, and still archives with the lines travelling into the archive. A decision
+  only the user can make is still a `[user]` question, resolve moves a hand-check misfiled
+  as one across, and `akb board list` counts them beside the open questions: "What the build
+  leaves you to check" in `docs/guides/daily-loop.md`.
+
 ## Setup and the goal
 
 - Setup follows one guide — config, goal, decisions, modules, first tasks, in order. Its
@@ -185,17 +194,26 @@ covers it, or a plain-words note.
   session so the agent still has everything said before, and `akb chat [<id>] --clear` starts
   fresh. Each conversation is picked up from any terminal and survives closing one; the
   board's and each card's are separate, kept under `docs/kanban/.chats/` and out of git. A
-  chat is not a run — it never shows in `akb runs`, never holds a card, and builds nothing —
-  and it is offered only on an agent whose command takes a second message into its own
-  session, which today is every agent the board ships: `cli/README.md`, "Talk to it about the
-  board".
+  chat is not a run — it never shows in `akb runs` and never holds a card — and it is offered
+  only on an agent whose command takes a second message into its own session, which today is
+  every agent the board ships: `cli/README.md`, "Talk to it about the board".
 - A conversation opens knowing what a coding agent knows after `/kanban`, so nothing has to
   be explained to it: the goal, the module map, the tracks, the releases, every open card in
   one line, the project's settings, and — on a card chat — that card whole, with its fields,
   its open questions, and the cards it waits on and belongs to, by title. It is told where
   the memory files are and to read them before it suggests anything, it is given the same
-  command list a coding agent gets, and it changes nothing. What it was shown is the board as
-  it stood when the conversation started, so it re-reads anything that may have moved:
-  `docs/guides/daily-loop.md`, "Talk it over first", and `akb guide chat` for the flow one
-  follows.
+  command list a coding agent gets. What it was shown is the board as it stood when the
+  conversation started, so it re-reads anything that may have moved:
+  `docs/guides/daily-loop.md`, "Talk it over, and let it do it", and `akb guide chat` for the
+  flow one follows.
+- A chat does the board work it is talking about, instead of handing back a command to type.
+  Once the conversation has settled a change it makes it — writes a card, rewords one,
+  answers its open questions, moves it into a release or out, archives it, drops it — with
+  the board's own moves, without asking to confirm first, and it says in one line what it did
+  and to which card. Work the board goes away and does is a run it starts instead: building a
+  card, sharpening a vague one, proposing tasks, filling a release, or anything asked for in
+  the background. That run is an ordinary run, in `akb runs` with its log, its stop and its
+  resume, and the chat never writes the project's code itself. A change to a card a run is
+  already working on is refused, and the refusal names the card and what that run is doing:
+  `cli/README.md`, "Talk to it about the board", and `akb guide chat`.
 

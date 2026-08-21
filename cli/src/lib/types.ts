@@ -38,6 +38,9 @@ export interface Meta {
    *  scheduled (./schedule.ts). */
   schedule: CardSchedule | null
   questions: Question[]
+  /** The hand-checks a finished build left for the user — a note to read, never a question
+   *  to answer (./verify.ts). */
+  verify: string[]
 }
 
 // Where a card sits on the board: one file, or a folder holding a group's root.md.

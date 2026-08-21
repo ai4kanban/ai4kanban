@@ -88,6 +88,7 @@ export type * from './lib/agent/types'
 // run, so a button and a command can never disagree about what a card says.
 export {
   allCards,
+  boardStamp,
   clearSchedule,
   closePlan,
   closeRelease,

@@ -49,10 +49,43 @@ import type { AgentAction, AgentRequest } from './types'
  *  run a user deliberately asked for. */
 export const RUN_ENV = 'KANBAN_RUN'
 
+/** The variable a conversation puts on the agent it spawns, naming which conversation it is
+ *  — `board`, or `card-12` (lib/agent/chat.ts).
+ *
+ *  It is the mirror of the one above, and it settles the mode the same way. A run never
+ *  starts another run; a conversation never does a run's work. So an agent answering in a
+ *  chat that asks for a board action gets the run started, whether or not it said --print —
+ *  the conversation is where the user is sitting, and the work it would have done there is
+ *  work the board is meant to go away and do. */
+export const CHAT_ENV = 'KANBAN_CHAT'
+
 /** The run this process is working inside, when the board started it — otherwise null. */
 export function insideRun(): string | null {
   const id = process.env[RUN_ENV]
   return id && id.trim() ? id.trim() : null
+}
+
+/** The conversation this process is answering in, when a chat spawned it — otherwise null. */
+export function insideChat(): string | null {
+  const key = process.env[CHAT_ENV]
+  return key && key.trim() ? key.trim() : null
+}
+
+/** One environment carrying exactly one of the two marks.
+ *
+ *  Both spawns start from this process's own environment, so the mark it was started under
+ *  travels into the child unless it is taken out — and a run started from a conversation
+ *  would then read as both at once, print instead of running and refuse its own card's
+ *  moves. The modes are opposite, so a child is only ever in one of them. */
+export function markedEnv(
+  env: NodeJS.ProcessEnv,
+  mark: 'run' | 'chat',
+  value: string,
+): NodeJS.ProcessEnv {
+  const [mine, theirs] = mark === 'run' ? [RUN_ENV, CHAT_ENV] : [CHAT_ENV, RUN_ENV]
+  const out = { ...env, [mine]: value }
+  delete out[theirs]
+  return out
 }
 
 // How many of a card's remaining steps are printed before the rest are counted instead. A
@@ -210,6 +243,17 @@ function questionsField(meta: Meta): string[] {
   return field('questions', [`${meta.questions.length} open:`, ...lines.map((s) => `  ${s}`)])
 }
 
+// The hand-checks already on the card, numbered as `update-verify --drop` takes them. Only
+// printed when the card carries some: the point is to stop a job appending a line that is
+// already there, not to remind every card that the field exists.
+function verifyField(meta: Meta): string[] {
+  if (!meta.verify.length) return []
+  return field('verify', [
+    `${meta.verify.length} already left for the user to check by hand:`,
+    ...numbered(meta.verify).map((s) => `  ${s}`),
+  ])
+}
+
 // ---- the flows -------------------------------------------------------------
 
 // One printed flow, before it is printed.
@@ -273,9 +317,11 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     case 'implement': {
       facts.push(...stepsField(card!))
       if (card!.meta.questions.length) facts.push(...questionsField(card!.meta))
+      facts.push(...verifyField(card!.meta))
       facts.push(...field('memory', memoryFiles(card!.meta.modules, 'readme.md')))
       close.push(
         'tick each box in ## Todo as you finish it — they are the record of what was built',
+        `${board} update-verify ${req.id} --append ".." — for each thing left for the user to CHECK by hand; a decision only they can make goes to \`update-questions\` instead ("What is left for the user to check" in \`akb guide board\`)`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
         `${board} archive ${req.id} — once every box is ticked and the card's goal is met`,
       )
@@ -292,6 +338,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       close.push(
         `${board} record-run ${req.id} — counts this pass and stamps last_run`,
+        `${board} update-verify ${req.id} --append ".." — for anything this pass left for the user to check by hand`,
         `never archive it: a recurring card has no end state`,
       )
       next.push(
@@ -315,8 +362,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
     case 'resolve': {
       facts.push(...questionsField(card!.meta))
+      facts.push(...verifyField(card!.meta))
       facts.push(...field('memory', memoryFiles(card!.meta.modules, 'decisions.md')))
       close.push(
+        `${board} update-verify ${req.id} --append ".." — first, for any entry that is a hand-check and not a question; then drop it from the question list`,
         `${board} update-questions ${req.id} --drop <n> — take each question you answered off`,
         `${board} tag ${req.id} <n> user — for the ones only the user can settle, worded as they stand`,
         `write what you decided under "## Decided by the agent" on the card, one line each`,

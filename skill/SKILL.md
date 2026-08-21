@@ -79,7 +79,8 @@ Run `akb help` for the full command list.
 ## Preserve board integrity
 
 - **Card metadata**: Never edit a card's frontmatter by hand. Use `akb board create`,
-  `update`, `update-questions`, or `schedule`. Edit only the card body directly.
+  `update`, `update-questions`, `update-verify`, or `schedule`. Edit only the card body
+  directly.
 - **API keys**: Never type, save, or retrieve a key for the user. Ask the user to run
   `akb agent set apiKey <their-key>` themselves. Keys are stored in `docs/kanban/.env` and
   are never read back.

@@ -80,8 +80,8 @@ The release flow:
   every blocked pair into a group. The new rule keeps "one outcome, several cards" and adds
   the test that the root has a shared plan to write.
 - **One create call per card, or one call for the whole group?** One per card. A group
-  gains pieces long after it opens — #237 gained #248 that way — and one batch call cannot
-  carry each subtask's own modules, blockers, and questions.
+  gains pieces long after it opens — the chat group gained a fifth subtask that way — and one
+  batch call cannot carry each subtask's own modules, blockers, and questions.
 - **Which release does a subtask get?** The root's, unless the call names one. That way a
   release plan can add a piece to a group already promised to an earlier version.
 - **Why does the recipe drop `--count N`?** It prints ids that the cards then never get:

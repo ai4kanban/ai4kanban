@@ -14,7 +14,9 @@ import type { Chat } from "./types";
 // folded, and why closing the tab doesn't stop one.
 //
 // A chat is never a run: nothing here reaches the run record, so it shows in no panel,
-// holds no card, and keeps no run off one.
+// holds no card, and keeps no run off one. It does write the board, though (#243) — the
+// agent calls the board's own moves as it answers — which is why a read also carries the
+// board's fingerprint and whether the card this conversation is about is still there.
 
 /** One conversation and what the window can do about it right now. */
 export interface ChatRead {
@@ -22,6 +24,16 @@ export interface ChatRead {
   chat: Chat | null;
   /** The reply being written this second, as far as it has got — null when none is. */
   live: string | null;
+  /** A reply is coming, from this window or from a terminal. `live` only knows about one
+   *  this window asked for; this knows about any of them. */
+  answering: boolean;
+  /** The board as it stood at this read (#243). The window watches it move: a chat writes
+   *  the board while it is still writing its reply, so a card that changed has to appear
+   *  without anyone clicking anything. Null on rules too old to answer. */
+  stamp: string | null;
+  /** This is a card's conversation, and that card has left the board — archived or rejected,
+   *  quite possibly by this very chat. The card's page goes back to the board on it. */
+  cardGone: boolean;
   /** The agent the board runs can hold a conversation at all. */
   canChat: boolean;
   /** That agent's label, for saying which one is meant. */
@@ -57,7 +69,17 @@ function flights(): { live: Map<string, Flight>; failed: Map<string, string> } {
   return g.__kanbanChatFlights;
 }
 
-const NOTHING: ChatRead = { chat: null, live: null, canChat: false, agent: "", able: [], missing: false };
+const NOTHING: ChatRead = {
+  chat: null,
+  live: null,
+  answering: false,
+  stamp: null,
+  cardGone: false,
+  canChat: false,
+  agent: "",
+  able: [],
+  missing: false,
+};
 
 /** One conversation as the window draws it. Never throws: a board with no rules to read is
  *  a chat that says so, not a page that fails. */
@@ -75,6 +97,13 @@ export async function readChat(cardId: number | null): Promise<ChatRead> {
   return {
     chat: view.chat,
     live: flight ? flight.text : null,
+    // Our own reply in flight, or anyone's — a conversation carried on from a terminal is
+    // writing this same board, and the window follows it the same way.
+    answering: Boolean(flight) || view.answering === true,
+    stamp: rules.boardStamp ? rules.boardStamp() : null,
+    // Asked of the board rather than remembered: the card may have gone at any moment, and
+    // a title read is one card file.
+    cardGone: cardId !== null && !rules.titleOf(cardId),
     canChat: view.canChat,
     agent: view.agent,
     able: view.able,

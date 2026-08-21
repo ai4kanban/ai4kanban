@@ -151,8 +151,8 @@ export const MOVES: Move[] = [
           'Recurring cards only; --cadence "" clears it and the card',
           'runs by hand again.',
           '--track moves the card + fixes the index; --slug renames',
-          'it. Body and questions are left untouched — questions have',
-          'their own command below.',
+          'it. Body, questions and verify lines are left untouched —',
+          'those two have their own commands below.',
         ],
       ],
     ],
@@ -180,6 +180,31 @@ export const MOVES: Move[] = [
           "before them, same as create's --question. A question may",
           "carry a leading [user] tag marking it as the human's",
           'judgment call.',
+        ],
+      ],
+    ],
+  },
+  {
+    name: 'update-verify',
+    group: 'Cards',
+    brief: [
+      [
+        'update-verify <id>',
+        'patch what the user checks by hand before accepting the\nwork: --append, --drop <n,n>, --clear',
+      ],
+    ],
+    legacy: [
+      [
+        'update-verify <id> [ops]',
+        [
+          'patch the `verify:` list — the hand-checks a finished build',
+          'leaves for the user, one short line each. Ops apply in the',
+          'order typed: --append ".." adds a line, --drop n[,n...]',
+          'removes them by 1-based position, --clear removes them all.',
+          'A verify line is a NOTE, not a question: it carries no tag',
+          'and no options, nothing waits on an answer, and it never',
+          'stops a card reaching ready or being archived. A decision',
+          'the user has to make is an open question instead.',
         ],
       ],
     ],
@@ -255,7 +280,8 @@ export const MOVES: Move[] = [
         [
           'the open cards at a glance — one block per card with its id,',
           'title, meta (track, status, priority, roi, release, blockers,',
-          'open questions), summary line and file path. --module <m>',
+          'open questions, hand-checks), summary line and file path.',
+          '--module <m>',
           'narrows it to the cards tagged with that module (validated',
           'against modules.md).',
         ],
@@ -508,6 +534,7 @@ const LEGACY_ORDER = [
   'create',
   'update',
   'update-questions',
+  'update-verify',
   'list',
   'release',
   'tag',
@@ -527,7 +554,7 @@ export function legacyHelp(usage: string): string {
   out.push(
     '',
     'Never edit next-id or metrics.csv by hand — let the script write them. Never hand-write a',
-    "card's frontmatter — use create/update/update-questions. Write/Edit are only for the card body.",
+    "card's frontmatter — use create/update/update-questions/update-verify. Write/Edit are only for the card body.",
   )
   return out.join('\n')
 }

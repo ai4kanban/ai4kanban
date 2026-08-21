@@ -11,6 +11,7 @@ import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
 import { parseFlags, slugify, validLevel, validStatus, validTrack, validModules, parseModuleList, parseIdList, normalizeRelease } from '../lib/validate'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, parseQuestionOps, parseQuestionPositions } from '../lib/questions'
+import { parseVerifyOps, parseVerifyPositions } from '../lib/verify'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
 import { CADENCE_FORMS, formatCadence, parseCadence } from '../lib/cadence'
 import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards'
@@ -340,6 +341,43 @@ export function cmdUpdateQuestions(args: string[]): MoveResult {
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
   say(`updated #${id} questions: ${changes.join(', ')} (${meta.questions.length} open)`)
   return { id, changes, open: meta.questions.length, file: rel(file) }
+}
+
+// Patch a card's verify list — what the user should check by hand before accepting the
+// finished work. The same three edits `update-questions` makes, applied in the order they
+// were typed, so a build that ends with two hand-checks writes them one call at a time
+// without re-passing the ones already there.
+//
+// Nothing here touches the card's status: a verify line is a note, not a question, so it
+// never takes a `ready` card back to `todo` and never stands between the card and archive.
+export function cmdUpdateVerify(args: string[]): MoveResult {
+  const [idRaw, ...rest] = args
+  const id = Number(idRaw)
+  if (!Number.isInteger(id)) die('need a numeric task id: update-verify <id> [ops]')
+  const ops = parseVerifyOps(rest)
+  const found = locate(id)
+  if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
+  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+  const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+  if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
+
+  const changes: string[] = []
+  for (const op of ops) {
+    if (op.kind === 'clear') {
+      meta.verify = []
+      changes.push('cleared')
+    } else if (op.kind === 'drop') {
+      const ns = parseVerifyPositions(op.ns, meta.verify.length)
+      meta.verify = meta.verify.filter((_, i) => !ns.includes(i + 1))
+      changes.push(`dropped ${ns.join(',')}`)
+    } else {
+      meta.verify.push(op.line!)
+      changes.push('appended')
+    }
+  }
+  fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
+  say(`updated #${id} verify: ${changes.join(', ')} (${meta.verify.length} to check by hand)`)
+  return { id, changes, verify: meta.verify.length, file: rel(file) }
 }
 
 // Set (or clear) the tag on open questions, so the refine loop can hand a

@@ -60,38 +60,55 @@ proposes:
 
 The board keeps working either way, but proposals are guesses until you write the goal.
 
-## Talk it over first
+## Talk it over, and let it do it
 
 Not every answer is a job. When you want to think out loud — what's worth doing next, what
-a card actually means, whether two cards are the same card — open a conversation instead:
+a card actually means, whether two cards are the same card — open a conversation instead.
+And when the conversation lands on a change, the chat makes it; you don't go back to the
+buttons for something it just agreed to.
 
 ```bash
 akb chat "what should I build next, and why?"
 akb chat 241 "what is still unclear about this card?"
+akb chat 241 "put it in v0.8 and drop the last todo"
+akb chat "start a build on 241"
 ```
 
 You explain nothing. A chat opens knowing what a coding agent knows after you type
 `/kanban`: your goal, your modules, your tracks, every open card in one line, and — when
 you name one — that card in full, with its questions and the cards it waits on. It knows
 where your memory files are and reads them before it suggests anything, and it knows which
-`akb` command answers which ask, so when the answer is work it hands you the line to run.
+`akb` command answers which ask.
 
 In the app the same conversation is a rail down the right of the window — **Chat** in the
 header opens it, and it follows what you are reading: the board's chat on the board, a card's
 on its page. It is one conversation either way, so you can start it in a terminal and carry it
-on in the app.
+on in the app. The board behind it keeps up as the chat writes: a card moves while the reply
+is still arriving, and a card archived out from under its own page sends you back to the
+board.
 
 Reach for it when:
 
-| You want | Chat, or a run |
+| You want | What happens |
 | --- | --- |
-| to decide what to build, or why | chat — it is a question, not a job |
-| to understand a card before you approve it | chat |
-| to compare two cards, or spot a duplicate | chat |
-| the card changed, or the code did | a run — `akb refine 4`, `akb implement 4` |
+| to decide what to build, or why | it answers — a question, not a job |
+| to understand a card before you approve it | it answers |
+| to compare two cards, or spot a duplicate | it answers |
+| a change you have already settled — reword it, put it in v1, archive it | it makes the change |
+| the card worked out, or the code written | it starts a run — `akb refine 4`, `akb implement 4` |
 
-A chat changes nothing: no card, no memory file, no code. It also never shows in `akb runs`
-and never holds a card, so it can't get in the way of work already going.
+What it changes is the board, never your code. It writes cards, rewords them, answers their
+open questions, moves them between releases, archives and drops them — with the board's own
+moves, straight away, without asking you to confirm. What it leaves is uncommitted, the same
+as a run does.
+
+Anything the board goes away and works out is a run it starts for you, and that run is an
+ordinary one: it is in `akb runs`, its log streams, you can stop or resume it. Ask for
+something to happen in the background and you get a run for that too.
+
+A card a run is already working on is off limits — the change is refused, and the refusal
+names the card and what that run is doing. The chat itself is still not a run: it shows in
+no runs panel and holds no card, so it never gets in the way of work already going.
 
 Two things to know. The board it was shown is the board as it stood when the conversation
 started, so on anything that may have moved it goes and reads the card again rather than
@@ -365,6 +382,28 @@ to take the card off the board and record the metric.
 akb board archive 4
 ```
 
+### What the build leaves you to check
+
+A build sometimes ends with something only you can confirm — it needs your machine, your
+data, or your eye. Those land on the card as **verify lines**, listed under **check by hand**
+on the card page and marked by a clipboard on the board card.
+
+They are notes, not questions. Nothing waits on them: a card with verify lines still goes
+`ready`, still resolves, still archives, and the lines travel with the card into the archive
+so you can read them later. Work through them, then archive — or don't, and archive anyway.
+
+A **decision** you have to make is the other thing, and it stays an open question with the
+`[user]` tag: that one does hold the card back, because building on a guess is what it is
+there to stop.
+
+| On the card | What it means | What you do |
+| --- | --- | --- |
+| **check by hand** (clipboard, blue) | the work is done; look at this before you accept it | try it, then archive |
+| **open questions** (question mark, ember) | a call only you can make, and the card waits | answer it — "resolve #4" |
+
+Your agent writes them with `akb board update-verify 4 --append ".."`, and `--drop 1,3` or
+`--clear` takes them off once you've checked them.
+
 The card file isn't deleted — it moves to `docs/kanban/.archive/`, which stays in git. So
 you can still read a finished card, or diff it, long after it left the board.
 
@@ -423,11 +462,14 @@ akb board release drop v1         # the version will not ship
 akb board schedule <id> --action implement|refine
                                   # run it by itself once the card comes free
                                   # (--clear takes the schedule off)
+akb board update-verify <id> --append ".."
+                                  # a hand-check the build left you
+                                  # (--drop n,n / --clear take them off)
 akb board archive <id>            # finish a task
 akb board reject  <id>            # drop an idea
 akb spec                          # the spec agents, and what each one fills
 akb spec <agent> <id> [note]      # put one on a card — its own run, starting clean
-akb chat "<message>"              # talk about the board — changes nothing
+akb chat "<message>"              # talk about the board — and change it
 akb chat <id> "<message>"         # talk about one card
 akb chat [<id>]                   # the conversation so far
 akb chat [<id>] --clear           # forget it and start fresh

@@ -53,6 +53,7 @@ import {
 import { PULSE_DOT } from "./chrome";
 import type { MockupSet } from "@/lib/mockup-tag";
 import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
+import type { BoardChange } from "@/lib/chat-rail";
 import { canImplement, canRefine } from "@/lib/refine";
 import { scheduleLabel } from "@/lib/schedule";
 import { Markdown } from "./Markdown";
@@ -202,7 +203,7 @@ export function CardPage({
     [router],
   );
 
-  const { sessions, start } = useAgentSessions(onFinish);
+  const { sessions, start, kick } = useAgentSessions(onFinish);
 
   // Re-read the card in place whenever any session finishes — from this tab or
   // another. The onFinish above only covers sessions this tab started; a session
@@ -224,6 +225,22 @@ export function CardPage({
   // entirely while the tab was hidden can't leave this page stale (the diff above
   // never witnessed it running). A fresh read is always correct.
   useOnTabFocus(refresh);
+
+  // A chat wrote the board while it was answering (#243) — quite possibly this very
+  // card, since the card's own conversation is the one in the rail. Re-read in place,
+  // and wake the runs poll in case the same message started a run. When the card
+  // itself has gone — the chat archived or rejected it — there is nothing left to
+  // draw, so the app goes back to the board rather than sitting on a dead page.
+  const boardChanged = useCallback(
+    ({ cardGone }: BoardChange) => {
+      if (cardGone) router.push("/");
+      else {
+        refresh();
+        kick();
+      }
+    },
+    [router, refresh, kick],
+  );
 
   // A live session on this card (from any tab) blocks a second one and shows a badge.
   // The whole set is kept: the rail draws every open card, and a subtask can be
@@ -299,6 +316,7 @@ export function CardPage({
         currentTitle={card.title}
         memoryModules={memoryModules}
         running={running}
+        onBoardChanged={boardChanged}
         header={
           <Header
             agent={agent}
@@ -638,6 +656,25 @@ export function CardPage({
                       </li>
                     );
                   })}
+                </ul>
+              </div>
+            )}
+
+            {/* What the build left for the user to check by hand (#231). Its own panel,
+                below the questions and never inside them: an open question waits on an
+                answer and holds the card back, while every line here is a note to read
+                on work that is already done. Sky rather than the accent for the same
+                reason, and there is nothing to click or tick — you check, then you
+                archive. */}
+            {card.verify.length > 0 && (
+              <div className="nb-outline mb-3 p-3" style={{ background: "var(--color-nb-sky-soft)" }}>
+                <div className="nb-tag mb-2">
+                  <span style={{ color: "var(--color-nb-sky-ink)" }}>✓</span> check by hand
+                </div>
+                <ul className="flex list-disc flex-col gap-2 pl-4 text-[13px] leading-[19px]">
+                  {card.verify.map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))}
                 </ul>
               </div>
             )}

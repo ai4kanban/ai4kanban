@@ -93,6 +93,10 @@ export interface BoardRules {
 
   // the board, read
   readBoard(): Board;
+  /** A short string that changes when anything the board draws does (#243). The window asks
+   *  it a few times a second while a chat is writing, and re-reads the board only when it
+   *  moves. Optional: on older rules the window falls back to re-reading when a run ends. */
+  boardStamp?(): string;
   findCard(id: number): Card | null;
   allCards(): Card[];
   readModules(): string[];

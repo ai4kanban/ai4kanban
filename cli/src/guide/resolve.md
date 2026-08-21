@@ -6,6 +6,23 @@ Each open question in the card's `questions` frontmatter carries a tag saying wh
   product direction.
 - **untagged** — freshly raised, not yet triaged. These are what a pass works through.
 
+## Move the ones that aren't questions
+
+Some entries in the list are not questions at all — they are hand-checks a build left behind:
+"try it on a real repo", "the numbers look right but nobody has run this against a big board".
+Nobody has to answer those, so answering them or handing them back to the user is the wrong
+move. Move each one to the card's `verify:` field instead, where a note to read belongs:
+
+```
+akb board update-verify <id> --append "try it on a real repo"
+akb board update-questions <id> --drop 2
+```
+
+Keep the wording; drop the `[user]` tag if it has one. The test is the same one in
+"What is left for the user to check" in `akb guide board`: a **decision** stays a question,
+a **check** becomes a verify line. Do this pass first — it is often what leaves the list
+short enough to settle in one round.
+
 ## Try to answer each question yourself
 
 Research first — the module's code, the board, the memory set of any module the card
@@ -57,6 +74,9 @@ never both.
 - All answered → `akb board update-questions <id> --clear`
 - Some answered → `akb board update-questions <id> --drop 1,3` — the 1-based numbers of
   the answered ones. The rest stay untouched, tags included.
+
+The card's verify lines are not part of this. They are notes, not questions — leave them
+where they are, and never clear them to make the card look settled.
 
 ## Fold the answers into the card
 

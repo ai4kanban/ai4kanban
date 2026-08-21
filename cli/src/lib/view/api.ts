@@ -48,6 +48,7 @@ import type {
 } from './types'
 
 export { readBoard, findCard, allCards, readSetupState } from './read'
+export { boardStamp } from './stamp'
 export { readMetricsView } from './metrics'
 export { readModules, readSetupDraft } from './first-run'
 export { readGoalText } from './goal'

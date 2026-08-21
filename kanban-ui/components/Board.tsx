@@ -170,7 +170,7 @@ export function BoardView({
   // per-card actions on the card page) except the one that plans a release
   // (#165), so it mostly reads the registry — for the per-card running badges,
   // to say a release is being planned, and to refresh when any session finishes.
-  const { sessions, watch } = useAgentSessions(() => {});
+  const { sessions, watch, kick } = useAgentSessions(() => {});
 
   // The plan run this tab just started, held from the click until the poll
   // catches it. The registry poll can be a second and a half behind, and the
@@ -375,6 +375,16 @@ export function BoardView({
   // focus is always correct regardless of what the diff saw.
   useOnTabFocus(refresh);
 
+  // A chat wrote the board while it was answering (#243) — a card written, moved
+  // into a release, archived. The chat's own poll notices within a few hundred
+  // milliseconds, so the columns catch up while the reply is still arriving. The
+  // runs poll is woken too: the same message may have started a run, and it
+  // belongs in the panel now rather than at the next idle tick.
+  const boardChanged = useCallback(() => {
+    void refresh();
+    kick();
+  }, [refresh, kick]);
+
   // A board whose setup still has questions of its own opens on the guided run
   // instead of the columns — the questions come first, and a board being asked
   // about is not yet a board to work in. It draws the window's own top row (in
@@ -412,6 +422,7 @@ export function BoardView({
         openIds={board?.openIds ?? []}
         memoryModules={board?.memoryModules ?? []}
         running={runningCardIds(sessions)}
+        onBoardChanged={boardChanged}
         header={
           <Header
             agent={agent}

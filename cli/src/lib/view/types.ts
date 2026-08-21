@@ -106,6 +106,10 @@ export interface Card {
   related: number[]
   /** The card's open questions, plain and options ones alike. */
   questions: Question[]
+  /** What the user should check by hand before accepting the finished work — one short line
+   *  each, left by the build. A note to read, not a question: nothing here waits on an
+   *  answer, and nothing here holds the card back. Empty on most cards. */
+  verify: string[]
   /** The parts of the product this card touches (names from `docs/kanban/modules.md`). */
   modules: string[]
   /** When this card last ran, as `YYYY-MM-DD HH:MM` — recurring cards only, and only once

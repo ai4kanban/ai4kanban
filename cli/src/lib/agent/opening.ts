@@ -43,9 +43,13 @@ export function chatOpening(cardId: number | null, title?: string): string {
   const about = cardId === null ? "this project's kanban board" : `task #${cardId} on this project's kanban board`
   const parts = [
     [
-      `This is a conversation about ${about}, not a job to go away and do.`,
-      `Answer from this project, and keep it short unless I ask for more.`,
-      `Change nothing — no card, no file, no code — unless I ask you to.`,
+      `This is a conversation about ${about}. Answer from this project, and keep it short`,
+      `unless I ask for more.`,
+      `You also do the board work we talk about: once we have settled a change to the board,`,
+      `make it yourself with the board's own moves, and don't ask me to confirm it first.`,
+      `For work the board goes away and does — building a card, sharpening one, proposing`,
+      `tasks — start the run for it. Never write this project's code yourself.`,
+      `The flow below says which is which.`,
       commandNote(command),
     ]
       .filter(Boolean)

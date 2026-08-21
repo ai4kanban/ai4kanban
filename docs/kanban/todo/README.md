@@ -23,11 +23,11 @@ _(none)_
 - [#183 Install the Mac app with one Homebrew command](features/183-install-the-mac-app-with-one-homebrew-command.md)
 - [#229 Tell the user how to log in to the agent, not just how to install it](features/229-tell-the-user-how-to-log-in-to-the-agent-not-just-how-to-ins.md)
 - [#232 Write a release's changelog with AI when it closes](features/232-write-a-release-s-changelog-with-ai-when-it-closes.md)
-- [#237 Chat with the board, or with one card, without leaving the app](237-chat-with-the-board/root.md)
 - [#247 Set a spec agent's harness and model where its switch is](features/247-set-a-spec-agent-s-harness-and-model-where-its-switch-is.md)
 - [#250 Bring a task in from a file or your voice, not only typed text](250-friendly-task-import/root.md)
 - [#254 Customize what a specialist agent produces, not just whether it runs](254-customizable-spec-agents/root.md)
 - [#258 Run the board on ZCode, Z.ai's GLM coding agent](features/258-run-the-board-on-zcode-z-ai-s-glm-coding-agent.md)
+- [#262 Open a card's page on the half a human has to read](features/262-open-a-card-s-page-on-the-half-a-human-has-to-read.md)
 
 ## skill
 
@@ -40,9 +40,9 @@ _(none)_
 - [#157 Turn a spec you already wrote into the cards that build it](skill/157-turn-a-spec-you-already-wrote-into-the-cards-that-build-it.md)
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
 - [#221 Score how well the board does its own job](221-board-score/root.md)
-- [#231 Give finish notes their own frontmatter field instead of an open question](skill/231-give-finish-notes-their-own-frontmatter-field-instead-of-an.md)
 - [#246 Give each spec agent its own harness and model](skill/246-give-each-spec-agent-its-own-harness-and-model.md)
 - [#249 Group the cards a release plan creates, instead of writing them all loose](skill/249-group-the-cards-a-release-plan-creates-instead-of-writing-th.md)
+- [#261 Put what a human must read at the top of a card, and the agent's own notes at the bottom](skill/261-put-what-a-human-must-read-at-the-top-of-a-card-and-the-agen.md)
 
 ## distribution
 
@@ -70,14 +70,6 @@ _(none)_
 ## 221-board-score/features
 
 - [#224 Show the board's score, and write it into every release](221-board-score/features/224-show-the-score.md)
-
-## 237-chat-with-the-board/skill
-
-
-## 237-chat-with-the-board/features
-
-- [#243 Let a chat do the board work it is talking about](237-chat-with-the-board/features/243-chat-acts-on-the-board.md)
-- [#248 Chat about one card, from the card's page](237-chat-with-the-board/features/248-card-chat.md)
 
 ## 254-customizable-spec-agents/skill
 

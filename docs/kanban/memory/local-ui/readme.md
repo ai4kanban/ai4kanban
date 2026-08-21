@@ -119,6 +119,12 @@ except where another doc is named.
   naming the file — which is what a card pulled from git shows, since the mockups folder is
   not in it: "Mockups on a card".
 
+- See what a finished build left you to check by hand: the lines sit under **check by hand**
+  on the card page, in their own blue panel below the open questions, and a clipboard mark on
+  the board card says how many there are. They are plain text with nothing to tick or answer
+  — the accent stays reserved for a question that is really waiting on you: "What the build
+  leaves you to check" in `docs/guides/daily-loop.md`.
+
 ## Configuration
 
 - Pick the agent that runs the work, Claude Code or Codex CLI, and the dialog draws the
@@ -177,3 +183,16 @@ except where another doc is named.
   is a link, and folding the rail never stops one arriving. The exchange keeps across restarts,
   is per project, and is the same conversation `akb chat` holds in a terminal: "Chat" in the
   UI docs.
+- The chat in the window changes the board, and the window keeps up with it. A change it
+  makes — a card written, reworded, moved into a release, archived, dropped — shows on the
+  board and on a card's page while the reply is still arriving, with no reload; archive or
+  drop the card whose page is open and the app goes back to the board. Asking for work sends
+  a run to the runs panel like any other, with its log, its stop and its resume. A card a run
+  is already working on is refused, and the refusal names the card and what that run is
+  doing: "Chat" in the UI docs.
+- A card's page opens its own chat on that card. Before anything is said the rail says its
+  answers come from this card and the rest of the board, and offers three things to ask —
+  what is unclear about it, whether it is too big to build in one go, what could be cut —
+  with the message box asking about that card by number. Walk to another card and nothing of
+  the last one is left: not its messages, not a message half typed, not the error its last
+  send left: "Chat" in the UI docs.

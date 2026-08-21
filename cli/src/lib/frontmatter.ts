@@ -6,6 +6,7 @@
 import { STATUSES, normalizeRelease } from './validate'
 import { yamlScalar, unquote } from './yaml'
 import { hasOptions, normalizeQuestion, parseQuestionsBlock } from './questions'
+import { normalizeVerify } from './verify'
 import { normalizeSchedule, parseScheduleBlock, serializeSchedule } from './schedule'
 import type { Meta, Question } from './types'
 
@@ -49,6 +50,13 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
       for (const o of q.options) out.push(`      - ${yamlScalar(o)}`)
       out.push(`    recommend: [${q.recommend.join(', ')}]`)
     }
+  }
+  // What the user should check by hand before accepting the work (./verify.ts). Written only
+  // when the card carries one, so every card written before this field — and every card that
+  // never needed a hand-check — keeps the frontmatter it always had.
+  if (m.verify && m.verify.length) {
+    out.push('verify:')
+    for (const line of m.verify) out.push(`  - ${yamlScalar(line)}`)
   }
   out.push('---')
   return out.join('\n')
@@ -127,6 +135,9 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   if (!Array.isArray(meta.questions)) {
     meta.questions = meta.questions ? [normalizeQuestion(meta.questions)] : ([] as Question[])
   }
+  // The hand-checks, as plain lines. A card written before this field has none, and a line
+  // blanked by hand drops out rather than showing as an empty bullet.
+  meta.verify = normalizeVerify(meta.verify)
   // The release the card ships in. Missing, empty or damaged reads as no release, so a
   // card written before this field — or one whose line was blanked by hand — still opens.
   meta.release = normalizeRelease(meta.release)

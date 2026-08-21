@@ -16,7 +16,7 @@
 //
 // See app/design/layouts for the mockup this is drawn from.
 
-import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail } from "@/lib/chat-rail";
+import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail, type BoardChange } from "@/lib/chat-rail";
 import { useOpenCards } from "@/lib/open-cards";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
 import type { MemoryModule } from "@/lib/types";
@@ -44,6 +44,7 @@ export function Window({
   currentMemory = null,
   memoryModules = [],
   running,
+  onBoardChanged,
   children,
 }: {
   header: React.ReactNode;
@@ -62,6 +63,10 @@ export function Window({
    *  rather than polled for here: both pages already watch the registry, and a
    *  fourth poll for one dot would be a poll to say nothing new. */
   running?: Set<number>;
+  /** The board moved while this page was open — a chat wrote it as it answered, here or in
+   *  a terminal (#243). The page re-reads itself; a card page whose card has gone goes back
+   *  to the board. The chat's own poll is what notices, so nothing else has to watch. */
+  onBoardChanged?(change: BoardChange): void;
   children: React.ReactNode;
 }) {
   const { rows, close } = useOpenCards(projectRoot, openIds, currentId, currentTitle);
@@ -69,7 +74,12 @@ export function Window({
   // The chat rail follows what this window is showing (#242): a card's page gets that
   // card's own conversation, the board and a memory file get the board's. One chat on
   // screen, and nothing to choose.
-  const chat = useChatRail({ projectRoot, cardId: currentId ?? null, cardTitle: currentTitle });
+  const chat = useChatRail({
+    projectRoot,
+    cardId: currentId ?? null,
+    cardTitle: currentTitle,
+    onBoardChanged,
+  });
   // Beside the body on a wide window, over it on a narrow one — the same rail either way,
   // so what has been typed survives the window being dragged across that line.
   const beside = chat.open && !chat.overlay;

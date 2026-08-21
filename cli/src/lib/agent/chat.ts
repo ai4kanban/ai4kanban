@@ -26,6 +26,7 @@ import type { Readable, Writable } from 'node:stream'
 
 import { pidAlive } from '../lock'
 import { CHATS_DIR } from '../paths'
+import { markedEnv } from './flow'
 import { chatOpening } from './opening'
 import { chatAgent, harnessLabel, openPlan, planResume, planRun, type RunPlan } from './resolve'
 import type { Chat, ChatMessage, ChatReply, ChatView } from './types'
@@ -128,6 +129,10 @@ export function readChatView(cardId: number | null): ChatView {
     canChat: agent.canChat,
     agent: agent.label,
     able: agent.able,
+    // Whoever is answering — this process or a terminal on the other side of the machine.
+    // A screen reads it to keep up with a reply it never started, and with the board that
+    // reply is changing as it goes.
+    answering: answering(cardId),
     blocked: blockedBy(cardId, chat),
   }
 }
@@ -249,6 +254,7 @@ export async function sendChatMessage(
     const spoken = await speak({
       plan,
       prompt,
+      chatKey: keyOf(cardId),
       continuing: held.resumeId,
       onText: options.onText ?? (() => {}),
       onOpen: options.onOpen,
@@ -306,6 +312,9 @@ const CLOSE_GRACE_MS = 3_000
 async function speak(io: {
   plan: RunPlan
   prompt: string
+  /** Which conversation this is, put on the agent's own environment — what makes a board
+   *  move called from here answer as a chat's rather than as a person's at a terminal. */
+  chatKey: string
   continuing?: string
   onText(chunk: string): void
   onOpen?(stop: () => void): void
@@ -332,7 +341,7 @@ async function speak(io: {
     // stdin at all (agent/client.ts).
     child = spawn(cmd!, client ? args : [...args, io.prompt], {
       cwd: process.cwd(),
-      env: active.env,
+      env: markedEnv(active.env, 'chat', io.chatKey),
       shell: false,
       stdio,
     }) as ChildProcessByStdio<Writable | null, Readable, Readable>

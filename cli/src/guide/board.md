@@ -123,10 +123,10 @@ this board uses are in `docs/kanban/config.md`, set during setup.
 
 ## Never hand-write a card's frontmatter
 
-`akb board create` / `update` / `update-questions` / `schedule` own the meta (title, track,
-priority, roi, status, release, blocked_by, related, modules, questions, schedule). Write and
-edit only a card's **body**. `akb board help` lists every move; `akb board help <move>` is
-one in full.
+`akb board create` / `update` / `update-questions` / `update-verify` / `schedule` own the
+meta (title, track, priority, roi, status, release, blocked_by, related, modules, questions,
+verify, schedule). Write and edit only a card's **body**. `akb board help` lists every move;
+`akb board help <move>` is one in full.
 
 Tag a card with `--modules` (see `docs/kanban/modules.md`); optional — a task can touch two
 modules or none. If no line fits, add one per `akb guide module-map`.
@@ -195,6 +195,29 @@ Write lines like these:
   Tip: Nothing the user can see or do.
 
 Then run `akb board archive <id>` to record the completion.
+
+### What is left for the user to check
+
+A build often ends with something only the user can confirm — it needs their machine, their
+data, their eye. That is a **verify line**, and it goes in the card's `verify:` field:
+
+```
+akb board update-verify <id> --append "the import runs on a repo with no releases — try it on a real one"
+```
+
+One short line each, and each one is a **note to read**, not a question. Nothing waits on it:
+a card with verify lines still reaches `ready`, still resolves, still archives, and the lines
+travel with the card into the archive.
+
+Which field a leftover goes in, by one test — **does the user have to decide something?**
+
+- **No, they have to check something** → `verify:`. "Try the new flow on a real board", "the
+  numbers look right but nobody has run this against a big repo".
+- **Yes, it is a call only they can make** → `questions:`, as a `[user]` question
+  (`akb guide resolve`). "Should this be on by default?", "which of these two wordings?".
+
+Never write a check as a question. An open question says the plan is unsettled and holds the
+card back — on work that is actually done, that reads as something being broken.
 
 ## Record a redesign
 

@@ -99,7 +99,14 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
   return (
     <section aria-label="Chat" className="flex h-full flex-col py-2 pl-1 pr-3">
       <Head rail={rail} />
-      <Transcript messages={messages} live={rail.live} empty={<Empty hopeless={hopeless ? blocked : undefined} />} />
+      <Transcript
+        messages={messages}
+        live={rail.live}
+        // Only once this conversation has actually been read. Landing on a card drops the
+        // last one's messages on the spot, and the invitation before the read would be a
+        // beat of "nothing has been said" on a card that has plenty.
+        empty={read ? <Empty cardId={rail.cardId} hopeless={hopeless ? blocked : undefined} /> : null}
+      />
       {trouble && !(hopeless && messages.length === 0) && (
         <p
           className="mb-1.5 shrink-0 rounded-[8px] px-2.5 py-2 text-[12px] leading-snug"
@@ -319,8 +326,9 @@ function Stopped({ why }: { why: string }) {
 }
 
 /** The rail with nothing in it yet: what this chat is for, or the one thing standing in the
- *  way of having one at all. */
-function Empty({ hopeless }: { hopeless?: string }) {
+ *  way of having one at all. A card's page says what a card's chat is for, and offers the
+ *  three questions worth asking about any card before it is built. */
+function Empty({ cardId, hopeless }: { cardId: number | null; hopeless?: string }) {
   if (hopeless) {
     return (
       <div className="nb-outline bg-nb-paper px-3 py-2.5 text-[12.5px] leading-relaxed">
@@ -330,11 +338,26 @@ function Empty({ hopeless }: { hopeless?: string }) {
       </div>
     );
   }
+  const [about, asks] =
+    cardId === null
+      ? [
+          "Ask about this project, or say what to change. It answers from this board, and it makes the changes you settle on.",
+          [
+            "What should I build next?",
+            "What is holding everything up?",
+            "Put #12 in v1 and drop #14.",
+            "Start a build on #12.",
+          ],
+        ]
+      : [
+          `Ask about #${cardId}, or say what to change. It answers from this card and the rest of the board, and it makes the changes you settle on.`,
+          ["What is unclear about this card?", "Is it too big to build in one go?", "What could be cut?"],
+        ];
   return (
     <div className="px-0.5 text-[12.5px] leading-relaxed text-nb-ink-soft">
-      <p>Ask about this project. It answers from this board — the goal, the cards, and what you have written down.</p>
+      <p>{about}</p>
       <ul className="mt-2 flex flex-col gap-1.5">
-        {["What should I build next?", "What is holding everything up?", "Is this version too full?"].map((line) => (
+        {asks.map((line) => (
           <li key={line} className="flex gap-1.5">
             <span aria-hidden>·</span>
             <span>{line}</span>
@@ -349,6 +372,9 @@ function Empty({ hopeless }: { hopeless?: string }) {
  *  has used a chat expects; the button is there for anyone who hasn't. */
 function Composer({ rail, disabled, answering }: { rail: ChatRail; disabled: boolean; answering: boolean }) {
   const empty = !rail.draft.trim();
+  // On a card's page the box asks about that card, so the words in it never read as an
+  // invitation to talk about the whole board.
+  const ask = rail.cardId === null ? "Ask, or say what to change" : `Ask about #${rail.cardId}, or say what to change`;
   return (
     <div className="shrink-0 px-2.5 pt-1.5" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
       <textarea
@@ -362,7 +388,7 @@ function Composer({ rail, disabled, answering }: { rail: ChatRail; disabled: boo
         }}
         rows={3}
         disabled={disabled}
-        placeholder={answering ? "Waiting for the reply…" : "Ask about this project"}
+        placeholder={answering ? "Waiting for the reply…" : ask}
         aria-label="Your message"
         className="w-full resize-none rounded-[8px] bg-nb-paper px-2.5 py-2 text-[13px] leading-[1.5] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none disabled:opacity-60 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]"
       />
