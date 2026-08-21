@@ -6,10 +6,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, warn, rel, writeNextId, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MODULES_MD, RELEASES, MEMORY, GOAL, SETUP_CHECKLIST } from '../lib/paths'
+import { die, warn, rel, writeNextId, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MOCKUPS, MOCKUP_IGNORE_LINE, MODULES_MD, RELEASES, MEMORY, GOAL, SETUP_CHECKLIST } from '../lib/paths'
 import { CONFIG_TEMPLATE } from '../lib/config-template'
 import { say } from '../lib/io'
 import { LOCK_IGNORE_LINE } from '../lib/lock'
+import { CHAT_IGNORE_LINE } from '../lib/agent/chat'
 import { RUN_IGNORE_LINES } from '../lib/agent/sessions'
 import { readGoalBody, readGoalReviewFrom, writeGoalReviewInto } from '../lib/view/goal'
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate'
@@ -90,7 +91,29 @@ const IGNORE_RULES = [
   { line: '.env', comment: "# The board's API keys — never commit them." },
   { line: LOCK_IGNORE_LINE, comment: '# The write lock, held for as long as one command takes.' },
   ...RUN_IGNORE_LINES,
+  CHAT_IGNORE_LINE,
+  { line: MOCKUP_IGNORE_LINE, comment: '# Drawings of the screens cards change — redrawn, never read back from git.' },
 ]
+
+// A board made before the folder was dotted keeps its drawings at docs/kanban/mockups/,
+// tracked in git. Move them under the ignored name so its cards still draw — the old path
+// then shows up as deleted, which is the whole point: mockups leave the repo. A card that
+// has a folder on both sides keeps the dotted one, the newer of the two, and the old copy
+// goes with the rest: one run, and there is one place mockups live.
+function moveMockupsIfOld(): string | null {
+  const old = path.join(KANBAN, 'mockups')
+  if (!fs.existsSync(old)) return null
+  if (!fs.existsSync(MOCKUPS)) {
+    fs.renameSync(old, MOCKUPS)
+    return rel(MOCKUPS)
+  }
+  for (const name of fs.readdirSync(old)) {
+    const to = path.join(MOCKUPS, name)
+    if (!fs.existsSync(to)) fs.renameSync(path.join(old, name), to)
+  }
+  fs.rmSync(old, { recursive: true, force: true })
+  return rel(MOCKUPS)
+}
 
 function writeGitignoreIfMissing(): boolean {
   fs.mkdirSync(KANBAN, { recursive: true })
@@ -185,6 +208,7 @@ export function cmdInit(args: string[]): MoveResult {
     // A goal written by an older version: the seeded text goes, and a goal with words in
     // it stops reading as one nobody wrote.
     const goalRepaired = repairGoal()
+    const movedMockups = moveMockupsIfOld()
     say(
       added.length
         ? `board already exists at ${rel(KANBAN)}/ — added the missing ${added.join(', ')} (safe to re-run)`
@@ -192,6 +216,7 @@ export function cmdInit(args: string[]): MoveResult {
     )
     for (const s of scaffolded) say(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
     if (goalRepaired) say(`  ${rel(GOAL)}: ${goalRepaired} — the agent judges the goal and edits the field`)
+    if (movedMockups) say(`  moved the mockups to ${movedMockups}/ — they are out of git now, so commit the old path as deleted`)
     if (added.includes(rel(MODULES_MD))) {
       say(`  next: fill in ${rel(MODULES_MD)} (see "The module map"), then re-run init for the memory paths`)
     }

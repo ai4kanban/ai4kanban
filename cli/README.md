@@ -153,6 +153,42 @@ An API key is the one thing to leave to the user. Hand them the line rather than
 for them: a key an agent types lands in its transcript and in the shell history, and a
 saved key is never read back.
 
+## Talk to it about the board
+
+Sometimes the answer is a conversation, not a job. `akb chat` opens one about the whole
+board; `akb chat <id>` opens one about that card.
+
+```bash
+akb chat "what should I build next, and why?"
+akb chat 12 "what is still unclear about this card?"
+akb chat 12                   # the conversation so far
+akb chat 12 --clear           # forget it and start fresh
+```
+
+You explain nothing to open one. A conversation starts knowing what a coding agent
+knows after you type `/kanban`: your goal, your modules, your tracks, every open card in one
+line, and — when you name one — that card in full, with its fields, its open questions, and
+the cards it waits on and belongs to. It knows where your memory files are and reads them
+before it suggests anything, and it knows which `akb` command answers which ask, so when the
+answer turns out to be work it hands you the line to run rather than running it.
+
+What it was shown is the board as it stood when the conversation started, so on anything
+that may have moved since — a card that was refined, a run that finished — it goes and reads
+again instead of answering from that snapshot.
+
+The reply arrives as it is written, and the next message lands in the same session — the
+agent still has everything said before, so you can ask a follow-up without explaining your
+project again. Every message is its own command, so the conversation is picked up from any
+terminal and survives closing one. The board's conversation and each card's are separate,
+and both live under `docs/kanban/.chats/`, on your machine and out of git.
+
+A chat is not a run: it never shows in `akb runs`, never holds a card, and never keeps a
+run off the card it is about. It builds nothing either — when the answer is work, start the
+run for it.
+
+Only an agent whose command can take a second message into its own session can hold a
+conversation. On any other one, chat says so and names the agents that can.
+
 ## The manual
 
 `akb help runs` is what a coding agent reads: every command it may call — the card work,

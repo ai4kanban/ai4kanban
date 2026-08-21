@@ -44,21 +44,21 @@ in both. Read those two Todo lines as one job.
 Three layouts for the card page, which is where the list has to find a home. Each is drawn
 on the same card — one that waits on #63 and holds up three others.
 
-<Mockup src="mockups/154/a.tsx" label="A" />
+<Mockup src=".mockups/154/a.tsx" label="A" />
 
 "Holding up" is a column of the meta band like any other, right after "Blocked by". The two
 directions sit side by side and the band stays one shallow strip. Costs: the ids are bare
 numbers, so you cannot tell three small cards from the release without opening them, and on
 a narrow window the column wraps to a second line.
 
-<Mockup src="mockups/154/b.tsx" label="B" />
+<Mockup src=".mockups/154/b.tsx" label="B" />
 
 One "Links" column carries the whole sentence: waits on #63 · holds up #201 #202 #233. Both
 directions in one place, and the band gains no width. Costs: the line gives two opposite
 instructions — do not start this, and start this first — so you read all of it to learn
 either half, and a peach id beside a sky id in one row is easy to mix up at a glance.
 
-<Mockup src="mockups/154/c.tsx" label="C" />
+<Mockup src=".mockups/154/c.tsx" label="C" />
 
 A panel under the meta band, one row per held-up card with its title, and each row opens
 that card — the same row the subtasks panel already draws. You see at once whether you are

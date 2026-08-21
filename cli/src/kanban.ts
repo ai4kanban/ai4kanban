@@ -63,6 +63,14 @@ export {
 } from './lib/agent/sessions'
 export { spawnWatcher } from './lib/agent/launch'
 export { buildPrompt } from './lib/agent/prompts'
+
+// The chat (#240): the board's conversation with its agent, and each card's. A screen
+// drives it through these — `sendChatMessage` streams the reply back through `onText`, so
+// a chat in the app and a chat in a terminal are the same conversation, held by the same
+// code, in the same file. Nothing here touches the run record: a conversation is not a run.
+export { clearChat, readChat, readChatView, sendChatMessage } from './lib/agent/chat'
+export type { SendOptions as ChatSendOptions } from './lib/agent/chat'
+export { chatAgent } from './lib/agent/resolve'
 export { agentInfo, activeSettings, setupInstruction, settingSaveError } from './lib/agent/resolve'
 export { setHarness, setHarnessSetting, setSecret } from './lib/agent/settings'
 export { testConnection } from './lib/agent/test'

@@ -60,6 +60,45 @@ proposes:
 
 The board keeps working either way, but proposals are guesses until you write the goal.
 
+## Talk it over first
+
+Not every answer is a job. When you want to think out loud — what's worth doing next, what
+a card actually means, whether two cards are the same card — open a conversation instead:
+
+```bash
+akb chat "what should I build next, and why?"
+akb chat 241 "what is still unclear about this card?"
+```
+
+You explain nothing. A chat opens knowing what a coding agent knows after you type
+`/kanban`: your goal, your modules, your tracks, every open card in one line, and — when
+you name one — that card in full, with its questions and the cards it waits on. It knows
+where your memory files are and reads them before it suggests anything, and it knows which
+`akb` command answers which ask, so when the answer is work it hands you the line to run.
+
+In the app the same conversation is a rail down the right of the window — **Chat** in the
+header opens it, and it follows what you are reading: the board's chat on the board, a card's
+on its page. It is one conversation either way, so you can start it in a terminal and carry it
+on in the app.
+
+Reach for it when:
+
+| You want | Chat, or a run |
+| --- | --- |
+| to decide what to build, or why | chat — it is a question, not a job |
+| to understand a card before you approve it | chat |
+| to compare two cards, or spot a duplicate | chat |
+| the card changed, or the code did | a run — `akb refine 4`, `akb implement 4` |
+
+A chat changes nothing: no card, no memory file, no code. It also never shows in `akb runs`
+and never holds a card, so it can't get in the way of work already going.
+
+Two things to know. The board it was shown is the board as it stood when the conversation
+started, so on anything that may have moved it goes and reads the card again rather than
+answering from memory. And each conversation is separate and lives on your machine, under
+`docs/kanban/.chats/` and out of git — `akb chat 241` picks yours up from any terminal,
+`akb chat 241 --clear` starts it fresh on the board as it stands then.
+
 ## Plan a release
 
 A release is a version you're planning — call it `v1`, `0.5.0`, or `august`; the board
@@ -213,7 +252,7 @@ The board ships two, and `akb spec` lists them:
 ### Picking a layout by looking at it
 
 A card that changes a screen can carry **mockups** of it — small files under
-`docs/kanban/mockups/<card id>/`, each drawing one layout the card could take. The card body
+`docs/kanban/.mockups/<card id>/`, each drawing one layout the card could take. The card body
 points at each one with a short tag, and the card page draws the screen that file holds where
 the tag sits, so you pick a layout by looking at it instead of by reading a description of it.
 
@@ -226,6 +265,10 @@ Nothing in a mockup runs, loads anything, or answers a click — it is a drawing
 in its normal state, and it is thrown away when the build starts. A tag pointing at a file
 that isn't there, or at one the board can't draw, reads as one plain note naming the file, and
 the rest of the card draws as usual.
+
+The folder is gitignored, so mockups stay on the machine that drew them: a card you pull from
+someone else carries the tags without the pictures, and running `ui-design` again draws them
+back. What a layout settled is in the card's own words, which is what travels.
 
 It is a run like any other — its own log, stoppable — with three things that make it
 different:
@@ -384,6 +427,10 @@ akb board archive <id>            # finish a task
 akb board reject  <id>            # drop an idea
 akb spec                          # the spec agents, and what each one fills
 akb spec <agent> <id> [note]      # put one on a card — its own run, starting clean
+akb chat "<message>"              # talk about the board — changes nothing
+akb chat <id> "<message>"         # talk about one card
+akb chat [<id>]                   # the conversation so far
+akb chat [<id>] --clear           # forget it and start fresh
 akb board peek                    # next free id
 akb board metrics                 # the daily CSV
 akb board help                    # full usage

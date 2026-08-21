@@ -24,9 +24,11 @@ covers it, or a plain-words note.
   pass what to check. Refine looks for unmarked ones, and a work item that drifted off the
   card is split out, dropped, or kept there: `akb guide board` and `akb guide refine`.
 - A card that changes a screen points at its mockups with one tag on a line of its own —
-  `<Mockup src="mockups/239/a.tsx" label="A" />` — and they live in
-  `docs/kanban/mockups/<card id>/`, one file each: a `.tsx` component styled with Tailwind, or
-  a plain `.html` page. It is the only tag a card body may carry: `akb guide board`.
+  `<Mockup src=".mockups/239/a.tsx" label="A" />` — and they live in
+  `docs/kanban/.mockups/<card id>/`, one file each: a `.tsx` component styled with Tailwind, or
+  a plain `.html` page. The folder is gitignored, so a drawing never travels with the card and
+  what it settled has to be in the card's words. It is the only tag a card body may carry:
+  `akb guide board`.
 - A card that changes something users see and click is planned against the board's UI design
   reference, `akb guide ui-design`: the screen is matched to the ones the project already
   has, its colours and spacing come from the project, it says what it shows with nothing to
@@ -159,7 +161,7 @@ covers it, or a plain-words note.
   flow one follows.
 - The `ui-design` spec agent answers with the screen drawn, not described: on a card that
   changes or adds a screen, it writes two or three mockup files under
-  `docs/kanban/mockups/<card id>/`, points at each from its own section with a `<Mockup>` tag
+  `docs/kanban/.mockups/<card id>/`, points at each from its own section with a `<Mockup>` tag
   and a line saying what that layout is good for and what it costs, and recommends one. The
   card page draws them, so the user picks a layout by looking. Run again on the same card it
   writes over its old mockups and deletes the ones its new answer dropped: "Let a specialist
@@ -178,3 +180,22 @@ covers it, or a plain-words note.
   library goes through all of them without a spec run, and a second ask is turned down
   while that agent is still working the card: "When one shows up on its own" in
   `docs/guides/daily-loop.md`.
+- `akb chat "…"` holds a conversation with the agent about the board, and `akb chat <id> "…"`
+  about one card. The reply arrives as it is written, the next message lands in the same
+  session so the agent still has everything said before, and `akb chat [<id>] --clear` starts
+  fresh. Each conversation is picked up from any terminal and survives closing one; the
+  board's and each card's are separate, kept under `docs/kanban/.chats/` and out of git. A
+  chat is not a run — it never shows in `akb runs`, never holds a card, and builds nothing —
+  and it is offered only on an agent whose command takes a second message into its own
+  session, which today is every agent the board ships: `cli/README.md`, "Talk to it about the
+  board".
+- A conversation opens knowing what a coding agent knows after `/kanban`, so nothing has to
+  be explained to it: the goal, the module map, the tracks, the releases, every open card in
+  one line, the project's settings, and — on a card chat — that card whole, with its fields,
+  its open questions, and the cards it waits on and belongs to, by title. It is told where
+  the memory files are and to read them before it suggests anything, it is given the same
+  command list a coding agent gets, and it changes nothing. What it was shown is the board as
+  it stood when the conversation started, so it re-reads anything that may have moved:
+  `docs/guides/daily-loop.md`, "Talk it over first", and `akb guide chat` for the flow one
+  follows.
+

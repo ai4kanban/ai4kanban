@@ -16,9 +16,11 @@
 //
 // See app/design/layouts for the mockup this is drawn from.
 
+import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail } from "@/lib/chat-rail";
 import { useOpenCards } from "@/lib/open-cards";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
 import type { MemoryModule } from "@/lib/types";
+import { ChatPane, ChatProvider } from "./Chat";
 import { Rail } from "./Rail";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 
@@ -64,7 +66,15 @@ export function Window({
 }) {
   const { rows, close } = useOpenCards(projectRoot, openIds, currentId, currentTitle);
   const { panel, onLayoutChanged, onDoubleClick } = useRailWidth();
+  // The chat rail follows what this window is showing (#242): a card's page gets that
+  // card's own conversation, the board and a memory file get the board's. One chat on
+  // screen, and nothing to choose.
+  const chat = useChatRail({ projectRoot, cardId: currentId ?? null, cardTitle: currentTitle });
+  // Beside the body on a wide window, over it on a narrow one — the same rail either way,
+  // so what has been typed survives the window being dragged across that line.
+  const beside = chat.open && !chat.overlay;
   return (
+    <ChatProvider rail={chat}>
     <div className="flex h-screen flex-col overflow-hidden bg-nb-cream">
       {header}
       {/* The rail and the body are a panel group so the rail can be dragged
@@ -74,7 +84,15 @@ export function Window({
           judgement: widening the window gives the new room to the body, and the
           rail stays the width you left it. */}
       <div className="min-h-0 flex-1">
-        <ResizablePanelGroup orientation="horizontal" onLayoutChanged={onLayoutChanged}>
+        {/* One group, two draggable panels, so both handlers are called: each reads its own
+            panel's width and writes it down, and ignores a layout it didn't cause. */}
+        <ResizablePanelGroup
+          orientation="horizontal"
+          onLayoutChanged={(layout, meta) => {
+            onLayoutChanged(layout, meta);
+            chat.onLayoutChanged(layout, meta);
+          }}
+        >
           <ResizablePanel
             id="rail"
             panelRef={panel}
@@ -98,11 +116,48 @@ export function Window({
               paper sits inside the window rather than against it. With it, the
               gutter is shared with the handle and the rail's own padding, and
               still comes to the same 12px of cream. */}
-          <ResizablePanel id="body" className="pl-4 md:pl-1" style={{ overflow: "hidden" }}>
-            <div className="h-full overflow-hidden rounded-tl-[14px] bg-nb-paper">{children}</div>
+          <ResizablePanel
+            id="body"
+            className={`pl-4 md:pl-1 ${beside ? "pr-1" : ""}`}
+            style={{ overflow: "hidden" }}
+          >
+            {/* The paper rounds the corner it turns away from the chrome on. With the chat
+                up there is chrome on the right too, so it rounds that corner as well. */}
+            <div
+              className={`h-full overflow-hidden rounded-tl-[14px] bg-nb-paper ${beside ? "rounded-tr-[14px]" : ""}`}
+            >
+              {children}
+            </div>
           </ResizablePanel>
+          {beside && (
+            <>
+              <ResizableHandle aria-label="Resize the chat" onDoubleClick={chat.onDoubleClick} />
+              <ResizablePanel
+                id="chat"
+                panelRef={chat.panel}
+                defaultSize={CHAT_W}
+                minSize={CHAT_MIN}
+                maxSize={CHAT_MAX}
+                groupResizeBehavior="preserve-pixel-size"
+              >
+                <ChatPane rail={chat} />
+              </ResizablePanel>
+            </>
+          )}
         </ResizablePanelGroup>
       </div>
+      {/* Too narrow to stand beside the board, so it covers it. It is given the paper's own
+          ground and an ink edge, since here it is a thing laid over the window rather than
+          a part of its frame. */}
+      {chat.open && chat.overlay && (
+        <div
+          className="fixed bottom-0 right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream"
+          style={{ borderLeft: "1.5px solid var(--color-nb-ink)" }}
+        >
+          <ChatPane rail={chat} />
+        </div>
+      )}
     </div>
+    </ChatProvider>
   );
 }

@@ -167,6 +167,77 @@ export interface RunView extends RunRecord {
   tail?: string
 }
 
+// ---- talking to the agent, rather than setting it a job ---------------------
+
+/** One thing said in a conversation. `you` is the user's message, `agent` is the reply as
+ *  it was written — the agent's words, its thinking and the tool calls it made, exactly the
+ *  text that went past on screen. */
+export interface ChatMessage {
+  role: 'you' | 'agent'
+  text: string
+  at: number
+  /** On a reply that stopped before the agent had finished: why, in the agent's own words
+   *  where it gave any. `text` is what arrived before it stopped, and it is kept. */
+  stoppedWhy?: string
+}
+
+/** One conversation — the board's, or one card's. It is not a run: nothing here reaches
+ *  the run record, so a chat never shows in the runs panel, never holds a card, and never
+ *  keeps a run off one. */
+export interface Chat {
+  /** Null for the conversation about the whole board; a card id for that card's own. */
+  cardId: number | null
+  /** The agent this conversation is being held with. A board switched to another agent
+   *  can't carry it on — that agent's CLI knows nothing about this session. */
+  harness: string
+  /** The id that agent's own CLI carries the conversation on by. Absent until the agent
+   *  has named one, which for most of them is partway through the first reply. */
+  resumeId?: string
+  /** The model the last reply was written by, as the agent named it. */
+  model?: string
+  messages: ChatMessage[]
+  startedAt: number
+  updatedAt: number
+}
+
+/** Which agent holds this board's conversations, and whether it can hold one at all. */
+export interface ChatAgent {
+  name: string
+  label: string
+  /** Its command can be sent a second message into the session it already opened. */
+  canChat: boolean
+  /** The labels of every agent the board ships that can — what a refusal names, so the
+   *  user is told where to go rather than only what doesn't work. */
+  able: string[]
+}
+
+/** A conversation as a reader is shown it: the conversation itself when there is one, plus
+ *  what the board can do about it right now. */
+export interface ChatView {
+  cardId: number | null
+  chat: Chat | null
+  /** The agent the board runs right now can hold a conversation. */
+  canChat: boolean
+  /** That agent's label, for saying which one is meant. */
+  agent: string
+  /** The labels of every agent that can hold one — what a refusal names. */
+  able: string[]
+  /** Why a message can't be sent right now, when something is in the way: the agent can't
+   *  hold a conversation, this one belongs to another agent, or a reply is still coming. */
+  blocked?: string
+}
+
+/** What sending one message came back with. */
+export interface ChatReply {
+  /** The reply as it was written, and as the transcript keeps it. */
+  text: string
+  /** The reply stopped before the agent had finished; `text` is what arrived. */
+  stoppedWhy?: string
+  /** The model that wrote it, when the agent named one. */
+  model?: string
+  chat: Chat
+}
+
 /** One choice on a `select` setting's list. An empty `value` means the agent's own
  *  default, like an empty text box. */
 export interface SettingChoice {
@@ -224,6 +295,17 @@ export interface HarnessSetting {
   overriddenHelp?: string
 }
 
+/** One thing this connector can't do that another one can (`agent/capabilities.ts`). The
+ *  words are the board's own, so a screen listing them never keeps a copy that could say
+ *  something else. */
+export interface HarnessGap {
+  id: string
+  /** The capability, named as a person would ask for it. */
+  label: string
+  /** What happens instead on a connector that lacks it. */
+  blurb: string
+}
+
 /** One agent the board can run. */
 export interface HarnessOption {
   name: string
@@ -244,6 +326,10 @@ export interface HarnessOption {
    *  not to be on the machine — a picker offering it, a run that can't spawn, a failed
    *  test — so the user reads what to do instead of a raw spawn error. */
   install: string
+  /** What this agent can't do that another one on the list can, worked out fresh on every
+   *  read. Empty for a connector that lacks nothing. A screen offering the agents shows
+   *  these where the pick is made, so what a switch costs is read before it is paid. */
+  gaps: HarnessGap[]
 }
 
 /** Which agent runs the board, what it is set to, and what it could be switched to. */

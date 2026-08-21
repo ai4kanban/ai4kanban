@@ -16,7 +16,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { FiAlertCircle, FiMaximize2 } from "react-icons/fi";
-import type { MockupView } from "@/lib/mockup-tag";
+import { mockupHref, type MockupView } from "@/lib/mockup-tag";
 
 /** The desktop screen every mockup is drawn on, before it is scaled. Every option gets
  *  this same frame — they only compare when they are the same size on the page. */
@@ -105,7 +105,7 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
             where the words in it can be read. It opens in the board, not in a separate
             browser: the desktop app hands any new window to the system browser. */}
         <Link
-          href={`/${view.src}`}
+          href={mockupHref(view.src)}
           className="inline-flex min-w-0 items-center gap-1 font-mono text-[11.5px] text-nb-ink-soft underline decoration-dotted underline-offset-2 hover:text-nb-accent-deep"
           title="Open this mockup on its own, at full size"
         >

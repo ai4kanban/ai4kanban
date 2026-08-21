@@ -5,6 +5,19 @@
 - Add minimal, only necessary information to SKILL.md, design.md or `references/*.md`. The context is precious.
 - When writing a flow, it's recommended to use `- **bold title**: one liner` format to make the requirements scannable.
 
+## User-facing Writing
+
+Professional and plain. Comprehensible without being chatty. Never explain how something
+works internally — the user has no idea what a session id, a renderer or a harness field is,
+and doesn't need one.
+
+- **UI text**: assume zero patience. Nothing that needs reading twice, nothing folded behind
+  a click, no paragraphs. A short label plus a one-line consequence, laid out so the eye can
+  run down it. Cut every word that isn't load-bearing.
+- **`docs/guides/`**: a few sentences of framing, then tables and one-line bullets. Say what
+  the user sees and what to do about it, not why the code is that way.
+- **Both**: no internal mechanics, no reassurance, no hedging. Name the consequence.
+
 ## The public site
 
 `web/design.md` describes how the site in `web/` looks and is put together — the color

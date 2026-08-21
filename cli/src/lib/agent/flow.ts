@@ -36,6 +36,7 @@ import { readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
 import { moduleNames } from '../validate'
+import { field, metaLine, numbered, trackNames } from './facts'
 import { buildPrompt } from './prompts'
 import { setupInstruction } from './resolve'
 import type { AgentAction, AgentRequest } from './types'
@@ -147,20 +148,6 @@ function readTodo(body: string): { steps: string[]; ticked: number } {
   return { steps, ticked }
 }
 
-// The buckets a card can live in on this board, read off the folders rather than described
-// in general. Id-prefixed folders are group tasks, not tracks.
-function trackNames(): string[] {
-  try {
-    return fs
-      .readdirSync(TODO, { withFileTypes: true })
-      .filter((e) => e.isDirectory() && idPrefix(e.name) === null)
-      .map((e) => e.name)
-      .sort()
-  } catch {
-    return []
-  }
-}
-
 // Which copy of a memory file a note belongs in — "The memory set" in `akb guide board`, read
 // only: the named module's copy, both when the card names two, the project-wide one when it
 // names none. It never scaffolds, because printing a flow must not write to the board.
@@ -190,31 +177,6 @@ function configText(): string | null {
 interface Section {
   head: string
   lines: string[]
-}
-
-const LABEL = 10
-
-// `label   text`, with anything after the first line lined up under the text.
-function field(label: string, text: string | string[]): string[] {
-  const body = Array.isArray(text) ? text : [text]
-  const pad = ' '.repeat(LABEL)
-  return body.map((line, i) => `${i === 0 ? label.padEnd(LABEL) : pad}${line}`)
-}
-
-const numbered = (items: string[]): string[] => items.map((s, i) => `${i + 1}. ${s}`)
-
-// The card's meta as one line — the fields a job actually steers by, and nothing it can
-// read off the file itself in a second.
-function metaLine(meta: Meta): string {
-  const bits = [meta.track, meta.status || 'todo', `priority ${meta.priority}`, `roi ${meta.roi}`]
-  if (meta.release) bits.push(`release ${meta.release}`)
-  if (meta.modules.length) bits.push(`modules ${meta.modules.join(', ')}`)
-  if (meta.cadence) bits.push(`every ${meta.cadence}`)
-  if (meta.blocked_by.length) bits.push(`blocked by ${meta.blocked_by.map((n) => `#${n}`).join(', ')}`)
-  // The board is holding a run for this card already — worth saying, because doing that job
-  // here means the queued one has nothing left to do when it fires.
-  if (meta.schedule) bits.push(`scheduled to ${meta.schedule.action}`)
-  return bits.join(' · ')
 }
 
 // What is left of the plan. The remaining boxes are the job; the ticked ones are history and

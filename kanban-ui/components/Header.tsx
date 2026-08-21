@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReleasePick } from "@/lib/release-pick";
 import type { AgentInfo } from "@/lib/types";
+import { ChatButton } from "./Chat";
 import { ToolCluster } from "./chrome";
 import { Configuration } from "./Configuration";
 import { CreateTask } from "./CreateTask";
@@ -24,6 +25,10 @@ import { Sessions } from "./sessions";
 // There was a view switch here (#70) — kanban columns or the queue. It is gone:
 // the board draws one layout now, so there is nothing to switch between and a
 // control offering the choice would be offering a board that no longer exists.
+//
+// The Chat button (#242) sits beside Create task and folds the chat rail down the right of
+// the window. It draws nothing of its own — the rail's state lives in the window
+// (components/Window.tsx), which is what keeps one chat on screen whichever page is up.
 //
 // The release dropdown (#104) is the one thing that isn't on both pages, on
 // board-only terms: it says which version the columns are
@@ -170,6 +175,7 @@ export function Header({
           <Sessions />
           <Configuration agent={agent} onError={onError} />
         </ToolCluster>
+        <ChatButton />
         <CreateTask release={createRelease} />
       </div>
     </header>

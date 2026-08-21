@@ -6,13 +6,14 @@
 // be split across two agents — switching the picker while an agent is working changes what
 // the NEXT run spawns, never this one.
 
+import { harnessGaps } from './capabilities'
 import type { RunClient } from './client'
 import { HARNESSES, type Harness, DEFAULT_HARNESS, harnessByName, namesFlag } from './harnesses'
 import { commandBinary, pathLookup } from './installed'
 import { missingRequired, pickedProvider, providerSetting, shownForProvider } from './providers'
 import { configBlock, readConfigRaw, readEnvFile } from './settings'
 import type { StreamRenderer } from './stream'
-import type { AgentInfo, HarnessSetting, Provider } from './types'
+import type { AgentInfo, ChatAgent, HarnessSetting, Provider } from './types'
 
 interface ResolvedHarness {
   harness: Harness
@@ -357,6 +358,28 @@ export function resumableHarness(): string | null {
   return harness.resumes ? harness.name : null
 }
 
+/** Which agent this board's conversations are held with, and whether it can hold one.
+ *
+ *  A conversation is one message after another into the session the agent already opened,
+ *  and that is exactly what `resumes` says a CLI can do — so chat leans on that one
+ *  capability rather than on a second flag beside it, which would say the same thing until
+ *  the day the two drifted apart. An agent that can't is turned away by this alone, and the
+ *  refusal names the ones that can. */
+export function chatAgent(): ChatAgent {
+  const { harness } = resolveHarness()
+  return {
+    name: harness.name,
+    label: harness.label,
+    canChat: harness.resumes,
+    able: HARNESSES.filter((h) => h.resumes).map((h) => h.label),
+  }
+}
+
+/** The label an agent name reads as, for saying which agent a conversation belongs to. */
+export function harnessLabel(name: string): string {
+  return harnessByName(name)?.label ?? name
+}
+
 /** True when this agent ran the session under the id we generated (Claude Code pins it
  *  with `--session-id`). Then the conversation's own id IS our key, so a run under it can
  *  always be resumed — nothing had to be reported mid-run and nothing had to be saved. */
@@ -411,6 +434,10 @@ export function agentInfo(): AgentInfo {
     // `command` stays the harness's own, never the override: it is what a front end
     // compares against to notice there IS an override. What the override changes is which
     // binary gets looked up, and that is `binary`.
+    //
+    // The gaps go down with them (`agent/capabilities.ts`) so a picker can say what a switch
+    // costs before it is made — not all of these agents report a price, name their model or
+    // let go of a card when they are rate-limited, and none of that shows up until a run.
     options: HARNESSES.map((option) => {
       const { name, label, icon, command: cmd, settings, install } = option
       const runs = commandOf(cfg, option)
@@ -423,6 +450,7 @@ export function agentInfo(): AgentInfo {
         binary: commandBinary(runs),
         installed: onPath(runs),
         install,
+        gaps: harnessGaps(option),
       }
     }),
     unknownName,

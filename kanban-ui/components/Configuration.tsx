@@ -26,7 +26,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiCheck, FiLink, FiSettings, FiTerminal, FiUsers, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiLink, FiSettings, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
   installedAgentsAction,
   setHarnessAction,
@@ -35,7 +35,7 @@ import {
   testConnectionAction,
 } from "@/app/actions";
 import { missingRequired, pickedProvider, providerSetting, shownForProvider } from "@/lib/providers";
-import type { AgentInfo, ConnectionTest, HarnessOption, HarnessSetting } from "@/lib/types";
+import type { AgentInfo, ConnectionTest, HarnessGap, HarnessOption, HarnessSetting } from "@/lib/types";
 import { TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
 import { SkillPanel } from "./Skill";
@@ -551,6 +551,17 @@ export function HarnessPicker({
         </p>
       )}
 
+      {/* What the picked agent can't do that another on the grid can. Drawn from the list
+          the board hands down, so nothing here knows an agent's name.
+
+          Above the settings rather than at the foot of the pane: this is what a switch
+          costs, and it belongs at the moment of the switch. An agent that lacks nothing
+          draws nothing, and so does a board reading older rules, which doesn't answer this
+          at all. */}
+      {activeOption?.gaps?.length ? (
+        <HarnessGaps label={activeOption.label} gaps={activeOption.gaps} />
+      ) : null}
+
       {/* The override, when there is one, so what actually runs is never hidden.
           Only while the active card is the saved one — mid-switch it names the
           agent that is on its way out. Each agent has an override of its own, so
@@ -644,6 +655,44 @@ export function HarnessPicker({
           </span>
         </p>
       )}
+    </div>
+  );
+}
+
+// What the picked agent can't do that another one on the grid can.
+//
+// Not a warning: none of these is broken, and every agent here runs the board. So it reads
+// in the pane's own quiet grey rather than the peach a real failure wears, and it wears the
+// same small uppercase heading the settings below it do — one more thing about this agent,
+// not an alarm.
+//
+// Nothing folds and nothing is a paragraph. Each gap is one row: a cross, what it is, then
+// what you lose, all short enough to take in without stopping. Someone glancing reads the
+// labels down the left and moves on; someone weighing two agents reads the right-hand
+// column too.
+//
+// The cross wears the pane's grey, not the peach a failure wears: none of this is broken,
+// and every agent here runs the board. It is aria-hidden — the heading says "not supported"
+// once, and a reader that hears it four more times learns nothing.
+function HarnessGaps({ label, gaps }: { label: string; gaps: HarnessGap[] }) {
+  return (
+    <div className="rounded-[10px] border border-nb-ink/15 bg-nb-wash px-3 py-2.5">
+      <p className="mb-1.5 text-[11px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft">
+        Not supported by {label}
+      </p>
+      <dl className="flex flex-col gap-1">
+        {gaps.map((gap) => (
+          // The label column is fixed so the consequences line up into a column of their
+          // own — a list you can run your eye down, not five sentences.
+          <div key={gap.id} className="flex gap-2 text-[12px] leading-snug max-sm:flex-col max-sm:gap-0">
+            <dt className="flex w-[142px] shrink-0 items-center gap-1.5 font-[700] text-nb-ink">
+              <FiX className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
+              {gap.label}
+            </dt>
+            <dd className="text-nb-ink-soft max-sm:pl-[19px]">{gap.blurb}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }

@@ -6,6 +6,8 @@ import { repoRoot } from "./paths";
 import type {
   AgentInfo,
   AgentRequest,
+  ChatReply,
+  ChatView,
   ConnectionTest,
   HarnessSetting,
   RunRecord,
@@ -67,6 +69,17 @@ export interface BoardRules {
   stopRun(id: string): { ok: boolean; sessionId?: string; error?: string };
   titleOf(cardId: number | undefined): string | undefined;
   buildPrompt(req: AgentRequest): string;
+
+  // the conversation with that agent (#242) — the board's, and each card's. Optional for
+  // the same reason as the moves below: a project can be running rules older than the
+  // release that added them, and the chat says so rather than the window failing to draw.
+  readChatView?(cardId: number | null): ChatView;
+  sendChatMessage?(
+    cardId: number | null,
+    message: string,
+    options?: { onText?(chunk: string): void; title?: string },
+  ): Promise<ChatReply | { error: string }>;
+  clearChat?(cardId: number | null): boolean;
 
   // the agent, and what it is set to
   agentInfo(): AgentInfo;

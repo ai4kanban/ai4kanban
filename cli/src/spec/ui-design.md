@@ -17,11 +17,13 @@ you to decide.
 ## What to answer
 
 Two or three options. Each one is a mockup file of its own under
-`docs/kanban/mockups/<card id>/`, and your section points at it with a `<Mockup>` tag on a
+`docs/kanban/.mockups/<card id>/`, and your section points at it with a `<Mockup>` tag on a
 line of its own, followed by one line of plain words: what that layout is good for, and what
 it costs. Then one line naming the option you recommend, and why it beats the others here.
 
 Your section carries the tags and those lines. The drawing itself is never typed into it.
+The files are not in git, so a reader who never sees them still has to be able to tell the
+options apart from your words alone.
 
 ## How much to draw
 

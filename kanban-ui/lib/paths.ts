@@ -79,9 +79,11 @@ export function todoDir(): string {
 }
 // Where a card's mockups live (#239) — one folder per card, named after its id. The
 // `ui-design` agent makes it when it writes the first mockup; the board never does, and a
-// tag pointing into a folder that isn't there reads as a missing file.
+// tag pointing into a folder that isn't there reads as a missing file. Dotted and
+// gitignored: a mockup is a working drawing, so a card pulled from git can point at one
+// this machine has never drawn — which is a note on the card, not a broken page.
 export function mockupsDir(): string {
-  return path.join(kanbanDir(), "mockups");
+  return path.join(kanbanDir(), ".mockups");
 }
 export function readmePath(): string {
   return path.join(todoDir(), "README.md");

@@ -196,6 +196,14 @@ re-ask a settled call.
   height, a rail like the one on the left. It is folded away by default, so the board and
   the card stay the centre of the app, and a **Chat** button in the header, beside **Create
   task**, opens and folds it.
+- **What does the rail show while a card is open?**: that card's own chat. The rail follows
+  what you are reading — the board's chat on the board and on a memory file, that card's on
+  its page — so only one chat is ever on screen and the card chat needs no panel of its own.
+- **Does the chat in the rail change the board?**: yes, and a card's chat as much as the
+  board's — it makes the change itself rather than handing it to the card's Edit and Resolve
+  buttons. The board redraws where it stands.
+- **Does any of it ask first?**: no. Every action goes straight through, archive, reject and
+  starting a build included; the changes sit in the working tree for git to undo.
 
 ## Moving around the app
 
@@ -209,9 +217,18 @@ re-ask a settled call.
 ## Mockups on a card
 
 - **How does a card body point at a mockup file?**: with a tag the board UI knows, on a line
-  of its own — `<Mockup src="mockups/239/a.html" label="A" />`. The card page draws it as the
+  of its own — `<Mockup src=".mockups/239/a.html" label="A" />`. The card page draws it as the
   screen that file holds. A markdown link is never drawn as a mockup, so nothing a card
   already says turns into one by accident.
+- **Where does the file live, and is it in git?**: `docs/kanban/.mockups/<card id>/` — dotted
+  and gitignored, because a mockup is a working drawing that the build throws away. `src` is
+  the path from `docs/kanban/`, so the tag and the file are the same string. A tag written
+  before the folder was dotted (`mockups/...`) still reads the same file.
+- **What does the page do when the file was never drawn here?**: the same plain note as any
+  other unreadable tag, saying the file is not on this machine. A card pulled from git carries
+  its tags without its pictures, and `ui-design` run again draws them back.
+- **Does the dot show up in the address?**: no. `.mockups/239/a.tsx` is the page
+  `/mockups/239/a.tsx` — one word in the URL, no dot segment (`mockupHref`).
 
 ## Where the UI is documented
 

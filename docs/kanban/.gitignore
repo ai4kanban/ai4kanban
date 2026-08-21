@@ -10,3 +10,7 @@
 .sessions.lock/
 # Held by the one run at a time that may rewrite the board index.
 .index.lock/
+# Drawings of the screens cards change — redrawn, never read back from git.
+.mockups/
+# The conversations held with the agent, on this machine.
+.chats/

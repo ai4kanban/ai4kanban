@@ -72,6 +72,7 @@ terminal use, run `akb` after installing the app; do not install the npm package
 
 - [Daily workflow](docs/guides/daily-loop.md)
 - [Writing a useful project goal](docs/guides/what-makes-a-good-goal.md)
+- [What each coding agent can and can't do](docs/guides/connectors.md)
 - Run `akb help` for the bundled CLI reference.
 - Explore this repository's own board in [`docs/kanban/`](docs/kanban/).
 

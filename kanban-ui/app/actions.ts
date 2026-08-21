@@ -20,6 +20,7 @@ import {
   readSetupState,
   searchCards,
 } from "@/lib/board";
+import { type ChatRead, clearChat, readChat, sendChat } from "@/lib/chat";
 import { setHarness, setHarnessSetting } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
 import {
@@ -194,6 +195,43 @@ export async function listSessionsAction(): Promise<SessionView[]> {
 export async function getSessionAction(sessionId: string): Promise<SessionView | null> {
   if (typeof sessionId !== "string" || !sessionId) return null;
   return getSession(sessionId);
+}
+
+// ---- the chat (#242) --------------------------------------------------------
+// The conversation the window holds with the agent — the board's, or the open card's. It
+// is not a run: none of these touch the run record, so nothing here shows in the runs panel
+// or keeps a run off a card.
+//
+// Sending comes straight back. The reply is written on the server (lib/chat.ts) and the
+// window reads how far it has got, so folding the rail or walking to another card never
+// cuts one off.
+
+/** A card id, or null for the board's own conversation. Anything else is not a chat this
+ *  board has. */
+function chatTarget(cardId: unknown): number | null | undefined {
+  if (cardId === null) return null;
+  return typeof cardId === "number" && Number.isInteger(cardId) ? cardId : undefined;
+}
+
+export async function readChatAction(cardId: number | null): Promise<ChatRead> {
+  const target = chatTarget(cardId);
+  if (target === undefined) {
+    return { chat: null, live: null, canChat: false, agent: "", able: [], missing: false, blocked: "that is not a card on this board." };
+  }
+  return readChat(target);
+}
+
+export async function sendChatAction(cardId: number | null, message: string): Promise<{ ok: boolean; error?: string }> {
+  const target = chatTarget(cardId);
+  if (target === undefined) return { ok: false, error: "that is not a card on this board." };
+  if (typeof message !== "string" || !message.trim()) return { ok: false, error: "say something to send." };
+  return sendChat(target, message.trim());
+}
+
+export async function clearChatAction(cardId: number | null): Promise<{ ok: boolean; error?: string }> {
+  const target = chatTarget(cardId);
+  if (target === undefined) return { ok: false, error: "that is not a card on this board." };
+  return clearChat(target);
 }
 
 // ---- the goal ---------------------------------------------------------------

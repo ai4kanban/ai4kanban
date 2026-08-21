@@ -48,7 +48,10 @@ export let RELEASE_SUMMARIES = ''
 export let SETUP_CHECKLIST = ''
 // Drawings of the screens cards change — one folder per card id (see "Mockups" in
 // `akb guide board`). Keyed by id, so a card leaving the board takes its folder with it.
+// Dotted and ignored: a mockup is a working drawing, redrawn from the card whenever the
+// question comes back, so it is never something the repo carries or a teammate pulls.
 export let MOCKUPS = ''
+export const MOCKUP_IGNORE_LINE = '.mockups/'
 // All memory lives under docs/kanban/memory/: the project-wide set sits in this folder
 // itself, each module's set in a subfolder named after the module.
 export let MEMORY = ''
@@ -71,6 +74,9 @@ export let SESSIONS_DIR = ''
 // The lock that record is written under. Its own, not the board's: a run's bookkeeping
 // calls board moves, and those take the board lock themselves.
 export let SESSIONS_LOCK = ''
+// The conversations the user has had with the agent — one file per conversation, beside
+// the run logs (lib/agent/chat.ts). A chat is not a run and is nowhere in the record above.
+export let CHATS_DIR = ''
 // Held by the one run at a time that may rewrite the board's shared files (next-id, the
 // README index, metrics.csv). Across processes, so the UI and a terminal wait for each
 // other and not only for themselves.
@@ -93,7 +99,7 @@ export function setBoardRoot(root: string): string {
   RELEASES = path.join(KANBAN, 'releases.md')
   RELEASE_SUMMARIES = path.join(KANBAN, '.release-summaries')
   SETUP_CHECKLIST = path.join(KANBAN, 'setup-checklist.md')
-  MOCKUPS = path.join(KANBAN, 'mockups')
+  MOCKUPS = path.join(KANBAN, '.mockups')
   MEMORY = path.join(KANBAN, 'memory')
   GOAL = path.join(MEMORY, 'goal.md')
   LOCK = path.join(KANBAN, '.lock')
@@ -102,6 +108,7 @@ export function setBoardRoot(root: string): string {
   SESSIONS = path.join(KANBAN, '.sessions.json')
   SESSIONS_DIR = path.join(KANBAN, '.sessions')
   SESSIONS_LOCK = path.join(KANBAN, '.sessions.lock')
+  CHATS_DIR = path.join(KANBAN, '.chats')
   INDEX_LOCK = path.join(KANBAN, '.index.lock')
   return REPO_ROOT
 }

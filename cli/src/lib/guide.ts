@@ -16,6 +16,7 @@
 
 import addTask from '../guide/add-task.md'
 import board from '../guide/board.md'
+import chat from '../guide/chat.md'
 import documentFeature from '../guide/document-feature.md'
 import extractIdeas from '../guide/extract-ideas.md'
 import localUi from '../guide/local-ui.md'
@@ -60,6 +61,7 @@ export const GUIDES: Guide[] = [
   { name: 'releases', when: 'the versions being planned, and how a card joins one', text: releases },
   { name: 'plan-release', when: 'fill a release from its goal', text: planRelease },
   { name: 'document-feature', when: 'which docs a change has to update', text: documentFeature },
+  { name: 'chat', when: 'hold a conversation about the board or one card — what it opens with, and what it leaves alone', text: chat },
   { name: 'prune-memory', when: 'compress the memory set back to what helps planning', text: pruneMemory },
   { name: 'spec-agent', when: "fill one part of a card's spec, as the named agent that owns it", text: specAgent },
   { name: 'ui-design', when: 'plan a card that changes a screen — how to describe it, and how to ask which layout', text: uiDesign },

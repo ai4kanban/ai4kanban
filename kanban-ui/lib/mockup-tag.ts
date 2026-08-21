@@ -1,16 +1,16 @@
 // The one tag a card body may carry (#239):
 //
-//   <Mockup src="mockups/239/a.tsx" label="A" />
+//   <Mockup src=".mockups/239/a.tsx" label="A" />
 //
-// `src` starts at the board folder, so every one begins `mockups/<card id>/`. The board
-// reads that file and draws the screen it holds where the tag sits.
+// `src` is the path from the board folder, so every one begins `.mockups/<card id>/`. The
+// board reads that file and draws the screen it holds where the tag sits.
 //
 // Client-safe on purpose: the remark plugin in Markdown.tsx runs in the browser, and the
 // reader in lib/mockup.ts runs on the server. Both agree on the tag here.
 
 /** A mockup as a card body points at it. */
 export type MockupTag = {
-  /** The path as written, from the board folder — `mockups/239/a.tsx`. */
+  /** The path as written, from the board folder — `.mockups/239/a.tsx`. */
   src: string;
   /** The name on the frame — `A`, `B`, `C`. Empty when the tag carries none. */
   label: string;
@@ -58,6 +58,12 @@ export function mockupBlock(raw: string): MockupTag[] | null {
   const tags = mockupTags(raw);
   if (tags.length === 0) return null;
   return raw.replace(TAG, "").trim() === "" ? tags : null;
+}
+
+/** The page a mockup gets to itself. The folder is dotted on disk but not in the address:
+ *  `.mockups/239/a.tsx` is at `/mockups/239/a.tsx`, so no URL starts with a dot segment. */
+export function mockupHref(src: string): string {
+  return `/${src.replace(/^\./, "")}`;
 }
 
 /** Every `src` a body points at, deduplicated — what the server reads before drawing. */

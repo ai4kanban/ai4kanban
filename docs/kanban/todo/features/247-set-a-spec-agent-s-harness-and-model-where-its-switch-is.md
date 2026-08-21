@@ -6,7 +6,7 @@ roi: med
 status: todo
 release: ""
 blocked_by: [246]
-related: []
+related: [257]
 modules: [local-ui]
 questions:
   - question: "[user] Which layout for the Agents pane? — see the `ui-design` section"
@@ -62,21 +62,21 @@ place that has to set them.
 The Agents pane, drawn three ways. Each one is the same dialog you open with the gear —
 sidebar on the left, **Agents** picked, two agent rows in it.
 
-<Mockup src="mockups/247/a.tsx" label="A" />
+<Mockup src=".mockups/247/a.tsx" label="A" />
 
 The harness and the model sit on the row, always on screen: two half-width controls under
 the two lines that name the agent. Nothing to open, and the pane answers "what does each
 one run on" at a glance. It costs the most height — every agent is five lines whether or
 not anybody ever overrides it — and the pane reads as a form rather than a list.
 
-<Mockup src="mockups/247/b.tsx" label="B" />
+<Mockup src=".mockups/247/b.tsx" label="B" />
 
 The row grows one quiet line — *Runs on Claude Code · claude-opus-5 — the board's* — with
 **Change** on it, and that line opens the same two controls in place. The list stays
 scannable and the answer is still on every row; the cost is a click before you can type,
 and one more piece of state to keep straight while a save is in flight.
 
-<Mockup src="mockups/247/c.tsx" label="C" />
+<Mockup src=".mockups/247/c.tsx" label="C" />
 
 The row is a way in: it says what it runs on and opens a page of its own, drawn with the
 Harness pane's own square cards, with the board's pick as the first card. It tells the

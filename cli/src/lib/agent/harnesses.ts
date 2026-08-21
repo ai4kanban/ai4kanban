@@ -17,18 +17,22 @@ import { createOpencodeStreamRenderer } from './opencode-stream'
 import { createStreamRenderer, type StreamRenderer } from './stream'
 import type { HarnessOption, HarnessSetting } from './types'
 
-// A harness declares everything about itself but the two things only this machine can
-// answer — whether its CLI is here, and which binary was looked for. Those are worked out
-// per read, against the PATH and the user's own `command` override (agent/installed.ts),
-// and joined on in `agentInfo`.
-export interface Harness extends Omit<HarnessOption, 'binary' | 'installed'> {
+// A harness declares everything about itself but the three things it is never asked
+// directly. Two only this machine can answer — whether its CLI is here, and which binary
+// was looked for — and are worked out per read, against the PATH and the user's own
+// `command` override (agent/installed.ts). The third is `gaps`, which is a reading of the
+// fields below rather than a claim of its own (agent/capabilities.ts): a connector says what
+// it does, and what it lacks follows. All three are joined on in `agentInfo`.
+export interface Harness extends Omit<HarnessOption, 'binary' | 'installed' | 'gaps'> {
   /** The flags to append to the configured argv. `argv` is what the user's command
    *  already carries, so a harness never overrides a flag the user set by hand.
    *  `sessionId` is the id we generated up front — a harness that can't pin an id
    *  ignores it. */
   extraArgs(argv: string[], sessionId: string): string[]
   /** True when this harness's CLI can pick an earlier conversation back up. A failed
-   *  run offers Resume only then. */
+   *  run offers Resume only then, and it is also the whole of what a chat needs: a
+   *  conversation is a second message into the session the agent already opened, so an
+   *  agent that can't do this is the one a chat turns away (agent/chat.ts). */
   resumes: boolean
   /** The flags that continue the conversation `resumeId` names, instead of starting a
    *  fresh one. Stands in for `extraArgs` on a resumed run — the two are never both
@@ -70,6 +74,19 @@ export interface Harness extends Omit<HarnessOption, 'binary' | 'installed'> {
    *  the first moment. False when the harness mints its own id instead — then the id
    *  arrives mid-run, out of the output stream, and the renderer reports it. */
   adoptsSessionId: boolean
+  /** What this connector's own output tells the board about a finished run, beyond the work
+   *  itself. Every CLI reports something different and none of it can be inferred, so it is
+   *  declared: what isn't here is a number the runs panel shows nothing for, rather than one
+   *  the board made up. Checked against the renderer when this module loads.
+   *
+   *  `cost` an estimated price, `tokens` the four token counts, `model` the id of the model
+   *  that did the work. */
+  reports: ('cost' | 'tokens' | 'model')[]
+  /** True when a rate limit ends the run instead of waiting it out. A CLI that retries a 429
+   *  by default holds its card for as long as it retries, which on a weekly limit is most of
+   *  an hour — so a connector with a switch for it turns retries off in `env()` and says so
+   *  here. False is not a fault: most of these CLIs have no such switch. */
+  stopsOnRateLimit: boolean
   /** How a prompt calls the ai4kanban skill for this agent. Every prompt the board sends
    *  opens with it. Claude Code triggers a skill from a slash name (`/kanban`); Codex
    *  reads a slash as plain chat text and triggers on a `$` name instead. The rest of
@@ -82,7 +99,7 @@ export interface Harness extends Omit<HarnessOption, 'binary' | 'installed'> {
 // box rather than for a headless run, and OpenCode has neither — its model picks a skill
 // itself, and dsh is the same. So the rest are asked in a sentence, and the path is named
 // because a sentence alone leaves the agent searching for what "the kanban skill" means.
-const SKILL_SENTENCE = "Use this repo's ai4kanban board skill (`.agents/skills/kanban/SKILL.md`)"
+export const SKILL_SENTENCE = "Use this repo's ai4kanban board skill (`.agents/skills/kanban/SKILL.md`)"
 
 /** True when this argv already names a flag — `--model id` or `--model=id`, in any of the
  *  names that harness answers to. Used for a setting's flags, and by a harness deciding
@@ -287,6 +304,13 @@ const CLAUDE_CODE: Harness = {
   // extra usage is an account setting on claude.ai (the CLI has no flag for it).
   env: () => ({ ...process.env, CLAUDE_CODE_MAX_RETRIES: '0' }),
 
+  // Its closing event carries all three, so a run under it shows a price, its tokens and
+  // the model that did the work.
+  reports: ['cost', 'tokens', 'model'],
+
+  // The variable above is the switch: the first 429 exits non-zero and the card is free.
+  stopsOnRateLimit: true,
+
   renderer: createStreamRenderer,
 
   // `--session-id` above makes Claude Code run under the id we generated, so our key IS
@@ -369,6 +393,12 @@ const CODEX: Harness = {
   // once and frees the card; Codex has no equivalent switch, so a rate-limited Codex run
   // waits it out and holds the card while it does. Better that than a made-up variable.
   env: () => ({ ...process.env }),
+
+  // A completed turn carries its token counts and nothing else: Codex prices nothing, and
+  // its event stream never names the model.
+  reports: ['tokens'],
+
+  stopsOnRateLimit: false,
 
   renderer: createCodexStreamRenderer,
 
@@ -453,6 +483,11 @@ const CURSOR: Harness = {
 
   env: () => ({ ...process.env }),
 
+  // Its events name the model and count nothing — no price, no tokens.
+  reports: ['model'],
+
+  stopsOnRateLimit: false,
+
   renderer: createCursorStreamRenderer,
 
   // Cursor names its own session, so our session id is only ever the board's key for the
@@ -528,6 +563,12 @@ const OPENCODE: Harness = {
   ],
 
   env: () => ({ ...process.env }),
+
+  // Each step reports what it cost and what it spent. The model is named only in the
+  // formatted output the board doesn't read, so a run under it names none.
+  reports: ['cost', 'tokens'],
+
+  stopsOnRateLimit: false,
 
   renderer: createOpencodeStreamRenderer,
 
@@ -660,6 +701,12 @@ const DSH: Harness = {
 
   env: () => ({ ...process.env }),
 
+  // ACP carries all three in the conversation itself (agent/acp.ts), so a dsh run shows a
+  // price, its tokens and the model the session opened on.
+  reports: ['cost', 'tokens', 'model'],
+
+  stopsOnRateLimit: false,
+
   client: (values) => createAcpClient({ model: values.model }),
 
   // The conversation names its own session, on the first thing it answers, and the record
@@ -702,6 +749,26 @@ for (const harness of HARNESSES) {
   // be two readers on one stdout; neither would be a run nobody can read.
   if (!harness.renderer === !harness.client) {
     throw new Error(`harness "${harness.name}": declare a renderer for a command that prints, or a client for one that answers back — not both, and not neither`)
+  }
+  // `reports` is what the picker promises about this connector, and the renderer is what
+  // actually delivers it. A renderer that stops reporting a cost while the list still claims
+  // one would leave the picker saying nothing is missing while the runs panel shows a blank,
+  // so the two are compared here rather than left to drift. Only a renderer can be checked:
+  // a client reports from inside a live conversation and has nothing to ask until one is
+  // open (agent/acp.ts).
+  const renderer = harness.renderer?.()
+  if (renderer) {
+    const implemented: Record<Harness['reports'][number], boolean> = {
+      cost: Boolean(renderer.costUsd),
+      tokens: Boolean(renderer.usage),
+      model: Boolean(renderer.model),
+    }
+    for (const [what, has] of Object.entries(implemented)) {
+      const claimed = harness.reports.includes(what as Harness['reports'][number])
+      if (claimed !== has) {
+        throw new Error(`harness "${harness.name}": its "reports" ${claimed ? 'claims' : 'omits'} ${what}, but its renderer ${has ? 'does' : "doesn't"} report one`)
+      }
+    }
   }
   const seen = new Set<string>()
   const seenEnv = new Set<string>()

@@ -7,6 +7,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { clearChat } from '../lib/agent/chat'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, MOCKUPS } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
@@ -85,7 +86,7 @@ function leavingIds(id: number, found: Found): number[] {
 
 // A mockup only ever describes the card it is keyed to, and a card off the board has
 // nothing left to draw — so its folder goes with it, on archive as on reject. The files
-// are in git, which is where a drawing worth keeping is read back from.
+// are not in git, so this is the end of them: what a drawing settled is in the card.
 function dropMockups(ids: number[]): { dir: string; files: number }[] {
   const dropped: { dir: string; files: number }[] = []
   for (const id of ids) {
@@ -96,6 +97,13 @@ function dropMockups(ids: number[]): { dir: string; files: number }[] {
     dropped.push({ dir: rel(dir), files })
   }
   return dropped
+}
+
+// A conversation about a card off the board has nothing left to be about, so it goes the
+// way that card's mockups do. Only our end of it: the agent's own session stays wherever
+// its CLI keeps it, and nothing on this board holds its id any more.
+function dropChats(ids: number[]): number[] {
+  return ids.filter((id) => clearChat(id))
 }
 
 // ---- find prose mentions of a leaving id -----------------------------------
@@ -180,6 +188,7 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
   // Runs after the move/delete, so the card's own frontmatter is already out of `todo/`.
   const unlinked = dropCrossRefs(id)
   const droppedMockups = dropMockups(mockupIds)
+  const droppedChats = dropChats(mockupIds)
   bumpMetric(metric)
   const what = found.kind === 'group' ? `folder ${found.rel}/` : `file ${found.rel}`
   if (dest) say(`archived #${id}: moved ${what} → ${rel(dest)}${found.kind === 'group' ? '/' : ''}`)
@@ -189,8 +198,9 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
   if (marked) say(`  ${marked === 'tick' ? 'ticked' : 'struck'} #${id} in ${rel(groupRoot!)}`)
   for (const card of unlinked) say(`  unlinked #${id} from ${card}`)
   for (const m of droppedMockups) {
-    say(`  deleted ${m.dir}/ — ${m.files} mockup file(s), in git history`)
+    say(`  deleted ${m.dir}/ — ${m.files} mockup file(s)`)
   }
+  for (const chatId of droppedChats) say(`  forgot the conversation about #${chatId}`)
   // Everything above is done. What follows is the part no script can do: the memory note,
   // and the sentences other cards wrote about an id that just left the board.
   const mentions = findMentions(id)
@@ -204,6 +214,7 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
     unlinked,
     also_removed: alsoRemoved,
     mockups_removed: droppedMockups.map((m) => m.dir),
+    chats_removed: droppedChats,
     // What the caller still has to do by hand: write the note, rewrite the sentences.
     note,
     mentions: mentions.map((m) => ({ file: rel(m.file), line: m.line, where: m.where, text: m.text })),

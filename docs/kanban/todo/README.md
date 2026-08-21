@@ -26,6 +26,8 @@ _(none)_
 - [#237 Chat with the board, or with one card, without leaving the app](237-chat-with-the-board/root.md)
 - [#247 Set a spec agent's harness and model where its switch is](features/247-set-a-spec-agent-s-harness-and-model-where-its-switch-is.md)
 - [#250 Bring a task in from a file or your voice, not only typed text](250-friendly-task-import/root.md)
+- [#254 Customize what a specialist agent produces, not just whether it runs](254-customizable-spec-agents/root.md)
+- [#258 Run the board on ZCode, Z.ai's GLM coding agent](features/258-run-the-board-on-zcode-z-ai-s-glm-coding-agent.md)
 
 ## skill
 
@@ -71,14 +73,20 @@ _(none)_
 
 ## 237-chat-with-the-board/skill
 
-- [#240 Keep one conversation with the agent open, turn after turn](237-chat-with-the-board/skill/240-chat-session.md)
-- [#241 Open a chat knowing what a coding agent knows after /kanban](237-chat-with-the-board/skill/241-chat-opening-context.md)
 
 ## 237-chat-with-the-board/features
 
-- [#242 Chat with the whole board, not only with one card](237-chat-with-the-board/features/242-board-chat.md)
 - [#243 Let a chat do the board work it is talking about](237-chat-with-the-board/features/243-chat-acts-on-the-board.md)
 - [#248 Chat about one card, from the card's page](237-chat-with-the-board/features/248-card-chat.md)
+
+## 254-customizable-spec-agents/skill
+
+- [#255 Let a specialist agent carry settings, not just a switch](254-customizable-spec-agents/skill/255-agent-settings.md)
+- [#256 Draw a card's layout options in ASCII instead of a rendered screen](254-customizable-spec-agents/skill/256-ascii-mockups.md)
+
+## 254-customizable-spec-agents/features
+
+- [#257 Set a specialist agent's settings where its switch is](254-customizable-spec-agents/features/257-set-agent-settings.md)
 
 ## 250-friendly-task-import/skill
 

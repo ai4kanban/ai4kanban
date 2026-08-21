@@ -67,7 +67,7 @@ The board hides nothing: every open card is in one of the three columns. Inside 
 the best card to start comes first — a card waiting on another sinks below the ones you can
 start, and a blocker rises to the top of the rest.
 
-The header carries six things:
+The header carries seven things:
 
 - **The goal** (the compass, beside the folder path) — see below.
 - **The release dropdown** — which version the board is showing, and where a release is
@@ -83,6 +83,7 @@ The header carries six things:
   rejected cards, with totals above. The numbers come from `docs/kanban/metrics.csv`; the view
   only reads it. A board with nothing recorded yet says so.
 - **Configuration** (the gear) — see below.
+- **Chat** — a conversation about this project, in a rail down the right; see below.
 
 ### Finding a card
 
@@ -98,6 +99,38 @@ the archive. Matches scroll inside the rail, nothing matching says so, and clear
 
 At the foot of the rail is the **Memory** panel. The rail is hidden on a narrow window, and the
 box and the panel go with it.
+
+### Chat
+
+Down the right is a **chat** about this project, folded away until you ask for it. **Chat** in
+the header opens and folds it, and you drag its left edge to make it wider. Whether you left it
+open is remembered, and it stays open while you move between the board, a card and a memory
+file.
+
+The chat follows what is on screen: the board and a memory file get the conversation about the
+whole board, a card's page gets that card's own. Each one is separate — a card's is never mixed
+with the board's or with another card's.
+
+It answers from this project — the goal, the module map, the open cards, the memory, this
+board's settings — so you never have to explain the project. The reply appears as it is
+written, and where it names a card the name is a link to that card's page.
+
+- **It is not a run.** It shows in no runs panel, locks no card, and keeps no run off one — you
+  can talk about a card an agent is building.
+- **It changes nothing.** No card, no memory file, no code. When the answer is work, you get
+  the command to run.
+- **One message at a time.** The box is shut while a reply is coming.
+- **Folding it doesn't stop it.** The reply keeps arriving, and the Chat button marks that
+  there is something to read.
+- **It keeps.** The exchange is still there after the app is closed and reopened, and it is per
+  project. The bin in the chat's own header clears it, and asks once before it does.
+- **It is the same conversation as `akb chat`.** What you say here and what you say in a
+  terminal land in the same place.
+
+On a window too narrow to hold the board between two rails, the chat covers the board instead
+of squeezing it.
+
+Where no coding agent is set up, the chat says so and points at Configuration.
 
 ### The goal
 
@@ -159,7 +192,7 @@ The goal is not in this panel — it keeps its own button in the header.
 ### Mockups on a card
 
 A card that changes a screen can carry **mockups** of it — small files under
-`docs/kanban/mockups/<card id>/`, each drawing one layout the card could take. The card body
+`docs/kanban/.mockups/<card id>/`, each drawing one layout the card could take. The card body
 points at each one with a tag on a line of its own, and the card page draws the screen that file
 holds where the tag sits, so you pick a layout by looking at it. The `ui-design` agent writes
 them; only a card page shows them, and the card file is never written to.
@@ -187,6 +220,10 @@ at the frame — what you look at is what the file holds. A tag pointing at a fi
 at one outside the mockups folder, at one that is neither `.tsx` nor `.html`, or at a `.tsx` the
 board cannot draw, reads as one plain note naming the file, and the rest of the card draws as
 usual.
+
+The folder is gitignored — a mockup is a working drawing, not something the repo carries. A card
+pulled from someone else's board shows its tags as those notes until `ui-design` draws the
+options again here.
 
 ## Releases
 

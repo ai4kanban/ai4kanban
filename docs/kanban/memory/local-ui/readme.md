@@ -116,7 +116,8 @@ except where another doc is named.
   desktop screen scaled to fit, its label and file name over it, a switch to the code behind
   it, and the file name opening that mockup on its own at full size. Nothing in one runs,
   loads anything or answers a click, and a tag the board cannot draw reads as one plain note
-  naming the file: "Mockups on a card".
+  naming the file — which is what a card pulled from git shows, since the mockups folder is
+  not in it: "Mockups on a card".
 
 ## Configuration
 
@@ -169,3 +170,10 @@ except where another doc is named.
   ask for it by name is turned away, and the flow plans that part itself. The switch is
   saved with the board, a run already going finishes, and what an agent already wrote on a
   card stays: "The spec agents".
+- Talk to the board without leaving it: **Chat** in the header opens a conversation down the
+  right of the window, folded away until you ask for it. It follows what you are reading —
+  the board's chat on the board and on a memory file, a card's on its page — and answers from
+  this project's goal, cards and memory. The reply appears as it is written, a card it names
+  is a link, and folding the rail never stops one arriving. The exchange keeps across restarts,
+  is per project, and is the same conversation `akb chat` holds in a terminal: "Chat" in the
+  UI docs.

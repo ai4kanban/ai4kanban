@@ -146,13 +146,30 @@ re-ask a settled call.
   Adding one later is writing a prompt, not changing the machinery — worth doing once the
   two we ship prove the shape.
 - **How does a card body point at a mockup file?**: with a tag the board UI knows, on a line
-  of its own — `<Mockup src="mockups/239/a.html" label="A" />`. A markdown link is never
+  of its own — `<Mockup src=".mockups/239/a.html" label="A" />`. A markdown link is never
   drawn as a mockup, so nothing a card already says turns into one by accident.
+- **Are mockups in git?**: no. They live in `docs/kanban/.mockups/`, which `init` adds to the
+  board's own `.gitignore` — a mockup is a working drawing the build throws away, and keeping
+  it out of the repo means what a layout settled has to be in the card's words. Archiving or
+  rejecting a card still deletes its folder; there is just nothing to read it back from.
 - **Does the Resolve dialog show the mockups a layout question is about?**: no. The options
   name the labels `A` and `B` and nothing more; the user opens the card page, one click
   away, to look at the drawings. Nothing links the dialog back to the card.
 - **How long may one option's mockup run?**: short — one screen, and about as long as the
   card's own plan. The agent trims detail to stay inside it.
+
+## Chat
+
+- **Which agents can hold a live conversation?**: only the ones whose command can be sent a
+  second message into the session it already opened. Any other agent says chat is not
+  available on it and names the ones it is — a conversation is never held by sending the
+  whole exchange again each turn, which would cost more with every message.
+- **Does a chat do the board work itself?**: yes — it does what it is asked as soon as it is
+  asked, through the board's own moves. It never writes out a change and waits for a click,
+  and never sends the user to a button. A card's chat is that same chat and acts too.
+- **Which actions may a chat take without asking first?**: all of them, archiving, rejecting
+  and starting a build included. What a chat changes stays in the working tree, and git is
+  where the user takes any of it back.
 
 ## Card format
 

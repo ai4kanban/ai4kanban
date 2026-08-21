@@ -1,6 +1,6 @@
 // Turn a card's `<Mockup>` tag into a picture of the screen (#239).
 //
-// A mockup is one file under `docs/kanban/mockups/<card id>/`, and it is drawn here, on
+// A mockup is one file under `docs/kanban/.mockups/<card id>/`, and it is drawn here, on
 // this machine, with nothing fetched and nothing installed:
 //
 //   .tsx   one React component, styled with Tailwind. Transpiled, run once to draw
@@ -27,10 +27,11 @@ import type { MockupSet, MockupView } from "./mockup-tag";
 import { mockupSources } from "./mockup-tag";
 import { mockupsDir } from "./paths";
 
-/** `mockups/<folder>/<file>.tsx|html`, and nothing else — no `.`, no `..`, nothing that
+/** `.mockups/<folder>/<file>.tsx|html`, and nothing else — no `.`, no `..`, nothing that
  *  climbs. A mockup is read off the user's disk, so the only files we open are the drawings
- *  in the mockups folder. */
-const SRC = /^mockups\/(?!\.{1,2}\/)([^/\\]+)\/(?!\.)([^/\\]+)\.(tsx|html)$/;
+ *  in the mockups folder. The leading dot is optional: cards written before the folder was
+ *  dotted point at `mockups/...`, and they still name the same file. */
+const SRC = /^\.?mockups\/(?!\.{1,2}\/)([^/\\]+)\/(?!\.)([^/\\]+)\.(tsx|html)$/;
 
 /** What a `.tsx` mockup may import. Anything else is a mockup the board can't draw: a
  *  board component would follow the board's own code, and a package isn't there to load —
@@ -57,7 +58,7 @@ export async function readMockup(src: string): Promise<MockupView> {
   if (!match) {
     return {
       src,
-      error: `${src} — a mockup is a .tsx or .html file under docs/kanban/mockups/`,
+      error: `${src} — a mockup is a .tsx or .html file under docs/kanban/.mockups/`,
     };
   }
   const [, folder, name, ext] = match;
@@ -65,13 +66,15 @@ export async function readMockup(src: string): Promise<MockupView> {
   const file = path.join(root, folder!, `${name}.${ext}`);
   // The regex already refuses a path that climbs; this is the check that answers for it.
   if (!file.startsWith(root + path.sep)) {
-    return { src, error: `${src} — a mockup is read from docs/kanban/mockups/, and this points outside it` };
+    return { src, error: `${src} — a mockup is read from docs/kanban/.mockups/, and this points outside it` };
   }
   let code: string;
   try {
     code = fs.readFileSync(file, "utf8");
   } catch {
-    return { src, error: `${src} — there is no such file` };
+    // Mockups are not in git, so a card pulled from someone else's board points at
+    // drawings this machine never made. Nothing is broken — the card still reads.
+    return { src, error: `${src} — no such file on this machine (mockups are not in git)` };
   }
   try {
     return { src, code, doc: ext === "tsx" ? await drawComponent(code, src) : dressPage(code) };

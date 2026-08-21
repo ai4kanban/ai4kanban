@@ -61,6 +61,7 @@ AI4Kanban 是一个以看板为工作界面的项目管理 Agent。它结合项�
 
 - [日常工作流](docs/guides/daily-loop.md)
 - [如何写好项目目标](docs/guides/what-makes-a-good-goal.md)
+- [各个编码 Agent 的能力差异](docs/guides/connectors.md)
 - 运行 `akb help` 查看内置 CLI 的命令说明。
 - 在 [`docs/kanban/`](docs/kanban/) 中查看本仓库实际使用的看板。
 

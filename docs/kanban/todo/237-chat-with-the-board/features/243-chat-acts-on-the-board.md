@@ -3,64 +3,102 @@ title: Let a chat do the board work it is talking about
 track: features
 priority: high
 roi: high
-status: todo
+status: ready
 release: 0.7.1
-blocked_by: [241]
-related: [237, 242, 248]
+blocked_by: []
+related: [237, 248]
 modules: [skill, local-ui]
-questions:
-  - question: "[user] #248 says a card's chat writes nothing by itself — it hands a change request to the card's Edit and Resolve buttons. This card asks for a chat that acts. Which one holds?"
-    mode: single
-    options:
-      - "keep both: the chat writes what it would do, the user reads it, and one click carries it out — nothing lands unseen"
-      - the chat does the work itself as soon as it is asked, and #248 becomes that chat
-      - a card's chat stays a discussion that changes nothing, and only the board chat is allowed to act
-    recommend: [1]
-  - question: "[user] Which actions may a chat take without asking first?"
-    mode: single
-    options:
-      - everything git can undo goes straight through; archive, reject and starting a build ask first
-      - none — every change the chat makes is shown first and waits for a yes
-      - all of them — the working tree is in git and the user can undo any of it there
-    recommend: [1]
+questions: []
 ---
 
 A chat that can only talk sends the user back to the buttons for every single thing it just
-agreed to. Saying "yes, split that card in two" and then doing it by hand is worse than not
-asking. A chat in the board should be able to do the board work it is talking about — the
-same work a coding agent does when you say it there.
+agreed to. Saying "yes, split that card in two" and then leaving the user to do it with the
+buttons is worse than not asking. A chat in the board should be able to do the board work it
+is talking about — the same work you would get by opening a coding agent and asking it there.
 
 ## Scope
-- From a chat the user can write a card, sharpen one, answer its open questions, change what
-  it says, move it into or out of a version, finish it, or drop it.
-- From a chat the user can start a build on a card.
-- A change the chat makes is the board's own move, the same one the button calls — nothing
-  writes a card's fields by hand.
-- A build the chat starts is an ordinary run: it shows in the runs panel, streams its log,
-  and can be stopped and resumed.
-- The board redraws as soon as the chat changes it — no reload, no leaving the page.
-- The chat itself never edits the project's code. Building is a run's job, and the chat
-  starts one.
-- An action on a card a run is already holding is refused, with which run is holding it.
-- The chat says what it did, in one line, and names the card it did it to.
+- A chat changes the board itself instead of telling the user which button to press.
+- Every chat does it: the board's, a card's (#248), and `akb chat` in a terminal.
+- The chat makes the change itself when the conversation has already settled what to change.
+  That is: write a new card, rewrite what a card says, answer a card's open questions, put a
+  card in a release or take it out, archive a card, reject a card.
+- The chat starts a run instead when the user asks the board to go and work the change out
+  for itself. That is: write the code for a card, work out what a vague card should say,
+  propose new tasks, fill a release.
+- It also starts a run when the user asks for something to happen in the background rather
+  than in the conversation.
+- A run the chat starts shows in the runs panel like any other.
+- That run streams its log.
+- That run can be stopped and resumed.
+- The chat never writes the project's code itself.
+- The chat makes the change straight away, without asking the user to confirm it first —
+  archiving, rejecting and starting a build included.
+- It never writes out what it is about to do and waits for a click.
+- A card the chat changes keeps its place on the board: its index entry, its links from other
+  cards and the release counts all move with it.
+- The chat leaves its changes uncommitted, the same as a run does.
+- The board on screen catches up as the chat changes it, without a reload.
+- A change made while the reply is still being written shows straight away, not only once the
+  reply has ended.
+- A card's page catches up the same way.
+- When the chat archives or rejects the card whose page is open, the app goes back to the
+  board.
+- A change to a card a run is already working on is refused.
+- The refusal names the card and what that run is doing.
+- The refusal holds even when the chat never looked for a run first.
+- The chat says what it did in one line.
+- That line names the card it acted on.
 - Anything the chat cannot do it says it cannot do, rather than saying it did.
 
 ## Todo
-- [ ] Let a chat call the board's moves — create, refine, resolve, revise, release, archive,
-      reject.
-- [ ] Let a chat start a build, as an ordinary run in the runs panel.
-- [ ] Settle the ask-first rule from the open questions and build it.
-- [ ] Redraw the board as soon as a chat changes it.
-- [ ] Refuse an action on a card a run already holds, and say which run.
+- [ ] Let a chat make the board changes the conversation has already settled — write a card,
+      rewrite one, answer its questions, put it in a release or take it out, archive it,
+      reject it.
+- [ ] Let a chat start a run for the work the board goes and does — write a card's code, work
+      out what a vague card should say, propose tasks, fill a release.
+- [ ] Have every change go through without asking the user to confirm it, from a card's chat
+      as much as the board's.
+- [ ] Catch the board and a card's page up while the chat is still writing its reply.
+- [ ] Send the app back to the board when the chat archives or rejects the card whose page is
+      open.
+- [ ] Refuse a change to a card a run is working on, naming the card and what that run is
+      doing.
 - [ ] Have the chat report what it did, naming the card.
-- [ ] Update `kanban-ui/README.md` and `docs/guides/daily-loop.md`.
-- [ ] Check it end to end: from one chat, write a card, sharpen it, put it in a version, and
-      start a build on it, then confirm the board and the files agree.
-- [ ] Check it from a card's page too: talk a vague card over, send the change through, and
-      confirm the card changed only where the user asked.
+- [ ] Say that a chat changes the board everywhere the board still says it changes nothing:
+      the words a conversation opens with, `akb guide chat`, `akb help`,
+      `kanban-ui/README.md`, `docs/guides/daily-loop.md` and `cli/README.md`.
+- [ ] Check it end to end: from one chat, write a card, rewrite it, put it in a release, and
+      start a build on it. The board, the files and the runs panel should all agree.
+- [ ] Check it from a card's page too: talk a vague card over, have the chat make the change,
+      and confirm the card changed only where the user asked.
 
 ## Decided by the agent
 - **Does the chat write files itself?**: only the board's own files, and only through the
-  board's moves. Project code is changed by a run the chat starts, never by the chat.
-- **Does a chat run under the same one-writer rule as a run?**: yes. Two things writing the
-  board at once is the same problem whoever is doing it (#156).
+  board's own moves — the same ones the buttons call. The project's code is written by a run
+  the chat starts, never by the chat.
+- **What happens when the chat and something else write the board in the same moment?**: one
+  waits for the other, the same as two runs do (#156). That is a different case from a run
+  working on a card, which is refused outright.
+- **Does a chat stop a run from starting on the card it just changed?**: no. Each change
+  lands in one go, so a run can start on that card the moment it has landed. A chat shows in
+  no runs panel and never stops a run from starting.
+- **Why does the board refuse the change rather than the chat?**: the chat could skip the
+  check. The board already knows which runs are live.
+- **Can a card's chat act on another card?**: yes, on any card on the board. It names the one
+  it acted on, so which card was meant is never a guess.
+- **Is there an undo in the chat?**: no. A change is taken back in git, the same way a run's
+  changes are.
+- **What is left to #248?**: where a card's chat sits, what it opens with, and what it clears
+  from the screen when the user opens another card. What a chat may do is this card's, for
+  both chats.
+
+### Worth noting
+- **Working out what a vague card should say is a run, not something the chat does in the
+  conversation**: it takes minutes, and a chat never stops a run from starting on that card,
+  so a run started meanwhile would write over it. A change the conversation has already
+  settled is different — that is one write, and the chat makes it.
+- **A change to a card a run holds is refused, not queued**: the card's own buttons already
+  go grey while a run holds it, so the chat says no where they do.
+- **A rejected card's mockups don't come back**: mockups are the drawings of a screen kept
+  beside a card, and they are never in git. Git returns a rejected card's file, but its
+  drawings are gone — the same as rejecting the card from the button.

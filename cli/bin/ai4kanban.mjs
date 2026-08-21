@@ -630,6 +630,9 @@ const RUN_COMMANDS = new Set([
   // Put a spec agent on a card — a named agent that fills one part of its spec (#187).
   'spec',
   'runs',
+  // Talking to the agent about the board, or about one card (#240). Not a run: it holds a
+  // conversation here, in this process, and starts nothing.
+  'chat',
   'log',
   'stop',
   'resume',

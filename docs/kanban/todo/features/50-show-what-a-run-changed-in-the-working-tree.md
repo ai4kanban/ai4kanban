@@ -55,12 +55,12 @@ switching to a terminal.
 Two layouts, drawn so the choice is made by looking. The user picks one; everything else on
 this card is the same either way.
 
-<Mockup src="mockups/50/a.tsx" label="A" />
+<Mockup src=".mockups/50/a.tsx" label="A" />
 
 A tab beside the log in the Sessions panel — the log and what landed on disk are two views
 of one run, one click apart, and the card page stays as it is.
 
-<Mockup src="mockups/50/b.tsx" label="B" />
+<Mockup src=".mockups/50/b.tsx" label="B" />
 
 A section of the card page under the run log — the changes are read on the page the user
 already lands on after a run, with no panel to open.

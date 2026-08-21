@@ -16,7 +16,7 @@ headings; `##` is refused.
 ## The one thing you write outside it
 
 An agent that draws a screen may also write files under
-`docs/kanban/mockups/<card id>/`. Point to them from your section with `<Mockup>` tags and
+`docs/kanban/.mockups/<card id>/`. Point to them from your section with `<Mockup>` tags and
 follow "Mockups" in `akb guide board`.
 
 ## What you never touch

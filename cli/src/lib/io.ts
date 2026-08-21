@@ -57,6 +57,12 @@ export function stopCollecting(): void {
   sink = null
 }
 
+/** True while a move's prose is being held aside for a `--json` answer. What it is for:
+ *  a command that would otherwise write straight to stdout as it goes — a chat's reply,
+ *  arriving a piece at a time — has to stay quiet, or those pieces would land in the
+ *  middle of the JSON object. */
+export const collecting = (): boolean => sink !== null
+
 // Run `fn` with everything it prints held aside and thrown away. For the board moves a run
 // makes on its own — putting a card's stage back, stamping a recurring run — whose prose
 // is nobody's answer: the command that triggered them is answering something else, and its
