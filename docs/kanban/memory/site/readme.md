@@ -51,3 +51,6 @@ covers it, or a plain-words note.
 - The memory-pruning recipe at `/recipes/daily-kanban-maintenance` rewrites the project-wide
   and per-module memory sets to retain only what still helps plan future work. The
   published card is `web/public/recipes/prune-the-memory.md`.
+- ZCode is on the home page's agent strip and named in the comparison pages, in all five
+  languages and in the plain-markdown copies under `web/public/`, so someone on a Z.ai GLM
+  plan can see the board runs on their agent before downloading anything.

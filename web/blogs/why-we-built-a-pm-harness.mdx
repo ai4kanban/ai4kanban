@@ -1,0 +1,88 @@
+---
+title: "How a PM harness tripled our development throughput"
+title_tag: "How a PM harness tripled our development throughput"
+dek: "Coding agents made implementation faster than planning. A PM harness helped us triple our daily task completion rate."
+excerpt: "AI4Kanban is a PM harness: it prepares work for coding agents, preserves product decisions, and asks for human judgment only when it matters."
+date: 2026-08-21
+categories: ["agents", "workflow"]
+tags: ["pm-harness", "coding-harness", "product-planning", "coding-agents"]
+read_minutes: 4
+author: "AI4Kanban"
+featured_image: "https://cdn.ai4kanban.dev/ai4kanban-ui-v5-board-view.jpg"
+featured_image_alt: "AI4Kanban organizing product decisions and coding-agent work on its project board."
+seo:
+  description: "See how AI4Kanban moved product planning out of chat and helped us triple our daily task completion rate with clearer requirements and fewer repeated decisions."
+---
+
+Modern coding agents are so capable that writing code is no longer my main bottleneck. Deciding what they should build is.
+
+When a requirement is clear, Claude Code or Codex can usually turn it into working software. The failures I see most often begin earlier: the scope is vague, a product decision is missing, or I chose the wrong task in the first place.
+
+A coding harness helps an agent execute reliably. **AI4Kanban is the PM harness we built for everything that happens before execution.** It turns rough ideas into scoped tasks, preserves product decisions across sessions, and escalates only the questions that require human judgment.
+
+## Faster coding shifted our bottleneck to product planning
+
+Better coding agents shorten implementation time, but they do not eliminate the work required to define a useful feature. Someone still has to identify the user and the problem, set the scope, weigh the tradeoffs, and write the acceptance criteria.
+
+As implementation gets faster, those decisions consume a larger share of the delivery cycle. Giving an agent a weak requirement does not save time. It simply produces the wrong feature sooner.
+
+<BottleneckShift />
+
+We needed a better way to prepare work before handing it to a coding agent.
+
+## Parallel coding is easier than parallel product planning
+
+With 10 well-scoped tasks, I can launch 10 coding agents in minutes. Getting those tasks ready is the hard part.
+
+Each rough idea raises a series of questions: Who is it for? What should the default behavior be? How will it affect existing behavior? Which edge cases matter now, and which can wait? If those decisions happen in chat, 10 agents create 10 conversations that I have to follow closely.
+
+The agents can work in parallel; my attention cannot. Adding more agents can actually slow the project down when each one requires its own planning conversation.
+
+## A PM harness focuses human attention where it matters
+
+Not every product question deserves the same amount of attention. A feature might involve 12 decisions, but perhaps only one depends on taste, business strategy, or a costly tradeoff.
+
+AI4Kanban resolves routine questions using the project's recorded context: prior requirements, accepted decisions, and product conventions. It makes reasonable choices when they are easy to reverse and asks me to decide when the answer could change the product's direction. For UI/UX work, it can present a mockup instead of asking me to interpret a long description.
+
+This is **selective escalation**: the agent does the preparation, then surfaces only the few decisions worth human review. My job shifts from writing every requirement to setting direction, resolving exceptions, and approving the result.
+
+When a question does reach me, AI4Kanban has already researched the options and attached a recommendation, so answering it takes seconds.
+
+![A Resolve dialog on AI4Kanban card #237 asking whether the agent or human should write replies in a chat, with two researched options and one marked as recommended.](https://cdn.ai4kanban.dev/blog-pm-harness-resolve-question.webp)
+
+## A board works better than 10 chat threads
+
+AI4Kanban started as an agent skill. The agent could refine a requirement, but I still had to read the conversation to understand the proposed scope, unresolved questions, and current status.
+
+Moving that work to a board made it much faster to review. I can compare proposals, inspect the latest requirement, answer an unresolved question, and approve a task without reconstructing the conversation that produced it. Goals, dependencies, releases, and task status remain visible in one place.
+
+When a task involves UI/UX design, the mockup appears on the card as something I can quickly inspect rather than a lengthy description I have to interpret.
+
+![A design proposal on AI4Kanban card #154, where the UI design agent compares three card-page layouts and presents the first as a working mockup.](https://cdn.ai4kanban.dev/blog-pm-harness-design-proposal.webp)
+
+The board also preserves decisions in its memory. A rejected idea retains the reason it was rejected. A correction made during review becomes context for the next task. A settled product convention becomes the default instead of resurfacing as the same question in every new chat.
+
+<MemoryFiles />
+
+Source code tells an agent what the product does today. AI4Kanban records why the product works that way.
+
+## Moving planning out of chat roughly tripled our task completion rate
+
+We use AI4Kanban to manage its own development. After moving requirement planning from chat to the board, our daily task completion rate roughly tripled.
+
+<SelfBoardProgress />
+
+<Callout>
+This is an internal before-and-after result, not a benchmark.
+</Callout>
+
+
+## A PM harness sits above the coding harness
+
+AI4Kanban does not replace Claude Code, Codex, or any other coding harness. It gives them better work.
+
+AI4Kanban turns goals, feedback, and rough ideas into approved requirements. The coding harness turns those requirements into tested software. One keeps product intent coherent; the other handles execution.
+
+We call this planning layer [Kanban Engineering](/blog/kanban-engineering). [AI4Kanban](https://github.com/ai4kanban/ai4kanban) is our open-source implementation: a board that clarifies requirements, remembers decisions, manages dependencies, and prepares releases for coding agents.
+
+Coding agents will keep getting faster. The next constraint is ensuring that the right work is ready for them.

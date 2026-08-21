@@ -37,7 +37,7 @@ one pass instead of a whole page.
 ## Today
 - The card format names the sections but never fixes their order, so every card lands
   differently: `## Decided by the agent` sits above `## Todo` on #112, #179, #182 and #183,
-  a ``## By `<name>` agent`` section lands mid-card on #50 and #154, and `## Today` and
+  a ``## By `<name>` agent`` section lands mid-card on #50, and `## Today` and
   `## Source` go wherever the writer put them.
 - Every section reads with the same weight, so finding the few lines a human has to judge
   means reading all of them.

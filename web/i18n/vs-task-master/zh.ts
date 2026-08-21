@@ -119,7 +119,7 @@ const zh: VsTaskMasterCopy = {
       reach: {
         dimension: "能在哪里用",
         kanban:
-          "目前是 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness 和 DeepSeek Harness。看板就是纯文件，换一个 harness 不需要新格式，只需要接上。",
+          "目前是 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness 和 ZCode。看板就是纯文件，换一个 harness 不需要新格式，只需要接上。",
         taskMaster:
           "Cursor、Windsurf、VS Code、Claude Code、Codex、Kiro、Amazon Q 等，通过 MCP 或 CLI 接入，支持十五种以上的模型 provider。",
       },

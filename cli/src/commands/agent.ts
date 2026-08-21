@@ -13,6 +13,8 @@ import { HARNESSES } from '../lib/agent/harnesses'
 import type { HarnessSetting } from '../lib/agent/types'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
+import { finishSetupStep } from '../lib/view/api'
+import { readSetupState } from '../lib/view/read'
 import type { MoveResult } from '../lib/types'
 import { parseFlags } from '../lib/validate'
 
@@ -171,6 +173,28 @@ function setSetting(args: string[]): MoveResult {
   return { setting: key, value }
 }
 
+// A test that passed is what settles setup's `agent` step — the same rule the local UI
+// works by, so a board set up from a terminal finishes the same way as one set up from the
+// window. Picking an agent is not enough on its own: everything after this step is a run,
+// so a board that got past it without an agent that answers was never set up.
+//
+// Silent unless it actually ticked something: a board with no checklist, or one whose box
+// is already ticked, has nothing to say.
+function tickAgentStep(): { setupStep?: string } {
+  const before = readSetupState()
+  if (!before?.steps.some((s) => s.name === 'agent' && !s.done)) return {}
+  const ticked = finishSetupStep('agent')
+  if (!ticked.ok) return {}
+  const after = readSetupState()
+  say('')
+  say(
+    after
+      ? `setup's \`agent\` step is done — ${after.done}/${after.total}.${after.next ? ` Next: \`${after.next.name}\`.` : ''}`
+      : "setup's `agent` step is done — that was the last one.",
+  )
+  return { setupStep: 'agent' }
+}
+
 // One small chat through the setup as it stands, so a broken agent is found here rather
 // than on the first card run that fails.
 async function testAgent(): Promise<MoveResult> {
@@ -179,7 +203,7 @@ async function testAgent(): Promise<MoveResult> {
   const res = await testConnection()
   if (res.ok) {
     say(`it answered in ${(res.ms / 1000).toFixed(1)}s. The board can run it.`)
-    return { test: res }
+    return { test: res, ...tickAgentStep() }
   }
   if (res.missing) {
     say(`${res.missing} isn't installed, or isn't on this terminal's PATH.`)

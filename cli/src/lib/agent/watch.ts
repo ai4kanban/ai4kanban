@@ -14,10 +14,11 @@ import { spawn, type ChildProcessByStdio, type StdioNull, type StdioPipe } from 
 import type { Readable, Writable } from 'node:stream'
 import fs from 'node:fs'
 
-import { SESSIONS_DIR } from '../paths'
+import { REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { markedEnv } from './flow'
 import { markBoard, refinesAfter, specRunsAfter, type BoardMarks } from './follow'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
+import { createStderrFilter } from './stream'
 import { RESUME_PROMPT } from './prompts'
 import { openPlan } from './resolve'
 import {
@@ -111,7 +112,9 @@ export async function watchRun(sessionId: string): Promise<number> {
   let child: ChildProcessByStdio<Writable | null, Readable, Readable>
   try {
     child = spawn(cmd!, client ? args : [...args, prompt], {
-      cwd: process.cwd(),
+      // The project the run belongs to. The watcher is already started there, so this is
+      // what its cwd holds anyway — named outright so it stays true if that ever changes.
+      cwd: REPO_ROOT,
       // The run's own id goes into the agent's environment, and this is the one place it
       // can: the environment a run starts under is settled by the settings (resolve.ts),
       // which never see a session id. It is what stops a run spawning a copy of itself —
@@ -149,7 +152,8 @@ export async function watchRun(sessionId: string): Promise<number> {
 
   // stdout is the agent's event stream — render it to readable lines as it arrives, with
   // the parser its own agent brings. stderr is plain text and passes through, whichever
-  // kind of command this is: it is where a CLI puts its warnings either way.
+  // kind of command this is: it is where a CLI puts its warnings either way — minus the
+  // agent's own housekeeping chatter, which says nothing about the run.
   if (renderer) {
     child.stdout.on('data', (d: Buffer) => {
       append(renderer.push(d.toString()))
@@ -157,7 +161,8 @@ export async function watchRun(sessionId: string): Promise<number> {
       gotModel(renderer.model?.())
     })
   }
-  child.stderr.on('data', (d: Buffer) => append(d.toString()))
+  const errs = createStderrFilter(active.quietStderr)
+  child.stderr.on('data', (d: Buffer) => append(errs.push(d.toString())))
 
   let spawnError: string | undefined
   child.on('error', (err) => {
@@ -187,6 +192,7 @@ export async function watchRun(sessionId: string): Promise<number> {
         gotResumeId(renderer.resumeId?.())
         gotModel(renderer.model?.())
       }
+      append(errs.flush())
 
       const endedAt = Date.now()
       // Stamp the elapsed time through the same stream (not an append after the stream is
@@ -291,7 +297,7 @@ export async function watchRun(sessionId: string): Promise<number> {
             stdout: child.stdout,
             stdin: toAgent,
             prompt,
-            cwd: process.cwd(),
+            cwd: REPO_ROOT,
             // Only a resumed run carries a conversation to continue. A fresh run's session
             // is opened inside the conversation, and its id comes back here.
             resumeId: record.resumedFrom ? record.resumeId : undefined,

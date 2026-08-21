@@ -118,7 +118,6 @@ const es: HomeCopy = {
       columns: ["Listo para empezar", "Sin preparar"],
       ready: "listo",
     },
-    otherAgents: "Otros agentes",
     storage: "Datos del proyecto",
     outputsLabel: "Resultados de la iteración",
     outputs: ["Mejoras de producto", "Nuevas versiones"],

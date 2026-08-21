@@ -24,6 +24,10 @@ before proposing so you don't re-suggest them.
 - **Answering the board's open questions from your phone** — too big to carry as one card:
   the way in, who can reach it, and every screen a small display needs are each their own
   piece of work. The mobile board gets planned later as a group task.
+- **Marking the cards that hold up other work** — a "holds up 3" badge beside the blocked
+  padlock says less than the padlock does and competes with it for the same glance. A card's
+  place in a chain of work is what a group task is for: the tree is drawn once, in the
+  group, instead of being reassembled from a count on each card.
 - **Route every card read and write through the script** — listing cards and writing a
   card's frontmatter already go through it, and that covers what the board needs one owner
   for. A full read-and-write API on top changes nothing a user sees and slows down work

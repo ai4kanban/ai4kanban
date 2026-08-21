@@ -106,7 +106,6 @@ const zh: HomeCopy = {
       columns: ["可以开工", "尚未就绪"],
       ready: "就绪",
     },
-    otherAgents: "其他 Agent",
     storage: "项目数据",
     outputsLabel: "迭代结果",
     outputs: ["产品改进", "版本迭代"],

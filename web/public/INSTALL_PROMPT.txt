@@ -33,7 +33,8 @@ settings live with the board at `docs/kanban/config.md`.
 
 4. No separate skill installation is required. When the board app opens this project, it
    writes and maintains short `SKILL.md` integration notes in `.claude/skills/kanban/`
-   (Claude Code) and `.agents/skills/kanban/` (Codex, Cursor, OpenCode, DeepSeek Harness).
+   (Claude Code) and `.agents/skills/kanban/` (Codex, Cursor, OpenCode, DeepSeek Harness,
+   ZCode).
    The workflows remain in the app's bundled CLI instead of being copied into this repo.
 
 5. Run `akb guide setup` and follow it: it is the guide for every box left on the checklist,

@@ -31,7 +31,7 @@ AI4Kanban 是一个以看板为工作界面的项目管理 Agent。它结合项�
 - **积累长期项目记忆。** 产品决策、已完成工作、否决想法和设计经验会继续用于后续规划，不会
   随聊天会话结束而丢失。
 - **本地存储，不绑定 Agent。** 看板以 Markdown 文件存放在 `docs/kanban/`，支持 Claude Code、
-  Codex、Cursor、OpenCode 和 DeepSeek Harness。
+  Codex、Cursor、OpenCode、DeepSeek Harness 和 ZCode。
 
 ## 快速开始
 

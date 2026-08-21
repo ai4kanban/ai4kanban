@@ -38,7 +38,7 @@ planning cycle, so the system becomes more useful as the project evolves.
 - **Builds long-term project memory.** Decisions, completed work, rejected ideas, and
   design lessons inform future planning instead of disappearing with a chat session.
 - **Stays local and agent-agnostic.** The board is Markdown under `docs/kanban/` and works
-  with Claude Code, Codex, Cursor, OpenCode, and DeepSeek Harness.
+  with Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, and ZCode.
 
 ## Get started
 

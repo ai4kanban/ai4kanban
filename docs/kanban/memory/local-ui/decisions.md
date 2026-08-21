@@ -111,7 +111,10 @@ re-ask a settled call.
 
 - **Which agents come next?**: Cursor and OpenCode, after Claude Code and Codex. OpenClaw
   was dropped — it is a chat-app assistant, not a coding CLI. DeepSeek Harness (dsh) is the
-  fifth, added because a user asked. Anything further waits for users to ask.
+  fifth, added because a user asked. ZCode is the sixth, and the one that wasn't waited for:
+  its own runtime, tools and Goal mode are what pointing another agent at Z.ai's endpoint
+  can't give, and someone on a GLM plan expects to find it in the agent grid. Anything
+  further waits for users to ask.
 - **What does an agent have to do to ship?**: stream its log as it works, and resume a run
   that stopped short. An agent that only prints a summary at the end isn't offered — a
   blank box for the whole run reads as a hang, and no Resume means a failure is unfinished
@@ -204,6 +207,10 @@ re-ask a settled call.
   buttons. The board redraws where it stands.
 - **Does any of it ask first?**: no. Every action goes straight through, archive, reject and
   starting a build included; the changes sit in the working tree for git to undo.
+- **How does a chat choose between doing a flow here and starting a run?**: the chat
+  decides, ask by ask — a flow that ends in a call only the user can make stays in the
+  conversation, and everything else starts a run. The user is never asked which way, but
+  saying which way still wins.
 
 ## Moving around the app
 

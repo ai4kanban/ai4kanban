@@ -112,7 +112,6 @@ const en: HomeCopy = {
       columns: ["Ready to build", "Not ready"],
       ready: "ready",
     },
-    otherAgents: "Other agents",
     storage: "Project data",
     outputsLabel: "Iteration outcomes",
     outputs: ["Product improvements", "Release iterations"],

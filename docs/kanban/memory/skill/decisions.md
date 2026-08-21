@@ -170,6 +170,10 @@ re-ask a settled call.
 - **Which actions may a chat take without asking first?**: all of them, archiving, rejecting
   and starting a build included. What a chat changes stays in the working tree, and git is
   where the user takes any of it back.
+- **How does a chat choose between doing a flow here and starting a run?**: the chat
+  decides, ask by ask — a flow that ends in a call only the user can make stays in the
+  conversation, and everything else starts a run. The user is never asked which way, but
+  saying which way still wins.
 
 ## Card format
 

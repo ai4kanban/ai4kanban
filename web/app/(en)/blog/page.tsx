@@ -13,9 +13,8 @@ import { itemList, jsonLd, pageUrl, webPage } from "@/lib/schema";
 const c = getCopy("en");
 
 const PATH = "/blog";
-const TITLE = "Blog — notes on running a kanban board an agent keeps";
-const DESCRIPTION =
-  "Writing about the board an AI coding agent plans and maintains: how it is designed, what the agents do with it, and what changes after watching it run.";
+const TITLE = "AI4Kanban Blog";
+const DESCRIPTION = "Articles from the AI4Kanban team.";
 
 export const metadata: Metadata = pageMetadata({
   locale: "en",
@@ -61,13 +60,8 @@ export default function BlogIndexPage() {
             Blog
           </p>
           <h1 className="text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl">
-            Notes from the board.
+            AI4Kanban Blog
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-muted">
-            What we learn running a kanban board a coding agent plans, works and
-            keeps — how the board is shaped, what the agents do with it, and what
-            we change after watching a week of runs.
-          </p>
         </section>
 
         {featured ? (

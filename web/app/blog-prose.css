@@ -210,3 +210,83 @@
   color: var(--color-muted);
   text-align: center;
 }
+
+/* ---------------------------------------------------------------------------
+   The blocks from `components/blog/MdxBlocks.tsx`.
+
+   Their look is Tailwind on their own markup, where it belongs. What lands here
+   is the part that has no markup to sit on: the air around them, which the
+   `> * + *` rule above already claims for every block in a body, and the prose
+   *inside* them, which is compiled from Markdown exactly like the body is. */
+
+/* A block is an interruption, so it takes more air than a paragraph — on both
+   sides, since the gap below is set by whatever follows it. */
+.blog-prose > .mdx-block {
+  margin-top: 2.5rem;
+}
+.blog-prose > .mdx-block + * {
+  margin-top: 2.5rem;
+}
+
+/* Inside a block the gaps are the body's, one step tighter. The rule above
+   reaches direct children of `.blog-prose` only, so without this the Markdown
+   in a block has no rhythm at all. */
+.blog-prose .mdx-body > * + * {
+  margin-top: 0.75rem;
+}
+
+/* A callout is the wash, so the wash chip a code span draws would disappear
+   into it. On that ground the chip is the paper instead. */
+.blog-prose .mdx-inset code {
+  background: var(--color-elev);
+}
+
+/* A file listing is a picture, not prose. Its paths are drawn characters on one
+   sheet, so the chip a code span carries in the body would cut the listing into
+   a row of separate labels and drop each path a step in size. */
+.blog-prose .mdx-listing code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* A quote's attribution belongs under the rail with the words it credits, not
+   centred under a picture like the caption rule above sets. */
+.blog-prose .mdx-quote figcaption {
+  padding-left: 1.25rem;
+  text-align: left;
+}
+
+/* The FAQ's heading is the block's own top edge — the section carries the air
+   an `h2` would otherwise add to it. */
+.blog-prose .mdx-faq h2 {
+  margin-top: 0;
+}
+.blog-prose .mdx-faq ul {
+  margin-top: 1.5rem;
+  padding-left: 0;
+  list-style: none;
+  border-top: 2px solid var(--color-border);
+}
+.blog-prose .mdx-faq li {
+  border-bottom: 2px solid var(--color-border);
+}
+.blog-prose .mdx-faq li + li {
+  margin-top: 0;
+}
+.blog-prose .mdx-faq summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+.blog-prose .mdx-faq summary::-webkit-details-marker {
+  display: none;
+}
+.blog-prose .mdx-faq .mdx-body {
+  padding-bottom: 1.25rem;
+}

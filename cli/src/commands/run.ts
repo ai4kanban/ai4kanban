@@ -26,6 +26,7 @@ import {
 } from '../lib/agent/types'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
+import { findCard } from '../lib/view/read'
 import type { MoveResult } from '../lib/types'
 import { parseFlags } from '../lib/validate'
 
@@ -51,6 +52,7 @@ export function cmdStartRun(action: AgentAction, args: string[], program = 'akb'
     return printFlow(req, program)
   }
   if (print) say('in a conversation — a chat never does a run\'s work itself, so it started the run instead.')
+  sayIfBlocked(req)
   const started = startRun(req)
   if ('error' in started) die(started.error, { kind: 'run-refused', action })
   const { run, spawned } = started
@@ -60,6 +62,18 @@ export function cmdStartRun(action: AgentAction, args: string[], program = 'akb'
   say(`  stop it:   ${program} stop ${short(run.sessionId)}`)
   if (follow) return { sessionId: run.sessionId, ...followRun(run.sessionId) }
   return { sessionId: run.sessionId, action, cardId: run.cardId }
+}
+
+// Building a card whose blockers are still open is allowed — you named the id, so you meant
+// it — but it is said out loud first. The board's own picks skip these cards entirely, so a
+// run on one only ever comes from a person, and the usual reason is a blocker they forgot.
+// Only building counts: refining a card before its blocker clears is ordinary work.
+function sayIfBlocked(req: AgentRequest): void {
+  if (req.action !== 'implement' && req.action !== 'run') return
+  if (req.id === undefined) return
+  const blockers = findCard(req.id)?.openBlockers ?? []
+  if (!blockers.length) return
+  say(`#${req.id} is blocked by ${blockers.map((b) => `#${b.id} ${b.title}`).join(', ')} — starting anyway.`)
 }
 
 // What each action takes, and what it means. Everything past these is the action's own; a

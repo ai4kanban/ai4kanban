@@ -280,6 +280,9 @@ export interface ActiveRun extends RunPlan {
   renderer?: StreamRenderer
   /** Talks to this agent over its own pipes (agent/client.ts). */
   client?: RunClient
+  /** This agent's own housekeeping chatter on stderr, which the log leaves out
+   *  (agent/harnesses.ts). Undefined for a harness that has none. */
+  quietStderr?: (line: string) => boolean
 }
 
 /** Work out how to start a fresh run under the agent the board is set to. */
@@ -332,6 +335,7 @@ export function openPlan(plan: RunPlan): ActiveRun {
     // need — because for a connector that talks, a setting is something the conversation
     // opens with rather than something argv carries.
     client: harness.client?.(effectiveValues(resolved)),
+    quietStderr: harness.quietStderr,
   }
 }
 

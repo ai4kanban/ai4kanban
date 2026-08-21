@@ -9,3 +9,4 @@ export { ThreeLayers } from "./ThreeLayers";
 export { PlanningLayer } from "./PlanningLayer";
 export { DecisionLoop } from "./DecisionLoop";
 export { SelfBoardProgress } from "./SelfBoardProgress";
+export { MemoryFiles } from "./MemoryFiles";

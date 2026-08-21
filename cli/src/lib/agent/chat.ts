@@ -25,10 +25,11 @@ import path from 'node:path'
 import type { Readable, Writable } from 'node:stream'
 
 import { pidAlive } from '../lock'
-import { CHATS_DIR } from '../paths'
+import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { markedEnv } from './flow'
 import { chatOpening } from './opening'
 import { chatAgent, harnessLabel, openPlan, planResume, planRun, type RunPlan } from './resolve'
+import { createStderrFilter } from './stream'
 import type { Chat, ChatMessage, ChatReply, ChatView } from './types'
 
 /** A conversation's file is named by what it is about, so the board's conversation and each
@@ -340,7 +341,9 @@ async function speak(io: {
     // its stdin kept open; one that prints takes the prompt on its command line and gets no
     // stdin at all (agent/client.ts).
     child = spawn(cmd!, client ? args : [...args, io.prompt], {
-      cwd: process.cwd(),
+      // The project, not this process's cwd: a chat runs inside the board server, whose cwd
+      // is its own bundled folder in the app. See the note in agent/test.ts.
+      cwd: REPO_ROOT,
       env: markedEnv(active.env, 'chat', io.chatKey),
       shell: false,
       stdio,
@@ -358,8 +361,10 @@ async function speak(io: {
     })
   }
   // Whatever the CLI itself has to say — a warning about a flag, a login that expired.
-  // Shown rather than swallowed: it is usually the reason a reply reads oddly.
-  child.stderr.on('data', (d: Buffer) => push(d.toString()))
+  // Shown rather than swallowed: it is usually the reason a reply reads oddly. Its own
+  // housekeeping chatter is the exception, and is left out (agent/harnesses.ts).
+  const errs = createStderrFilter(active.quietStderr)
+  child.stderr.on('data', (d: Buffer) => push(errs.push(d.toString())))
   child.on('error', (err) => {
     spawnError =
       (err as NodeJS.ErrnoException)?.code === 'ENOENT'
@@ -378,6 +383,7 @@ async function speak(io: {
         resumeId ??= renderer.resumeId?.()
         model ??= renderer.model?.()
       }
+      push(errs.flush())
       resolve({
         ok: ok && !spawnError && !stopped,
         text,
@@ -422,7 +428,7 @@ async function speak(io: {
             stdout: child.stdout,
             stdin: toAgent,
             prompt: io.prompt,
-            cwd: process.cwd(),
+            cwd: REPO_ROOT,
             resumeId: io.continuing,
             log: push,
             gotResumeId: (id) => {

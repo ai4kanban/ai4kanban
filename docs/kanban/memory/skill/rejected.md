@@ -31,6 +31,11 @@ before proposing so you don't re-suggest them.
 
 ## Planning
 
+- **Telling the agent which cards a card is holding up** — what a card holds up is the
+  same links as `blocked_by`, read backwards, and it is the weaker half: "start this first"
+  is a guess about order, while "don't start this yet" is a fact. Where a chain of work
+  matters, we make it a group task and let the tree show itself; the card listing carries
+  `blocked_by` and nothing derived from it.
 - **A second group for planning UI cards** — getting a screen agreed before it is built is
   what the spec agents group already does: its `ui-design` agent draws the layout options.
   The one piece that was needed anyway — the skill's UI design reference — moved into that

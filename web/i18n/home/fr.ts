@@ -115,7 +115,6 @@ const fr: HomeCopy = {
       columns: ["Prêt à démarrer", "Pas prêt"],
       ready: "prêt",
     },
-    otherAgents: "Autres agents",
     storage: "Données du projet",
     outputsLabel: "Résultats de l’itération",
     outputs: ["Améliorations produit", "Nouvelles versions"],

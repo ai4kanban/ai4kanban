@@ -73,6 +73,38 @@ function eventModel(ev: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
+/** Drop a harness's own housekeeping lines from its stderr as they arrive (see
+ *  `quietStderr` in agent/harnesses.ts). stderr comes in chunks, not lines, so the tail of
+ *  a chunk is held back until the newline that ends it — otherwise a line split across two
+ *  reads would be judged on half of itself.
+ *
+ *  With no predicate this is the identity: a harness that declares nothing quiet keeps
+ *  every byte, which is what every harness but Codex does today. */
+export function createStderrFilter(quiet?: (line: string) => boolean): {
+  push(chunk: string): string
+  flush(): string
+} {
+  if (!quiet) return { push: (chunk) => chunk, flush: () => '' }
+  let held = ''
+  return {
+    push(chunk) {
+      held += chunk
+      const cut = held.lastIndexOf('\n')
+      if (cut === -1) return ''
+      const whole = held.slice(0, cut + 1)
+      held = held.slice(cut + 1)
+      const kept = whole.split('\n').filter((line) => line === '' || !quiet(line))
+      return kept.join('\n')
+    },
+    // Whatever never got its newline — the last line of a run that ended mid-write.
+    flush() {
+      const rest = held
+      held = ''
+      return rest && quiet(rest) ? '' : rest
+    },
+  }
+}
+
 export function createStreamRenderer(): StreamRenderer {
   let buf = "";
   let final: string | undefined;

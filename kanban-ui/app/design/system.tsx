@@ -766,6 +766,7 @@ export function DesignSystem() {
                   <SelectItem value="cursor">Cursor</SelectItem>
                   <SelectItem value="opencode">OpenCode</SelectItem>
                   <SelectItem value="dsh">DeepSeek Harness</SelectItem>
+                  <SelectItem value="zcode">ZCode</SelectItem>
                 </SelectContent>
               </Select>
             </div>

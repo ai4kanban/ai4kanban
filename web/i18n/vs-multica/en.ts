@@ -116,7 +116,7 @@ const en: VsMulticaCopy = {
       execution: {
         dimension: "Execution management",
         kanban:
-          "Can launch Claude Code, Codex, Cursor, OpenCode, or DeepSeek Harness on a card and track the full lifecycle from proposal to archive.",
+          "Can launch Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, or ZCode on a card and track the full lifecycle from proposal to archive.",
         multica:
           "Runs multiple agents in parallel, with queues, retries, replay, cost tracking, review gates, and PR and CI links.",
       },
@@ -216,7 +216,7 @@ const en: VsMulticaCopy = {
       },
       runtimeReach: {
         title: "Broader runtime support",
-        body: "A local daemon connects many agent CLIs. AI4Kanban currently supports Claude Code, Codex, Cursor, OpenCode, and DeepSeek Harness.",
+        body: "A local daemon connects many agent CLIs. AI4Kanban currently supports Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, and ZCode.",
       },
     },
   },

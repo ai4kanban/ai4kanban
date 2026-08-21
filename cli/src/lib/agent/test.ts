@@ -14,7 +14,9 @@ import { spawn, type ChildProcessByStdio, type StdioNull, type StdioPipe } from 
 import type { Readable, Writable } from 'node:stream'
 import { randomUUID } from 'node:crypto'
 
+import { REPO_ROOT } from '../paths'
 import { openPlan, planRun } from './resolve'
+import { createStderrFilter } from './stream'
 import type { ConnectionTest } from './types'
 
 // What the test asks for. A few words, because the answer is never read: an answer at all
@@ -112,7 +114,11 @@ export function testConnection(): Promise<ConnectionTest> {
     let child: ChildProcessByStdio<Writable | null, Readable, Readable>
     try {
       child = spawn(cmd!, client ? args : [...args, TEST_PROMPT], {
-        cwd: process.cwd(),
+        // The project, not wherever this process happens to be sitting. Inside the app the
+        // board is found through KANBAN_BOARD_DIR and the server's own cwd is its bundled
+        // folder — an agent started there is outside the repo, and codex refuses to run at
+        // all ("Not inside a trusted directory").
+        cwd: REPO_ROOT,
         env: run.env,
         shell: false,
         // Same as a run: a piped stdin makes `claude -p` wait and then warn, which would
@@ -134,7 +140,7 @@ export function testConnection(): Promise<ConnectionTest> {
       done({
         ok: false,
         timedOut: true,
-        output: said(events + (run.renderer?.flush() ?? ''), run.renderer?.result(), stderr),
+        output: said(events + (run.renderer?.flush() ?? ''), run.renderer?.result(), stderr + errs.flush()),
       })
     }, TIMEOUT_MS)
     if (typeof timer.unref === 'function') timer.unref()
@@ -148,8 +154,12 @@ export function testConnection(): Promise<ConnectionTest> {
         events += renderer.push(d.toString())
       })
     }
+    // The agent's own housekeeping chatter is left out (agent/harnesses.ts). It matters
+    // most here: a failed test shows this text in full, and a real reason buried under a
+    // dozen identical cache warnings reads as if the cache warnings were the reason.
+    const errs = createStderrFilter(run.quietStderr)
     child.stderr.on('data', (d: Buffer) => {
-      stderr += d.toString()
+      stderr += errs.push(d.toString())
     })
     child.on('error', spawnFailed)
 
@@ -168,7 +178,7 @@ export function testConnection(): Promise<ConnectionTest> {
           stdout: child.stdout,
           stdin: toAgent,
           prompt: TEST_PROMPT,
-          cwd: process.cwd(),
+          cwd: REPO_ROOT,
           log: (text) => {
             events += text
           },
@@ -186,6 +196,7 @@ export function testConnection(): Promise<ConnectionTest> {
 
     child.on('close', (code) => {
       events += renderer?.flush() ?? ''
+      stderr += errs.flush()
       // The exit code is the whole verdict. The agent answered or it didn't; what the
       // answer said is not the board's business — so a pass carries no output at all.
       // A conversation has already settled this by the time its command closes; only a

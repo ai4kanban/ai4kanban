@@ -40,19 +40,19 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
     // z-index, so without it an open dropdown went behind the hero headline no
     // matter what `z-30` asked for.
     //
-    // At the top of the page the band is nothing: no fill and no rule, so the
-    // logo and the nav sit straight on the page ground and the header reads as
-    // the first line of the hero rather than a strip laid over it. The rule is
-    // what a header is *for* — it says the row is floating over content that
-    // has gone under it — so it arrives only once something has. Then the band
-    // is paper, one step up the ramp, and opaque, because whatever is sliding
-    // beneath it must not tint it.
+    // The fill is always paper and never animates: it is the same white as the
+    // page ground, so at the top of the page the row still reads as the first
+    // line of the hero, and the moment anything slides under it there is no
+    // frame of half-transparent header for that content to show through.
     //
-    // The border is transparent rather than absent at the top: a border changes
-    // a box's height, and the row must not jump 2px the moment you scroll.
+    // Only the rule fades in. The rule is what a header is *for* — it says the
+    // row is floating over content that has gone under it — so it arrives only
+    // once something has. It is transparent rather than absent at the top: a
+    // border changes a box's height, and the row must not jump 2px the moment
+    // you scroll.
     <header
-      className={`sticky top-0 z-30 border-b-2 transition-colors duration-200 ${
-        scrolled ? "border-border bg-elev" : "border-transparent bg-transparent"
+      className={`sticky top-0 z-30 border-b-2 bg-elev transition-colors duration-200 ${
+        scrolled ? "border-border" : "border-transparent"
       }`}
     >
       {/* Same `py-3` at every width, so the row a phone gets and the row a

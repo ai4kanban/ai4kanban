@@ -117,7 +117,6 @@ const ja: HomeCopy = {
       columns: ["着手できる", "未整理"],
       ready: "準備完了",
     },
-    otherAgents: "その他のエージェント",
     storage: "プロジェクトデータ",
     outputsLabel: "改善結果",
     outputs: ["プロダクト改善", "バージョン更新"],

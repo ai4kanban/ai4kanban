@@ -358,20 +358,45 @@ const INTERNAL_ICONS: IconType[] = [FiMap];
 const OUTPUT_ICONS: IconType[] = [FiTrendingUp, FiTag];
 
 // The agents the board can run, each with its own mark. No names in the block —
-// the logos carry it. An ellipsis tile follows them; see where it is drawn.
+// the logos carry it.
 const AGENT_LOGOS = [
   { src: "/agents/claude.svg", alt: "Claude Code" },
   { src: "/agents/codex.svg", alt: "Codex" },
   { src: "/agents/cursor.svg", alt: "Cursor" },
   { src: "/agents/opencode.svg", alt: "OpenCode" },
   { src: "/agents/dsh.svg", alt: "DeepSeek Harness" },
+  { src: "/agents/zcode.svg", alt: "ZCode" },
 ];
 
-// One washed tile per agent, plus one for the ellipsis. The tile shrinks as the
-// row grows: `agentsW` is what the block under the board gets, and the tiles have
-// to fit inside it — five 40px ones didn't, and at six 36px ones don't either.
+// One washed tile per agent, on a strip that runs slowly behind a window
+// narrower than the block. Laid out flat the row outgrew the block it sits in,
+// and the trailing ellipsis that stood for the agents past the end read as
+// something cut off. Moving, the row is short, every mark gets its turn, and
+// the loop itself is what says the list is open.
 const TILE = 30;
 const TILE_ICON = 14;
+const TILE_GAP = 12;
+const STRIP = AGENT_LOGOS.length * (TILE + TILE_GAP); // one full turn
+const MARQUEE_W = 168; // the window, well inside the block's 252
+const STILL = 5; // marks shown when the strip can't move
+
+// The one part of the drawing that doesn't run on the circuit's clock: it never
+// starts or stops, so there is nothing to place on that timeline. It takes four
+// turns of the circuit to come back round, which is slow enough to read as drift
+// rather than as a thing demanding attention.
+//
+// Standing still it can't be endless, so the strip is swapped for a short
+// centred row — the block says "these run the work" either way.
+const MARQUEE = `
+@keyframes itr-marquee {
+  to { transform: translateX(-${STRIP}px) }
+}
+.itr-marquee { display: none }
+@media (prefers-reduced-motion: no-preference) {
+  .itr-marquee { display: inline; animation: itr-marquee ${CYCLE * 4}s linear infinite }
+  .itr-still { display: none }
+}
+`;
 
 // The mark in the window's title bar, drawn to `components/ui/Logo.tsx` — the
 // same three board columns, shared top, stepping down as work leaves the board,
@@ -778,6 +803,35 @@ function TierWire({ cx, y, delay }: { cx: number; y: number; delay: number }) {
   );
 }
 
+// A run of agent marks from `x`. Each mark keeps its own brand colors, so it
+// gets a washed tile of its own rather than being dropped straight onto the
+// paper — the step down to the wash is what holds unrelated marks together as
+// one row.
+function AgentTiles({
+  x,
+  y,
+  logos,
+}: {
+  x: number;
+  y: number;
+  logos: typeof AGENT_LOGOS;
+}) {
+  return logos.map((logo, i) => (
+    <g key={logo.src} transform={`translate(${x + i * (TILE + TILE_GAP)} ${y})`}>
+      <rect width={TILE} height={TILE} rx={8} className="fill-code" />
+      <image
+        href={logo.src}
+        x={(TILE - TILE_ICON) / 2}
+        y={(TILE - TILE_ICON) / 2}
+        width={TILE_ICON}
+        height={TILE_ICON}
+      >
+        <title>{logo.alt}</title>
+      </image>
+    </g>
+  ));
+}
+
 // The label over a group of nodes, set straight on the wash the group sits in.
 // A column may hold more than one: the inputs column names its two kinds of
 // input, and each name has to sit with the nodes it names.
@@ -900,10 +954,9 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
   const agentsW = BOARD_W - ROW - STORAGE_W;
   const agentsX = X.mid + CP;
   const storageX = agentsX + agentsW + ROW;
-  const tileGap = 9;
-  const tileCount = AGENT_LOGOS.length + 1; // the marks, then the ellipsis
-  const tilesW = tileCount * TILE + (tileCount - 1) * tileGap;
-  const tilesX = agentsX + (agentsW - tilesW) / 2;
+  const tileY = bottomY + (BOTTOM_H - TILE) / 2;
+  const marqueeX = agentsX + (agentsW - MARQUEE_W) / 2;
+  const stillW = STILL * TILE + (STILL - 1) * TILE_GAP;
   const chipW = textWidth("Markdown", 12, true) + 24;
 
   return (
@@ -931,7 +984,7 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
             role="group"
             aria-label={c.title}
           >
-            <style>{MOTION}</style>
+            <style>{MOTION + MARQUEE}</style>
 
             <rect width={W} height={h} className="fill-bg" />
 
@@ -1008,52 +1061,60 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
                 rx={10}
                 className="fill-elev"
               />
-              {AGENT_LOGOS.map((logo, i) => (
-                // Each mark keeps its own brand colors, so it gets a washed
-                // tile of its own rather than being dropped straight onto the
-                // paper — the same tile the ellipsis beside them sits in. The
-                // step down to the wash is the whole tile: it is what holds
-                // unrelated marks together as one row.
-                <g key={logo.src}>
+              {/* The window the strip runs behind: it ends in a fade rather
+                  than an edge, so a mark leaving is never a mark cut off. The
+                  mask does the clipping too — outside its rect is black. */}
+              <defs>
+                <linearGradient
+                  id="itr-agents-fade"
+                  gradientUnits="userSpaceOnUse"
+                  x1={marqueeX}
+                  x2={marqueeX + MARQUEE_W}
+                >
+                  <stop offset="0" stopColor="#000" />
+                  <stop offset="0.16" stopColor="#fff" />
+                  <stop offset="0.84" stopColor="#fff" />
+                  <stop offset="1" stopColor="#000" />
+                </linearGradient>
+                <mask
+                  id="itr-agents-window"
+                  maskUnits="userSpaceOnUse"
+                  x={marqueeX}
+                  y={bottomY}
+                  width={MARQUEE_W}
+                  height={BOTTOM_H}
+                >
                   <rect
-                    x={tilesX + i * (TILE + tileGap)}
-                    y={bottomY + (BOTTOM_H - TILE) / 2}
-                    width={TILE}
-                    height={TILE}
-                    rx={8}
-                    className="fill-code"
+                    x={marqueeX}
+                    y={bottomY}
+                    width={MARQUEE_W}
+                    height={BOTTOM_H}
+                    fill="url(#itr-agents-fade)"
                   />
-                  <image
-                    href={logo.src}
-                    x={tilesX + i * (TILE + tileGap) + (TILE - TILE_ICON) / 2}
-                    y={bottomY + (BOTTOM_H - TILE_ICON) / 2}
-                    width={TILE_ICON}
-                    height={TILE_ICON}
-                  >
-                    <title>{logo.alt}</title>
-                  </image>
+                </mask>
+              </defs>
+              <g mask="url(#itr-agents-window)">
+                {/* Two copies of the one strip, the second parked a full turn
+                    to the right: at the end of the turn it stands exactly where
+                    the first began, so the loop has no seam. */}
+                <g className="itr-marquee">
+                  <AgentTiles x={marqueeX} y={tileY} logos={AGENT_LOGOS} />
+                  <g aria-hidden>
+                    <AgentTiles
+                      x={marqueeX + STRIP}
+                      y={tileY}
+                      logos={AGENT_LOGOS}
+                    />
+                  </g>
                 </g>
-              ))}
-              {/* An ellipsis, not one more mark. Five agents ship, so anything
-                  logo-shaped here would claim one that doesn't — and the list is
-                  not closed at five. Same washed tile as the marks beside it. */}
-              <rect
-                x={tilesX + AGENT_LOGOS.length * (TILE + tileGap)}
-                y={bottomY + (BOTTOM_H - TILE) / 2}
-                width={TILE}
-                height={TILE}
-                rx={8}
-                className="fill-code"
-              />
-              <text
-                x={tilesX + AGENT_LOGOS.length * (TILE + tileGap) + TILE / 2}
-                y={bottomY + BOTTOM_H / 2 + 4}
-                textAnchor="middle"
-                className="fill-muted font-mono"
-                fontSize={18}
-              >
-                <title>{c.otherAgents}</title>…
-              </text>
+              </g>
+              <g className="itr-still">
+                <AgentTiles
+                  x={agentsX + (agentsW - stillW) / 2}
+                  y={tileY}
+                  logos={AGENT_LOGOS.slice(0, STILL)}
+                />
+              </g>
 
               <rect
                 x={storageX}

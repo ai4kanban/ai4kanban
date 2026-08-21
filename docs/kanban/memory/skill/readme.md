@@ -123,6 +123,11 @@ covers it, or a plain-words note.
   the bridge would come out with no dsh under it. It then takes a model and a DeepSeek key,
   both optional, since an empty key uses the one dsh already saved: `cli/README.md` and
   "Running on DeepSeek Harness" in `kanban-ui/README.md`.
+- A sixth agent runs the board: **ZCode**, with `akb agent use zcode`. Z.ai ships no
+  terminal command, so it needs `npm install -g zcode-app-cli` — a community package, not
+  Z.ai's — or ZCode Desktop with this agent's `command` pointed at the `zcode` inside it.
+  Sign in with `zcode login`, or paste a Z.AI or BigModel Coding Plan key. A ZCode run is
+  not fenced to the project: ZCode ships no sandbox: `docs/guides/connectors.md`.
 - A dsh run is pinned to the dsh sitting beside the bridge, with `--dsh-path`. `dsh-acp`
   otherwise takes the first `dsh` on the PATH, and on a machine that has one that is a
   second copy of the same plugin system — every run then dies as it opens, on

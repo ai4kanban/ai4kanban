@@ -373,7 +373,8 @@ The line to paste is there either way, under the offer rather than instead of it
 ```
 
 The line follows the agent you picked, because agents trigger a skill differently: on Codex it
-reads `$kanban. Set up this board …`, and on Cursor, OpenCode and DeepSeek Harness it asks for the
+reads `$kanban. Set up this board …`, and on Cursor, OpenCode, DeepSeek Harness and ZCode it asks for
+the
 skill in a sentence. Copy it and paste it as it comes. It is on every screen of the run too, under
 **Rather set this up from your coding agent?** — setup picks up at the first unticked box, so
 nothing you answered here is asked again.
@@ -585,7 +586,7 @@ there is nothing to turn on.
 ### The harness
 
 **Harness** is the coding tool that runs the board's work — every button here starts a run on it, in
-your repo root. Five ship:
+your repo root. Six ship:
 
 | Agent | It spawns | Settings | Optional key | Cost | Model name |
 | --- | --- | --- | --- | --- | --- |
@@ -594,6 +595,7 @@ your repo root. Five ship:
 | **Cursor** | `cursor-agent -p --output-format stream-json --force` | Model | `CURSOR_API_KEY` | no | yes |
 | **OpenCode** | `opencode run --format json` | Model, Reasoning effort | none | yes | no |
 | **DeepSeek Harness** | `dsh-acp --permission-mode workspace-write` | Model | `DEEPSEEK_API_KEY` | yes | yes |
+| **ZCode** | `zcode app-server` | Sign-in, Model | `ZAI_API_KEY` | no | yes |
 
 Same cards, same buttons, same files whichever you pick. **Cost** and **Model name** say whether a
 run's log can show them: the board prints what the run itself reported and never invents either, so
@@ -611,21 +613,23 @@ Each agent brings its own settings, so the fields change when you pick another o
 empties them — a Claude model id means nothing to Codex — and leaves your saved keys alone.
 
 - **Provider** (Claude Code only) — who pays for a run and where it goes. See below.
+- **Sign-in** (ZCode only) — the login `zcode` already has, or a Z.AI Coding Plan key you paste in.
 - **Endpoint base URL** (Claude Code only) — the address your gateway answers on. Required before
   the endpoint pick will save.
 - **Model** — the id that agent runs with, passed as `--model`. Leave it empty for the agent's own
   default; the board never invents an id. Two agents write it differently: **OpenCode** takes
   `provider/model` (`anthropic/claude-opus-5`), because it reaches every provider and the name alone
   wouldn't say which; **Cursor** carries the thinking level inside the id, `claude-opus-4-8[effort=high]`,
-  so it has no reasoning box. **DeepSeek Harness** chooses the model as the run's session opens
-  rather than on the command line, because dsh carries its model catalog per session.
+  so it has no reasoning box. **DeepSeek Harness** and **ZCode** choose the model as the run's
+  session opens rather than on the command line, because each carries its model catalog per session;
+  ZCode also takes `zai/glm-5.3` when you want to name the provider too.
 - **Reasoning effort** — how hard the model thinks, passed as `--effort`. Claude Code offers a list:
   Low, Medium, High, Extra high (xhigh), Max. **Agent's default** passes nothing. OpenCode makes this
   a box you type in, because the level is your provider's own word (`minimal`, `high`, `max`) and
   providers don't agree on the words.
 - **The key box** — optional every time. Leave it empty and runs use whatever login that CLI already
-  has; for dsh, the key it saved in its own `$DSH_HOME`. Clear it and the next run goes straight back
-  to that login. OpenCode has no key box on purpose: it reaches any provider and each has its own
+  has; for dsh, the key it saved in its own `$DSH_HOME`; for ZCode, the one `zcode login` made. Clear
+  it and the next run goes straight back to that login. OpenCode has no key box on purpose: it reaches any provider and each has its own
   key, so its runs use the login `opencode auth login` made. See **Keys**.
 - **Test** — under those settings. See **Testing the connection**.
 
@@ -664,6 +668,16 @@ empties them — a Claude model id means nothing to Codex — and leaves your sa
   until it has finished and can't carry on an earlier run. Its permission preset lets a run write in
   the working folder without asking and raises a question for anything beyond it; the board answers
   no and writes `[refused]` into the log.
+- **ZCode** — Z.ai's coding agent for its GLM models, and the way to run the board on a GLM Coding
+  Plan. Z.ai ships no terminal command, so the one the board starts comes from a community package
+  that lifts the agent out of ZCode Desktop: `npm install -g zcode-app-cli`. That package is not
+  Z.ai's and says its own right to republish the runtime is unconfirmed; if you would rather not rely
+  on it, install ZCode Desktop and point this agent's `command` at the `zcode` inside it, followed by
+  `app-server`. The board holds a conversation with `app-server` rather than using `zcode --prompt`,
+  which prints for a person to read and never says which session it ran under. A run opens its
+  session in ZCode's `yolo` mode: nothing stops to ask, and nothing holds it to the project folder
+  either — ZCode ships no sandbox. Sign in with `zcode login` (macOS) or `/login` once, or paste a
+  Coding Plan key from Z.ai or BigModel. ZCode reads `.agents/skills/kanban/` on its own.
 
 Every agent's rate limit but Claude Code's is waited out, holding the card while it does.
 

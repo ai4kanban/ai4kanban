@@ -4,7 +4,7 @@ track: features
 priority: med
 roi: med
 status: todo
-release: ""
+release: 0.7.1
 blocked_by: []
 related: []
 modules: [skill, local-ui]

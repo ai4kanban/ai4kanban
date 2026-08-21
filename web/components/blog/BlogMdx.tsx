@@ -2,6 +2,7 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 import * as figures from "./figures";
+import { Callout, FAQ, FAQItem, KeyTakeaways, Quote, TLDR } from "./MdxBlocks";
 import { ProseCode } from "./ProseCode";
 import { getCopy } from "@/i18n";
 import type { ComponentPropsWithoutRef } from "react";
@@ -25,10 +26,17 @@ const code = getCopy("en").shared.code;
 
 const components = {
   // Every figure in `figures/`, by name, so a post can draw one with a tag.
-  // They are the only components a body may use: a post is prose, and anything
-  // it needs to *show* is a drawing built to the site's grammar rather than
-  // markup written inline in the Markdown.
+  // Anything a post needs to *show* is a drawing built to the site's grammar
+  // rather than markup written inline in the Markdown.
   ...figures,
+  // The blocks a post can write that prose has no syntax for (`MdxBlocks.tsx`).
+  // The set is closed: a body chooses from these, it does not invent markup.
+  TLDR,
+  KeyTakeaways,
+  Callout,
+  Quote,
+  FAQ,
+  FAQItem,
   pre: (props: ComponentPropsWithoutRef<"pre">) => (
     <ProseCode {...props} labels={code} />
   ),

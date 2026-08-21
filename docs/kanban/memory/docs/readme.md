@@ -12,3 +12,6 @@ covers it, or a plain-words note.
   board's bookkeeping, and close on the two lines that update `akb`: `README.md`, `README-zh.md`.
 - No page anywhere says installing a board installs the skill — the READMEs, the setup
   prompt at `web/public/INSTALL_PROMPT.txt`, and the npm page `cli/README.md` all say the same.
+- Which coding agents the board runs, what each reports back, what a run may touch, and
+  every agent's own settings — including ZCode, where the command comes from a package that
+  isn't Z.ai's and a run has no fence around the project: `docs/guides/connectors.md`.
