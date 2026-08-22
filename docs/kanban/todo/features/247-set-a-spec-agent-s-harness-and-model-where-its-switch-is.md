@@ -6,7 +6,7 @@ roi: med
 status: todo
 release: ""
 blocked_by: [246]
-related: [257]
+related: []
 modules: [local-ui]
 questions:
   - question: "[user] Which layout for the Agents pane? — see the `ui-design` section"

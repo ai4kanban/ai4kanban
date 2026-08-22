@@ -23,7 +23,7 @@ people" has an answer beyond our own repo.
 
 ## Today
 - Both files exist and are written by board commands (#223). They never leave the repo.
-- The board's own Progress dialog already shows those numbers to the user who owns the
+- The board's own Insights dialog already shows those numbers to the user who owns the
   board. Either way nobody sees them across installs.
 
 ## Scope

@@ -178,10 +178,21 @@ at that version. It shows you what the close records and which open cards come o
 version before you confirm, and it names the ticked-but-never-archived cards there — early
 enough to cancel, archive them, and close after.
 
-The summary keeps what the version was for: the line in `releases.md` is gone, so those
-words survive only there. The rest of it is a list of cards, not a changelog. Not every
-change goes through the board, so only you can say what the version changed — the summary
-is your source for writing that.
+The summary opens with a **changelog** — a few plain lines saying what the version changed,
+written by an agent from the cards it shipped. Six lines at most, each one something you can
+now see or do. Under it the summary keeps what the version was for: the line in
+`releases.md` is gone, so those words survive only there.
+
+On the local board the close starts that agent itself, in the background: the runs panel
+shows it, and the changelog reaches the file when it ends. In the terminal the close names
+the command instead — say **"write the changelog for v1"**, or run `akb changelog v1` — since
+a bookkeeping command never starts an agent. Either way the card list is written first and
+stands whatever the agent does, and running it again replaces the changelog rather than
+adding a second one.
+
+A version that shipped no card gets no changelog, and nothing is started for it. Not every
+change goes through the board, so one that was never a card is still missing from the file —
+that part is yours to add.
 
 ## Drop a release
 
@@ -320,7 +331,7 @@ a spec run, and nothing tells you it did — that is the normal case, not a miss
 already carries an agent's section is not sent back to it unless the plan under it moved,
 and the board turns down a second ask while that agent is still working the card.
 
-### Switching one off
+### Switching one off, and setting one
 
 The board app lists the spec agents in **Configuration → Agents**, each with one switch. An
 agent you switch off is greyed and reads **off**, and the board starts no new run of it, on
@@ -329,6 +340,16 @@ plans that part of the card itself instead. The switch is saved with the board, 
 across restarts, reads the same for everyone working on it, and applies to a flow run in a
 terminal as much as to a button. Whatever an agent already wrote on a card stays there, and
 switching it back on has the next flow calling it again.
+
+An agent can carry **settings** as well as a switch — what it produces, not just whether it
+runs — and they are set on that same row. Each one reads as a line saying what it is set to
+and what that choice costs; **Change** opens the choices in place, each with its own cost,
+and a pick saves itself. A setting is board-wide, like the switch: every card that agent runs
+on gets the same answer, and a run started from a terminal reads it too. A switched-off agent
+keeps its settings on screen and still changeable, and an agent with no settings shows none.
+
+`akb spec` prints what each agent is set to under its two lines, so a terminal says the same
+thing the pane does. It is a listing, not a menu: settings are picked in the board app.
 
 ## Queue a card that is waiting on another
 
@@ -453,6 +474,7 @@ akb board release new v1 --fill   # …with the high-priority cards in
 akb board release goal v1 ".."    # change what it is for
 akb board release list            # what each version holds
 akb board release close v1        # the version shipped
+                                  # (it starts the run that writes the version's changelog)
 akb board release drop v1         # the version will not ship
 akb board schedule <id> --action implement|refine
                                   # run it by itself once the card comes free

@@ -132,6 +132,8 @@ export const RUNNING_VERB: Record<AgentAction, string> = {
   create: "creating",
   propose: "proposing",
   "plan-release": "planning",
+  // Writing one closed version's changelog (#232). It names a version, never a card.
+  changelog: "writing the changelog",
   setup: "setting up",
   // A spec agent filling one part of the card's spec (#187). It writes one section and
   // never the plan, so the card is not "being planned" while it works.
@@ -644,6 +646,10 @@ function cardlessTitle(session: SessionView): string {
   if (session.action === "plan-release") {
     const of = session.input ? ` ${session.input}` : "";
     return running ? `Planning${of}` : `Plan${of}`;
+  }
+  if (session.action === "changelog") {
+    const of = session.input ? ` ${session.input}` : "";
+    return running ? `Writing the changelog for${of}` : `Changelog${of}`;
   }
   if (session.action === "propose") return running ? "Proposing tasks" : "Propose tasks";
   if (session.action === "setup") return running ? "Finishing setup" : "Finish setup";

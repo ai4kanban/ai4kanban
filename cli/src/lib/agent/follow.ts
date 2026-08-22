@@ -4,7 +4,7 @@
 import { findSpecAgent, specAgentEnabled } from '../spec-agents'
 import { allCards } from '../view/read'
 import type { Card } from '../view/types'
-import { specAgentSwitches } from './settings'
+import { specAgentEntries } from './settings'
 import type { AgentRequest, SpecAsk } from './types'
 
 /**
@@ -23,7 +23,7 @@ import type { AgentRequest, SpecAsk } from './types'
  */
 export function specRunsAfter(asks: SpecAsk[]): AgentRequest[] {
   if (!asks.length) return []
-  const switches = specAgentSwitches()
+  const entries = specAgentEntries()
   let cards: Card[]
   try {
     cards = allCards()
@@ -35,7 +35,7 @@ export function specRunsAfter(asks: SpecAsk[]): AgentRequest[] {
     const card = byId.get(ask.cardId)
     if (!card) return []
     const agent = findSpecAgent(ask.specAgent)
-    if (!agent || !specAgentEnabled(agent.name, switches)) return []
+    if (!agent || !specAgentEnabled(agent.name, entries)) return []
     return [{ action: 'spec' as const, id: ask.cardId, title: card.title, specAgent: agent.name, notes: ask.notes }]
   })
 }

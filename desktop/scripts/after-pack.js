@@ -54,6 +54,16 @@ exports.default = async function afterPack(context) {
   fs.cpSync(cliFrom, cliTo, { recursive: true });
   console.log(`  • board installer copied  to=${cliTo}`);
 
+  // And the launcher screen's artwork (#289), which the app inlines into that page. It
+  // rides here rather than in the asar because lib/launcher.ts reads it off disk.
+  const artFrom = path.join(__dirname, "..", "resources", "art");
+  if (fs.existsSync(artFrom)) {
+    const artTo = path.join(resources, "art");
+    fs.rmSync(artTo, { recursive: true, force: true });
+    fs.cpSync(artFrom, artTo, { recursive: true });
+    console.log(`  • launcher artwork copied  to=${artTo}`);
+  }
+
   // And the `akb` launcher (#226) — the file /usr/local/bin/akb is a symlink to, and the
   // folder Windows puts on the PATH. It rides here rather than in `extraResources` so it
   // is inside the bundle before signing, like everything else the app carries.

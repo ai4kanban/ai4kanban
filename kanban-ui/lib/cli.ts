@@ -126,7 +126,9 @@ export interface BoardRules {
   setCardsRelease(ids: number[], release: string): BulkReleaseResult;
   newRelease(id: string, goal?: string, fill?: boolean): WriteResult & { fill?: "none" | "fill" | "agent" };
   setReleaseGoal(id: string, goal: string): WriteResult;
-  closeRelease(id: string): WriteResult;
+  // `shipped` is how many cards the close counted, so the caller knows whether a changelog
+  // run has anything to write (#232). Absent on a copy of the rules that predates it.
+  closeRelease(id: string): WriteResult & { shipped?: number };
   dropRelease(id: string): WriteResult;
   saveGoal(text: string): WriteResult;
   saveProject(name: string, description: string, tracks: TrackDraft[]): SaveProjectResult;
@@ -137,6 +139,10 @@ export interface BoardRules {
   // them, and the Agents section says so rather than the dialog failing to draw.
   readSpecAgents?(): SpecAgentView[];
   setSpecAgentEnabled?(name: string, on: boolean): WriteResult;
+  /** Save one of the settings an agent declares (#257). Optional on its own: a board can
+   *  be running rules that list the agents but predate their settings, and the row then
+   *  draws no control rather than offering one nothing can save. */
+  setSpecAgentSetting?(name: string, key: string, value: string): WriteResult;
 
   // the coding agent skill — whether this project has one, and the move that adds it
   // (#174). Optional because a project can be running rules older than the release that

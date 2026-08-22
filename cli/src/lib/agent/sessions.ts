@@ -68,6 +68,7 @@ const VERB: Record<AgentAction, string> = {
   'plan-release': 'planned',
   setup: 'set up',
   spec: 'specified',
+  changelog: 'written up',
 }
 
 // The refusal a one-at-a-time action gets when one of its own is already going, where the
@@ -87,6 +88,10 @@ export interface RunSpec {
   sessionId: string
   plan: RunPlan
   prompt: string
+  /** What the board owes this run's log before the agent's own output — a spec agent's
+   *  setting that had to fall back, and nothing else today. The watcher writes them out as
+   *  it opens the log, so the reason is above the work it changed. */
+  notes?: string[]
 }
 
 export interface StartResult {
@@ -414,7 +419,12 @@ export function getRun(id: string, bytes?: number): RunView | null {
 // The locks every new run passes, whether it's a fresh action or a resumed one: one live
 // run per card, and one live create/propose/plan-release across the whole board. Checked
 // with the record's lock held, so two processes can't both slip past.
-function lockedBy(runs: RunRecord[], action: AgentAction, cardId: number | null): string | undefined {
+function lockedBy(
+  runs: RunRecord[],
+  action: AgentAction,
+  cardId: number | null,
+  release?: string,
+): string | undefined {
   // A spec agent is out of that rule at both ends: it fills one section and never the
   // plan, so it neither takes the card nor waits for one. Two agents may work a card —
   // they write different sections — and a card being refined can still have its screen
@@ -427,6 +437,13 @@ function lockedBy(runs: RunRecord[], action: AgentAction, cardId: number | null)
   if (SINGLETON_ACTIONS.has(action)) {
     const live = runs.find((r) => r.status === 'running' && r.action === action)
     if (live) return SINGLETON_BUSY[action] ?? `a task is already being ${VERB[action]}`
+  }
+  // One changelog per version, not one across the board: two runs on two versions write two
+  // different files, and only two on the SAME version would write over each other. The
+  // version a run is for is its input, which is what it was written down as.
+  if (action === 'changelog' && release) {
+    const live = runs.find((r) => r.status === 'running' && r.action === 'changelog' && r.input === release)
+    if (live) return `a changelog for ${release} is already being written`
   }
   return undefined
 }
@@ -453,11 +470,12 @@ export function heldByRun(cardId: number): string | undefined {
 }
 
 // The text the user typed for a run, pulled from whichever field carries it. A plan-release
-// run was never given text — the user named a version, and that version is what the run is
-// about, so it stands in.
+// or changelog run was never given text — the user named a version, and that version is what
+// the run is about, so it stands in. It is also what tells two changelog runs apart, so the
+// second one on the same version can be refused.
 function runInput(req: AgentRequest): string | undefined {
   const text =
-    req.action === 'plan-release'
+    req.action === 'plan-release' || req.action === 'changelog'
       ? req.release ?? ''
       : req.description ?? req.reason ?? req.notes ?? ''
   return text.trim() || undefined
@@ -475,7 +493,11 @@ export function titleOf(cardId: number | undefined): string | undefined {
  *
  *  Nothing is spawned here — that is `spawnWatcher`, which the command does right after,
  *  and `markSpawned` is how the pid gets back into the record. */
-export function openRun(req: AgentRequest, prompt: string): { run: RunRecord; spec: RunSpec } | { error: string } {
+export function openRun(
+  req: AgentRequest,
+  prompt: string,
+  notes: string[] = [],
+): { run: RunRecord; spec: RunSpec } | { error: string } {
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
   const sessionId = randomUUID()
   // The one settings read for this whole run. Everything it needs is worked out here, at
@@ -500,13 +522,13 @@ export function openRun(req: AgentRequest, prompt: string): { run: RunRecord; sp
     refineRound: req.refineRound,
   }
   const out = withRuns<{ run: RunRecord } | { error: string }>((runs) => {
-    const locked = lockedBy(runs, req.action, cardId)
+    const locked = lockedBy(runs, req.action, cardId, req.release)
     if (locked) return { error: locked }
     runs.push(record)
     return { run: record }
   })
   if ('error' in out) return out
-  const spec: RunSpec = { sessionId, plan, prompt }
+  const spec: RunSpec = { sessionId, plan, prompt, ...(notes.length ? { notes } : {}) }
   writeSpec(spec)
   return { run: record, spec }
 }
@@ -551,7 +573,7 @@ export function openResume(id: string): { run: RunRecord; spec: RunSpec } | { er
     refineRound: prev.refineRound,
   }
   const out = withRuns<{ run: RunRecord } | { error: string }>((all) => {
-    const locked = lockedBy(all, prev.action, prev.cardId)
+    const locked = lockedBy(all, prev.action, prev.cardId, prev.input)
     if (locked) return { error: locked }
     all.push(record)
     // The new run has the conversation now, so the old record goes — after every refusal

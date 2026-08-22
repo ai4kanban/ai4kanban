@@ -6,7 +6,7 @@ roi: high
 status: ready
 release: 0.7.2
 blocked_by: []
-related: [255, 256, 257]
+related: [256]
 modules: [skill, local-ui]
 questions: []
 ---
@@ -17,6 +17,15 @@ run to write and only draw inside the board's UI, so a user working from a termi
 file name and no drawing. Let each specialist agent carry a few settings of its own, and give
 `ui-design` the first one: draw the layout options in ASCII instead. This is a group task;
 each piece is its own subtask in this folder.
+
+## Worth noting
+- **Only `ui-design` gets a setting here**: this task builds the frame — an agent may declare
+  settings — and `technology-selection` runs exactly as it does today.
+- **ASCII drawings were tried and dropped once, and come back here as a choice**: a picture
+  of the screen is easier to judge than one drawn with characters. It stays off by default,
+  and is there for a board that is read from a terminal.
+
+<!-- agent -->
 
 ## Scope
 - An agent says what it can be set to.
@@ -35,15 +44,6 @@ each piece is its own subtask in this folder.
 - Out: which coding tool and model an agent runs on — that is #246 and #247.
 
 ## Todo
-- [ ] Let a specialist agent carry settings, not just a switch #255
+- [x] Let a specialist agent carry settings, not just a switch #255
 - [ ] Draw a card's layout options in ASCII instead of a rendered screen #256
-- [ ] Set a specialist agent's settings where its switch is #257
-
-## Decided by the agent
-- **Does every agent get a setting in this task?**: no. This task builds the frame — an
-  agent may declare settings — and only `ui-design` declares one.
-
-### Worth noting
-- **ASCII drawings were tried and dropped once, and come back here as a choice**: a picture
-  of the screen is easier to judge than one drawn with characters. It stays off by default,
-  and is there for a board that is read from a terminal.
+- [x] Set a specialist agent's settings where its switch is #257

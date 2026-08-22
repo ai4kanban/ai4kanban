@@ -187,6 +187,13 @@ except where another doc is named.
   ask for it by name is turned away, and the flow plans that part itself. The switch is
   saved with the board, a run already going finishes, and what an agent already wrote on a
   card stays: "The spec agents".
+- Set what a spec agent produces, not just whether it runs: an agent that carries settings
+  shows them on its own row in **Configuration → Agents**, one line each saying what it is
+  set to and what that choice costs, with **Change** opening the choices in place. A pick
+  saves itself, a failed save puts it back and says why, and the answer is board-wide — every
+  card that agent runs on gets it, including a run started from a terminal. A paused agent
+  keeps its settings on screen and still changeable; an agent with no settings is unchanged:
+  "The spec agents".
 - Talk to the board without leaving it: **Chat** in the header opens a conversation down the
   right of the window, folded away until you ask for it. It follows what you are reading —
   the board's chat on the board and on a memory file, a card's on its page — and answers from
@@ -208,20 +215,20 @@ except where another doc is named.
   the last one is left: not its messages, not a message half typed, not the error its last
   send left: "Chat" in the UI docs.
 
-- The header's chart button is now **Progress** and opens two charts. Daily progress is
-  unchanged; under it **Planning quality** draws how well the board planned each release —
-  Details settled, Decisions that stood and Proposals built, one point per release in close
-  order with the still-open release at the right end. Each series has its own line style and
-  marker, a series with too little evidence leaves a gap rather than a zero, and the readout
-  under the chart gives the chosen release's three percentages, the counts behind them and
-  every contributing card id. Click, hover, or Tab to the chart and use the arrow keys:
-  "Progress" in the UI docs.
+- The header's chart button is now **Insights** and opens two charts, a tab each. Daily
+  progress is unchanged and opens first; **Planning quality** draws how well the board planned
+  each release — Details settled, Decisions that stood and Proposals built, one point per
+  release in close order with the still-open release at the right end. Each series has its own
+  line style and marker, a series with too little evidence leaves a gap rather than a zero, and
+  the readout under the chart gives the chosen release's three percentages, the counts behind
+  them and every contributing card id. Click, hover, or Tab to the chart and use the arrow
+  keys: "Insights" in the UI docs.
 
 - The Planning quality score the app draws belongs to the board you have open. It is worked
   out on each read from `docs/kanban/record.csv` in that same repository, which the board's
   own commands fill in as they run, so a board that has just started shows counts and `not
   enough yet` rather than a zero. No percentage is stored and no figure is fetched from
-  anywhere outside the repository: "Progress" in the UI docs.
+  anywhere outside the repository: "Insights" in the UI docs.
 
 - A card's page opens on the half a person has to read. Everything above the card format's
   `<!-- agent -->` boundary sits at the top as it always did; everything below it folds

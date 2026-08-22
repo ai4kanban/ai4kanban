@@ -7,15 +7,15 @@
 // so before this section there was no screen that said which ones exist or let one be
 // turned off.
 //
-// What this section knows: nothing. The names, the two lines under each one and the order
-// they come in are the board's own list, asked for when the section opens — so `akb spec`
-// and this can never say different things. It reads and switches, and that is all: an
-// agent's prompt is not something the UI writes.
+// What this section knows: nothing. The names, the two lines under each one, the settings
+// an agent declares and the choices each setting offers are the board's own list, asked for
+// when the section opens — so `akb spec` and this can never say different things. It reads,
+// switches and sets, and that is all: an agent's prompt is not something the UI writes.
 
 import { useEffect, useState } from "react";
-import { FiAlertCircle } from "react-icons/fi";
-import { setSpecAgentAction, specAgentsAction } from "@/app/actions";
-import type { SpecAgentView } from "@/lib/types";
+import { FiAlertCircle, FiChevronDown } from "react-icons/fi";
+import { setSpecAgentAction, setSpecAgentSettingAction, specAgentsAction } from "@/app/actions";
+import type { SpecAgentSettingView, SpecAgentView } from "@/lib/types";
 
 /** The section in the Configuration dialog. It reads the board's list when it first draws;
  *  the board's poll never carries it, and nothing else on screen shows these switches. */
@@ -23,8 +23,9 @@ export function SpecAgentsPanel({ onError }: { onError?: (msg: string) => void }
   const [agents, setAgents] = useState<SpecAgentView[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  // The names whose switch is being saved right now — one at a time is the normal case,
-  // but a second flip shouldn't wait on the first.
+  // What is being saved right now, by the thing being saved: an agent's name for its
+  // switch, `name/key` for one of its settings. One at a time is the normal case, but a
+  // second change shouldn't wait on the first.
   const [saving, setSaving] = useState<string[]>([]);
 
   useEffect(() => {
@@ -55,6 +56,31 @@ export function SpecAgentsPanel({ onError }: { onError?: (msg: string) => void }
       }
     } finally {
       setSaving((names) => names.filter((n) => n !== agent.name));
+    }
+  };
+
+  // Pick one of an agent's settings (#257): on screen at once, saved behind it, and put
+  // back if the save fails — the switch's own behaviour, for the same reason. The error
+  // goes across the top of the dialog, where the section's errors already appear.
+  const pick = async (agent: SpecAgentView, key: string, value: string) => {
+    const was = agent.values?.[key] ?? "";
+    if (value === was) return;
+    const put = (v: string) =>
+      setAgents(
+        (all) =>
+          all?.map((a) => (a.name === agent.name ? { ...a, values: { ...a.values, [key]: v } } : a)) ?? all,
+      );
+    const token = `${agent.name}/${key}`;
+    put(value);
+    setSaving((names) => [...names, token]);
+    try {
+      const res = await setSpecAgentSettingAction(agent.name, key, value);
+      if (!res.ok) {
+        put(was);
+        onError?.(res.error || `couldn't save ${agent.name}'s setting`);
+      }
+    } finally {
+      setSaving((names) => names.filter((n) => n !== token));
     }
   };
 
@@ -122,9 +148,129 @@ export function SpecAgentsPanel({ onError }: { onError?: (msg: string) => void }
                   <dt className="font-[700] text-nb-ink-soft">Runs when</dt>
                   <dd className="text-nb-ink-soft">{sentence(agent.calledOn.replace(/^called on\s+/i, ""))}</dd>
                 </dl>
+
+                {/* What this agent is set to (#257). One line per setting, on the row
+                    itself, so nothing has to be opened to read the answer or to change
+                    it. An agent that declares none draws nothing here, and so does a
+                    board reading rules older than the settings — its rows look exactly
+                    as they did. */}
+                {agent.settings?.length ? (
+                  <div className="mt-3 flex flex-col gap-2">
+                    {agent.settings.map((setting) => (
+                      <SettingLine
+                        key={setting.key}
+                        setting={setting}
+                        value={agent.values?.[setting.key] ?? setting.default}
+                        off={off}
+                        busy={saving.includes(`${agent.name}/${setting.key}`)}
+                        onPick={(value) => void pick(agent, setting.key, value)}
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </article>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// One setting on an agent's row: a line saying what it is set to and what that choice
+// costs, and a Change that opens the choices in place.
+//
+// Folded by default, because the answer is the thing worth reading and the pane is a list
+// of agents, not a form. Open, every choice says its own cost in the agent's own words, so
+// a pick is made by comparing rather than by trying one.
+//
+// A switched-off agent keeps its line, greyed with the rest of the row and still working:
+// setting an agent you have paused is how it is ready for the day you switch it back on.
+function SettingLine({
+  setting,
+  value,
+  off,
+  busy,
+  onPick,
+}: {
+  setting: SpecAgentSettingView;
+  /** The choice in effect — the saved one, or the setting's own default. */
+  value: string;
+  off: boolean;
+  /** A save for this setting is in flight. */
+  busy: boolean;
+  onPick: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const picked = setting.choices.find((c) => c.value === value);
+
+  return (
+    <div
+      className={`rounded-[10px] border border-nb-ink/22 bg-nb-wash px-3 py-2 ${off ? "opacity-70" : ""}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        {/* Closed, the line carries the cost too — that is the whole answer, and it wraps
+            rather than trailing off in an ellipsis. Open, the cost is dropped: every
+            choice below says its own, and repeating the picked one says it twice. */}
+        <p className="min-w-0 text-[12px] leading-relaxed text-nb-ink-soft">
+          {setting.label}:{" "}
+          <span className={`font-[700] ${off ? "text-nb-ink-soft" : "text-nb-ink"}`}>
+            {picked?.label ?? value}
+          </span>
+          {!open && picked?.cost ? ` — ${picked.cost}` : ""}
+        </p>
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((was) => !was)}
+          className="flex shrink-0 cursor-pointer items-center gap-1.5 pt-[1px] text-[12px] font-[700] text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+        >
+          Change
+          <FiChevronDown
+            aria-hidden
+            className={`shrink-0 text-nb-ink-soft transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+          />
+        </button>
+      </div>
+
+      {open && (
+        <div
+          role="radiogroup"
+          aria-label={setting.label}
+          className="mt-2.5 flex flex-col gap-1 border-t border-nb-ink/14 pt-2.5"
+        >
+          {setting.choices.map((choice) => {
+            const on = choice.value === value;
+            return (
+              <button
+                key={choice.value}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                disabled={busy}
+                onClick={() => onPick(choice.value)}
+                className="flex cursor-pointer items-start gap-2 rounded-[8px] px-2 py-1.5 text-left transition-colors duration-100 hover:bg-nb-ink/5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait disabled:opacity-60"
+              >
+                <span
+                  aria-hidden
+                  className={`mt-[3px] flex size-[13px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-nb-ink ${
+                    on ? "bg-nb-accent" : "bg-nb-paper"
+                  }`}
+                >
+                  {on && <span className="size-[4px] rounded-full bg-nb-paper" />}
+                </span>
+                <span className="min-w-0">
+                  <span className={`block text-[12px] ${on ? "font-[800] text-nb-ink" : "font-[700] text-nb-ink"}`}>
+                    {choice.label}
+                  </span>
+                  <span className="block text-[12px] leading-relaxed text-nb-ink-soft">{choice.cost}</span>
+                </span>
+              </button>
+            );
+          })}
+          {setting.help && (
+            <p className="mt-1 px-2 text-[12px] leading-relaxed text-nb-ink-soft">{setting.help}</p>
+          )}
         </div>
       )}
     </div>

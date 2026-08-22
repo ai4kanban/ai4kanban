@@ -30,6 +30,7 @@ _(none)_
 - [#279 Decide whether the card page still needs an Edit button](features/279-decide-whether-the-card-page-still-needs-an-edit-button.md)
 - [#280 Set the board up by talking to it, not by filling in a form](features/280-set-the-board-up-by-talking-to-it-not-by-filling-in-a-form.md)
 - [#291 Pick a model from a list in the Harness pane](features/291-pick-model-from-list.md)
+- [#298 Read a closed version's changelog in the board UI](features/298-read-a-closed-version-s-changelog-in-the-board-ui.md)
 
 ## skill
 
@@ -66,12 +67,10 @@ _(none)_
 
 ## 254-customizable-spec-agents/skill
 
-- [#255 Let a specialist agent carry settings, not just a switch](254-customizable-spec-agents/skill/255-agent-settings.md)
 - [#256 Draw a card's layout options in ASCII instead of a rendered screen](254-customizable-spec-agents/skill/256-ascii-mockups.md)
 
 ## 254-customizable-spec-agents/features
 
-- [#257 Set a specialist agent's settings where its switch is](254-customizable-spec-agents/features/257-set-agent-settings.md)
 
 ## 250-friendly-task-import/skill
 

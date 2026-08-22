@@ -1,9 +1,10 @@
 // AI4Kanban, as an app you open.
 //
 // What it does, in order: read the user's shell environment so runs can find
-// their coding agent, open the project it had open last (asking for one the
-// first time), start that board's own server on a private port, and show it in
-// a window. Quitting ends every server it started and every run under them.
+// their coding agent, open the project it had open last (or, the first time,
+// show the launcher and wait for one to be picked), start that board's own
+// server on a private port, and show it in a window. Quitting ends every server
+// it started and every run under them.
 //
 // One project is on screen at a time, and the app is how you move between them
 // (#178): Open Folder picks a new one, and the projects you have opened are a
@@ -27,6 +28,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { makeBoard } from "./lib/board-init";
 import { commandAnswers, commandState, installCommand, refreshSkillNote } from "./lib/command";
+import { launcherUrl } from "./lib/launcher";
 import { buildMenu } from "./lib/menu";
 import { attachNavigation, type Navigation } from "./lib/navigation";
 import * as projects from "./lib/projects";
@@ -94,15 +96,15 @@ async function start(): Promise<void> {
 
   // Started by the launcher from a project folder — that board is the one to show, ahead
   // of whatever was open last.
-  const repo =
-    boardNear(namedCwd(process.argv)) ??
-    store.lastRepo() ??
-    (await askForRepo({ firstTime: true }));
-  if (!repo) return app.quit(); // asked, and the user said no folder.
+  const repo = boardNear(namedCwd(process.argv)) ?? store.lastRepo();
 
   createWindow();
   refreshMenu();
-  await open(repo);
+  // Nothing to open on the first launch, and nothing to open when the folder we
+  // had is gone. Either way the window says what this app is and offers the one
+  // move there is, rather than opening a file dialog over an empty screen.
+  if (repo) await open(repo);
+  else await showLauncher();
   // And then, on a machine with no `akb`, the one offer this app makes on its own.
   await offerCommand();
 }
@@ -185,8 +187,9 @@ function createWindow(): void {
   });
 }
 
-// Dialogs hang off the window when there is one. The first folder pick happens
-// before the window exists, and Electron wants to be asked differently then.
+// Dialogs hang off the window when there is one — which is every dialog the app
+// raises now that the launcher comes first. The windowless form is kept for the
+// one that can still be raised before the window is up: a fatal start.
 function messageBox(options: MessageBoxOptions) {
   return win ? dialog.showMessageBox(win, options) : dialog.showMessageBox(options);
 }
@@ -236,12 +239,21 @@ async function openProject(repo: unknown): Promise<string | null> {
   return servers?.boardDir ?? null;
 }
 
-/** Ask which folder to open. Null when the user cancels. */
-async function askForRepo({ firstTime = false }: { firstTime?: boolean } = {}): Promise<
-  string | null
-> {
+/** The window with no project in it (./lib/launcher.ts): the app's mark, Open
+ *  Folder, and the projects opened before. Every way out of it — the button, a
+ *  recent project, the menu — loads a board over this page, so it is drawn once
+ *  and never has to undraw itself. */
+async function showLauncher(): Promise<void> {
+  win?.setTitle("AI4Kanban");
+  await win?.loadURL(launcherUrl({ mac: MAC }));
+  nav?.reset();
+}
+
+/** Ask which folder to open. Null when the user cancels — from the launcher
+ *  that leaves the launcher up, which is where a cancel should land. */
+async function askForRepo(): Promise<string | null> {
   const res = await openDialog({
-    title: firstTime ? "Open a project" : "Open another project",
+    title: servers?.boardDir ? "Open another project" : "Open a project",
     // A folder with no board is a fine answer — the board UI offers to make one
     // there. So this asks for a project folder, not for a board.
     message: "Pick the project folder to open. It doesn't need a board yet.",
@@ -257,7 +269,7 @@ async function askForRepo({ firstTime = false }: { firstTime?: boolean } = {}): 
  *  only way a project enters the app — everything on the projects list got
  *  there by being picked here once. */
 async function pickRepo(): Promise<string | null> {
-  const repo = await askForRepo({ firstTime: false });
+  const repo = await askForRepo();
   if (!repo || repo === servers?.boardDir) return servers?.boardDir ?? null;
   await open(repo);
   return servers?.boardDir ?? null;

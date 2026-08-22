@@ -43,7 +43,7 @@ import {
 import { getSession, listSessions, resumeSession, startSession, type StartResult, stopSession } from "@/lib/registry";
 import { setSecret } from "@/lib/secrets";
 import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
-import { setSpecAgentEnabled, specAgents } from "@/lib/spec-agents";
+import { setSpecAgentEnabled, setSpecAgentSetting, specAgents } from "@/lib/spec-agents";
 import { testConnection } from "@/lib/test-connection";
 import type {
   AgentInfo,
@@ -116,6 +116,9 @@ const ACTIONS = new Set([
   // Fill a release from its goal (#165) — started from the New release dialog and from a
   // release's ⋯ menu, never from a card.
   "plan-release",
+  // Write a closed version's changelog (#232) — started by the close, never from a card.
+  // Its own refusals live in changelogAction below.
+  "changelog",
   // Finish setting the board up (#173) — from the guided run's closing screen and from the
   // setup strip. Started through startSetupRunAction below, which is where its own refusals
   // live.
@@ -125,8 +128,9 @@ const ACTIONS = new Set([
 // create and propose touch no existing card (create makes one, propose makes several), so
 // they carry no `id` — every other action needs one. plan-release is the third: it moves and
 // writes many cards, and names a release instead. A setup run is the fourth and names
-// nothing at all: the checklist is what it works from.
-const CARDLESS = new Set(["create", "propose", "plan-release", "setup"]);
+// nothing at all: the checklist is what it works from. A changelog run is the fifth, and
+// names a version too — the one it writes up.
+const CARDLESS = new Set(["create", "propose", "plan-release", "changelog", "setup"]);
 
 // Start an agent and return immediately with a sessionId (or a lock message). The request
 // never waits for the child — the client polls listSessionsAction() to see the session's
@@ -140,6 +144,9 @@ export async function startAgentAction(req: AgentRequest): Promise<StartResult> 
   }
   if (req.action === "plan-release" && !req.release?.trim()) {
     throw new Error("planning a release needs a version id");
+  }
+  if (req.action === "changelog" && !req.release?.trim()) {
+    throw new Error("a changelog needs a version id");
   }
   return startSession(req, await buildPrompt(req));
 }
@@ -417,9 +424,25 @@ export async function closePlanAction(id: string): Promise<ClosePlan> {
 // Close a shipped release from the header's picker (#136) — the same move `release close`
 // makes: one dated `## Closed` section in the summary file, the open cards' release
 // cleared, the line off the list.
-export async function closeReleaseAction(id: string): Promise<WriteResult> {
+//
+// Then the changelog (#232). The close is finished either way — it has already written the
+// card list — so the run is started behind it and never waited for: a run that couldn't
+// start comes back as `changelogError` for the board to say out loud, and a version that
+// shipped nothing gets no run at all, since there would be nothing to write from.
+export async function closeReleaseAction(
+  id: string,
+): Promise<WriteResult & { changelogSessionId?: string; changelogError?: string }> {
   if (typeof id !== "string" || !id.trim()) return { ok: false, error: "no release named" };
-  return closeRelease(id.trim());
+  const release = id.trim();
+  const closed = await closeRelease(release);
+  if (!closed.ok || !closed.shipped) return closed;
+  const req: AgentRequest = { action: "changelog", release };
+  const run = await startSession(req, await buildPrompt(req));
+  return {
+    ...closed,
+    changelogSessionId: run.ok ? run.sessionId : undefined,
+    changelogError: run.ok ? undefined : run.error,
+  };
 }
 
 // Move the cards ticked on the board into one release, or back out of one (#114) — the same
@@ -607,6 +630,24 @@ export async function setSpecAgentAction(name: string, on: boolean): Promise<Wri
   }
   try {
     return await setSpecAgentEnabled(name, on);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Save one of the settings a spec agent declares (#257). The agent, the setting and the
+ *  choice are all checked against the board's own list, so a stale client can't write a
+ *  setting no agent has or a choice no setting offers. */
+export async function setSpecAgentSettingAction(
+  name: string,
+  key: string,
+  value: string,
+): Promise<WriteResult> {
+  if (typeof name !== "string" || typeof key !== "string" || typeof value !== "string") {
+    return { ok: false, error: "a spec agent setting is saved by name, key and value" };
+  }
+  try {
+    return await setSpecAgentSetting(name, key, value);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

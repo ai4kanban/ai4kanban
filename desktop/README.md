@@ -38,9 +38,13 @@ itself — so a fix there is a fix here.
 
 What the app adds, and all it adds:
 
-- **Which project.** It asks on first launch and remembers it. The folder badge in the
-  header opens another one; so does **File → Open Project…**. One board at a time, and a
-  folder with no board lands on the make-a-board screen.
+- **Which project.** It reopens the one you had open last. With none to reopen — a first
+  launch, or a folder since moved away — the window is the launcher (`src/lib/launcher.ts`):
+  artwork down the left, and on the right the app's mark, **Open Folder**, and the projects
+  opened before. The picture is `resources/art/launcher.png`, inlined at launch; with no
+  file there the app draws its own panel instead. The folder badge in the
+  header opens another one later; so does **File → Open Project…**. One board at a time, and
+  a folder with no board lands on the make-a-board screen.
 - **Going back.** On a card, a two-finger swipe right goes back to the view before and left
   goes forward again, the same as in a browser, and the edge you left by lights up for a
   moment. The board is the one page the swipe leaves alone: its columns are scrolled

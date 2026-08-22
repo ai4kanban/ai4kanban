@@ -229,10 +229,12 @@ export function setReleaseGoal(id: string, goal: string): WriteResult {
 /** Close a shipped release: one dated section in its summary file, the open cards' release
  *  cleared, the line off the list. Recomputed rather than trusting the plan a dialog
  *  fetched — a second tab may already have taken the release off. */
-export function closeRelease(id: string): WriteResult {
+export function closeRelease(id: string): WriteResult & { shipped?: number } {
   return write(() => {
-    closeReleaseMove(id.trim())
-    return {}
+    const { shipped } = closeReleaseMove(id.trim())
+    // How many cards the close counted as shipped, so the caller knows whether a changelog
+    // run has anything to write. A version that shipped none gets none (#232).
+    return { shipped: shipped.length }
   })
 }
 

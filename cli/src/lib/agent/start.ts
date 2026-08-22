@@ -6,14 +6,15 @@
 // same order, and a run started either way is the same run.
 
 import { spawnWatcher } from './launch'
-import { buildPrompt } from './prompts'
+import { buildRun } from './prompts'
 import { markSpawned, openRun } from './sessions'
 import type { AgentRequest, RunRecord } from './types'
 
 /** Open a run and spawn its watcher. `spawned` false means nothing is watching it — the
  *  record is there but no process will ever report on it, which is the caller's to raise. */
 export function startRun(req: AgentRequest): { run: RunRecord; spawned: boolean } | { error: string } {
-  const opened = openRun(req, buildPrompt(req))
+  const { prompt, notes } = buildRun(req)
+  const opened = openRun(req, prompt, notes)
   if ('error' in opened) return { error: opened.error }
   const { run } = opened
   const pid = spawnWatcher(run.sessionId)

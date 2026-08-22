@@ -55,6 +55,10 @@ export type AgentAction =
    *  `specAgent`, it starts clean, and it writes one section of that card and nothing
    *  else. A flow asks for one; the board starts it once that flow's own run has ended. */
   | 'spec'
+  /** Write one closed version's changelog (#232) — a few plain lines saying what the
+   *  version changed, from the goal and the cards the close wrote down. It touches no
+   *  card, so it carries a release id, and the close that made the record starts it. */
+  | 'changelog'
 
 /** Everything one run is asked for. What the user typed rides along so the run list can
  *  show it beside the log. */
@@ -66,7 +70,8 @@ export interface AgentRequest {
   reason?: string // reject
   description?: string // create
   /** create: the version the new card(s) ship in. plan-release: the version being
-   *  planned — the whole of what that run is about, since it names no card. */
+   *  planned, and changelog: the version being written up — the whole of what either run
+   *  is about, since neither names a card. */
   release?: string
   module?: string // propose: the focus module (a name from modules.md)
   count?: number // propose: how many tasks to write (1–PROPOSE_MAX)
@@ -368,9 +373,47 @@ export interface AgentInfo {
   staleCommand?: boolean
 }
 
-/** One spec agent, as a screen reads it (#191) — the two lines it is shown by, and
- *  whether it is switched on. The words are the board's own (`lib/spec-agents.ts`), so a
- *  screen listing them never keeps a copy that could say something else. */
+/** One choice on a spec agent's setting (#255). `prompt` is the block of text appended to
+ *  that agent's own prompt when this choice is the picked one — so what a setting means is
+ *  written with the agent's prompt, and no board code has to know. */
+export interface SpecAgentChoice {
+  value: string
+  label: string
+  /** What this choice costs, in one line: how long the run takes, how much detail it
+   *  gives, or how readable the result is. Shown wherever the choice is offered. */
+  cost: string
+  /** The block of prompt text this choice adds. */
+  prompt: string
+}
+
+/** One setting a spec agent declares (#255) — `HarnessSetting` above, for the agent that
+ *  fills part of a card's spec rather than the CLI a run spawns. It is always a pick from
+ *  named choices: never free text, never a number.
+ *
+ *  A spec agent's settings ARE its configuration, so a new agent brings its own with it and
+ *  no screen has to learn its name. */
+export interface SpecAgentSetting {
+  /** The key it saves under inside that agent's entry in ui.config.json. `enabled` is the
+   *  entry's own key — the switch — so no setting may take it. */
+  key: string
+  label: string
+  help?: string
+  choices: SpecAgentChoice[]
+  /** The `value` of the choice a run uses when nothing is saved. */
+  default: string
+}
+
+/** One choice as a screen reads it: everything but the prompt text, which is the run's
+ *  business and nothing a dialog would draw. */
+export type SpecAgentChoiceView = Omit<SpecAgentChoice, 'prompt'>
+
+/** One setting as a screen reads it. */
+export type SpecAgentSettingView = Omit<SpecAgentSetting, 'choices'> & { choices: SpecAgentChoiceView[] }
+
+/** One spec agent, as a screen reads it (#191) — the two lines it is shown by, whether it
+ *  is switched on, and what it is set to (#255). The words are the board's own
+ *  (`lib/spec-agents.ts`), so a screen listing them never keeps a copy that could say
+ *  something else. */
 export interface SpecAgentView {
   name: string
   /** What that agent fills in, in one line. */
@@ -380,6 +423,12 @@ export interface SpecAgentView {
   /** False only when somebody switched it off. While it is off the board starts no new run
    *  of it, on any card, from a screen or a terminal. */
   enabled: boolean
+  /** The settings this agent declares, in the order a dialog draws them. Empty for an agent
+   *  that takes none. */
+  settings: SpecAgentSettingView[]
+  /** What each of those settings is set to right now, by key. Every setting is in here — one
+   *  nobody picked carries its own default, so a screen never has to work one out. */
+  values: Record<string, string>
 }
 
 /** What one connection test found out. */

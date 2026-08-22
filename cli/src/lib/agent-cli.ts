@@ -44,6 +44,7 @@ const RUNS: Record<string, AgentAction> = {
   archive: 'archive',
   reject: 'reject',
   'plan-release': 'plan-release',
+  changelog: 'changelog',
   setup: 'setup',
 }
 

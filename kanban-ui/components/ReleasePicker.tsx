@@ -521,6 +521,16 @@ function CloseReleaseDialog({
                 : `${plan.shipped} archived cards go down as shipped.`}
           </p>
         )}
+        {/* What comes after the close, said before it (#232): an agent turns the shipped
+            cards into a few plain lines at the top of the summary. A version that shipped
+            nothing has nothing to write from, so it gets none and this says so. */}
+        {plan && (
+          <p className="mt-2 text-nb-ink-soft">
+            {plan.shipped === 0
+              ? "No changelog is written — there is nothing to write it from."
+              : "An agent then writes a short changelog at the top of the summary, saying what the version changed. It runs in the background; watch it in the runs panel."}
+          </p>
+        )}
         {/* The cards that look finished but were never archived, first and on
             their own: a close counts them as not shipped, and this dialog is the
             last moment they can be archived instead. */}

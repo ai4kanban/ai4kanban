@@ -31,6 +31,7 @@ export type {
   Provider,
   RunStatus,
   SettingChoice,
+  SpecAgentSettingView,
   SpecAgentView,
   TokenUsage,
 } from "./format/agent/types";

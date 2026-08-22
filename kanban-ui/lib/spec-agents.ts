@@ -27,3 +27,15 @@ export async function setSpecAgentEnabled(name: string, on: boolean): Promise<Wr
   }
   return rules.setSpecAgentEnabled(name, on);
 }
+
+/** Save one of the settings an agent declares (#257) — which agent, which setting, and
+ *  which of its choices. The command checks all three against the agents this board ships,
+ *  so a stale screen can't write a setting no agent has. Saved with the board like the
+ *  switch, so a run started from a terminal reads the same answer. */
+export async function setSpecAgentSetting(name: string, key: string, value: string): Promise<WriteResult> {
+  const rules = await boardRules();
+  if (!rules.setSpecAgentSetting) {
+    return { ok: false, error: "the board's rules in this project are too old to set a spec agent" };
+  }
+  return rules.setSpecAgentSetting(name, key, value);
+}

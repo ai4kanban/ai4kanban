@@ -16,7 +16,10 @@
 //     "claude-code": { "model": "claude-opus-5", "command": "claude -p" },
 //     "codex": { "model": "gpt-5.1-codex" }
 //   },
-//   "specAgents": { "technology-selection": false }
+//   "specAgents": {
+//     "technology-selection": false,
+//     "ui-design": { "enabled": false, "mockupStyle": "ascii" }
+//   }
 //
 // `harness` is the name of the agent that runs, and nothing else. Every agent keeps its
 // own settings in `harnessSettings`, under its own name, whether or not it is the one
@@ -96,44 +99,125 @@ export function setHarnessSetting(key: string, value: string): { ok: boolean; er
   })
 }
 
-// ---- the spec agents' switches (#191) ---------------------------------------
+// ---- the spec agents: the switch, and what each one is set to (#191, #255) --
 //
-// The same file also holds which spec agents may run:
+// The same file also holds which spec agents may run, and what each one is set to:
 //
-//   "specAgents": { "technology-selection": false }
+//   "specAgents": {
+//     "technology-selection": false,
+//     "ui-design": { "enabled": false, "mockupStyle": "ascii" }
+//   }
 //
-// A name the file doesn't carry is on. Switching one back on drops its line rather than
-// writing `true`, so the file only ever records what somebody turned off — and a board set
-// up before the switches existed has every agent on with nothing to undo.
+// An agent the file doesn't name is on, with every setting at its default. A plain boolean
+// is the switch on its own — the shape written before settings existed, read the same way
+// it always was. An entry that is neither reads as on with every default, because a
+// hand-edit that put a string or a list here says nothing anyone can act on.
+//
+// Only what somebody changed is written down: switching an agent back on drops `enabled`
+// rather than writing `true`, and a value put back to its default drops its key. The two
+// are independent — flipping the switch leaves the picked values alone, and picking a value
+// leaves the switch alone.
 
-/** Which spec agents have a switch saved, and what it says. A malformed file reads as no
- *  switches at all: an agent nobody can decide about is an agent that runs. */
-export function specAgentSwitches(): Record<string, boolean> {
+/** One spec agent's entry, read. */
+export interface SpecAgentEntry {
+  enabled: boolean
+  /** The picked values, by setting key — only the ones the file carries. Filling the rest
+   *  in from the agent's own defaults is `lib/spec-agents.ts`'s, which is the only side
+   *  that knows what an agent offers. */
+  values: Record<string, string>
+}
+
+// One entry as the file holds it. Null for a shape we can't read, which the callers take as
+// "nothing saved for this agent".
+function parseSpecEntry(value: unknown): SpecAgentEntry | null {
+  if (typeof value === 'boolean') return { enabled: value, values: {} }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const raw = value as Record<string, unknown>
+  const values: Record<string, string> = {}
+  for (const [key, v] of Object.entries(raw)) {
+    if (key !== 'enabled' && typeof v === 'string') values[key] = v
+  }
+  return { enabled: raw.enabled !== false, values }
+}
+
+// One agent's entry under its current name or a name it used to have. The first name that
+// carries a readable entry is the one that counts.
+function entryOf(block: Record<string, unknown>, names: string[]): SpecAgentEntry | null {
+  for (const name of names) {
+    const entry = parseSpecEntry(block[name])
+    if (entry) return entry
+  }
+  return null
+}
+
+/** Which spec agents the file says something about, and what it says. A malformed file
+ *  reads as nothing saved at all: an agent nobody can decide about is an agent that runs. */
+export function specAgentEntries(): Record<string, SpecAgentEntry> {
   let cfg: Record<string, unknown>
   try {
     cfg = readConfigRaw()
   } catch {
     return {}
   }
-  const saved: Record<string, boolean> = {}
+  const saved: Record<string, SpecAgentEntry> = {}
   for (const [name, value] of Object.entries(configBlock(cfg.specAgents))) {
-    if (typeof value === 'boolean') saved[name] = value
+    const entry = parseSpecEntry(value)
+    if (entry) saved[name] = entry
   }
   return saved
 }
 
-/** Save one spec agent's switch. Every other key in the file is left as it is — this is
- *  the same file the harness settings live in. */
+/** Save one spec agent's switch, keeping whatever it is set to. Every other key in the file
+ *  is left as it is — this is the same file the harness settings live in. */
 export function setSpecAgentSwitch(
   name: string,
   on: boolean,
   legacyNames: string[] = [],
 ): { ok: boolean; error?: string } {
+  return writeSpecAgentEntry(name, legacyNames, (entry) => ({ ...entry, enabled: on }))
+}
+
+/** Save one of the settings a spec agent declares, leaving its switch and its other values
+ *  alone. An empty value drops the key, which is how a value goes back to its default: a
+ *  missing key and one holding the default mean the same thing, and only one of them reads
+ *  as deliberate.
+ *
+ *  That the key and the value are ones the agent offers is checked by the caller above this
+ *  (`lib/spec-agents.ts`), which is the side that knows. */
+export function setSpecAgentValue(
+  name: string,
+  key: string,
+  value: string,
+  legacyNames: string[] = [],
+): { ok: boolean; error?: string } {
+  return writeSpecAgentEntry(name, legacyNames, (entry) => {
+    const values = { ...entry.values }
+    const next = value.trim()
+    if (next) values[key] = next
+    else delete values[key]
+    return { ...entry, values }
+  })
+}
+
+// Read one agent's entry, change it, and write it back in the file's own shape: nothing at
+// all when the agent is on with nothing picked, a plain boolean for a switch on its own,
+// and the object only when there is something to keep. A name the agent used to have goes,
+// so the entry is never split across two spellings.
+function writeSpecAgentEntry(
+  name: string,
+  legacyNames: string[],
+  change: (entry: SpecAgentEntry) => SpecAgentEntry,
+): { ok: boolean; error?: string } {
   return writeConfig((cfg) => {
     const block = { ...configBlock(cfg.specAgents) }
+    const entry = change(entryOf(block, [name, ...legacyNames]) ?? { enabled: true, values: {} })
     for (const legacy of legacyNames) delete block[legacy]
-    if (on) delete block[name]
-    else block[name] = false
+    delete block[name]
+    if (Object.keys(entry.values).length) {
+      block[name] = entry.enabled ? { ...entry.values } : { enabled: false, ...entry.values }
+    } else if (!entry.enabled) {
+      block[name] = false
+    }
     if (Object.keys(block).length) cfg.specAgents = block
     else delete cfg.specAgents
   })

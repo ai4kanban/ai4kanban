@@ -432,9 +432,9 @@ function writeSummary(id: string, shipped: CardRow[], left: CardRow[], goal: str
 
 const HEADING = (id: string): string => `# ${id}
 
-What each close or drop of this release left behind. This is a list of cards, not a
-changelog — not every change goes through the board, so only a person can say what the
-version changed.
+What each close of this release left behind: a changelog an agent wrote from the cards, and
+the cards themselves. A change that never went through the board is in neither — only a
+person can add that.
 `
 
 // The ids an earlier close of this id already accounted for. Legacy summaries may also
@@ -539,4 +539,145 @@ export function dropRelease(raw: FlagValue | undefined) {
   for (const card of left) setCardRelease(card.file, NO_RELEASE)
   removeReleaseLine(id)
   return { id, archived, left, remaining: readReleases() }
+}
+
+// ---- the changelog -----------------------------------------------------------
+//
+// A close writes down which cards shipped. That is a list of ids and titles, and nobody
+// reads it to find out what the version changed — so an agent writes a short changelog
+// from it, in plain words, and it goes at the top of the section the close just wrote.
+//
+// The changelog is a `###` section of its own inside the dated one. That heading is what
+// makes a second run a rewrite rather than a second changelog: without it nothing in the
+// file marks where the changelog ends and the card list begins.
+//
+// It ends where the bullets end. Everything the changelog holds is a `- ` line, and
+// everything after it — `What it was for`, `Shipped`, `Sent back` — is prose, so the first
+// line that is neither blank nor a bullet closes the block. `writeChangelog` is the only
+// writer, and it refuses anything that isn't bullets, which is what keeps that true.
+
+/** The heading the changelog lives under, inside the dated section. */
+export const CHANGELOG_HEADING = '### What changed'
+
+/** The most lines a changelog may carry. Longer than this and it is the card list again. */
+export const CHANGELOG_MAX_LINES = 6
+
+const CLOSED_RE = /^##\s+Closed\b/
+const GOAL_PREFIX = 'What it was for — '
+
+/** The newest `## Closed` section of one version's summary file — everything a changelog is
+ *  written from, and whether one is there already. */
+export interface ClosedRecord {
+  /** The summary file, repo-relative. */
+  file: string
+  /** The section's own heading line, e.g. `## Closed 2026-08-22`. */
+  heading: string
+  /** What the version was for, or '' when the release had no goal. */
+  goal: string
+  /** The cards that section records as shipped, one line each, as written. */
+  shipped: string[]
+  /** A changelog is already under the heading, so a run rewrites it. */
+  hasChangelog: boolean
+}
+
+// Where the newest dated section starts and ends. A version id can be made again, so a
+// summary file may hold several — the last one is the close that just happened.
+function newestSection(lines: string[]): { start: number; end: number } | null {
+  let start = -1
+  for (let i = 0; i < lines.length; i++) if (CLOSED_RE.test(lines[i]!)) start = i
+  if (start < 0) return null
+  let end = start + 1
+  while (end < lines.length && !/^##\s/.test(lines[end]!)) end++
+  return { start, end }
+}
+
+/** Read the newest close of one version, or null when the board holds no closed record of
+ *  it. Read straight off the file the close wrote: the release is off the list by then, so
+ *  the section is the only place its goal survives. */
+export function readNewestClose(id: string): ClosedRecord | null {
+  const file = summaryPath(id)
+  if (!fs.existsSync(file)) return null
+  const lines = fs.readFileSync(file, 'utf8').split('\n')
+  const at = newestSection(lines)
+  if (!at) return null
+  const body = lines.slice(at.start, at.end)
+  const goalLine = body.find((l) => l.startsWith(GOAL_PREFIX))
+  const shipped: string[] = []
+  let counting = false
+  for (const line of body) {
+    if (line.startsWith('Shipped —')) counting = true
+    else if (line.startsWith('Sent back')) counting = false
+    if (counting && /^-\s+#\d+\b/.test(line)) shipped.push(line.replace(/^-\s+/, '').trim())
+  }
+  return {
+    file: rel(file),
+    heading: lines[at.start]!.trim(),
+    goal: goalLine ? goalLine.slice(GOAL_PREFIX.length).trim() : '',
+    shipped,
+    hasChangelog: body.some((l) => l.trim() === CHANGELOG_HEADING),
+  }
+}
+
+/** Why no changelog can be written for this version, in one line, or nothing when one can.
+ *  Asked before a run starts and again by the write, so neither can act on a version the
+ *  other would have refused. */
+export function changelogRefusal(id: string): string | undefined {
+  const record = readNewestClose(id)
+  if (!record) {
+    return (
+      `this board holds no closed record of "${id}" — a changelog is written from what a close wrote down. ` +
+      `Close the version first with \`release close ${quoteId(id)}\`.`
+    )
+  }
+  if (!record.shipped.length) {
+    return `"${id}" shipped no card, so there is nothing to write a changelog from.`
+  }
+  return undefined
+}
+
+// The lines a changelog is written as: bullets, and nothing else. A heading the agent wrote
+// for itself is dropped rather than refused — the move owns the heading, and two of them
+// stacked would read as an empty section.
+function readChangelogLines(raw: string): string[] {
+  const lines = raw
+    .trim()
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .filter((l) => l !== CHANGELOG_HEADING)
+  if (!lines.length) die('the changelog is empty — write one line for each thing the user can now see or do')
+  const bullets = lines.map((l) => (/^[-*]\s+/.test(l) ? `- ${l.replace(/^[-*]\s+/, '')}` : `- ${l}`))
+  if (bullets.length > CHANGELOG_MAX_LINES) {
+    die(
+      `a changelog is ${CHANGELOG_MAX_LINES} lines at most (got ${bullets.length}) — ` +
+        `keep the ones a user would notice and drop the rest.`,
+    )
+  }
+  return bullets
+}
+
+/** Put the changelog at the top of the newest dated section: over the one already there, or
+ *  under a heading of its own directly below the section's heading. Every other byte of the
+ *  file is left as it was. */
+export function writeChangelog(id: string, raw: string): { file: string; lines: string[]; replaced: boolean } {
+  const refusal = changelogRefusal(id)
+  if (refusal) die(refusal, { kind: 'no-changelog', release: id })
+  const bullets = readChangelogLines(raw)
+  const file = summaryPath(id)
+  const lines = fs.readFileSync(file, 'utf8').split('\n')
+  const at = newestSection(lines)!
+  const block = [CHANGELOG_HEADING, '', ...bullets]
+  const found = lines.findIndex((l, i) => i > at.start && i < at.end && l.trim() === CHANGELOG_HEADING)
+  let next: string[]
+  if (found < 0) {
+    next = [...lines.slice(0, at.start + 1), '', ...block, ...lines.slice(at.start + 1)]
+  } else {
+    // From its heading to the first line that is neither blank nor a bullet — that span is
+    // the changelog's, and only that span.
+    let end = found + 1
+    while (end < at.end && (!lines[end]!.trim() || /^[-*]\s+/.test(lines[end]!.trim()))) end++
+    next = [...lines.slice(0, found), ...block, '', ...lines.slice(end)]
+  }
+  fs.writeFileSync(file, next.join('\n'))
+  return { file: rel(file), lines: bullets, replaced: found >= 0 }
 }

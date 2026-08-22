@@ -79,7 +79,7 @@ The header carries seven things:
   Every proposal is a single card a session can finish, never a group task.
 - **Runs** — every agent session, live or finished. Open one to read its log. A finished run
   can be continued with a follow-up prompt; that starts a new run.
-- **Progress** (the chart) — two charts, both read-only: **Daily progress**, and
+- **Insights** (the chart) — two read-only charts, a tab each: **Daily progress** and
   **Planning quality**; see below.
 - **Configuration** (the gear) — see below.
 - **Chat** — a conversation about this project that also does the board work, in a rail down
@@ -260,10 +260,11 @@ The folder is gitignored — a mockup is a working drawing, not something the re
 pulled from someone else's board shows its tags as those notes until `ui-design` draws the
 options again here.
 
-### Progress
+### Insights
 
-The header's chart button opens **Progress**, which holds two charts. Both only read what the
-board has already written; neither ever writes.
+The header's chart button opens **Insights**, which holds two charts, one per tab — they answer
+different questions, so neither is read past to reach the other. It opens on Daily progress.
+Both only read what the board has already written; neither ever writes.
 
 **Daily progress** — the last 30 days as a line each for completed, created and rejected cards,
 with totals above. The numbers come from `docs/kanban/metrics.csv`. A board with nothing recorded
@@ -295,8 +296,8 @@ gives the chosen release's three percentages, the counts behind each, and every 
 contributed — enough to recalculate any figure from `record.csv` by hand. It opens on the release
 still open, because that is the score still worth acting on.
 
-A board whose installed `akb` predates these scores says so in one line, and Daily progress is
-still drawn above it.
+A board whose installed `akb` predates these scores says so in one line, inside this tab; Daily
+progress is still drawn in its own.
 
 ## Releases
 
@@ -383,8 +384,16 @@ Confirming does exactly what `release close v1` does: the summary file in
 `docs/kanban/.release-summaries/` gets one dated **Closed** section — what shipped, from the
 cards archived while they named the version, and what was still open — the open cards come out
 of the version, and its line comes off the list. The summary also keeps what the version was
-for, since the release's line is gone. The board never edits that file again; fix a wrong line
-in your own editor. Afterwards the board shows **All releases**.
+for, since the release's line is gone. Afterwards the board shows **All releases**.
+
+The close then starts an agent that writes the version's **changelog** — a few plain lines
+saying what it changed — at the top of that same section. The dialog says which of the two is
+coming before you confirm, since a version that shipped no card gets no changelog. The run
+shows in the runs panel like any other, the close is finished whatever it does, and if it
+can't start or doesn't finish the board says so and names `akb changelog v1` as the way to get
+the changelog after all. Reading that changelog is still a matter of opening the file; the
+board shows the run, not the text. Nothing else edits that file — fix a wrong line in your own
+editor.
 
 **Dropping one.** The **⋯** offers **Drop release** for a version that will not ship. A dialog
 first lists the cards already archived under it and the open cards that come out of it. Confirming
@@ -868,9 +877,11 @@ with the reason in its log, and a reasoning level the agent doesn't know makes i
 its own default. A key no agent declares is left exactly where it is, and saving in the dialog writes
 the one setting you changed and touches nothing else in the file.
 
-`specAgents` holds the spec agents you have switched off — `{ "technology-selection": false }`. A
-name the file doesn't carry is on, and switching one back on drops its line rather than writing
-`true`, so the file only ever records what somebody turned off.
+`specAgents` holds what you have changed about a spec agent, under its name: `enabled: false`
+when you switched it off, and one key per setting you picked something other than its default
+for. A name the file doesn't carry is on and set to its defaults, and putting either back —
+switching an agent on, or picking a setting's default — drops that key rather than writing it
+out, so the file only ever records what somebody changed.
 
 `provider` is who pays for the run: `subscription`, `anthropic-api` or `endpoint`. Leave it out and
 the board picks for you — `anthropic-api` on a board whose `.env` already holds an Anthropic key,
@@ -906,8 +917,8 @@ else.
 The pane lists them in the board's own order, with one readable name and two lines each: what that
 agent fills in, and the kind of card the board calls it for. The command/file identifier is not
 repeated in the UI. Both descriptions come from the command, so this section and `akb spec` can
-never say different things. There is nothing to edit here and no way to put an agent on a card by
-hand: that is what the board does for you.
+never say different things. There is no way to put an agent on a card by hand: that is what the
+board does for you.
 
 Each agent has one switch, on until you turn it off:
 
@@ -925,6 +936,26 @@ Each agent has one switch, on until you turn it off:
 
 Every agent is on until somebody switches one off, so a board set up before this shipped has all of
 them on with nothing to undo.
+
+An agent can also carry **settings** of its own — what it produces, not just whether it runs — and
+they are set on its row, under the two lines:
+
+- One line per setting says what it is set to and what that choice costs. **Change** opens the
+  choices in place, each with its own cost, and a pick saves the moment you make it.
+- The settings, their choices and the words describing each one all come from the command, the same
+  as the two lines above them. Nothing here keeps a list of its own, so a new agent's settings need
+  no change to this pane.
+- A setting is board-wide: every card that agent runs on gets the same answer. There is no per-card
+  and no per-run setting.
+- A save that fails puts the choice back and the reason goes across the top of the page, the way the
+  switch already behaves.
+- A switched-off agent keeps its settings on screen, greyed with the rest of the row and still
+  changeable, so it is ready for the day you switch it back on.
+- `akb spec`, typed in a terminal, prints what each agent is set to under its two lines. It offers no
+  way to change one: this pane is where they are picked.
+
+An agent that declares no settings draws nothing extra, and neither does a board running rules older
+than the settings — its rows read exactly as they did.
 
 ### The coding agent skill
 

@@ -7,7 +7,6 @@ Make the requested change and stop.
   named memory, then load `akb guide refine` and follow it.
 - **Spec agent sections**: Preserve every ``## By `<name>` agent`` section verbatim. If
   the revision invalidates one, run `akb spec <agent> <id> <short note>` after the edit.
-- **Screen/UI changes**: Read `akb guide ui-design` before revising one.
 - **Superseded decisions**: An entry under `## Decided by the agent`, or a line under the
   human half's `## Worth noting`, that the revision makes invalid is a call the user
   overruled — keep it. Move the line, as it stands, under a `### Overruled by the user`

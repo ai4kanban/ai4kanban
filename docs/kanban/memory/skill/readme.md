@@ -236,4 +236,4 @@ covers it, or a plain-words note.
   its questions, archiving it, rejecting it and closing a release each leave the evidence
   behind. A release with too little evidence for a number shows its two counts and `not
   enough yet` rather than a percentage, and none of the three is a target:
-  `kanban-ui/README.md`, "Progress".
+  `kanban-ui/README.md`, "Insights".

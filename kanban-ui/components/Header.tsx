@@ -7,14 +7,14 @@ import { Configuration } from "./Configuration";
 import { CreateTask } from "./CreateTask";
 import { ProjectPath } from "./desktop";
 import { Goal } from "./Goal";
+import { Insights } from "./Insights";
 import { LogoMark } from "./Logo";
-import { Progress } from "./Progress";
 import { ReleasePicker } from "./ReleasePicker";
 import { Sessions } from "./sessions";
 
 // The window's top row (components/Window.tsx draws the rest of it), shared by
 // the board and the card detail page and identical on both: the mark leads home,
-// and the Create-task action, the daily-progress chart and the Configuration
+// and the Create-task action, the Insights charts and the Configuration
 // gear sit on the right. Create task is
 // self-contained (see CreateTask) so both pages
 // get it without threading any session state through the header. `projectRoot` is
@@ -171,7 +171,7 @@ export function Header({
           />
         )}
         <ToolCluster>
-          <Progress />
+          <Insights />
           <Sessions />
           <Configuration agent={agent} onError={onError} />
         </ToolCluster>

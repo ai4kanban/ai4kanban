@@ -4,7 +4,7 @@
 // button say exactly the same thing. Only the opening — how this agent is asked for the
 // skill — follows the agent that runs; everything after it is the same for all of them.
 
-import { findSpecAgent, specHeading } from '../spec-agents'
+import { findSpecAgent, specAgentPrompt, specAgentRoster, specHeading } from '../spec-agents'
 import { boardCommand, commandNote } from './command'
 import { skillCall } from './resolve'
 import { PROPOSE_DEFAULT, PROPOSE_MAX, type AgentRequest, type Boldness } from './types'
@@ -52,12 +52,33 @@ const NO_IMPLEMENT = `(Unless the request explicitly asks for implementation, do
  *  `akb`. The skill's note carries the same rule, but a run is not owed a working note: it
  *  can be started from a button by someone who never installed one, and the first `akb` line
  *  it copies out of a flow is a poor place to find that out. */
-export function buildPrompt(req: AgentRequest): string {
+export function buildPrompt(req: AgentRequest, notes: string[] = []): string {
   const command = boardCommand()
-  return [actionPrompt(req, command), commandNote(command)].filter(Boolean).join(' ')
+  const ask = [actionPrompt(req, command, notes), commandNote(command)].filter(Boolean).join(' ')
+  return [ask, roster(req)].filter(Boolean).join('\n\n')
 }
 
-function actionPrompt(req: AgentRequest, command: string): string {
+// The spec agents a pass may put on the card — the roster, not a rule about any one of
+// them. The passes that rewrite a plan are the ones that can tell what it still has no
+// answer for, so they are the ones that pick; they just have to know which agents the board
+// has. Naming any of them in a flow instead would go stale the moment one is switched off
+// or a new one ships.
+//
+// It goes after everything else because it is a block and the rest is prose.
+const ROSTER_FOR = new Set(['refine', 'edit'])
+
+const roster = (req: AgentRequest): string =>
+  ROSTER_FOR.has(req.action) && req.id !== undefined ? specAgentRoster(req.id) : ''
+
+/** The words one run is given, and anything the board owes that run's log before the agent
+ *  says a word. Only a spec agent has notes today: a setting whose saved value it no longer
+ *  offers falls back, and the log is where that is said. */
+export function buildRun(req: AgentRequest): { prompt: string; notes: string[] } {
+  const notes: string[] = []
+  return { prompt: buildPrompt(req, notes), notes }
+}
+
+function actionPrompt(req: AgentRequest, command: string, notes: string[]): string {
   // How this agent calls the skill — the only part of a prompt that follows the agent.
   const kb = skillCall()
   const tag = req.id ? `#${req.id}` : ''
@@ -153,6 +174,15 @@ function actionPrompt(req: AgentRequest, command: string): string {
         `Create the cards only, don't implement them.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
+    // Write one closed version's changelog (#232). Like a plan run it carries only the
+    // version id: the goal and the cards are in the file the close just wrote, and a copy
+    // pasted in here would be a second reading of it.
+    case 'changelog':
+      return [
+        `${kb}. Write the changelog for the "${req.release || ''}" release following \`akb guide changelog\`.`,
+        `Change nothing but that version's summary file, and write it with \`akb board release changelog\`.`,
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
+      ].join(' ')
     case 'refine':
       return [
         `${kb}. Perform one refinement pass on task ${req.id} ${named} following \`akb guide refine\`.`,
@@ -192,13 +222,17 @@ function actionPrompt(req: AgentRequest, command: string): string {
     case 'spec': {
       const agent = findSpecAgent(req.specAgent ?? '')
       const heading = specHeading(req.specAgent ?? '')
+      // The one read of what this agent is set to, taken as the run starts. Its prompt is
+      // its own text plus the block each picked choice carries (#255).
+      const own = agent ? specAgentPrompt(agent) : null
+      if (own) notes.push(...own.notes)
       return [
         `${kb}. You are the \`${req.specAgent}\` spec agent on task ${req.id} ${named}.`,
         `Follow \`akb guide spec-agent\`: read the card, answer only the part you own, and write it into that card's "${heading}" section with \`akb board spec-write ${req.id} ${req.specAgent} --file <path>\`.`,
         `Change nothing else — not the rest of the card, not another card, not the code.`,
         req.notes ? `What the flow that asked for you wants looked at: ${req.notes}` : '',
         `Don't ask me questions with human-in-the-loop — an open question on the card is how you defer to me.`,
-        agent ? `\n\n——— your prompt: the \`${agent.name}\` spec agent ———\n\n${agent.prompt.trim()}` : '',
+        agent && own ? `\n\n——— your prompt: the \`${agent.name}\` spec agent ———\n\n${own.prompt}` : '',
       ]
         .filter(Boolean)
         .join(' ')

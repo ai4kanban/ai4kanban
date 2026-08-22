@@ -3,9 +3,9 @@ title: Draw a card's layout options in ASCII instead of a rendered screen
 track: skill
 priority: med
 roi: high
-status: todo
+status: ready
 release: 0.7.2
-blocked_by: [255]
+blocked_by: []
 related: [254]
 modules: [skill, local-ui]
 questions: []
@@ -19,9 +19,18 @@ they only exist as a picture inside the board's UI — a user working from a ter
 file name and no drawing. Let the agent draw in ASCII instead, so the file reads as itself
 wherever it is opened.
 
+## Worth noting
+- **ASCII stays off by default**, so a board that never opens the setting keeps drawing full
+  mockups. The default is worth revisiting once both styles have been tried on a real card —
+  if ASCII reads well enough, it is the cheaper thing to start with.
+- **An ASCII mockup is still not shared**: it sits in `docs/kanban/.mockups/`, which stays
+  out of git, so a teammate who pulls the card gets the layout only in its own words.
+
+<!-- agent -->
+
 ## Scope
 - **`ui-design` gains a setting — mockup style**: `ascii`, or `full` (what it draws today),
-  declared the way #255 declares one.
+  declared as a `SpecAgentSetting` in `cli/src/lib/spec-agents.ts`.
 - **`full` is the default**: a board that never opens the setting draws what it draws now.
 - **An ASCII mockup is a plain-text drawing** of one screen: boxes, labels, and the words the
   user reads.
@@ -59,13 +68,7 @@ wherever it is opened.
 
 ## Decided by the agent
 - **Is an ASCII mockup kept in git, since it is plain text?**: no. It sits in
-  `docs/kanban/.mockups/` with the rest, which stays out of git. So this style is read on the
-  machine that drew it, and a card someone else pulls still carries the layout only in its
-  own words.
+  `docs/kanban/.mockups/` with the rest, which stays out of git.
 - **Which mockup style does a board start with?**: `full`, what it draws today. #254 says a
   board that sets nothing runs exactly as it does now, so ASCII arrives by being switched
   on.
-
-### Worth noting
-- **The default is worth revisiting once both styles have been tried on a real card** — if
-  ASCII reads well enough, it is the cheaper thing to start with.

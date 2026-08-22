@@ -310,9 +310,13 @@ export const MOVES: Move[] = [
       ['release list', 'the releases in ship order, with their open and ready counts'],
       [
         'release close <id>',
-        'the version shipped: write its summary, clear it off the\ncards still open, take it off the list',
+        'the version shipped: write its summary, clear it off the\ncards still open, take it off the list, start its changelog',
       ],
       ['release drop <id>', 'the version will not ship: clear it off, no summary'],
+      [
+        'release changelog <id>',
+        "put a changelog at the top of that version's newest closed\nsection: --file <path>, or --text \"..\"",
+      ],
     ],
     legacy: [
       [
@@ -359,7 +363,10 @@ export const MOVES: Move[] = [
           'second run — afterwards the id is unknown and no card names it.',
           'A card with every todo ticked but never archived counts as not',
           'shipped; the close names it so you can archive it and fix that',
-          'one line by hand.',
+          'one line by hand. The summary is a card list, so the close then',
+          'starts the run that writes what the version changed at the top of',
+          'it — nothing shipped, no run; inside a run, or if it cannot start,',
+          'it names `akb changelog <id>` instead.',
         ],
       ],
       [
@@ -369,6 +376,20 @@ export const MOVES: Move[] = [
           'the open ones sent back, clear the release off every open card in',
           'it, and take its line off the list. Writes no summary file or',
           'section; an existing summary for a reused id is left untouched.',
+        ],
+      ],
+      [
+        'release changelog <id> --file <path>',
+        [
+          "write a few plain lines saying what the version changed into the",
+          "newest ## Closed section of its summary file, under a heading of",
+          'their own, above the goal and the card list. --file <path> is the',
+          'changelog (markdown, written to a file first); --text ".." for a',
+          'one-liner. Every line must read as one thing the user can now see',
+          'or do; six lines at most. Run it again for the same version and',
+          'the changelog is REPLACED, never added twice. Refused for a version',
+          'the board holds no closed record of, and for one that shipped no',
+          'card. `akb changelog <id>` is the run that writes it.',
         ],
       ],
     ],

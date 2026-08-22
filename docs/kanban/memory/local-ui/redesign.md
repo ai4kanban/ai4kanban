@@ -105,11 +105,13 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   goes on the left, beside the board's name and folder path, with no border, no shadow,
   icon only. The left of the header says what this board is; the right is what you do.
 
-## Progress
+## Insights
 
 - ❌ **Planning scores live only in CLI output or release text** → ✅ chart them beside
-  Daily progress in the same header dialog, with one full-width chart for daily activity and
-  one for planning quality by release.
+  Daily progress in the same header dialog, one full-width chart each.
+- ❌ **Two unrelated charts stacked in one scrolling dialog** → ✅ a tab each. Stacking made
+  the reader scroll past the chart they didn't ask for, and forced a title — "Progress" — that
+  only described one of them.
 
 ## Recurring tasks
 

@@ -97,6 +97,10 @@ export async function watchRun(sessionId: string): Promise<number> {
 
   fs.mkdirSync(SESSIONS_DIR, { recursive: true })
   const log = fs.createWriteStream(record.logPath, { flags: 'a' })
+  // What the board settled before the agent said a word — a spec agent's setting whose saved
+  // value it no longer offers, and what it ran at instead. It goes above the output so the
+  // reason sits before the work it changed.
+  for (const note of spec.notes ?? []) log.write(`[board] ${note}\n`)
 
   // The keys are read here and nowhere else: the plan on disk carries the command and the
   // agent's name, never a key, and this is the one moment one is needed.

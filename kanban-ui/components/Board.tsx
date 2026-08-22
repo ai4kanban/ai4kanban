@@ -331,16 +331,51 @@ export function BoardView({
   // Close a shipped release from the header (#136). The pick moves the same way
   // the drop moves it: back to No release before the re-read, since the version
   // it was showing no longer exists.
+  //
+  // The close also starts the changelog run (#232). The version is off the list
+  // by then, so there is nowhere left to offer it a second time — a run that
+  // could not start, or that stopped short, is said across the top of the board
+  // instead, and it names the command that writes the changelog after all.
   const closeRelease = useCallback(
     async (id: string) => {
       const res = await closeReleaseAction(id);
       if (!res.ok) return res;
       setRelease(null);
       await refresh();
+      if (res.changelogSessionId) {
+        setChangelogRun({ release: id, sessionId: res.changelogSessionId });
+        watch(res.changelogSessionId, `changelog ${id}`);
+      }
+      if (res.changelogError) setChangelogGone({ release: id, why: res.changelogError });
       return res;
     },
-    [refresh, setRelease],
+    [refresh, setRelease, watch],
   );
+
+  // The changelog run this tab started, watched to its end. The close is over and
+  // the version has left the screen, so a run that ends badly would otherwise end
+  // badly in silence — the board says so once, and names the command that writes
+  // it after all.
+  //
+  // It gets a note of its own rather than the error strip: `refresh` owns that
+  // strip and clears it on every read, and a board re-read is the very thing a
+  // finished run triggers — so a message put there would be wiped the instant it
+  // was written.
+  const [changelogRun, setChangelogRun] = useState<{ release: string; sessionId: string } | null>(
+    null,
+  );
+  const [changelogGone, setChangelogGone] = useState<{ release: string; why: string } | null>(null);
+  useEffect(() => {
+    if (!changelogRun) return;
+    const seen = sessions.find((r) => r.sessionId === changelogRun.sessionId);
+    if (!seen || seen.status === "running") return;
+    setChangelogRun(null);
+    if (seen.status === "done") return;
+    setChangelogGone({
+      release: changelogRun.release,
+      why: seen.status === "stopped" ? "the run was stopped" : "the run didn't finish",
+    });
+  }, [sessions, changelogRun]);
 
   // Say what the release on screen is for, or change it (#164). Only the board
   // file changes, so the pick stays where it is — but the board is re-read, since
@@ -480,6 +515,28 @@ export function BoardView({
                 onClick={() => sessionsPanel.open(planSessionId)}
               >
                 Watch the run
+              </button>
+              .
+            </div>
+          )}
+
+          {/* The changelog a close asked for never arrived (#232). The version is
+              off the list, so there is no menu left to offer it again — this names
+              the command instead, and stays until it is dismissed. */}
+          {changelogGone && (
+            <div
+              className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6"
+              style={{ background: "var(--color-nb-peach-soft)" }}
+            >
+              <strong>{changelogGone.release}</strong> is closed, but its changelog was not
+              written — {changelogGone.why}. Write it with{" "}
+              <code>akb changelog {changelogGone.release}</code>.{" "}
+              <button
+                type="button"
+                className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
+                onClick={() => setChangelogGone(null)}
+              >
+                Dismiss
               </button>
               .
             </div>

@@ -93,8 +93,9 @@ export async function setReleaseGoal(id: string, goal: string): Promise<WriteRes
   }
 }
 
-/** Close a shipped release. */
-export async function closeRelease(id: string): Promise<WriteResult> {
+/** Close a shipped release. `shipped` is how many cards it counted, so the caller knows
+ *  whether a changelog run has anything to write (#232). */
+export async function closeRelease(id: string): Promise<WriteResult & { shipped?: number }> {
   try {
     return (await boardRules()).closeRelease(id);
   } catch (e) {

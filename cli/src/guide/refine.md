@@ -21,8 +21,7 @@ questions:
   ideas outside the card. Include implied work, such as tests and documentation for a
   user-visible change (`akb guide document-feature`).
 - **Design**: is the complete user flow specified well enough to build without guessing?
-  Cover important edge cases while keeping the design proportionate to its value. For a
-  screen or UI change, first read `akb guide ui-design`.
+  Cover important edge cases while keeping the design proportionate to its value.
 - **State**: do checked and unchecked todos match what has already been built? If all work
   is complete and the goal is met, the card should be archived.
 

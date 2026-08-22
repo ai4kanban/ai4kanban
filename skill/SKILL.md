@@ -46,6 +46,8 @@ arguments are the same with or without `--print`.
 - **`propose [--module m] [--count n] [--boldness safe|normal|bold]`**: the user wants the
   work found for them — "what's next", "propose some tasks".
 - **`plan-release <version>`**: fill a release from its goal — "plan v0.7".
+- **`changelog <version>`**: rewrite a closed version's changelog — "write the changelog for
+  v0.7 again". The close starts it once by itself, so this is only for a second pass.
 - **`archive <id>`**: the work is done and the card should be filed away.
 - **`reject <id> "<why>"`**: we are not doing it. Deletes the card and keeps the reason.
 - **`setup`**: `docs/kanban/setup-checklist.md` is still there — finish it before any other

@@ -6,7 +6,7 @@ roi: high
 status: todo
 release: ""
 blocked_by: []
-related: [247, 255]
+related: [247]
 modules: [skill]
 questions:
   - question: "[user] Which settings can a spec agent override?"

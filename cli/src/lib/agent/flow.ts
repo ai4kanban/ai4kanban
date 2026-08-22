@@ -32,7 +32,7 @@ import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
 import { die, rel, CONFIG, GOAL, MEMORY, MODULES_MD, SETUP_CHECKLIST, TODO } from '../paths'
-import { readReleaseEntries } from '../releases'
+import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
 import { moduleNames } from '../validate'
@@ -184,6 +184,12 @@ interface Section {
   lines: string[]
 }
 
+const indent = (line: string): string =>
+  line
+    .split('\n')
+    .map((l) => (l.trim() ? `  ${l}` : ''))
+    .join('\n')
+
 // What is left of the plan. The remaining boxes are the job; the ticked ones are history and
 // are counted rather than listed, so nobody re-does them.
 function stepsField(card: CardFacts): string[] {
@@ -256,6 +262,9 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   create: ['board', 'add-task'],
   propose: ['board', 'propose', 'add-task'],
   'plan-release': ['board', 'releases', 'plan-release', 'add-task'],
+  // A changelog run gets its own flow and NOT `board`: it writes no card, so the card
+  // format, the memory set and the tracks are a page of rules about work it cannot do.
+  changelog: ['changelog'],
   archive: ['board'],
   reject: ['board', 'reject'],
   setup: ['board', 'setup'],
@@ -437,6 +446,36 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       next.push(refineNext('<id>', 'for each of the first cards, once the board is set up'))
       break
     }
+    // One closed version's changelog (#232). The facts are the section the close wrote —
+    // its goal and its shipped cards — because that section IS the source, and a run that
+    // has it printed here needs no read to start.
+    case 'changelog': {
+      const version = req.release ?? ''
+      const record = readNewestClose(version)
+      const refusal = changelogRefusal(version)
+      facts.push(...field('version', version || '(none named)'))
+      if (refusal) {
+        facts.push(...field('nothing', refusal))
+        close.push('write nothing — say the line above and stop')
+        break
+      }
+      facts.push(...field('summary', `${record!.file} — ${record!.heading}`))
+      facts.push(...field('goal', record!.goal || '(the release had no goal)'))
+      facts.push(
+        ...field('shipped', [
+          `${record!.shipped.length} card${record!.shipped.length === 1 ? '' : 's'}:`,
+          ...record!.shipped.map((line) => `  ${line}`),
+        ]),
+      )
+      if (record!.hasChangelog) {
+        facts.push(...field('already', 'that section carries a changelog — writing again replaces it'))
+      }
+      close.push(
+        `write the lines to a file, then ${board} release changelog ${quoteId(version)} --file <path> — it owns the placement, and running it again replaces the changelog rather than adding one`,
+        'change nothing else — not a card, not the release list, not the code',
+      )
+      break
+    }
     case 'reject': {
       facts.push(...field('reason', req.reason ?? '(none given)'))
       facts.push(...field('memory', memoryFiles(card!.meta.modules, 'rejected.md')))
@@ -498,7 +537,9 @@ export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
     say('')
     say(section.head)
     say('')
-    for (const line of section.lines) say(`  ${line}`)
+    // A line that carries its own block — the ask's spec-agent roster — is indented all
+    // the way through, or the block falls out of the section it belongs to.
+    for (const line of section.lines) say(indent(line))
   }
   // The settings, for the jobs that are told to read them. Printed before the flows, because
   // the flows are what send the reader here.

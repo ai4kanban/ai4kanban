@@ -27,6 +27,7 @@ import {
 } from '../lib/agent/types'
 import { say } from '../lib/io'
 import { die, DIR_FLAG } from '../lib/paths'
+import { changelogRefusal } from '../lib/releases'
 import { findCard } from '../lib/view/read'
 import type { MoveResult } from '../lib/types'
 import { parseFlags } from '../lib/validate'
@@ -98,8 +99,8 @@ function readRequest(
     return typeof value === 'string' && value.trim() ? value.trim() : undefined
   }
 
-  // The four actions that name no card. Three of them name nothing at all; planning names
-  // a version.
+  // The five actions that name no card. Three name nothing at all; planning a release and
+  // writing one up each name a version.
   if (action === 'create') {
     const description = positional.join(' ').trim() || text('notes')
     if (!description) die('say what to create: akb create "what you want"', { kind: 'needs-input' })
@@ -125,7 +126,17 @@ function readRequest(
     if (!release) die('name the version to plan: akb plan-release v1', { kind: 'needs-input' })
     return { req: { action, release }, follow, print }
   }
-  // The fourth: setting the board up names nothing at all. The checklist says what is left.
+  // Writing one closed version's changelog (#232). Refused here rather than left to the
+  // agent when the version has no closed record or shipped nothing: there is no changelog
+  // to be had either way, and a run that only reads that and stops costs money for nothing.
+  if (action === 'changelog') {
+    const release = positional[0]?.trim() || text('release')
+    if (!release) die('name the version to write up: akb changelog v1', { kind: 'needs-input' })
+    const refusal = changelogRefusal(release)
+    if (refusal) die(refusal, { kind: 'no-changelog', release })
+    return { req: { action, release }, follow, print }
+  }
+  // The last of them: setting the board up names nothing at all. The checklist says what is left.
   if (action === 'setup') return { req: { action }, follow, print }
 
   // Everything else works on one card.
@@ -154,6 +165,7 @@ const FLAGS: Record<AgentAction, string[]> = {
   create: ['notes', 'release'],
   propose: ['module', 'count', 'boldness'],
   'plan-release': ['release'],
+  changelog: ['release'],
   refine: [],
   resolve: ['notes', 'and-implement'],
   setup: [],

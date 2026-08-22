@@ -5,9 +5,15 @@
 // the team gives up on. There is no rename and no reorder — the file is a line or two a
 // person can edit faster than any command could.
 
-import { die, rel, RELEASES } from '../lib/paths'
+import fs from 'node:fs'
+
+import { die, rel, DIR_FLAG, RELEASES } from '../lib/paths'
 import { say } from '../lib/io'
-import { NO_RELEASE } from '../lib/validate'
+import { boardCommand } from '../lib/agent/command'
+import { insideRun } from '../lib/agent/flow'
+import { startRun } from '../lib/agent/start'
+import { short } from './run'
+import { NO_RELEASE, parseFlags } from '../lib/validate'
 import {
   readReleases,
   readReleaseEntries,
@@ -20,6 +26,7 @@ import {
   closeRelease,
   dropRelease,
   fillRelease,
+  writeChangelog,
 } from '../lib/releases'
 import type { MoveResult } from '../lib/types'
 
@@ -32,7 +39,9 @@ const USAGE = `usage:
   release list               the releases in ship order, with what each one holds
   release close <id>         the version shipped: write the summary, clear the release off the rest
   release drop <id>          the version will not ship: take it off the list with no shipped
-                             record, clear the release off its open cards`
+                             record, clear the release off its open cards
+  release changelog <id>     put a changelog at the top of that version's newest closed
+                             section: --file <path>, or --text ".." for a one-liner`
 
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
 
@@ -43,6 +52,7 @@ export function cmdRelease(args: string[]): MoveResult {
   if (sub === 'list') return releaseList()
   if (sub === 'close') return releaseClose(rest)
   if (sub === 'drop') return releaseDrop(rest)
+  if (sub === 'changelog') return releaseChangelog(rest)
   // The usage block is the whole message here, so it is printed as it stands — putting
   // the command in front of a block of lines would only bury the first one.
   if (sub === undefined) die(USAGE, { kind: 'usage', bare: true })
@@ -128,7 +138,79 @@ function releaseClose(rest: string[]): MoveResult {
     for (const card of looksDone) say(`  #${card.id} ${card.title}`)
     say(`  archive the ones that really shipped, then move their line by hand in ${rel(summary)}`)
   }
-  return { release: id, shipped, left, summary: rel(summary), ship_order: remaining }
+  // The summary says which cards shipped, not what changed — so the close starts the run
+  // that writes that, the same way the board UI's close does. It is the one `akb board ...`
+  // command that starts a run, because the changelog has no other moment: nobody reads a
+  // list of card ids, and a step the user has to remember is a step nobody takes.
+  say('')
+  if (!shipped.length) {
+    say('nothing shipped, so there is no changelog to write.')
+    return { release: id, shipped, left, summary: rel(summary), ship_order: remaining }
+  }
+  const changelog = startChangelog(id)
+  return { release: id, shipped, left, summary: rel(summary), ship_order: remaining, changelog }
+}
+
+/** Start the run that writes the closed version's changelog, and say what happened.
+ *
+ *  Inside a run nothing is started — a run never starts another — so the command is named
+ *  instead, exactly as it used to be. Same when the run refuses or the process won't spawn:
+ *  the close itself is already written and can't be run again, so the fallback is always a
+ *  command the user can type. */
+function startChangelog(id: string): { sessionId?: string; command?: string } {
+  const program = boardCommand()
+  const command = `${program} changelog ${quoteId(id)}`
+  const byHand = (why: string) => {
+    say(`the summary says which cards shipped, not what changed for the user — ${why}.`)
+    say(`  write it with \`${command}\` — an agent reads this section and puts a changelog at the top of it.`)
+    return { command }
+  }
+  const inside = insideRun()
+  if (inside) return byHand('a run never starts another')
+  const started = startRun({ action: 'changelog', release: id })
+  if ('error' in started) return byHand(started.error)
+  if (!started.spawned) return byHand(`couldn't start a process to run ${started.run.sessionId}`)
+  const run = short(started.run.sessionId)
+  say(`writing the changelog — run ${started.run.sessionId}`)
+  say(`  an agent reads this section and puts a few plain lines at the top of it, saying what the version changed.`)
+  say(`  follow it: ${program} log ${run} --follow${DIR_FLAG}`)
+  say(`  stop it:   ${program} stop ${run}${DIR_FLAG}`)
+  return { sessionId: started.run.sessionId }
+}
+
+// ---- release changelog -------------------------------------------------------
+//
+// The one door the changelog run writes through. It is a move rather than an instruction
+// because "at the top of the newest section, once" has to be true, not asked for: this
+// splices the lines under their own heading and leaves every other byte of the file alone.
+// Run it again and the changelog is REPLACED, so a version taken through it twice carries
+// one changelog, not two.
+
+function releaseChangelog(rest: string[]): MoveResult {
+  const { flags, positional } = parseFlags(rest, ['file', 'text'])
+  const id = String(positional[0] ?? '').trim()
+  if (!id) die('release changelog needs a version id, e.g. `release changelog v1 --file changelog.md`')
+  if (positional.length > 1) {
+    die(`release changelog takes one version id (got "${positional.join(' ')}") — quote it if it has spaces`)
+  }
+  if (flags.file !== undefined && flags.text !== undefined) die('pass --file or --text, not both')
+  let raw: string
+  if (flags.file !== undefined) {
+    if (flags.file === true) die('--file needs a path after it')
+    try {
+      raw = fs.readFileSync(String(flags.file), 'utf8')
+    } catch {
+      die(`can't read ${String(flags.file)} — write the changelog to a file, then pass its path`)
+    }
+  } else if (flags.text !== undefined) {
+    raw = flags.text === true ? '' : String(flags.text)
+  } else {
+    die('the changelog has to come from somewhere: --file <path>, or --text ".." for a one-liner')
+  }
+  const { file, lines, replaced } = writeChangelog(id, raw!)
+  say(`${replaced ? 'rewrote' : 'wrote'} the changelog for ${id} (${file})`)
+  for (const line of lines) say(`  ${line}`)
+  return { release: id, file, lines, replaced }
 }
 
 function releaseDrop(rest: string[]): MoveResult {

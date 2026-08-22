@@ -2,7 +2,7 @@
 // wears, and the cluster that holds the ones with no frame of their own.
 //
 // It is a leaf: nothing here imports another component, so the controls that
-// live in the row (Progress, Sessions, Configuration…) can take these without
+// live in the row (Insights, Sessions, Configuration…) can take these without
 // importing the header that arranges them.
 //
 // The row is drawn at IDE weight (see app/design/layouts): every control is a

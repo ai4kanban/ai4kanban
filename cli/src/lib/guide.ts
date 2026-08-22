@@ -16,6 +16,7 @@
 
 import addTask from '../guide/add-task.md'
 import board from '../guide/board.md'
+import changelog from '../guide/changelog.md'
 import documentFeature from '../guide/document-feature.md'
 import extractIdeas from '../guide/extract-ideas.md'
 import localUi from '../guide/local-ui.md'
@@ -59,6 +60,7 @@ export const GUIDES: Guide[] = [
   { name: 'recurring-task', when: 'run one pass of a job we repeat', text: recurringTask },
   { name: 'releases', when: 'the versions being planned, and how a card joins one', text: releases },
   { name: 'plan-release', when: 'fill a release from its goal', text: planRelease },
+  { name: 'changelog', when: "write a closed version's changelog from what its close wrote down", text: changelog },
   { name: 'document-feature', when: 'which docs a change has to update', text: documentFeature },
   { name: 'prune-memory', when: 'compress the memory set back to what helps planning', text: pruneMemory },
   { name: 'spec-agent', when: "fill one part of a card's spec, as the named agent that owns it", text: specAgent },

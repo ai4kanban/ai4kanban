@@ -1,8 +1,8 @@
 "use client";
 
-// The board's Progress dialog, opened from a chart button in the header. Two
-// full-width sections, stacked so neither gives up the horizontal room its axis
-// needs:
+// The board's Insights dialog, opened from a chart button in the header. Two
+// charts, one per tab — they answer different questions and share no axis, so
+// stacking them only made the reader scroll past one to reach the other:
 //
 //   Daily progress (#65)    the last 30 days of docs/kanban/metrics.csv — one
 //                           line each for completed, created and rejected.
@@ -12,7 +12,7 @@
 //                           CSV or calculates a percentage; the rules do that.
 //
 // The two read separately on purpose: one chart failing, or being asked of rules
-// too old to answer, must leave the other drawn.
+// too old to answer, must leave the other readable in its own tab.
 //
 // The charts are plain SVG polylines and gridlines, no charting library. Daily
 // progress tells its three lines apart by colour; Planning quality gives each
@@ -37,8 +37,16 @@ const SERIES: { key: SeriesKey; label: string; color: string }[] = [
   { key: "rejected", label: "Rejected", color: "#b83a12" },
 ];
 
-export function Progress() {
+const TABS = [
+  { key: "daily", label: "Daily progress" },
+  { key: "quality", label: "Planning quality" },
+] as const;
+
+type TabKey = (typeof TABS)[number]["key"];
+
+export function Insights() {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<TabKey>("daily");
   return (
     <>
       {/* A tool in the header's cluster (components/chrome.tsx): no frame of its
@@ -48,33 +56,72 @@ export function Progress() {
       <button
         type="button"
         className={TOOL_BTN}
-        title="Progress"
-        aria-label="Progress"
+        title="Insights"
+        aria-label="Insights"
         onClick={() => setOpen(true)}
       >
         <FiTrendingUp size={15} aria-hidden />
       </button>
 
       {open && (
-        <Dialog title="Progress" onClose={() => setOpen(false)} width={760}>
-          <Section title="Daily progress">
+        <Dialog title="Insights" onClose={() => setOpen(false)} width={760}>
+          {/* design.md's tab-strip pattern, the same one New release and Create
+              task wear: hairline under both tabs, bold ink on the active one
+              over a short ember underline that laps the hairline. */}
+          <div className="mb-4 flex gap-5 border-b border-nb-ink/12" role="tablist">
+            {TABS.map((t) => {
+              const active = tab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  id={`insights-tab-${t.key}`}
+                  aria-selected={active}
+                  aria-controls={`insights-pane-${t.key}`}
+                  onClick={() => setTab(t.key)}
+                  className={`relative cursor-pointer pb-2 text-[13.5px] tracking-[-0.01em] transition-colors ${
+                    active ? "font-[800] text-nb-ink" : "font-[600] text-nb-ink-soft hover:text-nb-ink"
+                  }`}
+                >
+                  {t.label}
+                  {active && (
+                    <span
+                      className="absolute inset-x-0 bottom-[-1px] h-[2px] rounded-full bg-nb-accent"
+                      aria-hidden
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Both panes stay mounted and the idle one is hidden: each reads its
+              own file once per open, and switching tabs is instant rather than
+              a fresh "Reading metrics.csv…" every time. Planning quality also
+              keeps the release you picked. */}
+          <Pane id="daily" active={tab === "daily"}>
             <DailyProgress />
-          </Section>
-          <Section title="Planning quality">
+          </Pane>
+          <Pane id="quality" active={tab === "quality"}>
             <PlanningQuality />
-          </Section>
+          </Pane>
         </Dialog>
       )}
     </>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Pane({ id, active, children }: { id: TabKey; active: boolean; children: React.ReactNode }) {
   return (
-    <section className="mb-6 last:mb-0">
-      <h3 className="mb-2 text-[13px] font-[800] tracking-[-0.01em]">{title}</h3>
+    <div
+      role="tabpanel"
+      id={`insights-pane-${id}`}
+      aria-labelledby={`insights-tab-${id}`}
+      hidden={!active}
+    >
       {children}
-    </section>
+    </div>
   );
 }
 
@@ -293,8 +340,8 @@ function PlanningQuality() {
   }, []);
 
   // A record that can't be read, and a copy of the rules too old to work the
-  // scores out, both arrive here as one line. Neither hides Daily progress
-  // above: the two sections are read separately for exactly this reason.
+  // scores out, both arrive here as one line — inside this tab, so the other
+  // chart is still drawn when you switch back to it.
   if (error) return <Failure text={error} />;
   if (!result) return <p className="text-[13px] text-nb-ink-soft">Reading record.csv…</p>;
   if (!result.ok) return <Failure text={result.error} />;
@@ -341,7 +388,7 @@ function ScoreChart({ windows }: { windows: ScoreWindow[] }) {
 
   // Moving brings the readout into view, so a release picked at the top of a
   // scrolled dialog isn't read out below the fold. Not on the first draw: that
-  // would scroll the dialog past Daily progress the moment it opens.
+  // would scroll the tab past its own chart the moment it opens.
   useEffect(() => {
     if (moved.current) readout.current?.scrollIntoView({ block: "nearest" });
   }, [at]);

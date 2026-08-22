@@ -633,6 +633,9 @@ const RUN_COMMANDS = new Set([
   'create',
   'propose',
   'plan-release',
+  // Write a closed version's changelog into its summary file (#232) — the run the board
+  // UI's close starts, and the one a terminal close names.
+  'changelog',
   // Finish setting the board up (#173) — the steps that read the repo and think, as one
   // run. It is a run like the rest: the board UI's button starts exactly this.
   'setup',

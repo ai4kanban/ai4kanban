@@ -17,6 +17,9 @@ Runs — every one of them also takes --print, and the rule for it is below
   propose                   write the next tasks       (--module m, --count n,
                             --boldness safe|normal|bold)
   plan-release <version>    fill a release from its goal
+  changelog <version>       write a closed version's changelog into its summary file,
+                            from the goal and the cards its close wrote down — the
+                            close starts this itself, so run it only to rewrite one
   setup                     finish setting the board up — every step still unticked
                             on docs/kanban/setup-checklist.md, in one run
   archive <id>              finish the card

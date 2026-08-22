@@ -106,6 +106,9 @@ re-ask a settled call.
   right now. Never claim a file list belongs to one run.
 - Every run gets the view, not only implement; a refine or resolve writes card files too.
   It never writes to git, and it keeps no frozen copy — an old run shows today's files.
+- **Can a closed version's changelog be read on the board?**: yes — the app gets a place to
+  read what a shipped version changed, rather than leaving it to an editor or git. It is its
+  own card, separate from the one that writes the changelog.
 
 ## Connectors and keys
 
