@@ -38,6 +38,7 @@ import {
   RUNNING_VERB,
   RunningBadge,
   SessionLog,
+  stoppedShort,
 } from "./agent-shared";
 import {
   CadenceSelect,
@@ -56,7 +57,7 @@ import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
 import type { BoardChange } from "@/lib/chat-rail";
 import { canImplement, canRefine } from "@/lib/refine";
 import { scheduleLabel } from "@/lib/schedule";
-import { Markdown } from "./Markdown";
+import { CardBody } from "./CardBody";
 import { OpenIdsProvider } from "./open-ids";
 import { Window } from "./Window";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
@@ -203,7 +204,7 @@ export function CardPage({
     [router],
   );
 
-  const { sessions, start, kick } = useAgentSessions(onFinish);
+  const { sessions, start, watch, kick } = useAgentSessions(onFinish);
 
   // Re-read the card in place whenever any session finishes — from this tab or
   // another. The onFinish above only covers sessions this tab started; a session
@@ -257,10 +258,27 @@ export function CardPage({
   const latestSession = latestSessionForCard(sessions, card.id);
   const sessionLog = useSessionLog(latestSession?.sessionId ?? null);
   const [showLog, setShowLog] = useState(false);
-  // A session just started on this card — open the log so the user watches it live.
+  // The newest run on this card stopped short (#179) — it failed, or it was cut off.
+  // The card is then possibly part-built, which is a thing to learn on arriving at the
+  // page, not on clicking around it.
+  const unfinished = stoppedShort(latestSession);
+  // Open the log by itself in the two cases where its contents are the news: a run
+  // just started here, and a run that stopped short. Each fires once on the change,
+  // so shutting the window afterwards holds.
   useEffect(() => {
-    if (busy) setShowLog(true);
-  }, [busy]);
+    if (busy || unfinished) setShowLog(true);
+  }, [busy, unfinished]);
+
+  // Resume starts a new run, and the page follows it: taking it on as this tab's makes
+  // the poll wake now, and the newest run on the card is what this slot tails — so the
+  // window swaps to the live one on its own, and the card is re-read when it ends.
+  const onResumed = useCallback(
+    (sessionId: string) => {
+      watch(sessionId, "resume");
+      setShowLog(true);
+    },
+    [watch],
+  );
 
   // Start a non-blocking session. The per-card lock refusal comes back as an error.
   const runAgent = async (req: AgentReq, label: string) => {
@@ -453,6 +471,8 @@ export function CardPage({
                   session={sessionLog}
                   collapsed={!busy && !showLog}
                   onToggle={busy ? undefined : () => setShowLog((v) => !v)}
+                  warnUnfinished
+                  onResumed={onResumed}
                 />
               </div>
             )}
@@ -679,9 +699,12 @@ export function CardPage({
               </div>
             )}
 
-            <div className="nb-panel-sm p-5">
-              <Markdown body={card.body} mockups={mockups} />
-            </div>
+            <CardBody
+              body={card.body}
+              title={card.title}
+              cardId={card.id}
+              mockups={mockups}
+            />
           </main>
 
           {dialog && (

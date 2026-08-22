@@ -82,6 +82,12 @@ except where another doc is named.
 - Stop a running run from the ✕ in the log window's title bar, with one confirmation.
 - Continue a failed run with Resume, on Claude Code and Codex alike, instead of copying an
   id into a terminal.
+- Learn on the card that its last run died: a card whose newest run stopped short — it failed,
+  or the UI died under it — opens with that run's log already open and a line above it saying
+  the card may be part-built and whatever the run wrote is sitting in your working tree. Resume
+  sits in the log's title bar, and the page follows the run it starts: the same slot tails it
+  live and the card re-reads itself when it ends. A run you stopped and a run that passed read
+  exactly as they always did: "On the card it was working on" in `kanban-ui/README.md`.
 - See what a run cost in dollars beside its duration, marked an estimate, and which model
   did the work, taken from what the agent reported.
 - A run started in a terminal and one started from a button are the same run: both sides
@@ -216,3 +222,13 @@ except where another doc is named.
   own commands fill in as they run, so a board that has just started shows counts and `not
   enough yet` rather than a zero. No percentage is stored and no figure is fetched from
   anywhere outside the repository: "Progress" in the UI docs.
+
+- A card's page opens on the half a person has to read. Everything above the card format's
+  `<!-- agent -->` boundary sits at the top as it always did; everything below it folds
+  behind one control reading **what the agent worked out**, with the number of sections
+  inside it. One click opens it in place, in a quieter ink, and whether you left it open or
+  shut is remembered for every card page in this browser. A card written before the boundary
+  existed shows its whole body as before. A rail search whose word is only below the boundary
+  opens that half for that visit, and so does the window's own Find where the browser
+  supports it — neither changes what is remembered: "Reading a card" and "Finding a card" in
+  the UI docs.

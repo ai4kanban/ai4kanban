@@ -17,7 +17,6 @@ _(none)_
 - [#56 Let a user read and edit the board in Obsidian](features/56-read-and-edit-the-board-in-obsidian.md)
 - [#57 Let a user choose where the board is stored](57-choose-where-the-board-is-stored/root.md)
 - [#116 Unstick cards that sit on the board too long](116-stuck-cards/root.md)
-- [#179 Show a failed run on the card it was working on](features/179-show-a-failed-run-on-the-card-it-was-working-on.md)
 - [#182 Sign the Mac build so it opens with no warning](features/182-sign-the-mac-build-so-it-opens-with-no-warning.md)
 - [#183 Install the Mac app with one Homebrew command](features/183-install-the-mac-app-with-one-homebrew-command.md)
 - [#229 Tell the user how to log in to the agent, not just how to install it](features/229-tell-the-user-how-to-log-in-to-the-agent-not-just-how-to-ins.md)
@@ -25,7 +24,6 @@ _(none)_
 - [#247 Set a spec agent's harness and model where its switch is](features/247-set-a-spec-agent-s-harness-and-model-where-its-switch-is.md)
 - [#250 Bring a task in from a file or your voice, not only typed text](250-friendly-task-import/root.md)
 - [#254 Customize what a specialist agent produces, not just whether it runs](254-customizable-spec-agents/root.md)
-- [#262 Open a card's page on the half a human has to read](features/262-open-a-card-s-page-on-the-half-a-human-has-to-read.md)
 - [#266 Make the chat rail a full chat, not a message box](266-chat-rail-full/root.md)
 - [#287 Run each board action on its own harness](287-per-action-harness/root.md)
 - [#209 Make the daily loop something you can do from buttons](209-daily-loop-buttons/root.md)
@@ -65,12 +63,6 @@ _(none)_
 - [#204 Run each test request twice — once with the board, once without](202-board-vs-no-board/distribution/204-run-both-ways.md)
 - [#205 Score the runs and keep the whole record in the repo](202-board-vs-no-board/distribution/205-score-and-record.md)
 - [#206 Show the result on the site and in the README](202-board-vs-no-board/distribution/206-publish-the-result.md)
-
-## 221-board-score/skill
-
-
-## 221-board-score/features
-
 
 ## 254-customizable-spec-agents/skill
 

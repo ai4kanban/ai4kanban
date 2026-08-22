@@ -381,3 +381,13 @@ html.a4k-fullscreen body.a4k-inset header[data-titlebar] {
 body.a4k-inset .a4k-nav-edge {
   top: 43px;
 }
+
+/* The control the agent half of a card folds behind (#262). A native <details>, so the
+   window's own Find can reach into a shut one; the marker the browser draws is dropped for
+   the arrow the rail already uses. */
+.nb-fold > summary {
+  list-style: none;
+}
+.nb-fold > summary::-webkit-details-marker {
+  display: none;
+}

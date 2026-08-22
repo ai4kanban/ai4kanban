@@ -27,7 +27,7 @@ import {
 } from "./Setup";
 import { QueueView } from "./Queue";
 import { Window } from "./Window";
-import { SessionLogOverlay } from "./agent-shared";
+import { SessionLogOverlay, stoppedShort } from "./agent-shared";
 import { runningCardIds, sessionsPanel, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 export function BoardView({
@@ -271,10 +271,7 @@ export function BoardView({
     (best, r) => (r.action === "setup" && (!best || r.startedAt > best.startedAt) ? r : best),
     undefined,
   );
-  const failedSetupRunId =
-    lastSetupRun && (lastSetupRun.status === "error" || lastSetupRun.status === "interrupted")
-      ? lastSetupRun.sessionId
-      : null;
+  const failedSetupRunId = stoppedShort(lastSetupRun) ? (lastSetupRun?.sessionId ?? null) : null;
   const finishSetup = useCallback(async () => {
     const res = await startSetupRunAction();
     // Take it on as this tab's, so the poll wakes at once and the run joins the

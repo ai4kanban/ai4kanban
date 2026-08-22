@@ -85,6 +85,21 @@ The header carries seven things:
 - **Chat** — a conversation about this project that also does the board work, in a rail down
   the right; see below.
 
+### Reading a card
+
+A card is written in two halves. The top one is what a person has to read — what the task
+does, and what is worth accepting or refusing about it. Under it, behind a control reading
+**what the agent worked out**, is the half the builder needs: the scope, the todo list, and
+the calls the agent made on its own. The control says how many sections are inside it.
+
+It opens shut, and one click opens it in place — same page, nothing hidden away in a tab.
+Whether you left it open or shut is remembered, and the next card page opens that way; it is
+one setting for every card, kept in this browser like the rail's width, so it never travels
+with the repo. Opened, that half reads in a quieter ink than the half above it.
+
+Cards written before the two halves arrived carry no boundary, and those show their whole
+body exactly as they always have — no control, nothing folded.
+
 ### Finding a card
 
 Down the left is the **rail**: **All cards** at the top, which is the board, and under it every
@@ -96,6 +111,13 @@ difference, so `ui` finds a card that says `UI`. Click a match to open it. It se
 open card, including a group's subtasks, which the board's columns don't show. It never reaches
 the archive. Matches scroll inside the rail, nothing matching says so, and clearing the box
 (the **×**, or Escape) puts the rail's own list back.
+
+When the word you typed is on the card only below the boundary, opening that match opens the
+agent half with it, so a search never lands you on a page with nothing it found. That is for
+that one visit: reloading the page, or reaching the card any other way, opens it at your
+remembered setting. In a browser, the window's own Find (⌘F) also opens the shut half and
+lands on the word inside it — the desktop app has no Find of its own, so there the **Find a
+card** box is the way to a word only a folded half holds.
 
 At the foot of the rail is the **Memory** panel. The rail is hidden on a narrow window, and the
 box and the panel go with it.
@@ -575,7 +597,9 @@ off is left to finish on its own.
 
 Every run can be stopped, whoever started it. The card unlocks the moment the run ends.
 **Stopped** is its own outcome, next to done and failed — a blue dot in the runs panel and `stopped`
-on the log — so it never reads as a failure, and it offers no **Resume**. Stopping the refine that
+on the log — so it never reads as a failure. **Runs** still offers **Resume** on it, because changing
+your mind about a stop shouldn't cost the work already done; the card page, which speaks only about
+runs that went wrong, leaves it out. Stopping the refine that
 followed a run ends it there; press **Refine** on the card when you want another.
 
 ### What a run cost, and which model it used
@@ -962,11 +986,27 @@ continues. The card lock still holds, and a resumed run can be resumed again if 
 the panel keeps one row for the work rather than a chain of dead attempts. That also drops the old
 run's log, so read anything you want from it first.
 
-Only a run that stopped short offers it. A run that passed has nothing to continue, a run you stopped
-yourself is over rather than short, and a run whose conversation the agent can't reach — it never
-reported an id, or a different agent is picked now — shows no button rather than one that could only
-fail. If the conversation itself has expired, the resume ends as a failed run with the reason in its
-log.
+Only a run that stopped short offers it. A run that passed has nothing to continue, and a run whose
+conversation the agent can't reach — it never reported an id, or a different agent is picked now —
+shows no button rather than one that could only fail. If the conversation itself has expired, the
+resume ends as a failed run with the reason in its log.
+
+### On the card it was working on
+
+The card page shows its newest run in the same slot, so a run that stopped short says so on the card
+rather than only in **Runs**. Open the card and that log is already open, with a line above it: this
+run stopped short, so the card may be part-built and whatever it wrote is sitting in your working
+tree. The log under it says why.
+
+**Resume** sits in that log's title bar, beside the outcome — the same button the runs panel has,
+doing the same thing. Once it starts, the card page follows the new run: its log tails live in the
+same slot, and the card re-reads itself when the run ends.
+
+The line is one run's outcome, not the card's, so a newer run on the card replaces it. A run that
+passed and a run you stopped yourself read exactly as they always did — no line, no button. A run
+too old to continue, or one whose agent you have since switched away from, still shows the line;
+only the button is missing. A run that has aged out of the kept history shows nothing at all — its
+log is gone from disk too, so there is nothing to open.
 
 ## When it finds no board
 

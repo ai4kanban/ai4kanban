@@ -176,6 +176,14 @@ function formatTokens(u: TokenUsage): string {
   return `tokens · ${n(u.input)} input · ${n(u.cacheCreation)} cache write · ${n(u.cacheRead)} cache read · ${n(u.output)} output`;
 }
 
+// A run that ended without finishing: it failed, or it was cut off when the UI
+// died mid-run. Both leave the work half-done and both can be picked up again,
+// so every screen that reports one asks this rather than testing the two states
+// itself. A run the user stopped is NOT one of these: nothing went wrong with it.
+export function stoppedShort(session: SessionView | null | undefined): boolean {
+  return session?.status === "error" || session?.status === "interrupted";
+}
+
 // A tailing view of one session's captured output (task #14). Shows the last few
 // KB; auto-scrolls to the newest line unless the user has scrolled up to read
 // back. Once the session ends with a parsed final message, the view leads with
@@ -186,10 +194,18 @@ export function SessionLog({
   collapsed = false,
   onToggle,
   flush = false,
+  warnUnfinished = false,
+  onResumed,
 }: {
   session: SessionView | null;
   collapsed?: boolean;
   onToggle?: () => void;
+  // The card page turns these two on for a run that stopped short (#179): the
+  // window says in words that the card is part-built, and carries Resume in its
+  // title bar. The runs panel words and offers the same thing its own way, so it
+  // leaves both off.
+  warnUnfinished?: boolean;
+  onResumed?: (sessionId: string) => void;
   // `flush` drops the collapse toggle and the body's height cap (the panel it's
   // dropped into — the sessions dialog, the board overlay — owns the scrolling)
   // but keeps the full ink-framed window with its title bar, so the log is the
@@ -218,6 +234,11 @@ export function SessionLog({
   // never reads as a failure — and the code it died with says nothing, because we
   // are the ones who killed it.
   const stopped = session.status === "stopped";
+  // This run ended without finishing — the warning and the Resume below hang off it.
+  const unfinished = stoppedShort(session);
+  // Resume shows only when the board says the run can actually be picked up: the
+  // line stays either way, so a run too old to continue still says what it left.
+  const carryOn = Boolean(onResumed && unfinished && session.canResume);
   // No word while running — the pulse dot already signals progress.
   const state = running
     ? ""
@@ -332,18 +353,33 @@ export function SessionLog({
     </pre>
   );
 
+  // What a run that stopped short left behind (#179), said first because it is the
+  // thing to know before reading anything the agent managed to write. It lives in
+  // the run's own window rather than on the card: it is one run's outcome, and it
+  // goes when a newer run replaces it.
+  const unfinishedLine = warnUnfinished && unfinished && (
+    <p className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
+      <span className="mr-1" aria-hidden>
+        ⚠
+      </span>
+      This run stopped short, so the card may be part-built — whatever it wrote is sitting in
+      your working tree.{carryOn ? " Resume carries it on from where it stopped." : ""}
+    </p>
+  );
+
   // The board's own line about how the run ended, under the agent's message and plainly
   // not part of it. The one thing a finished run can't say for itself is that nothing is
   // coming after it.
-  const body = note ? (
+  const body = (
     <>
+      {unfinishedLine}
       {message}
-      <p className="mt-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
-        {note}
-      </p>
+      {note && (
+        <p className="mt-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
+          {note}
+        </p>
+      )}
     </>
-  ) : (
-    message
   );
 
   // The title bar — the "session log" kicker + the live/done indicator on a
@@ -374,6 +410,14 @@ export function SessionLog({
                 {f.text}
               </span>
             ))}
+          </span>
+        )}
+        {/* Resume rides the title bar beside the outcome it answers (#179). The bar
+            doubles as the collapse toggle on the card page, so the button swallows
+            its own click rather than folding the log it just restarted. */}
+        {carryOn && (
+          <span onClick={(e) => e.stopPropagation()}>
+            <ResumeButton sessionId={session.sessionId} onResumed={onResumed} />
           </span>
         )}
       </span>

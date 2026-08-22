@@ -34,6 +34,7 @@ import { searchCardsAction } from "@/app/actions";
 import { memoryKey, memoryModuleOf, useMemoryPanel, useOpenModules } from "@/lib/memory-panel";
 import type { OpenCard } from "@/lib/open-cards";
 import { MEMORY_FILES, type CardRef, type MemoryModule } from "@/lib/types";
+import { armAgentHalf } from "@/lib/agent-half";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 
 /** How long the typing has to stop before the board is searched. Long enough that a
@@ -99,6 +100,9 @@ export function Rail({
         {searching ? (
           <>
             {matches !== null && <RailLabel text="Matches" count={matches.length} />}
+            {/* The word that found the card travels with the click, so a match sitting
+                only in the card's agent half opens that half rather than landing the
+                reader on a page with nothing the search found on it (#262). */}
             {matches?.map((card) => (
               <RailRow
                 key={card.id}
@@ -107,6 +111,7 @@ export function Rail({
                 id={card.id}
                 active={card.id === activeId}
                 running={running.has(card.id)}
+                onOpen={() => armAgentHalf(card.id, query)}
               />
             ))}
             {matches?.length === 0 && (
@@ -382,6 +387,7 @@ function RailRow({
   active,
   running = false,
   onClose,
+  onOpen,
 }: {
   href: string;
   label: string;
@@ -395,11 +401,14 @@ function RailRow({
   active: boolean;
   running?: boolean;
   onClose?: () => void;
+  /** Run just before the row opens what it points at. */
+  onOpen?: () => void;
 }) {
   return (
     <div className="group relative">
       <Link
         href={href}
+        onClick={onOpen}
         title={running ? `${label} — running` : (title ?? label)}
         className={`flex h-[30px] w-full items-center gap-2 rounded-[8px] pl-2.5 text-left text-[12.5px] ${
           onClose ? "pr-7" : "pr-2"

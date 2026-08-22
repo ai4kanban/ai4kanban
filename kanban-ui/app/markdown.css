@@ -227,3 +227,16 @@
 .nb-sessionlog-md :where(ul, ol) {
   padding-left: 16px;
 }
+
+/* The agent half of a card, opened (#262). The same prose in the board's own muted ink, so
+   the human half above it keeps the page's voice. No new colours, and only the ink moves —
+   the rhythm, sizes and weights are `.nb-md`'s. */
+.nb-md.nb-md-soft,
+.nb-md.nb-md-soft h1,
+.nb-md.nb-md-soft h2,
+.nb-md.nb-md-soft h3,
+.nb-md.nb-md-soft h4,
+.nb-md.nb-md-soft strong,
+.nb-md.nb-md-soft blockquote {
+  color: var(--color-nb-ink-soft);
+}
