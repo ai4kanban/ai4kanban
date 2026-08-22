@@ -1,5 +1,14 @@
 import { boardRules, NoRulesError } from "./cli";
-import type { Board, Card, CardRef, MemoryFile, MetricsResult, SetupDraft, SetupState } from "./types";
+import type {
+  Board,
+  Card,
+  CardRef,
+  MemoryFile,
+  MetricsResult,
+  ScoreResult,
+  SetupDraft,
+  SetupState,
+} from "./types";
 
 // --- reading the board, through the CLI (#169) -------------------------------
 // The columns, one card in full, the module map, the daily numbers, the answers a guided
@@ -82,6 +91,26 @@ export async function readReleases(): Promise<string[]> {
 export async function readMetrics(): Promise<MetricsResult> {
   try {
     return (await boardRules()).readMetricsView();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** The planning scores, release by release (#224). A failure comes back as `{ ok:false }`
+ *  for the same reason the daily numbers do — an empty chart on a damaged record would read
+ *  as a board that has planned nothing. Rules older than the score say so in the one line
+ *  that names the update, so the Daily progress chart above it still draws. */
+export async function readScore(): Promise<ScoreResult> {
+  try {
+    const rules = await boardRules();
+    if (!rules.readScoreView) {
+      return {
+        ok: false,
+        error:
+          "This board's copy of the rules is older than the planning scores. Run `npm install -g ai4kanban` to update it.",
+      };
+    }
+    return rules.readScoreView();
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

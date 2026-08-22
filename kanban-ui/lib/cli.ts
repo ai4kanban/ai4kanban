@@ -26,6 +26,7 @@ import type {
   MemoryFile,
   MetricsResult,
   SaveProjectResult,
+  ScoreResult,
   SetupDraft,
   SetupState,
   TrackDraft,
@@ -101,6 +102,10 @@ export interface BoardRules {
   allCards(): Card[];
   readModules(): string[];
   readMetricsView(): MetricsResult;
+  /** The planning scores, release by release (#224). Optional: a board can be running rules
+   *  from before the score existed, and the chart says so in one line rather than drawing an
+   *  empty panel that would read as a board that has planned nothing. */
+  readScoreView?(): ScoreResult;
   readReleases(): string[];
   readGoalText(): string;
   /** One of the four memory files, whole — the project's copy, or a module's when `module`

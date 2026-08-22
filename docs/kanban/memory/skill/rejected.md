@@ -10,11 +10,23 @@ before proposing so you don't re-suggest them.
   the user can. A container is the only fence it offers. Every agent we run stays in the
   repo, and we don't ship one that can write outside it.
 
+- **Calling spec agents when a card is written** — the add-task flow would run `akb spec`
+  and put agents on the card as it is created. Spec agents belong to refine alone: a card
+  written from a one-line ask has no spec to fill in yet, and a second place to call them
+  means two flows to keep in step. Refine asks; add-task doesn't.
+
 ## Chat
 
 - **A separate flow that limits what chat may do** — the chat rail is just a kanban-skill
   session, like chatting with Claude Code. Users may run any `akb` command in it, so chat
   needs no second workflow or permission layer.
+
+- **A chat handing the run a summary of what the conversation settled** — a chat is
+  `/kanban "<prompt>"` or `/kanban <id> "<prompt>"` and nothing more; asking it to also
+  decide what a run needs to know, write it up and report it back gives chat a job of its
+  own. Anything that changes what gets built goes on the card, which chat already does. A
+  run that starts on the wrong footing gets cancelled and started again — #266 makes
+  cancelling a session possible.
 
 ## Goal
 
@@ -49,6 +61,13 @@ before proposing so you don't re-suggest them.
   what the spec agents group already does: its `ui-design` agent draws the layout options.
   The one piece that was needed anyway — the skill's UI design reference — moved into that
   group. One group, not two.
+
+- **release-completeness, a score for how right a release plan turned out** — nothing runs at
+  the moment a plan is finished: a release plan is ordinary `akb board update --release` calls,
+  so a card that joined on day one is indistinguishable from one added in the last week, and
+  there is no roster to compare the close against. The other half — work that belonged in the
+  plan and was never written down as a card — needs a person to say what the right plan would
+  have been. #222 kept the three numbers that can be collected automatically.
 
 ## Questions
 

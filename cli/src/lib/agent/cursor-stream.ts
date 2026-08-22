@@ -1,7 +1,7 @@
 // Turns `cursor-agent -p --output-format stream-json`'s NDJSON into the same
 // readable log the other renderers write (#160). Cursor's default text mode
 // prints one blob at the end, so the harness asks for the event stream (see the
-// Cursor entry in harnesses.ts) and this renders it.
+// Cursor entry in harnesses/cursor.ts) and this renders it.
 //
 // Four event types matter here:
 //   • `system` / `init` — the run's opening banner. It carries `model`, the

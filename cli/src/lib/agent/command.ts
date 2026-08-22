@@ -23,14 +23,19 @@ import { rel } from '../paths'
  *  beside the built rules — it answers every command a flow can name — and the built rules
  *  themselves otherwise, which answer `board` and `guide` (see `kanban.ts`).
  *
- *  Spelled relative to the project when it sits inside it, the way every other path the
- *  board prints is: a source checkout says `node cli/bin/ai4kanban.mjs`, which is short
- *  enough to read in a line of prose and runs from where a board command is run anyway. */
+ *  Spelled relative to the project when it is a short hop inside it, the way every other
+ *  path the board prints is: a source checkout says `node cli/bin/ai4kanban.mjs`, which is
+ *  short enough to read in a line of prose and runs from where a board command is run
+ *  anyway. Absolute otherwise — the board root is the working directory when no `--dir`
+ *  named one and no board was found, and relative to `/` is the whole path with its leading
+ *  slash gone, which is a line nobody can paste. */
 function selfCommand(): string {
   const bin = path.resolve(path.dirname(SELF), '..', 'bin', 'ai4kanban.mjs')
   const file = fs.existsSync(bin) ? bin : SELF
   const inside = rel(file)
-  return `node ${inside.startsWith('..') || path.isAbsolute(inside) ? file : inside}`
+  const shortHop =
+    !inside.startsWith('..') && !path.isAbsolute(inside) && inside.split(/[\\/]/).length <= 3
+  return `node ${shortHop ? inside : file}`
 }
 
 /** The board's command as a run would find it — `akb` when it is on the PATH a run is

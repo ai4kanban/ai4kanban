@@ -15,12 +15,22 @@ import type { Readable, Writable } from 'node:stream'
 import fs from 'node:fs'
 
 import { REPO_ROOT, SESSIONS_DIR } from '../paths'
+import { boardComplaints } from '../reconcile'
+import { boardCommand } from './command'
 import { runEnv } from './flow'
-import { markBoard, refinesAfter, specRunsAfter, type BoardMarks } from './follow'
+import { specRunsAfter } from './follow'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter } from './stream'
 import { RESUME_PROMPT } from './prompts'
 import { openPlan } from './resolve'
+import {
+  markBoard,
+  refinementNeedsApproval,
+  refinementRunsAfter,
+  startRefinement,
+  type BoardMarks,
+  type RefinementFollowUp,
+} from './refine'
 import {
   acquireIndexLock,
   claimCard,
@@ -31,10 +41,11 @@ import {
   peekRun,
   readSpec,
   readSpecAsks,
+  setCardStatus,
 } from './sessions'
 import { startRun } from './start'
 import type { TurnEnd } from './client'
-import type { AgentAction } from './types'
+import type { AgentRequest, RunRecord } from './types'
 
 // How long a run gets to end on its own after a stop asks it to, before it is killed
 // outright.
@@ -99,6 +110,10 @@ export async function watchRun(sessionId: string): Promise<number> {
   // what it took off the board — is the difference between this and the same read at the
   // close, and that difference is what earns a card the refine that follows.
   const before = markBoard()
+  // And what was already broken about it. Only what a run BREAKS is worth reporting on that
+  // run: a board carrying a stale link from last month would otherwise put the same line on
+  // the end of every run forever, which is how a real warning gets read as furniture.
+  const wasBroken = new Set(boardComplaints())
 
   const [cmd, ...args] = active.argv
   // A connector the board talks to is started differently in two ways: the prompt is sent
@@ -218,6 +233,14 @@ export async function watchRun(sessionId: string): Promise<number> {
       // A run somebody ended exits non-zero — we killed it — but that is not a failure, so
       // the ask, not the code it died with, names the outcome.
       const status = asked ? 'stopped' : code === 0 ? 'done' : 'error'
+      // Only after a run that finished. One that failed or was ended left the board
+      // half-written, and a refine of half a card is a refine you throw away — and a spec
+      // agent sent at half a plan would answer the wrong plan.
+      //
+      // Worked out BEFORE the record closes, so anything watching for the run to end sees
+      // the note it ended with rather than catching the record a beat too early.
+      const settled = status === 'done' ? settleBoard(record, before) : null
+      const note = status === 'done' ? joinNotes(settled?.stalled, brokeBoard(wasBroken)) : undefined
       closeRun(sessionId, {
         status,
         // `ok` stays unset on a stopped run, as it does on one that was cut off: it
@@ -227,13 +250,11 @@ export async function watchRun(sessionId: string): Promise<number> {
         // What went wrong, in whoever's words know: ours when the command wouldn't start,
         // the agent's own when the conversation ended badly.
         error: spawnError ?? (asked ? undefined : spoken?.error),
+        note,
         endedAt,
       })
       letGo()
-      // Only after a run that finished. One that failed or was ended left the board
-      // half-written, and a refine of half a card is a refine you throw away — and a spec
-      // agent sent at half a plan would answer the wrong plan.
-      if (status === 'done') followUp(sessionId, record.action, before)
+      if (settled) followUp(sessionId, settled.runs)
       resolve(code === 0 ? 0 : 1)
     }
 
@@ -316,6 +337,47 @@ export async function watchRun(sessionId: string): Promise<number> {
   })
 }
 
+// How many broken links a run's note lists before it stops counting. The point is to say
+// the board came out of this run inconsistent, not to reprint the whole of it.
+const MAX_BROKEN = 5
+
+// What this run broke that was whole before it: a link into the README index, a card that
+// never got indexed, a `blocked_by` or `related` pointing at an id that isn't there any
+// more. Nothing else notices — the moves that check for it are the ones the agent skipped —
+// so a run that finished a card by deleting the file reads as a clean `✓ done` and the
+// board goes on quietly disagreeing with itself. Null when it came out whole.
+function brokeBoard(wasBroken: Set<string>): string | null {
+  const broke = boardComplaints().filter((line) => !wasBroken.has(line))
+  if (!broke.length) return null
+  const shown = broke.slice(0, MAX_BROKEN)
+  const rest = broke.length - shown.length
+  return [
+    `the work is done, but the board came out of this run inconsistent — ${broke.length} thing${broke.length === 1 ? '' : 's'} to put right:`,
+    ...shown.map((line) => `  ${line}`),
+    ...(rest ? [`  … and ${rest} more`] : []),
+    `a card is taken off the board with \`${boardCommand()} board archive <id>\` or \`${boardCommand()} board reject <id>\`, never by deleting its file.`,
+  ].join('\n')
+}
+
+const joinNotes = (...parts: (string | null | undefined)[]): string | undefined =>
+  parts.filter(Boolean).join('\n\n') || undefined
+
+// What this run leaves behind on the board, worked out and written down but not started: a
+// `ready` card the run rewrote goes back to `todo` for a fresh pass to approve, and the
+// refines that follow are named. `stalled` is the one thing nothing else would ever say —
+// a refinement loop that ended with its card unsettled (agent/refine.ts).
+function settleBoard(run: RunRecord, before: BoardMarks): RefinementFollowUp | null {
+  try {
+    if (run.action === 'refine' && run.cardId !== null && refinementNeedsApproval(run.cardId, before)) {
+      setCardStatus(run.cardId, 'todo')
+    }
+    return refinementRunsAfter(run, before)
+  } catch {
+    // an unreadable board — the run it followed is done either way
+    return null
+  }
+}
+
 // What follows this run: the spec agents it asked for, and a refine on each card it wrote,
 // changed, or set free. Each one is an ordinary run of its own, so it shows in the panel
 // with its own log and can be stopped.
@@ -325,15 +387,18 @@ export async function watchRun(sessionId: string): Promise<number> {
 // A refusal is not worth reporting: the only one that comes up is a card that already has a
 // run on it, and that run is doing more than this one would have. Nothing here can fail the
 // run that just ended — it is over.
-function followUp(sessionId: string, action: AgentAction, before: BoardMarks): void {
+function followUp(sessionId: string, runs: AgentRequest[]): void {
   try {
     // Started first, then forgotten — so a crash between the two costs a repeated agent at
     // worst, and never a section nobody ever writes.
     for (const req of specRunsAfter(readSpecAsks(sessionId))) startRun(req)
     clearSpecAsks(sessionId)
-    for (const req of refinesAfter(action, before)) startRun(req)
+    for (const req of runs) {
+      if (req.refineRound === undefined) startRefinement(req)
+      else startRun(req)
+    }
   } catch {
-    // an unreadable board, or a spawn that wouldn't — the run it followed is done either way
+    // a spawn that wouldn't — the run it followed is done either way
   }
 }
 

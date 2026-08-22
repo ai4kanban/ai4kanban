@@ -66,9 +66,20 @@ export function formatCadence(c: Cadence): string {
   return c.at ? `${c.n}${c.unit} at ${c.at}` : `${c.n}${c.unit}`
 }
 
+/** A day — `2026-08-02`, local time. Every date the board writes down is this one: a
+ *  `metrics.csv` row, a `record.csv` line, the day a release shipped.
+ *
+ *  Local rather than UTC, for the same reason the stamps above are. The board is one
+ *  person's tool on one machine, and the day it means is the day they are having — east of
+ *  UTC, a UTC date files an evening's work under yesterday, and a session either side of
+ *  midnight lands on two rows that disagree with the clock on the wall. */
+export function formatDay(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 /** A minute stamp — `2026-08-02 14:31`, local time. What `last_run` holds. */
 export function formatStamp(d: Date): string {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${formatDay(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 /** Read a `YYYY-MM-DD HH:MM` stamp as a local Date, or null if it isn't one. */

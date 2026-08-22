@@ -13,11 +13,16 @@ Write the markdown to a file first so the shell cannot mangle it. The command pu
 ``## By `<your-name>` agent`` and replaces your earlier section. Inside it, use `###`
 headings; `##` is refused.
 
+A card has two halves ("Card format" in `akb guide board`). Add `--half human` when your
+section holds the pick you are leaving to the user below, so it lands above the boundary
+with the rest of their reading. Without the flag a new section goes in the agent half and a
+rewrite stays where it already sits.
+
 ## The one thing you write outside it
 
 An agent that draws a screen may also write files under
 `docs/kanban/.mockups/<card id>/`. Point to them from your section with `<Mockup>` tags and
-follow "Mockups" in `akb guide board`.
+follow `akb guide ui-design`.
 
 ## What you never touch
 
@@ -32,7 +37,9 @@ Leave at most one genuinely user-owned choice as an open question pointing to yo
       --recommended-option "<the one you recommend, and what it costs, in the same line>" \
       --option "<another>" --mode single
 
-A call you can make belongs in your section, already made.
+A call you can make belongs in your section, already made. Write the section itself with
+`--half human` — a pick the user has to make is their reading, so it sits above the
+boundary until the question is answered.
 
 ## How to answer
 

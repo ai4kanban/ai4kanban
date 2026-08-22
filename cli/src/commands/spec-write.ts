@@ -15,7 +15,7 @@ import { parseFrontmatter, serializeFrontmatter } from '../lib/frontmatter'
 import { say } from '../lib/io'
 import { die, rel, TODO } from '../lib/paths'
 import { findSpecAgent, specAgentNames, specHeading, SPEC_AGENT_NAMES } from '../lib/spec-agents'
-import type { MoveResult } from '../lib/types'
+import type { FlagValue, MoveResult } from '../lib/types'
 import { parseFlags } from '../lib/validate'
 
 // The sections a spec agent's own goes in FRONT of. They are the card's tail — what the
@@ -23,11 +23,29 @@ import { parseFlags } from '../lib/validate'
 // not after the footnotes. A card with neither takes it at the end.
 const TAIL_HEADINGS = [/^##\s+Decided by the agent\s*$/i, /^##\s+Source\s*$/i]
 
+// The line dividing a card's two halves ("Card format" in `akb guide board`).
+const MARKER = /^<!--\s*agent\s*-->$/
+
+/** Which half the section goes in. A section holding a pick the user has to make is their
+ *  reading, so it sits above the boundary; everything else is the builder's. */
+const HALVES = ['human', 'agent'] as const
+type Half = (typeof HALVES)[number]
+
+// Told nothing, a new section goes in the agent half and a rewrite stays where it sits — a
+// spec agent that says nothing about the reader has not asked for the card to be reshaped.
+function readHalf(raw: FlagValue | undefined): Half | null {
+  if (raw === undefined) return null
+  if (raw === true) die(`--half needs a value: ${HALVES.join(' or ')}`)
+  const value = String(raw).trim().toLowerCase()
+  if (!(HALVES as readonly string[]).includes(value)) die(`--half takes ${HALVES.join(' or ')} (got "${String(raw)}")`)
+  return value as Half
+}
+
 const headingRe = (name: string): RegExp =>
   new RegExp('^##\\s+By\\s+`' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '`\\s+agent\\s*$', 'i')
 
 export function cmdSpecWrite(args: string[]): MoveResult {
-  const { flags, positional } = parseFlags(args, ['file', 'text'])
+  const { flags, positional } = parseFlags(args, ['file', 'text', 'half'])
   const id = Number(positional[0])
   if (!Number.isInteger(id)) die('need a numeric task id: spec-write <id> <agent> --file <path>')
   const askedName = String(positional[1] ?? '').trim()
@@ -42,13 +60,14 @@ export function cmdSpecWrite(args: string[]): MoveResult {
   const name = agent.name
 
   const section = readSection(flags.file, flags.text)
+  const half = readHalf(flags.half)
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
   if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
 
-  const { body: next, replaced } = splice(body, name, section)
+  const { body: next, replaced } = splice(body, name, section, half)
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + next)
   say(`${replaced ? 'rewrote' : 'wrote'} the \`${name}\` section on #${id} (${rel(file)})`)
   return { id, specAgent: name, replaced, file: rel(file) }
@@ -91,26 +110,40 @@ function readSection(file: unknown, text: unknown): string {
   return section
 }
 
-// Put the section on the card: over the one already there, or in front of the card's tail,
-// or at the end. Everything else in the body is untouched — this is a splice, never a
-// rewrite.
-function splice(body: string, name: string, section: string): { body: string; replaced: boolean } {
+// Put the section on the card: over the one already there, or in the half it belongs to.
+// Everything else in the body is untouched — this is a splice, never a rewrite.
+function splice(
+  body: string,
+  name: string,
+  section: string,
+  half: Half | null,
+): { body: string; replaced: boolean } {
   const lines = body.split('\n')
   const block = [specHeading(name), '', section, '']
   const headings = specAgentNames(name).map(headingRe)
   const at = lines.findIndex((l) => headings.some((heading) => heading.test(l.trim())))
+  if (at < 0) return { body: place(lines, block, half ?? 'agent'), replaced: false }
 
-  if (at >= 0) {
-    // From its heading to whatever heading comes next — that span is the agent's, and only
-    // that span.
-    let end = at + 1
-    while (end < lines.length && !/^##\s/.test(lines[end]!)) end++
-    return { body: [...lines.slice(0, at), ...block, ...lines.slice(end)].join('\n'), replaced: true }
-  }
+  // From its heading to whatever comes next — that span is the agent's, and only that
+  // span. The boundary marker ends it too: it divides the card, so a section sitting
+  // directly above it must not take it away on the next rewrite.
+  let end = at + 1
+  while (end < lines.length && !/^##\s/.test(lines[end]!) && !MARKER.test(lines[end]!.trim())) end++
+  const cut = [...lines.slice(0, at), ...lines.slice(end)]
+  // No half asked for: a rewrite stays where the section already sits.
+  const next = half ? place(cut, block, half) : [...lines.slice(0, at), ...block, ...lines.slice(end)].join('\n')
+  return { body: next, replaced: true }
+}
 
-  const tail = lines.findIndex((l) => TAIL_HEADINGS.some((re) => re.test(l.trim())))
-  if (tail >= 0) {
-    return { body: [...lines.slice(0, tail), ...block, ...lines.slice(tail)].join('\n'), replaced: false }
+// Where a section goes when it is not replacing one in place: above the boundary for the
+// human half, and otherwise in front of the card's tail below it, or at the end. A card
+// with no boundary yet takes it where it has always gone — its next refine places it.
+function place(lines: string[], block: string[], half: Half): string {
+  const marker = lines.findIndex((l) => MARKER.test(l.trim()))
+  if (half === 'human' && marker >= 0) {
+    return [...lines.slice(0, marker), ...block, ...lines.slice(marker)].join('\n')
   }
-  return { body: `${body.trimEnd()}\n\n${block.join('\n').trimEnd()}\n`, replaced: false }
+  const tail = lines.findIndex((l, i) => i > marker && TAIL_HEADINGS.some((re) => re.test(l.trim())))
+  if (tail >= 0) return [...lines.slice(0, tail), ...block, ...lines.slice(tail)].join('\n')
+  return `${lines.join('\n').trimEnd()}\n\n${block.join('\n').trimEnd()}\n`
 }

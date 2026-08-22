@@ -19,10 +19,11 @@ covers it, or a plain-words note.
   safe questions it raised itself, and goes round again: `akb guide refine`.
 - A question for the user with choices is written as options they tick, not as prose with
   the choices inside the line: `akb guide resolve`.
-- A card's calls that a human could have made the other way sit under their own
-  `### Worth noting` heading inside `## Decided by the agent`, so a reviewer sees in one
-  pass what to check. Refine looks for unmarked ones, and a work item that drifted off the
-  card is split out, dropped, or kept there: `akb guide board` and `akb guide refine`.
+- A card reads in two halves: what a reviewer must read on top — the opening paragraph and
+  `## Worth noting`, the calls a human could have made the other way — and everything a
+  builder needs below a `<!-- agent -->` marker that never shows when the card is rendered.
+  Refine repairs an older card into that shape without rewording it: `akb guide board` and
+  `akb guide refine`.
 - A card that changes a screen points at its mockups with one tag on a line of its own —
   `<Mockup src=".mockups/239/a.tsx" label="A" />` — and they live in
   `docs/kanban/.mockups/<card id>/`, one file each: a `.tsx` component styled with Tailwind, or
@@ -211,3 +212,28 @@ covers it, or a plain-words note.
   does the flow here, omitting it starts a background run, and the user's explicit choice
   wins. The skill is the only maintained behavior source; there is no `akb guide chat`:
   `docs/guides/daily-loop.md`, "Talk it over, and let it do it".
+- The board keeps `docs/kanban/record.csv` in git beside `metrics.csv`: one appended line per
+  card created, archived or rejected, per question cleared, per set of the board's own calls
+  that stood or was overruled, and per release closed. Board commands write it as they run —
+  nothing new to type and nothing to edit by hand — and the setup questions card and the
+  recurring cards are left out of it. Moving a question that turned out to be a hand-check
+  into a card's `verify:` list is now one call, `akb board update-questions <id> --to-verify
+  <n>`, and `akb board create --proposed` marks a card the board found rather than one a
+  person asked for.
+
+- `readScoreView` turns `docs/kanban/record.csv` into ready-to-draw release windows — every
+  closed release in close order, then the window still open, each with the three planning
+  scores, their counts, their evidence state and their contributing card ids. A window is the
+  lines between one `release-closed` line and the one before it, in file order and never by
+  date. Nothing saves a percentage: the figures are worked out from the evidence on each read.
+
+- The board now scores its own planning, one set of numbers per release, and every board
+  keeps its own. **Details settled** is the share of a card's questions the board answered
+  itself instead of asking the user; **Decisions that stood** is the share of the calls it
+  made on its own that the user did not overrule; **Proposals built** is the share of the
+  cards it proposed, and that have since been decided, that shipped rather than being
+  dropped. Nothing extra is typed or answered to collect them — creating a card, clearing
+  its questions, archiving it, rejecting it and closing a release each leave the evidence
+  behind. A release with too little evidence for a number shows its two counts and `not
+  enough yet` rather than a percentage, and none of the three is a target:
+  `kanban-ui/README.md`, "Progress".

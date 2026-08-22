@@ -8,7 +8,7 @@
 //
 // How the session stays open: the agent's own CLI keeps it. Each turn is one more spawn of
 // that command pointed at the session the first turn opened — `--resume`, `resume <thread>`,
-// `--session`, or ACP's `session/load` (agent/harnesses.ts) — so the exchange is never sent
+// `--session`, or ACP's `session/load` (agent/harnesses/) — so the exchange is never sent
 // again and the tenth message costs what the first one did. An agent whose command can't
 // take a second message into its own session can't hold a conversation at all, and is turned
 // away by name.
@@ -310,6 +310,22 @@ interface Spoken {
 // agent itself is gone, and a chat that never returns is worse than one cut a moment early.
 const CLOSE_GRACE_MS = 3_000
 
+// How long a turn may produce NOTHING AT ALL before it is given up on.
+//
+// A chat has none of a run's safety net — no row in `akb runs`, no log file, no stop
+// command — so an agent that wedges holds the conversation until someone deletes its file
+// by hand, and a wedged reply and a slow one look exactly the same from outside. This is
+// what makes them tell apart on their own.
+//
+// Counted from the last byte, not from the start, and it is raw bytes on either pipe rather
+// than rendered text: an agent grinding through a long tool call is still writing events,
+// even ones that render to nothing. So the window only runs out on a conversation that has
+// genuinely stopped saying anything — long enough that a slow first token or a minutes-long
+// test run doesn't trip it.
+const SILENCE_MS = 5 * 60_000
+
+const SILENCE_SAID = `the agent said nothing for ${SILENCE_MS / 60_000} minutes, so the reply was given up on.`
+
 async function speak(io: {
   plan: RunPlan
   prompt: string
@@ -349,19 +365,26 @@ async function speak(io: {
     return { ok: false, text: '', error: String(e) }
   }
 
+  // Set once the promise below is running, which is where the child can be ended. Every
+  // byte off either pipe calls it, and that is the whole of what keeps the turn alive.
+  let touch = (): void => {}
+
   const renderer = active.renderer
-  if (renderer) {
-    child.stdout.on('data', (d: Buffer) => {
-      push(renderer.push(d.toString()))
-      resumeId ??= renderer.resumeId?.()
-      model ??= renderer.model?.()
-    })
-  }
+  child.stdout.on('data', (d: Buffer) => {
+    touch()
+    if (!renderer) return
+    push(renderer.push(d.toString()))
+    resumeId ??= renderer.resumeId?.()
+    model ??= renderer.model?.()
+  })
   // Whatever the CLI itself has to say — a warning about a flag, a login that expired.
   // Shown rather than swallowed: it is usually the reason a reply reads oddly. Its own
-  // housekeeping chatter is the exception, and is left out (agent/harnesses.ts).
+  // housekeeping chatter is the exception, and is left out (agent/harnesses/types.ts).
   const errs = createStderrFilter(active.quietStderr)
-  child.stderr.on('data', (d: Buffer) => push(errs.push(d.toString())))
+  child.stderr.on('data', (d: Buffer) => {
+    touch()
+    push(errs.push(d.toString()))
+  })
   child.on('error', (err) => {
     spawnError =
       (err as NodeJS.ErrnoException)?.code === 'ENOENT'
@@ -372,9 +395,12 @@ async function speak(io: {
   return await new Promise<Spoken>((resolve) => {
     let done = false
     let stopped = false
+    let silent = false
+    let idle: ReturnType<typeof setTimeout> | undefined
     const finish = (ok: boolean, error?: string, result?: string): void => {
       if (done) return
       done = true
+      if (idle) clearTimeout(idle)
       if (renderer) {
         push(renderer.flush())
         resumeId ??= renderer.resumeId?.()
@@ -382,10 +408,12 @@ async function speak(io: {
       }
       push(errs.flush())
       resolve({
-        ok: ok && !spawnError && !stopped,
+        ok: ok && !spawnError && !stopped && !silent,
         text,
         result: result ?? renderer?.result(),
-        error: spawnError ?? (stopped ? 'you stopped the reply.' : error),
+        error:
+          spawnError ??
+          (stopped ? 'you stopped the reply.' : silent ? SILENCE_SAID : error),
         model,
         resumeId,
       })
@@ -407,13 +435,26 @@ async function speak(io: {
         // already gone
       }
     }
-    io.onOpen?.(() => {
+    // Ending the turn, the same two steps a stop takes: put the command down, then declare
+    // it over whether or not its pipes come with it.
+    const giveUp = (why: () => void): void => {
       if (done) return
-      stopped = true
+      why()
       endChild()
       const t = setTimeout(() => finish(false), CLOSE_GRACE_MS)
       if (typeof t.unref === 'function') t.unref()
-    })
+    }
+
+    io.onOpen?.(() => giveUp(() => (stopped = true)))
+
+    // The silence window, restarted by every byte the command writes (see SILENCE_MS).
+    touch = () => {
+      if (done) return
+      if (idle) clearTimeout(idle)
+      idle = setTimeout(() => giveUp(() => (silent = true)), SILENCE_MS)
+      if (typeof idle.unref === 'function') idle.unref()
+    }
+    touch()
 
     if (client) {
       const toAgent = child.stdin

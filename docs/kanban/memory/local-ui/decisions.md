@@ -220,6 +220,12 @@ re-ask a settled call.
   swipe would either stop scrolling or navigate when the user meant to scroll. From the
   board, Back and Forward are the menu's.
 
+## A card's page
+
+- **Does a card's page open with the agent's own notes folded shut?**: yes — the page opens
+  on the half a human has to read, and the agent half sits below it behind one control. It
+  stays how you last left it, so a reader who wants the detail keeps it open.
+
 ## Mockups on a card
 
 - **How does a card body point at a mockup file?**: with a tag the board UI knows, on a line

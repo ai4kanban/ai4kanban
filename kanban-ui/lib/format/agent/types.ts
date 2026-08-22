@@ -43,8 +43,7 @@ export type AgentAction =
    *  needs that the board is missing. It touches no single card, so it carries a release
    *  id instead of a card id. */
   | 'plan-release'
-  /** Take a card from vague to ready. Always the loop — check, rewrite, resolve, round
-   *  again — never a single pass; `akb guide refine` is the whole of it. */
+  /** One review pass in the refinement loop. The watcher starts later passes. */
   | 'refine'
   | 'resolve'
   /** Finish setting the board up — every step still unticked on
@@ -73,6 +72,8 @@ export interface AgentRequest {
   count?: number // propose: how many tasks to write (1–PROPOSE_MAX)
   boldness?: Boldness // propose: how big a swing the tasks take
   andImplement?: boolean // resolve: keep going and implement once the questions settle
+  /** Internal position in a watcher-managed refinement session chain. */
+  refineRound?: number
   /** spec: which spec agent this run is — a name from `lib/spec-agents.ts`. It decides
    *  the prompt the run is given and the section it is allowed to write. */
   specAgent?: string
@@ -116,6 +117,11 @@ export interface RunRecord {
   model?: string
   /** The agent's final message, parsed out of its event stream at close. */
   result?: string
+  /** What the BOARD has to say about how this run ended, when the agent's own message
+   *  can't: a refinement loop that stopped with its card still unsettled, or a board this
+   *  run left disagreeing with itself. Kept apart from `result` so the two voices are never
+   *  mixed. Several of them are one string, a blank line between each. */
+  note?: string
   /** The harness this run ran under, recorded when it starts, so a finished run keeps
    *  showing the agent that ran IT — changing the setting later can't rewrite history. */
   harness: string
@@ -136,6 +142,8 @@ export interface RunRecord {
   /** Which spec agent this run is, on a `spec` run. Kept on the record so the run list can
    *  say which one is working, and so a resume starts the same agent again. */
   specAgent?: string
+  /** Position in a watcher-managed refinement session chain. */
+  refineRound?: number
 }
 
 /** One ask for a spec agent, as the run that wanted it wrote it down.

@@ -11,3 +11,4 @@ The order is whatever the lines say, so a hand edit is how you reorder. What com
 the em dash is the release's goal — what this version is for, in your own words.
 
 - **0.7.1** — support chat-mode: chat with board / chat with specific task. equivalent with chatting in a coding agent session with `/kanban <optional #id>` in its first message. misc: add all immediate, low-hanging fruit ux improvements into the release pool
+- **0.7.2**

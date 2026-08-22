@@ -101,7 +101,7 @@ export const MOVES: Move[] = [
       ['create [--count N]', 'take N ids (default 1) and print them'],
       [
         'create --title T --track K',
-        'write one card — its fields, a body template, its index\nentry. Options: --priority, --roi, --release, --blocked-by,\n--related, --modules, --question, --slug, --cadence, --no-body',
+        'write one card — its fields, a body template, its index\nentry. Options: --priority, --roi, --release, --blocked-by,\n--related, --modules, --question, --slug, --cadence,\n--no-body, --proposed',
       ],
     ],
     legacy: [
@@ -116,7 +116,11 @@ export const MOVES: Move[] = [
           '--blocked-by 1,2, --related 3, --modules skill,site',
           '(validated against modules.md), --question "..." (repeatable),',
           '--slug my-slug, --no-body, --cadence "1d at 09:30"',
-          '(--track recurring only — see update below).',
+          '(--track recurring only — see update below), --proposed.',
+          '--proposed says the board went looking for this work rather than',
+          'a person asking for it — the propose, extract-ideas and',
+          'plan-release flows pass it, nothing else does. It works with',
+          '--count too, for a group\'s ids.',
           'The script owns the frontmatter — fill only the body by hand.',
           'A question the user picks from carries its choices: follow its',
           '--question with one --option "a — why" per choice (2+), and',
@@ -163,7 +167,7 @@ export const MOVES: Move[] = [
     brief: [
       [
         'update-questions <id>',
-        'patch the open questions one op at a time: --append,\n--update <n>, --drop <n,n>, --clear',
+        'patch the open questions one op at a time: --append,\n--update <n>, --drop <n,n>, --to-verify <n,n>, --clear',
       ],
     ],
     legacy: [
@@ -173,7 +177,9 @@ export const MOVES: Move[] = [
           'patch the open-question list, one op at a time, applied in',
           'the order typed: --append ".." adds a question, --update',
           '<n> ".." rewrites question n whole (options included),',
-          '--drop n[,n...] removes answered ones, --clear removes',
+          '--drop n[,n...] removes answered ones, --to-verify n[,n...]',
+          'moves ones that turned out to be hand-checks into the card\'s',
+          'verify: list (tag dropped, wording kept), --clear removes',
           'them all. Positions are 1-based, read against the list as',
           'it stands when the op runs. --option / --mode /',
           '--recommended-option attach to the --append or --update',
@@ -254,7 +260,7 @@ export const MOVES: Move[] = [
   {
     name: 'spec-write',
     group: 'Cards',
-    brief: [['spec-write <id> <agent>', "write a spec agent's own section onto the card:\n--file <path>, or --text \"..\""]],
+    brief: [['spec-write <id> <agent>', "write a spec agent's own section onto the card:\n--file <path>, or --text \"..\"; --half human|agent"]],
     legacy: [
       [
         'spec-write <id> <agent> --file <path>',
@@ -264,8 +270,12 @@ export const MOVES: Move[] = [
           'is the answer (markdown, written to a file first); --text ".."',
           'for a one-liner. Run again for the same agent and the section',
           'is REPLACED, never added twice. The section goes before',
-          '## Decided by the agent, or at the end. Only a name the command',
-          'ships as a spec agent is accepted — `akb spec` lists them.',
+          '## Decided by the agent, or at the end. --half human puts it',
+          'above the <!-- agent --> boundary, where a pick the user still',
+          'has to make belongs; --half agent puts it below. Told nothing,',
+          'a new section goes below and a rewrite stays put. Only a name',
+          'the command ships as a spec agent is accepted — `akb spec`',
+          'lists them.',
         ],
       ],
     ],

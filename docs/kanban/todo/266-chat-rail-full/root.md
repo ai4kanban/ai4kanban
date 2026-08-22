@@ -4,7 +4,7 @@ track: features
 priority: high
 roi: high
 status: todo
-release: ""
+release: 0.7.2
 blocked_by: []
 related: [267, 268, 269, 270, 271, 272, 273]
 modules: [local-ui, skill]
@@ -72,7 +72,8 @@ Common to the coding agents' own chats — Claude Code and Codex both:
 
 ## Scope out
 - Nothing about what the chat is allowed to do — the rail is an ordinary kanban-skill
-  session and adds no restrictions. Carrying conversation context into a run remains #264.
+  session and adds no restrictions. A run a chat starts gets the card and the note the
+  command already takes; the conversation itself does not travel with it.
 - No second chat window and no full-screen chat page.
 
 ## Todo

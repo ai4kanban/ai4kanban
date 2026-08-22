@@ -12,7 +12,7 @@ Use this process to fill an existing release with the open cards required by its
 - **Protect other releases**: Leave cards already assigned to another release where they are unless the user explicitly asks to move them.
 - **Exclude unrelated work**: Leave out cards that do not help deliver the release goal, regardless of their priority or general value.
 - **Find missing work**: Compare the full release goal with the cards already on the board and identify each required outcome that no existing card covers.
-- **Create only necessary cards**: For each uncovered requirement, follow “Add one task idea” in `akb guide add-task` and include `--release <release-id>` when creating the card.
+- **Create only necessary cards**: For each uncovered requirement, follow “Add one task idea” in `akb guide add-task` and include `--release <release-id>` and `--proposed` when creating the card — the board found the gap, nobody asked for it.
 - **Avoid duplicate work**: Do not create a card when an existing card already covers the requirement, even if that card is already assigned to this release.
 - **Keep repeated runs safe**: Leave current release assignments unchanged and add only newly relevant or newly missing work each time the process runs.
 - **Make supported decisions directly**: Choose inclusions, exclusions, and missing cards without asking for approval when the goal and board provide enough evidence.

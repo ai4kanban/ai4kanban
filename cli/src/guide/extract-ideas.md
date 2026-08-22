@@ -33,8 +33,9 @@ Return `add`, `update #<id>`, or `skip`, with one-line evidence.
 ## 3. Reconcile and create
 
 Merge duplicate drafts across modules and group tightly coupled work. Apply updates,
-send each surviving `add` draft to "Add one task idea" in `akb guide add-task`, then
-report what was created, updated, and skipped.
+send each surviving `add` draft to "Add one task idea" in `akb guide add-task` — adding
+`--proposed` to the `create` call, because the board found this work rather than a person
+asking for it — then report what was created, updated, and skipped.
 
 **Rules**:
 

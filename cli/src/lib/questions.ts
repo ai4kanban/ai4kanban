@@ -182,7 +182,7 @@ export function collectQuestions(order: FlagOrder): Question[] {
 
 // One op of `update-questions`, as read off argv.
 export interface QuestionOp {
-  kind: 'append' | 'update' | 'drop' | 'clear'
+  kind: 'append' | 'update' | 'drop' | 'clear' | 'to-verify'
   ns?: string
   n?: number
   draft?: QuestionDraft
@@ -195,7 +195,7 @@ export interface QuestionOp {
 // `--recommended-option` attach to the `--append` or `--update` before them, the
 // same grammar as create's `--question`.
 export function parseQuestionOps(args: string[]): QuestionOp[] {
-  const OPS = ['append', 'update', 'drop', 'clear', 'option', 'mode', 'recommended-option']
+  const OPS = ['append', 'update', 'drop', 'clear', 'to-verify', 'option', 'mode', 'recommended-option']
   const ops: QuestionOp[] = []
   const take = (flag: string, v: string | undefined): string => {
     if (v === undefined || v.startsWith('--')) die(`--${flag} needs a value`)
@@ -210,6 +210,8 @@ export function parseQuestionOps(args: string[]): QuestionOp[] {
       ops.push({ kind: 'clear' })
     } else if (key === 'drop') {
       ops.push({ kind: 'drop', ns: take('drop', args[++i]) })
+    } else if (key === 'to-verify') {
+      ops.push({ kind: 'to-verify', ns: take('to-verify', args[++i]) })
     } else if (key === 'append') {
       ops.push({ kind: 'append', draft: newDraft('append', take('append', args[++i])) })
     } else if (key === 'update') {
@@ -222,7 +224,9 @@ export function parseQuestionOps(args: string[]): QuestionOp[] {
       addToDraft(last.draft, key, take(key, args[++i]))
     }
   }
-  if (!ops.length) die('update-questions needs at least one op: --append ".." | --update <n> ".." | --drop n[,n...] | --clear')
+  if (!ops.length) {
+    die('update-questions needs at least one op: --append ".." | --update <n> ".." | --drop n[,n...] | --to-verify n[,n...] | --clear')
+  }
   for (const op of ops) {
     if (op.draft) {
       op.question = finalizeDraft(op.draft)

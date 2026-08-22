@@ -3,9 +3,10 @@
 // `docs/kanban/metrics.csv` holds one row per day: completed, created, rejected. The
 // writing side is ../metrics.ts; this is the window a progress view draws.
 //
-// Three things the reader has to get right. Dates are stamped in UTC by the writer, so the
-// window is counted in UTC too — in a local timezone the newest day would slip in or out.
-// The columns are read by header name, not by position: the file's order is
+// Three things the reader has to get right. Dates are stamped in local time by the writer
+// (`formatDay`), so the window is counted in local time too — the two have to agree, or the
+// newest day slips in or out of it. The columns are read by header name, not by position:
+// the file's order is
 // `completed,created,rejected`, the reverse of how we say it, and a file written by another
 // version shouldn't be silently mis-plotted. And a file we can't read or make sense of is
 // reported as an error, never as an empty board — telling a user with a damaged file that
@@ -13,6 +14,7 @@
 
 import fs from 'node:fs'
 
+import { formatDay } from '../cadence'
 import { METRICS } from '../paths'
 import { METRICS_WINDOW_DAYS, type MetricsDay, type MetricsResult } from './types'
 
@@ -20,11 +22,12 @@ const DATE = 'date'
 const COUNTS = ['completed', 'created', 'rejected'] as const
 type Count = (typeof COUNTS)[number]
 
-/** `YYYY-MM-DD` for a day offset from today, counted in UTC. */
-function utcDay(offset: number): string {
+/** `YYYY-MM-DD` for a day offset from today, counted on the local calendar — the same one
+ *  the writer stamps a row with. */
+function localDay(offset: number): string {
   const d = new Date()
-  d.setUTCDate(d.getUTCDate() + offset)
-  return d.toISOString().slice(0, 10)
+  d.setDate(d.getDate() + offset)
+  return formatDay(d)
 }
 
 /** A count the same way the writer writes it: anything missing or non-numeric reads as
@@ -38,7 +41,7 @@ function count(cell: string | undefined): number {
 function blankDays(): Map<string, MetricsDay> {
   const days = new Map<string, MetricsDay>()
   for (let i = METRICS_WINDOW_DAYS - 1; i >= 0; i--) {
-    const date = utcDay(-i)
+    const date = localDay(-i)
     days.set(date, { date, completed: 0, created: 0, rejected: 0 })
   }
   return days

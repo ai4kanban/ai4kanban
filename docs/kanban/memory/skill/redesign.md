@@ -14,6 +14,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Card format
 
+- ❌ **The agent half of a card carries a "worth noting" list** → ✅ "worth noting" is a
+  reviewer's aid and sits in the human half; the agent reads every line. The human half is
+  one short paragraph plus those points and stands alone, since the agent half is folded.
 - ❌ **A card's state lives somewhere other than the card** (the UI's memory, a side file)
   → ✅ everything about a card is a frontmatter field the script writes and nothing else
   does, so the state survives a restart and any reader can parse it.
@@ -83,6 +86,18 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   discards** → ✅ the agent decides and writes; the run's log is the record, and undo is
   asking the agent to move a card back. A user who can't tell whether the proposal is
   right is only being asked to click yes.
+
+## Score
+
+- ❌ **Use calendar dates to divide an event record into releases** → ✅ append an ordered
+  release-close boundary to the record and calculate each score between boundaries. Dates
+  cannot separate two closes on one day or work done before and after a close.
+- ❌ **Collect a score with another bookkeeping call in an agent flow** → ✅ add the evidence
+  to a call the flow already makes, or retain it on the card until archive or reject can
+  count it. Measurement must not make the agent take an extra step.
+- ❌ **Expose an automatic score record as an agent guide** → ✅ keep its event schema and
+  validation inside the CLI, and put only facts an agent must supply in the action-specific
+  flow that supplies them.
 
 ## Auto-refine
 

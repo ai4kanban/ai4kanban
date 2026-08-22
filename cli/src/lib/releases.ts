@@ -19,9 +19,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { die, rel, KANBAN, TODO, ARCHIVE, RELEASES, RELEASE_SUMMARIES } from './paths'
+import { formatDay } from './cadence'
 import { walkMd, idPrefix } from './cards'
 import { parseFrontmatter, serializeFrontmatter } from './frontmatter'
 import { NO_RELEASE, normalizeRelease } from './validate'
+import { recordFact } from './record'
 import type { FlagValue } from './types'
 
 // One release as the list carries it: its id, and what it is for.
@@ -338,7 +340,7 @@ export function fillRelease(id: string): { fill: CardRow[]; skipped: SkippedCard
 
 export const summaryPath = (id: string): string => path.join(RELEASE_SUMMARIES, `${id}.md`)
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => formatDay()
 
 // Rewrite one card's release field — the fill moves a card in with it, and a close clears
 // the leftovers' field the same way.
@@ -505,6 +507,10 @@ export function closeRelease(raw: FlagValue | undefined) {
   // The field is cleared: the work is not promised to a version nobody has picked yet.
   for (const card of left) setCardRelease(card.file, NO_RELEASE)
   removeReleaseLine(id)
+  // The boundary in the board's own record: everything counted before this line belongs to
+  // the version that just shipped. Its place in the file is what separates one version from
+  // the next, so two closed on the same day are still told apart.
+  recordFact('release-closed', null, id)
   return { id, shipped, left, summary, remaining: readReleases() }
 }
 

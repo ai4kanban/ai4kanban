@@ -45,7 +45,7 @@ const ja: DownloadCopy = {
   command: {
     title: "`akb` コマンド",
     body: "アプリは `akb`——コーディングエージェントがボードを操作するためのコマンド——を同梱し、初回起動時に PATH へ通すかどうかを尋ねます。macOS は `/usr/local/bin/akb` にリンクを 1 つ書き込むため管理者パスワードを求め、Windows はアプリのフォルダーを PATH に追加します（効くのはその後に開いたターミナルだけです）。アプリの外へは何もコピーされないので、アプリを更新すればコマンドも更新されます。",
-    later: "断った場合もボタンは **Configuration → Agent setup** に残ります。Linux では提供していません。AppImage は実行のたびに新しい場所へ展開されるため、`npm install -g ai4kanban` がそのまま方法です。",
+    later: "断った場合もボタンは **Configuration → Setup** に残ります。Linux では提供していません。AppImage は実行のたびに新しい場所へ展開されるため、`npm install -g ai4kanban` がそのまま方法です。",
   },
 };
 

@@ -78,16 +78,15 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
   };
 
   const missing = skill?.folders.some((folder) => folder.state === "absent") ?? false;
-  const instructionsNeedWork = !!skill && (!skill.installed || skill.outdated || missing);
+  const skillNeedsWork = !!skill && (!skill.installed || skill.outdated || missing);
 
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">
-          Coding agent access
-        </h3>
+        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">Setup</h3>
         <p className="mt-1 max-w-[58ch] text-[13px] leading-relaxed text-nb-ink-soft">
-          Check that coding agents in this project can find AI4Kanban and use this board.
+          Two things let a coding agent work on this board: the AI4Kanban skill, installed in
+          this project, and the <code>akb</code> command.
         </p>
       </div>
 
@@ -104,7 +103,7 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
         ) : (
           <div className="flex items-start justify-between gap-4 max-sm:flex-col">
             <div className="flex min-w-0 items-start gap-3">
-              <StatusMark ready={!checking && !instructionsNeedWork && !!command && !command.behind} />
+              <StatusMark ready={!checking && !skillNeedsWork && !!command && !command.behind} />
               <div>
                 <p className="text-[14px] font-[800] text-nb-ink">{headline(skill, command)}</p>
                 <p className="mt-0.5 text-[12.5px] leading-relaxed text-nb-ink-soft">
@@ -112,7 +111,7 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
                 </p>
               </div>
             </div>
-            {instructionsNeedWork ? (
+            {skillNeedsWork ? (
               <Button
                 size="sm"
                 className="shrink-0"
@@ -142,9 +141,9 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
       {skill && (
         <dl className="flex flex-col gap-2">
           <CheckRow
-            label="Project instructions"
-            status={instructionStatus(skill)}
-            ready={!instructionsNeedWork}
+            label="AI4Kanban skill"
+            status={skillStatus(skill)}
+            ready={!skillNeedsWork}
           />
           <CheckRow
             label="akb command"
@@ -168,14 +167,14 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
           </summary>
           <div className="mt-3 pl-5">
             <p className="mb-2 text-[11.5px] text-nb-ink-soft">
-              Project instructions provided by AI4Kanban {skill.version}
+              Skill files written by AI4Kanban {skill.version}
             </p>
             <ul className="flex flex-col gap-2">
               {skill.folders.map((folder) => (
                 <FolderRow key={folder.path} folder={folder} carries={skill.version} />
               ))}
             </ul>
-            {!instructionsNeedWork && (
+            {!skillNeedsWork && (
               <div className="mt-3 flex items-center gap-3 max-sm:items-start max-sm:flex-col">
                 <Button
                   size="sm"
@@ -184,7 +183,7 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
                   onClick={() => void install()}
                 >
                   <FiRefreshCw className="text-[13px]" aria-hidden />
-                  {installing ? "Writing…" : "Reinstall instructions"}
+                  {installing ? "Writing…" : "Write the skill again"}
                 </Button>
                 <p className="text-[11.5px] leading-relaxed text-nb-ink-soft">
                   Changes project files. Review <code>git diff</code> before committing.
@@ -220,44 +219,44 @@ function CheckRow({ label, status, ready }: { label: string; status: string; rea
 }
 
 function headline(skill: SkillState, command: CommandState | null): string {
-  if (!skill.folders.length) return "Unable to verify agent setup";
-  if (!skill.installed || skill.folders.some((folder) => folder.state === "absent")) return "Setup incomplete";
+  if (!skill.folders.length) return "Couldn't check this project";
+  if (!skill.installed || skill.folders.some((folder) => folder.state === "absent")) return "Not finished";
   if (skill.outdated || command?.behind) return "Update needed";
-  return "Coding agent access is ready";
+  return "Ready";
 }
 
 function statusDetail(skill: SkillState, command: CommandState | null): string {
   if (!skill.folders.length) return "Update AI4Kanban before checking this project.";
   const available = skill.folders.filter((folder) => folder.state !== "absent").map((folder) => folder.agent);
-  if (!available.length) return "Install the project instructions to connect a coding agent.";
+  if (!available.length) return "Add the skill and a coding agent can work on this board.";
   if (skill.folders.some((folder) => folder.state === "absent")) {
-    return `${available.join(", ")} connected. Finish setup to connect the remaining agents.`;
+    return `${available.join(", ")} can use this board. Add the skill for the rest.`;
   }
-  if (skill.outdated) return "The project instructions are older than this version of AI4Kanban.";
-  if (command?.behind) return "Project instructions are ready, but the akb command needs an update.";
-  return `${available.join(", ")} can find and use this board.`;
+  if (skill.outdated) return "The skill in this project is older than this version of AI4Kanban.";
+  if (command?.behind) return "The skill is ready, but the akb command needs an update.";
+  return `${available.join(", ")} can use this board.`;
 }
 
-function instructionStatus(skill: SkillState): string {
-  if (!skill.folders.length) return "Could not check";
+function skillStatus(skill: SkillState): string {
+  if (!skill.folders.length) return "Couldn't check";
   if (!skill.installed) return "Not installed";
-  if (skill.folders.some((folder) => folder.state === "absent")) return "Incomplete";
+  if (skill.folders.some((folder) => folder.state === "absent")) return "In some agents only";
   if (skill.outdated) return "Update available";
   return `Ready · ${skill.version}`;
 }
 
 function commandStatus(command: CommandState | null, checking: boolean): string {
   if (checking) return "Checking…";
-  if (!command) return "Could not check";
+  if (!command) return "Couldn't check";
   if (!command.onPath) return "Not found";
   if (command.behind) return `${command.onPath} · update available`;
   return `Ready · ${command.onPath}`;
 }
 
 function buttonLabel(skill: SkillState): string {
-  if (!skill.installed) return "Install instructions";
-  if (skill.folders.some((folder) => folder.state === "absent")) return "Finish setup";
-  return "Update instructions";
+  if (!skill.installed) return "Add the skill";
+  if (skill.folders.some((folder) => folder.state === "absent")) return "Add the rest";
+  return "Update the skill";
 }
 
 // One folder, and what is in it. The state words are the board's own answer, not a guess

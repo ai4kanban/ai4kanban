@@ -1,6 +1,6 @@
 // Turns `codex exec --json`'s JSONL stream into the same readable log the Claude
 // renderer writes (#69). Codex prints only its final message by default, so the
-// harness asks for the event stream (see the Codex entry in harnesses.ts) and
+// harness asks for the event stream (see harnesses/codex.ts) and
 // this renders it.
 //
 // The events are Codex's `ThreadEvent`s. Four matter here:

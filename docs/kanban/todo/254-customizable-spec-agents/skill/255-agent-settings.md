@@ -4,7 +4,7 @@ track: skill
 priority: med
 roi: med
 status: ready
-release: ""
+release: 0.7.2
 blocked_by: []
 related: [254, 246]
 modules: [skill]
@@ -51,7 +51,7 @@ its own, and let a run be told what was picked.
 - **`SpecAgentView` in `cli/src/lib/agent/types.ts` carries the same settings, choices and
   values.**
 - **Every setting is one of a few named choices** — no free text, no numbers.
-- Out: setting a value from a terminal (#257).
+- Out: setting a value from a terminal. The board UI is where a setting is picked (#257).
 - Out: overriding a setting for one run.
 - Out: settings that change which harness or model runs the agent (#246).
 

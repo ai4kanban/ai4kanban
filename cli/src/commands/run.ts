@@ -8,6 +8,7 @@
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { spawnWatcher } from '../lib/agent/launch'
 import { readLogTail, splitLog } from '../lib/agent/log'
+import { startRefinement } from '../lib/agent/refine'
 import {
   getRun,
   listRuns,
@@ -50,7 +51,7 @@ export function cmdStartRun(action: AgentAction, args: string[], program = 'akb'
     return printFlow(req, program)
   }
   sayIfBlocked(req)
-  const started = startRun(req)
+  const started = action === 'refine' ? startRefinement(req) : startRun(req)
   if ('error' in started) die(started.error, { kind: 'run-refused', action })
   const { run, spawned } = started
   if (!spawned) die(`couldn't start a process to run ${run.sessionId}`, { kind: 'spawn-failed' })
@@ -230,11 +231,16 @@ export function cmdLog(args: string[], program = 'akb'): MoveResult {
     say('')
     say(view.result)
   }
+  if (view.note) {
+    say('')
+    say(view.note)
+  }
   return {
     sessionId: view.sessionId,
     status: view.status,
     tail: view.tail,
     result: view.result,
+    note: view.note,
   }
 }
 
@@ -268,9 +274,16 @@ export function followRun(sessionId: string, already = '', program = 'akb'): Mov
         process.stdout.write('\n')
         say(now.result)
       }
+      // The board's own last word, when it has one. It is written by the watcher after the
+      // run closes, so a follow can outrun it by a beat — read it again rather than assume.
+      const note = getRun(sessionId)?.note
+      if (note) {
+        process.stdout.write('\n')
+        say(note)
+      }
       say('')
       say(runLine(now ?? view, program))
-      return { status: now?.status, result: now?.result }
+      return { status: now?.status, result: now?.result, note }
     }
     sleep(FOLLOW_MS)
   }
@@ -307,7 +320,11 @@ function runLine(r: RunView, program = 'akb'): string {
   if (r.costUsd !== undefined) bits.push(`$${r.costUsd.toFixed(4)}`)
   if (r.canResume) bits.push(`— continue it with \`${program} resume ${short(r.sessionId)}${DIR_FLAG}\``)
   const line = bits.join('  ')
-  return r.input ? `${line}\n    ${firstLine(r.input)}` : line
+  // The board's own last word rides on the row, not only in the log. `✓ done` beside a run
+  // that left the board inconsistent reads as "nothing to see here", which is the one thing
+  // it must not — and a note nobody opens the log for is a note nobody reads.
+  const under = [r.input && firstLine(r.input), r.note && `! ${firstLine(r.note)}`].filter(Boolean)
+  return under.length ? [line, ...under.map((s) => `    ${s}`)].join('\n') : line
 }
 
 // Eight characters of a run's id: enough to name one run on a board, short enough to type

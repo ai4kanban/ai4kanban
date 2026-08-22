@@ -153,6 +153,7 @@ export function readRuns(): RunRecord[] {
       usage: asUsage(entry.usage),
       model: typeof entry.model === 'string' && entry.model ? entry.model : undefined,
       result: typeof entry.result === 'string' ? entry.result : undefined,
+      note: typeof entry.note === 'string' && entry.note ? entry.note : undefined,
       // A run written down before the agent was recorded carries no name, so it gets no
       // resume: every agent resumes differently, and the one thing worse than a missing
       // offer is a command for the wrong agent.
@@ -163,6 +164,10 @@ export function readRuns(): RunRecord[] {
       priorStatus: typeof entry.priorStatus === 'string' ? entry.priorStatus : undefined,
       stopping: entry.stopping === true ? true : undefined,
       specAgent: typeof entry.specAgent === 'string' && entry.specAgent ? entry.specAgent : undefined,
+      refineRound:
+        typeof entry.refineRound === 'number' && Number.isInteger(entry.refineRound) && entry.refineRound >= 0
+          ? entry.refineRound
+          : undefined,
     })
   }
   return runs.sort((a, b) => a.startedAt - b.startedAt)
@@ -266,7 +271,7 @@ function boardMove(fn: () => void): void {
   }
 }
 
-function setCardStatus(cardId: number, status: string): void {
+export function setCardStatus(cardId: number, status: string): void {
   boardMove(() => cmdUpdate([String(cardId), '--status', status]))
 }
 
@@ -492,6 +497,7 @@ export function openRun(req: AgentRequest, prompt: string): { run: RunRecord; sp
     // Which spec agent this is, on the one action that has one — so the run list can name
     // it, and so a resume starts the same agent rather than a different one.
     specAgent: req.action === 'spec' ? req.specAgent : undefined,
+    refineRound: req.refineRound,
   }
   const out = withRuns<{ run: RunRecord } | { error: string }>((runs) => {
     const locked = lockedBy(runs, req.action, cardId)
@@ -542,6 +548,7 @@ export function openResume(id: string): { run: RunRecord; spec: RunSpec } | { er
     resumedFrom: prev.sessionId,
     logPath: logPathOf(sessionId),
     specAgent: prev.specAgent,
+    refineRound: prev.refineRound,
   }
   const out = withRuns<{ run: RunRecord } | { error: string }>((all) => {
     const locked = lockedBy(all, prev.action, prev.cardId)
@@ -647,7 +654,14 @@ export function peekRun(sessionId: string): RunRecord | undefined {
  *  the old logs trimmed. Whichever path gets here first wins and the rest are no-ops. */
 export function closeRun(
   sessionId: string,
-  res: { status: RunStatus; ok?: boolean; code?: number | null; error?: string; endedAt?: number },
+  res: {
+    status: RunStatus
+    ok?: boolean
+    code?: number | null
+    error?: string
+    note?: string
+    endedAt?: number
+  },
 ): void {
   const closed = withRuns((runs) => {
     const run = runs.find((r) => r.sessionId === sessionId)
@@ -656,6 +670,7 @@ export function closeRun(
     if (res.ok !== undefined) run.ok = res.ok
     run.code = res.code ?? null
     if (res.error) run.error = res.error
+    if (res.note) run.note = res.note
     run.endedAt = res.endedAt ?? Date.now()
     run.pid = undefined
     return { ...run }

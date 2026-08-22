@@ -201,6 +201,7 @@ export function SessionLog({
   const pinned = useRef(true);
   const tail = (session?.tail || "").trim();
   const result = (session?.result || "").trim();
+  const note = (session?.note || "").trim();
 
   useEffect(() => {
     const el = ref.current;
@@ -285,7 +286,7 @@ export function SessionLog({
   );
 
   // The log body, shared by both layouts.
-  const body = running ? (
+  const message = running ? (
     // A live tail is streaming events, not markdown — keep the raw terminal look
     // so partial lines don't get mangled mid-render.
     <pre className="m-0 text-nb-ink-soft" style={MONO_TEXT}>
@@ -329,6 +330,20 @@ export function SessionLog({
     <pre className="m-0 text-nb-ink-soft" style={MONO_TEXT}>
       (no output)
     </pre>
+  );
+
+  // The board's own line about how the run ended, under the agent's message and plainly
+  // not part of it. The one thing a finished run can't say for itself is that nothing is
+  // coming after it.
+  const body = note ? (
+    <>
+      {message}
+      <p className="mt-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
+        {note}
+      </p>
+    </>
+  ) : (
+    message
   );
 
   // The title bar — the "session log" kicker + the live/done indicator on a

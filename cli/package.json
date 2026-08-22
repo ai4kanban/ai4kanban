@@ -1,7 +1,7 @@
 {
   "name": "ai4kanban",
   "version": "0.7.0",
-  "description": "AI4Kanban's `akb` command — scaffold the Markdown board under docs/kanban/, put an agent on a card, and carry the flows the agent works by.",
+  "description": "AI4Kanban's `akb` command \u2014 scaffold the Markdown board under docs/kanban/, put an agent on a card, and carry the flows the agent works by.",
   "keywords": [
     "kanban",
     "claude",
@@ -35,6 +35,7 @@
     "build": "node scripts/build.mjs",
     "prepare": "node scripts/build.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node scripts/test.mjs",
     "lint": "npm run typecheck",
     "prepublishOnly": "npm run build && node ../scripts/sync-version.mjs --check"
   },

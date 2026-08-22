@@ -157,6 +157,9 @@ re-ask a settled call.
   away, to look at the drawings. Nothing links the dialog back to the card.
 - **How long may one option's mockup run?**: short — one screen, and about as long as the
   card's own plan. The agent trims detail to stay inside it.
+- **Does every spec agent get settings of its own?**: no. A spec agent may declare settings,
+  and one that declares none is unchanged. `ui-design` gets the first — mockup style —
+  and `technology-selection` gets none.
 
 ## Chat
 
@@ -176,6 +179,18 @@ re-ask a settled call.
 
 ## Card format
 
-- **Where does a card's `### Worth noting` heading sit?**: inside `## Decided by the
-  agent`, after that section's plain lines. It holds the agent's calls a human might have
-  made differently; the obvious ones stay in the plain lines above it.
+- **Where does a card's "worth noting" live?**: in the human half, as its own section under
+  the summary paragraph. It is written for the reviewer; the agent reads every line and
+  needs no such section in `## Decided by the agent`.
+- **What is each half of a card for?**: the human half is for review — one short paragraph
+  of what the task does plus the points worth noting, self-contained because the agent half
+  is folded by default. The agent half is for execution — `## Scope`, `## Todo` and the
+  rest, detailed enough to implement from but still plain and concise, no coding details.
+- **Where does a spec agent's section go when the user has to pick from it?**: the human
+  half. A section that asks the user to choose is work for the human, wherever it was
+  written; every other spec agent section stays in the agent half.
+- **What happens to cards written before the two halves?**: each is reordered the next time
+  it is refined. There is no pass over the board.
+- **What marks where a card's agent half starts?**: an HTML comment, `<!-- agent -->`, on a
+  line of its own above the first agent half section. It does not show when the card is
+  rendered.

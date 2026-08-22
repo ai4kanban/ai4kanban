@@ -154,7 +154,7 @@ export function testConnection(): Promise<ConnectionTest> {
         events += renderer.push(d.toString())
       })
     }
-    // The agent's own housekeeping chatter is left out (agent/harnesses.ts). It matters
+    // The agent's own housekeeping chatter is left out (agent/harnesses/types.ts). It matters
     // most here: a failed test shows this text in full, and a real reason buried under a
     // dozen identical cache warnings reads as if the cache warnings were the reason.
     const errs = createStderrFilter(run.quietStderr)

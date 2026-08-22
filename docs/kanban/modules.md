@@ -6,3 +6,4 @@ If a line here disagrees with the repo you just read, fix the line.
 - **local-ui** — the UI to drive the board from buttons: the browser app published as `ai4kanban-ui`, and the desktop app that wraps it. `kanban-ui/`, `desktop/`.
 - **site** — the marketing and landing site, deployed to Cloudflare Pages. `web/`.
 - **docs** — the user guides. `docs/guides/`.
+- **telemetry** — the service that takes in usage events from the app and the site, and where those events are stored and read. No code yet.

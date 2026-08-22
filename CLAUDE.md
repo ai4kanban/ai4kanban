@@ -1,30 +1,18 @@
 # Quick Dev Notes
 
-## Skill/Design.md Writing
+## Writing Style
 
-- Add minimal, only necessary information to SKILL.md, design.md or `references/*.md`. The context is precious.
-- When writing a flow, it's recommended to use `- **bold title**: one liner` format to make the requirements scannable.
-
-## User-facing Writing
-
-Professional and plain. Comprehensible without being chatty. Never explain how something
-works internally — the user has no idea what a session id, a renderer or a harness field is,
-and doesn't need one.
-
-- **UI text**: assume zero patience. Nothing that needs reading twice, nothing folded behind
-  a click, no paragraphs. A short label plus a one-line consequence, laid out so the eye can
-  run down it. Cut every word that isn't load-bearing.
-- **`docs/guides/`**: a few sentences of framing, then tables and one-line bullets. Say what
-  the user sees and what to do about it, not why the code is that way.
-- **Both**: no internal mechanics, no reassurance, no hedging. Name the consequence.
+- Add minimal, only necessary information to SKILL.md, design.md, `cli/src/guide/*.md`, or `references/*.md`. The context is precious.
+- When writing bullet points, it's recommended to use `- **bold title**: one liner` format to make the requirements scannable.
+- Always use a professional and comprehensible language.
+- **UI text**: assume that readers have ZERO patience. Use clean UI philosophy. The UI must be extremely intuitive and glanceable.
 
 ## The public site
 
-`web/design.md` describes how the site in `web/` looks and is put together — the color
-tokens, the panel, where the styling goes, and where the copy lives. It is about design
-only; routing lives in comments in the files that own it. Read it before changing a page.
+`web/design.md` describes how the site in `web/` looks and is put together.
 
 ## Pre-commit Checks
+
 - **Python**: `uv run pre-commit run --all-files`
 - **JavaScript/Typescript**: run in whichever app you touched — `web/` (the public site),
   `kanban-ui/` (the local board UI) and `cli/` (the `akb` command and the board's rules)
@@ -51,4 +39,4 @@ Don't use worktree/branching. Keep everything in the main branch.
 
 ## Code Style
 
-When you see a lengthy comment, trim it down to key notes for future writers, or just remove it. Code is enough to explain itself. Add comments only when necessary.
+When you see a lengthy comment, trim it down aggressively to key notes for future writers, or just remove it. Code is enough to explain itself. Add comments only when necessary.

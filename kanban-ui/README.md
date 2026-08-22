@@ -79,9 +79,8 @@ The header carries seven things:
   Every proposal is a single card a session can finish, never a group task.
 - **Runs** — every agent session, live or finished. Open one to read its log. A finished run
   can be continued with a follow-up prompt; that starts a new run.
-- **Daily progress** (the chart) — the last 30 days as a line each for completed, created and
-  rejected cards, with totals above. The numbers come from `docs/kanban/metrics.csv`; the view
-  only reads it. A board with nothing recorded yet says so.
+- **Progress** (the chart) — two charts, both read-only: **Daily progress**, and
+  **Planning quality**; see below.
 - **Configuration** (the gear) — see below.
 - **Chat** — a conversation about this project that also does the board work, in a rail down
   the right; see below.
@@ -238,6 +237,44 @@ usual.
 The folder is gitignored — a mockup is a working drawing, not something the repo carries. A card
 pulled from someone else's board shows its tags as those notes until `ui-design` draws the
 options again here.
+
+### Progress
+
+The header's chart button opens **Progress**, which holds two charts. Both only read what the
+board has already written; neither ever writes.
+
+**Daily progress** — the last 30 days as a line each for completed, created and rejected cards,
+with totals above. The numbers come from `docs/kanban/metrics.csv`. A board with nothing recorded
+yet says so.
+
+**Planning quality** — how well the board planned each release, one point per release in the
+order they closed, and the release still open at the right end, marked `open`. The numbers are
+worked out from `docs/kanban/record.csv`, which board commands append to as they run. Three
+series, each with its own line style and marker so they are told apart without colour:
+
+| Series | What it counts | What it leaves out | Drawn after |
+| --- | --- | --- | --- |
+| **Details settled** | Of the card questions closed in the release, the share the board settled itself rather than handing to you. | A question moved to a card's `verify:` list — it was never answered, only turned into a hand-check. | 20 closed questions |
+| **Decisions that stood** | Of the calls the agent made on its own, the share you left standing rather than overruling. Both counts land in the release where the card was archived or rejected. | Nothing; every call on a card that left the board in the window counts. | 20 calls |
+| **Proposals built** | Of the cards the board proposed itself, the share that were built rather than rejected. | A card you asked for, a card created before the record existed, and a proposal still open. | 10 decided proposals |
+
+**A missing point means too little evidence, not zero.** Below the figure in the last column a
+series has no point at all and its line stops, restarting at the next release that has one. The
+readout says `not enough yet` there, with the two counts it does have.
+
+**A high number is not proof of good planning.** Asking only easy questions raises Details
+settled. A decision nobody reviews is never overruled, so Decisions that stood rises when the
+agent's calls go unread. Proposing only safe work raises Proposals built. Read each one beside
+what the release actually shipped.
+
+Click or hover a release to read it out; the chart is also one Tab stop, where **←** and **→**
+move release to release and **Home** and **End** jump to the ends. The readout under the chart
+gives the chosen release's three percentages, the counts behind each, and every card that
+contributed — enough to recalculate any figure from `record.csv` by hand. It opens on the release
+still open, because that is the score still worth acting on.
+
+A board whose installed `akb` predates these scores says so in one line, and Daily progress is
+still drawn above it.
 
 ## Releases
 
@@ -576,7 +613,7 @@ struck through, so the outcome survives after the subtask files are gone.
 ## Configuration
 
 The gear in the header opens the **Configuration** dialog. A sidebar names its sections —
-**Harness**, **Agents** and **Agent setup**. Settings live in `docs/kanban/ui.config.json`, next to your board, so
+**Harness**, **Agents** and **Setup**. Settings live in `docs/kanban/ui.config.json`, next to your board, so
 `npx` always serves the latest UI and an update never touches them. Everything the dialog holds
 writes itself there, with one exception: a key goes to `docs/kanban/.env` and never to this file.
 
@@ -872,12 +909,12 @@ every button here runs without it. What it adds is a second way in: you can say 
 *"what's next"* to your coding agent in your repo and it works this same board — the same cards, the
 same runs, the same files.
 
-**Configuration → Agent setup** is where you turn that on. The pane says where the project stands and one
+**Configuration → Setup** is where you turn that on. The pane says where the project stands and one
 button does the rest:
 
 - **Not installed** — nothing in either folder. **Add the skill** writes it.
 - **Installed** — the version in each folder, beside the version this board runs on.
-- **Out of date** — a folder written by an older release. The button says **Bring it up to date**.
+- **Out of date** — a folder written by an older release. The button says **Update the skill**.
 
 Under the button it names the folders it touches — `.claude/skills/kanban/` for Claude Code,
 `.agents/skills/kanban/` for the other four — and after a press it says, folder by folder, what it

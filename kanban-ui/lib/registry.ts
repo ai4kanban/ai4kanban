@@ -44,6 +44,7 @@ function toView(run: RunView): SessionView {
     code: run.code,
     error: run.error,
     result: run.status !== "running" ? run.result : undefined,
+    note: run.status !== "running" ? run.note : undefined,
     tail: run.tail,
   };
 }

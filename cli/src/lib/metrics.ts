@@ -1,7 +1,9 @@
-// docs/kanban/metrics.csv — one row per day: completed, created, rejected.
+// docs/kanban/metrics.csv — one row per day: completed, created, rejected. The day is the
+// local one (see `formatDay`), so an evening's work is filed under the evening it happened.
 
 import fs from 'node:fs'
 
+import { formatDay } from './cadence'
 import { METRICS } from './paths'
 
 const COLUMNS = ['completed', 'created', 'rejected'] as const
@@ -9,12 +11,8 @@ const COLUMNS = ['completed', 'created', 'rejected'] as const
 type MetricKind = (typeof COLUMNS)[number]
 type Row = { date: string } & Record<MetricKind, number>
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 export function bumpMetric(kind: MetricKind, amount = 1): void {
-  const day = today()
+  const day = formatDay()
   let rows: Row[] = []
   if (fs.existsSync(METRICS)) {
     rows = fs

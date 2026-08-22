@@ -155,7 +155,7 @@ function actionPrompt(req: AgentRequest, command: string): string {
       ].join(' ')
     case 'refine':
       return [
-        `${kb}. Refine task ${req.id} ${named} following \`akb guide refine\` — the loop, until it is ready or only my own calls are left.`,
+        `${kb}. Perform one refinement pass on task ${req.id} ${named} following \`akb guide refine\`.`,
         `Don't ask me questions with human-in-the-loop — the \`[user]\` tag is how you defer to me.`,
         // A refine has no note box of its own, but a refine SCHEDULED on a blocked card
         // carries whatever was typed when it was scheduled — often the very reason the user

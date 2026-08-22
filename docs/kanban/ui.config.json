@@ -2,8 +2,7 @@
   "harness": "claude-code",
   "harnessSettings": {
     "claude-code": {
-      "provider": "subscription",
-      "model": "claude-opus-5"
+      "provider": "subscription"
     },
     "zcode": {
       "provider": "coding-plan"

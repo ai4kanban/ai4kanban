@@ -68,11 +68,22 @@ const PROGRAM = (() => {
   if (/[\\/](_npx|dlx)[\\/]/.test(entry)) return `npx --yes ${NAME}@${VERSION}`
   const base = path.basename(entry).toLowerCase().replace(/\.(cmd|ps1|exe)$/, '')
   if (base === 'akb' || base === NAME) return 'akb'
-  // Relative to where it was typed when that is shorter and still runs — a checkout says
-  // `node cli/bin/ai4kanban.mjs`, which reads inside a sentence; an absolute path doesn't.
-  const near = path.relative(process.cwd(), entry)
-  return `node ${near && !near.startsWith('..') ? near : entry}`
+  return `node ${nearPath(entry)}`
 })()
+
+// How a path is spelled in something a person is meant to paste back.
+//
+// Relative when it is a short hop down from where the command was typed — a checkout says
+// `node cli/bin/ai4kanban.mjs`, which reads inside a sentence and is what the project's own
+// notes spell. Absolute otherwise, and absolute is the safe answer: run from `/`, a
+// relative path is the whole absolute one with its leading slash quietly removed
+// (`node Users/me/…/ai4kanban.mjs`), which runs from that one folder and nowhere else and
+// reads to everyone else like a typo.
+function nearPath(file) {
+  const near = path.relative(process.cwd(), file)
+  const shortHop = near && !near.startsWith('..') && !path.isAbsolute(near) && near.split(/[\\/]/).length <= 3
+  return shortHop ? near : file
+}
 
 // One line, when this copy isn't `akb`, for the text that spells it `akb` throughout — the
 // help, and the flows a `--print` hands over. Cheaper than rewriting either, and it holds

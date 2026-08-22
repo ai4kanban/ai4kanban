@@ -25,7 +25,6 @@
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-import { rel } from './lib/paths'
 import { runAgent } from './lib/agent-cli'
 import { runBoard } from './lib/board-cli'
 import { SKILL_VERSION } from './version'
@@ -107,6 +106,7 @@ export {
   readMetricsView,
   readModules,
   readReleases,
+  readScoreView,
   readSetupDraft,
   readSetupState,
   saveGoal,
@@ -169,7 +169,10 @@ if (invokedDirectly()) {
       program: 'kanban',
       style: 'legacy',
       version: `ai4kanban ${SKILL_VERSION}`,
-      usage: `node ${rel(SELF)} <command> [args]`,
+      // Absolute, like the two doors above: this line is printed for a person to paste, and
+      // a path relative to a working directory that may be anywhere runs from that one
+      // folder and nowhere else.
+      usage: `node ${SELF} <command> [args]`,
     })
   }
 }

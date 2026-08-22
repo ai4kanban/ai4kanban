@@ -8,20 +8,24 @@ Each open question in the card's `questions` frontmatter carries a tag saying wh
 
 ## Move the ones that aren't questions
 
-Some entries in the list are not questions at all — they are hand-checks a build left behind:
-"try it on a real repo", "the numbers look right but nobody has run this against a big board".
-Nobody has to answer those, so answering them or handing them back to the user is the wrong
-move. Move each one to the card's `verify:` field instead, where a note to read belongs:
+Some entries are manual checks left by a build, not decisions anyone must make. For
+example: "Try it on a real repo" or "The numbers look right, but this has not been run on
+a large board." Move each one to the card's `verify:` field:
 
 ```
-akb board update-verify <id> --append "try it on a real repo"
-akb board update-questions <id> --drop 2
+akb board update-questions <id> --to-verify 2
 ```
 
-Keep the wording; drop the `[user]` tag if it has one. The test is the same one in
-"What is left for the user to check" in `akb guide board`: a **decision** stays a question,
-a **check** becomes a verify line. Do this pass first — it is often what leaves the list
-short enough to settle in one round.
+That moves question 2 into `verify:` in one call — the wording is kept and a `[user]` tag
+is dropped for you. Use one test:
+
+- A **decision** stays in `questions:` because someone must answer it.
+- A **manual check** moves to `verify:` because the user only needs to perform or confirm
+  it.
+
+Verify lines are short notes, not questions. They do not block a card from reaching
+`ready`, resolving, or being archived, and they remain with the archived card. Do this
+pass first; it often makes the remaining questions easy to settle in one round.
 
 ## Try to answer each question yourself
 
@@ -34,7 +38,9 @@ the trail of past `decisions.md`, `rejected.md`, `redesign.md`, and the board ro
 `goal.md` often shows the user already made this call, or one close enough to decide from.
 
 Decide yourself when the evidence gives you confidence. Note the decision and reason
-under `## Decided by the agent` (read "Card format" in `akb guide board`).
+under `## Decided by the agent`, or — when a reviewer could reasonably refuse the call —
+as one line in the human half's `## Worth noting` (read "Card format" in
+`akb guide board`).
 
 ## Ask the user the rest
 
@@ -87,6 +93,10 @@ entry per question. Cut what the spec no longer needs.
 An answer sometimes creates work the `## Todo` list doesn't cover — append it as new
 unchecked todos, even when every box is ticked: an open question meant the card wasn't
 finished, so the answers are the remaining work.
+
+Re-read the human half last: the answers changed the plan, so the opening paragraph and
+`## Worth noting` have to still hold. A spec agent's section an answered question pointed
+at moves back below the boundary.
 
 ## Record lasting decisions
 

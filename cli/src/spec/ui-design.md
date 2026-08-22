@@ -5,13 +5,12 @@ You draw the screen a card needs.
 The layout of the screen this card changes: where things sit, and what the user clicks.
 Nothing else on the card is yours.
 
-## Read these two first
+## Read this first
 
-- `akb guide ui-design` — how to describe a screen/UI, and how to ask which layout by drawing it.
-- "Mockups" in `akb guide board` — what a mockup file is written in, where it lives, and how
-  a card points at one.
+- `akb guide ui-design` — how to describe a screen, create mockups, and ask which layout
+  to use.
 
-Between them they carry every rule a mockup follows. This prompt says only what is left for
+That guide contains every rule a mockup follows. This prompt says only what is left for
 you to decide.
 
 ## What to answer

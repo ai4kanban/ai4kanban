@@ -6,6 +6,7 @@
 // be split across two agents — switching the picker while an agent is working changes what
 // the NEXT run spawns, never this one.
 
+import { REPO_ROOT } from '../paths'
 import { harnessGaps } from './capabilities'
 import type { RunClient } from './client'
 import { HARNESSES, type Harness, DEFAULT_HARNESS, SKILL_SENTENCE, harnessByName, namesFlag } from './harnesses'
@@ -227,7 +228,11 @@ function runEnv(resolved: ResolvedHarness): NodeJS.ProcessEnv {
     // auth sources, and the agent picks one of them.
     env[picked?.envAs?.[setting.key] ?? setting.env] = value
   }
-  return { ...env, ...(picked?.env ?? {}) }
+  // The project, said a second way. Every spawn sets `cwd` to it already; this is the
+  // variable a shell would have set alongside, and some CLIs read that instead of asking
+  // the OS — an agent inheriting the caller's PWD reports the caller's folder even though
+  // its own cwd is the project (agent/harnesses/types.ts, WORKING FOLDER).
+  return { ...env, PWD: REPO_ROOT, ...(picked?.env ?? {}) }
 }
 
 // Every variable the provider pick owns, and so every variable a run has dropped before
@@ -281,7 +286,7 @@ export interface ActiveRun extends RunPlan {
   /** Talks to this agent over its own pipes (agent/client.ts). */
   client?: RunClient
   /** This agent's own housekeeping chatter on stderr, which the log leaves out
-   *  (agent/harnesses.ts). Undefined for a harness that has none. */
+   *  (agent/harnesses/types.ts). Undefined for a harness that has none. */
   quietStderr?: (line: string) => boolean
 }
 
@@ -292,7 +297,7 @@ export function planRun(sessionId: string): RunPlan {
   const argv = command.split(/\s+/).filter(Boolean)
   return {
     harness: harness.name,
-    argv: [...argv, ...settingArgs(resolved), ...harness.extraArgs(argv, sessionId)],
+    argv: [...argv, ...settingArgs(resolved), ...harness.extraArgs(argv, sessionId, REPO_ROOT)],
     resumeId: harness.adoptsSessionId ? sessionId : null,
     install: harness.install,
   }
@@ -312,7 +317,7 @@ export function planResume(harnessName: string, resumeId: string): RunPlan | nul
   const argv = command.split(/\s+/).filter(Boolean)
   return {
     harness: harness.name,
-    argv: [...argv, ...settingArgs(resolved), ...harness.resumeArgs(argv, resumeId)],
+    argv: [...argv, ...settingArgs(resolved), ...harness.resumeArgs(argv, resumeId, REPO_ROOT)],
     // The resumed turn runs under the id it resumed, so this run can be resumed again by
     // the same id — a failure two turns deep is still recoverable.
     resumeId,

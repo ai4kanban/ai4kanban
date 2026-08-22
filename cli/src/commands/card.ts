@@ -9,6 +9,7 @@ import path from 'node:path'
 import { die, warn, rel, readNextId, writeNextId, TODO } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
+import { countsForRecord, recordFact, type Answerer, type Origin } from '../lib/record'
 import { parseFlags, slugify, validLevel, validStatus, validTrack, validModules, parseModuleList, parseIdList, normalizeRelease } from '../lib/validate'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, parseQuestionOps, parseQuestionPositions } from '../lib/questions'
 import { parseVerifyOps, parseVerifyPositions } from '../lib/verify'
@@ -21,7 +22,7 @@ import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
 import { setCardSchedule } from '../lib/view/edit'
 import { readmeHeadingFor, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme'
 import { reconcileBoard } from '../lib/reconcile'
-import type { FlagValue, Meta, MoveResult } from '../lib/types'
+import type { FlagValue, Flags, Meta, MoveResult, Question } from '../lib/types'
 
 // A todo item in any accepted form: `- [ ]`, `- []`, `- [x]`, `* [X]`, … — the shape
 // counts, not the literal string.
@@ -29,7 +30,9 @@ const TODO_ITEM = /^[ \t]*[-*+][ \t]*\[[ xX]?\]/m
 
 function defaultBody() {
   return [
-    '<one short line: what to do and why it matters.>',
+    '<one short paragraph: what the task does, and what is wrong without it.>',
+    '',
+    '<!-- agent -->',
     '',
     '## Scope',
     '- <the concrete steps>',
@@ -54,7 +57,12 @@ function cadenceFlag(raw: FlagValue): string {
   return formatCadence(parsed)
 }
 
-const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'count', 'no-body', 'cadence']
+const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'count', 'no-body', 'cadence', 'proposed']
+
+// Where a card came from. `--proposed` is what the flows that go looking for work pass —
+// propose, extract-ideas, plan-release; every other way of adding a card is a person
+// asking for it. Kept for the board's own score (lib/record.ts), not shown on the card.
+const originOf = (flags: Flags): Origin => (flags.proposed !== undefined ? 'proposed' : 'asked')
 
 // Two modes:
 //   bare      `create [--count N]`  → allocate ids and print them (group-task setup).
@@ -71,10 +79,12 @@ export function cmdCreate(args: string[]): MoveResult {
     }
     const count = flags.count !== undefined ? Number(flags.count) : 1
     if (!Number.isInteger(count) || count < 1) die('--count must be a positive integer')
+    const origin = originOf(flags)
     const start = readNextId()
     const ids = Array.from({ length: count }, (_, k) => start + k)
     writeNextId(start + count)
     bumpMetric('created', count)
+    for (const id of ids) recordFact('card-created', id, origin)
     say(ids.join('\n'))
     reconcileBoard()
     return { ids }
@@ -117,6 +127,7 @@ export function cmdCreate(args: string[]): MoveResult {
   const meta: Partial<Meta> = { title, track, priority, roi, status: 'todo', release, blocked_by, related, modules, cadence, questions }
   const body = flags['no-body'] ? '' : defaultBody()
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
+  if (countsForRecord(file)) recordFact('card-created', start, originOf(flags))
   const indexed = addReadmeRef(track, start, title, fileRel)
   say(start)
   say(`  wrote ${rel(file)} — frontmatter is set; fill the body with your editor, leave the frontmatter to the script`)
@@ -314,14 +325,35 @@ export function cmdUpdateQuestions(args: string[]): MoveResult {
   if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
 
   const changes: string[] = []
+  // Who cleared each question, in the order the ops ran. A question the board handed over
+  // carries the `[user]` tag, so the card already says whether the person answered it or
+  // the board settled it — no flag, and nothing for a flow to remember to pass.
+  const closed: Answerer[] = []
+  const answerer = (q: Question): Answerer => (parseQuestion(q.text).tag === 'user' ? 'user' : 'board')
+  let moved = 0
   for (const op of ops) {
     if (op.kind === 'clear') {
+      closed.push(...meta.questions.map(answerer))
       meta.questions = []
       changes.push('cleared')
     } else if (op.kind === 'drop') {
       const ns = parseQuestionPositions(op.ns, meta.questions.length, 'drop')
+      closed.push(...meta.questions.filter((_, i) => ns.includes(i + 1)).map(answerer))
       meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
       changes.push(`dropped ${ns.join(',')}`)
+    } else if (op.kind === 'to-verify') {
+      // A hand-check filed as a question: it moves to `verify:` as it stands, minus the
+      // `[user]` tag a note never carries, and counts as moved rather than as answered.
+      const ns = parseQuestionPositions(op.ns, meta.questions.length, 'to-verify')
+      for (const q of meta.questions.filter((_, i) => ns.includes(i + 1))) {
+        const line = parseQuestion(q.text).text.trim()
+        if (!line) die(`question ${ns.join(',')} on #${id} is empty — there is nothing to move to verify`)
+        meta.verify.push(line)
+        closed.push('verify')
+        moved++
+      }
+      meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
+      changes.push(`moved ${ns.join(',')} to verify`)
     } else if (op.kind === 'append') {
       meta.questions.push(op.question!)
       changes.push('appended')
@@ -339,8 +371,13 @@ export function cmdUpdateQuestions(args: string[]): MoveResult {
     changes.push('status→todo (open questions)')
   }
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
-  say(`updated #${id} questions: ${changes.join(', ')} (${meta.questions.length} open)`)
-  return { id, changes, open: meta.questions.length, file: rel(file) }
+  if (countsForRecord(file)) for (const by of closed) recordFact('question-closed', id, by)
+  say(
+    `updated #${id} questions: ${changes.join(', ')} (${meta.questions.length} open` +
+      (moved ? `, ${meta.verify.length} to check by hand` : '') +
+      ')',
+  )
+  return { id, changes, open: meta.questions.length, verify: meta.verify.length, file: rel(file) }
 }
 
 // Patch a card's verify list — what the user should check by hand before accepting the

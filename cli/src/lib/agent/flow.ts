@@ -293,7 +293,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...field('memory', memoryFiles(card!.meta.modules, 'readme.md')))
       close.push(
         'tick each box in ## Todo as you finish it — they are the record of what was built',
-        `${board} update-verify ${req.id} --append ".." — for each thing left for the user to CHECK by hand; a decision only they can make goes to \`update-questions\` instead ("What is left for the user to check" in \`akb guide board\`)`,
+        `${board} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user; a decision that needs an answer goes to \`update-questions\` instead`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
         `${board} archive ${req.id} — once every box is ticked and the card's goal is met`,
       )
@@ -310,7 +310,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       close.push(
         `${board} record-run ${req.id} — counts this pass and stamps last_run`,
-        `${board} update-verify ${req.id} --append ".." — for anything this pass left for the user to check by hand`,
+        `${board} update-verify ${req.id} --append ".." — add one short note for each manual check this pass left to the user`,
         `never archive it: a recurring card has no end state`,
       )
       next.push(
@@ -325,7 +325,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         `${board} update-questions ${req.id} --append ".." — for each call that is really the user's`,
         `${board} tag ${req.id} <n> user — hand the ones only they can settle over`,
-        `${board} update ${req.id} --status ready — only when the plan is concrete and no question is open`,
+        `${board} update ${req.id} --status ready — when you are highly confident the plan is ready to build: no substantive gap left, no question open. Otherwise leave it todo, and a fresh pass takes it on`,
       )
       if (card!.meta.questions.length) {
         next.push(`${program} resolve ${req.id} --print — first: a card with open questions can't be refined`)
@@ -340,7 +340,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${board} update-verify ${req.id} --append ".." — first, for any entry that is a hand-check and not a question; then drop it from the question list`,
         `${board} update-questions ${req.id} --drop <n> — take each question you answered off`,
         `${board} tag ${req.id} <n> user — for the ones only the user can settle, worded as they stand`,
-        `write what you decided under "## Decided by the agent" on the card, one line each`,
+        `write what you decided on the card, one line each — a call the user could reasonably refuse goes under "## Worth noting", the rest under "## Decided by the agent"`,
       )
       next.push(
         req.andImplement
@@ -365,7 +365,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       close.push(
         `${board} update ${req.id} [--title|--priority|--roi|--release|--modules|--track|--blocked-by|--related] — the fields are the command's, never hand-written`,
-        'the body is yours to write — the summary, ## Scope and ## Todo',
+        'the body is yours to write — the human half (the opening paragraph, ## Worth noting), the <!-- agent --> marker, then the agent half',
       )
       next.push(refineNext(req.id!, 'the follow-up a run would have started'))
       break
@@ -387,7 +387,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       if (req.action === 'propose') facts.push(...field('goal', rel(GOAL)), ...field('memory', rel(MEMORY)))
       close.push(
         `${board} create --title ".." --track <track>${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
-        'then write only the body: the summary line, ## Scope, ## Todo',
+        'then write only the body: the human half (the opening paragraph, ## Worth noting), the <!-- agent --> marker, then the agent half — ## Scope, ## Todo',
       )
       next.push(refineNext('<id>', 'for each new card'))
       break

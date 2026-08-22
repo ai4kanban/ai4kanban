@@ -30,10 +30,15 @@ last_run: 2026-07-10 09:31
 questions: []
 ---
 
-<what the job is for and why it repeats, in a line or two>
+<one short paragraph: what the job is for and why it repeats>
+
+<!-- agent -->
 
 ## Process
 ```
+
+The paragraph is the card's human half and `## Process` its agent half — the same two
+halves every card has ("Card format" in `akb guide board`).
 
 Don't edit frontmatter by hand.
 

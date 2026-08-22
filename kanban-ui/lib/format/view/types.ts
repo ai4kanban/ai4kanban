@@ -405,3 +405,54 @@ export interface MetricsView {
 /** What one metrics read gives back. The two outcomes are kept apart on purpose, so a view
  *  can't fall back to the "no activity" note on a failure. */
 export type MetricsResult = { ok: true; view: MetricsView } | { ok: false; error: string }
+
+// ---- the planning scores ---------------------------------------------------
+
+/** The three numbers the board scores its own planning by (#222). */
+export const SCORE_SERIES = ['details', 'decisions', 'proposals'] as const
+export type ScoreSeriesKey = (typeof SCORE_SERIES)[number]
+
+/** One of the two counts a percentage came from, named for the readout. */
+export interface ScoreCount {
+  label: string
+  value: number
+}
+
+/** One series in one window. `percent` is null below the evidence floor — a series with too
+ *  little evidence has no point at all, and a zero there would read as a score of nothing. */
+export interface ScoreSeries {
+  key: ScoreSeriesKey
+  /** what the series is called wherever it is drawn or read out */
+  label: string
+  /** 0–100, rounded to a whole number; null below the floor */
+  percent: number | null
+  /** the two counts the formula divides, in the order they are read out */
+  counts: [ScoreCount, ScoreCount]
+  /** the sum of those counts — the evidence this window holds for the series */
+  evidence: number
+  /** how much evidence the series needs before it is drawn */
+  floor: number
+  /** the cards that contributed, in id order, each named once however often it contributed */
+  cards: number[]
+}
+
+/** One release's window: the record lines between its own boundary and the one before it. */
+export interface ScoreWindow {
+  /** the release this window scores; the open window carries the release being planned now */
+  release: string
+  /** true for the one window that has not been closed yet, whose score still moves */
+  open: boolean
+  series: ScoreSeries[]
+}
+
+export interface ScoreView {
+  /** every closed release in close order, then the current open window — always last */
+  windows: ScoreWindow[]
+  /** True when the record holds no lines at all. A board with lines but no closed release
+   *  is NOT empty: it has one open window, which is a real reading. */
+  empty: boolean
+}
+
+/** What one score read gives back. Kept apart from the metrics result for the same reason
+ *  it is there: a failure must not fall through to the "no evidence yet" note. */
+export type ScoreResult = { ok: true; view: ScoreView } | { ok: false; error: string }

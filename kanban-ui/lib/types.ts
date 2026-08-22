@@ -65,6 +65,12 @@ export type {
   QuestionTag,
   SaveProjectResult,
   ScheduledAction,
+  ScoreCount,
+  ScoreResult,
+  ScoreSeries,
+  ScoreSeriesKey,
+  ScoreView,
+  ScoreWindow,
   SetupDraft,
   SetupState,
   // The board's own name for a checklist box; `SetupStepView` there only because the
@@ -74,7 +80,7 @@ export type {
   TrackDraft,
   WriteResult,
 } from "./format/view/types";
-export { GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE } from "./format/view/types";
+export { GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE, SCORE_SERIES } from "./format/view/types";
 
 export type {
   CommandState,
@@ -144,6 +150,10 @@ export interface SessionView {
    *  present the UI leads with it and folds the event tail away; absent, the tail is all
    *  there is. */
   result?: string;
+  /** The board's own last word on this run, when the agent's message can't give it: a
+   *  refinement loop that ended with its card still unsettled. Shown under the final
+   *  message, marked as the board's, never folded into it. */
+  note?: string;
   /** This run ended before finishing — it failed, was interrupted or was stopped — AND can
    *  be picked up again: the agent that ran it can continue a conversation, it has told us
    *  the id to continue by, and it is still the agent the board runs. The Resume button

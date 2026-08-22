@@ -105,6 +105,12 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   goes on the left, beside the board's name and folder path, with no border, no shadow,
   icon only. The left of the header says what this board is; the right is what you do.
 
+## Progress
+
+- ❌ **Planning scores live only in CLI output or release text** → ✅ chart them beside
+  Daily progress in the same header dialog, with one full-width chart for daily activity and
+  one for planning quality by release.
+
 ## Recurring tasks
 
 - ❌ **A recurring-task feature that only adds a Run button** → ✅ say how runs start without

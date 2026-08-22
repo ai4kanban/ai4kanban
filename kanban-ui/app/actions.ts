@@ -16,6 +16,7 @@ import {
   readMetrics,
   readModules,
   readReleases,
+  readScore,
   readSetupDraft,
   readSetupState,
   searchCards,
@@ -58,6 +59,7 @@ import type {
   HarnessOption,
   MetricsResult,
   SaveProjectResult,
+  ScoreResult,
   SessionView,
   SetupDraft,
   SkillInstall,
@@ -467,6 +469,13 @@ export async function unscheduleCardAction(id: number): Promise<WriteResult> {
 // survives to the client instead of becoming a server-render error.
 export async function getMetricsAction(): Promise<MetricsResult> {
   return readMetrics();
+}
+
+// The planning scores (#224) — every release window worked out from docs/kanban/record.csv,
+// ready to draw. Read on each open, beside the daily numbers and separately from them: one
+// chart failing must leave the other drawn.
+export async function getScoreAction(): Promise<ScoreResult> {
+  return readScore();
 }
 
 // ---- the agent settings ------------------------------------------------------

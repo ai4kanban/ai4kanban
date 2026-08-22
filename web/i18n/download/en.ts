@@ -45,7 +45,7 @@ const en: DownloadCopy = {
   command: {
     title: "The `akb` command",
     body: "The app carries `akb` — the command a coding agent drives the board with — and offers to put it on your PATH on first open. macOS writes one link at `/usr/local/bin/akb` and asks for your administrator password; Windows adds the app's folder to PATH, which only reaches terminals opened after it. Nothing is copied out, so updating the app updates the command.",
-    later: "Skip it and the button waits in **Configuration → Agent setup**. Linux is not offered it: the AppImage unpacks somewhere new every run, so `npm install -g ai4kanban` stays the way.",
+    later: "Skip it and the button waits in **Configuration → Setup**. Linux is not offered it: the AppImage unpacks somewhere new every run, so `npm install -g ai4kanban` stays the way.",
   },
 };
 

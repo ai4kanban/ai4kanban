@@ -1,7 +1,7 @@
 // Turns the agent's NDJSON event stream into a readable log (task #14).
 // `claude -p` in its default text mode prints nothing until the session ends, so
 // there is no live tail to show. The spawn asks for `--output-format
-// stream-json` instead (see the Claude Code entry in harnesses.ts) and this renders each event — the
+// stream-json` instead (see harnesses/claude-code.ts) and this renders each event — the
 // agent's turn text and its tool calls — into log lines as they happen. The
 // final `result` event is captured separately: the UI leads with it once the
 // session completes and folds the event lines away.
@@ -74,7 +74,7 @@ function eventModel(ev: Record<string, unknown>): string | undefined {
 }
 
 /** Drop a harness's own housekeeping lines from its stderr as they arrive (see
- *  `quietStderr` in agent/harnesses.ts). stderr comes in chunks, not lines, so the tail of
+ *  `quietStderr` in agent/harnesses/types.ts). stderr comes in chunks, not lines, so the tail of
  *  a chunk is held back until the newline that ends it — otherwise a line split across two
  *  reads would be judged on half of itself.
  *

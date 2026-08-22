@@ -201,3 +201,18 @@ except where another doc is named.
   with the message box asking about that card by number. Walk to another card and nothing of
   the last one is left: not its messages, not a message half typed, not the error its last
   send left: "Chat" in the UI docs.
+
+- The header's chart button is now **Progress** and opens two charts. Daily progress is
+  unchanged; under it **Planning quality** draws how well the board planned each release —
+  Details settled, Decisions that stood and Proposals built, one point per release in close
+  order with the still-open release at the right end. Each series has its own line style and
+  marker, a series with too little evidence leaves a gap rather than a zero, and the readout
+  under the chart gives the chosen release's three percentages, the counts behind them and
+  every contributing card id. Click, hover, or Tab to the chart and use the arrow keys:
+  "Progress" in the UI docs.
+
+- The Planning quality score the app draws belongs to the board you have open. It is worked
+  out on each read from `docs/kanban/record.csv` in that same repository, which the board's
+  own commands fill in as they run, so a board that has just started shows counts and `not
+  enough yet` rather than a zero. No percentage is stored and no figure is fetched from
+  anywhere outside the repository: "Progress" in the UI docs.

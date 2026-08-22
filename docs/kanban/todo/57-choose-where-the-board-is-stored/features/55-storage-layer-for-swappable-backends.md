@@ -4,6 +4,7 @@ track: features
 priority: high
 roi: high
 status: todo
+release: 0.7.2
 blocked_by: []
 related: [57]
 modules: [skill, local-ui]

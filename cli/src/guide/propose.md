@@ -34,7 +34,8 @@ cards**; the main agent creates the cards, so ids never race.
 ## 3. Write the tasks
 
 Create each surviving draft with "Add one task idea" in
-`akb guide add-task`. Every proposal:
+`akb guide add-task`, adding `--proposed` to the `create` call — the board went looking
+for this work, nobody asked for it. Every proposal:
 
 - **Inside the module(s).**
 - **From a user walkthrough (optional)** — play one real user story in the focus, step by

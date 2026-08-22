@@ -4,39 +4,39 @@ track: skill
 priority: med
 roi: high
 status: todo
-release: ""
+release: 0.7.2
 blocked_by: [255]
 related: [254]
 modules: [skill, local-ui]
-questions:
-  - question: "[user] Which mockup style does a board start with?"
-    mode: single
-    options:
-      - full mockups, as today — nothing changes for a board that never opens the setting
-      - ASCII — cheaper on every card, and readable outside the app
-    recommend: [1]
+questions: []
+verify:
+  - run ui-design both ways on one real card and compare what each costs — that is what would flip the default
 ---
 
 `ui-design` answers with two or three mockup files, each a React screen styled to look like
 the real product. They are the slowest part of planning a card, they cost a long run each, and
-they only exist as a picture inside the board's UI — from a terminal, or in a card pulled from
-git, a mockup is a file name and nothing else. Let the agent draw in ASCII instead, and let
-the board show that drawing everywhere the card is read.
+they only exist as a picture inside the board's UI — a user working from a terminal sees a
+file name and no drawing. Let the agent draw in ASCII instead, so the file reads as itself
+wherever it is opened.
 
 ## Scope
 - **`ui-design` gains a setting — mockup style**: `ascii`, or `full` (what it draws today),
   declared the way #255 declares one.
+- **`full` is the default**: a board that never opens the setting draws what it draws now.
 - **An ASCII mockup is a plain-text drawing** of one screen: boxes, labels, and the words the
-  user reads, in a `.txt` file under `docs/kanban/.mockups/<card id>/` — `a.txt` for `A`.
+  user reads.
+- **One `.txt` file per option**, under `docs/kanban/.mockups/<card id>/`: `a.txt` is the
+  option labelled `A`.
 - **The card body is unchanged**: the same `<Mockup src=".mockups/254/a.txt" label="A" />` tag
   on its own line, and the same one line of plain words per option.
 - **The board UI draws it as it stands**, in a monospaced block wide enough not to wrap, with
   the label and full-size link a rendered mockup already gets.
-- **Anywhere else it reads itself**: `cat` shows the drawing, which is the point of the style.
-- **One style per run, board-wide**: a card never carries a `.tsx` option and a `.txt` option
-  side by side.
-- **Switching style and running the agent again replaces the old files**, dropping the ones
-  the new answer no longer points at — today's rule, across the two styles.
+- **The file is the drawing**: opening it in a terminal or an editor shows the same thing the
+  card page shows.
+- **The setting is board-wide, so one card is drawn in one style**: never a `.tsx` option and
+  a `.txt` option side by side.
+- **Running the agent again replaces that card's mockups**, whichever style they were in, and
+  deletes the ones the new answer no longer points at.
 - **`akb guide ui-design` says how to draw in ASCII**: how wide a drawing may be, and that a
   screen still gets two or three options with one recommended.
 - **"Mockups" in `akb guide board` gains the `.txt` format** beside `.tsx` and `.html`.
@@ -47,9 +47,25 @@ the board show that drawing everywhere the card is read.
 - [ ] Write the ASCII half of the `ui-design` prompt — what to draw, how wide, and that the
       drawing still stands alone in the card's words.
 - [ ] Add `.txt` to the mockup rules in `akb guide board` and `akb guide ui-design`.
-- [ ] Draw a `.txt` mockup in the card page's `<Mockup>` renderer, monospaced and unwrapped.
+- [ ] Show a `.txt` mockup on the card page where its tag sits, in a monospaced block wide
+      enough not to wrap.
 - [ ] Open one full size on its own page, the way a `.tsx` mockup opens.
 - [ ] Keep a drawing readable on a narrow window — scroll it, never reflow it.
 - [ ] Check a rerun after a style switch leaves only the new files in the card's folder.
-- [ ] Run the agent both ways on one real card and compare what the two cost.
-- [ ] Update the memory note that says a mockup is a `.tsx` or `.html` file.
+- [ ] Update `docs/guides/daily-loop.md` where it tells the user a mockup is a `.tsx` or an
+      `.html` file, and where it says `ui-design` answers with drawn screens.
+- [ ] Update the memory notes: the one that says a mockup is a `.tsx` or `.html` file, and the
+      design note that says a screen is never drawn in ASCII.
+
+## Decided by the agent
+- **Is an ASCII mockup kept in git, since it is plain text?**: no. It sits in
+  `docs/kanban/.mockups/` with the rest, which stays out of git. So this style is read on the
+  machine that drew it, and a card someone else pulls still carries the layout only in its
+  own words.
+- **Which mockup style does a board start with?**: `full`, what it draws today. #254 says a
+  board that sets nothing runs exactly as it does now, so ASCII arrives by being switched
+  on.
+
+### Worth noting
+- **The default is worth revisiting once both styles have been tried on a real card** — if
+  ASCII reads well enough, it is the cheaper thing to start with.

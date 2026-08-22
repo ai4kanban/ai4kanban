@@ -15,6 +15,8 @@ When a board grows a new module, the notes about it stay in the old memory file.
 for that module then reads memory that says nothing about it. Move those notes across,
 once, when the module line is added.
 
+<!-- agent -->
+
 ## Today
 - Setup splits the memory into module memories once, at setup (#86). After that, nothing
   splits anything again.
@@ -56,6 +58,23 @@ a line is added, renamed, or deleted — so every flow that can touch the map pi
 - A board updated from an older version splits its memory the first time it gets a map,
   instead of leaving everything project-wide for good.
 
+## Todo
+- [ ] Write the move into `akb guide module-map`, where a line is added: scaffold the
+      module's memory first, then move.
+- [ ] Say which notes move and which stay, using setup's one-owner test, and that it covers
+      all four memory files.
+- [ ] Cover a rename: the memory folder follows the module.
+- [ ] Cover a delete: fold the module's notes back into the project-wide memory, then drop
+      the folder.
+- [ ] Say the rule doesn't fire when a map is written from scratch — setup and update split
+      the memory themselves.
+- [ ] Replace the rule in `akb guide update` that says not to move notes into module paths:
+      a blank `modules.md` you write gets the memory split into it, the way setup's
+      `modules` step does.
+- [x] Check the setup flow doc doesn't still say a board that gains a module later keeps
+      its calls where they are — #86 writes that line.
+- [ ] Add a module to a real board and check its memory holds the notes about it.
+
 ## Decided by the agent
 - Does the move cover the whole memory set or only the settled calls? The whole set. The
   reason for moving a call — a new module's memory should hold what is already known about
@@ -75,20 +94,3 @@ a line is added, renamed, or deleted — so every flow that can touch the map pi
   out is what keeps an updated board's memory project-wide for good.
 - Which user docs does this touch? None. It gives the user no new action, setting or step —
   the memory just fills itself.
-
-## Todo
-- [ ] Write the move into `akb guide module-map`, where a line is added: scaffold the
-      module's memory first, then move.
-- [ ] Say which notes move and which stay, using setup's one-owner test, and that it covers
-      all four memory files.
-- [ ] Cover a rename: the memory folder follows the module.
-- [ ] Cover a delete: fold the module's notes back into the project-wide memory, then drop
-      the folder.
-- [ ] Say the rule doesn't fire when a map is written from scratch — setup and update split
-      the memory themselves.
-- [ ] Replace the rule in `akb guide update` that says not to move notes into module paths:
-      a blank `modules.md` you write gets the memory split into it, the way setup's
-      `modules` step does.
-- [x] Check the setup flow doc doesn't still say a board that gains a module later keeps
-      its calls where they are — #86 writes that line.
-- [ ] Add a module to a real board and check its memory holds the notes about it.

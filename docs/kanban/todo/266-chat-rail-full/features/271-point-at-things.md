@@ -1,10 +1,10 @@
 ---
-title: Point at a card, a file, a memory note or a flow in the chat box
+title: Point at a card in the chat box
 track: features
 priority: med
 roi: med
 status: todo
-release: ""
+release: 0.7.2
 blocked_by: []
 related: [266]
 modules: [local-ui]
@@ -17,53 +17,43 @@ questions:
       - C — the list inside the box; nothing covered, the conversation shrinks as you type
     recommend: [1]
 verify:
-  - try `@` in a big repo of your own — the list should keep up with your typing
+  - type `#` in the chat box on a board with plenty of open cards — the list should keep up with your typing
 ---
 
-Everything the user wants to point at has to be typed out in full — a card number from
-memory, a file path from another window.
+A card number has to be typed out in full, from memory.
 
 ## Today
-- The chat box is plain. `@` and `#` are ordinary characters in it.
+- The chat box is plain. `#` is an ordinary character in it.
 - The agent's replies turn a `#12` into a link to that card. Nothing helps the user write
   `#12` in the first place.
-- To say "look at kanban-ui/lib/chat-rail.ts" the user goes and finds that path themselves.
 
 ## Scope
 
-### What each key offers
+### What `#` offers
 - **`#` offers the open cards**, matched on id and on title.
 - Picking a card puts `#12` in the message.
-- **`@` offers the project's files**, matched on the whole path, so typing `chat-rail` finds
-  `kanban-ui/lib/chat-rail.ts`.
-- Picking a file puts that path in the message, written from the project's top folder.
-- **The memory notes and `goal.md` come first in the `@` list.**
-- **`/` offers the flows the board runs**: refine, resolve, revise, implement, propose,
-  plan-release, run, spec.
-- Picking a flow writes plain words — `Refine #12` — never a typed command.
-- **Nothing is fetched, read or attached.** The message carries the number or the path and
-  nothing else.
+- **Nothing is fetched, read or attached.** The message carries the number and nothing else.
 
 ### How the list behaves
 - A small white list over the box, drawn like the rest of the chat rail.
 - About ten entries at a time.
 - Closest match first.
 - It appears as the user types, and typing never waits for it.
-- A repo with tens of thousands of files types as smoothly as an empty one.
 - **↑ and ↓ move the choice, Enter picks, Esc closes the list and leaves what is typed.**
 - While the list is up, Enter picks and does not send the message. Sending takes one more
   Enter, once the list has closed.
 - While the list is up, ↑ and ↓ move the choice and do nothing else.
-- **`#` and `@` only fire at the start of a word.** An email address, or `issue#12`, leaves
-  the box alone.
-- **`/` only fires as the first character in the box.**
+- **`#` only fires at the start of a word.** An email address, or `issue#12`, leaves the box
+  alone.
 - Nothing matching means no list, and what was typed stays as typed.
 - Once Esc has closed the list, typing more of the same word does not bring it back.
-- Files the project hides are never offered: whatever `.gitignore` covers, and `.git` and
-  `node_modules` with it.
 - The board's chat and a card's chat behave the same way.
 
 ## Scope out
+- **No `@` file picker.** Cut from this card. Offering the project's files by path needs a
+  file index of the whole repo, and it is a separate ask from pointing at a card.
+- **No `/` flow picker.** Cut from this card. Naming a flow the board runs is a different
+  ask from pointing at a card.
 - No attaching an image or a file's contents. That is #252, the card for attachments.
 - No pointing at a folder, a run, or a release.
 - `akb chat` in a terminal is unchanged.
@@ -74,13 +64,7 @@ memory, a file path from another window.
 - [ ] Keep Enter and the arrow keys from reaching the box while the list is up, so a pick
       never sends the message.
 - [ ] `#` lists the open cards by id and title, and puts `#12` in the message.
-- [ ] `@` lists the project's files by path, with the memory notes and `goal.md` first.
-- [ ] Put the picked file's path in the message, written from the project's top folder.
-- [ ] Leave out whatever `.gitignore` hides.
-- [ ] Keep the list quick on a repo with tens of thousands of files.
-- [ ] `/` lists the flows, and writes the picked one as plain words.
-- [ ] Fire `#` and `@` only at the start of a word, and `/` only as the box's first
-      character.
+- [ ] Fire `#` only at the start of a word.
 - [ ] Cover it in `kanban-ui/README.md`, in the Chat section.
 
 ## By `ui-design` agent
@@ -137,6 +121,11 @@ readability the board needs only for its longest paths and pays four entries for
 the conversation under the reader every time the list opens.
 
 ## Decided by the agent
+
+### Overruled by the user
+The `@` file picker and the `/` flow picker were cut from this card, which settles these
+calls the other way.
+
 - **Why a pick writes plain words instead of a command**: the rail is an ordinary
   kanban-skill conversation. Plain words are the request; the skill chooses the matching
   `akb` command, and the user may type a command directly whenever they want.
@@ -147,8 +136,6 @@ the conversation under the reader every time the list opens.
   what a user points at most.
 - **Why `#` and `@` share one rule about where they fire**: both are ordinary characters in
   the middle of a word, and one rule is one thing for the user to learn.
-
-### Worth noting
 - **`/` belongs on this card.** Naming a flow is a different ask from pointing at a thing;
   they share one list because they share one box.
 - **`@` offers files, not folders.** A folder is a rarer ask and a much longer list.

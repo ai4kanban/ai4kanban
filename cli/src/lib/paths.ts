@@ -46,8 +46,8 @@ export let RELEASE_SUMMARIES = ''
 // and the tick that closes the last box deletes it. A board with no file is a board that
 // is set up — which is why boards made before this file existed stay quiet.
 export let SETUP_CHECKLIST = ''
-// Drawings of the screens cards change — one folder per card id (see "Mockups" in
-// `akb guide board`). Keyed by id, so a card leaving the board takes its folder with it.
+// Drawings of the screens cards change — one folder per card id (see
+// `akb guide ui-design`). Keyed by id, so a card leaving the board takes its folder.
 // Dotted and ignored: a mockup is a working drawing, redrawn from the card whenever the
 // question comes back, so it is never something the repo carries or a teammate pulls.
 export let MOCKUPS = ''

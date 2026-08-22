@@ -11,9 +11,10 @@ import { clearChat } from '../lib/agent/chat'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, MOCKUPS } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
+import { countDecisions, countsForRecord, originOf, recordFact } from '../lib/record'
 import { walkMd, walkDirs, idPrefix, locate, enclosingGroupRoot, markSubtask, archiveDest } from '../lib/cards'
 import { stripReadmeRefs } from '../lib/readme'
-import { parseFrontmatter, frontmatterEnd, frontmatterField } from '../lib/frontmatter'
+import { parseFrontmatter, serializeFrontmatter, frontmatterEnd, frontmatterField } from '../lib/frontmatter'
 import { memoryTargets } from '../lib/memory'
 import type { Found, Meta, MoveResult } from '../lib/types'
 
@@ -142,6 +143,40 @@ function findMentions(id: number): Mention[] {
   return hits
 }
 
+// ---- what the card leaves behind -------------------------------------------
+
+// Every card this removal takes off the board, with the file it is in: the card itself,
+// and — when it is a group — each subtask in its folder, which is its own card and carries
+// its own calls.
+function leavingCards(id: number, found: Found): { id: number; file: string }[] {
+  const own = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+  const cards = [{ id, file: own }]
+  if (found.kind !== 'group') return cards
+  for (const file of walkMd(found.target)) {
+    if (file === own) continue
+    const n = idPrefix(path.basename(file))
+    if (n !== null) cards.push({ id: n, file })
+  }
+  return cards
+}
+
+// What the board's score is worked out from, written while the cards are still there:
+// where each one came from, and how many of its own calls stood as against how many the
+// user overruled. A card with no origin on file was created before any of this existed —
+// it is counted neither as a proposal that was built nor as one that was dropped.
+function recordLeaving(id: number, found: Found, metric: Metric): void {
+  const event = metric === 'completed' ? 'card-archived' : 'card-rejected'
+  for (const card of leavingCards(id, found)) {
+    if (!countsForRecord(card.file)) continue
+    const origin = originOf(card.id)
+    if (origin) recordFact(event, card.id, origin)
+    const { body } = parseFrontmatter(fs.existsSync(card.file) ? fs.readFileSync(card.file, 'utf8') : '')
+    const { stood, overruled } = countDecisions(body)
+    recordFact('decisions-stood', card.id, stood)
+    recordFact('decisions-overruled', card.id, overruled)
+  }
+}
+
 export function cmdRemove(id: number, metric: Metric): MoveResult {
   if (!Number.isInteger(id)) die('need a numeric task id')
   const found = locate(id)
@@ -156,7 +191,7 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
   // after the file is gone.
   const cardFile = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   const cardText = fs.existsSync(cardFile) ? fs.readFileSync(cardFile, 'utf8') : ''
-  const cardMeta = parseFrontmatter(cardText).meta
+  const { meta: cardMeta, body: cardBody } = parseFrontmatter(cardText)
   // A group takes its subtasks with it. They're listed by name rather than printed —
   // enough to see what went, without burying the receipt under a folder's worth of cards.
   const alsoRemoved =
@@ -176,6 +211,17 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
     if (markSubtask(groupRoot, id, action)) marked = action
     else warn(`#${id} isn't listed in ${rel(groupRoot)} ## Todo — nothing to ${action === 'tick' ? 'tick off' : 'strike out'}.`)
   }
+  // `implementing` is a stage a run holds, not one a card keeps. A card can leave the board
+  // mid-run — the agent building it archives it at the end of its own pass — and then the
+  // run's close has no card left to put the stage back on. Dropped here instead, so the copy
+  // in .archive/ can't come back saying it is being implemented when nothing is running.
+  if (dest && cardMeta && cardMeta.status === 'implementing') {
+    cardMeta.status = 'todo'
+    fs.writeFileSync(cardFile, serializeFrontmatter(cardMeta) + '\n' + cardBody)
+  }
+  // The last moment the cards still exist: a reject deletes them outright, so what the
+  // board's score is worked out from has to be written now, not after the move.
+  recordLeaving(id, found, metric)
   if (dest) {
     fs.mkdirSync(ARCHIVE, { recursive: true })
     fs.renameSync(found.target, dest)

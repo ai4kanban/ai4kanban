@@ -1,81 +1,93 @@
 # How this board works
 
-The rules every card flow stands on. Read this once; the flow you were printed says the
-rest.
+These rules apply to every card workflow. Read them once; each workflow's guide covers
+the remaining details.
 
 ## Writing style
 
-Write every card in plain, clear, short language — say what to do and why it matters.
-No jargon, no business-speak, no clever phrasing. A non-native reader skimming should
-get it in one pass.
-
-- Bad: "Price it as a monthly retainer for an outcome stream."
-- Good: "Charge $300/month. The user gets a brief each week and a report each month."
+Write every card in professional, accessible language. A reader without prior context
+should understand it on a quick read.
 
 What that means line by line:
 
-- **Name things the reader can look up**: define a term the first time it appears, or
-  don't use it. A word that only means something to whoever wrote the card is a word the
-  card doesn't have.
-  - Bad: "one PATH read per screen draw" — "screen draw" is nobody's term.
-  - Good: "read the PATH once each time the board page loads".
-- **Say the thing, not a slogan for it**: a short line that has to be decoded costs more
-  than the plain one.
+- **Use identifiable terms**: define unfamiliar terms when they first appear. Avoid
+  labels that only the card's author would understand.
+  - Bad: "one PATH read per screen draw" — "screen draw" is undefined.
+  - Good: "Read `PATH` once each time the board page loads."
+- **State the rule directly**: a concise explanation is clearer than a slogan that needs
+  interpretation.
   - Bad: "Say it in a word, not only in colour."
-  - Good: "The greyed-out agent also reads 'not installed' in text."
-- **One rule per bullet**: two rules in one line means one of them gets missed.
-- **`## Scope` holds rules, not reasons**: why a rule is the way it is belongs in
-  `## Decided by the agent`. A reason beside every rule doubles the card and buries what
-  to build.
+  - Good: "Label the greyed-out agent as 'not installed'."
+- **Put one rule in each bullet**: combined rules are easy to miss.
+- **`## Scope` holds requirements, not rationale**: put the reasoning behind a
+  requirement in `## Decided by the agent`. Explanations in `## Scope` obscure what to
+  build.
 
 ## Card format
 
-A card is a minimal task spec, written for whoever implements the task, not whoever
-plans it.
+A card is a minimal task specification for the implementer, not the planner. It has two
+readers, so it has two halves: the **human half** on top is what a reviewer needs to accept
+or refuse the plan, and the **agent half** below it is what a builder needs to implement
+it. The agent half is folded by default, so the human half has to stand on its own.
 
-- **No meta notes**: say what problem the task solves and what changes for the user — never
-  how the board planned it. No notes on what a refine changed, no meta-todos like `- [x]
-  explore codebase and create the task #14`. A planning line was never build work — delete
-  it on sight, ticked or not.
-- **No coding details**: write the card from a product owner's angle — the effect on the
-  user, not the implementation. Drop steps like `- add an npx tsc check after this
-  feature`; the coding agent handles them well. Keep a step only when it's a project
-  owner's concern, e.g. `- create 2 test cards, click the button, and check the flow
-  end to end`.
-- **`## Todo` is the build plan**: one step of real work per box.
-- **Ticked boxes are history**: they record what was built — never edit, delete, or
-  untick them; to undo earlier work, append a reverting todo.
-- **`## Decided by the agent`**: a call the agent made on its own goes here, one short
-  line each — the question, then the answer. The plan (the summary line, `## Scope`,
-  `## Todo`) is the human's input; this section is what the agent complements, so anyone
-  can see what it decided and overrule it. What the **user** decided isn't an agent call
-  — that goes to `decisions.md` (see "The memory set").
-- **`### Worth noting`**: inside `## Decided by the agent`, holds only calls a human could
-  reasonably make another way, one short line each.
+Every flow writes a card in this order:
+
+```
+<one short paragraph: what the task does, and what is wrong without it.>
+
+## Worth noting               <- omit it when there is nothing to weigh
+- <one line a reviewer can accept or refuse>
+
+## By `<name>` agent          <- only while an open question points at it
+
+<!-- agent -->
+
+## Today
+## Scope
+## Todo
+## By `<name>` agent
+## Decided by the agent
+## Source
+```
+
+- **`<!-- agent -->` marks the boundary**: one line, directly above the first agent half
+  section. It never shows when the card is rendered. A card with nothing below it carries
+  no marker.
+- **The human half is a closed list**: the paragraph, `## Worth noting`, and a spec agent's
+  section an open question points at. Every other section — `## Scope out`, `## Process`,
+  and any heading the skeleton does not name — belongs to the agent half.
+- **The human half stands alone**: no line in it depends on a section below the boundary.
+  A reviewer reads it and knows what is being built and what to weigh.
+- **`## Worth noting`**: one short line per point a reviewer could reasonably refuse — a
+  choice that could have gone another way, a consequence they may not want to accept, a
+  limit on what the task will not do. A point nobody could disagree with is not one of
+  them.
+- **Keep the human half true**: a flow that changes the agent half re-reads the paragraph
+  and `## Worth noting` in the same pass and fixes whatever no longer holds.
+- **A section the skeleton does not name has no slot**: it follows the named section it
+  sits under, and one with no named section above it opens the agent half.
+- **Both halves follow the writing rules above**: the agent half differs only in being
+  detailed enough to build from.
+- **No meta notes**: describe the problem and the user-visible change, not how the board
+  planned the task. Delete planning notes such as `- [x] explore codebase and create the
+  task #14`, whether checked or not.
+- **No coding details**: describe the desired product behavior, not the implementation.
+  Omit steps such as `- add an npx tsc check after this feature`. Keep validation steps
+  that matter to the project owner, such as testing the complete flow with two cards.
+- **`## Todo` is the build plan**: put one implementation step in each checkbox.
+- **Ticked boxes are history**: never edit, delete, or untick them. To undo completed
+  work, append a todo that reverts it.
+- **`## Decided by the agent`**: record each decision the agent made independently as a
+  short question-and-answer line. This separates agent judgment from the human-provided
+  paragraph, `## Scope`, and `## Todo`, making each decision easy to review or overrule.
+  A call a reviewer could reasonably refuse goes to `## Worth noting` instead. Record user
+  decisions in `decisions.md` (see "The memory set").
+- **`### Overruled by the user`**: the one subsection `## Decided by the agent` carries,
+  always last — the calls the user reversed (`akb guide revise`).
 - **``## By `<name>` agent``**: a spec agent's own section — the part of the spec that
-  named agent owns and answered (`akb guide spec-agent`). Read it and plan on top of it;
-  never reword it, move it, or drop it. Only that agent rewrites it, by being run again.
-
-## Mockups
-
-A card can show layout options as mockups written by the `ui-design` agent. The board UI
-renders each file where its tag appears in the card body.
-
-- **Files**: put one per option in `docs/kanban/.mockups/<card id>/`: `a.tsx` for `A`,
-  `b.tsx` for `B`, and so on.
-- **Format**: prefer `.tsx`, with one default-exported React component using only React,
-  Tailwind classes, and inline icons. A `.html` mockup must be a complete, self-styled page.
-- **Content**: draw one static screen in its normal state. Do not handle clicks, load from
-  the network, or read board data.
-- **Tag**: put `<Mockup src=".mockups/239/a.tsx" label="A" />` on its own line. `src` is
-  relative to `docs/kanban/`; `label` is optional.
-- **HTML**: `<Mockup>` is the only HTML tag allowed in a card body. Inside backticks or a
-  fenced block it remains text.
-- **Lifetime**: keyed by the card's id, so moving track keeps them. Archiving or rejecting
-  the card deletes its folder — a group takes its subtasks' folders too. The folder is
-  gitignored: a mockup is a working drawing, so it is never pushed, never pulled, and a
-  card someone else wrote can point at one this board has to draw again. Whatever the
-  drawing settled belongs in the card's own words.
+  the named agent owns (`akb guide spec-agent`). Use it as planning input, but do not
+  reword or delete it. Moving the whole section between the halves is the one change
+  another flow may make. Only rerunning that agent may rewrite it.
 
 ## Layout
 
@@ -86,8 +98,6 @@ docs/kanban/
 │   ├── blockers/   hard blockers; they gate the next milestone — clear them first
 │   ├── <track>/    one folder per track (see "Configuration"), one card per file
 │   └── recurring/  jobs we repeat (`akb guide recurring-task`) — never archived
-├── .mockups/       drawings of the screens cards change, not in git — see "Mockups"
-│   └── <card id>/  one folder per card, one file per mockup
 ├── memory/         all memory — see "The memory set"
 │   ├── readme.md, decisions.md, rejected.md, redesign.md
 │   │               the four-file set for the project as a whole
@@ -95,46 +105,49 @@ docs/kanban/
 │   │               never in a module folder
 │   └── <module>/   a module's own copy of the four-file set
 ├── modules.md      one line per module — `akb guide module-map` writes it
-├── config.md       your project's settings — seeded by init, the user's to fill
+├── config.md       project settings — created by init and completed by the user
 ├── releases.md     the open releases, in the order they ship — one line each
 ├── setup-checklist.md
 │                   setup's own steps, while setup is unfinished (`akb guide setup`) —
-│                   the last tick deletes it; no file means the board is set up
+│                   completing the last item deletes the file
 ├── next-id         the next free task id — NEVER edit by hand; only `akb board` writes it
-└── metrics.csv     one row per day: completed, created, rejected — never touch
+├── metrics.csv     one row per day: completed, created, rejected — never touch
+└── record.csv      what board commands counted as they ran — they own it, nobody edits
+                    it by hand
 ```
 
 ## Configuration
 
-**Read `docs/kanban/config.md` before proposing, adding, or refining** — it carries the
-project's settings: name, tracks, planning sources, reference docs, optional preset. It
-lives with the board, so an update leaves it untouched. "Your tracks / planning sources /
-reference docs" in any flow mean this file.
+**Read `docs/kanban/config.md` before proposing, adding, or refining tasks.** It defines
+the project name, tracks, planning sources, reference docs, and optional preset. Board
+updates leave it unchanged. References to "your tracks," "planning sources," or
+"reference docs" mean the values in this file.
 
-## Task id
+## Task ID
 
 Every task's id is the number at the front of its filename (`04-plan-cap-enforcement.md` →
 id 4). Ids are global and never reused; only `akb board create` allocates them.
 
-## The tracks
+## Tracks
 
-A track is the bucket a task lives in — one folder per track under `todo/`. The tracks
-this board uses are in `docs/kanban/config.md`, set during setup.
+A track categorizes a task. Each track has a folder under `todo/`, and
+`docs/kanban/config.md` lists the tracks configured during setup.
 
 ## Never hand-write a card's frontmatter
 
-`akb board create` / `update` / `update-questions` / `update-verify` / `schedule` own the
-meta (title, track, priority, roi, status, release, blocked_by, related, modules, questions,
-verify, schedule). Write and edit only a card's **body**. `akb board help` lists every move;
-`akb board help <move>` is one in full.
+`akb board create`, `update`, `update-questions`, `update-verify`, and `schedule` manage
+the metadata: title, track, priority, roi, status, release, blocked_by, related, modules,
+questions, verify, and schedule. Edit only the card's **body** by hand. `akb board help`
+lists all operations; `akb board help <move>` explains one operation.
 
-Tag a card with `--modules` (see `docs/kanban/modules.md`); optional — a task can touch two
-modules or none. If no line fits, add one per `akb guide module-map`.
+Optionally tag a card with up to two modules using `--modules` (see
+`docs/kanban/modules.md`). If no existing module fits, add one according to
+`akb guide module-map`.
 
 ## Group task
 
-A **group task** is a broad task whose split yields subtasks that *themselves* need
-splitting — a dividable of a dividable. It lives in its own folder:
+A **group task** is broad enough that even its subtasks may need further splitting. It
+lives in its own folder:
 
 ```
 todo/<id>-<short-slug>/
@@ -142,9 +155,9 @@ todo/<id>-<short-slug>/
   <track>/<subid>-<slug>.md          # a subtask, its own card, under any track folder
 ```
 
-The root and each subtask take their own ids — allocate them together with
-`akb board create --count <N>`. Wire them up with the command's flags: each subtask is
-**Related** to the root, and **Blocked by** between subtasks that must run in order.
+The root and each subtask need separate ids; allocate them together with
+`akb board create --count <N>`. Use the command's flags to relate every subtask to the
+root and to add **Blocked by** links where execution order matters.
 
 ## The memory set
 
@@ -152,83 +165,62 @@ The project's memory is a **fixed set of four files**:
 
 - **`readme.md`** — shipped user-facing work, one line each: a link to the published doc
   that covers it, or a short plain-words note until one does (see "Finish a task").
-- **`decisions.md`** — settled answers to cards' open questions, one line each. Only
-  **user-facing calls that help future planning**; code detail (which file, function,
-  flag) stays on the card.
+- **`decisions.md`** — settled answers to cards' open questions, one per line. Include
+  only **user-facing decisions that inform future planning**; keep code details on the
+  card.
 - **`redesign.md`** — design mistakes to avoid.
 - **`rejected.md`** — ideas we turned down, and why.
 
-The set exists at two levels, both under `docs/kanban/memory/`:
-`docs/kanban/memory/<module>/` for one module, `docs/kanban/memory/` itself for the
-project as a whole. **Pick one copy by the card's `modules:` field and use only that
-one** — the named module's (both, if it names two), else the project-wide one. Never write
-a note to both: the project-wide copy is the whole project's memory, not a mirror of the
-modules. A module's folder is scaffolded by `akb board memory-init <module>` (idempotent)
-as soon as the module is known — `init` does it for every module already on the map, and
-any flow about to write a note runs it first.
+The set exists at the project level in `docs/kanban/memory/` and at the module level in
+`docs/kanban/memory/<module>/`. **Choose the set from the card's `modules:` field.** Use
+each named module's set, or the project-level set if the card names no modules. Never
+copy a note between levels; project memory is not a mirror of module memory. Initialize
+a module's folder with the idempotent `akb board memory-init <module>` command before
+writing to it. `init` does this for every module already in the module map.
 
-**`goal.md` sits outside the set, at the board root only** — the long-term goal, horizon,
-and roadmap in the user's words. It starts empty; the agent never writes the goal, except
-the frontmatter line `reviewed: strong | good | pending | weak` — how clear the goal is to
-plan from. `weak` only when apparent (missing, empty, too vague to judge a proposal
-against). `pending` means written but not judged yet: the board sets it when a goal is
-saved, and you replace it the next time you read the goal. Judge it at the `goal` setup
-step and on every propose run — never stop to ask the user about it.
+**`goal.md` sits outside the set, in the project-level memory directory only.** It records
+the long-term goal, horizon, and roadmap in the user's words. The agent changes only the
+`reviewed` frontmatter field, whose allowed values are `strong`, `good`, `pending`, and
+`weak`. Use `weak` when the goal is missing, empty, or too vague for evaluating
+proposals. The board sets `pending` when a goal is saved; replace it with an assessment
+the next time you read the goal. Assess it during the `goal` setup step and every propose
+run without interrupting the user.
 
-To compress the memory set down to planning-useful summaries, follow
-`akb guide prune-memory`. The board ships with a recurring card that does this — never
-create one.
+## Archive/Finish a task
 
-## Finish a task
+**`akb board archive <id>` is the only way a task leaves the board.** It files the card,
+drops it from the index, counts the completion, and prints every line that still points at
+the id so you can fix them.
 
-One-shot tasks only — a recurring card is never finished this way
-(`akb guide recurring-task`).
+**Never finish a task by hand.** Deleting the card file, or writing a line into `next-id`,
+`metrics.csv` or `record.csv` yourself, leaves other cards' `blocked_by:` and `related:`
+pointing at a card that no longer exists — the command is what finds those, and nothing
+else will. A run that does this is reported as having broken the board.
 
-Record user-facing behavior as one line in `readme.md`. Internal-only changes get no line.
-Write lines like these:
+This applies only to one-shot tasks. For recurring cards, see `akb guide recurring-task`.
+
+Before archiving, record each user-facing outcome on one line in `readme.md`. Do not record
+internal-only changes. Use formats like these:
 
 - ✅ (docs/kanban/memory/skill/readme.md) Updating an installed board: `akb guide update`.
-  Tip: Points at a published doc if available. Don't restate what the doc says.
-- ✅ (docs/kanban/memory/site/readme.md) The landing page reads in Chinese, Spanish, Japanese, and French at `/zh`, `/es`, `/ja`, `/fr`.
-  Tip: No doc yet, so it says in plain words what the user can now do.
+  Link to a published doc when available; do not restate it.
+- ✅ (docs/kanban/memory/site/readme.md) The landing page is available in Chinese,
+  Spanish, Japanese, and French at `/zh`, `/es`, `/ja`, and `/fr`. When no doc exists,
+  state plainly what the user can now do.
 - ❌ (docs/kanban/memory/site/readme.md) The landing site is live on Cloudflare Pages.
-  Tip: Nothing the user can see or do.
+  This describes infrastructure, not user-facing behavior.
 
-Then run `akb board archive <id>` to record the completion.
-
-### What is left for the user to check
-
-A build often ends with something only the user can confirm — it needs their machine, their
-data, their eye. That is a **verify line**, and it goes in the card's `verify:` field:
-
-```
-akb board update-verify <id> --append "the import runs on a repo with no releases — try it on a real one"
-```
-
-One short line each, and each one is a **note to read**, not a question. Nothing waits on it:
-a card with verify lines still reaches `ready`, still resolves, still archives, and the lines
-travel with the card into the archive.
-
-Which field a leftover goes in, by one test — **does the user have to decide something?**
-
-- **No, they have to check something** → `verify:`. "Try the new flow on a real board", "the
-  numbers look right but nobody has run this against a big repo".
-- **Yes, it is a call only they can make** → `questions:`, as a `[user]` question
-  (`akb guide resolve`). "Should this be on by default?", "which of these two wordings?".
-
-Never write a check as a question. An open question says the plan is unsettled and holds the
-card back — on work that is actually done, that reads as something being broken.
+Then run `akb board archive <id>`, and fix whatever it reports still mentioning the id.
 
 ## Record a redesign
 
-When the user corrects a card that missed a requirement or got the design wrong, add a
-short entry to `redesign.md` — under the topic that fits; start a new topic heading if none
-fits. This is a reference for the next task, not a record of the fix — say what to do
-right, not what went wrong. Format:
+When the user corrects a missing requirement or design mistake, add a short entry to
+`redesign.md` under the relevant topic, or create a topic if needed. Write guidance for
+future tasks, not a history of the fix. Format:
 `- ❌ **<mistake>** → ✅ <what the design should be instead, one line>.`
 
 ## Setup gate
 
-`docs/kanban/setup-checklist.md` being there says setup is unfinished — the last tick
-deletes it. While it's there, no flow creates cards; setup's own last step is the only
-exception. Full guide: `akb guide setup`.
+The presence of `docs/kanban/setup-checklist.md` means setup is unfinished. Completing
+the final item deletes the file. Until then, only setup's final step may create cards.
+See `akb guide setup`.

@@ -547,7 +547,7 @@ export function MakeBoardHere({ desktop }: { desktop: boolean }) {
 
 // --- putting `akb` on the PATH ----------------------------------------------
 
-/** The button in Agent setup that installs the board's command, and the four things it
+/** The button in Configuration → Setup that installs the board's command, and the four things it
  *  can find on this machine (#226).
  *
  *  The app carries `akb` already — installing only points the system at it, so nothing is

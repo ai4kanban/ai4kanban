@@ -4,7 +4,8 @@
 // the header. A sidebar on its left names the sections — Harness (the coding tool
 // every card action runs on, #68, and the settings it declares, #93), Agents (the
 // spec agents that fill part of a card's spec, and the switch that keeps one from
-// running, #191) and Agent setup (driving this same board from a coding agent, #174).
+// running, #191) and Setup (the skill and the `akb` command, which are what let a
+// coding agent drive this same board, #174).
 // The sidebar is how the dialog grows: a new group of settings is one more entry
 // there with a pane of its own, and the harness's growing field list (the model,
 // the reasoning level #97, #95's provider and base URL) never squeezes what joins
@@ -70,7 +71,7 @@ type Section = "harness" | "agents" | "skill";
 const SECTIONS: { id: Section; label: string; icon: IconType }[] = [
   { id: "harness", label: "Harness", icon: FiTerminal },
   { id: "agents", label: "Agents", icon: FiUsers },
-  { id: "skill", label: "Agent setup", icon: FiLink },
+  { id: "skill", label: "Setup", icon: FiLink },
 ];
 
 // --- opening the dialog from elsewhere (#174) --------------------------------
@@ -78,8 +79,8 @@ const SECTIONS: { id: Section; label: string; icon: IconType }[] = [
 // sessions.tsx), so a sibling that isn't in this tree can open the dialog on one
 // section. The setup strip uses it: the line it hands to a coding agent only
 // works once the skill is installed, so when it isn't, the way out of that strip
-// is this dialog's Agent setup pane rather than a sentence telling the user to go
-// find the gear.
+// is this dialog's Setup pane rather than a sentence telling the user to go find
+// the gear.
 let openRequest: { at: number; section: Section } | null = null;
 const requestSubs = new Set<() => void>();
 export const configDialog = {

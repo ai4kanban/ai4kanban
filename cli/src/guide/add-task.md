@@ -76,16 +76,21 @@ Got a field wrong, or learned something after the fact? `akb board update <id> -
 
 ## Write the card's body
 
-Replace the template — the summary line, `## Scope`, and `## Todo` only.
+Replace the template — the opening paragraph, `## Scope`, and `## Todo` only.
 
 If the card changes a screen/UI, read `akb guide ui-design` before writing it.
 
-The body is what you write. The shape is rough, not a strict form. Keep lines short and
-plain — a non-native reader skimming should get each line in one pass. Add any section
-that helps; drop any that doesn't.
+The body is what you write, in the two halves "Card format" in `akb guide board` sets out.
+Keep lines short and plain — a non-native reader skimming should get each line in one pass.
+Add any section that helps below the boundary; drop any that doesn't.
 
 ```
-<one short line: what to do and why it matters.>
+<one short paragraph: what the task does, and what is wrong without it.>
+
+## Worth noting
+- <one line a reviewer can accept or refuse>
+
+<!-- agent -->
 
 ## Scope
 - <the concrete steps>
@@ -97,7 +102,8 @@ that helps; drop any that doesn't.
 
 - **title** lives in the frontmatter — one source of truth, so no `#` H1 in the body.
 - **Todo** (REQUIRED): the scope split into single-line steps you can check off, in order.
-- **Pushback** — add a `## Pushback` section only if something feels off: too much
-  work for the value, not worth doing now, or a risk to users.
+- **Worth noting** — write a line here whenever something feels off: too much work for the
+  value, not worth doing now, or a risk to users. Drop the section when there is nothing to
+  weigh.
 
 This isn't a full plan, just enough to start.

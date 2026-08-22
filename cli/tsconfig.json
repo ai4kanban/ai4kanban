@@ -12,7 +12,10 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true
+    "noEmit": true,
+    // The tests import their targets with a `.ts` extension, which only the bundler that
+    // builds them can resolve — see scripts/test.mjs.
+    "allowImportingTsExtensions": true
   },
-  "include": ["src"]
+  "include": ["src", "test", "scripts"]
 }

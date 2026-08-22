@@ -60,6 +60,10 @@ before proposing so you don't re-suggest them.
 - **A plain-words reason beside a failed run** — the only reason on offer was the tail of
   the agent's own output, which the log already shows; putting it on the run tells the user
   no more than they can read today.
+- **Clicking a run id in a chat reply to open its log** — low priority, and the value
+  isn't there: a reply that starts a run is followed by the activity button in the top bar,
+  which opens the runs panel with that run at the top of the list. Linking the id saves one
+  click and costs link rules for which id-shaped words count.
 
 ## Connectors
 

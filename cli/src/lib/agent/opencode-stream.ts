@@ -1,7 +1,7 @@
 // Turns `opencode run --format json`'s JSONL stream into the same readable log
 // the other renderers write (#160). OpenCode's default mode prints a formatted
 // transcript meant for a terminal, so the harness asks for the raw events (see
-// the OpenCode entry in harnesses.ts) and this renders them.
+// harnesses/opencode.ts) and this renders them.
 //
 // Every line is `{type, timestamp, sessionID, ...}`. Four types matter here:
 //   • `text` — something the agent said, in `part.text`. Sent once the block is

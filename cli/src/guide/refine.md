@@ -1,127 +1,78 @@
 # Refine
 
-Take one task from vague to ready. A refine is a **loop**, never a single pass: one pass
-raises questions, answering them changes the plan, and the changed plan needs checking
-again. `akb refine <id>` is the whole loop.
+Review one task and leave its plan more useful than you found it. This guide describes one
+pass. `akb refine <id>` controls the loop and starts a fresh session when another pass or a
+question-resolution pass is needed.
 
-Never pause to ask the user.
+Do not ask the user during the pass. Record decisions only the user can make as `[user]`
+questions on the card.
 
-**Revising is not refining.** `akb revise` was handed one change to make: make it, to the
-standards in the passes below, and stop. The refine that follows it does the looping.
+**Revising is not refining.** `akb revise` applies one requested change and stops.
 
-## The loop
+## Review the card
 
-Go round until any one of these is true:
+Follow the card format and writing rules in `akb guide board`. Focus this pass on four
+questions:
 
-1. status !== "todo"
-2. all todos checked
-3. questions.length > 0 && every question tag === "user"
+- **Value**: does the task advance the goal and roadmap in
+  `docs/kanban/memory/goal.md`? Search the codebase and relevant project sources for work
+  that already ships, and check the board for duplicate cards.
+- **Scope**: is every planned change necessary for the card's stated goal? Keep unrelated
+  ideas outside the card. Include implied work, such as tests and documentation for a
+  user-visible change (`akb guide document-feature`).
+- **Design**: is the complete user flow specified well enough to build without guessing?
+  Cover important edge cases while keeping the design proportionate to its value. For a
+  screen or UI change, first read `akb guide ui-design`.
+- **State**: do checked and unchecked todos match what has already been built? If all work
+  is complete and the goal is met, the card should be archived.
 
-Each round:
+## Act on what you find
 
-1. Do one pass — **Check**, then **Rewrite, or raise a question**, below.
-2. If `questions` is not empty, spawn a subagent and hand it the card and the whole batch
-   of untagged questions at once. Questions should be answered with a fresh context. It
-   researches and decides according to `akb guide resolve`. If answering surfaces new
-   questions, add them untagged and run one more subagent for the new batch.
+- Reject an off-goal or valueless task according to `akb guide reject`. If its value is
+  uncertain, raise a question instead.
+- Update an existing card instead of keeping a duplicate. Move a useful side goal to its
+  own card, or group tightly coupled work according to `akb guide add-task` and
+  `akb guide board`.
+- Rewrite only what is needed to make the plan minimal, complete, and clear. Preserve every
+  ``## By `<name>` agent`` section. Put a call a reviewer could reasonably refuse under the
+  human half's `## Worth noting`, and the rest under `## Decided by the agent`.
+- Make minor decisions yourself. For a significant product, priority, cost, or taste
+  decision you cannot make, add a question with
+  `akb board update-questions <id> --append ".."`. Tag it `[user]` only when the user must
+  answer it, and include options when asking them to choose.
+- Archive completed work according to "Finish a task" in `akb guide board`.
 
-## 1. Check
+## Close the pass
 
-**Gate:** a card whose `questions` frontmatter isn't empty can't be checked — the loop's
-resolve step clears them first.
+At the end of the pass: if you are highly confident the plan is ready to build — no
+substantive gap left, no question open — run `akb board update <id> --status ready`.
 
-Each line below is one plain question. Answer yes or no; a no needs one line saying
-what's wrong. Flag real problems, not hypotheticals.
+Otherwise leave it at `todo`. A fresh session reads the card cold and takes the next pass;
+whatever you do not write into the card is lost.
 
-- **Format — is it written like a card?**
-  - **On topic**: does the body do what the title says? Anything else is another task.
-  - **Plain language**: is every line plain and short ("Writing style" in `akb guide board`)?
-  - **No meta**: free of planning notes and meta-todos ("Card format" in `akb guide board`)?
-  - **A build plan**: is it split into `## Todo` boxes, one step of real work each?
-  - **Odd calls marked**: is every debatable agent call under `### Worth noting`?
-- **Value — should this task exist at all?**
-  - **Direction**: does it move the project toward the long-term goal and roadmap in
-    `docs/kanban/memory/goal.md`? Suggest rejection in `questions` on a task that's off-goal.
-  - **Already shipped**: is it built already? Code → search the codebase; content → search
-    where that content lives (your reference docs); research → check past write-ups.
-  - **Duplicate**: does another card already own the idea? Then update it, not this one.
-- **Scope — is the plan the right size for the goal?**
-  - **Goal fit**: would the goal still be met with this piece cut? Then it's scope creep.
-    The goal is the title and its "so the user can ..." line, not what the summary grew
-    into; on topic doesn't mean needed. Common drift: the goal is "find a run's log", the
-    plan builds "a history of all runs".
-  - **Missing updates/verification**: does the plan skip work it implies — tests, a review pass, landing
-    copy? If a user can see the change, it carries doc-update todos so it isn't hidden
-    after it ships (`akb guide document-feature`); none needs a why.
-  - **Over-complication**: is the design more machinery than the value justifies?
-  - **Grouping**: does this card only make sense with another one? Then they're one group.
-- **Design — will the plan work?**
-  - **Actionable**: could someone start on it tomorrow, or is it still a rough idea? If
-    the how isn't obvious, are the options laid out with one recommended?
-  - **Unambiguous**: can it be built without guessing? Code detail isn't needed; an open
-    requirement is.
-  - **Full user flow**: does the design cover the full user flow, not just the piece the title
-    names? For example, auth isn't just login — sign-up and log-out too.
-  - **Edge cases**: does the design hold up on them? Re-check the decisions the card
-    states — written doesn't mean right. E.g. tasks kept in memory are lost on restart.
-- **Status — does the card match what's already built?**
-  - **Stale todos**: is each unchecked todo really still undone? Work lands without the
-    box getting ticked.
-  - **Finished**: are all the todos done **and** the goal met? Then it's not refinable.
+- ❌ Wording you would have phrased differently is not a gap.
 
-## 2. Rewrite, or raise a question
+## Repair the card's shape
 
-Every NO turns into exactly one move below; a card with no problems skips them. Never put
-review notes in the card. Keep only the plan and agent decisions, using `### Worth noting`
-for debatable calls. See "Card format" and "Writing style" in `akb guide board`.
+A card written before the two halves puts its sections wherever the writer left them. Put
+them in the shape "Card format" in `akb guide board` shows, in the same pass:
 
-- **Rewrite.** Fix the issues while keeping a minimal spec. Preserve every
-  ``## By `<name>` agent`` section. For a screen/UI change, first read `akb guide ui-design`.
-- **Reject.** A failed Value check. `akb guide reject`: a line in
-  `rejected.md`, then `akb board reject <id>`. Unsure the value is real? Raise a question.
-- **Add a card.** A side idea, an unplanned, separate concern that doesn't
-  belong to this card. Use "Add one task idea" in `akb guide add-task`, minding its
-  rule against near-duplicate splits.
-- **Resolve drift.** Split a useful side goal into its own card, drop unrelated work, or
-  keep a doubtful item under `### Worth noting` for the user to review.
-- **Group.** Cards that only make sense together: "Group task" in `akb guide board` and "Tightly
-  coupled tasks go in one group" in `akb guide add-task`.
-- **Archive.** Everything done and the goal met: "Finish a task" in `akb guide board`.
-- **Raise a question** instead of rewriting when the call is the user's (taste, priorities,
-  money, product direction), or a **spec-level** problem is significant and you can't
-  settle it — is this what the user wants, which of two shapes should the feature take,
-  what's the rule in a case the card never names. Record it with `akb board update-questions
-  <id> --append ".."` (repeat the flag), leave that part alone; small calls, make them.
-  A question only the user can settle is tagged `[user]`, and when it's a pick between
-  choices it carries them as options ("Ask the user the rest" in `akb guide resolve`).
-- **Mark it ready.** A concrete plan and no open questions finishes the card: `akb board update
-  <id> --status ready` — only if this refine stopped at the code level, not one stage
-  short. The user scans for the `ready` pill to pick what to build next. A rewritten card
-  passes step 3 first.
+- **Move, never reword**: each section keeps its lines word for word, ticked boxes
+  included. Nothing is dropped and nothing is added.
+- **Lift the reviewer's lines**: an old card's `### Worth noting` lines and its
+  `## Pushback` lines move, as they stand, into the human half's `## Worth noting`. Drop
+  the emptied headings.
+- **Send the rest below**: every section the guide does not name goes into the agent half,
+  under the named section it already follows.
+- **Write the marker**: put `<!-- agent -->` directly above the first agent half section,
+  unless the card has no agent half.
+- **A repair is not a change**: a pass that only moved sections leaves the card's status
+  where it found it — a `ready` card stays `ready` — and a `todo` card it finds nothing
+  else wrong with may go `ready` in that same pass. A pass that also rewords or replans the
+  card follows the rule above and leaves it at `todo`.
 
-## 3. Read it back with fresh eyes
+## Request specialized input
 
-Only when this refine rewrote the body. Nothing rewritten, nothing to check.
-
-Whoever just wrote a card can't see what's unreadable in it — every term feels defined,
-because what it means is still in mind. Only a reader who wasn't there can tell. So hand
-it to one: spawn a subagent, give it the card file and "Writing style" and "Card format"
-from `akb guide board` and nothing else — no conversation, no codebase. Ask it for
-
-- every line it can't follow, and the word that lost it,
-- every bullet holding two rules, or a reason that belongs in `## Decided by the agent`.
-
-Fix what it names, then mark the card ready. It reports; it never edits the card. A line
-it couldn't follow is a line the next reader can't follow either — don't argue the term
-was fine.
-
-## 4. Fill open parts of the spec
-
-After the loop stops, use `akb spec` to find an agent for any part of the spec still open:
-
-```
-akb spec <agent> <id> <short note>
-```
-
-Ask only when nobody has answered that part, or when a rewrite invalidated its existing
-agent section. The agent starts after this run; do not wait or change the card's status.
+Use `akb spec <agent> <id> <short note>` only when a part of the specification has no
+answer, or when this rewrite invalidated its existing spec-agent section. The spec agent
+starts after this pass; do not wait for it or edit its section yourself.
