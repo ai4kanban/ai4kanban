@@ -1,6 +1,6 @@
 {
   "name": "ai4kanban",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "AI4Kanban's `akb` command \u2014 scaffold the Markdown board under docs/kanban/, put an agent on a card, and carry the flows the agent works by.",
   "keywords": [
     "kanban",
