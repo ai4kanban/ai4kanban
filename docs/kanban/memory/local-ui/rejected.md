@@ -67,6 +67,26 @@ before proposing so you don't re-suggest them.
   isn't there: a reply that starts a run is followed by the activity button in the top bar,
   which opens the runs panel with that run at the top of the list. Linking the id saves one
   click and costs link rules for which id-shaped words count.
+- **A worktree per implement run that merges itself back to main** — the idea is right and
+  is being built, but not as its own card. The v0.8.0 auto-delivery plan settles it
+  differently: a worktree belongs to a run rather than to a card, review happens before
+  anything reaches main, and landing is one squash commit through a repository-wide queue.
+  Its worktree and fallback detail moved onto the auto-delivery cards.
+- **A read-only view of everything uncommitted in the folder a run worked in** — replaced by
+  a diff scoped to the run itself. Auto-delivery commits a run's work on its own branch, so
+  the card can show `git diff <base>..<branch>` and, after landing, the squash commit. The
+  old view could never say "this run changed these files"; the new one can, so the guessing
+  rules it was built around are gone.
+- **A switch that lets the board start building a ready card by itself** — not a setting on
+  its own. v0.8.0 makes one click run implementation, review, correction and landing, and
+  the plan says anything that starts cards without a click needs limits on concurrent runs,
+  card count and spend first. Revisit once those limits exist.
+- **Handing a whole group's subtask graph to one long unattended agent run** — the pain it
+  solved was clicking Implement on each subtask and waiting for each one. v0.8.0 removes the
+  waiting instead: subtasks without declared dependencies run at the same time, and landing
+  queues itself. One run across many cards also breaks the model the rest of v0.8.0 rests
+  on — one run implements one approved version of one card, and is reviewed and landed as
+  that card.
 
 ## Connectors
 

@@ -93,9 +93,9 @@ does, and what is worth accepting or refusing about it. Under it, behind a contr
 the calls the agent made on its own. The control says how many sections are inside it.
 
 It opens shut, and one click opens it in place — same page, nothing hidden away in a tab.
-Whether you left it open or shut is remembered, and the next card page opens that way; it is
-one setting for every card, kept in this browser like the rail's width, so it never travels
-with the repo. Opened, that half reads in a quieter ink than the half above it.
+Every card page opens shut again, every visit: nothing about the fold is remembered, so a
+card always reads the same way when you come to it. Opened, that half reads in a quieter ink
+than the half above it.
 
 Cards written before the two halves arrived carry no boundary, and those show their whole
 body exactly as they always have — no control, nothing folded.
@@ -132,8 +132,8 @@ the archive. Matches scroll inside the rail, nothing matching says so, and clear
 
 When the word you typed is on the card only below the boundary, opening that match opens the
 agent half with it, so a search never lands you on a page with nothing it found. That is for
-that one visit: reloading the page, or reaching the card any other way, opens it at your
-remembered setting. In a browser, the window's own Find (⌘F) also opens the shut half and
+that one visit: reloading the page, or reaching the card any other way, opens it shut. In a
+browser, the window's own Find (⌘F) also opens the shut half and
 lands on the word inside it — the desktop app has no Find of its own, so there the **Find a
 card** box is the way to a word only a folded half holds.
 

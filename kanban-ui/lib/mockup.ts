@@ -55,7 +55,9 @@ export async function readMockups(body: string): Promise<MockupSet> {
   return set;
 }
 
-export async function readMockup(src: string): Promise<MockupView> {
+/** One mockup, drawn. `contain` is false on the mockup's own page, where the page is what
+ *  scrolls and the frame must let the scroll through (see `frameCss`). */
+export async function readMockup(src: string, contain = true): Promise<MockupView> {
   const match = SRC.exec(src);
   if (!match) {
     return {
@@ -82,7 +84,8 @@ export async function readMockup(src: string): Promise<MockupView> {
   // and so nothing that can fail once the file has been read.
   if (ext === "txt") return { src, text: code };
   try {
-    return { src, code, doc: ext === "tsx" ? await drawComponent(code, src) : dressPage(code) };
+    const doc = ext === "tsx" ? await drawComponent(code, src, contain) : dressPage(code, contain);
+    return { src, code, doc };
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
     return { src, code, error: `${src} — this mockup could not be drawn: ${why}` };
@@ -91,7 +94,7 @@ export async function readMockup(src: string): Promise<MockupView> {
 
 // --- .tsx --------------------------------------------------------------------
 
-async function drawComponent(code: string, src: string): Promise<string> {
+async function drawComponent(code: string, src: string, contain: boolean): Promise<string> {
   for (const found of code.matchAll(IMPORTS)) {
     const id = (found[1] ?? found[2])!;
     if (!REACT_IDS.has(id)) {
@@ -130,7 +133,7 @@ async function drawComponent(code: string, src: string): Promise<string> {
   sandbox.__draw = () =>
     renderToStaticMarkup(React.createElement(Component as React.FunctionComponent));
   const markup = run("__draw()", context, src) as string;
-  return page(await tailwindFor(markup), markup);
+  return page(await tailwindFor(markup), markup, contain);
 }
 
 /** One turn inside the sandbox, on the clock. Whatever comes back out is a sentence the
@@ -209,22 +212,30 @@ const CSP =
   "content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:\">";
 
 // Sideways is the one direction a mockup never scrolls: a layout that runs off the side is
-// one the user never sees whole. Up and down it scrolls inside its own frame, and the
-// scroll stops there rather than carrying on into the card page behind it.
-const FRAME_CSS =
-  "<style>html{overflow-x:hidden;overscroll-behavior:contain}</style>";
+// one the user never sees whole. Up and down it scrolls inside its own frame.
+//
+// Where that scroll goes when the frame has no more to give is `contain`, and it is the
+// whole difference between the two places a mockup is shown. On a card page it stops at
+// the frame: a wheel over a picture must not move the card behind it. On the mockup's own
+// page the frame IS what the user came for, it is drawn at full size in a panel smaller
+// than it, and that panel is what scrolls — so containing the scroll there leaves a
+// picture whose edges cannot be reached at all.
+function frameCss(contain: boolean): string {
+  return `<style>html{overflow-x:hidden${contain ? ";overscroll-behavior:contain" : ""}}</style>`;
+}
 
-const HEAD = `<meta charset="utf-8">${CSP}${FRAME_CSS}`;
+const head = (contain: boolean) => `<meta charset="utf-8">${CSP}${frameCss(contain)}`;
 
-function page(css: string, markup: string): string {
-  return `<!doctype html><html><head>${HEAD}<style>${css}</style></head><body>${markup}</body></html>`;
+function page(css: string, markup: string, contain: boolean): string {
+  return `<!doctype html><html><head>${head(contain)}<style>${css}</style></head><body>${markup}</body></html>`;
 }
 
 /** An `.html` mockup is a whole page already — it keeps its own markup and its own
  *  styling, and only gets the frame's own two rules put in front of them. */
-function dressPage(html: string): string {
-  const head = /<head[^>]*>/i.exec(html);
-  if (head) return html.slice(0, head.index + head[0].length) + HEAD + html.slice(head.index + head[0].length);
+function dressPage(html: string, contain: boolean): string {
+  const HEAD = head(contain);
+  const found = /<head[^>]*>/i.exec(html);
+  if (found) return html.slice(0, found.index + found[0].length) + HEAD + html.slice(found.index + found[0].length);
   const open = /<html[^>]*>/i.exec(html);
   if (open) return html.slice(0, open.index + open[0].length) + `<head>${HEAD}</head>` + html.slice(open.index + open[0].length);
   return `<!doctype html><html><head>${HEAD}</head><body>${html}</body></html>`;

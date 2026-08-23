@@ -237,12 +237,11 @@ except where another doc is named.
 - A card's page opens on the half a person has to read. Everything above the card format's
   `<!-- agent -->` boundary sits at the top as it always did; everything below it folds
   behind one control reading **what the agent worked out**, with the number of sections
-  inside it. One click opens it in place, in a quieter ink, and whether you left it open or
-  shut is remembered for every card page in this browser. A card written before the boundary
+  inside it. One click opens it in place, in a quieter ink. Every card page opens shut again
+  on every visit — nothing about the fold is stored. A card written before the boundary
   existed shows its whole body as before. A rail search whose word is only below the boundary
   opens that half for that visit, and so does the window's own Find where the browser
-  supports it — neither changes what is remembered: "Reading a card" and "Finding a card" in
-  the UI docs.
+  supports it: "Reading a card" and "Finding a card" in the UI docs.
 
 - Closing a release from the **⋯** beside the release dropdown now writes its changelog too.
   The confirm dialog says which is coming before anything is written — a changelog, or none

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /** The boundary the card format puts between the two halves — one line, on its own
  *  (`akb guide board`, "Card format"). Written as a comment so it never renders. */
@@ -53,13 +53,6 @@ export function onlyInAgentHalf(word: string, title: string, halves: CardHalves)
   return !title.toLowerCase().includes(q) && !halves.human.toLowerCase().includes(q);
 }
 
-// Whether the reader leaves the agent half open, remembered across cards and reloads.
-//
-// One setting for every card, not one per card: keeping the detail open is a habit about
-// how you read. Kept in the browser beside the rail's width and its Memory panel, and not
-// in the board's files — it stays on this machine and never travels with the repo.
-const KEY = "kanban-ui.agent-half-open";
-
 // The word a match in the rail's list was clicked with, and the card it leads to (#262).
 //
 // Held here rather than in the address, because the exception belongs to the act of
@@ -79,52 +72,28 @@ function takeArmed(id: number): string {
   return word;
 }
 
+/** Every card page opens with the agent half shut — nothing about the fold is remembered,
+ *  so a fresh visit always reads the same way. Following a match is the one exception, and
+ *  it lasts only for that visit. */
 export function useAgentHalf(
   cardId: number,
   halves: CardHalves,
   title: string,
 ): {
   open: boolean;
-  /** The reader worked the control — this toggle is the one that gets written down. */
-  byHand: () => void;
   /** The element opened or shut, however it happened. */
   onToggle: (open: boolean) => void;
 } {
-  // Shut for the first render, always: localStorage is client-only, so a remembered
-  // `true` read during the render would desync hydration. It lands a frame later.
   const [open, setOpen] = useState(false);
-  const hand = useRef(false);
 
   useEffect(() => {
     if (!halves.agent) return;
-    // Following a match opens the half for this visit only, and never writes the setting.
-    if (onlyInAgentHalf(takeArmed(cardId), title, halves)) {
-      setOpen(true);
-      return;
-    }
-    let saved = false;
-    try {
-      saved = window.localStorage.getItem(KEY) === "1";
-    } catch {
-      // storage unavailable — the half opens shut and lasts as long as the window does
-    }
     // Only ever opens: a half opened by a match or by the window's own Find stays open
     // when the card is re-read from disk under it.
-    if (saved) setOpen(true);
+    if (onlyInAgentHalf(takeArmed(cardId), title, halves)) setOpen(true);
   }, [cardId, halves, title]);
 
-  const byHand = useCallback(() => {
-    hand.current = true;
-  }, []);
+  const onToggle = useCallback((next: boolean) => setOpen(next), []);
 
-  const onToggle = useCallback((next: boolean) => {
-    setOpen(next);
-    if (!hand.current) return;
-    hand.current = false;
-    try {
-      window.localStorage.setItem(KEY, next ? "1" : "0");
-    } catch {}
-  }, []);
-
-  return { open, byHand, onToggle };
+  return { open, onToggle };
 }

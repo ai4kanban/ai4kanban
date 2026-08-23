@@ -135,6 +135,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         `${kb}. Add task(s) from this requirement: "${req.description || ''}".`,
         `Follow \`akb guide add-task\`. Create task only, don't implement it.`,
+        "Cover what the requests asks for, DONT OVER DESIGN IT.",
         // The board was showing one release when this was asked for, so the card ships in
         // it — otherwise it would land in no release, off the screen of the person who
         // just wrote it.

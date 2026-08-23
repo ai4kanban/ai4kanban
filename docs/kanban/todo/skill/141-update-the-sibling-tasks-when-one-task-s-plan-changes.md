@@ -6,7 +6,7 @@ roi: high
 status: ready
 release: ""
 blocked_by: []
-related: [45]
+related: []
 modules: [skill]
 questions: []
 ---

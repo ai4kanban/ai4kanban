@@ -11,9 +11,6 @@ _(none)_
 
 ## features
 
-- [#45 Implement a whole group task in one goal-mode agent run](features/45-implement-a-whole-group-task-in-one-goal-mode-agent-run.md)
-- [#48 Run each implement in its own git worktree and merge it back to main](features/48-run-each-implement-in-its-own-git-worktree-and-merge-it-back.md)
-- [#50 Show what a run changed in the working tree](features/50-show-what-a-run-changed-in-the-working-tree.md)
 - [#56 Let a user read and edit the board in Obsidian](features/56-read-and-edit-the-board-in-obsidian.md)
 - [#57 Let a user choose where the board is stored](57-choose-where-the-board-is-stored/root.md)
 - [#116 Unstick cards that sit on the board too long](116-stuck-cards/root.md)
@@ -29,10 +26,17 @@ _(none)_
 - [#291 Pick a model from a list in the Harness pane](features/291-pick-model-from-list.md)
 - [#298 Read a closed version's changelog in the board UI](features/298-read-a-closed-version-s-changelog-in-the-board-ui.md)
 - [#299 Archive a finished group root by itself](features/299-archive-a-finished-group-root-by-itself.md)
+- [#300 Build, review and land an approved card from one click](300-auto-delivery/root.md)
+- [#301 Give every run a record, and the board one writer](300-auto-delivery/features/301-run-records-and-board-writer.md)
+- [#302 Review a run's work against the approved card, and send clear mistakes back](300-auto-delivery/features/302-review-and-corrections.md)
+- [#303 Run each card in its own git worktree, with the board kept out of it](300-auto-delivery/features/303-worktree-per-run.md)
+- [#304 Land reviewed code on the target branch, one card at a time](300-auto-delivery/features/304-landing.md)
+- [#305 Show a run's diff on the card, and keep the one that landed](300-auto-delivery/features/305-card-diff.md)
+- [#307 Make one Implement click carry a card all the way to landed](300-auto-delivery/features/307-one-click-delivery.md)
+- [#308 Require diff approval on the cards that need it](300-auto-delivery/features/308-diff-approval-policy.md)
 
 ## skill
 
-- [#16 auto-implement: let the agent build a ready card on its own](skill/16-auto-implement-let-the-agent-build-a-ready-card-on-its-own.md)
 - [#112 Move a module's calls into its memory when the map gains that module](skill/112-move-a-module-s-calls-into-its-memory-when-the-map-gains-tha.md)
 - [#141 Update the sibling tasks when one task's plan changes](skill/141-update-the-sibling-tasks-when-one-task-s-plan-changes.md)
 - [#153 Name the one card to build next](skill/153-name-the-one-card-to-build-next.md)
@@ -42,6 +46,8 @@ _(none)_
 - [#246 Give each spec agent its own harness and model](skill/246-give-each-spec-agent-its-own-harness-and-model.md)
 - [#282 ZCode's 'The login ZCode has' sign-in fails, and two places say it works](skill/282-zcode-s-the-login-zcode-has-sign-in-fails-and-two-places-say.md)
 - [#290 Ask each harness for its model list instead of a free-text box](skill/290-harness-model-list.md)
+- [#306 Let a user add one rule to any flow](300-auto-delivery/skill/306-flow-rules.md)
+- [#309 Link a bug back to the run that introduced it](300-auto-delivery/skill/309-bug-to-run-link.md)
 
 ## distribution
 

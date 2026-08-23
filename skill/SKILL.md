@@ -55,6 +55,10 @@ arguments are the same with or without `--print`.
 
 Each action's full flow comes back from `--print`, so don't work one out from this list.
 
+## Keep a card minimal
+
+Cover what the requests asks for, DONT OVER DESIGN IT.
+
 ## Start or manage a background run
 
 Omit `--print` only when the user wants another agent to perform the work independently in

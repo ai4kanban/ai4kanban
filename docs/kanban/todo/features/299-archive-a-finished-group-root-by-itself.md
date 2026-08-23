@@ -6,7 +6,7 @@ roi: med
 status: todo
 release: 0.7.2
 blocked_by: []
-related: [45]
+related: []
 modules: [skill, local-ui]
 questions: []
 ---
@@ -19,7 +19,7 @@ A group root sits on the board after its last subtask is finished, waiting for s
 - A root that still carries an open question of its own, or an unticked todo that is not a subtask line, is not treated as finished. It stays on the board for a person.
 - The Archive button on a root's page keeps the rule it has today, which asks for neither of those two things. So a person can still archive by hand a root the automatic rule holds back — the hold-backs only stop the board doing it unasked.
 - Only archiving becomes automatic. A group whose subtasks were all rejected still waits for a person, because rejecting deletes the card and its rejection note has to be written from the card's own words.
-- "Implement group" (#45) is not built yet. When it is, a root whose run archives the last subtask closes under that run, which then ends with its card gone, the way a card archived by its own run already does today.
+- A root whose last subtask is archived by that subtask's own run closes under that run, the way a card archived by its own run already does today.
 - A group folder nested inside another group folder is left out. The board does not draw one today — an inner root shows in no column and on no page — so there is no such group on the board for this rule to close.
 
 <!-- agent -->

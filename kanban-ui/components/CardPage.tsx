@@ -14,13 +14,11 @@ import {
   FiFeather,
   FiHelpCircle,
   FiPlay,
-  FiPlus,
   FiSquare,
   FiX,
   FiXCircle,
 } from "react-icons/fi";
 import {
-  addVerifyAction,
   dropVerifyAction,
   patchCardAction,
   scheduleCardAction,
@@ -96,9 +94,6 @@ const NOTE_MS = 7000;
 // hand-checks while this page sits open, and by then the third line is a different line. A
 // line a run has already taken off says so here, and the panel redraws to what the card
 // holds now.
-//
-// **Add a check** sits at the foot, and on a card with no hand-checks it is all there is —
-// without it there would be no way to write the first one.
 function HandChecks({
   cardId,
   verify,
@@ -112,8 +107,6 @@ function HandChecks({
   const [lines, setLines] = useState(verify);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
 
   // The card is the record: a run that rewrote the hand-checks while this page sat open
@@ -149,68 +142,8 @@ function HandChecks({
     settle(res, "could not cross that hand-check off");
   };
 
-  const add = async () => {
-    const text = draft.trim();
-    if (!text) {
-      setAdding(false);
-      setDraft("");
-      return;
-    }
-    setSaving(true);
-    const res = await addVerifyAction(cardId, text);
-    setSaving(false);
-    if (settle(res, "could not add that hand-check")) {
-      setDraft("");
-      setAdding(false);
-    }
-  };
-
-  const addButton = (
-    <button
-      type="button"
-      disabled={busy || saving}
-      onClick={() => setAdding(true)}
-      className="nb-press inline-flex items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-sky-ink disabled:cursor-not-allowed disabled:opacity-45"
-    >
-      <FiPlus className="text-[13px]" aria-hidden />
-      Add a check
-    </button>
-  );
-
-  const composer = (
-    <div className="flex items-center gap-1.5">
-      <input
-        autoFocus
-        value={draft}
-        disabled={saving}
-        placeholder="what you check by hand"
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") void add();
-          if (e.key === "Escape") {
-            setAdding(false);
-            setDraft("");
-          }
-        }}
-        className="nb-outline min-w-0 flex-1 rounded-[8px] bg-nb-paper px-2 py-1 text-[13px] leading-[19px] outline-none"
-      />
-      <button
-        type="button"
-        disabled={saving || !draft.trim()}
-        onClick={() => void add()}
-        className="nb-press shrink-0 rounded-[8px] px-2 py-1 text-[12px] font-[700] disabled:cursor-not-allowed disabled:opacity-45"
-        style={{ color: "var(--color-nb-sky-ink)" }}
-      >
-        Add
-      </button>
-    </div>
-  );
-
-  // Nothing to check and nothing being typed — the one line that would otherwise be an
-  // empty panel.
-  if (lines.length === 0 && !adding && !note) {
-    return <div className="mb-3">{busy ? null : addButton}</div>;
-  }
+  // Nothing to check — no empty panel.
+  if (lines.length === 0 && !note) return null;
 
   return (
     <div className="nb-outline mb-3 p-3" style={{ background: "var(--color-nb-sky-soft)" }}>
@@ -257,7 +190,6 @@ function HandChecks({
           {note}
         </p>
       )}
-      {!busy && <div className="mt-1.5">{adding ? composer : addButton}</div>}
     </div>
   );
 }

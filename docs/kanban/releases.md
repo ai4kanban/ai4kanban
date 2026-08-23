@@ -11,3 +11,4 @@ The order is whatever the lines say, so a hand edit is how you reorder. What com
 the em dash is the release's goal — what this version is for, in your own words.
 
 - **0.7.2**
+- **0.8.0** — Auto-delivery: approve a card, click once, and the board implements it, reviews it independently, corrects clear mistakes, and lands it on the target branch — with an audit trail and per-flow rules.
