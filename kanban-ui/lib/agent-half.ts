@@ -4,43 +4,22 @@ import { useCallback, useEffect, useState } from "react";
  *  (`akb guide board`, "Card format"). Written as a comment so it never renders. */
 const MARKER = /^[ \t]*<!--[ \t]*agent[ \t]*-->[ \t]*\r?\n?/m;
 
-/** A `##` heading, at line start, with a word after it. `###` is a subsection of the
- *  section above it, so it is not one of these. */
-const SECTION = /^ {0,3}##[ \t]+\S/;
-
-const FENCE = /^ {0,3}(```|~~~)/;
-
 export interface CardHalves {
   /** Everything above the boundary — what a reviewer has to read. */
   human: string;
   /** Everything below it. Empty for a card that carries no boundary, or nothing
    *  under one, and then the human half is the whole body as it has always been. */
   agent: string;
-  /** How many `##` sections the agent half holds. */
-  sections: number;
 }
 
 /** Split a card's body at the boundary (#262). */
 export function splitCardBody(body: string): CardHalves {
   const marker = MARKER.exec(body);
-  if (!marker) return { human: body, agent: "", sections: 0 };
+  if (!marker) return { human: body, agent: "" };
   const human = body.slice(0, marker.index).trimEnd();
   const agent = body.slice(marker.index + marker[0].length).trim();
-  if (!agent) return { human, agent: "", sections: 0 };
-  return { human, agent, sections: countSections(agent) };
-}
-
-function countSections(text: string): number {
-  let fenced = false;
-  let found = 0;
-  for (const line of text.split("\n")) {
-    if (FENCE.test(line)) {
-      fenced = !fenced;
-      continue;
-    }
-    if (!fenced && SECTION.test(line)) found += 1;
-  }
-  return found;
+  if (!agent) return { human, agent: "" };
+  return { human, agent };
 }
 
 /** Whether the typed word is on the card only below the boundary — so a page that opens

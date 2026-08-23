@@ -20,7 +20,7 @@ needs it". That argument is gone with the card, so the sentence around it is now
 what still holds, or drop the claim. Striking out the `#58` and leaving the rest is the one
 thing that doesn't work — it reads as if the card were still there.
 
-A mention in a card's frontmatter is an open question. Rewrite it with
+A mention in a card's frontmatter is a question. Rewrite it with
 `akb board update-questions <id> --update <n> ".."` — `akb board` owns the frontmatter.
 
 Use that list. Searching for the id yourself also turns up dates and longer ids.

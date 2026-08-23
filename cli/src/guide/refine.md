@@ -1,45 +1,49 @@
 # Refine
 
-Review one task and leave its plan more useful than you found it. This guide describes one
-pass. `akb refine <id>` controls the loop and starts a fresh session when another pass or a
+Review one task and make its plan ready to build. This guide describes one pass. `akb
+refine <id>` controls the loop and starts a fresh session when another pass or a
 question-resolution pass is needed.
 
-Do not ask the user during the pass. Record decisions only the user can make as `[user]`
-questions on the card.
+Refine assumes the task is wanted. Its job is to make the task minimal, complete, and clear
+enough to build. It does not decide whether the task belongs on the roadmap, reject it, or
+archive completed work.
 
 **Revising is not refining.** `akb revise` applies one requested change and stops.
 
 ## Review the card
 
-Follow the card format and writing rules in `akb guide board`. Focus this pass on four
-questions:
+Follow the card format and writing rules in `akb guide board`. Focus this pass on:
 
-- **Value**: does the task advance the goal and roadmap in
-  `docs/kanban/memory/goal.md`? Search the codebase and relevant project sources for work
-  that already ships, and check the board for duplicate cards.
+- **Outcome**: does the card state what changes for the user or project, and what is wrong
+  without it, clearly enough to guide the plan?
+- **Existing work and duplicates**: search the codebase and relevant project sources for
+  work that already ships, and check the board for duplicate cards. When another card
+  covers the same outcome, update that card instead of keeping a duplicate.
 - **Scope**: is every planned change necessary for the card's stated goal? Keep unrelated
-  ideas outside the card. Include implied work, such as tests and documentation for a
-  user-visible change (`akb guide document-feature`).
+  ideas outside the card.
 - **Design**: is the complete user flow specified well enough to build without guessing?
   Cover important edge cases while keeping the design proportionate to its value.
-- **State**: do checked and unchecked todos match what has already been built? If all work
-  is complete and the goal is met, the card should be archived.
+- **Plan**: do checked and unchecked todos accurately distinguish what has already been
+  built from what remains?
+- **Writing**: does the card follow the board's writing rules in both halves?
 
 ## Act on what you find
 
-- Reject an off-goal or valueless task according to `akb guide reject`. If its value is
-  uncertain, raise a question instead.
-- Update an existing card instead of keeping a duplicate. Move a useful side goal to its
-  own card, or group tightly coupled work according to `akb guide add-task` and
-  `akb guide board`.
-- Rewrite only what is needed to make the plan minimal, complete, and clear. Preserve every
-  ``## By `<name>` agent`` section. Put a call a reviewer could reasonably refuse under the
-  human half's `## Worth noting`, and the rest under `## Decided by the agent`.
-- Make minor decisions yourself. For a significant product, priority, cost, or taste
-  decision you cannot make, add a question with
-  `akb board update-questions <id> --append ".."`. Tag it `[user]` only when the user must
-  answer it, and include options when asking them to choose.
-- Archive completed work according to "Finish a task" in `akb guide board`.
+- Move a useful side goal to its own card, or group tightly coupled work according to
+  `akb guide add-task` and `akb guide board`.
+- Rewrite only what is needed to make the plan minimal, complete, and clear. Follow
+  `akb guide board` for decision placement and spec-agent sections.
+
+## Raise user questions
+
+Use the distinction between questions and open questions in `akb guide board`. Do not ask
+the user during this pass; leave their decision on the card for a resolve pass.
+
+- **Resolve what the evidence supports**: use the code, project sources, goal, prior
+  decisions, and product conventions.
+- **Hand over only user-owned decisions**: add the question with
+  `akb board update-questions <id> --append ".."`, tag it `[user]`, and include concise
+  options with relevant tradeoffs when useful.
 
 ## Close the pass
 

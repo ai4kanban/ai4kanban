@@ -1,10 +1,8 @@
-# Resolve open questions
+# Resolve questions
 
-Each open question in the card's `questions` frontmatter carries a tag saying who owns it:
-
-- **`[user]`** — a judgment call the agent must not guess: taste, priorities, money,
-  product direction.
-- **untagged** — freshly raised, not yet triaged. These are what a pass works through.
+Use the distinction between questions and open questions in `akb guide board`. This pass
+works through untagged questions and leaves only decisions that genuinely require the
+user tagged `[user]`.
 
 ## Move the ones that aren't questions
 
@@ -33,19 +31,17 @@ Research first — the module's code, the board, the memory set of any module th
 names (`docs/kanban/memory/<module>/`), and your reference docs. Many questions are
 already settled, shipped, or rejected once you look.
 
-Judgment calls — taste, priorities, money, product direction — get the same pass:
-the trail of past `decisions.md`, `rejected.md`, `redesign.md`, and the board root's
-`goal.md` often shows the user already made this call, or one close enough to decide from.
+For an apparent user-owned decision, check past `decisions.md`, `rejected.md`,
+`redesign.md`, and the board root's `goal.md`; the user may already have settled it or a
+closely related call.
 
-Decide yourself when the evidence gives you confidence. Note the decision and reason
-under `## Decided by the agent`, or — when a reviewer could reasonably refuse the call —
-as one line in the human half's `## Worth noting` (read "Card format" in
-`akb guide board`).
+Decide when the evidence gives you confidence, then record the answer according to the
+decision rules in `akb guide board`.
 
 ## Ask the user the rest
 
-Ask when the evidence isn't enough. Keep the question itself plain and short: one line
-the user can answer at a glance.
+When the evidence cannot settle a user-owned decision, keep the question to one line the
+user can answer at a glance.
 
 Two commands hand a question over. Pick by one rule: does its wording change?
 
@@ -86,12 +82,12 @@ where they are, and never clear them to make the card look settled.
 
 ## Fold the answers into the card
 
-Rewrite, don't append. Follow "Card format" and "Writing style" in `akb guide board`: keep the
+Rewrite, don't append. Follow "Card format" and "Writing rules" in `akb guide board`: keep the
 card a minimal task spec. Merge answers on the same topic into one entry — not necessarily one
 entry per question. Cut what the spec no longer needs.
 
 An answer sometimes creates work the `## Todo` list doesn't cover — append it as new
-unchecked todos, even when every box is ticked: an open question meant the card wasn't
+unchecked todos, even when every box is ticked: a question meant the card wasn't
 finished, so the answers are the remaining work.
 
 Re-read the human half last: the answers changed the plan, so the opening paragraph and
@@ -103,7 +99,8 @@ at moves back below the boundary.
 Append the user's calls to `memory/<module>/decisions.md`, under the topic that fits —
 add a topic, or a subtopic under an existing one, when none does.
 
-- **Only what the user decided.** Agent's own calls stay on the card (read "Card format" in `akb guide board`). This file is what the human settled.
+- **Only user decisions**: as required by `akb guide board`; agent decisions stay on the
+  card.
 - **Skip** implementation-level and non-user-facing calls.
 - **One plain line each**, written as `**<key>**: <call>` — the key is the question the
   call settles, or a short title for it. Give the call, not the reasoning, but keep it

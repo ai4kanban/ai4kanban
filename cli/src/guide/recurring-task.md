@@ -58,10 +58,9 @@ imperative sentences.
   akb board update-questions <id> --append ".."
   ```
 
-  Leave it untagged: a run doesn't decide who answers. `akb guide resolve` does that
-  later — it settles what it can itself under `## Decided by the agent` and hands the
-  user only the rest. Write the question the way that guide says to: one plain line,
-  answerable at a glance.
+  Leave it untagged: a run doesn't decide who answers. `akb guide resolve` later records
+  the answers according to `akb guide board` and hands the user only the rest. Write the
+  question the way the resolve guide says to: one plain line, answerable at a glance.
 
 ## Run one
 

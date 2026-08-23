@@ -88,9 +88,9 @@ The header carries seven things:
 ### Reading a card
 
 A card is written in two halves. The top one is what a person has to read — what the task
-does, and what is worth accepting or refusing about it. Under it, behind a control reading
-**what the agent worked out**, is the half the builder needs: the scope, the todo list, and
-the calls the agent made on its own. The control says how many sections are inside it.
+does, and what is worth accepting or refusing about it. Under it, in a block of its own
+reading **what the agent worked out**, is the half the builder needs: the scope, the todo
+list, and the calls the agent made on its own.
 
 It opens shut, and one click opens it in place — same page, nothing hidden away in a tab.
 Every card page opens shut again, every visit: nothing about the fold is remembered, so a

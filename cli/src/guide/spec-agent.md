@@ -43,7 +43,7 @@ boundary until the question is answered.
 
 ## How to answer
 
-- Follow the writing style in `akb guide board`; answer your part plainly and briefly.
+- Follow the card writing rules in `akb guide board`.
 - If your part needs nothing, write one line saying so.
 - If you cannot answer without guessing, write no section and explain why in your last
   message.

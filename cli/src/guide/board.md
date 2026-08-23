@@ -3,91 +3,53 @@
 These rules apply to every card workflow. Read them once; each workflow's guide covers
 the remaining details.
 
-## Writing style
-
-Write every card in professional, accessible language. A reader without prior context
-should understand it on a quick read.
-
-What that means line by line:
-
-- **Use identifiable terms**: define unfamiliar terms when they first appear. Avoid
-  labels that only the card's author would understand.
-  - Bad: "one PATH read per screen draw" — "screen draw" is undefined.
-  - Good: "Read `PATH` once each time the board page loads."
-- **State the rule directly**: a concise explanation is clearer than a slogan that needs
-  interpretation.
-  - Bad: "Say it in a word, not only in colour."
-  - Good: "Label the greyed-out agent as 'not installed'."
-- **Put one rule in each bullet**: combined rules are easy to miss.
-- **`## Scope` holds requirements, not rationale**: put the reasoning behind a
-  requirement in `## Decided by the agent`. Explanations in `## Scope` obscure what to
-  build.
-
 ## Card format
 
-A card is a minimal task specification for the implementer, not the planner. It has two
-readers, so it has two halves: the **human half** on top is what a reviewer needs to accept
-or refuse the plan, and the **agent half** below it is what a builder needs to implement
-it. The agent half is folded by default, so the human half has to stand on its own.
+A card has a **human half** for review and a folded **agent half** for implementation.
 
 Every flow writes a card in this order:
 
 ```
 <one short paragraph: what the task does, and what is wrong without it.>
 
-## Worth noting               <- omit it when there is nothing to weigh
-- <one line a reviewer can accept or refuse>
+## Worth noting              <- answered material decisions; omit when empty
+- **<question the decision settles>**: <answer>
 
-## By `<name>` agent          <- only while an open question points at it
+## By `<name>` agent         <- only while a [user] open question points at it
 
-<!-- agent -->
+<!-- agent -->               <- boundary
 
 ## Today
-## Scope
-## Todo
+## Scope                     <- requirements, not rationale
+## Todo                      <- one build step per checkbox
 ## By `<name>` agent
 ## Decided by the agent
+- **<question the decision settles>**: <answer>
+### Overruled by the user    <- always last
 ## Source
 ```
 
-- **`<!-- agent -->` marks the boundary**: one line, directly above the first agent half
-  section. It never shows when the card is rendered. A card with nothing below it carries
-  no marker.
-- **The human half is a closed list**: the paragraph, `## Worth noting`, and a spec agent's
-  section an open question points at. Every other section — `## Scope out`, `## Process`,
-  and any heading the skeleton does not name — belongs to the agent half.
-- **The human half stands alone**: no line in it depends on a section below the boundary.
-  A reviewer reads it and knows what is being built and what to weigh.
-- **`## Worth noting`**: one short line per point a reviewer could reasonably refuse — a
-  choice that could have gone another way, a consequence they may not want to accept, a
-  limit on what the task will not do. A point nobody could disagree with is not one of
-  them.
-- **Keep the human half true**: a flow that changes the agent half re-reads the paragraph
-  and `## Worth noting` in the same pass and fixes whatever no longer holds.
-- **A section the skeleton does not name has no slot**: it follows the named section it
-  sits under, and one with no named section above it opens the agent half.
-- **Both halves follow the writing rules above**: the agent half differs only in being
-  detailed enough to build from.
-- **No meta notes**: describe the problem and the user-visible change, not how the board
-  planned the task. Delete planning notes such as `- [x] explore codebase and create the
-  task #14`, whether checked or not.
-- **No coding details**: describe the desired product behavior, not the implementation.
-  Omit steps such as `- add an npx tsc check after this feature`. Keep validation steps
-  that matter to the project owner, such as testing the complete flow with two cards.
-- **`## Todo` is the build plan**: put one implementation step in each checkbox.
-- **Ticked boxes are history**: never edit, delete, or untick them. To undo completed
-  work, append a todo that reverts it.
-- **`## Decided by the agent`**: record each decision the agent made independently as a
-  short question-and-answer line. This separates agent judgment from the human-provided
-  paragraph, `## Scope`, and `## Todo`, making each decision easy to review or overrule.
-  A call a reviewer could reasonably refuse goes to `## Worth noting` instead. Record user
-  decisions in `decisions.md` (see "The memory set").
-- **`### Overruled by the user`**: the one subsection `## Decided by the agent` carries,
-  always last — the calls the user reversed (`akb guide revise`).
-- **``## By `<name>` agent``**: a spec agent's own section — the part of the spec that
-  the named agent owns (`akb guide spec-agent`). Use it as planning input, but do not
-  reword or delete it. Moving the whole section between the halves is the one change
-  another flow may make. Only rerunning that agent may rewrite it.
+### Writing rules
+
+Use professional, comprehensible language that a fresh reader can understand quickly.
+
+- **One rule per bullet**: use `- **<short title>**: <one clear sentence>`.
+- **Specify behavior**: omit planning notes and unnecessary coding details.
+- **Keep the human half independent**: nothing above the boundary may rely on the folded
+  agent half.
+- **Record answered decisions consistently**: use `- **<question>**: <answer>` in
+  `## Worth noting` for material calls a reviewer may reverse, and in
+  `## Decided by the agent` for the rest.
+- **Keep questions distinct**: an untagged `questions:` entry is a necessary case or
+  detail not yet considered; a `[user]` open question requires judgment the agent cannot
+  supply, such as taste, business direction, spending, or a costly tradeoff.
+- **Answer agent-owned questions**: research or choose a sensible reversible default,
+  record the decision, and remove the question.
+- **Preserve completed work**: never edit, delete, or untick a checked todo; append a todo
+  to reverse it.
+- **Preserve spec-agent sections**: only the named agent may rewrite its section; other
+  flows may only move it across the boundary.
+- **Record user decisions in `decisions.md`**: see "The memory set".
 
 ## Layout
 
