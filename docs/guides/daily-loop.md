@@ -262,10 +262,12 @@ agent that owns one part of a card's spec and fills only that part.
 The board ships two, and `akb spec` lists them:
 
 - **`ui-design`** — draws the screen a card needs. Its answer is two or three mockup files,
-  one layout each, that the card page draws as pictures of the screen — with one line under
-  each saying what it is good for and what it costs, and one of them recommended. You pick by
-  looking, not by reading a description. Run it again on the same card and it draws over its
-  old mockups and clears away the ones it no longer uses.
+  one layout each, that the card page shows — with one line under each saying what it is good
+  for and what it costs, and one of them recommended. You pick by looking, not by reading a
+  description. It draws either a screen styled like the product or a drawing in plain text,
+  whichever the board's **Mockup style** setting says (Configuration → Agents). Run it again
+  on the same card and it draws over its old mockups and clears away the ones it no longer
+  uses, in either style.
 - **`technology-selection`** — picks the library, tool, or service a card leans on: two or
   three candidates, what each gives you and what it costs, one recommended. Keeping what
   the project already uses and writing it yourself are candidates too, so a card doesn't
@@ -279,10 +281,19 @@ A card that changes a screen can carry **mockups** of it — small files under
 points at each one with a short tag, and the card page draws the screen that file holds where
 the tag sits, so you pick a layout by looking at it instead of by reading a description of it.
 
-A mockup is a `.tsx` component styled with Tailwind, or a plain `.html` page. Either way it
-gets the same frame on the card: one desktop screen scaled down to fit, its label and its file
-name across the top, and a switch to the code behind it. The file name opens that mockup on
-its own at full size, where the words in it can be read; Back returns to the card.
+A mockup is one of three files. A `.tsx` component styled with Tailwind or a plain `.html`
+page is a screen: it gets one desktop frame on the card, scaled down to fit, and a switch to
+the code behind it. A `.txt` mockup is a drawing in plain text, shown exactly as the file
+holds it — there is nothing behind it to switch to, and a window too narrow for it scrolls
+sideways rather than breaking its columns.
+
+Every mockup carries its label and its file name across the top, and the file name opens that
+mockup on its own at full size, where the words in it can be read; Back returns to the card.
+
+Which of the two styles `ui-design` draws in is the board's **Mockup style** setting, under
+Configuration → Agents. It is board-wide, so a card carries one style throughout. It starts at
+the rendered screen; the plain-text drawing costs a much shorter run and reads as itself in a
+terminal, at the price of the product's own look.
 
 Nothing in a mockup runs, loads anything, or answers a click — it is a drawing of one screen
 in its normal state, and it is thrown away when the build starts. A tag pointing at a file

@@ -100,6 +100,24 @@ with the repo. Opened, that half reads in a quieter ink than the half above it.
 Cards written before the two halves arrived carry no boundary, and those show their whole
 body exactly as they always have — no control, nothing folded.
 
+### Checking a card by hand
+
+A build often ends with something only you can confirm. Those land on the card as
+hand-checks, in a **check by hand** panel above the body, and the board card counts them
+with a clipboard mark.
+
+Cross one off with the **✕** beside it once you have done the check. It asks for a second
+click first, because crossing off takes the line off the card and there is no way back from
+this screen. A line a run has already taken off says so and the panel redraws to what the
+card holds now.
+
+**Add a check** at the foot of the panel writes a new one in your own words — one line,
+Enter to save, Escape to drop it. On a card with no hand-checks it is all the panel shows.
+
+Both save the moment you act and neither starts a run. Both are off while an agent is
+working the card. A card with hand-checks still open still archives — they are notes on
+finished work, not a gate.
+
 ### Finding a card
 
 Down the left is the **rail**: **All cards** at the top, which is the board, and under it every

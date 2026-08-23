@@ -23,6 +23,8 @@ import type { SpecAgentEntry } from './agent/settings'
 import type { SpecAgentSetting, SpecAgentView } from './agent/types'
 import technologySelection from '../spec/technology-selection.md'
 import uiDesign from '../spec/ui-design.md'
+import uiDesignAscii from '../spec/ui-design-ascii.md'
+import uiDesignFull from '../spec/ui-design-full.md'
 
 const LEGACY_SPEC_AGENT_NAMES: Record<string, string> = {
   'recommend-tech-stack': 'technology-selection',
@@ -45,13 +47,40 @@ export interface SpecAgent {
   settings: SpecAgentSetting[]
 }
 
+/** How `ui-design` draws a layout option (#256). Both styles answer the same way — two or
+ *  three options, one line each, one recommended — and differ only in what one option's file
+ *  is: a screen the board renders, or a drawing that reads as itself wherever it is opened.
+ *
+ *  It is board-wide, so a card is drawn in one style and never a mix, and it defaults to
+ *  `full`: a board that never opens the setting draws what it drew before this existed. */
+const MOCKUP_STYLE: SpecAgentSetting = {
+  key: 'mockupStyle',
+  label: 'Mockup style',
+  help: 'What one layout option is: a screen the board renders, or a drawing in plain text.',
+  choices: [
+    {
+      value: 'full',
+      label: 'Rendered screen',
+      cost: 'a `.tsx` or `.html` file per option, styled like the product — a long run, and the board draws it',
+      prompt: uiDesignFull,
+    },
+    {
+      value: 'ascii',
+      label: 'ASCII drawing',
+      cost: 'a `.txt` file per option, readable wherever it is opened — a short run, and no product styling',
+      prompt: uiDesignAscii,
+    },
+  ],
+  default: 'full',
+}
+
 export const SPEC_AGENTS: SpecAgent[] = [
   {
     name: 'ui-design',
     owns: 'the screen a card changes — the layout drawn as options, one of them recommended',
     calledOn: 'called on a card that changes or adds a screen the user sees',
     prompt: uiDesign,
-    settings: [],
+    settings: [MOCKUP_STYLE],
   },
   {
     name: 'technology-selection',

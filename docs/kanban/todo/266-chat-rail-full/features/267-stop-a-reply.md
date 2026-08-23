@@ -20,6 +20,15 @@ questions:
 A reply that has gone the wrong way is watched to the end. There is no way to stop it, so
 the user waits out an answer they already know is wrong, then sends the correction.
 
+## Worth noting
+- Stop replaces Send in the same corner rather than sitting beside it. One button in that
+  corner is one thing to learn, and there is no way to send while a reply is coming until
+  #268 lands.
+- Stopping asks for no confirmation. A reply stopped by accident is gone, and getting it
+  back means sending the message again.
+
+<!-- agent -->
+
 ## Today
 - The command hands the caller a way to end a reply mid-flight — `onOpen(stop)` in
   `cli/src/lib/agent/chat.ts`. `akb chat` in a terminal takes it, and Ctrl-C stops a reply
@@ -35,7 +44,8 @@ the user waits out an answer they already know is wrong, then sends the correcti
   note a reply that died on its own gets — "you stopped the reply."
 - **The conversation carries on**: the next message continues where it stopped, exactly as
   a reply that stopped by itself does today.
-- **Esc stops it too**, while the rail has focus.
+- **Esc stops it too**, while the rail has focus and nothing else has claimed the key. Once
+  #271's card list is open, Esc closes that list and the reply keeps coming.
 - **It works from anywhere**: a reply is owned by the server, so stopping one started on
   another page, or in a terminal, works the same and stops that reply.
 - **Stopping is instant on screen**: the box opens again the moment it is pressed, without

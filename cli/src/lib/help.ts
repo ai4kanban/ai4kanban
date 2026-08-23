@@ -120,7 +120,7 @@ export const MOVES: Move[] = [
           '--proposed says the board went looking for this work rather than',
           'a person asking for it — the propose, extract-ideas and',
           'plan-release flows pass it, nothing else does. It works with',
-          '--count too, for a group\'s ids.',
+          '--count too, for the bare ids.',
           'The script owns the frontmatter — fill only the body by hand.',
           'A question the user picks from carries its choices: follow its',
           '--question with one --option "a — why" per choice (2+), and',

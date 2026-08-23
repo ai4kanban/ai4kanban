@@ -30,23 +30,23 @@ One screen per option, in the state the user normally sees it. Draw what the car
 todos name and no more — an empty state, a settings panel, a second page nobody asked for is
 a layout the user now has to have an opinion about.
 
-That rule is about the screen, not the file. Even a plain screen takes a long file, so what
-you trim is detail out of the drawing, never lines out of the code.
-
-A screen that is not a web page — a terminal, a command's output — is drawn as monospaced
-text inside the mockup like anything else, so a card never carries two kinds of drawing.
-
 ## What to leave out
 
-The code that will build this. A mockup is thrown away when the build starts: it borrows the
-project's look so the user recognises the screen, and stops there. No component the project
-owns, no note on how it would be wired up.
+The code that will build this. A mockup is thrown away when the build starts: it shows the
+user the screen and stops there. No component the project owns, no note on how it would be
+wired up.
 
 ## Run again on the same card
 
-Your new mockups are written over the old ones, in the same folder under the same names. Any
-mockup your new answer no longer points at is deleted, so the folder holds the options that
-are on the card and nothing else.
+When you finish, that card's folder holds exactly the files your new answer points at and
+nothing else. Delete every other file in it — an old option you dropped, and a drawing in the
+other mockup style, which a board that switched styles between runs will have left there.
+
+## How you draw
+
+The board picks the style, and the section below this one says which. It is the only part of
+this that changes: the number of options, the tags, the lines under them and the recommendation
+are the same either way.
 
 ## When the pick is the user's
 

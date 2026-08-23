@@ -26,10 +26,10 @@ covers it, or a plain-words note.
   `akb guide refine`.
 - A card that changes a screen points at its mockups with one tag on a line of its own —
   `<Mockup src=".mockups/239/a.tsx" label="A" />` — and they live in
-  `docs/kanban/.mockups/<card id>/`, one file each: a `.tsx` component styled with Tailwind, or
-  a plain `.html` page. The folder is gitignored, so a drawing never travels with the card and
-  what it settled has to be in the card's words. It is the only tag a card body may carry:
-  `akb guide board`.
+  `docs/kanban/.mockups/<card id>/`, one file each: a `.tsx` component styled with Tailwind, a
+  plain `.html` page, or a `.txt` drawing in plain text. The folder is gitignored, so a drawing
+  never travels with the card and what it settled has to be in the card's words. It is the only
+  tag a card body may carry: `akb guide board`.
 - A card that changes something users see and click is planned against the board's UI design
   reference, `akb guide ui-design`: the screen is matched to the ones the project already
   has, its colours and spacing come from the project, it says what it shows with nothing to
@@ -174,6 +174,12 @@ covers it, or a plain-words note.
   run, the board starts it once that run ends, so nothing waits for it: "Let a specialist
   fill part of the spec" in `docs/guides/daily-loop.md`, and `akb guide spec-agent` for the
   flow one follows.
+- A spec agent can carry settings of its own — what it produces, not only whether it runs.
+  The agent says what it can be set to, the choice is made in the board UI under
+  Configuration → Agents, and it is saved with the board, so every card that agent runs on
+  gets the same answer, including a run started from a terminal. `akb spec` prints each
+  agent's settings and what each one is set to, and an agent that declares no settings is
+  unchanged: "The spec agents" in `kanban-ui/README.md`.
 - The `ui-design` spec agent answers with the screen drawn, not described: on a card that
   changes or adds a screen, it writes two or three mockup files under
   `docs/kanban/.mockups/<card id>/`, points at each from its own section with a `<Mockup>` tag
@@ -181,6 +187,12 @@ covers it, or a plain-words note.
   card page draws them, so the user picks a layout by looking. Run again on the same card it
   writes over its old mockups and deletes the ones its new answer dropped: "Let a specialist
   fill part of the spec" in `docs/guides/daily-loop.md`.
+- Choose how `ui-design` draws a layout, in the board UI under Configuration → Agents:
+  **Rendered screen** — a `.tsx` or `.html` file per option, styled like the product — or
+  **ASCII drawing**, a `.txt` file per option that is the same drawing wherever it is opened
+  and costs a much shorter run. Rendered screen is what a board starts with, and the setting
+  is board-wide, so one card is drawn in one style: "Picking a layout by looking at it" in
+  `docs/guides/daily-loop.md`.
 - The second spec agent is `technology-selection`: on a card that leans on an outside
   library, tool, or service, it comes back with two or three candidates, what each gives
   you and what it costs, and one recommended. Keeping what the project already uses and
@@ -237,3 +249,19 @@ covers it, or a plain-words note.
   behind. A release with too little evidence for a number shows its two counts and `not
   enough yet` rather than a percentage, and none of the three is a target:
   `kanban-ui/README.md`, "Insights".
+
+- Closing a release now leaves a changelog, not just a card list. `akb board release close
+  <version>` writes the shipped and left-behind cards as it always did, then starts an agent
+  run that puts a few plain lines at the top of that dated section saying what the version
+  changed — six at most, each one something a user can now see or do, in the language of the
+  release goal. `akb changelog <version>` starts the same run by hand, on any version the
+  board holds a closed record of, and running it again replaces the changelog rather than
+  adding a second. A version that shipped no card gets none, and the close says so. The
+  agent writes through `akb board release changelog <version> --file <path>`, which owns the
+  placement: `akb guide changelog`, and "Close a release" in `docs/guides/daily-loop.md`.
+
+- "Group task" in `akb guide board` now gives the steps that actually build one: write the
+  root card, write each piece related to it, move the files into `todo/<id>-<slug>/`, point
+  the root at its pieces, and repoint the moved bullets in the board index. It no longer
+  tells a flow to reserve ids with `akb board create --count <N>` — nothing can hand those
+  ids to a card, so following the old recipe burnt them and made the board's numbering jump.

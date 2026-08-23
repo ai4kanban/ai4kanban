@@ -38,10 +38,10 @@ If the request needs several tasks that only make sense together, make them a **
 task** instead of loose cards.
 
 Example: "build a plugin system with a Slack and a Notion
-demo plugin" → 4 ids: a group root for the plugin system + a subtask for the
+demo plugin" → 4 cards: a group root for the plugin system + a subtask for the
 system + a subtask for the Slack plugin + a subtask for the Notion plugin.
 
-See "Group task" in `akb guide board` for the folder layout and how to allocate the ids.
+See "Group task" in `akb guide board` for the folder layout and the steps that build one.
 Cards that stand on their own stay loose.
 
 ## Don't split off near-duplicates

@@ -3,7 +3,7 @@ title: Copy, resend or reword a message without retyping it
 track: features
 priority: med
 roi: high
-status: todo
+status: ready
 release: 0.7.2
 blocked_by: []
 related: [266]
@@ -13,6 +13,18 @@ questions: []
 
 An answer worth keeping cannot be got out of the rail except by selecting it with the
 mouse, and a message that came back wrong has to be retyped from memory.
+
+## Worth noting
+- Reword sits on any message you sent, not only the last one. Walking a long exchange back
+  with up-arrow to find the question worth asking again is counting, not reading.
+- Your own messages get reword but no copy. Reword is how a message you wrote gets used
+  again.
+- "Copy the conversation" is one button in the header rather than a ⋯ menu. One item does
+  not need a menu.
+- Copying the whole conversation is a step past "a message", kept because it is the same
+  need: getting an answer out of the rail.
+
+<!-- agent -->
 
 ## Today
 - A message is text on the page. Nothing hovers, nothing copies, nothing resends.
@@ -75,13 +87,3 @@ mouse, and a message that came back wrong has to be retyped from memory.
   app's words, not the agent's.
 - **What happens to a half-typed message?**: it is never overwritten. Asking once is the
   idiom the header's bin already uses before it destroys something.
-
-### Worth noting
-- Reword sits on any message you sent, not only the last one. Walking a long exchange back
-  with up-arrow to find the question worth asking again is counting, not reading.
-- Your own messages get reword but no copy. Reword is how a message you wrote gets used
-  again.
-- "Copy the conversation" is one button in the header rather than a ⋯ menu. One item does
-  not need a menu.
-- Copying the whole conversation is a step past "a message", kept because it is the same
-  need: getting an answer out of the rail.

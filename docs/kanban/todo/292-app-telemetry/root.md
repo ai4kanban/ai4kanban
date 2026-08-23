@@ -9,7 +9,7 @@ blocked_by: []
 related: []
 modules: [telemetry, local-ui]
 questions:
-  - question: "[user] 0.7.2 already holds 32 cards, and this group is the only one in it that ships nothing a user can see. Does it stay in 0.7.2?"
+  - question: "[user] 0.7.2 already holds 29 cards, and this group is the only one in it that ships nothing a user can see. Does it stay in 0.7.2?"
     mode: single
     options:
       - keep it in 0.7.2 — we stop guessing about downloads and daily use sooner
@@ -24,14 +24,28 @@ we make is a guess. Collect a small set of usage numbers from the site and the a
 them to a server we run, and read them in one place. This is a group task; each piece is
 its own subtask in this folder.
 
+## Worth noting
+- This cuts against the product's own positioning. The site sells the board as local-first
+  — plain markdown in your own repo. The app already calls out to GitHub to see whether a
+  newer release exists, so this is not the first outbound call, but it is the first one
+  that is about the user rather than for them, and someone who notices it after the fact
+  will read it as a broken promise. Worth doing only if the consent step in #293 is
+  genuinely plain, and #293's open question is a live part of that: on by default would
+  make the broken-promise reading the likely one.
+- Nothing here is a feature a user gets, which is what the open question above asks about.
+
+<!-- agent -->
+
 ## Today
 - The site counts nothing. We do not know how many visitors reach the download page or
   press the button.
 - The app reports nothing. An install that is opened once and an install used every day
   look identical to us. Its one outbound call asks GitHub whether a newer release is out,
   which tells us nothing.
-- Every board setting lives inside the user's repository, so there is nowhere on a machine
-  to keep an answer about privacy or an install id. #293 has to make that place first.
+- Board settings live in `docs/kanban/ui.config.json`, inside the user's repository. The
+  desktop app keeps a small file of its own outside every repository, but the `akb`
+  command cannot read it, so there is nowhere both of them can keep an answer about
+  privacy or an install id. #293 has to make that place first.
 - `docs/kanban/metrics.csv` and `docs/kanban/record.csv` already count real board work,
   but only inside the user's own repo. We never see them.
 - GitHub's release download counts are the only number we have for the app, and they mix
@@ -51,6 +65,9 @@ its own subtask in this folder.
 - One anonymous install id, made on the machine, is the only thing that ties two events
   together.
 - The user can turn it off at any time, and turning it off stops all sending.
+- Every fact is sent by exactly one card. #296 sends what the board already writes down in
+  `metrics.csv` and `record.csv`; #295 sends only what a running app or command knows and
+  those files do not hold.
 - Only installs that were asked in the app are ever counted. Someone who installs the
   command from npm or the plugin marketplace and never opens the app is absent from these
   numbers rather than counted as a no-show.
@@ -81,6 +98,11 @@ its own subtask in this folder.
 - **Why our own server rather than a hosted analytics product** — the product's promise is
   that nothing leaves your repo. Sending a user's usage to a third party would be the
   opposite of that even when the payload is harmless. #294 settles where it runs.
+- **Where each number comes from** — the board already writes every card created, archived
+  and rejected, and every question closed, into `record.csv` as it happens. Sending those a
+  second time as live events would give two counts of one fact that disagree the moment a
+  file is hand-edited or a send is dropped. So #295 sends what only the running app knows —
+  opens, daily use, runs, chat — and #296 sends the board's own record.
 - **What the board's own record adds** — the board's own planning scores say how well it
   plans, but only for the board that wrote them. Aggregated across installs they say
   whether the product works at all, which is the thing we cannot learn any other way.
@@ -94,13 +116,3 @@ its own subtask in this folder.
 - **Download rate and open rate are one funnel** — they only mean something read together,
   so both land in the same store even though one is measured on the site and one in the
   app.
-
-## Pushback
-- This cuts against the product's own positioning. The site sells the board as local-first
-  — plain markdown in your own repo. The app already calls out to GitHub to see whether a
-  newer release exists, so this is not the first outbound call, but it is the first one
-  that is about the user rather than for them, and someone who notices it after the fact
-  will read it as a broken promise. Worth doing only if the consent step in #293 is
-  genuinely plain, and #293's open question is a live part of that: on by default would
-  make the broken-promise reading the likely one.
-- Nothing here is a feature a user gets, which is what the open question above asks about.

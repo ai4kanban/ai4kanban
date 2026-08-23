@@ -12,6 +12,9 @@
 // card page gives it, because options only compare when they are the same size on the
 // page. Type too small to read is what the two links on the frame are for: the code
 // behind it, and the mockup on its own at full size.
+//
+// A `.txt` mockup is not a screen and gets none of that (#256): it is the file's own
+// characters in a monospaced block, at full size, scrolled rather than scaled.
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -23,9 +26,9 @@ import { mockupHref, type MockupView } from "@/lib/mockup-tag";
 const W = 1280;
 const H = 800;
 
-/** A missing file, a `src` pointing outside the mockups folder, a file that is neither
- *  `.tsx` nor `.html`, or a `.tsx` the board could not draw. One plain note either way,
- *  naming the file, and the rest of the card carries on as usual. */
+/** A missing file, a `src` pointing outside the mockups folder, a file in none of the
+ *  three formats, or a `.tsx` the board could not draw. One plain note either way, naming
+ *  the file, and the rest of the card carries on as usual. */
 function Note({ text }: { text: string }) {
   return (
     <span
@@ -34,6 +37,21 @@ function Note({ text }: { text: string }) {
     >
       <FiAlertCircle aria-hidden className="relative top-[3px] shrink-0" style={{ width: 13, height: 13 }} />
       <span className="min-w-0 break-words font-mono">{text}</span>
+    </span>
+  );
+}
+
+/** A `.txt` mockup (#256): the drawing as the file holds it. It is never re-wrapped — a
+ *  drawing whose columns break is not the drawing any more — so a card page too narrow for
+ *  it scrolls sideways instead, and the scroll stops here rather than carrying on into the
+ *  page behind it. */
+function Drawing({ text }: { text: string }) {
+  return (
+    <span
+      className="block max-h-[560px] overflow-auto whitespace-pre p-3 font-mono text-[11.5px] leading-[17px] text-nb-ink"
+      style={{ background: "var(--color-nb-wash)", overscrollBehavior: "contain" }}
+    >
+      {text}
     </span>
   );
 }
@@ -112,15 +130,21 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
           <span className="truncate">{view.src}</span>
           <FiMaximize2 aria-hidden className="shrink-0" style={{ width: 11, height: 11 }} />
         </Link>
-        <button
-          type="button"
-          onClick={() => setShowCode((v) => !v)}
-          className="ml-auto shrink-0 cursor-pointer text-[11px] font-[800] uppercase tracking-[0.06em] text-nb-ink-soft hover:text-nb-accent-deep"
-        >
-          {showCode ? "Screen" : "Code"}
-        </button>
+        {/* No switch on a `.txt` mockup: the file IS the drawing, so there is nothing
+            behind the picture to show. */}
+        {view.text === undefined && (
+          <button
+            type="button"
+            onClick={() => setShowCode((v) => !v)}
+            className="ml-auto shrink-0 cursor-pointer text-[11px] font-[800] uppercase tracking-[0.06em] text-nb-ink-soft hover:text-nb-accent-deep"
+          >
+            {showCode ? "Screen" : "Code"}
+          </button>
+        )}
       </span>
-      {showCode ? (
+      {view.text !== undefined ? (
+        <Drawing text={view.text} />
+      ) : showCode ? (
         <span
           className="block max-h-[520px] overflow-auto whitespace-pre p-3 font-mono text-[11.5px] leading-[17px]"
           style={{ background: "var(--color-nb-wash)" }}

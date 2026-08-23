@@ -275,6 +275,13 @@ export interface CardPatch {
   cadence?: string
 }
 
+/** One hand-check added or crossed off. `verify` is the card's list as it now stands, so
+ *  the panel redraws from the card rather than from what the screen had — a cross-off
+ *  refused because a run had already taken that line off still carries it. */
+export interface VerifyResult extends WriteResult {
+  verify?: string[]
+}
+
 /** One bulk release move. `failed` names the cards that did not move and why, so a bar can
  *  say so while the rest go through. `error` is the whole move refused before anything was
  *  written — then nothing was touched at all. */

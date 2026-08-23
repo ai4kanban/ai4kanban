@@ -65,7 +65,7 @@ const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'release', 'blocked-b
 const originOf = (flags: Flags): Origin => (flags.proposed !== undefined ? 'proposed' : 'asked')
 
 // Two modes:
-//   bare      `create [--count N]`  → allocate ids and print them (group-task setup).
+//   bare      `create [--count N]`  → allocate ids and print them (no card written).
 //   card mode `create --title ... --track ...` → allocate ONE id, write the card's
 //             frontmatter + a body template, and index it. The script owns the meta;
 //             fill the body with your editor and leave the frontmatter alone.

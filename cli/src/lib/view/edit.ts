@@ -22,6 +22,7 @@ import { normalizeSchedule } from '../schedule'
 import { LEVELS, normalizeRelease } from '../validate'
 import { findCard } from './read'
 import { scheduleRefusal } from './rules'
+import type { Meta } from '../types'
 import type { CardPatch, CardSchedule } from './types'
 
 /** Apply a direct edit to card `id`. Refuses — by throwing the board's own refusal, which
@@ -114,4 +115,53 @@ export function setCardSchedule(id: number, schedule: CardSchedule | null): Card
   meta.schedule = wanted
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
   return was
+}
+
+// ---- one hand-check, from a screen (#276) -----------------------------------
+//
+// The lines under `verify:` — what the user checks by hand once the build is done. A
+// screen adds one and crosses one off; `update-verify` is the same two edits from a
+// terminal.
+//
+// Crossing off matches the line by its TEXT, not by its place in the list: a run can add
+// or take away hand-checks while the page sits open, and by then the third line is a
+// different line. A line no longer there refuses, so the screen can say it has gone
+// instead of taking the wrong one off.
+
+function openCard(id: number): { file: string; meta: Meta } {
+  if (!Number.isInteger(id)) die('a hand-check is edited by its card number', 'bad-id')
+  const found = locate(id)
+  if (!found) die(`no open card #${id}`, { kind: 'card-not-found', id })
+  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+  const { meta } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+  if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`, { kind: 'no-frontmatter', id })
+  return { file, meta }
+}
+
+/** Rewrite only the frontmatter; the body goes back exactly as it was read. */
+function writeMeta(file: string, meta: Meta): void {
+  const { body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+  fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
+}
+
+/** Add one hand-check to card `id`, and answer with the list as it now stands. */
+export function addVerifyLine(id: number, line: string): string[] {
+  const text = String(line ?? '').trim()
+  if (!text) die('a hand-check is one line of text', 'empty-verify')
+  const { file, meta } = openCard(id)
+  meta.verify.push(text)
+  writeMeta(file, meta)
+  return meta.verify
+}
+
+/** Cross one hand-check off card `id`, matched by its text. Refuses when no line reads that
+ *  way — it has already gone, and the screen says so rather than taking another one off. */
+export function dropVerifyLine(id: number, line: string): string[] {
+  const text = String(line ?? '').trim()
+  const { file, meta } = openCard(id)
+  const at = meta.verify.findIndex((l) => l.trim() === text)
+  if (at < 0) die('that hand-check is no longer on the card', { kind: 'verify-not-found', id })
+  meta.verify.splice(at, 1)
+  writeMeta(file, meta)
+  return meta.verify
 }

@@ -39,6 +39,9 @@ before proposing so you don't re-suggest them.
   question. A question lives in the card's frontmatter, which is no place for full detail, so
   there is nothing for the Resolve dialog to draw. The drawing stays in the card body, where
   the card page renders it.
+- **Dropping the Edit button from the card page** — keep it. A button that says Edit is the
+  straightforward way to ask for a rewrite; the chat rail is folded away by default, so
+  cutting it would leave no visible way in.
 
 ## Runs
 

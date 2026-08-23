@@ -14,10 +14,18 @@ import {
   FiFeather,
   FiHelpCircle,
   FiPlay,
+  FiPlus,
   FiSquare,
+  FiX,
   FiXCircle,
 } from "react-icons/fi";
-import { patchCardAction, scheduleCardAction, unscheduleCardAction } from "@/app/actions";
+import {
+  addVerifyAction,
+  dropVerifyAction,
+  patchCardAction,
+  scheduleCardAction,
+  unscheduleCardAction,
+} from "@/app/actions";
 
 import {
   NO_RELEASE,
@@ -63,6 +71,196 @@ import { Window } from "./Window";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
+
+// How long a cross-off waits for its second click before going back to being an ✕. The
+// same window the rail's Clear gives the conversation it is about to throw away.
+const CONFIRM_MS = 4000;
+
+// How long a refused hand-check edit says so. Long enough to read, and then gone — the
+// panel it sits in has already redrawn to what the card holds, so leaving the line up
+// would keep an empty panel on screen over news the user has taken in.
+const NOTE_MS = 7000;
+
+// ---- what the build left for you to check by hand (#231, #276) ---------------
+//
+// Its own panel, below the questions and never inside them: an open question waits on an
+// answer and holds the card back, while every line here is a note on work that is already
+// done. Sky rather than the accent for the same reason.
+//
+// A line you have checked is crossed off, which takes it off the card — there is no ticked
+// state to keep, because the card already keeps its record in the archive. It cannot be
+// undone from here, so the ✕ asks for a second click first; a dialog for one line would be
+// more ceremony than the loss is worth.
+//
+// A cross-off names the LINE, not its place in the list: a run can add or take away
+// hand-checks while this page sits open, and by then the third line is a different line. A
+// line a run has already taken off says so here, and the panel redraws to what the card
+// holds now.
+//
+// **Add a check** sits at the foot, and on a card with no hand-checks it is all there is —
+// without it there would be no way to write the first one.
+function HandChecks({
+  cardId,
+  verify,
+  busy,
+}: {
+  cardId: number;
+  verify: string[];
+  busy: boolean;
+}) {
+  const router = useRouter();
+  const [lines, setLines] = useState(verify);
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // The card is the record: a run that rewrote the hand-checks while this page sat open
+  // wins over whatever the panel was showing.
+  const fromCard = verify.join("\n");
+  useEffect(() => setLines(verify), [fromCard]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!confirming) return;
+    const timer = setTimeout(() => setConfirming(null), CONFIRM_MS);
+    return () => clearTimeout(timer);
+  }, [confirming]);
+
+  useEffect(() => {
+    if (!note) return;
+    const timer = setTimeout(() => setNote(""), NOTE_MS);
+    return () => clearTimeout(timer);
+  }, [note]);
+
+  const settle = (res: { ok: boolean; error?: string; verify?: string[] }, fallback: string) => {
+    if (res.verify) setLines(res.verify);
+    setNote(res.ok ? "" : res.error || fallback);
+    // The board card's clipboard mark counts these lines, so the board is re-read too.
+    router.refresh();
+    return res.ok;
+  };
+
+  const crossOff = async (line: string) => {
+    setConfirming(null);
+    setSaving(true);
+    const res = await dropVerifyAction(cardId, line);
+    setSaving(false);
+    settle(res, "could not cross that hand-check off");
+  };
+
+  const add = async () => {
+    const text = draft.trim();
+    if (!text) {
+      setAdding(false);
+      setDraft("");
+      return;
+    }
+    setSaving(true);
+    const res = await addVerifyAction(cardId, text);
+    setSaving(false);
+    if (settle(res, "could not add that hand-check")) {
+      setDraft("");
+      setAdding(false);
+    }
+  };
+
+  const addButton = (
+    <button
+      type="button"
+      disabled={busy || saving}
+      onClick={() => setAdding(true)}
+      className="nb-press inline-flex items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-sky-ink disabled:cursor-not-allowed disabled:opacity-45"
+    >
+      <FiPlus className="text-[13px]" aria-hidden />
+      Add a check
+    </button>
+  );
+
+  const composer = (
+    <div className="flex items-center gap-1.5">
+      <input
+        autoFocus
+        value={draft}
+        disabled={saving}
+        placeholder="what you check by hand"
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") void add();
+          if (e.key === "Escape") {
+            setAdding(false);
+            setDraft("");
+          }
+        }}
+        className="nb-outline min-w-0 flex-1 rounded-[8px] bg-nb-paper px-2 py-1 text-[13px] leading-[19px] outline-none"
+      />
+      <button
+        type="button"
+        disabled={saving || !draft.trim()}
+        onClick={() => void add()}
+        className="nb-press shrink-0 rounded-[8px] px-2 py-1 text-[12px] font-[700] disabled:cursor-not-allowed disabled:opacity-45"
+        style={{ color: "var(--color-nb-sky-ink)" }}
+      >
+        Add
+      </button>
+    </div>
+  );
+
+  // Nothing to check and nothing being typed — the one line that would otherwise be an
+  // empty panel.
+  if (lines.length === 0 && !adding && !note) {
+    return <div className="mb-3">{busy ? null : addButton}</div>;
+  }
+
+  return (
+    <div className="nb-outline mb-3 p-3" style={{ background: "var(--color-nb-sky-soft)" }}>
+      <div className="nb-tag mb-2">
+        <span style={{ color: "var(--color-nb-sky-ink)" }}>✓</span> check by hand
+      </div>
+      {lines.length > 0 && (
+        <ul className="mb-1 flex flex-col gap-1 text-[13px] leading-[19px]">
+          {lines.map((line) => (
+            <li key={line} className="flex items-start gap-1.5">
+              <span className="relative top-[7px] shrink-0 text-[5px]" aria-hidden>
+                ●
+              </span>
+              <span className="min-w-0 flex-1">{line}</span>
+              {!busy &&
+                (confirming === line ? (
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void crossOff(line)}
+                    className="shrink-0 cursor-pointer rounded-[6px] px-1.5 py-0.5 text-[11px] font-[700] uppercase tracking-[0.04em]"
+                    style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
+                  >
+                    Cross it off
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label={`Cross off "${line}"`}
+                    title="Cross this check off — it comes off the card"
+                    disabled={saving}
+                    onClick={() => setConfirming(line)}
+                    className="nb-press shrink-0 rounded-[6px] px-1 py-0.5 text-nb-ink-soft hover:text-nb-peach-ink disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <FiX className="text-[13px]" aria-hidden />
+                  </button>
+                ))}
+            </li>
+          ))}
+        </ul>
+      )}
+      {note && (
+        <p className="mb-1 text-[12px] leading-snug" style={{ color: "var(--color-nb-peach-ink)" }}>
+          {note}
+        </p>
+      )}
+      {!busy && <div className="mt-1.5">{adding ? composer : addButton}</div>}
+    </div>
+  );
+}
 
 // The choices on an options question, read-only — the same list the Resolve
 // dialog hands the user, shown here so the options can be read without opening
@@ -680,24 +878,7 @@ export function CardPage({
               </div>
             )}
 
-            {/* What the build left for the user to check by hand (#231). Its own panel,
-                below the questions and never inside them: an open question waits on an
-                answer and holds the card back, while every line here is a note to read
-                on work that is already done. Sky rather than the accent for the same
-                reason, and there is nothing to click or tick — you check, then you
-                archive. */}
-            {card.verify.length > 0 && (
-              <div className="nb-outline mb-3 p-3" style={{ background: "var(--color-nb-sky-soft)" }}>
-                <div className="nb-tag mb-2">
-                  <span style={{ color: "var(--color-nb-sky-ink)" }}>✓</span> check by hand
-                </div>
-                <ul className="flex list-disc flex-col gap-2 pl-4 text-[13px] leading-[19px]">
-                  {card.verify.map((line, i) => (
-                    <li key={i}>{line}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <HandChecks cardId={card.id} verify={card.verify} busy={busy} />
 
             <CardBody
               body={card.body}

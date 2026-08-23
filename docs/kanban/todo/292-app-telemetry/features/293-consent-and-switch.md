@@ -15,11 +15,94 @@ questions:
       - off until the user turns it on — a local-first product that sends nothing by default is the promise the site already makes
       - "on until the user turns it off — far more data, but it contradicts \"nothing leaves your repo\""
     recommend: [1]
+  - question: "[user] Which layout for the consent ask? — see the `ui-design` section"
+    mode: single
+    options:
+      - A — a panel over the user's own board on first open; the modal ignores Esc and click-away
+      - B — the whole window is the question until it is answered
+      - C — the Configuration dialog opens itself on the new Privacy section, which is the question
+    recommend: [1]
 ---
 
 Nothing may be sent off a user's machine before they have been asked in plain words and
 said yes. Build that step, the setting that reverses it, and the anonymous install id
 every other card in this group depends on.
+
+## Worth noting
+- `akb` never prompts, so a user who only ever works from a terminal and never opens the
+  app is never asked and never counted. The alternative — prompting in the terminal —
+  would hang the coding agent runs that drive the command.
+- The ask happens once, and it is consent to the practice rather than to a fixed list. A
+  later card that adds an event adds it to the published page but does not ask again.
+
+## By `ui-design` agent
+
+The card changes two screens: the one-time ask, and a new Privacy section in Configuration.
+All three options carry the same words and the same Privacy section content — they differ in
+where the ask stands and in the shape the section takes.
+
+### What the ask says
+
+- **The question**: "May we count how the app is used?", and under it "Nothing has left this
+  machine, and nothing will until you answer."
+- **One line in**: app opens, which parts of the board are used, and the board's own planning
+  numbers — tied together by one random id made on this machine.
+- **One line out**: card titles, goals, file paths, repo or project name, email. Nothing from
+  inside the repository.
+- **The link**: "See every event and field we send" opens the published privacy page.
+- **Two buttons**: "Send usage data" and "Don't send" — the same pair whichever way the card's
+  open question about the default is settled. Neither is worded "not now": the ask happens once,
+  so a button that hints at being asked again would be a lie.
+- **The way back**: "Change it any time in Configuration → Privacy."
+
+### What the Privacy section holds
+
+- **Where it sits**: a fourth sidebar entry under Harness, Agents and Setup, with a shield mark.
+- **The answer in words, then the switch**: "Usage reporting is on." with a line saying that
+  turning it off stops sending at once and throws away anything still waiting.
+- **The same two lines**: what is sent and what is never sent, word for word as the ask said
+  them, and the same link to the full list.
+- **The update check, named**: the app still asks GitHub whether a newer release is out; the
+  switch does not change that.
+- **Where the answer lives**: on this machine, never inside the repository, and
+  `akb telemetry off` sets the same one from a terminal.
+- **When a save fails**: the switch goes back to where it was and the reason appears across the
+  top of the dialog, where Configuration's errors already show.
+
+### Layouts
+
+<Mockup src=".mockups/293/a.tsx" label="A" />
+
+The ask is a panel over the user's own board on the first open — no close mark, and the scrim
+does not dismiss it, so the two buttons are the only way on. It reads as a question about work
+that is plainly still there, and it is the least screen to build; the cost is that it is a modal
+that ignores Esc and click-away, which a user with those habits will press twice before reading.
+
+<Mockup src=".mockups/293/b.tsx" label="B" />
+
+The ask takes the whole window in the guided first run's language, and the board does not draw
+until it is answered. Nothing competes with it, there is room to set "what is sent" and "what is
+never sent" side by side as equals, and it is the same screen a brand-new install can meet as a
+setup step; the cost is that someone who opened the app to move a card meets a wall instead of
+their board.
+
+<Mockup src=".mockups/293/c.tsx" label="C" />
+
+There is no separate ask: the app opens the Configuration dialog on the new Privacy section, and
+that section is the question — the two buttons stand where the switch will later sit, and the
+other three sections are dimmed until one is pressed. One pane to build and one wording to keep
+true, and the answer is changed in the place it was asked; the cost is that a new user's first
+screen is a settings dialog, and the app gains a settings dialog that can appear uninvited.
+
+### Recommended
+
+**A.** The promise the ask has to survive is "your board is yours and it stays here" — and A is
+the only one that shows the board while asking. B answers a one-line question with a whole-window
+screen the user did not ask for, and C teaches the app to open its settings by itself, which is a
+worse habit than the modal is. If a brand-new install should meet this during setup as well, A's
+panel is exactly what that step shows, with no second screen to write.
+
+<!-- agent -->
 
 ## Today
 - The app reaches the network once already: on launch it asks GitHub for the newest
@@ -30,6 +113,7 @@ every other card in this group depends on.
   command cannot.
 - Configuration holds Harness, Skill and Agents. There is no place a privacy setting
   would go.
+- The site publishes no privacy page today, so #293 writes the first one.
 
 ## Scope
 - The user is asked once, on a screen they cannot miss, and the app carries on either way.
@@ -46,6 +130,8 @@ every other card in this group depends on.
 - The setting and the install id are kept in one file that the `akb` command owns, outside
   every repository. The app reads and changes them through the command, so the app and the
   command share one answer and one install id.
+- That file is the group's one place for anything a machine must remember about reporting.
+  #296's per-board ids go in it too, rather than in a second store.
 - Nothing about telemetry is written inside `docs/kanban/`, so a board that is committed
   and cloned never carries one person's answer to everybody else.
 - `akb` never asks. It obeys the setting it finds and prints no prompt, because a coding
@@ -89,8 +175,3 @@ every other card in this group depends on.
 - **The update check stays either way** — asking GitHub whether a newer release exists
   tells the user something; it is not a report about them. The privacy page names it so
   the page is the whole picture rather than a partial one.
-
-### Worth noting
-- `akb` never prompts, so a user who only ever works from a terminal and never opens the
-  app is never asked and never counted. The alternative — prompting in the terminal —
-  would hang the coding agent runs that drive the command.

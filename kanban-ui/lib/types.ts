@@ -79,6 +79,7 @@ export type {
   SetupStepView as SetupStep,
   Subtask,
   TrackDraft,
+  VerifyResult,
   WriteResult,
 } from "./format/view/types";
 export { GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE, SCORE_SERIES } from "./format/view/types";

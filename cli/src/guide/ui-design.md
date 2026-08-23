@@ -14,11 +14,16 @@ Read this before planning a card that changes a screen.
 
 Draw layout options instead of describing them in a question.
 
-- **Files**: write one per option in `docs/kanban/.mockups/<card id>/`: `a.tsx` for `A`,
-  `b.tsx` for `B`, and so on.
-- **Format**: prefer `.tsx`, with one default-exported React component using only React,
-  Tailwind classes, and inline icons. An `.html` mockup must be a complete, self-styled
-  page.
+- **Files**: write one per option in `docs/kanban/.mockups/<card id>/`, named for its
+  label: `a` for `A`, `b` for `B`, and so on.
+- **Format**: one of three, and a card uses one of them throughout — never a mix.
+  - `.tsx` — one default-exported React component using only React, Tailwind classes, and
+    inline icons. This is the one to prefer.
+  - `.html` — a complete, self-styled page, for a screen that is not a component.
+  - `.txt` — a plain-text drawing of the screen, no line longer than 96 columns and every
+    character one column wide. The board shows it as it stands, so the file reads the same
+    in a terminal as on the card.
+  - Which one the `ui-design` agent writes is the board's Mockup style setting (`akb spec`).
 - **Content**: draw one static screen in its normal state. Do not handle clicks, load from
   the network, or read board data.
 - **Card body**: label options `A`, `B`, `C` in order. Put each tag on its own line,

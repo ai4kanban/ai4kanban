@@ -160,6 +160,16 @@ re-ask a settled call.
 - **Does every spec agent get settings of its own?**: no. A spec agent may declare settings,
   and one that declares none is unchanged. `ui-design` gets the first — mockup style —
   and `technology-selection` gets none.
+- **What are the mockup styles, and which is the default?**: `full` — a `.tsx` or `.html`
+  screen styled like the product — and `ascii`, a `.txt` drawing in plain text. `full` is the
+  default, so a board that never opens the setting draws what it always did. The setting is
+  board-wide, so a card is drawn in one style and never a mix.
+- **How wide may an ASCII mockup be?**: 96 columns, and every character one column wide —
+  plain ASCII or the box-drawing characters, never emoji or full-width text. A drawing is
+  never re-wrapped, so a longer line is one the reader has to scroll to.
+- **Where is the list of mockup formats written down?**: in `akb guide ui-design` only.
+  `akb guide board` never carried it, and putting it there would cost every flow the context
+  for a rule only the screen-drawing ones need.
 
 ## Chat
 

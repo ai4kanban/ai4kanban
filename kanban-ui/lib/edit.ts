@@ -7,6 +7,7 @@ import type {
   FillPlan,
   SaveProjectResult,
   TrackDraft,
+  VerifyResult,
   WriteResult,
 } from "./types";
 
@@ -32,6 +33,34 @@ const refused = (e: unknown): WriteResult => ({
 export async function patchCard(id: number, patch: CardPatch): Promise<WriteResult> {
   try {
     return (await boardRules()).patchCard(id, patch);
+  } catch (e) {
+    return refused(e);
+  }
+}
+
+/** Add one hand-check to a card, or cross one off (#276). Both answer with the list as the
+ *  card now holds it, so the panel redraws from what was written — including a cross-off
+ *  refused because a run had already taken that line off. Rules older than this say so in
+ *  the line that names the update. */
+const OLD_RULES: WriteResult = {
+  ok: false,
+  error:
+    "This board's copy of the rules is older than editing hand-checks. Run `npm install -g ai4kanban` to update it.",
+};
+
+export async function addVerify(id: number, line: string): Promise<VerifyResult> {
+  try {
+    const rules = await boardRules();
+    return rules.addVerify ? rules.addVerify(id, line) : OLD_RULES;
+  } catch (e) {
+    return refused(e);
+  }
+}
+
+export async function dropVerify(id: number, line: string): Promise<VerifyResult> {
+  try {
+    const rules = await boardRules();
+    return rules.dropVerify ? rules.dropVerify(id, line) : OLD_RULES;
   } catch (e) {
     return refused(e);
   }

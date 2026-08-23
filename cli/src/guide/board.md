@@ -155,9 +155,30 @@ todo/<id>-<short-slug>/
   <track>/<subid>-<slug>.md          # a subtask, its own card, under any track folder
 ```
 
-The root and each subtask need separate ids; allocate them together with
-`akb board create --count <N>`. Use the command's flags to relate every subtask to the
-root and to add **Blocked by** links where execution order matters.
+`create` writes one card at a time into a track folder, so build a group card by card and
+then move the files into the group's folder:
+
+1. **Write the root**: `akb board create --title "<the whole job>" --track <track>`. Call
+   the id it prints `<id>`.
+2. **Write each subtask**: `akb board create --title "<one piece>" --track <track>
+   --related <id>`, adding `--blocked-by <subid>` where execution order matters.
+3. **Move the files**: the root becomes `todo/<id>-<short-slug>/root.md`, and each subtask
+   goes under `todo/<id>-<short-slug>/<track>/` with its filename unchanged.
+4. **Point the root at its pieces**: `akb board update <id> --related <subid,subid,...>`.
+   At create time `--related` can only name ids that already exist, so the root's list is
+   filled in here.
+5. **Repoint the moved cards in `todo/README.md`**: give each bullet the card's new path
+   and leave it under the heading it is already in. That index is not frontmatter — edit
+   it directly.
+
+- **`--track` always takes a real track name**: the frontmatter `track` is the column the
+  board shows the card in. Passing a folder path such as `<id>-<slug>/<track>` puts the
+  file in the right place but leaves the card out of every column.
+- **The root's `## Todo` lists the subtasks**: one line each, ending in `#<subid>`.
+  Archiving a subtask ticks its line off; rejecting one strikes it through.
+- **Never reserve ids up front**: `akb board create --count <N>` prints ids that no card
+  can be given — writing a card always takes a fresh id — so the reserved numbers are
+  burnt and the board's numbering jumps.
 
 ## The memory set
 

@@ -30,6 +30,7 @@ import type {
   SetupDraft,
   SetupState,
   TrackDraft,
+  VerifyResult,
   WriteResult,
 } from "./format/view/types";
 
@@ -121,6 +122,11 @@ export interface BoardRules {
 
   // the board, written
   patchCard(id: number, patch: CardPatch): WriteResult;
+  // One hand-check added or crossed off from the card page (#276). Optional: a project can
+  // be running rules older than the release that added them, and the panel then reads the
+  // way it always did rather than the page failing to draw.
+  addVerify?(id: number, line: string): VerifyResult;
+  dropVerify?(id: number, line: string): VerifyResult;
   setSchedule(id: number, action: string, notes?: string): WriteResult;
   clearSchedule(id: number): WriteResult;
   setCardsRelease(ids: number[], release: string): BulkReleaseResult;

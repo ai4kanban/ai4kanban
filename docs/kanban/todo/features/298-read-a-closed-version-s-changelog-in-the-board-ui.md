@@ -5,8 +5,8 @@ priority: med
 roi: med
 status: todo
 release: ""
-blocked_by: [232]
-related: [232]
+blocked_by: []
+related: []
 modules: [local-ui]
 questions:
   - question: "[user] Where in the board should a shipped version be read — a list of every closed version, or only the one just closed?"
@@ -20,7 +20,7 @@ questions:
 A version that has closed leaves a plain-words changelog in a file under `docs/kanban/.release-summaries/`, and nothing in the app can show it. Give the board a place to read it, so what a version changed can be read where the work was planned.
 
 ## Worth noting
-- The changelog itself is written by #232. This card only adds the place to read it, and changes nothing about how it is written.
+- The changelog itself is already written when a release closes. This card only adds the place to read it, and changes nothing about how it is written.
 - The board reads that file and never writes it. A wrong line is still fixed in your own editor.
 
 <!-- agent -->
@@ -40,5 +40,5 @@ A version that has closed leaves a plain-words changelog in a file under `docs/k
 - [ ] Check it against a version closed end to end, with and without a changelog.
 
 ## Decided by the agent
-- **Why is this not part of #232?** The user asked for the reading place to be its own card: #232 ships the changelog itself, and the board shows the run rather than the text while that card is open.
+- **Why is this its own card?** The user asked for the reading place to be split out of the card that writes the changelog, which has since shipped: the board shows the run that writes it, never the text.
 - **Which release does it ship in?** None yet. It was split out of a card in 0.7.2 rather than asked for in it, so promising it to a version is the user's call.

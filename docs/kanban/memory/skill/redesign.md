@@ -119,10 +119,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## UI design
 
-- ❌ **Draw a screen as an ASCII sketch, because it reads the same everywhere** → ✅ draw it
-  as a small self-contained HTML mockup, styled like the project's own screens. A drawing the
-  user can look at beats one they have to decode, and the UI showing it as the real screen is
-  worth the work it takes.
+- ❌ **Make one drawing style the only one, and decide it for every board** → ✅ a rendered
+  screen styled like the project is the default, because a drawing the user can look at beats
+  one they have to decode. An ASCII drawing is the other choice, for a board that would rather
+  have a short run and a file that reads as itself in a terminal. Which one is a board setting,
+  not a rule.
 - ❌ **Put the mockup's markup in the card body** (a fenced `html` block per option) → ✅ each
   mockup is its own file, under a folder keyed by the card's id, and the card body carries one
   short line pointing at it. A card is a spec people and flows read; pages of markup in the

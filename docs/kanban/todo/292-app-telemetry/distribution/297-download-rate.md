@@ -14,6 +14,15 @@ questions: []
 The landing page's main button is the download. Nothing counts how many visitors reach it
 and how many press it, so we cannot say whether the page works.
 
+## Worth noting
+- With no cookie there is no returning visitor here. The rate is presses divided by page
+  views, not per person, so someone who opens the page four times before downloading reads
+  as a poor rate.
+- Our press count and GitHub's download count will never agree, and neither is wrong. They
+  stay two numbers read side by side rather than one reconciled figure.
+
+<!-- agent -->
+
 ## Today
 - The site is a static export on Cloudflare Pages and measures nothing.
 - The download buttons link straight to files on a GitHub release, so a press is not

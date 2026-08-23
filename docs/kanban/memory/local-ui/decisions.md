@@ -244,6 +244,11 @@ re-ask a settled call.
   its tags without its pictures, and `ui-design` run again draws them back.
 - **Does the dot show up in the address?**: no. `.mockups/239/a.tsx` is the page
   `/mockups/239/a.tsx` — one word in the URL, no dot segment (`mockupHref`).
+- **How is a `.txt` mockup shown?**: as the file's own characters in a monospaced block where
+  the tag sits — no frame, no scaling, and no switch to "the code behind it", because the file
+  IS the drawing. It opens on its own page like any other mockup, at reading size.
+- **What happens to a drawing on a narrow window?**: it scrolls sideways. It is never
+  re-wrapped: a drawing whose columns break is no longer the drawing.
 
 ## Where the UI is documented
 

@@ -20,17 +20,15 @@ _(none)_
 - [#182 Sign the Mac build so it opens with no warning](features/182-sign-the-mac-build-so-it-opens-with-no-warning.md)
 - [#183 Install the Mac app with one Homebrew command](features/183-install-the-mac-app-with-one-homebrew-command.md)
 - [#229 Tell the user how to log in to the agent, not just how to install it](features/229-tell-the-user-how-to-log-in-to-the-agent-not-just-how-to-ins.md)
-- [#232 Write a release's changelog with AI when it closes](features/232-write-a-release-s-changelog-with-ai-when-it-closes.md)
 - [#247 Set a spec agent's harness and model where its switch is](features/247-set-a-spec-agent-s-harness-and-model-where-its-switch-is.md)
 - [#250 Bring a task in from a file or your voice, not only typed text](250-friendly-task-import/root.md)
-- [#254 Customize what a specialist agent produces, not just whether it runs](254-customizable-spec-agents/root.md)
 - [#266 Make the chat rail a full chat, not a message box](266-chat-rail-full/root.md)
 - [#287 Run each board action on its own harness](287-per-action-harness/root.md)
 - [#209 Make the daily loop something you can do from buttons](209-daily-loop-buttons/root.md)
-- [#279 Decide whether the card page still needs an Edit button](features/279-decide-whether-the-card-page-still-needs-an-edit-button.md)
 - [#280 Set the board up by talking to it, not by filling in a form](features/280-set-the-board-up-by-talking-to-it-not-by-filling-in-a-form.md)
 - [#291 Pick a model from a list in the Harness pane](features/291-pick-model-from-list.md)
 - [#298 Read a closed version's changelog in the board UI](features/298-read-a-closed-version-s-changelog-in-the-board-ui.md)
+- [#299 Archive a finished group root by itself](features/299-archive-a-finished-group-root-by-itself.md)
 
 ## skill
 
@@ -44,7 +42,6 @@ _(none)_
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
 - [#246 Give each spec agent its own harness and model](skill/246-give-each-spec-agent-its-own-harness-and-model.md)
 - [#282 ZCode's 'The login ZCode has' sign-in fails, and two places say it works](skill/282-zcode-s-the-login-zcode-has-sign-in-fails-and-two-places-say.md)
-- [#283 Fix the recipe that tells a flow how to write a group task](skill/283-fix-the-recipe-that-tells-a-flow-how-to-write-a-group-task.md)
 - [#290 Ask each harness for its model list instead of a free-text box](skill/290-harness-model-list.md)
 
 ## distribution
@@ -64,13 +61,6 @@ _(none)_
 - [#204 Run each test request twice — once with the board, once without](202-board-vs-no-board/distribution/204-run-both-ways.md)
 - [#205 Score the runs and keep the whole record in the repo](202-board-vs-no-board/distribution/205-score-and-record.md)
 - [#206 Show the result on the site and in the README](202-board-vs-no-board/distribution/206-publish-the-result.md)
-
-## 254-customizable-spec-agents/skill
-
-- [#256 Draw a card's layout options in ASCII instead of a rendered screen](254-customizable-spec-agents/skill/256-ascii-mockups.md)
-
-## 254-customizable-spec-agents/features
-
 
 ## 250-friendly-task-import/skill
 

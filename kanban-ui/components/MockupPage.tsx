@@ -6,6 +6,10 @@
 // It keeps the same sandbox the card page's frame has — nothing runs, nothing loads —
 // and it is not scaled, so the page itself scrolls when the window is narrower than the
 // desktop screen the mockup was drawn on.
+//
+// A `.txt` mockup opens here too (#256), in the same monospaced block the card page shows
+// it in and at the size a drawing is read at. It never re-wraps either: a window too narrow
+// for it scrolls sideways.
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -52,7 +56,11 @@ export function MockupPage({ view }: { view: MockupView }) {
         </p>
       )}
 
-      {showCode ? (
+      {view.text !== undefined ? (
+        <pre className="mx-4 mb-4 overflow-auto whitespace-pre bg-nb-paper p-4 font-mono text-[13px] leading-[19px]">
+          {view.text}
+        </pre>
+      ) : showCode ? (
         <pre className="mx-4 mb-4 overflow-auto whitespace-pre bg-nb-paper p-3 font-mono text-[12px] leading-[18px]">
           {view.code}
         </pre>

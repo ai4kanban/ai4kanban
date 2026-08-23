@@ -32,7 +32,12 @@ import {
 } from '../releases'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../schedule'
 import { NO_RELEASE, normalizeRelease } from '../validate'
-import { patchCard as patchCardWrite, setCardSchedule } from './edit'
+import {
+  addVerifyLine,
+  dropVerifyLine,
+  patchCard as patchCardWrite,
+  setCardSchedule,
+} from './edit'
 import { writeGoalText } from './goal'
 import { saveProject as saveProjectWrite } from './first-run'
 import type {
@@ -44,8 +49,11 @@ import type {
   PlanCard,
   SaveProjectResult,
   TrackDraft,
+  VerifyResult,
   WriteResult,
 } from './types'
+
+import { findCard as findCardRow } from './read'
 
 export { readBoard, findCard, allCards, readSetupState } from './read'
 export { boardStamp } from './stamp'
@@ -87,6 +95,28 @@ export function patchCard(id: number, patch: CardPatch): WriteResult {
     patchCardWrite(id, patch)
     return {}
   })
+}
+
+/**
+ * Add one hand-check to a card, or cross one off (#276) — the card page's two controls on
+ * the **check by hand** panel.
+ *
+ * Both answer with the list as it now stands, so the screen redraws from what was written
+ * rather than from what it had. Crossing one off names the LINE, not its place: a run can
+ * add or take away hand-checks while the page sits open. A line that is no longer there
+ * refuses, and the refusal is what the screen says.
+ */
+export function addVerify(id: number, line: string): VerifyResult {
+  return write(() => ({ verify: addVerifyLine(id, line) }))
+}
+
+export function dropVerify(id: number, line: string): VerifyResult {
+  const res = write(() => ({ verify: dropVerifyLine(id, line) }))
+  if (res.ok) return res
+  // Refused — most often because a run took that line off while the page sat open. Hand
+  // back what the card holds now, so the panel redraws to the truth beside the message
+  // rather than keeping a line that is no longer there.
+  return { ...res, verify: read(() => findCardRow(id)?.verify, undefined) }
 }
 
 /**

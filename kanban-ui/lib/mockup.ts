@@ -7,9 +7,11 @@
 //          itself, and turned into markup. The Tailwind it used is worked out from that
 //          markup right then, so a class the board's own screens never use still works.
 //   .html  a whole page already — taken as it is.
+//   .txt   a drawing in plain text (#256). Nothing is run and nothing is styled: the frame
+//          shows the file's own characters in a monospaced block.
 //
-// Either way what comes back is one self-contained HTML document. The frame shows it in a
-// sandboxed iframe, so nothing in it runs, nothing reaches the network, and its styling
+// For the first two what comes back is one self-contained HTML document. The frame shows it
+// in a sandboxed iframe, so nothing in it runs, nothing reaches the network, and its styling
 // and the board's never meet.
 
 import fs from "node:fs";
@@ -27,11 +29,11 @@ import type { MockupSet, MockupView } from "./mockup-tag";
 import { mockupSources } from "./mockup-tag";
 import { mockupsDir } from "./paths";
 
-/** `.mockups/<folder>/<file>.tsx|html`, and nothing else — no `.`, no `..`, nothing that
+/** `.mockups/<folder>/<file>.tsx|html|txt`, and nothing else — no `.`, no `..`, nothing that
  *  climbs. A mockup is read off the user's disk, so the only files we open are the drawings
  *  in the mockups folder. The leading dot is optional: cards written before the folder was
  *  dotted point at `mockups/...`, and they still name the same file. */
-const SRC = /^\.?mockups\/(?!\.{1,2}\/)([^/\\]+)\/(?!\.)([^/\\]+)\.(tsx|html)$/;
+const SRC = /^\.?mockups\/(?!\.{1,2}\/)([^/\\]+)\/(?!\.)([^/\\]+)\.(tsx|html|txt)$/;
 
 /** What a `.tsx` mockup may import. Anything else is a mockup the board can't draw: a
  *  board component would follow the board's own code, and a package isn't there to load —
@@ -58,7 +60,7 @@ export async function readMockup(src: string): Promise<MockupView> {
   if (!match) {
     return {
       src,
-      error: `${src} — a mockup is a .tsx or .html file under docs/kanban/.mockups/`,
+      error: `${src} — a mockup is a .tsx, .html or .txt file under docs/kanban/.mockups/`,
     };
   }
   const [, folder, name, ext] = match;
@@ -76,6 +78,9 @@ export async function readMockup(src: string): Promise<MockupView> {
     // drawings this machine never made. Nothing is broken — the card still reads.
     return { src, error: `${src} — no such file on this machine (mockups are not in git)` };
   }
+  // A `.txt` mockup is the drawing itself (#256) — nothing to transpile, nothing to style,
+  // and so nothing that can fail once the file has been read.
+  if (ext === "txt") return { src, text: code };
   try {
     return { src, code, doc: ext === "tsx" ? await drawComponent(code, src) : dressPage(code) };
   } catch (e) {

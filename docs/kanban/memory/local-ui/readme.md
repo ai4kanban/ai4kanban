@@ -117,13 +117,17 @@ except where another doc is named.
 - Answer a question with choices by ticking a list, with the recommended ones already ticked.
 - Archive a group root once all its subtasks are done or rejected.
 - Read a card's mockups on its page: a card that changes a screen can carry small files that
-  draw the layouts it could take, and each one is drawn where its tag sits. Both kinds — a
-  `.tsx` component styled with Tailwind, and a plain `.html` page — get the same frame: one
-  desktop screen scaled to fit, its label and file name over it, a switch to the code behind
-  it, and the file name opening that mockup on its own at full size. Nothing in one runs,
-  loads anything or answers a click, and a tag the board cannot draw reads as one plain note
-  naming the file — which is what a card pulled from git shows, since the mockups folder is
-  not in it: "Mockups on a card".
+  draw the layouts it could take, and each one is drawn where its tag sits. A `.tsx` component
+  styled with Tailwind and a plain `.html` page get the same frame: one desktop screen scaled
+  to fit, its label and file name over it, a switch to the code behind it, and the file name
+  opening that mockup on its own at full size. Nothing in one runs, loads anything or answers
+  a click, and a tag the board cannot draw reads as one plain note naming the file — which is
+  what a card pulled from git shows, since the mockups folder is not in it: "Mockups on a
+  card".
+- Read a `.txt` mockup as the drawing it is: it is shown where its tag sits in a monospaced
+  block, exactly as the file holds it — nothing scaled and no switch to code, because the file
+  is the drawing. The file name opens it on its own page at reading size, and a window too
+  narrow for it scrolls sideways rather than breaking its columns: "Mockups on a card".
 
 - See what a finished build left you to check by hand: the lines sit under **check by hand**
   on the card page, in their own blue panel below the open questions, and a clipboard mark on
@@ -239,3 +243,11 @@ except where another doc is named.
   opens that half for that visit, and so does the window's own Find where the browser
   supports it — neither changes what is remembered: "Reading a card" and "Finding a card" in
   the UI docs.
+
+- Closing a release from the **⋯** beside the release dropdown now writes its changelog too.
+  The confirm dialog says which is coming before anything is written — a changelog, or none
+  because nothing shipped — and confirming starts the agent as a background run you can watch
+  in the runs panel. The board goes on working while it writes; if the run cannot start or
+  ends badly, a note across the top says so and names `akb changelog <version>` as the way to
+  get the changelog after all. Reading the changelog itself is still a matter of opening the
+  summary file: "Closing one" in the UI docs.
