@@ -33,10 +33,6 @@ Use that instead of `npx`, and never install the command globally.
 
 If the current session is long and all about a plan, when we finalize the plan, write a HANDOFF.md file so we can implement it in a fresh session.
 
-## Git worktree
-
-Don't use worktree/branching. Keep everything in the main branch.
-
 ## Code Style
 
 When you see a lengthy comment, trim it down aggressively to key notes for future writers, or just remove it. Code is enough to explain itself. Add comments only when necessary.
