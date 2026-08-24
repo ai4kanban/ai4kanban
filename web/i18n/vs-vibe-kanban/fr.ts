@@ -57,7 +57,7 @@ const fr: VsVibeCopy = {
       },
       orchestration: {
         dimension: "Orchestration multi-agents",
-        kanban: "Non incluse : l'exécution revient à votre agent ou à votre environnement actuel.",
+        kanban: "Chaque livraison est construite sur sa propre branche, dans son propre worktree git : plusieurs avancent en parallèle sans toucher à votre copie de travail.",
         vibe: "Une fonction centrale, avec chaque agent isolé dans son propre worktree git.",
       },
       review: {
@@ -113,7 +113,7 @@ const fr: VsVibeCopy = {
     ours: {
       name: "AI4Kanban — planifier et préciser",
       is: "L'agent lit et met à jour un tableau Markdown dans le dépôt. Un processus de définition transforme l'idée initiale en tâche précise et révisable, que vous validez avant le début de l'implémentation.",
-      isnt: "Il ne lance pas d'agents, ne crée pas de worktrees et n'affiche pas les diffs. Ces fonctions restent à la charge de l'agent ou de l'environnement de développement.",
+      isnt: "Il n'affiche pas les diffs et ne crée pas de pull requests. Ces fonctions restent à la charge de l'agent ou de l'environnement de développement.",
     },
     theirs: {
       name: "Vibe Kanban — exécuter et relire",

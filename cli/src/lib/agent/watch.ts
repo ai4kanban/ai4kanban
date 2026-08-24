@@ -18,6 +18,7 @@ import { REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { boardComplaints } from '../reconcile'
 import { boardCommand } from './command'
 import { deliveryRunAfter } from './deliveries'
+import { advanceLanding } from './landing'
 import { runEnv } from './flow'
 import { specRunsAfter } from './follow'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
@@ -120,6 +121,7 @@ export async function watchRun(sessionId: string): Promise<number> {
   const wasBroken = new Set(boardComplaints())
 
   const [cmd, ...args] = active.argv
+  const workDir = active.cwd ?? REPO_ROOT
   // A connector the board talks to is started differently in two ways: the prompt is sent
   // in the conversation rather than spelled on the command line, and its stdin stays open,
   // because that is the half of the conversation this end writes (agent/client.ts).
@@ -131,9 +133,10 @@ export async function watchRun(sessionId: string): Promise<number> {
   let child: ChildProcessByStdio<Writable | null, Readable, Readable>
   try {
     child = spawn(cmd!, client ? args : [...args, prompt], {
-      // The project the run belongs to. The watcher is already started there, so this is
-      // what its cwd holds anyway — named outright so it stays true if that ever changes.
-      cwd: REPO_ROOT,
+      // Where this run works: the project, or — inside a delivery with a worktree of its
+      // own (#303) — that worktree. Settled when the run was planned and written down with
+      // it, so the spawn, the connector's own folder flag and `PWD` are one answer.
+      cwd: workDir,
       // The run's own id goes into the agent's environment, and this is the one place it
       // can: the environment a run starts under is settled by the settings (resolve.ts),
       // which never see a session id. It is what stops a run spawning a copy of itself —
@@ -262,7 +265,11 @@ export async function watchRun(sessionId: string): Promise<number> {
       // a correction after a review that found mistakes, another review after that. It is
       // read from the record the close just wrote, so it is taken once and started once.
       const carryOn = deliveryRunAfter(record)
-      followUp(sessionId, settled?.runs ?? [], carryOn)
+      // Then the landing queue (#304): a delivery review has just passed takes the slot and
+      // lands here, and what it hands back is the session that landing wants — a re-review
+      // after a rebase, or the agent that resolves a conflict.
+      const landing = advanceLanding()
+      followUp(sessionId, settled?.runs ?? [], carryOn, landing)
       resolve(code === 0 ? 0 : 1)
     }
 
@@ -325,7 +332,7 @@ export async function watchRun(sessionId: string): Promise<number> {
             stdout: child.stdout,
             stdin: toAgent,
             prompt,
-            cwd: REPO_ROOT,
+            cwd: workDir,
             // Only a resumed run carries a conversation to continue. A fresh run's session
             // is opened inside the conversation, and its id comes back here.
             resumeId: record.resumedFrom ? record.resumeId : undefined,
@@ -391,13 +398,19 @@ function settleBoard(run: RunRecord, before: BoardMarks): RefinementFollowUp | n
 // A refusal is not worth reporting: the only one that comes up is a card that already has a
 // run on it, and that run is doing more than this one would have. Nothing here can fail the
 // run that just ended — it is over.
-function followUp(sessionId: string, runs: AgentRequest[], carryOn: AgentRequest | null): void {
+function followUp(
+  sessionId: string,
+  runs: AgentRequest[],
+  carryOn: AgentRequest | null,
+  landing: AgentRequest | null = null,
+): void {
   try {
     // Started first, then forgotten — so a crash between the two costs a repeated agent at
     // worst, and never a section nobody ever writes.
     for (const req of specRunsAfter(readSpecAsks(sessionId))) startRun(req)
     clearSpecAsks(sessionId)
     if (carryOn) startRun(carryOn)
+    if (landing) startRun(landing)
     for (const req of runs) {
       if (req.refineRound === undefined) startRefinement(req)
       else startRun(req)

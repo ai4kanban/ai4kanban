@@ -12,8 +12,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { activeDelivery } from '../agent/deliveries'
+import { activeDelivery, listDeliveries, manualSettled } from '../agent/deliveries'
+import { deliveryState } from '../agent/pause'
 import { readRuns } from '../agent/sessions'
+import type { DeliveryRecord } from '../agent/types'
+import { branchExists, worktreeExists } from '../agent/worktree'
 import { ARCHIVE_MD, README, TODO } from '../paths'
 import { formatStamp, nextDue } from '../cadence'
 import { parseFrontmatter } from '../frontmatter'
@@ -245,14 +248,111 @@ export function findCard(id: number): Card | null {
 // and calls board moves, and a card can be read with the board's own lock already held.
 function attachDelivery(card: Card): void {
   const delivery = activeDelivery(card.id)
-  if (!delivery) return
-  const live = readRuns().find((r) => r.status === 'running' && r.deliveryId === delivery.deliveryId)
+  // In manual commit mode a passed review leaves the commit to the user, and this read is
+  // where that is noticed (#303): they committed what review passed and the delivery ends
+  // here, they committed something else and it goes back through review, or it is still
+  // waiting and the sentence below says so.
+  const awaitingCommit = delivery ? manualSettled(delivery) : undefined
+  // Read again when that settled it: a delivery that just finished is no longer in flight,
+  // and the card is free.
+  const live = awaitingCommit ? delivery : activeDelivery(card.id)
+  attachDiscard(card, live)
+  attachLanded(card, live)
+  attachFinished(card, live)
+  if (!live) return
+  const session = readRuns().find((r) => r.status === 'running' && r.deliveryId === live.deliveryId)
   card.delivery = {
-    id: delivery.deliveryId,
-    startedAt: delivery.startedAt,
-    sessionId: live?.sessionId,
-    waiting: delivery.review?.stopped?.why,
-    next: delivery.next,
+    id: live.deliveryId,
+    startedAt: live.startedAt,
+    state: deliveryState(live, card.questions.length),
+    commitMode: live.commitMode === 'auto' ? 'auto' : 'manual',
+    supersedes: supersededBy(card.id, live),
+    sessionId: session?.sessionId,
+    waiting: live.review?.stopped?.why,
+    next: live.next,
+    worktree: live.worktree,
+    branch: live.branch,
+    targetBranch: live.targetBranch,
+    manualWhy: live.manualWhy,
+    lost: lostCheckout(live),
+    landing: live.landing && {
+      status: live.landing.status,
+      why: live.landing.why,
+      commit: live.landing.commit,
+      overlap: live.landing.overlap?.length ? live.landing.overlap : undefined,
+    },
+  }
+}
+
+// The delivery this one replaced (#307): the newest ended delivery on this card that the
+// landing queue superseded, when it ended before this one started. Read from the steps
+// rather than from a field of its own — a delivery the user cancelled ends without that
+// step, and reads as what it was.
+function supersededBy(cardId: number, live: DeliveryRecord): string | undefined {
+  const before = listDeliveries()
+    .filter((d) => d.cardId === cardId && d.status !== 'active' && (d.endedAt ?? 0) <= live.startedAt)
+    .pop()
+  const last = before?.steps[before.steps.length - 1]
+  return last?.step === 'superseded' ? before!.deliveryId : undefined
+}
+
+// The delivery that landed and left the card behind (#307). Normally there is nothing to
+// see — the board archives the card in the same breath — so this is the blink between the
+// two, and what the page says when the archive itself could not be made.
+function attachLanded(card: Card, active: DeliveryRecord | undefined): void {
+  if (active) return
+  const landed = listDeliveries()
+    .filter((d) => d.cardId === card.id && d.status === 'finished' && d.landing?.status === 'landed')
+    .pop()
+  if (landed) card.landed = { id: landed.deliveryId, commit: landed.landing?.commit }
+}
+
+// The card's newest finished delivery (#305), so the delivery block can go on drawing what
+// the last one built after it has ended — its **Diff** tab is where the commit that landed
+// is read. A cancelled delivery is not one of these: it finished nothing.
+function attachFinished(card: Card, active: DeliveryRecord | undefined): void {
+  if (active) return
+  const last = listDeliveries()
+    .filter((d) => d.cardId === card.id && d.status === 'finished')
+    .pop()
+  if (!last) return
+  card.finished = {
+    id: last.deliveryId,
+    commitMode: last.commitMode === 'auto' ? 'auto' : 'manual',
+    commit: last.landing?.commit,
+    targetBranch: last.targetBranch,
+  }
+}
+
+// A delivery whose checkout has gone missing since it was written down: the folder was
+// deleted, or the branch was. Said plainly, because nothing will put it back — the card is
+// cancelled and started again, and a board that silently forked a second worktree would
+// build the card twice.
+function lostCheckout(delivery: DeliveryRecord): string | undefined {
+  if (!delivery.worktree) return undefined
+  const lostTree = !worktreeExists(delivery.worktree)
+  const lostBranch = !branchExists(delivery.branch)
+  if (!lostTree && !lostBranch) return undefined
+  const gone = lostTree && lostBranch ? 'worktree and branch are' : lostTree ? 'worktree is' : 'branch is'
+  return `its ${gone} gone — cancel this delivery and start the card again, nothing will rebuild it`
+}
+
+// The delivery of this card whose worktree could still be thrown away: the one in flight,
+// or the newest ended one that never gave its worktree back. Cancelling a delivery leaves
+// its worktree where it is on purpose, so this is the only way one is ever offered up.
+function attachDiscard(card: Card, active: DeliveryRecord | undefined): void {
+  const holder =
+    active?.worktree
+      ? active
+      : listDeliveries()
+          .filter((d) => d.cardId === card.id && d.status !== 'active' && d.worktree)
+          .pop()
+  if (!holder?.worktree) return
+  card.discard = {
+    id: holder.deliveryId,
+    worktree: holder.worktree,
+    branch: holder.branch,
+    active: holder.status === 'active',
   }
 }
 

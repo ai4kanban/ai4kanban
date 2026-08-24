@@ -63,6 +63,8 @@ export { readModules, readSetupDraft } from './first-run'
 export { readGoalText } from './goal'
 export { readMemoryFile, readMemoryModules } from './memory'
 export { nextWork } from './dispatch'
+export { deliveryDiff } from './diff'
+export { deliveryPlan } from '../agent/commit-mode'
 export { readReleases } from '../releases'
 
 /** Run one write with the board's lock held, and answer with `{ ok }` either way. A refusal

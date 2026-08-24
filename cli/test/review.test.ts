@@ -161,6 +161,15 @@ const questions = (): string[] => {
 const readAudit = (id: string): Record<string, unknown> =>
   JSON.parse(fs.readFileSync(path.join(DELIVERIES, `${id}.json`), 'utf8'))
 
+// The review loop has let this delivery go: it passed, and nothing is left for review to
+// do. What happens next is the commit mode's business — in manual mode the user commits
+// (#303), in auto mode the board lands it (#304) — and neither is this file's subject.
+const passedOn = (cardId: number): boolean => {
+  const delivery = activeDelivery(cardId)
+  if (!delivery) return true
+  return delivery.next === undefined && !delivery.review?.stopped && delivery.reviewed !== undefined
+}
+
 describe('reading a review answer', () => {
   it('takes each bullet as one finding, with its title as its identity', () => {
     const found = parseFindings(
@@ -187,7 +196,7 @@ describe('reading a review answer', () => {
 })
 
 describe('a clean pass', () => {
-  it('reviews after the build, and finishes the delivery when review passes', () => {
+  it('reviews after the build, and hands the delivery on when review passes', () => {
     const built = build()
     const id = activeDelivery(5)!.deliveryId
     close(built)
@@ -197,8 +206,11 @@ describe('a clean pass', () => {
     assert.equal(review.action, 'review')
     verdict(review.sessionId, 'pass')
     close(review)
-    assert.equal(activeDelivery(5), undefined)
-    assert.equal(readAudit(id).status, 'finished')
+    // These deliveries run in manual commit mode (#303), where a pass is not the end: the
+    // code is in the user's own checkout and only they can commit it. The loop's job is
+    // done either way — nothing is left to review.
+    assert.equal(passedOn(5), true)
+    assert.equal(readAudit(id).reviewed !== undefined, true)
   })
 
   it('waits rather than reviewing when the build was cut off', () => {
@@ -211,7 +223,7 @@ describe('a clean pass', () => {
 })
 
 describe('a corrected pass', () => {
-  it('corrects what review found, reviews the whole candidate again, and finishes', () => {
+  it('corrects what review found, and reviews the whole candidate again', () => {
     const built = build()
     const id = activeDelivery(5)!.deliveryId
     close(built)
@@ -229,7 +241,7 @@ describe('a corrected pass', () => {
     assert.equal(second.action, 'review')
     verdict(second.sessionId, 'pass')
     close(second)
-    assert.equal(activeDelivery(5), undefined)
+    assert.equal(passedOn(5), true)
     const audit = readAudit(id) as { review: { rounds: unknown[]; corrections: number } }
     assert.equal(audit.review.rounds.length, 2)
     assert.equal(audit.review.corrections, 1)
@@ -356,7 +368,7 @@ describe('recording a verdict', () => {
     verdict(review.sessionId, 'pass')
     assert.equal(activeDelivery(5)!.review!.rounds.length, 1)
     close(review)
-    assert.equal(activeDelivery(5), undefined)
+    assert.equal(passedOn(5), true)
   })
 
   it('is not trusted from a session the review never ran in', () => {

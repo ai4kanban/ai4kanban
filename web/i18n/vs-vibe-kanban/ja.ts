@@ -55,7 +55,7 @@ const ja: VsVibeCopy = {
       },
       orchestration: {
         dimension: "マルチエージェントの実行管理",
-        kanban: "対象外。実行は既存のエージェントや実行環境が担います。",
+        kanban: "各デリバリーは専用のブランチと git worktree で進むため、複数を並行して動かしても作業中のコードに触れません。",
         vibe: "中核機能。各エージェントを独立した git worktree で実行します。",
       },
       review: {
@@ -111,7 +111,7 @@ const ja: VsVibeCopy = {
     ours: {
       name: "AI4Kanban — 計画と具体化",
       is: "エージェントがリポジトリ内の Markdown ボードを直接更新します。詳細化プロセスによって初期アイデアを具体的でレビュー可能なタスクに整え、実装前に承認できます。",
-      isnt: "エージェントの起動、worktree の作成、diff の表示は行いません。これらはエージェントや開発環境の役割です。",
+      isnt: "diff の表示やプルリクエストの作成は行いません。これらはエージェントや開発環境の役割です。",
     },
     theirs: {
       name: "Vibe Kanban — 実行とレビュー",

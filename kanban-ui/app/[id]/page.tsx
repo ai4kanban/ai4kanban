@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { CardPage } from "@/components/CardPage";
 import { NoBoard, NoRules } from "@/components/NoBoard";
 import { agentInfo, NO_AGENT } from "@/lib/agent";
-import { findCard, readBoard } from "@/lib/board";
+import { deliveryDiff, deliveryPlan, findCard, readBoard } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { readMockups } from "@/lib/mockup";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
@@ -37,6 +37,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (!card) notFound();
 
   const agent = await agentInfo().catch(() => NO_AGENT);
+  // What an Implement click would do from here (#307) — the branch it lands on, and whether
+  // it lands at all. Read on the server, where git is, and only the card page needs it.
+  const plan = await deliveryPlan();
+  // What the delivery on this card changed (#305) — the one in flight, or the one that just
+  // landed. Read here for the same reason: git is on the server, and so is the cap that
+  // keeps a megabyte-long diff off the page.
+  const diff = await deliveryDiff(card.delivery?.id ?? card.finished?.id);
   // The screens this card points at, drawn here rather than fetched by the page: a mockup
   // is a file on this machine, and reading it is the same server read the card was.
   const mockups = await readMockups(card.body);
@@ -50,6 +57,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       goalWritten={board.goalWritten}
       memoryModules={board.memoryModules}
       mockups={mockups}
+      plan={plan}
+      diff={diff}
       desktop={isDesktop()}
     />
   );

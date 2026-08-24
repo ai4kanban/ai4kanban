@@ -118,9 +118,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A printed flow hands over to refine without saying where it runs** → ✅ every
   handover line naming refine says "in a fresh session, not this one" — an agent following
   the flow would otherwise refine inside the context that just wrote the card.
-- ❌ **Refine a blocked card like any other** → ✅ a blocked card waits; building its blocker
-  often rewrites its plan. Refine it when the blocker leaves the board — finishing or
-  rejecting a card refines whatever it was holding up.
+- ❌ **Infer which cards became unblocked after every run** → ✅ a rough card saves a one-shot
+  refine when it first becomes blocked. Finishing or rejecting the blocker only makes that
+  explicit schedule eligible; cancelling it lasts for the current blocked episode.
 
 ## UI design
 

@@ -49,9 +49,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   later on an idle poll, and nothing refreshes when it ends) → ✅ a run a click starts is
   that tab's own run: it is in the runs panel at once, the thing it works on says it is
   running, and the board re-reads itself when it finishes.
-- ❌ **The board starts a refine on a blocked card on its own** → ✅ it waits; archiving or
-  rejecting a card starts a refine on whatever it was holding up. The Refine button still
-  works on a blocked card whenever the user wants it.
+- ❌ **Infer which cards became unblocked after every run** → ✅ a rough card saves a one-shot
+  refine when it first becomes blocked. While it waits the Refine button is replaced by the
+  saved schedule and its cancel control; cancelling brings the button back for that episode.
 - ❌ **Waiting for a blocker is built for one action** (a Schedule button that always means
   implement) → ✅ scheduling is a modifier on an action, never an action itself: every run
   a blocked card offers — implement, refine — can be scheduled instead of forced through

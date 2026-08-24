@@ -245,13 +245,40 @@ judgment calls, and clears the list.
 
 You rarely have to ask. Any run that writes or changes a card is followed by a refine of
 that card, started on its own once the run ends — so a card you add, revise or resolve comes
-back refined without a second instruction. Archiving or rejecting a card does the same for
-every card it was holding up. Each one is an ordinary run: you can watch its log and stop
-it. What has nothing to refine is skipped — a card still blocked (schedule that one, below),
+back refined without a second instruction. A rough card that becomes blocked saves its own
+one-shot refine instead; archiving or rejecting its last blocker makes that schedule eligible.
+Each one is an ordinary run: you can watch its log and stop it. What has nothing to refine is
+skipped — a card still blocked,
 one already ready, a
 recurring card, one whose todos are all ticked, and one waiting only on your answers. A
 group's main card is skipped too when a subtask finishes — ticking its line is progress, not
 a new plan — so a big group doesn't refine its main card once per subtask.
+
+## Build a card
+
+Press **Implement** on the card page, or say **"build #4"**. One click carries the card all
+the way: an agent builds it, a fresh session reviews what it built against the card as you
+approved it, corrections fix what the review found, the board lands the work as one commit
+on the branch you are on, and then it archives the card. Nothing asks you again in between.
+
+What you are approving is the **card** — what it should achieve, what to weigh, its open
+questions, and what building it turned up — not the diff. The dialog says the steps in order
+and names the branch the change will land on.
+
+- **A card with open questions can still be built**, with a warning. It is built and reviewed,
+  and then holds at landing until you answer them — taking no landing slot while it waits, so
+  every other card still lands. **Resolve & implement** in the dialog is the other way: answer
+  first, and it builds once nothing is left for you to decide.
+- **A pause has nothing to press.** The card's title band says what the delivery is waiting
+  on and what answers it. Answering carries the same delivery on, with no second click — and
+  an answer that changed what the card asks for starts a fresh delivery on the card as it now
+  reads.
+- **Manual commit mode is the exception.** With **Allow automatic Git commits** off nothing
+  lands: the delivery stops after review and waits for your own commit, and the card is
+  archived when that commit matches what review passed.
+
+In a terminal it is `akb implement 4`, which starts the same delivery and warns about an open
+question the same way it warns about a blocker. `kanban-ui/README.md` has the whole of it.
 
 ## Let a specialist fill part of the spec
 
@@ -365,9 +392,9 @@ thing the pane does. It is a listing, not a menu: settings are picked in the boa
 ## Queue a card that is waiting on another
 
 A card whose `blocked_by` still names an open card can be built or refined anyway — the
-board warns, it never stops you. It can also wait properly: schedule the action, and the
-board runs it by itself the moment the last card in its way leaves the board, archived or
-rejected alike.
+board warns, it never stops you. A rough card waits properly by default: when it first becomes
+blocked the board schedules one refine, then runs it when the last card in its way leaves the
+board, archived or rejected alike. Schedule an implement to replace that default.
 
 ```bash
 akb board schedule 4 --action implement --notes "start with the parser"
@@ -375,10 +402,13 @@ akb board schedule 4 --action refine
 akb board schedule 4 --clear
 ```
 
-In the local UI it is the **Schedule** button beside **Implement anyway** in the Implement
-dialog, and beside **Refine anyway** in the Refine one.
+In the local UI the card reads **Scheduled** with a **cancel** control. While its refine is
+scheduled, the Refine button is hidden; cancel the schedule to bring it back. The Implement
+dialog still offers **Schedule** to replace the refine with an implement.
 
 - A card holds **one** schedule at a time; a second replaces the first.
+- Cancelling the default refine lasts while the card remains blocked. A later change from
+  unblocked to blocked starts a new episode and schedules it again.
 - It reads **pending** in place of its stage until it fires — the card keeps its stage and
   its place on the board.
 - It fires **once**, within a minute of coming free, and the mark comes off as the run
@@ -388,9 +418,9 @@ dialog, and beside **Refine anyway** in the Refine one.
 - The mark lives in the card's own frontmatter, so it survives a restart and travels with
   the card.
 
-Scheduling the refine is the answer to the refine that gets skipped: a card still blocked is
-passed over, because sharpening a plan whose foundation could still change shape is work you
-throw away. Queue it and it happens at the right moment instead.
+The saved refine is the answer to the refine that gets skipped: a card still blocked is passed
+over, because sharpening a plan whose foundation could still change shape is work you throw
+away. The card already carries the work it should run at the right moment.
 
 ## Review the board
 
@@ -400,10 +430,14 @@ archives finished ones and flags the rest.
 
 ## Finish a task
 
-Say **"#4 is done"**. The skill updates the published doc the change touched (via the
-card's doc todos) and adds one line to `readme.md` — a link to that doc, or a short
-plain-words note when no doc covers the behavior yet — then runs `akb board archive 4`
-to take the card off the board and record the metric.
+A card built by **Implement** finishes itself: the board archives it once its delivery has
+landed, so "#4 is done" is not something you have to say.
+
+For work done outside a delivery — you built it yourself, or an agent built it in the
+conversation you were in — say **"#4 is done"**. The skill updates the published doc the
+change touched (via the card's doc todos) and adds one line to `readme.md` — a link to that
+doc, or a short plain-words note when no doc covers the behavior yet — then runs
+`akb board archive 4` to take the card off the board and record the metric.
 
 ```bash
 akb board archive 4

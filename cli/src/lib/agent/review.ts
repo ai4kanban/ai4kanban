@@ -18,7 +18,7 @@ import { cmdUpdateQuestions } from '../../commands/card'
 import { quietly } from '../io'
 import { withBoardLock } from '../lock'
 import { boardCommand } from './command'
-import { candidateMark } from './candidate'
+import { workMark } from './commit-mode'
 import type {
   DeliveryRecord,
   DeliveryReview,
@@ -113,8 +113,12 @@ const HOLD: ReviewNext = { hold: true }
 /** What follows the session that just closed.
  *
  *  Only sessions inside a delivery reach here, and only the three actions a delivery is
- *  made of. Whatever this returns, it is the caller that writes it down. */
-export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord): ReviewNext {
+ *  made of. Whatever this returns, it is the caller that writes it down.
+ *
+ *  `mark` is the candidate's fingerprint as it stands, taken by the caller BEFORE the
+ *  record's lock: reading it means running git, and the lock every process shares is not
+ *  the place to do that. */
+export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord, mark?: string): ReviewNext {
   if (delivery.status !== 'active') return HOLD
   // A session somebody ended is not a failure and not a verdict: they stopped it, so the
   // delivery waits for them rather than asking them a question about their own click.
@@ -125,7 +129,7 @@ export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord): Revi
     return run.status === 'done' ? { start: 'review' } : HOLD
   }
   if (run.action === 'review') return afterReview(delivery, run)
-  if (run.action === 'correct') return afterCorrection(delivery, run)
+  if (run.action === 'correct') return afterCorrection(delivery, run, mark)
   return HOLD
 }
 
@@ -161,7 +165,7 @@ function afterReview(delivery: DeliveryRecord, run: RunRecord): ReviewNext {
   return { start: 'correct' }
 }
 
-function afterCorrection(delivery: DeliveryRecord, run: RunRecord): ReviewNext {
+function afterCorrection(delivery: DeliveryRecord, run: RunRecord, now?: string): ReviewNext {
   if (run.status !== 'done') {
     return {
       stop: 'session',
@@ -171,7 +175,7 @@ function afterCorrection(delivery: DeliveryRecord, run: RunRecord): ReviewNext {
   const mark = delivery.review?.mark
   // A correction that left the tree byte for byte as it found it has not addressed
   // anything, and the review after it would find exactly what the last one did.
-  if (mark && candidateMark(delivery.base) === mark) {
+  if (mark && now === mark) {
     return { stop: 'no-progress', why: 'the correction session changed nothing in the candidate' }
   }
   return { start: 'review' }
@@ -215,5 +219,4 @@ export function askUser(cardId: number, question: string): void {
 
 /** The candidate's fingerprint, taken as a correction is about to start, so the correction
  *  after it can be told whether anything moved. */
-export const markCandidate = (delivery: DeliveryRecord): string | undefined =>
-  candidateMark(delivery.base) ?? undefined
+export const markCandidate = (delivery: DeliveryRecord): string | undefined => workMark(delivery)

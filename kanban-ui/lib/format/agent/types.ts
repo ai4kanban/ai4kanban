@@ -68,6 +68,10 @@ export type AgentAction =
    *  that review's exact findings, and a fresh review judges the whole candidate after
    *  it. */
   | 'correct'
+  /** Resolve the conflict a landing's rebase stopped on (#304). It may read both cards,
+   *  both diffs and the checkout, it stages the resolution, and the board finishes the
+   *  rebase after it. Its result is reviewed from scratch. */
+  | 'conflict'
 
 /** Everything one run is asked for. What the user typed rides along so the run list can
  *  show it beside the log. */
@@ -207,7 +211,16 @@ export interface ReviewRound {
 
 /** Why a review loop stopped short of a verdict it could act on. Each one is a stop the
  *  user has to settle, never a loop that quietly runs again. */
-export type ReviewStopReason = 'ask' | 'repeat' | 'no-progress' | 'session' | 'limit'
+export type ReviewStopReason =
+  | 'ask'
+  | 'repeat'
+  | 'no-progress'
+  | 'session'
+  | 'limit'
+  | 'uncommitted'
+  /** Landing could go no further on its own (#304): the target branch kept moving, or a
+   *  conflict stayed unresolved. */
+  | 'landing'
 
 /** Review, across a whole delivery: every pass it made, how many corrections it has spent,
  *  and — once it has stopped — why, and the question the card now carries. */
@@ -224,6 +237,48 @@ export interface DeliveryReview {
     why: string
     at: number
   }
+}
+
+// ---- landing a delivery on the target branch (#304) -------------------------
+
+/** Where a delivery stands on landing.
+ *
+ *  `waiting` — reviewed and ready, queued for the repository's one landing slot, or put
+ *  back in the queue because the checkout was not clean. `landing` — it holds the slot.
+ *  `landed` — its commit is on the target branch. `conflict` — a conflict it could not
+ *  resolve stopped it, and the card carries the question. */
+export type LandingStatus = 'waiting' | 'landing' | 'landed' | 'conflict'
+
+/** One check a landing ran, and what it said. With no review rule (#306) the re-review is
+ *  the whole gate, so that is what this records. */
+export interface LandingCheck {
+  name: string
+  ok: boolean
+  at: number
+}
+
+/** How a delivery's landing is going. It is also the landing SLOT: exactly one active
+ *  delivery may be `landing`, which is what "one card at a time" means. */
+export interface DeliveryLanding {
+  status: LandingStatus
+  /** Why it is waiting, or why it stopped — one plain sentence. */
+  why?: string
+  /** Rebases spent on a target branch that kept moving. `MAX_LAND_ATTEMPTS` and then the
+   *  card gets an open question rather than another round. */
+  attempts: number
+  /** When the last rebase finished, so the review that has to follow one is told from the
+   *  review that came before it. */
+  rebasedAt?: number
+  /** The squash commit that landed. */
+  commit?: string
+  /** The target tip it landed onto — the comparison base the landed commit sits on. */
+  onto?: string
+  /** Cards whose delivery touches the same files. A warning recorded here, never a reason
+   *  to refuse. */
+  overlap?: number[]
+  /** The checks that ran for this landing, with their results. */
+  checks?: LandingCheck[]
+  at: number
 }
 
 /** One delivery: one end-to-end effort to implement an exact version of a card. It has an
@@ -266,7 +321,56 @@ export interface DeliveryRecord {
    *  closed. The watcher reads it and clears it; it survives a watcher that died between
    *  the two, so the delivery still says what it was about to do. */
   next?: 'review' | 'correct'
+  /** How this delivery commits, decided when it started and never afterwards (#303).
+   *  `auto` builds on its own branch in its own worktree; `manual` works in the user's
+   *  checkout and waits for them to commit. Flipping the setting changes the next
+   *  delivery, never one already in flight. */
+  commitMode?: DeliveryCommitMode
+  /** Why this delivery is in manual commit mode when the setting did not ask for it —
+   *  no git, or no commit to fork from. The card page says it in these words. */
+  manualWhy?: string
+  /** The branch checked out in the user's own checkout when the delivery started: where
+   *  its work is meant to land. Read once, so a branch switched later can't move the
+   *  target under a card whose author only ever saw one. */
+  targetBranch?: string
+  /** The delivery's own worktree, repo-relative — `.akb/worktrees/<card>/<delivery>`.
+   *  Absent in manual commit mode, which works in the project itself. */
+  worktree?: string
+  /** The branch that worktree builds on — `card/<card>/<delivery>`. */
+  branch?: string
+  /** What review passed, in manual commit mode: the fingerprint of the code as it stood
+   *  when the verdict came in, and where the diff of it was written. The user's own commit
+   *  is matched against this — the same code committed reads as the same fingerprint, and
+   *  anything else goes back through review. */
+  reviewed?: { mark: string; diff?: string; at: number }
+  /** Where this delivery stands on landing (#304). Absent until review has passed it in
+   *  auto commit mode; manual commit mode never lands, because the commit is the user's. */
+  landing?: DeliveryLanding
+  /** The flow rules this delivery froze when it started (#306), keyed by command — the
+   *  flows a delivery is made of, and only the ones that had a rule. Every session in the
+   *  delivery is given these rather than the files, so editing a rule changes the next
+   *  delivery and never one in flight. Absent on a delivery started before flow rules
+   *  existed, which reads the files instead. */
+  rules?: Record<string, string>
 }
+
+/** One flow and the rule it carries, as the Rules pane draws it (#306). The list is the
+ *  board's own — every command that can start a flow — so a flow shipped later appears
+ *  without the pane being touched. */
+export interface FlowRuleView {
+  /** The command a user types, which is also the rule file's name. */
+  command: string
+  /** One clause of plain words saying what the flow is. */
+  gloss: string
+  /** What this flow's rule is for, or what it can cost. Absent when there is nothing
+   *  particular to say about this flow's rule. */
+  note?: string
+  /** The rule as it stands, or empty when the flow has none. */
+  rule: string
+}
+
+/** How a delivery commits its work (#303). */
+export type DeliveryCommitMode = 'auto' | 'manual'
 
 /** One ask for a spec agent, as the run that wanted it wrote it down.
  *

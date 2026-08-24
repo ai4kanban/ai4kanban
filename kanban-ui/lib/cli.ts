@@ -10,6 +10,7 @@ import type {
   ChatView,
   ConnectionTest,
   DeliveryRecord,
+  FlowRuleView,
   HarnessSetting,
   RunRecord,
   RunView,
@@ -22,6 +23,8 @@ import type {
   Card,
   CardPatch,
   ClosePlan,
+  DeliveryDiff,
+  DeliveryPlan,
   DropPlan,
   FillPlan,
   MemoryFile,
@@ -79,6 +82,24 @@ export interface BoardRules {
   listDeliveries?(): DeliveryRecord[];
   activeDelivery?(cardId: number): DeliveryRecord | undefined;
   cancelDelivery?(id: string): { ok: boolean; deliveryId?: string; error?: string };
+  /** A delivery's worktree and branch, thrown away on request (#303). Cancelling one leaves
+   *  its checkout where it is; this is the only thing that removes one. */
+  discardDelivery?(id: string): { ok: boolean; deliveryId?: string; error?: string };
+  discardCost?(id: string): { deliveryId: string; worktree?: string; branch?: string } | null;
+  /** Deliveries whose worktree or branch has gone missing — reported at startup, never
+   *  started over. */
+  repairDeliveries?(): string[];
+
+  // the flow rules (#306) — one rule per flow, in the user's own words, appended to that
+  // flow's built-in prompt. Optional: a project can be running rules older than the release
+  // that added them, and the Rules pane says so rather than the dialog failing to draw.
+  readFlowRules?(): FlowRuleView[];
+  setFlowRule?(command: string, text: string): WriteResult;
+
+  // may the board commit? (#303) The one repository-level setting behind worktrees,
+  // parallel deliveries and landing reviewed code.
+  autoCommitAllowed?(): boolean;
+  setAutoCommit?(on: boolean): WriteResult;
 
   // the conversation with that agent (#242) — the board's, and each card's. Optional for
   // the same reason as the moves below: a project can be running rules older than the
@@ -109,6 +130,14 @@ export interface BoardRules {
   boardStamp?(): string;
   findCard(id: number): Card | null;
   allCards(): Card[];
+  /** What an Implement click would do on this board right now (#307): the branch the change
+   *  would land on, and whether it lands at all. Optional: a board can be running rules from
+   *  before the one-click flow, and the dialog then says only what it always said. */
+  deliveryPlan?(): DeliveryPlan;
+  /** What one delivery changed (#305), for the card page's **Diff** tab: its branch against
+   *  its base while it builds, and the commit it landed once it has. Optional: an older
+   *  board's rules have no diff to give, and the tab simply doesn't appear. */
+  deliveryDiff?(deliveryId: string): DeliveryDiff | null;
   readModules(): string[];
   readMetricsView(): MetricsResult;
   /** The planning scores, release by release (#224). Optional: a board can be running rules

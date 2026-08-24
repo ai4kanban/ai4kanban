@@ -26,13 +26,26 @@ import {
   findDelivery,
   joinActive,
   joinDelivery,
+  listDeliveries,
   settleDelivery,
   syncAudit,
 } from './deliveries'
+import { DELIVERY_FLOWS } from './flows'
+import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from './commit-mode'
+import { repairLanding } from './landing'
+import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } from './worktree'
 import { durationLine, KEEP_LOGS, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumableHarness, type RunPlan } from './resolve'
 import { logPathOf, readRuns, readStore, withRuns, withStore } from './store'
-import type { AgentAction, AgentRequest, RunRecord, RunStatus, RunView, SpecAsk } from './types'
+import type {
+  AgentAction,
+  AgentRequest,
+  DeliveryRecord,
+  RunRecord,
+  RunStatus,
+  RunView,
+  SpecAsk,
+} from './types'
 
 export { logPathOf, readAction, readRuns, withRuns } from './store'
 
@@ -75,6 +88,7 @@ const VERB: Record<AgentAction, string> = {
   changelog: 'written up',
   review: 'reviewed',
   correct: 'corrected',
+  conflict: 'unblocked',
 }
 
 // The refusal a one-at-a-time action gets when one of its own is already going, where the
@@ -92,10 +106,9 @@ const RUN_STATUS: Partial<Record<AgentAction, string>> = {
   implement: 'implementing',
   review: 'implementing',
   correct: 'implementing',
+  conflict: 'implementing',
 }
 
-// The sessions a delivery is made of, in the order it runs them.
-const DELIVERY_ACTIONS = new Set<AgentAction>(['implement', 'review', 'correct'])
 
 /** Everything a watcher needs to start the run it was handed. Written beside the log so
  *  the command that starts a run and the process that runs it are not the same process. */
@@ -438,11 +451,24 @@ export function openRun(
 ): { run: RunRecord; spec: RunSpec } | { error: string } {
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
   const sessionId = randomUUID()
+  // A build with no delivery on its card opens one, and a delivery is got ready before
+  // anything is written down (#303): the commit mode is decided, the checkout is checked,
+  // and the worktree is made. A refusal here costs nothing, and whatever it made is undone
+  // below if the session is refused after it.
+  let start: DeliveryStart | undefined
+  if (cardId !== null && req.action === 'implement' && !activeDelivery(cardId)) {
+    const prepared = prepareDelivery(cardId)
+    if ('error' in prepared) return { error: prepared.error }
+    start = prepared.start
+  }
+  // Where this session works: its delivery's own worktree, or the project itself.
+  const joining = cardId !== null && DELIVERY_FLOWS.has(req.action) ? activeDelivery(cardId) : undefined
+  const cwd = deliveryCwd(start ?? joining ?? {})
   // The one settings read for this whole run. Everything it needs is worked out here, at
   // the start — not later, when the agent finally spawns (an index action waits its turn
   // first, and the picker may well have been flipped by then). A run therefore always uses
   // one agent end to end: its command, its flags, and the name recorded against it.
-  const plan = planRun(sessionId)
+  const plan = planRun(sessionId, cwd)
   const record: RunRecord = {
     sessionId,
     cardId,
@@ -471,9 +497,9 @@ export function openRun(
     // belongs to, so a delivery can never be left holding a card with nothing working on
     // it. Review and correction join an existing delivery and never open one: there is
     // nothing to review until something has been built.
-    if (cardId !== null && DELIVERY_ACTIONS.has(req.action)) {
+    if (cardId !== null && DELIVERY_FLOWS.has(req.action)) {
       if (req.action === 'implement') {
-        joinDelivery(store, record, req.title ?? cardNow(cardId)?.title ?? '', 'implement')
+        joinDelivery(store, record, req.title ?? cardNow(cardId)?.title ?? '', 'implement', start)
       } else if (!joinActive(store, record, req.action)) {
         store.runs.pop()
         return { error: `no delivery is in flight on #${cardId}, so there is nothing to ${req.action}` }
@@ -481,7 +507,12 @@ export function openRun(
     }
     return { run: record }
   })
-  if ('error' in out) return out
+  if ('error' in out) {
+    // Refused after the delivery was got ready — take its worktree back rather than leave
+    // a checkout behind for a delivery that never started.
+    if (start) undoPrepared(start)
+    return out
+  }
   const spec: RunSpec = { sessionId, plan, prompt, ...(notes.length ? { notes } : {}) }
   writeSpec(spec)
   return { run: record, spec }
@@ -507,7 +538,10 @@ export function openResume(id: string): { run: RunRecord; spec: RunSpec } | { er
   if (!canPickUp(prev)) return { error: 'only a failed, interrupted or stopped session can be continued' }
   const resumeId = resumeIdOf(prev)
   if (!resumeId) return { error: 'that session never reported an id to continue by' }
-  const plan = planResume(prev.harness, resumeId)
+  // Resumed where the session it continues worked: a delivery's own worktree, or the
+  // project itself.
+  const resuming = prev.deliveryId ? findDelivery(prev.deliveryId) : undefined
+  const plan = planResume(prev.harness, resumeId, deliveryCwd(resuming ?? {}))
   if (!plan) return { error: `the agent the board runs now can't continue a ${prev.harness || 'earlier'} session` }
 
   const sessionId = randomUUID()
@@ -719,10 +753,8 @@ export function stopRun(id: string): StartResult {
  *  The delivery is ended BEFORE the session is stopped, so the card is free from the first
  *  moment and nothing can slip a second delivery in behind the stop. */
 export function cancelDelivery(id: string): { ok: boolean; deliveryId?: string; error?: string } {
-  const key = id.trim()
-  if (!key) return { ok: false, error: 'name the delivery to cancel' }
-  const byCard = /^#?\d+$/.test(key) ? activeDelivery(Number(key.replace('#', ''))) : undefined
-  const delivery = byCard ?? findDelivery(key)
+  if (!id.trim()) return { ok: false, error: 'name the delivery to cancel' }
+  const delivery = namedDelivery(id)
   if (!delivery) return { ok: false, error: `no delivery here answers to "${id}"` }
   if (delivery.status !== 'active') return { ok: true, deliveryId: delivery.deliveryId }
   endDelivery(delivery.deliveryId, 'cancelled')
@@ -735,6 +767,77 @@ export function cancelDelivery(id: string): { ok: boolean; deliveryId?: string; 
   // state it was in when the cancel arrived.
   syncAudit(delivery.deliveryId)
   return { ok: true, deliveryId: delivery.deliveryId }
+}
+
+// A delivery named by its own id, by any prefix of one, or by the card it is building —
+// the one way `cancel` and `discard` read what the user typed, so the two can never
+// disagree about which delivery was meant.
+function namedDelivery(id: string): DeliveryRecord | undefined {
+  const key = id.trim()
+  if (!key) return undefined
+  const byCard = /^#?\d+$/.test(key) ? activeDelivery(Number(key.replace('#', ''))) : undefined
+  return byCard ?? findDelivery(key)
+}
+
+/** What discarding this delivery would take away — its worktree and its branch — or
+ *  nothing when it holds neither. The card page and the command both say this before they
+ *  ask, so nothing is removed by a command that only meant to look. */
+export function discardCost(id: string): { deliveryId: string; worktree?: string; branch?: string } | null {
+  const delivery = namedDelivery(id)
+  if (!delivery?.worktree) return null
+  return { deliveryId: delivery.deliveryId, worktree: delivery.worktree, branch: delivery.branch }
+}
+
+/** Discard a delivery: end it if it is still in flight, then remove its worktree and its
+ *  branch. The one thing on this board that throws work away, so nothing calls it on its
+ *  own — a person asks for it, having been told what will be lost.
+ *
+ *  It never reaches the user's main checkout: only a path inside `.akb/` is ever removed
+ *  (agent/worktree.ts). */
+export function discardDelivery(id: string): { ok: boolean; deliveryId?: string; error?: string } {
+  if (!id.trim()) return { ok: false, error: 'name the delivery to discard' }
+  const delivery = namedDelivery(id)
+  if (!delivery) return { ok: false, error: `no delivery here answers to "${id}"` }
+  if (delivery.status === 'active') {
+    const cancelled = cancelDelivery(delivery.deliveryId)
+    if (!cancelled.ok) return cancelled
+  }
+  const removed = removeWorktree(delivery.worktree, delivery.branch, true)
+  if (!removed.ok) return { ok: false, deliveryId: delivery.deliveryId, error: removed.error }
+  withStore((store) => {
+    const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
+    if (!live) return
+    live.worktree = undefined
+    live.branch = undefined
+  })
+  syncAudit(delivery.deliveryId)
+  return { ok: true, deliveryId: delivery.deliveryId }
+}
+
+/** Deliveries whose worktree or branch has gone missing since they were written down —
+ *  someone deleted the folder, or pruned the branch. Reported, never started over: a
+ *  delivery that quietly forked a second worktree would build the card twice.
+ *
+ *  It also clears git's own metadata for worktree paths that are already missing, which is
+ *  all `git worktree prune` ever does — it never decides a delivery's directory is safe to
+ *  delete. */
+export function repairDeliveries(): string[] {
+  pruneWorktreeMetadata()
+  // A landing a crash left half-done first: a rebase stopped part-way through with nothing
+  // working on it is put back, and the slot it was holding goes with it (#304).
+  const complaints: string[] = [...repairLanding()]
+  for (const d of listDeliveries()) {
+    if (d.status !== 'active' || !d.worktree) continue
+    const lostTree = !worktreeExists(d.worktree)
+    const lostBranch = !branchExists(d.branch)
+    if (!lostTree && !lostBranch) continue
+    const gone = lostTree && lostBranch ? 'worktree and branch are' : lostTree ? 'worktree is' : 'branch is'
+    complaints.push(
+      `delivery ${d.deliveryId} on #${d.cardId}: its ${gone} gone (${d.worktree}${d.branch ? `, ${d.branch}` : ''}). ` +
+        `Cancel it and start the card again — nothing will rebuild it on its own.`,
+    )
+  }
+  return complaints
 }
 
 // ---- the plan a watcher picks up -------------------------------------------

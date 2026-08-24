@@ -1,6 +1,6 @@
 import { boardRules } from "./cli";
 import { autoWorkAllowed } from "./desktop";
-import { startSession } from "./registry";
+import { repairDeliveries, startSession } from "./registry";
 
 // --- the dispatcher (#43, #139, #169) ----------------------------------------
 // A background timer inside the local-UI server that works the board on its own, so it
@@ -52,4 +52,11 @@ export function ensureDispatcher(): void {
   const timer = setInterval(() => void tick(), TICK_MS);
   if (typeof timer.unref === "function") timer.unref();
   g.__kanbanDispatcher = timer;
+  // Once, as the server comes up: deliveries whose worktree or branch has gone missing
+  // since they were written down (#303). They are reported and left alone — a board that
+  // quietly forked a second worktree would build the same card twice. The card page says
+  // the same thing where the delivery is actually looked at.
+  void repairDeliveries().then((lost) => {
+    for (const line of lost) console.warn(`ai4kanban: ${line}`);
+  });
 }

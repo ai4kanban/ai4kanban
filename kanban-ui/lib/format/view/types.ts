@@ -101,6 +101,17 @@ export interface Subtask {
 export interface CardDelivery {
   id: string
   startedAt: number
+  /** Where this delivery has got to, and what it waits on (#307). Worked out on every read
+   *  from the card's open questions and the delivery's own review, landing and commit
+   *  records — never stored, so it can't go stale. */
+  state: CardDeliveryState
+  /** How it commits (#303): `auto` builds on a branch of its own and the board lands it,
+   *  `manual` works in the user's checkout and stops after review for their own commit. */
+  commitMode: 'auto' | 'manual'
+  /** The delivery this one replaced, when the card's approved requirements changed while
+   *  the last one was paused (#307). It ended, and this one is building the card as it now
+   *  reads. Absent on a delivery that replaced nothing. */
+  supersedes?: string
   /** The session working right now, when one is. A delivery between sessions — its last one
    *  failed or was cut off — has none, and still holds the card. */
   sessionId?: string
@@ -112,6 +123,95 @@ export interface CardDelivery {
    *  gone in the same instant the watcher takes it; one that is still here belongs to a
    *  delivery whose watcher died in between, and the card page offers to start it. */
   next?: 'review' | 'correct'
+  /** Where this delivery's code is: its own worktree, repo-relative (#303). Absent in
+   *  manual commit mode, where the code is in the project itself. */
+  worktree?: string
+  /** The branch it builds on, beside `worktree`. */
+  branch?: string
+  /** The branch its work is meant to land on — the one checked out when it started. */
+  targetBranch?: string
+  /** Why it is working in the project rather than a worktree of its own, when that was
+   *  not what the setting asked for: no git, or no commit to fork from. */
+  manualWhy?: string
+  /** This delivery's worktree or branch is gone — someone removed it from underneath
+   *  it — in one plain sentence. Reported, never rebuilt: a delivery that quietly forked a
+   *  second worktree would build the card twice. */
+  lost?: string
+  /** Where this delivery stands on landing its reviewed code (#304), once review has
+   *  passed it: queued for the repository's one landing slot, holding it, landed, or
+   *  stopped on a conflict. */
+  landing?: CardLanding
+}
+
+/** Where a delivery stands, as the card page's pill reads it (#307). The stages are the
+ *  delivery record's own (`agent/pause.ts`); this file imports nothing, so they are spelled
+ *  again rather than shared. */
+export type CardDeliveryStage = 'working' | 'stopped' | 'held' | 'commit' | 'rereview' | 'landed'
+
+/** The delivery's state, as the title band draws it: the pill's words, the one line under
+ *  it saying what the delivery waits on and what answers it, and whether it is waiting on
+ *  the user at all. */
+export interface CardDeliveryState {
+  stage: CardDeliveryStage
+  label: string
+  line: string
+  /** True while it waits on the user. There is nothing to press: what continues it is the
+   *  answer, the resolve or the commit — so the card page says so, and Resolve stays live
+   *  while every other held control is off. */
+  paused: boolean
+}
+
+/** A delivery's landing, as the card page reads it (#304). The states are the delivery
+ *  record's own (`agent/types.ts`); this file imports nothing, so they are spelled again
+ *  rather than shared. */
+export type CardLandingStatus = 'waiting' | 'landing' | 'landed' | 'conflict'
+
+/** What one delivery changed, as the card page's **Diff** tab draws it (#305).
+ *
+ *  Two things are being shown under one shape: while a delivery builds, its branch against
+ *  the base it forked from; once it has landed, the squash commit against the tip it landed
+ *  onto. The tab appears only when there is one of these to show. */
+export interface DeliveryDiff {
+  /** The delivery this is the diff of. */
+  id: string
+  /** Files changed, insertions and deletions — one line, always drawn first. Empty when
+   *  `note` says why there is nothing. */
+  stat: string
+  /** The diff itself, in git's own format. Empty beside a `note`. */
+  diff: string
+  /** `diff` is cut short — `whole` is the command that prints all of it. */
+  truncated?: boolean
+  whole?: string
+  /** Manual commit mode: this is the working tree, and nothing has been committed yet. */
+  uncommitted?: boolean
+  /** A case the view cannot show, in one plain line: no git, a worktree someone removed, a
+   *  commit that is no longer there. */
+  note?: string
+}
+
+/** The card's newest FINISHED delivery, when nothing is building the card (#305). The card
+ *  is normally archived in the same breath as its delivery lands, so this is the blink
+ *  between the two — and, in manual commit mode, the delivery that ended on the user's own
+ *  commit. It carries what the delivery block's foot names; the diff itself is read
+ *  separately by `id`. */
+export interface CardFinished {
+  id: string
+  commitMode: 'auto' | 'manual'
+  /** The squash commit it landed, when it landed one. */
+  commit?: string
+  /** The branch that commit is on. */
+  targetBranch?: string
+}
+
+/** A delivery's landing, as the card page reads it (#304). */
+export interface CardLanding {
+  status: CardLandingStatus
+  /** Why it is waiting, or why it stopped — one plain sentence. */
+  why?: string
+  /** The squash commit on the target branch, once it has landed. */
+  commit?: string
+  /** Cards being built over the same files. A warning, never a reason to refuse. */
+  overlap?: number[]
 }
 
 export interface Card {
@@ -178,6 +278,35 @@ export interface Card {
    *  Edit, Refine, Resolve, Reject and Archive are off, and Cancel delivery is what takes
    *  the card back. Absent on every card nothing is building. */
   delivery?: CardDelivery
+  /** A delivery of this card whose worktree is still on disk and can be thrown away
+   *  (#303) — the one in flight, or the newest ended one that still holds one. The card
+   *  page's **Discard delivery** says what this would lose before it asks. */
+  discard?: { id: string; worktree: string; branch?: string; active: boolean }
+  /** This card's newest delivery landed, and the card is still on the board (#307). The
+   *  board archives it in the same breath, so this is normally the blink between the two —
+   *  and the honest thing to show when the archive itself could not be made. `commit` is
+   *  absent when the delivery passed review having changed nothing. */
+  landed?: { id: string; commit?: string }
+  /** This card's newest finished delivery, when nothing is building the card (#305). It is
+   *  what the delivery block draws once the delivery it was drawing has ended, so its
+   *  **Diff** tab still says what landed. Absent while a delivery is in flight — that one
+   *  is `delivery` — and on a card whose last delivery was cancelled. */
+  finished?: CardFinished
+}
+
+/** What an Implement click would do on this board right now, as the Implement dialog says
+ *  it (#307). It belongs to the project rather than to any card: the branch is whichever
+ *  one is checked out at the moment of the click, and the commit mode is one setting. */
+export interface DeliveryPlan {
+  /** The branch a delivery started now would land on. Absent outside a git repository, and
+   *  on a detached HEAD, where a delivery has nowhere to land. */
+  branch?: string
+  /** `auto` lands the work itself; `manual` stops after review and waits for the user's own
+   *  commit. */
+  commitMode: 'auto' | 'manual'
+  /** Why it would be manual when the setting did not ask for it — no git, or no commit to
+   *  fork from. Absent when the setting is the reason. */
+  manualWhy?: string
 }
 
 export interface Column {

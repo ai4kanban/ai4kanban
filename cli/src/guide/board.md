@@ -78,6 +78,11 @@ docs/kanban/
 ├── deliveries/     one JSON file per delivery — what an Implement click built, the card
 │                   exactly as it was approved for it, and how it ended. Tracked in git,
 │                   kept after the card is archived; nobody edits one by hand
+├── rules/          one rule per flow, in the user's own words — `<command>.md`, named by
+│                   the command a user types (`revise.md` for `akb revise`). It is appended
+│                   to the end of that flow's instructions, so every session the board
+│                   starts from that flow reads it. Tracked in git; a missing or empty file
+│                   means the flow runs unchanged. Written from the board UI, not by hand
 ├── modules.md      one line per module — `akb guide module-map` writes it
 ├── config.md       project settings — created by init and completed by the user
 ├── releases.md     the open releases, in the order they ship — one line each

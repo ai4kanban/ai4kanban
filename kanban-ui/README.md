@@ -496,15 +496,16 @@ you never type into a running session.
 | **Run** | On a recurring card, in place of Implement — see below. |
 | **Refine** | While a refine would still move the card — see below. |
 | **Edit** | Always. Say what to change and the agent revises the card. |
-| **Resolve** | Only when the card has open questions. |
+| **Resolve** | Only when the card has open questions — including while a delivery is waiting on you. |
 | **Review again** | Only while a delivery has stopped and is waiting on the question its review left. |
 | **Continue delivery** | Only when a delivery's next session never started — the process watching the last one died. |
 | **Archive** | Once every todo is checked (a group root: once every subtask is resolved). Never on a recurring card. |
 | **Reject** | Always. |
 
 A card can only have one session at a time; while one is going the button is off and the badge
-beside the title says what's going on. **A session never commits** — it leaves its changes in your
-working tree, and you read `git diff` and commit.
+beside the title says what's going on. A session outside a delivery never commits — it leaves its
+changes in your working tree, and you read `git diff` and commit. A **delivery** works differently:
+see **Where a delivery's code goes** below.
 
 ### Delivery
 
@@ -513,21 +514,30 @@ is usually several **sessions** — one agent invocation each — and it has an 
 card, in the activity panel and in `akb runs`. Every other button is a single session and starts no
 delivery.
 
-- **It is build, then review.** The build is one session; a fresh session then judges it against
-  the card you approved, and corrects it if it has to — see **Review** below.
+- **One click carries the card all the way.** The build is one session; a fresh session then
+  judges it against the card you approved, and corrects it if it has to — see **Review** below.
+  Once review passes, the board lands the work on your branch as one commit — see **Landing on
+  your branch** — and then archives the card. Nothing asks you again in between.
+- **What you are approving is the card**, not the diff: what it should achieve, what to weigh,
+  its open questions, and what building it turned up. All four are on the page, unfolded, before
+  you press Implement.
+- **The dialog says what the click will do**: the steps in order and the branch the change will
+  land on. With **Allow automatic Git commits** off it says instead that the delivery stops after
+  review and waits for your commit.
 - **It builds the card as you approved it.** The delivery copies the card's requirements — the
   title, the opening paragraph, **Worth noting**, **Scope**, **Scope out** and each agent-written
   spec section — the moment it starts, and every session inside it builds from that copy. Edit the
   card file in your own editor afterwards and the delivery carries on with what you approved.
 - **The card is held while one is in flight.** Edit, Refine, Resolve, Archive and Reject are off,
   on the card page and in the terminal, and each says which delivery has the card. The one
-  exception is a delivery whose review has stopped and is waiting on you: **Resolve** comes back on
-  there, because answering its question is the way on. Priority, ROI,
+  exception is a delivery that is waiting on you — whatever it is waiting for: **Resolve** comes
+  back on there, because answering is the way on. Priority, ROI,
   release and modules stay editable — no delivery builds from those. So does **Todo**: the delivery
   ticks its own boxes as it works, and a box you tick reaches its next session.
 - **Cancel delivery** stands where Implement did. One more click confirms it: the running session
   stops, the delivery ends as cancelled, the card unlocks and Implement comes back. Whatever the
-  delivery wrote stays in your working tree — the board never undoes work.
+  delivery built stays exactly where it is — the board never undoes work — so its worktree and
+  branch are still there afterwards, and **Discard delivery** is what removes them.
 - **A session that fails or is cut off does not end the delivery.** The card stays held and the
   card page still says so, so **Resume** picks the delivery up rather than starting a second one —
   one delivery id across both sessions. **Cancel delivery** is the other way out.
@@ -535,8 +545,136 @@ delivery.
   card as it was approved for it, each session and how it went, every review verdict and its
   findings, each correction round, and how the delivery ended — finished, stopped or cancelled. It
   is tracked in git and kept after the card is archived.
-- **In a terminal**: `akb cancel <delivery-or-card-id>` is the same thing as the button, and
-  `akb runs` names the delivery each session belongs to.
+- **In a terminal**: `akb cancel <delivery-or-card-id>` is the same thing as the button,
+  `akb discard <delivery-or-card-id> --yes` is the same as **Discard delivery**, and `akb runs`
+  names the delivery each session belongs to. `akb implement <id>` starts the same delivery the
+  button does, and warns about an open question the same way it warns about a blocker.
+
+#### What the card page says while a delivery runs
+
+The delivery's state rides the title band as a pill, where the stage and schedule pills already
+sit, with one line under it naming what the delivery waits on and what answers it.
+
+| Pill | What it means |
+| --- | --- |
+| **Delivery in progress** | It is building, reviewing or correcting. Nothing is waiting on you. |
+| **Held at landing** | Built and reviewed, holding until the card's open questions are answered. |
+| **Waiting for your commit** | Manual commit mode: review passed, and the commit is yours to make. |
+| **Code changed after review** | You committed something other than what review passed, so it is being reviewed again. |
+| **Landed as `abc123`** | Its commit is on your branch, and the board is taking the card off. |
+
+- **A pause has nothing to press.** What continues it is the answer, the resolve or the commit —
+  the delivery picks itself back up, with no second click.
+- **An answer that changes the plan starts a fresh delivery** on the card as it now reads, and the
+  page says so. Changed means the approved requirements changed; answering a question is not a
+  change of plan, and neither is a note review left under **Worth noting after implementation**.
+- **The block under the buttons is the delivery's.** A **Diff** / **Log** / **Approval** tab strip
+  over it, with the diff and the log in them, and a foot naming the delivery, how it commits and
+  where its code is. A card with no delivery keeps the plain session log. Each tab appears with
+  the thing it holds.
+
+#### The Diff tab
+
+What the delivery changed, so you can read the result rather than take it on trust. Nobody has to
+read it — no policy asks for it — and nothing here changes anything: it is a read.
+
+- **The size line leads.** Files changed, insertions and deletions, on one line above the diff.
+- **While the card builds**, it is the delivery's own branch against the commit it forked from,
+  read in its worktree. **Log** opens first while a delivery is live — the diff is not finished
+  being written.
+- **Once it has landed**, it is the squash commit against the branch tip it landed onto, read in
+  your project. That is also the commit to revert if the card has to go: landing squashes, so
+  reverting a card is reverting one commit.
+- **In manual commit mode** it is a snapshot of your working tree, marked **uncommitted**, with
+  the files git has never seen counted in — nothing has been committed yet, and a new file is
+  often the work itself.
+- **A long diff is cut off**, with the `git diff` command that prints all of it named underneath.
+- **A case the view cannot show** — no git, a worktree someone removed, a commit that is no longer
+  in the repository — is one plain line saying so. The tab does not appear at all when there is no
+  diff to show.
+
+#### Building a card with open questions
+
+The Implement dialog warns, and you can go ahead — you know things the board doesn't.
+
+- **It is built and reviewed all the same.** An open question is not a reason to refuse a build;
+  it is a reason not to land one.
+- **It holds at landing** until nothing is left to answer, and takes no landing slot while it
+  waits, so every other card still lands.
+- **Resolve & implement** in the dialog is the other way: answer first, and the card is built
+  once nothing is left for you to decide.
+
+### Where a delivery's code goes
+
+Each delivery builds in a **git worktree of its own** — `.akb/worktrees/<card>/<delivery>` — on a
+branch of its own, `card/<card>/<delivery>`, forked from the commit your checkout was on when you
+pressed Implement. `.akb/` is added to your `.gitignore`, so none of it is ever committed.
+
+- **Several deliveries at once.** Each one has its own full checkout, so two cards that touch the
+  same files never write over each other, and neither one touches the edits you have open.
+- **A delivery won't start on uncommitted work.** It forks from your last commit and never copies
+  what you have not committed, so commit or stash first. The board's own files changing doesn't
+  count. It also won't start on a detached HEAD — check out a branch, and that branch is where the
+  delivery is meant to land.
+- **The board's own files stay out.** `docs/kanban/` and `.akb/` are not checked out into a
+  worktree, and a commit that reaches one is refused. The card, its todos and the delivery record
+  are all changed in your project folder, as they always were.
+- **The board commits each session's work** onto the delivery's branch, so review reads a settled
+  tree rather than a half-written one. Nothing reaches your own branch.
+- **Discard delivery** on the card page removes the worktree and the branch, and everything only
+  they hold. It says exactly what will be lost and asks for a second click. It is the one control
+  here that throws work away — nothing removes a worktree on its own, not even cancelling.
+- **If a worktree or branch goes missing**, the card page says so and nothing is rebuilt: cancel
+  the delivery and start the card again.
+
+#### Landing on your branch
+
+Review passing is not the end. The board then **lands** the delivery: one squash commit on
+the branch you were on when you pressed Implement, named after the card. The card reads
+**Landed as `abc123`**. Nothing is pushed anywhere — landing ends on that branch in your own
+repository.
+
+- **One card lands at a time**, however many are building. A card that is ready waits its
+  turn, and the wait is on the card page.
+- **Your own uncommitted work blocks it**, the same way it blocks starting. The delivery
+  waits safely on its branch and holds nothing up; commit or stash, and it lands by itself.
+  A staged file blocks it too — landing moves your branch under you, and it will not do that
+  over a half-built commit.
+- **Your working tree follows the branch.** When the target branch is the one you have out,
+  the board fast-forwards it in your own checkout, exactly as a `git pull` would. When it is
+  not, only the branch moves and your checkout is left alone.
+- **A target branch that moved is rebased onto and reviewed again.** That costs one more
+  review, and it is the only way the tree that was judged is the tree that lands. After
+  three rebases on a branch that keeps moving, the card gets an open question instead.
+- **Two cards touching the same files is a warning, not a block.** Landing goes ahead, and
+  the overlap is recorded on the delivery. A real conflict is resolved as new work by an
+  agent that reads both cards, both diffs and the checkout, and its result goes through
+  review from scratch. If it stays unclear, the card gets an open question explaining the
+  conflict and its branch is left whole.
+- **A card with an open question waits outside the queue** until it is answered, taking no
+  landing slot while it waits.
+- **The worktree and branch are removed once it has landed**, the delivery ends, and the board
+  archives the card — the last step of the click, never an earlier one. A landing that changed
+  nothing names no commit and archives the card all the same.
+- **The delivery record keeps the landing**: the commit, the base it landed against, the
+  checks that ran, and any overlap. It outlives the card.
+
+#### Manual commit mode
+
+Turn **Allow automatic Git commits** off in Configuration → Auto-delivery and a delivery works in
+your project folder instead. The setting is saved with the board, in `docs/kanban/ui.config.json`,
+so a team shares one answer; a change applies to deliveries started afterwards, never to one
+already in flight.
+
+- **One delivery at a time**, from a clean tree — an uncommitted or untracked file blocks the
+  start, because review would read it as the delivery's own work.
+- **You commit, after review passes.** The board saves what review passed; commit that in your own
+  checkout and the delivery is done and the card is archived. Commit something else and it goes
+  back through review, and the card reads **Code changed after review** until it has.
+- **A project with no git, or with no commit yet, always works this way** — there is nothing to
+  branch from, and the card page says so.
+- **Nothing lands.** The commit is yours, and the delivery ends on it — see
+  **Landing on your branch** above for what auto commit mode does instead.
 
 ### Review
 
@@ -550,7 +688,8 @@ that wrote the code — a reviewer that reads the implementer's reasoning agrees
 
 **What review answers**, exactly one of three:
 
-- **It passes.** The delivery is finished, and the card is archived.
+- **It passes.** The work goes on to land, and the board archives the card once it has. Review
+  itself never archives one.
 - **It found clear mistakes.** A **correction** session fixes exactly those, and another fresh
   review then judges the whole candidate again — not only the corrected lines. Two corrections by
   default.
@@ -590,7 +729,8 @@ If a delivery's next session never starts — the process watching the one befor
 delivery still says what it was about to do.
 
 **In a terminal**: `akb review <id>` judges the delivery in flight on a card again, `akb correct
-<id>` runs a correction, and `akb guide review` is the flow both follow.
+<id>` runs a correction, `akb conflict <id>` resolves the conflict a landing's rebase stopped
+on, and `akb guide review` is the flow all three follow.
 
 **Resolve** gives each open question an answer box. A question that carries choices shows them as
 a tick list instead — one pick, or as many as you like, depending on the question — with the
@@ -613,8 +753,9 @@ Beside **Implement anyway** sits **Schedule**. It starts nothing now: it writes 
 you want done, and the board runs it by itself within a minute of the last card in the way leaving
 the board — archived or rejected.
 
-- **Two actions can be scheduled**: **Schedule** in the Implement dialog builds the card, and
-  **Schedule** in the Refine dialog sharpens its plan. Scheduling always follows one of those two.
+- **A rough card schedules its own refine when it becomes blocked.** That mark is written when
+  the card is created with blockers, or when its blocker list goes from empty to non-empty.
+  **Schedule** in the Implement dialog may replace it with a build instead.
 - **Nothing to tick.** Nothing starts ahead of the blocker. A card that isn't **ready** still asks
   for its "the plan may still be rough" tick before you can schedule a build.
 - **The note you type goes with it** and reaches the run when it fires.
@@ -623,7 +764,9 @@ the board — archived or rejected.
 - **The card reads `pending`** in place of its stage, on the board and on its own page. Hover it
   and it says what will run and what it waits for — `implement · waiting on #57`. The card keeps
   the stage it had and stays where it is in the queue.
-- **Take it off** on the card page, next to **Scheduled**. Nothing fires after that.
+- **Cancel it** on the card page, next to **Scheduled**. Nothing fires after that, and changing
+  one non-empty blocker list into another does not put the refine back. If the card becomes
+  unblocked and is blocked again later, that new blocked episode gets the default refine again.
 - **It has its own slot.** One scheduled run starts per minute, and neither a refine in flight nor
   a recurring job that is due can hold back a card whose blocker just cleared.
 - **It fires once.** The mark comes off the moment the run starts, so a run that fails or that you
@@ -641,7 +784,9 @@ clone on another machine — and it travels with the card if you move it.
 run the board starts by itself after something touches the card, so it is how you refine a card
 whenever you want.
 
-The button shows only while a refine would still move the card. It's gone once the card is
+The button shows only while a refine would still move the card. It is also gone while a refine is
+already scheduled for the card's blockers; cancel that schedule to bring the button back. It's
+gone once the card is
 **ready**, once every todo is checked, and when every open question is one only you can answer —
 **Resolve** is the button for that last one. A **Blocked** card keeps the button; the dialog names
 the blocker and offers both ways on — **Refine anyway** now, or **Schedule** it.
@@ -652,7 +797,8 @@ the card as a run of its own, with its own log, stoppable like anything else.
 - **A run that wrote or changed a card gets a refine on it.** Add a card, change one, answer its
   questions, propose, fill a release — each card that run touched comes back refined, one run per
   card. Ask for three cards and three refines follow.
-- **Finishing or rejecting a card refines the ones it was holding up**, one wave at a time.
+- **A blocked rough card carries the refine it will run once free.** Finishing or rejecting its
+  last blocker makes that saved schedule eligible; no watcher infers the transition afterward.
 - **A group's main card is not refined by a subtask finishing.** Ticking its line is the group's
   progress, not a new plan. Change the main card itself and it is refined like any other.
 - **Cards a refine can't move are skipped** — one still waiting on a blocker, one the run left
@@ -752,12 +898,25 @@ struck through, so the outcome survives after the subtask files are gone.
 ## Configuration
 
 The gear in the header opens the **Configuration** dialog. A sidebar names its sections —
-**Harness**, **Agents** and **Setup**. Settings live in `docs/kanban/ui.config.json`, next to your board, so
+**Harness**, **Agents**, **Auto-delivery**, **Rules** and **Setup**. Settings live in `docs/kanban/ui.config.json`, next to your board, so
 `npx` always serves the latest UI and an update never touches them. Everything the dialog holds
 writes itself there, with one exception: a key goes to `docs/kanban/.env` and never to this file.
 
 There is no Auto-refine section and no switch: a refine follows the run that touched the card, so
 there is nothing to turn on.
+
+### Auto-delivery
+
+One switch: **Allow automatic Git commits**, on by default.
+
+- **On** — each delivery builds on a branch in a git worktree of its own, so several run side by
+  side and what review passed is what lands. See **Where a delivery's code goes** above.
+- **Off** — manual commit mode: a delivery works in your project folder, one at a time, and you
+  commit it after review passes.
+
+A change applies to deliveries started afterwards; one already in flight keeps the mode it started
+in. It is a repository-level answer, saved in `ui.config.json` and shared by everyone on the board —
+never a choice on a single card.
 
 ### The harness
 
@@ -955,6 +1114,7 @@ in the file, so switching agents or providers never touches any of them.
 ```json
 {
   "harness": "claude-code",
+  "autoCommit": false,
   "harnessSettings": {
     "claude-code": {
       "provider": "subscription",
@@ -967,6 +1127,9 @@ in the file, so switching agents or providers never touches any of them.
   }
 }
 ```
+
+`autoCommit` is **Allow automatic Git commits** above. Only written when you turn it off — a
+missing key means on, which is the default.
 
 `harness` is the agent that runs: `claude-code` (the default), `codex`, `cursor`, `opencode` or
 `dsh`. The name decides everything about how that agent runs — the command, the flags that make it
@@ -1062,6 +1225,47 @@ they are set on its row, under the two lines:
 
 An agent that declares no settings draws nothing extra, and neither does a board running rules older
 than the settings — its rows read exactly as they did.
+
+### Flow rules
+
+**Rules** is where a board says something of its own to a flow. A **flow** is anything the board
+can start — building a card, reviewing one, refining it, proposing the next tasks. Its instructions
+ship inside the command, so until now every board was given the same words. A **flow rule** is one
+paragraph, in your own words, added to the **end** of one flow's instructions. Every session the
+board starts from that flow reads it — a long rule therefore makes every card slower.
+
+A rule is plain words, not a command the board runs. What it actually causes is up to the agent
+reading it.
+
+The pane is a column naming every flow, with a dot on the ones that have a rule and a count above
+them, beside one tall box for whichever flow you click. Each box says which flow it changes — the
+command that starts it, and one clause of plain words, because `correct`, `plan-release` and `run`
+name nothing you can guess at.
+
+- **Two flows say what their rule is for**, in a line under the box. On `implement`: each delivery
+  builds in a fresh worktree, and this is where you say how to prepare one — installing
+  dependencies, seeding a local config. On `review`: a check asked for here can send the work back,
+  or stop the delivery for you.
+- **Checks a review rule asks for are the repository's checks.** Review already runs your tests,
+  linter and type check, sends a failure back for correction, and stops for you when the correction
+  loop runs out. A check your rule adds is handled in exactly those ways.
+- **Saving is per flow, on blur**, with a quiet **Saved** beside the flow's name. There is no Save
+  button, and a rule is free text, so there is nothing to get wrong — a save that does not land
+  says so across the top of the page.
+- **Rules are files in your board**: `docs/kanban/rules/<command>.md`, named by the command a user
+  types — `revise.md` for `akb revise`. They are tracked in git, so a team shares them and can see
+  them change, and a run started from a terminal reads the same words. Clearing a box deletes the
+  file; a flow with no file runs exactly as the command ships it.
+- **A delivery freezes its rules.** The rules of the flows a delivery is made of — `implement`,
+  `review`, `correct` and `conflict` — are copied onto the delivery record when it starts, beside
+  the copy of the card it was approved to build. Every session in that delivery runs with those, so
+  editing a rule changes the next delivery and never one in flight.
+- **The list of flows is the board's own** — every command that can start one — so a flow shipped
+  in a later release appears here on its own.
+
+There is no way to run a shell command from a rule, and no per-delivery approval of one: both would
+break the one-click flow. Spec agents take no rule — each keeps its own settings already — and
+neither does **Chat**, which is a conversation rather than a flow the board starts.
 
 ### The coding agent skill
 

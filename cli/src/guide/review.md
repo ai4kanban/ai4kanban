@@ -14,6 +14,19 @@ Two things make this worth paying for, and both are rules rather than advice:
 Review cannot promise defect-free code. It promises that the approved card and the checks
 this repository already has were applied by something that did not write the change.
 
+## Where the work is
+
+A delivery builds in a **git worktree of its own**, on a branch of its own, and the board
+commits each session's work onto it. So the candidate is settled by the time you read it:
+`git diff <base> <branch>`, with nothing of the user's own in it and nothing of the board's.
+The flow names the worktree, the branch and the base.
+
+With **Allow automatic Git commits** off the delivery works in the user's project folder
+instead, one at a time, and the candidate is the working tree — which is why the flow then
+tells a reviewer that changes it did not make may be in there. A pass in that mode does not
+finish the delivery: the user commits it, and the delivery ends when their commit matches
+what review passed.
+
 ## Review: what to do
 
 1. **Read the approved copy** the flow prints. That is the card as it was approved when the
@@ -21,7 +34,9 @@ this repository already has were applied by something that did not write the cha
 2. **Read the diff** the flow names, and the files it touches. Read the code, not only the
    patch: a change is judged by what it does.
 3. **Run the checks this repository has** — its tests, its linter, its type check. Run what
-   the project documents; do not invent a check it does not have.
+   the project documents; do not invent a check it does not have. A check this board's own
+   review rule asks for — the words at the end of these instructions, if there are any — is
+   one of the repository's checks: run it, and let it decide a verdict like any other.
 4. **Read `## Worth noting after implementation`** on the card. An exception the user
    approved for this exact candidate is recorded there, and re-raising a settled call is
    the fastest way to waste a correction.
@@ -32,7 +47,8 @@ this repository already has were applied by something that did not write the cha
 One of three, and nothing else:
 
 - **`pass`**: the candidate meets every approved requirement, and the repository's checks
-  pass. The delivery is finished, and this session archives the card.
+  pass. Leave the card on the board: a pass is not the end of the delivery, and the board
+  archives the card itself once the work has landed.
 - **`correct`**: something plainly conflicts with an approved requirement, or a repository
   check that used to pass now fails. The findings say what, and a correction session fixes
   them.
@@ -101,12 +117,59 @@ Findings that need awareness but no decision go on the card, under
 
 Routine findings and corrected mistakes belong on the delivery's record, not on the card.
 
+## Landing: what happens after a pass
+
+A pass is not the end of the delivery in auto commit mode. The board then **lands** the
+work on the target branch — the branch the user was on when the delivery started — and it
+does that itself: no session, and nothing pushed anywhere.
+
+- **One card lands at a time**, however many are building. A card that is ready waits.
+- **The user's own work comes first.** A staged file or an uncommitted change of theirs
+  holds the landing back until the checkout is clean. It waits on its branch and holds no
+  slot.
+- **A target branch that moved is rebased onto and reviewed again**, which is the only way
+  the tree that was judged is the tree that lands. That costs one more review, and the
+  delivery's `base` becomes the tip it was rebased onto.
+- **It lands as one squash commit** naming the card and the delivery, and the worktree and
+  branch are removed afterwards.
+- **A card with an open question holds outside the queue** until it is answered. It takes no
+  landing slot while it waits, so every other card still lands, and answering the question
+  carries the same delivery on.
+- **The card is archived last, by the board**, once the delivery has landed and ended. In
+  manual commit mode nothing lands, so the card is archived when the user's own commit
+  matches what review passed.
+
+None of it is a review session's job. A review records its verdict and stops.
+
+## Resolving a conflict
+
+When the rebase meets a conflict, the board starts one session to resolve it. That session
+is **new work**, not a correction: both cards were right on their own, and what to keep is
+a judgment neither card wrote down.
+
+`akb conflict <id> --print` names the conflicted files, the branch on the other side, and
+the cards being built over the same files.
+
+- **Read both sides.** The approved copy says what this card is for; `git log <base>..<target>`
+  is what arrived while it was being built.
+- **Resolve every conflicted file** so both intentions survive, and `git add` each one.
+- **Stop there.** Do not run `git rebase --continue` — the board finishes the rebase, and a
+  fresh review then judges the whole candidate from scratch.
+- **Change nothing the conflict does not name**, and change nothing on the card.
+
+If the rebase still will not go through, the board puts the branch back as it found it and
+leaves one open question on the card explaining the conflict. The delivery's work is whole
+on its own branch either way.
+
 ## Correction: what to do
 
 The flow prints the findings to fix, verbatim.
 
 - **Fix what they name, and nothing they do not.** A fresh review judges the whole
   candidate afterwards, so anything extra comes straight back as drift.
+- **Work in the delivery's own worktree**, which is where the session already is. Never
+  write the board's own files there — `docs/kanban/` and `.akb/` are changed in the project
+  itself, and a commit that reaches one is refused and stops the delivery.
 - **Tick a `## Todo` box your fix completes**; never untick one.
 - **Change nothing else on the card.** The delivery builds the approved copy, not the file
   as it reads now.
@@ -117,6 +180,9 @@ The flow prints the findings to fix, verbatim.
 
 Two corrections by default. It also stops early on a finding that came back, a correction
 that changed nothing, and a review or correction session that failed or was cut off.
+
+A landing stops the same way, for its own two reasons: a target branch that kept moving
+after three rebases, and a conflict that stayed unresolved.
 
 Every stop puts **one** open question on the card — the findings, how many corrections were
 tried, and the decision the user has to make — and the delivery waits there, still holding

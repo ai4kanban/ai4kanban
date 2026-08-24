@@ -12,14 +12,17 @@ import {
   FiCornerLeftUp,
   FiEdit2,
   FiFeather,
+  FiGitBranch,
   FiHelpCircle,
   FiPlay,
   FiSquare,
+  FiTrash2,
   FiX,
   FiXCircle,
 } from "react-icons/fi";
 import {
   cancelDeliveryAction,
+  discardDeliveryAction,
   dropVerifyAction,
   patchCardAction,
   scheduleCardAction,
@@ -31,7 +34,11 @@ import {
   type AgentInfo,
   type Card,
   type CardDelivery,
+  type CardDeliveryStage,
+  type CardFinished,
   type CardPatch,
+  type DeliveryDiff,
+  type DeliveryPlan,
   type MemoryModule,
   type ScheduledAction,
   type SessionView,
@@ -265,12 +272,9 @@ function visibleActions(card: Card): Set<CardButton> {
   // schedule behind it can never disagree about whether this card is one to build.
   else if (canImplement(card)) buttons.add("implement");
   buttons.add("edit"); // Edit — always
-  // Refine (#99) — only when a refine would really move the card (canRefine): the
-  // background dispatcher would arrive at a `ready` card, a finished one, or one
-  // waiting on a `[user]` question and leave it exactly as it was, so a button
-  // there would promise work that never happens. Being blocked is not a reason to
-  // hide it — the dialog says so and runs anyway.
-  if (canRefine(card)) buttons.add("refine");
+  // Refine (#99) — only when it would move the card, and not while that same action
+  // is queued. Cancelling the schedule brings the button back for this blocked episode.
+  if (canRefine(card) && card.schedule?.action !== "refine") buttons.add("refine");
   if (hasQuestions) buttons.add("resolve"); // Resolve — has open questions
   // Archive — every subtask resolved, or all todos checked. Never on a recurring
   // card: it has no end state, and archiving one would take a job off the board.
@@ -292,29 +296,293 @@ function visibleActions(card: Card): Set<CardButton> {
 // — it is building from its copy — so the honest thing to say is what it IS building, which
 // is what the held controls say, before the edit is made rather than after.
 const heldNote = (delivery: CardDelivery): string =>
-  delivery.waiting
-    ? `Delivery ${delivery.id} has stopped and is waiting on you — ${delivery.waiting}. ` +
-      `Answer the question it left, then Review again. Cancel delivery to take the card back.`
+  delivery.state.paused
+    ? `Delivery ${delivery.id} is waiting on you — ${delivery.state.line} ` +
+      `Cancel delivery to take the card back.`
     : `Delivery ${delivery.id} is in progress — it is building this card as it was approved when it started. ` +
       `Cancel delivery to take the card back.`;
 
-// The card's one mark while a delivery holds it and nothing is running inside it — its
-// last session failed or was cut off, and the job is still open. Ember, like the running
-// badge, because the job is still in flight; no pulse, because nothing is working.
-function DeliveryPill({ label, tone }: { label: string; tone: "live" | "ended" }) {
-  const live = tone === "live";
+// Where this delivery's code is, in one line (#303) — the worktree and branch it builds in,
+// or the project folder itself in manual commit mode. It rides the delivery block's foot
+// (#307) rather than the title band, so the band carries one line and not two.
+function whereNote(delivery: CardDelivery): string {
+  if (delivery.lost) return delivery.lost;
+  if (delivery.worktree) {
+    return (
+      `${delivery.worktree} on ${delivery.branch}` +
+      `${delivery.targetBranch ? `, for ${delivery.targetBranch}` : ""}`
+    );
+  }
+  if (delivery.manualWhy) return `your project folder — ${delivery.manualWhy}`;
+  return "your project folder — automatic Git commits are off";
+}
+
+// Discard delivery: the one control on this page that throws work away. It removes the
+// delivery's worktree and its branch — and everything only they hold — so it says exactly
+// what will be lost and asks for a second click, like every other irreversible move here.
+//
+// Cancelling a delivery deliberately leaves its checkout where it is, so this is offered
+// beside Cancel while one is in flight AND on its own afterwards, when the card is free
+// again but the checkout is still on disk.
+function DiscardDelivery({
+  discard,
+  onDiscarded,
+  onError,
+}: {
+  discard: NonNullable<Card["discard"]>;
+  onDiscarded: () => void;
+  onError: (why: string) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!confirming) return;
+    const timer = setTimeout(() => setConfirming(false), CONFIRM_MS);
+    return () => clearTimeout(timer);
+  }, [confirming]);
+
+  const lost = `${discard.worktree}${discard.branch ? ` and ${discard.branch}` : ""}`;
+  const discardIt = async () => {
+    setConfirming(false);
+    setBusy(true);
+    const res = await discardDeliveryAction(discard.id);
+    setBusy(false);
+    if (!res.ok) onError(res.error || "could not discard the delivery");
+    else onDiscarded();
+  };
+
   return (
-    <span
-      className="nb-chip nb-tip"
-      tabIndex={0}
-      data-tip={label}
-      style={{
-        background: live ? "var(--color-nb-accent-soft)" : "var(--color-nb-sky-soft)",
-        color: live ? "var(--color-nb-accent-deep)" : "var(--color-nb-sky-ink)",
-      }}
+    <Button
+      variant="ghost"
+      size="sm"
+      disabled={busy}
+      title={
+        `Delivery ${discard.id} — remove ${lost}, and everything only they hold. ` +
+        `${discard.active ? "The delivery ends and the card comes back. " : ""}This cannot be undone.`
+      }
+      style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
+      onClick={() => (confirming ? void discardIt() : setConfirming(true))}
     >
+      <FiTrash2 className="text-[15px]" aria-hidden />
+      {confirming ? `Discard it — ${lost} go` : "Discard delivery"}
+    </Button>
+  );
+}
+
+// The card's one mark while a delivery holds it: what the delivery is doing, or what it is
+// waiting for (#307). It wears the pill shape the stage and the schedule already do, and
+// the board's own three meanings — ember for work in flight or waiting on you, peach for
+// something in the way, mint for done, blue for a job that has ended.
+const PILL_SKIN: Record<string, { bg: string; ink: string }> = {
+  live: { bg: "var(--color-nb-accent-soft)", ink: "var(--color-nb-accent-deep)" },
+  warn: { bg: "var(--color-nb-peach-soft)", ink: "var(--color-nb-peach-ink)" },
+  done: { bg: "var(--color-nb-mint-soft)", ink: "var(--color-nb-mint-ink)" },
+  ended: { bg: "var(--color-nb-sky-soft)", ink: "var(--color-nb-sky-ink)" },
+};
+
+function DeliveryPill({ label, tone }: { label: string; tone: keyof typeof PILL_SKIN }) {
+  const skin = PILL_SKIN[tone]!;
+  return (
+    <span className="nb-chip nb-tip" tabIndex={0} data-tip={label} style={{ background: skin.bg, color: skin.ink }}>
       {label}
     </span>
+  );
+}
+
+// Which of those a delivery's stage wears.
+const PILL_TONE: Record<CardDeliveryStage, keyof typeof PILL_SKIN> = {
+  working: "live",
+  stopped: "live",
+  held: "live",
+  commit: "live",
+  rereview: "warn",
+  landed: "done",
+};
+
+// ---- the delivery block (#307) ----------------------------------------------
+//
+// The block that was the session log. It is the delivery's own space on the page: one tab
+// strip over it — Diff, Log, Approval — with the log and the diff in them, and a foot
+// naming the delivery, how it commits, and where its code is.
+//
+// A tab appears with the thing it holds: Diff shows once the server has one to draw (#305),
+// and Approval waits on #308. A card with no delivery at all keeps the plain session log it
+// has always had.
+type DeliveryTab = { name: string; note?: string };
+
+function TabStrip({ tabs, current, onPick }: { tabs: DeliveryTab[]; current: string; onPick: (name: string) => void }) {
+  return (
+    <div className="flex items-center gap-4 rounded-t-[12.5px] bg-nb-wash px-3.5 pt-2.5">
+      {tabs.map((tab) => (
+        <button
+          key={tab.name}
+          type="button"
+          onClick={() => onPick(tab.name)}
+          className="flex items-center gap-1.5 pb-2 text-[12px] font-[700]"
+          style={{
+            color: tab.name === current ? "var(--color-nb-ink)" : "var(--color-nb-ink-soft)",
+            borderBottom: `2px solid ${tab.name === current ? "var(--color-nb-accent)" : "transparent"}`,
+            cursor: tabs.length > 1 ? "pointer" : "default",
+          }}
+        >
+          {tab.name}
+          {tab.note && <span className="text-[10.5px] font-[600] text-nb-ink-soft">{tab.note}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ---- the Diff tab (#305) -----------------------------------------------------
+//
+// What the delivery changed: its branch against the base it forked from while it builds,
+// and the squash commit against the tip it landed onto once it has. The server reads it and
+// caps it, so this only draws.
+//
+// The size line leads, always — it is the glance, and the diff under it is the detail. A
+// case the server could not read is one plain line in the same place, never an empty frame.
+const DIFF_LINE: Record<string, string> = {
+  "+": "var(--color-nb-mint-ink)",
+  "-": "var(--color-nb-peach-ink)",
+  "@": "var(--color-nb-sky-ink)",
+};
+
+// The ink one diff line is drawn in. The two file headers git puts above every hunk start
+// with `+++`/`---` and are not additions, so they read as headers like `diff --git` does.
+function diffInk(line: string): string {
+  if (line.startsWith("+++") || line.startsWith("---") || line.startsWith("diff --git")) return "var(--color-nb-ink)";
+  return DIFF_LINE[line[0] ?? ""] ?? "var(--color-nb-ink-soft)";
+}
+
+function DiffPane({ diff }: { diff: DeliveryDiff }) {
+  return (
+    <div className="border-t-[1.5px] border-nb-ink bg-nb-paper">
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-nb-wash px-4 py-2.5 text-[12px]">
+        {diff.uncommitted && (
+          <span className="nb-chip" style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}>
+            uncommitted
+          </span>
+        )}
+        <span className="font-mono text-nb-ink-soft">{diff.note || diff.stat}</span>
+      </div>
+      {diff.diff && (
+        <pre className="m-0 max-h-[420px] overflow-auto px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, lineHeight: 1.55 }}>
+          {diff.diff.replace(/\n$/, "").split("\n").map((line, i) => (
+            <div key={i} style={{ color: diffInk(line), whiteSpace: "pre" }}>
+              {line || " "}
+            </div>
+          ))}
+        </pre>
+      )}
+      {diff.truncated && (
+        <p className="border-t border-nb-wash px-4 py-2 text-[11.5px] text-nb-ink-soft">
+          Cut off here — the whole of it is <code className="font-mono text-nb-ink">{diff.whole}</code>.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// The block's foot: which delivery this is, how it commits, and where its code is.
+function DeliveryFoot({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 py-2 text-[11.5px] text-nb-ink-soft"
+      style={{ borderTop: "1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent)" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function DeliveryBlock({
+  delivery,
+  diff,
+  session,
+  busy,
+  onResumed,
+}: {
+  delivery: CardDelivery;
+  diff: DeliveryDiff | null;
+  session: SessionView | null;
+  busy: boolean;
+  onResumed: (sessionId: string) => void;
+}) {
+  const where = whereNote(delivery);
+  // The log opens first while a delivery is live: it is the thing that moves, and the diff
+  // is not finished being written.
+  const [tab, setTab] = useState("Log");
+  const tabs: DeliveryTab[] = [...(diff ? [{ name: "Diff" }] : []), { name: "Log" }];
+  // A tab that has gone — the diff a re-read no longer has — falls back to the first one
+  // rather than leaving the strip pointing at nothing.
+  const current = tabs.some((t) => t.name === tab) ? tab : tabs[0]!.name;
+  return (
+    <div className="nb-outline mb-4 bg-nb-paper">
+      <TabStrip tabs={tabs} current={current} onPick={setTab} />
+      {current === "Diff" && diff ? (
+        <DiffPane diff={diff} />
+      ) : session ? (
+        <SessionLog session={session} bare warnUnfinished onResumed={onResumed} />
+      ) : (
+        <p className="border-t-[1.5px] border-nb-ink bg-nb-wash px-4 py-3 text-[12.5px] text-nb-ink-soft">
+          No session has written anything yet — the first one is starting.
+        </p>
+      )}
+      <DeliveryFoot>
+        <span className="flex items-center gap-1.5 font-mono">
+          <FiGitBranch className="shrink-0 text-[12px]" aria-hidden />
+          delivery {delivery.id} · {delivery.commitMode} commit mode · {where}
+        </span>
+        {/* A pause has no button (#307): what continues it is the answer, the resolve or
+            the commit — the line under the title says which — so the foot says so rather
+            than leaving the user hunting for one. A stopped review is the exception: it
+            has Review again, which is a button. */}
+        {delivery.state.paused && delivery.state.stage !== "stopped" && !busy && (
+          <span className="ml-auto" style={{ color: "var(--color-nb-accent-deep)" }}>
+            nothing to press — the delivery carries on by itself
+          </span>
+        )}
+      </DeliveryFoot>
+    </div>
+  );
+}
+
+// The same block once the delivery has ended (#305). The card is normally archived in the
+// same breath, so this is the blink between the two — and the way back to the commit that
+// landed when someone comes looking for it. Nothing here is live, so Diff opens first.
+function FinishedBlock({
+  finished,
+  diff,
+  session,
+  onResumed,
+}: {
+  finished: CardFinished;
+  diff: DeliveryDiff;
+  session: SessionView | null;
+  onResumed: (sessionId: string) => void;
+}) {
+  const [tab, setTab] = useState("Diff");
+  const tabs: DeliveryTab[] = [{ name: "Diff" }, ...(session ? [{ name: "Log" }] : [])];
+  const current = tabs.some((t) => t.name === tab) ? tab : "Diff";
+  return (
+    <div className="nb-outline mb-4 bg-nb-paper">
+      <TabStrip tabs={tabs} current={current} onPick={setTab} />
+      {current === "Log" && session ? (
+        <SessionLog session={session} bare warnUnfinished onResumed={onResumed} />
+      ) : (
+        <DiffPane diff={diff} />
+      )}
+      <DeliveryFoot>
+        <span className="flex items-center gap-1.5 font-mono">
+          <FiGitBranch className="shrink-0 text-[12px]" aria-hidden />
+          delivery {finished.id} ·{" "}
+          {finished.commit
+            ? `landed as ${finished.commit.slice(0, 7)}${finished.targetBranch ? ` on ${finished.targetBranch}` : ""}`
+            : `finished · ${finished.commitMode} commit mode`}
+        </span>
+      </DeliveryFoot>
+    </div>
   );
 }
 
@@ -385,6 +653,8 @@ export function CardPage({
   goalWritten,
   memoryModules,
   mockups,
+  plan,
+  diff,
   desktop,
 }: {
   card: Card;
@@ -401,6 +671,13 @@ export function CardPage({
   /** The screens this card's `<Mockup>` tags point at, already read and drawn (#239).
    *  The card page is the only page that shows them. */
   mockups: MockupSet;
+  /** What an Implement click would do from here (#307): the branch the change would land
+   *  on, and whether it lands at all. Read on the server, where git is. */
+  plan: DeliveryPlan;
+  /** What the delivery on this card changed (#305) — the one in flight, or the one that
+   *  landed. Read and capped on the server. Null when there is nothing to show, and then
+   *  the delivery block has no **Diff** tab. */
+  diff: DeliveryDiff | null;
   /** Whether this board is running inside the desktop app (#175). The header and
    *  the running notice are the same on both pages, so this is too. */
   desktop: boolean;
@@ -474,15 +751,18 @@ export function CardPage({
   const held = !!delivery;
   const heldWhy = delivery ? heldNote(delivery) : "";
   // A delivery whose review stopped is waiting on the question it left here (#302).
-  // Answering is the way on, so Resolve stays live while every other held control is off —
-  // the same one exception the CLI makes.
+  // Review again is what judges the same work once it is answered.
   const waiting = delivery?.waiting;
   // The session this delivery would start if you asked it to: another review once its
   // question is answered, or the one its watcher died before starting.
   const carryOn = waiting ? "review" : delivery?.next;
+  // Resolve stays live whenever the delivery is waiting on the user (#307) — a hold nothing
+  // lets you answer is a dead end — while every other held control is off. The CLI makes
+  // exactly the same exception.
+  const answerable = !!delivery?.state.paused;
   // One test for every control the hold covers: a session on this card, or a delivery on it.
   const off = busy || held;
-  const offUnlessAsked = busy || (held && !waiting);
+  const offUnlessAsked = busy || (held && !answerable);
   const { total, done } = card.todos;
   const actions = visibleActions(card);
 
@@ -606,9 +886,9 @@ export function CardPage({
             )}
 
             {/* title band — the card's one mark rides beside the title: a live
-                session's badge while busy, otherwise the saved stage (nothing while
-                `todo`). Never both. */}
-            <div className="mb-4 flex flex-wrap items-center gap-x-2.5 gap-y-2">
+                session's badge while busy, otherwise where the delivery has got to
+                (#307), otherwise the saved stage (nothing while `todo`). Never two. */}
+            <div className={`${delivery ? "mb-1.5" : "mb-4"} flex flex-wrap items-center gap-x-2.5 gap-y-2`}>
               <span className="shrink-0 text-[20px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
                 #{card.id}
               </span>
@@ -622,12 +902,15 @@ export function CardPage({
                   }
                 />
               ) : delivery ? (
-                // A delivery whose session ended without finishing. It still holds the
-                // card, and Resume or Cancel delivery is what moves it on — unless its
-                // review stopped, in which case the move is to answer its question.
+                // What the delivery is doing, or what it is waiting for — the board's own
+                // answer, worked out from the card's questions and the delivery's records.
+                <DeliveryPill label={delivery.state.label} tone={PILL_TONE[delivery.state.stage]} />
+              ) : card.landed ? (
+                // It landed, and the board is taking the card off. Normally the blink
+                // between the two; on screen for longer only when the archive failed.
                 <DeliveryPill
-                  label={waiting ? `delivery ${delivery.id} waiting on you` : `delivery ${delivery.id} in progress`}
-                  tone="live"
+                  label={card.landed.commit ? `Landed as ${card.landed.commit.slice(0, 7)}` : "Landed — nothing to commit"}
+                  tone="done"
                 />
               ) : cancelled ? (
                 // The last delivery on this card was cancelled. The card is free again, and
@@ -641,6 +924,27 @@ export function CardPage({
                 card.status !== "todo" && <StatusPill status={card.status} detailed />
               )}
             </div>
+
+            {/* One line under the band: what the delivery waits on, and what answers it.
+                The worktree and branch used to sit here; they moved to the delivery
+                block's foot (#307), so the band carries one line and not two. */}
+            {delivery && (
+              <p className="mb-4 text-[12.5px] leading-relaxed text-nb-ink-soft">
+                {delivery.state.line}
+                {delivery.supersedes && (
+                  <>
+                    {" "}
+                    Delivery {delivery.supersedes} was approved to build a card that has since
+                    changed, so this one started fresh on the card as it now reads.
+                  </>
+                )}
+                {delivery.lost && (
+                  <span className="ml-1" style={{ color: "var(--color-nb-accent-deep)" }}>
+                    {delivery.lost}.
+                  </span>
+                )}
+              </p>
+            )}
 
             {/* toolbar — the state machine (visibleActions) decides which buttons
                 fit the card's state; busy still disables every one that shows. */}
@@ -663,6 +967,19 @@ export function CardPage({
                     Implement
                   </Button>
                 )
+              )}
+              {/* Discard delivery (#303) — the checkout a delivery built in, thrown away.
+                  Offered whenever one is still on disk: cancelling a delivery leaves its
+                  worktree and branch alone on purpose, so nothing else ever reclaims one. */}
+              {card.discard && (
+                <DiscardDelivery
+                  discard={card.discard}
+                  onDiscarded={() => {
+                    router.refresh();
+                    kick();
+                  }}
+                  onError={setError}
+                />
               )}
               {/* Run (#64) — Implement's place on a recurring card. Same ember CTA:
                   it is the one thing you came to this card to do. */}
@@ -762,18 +1079,29 @@ export function CardPage({
               )}
             </div>
 
-            {/* Session log: the live tail while an agent works, and a re-openable view
-                of the last session's output afterwards. The full log stays in its file. */}
-            {latestSession && (
-              <div className="mb-4">
-                <SessionLog
-                  session={sessionLog}
-                  collapsed={!busy && !showLog}
-                  onToggle={busy ? undefined : () => setShowLog((v) => !v)}
-                  warnUnfinished
-                  onResumed={onResumed}
-                />
-              </div>
+            {/* The delivery block (#307) while one is in flight: the tab strip, the log in
+                it, and a foot naming the delivery, its commit mode and where its code is.
+                A card with no delivery keeps the plain session log it has always had — a
+                live tail while an agent works, re-openable afterwards. */}
+            {delivery ? (
+              <DeliveryBlock delivery={delivery} diff={diff} session={sessionLog} busy={busy} onResumed={onResumed} />
+            ) : card.finished && diff ? (
+              /* The delivery has ended and the card is still here (#305) — normally the
+                 blink before the board archives it. The same block, opening on the Diff:
+                 what landed, and the commit to revert if it has to go. */
+              <FinishedBlock finished={card.finished} diff={diff} session={sessionLog} onResumed={onResumed} />
+            ) : (
+              latestSession && (
+                <div className="mb-4">
+                  <SessionLog
+                    session={sessionLog}
+                    collapsed={!busy && !showLog}
+                    onToggle={busy ? undefined : () => setShowLog((v) => !v)}
+                    warnUnfinished
+                    onResumed={onResumed}
+                  />
+                </div>
+              )
             )}
 
             {/* meta box — stacked label/value columns in a flat outlined band; no
@@ -897,7 +1225,7 @@ export function CardPage({
                     className="cursor-pointer text-[12px] font-[700] text-nb-ink-soft underline decoration-dotted underline-offset-2 hover:text-nb-ink"
                     title="Take the schedule off — nothing will start on its own"
                   >
-                    take it off
+                    cancel
                   </button>
                 </MetaItem>
               )}
@@ -995,6 +1323,8 @@ export function CardPage({
               onClose={() => setDialog(null)}
               onRun={runAgent}
               onSchedule={scheduleAgent}
+              onResolveFirst={() => setDialog({ kind: "resolve", card })}
+              plan={plan}
             />
           )}
         </div>

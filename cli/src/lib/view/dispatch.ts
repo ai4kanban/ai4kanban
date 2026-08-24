@@ -17,6 +17,7 @@
 
 import { nextDue } from '../cadence'
 import { withBoardLock } from '../lock'
+import { advanceLanding } from '../agent/landing'
 import { listRuns } from '../agent/sessions'
 import type { AgentRequest, RunView } from '../agent/types'
 import { setCardSchedule } from './edit'
@@ -155,5 +156,13 @@ export function nextWork(): AgentRequest[] {
     const card = dueRecurring(cards, runs, busy)[0]
     if (card) work.push({ action: 'run', id: card.id, title: card.title })
   }
+
+  // And the landing queue (#304). A landing is normally moved on by the watcher of the
+  // session that just passed review; this is what picks up a waiter nothing handed off to,
+  // because that process died between the two. `advanceLanding` does the git work itself
+  // and hands back only the session it wants started, which is why it isn't gated on the
+  // slots above: a re-review inside a landing is that delivery's own next session.
+  const landing = advanceLanding()
+  if (landing) work.push(landing)
   return work
 }

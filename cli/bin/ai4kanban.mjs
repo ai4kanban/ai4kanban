@@ -657,6 +657,9 @@ const RUN_COMMANDS = new Set([
   // End the DELIVERY in flight on a card and hand the card back (#301). `stop` ends one
   // session of it; this ends the job.
   'cancel',
+  // Throw a delivery's worktree and branch away (#303). Cancel leaves them where they are;
+  // this is the only thing that removes one.
+  'discard',
   'agent',
   // The board's flows, shipped with this command rather than copied into each project.
   'guide',

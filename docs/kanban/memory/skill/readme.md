@@ -165,9 +165,10 @@ covers it, or a plain-words note.
   waiting on when it gives up. A lock left by a killed run is taken over the moment that
   process is gone, so there is never a folder to delete by hand. No published doc covers
   this yet.
-- `akb board schedule <id> --action implement|refine` queues an action on a card that is
-  waiting on another card, so the board runs it once that card is gone; `--clear` takes it
-  off: "Queue a card that is waiting on another" in `docs/guides/daily-loop.md`.
+- A rough card gets `schedule: refine` when it first becomes blocked. `akb board schedule
+  <id> --action implement|refine` replaces that one-shot action, and `--clear` cancels it
+  for the current blocked episode: "Queue a card that is waiting on another" in
+  `docs/guides/daily-loop.md`.
 
 ## Installing and updating
 
@@ -292,3 +293,18 @@ covers it, or a plain-words note.
   the root at its pieces, and repoint the moved bullets in the board index. It no longer
   tells a flow to reserve ids with `akb board create --count <N>` — nothing can hand those
   ids to a card, so following the old recipe burnt them and made the board's numbering jump.
+
+- A board can now add **one rule of its own to any flow** — plain words in
+  `docs/kanban/rules/<command>.md`, named by the command that starts the flow (`revise.md` for
+  `akb revise`). The command appends it to the end of that flow's instructions, so a started run
+  and a `--print`ed flow both carry it; a printed flow puts it last, after the flows. On `review`,
+  a check the rule asks for is treated as one of the repository's own. Rules are tracked in git,
+  and a delivery freezes the rules of the four flows it is made of when it starts, so editing one
+  changes the next delivery and never one in flight: "Follow the board's flow rules" in the skill
+  note, and `rules/` in `akb guide board`.
+
+- A delivery's card is now archived by the BOARD, as the last step after landing — the `review`
+  flow no longer archives one, and the `implement` flow inside a delivery leaves the card where it
+  is. `akb implement <id>` warns about a card's open questions the way it already warned about a
+  blocker: the delivery still starts, and holds at landing until they are answered. `akb help` and
+  `akb guide review` carry the whole of it.

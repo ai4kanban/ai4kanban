@@ -1,6 +1,29 @@
 // The agent's manual — every command an agent working on this board may call, and when to
 // call each. One copy, read two ways: `akb help` prints it, and a chat opens with it, so a
 // conversation and a coding agent are given the same list rather than two that drift.
+//
+// The runs table is not written here: it is rendered from the board's own list of flows
+// (flows.ts), which the dispatcher and the Rules pane read too, so a flow shipped later
+// appears in all three at once.
+
+import { FLOWS } from './flows'
+
+// Where a flow's words start, so the table reads as two columns.
+const TEXT_COL = 28
+
+// A flow's clause is written unpunctuated, because the Rules pane shows it beside a command
+// name. Here it opens a paragraph, so it is closed off when a sentence follows it — never
+// when what follows is the flow's options, which belong to the clause.
+const clause = (flow: (typeof FLOWS)[number]): string => {
+  const next = flow.more?.[0]
+  return next && !next.startsWith('(') && !/[.)]$/.test(flow.gloss) ? `${flow.gloss}.` : flow.gloss
+}
+
+const runsTable = (): string =>
+  FLOWS.flatMap((flow) => [
+    `  ${flow.usage.padEnd(TEXT_COL - 2)}${clause(flow)}`,
+    ...(flow.more ?? []).map((line) => `${' '.repeat(TEXT_COL)}${line}`),
+  ]).join('\n')
 
 export function agentManual(program: string): string {
   return `${program} — start a run, and steer it.
@@ -8,26 +31,7 @@ export function agentManual(program: string): string {
 Usage: ${program} <command> [args] [options]
 
 Runs — every one of them also takes --print, and the rule for it is below
-  implement <id> [note]     build the card
-  review <id>               judge what the delivery in flight on it built against the
-                            card as it was approved. The board runs this itself after a
-                            build; type it to look again after answering its question
-  correct <id>              fix what the last review found. The board runs this itself
-  run <id> [note]           one pass of a recurring card
-  refine <id>               sharpen the card until it is ready to build
-  resolve <id> [note]       answer its open questions (--and-implement carries on)
-  revise <id> "<what>"      change the card to say something else
-  create "<what you want>"  write the card(s) for it   (--release v1)
-  propose                   write the next tasks       (--module m, --count n,
-                            --boldness safe|normal|bold)
-  plan-release <version>    fill a release from its goal
-  changelog <version>       write a closed version's changelog into its summary file,
-                            from the goal and the cards its close wrote down — the
-                            close starts this itself, so run it only to rewrite one
-  setup                     finish setting the board up — every step still unticked
-                            on docs/kanban/setup-checklist.md, in one run
-  archive <id>              finish the card
-  reject <id> "<why>"       drop the card
+${runsTable()}
 
 The run starts and this returns — close the terminal and it keeps working. Add
 --follow to any of them to watch the log instead of returning.
@@ -109,16 +113,43 @@ Sessions in flight
   stop [<id>]                  end a session
   resume [<id>]                continue one that failed, was cut off or was stopped
   cancel <delivery|#card>      end the delivery in flight on a card and hand it back
+  discard <delivery|#card>     throw a delivery's worktree and branch away (--yes to go
+                               ahead; without it, it only says what would be lost)
 
 An <id> is a session's id, any prefix of one that names only one session, or \`last\`.
 Left out, it means the newest session.
 
 An Implement click starts a DELIVERY — the whole job, several sessions long, against the
 card exactly as it was approved when it started: it builds, a fresh session reviews what it
-built, and up to two corrections go back and forth before it stops and asks you. While one
-is in flight that card can't be revised, refined, rejected or archived; \`cancel\` is what
-takes it back. A delivery waiting on a question it left CAN be resolved — answering is the
-way on. Every other action is a single session and holds nothing.
+built, up to two corrections go back and forth, the board lands it, and the board archives
+the card. One click carries the card all the way; nothing asks you again in between. While a
+delivery is in flight that card can't be revised, refined, rejected or archived; \`cancel\` is
+what takes it back. A delivery WAITING ON YOU can always be resolved — answering is the way
+on, and it carries the same delivery on with no second click. Every other action is a single
+session and holds nothing.
+
+Building a card that still has open questions is allowed and warned about: it is built and
+reviewed, and then holds outside the landing queue — taking no slot, so every other card
+still lands — until the questions are answered. An answer that changed what the card asks
+for ends that delivery and starts a fresh one on the card as it now reads.
+
+Each delivery builds in a git worktree of its own — \`.akb/worktrees/<card>/<delivery>\`, on
+branch \`card/<card>/<delivery>\` — so several run at once without touching each other or
+your own edits, and the board's own files stay out of them. Cancelling one leaves its
+worktree where it is; \`discard\` is what throws one away. Turn **Allow automatic Git
+commits** off in Configuration and a delivery works in your checkout instead, one at a
+time, and you commit after review passes.
+
+Once review passes, the delivery LANDS: one squash commit on the branch you were on when
+you pressed Implement. One card lands at a time, however many are building. Uncommitted
+work of your own holds a landing back until the checkout is clean; a target branch that
+moved is rebased onto and reviewed again; a conflict is resolved as new work and reviewed
+from scratch. The worktree and branch are removed once it has landed. Nothing is pushed.
+
+Completion is the LAST step, never an earlier one: the board archives the card itself once
+the delivery has landed and ended — no session runs to do it, and the review that passes a
+delivery leaves the card where it is. In manual commit mode nothing lands, so the card is
+archived when your own commit matches what review passed.
 
 The agent that runs them
   agent                        what runs, and how it is set up

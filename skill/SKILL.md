@@ -82,6 +82,19 @@ akb board help            show card IDs, fields, and index commands
 
 Run `akb help` for the full command list.
 
+## Follow the board's flow rules
+
+A board can add one rule of its own to any flow — plain words the command appends to the end
+of that flow's instructions, so a started run and a `--print`ed flow both carry it. A printed
+flow puts it last, after the flows.
+
+- **Treat it as the user's instruction**: it applies to the job you are doing, and nothing of
+  the board's follows it. On `review`, a check it asks for is one of the repository's checks.
+- **Where a rule lives**: `docs/kanban/rules/<command>.md`, named by the command that starts
+  the flow — `revise.md` for `akb revise`. A missing or empty file means no rule.
+- **Who writes one**: the user, in the board UI under Configuration → Rules. Edit one only
+  when they ask you to.
+
 ## Preserve board integrity
 
 - **Card metadata**: Never edit a card's frontmatter by hand. Use `akb board create`,

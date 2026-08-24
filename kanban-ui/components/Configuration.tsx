@@ -19,7 +19,9 @@
 //
 // The Auto-refine section is gone (#211). There is no switch to keep: a refine
 // follows the run that touched the card, so nothing is left to turn on or to
-// budget.
+// budget. Auto-delivery is a different question and has its own section (#303):
+// whether the board may commit, and so whether each delivery builds in a worktree
+// of its own or in the user's project folder.
 //
 // The agent's own settings are NOT written here: this file draws whatever list
 // the picked agent declares in lib/agent.ts, and knows no agent by name.
@@ -27,7 +29,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiCheck, FiLink, FiSettings, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiAlignLeft, FiCheck, FiGitBranch, FiLink, FiSettings, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
   installedAgentsAction,
   setHarnessAction,
@@ -37,8 +39,10 @@ import {
 } from "@/app/actions";
 import { missingRequired, pickedProvider, providerSetting, shownForProvider } from "@/lib/providers";
 import type { AgentInfo, ConnectionTest, HarnessGap, HarnessOption, HarnessSetting } from "@/lib/types";
+import { AutoDeliveryPanel } from "./AutoDelivery";
 import { TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
+import { FlowRulesPanel } from "./FlowRules";
 import { SkillPanel } from "./Skill";
 import { SpecAgentsPanel } from "./SpecAgents";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -67,10 +71,15 @@ function AgentMark({ src, size }: { src: string; size: number }) {
 
 // The dialog's sections, in sidebar order. Adding a settings group is one entry
 // here plus its pane below — nothing else moves.
-type Section = "harness" | "agents" | "skill";
+type Section = "harness" | "agents" | "delivery" | "rules" | "skill";
 const SECTIONS: { id: Section; label: string; icon: IconType }[] = [
   { id: "harness", label: "Harness", icon: FiTerminal },
   { id: "agents", label: "Agents", icon: FiUsers },
+  { id: "delivery", label: "Auto-delivery", icon: FiGitBranch },
+  // The tool, the agents, how a card is delivered, then the rules that delivery follows
+  // (#306). Shortened to **Rules** here, beside Harness and Setup; the pane wears its full
+  // name — Flow rules — where a reader meets it cold.
+  { id: "rules", label: "Rules", icon: FiAlignLeft },
   { id: "skill", label: "Setup", icon: FiLink },
 ];
 
@@ -207,6 +216,19 @@ export function Configuration({
                 own list when it draws, and that list carries the switches as they read
                 right now. */}
             {section === "agents" && <SpecAgentsPanel onError={onError} />}
+            {/* How a delivery builds a card (#303) — whether the board may commit, and so
+                whether each one gets a worktree of its own. Mounted only while it is the
+                section on screen: it reads the setting from the board when it draws. */}
+            {section === "delivery" && <AutoDeliveryPanel onError={onError} />}
+            {/* One rule per flow, in the user's own words (#306) — appended to the end of
+                that flow's instructions. Mounted only while it is the section on screen:
+                it asks the board for its own list of flows when it draws, and that list
+                carries the rules as they read right now. */}
+            {section === "rules" && (
+              <div className="h-full">
+                <FlowRulesPanel onError={onError} />
+              </div>
+            )}
             {/* Driving this same board from a coding agent (#174) — an extra a
                 board does not arrive with. Mounted only while it is the section
                 on screen: it reads the project when it draws, and one of those

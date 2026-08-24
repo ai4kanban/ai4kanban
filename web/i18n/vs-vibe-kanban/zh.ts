@@ -52,7 +52,7 @@ const zh: VsVibeCopy = {
       },
       orchestration: {
         dimension: "多个任务同时开发",
-        kanban: "能启动智能体实现任务，但目前不使用 worktree；多个实现会修改同一个工作目录。",
+        kanban: "每个实现任务在独立的 git worktree 和分支中开发，可以同时进行，也不会碰你正在改的代码。",
         vibe: "每个任务使用独立的 git worktree，可以同时开发而不互相覆盖。",
       },
       review: {
@@ -103,7 +103,7 @@ const zh: VsVibeCopy = {
     ours: {
       name: "AI4Kanban：持续推进项目",
       is: "智能体可以提出、细化并实现任务，过程和决策都保存在 Markdown 看板中。",
-      isnt: "本地界面可以启动智能体，但目前不会为任务创建独立 worktree，也不能直接创建 PR。",
+      isnt: "本地界面不提供 diff 查看，也不能直接创建 PR。",
     },
     theirs: {
       name: "Vibe Kanban：分开开发，集中检查",

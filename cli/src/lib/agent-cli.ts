@@ -24,34 +24,18 @@ import { KANBAN, setBoardRoot } from './paths'
 import { cmdAgent } from '../commands/agent'
 import { cmdChat } from '../commands/chat'
 import { cmdGuide } from '../commands/guide'
-import { cmdCancel, cmdLog, cmdResume, cmdRuns, cmdStartRun, cmdStop, cmdWatch } from '../commands/run'
+import { cmdCancel, cmdDiscard, cmdLog, cmdResume, cmdRuns, cmdStartRun, cmdStop, cmdWatch } from '../commands/run'
 import { cmdSpec } from '../commands/spec'
+import { RUN_COMMANDS } from './agent/flows'
 import { agentManual } from './agent/manual'
 import type { AgentAction } from './agent/types'
 import type { MoveResult } from './types'
 
-// The word a person types, and the kind of run it starts. The spellings are the ones the
-// board's buttons already stand for; `revise` reads better than the name the record keeps
-// it under, and both go to the same run.
-const RUNS: Record<string, AgentAction> = {
-  implement: 'implement',
-  // The two sessions a delivery runs after its build (#302). The board starts each one
-  // itself as the delivery moves; typed by hand they put a delivery that has stopped back
-  // in motion — after an approved exception, or after a watcher died mid-delivery.
-  review: 'review',
-  correct: 'correct',
-  run: 'run',
-  refine: 'refine',
-  resolve: 'resolve',
-  revise: 'edit',
-  create: 'create',
-  propose: 'propose',
-  archive: 'archive',
-  reject: 'reject',
-  'plan-release': 'plan-release',
-  changelog: 'changelog',
-  setup: 'setup',
-}
+// The word a person types, and the kind of run it starts — the board's own list of flows
+// (agent/flows.ts), which the runs table and the Rules pane read too, so a flow shipped
+// later reaches all three at once. `revise` reads better than the name the record keeps it
+// under (`edit`), and both go to the same run.
+const RUNS: Record<string, AgentAction> = RUN_COMMANDS
 
 // Everything else these commands do — reading and steering the runs, and the settings they
 // run under.
@@ -69,6 +53,9 @@ const OTHER: Record<string, (args: string[], program: string) => MoveResult | Pr
   // Ends a DELIVERY, where `stop` ends one session of it. The two are not the same word:
   // stopping a session leaves the delivery in flight and the card still held.
   cancel: cmdCancel,
+  // Cancel hands the card back and leaves the delivery's checkout alone; this is what
+  // throws that checkout away (#303). Two commands because they lose different things.
+  discard: cmdDiscard,
   agent: (args) => cmdAgent(args),
 }
 

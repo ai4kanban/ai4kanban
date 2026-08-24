@@ -26,11 +26,17 @@ Draw layout options instead of describing them in a question.
   - Which one the `ui-design` agent writes is the board's Mockup style setting (`akb spec`).
 - **Content**: draw one static screen in its normal state. Do not handle clicks, load from
   the network, or read board data.
-- **Card body**: label options `A`, `B`, `C` in order. Put each tag on its own line,
-  followed by one line explaining its tradeoff:
+- **Card body**: label options `A`, `B`, `C` in order. Each tag stands in a paragraph of
+  its own — a blank line above it and a blank line below — and its tradeoff is the
+  paragraph under it:
 
-  `<Mockup src=".mockups/<card id>/a.tsx" label="A" />`
+  ```
+  <Mockup src=".mockups/<card id>/a.tsx" label="A" />
 
+  Folded rows: … — what it is good for, at the cost of ….
+  ```
+
+  A tag sharing a line or a paragraph with prose is printed as text instead of drawn.
   `src` is relative to `docs/kanban/`, and `label` is optional. `<Mockup>` is the only
   HTML tag allowed in a card body; inside backticks or a fenced block, it remains text.
 - **Question**: ask one short line whose options are only those labels:

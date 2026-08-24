@@ -13,7 +13,8 @@ import path from 'node:path'
 import { locate } from '../lib/cards'
 import { parseFrontmatter, serializeFrontmatter } from '../lib/frontmatter'
 import { say } from '../lib/io'
-import { die, rel, TODO } from '../lib/paths'
+import { fixMockupBlocks } from '../lib/mockups'
+import { die, rel, TODO, warn } from '../lib/paths'
 import { findSpecAgent, specAgentNames, specHeading, SPEC_AGENT_NAMES } from '../lib/spec-agents'
 import type { FlagValue, MoveResult } from '../lib/types'
 import { parseFlags } from '../lib/validate'
@@ -107,7 +108,11 @@ function readSection(file: unknown, text: unknown): string {
       `line ${broken + 1} of the section starts a new \`##\` heading, which would end your section: "${section.split('\n')[broken]!.trim()}". Use \`###\` for a heading inside it.`,
     )
   }
-  return section
+  // A tag the board would print as text is repaired rather than refused: the drawing is
+  // the answer, and the spacing around it is not something to send an agent back for.
+  const spaced = fixMockupBlocks(section)
+  if (spaced !== section) warn('a `<Mockup>` tag needs a paragraph of its own — moved the text off its line.')
+  return spaced
 }
 
 // Put the section on the card: over the one already there, or in the half it belongs to.

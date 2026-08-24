@@ -12,6 +12,8 @@ import { readLogTail, splitLog } from '../lib/agent/log'
 import { startRefinement } from '../lib/agent/refine'
 import {
   cancelDelivery as endDelivery,
+  discardCost,
+  discardDelivery,
   getRun,
   listRuns,
   markSpawned,
@@ -53,7 +55,7 @@ export function cmdStartRun(action: AgentAction, args: string[], program = 'akb'
     if (!print) say(`inside run ${short(inside!)} — a run never starts another, so here is the flow instead.`)
     return printFlow(req, program)
   }
-  sayIfBlocked(req)
+  sayBeforeStart(req, program)
   sayIfHeld(req, program)
   const started = action === 'refine' ? startRefinement(req) : startRun(req)
   if ('error' in started) die(started.error, { kind: 'run-refused', action })
@@ -91,12 +93,26 @@ function sayIfHeld(req: AgentRequest, program: string): void {
 // it — but it is said out loud first. The board's own picks skip these cards entirely, so a
 // run on one only ever comes from a person, and the usual reason is a blocker they forgot.
 // Only building counts: refining a card before its blocker clears is ordinary work.
-function sayIfBlocked(req: AgentRequest): void {
+//
+// An open question is warned about the same way (#307), and for the same reason: the
+// delivery is started, builds and is reviewed, and then holds at landing until the question
+// is answered. The card page's Implement dialog says exactly this; the terminal was the
+// only side of the click missing it.
+function sayBeforeStart(req: AgentRequest, program: string): void {
   if (req.action !== 'implement' && req.action !== 'run') return
   if (req.id === undefined) return
-  const blockers = findCard(req.id)?.openBlockers ?? []
-  if (!blockers.length) return
-  say(`#${req.id} is blocked by ${blockers.map((b) => `#${b.id} ${b.title}`).join(', ')} — starting anyway.`)
+  const card = findCard(req.id)
+  const blockers = card?.openBlockers ?? []
+  if (blockers.length) {
+    say(`#${req.id} is blocked by ${blockers.map((b) => `#${b.id} ${b.title}`).join(', ')} — starting anyway.`)
+  }
+  const asked = card?.questions.length ?? 0
+  if (req.action === 'implement' && asked) {
+    say(
+      `#${req.id} has ${asked} open question${asked === 1 ? '' : 's'} — it is built and reviewed, then holds at landing ` +
+        `until ${asked === 1 ? 'it is' : 'they are'} answered. Answer first with \`${program} resolve ${req.id}\`.`,
+    )
+  }
 }
 
 // What each action takes, and what it means. Everything past these is the action's own; a
@@ -184,6 +200,7 @@ const FLAGS: Record<AgentAction, string[]> = {
   implement: ['notes'],
   review: ['notes'],
   correct: ['notes'],
+  conflict: ['notes'],
   run: ['notes'],
   reject: ['reason'],
   archive: ['notes'],
@@ -226,6 +243,39 @@ export function cmdCancel(args: string[]): MoveResult {
   if (!res.ok) die(res.error ?? 'that delivery could not be cancelled', { kind: 'run-refused' })
   say(`delivery ${res.deliveryId} cancelled — the card is yours again.`)
   return { deliveryId: res.deliveryId }
+}
+
+/** Throw a delivery's checkout away: its worktree and its branch, and everything only they
+ *  hold. The one command here that loses work, so it says exactly what it is about to take
+ *  and takes a second word — `--yes` — before it does.
+ *
+ *  Cancelling a delivery deliberately leaves its worktree where it is; this is how one is
+ *  reclaimed. */
+export function cmdDiscard(args: string[]): MoveResult {
+  const { flags, positional } = parseFlags(args, [...SHARED, 'yes'])
+  const named = positional[0]
+  if (!named) die('name the delivery or its card: akb discard 12', { kind: 'needs-input' })
+  const cost = discardCost(named)
+  if (!cost) {
+    // Nothing to lose, so nothing to confirm: a delivery with no worktree left is already
+    // as discarded as it gets.
+    const res = discardDelivery(named)
+    if (!res.ok) die(res.error ?? 'that delivery could not be discarded', { kind: 'run-refused' })
+    say(`delivery ${res.deliveryId} has no worktree left — nothing to discard.`)
+    return { deliveryId: res.deliveryId }
+  }
+  if (flags.yes !== true) {
+    say(`delivery ${cost.deliveryId} would lose:`)
+    say(`  ${cost.worktree} — its worktree, and anything in it that is not committed`)
+    if (cost.branch) say(`  ${cost.branch} — its branch, and every commit only that branch has`)
+    say('')
+    say(`nothing was removed. Run it again with --yes to go ahead.`)
+    return { deliveryId: cost.deliveryId, discarded: false }
+  }
+  const res = discardDelivery(named)
+  if (!res.ok) die(res.error ?? 'that delivery could not be discarded', { kind: 'run-refused' })
+  say(`delivery ${res.deliveryId} discarded — its worktree and branch are gone.`)
+  return { deliveryId: res.deliveryId, discarded: true }
 }
 
 /** End a session. Its half-finished edits are left in the working tree — the board never

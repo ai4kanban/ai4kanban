@@ -22,8 +22,9 @@ import {
   searchCards,
 } from "@/lib/board";
 import { type ChatRead, clearChat, readChat, sendChat } from "@/lib/chat";
-import { setHarness, setHarnessSetting } from "@/lib/config";
+import { autoCommitAllowed, setAutoCommit, setHarness, setHarnessSetting } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
+import { flowRules, setFlowRule } from "@/lib/flow-rules";
 import {
   addVerify,
   clearSchedule,
@@ -42,7 +43,16 @@ import {
   setReleaseGoal,
   setSchedule,
 } from "@/lib/edit";
-import { cancelDelivery, getSession, listSessions, resumeSession, startSession, type StartResult, stopSession } from "@/lib/registry";
+import {
+  cancelDelivery,
+  discardDelivery,
+  getSession,
+  listSessions,
+  resumeSession,
+  startSession,
+  type StartResult,
+  stopSession,
+} from "@/lib/registry";
 import { setSecret } from "@/lib/secrets";
 import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
 import { setSpecAgentEnabled, setSpecAgentSetting, specAgents } from "@/lib/spec-agents";
@@ -58,6 +68,7 @@ import type {
   ConnectionTest,
   DropPlan,
   FillPlan,
+  FlowRuleView,
   HarnessOption,
   MetricsResult,
   SaveProjectResult,
@@ -207,6 +218,15 @@ export async function stopSessionAction(sessionId: string): Promise<StartResult>
 export async function cancelDeliveryAction(deliveryId: string): Promise<StartResult> {
   if (typeof deliveryId !== "string" || !deliveryId) return { ok: false, error: "no delivery named" };
   return cancelDelivery(deliveryId);
+}
+
+// Throw a delivery's checkout away (#303): its worktree, its branch, and everything only
+// they hold. Cancelling a delivery deliberately leaves those where they are, so this is the
+// only thing that removes one — and the card page says what will be lost and asks for a
+// second click before it gets here.
+export async function discardDeliveryAction(deliveryId: string): Promise<StartResult> {
+  if (typeof deliveryId !== "string" || !deliveryId) return { ok: false, error: "no delivery named" };
+  return discardDelivery(deliveryId);
 }
 
 // The shared run list, for the UI's poll. Every tab reads the same picture. The UI polls
@@ -557,6 +577,49 @@ export async function setHarnessAction(name: string): Promise<WriteResult & { ag
   const res = await setHarness(name);
   if (!res.ok) return res;
   return { ok: true, agent: await agentInfo() };
+}
+
+// **Allow automatic Git commits** (#303) — read when the Auto-delivery pane opens, saved
+// when the switch is flipped. One repository-level answer, in the same file as the rest.
+export async function autoCommitAction(): Promise<{ on: boolean; error?: string }> {
+  try {
+    return { on: await autoCommitAllowed() };
+  } catch (e) {
+    // Nothing to read the setting with: the switch shows its default and says why rather
+    // than drawing an empty pane.
+    return { on: true, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function setAutoCommitAction(on: boolean): Promise<WriteResult> {
+  if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
+  return setAutoCommit(on);
+}
+
+// --- the flow rules (#306) ---------------------------------------------------
+// Every flow the board can start, with the rule it carries. Asked when the Rules pane
+// opens; nothing else on screen shows them.
+
+export async function flowRulesAction(): Promise<{ flows: FlowRuleView[] | null; error?: string }> {
+  try {
+    return { flows: await flowRules() };
+  } catch (e) {
+    return { flows: null, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Save one flow's rule, or clear it with empty text. The command is checked against the
+ *  board's own list of flows, so a stale client can't write a rule for a flow that does not
+ *  exist. */
+export async function setFlowRuleAction(command: string, text: string): Promise<WriteResult> {
+  if (typeof command !== "string" || typeof text !== "string") {
+    return { ok: false, error: "a flow rule is saved by command and text" };
+  }
+  try {
+    return await setFlowRule(command, text);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 // The agents the board can run and which of them this machine has (#207) — the picker asks

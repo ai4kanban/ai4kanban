@@ -19,7 +19,7 @@ import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards'
 import { RECURRING } from '../lib/recurring'
 import { validRelease, setSubtreeRelease } from '../lib/releases'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
-import { setCardSchedule } from '../lib/view/edit'
+import { scheduleRefineOnBlock, setCardSchedule } from '../lib/view/edit'
 import { readmeHeadingFor, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme'
 import { reconcileBoard } from '../lib/reconcile'
 import type { FlagValue, Flags, Meta, MoveResult, Question } from '../lib/types'
@@ -129,12 +129,14 @@ export function cmdCreate(args: string[]): MoveResult {
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
   if (countsForRecord(file)) recordFact('card-created', start, originOf(flags))
   const indexed = addReadmeRef(track, start, title, fileRel)
+  const scheduled = scheduleRefineOnBlock(start, false)
   say(start)
   say(`  wrote ${rel(file)} — frontmatter is set; fill the body with your editor, leave the frontmatter to the script`)
+  if (scheduled) say('  scheduled refine for when its blockers are done')
   if (!TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
   if (indexed) say(`  indexed under "## ${readmeHeadingFor(track)}"`)
   reconcileBoard()
-  return { id: start, ids: [start], title, track, file: rel(file), indexed }
+  return { id: start, ids: [start], title, track, file: rel(file), indexed, schedule: scheduled ? 'refine' : null }
 }
 
 const UPDATE_FLAGS = ['title', 'track', 'priority', 'roi', 'status', 'release', 'blocked-by', 'related', 'modules', 'slug', 'cadence']
@@ -151,6 +153,7 @@ export function cmdUpdate(args: string[]): MoveResult {
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
   if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
+  const wasBlocked = meta.blocked_by.length > 0
 
   const changes: string[] = []
   if (flags.title !== undefined) {
@@ -262,6 +265,9 @@ export function cmdUpdate(args: string[]): MoveResult {
   } else if (changes.includes('title')) {
     stripReadmeRefs({ kind: 'file', rel: curRel })
     addReadmeRef(curTrack, id, meta.title, curRel)
+  }
+  if (flags['blocked-by'] !== undefined && scheduleRefineOnBlock(id, wasBlocked)) {
+    changes.push('schedule→refine when unblocked')
   }
   say(`updated #${id}: ${changes.join(', ') || '(nothing changed)'}`)
   return { id, changes, file: rel(dest) }

@@ -20,11 +20,21 @@ import { parseFrontmatter } from '../frontmatter'
 import { DELIVERIES, rel } from '../paths'
 import { candidateBase } from './candidate'
 import { boardCommand } from './command'
+import {
+  commitDeliveryWork,
+  manualState,
+  newDeliveryId,
+  snapshotReviewed,
+  workMark,
+  type DeliveryStart,
+} from './commit-mode'
+import { completeCard } from './complete'
 import { insideRun } from './env'
+import { deliveryState, type DeliveryState } from './pause'
+import { deliveryRules } from './rules'
 import {
   askUser,
   lastRound,
-  markCandidate,
   nextAfterSession,
   parseFindings,
   reviewOf,
@@ -39,42 +49,9 @@ import type {
   RunRecord,
 } from './types'
 
-// A delivery id is read inside a branch name and typed into `akb cancel`, so it is short
-// and unambiguous: eight characters from an alphabet with no look-alike pairs.
-const ID_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'
-const ID_LENGTH = 8
-
 // ---- the permanent record ---------------------------------------------------
 
 const auditPath = (deliveryId: string): string => path.join(DELIVERIES, `${deliveryId}.json`)
-
-/** Every delivery id the permanent record already holds, so a new one can't collide with a
- *  delivery that ended months ago. */
-function recordedIds(): Set<string> {
-  try {
-    return new Set(
-      fs
-        .readdirSync(DELIVERIES)
-        .filter((f) => f.endsWith('.json'))
-        .map((f) => f.slice(0, -'.json'.length)),
-    )
-  } catch {
-    return new Set()
-  }
-}
-
-// Drawn at random and checked against the record as it is allocated — both records, the
-// live rows and the files, since a delivery leaves the first long before it leaves the
-// second.
-function newDeliveryId(deliveries: DeliveryRecord[]): string {
-  const taken = recordedIds()
-  for (const d of deliveries) taken.add(d.deliveryId)
-  for (;;) {
-    let id = ''
-    for (let i = 0; i < ID_LENGTH; i++) id += ID_ALPHABET[Math.floor(Math.random() * ID_ALPHABET.length)]
-    if (!taken.has(id)) return id
-  }
-}
 
 /** One session, as the permanent record keeps it: what ran, how it went, and where its log
  *  was — the path, never the contents. A log is this machine's and ages out; the record is
@@ -211,17 +188,25 @@ export function approvedRequirements(cardId: number): string {
   return out.filter(Boolean).join('\n\n').replace(/\n{3,}/g, '\n\n').trim() + '\n'
 }
 
-// The card's stage as it stands, or `todo` when there is no reading it.
-function cardStatus(cardId: number): string {
+// The card's frontmatter as it stands, or nothing when there is no reading it.
+function cardMeta(cardId: number): ReturnType<typeof parseFrontmatter>['meta'] | null {
   try {
     const found = locate(cardId)
-    if (!found) return 'todo'
+    if (!found) return null
     const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
-    return parseFrontmatter(fs.readFileSync(file, 'utf8')).meta?.status || 'todo'
+    return parseFrontmatter(fs.readFileSync(file, 'utf8')).meta
   } catch {
-    return 'todo'
+    return null
   }
 }
+
+// The card's stage as it stands, or `todo` when there is no reading it.
+const cardStatus = (cardId: number): string => cardMeta(cardId)?.status || 'todo'
+
+/** How many questions this card still has open — the count landing holds on (#307), and the
+ *  one the Implement dialog and `akb implement` warn about. A card nobody can read has
+ *  none: a missing card holds nothing up. */
+export const openQuestions = (cardId: number): number => cardMeta(cardId)?.questions.length ?? 0
 
 // ---- the live row -------------------------------------------------------------
 
@@ -252,13 +237,24 @@ export const listDeliveries = (): DeliveryRecord[] => readStore().deliveries
  *
  *  `step` is what the session is entering the delivery to do. It is kept as history and
  *  never trusted on a resume: a stored position goes stale in exactly the crash it exists
- *  for. */
-export function joinDelivery(store: Store, run: RunRecord, title: string, step: string): DeliveryRecord {
+ *  for.
+ *
+ *  `start` is what `prepareDelivery` settled before anything was written down (#303): the
+ *  commit mode, the fork commit, the branch this delivery lands on, and the worktree it
+ *  works in. A session joining a delivery that already exists brings none — the mode a
+ *  delivery started in is the mode it keeps. */
+export function joinDelivery(
+  store: Store,
+  run: RunRecord,
+  title: string,
+  step: string,
+  start?: DeliveryStart,
+): DeliveryRecord {
   const cardId = run.cardId as number
   let delivery = activeIn(store, cardId)
   if (!delivery) {
     delivery = {
-      deliveryId: newDeliveryId(store.deliveries),
+      deliveryId: start?.deliveryId ?? newDeliveryId(store.deliveries),
       cardId,
       title,
       status: 'active',
@@ -269,11 +265,23 @@ export function joinDelivery(store: Store, run: RunRecord, title: string, step: 
       steps: [],
       // And the one read of where the code stood before it started. Everything the
       // delivery writes is the difference from here, which is the diff review judges.
-      base: candidateBase() ?? undefined,
+      base: start ? start.base : (candidateBase() ?? undefined),
       // The stage to put back when the whole delivery ends. Read here, from the first
       // session, because every session after this one would read `implementing` — the
       // stage this delivery itself put there.
       priorStatus: cardStatus(cardId),
+      // How it commits, and where. Written now and never again: flipping the setting
+      // changes the next delivery, not this one.
+      commitMode: start?.commitMode ?? 'manual',
+      manualWhy: start?.manualWhy,
+      // And the one read of the flow rules this delivery runs under (#306) — the four
+      // flows a delivery is made of, frozen the way the card is. Every session in it is
+      // given these words rather than the files, a printed flow included, so editing a
+      // rule changes the next delivery and never one in flight.
+      rules: deliveryRules(),
+      targetBranch: start?.targetBranch,
+      worktree: start?.worktree,
+      branch: start?.branch,
     }
     store.deliveries.push(delivery)
   }
@@ -364,20 +372,73 @@ export function recordVerdict(
  *  session somebody stopped is the same: stopping a session is not ending the job. */
 export function settleDelivery(run: RunRecord): void {
   if (!run.deliveryId) return
+  const before = readStore().deliveries.find((d) => d.deliveryId === run.deliveryId)
+  if (!before) return
   type Settled = { end: 'finished' } | { ask: string; cardId: number }
+
+  // Everything that has to run git happens here, before the record's lock — every process
+  // on this board waits on that lock, and a git command is not what it should be waiting
+  // for.
+  //
+  // First the session's work, committed onto the delivery's branch. Review reads the
+  // branch, so an uncommitted change is not part of what it judges — and a change that
+  // reached the board's own files is refused outright rather than landed.
+  const built = run.status === 'done' && (run.action === 'implement' || run.action === 'correct')
+  const commit = built && before.status === 'active' ? commitDeliveryWork(before) : { ok: true as const }
+  const uncommitted = commit.ok ? undefined : commit.why
+  // Then the candidate's fingerprint, which says whether a correction moved anything and
+  // what the next one will be measured against.
+  const mark =
+    !uncommitted && run.status === 'done' && (run.action === 'review' || run.action === 'correct')
+      ? workMark(before)
+      : undefined
+  // And, in manual commit mode, the snapshot a passed review leaves for the user's own
+  // commit to be matched against.
+  const reviewed =
+    !uncommitted && before.commitMode === 'manual' && run.action === 'review' && passedIn(before, run)
+      ? snapshotReviewed(before)
+      : undefined
+
   const settled = withStore<Settled | null>((store) => {
     const delivery = store.deliveries.find((d) => d.deliveryId === run.deliveryId)
     if (!delivery) return null
-    const next = nextAfterSession(delivery, run)
+    // Work nobody could commit is work nobody can review: the tree that would be judged is
+    // not the tree that would land.
+    if (uncommitted && delivery.status === 'active') {
+      const review = reviewOf(delivery)
+      review.stopped = { reason: 'uncommitted', why: uncommitted, at: Date.now() }
+      delivery.next = undefined
+      releaseLanding(delivery)
+      return { ask: stopQuestion(delivery, uncommitted), cardId: delivery.cardId }
+    }
+    const next = nextAfterSession(delivery, run, mark)
     if ('hold' in next) return null
     if ('finish' in next) {
       delivery.next = undefined
+      // In manual commit mode a pass is not the end: the code is sitting in the user's own
+      // checkout and only they can commit it. The delivery stays ACTIVE, holding the card,
+      // with what review passed written down — and the card page is where the wait is read
+      // (`manualSettled` below).
+      if (reviewed) {
+        delivery.reviewed = reviewed
+        return null
+      }
+      // Nor is it the end in auto commit mode: the work is on the delivery's own branch and
+      // still has to reach the target one (#304). The delivery queues for the repository's
+      // one landing slot and stays ACTIVE until it has landed.
+      if (wantsLanding(delivery)) {
+        queueLanding(delivery, run)
+        return null
+      }
       return { end: 'finished' }
     }
     if ('stop' in next) {
       const review = reviewOf(delivery)
       review.stopped = { reason: next.stop, why: next.why, at: Date.now() }
       delivery.next = undefined
+      // A re-review that stops waits on a person, and a landing queue that waits with it
+      // stops every other card on the board — so the slot goes back (#304).
+      releaseLanding(delivery)
       // The delivery stays ACTIVE. It has not failed and it has not finished — it is
       // waiting for the user, and the card it is holding is the card their answer goes on.
       return { ask: stopQuestion(delivery, next.why), cardId: delivery.cardId }
@@ -388,7 +449,7 @@ export function settleDelivery(run: RunRecord): void {
       review.corrections += 1
       // Taken now, before the correction writes anything, so the session after it can be
       // told whether the candidate moved at all.
-      review.mark = markCandidate(delivery)
+      review.mark = mark
     }
     return null
   })
@@ -407,9 +468,14 @@ export function settleDelivery(run: RunRecord): void {
  *  `next` on the record, so the delivery still says what it was about to do and
  *  `akb review <id>` puts it back in motion. */
 export function deliveryRunAfter(run: RunRecord): AgentRequest | null {
-  if (!run.deliveryId) return null
+  return run.deliveryId ? takeNext(run.deliveryId) : null
+}
+
+/** The same, by delivery id: the landing asks for the re-review a rebase owes, and it is
+ *  taken here so the one that starts it is the one that gets it. */
+export function takeNext(deliveryId: string): AgentRequest | null {
   const taken = withStore((store) => {
-    const delivery = store.deliveries.find((d) => d.deliveryId === run.deliveryId)
+    const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)
     if (!delivery || delivery.status !== 'active' || !delivery.next) return null
     const action = delivery.next
     delivery.next = undefined
@@ -419,10 +485,86 @@ export function deliveryRunAfter(run: RunRecord): AgentRequest | null {
   return { action: taken.action, id: taken.cardId, title: taken.title }
 }
 
+// ---- landing: the queue a passed delivery joins (#304) ----------------------
+
+/** This delivery's work has to reach a branch it is not already on: it built on its own
+ *  branch, in its own worktree, and the target branch is where the card is meant to land.
+ *  Manual commit mode never does — there the commit is the user's, which is the whole of
+ *  what the mode means. */
+export const wantsLanding = (delivery: DeliveryRecord): boolean =>
+  delivery.commitMode === 'auto' && !!delivery.worktree && !!delivery.branch && !!delivery.targetBranch
+
+// Queue it for the repository's one landing slot, and record the review that authorized
+// the landing as the check that ran — with no review rule (#306) the re-review IS the
+// gate, so it is the only check there is to record.
+function queueLanding(delivery: DeliveryRecord, run: RunRecord): void {
+  const round = lastRound(delivery)
+  const landing = delivery.landing ?? { status: 'waiting' as const, attempts: 0, at: Date.now() }
+  delivery.landing = {
+    ...landing,
+    status: landing.status === 'landing' ? 'landing' : 'waiting',
+    why: undefined,
+    checks: [...(landing.checks ?? []), { name: `review ${run.sessionId.slice(0, 8)}`, ok: true, at: round?.at ?? Date.now() }],
+    at: Date.now(),
+  }
+}
+
+// Give the slot back without losing what the landing has already spent on this delivery.
+function releaseLanding(delivery: DeliveryRecord): void {
+  if (delivery.landing?.status !== 'landing') return
+  delivery.landing = { ...delivery.landing, status: 'waiting', at: Date.now() }
+}
+
 /** The verdict this delivery's last review left, for a flow that has to say where it
  *  stands. */
 export const latestVerdict = (delivery: DeliveryRecord): ReviewVerdict | undefined =>
   lastRound(delivery)?.verdict
+
+// This very session recorded a pass. A review whose session ended without a verdict told
+// us nothing, and a verdict from an earlier round is not this session's answer.
+function passedIn(delivery: DeliveryRecord, run: RunRecord): boolean {
+  const round = lastRound(delivery)
+  return round?.sessionId === run.sessionId && round.verdict === 'pass'
+}
+
+// ---- manual commit mode: the user's own commit (#303) -----------------------
+
+/** Where a manual delivery stands now that review has passed it and the code is the user's
+ *  to commit — and act on it if they have.
+ *
+ *  Nothing watches git for this: it is asked when the card page is read, which is the
+ *  moment somebody wants to know. They committed exactly what review passed and the
+ *  delivery is done; they committed something else and a fresh review judges it; or the
+ *  code is still sitting there uncommitted and the delivery waits.
+ *
+ *  Returns the sentence the card page shows while it waits, and nothing once it has moved
+ *  on. */
+export function manualSettled(delivery: DeliveryRecord): string | undefined {
+  if (delivery.status !== 'active' || delivery.commitMode === 'auto' || !delivery.reviewed) return undefined
+  const state = manualState(delivery)
+  if (state === 'waiting') {
+    return `review passed — commit the change in your own checkout and this delivery is done`
+  }
+  if (state === 'landed') {
+    // Their commit IS what review passed, so the delivery is done — and the card is
+    // completed here, the way a landing completes one (#307). The delivery is ended first,
+    // so nothing is holding the card when it is archived.
+    endDelivery(delivery.deliveryId, 'finished')
+    completeCard(delivery.cardId, delivery.deliveryId)
+    return undefined
+  }
+  // They committed something other than what review passed, so the whole candidate goes
+  // back through review. The snapshot is dropped first, so a second read of the card page
+  // can't ask for a second review of the same commit.
+  withStore((store) => {
+    const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
+    if (!live || live.status !== 'active' || !live.reviewed) return
+    live.reviewed = undefined
+    live.next = 'review'
+  })
+  syncAudit(delivery.deliveryId)
+  return undefined
+}
 
 // ---- the hold a delivery puts on its card -----------------------------------
 
@@ -439,14 +581,22 @@ export function insideDelivery(cardId: number): boolean {
   return delivery.sessions.includes(sessionId)
 }
 
-/** Why the delivery in flight on this card has stopped and is waiting for the user — one
- *  plain sentence — or nothing while it is still working.
+/** Where the delivery in flight on this card stands (#307), or nothing when the card is
+ *  free. Derived on every read from the card's questions and the delivery's own records. */
+export function deliveryStateOf(cardId: number): DeliveryState | undefined {
+  const delivery = activeDelivery(cardId)
+  return delivery && deliveryState(delivery, openQuestions(cardId))
+}
+
+/** The one line saying what the delivery in flight is waiting on, while it waits on the
+ *  USER — or nothing while the board's own work is still moving it along.
  *
- *  A waiting delivery is not a stuck one: it put a question on the card, and answering
- *  that question is the way on. So the hold below lets a resolve through while it waits,
- *  and the card page offers the same. */
+ *  A waiting delivery is not a stuck one: what continues it is an answer, a resolve or a
+ *  commit. So the hold below lets a resolve through whenever this says something, and the
+ *  card page offers the same. */
 export function deliveryWaiting(cardId: number): string | undefined {
-  return activeDelivery(cardId)?.review?.stopped?.why
+  const state = deliveryStateOf(cardId)
+  return state?.paused ? state.line : undefined
 }
 
 /** Why this card can't be changed from outside its delivery — one is in flight — or
@@ -460,10 +610,10 @@ export function heldByDelivery(cardId: number, program?: string): string | undef
   if (!delivery) return undefined
   if (insideDelivery(cardId)) return undefined
   const cmd = program ?? boardCommand()
-  const waiting = delivery.review?.stopped?.why
-  const doing = waiting
-    ? `has stopped on #${cardId} and is waiting on you — ${waiting} — so the board won't change the card. ` +
-      `Answer the question it left (\`${cmd} resolve ${cardId}\`), then \`${cmd} review ${cardId}\`. Or take the card back with `
+  const state = deliveryState(delivery, openQuestions(cardId))
+  const doing = state.paused
+    ? `is waiting on you on #${cardId} — ${state.line} — so the board won't change the card. ` +
+      `Answer it with \`${cmd} resolve ${cardId}\`. Or take the card back with `
     : `is in flight on #${cardId} — it is building the card as it was approved when it started, ` +
       `so the board won't change it. Take the card back with `
   return (

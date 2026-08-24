@@ -17,7 +17,7 @@ import path from 'node:path'
 
 import { pathLookup } from './installed'
 import { SELF } from './launch'
-import { rel } from '../paths'
+import { REPO_ROOT, rel } from '../paths'
 
 /** This copy of the command, called by its path: the package's `bin/` script when it is
  *  beside the built rules — it answers every command a flow can name — and the built rules
@@ -44,6 +44,27 @@ export function boardCommand(): string {
   return pathLookup()('akb') ? 'akb' : selfCommand()
 }
 
+/** The board's command as a session working OUTSIDE the project folder has to type it: the
+ *  command itself, and `--dir` naming the project whose board it means (#303).
+ *
+ *  A delivery with a worktree of its own works in `.akb/worktrees/…`, where a relative
+ *  `node cli/bin/…` would run that worktree's copy of the command — a copy the delivery may
+ *  be halfway through rewriting — and where a board command with no `--dir` is one folder
+ *  layout away from finding no board at all. Both are settled by saying which project, once,
+ *  in the words the session is given.
+ *
+ *  `cardId` only names what the flow is about; the answer is the same for every card. */
+export function boardCommandFor(_cardId?: number): string {
+  const command = pathLookup()('akb') ? 'akb' : `node ${absoluteSelf()}`
+  return `${command} --dir ${REPO_ROOT}`
+}
+
+// This copy of the command by its full path, whatever folder anything runs in.
+function absoluteSelf(): string {
+  const bin = path.resolve(path.dirname(SELF), '..', 'bin', 'ai4kanban.mjs')
+  return fs.existsSync(bin) ? bin : SELF
+}
+
 /** How the note written into `root` should spell the command, worked out once at install
  *  time so the agent that reads it has nothing to look for.
  *
@@ -62,11 +83,19 @@ export function noteCommand(root: string, invoked?: string): string {
 
 /** The one sentence that tells an agent the flows' `akb` is spelled differently here, or
  *  nothing at all when it isn't. Said wherever words go out to an agent, so no run ever
- *  learns it by having a command fail. */
+ *  learns it by having a command fail.
+ *
+ *  Two things can make it differ, and the sentence says whichever ones apply: there is no
+ *  `akb` on this machine, and — inside a delivery — this session's working folder is its
+ *  own worktree rather than the project, so the board is named with `--dir` (#303). */
 export function commandNote(command: string): string {
   if (command === 'akb') return ''
+  const why = [
+    command.startsWith('akb') ? '' : `there is no \`akb\` on this machine's PATH`,
+    command.includes(' --dir ') ? `this session's working folder is not the project` : '',
+  ].filter(Boolean)
   return (
-    `There is no \`akb\` on this machine's PATH, so \`${command}\` is the board's command here — ` +
+    `${why.length ? `Because ${why.join(', and ')}, ` : ''}\`${command}\` is the board's command here — ` +
     `the flows all spell it \`akb\`, and \`${command}\` is what to run wherever one does. ` +
     `Don't install anything and don't fetch it from npm.`
   )

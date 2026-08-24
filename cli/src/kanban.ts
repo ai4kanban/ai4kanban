@@ -53,11 +53,14 @@ export type * from './lib/skill/types'
 // anything the commands do.
 export {
   cancelDelivery,
+  discardCost,
+  discardDelivery,
   getRun,
   listRuns,
   markSpawned,
   openResume,
   openRun,
+  repairDeliveries,
   stopRun,
   titleOf,
 } from './lib/agent/sessions'
@@ -68,6 +71,12 @@ export { activeDelivery, heldByDelivery, listDeliveries } from './lib/agent/deli
 export { spawnWatcher } from './lib/agent/launch'
 export { buildPrompt } from './lib/agent/prompts'
 
+// The flow rules (#306): one rule per flow, in the user's own words, appended to that
+// flow's built-in prompt. The Rules pane in the Configuration dialog reads and writes them
+// through these, the way it reads every other setting — the list of flows is the board's
+// own, so a flow shipped later takes a rule with nothing else touched.
+export { readFlowRules, setFlowRule } from './lib/agent/rules'
+
 // The chat (#240): the board's conversation with its agent, and each card's. A screen
 // drives it through these — `sendChatMessage` streams the reply back through `onText`, so
 // a chat in the app and a chat in a terminal are the same conversation, held by the same
@@ -76,7 +85,7 @@ export { clearChat, readChat, readChatView, sendChatMessage } from './lib/agent/
 export type { SendOptions as ChatSendOptions } from './lib/agent/chat'
 export { chatAgent } from './lib/agent/resolve'
 export { agentInfo, activeSettings, setupInstruction, settingSaveError } from './lib/agent/resolve'
-export { setHarness, setHarnessSetting, setSecret } from './lib/agent/settings'
+export { autoCommitAllowed, setAutoCommit, setHarness, setHarnessSetting, setSecret } from './lib/agent/settings'
 export { testConnection } from './lib/agent/test'
 export { ensureAkbDir, setBoardRoot } from './lib/paths'
 
@@ -97,6 +106,8 @@ export {
   clearSchedule,
   closePlan,
   closeRelease,
+  deliveryDiff,
+  deliveryPlan,
   dropPlan,
   dropRelease,
   dropVerify,

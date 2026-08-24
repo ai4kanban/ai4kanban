@@ -55,7 +55,7 @@ const en: VsVibeCopy = {
       },
       orchestration: {
         dimension: "Multi-agent orchestration",
-        kanban: "Not included. Your existing agent or harness executes the work.",
+        kanban: "Each delivery builds on a branch in a git worktree of its own, so several run side by side without touching your working copy.",
         vibe: "A core capability, with each agent isolated in its own git worktree.",
       },
       review: {
@@ -110,7 +110,7 @@ const en: VsVibeCopy = {
     ours: {
       name: "AI4Kanban — plan and refine",
       is: "Your agent reads and updates a Markdown board in the repository. A refinement loop develops an initial idea into a specific, reviewable task that you approve before implementation begins.",
-      isnt: "It does not launch agents, create worktrees, or provide a diff viewer. Those responsibilities remain with your agent or development environment.",
+      isnt: "It does not provide a diff viewer or pull-request workflow. Those responsibilities remain with your agent or development environment.",
     },
     theirs: {
       name: "Vibe Kanban — execute and review",

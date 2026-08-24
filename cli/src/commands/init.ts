@@ -6,7 +6,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, warn, rel, writeNextId, AKB_IGNORE_LINE, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MOCKUPS, MOCKUP_IGNORE_LINE, MODULES_MD, RELEASES, MEMORY, GOAL, ROOT_GITIGNORE, SETUP_CHECKLIST } from '../lib/paths'
+import { die, warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MOCKUPS, MOCKUP_IGNORE_LINE, MODULES_MD, RELEASES, MEMORY, GOAL, ROOT_GITIGNORE, SETUP_CHECKLIST } from '../lib/paths'
 import { CONFIG_TEMPLATE } from '../lib/config-template'
 import { say } from '../lib/io'
 import { LOCK_IGNORE_LINE } from '../lib/lock'
@@ -113,19 +113,6 @@ function moveMockupsIfOld(): string | null {
   }
   fs.rmSync(old, { recursive: true, force: true })
   return rel(MOCKUPS)
-}
-
-// The one line the board writes outside its own folder. `.akb/` holds delivery state that
-// never belongs in git — #303's worktrees are the first thing in it — and it sits at the
-// repository root, which docs/kanban/.gitignore cannot reach. The user's own file is left
-// otherwise untouched: the line is appended, never a rewrite, and only when it isn't there.
-function writeRootIgnoreIfMissing(): boolean {
-  const text = fs.existsSync(ROOT_GITIGNORE) ? fs.readFileSync(ROOT_GITIGNORE, 'utf8') : ''
-  if (text.split('\n').some((line) => line.trim() === AKB_IGNORE_LINE)) return false
-  const separator = !text || text.endsWith('\n') ? '' : '\n'
-  const block = `# Delivery state — worktrees and the like. Never committed.\n${AKB_IGNORE_LINE}\n`
-  fs.writeFileSync(ROOT_GITIGNORE, `${text}${separator}${block}`)
-  return true
 }
 
 function writeGitignoreIfMissing(): boolean {

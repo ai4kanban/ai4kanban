@@ -12,8 +12,19 @@ re-ask a settled call.
 - Memory files are read-only in the UI. You read a wrong line there and fix it in your own
   editor — each section's "more" menu copies the path. The goal is the one file the UI
   writes.
-- A run never commits. Its changes stay in the working tree and the user reads `git diff`
-  and commits. No branches, no worktrees, no pull requests.
+- **Where a delivery's code is built**: each delivery gets a git worktree and a branch of
+  its own, under `.akb/worktrees/<card>/<delivery>` on `card/<card>/<delivery>`, forked
+  from the commit it started at. Several run side by side without touching each other or
+  the user's own edits, and the board's own files are kept out of them. Nothing lands on
+  the user's branch here; a run outside a delivery still only writes the working tree.
+- **How committing is turned off**: **Allow automatic Git commits**, one repository-level
+  setting in Configuration → Auto-delivery, on by default. Off is manual commit mode — a
+  delivery works in the user's project folder, one at a time, from clean code, and the
+  user commits after review passes. It is never a choice on a single card, and a change
+  applies only to deliveries started afterwards.
+- **What a delivery leaves behind**: cancelling one leaves its worktree and branch exactly
+  where they are; **Discard delivery** on the card page is the only thing that removes
+  them, and it says what will be lost first.
 - Setup runs in the UI, as a guided first run that asks the user what only they know — the
   project, its tracks, the goal, and which agent does the work. Defaults are offered so it
   can be pressed through. The steps that read the repo and think run after it.
@@ -31,6 +42,10 @@ re-ask a settled call.
   same group as `ui-design` and `technology-selection`, not as a card of its own later. The
   first release with spec agents is also the first release where the user can see and
   switch them off.
+- **How does a Configuration pane hold many editable items?**: a picker and one box — a
+  narrow column naming every item, marked where one is set, beside a single tall box for
+  whichever is picked. Flow rules is the first pane built this way, because a rule is a
+  paragraph and needs room; a pane of short settings stays a list of rows.
 
 ## How the board is run
 
@@ -98,6 +113,10 @@ re-ask a settled call.
 - **Does the board learn one agent's errors from another's?**: no. Nothing reads a
   particular agent's error format or signals. Whatever the agent printed last is the reason
   the run shows.
+- **How many deliveries can build at once?**: no cap — the board starts whatever the user
+  clicks, with no queue and no limit setting. Each delivery is a full checkout with its own
+  setup, and the disk and time that costs is the user's call. Manual commit mode is the
+  exception, one at a time by its own lock.
 
 ## Seeing what changed
 
@@ -228,6 +247,12 @@ re-ask a settled call.
 - **Does a card's page open with the agent's own notes folded shut?**: yes — the page opens
   on the half a human has to read, and the agent half sits below it behind one control. It
   stays how you last left it, so a reader who wants the detail keeps it open.
+- **Where does a delivery's state show on the card page?**: on the title band — the delivery pill
+  beside the title, with one line under it saying what the delivery waits on and what answers it.
+  A pause never gets a panel of its own.
+- **Where do a delivery's diff and approval live?**: in the block that already holds the session
+  log, which grows a **Diff** / **Log** / **Approval** tab strip. The page gains no new furniture,
+  so a card's own words sit in the same place whether or not a delivery is live.
 
 ## Mockups on a card
 

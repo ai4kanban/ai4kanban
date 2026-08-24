@@ -25,6 +25,7 @@ import {
   type AgentAction,
   type Boldness,
   type Card,
+  type DeliveryPlan,
   type ScheduledAction,
   type SessionView,
   type TokenUsage,
@@ -49,6 +50,9 @@ const INPUT =
 // Shared rhythm for the one-liner that explains what the agent will do — quiet
 // ink-soft meta text under the bold ink title.
 const INTRO = "mb-3 text-[13px] leading-relaxed text-nb-ink-soft";
+
+// A branch name said inline, in the wash chip the board uses for a path (#307).
+const BRANCH = "rounded-[5px] bg-nb-wash px-1.5 py-[1px] font-mono text-[12.5px] font-[700] text-nb-ink";
 
 // The create dialog's picker chips — the focus module and the boldness: the
 // nb-chip shape a step up from the board's 10px meta chips, because these are
@@ -126,6 +130,8 @@ export const RUNNING_VERB: Record<AgentAction, string> = {
   // The two sessions a delivery runs after its build (#302).
   review: "reviewing",
   correct: "correcting",
+  // And the one a landing runs when its rebase meets a conflict (#304).
+  conflict: "resolving a conflict",
   run: "running",
   edit: "editing",
   refine: "refining",
@@ -201,10 +207,15 @@ export function SessionLog({
   flush = false,
   warnUnfinished = false,
   onResumed,
+  bare = false,
 }: {
   session: SessionView | null;
   collapsed?: boolean;
   onToggle?: () => void;
+  // Drop the ink frame and the rounded corners: the delivery block (#307) owns them, and
+  // the log is one tab inside it rather than a window of its own. Everything else — the
+  // title bar with its state, cost, Stop and Resume — is the same log everywhere it shows.
+  bare?: boolean;
   // The card page turns these two on for a run that stopped short (#179): the
   // window says in words that the card is part-built, and carries Resume in its
   // title bar. The runs panel words and offers the same thing its own way, so it
@@ -392,7 +403,7 @@ export function SessionLog({
   // onToggle, which also makes it the expand/collapse control.
   const titleBar = (
     <div
-      className={`flex items-center gap-2.5 px-3 py-1 rounded-t-[12.5px] bg-[linear-gradient(var(--color-nb-cream),color-mix(in_srgb,var(--color-nb-ink)_9%,var(--color-nb-cream)))]${collapsed ? " rounded-b-[12.5px]" : " border-b-[1.5px] border-nb-ink"}${onToggle ? " cursor-pointer select-none" : ""}`}
+      className={`flex items-center gap-2.5 px-3 py-1 bg-[linear-gradient(var(--color-nb-cream),color-mix(in_srgb,var(--color-nb-ink)_9%,var(--color-nb-cream)))]${bare ? "" : " rounded-t-[12.5px]"}${collapsed && !bare ? " rounded-b-[12.5px]" : " border-b-[1.5px] border-nb-ink"}${onToggle ? " cursor-pointer select-none" : ""}`}
       role={onToggle ? "button" : undefined}
       aria-expanded={onToggle ? !collapsed : undefined}
       aria-label={onToggle ? (collapsed ? "Expand session log" : "Collapse session log") : undefined}
@@ -438,11 +449,21 @@ export function SessionLog({
         const el = e.currentTarget;
         pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
       }}
-      className="max-h-[50vh] overflow-auto px-4 py-3 bg-nb-wash rounded-b-[12.5px] shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
+      className={`max-h-[50vh] overflow-auto px-4 py-3 bg-nb-wash shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]${bare ? "" : " rounded-b-[12.5px]"}`}
     >
       {body}
     </div>
   );
+
+  // Bare: the frame belongs to whatever this is dropped into — the delivery block.
+  if (bare) {
+    return (
+      <>
+        {titleBar}
+        {bodyWell}
+      </>
+    );
+  }
 
   // Flush: the same ink-framed window, minus the collapse toggle and the body's
   // height cap — the panel it's dropped into (the sessions dialog / board
@@ -778,12 +799,22 @@ export function ActionDialog({
   onClose,
   onRun,
   onSchedule,
+  onResolveFirst,
+  plan = { commitMode: "auto" },
   modules = [],
   release = null,
 }: {
   dialog: Exclude<DialogState, null>;
   onClose: () => void;
   onRun: (req: AgentReq, label: string) => void;
+  // Answer the card's open questions before building it (#307) — the Implement dialog's
+  // way out of its third warning. The card page swaps this dialog for Resolve; a view
+  // with no Resolve dialog of its own simply doesn't offer it.
+  onResolveFirst?: () => void;
+  // What the click would do (#307): the branch it lands on, and whether it lands at all.
+  // Implement only. Defaults to the plain auto-commit answer with no branch named, which
+  // is what a board whose rules predate the one-click flow can say.
+  plan?: DeliveryPlan;
   // Queue this action instead of starting it (#140) — offered only on a card
   // with an open blocker, and only where the owner passed a handler. A view that
   // doesn't schedule (the board's Create dialog) simply doesn't offer it.
@@ -807,6 +838,7 @@ export function ActionDialog({
   // its own box.
   const [ack, setAck] = useState(false);
   const [ackRough, setAckRough] = useState(false);
+  const [ackAsked, setAckAsked] = useState(false);
   const run = (req: AgentReq, label: string) => {
     clearDraft();
     onRun(req, label);
@@ -817,12 +849,14 @@ export function ActionDialog({
   };
 
   if (dialog.kind === "implement") {
-    // Two warnings, and they stand together when the card earns both. `blocked_by`
-    // is the hard one: another open card has to land first, so building this now
-    // means building on something that isn't there. It only ever names live
+    // Three warnings, and they stand together when the card earns more than one.
+    // `blocked_by` is the hard one: another open card has to land first, so building
+    // this now means building on something that isn't there. It only ever names live
     // cards — archiving or rejecting a card drops its id from every other card's
     // blocked_by (kanban.mjs), so a leftover blocker can't linger here. `ready`
-    // is the soft one: the plan may still be rough.
+    // is the soft one: the plan may still be rough. An open question (#307) is the
+    // third: the card is built and reviewed all the same, and holds at landing until
+    // the question is answered.
     //
     // The user can still go ahead — they know things the board doesn't — but
     // going ahead is never the easy path. Each warning box carries its own "I
@@ -830,19 +864,48 @@ export function ActionDialog({
     // dead: no single click reaches an agent run the board said not to start.
     // Ticking them wakes a quiet outlined button, not the ember CTA.
     //
-    // Schedule (#140) is the other way out of a blocker, and it is the plain one:
-    // nothing starts ahead of the blocker, so it answers the blocker warning
-    // without a tick. It still answers the rough one, because a scheduled
-    // implement on a rough card is the same call as building it now — only later.
+    // Each warning has a plain way out that needs no tick, and one alternate button
+    // carries it: Resolve & implement answers the questions first, and Schedule (#140)
+    // waits for the blocker. Questions win the slot when a card wears both — it is the
+    // one the user can settle now, and the blocker box still names Schedule in words.
     const blockers = dialog.card.blocked_by;
     const notReady = dialog.card.status !== "ready";
-    const warned = blockers.length > 0 || notReady;
+    const asked = dialog.card.questions.length;
+    const warned = blockers.length > 0 || notReady || asked > 0;
     const canSchedule = onSchedule && dialog.card.openBlockers.length > 0;
     return (
       <Dialog title={`Implement #${dialog.card.id}`} onClose={onClose}>
         <p className={INTRO}>
-          The agent reads the card, does the work, and checks off the todos.
+          One click carries this card all the way: the agent builds it, a fresh session reviews
+          it, corrections fix what the review found, and{" "}
+          {plan.commitMode === "auto" ? (
+            <>
+              the board lands it as one commit on{" "}
+              {plan.branch ? <span className={BRANCH}>{plan.branch}</span> : "the branch you are on"}.
+              Then it ticks the todos, writes the shipped line, and archives the card.
+            </>
+          ) : (
+            <>
+              it stops. <strong>Manual commit mode</strong> is on
+              {plan.manualWhy ? ` — ${plan.manualWhy}` : ""}, so nothing is committed for you: commit
+              what review passed, and the card is archived then.
+            </>
+          )}
         </p>
+        {asked > 0 && (
+          <WarningBox
+            tone="accent"
+            ack={ackAsked}
+            onAck={setAckAsked}
+            ackLabel={`I know ${asked === 1 ? "a question is" : `${asked} questions are`} still open.`}
+          >
+            This card has <strong>{asked} open question{asked === 1 ? "" : "s"}</strong>. It will be
+            built and reviewed, then hold at landing until{" "}
+            {asked === 1 ? "you answer it" : "you answer them"} — or press{" "}
+            <strong>Resolve &amp; implement</strong> to answer{" "}
+            {asked === 1 ? "it" : "them"} first.
+          </WarningBox>
+        )}
         {blockers.length > 0 && (
           <WarningBox
             tone="peach"
@@ -879,17 +942,23 @@ export function ActionDialog({
           onClose={onClose}
           confirmLabel={warned ? "Implement anyway" : "Implement"}
           risky={warned}
-          disabled={(blockers.length > 0 && !ack) || (notReady && !ackRough)}
+          disabled={(blockers.length > 0 && !ack) || (notReady && !ackRough) || (asked > 0 && !ackAsked)}
           onConfirm={() => run({ action: "implement", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Implement #${dialog.card.id}`)}
           alternate={
-            canSchedule
+            asked > 0 && onResolveFirst
               ? {
-                  label: "Schedule",
-                  title: "Build this card by itself, once nothing is in its way",
-                  disabled: notReady && !ackRough,
-                  onClick: () => schedule("implement"),
+                  label: "Resolve & implement",
+                  title: "Answer the open questions first, and build the card once nothing is left to decide",
+                  onClick: onResolveFirst,
                 }
-              : undefined
+              : canSchedule
+                ? {
+                    label: "Schedule",
+                    title: "Build this card by itself, once nothing is in its way",
+                    disabled: notReady && !ackRough,
+                    onClick: () => schedule("implement"),
+                  }
+                : undefined
           }
         />
       </Dialog>

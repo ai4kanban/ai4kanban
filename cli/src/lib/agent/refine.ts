@@ -9,12 +9,7 @@ import type { AgentAction, AgentRequest, RunRecord } from './types'
 
 export type RefinementStep = 'refine' | 'resolve' | 'done'
 
-export interface BoardMark {
-  wrote: string
-  blocked: boolean
-}
-
-export type BoardMarks = Map<number, BoardMark>
+export type BoardMarks = Map<number, string>
 
 const MAX_SESSIONS = 6
 
@@ -49,9 +44,11 @@ const asMoved = (body: string): string[] =>
     .filter((line) => line.trim() && !MARKER.test(line.trim()))
     .sort()
 
-// Did this run change the card at all — the loop's only question. Any edit counts: a rule
-// guessing which ones were substantive would be a second, quieter opinion about the
-// judgment the pass already made by closing ("Close the pass" in `akb guide refine`).
+// Did this run change the card's plan — the loop's only question. `blocked_by` is omitted:
+// entering a blocked episode writes its own refine schedule, and leaving one consumes that
+// schedule (or honors its cancellation), so dependency movement is never inferred here.
+// Every other edit counts; guessing which was substantive would be a second, quieter
+// opinion about the judgment the pass already made by closing (`akb guide refine`).
 const wroteOf = (card: Card): string =>
   JSON.stringify([
     card.status,
@@ -61,7 +58,6 @@ const wroteOf = (card: Card): string =>
     card.priority,
     card.roi,
     card.release,
-    card.blocked_by,
     card.related,
     card.questions.map((q) => [q.text, q.mode ?? '', q.options ?? [], q.recommend ?? []]),
     card.modules,
@@ -78,12 +74,7 @@ const currentCard = (cardId: number): Card | undefined => {
 
 export function markBoard(): BoardMarks {
   try {
-    return new Map(
-      allCards().map((card) => [
-        card.id,
-        { wrote: wroteOf(card), blocked: card.openBlockers.length > 0 },
-      ]),
-    )
+    return new Map(allCards().map((card) => [card.id, wroteOf(card)]))
   } catch {
     return new Map()
   }
@@ -91,7 +82,7 @@ export function markBoard(): BoardMarks {
 
 function cardChanged(card: Card, before: BoardMarks): boolean {
   const was = before.get(card.id)
-  return !was || was.wrote !== wroteOf(card)
+  return !was || was !== wroteOf(card)
 }
 
 export function refinementStep(card: Card): RefinementStep {
@@ -120,6 +111,10 @@ export function refinementAfter(
   if (round === undefined || (action !== 'refine' && action !== 'resolve')) return null
   const card = currentCard(cardId)
   if (!card || !cardChanged(card, before)) return null
+  // A pass that put work in the card's way stops here. The card now carries the one-shot
+  // refine schedule written with that blocker, so continuing this loop would do the work
+  // early and start it again when the blocker clears.
+  if (card.openBlockers.length > 0) return null
 
   const step = refinementStep(card)
   if (step === 'done') return null
@@ -129,7 +124,8 @@ export function refinementAfter(
 
 const NO_FOLLOW = new Set<AgentAction>(['implement', 'refine', 'setup', 'spec'])
 
-/** Cards that need a new refinement loop after another run changed or unblocked them. */
+/** Cards another run changed and left worth refining. A blocked card carries its own
+ * one-shot refine schedule, so dependency completion is not inferred here. */
 function refinesAfter(action: AgentAction, before: BoardMarks): AgentRequest[] {
   let cards: Card[]
   try {
@@ -138,13 +134,9 @@ function refinesAfter(action: AgentAction, before: BoardMarks): AgentRequest[] {
     return []
   }
   const follows = !NO_FOLLOW.has(action)
+  if (!follows) return []
   return cards
-    .filter((card) => {
-      const was = before.get(card.id)
-      const touched = follows && cardChanged(card, before)
-      const freed = !!was && was.blocked && card.openBlockers.length === 0
-      return touched || freed
-    })
+    .filter((card) => cardChanged(card, before))
     .filter((card) => card.openBlockers.length === 0 && !card.schedule && canRefine(card))
     .sort(byDispatchOrder)
     .map((card) => ({ action: 'refine' as const, id: card.id, title: card.title }))
@@ -156,7 +148,7 @@ function refinesAfter(action: AgentAction, before: BoardMarks): AgentRequest[] {
 function stalledLine(cardId: number | null, next: AgentRequest | 'capped' | null): string | null {
   if (next !== null && next !== 'capped') return null
   const card = cardId === null ? null : currentCard(cardId)
-  if (!card || refinementStep(card) === 'done') return null
+  if (!card || card.schedule || refinementStep(card) === 'done') return null
   const why =
     next === 'capped'
       ? `${MAX_SESSIONS} refine passes and #${card.id} changed on every one, so the loop stopped there. `

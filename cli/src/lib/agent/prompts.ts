@@ -5,8 +5,11 @@
 // skill — follows the agent that runs; everything after it is the same for all of them.
 
 import { findSpecAgent, specAgentPrompt, specAgentRoster, specHeading } from '../spec-agents'
-import { boardCommand, commandNote } from './command'
+import { boardCommand, boardCommandFor, commandNote } from './command'
+import { activeDelivery } from './deliveries'
+import { DELIVERY_FLOWS } from './flows'
 import { skillCall } from './resolve'
+import { ruleBlock } from './rules'
 import { PROPOSE_DEFAULT, PROPOSE_MAX, type AgentRequest, type Boldness } from './types'
 
 // What a resumed session says. The conversation is already there — the card, the work done,
@@ -34,7 +37,7 @@ const DELIVERY_RESUME = [
  *  that re-enters the delivery's flow. */
 export function resumePrompt(deliveryId: string | undefined, cardId: number | null): string {
   if (!deliveryId || cardId === null) return RESUME_PROMPT
-  return DELIVERY_RESUME.replace('%s', deliveryId).replace('%c', `${boardCommand()} implement ${cardId} --print`)
+  return DELIVERY_RESUME.replace('%s', deliveryId).replace('%c', `${boardCommandFor(cardId)} implement ${cardId} --print`)
 }
 
 // What each boldness level tells a propose run. The rule lives in the flow ("Boldness" in
@@ -65,16 +68,36 @@ function clampCount(count: number | undefined): number {
 // "create only" line) and not on a resolve asked to carry on and implement.
 const NO_IMPLEMENT = `(Unless the request explicitly asks for implementation, don't implement it.)`
 
-/** The words one run is given.
+/** The words one run is given, WITHOUT this board's own rule for the flow.
  *
  *  Every prompt ends with how the board's command is spelled on this machine, when it isn't
  *  `akb`. The skill's note carries the same rule, but a run is not owed a working note: it
  *  can be started from a button by someone who never installed one, and the first `akb` line
- *  it copies out of a flow is a poor place to find that out. */
-export function buildPrompt(req: AgentRequest, notes: string[] = []): string {
-  const command = boardCommand()
+ *  it copies out of a flow is a poor place to find that out.
+ *
+ *  Split out from `buildPrompt` for the one caller that needs the ask alone: a printed flow
+ *  puts the rule at the very end, after the flows themselves (`flow.ts`). */
+export function buildAsk(req: AgentRequest, notes: string[] = []): string {
+  // A delivery's sessions work in that delivery's own worktree, so their board commands
+  // name the project's own copy outright (#303). Everything else runs in the project and
+  // spells the command the ordinary way.
+  const command = DELIVERY_FLOWS.has(req.action) ? boardCommandFor(req.id) : boardCommand()
   const ask = [actionPrompt(req, command, notes), commandNote(command)].filter(Boolean).join(' ')
   return [ask, roster(req)].filter(Boolean).join('\n\n')
+}
+
+/** The words one run is given, this board's own rule for the flow last (#306). It goes
+ *  after everything else the board writes, so nothing of the board's follows the user's. */
+export function buildPrompt(req: AgentRequest, notes: string[] = []): string {
+  return [buildAsk(req, notes), ruleBlock(req, frozenRules(req))].filter(Boolean).join('\n\n')
+}
+
+/** The rules the delivery in flight on this card froze when it started, or nothing when
+ *  this run is not a session of one. A delivery's sessions run on the rules it started
+ *  with, the way they build the card it started with. */
+export function frozenRules(req: AgentRequest): Record<string, string> | undefined {
+  if (!DELIVERY_FLOWS.has(req.action) || req.id === undefined) return undefined
+  return activeDelivery(req.id)?.rules
 }
 
 // The spec agents a pass may put on the card — the roster, not a rule about any one of
@@ -275,6 +298,18 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `${kb}. Correct task ${req.id} ${named} — fix exactly what the last review found, following \`akb guide review\`.`,
         `\`${command} correct ${req.id} --print\` prints the approved copy, the findings to fix and where the diff is.`,
         `Change nothing the findings do not name: a fresh review judges the whole candidate after you.`,
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
+      ].join(' ')
+    // Resolving the conflict a landing's rebase stopped on (#304). It is new work, not a
+    // correction: the two cards were both right on their own, and what to keep is a
+    // judgment neither card wrote down. Nothing here names the files — they are in the
+    // worktree and the flow prints them — and nothing here says to finish the rebase: the
+    // board does that, so the session has one job and no rebase state to get wrong.
+    case 'conflict':
+      return [
+        `${kb}. Task ${req.id} ${named} is landing, and its rebase onto the target branch stopped on a conflict.`,
+        `\`${command} conflict ${req.id} --print\` names the conflicted files, both cards and both diffs.`,
+        `Resolve every conflicted file in the delivery's worktree so both cards' intent survives, \`git add\` each one, and stop there — the board finishes the rebase, and a fresh review judges the result from scratch.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
     case 'resolve':

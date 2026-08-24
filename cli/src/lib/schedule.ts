@@ -1,8 +1,8 @@
 // ---- the action a blocked card is waiting to run ---------------------------
 //
-// A card waiting on another card can be scheduled instead of started: the board runs it by
-// itself the moment the last card in its way leaves the board. What it is waiting to do
-// lives in that card's own frontmatter, the same path every other meta field takes:
+// A rough card saves a refine when it first becomes blocked; a user can replace that with
+// an implement, or cancel it for that blocked episode. The board runs the saved action the
+// moment the last card in its way leaves. It lives in the card's own frontmatter:
 //
 //   schedule:
 //     action: implement

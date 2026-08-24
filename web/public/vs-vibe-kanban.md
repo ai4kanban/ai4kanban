@@ -31,7 +31,7 @@ portability; Vibe Kanban favors parallel execution and integrated review.
 | Dimension | AI4Kanban | Vibe Kanban | Edge |
 | --- | --- | --- | --- |
 | Primary purpose | Define, refine, and organize work with an agent inside the repository. | Run multiple coding agents in parallel and review their output. | Trade-off |
-| Multi-agent orchestration | Not included. Your existing agent or harness executes the work. | A core capability, with each agent isolated in its own git worktree. | Vibe Kanban |
+| Multi-agent orchestration | Each delivery builds on a branch in a git worktree of its own, so several run side by side without touching your working copy. | A core capability, with each agent isolated in its own git worktree. | Vibe Kanban |
 | Review of agent output | Handled by your agent, development environment, or code-review tools. | Built in, with inline diffs, live previews, and pull-request workflows. | Vibe Kanban |
 | Planning and refinement | A guided refinement loop turns an initial idea into an actionable task. | Focused on queuing and tracking execution rather than refining requirements. | AI4Kanban |
 | Data storage | Plain Markdown stored and versioned with your repository. | A local SQLite database in a config directory. | AI4Kanban |
@@ -50,8 +50,8 @@ that work across multiple agents** and review the results.
 **AI4Kanban — plan and refine.** Your agent reads and updates a Markdown board
 in the repository. A refinement loop develops an initial idea into a specific,
 reviewable task that you approve before implementation begins. It does not
-launch agents, create worktrees, or provide a diff viewer. Those responsibilities
-remain with your agent or development environment.
+provide a diff viewer or pull-request workflow. Those responsibilities remain
+with your agent or development environment.
 
 **Vibe Kanban — execute and review.** A local application runs several coding
 agents concurrently in separate git worktrees. Its interface brings task

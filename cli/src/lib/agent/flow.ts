@@ -31,16 +31,20 @@ import { idPrefix, locate } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
-import { die, rel, CONFIG, GOAL, KANBAN, MEMORY, MODULES_MD, SETUP_CHECKLIST, TODO } from '../paths'
+import { die, rel, CONFIG, DIR_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO } from '../paths'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
 import { moduleNames } from '../validate'
-import { candidateStat } from './candidate'
+import { candidateOf, candidateStat } from './candidate'
+import { conflictedPaths, worktreeDir } from './worktree'
+import { boardCommandFor } from './command'
 import { activeDelivery } from './deliveries'
 import { MAX_CORRECTIONS, lastRound, openFindings } from './review'
 import { field, metaLine, numbered, trackNames } from './facts'
-import { buildPrompt } from './prompts'
+import { buildAsk, frozenRules } from './prompts'
+import { flowByAction } from './flows'
+import { ruleFor } from './rules'
 import { setupInstruction } from './resolve'
 import type { AgentAction, AgentRequest } from './types'
 
@@ -241,14 +245,43 @@ function candidateField(cardId: number): string[] {
       'judge the working tree as it stands, and say so in your findings.',
     ])
   }
-  const stat = candidateStat(delivery.base)
+  const stat = candidateStat(candidateOf(delivery))
+  const board = [
+    `the board's own files under ${rel(KANBAN)} are not the candidate — the card, the delivery record`,
+    'and the session state all move as a delivery works, and none of them is the code you are judging.',
+  ]
+  // On a branch the candidate is settled: everything the delivery built is committed in
+  // its own worktree, and nothing else on this machine is in it.
+  if (delivery.worktree && delivery.branch) {
+    return field('candidate', [
+      `everything this delivery changed is \`git diff ${delivery.base.slice(0, 12)} ${delivery.branch}\` —`,
+      `its own branch, committed, in its own worktree at ${delivery.worktree}.`,
+      ...board,
+      ...(stat ? [`right now: ${stat}.`] : []),
+    ])
+  }
   return field('candidate', [
     `everything this delivery changed is \`git diff ${delivery.base.slice(0, 12)}\`, plus the files`,
     'git has never seen (`git ls-files --others --exclude-standard`).',
-    `the board's own files under ${rel(KANBAN)} are not the candidate — the card, the delivery record`,
-    'and the session state all move as a delivery works, and none of them is the code you are judging.',
+    ...board,
     ...(stat ? [`right now: ${stat}.`] : []),
     'the working tree may hold changes this delivery did not make — say so rather than judging them.',
+  ])
+}
+
+// The checkout this job works in, and how it reaches the board from there. It is only ever
+// said when the two are not the same folder: a delivery with a worktree of its own writes
+// code there and the board's own files in the project, and a relative `node cli/bin/…`
+// would run the worktree's copy of a command the delivery may be halfway through
+// rewriting.
+function workspaceField(cardId: number): string[] {
+  const delivery = activeDelivery(cardId)
+  if (!delivery?.worktree) return []
+  return field('workspace', [
+    `write code in ${delivery.worktree} — this delivery's own worktree, on branch ${delivery.branch}.`,
+    `it is your working folder already; the board's own files are NOT in it and never go on that branch.`,
+    `every board command names the project's own copy: \`${boardCommandFor(cardId)} <command>\`.`,
+    `${rel(REPO_ROOT)} is the project — the card, the memory files and the docs are changed there, not here.`,
   ])
 }
 
@@ -267,6 +300,26 @@ function reviewField(cardId: number): string[] {
     left
       ? `${left} correction${left === 1 ? '' : 's'} left before the delivery stops and asks the user.`
       : 'no correction left — anything you send back now stops the delivery and asks the user.',
+  ])
+}
+
+// The conflict a landing's rebase stopped on: the files, the branch it clashed with, and
+// the cards on the other side — everything the session needs to see both intentions rather
+// than only the markers in front of it.
+function conflictField(cardId: number): string[] {
+  const delivery = activeDelivery(cardId)
+  if (!delivery?.worktree) return field('conflict', 'no delivery with a worktree is landing this card')
+  const files = conflictedPaths(worktreeDir(delivery.worktree))
+  const overlap = delivery.landing?.overlap ?? []
+  return field('conflict', [
+    files.length
+      ? `${files.length} file${files.length === 1 ? '' : 's'} to resolve in ${delivery.worktree}:`
+      : `the rebase onto ${delivery.targetBranch} stopped, but no file is conflicted right now — check \`git status\` there`,
+    ...files.map((f) => `  ${f}`),
+    `the other side is ${delivery.targetBranch} as it stands now; \`git log ${delivery.base?.slice(0, 12) ?? delivery.targetBranch}..${delivery.targetBranch}\` is what arrived while this card was being built.`,
+    ...(overlap.length
+      ? [`${overlap.map((c) => `#${c}`).join(', ')} ${overlap.length === 1 ? 'is' : 'are'} being built over the same files — read ${overlap.length === 1 ? 'that card' : 'those cards'} before you decide what to keep.`]
+      : []),
   ])
 }
 
@@ -323,6 +376,25 @@ function verifyField(meta: Meta): string[] {
   ])
 }
 
+// What a session that wrote code has to leave behind for review to read it. In a worktree
+// the board commits the whole change onto the delivery's branch as the session closes — so
+// the one thing asked of the session is to leave nothing of the board's own in there, which
+// is what a commit would be refused for. In manual commit mode nothing is committed at all:
+// the code stays in the user's checkout and the commit is theirs, after review passes.
+function committingClose(cardId: number): string[] {
+  const delivery = activeDelivery(cardId)
+  if (!delivery) return []
+  if (delivery.worktree) {
+    return [
+      `leave your work in ${delivery.worktree} — the board commits all of it onto ${delivery.branch} when this session ends, and review reads that branch`,
+      `never write the board's own files into the worktree: a commit that reaches one is refused, and the delivery stops`,
+    ]
+  }
+  return [
+    'leave your work uncommitted — automatic Git commits are off, so the user commits it themselves once review passes',
+  ]
+}
+
 // ---- the flows -------------------------------------------------------------
 
 // One printed flow, before it is printed.
@@ -351,6 +423,9 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   review: ['board', 'review'],
   // A correction writes code and nothing else, so it gets the review flow alone.
   correct: ['review'],
+  // Resolving a landing's conflict writes code and nothing else either, and the flow it
+  // follows is "Resolving a conflict" in the same guide.
+  conflict: ['review'],
   run: ['board', 'recurring-task'],
   refine: ['board', 'refine', 'resolve'],
   resolve: ['board', 'resolve'],
@@ -373,7 +448,12 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
 /** Build the flow for one action. A `board` command spelled out here is spelled with the
  *  program the caller was typed as, so what is printed can be pasted back. */
 function buildFlow(req: AgentRequest, program: string): Flow {
-  const board = `${program} board`
+  // How this job spells the board's command. A delivery working in its own worktree names
+  // the project's copy outright (#303) — a relative path there would run the worktree's own
+  // half-rewritten copy, and no `--dir` would leave the board to be guessed at.
+  const inWorktree = req.id !== undefined && !!activeDelivery(req.id)?.worktree
+  const self = inWorktree ? boardCommandFor(req.id) : `${program}${DIR_FLAG}`
+  const board = `${self} board`
   const facts: string[] = []
   const close: string[] = []
   const next: string[] = []
@@ -383,7 +463,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   // never inside the job that wrote the card — so the handover says fresh session, or an
   // agent reading the flow refines right here, in a context already full of the writing.
   const refineNext = (target: number | '<id>', when: string) =>
-    `${program} refine ${target === '<id>' ? target : String(target)} --print — ${when}; in a fresh session, not this one — the board gives each refine its own clean context, and so should you`
+    `${self} refine ${target === '<id>' ? target : String(target)} --print — ${when}; in a fresh session, not this one — the board gives each refine its own clean context, and so should you`
 
   // Every card action opens the same way: where the card is, and what it says about itself.
   if (card) {
@@ -393,31 +473,33 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   switch (req.action) {
     case 'implement': {
       facts.push(...approvedField(req.id!))
+      facts.push(...workspaceField(req.id!))
       facts.push(...stepsField(card!))
       if (card!.meta.questions.length) facts.push(...questionsField(card!.meta))
       facts.push(...verifyField(card!.meta))
       facts.push(...field('memory', memoryFiles(card!.meta.modules, 'readme.md')))
       // Inside a delivery the build is not the end of the job: a fresh session reviews what
-      // it made against the approved copy, and the card is archived on the far side of that
-      // (#302). Outside one — a card built by hand from a printed flow — the build closes
-      // the card exactly as it always has.
+      // it made against the approved copy, the board lands it, and the board archives the
+      // card once it has landed (#302, #307). Outside one — a card built by hand from a
+      // printed flow — the build closes the card exactly as it always has.
       const reviewed = !!activeDelivery(req.id!)
       close.push(
+        ...committingClose(req.id!),
         'tick each box in ## Todo as you finish it — they are the record of what was built',
         `${board} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user; a decision that needs an answer goes to \`update-questions\` instead`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
         reviewed
-          ? `leave the card on the board — review comes next in this delivery, and it is review that archives the card once it passes`
+          ? `leave the card on the board — review comes next in this delivery, and the board archives the card itself once the delivery has landed`
           : `${board} archive ${req.id} — once every box is ticked and the card's goal is met`,
       )
       if (card!.meta.questions.length) {
         next.push(
-          `${program} resolve ${req.id} --print — first: the card has open questions, and building on a guess is what they are there to stop`,
+          `${self} resolve ${req.id} --print — first: the card has open questions, and building on a guess is what they are there to stop`,
         )
       }
       if (reviewed) {
         next.push(
-          `${program} review ${req.id} --print — the review this delivery runs next. A session the board started has its review started for it; an agent that built this from a printed flow runs it itself, in a fresh session`,
+          `${self} review ${req.id} --print — the review this delivery runs next. A session the board started has its review started for it; an agent that built this from a printed flow runs it itself, in a fresh session`,
         )
       }
       break
@@ -428,6 +510,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // agrees with it.
     case 'review': {
       facts.push(...approvedField(req.id!))
+      facts.push(...workspaceField(req.id!))
       facts.push(...candidateField(req.id!))
       facts.push(...reviewField(req.id!))
       facts.push(...stepsField(card!))
@@ -437,7 +520,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${board} review-verdict ${req.id} --verdict pass|correct|ask [--file <findings>] — the ONE way a review is recorded. Without it the delivery stops and asks the user, whatever you wrote in your last message`,
         'write each finding as `- **<short title>**: <the approved requirement or the changed code it concerns, and the evidence to act on it>` — the title is its identity, so the same mistake keeps the same one',
         'a finding that needs awareness but no decision is not a finding: put it under `## Worth noting after implementation` on the card, and it stops nothing',
-        `${board} archive ${req.id} — on a pass only, and only once every box in ## Todo is ticked and the card's goal is met`,
+        `leave the card on the board — a pass is not the end of the delivery, and the board archives the card itself once the work has landed`,
       )
       break
     }
@@ -445,15 +528,31 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // the whole candidate afterwards, so anything extra done here comes straight back.
     case 'correct': {
       facts.push(...approvedField(req.id!))
+      facts.push(...workspaceField(req.id!))
       facts.push(...findingsField(req.id!))
       facts.push(...candidateField(req.id!))
       facts.push(...stepsField(card!))
       close.push(
+        ...committingClose(req.id!),
         'fix what the findings name, and change nothing they do not — a fresh review judges the whole candidate after you',
         'tick a ## Todo box your fix completes; never untick one',
         'change nothing else on the card — the delivery builds the approved copy above, not the file as it reads now',
       )
-      next.push(`${program} review ${req.id} --print — the fresh review of the whole candidate that follows a correction`)
+      next.push(`${self} review ${req.id} --print — the fresh review of the whole candidate that follows a correction`)
+      break
+    }
+    // Resolving the conflict a landing's rebase stopped on (#304). It is the only session
+    // that reads TWO cards: this one, and whatever is on the target branch it clashed with.
+    case 'conflict': {
+      facts.push(...approvedField(req.id!))
+      facts.push(...workspaceField(req.id!))
+      facts.push(...conflictField(req.id!))
+      facts.push(...candidateField(req.id!))
+      close.push(
+        'resolve every conflicted file so both sides survive — the other side is already on the target branch, and this card is what the approved copy above asks for',
+        '`git add` each file you resolved, and leave the rebase alone: the board runs `git rebase --continue` after this session, and a fresh review judges the result from scratch',
+        'change nothing the conflict does not name, and change nothing on the card',
+      )
       break
     }
     case 'run': {
@@ -466,7 +565,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `never archive it: a recurring card has no end state`,
       )
       next.push(
-        `${program} resolve ${req.id} --print — for any question this pass left on the card; nothing else on the board resolves a recurring card`,
+        `${self} resolve ${req.id} --print — for any question this pass left on the card; nothing else on the board resolves a recurring card`,
       )
       break
     }
@@ -480,7 +579,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${board} update ${req.id} --status ready — when you are highly confident the plan is ready to build: no substantive gap left, no question open. Otherwise leave it todo, and a fresh pass takes it on`,
       )
       if (card!.meta.questions.length) {
-        next.push(`${program} resolve ${req.id} --print — first: a card with open questions can't be refined`)
+        next.push(`${self} resolve ${req.id} --print — first: a card with open questions can't be refined`)
       }
       break
     }
@@ -496,8 +595,8 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       next.push(
         req.andImplement
-          ? `${program} implement ${req.id} --print — carry straight on, but only if nothing real is left for the user`
-          : `${program} implement ${req.id} --print — once every question is settled`,
+          ? `${self} implement ${req.id} --print — carry straight on, but only if nothing real is left for the user`
+          : `${self} implement ${req.id} --print — once every question is settled`,
       )
       break
     }
@@ -551,7 +650,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'write the shipped line first — one line for what a user can now see or do, nothing for an internal-only change',
         `${board} archive ${req.id} — it files the card, drops it from the index, and prints what still mentions it`,
       )
-      next.push(refineNext('<id>', 'for each card this one was holding up'))
       break
     }
     // Setting the board up (#173). The checklist is the plan, so the facts are the boxes
@@ -626,7 +724,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'write the rejection note first — the idea and why we said no',
         `${board} reject ${req.id} — this deletes the card; the receipt prints it out one last time`,
       )
-      next.push(refineNext('<id>', 'for each card this one was holding up'))
       break
     }
   }
@@ -646,7 +743,10 @@ function leadLine(req: AgentRequest, program: string): string {
  *  a caller reading `--json` gets what the terminal was shown. */
 export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
   const flow = buildFlow(req, program)
-  const prompt = buildPrompt(req)
+  // The ask WITHOUT this board's own rule for the action (#306). A printed flow gets the
+  // same rule a started session does, but at the very end — see below.
+  const prompt = buildAsk(req)
+  const rule = ruleFor(req, frozenRules(req))
   const sections: Section[] = [
     { head: 'the ask — the same words a session would have been given:', lines: [prompt] },
   ]
@@ -708,6 +808,19 @@ export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
       say(guide.text.trimEnd())
     }
   }
+  // Last of all: this board's own rule for the action, in the user's words (#306). A
+  // started session is given one block of words and reads the rule wherever it sits; a
+  // printed flow is several sections and pages of guides, so a rule left up in the ask
+  // would be read before everything that buries it. Here the reader ends on it.
+  if (rule) {
+    say('')
+    say(
+      `this board's own rule for \`${flowByAction(req.action)?.command}\` — the user's words, ` +
+        `added to the end of every ${req.action} run, and yours to follow here too:`,
+    )
+    say('')
+    say(rule)
+  }
   return {
     mode: 'print',
     action: req.action,
@@ -716,5 +829,6 @@ export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
     guides: flow.guides,
     close: flow.close,
     next: flow.next,
+    ...(rule ? { rule } : {}),
   }
 }

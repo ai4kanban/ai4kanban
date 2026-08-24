@@ -22,10 +22,12 @@ import { SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { asUsage } from './log'
 import type {
   AgentAction,
+  DeliveryLanding,
   DeliveryRecord,
   DeliveryReview,
   DeliveryStatus,
   DeliveryStep,
+  LandingStatus,
   ReviewStopReason,
   ReviewVerdict,
   RunRecord,
@@ -134,10 +136,75 @@ function readDeliveryRows(raw: unknown): DeliveryRecord[] {
       review: readReview(entry.review),
       priorStatus: typeof entry.priorStatus === 'string' && entry.priorStatus ? entry.priorStatus : undefined,
       next: entry.next === 'review' || entry.next === 'correct' ? entry.next : undefined,
+      // A delivery written down before #303 names no mode. It ran in the user's checkout
+      // with no worktree, which is exactly what manual commit mode is — so that is what it
+      // reads as, rather than a worktree nothing ever made.
+      commitMode: entry.commitMode === 'auto' ? 'auto' : entry.commitMode === 'manual' ? 'manual' : undefined,
+      manualWhy: text(entry.manualWhy),
+      targetBranch: text(entry.targetBranch),
+      worktree: text(entry.worktree),
+      branch: text(entry.branch),
+      reviewed: readReviewed(entry.reviewed),
+      landing: readLanding(entry.landing),
+      // The flow rules this delivery froze (#306). A delivery written down before they
+      // existed has none, and its sessions read the files — which is what they always did.
+      rules: readRules(entry.rules),
     })
   }
   return rows.sort((a, b) => a.startedAt - b.startedAt)
 }
+
+const text = (value: unknown): string | undefined =>
+  typeof value === 'string' && value ? value : undefined
+
+// The rules a delivery froze, keyed by the command that starts the flow. An empty object is
+// kept and undefined is not: `{}` means this delivery froze rules and none were set, while
+// nothing at all means a delivery from before rules existed, whose sessions read the files.
+function readRules(raw: unknown): Record<string, string> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const rules: Record<string, string> = {}
+  for (const [command, rule] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof rule === 'string' && rule) rules[command] = rule
+  }
+  return rules
+}
+
+// What review passed in manual commit mode (#303), so the user's own commit can be matched
+// against it. A snapshot with no fingerprint is no snapshot at all.
+function readReviewed(raw: unknown): DeliveryRecord['reviewed'] {
+  if (!raw || typeof raw !== 'object') return undefined
+  const box = raw as { mark?: unknown; diff?: unknown; at?: unknown }
+  const mark = text(box.mark)
+  if (!mark) return undefined
+  return { mark, diff: text(box.diff), at: typeof box.at === 'number' ? box.at : 0 }
+}
+
+// Where this delivery stands on landing (#304). A status we can't read is `waiting`: it
+// claims nothing, and a delivery wrongly reading as the slot's holder would stop every
+// other card on the board.
+function readLanding(raw: unknown): DeliveryRecord['landing'] {
+  if (!raw || typeof raw !== 'object') return undefined
+  const box = raw as Partial<DeliveryLanding>
+  const num = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined)
+  return {
+    status: asLandingStatus(box.status),
+    why: text(box.why),
+    attempts: typeof box.attempts === 'number' && box.attempts > 0 ? Math.floor(box.attempts) : 0,
+    rebasedAt: num(box.rebasedAt),
+    commit: text(box.commit),
+    onto: text(box.onto),
+    overlap: Array.isArray(box.overlap) ? box.overlap.filter((n) => Number.isInteger(n)) : undefined,
+    checks: Array.isArray(box.checks)
+      ? box.checks.flatMap((c) =>
+          c && typeof c.name === 'string' ? [{ name: c.name, ok: c.ok === true, at: num(c.at) ?? 0 }] : [],
+        )
+      : undefined,
+    at: num(box.at) ?? 0,
+  }
+}
+
+const asLandingStatus = (value: unknown): LandingStatus =>
+  value === 'landing' || value === 'landed' || value === 'conflict' ? value : 'waiting'
 
 // What review has said about this delivery (#302). Rebuilt field by field like everything
 // else here, so a record written by an older copy of these rules still reads — it simply
@@ -180,7 +247,12 @@ const isVerdict = (value: unknown): value is ReviewVerdict =>
 
 // A stop we can't read is still a stop: `session` claims the least about why.
 function asStopReason(value: unknown): ReviewStopReason {
-  return value === 'ask' || value === 'repeat' || value === 'no-progress' || value === 'limit'
+  return value === 'ask' ||
+    value === 'repeat' ||
+    value === 'no-progress' ||
+    value === 'limit' ||
+    value === 'uncommitted' ||
+    value === 'landing'
     ? value
     : 'session'
 }

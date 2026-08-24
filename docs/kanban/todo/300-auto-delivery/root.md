@@ -6,7 +6,7 @@ roi: high
 status: ready
 release: 0.8.0
 blocked_by: []
-related: [303, 304, 305, 306, 307, 308, 309, 310]
+related: [308, 309, 310]
 modules: [local-ui, skill]
 questions: []
 ---
@@ -70,11 +70,11 @@ each piece below is its own subtask in this folder.
 ## Todo
 - [x] Give every delivery a record #301
 - [x] Review a delivery's work against the approved card, and send clear mistakes back #302
-- [ ] Give each delivery its own git worktree, with the board kept out of it #303
-- [ ] Land reviewed code on the target branch, one card at a time #304
-- [ ] Show a delivery's diff on the card, and keep the commit that landed #305
-- [ ] Let a user add one rule to any flow #306
-- [ ] Make one Implement click carry a card all the way to landed #307
+- [x] Give each delivery its own git worktree, with the board kept out of it #303
+- [x] Land reviewed code on the target branch, one card at a time #304
+- [x] Show a delivery's diff on the card, and keep the commit that landed #305
+- [x] Let a user add one rule to any flow #306
+- [x] Make one Implement click carry a card all the way to landed #307
 - [ ] Require diff approval on the cards that need it #308
 - [ ] Link a bug back to the delivery that introduced it #309
 

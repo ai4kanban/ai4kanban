@@ -85,6 +85,11 @@ export let INDEX_LOCK = ''
 // after the card is archived (lib/agent/deliveries.ts). The live copy is a row in
 // SESSIONS above; this is what outlives the machine it ran on.
 export let DELIVERIES = ''
+// One rule per flow, in the user's own words, appended to that flow's built-in prompt
+// (#306) — `rules/<command>.md`, named by the command a user types. Tracked in git so a
+// team shares them, and inside docs/kanban/, which every delivery worktree leaves out.
+// Never created up front: a missing or empty file means the flow runs unchanged.
+export let RULES = ''
 // Delivery state that never belongs in git — #303's worktrees are the first thing in it.
 // At the REPOSITORY root, not under docs/kanban/, because docs/kanban/.gitignore cannot
 // reach outside its own folder — so this one line goes in the repo's own.
@@ -98,6 +103,23 @@ export const AKB_IGNORE_LINE = '.akb/'
 export function ensureAkbDir(): string {
   fs.mkdirSync(AKB_DIR, { recursive: true })
   return AKB_DIR
+}
+
+/** The one line the board writes outside its own folder, added when it isn't there
+ *  already. `.akb/` holds delivery state that never belongs in git — the worktrees a
+ *  delivery builds in (#303) — and it sits at the repository root, which
+ *  docs/kanban/.gitignore cannot reach.
+ *
+ *  The user's own file is otherwise left alone: the line is appended, never a rewrite.
+ *  `init` calls it when a board is made, and the first worktree calls it again, so a board
+ *  set up before the line existed gets it too. True when it wrote one. */
+export function writeRootIgnoreIfMissing(): boolean {
+  const text = fs.existsSync(ROOT_GITIGNORE) ? fs.readFileSync(ROOT_GITIGNORE, 'utf8') : ''
+  if (text.split('\n').some((line) => line.trim() === AKB_IGNORE_LINE)) return false
+  const separator = !text || text.endsWith('\n') ? '' : '\n'
+  const block = `# Delivery state — worktrees and the like. Never committed.\n${AKB_IGNORE_LINE}\n`
+  fs.writeFileSync(ROOT_GITIGNORE, `${text}${separator}${block}`)
+  return true
 }
 // ` --dir <path>` when this command was told which board with `--dir`, empty when it found
 // one from the working directory. Every hint the board prints for a person to paste back —
@@ -135,6 +157,7 @@ export function setBoardRoot(root: string, named = false): string {
   CHATS_DIR = path.join(KANBAN, '.chats')
   INDEX_LOCK = path.join(KANBAN, '.index.lock')
   DELIVERIES = path.join(KANBAN, 'deliveries')
+  RULES = path.join(KANBAN, 'rules')
   AKB_DIR = path.join(REPO_ROOT, '.akb')
   ROOT_GITIGNORE = path.join(REPO_ROOT, '.gitignore')
   return REPO_ROOT

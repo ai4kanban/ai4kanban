@@ -3,6 +3,8 @@ import type {
   Board,
   Card,
   CardRef,
+  DeliveryDiff,
+  DeliveryPlan,
   MemoryFile,
   MetricsResult,
   ScoreResult,
@@ -33,6 +35,33 @@ export async function readBoard(): Promise<Board> {
 /** Any open card by id, including a group subtask the columns don't show. */
 export async function findCard(id: number): Promise<Card | null> {
   return (await boardRules()).findCard(id);
+}
+
+/** What an Implement click would do on this board right now (#307) — the branch the change
+ *  would land on, and whether it lands at all. Read on the server, where git is.
+ *
+ *  A board whose rules predate the one-click flow answers `auto` with no branch: the dialog
+ *  then says what the click does without naming a branch it cannot know. */
+export async function deliveryPlan(): Promise<DeliveryPlan> {
+  try {
+    return (await boardRules()).deliveryPlan?.() ?? { commitMode: "auto" };
+  } catch {
+    return { commitMode: "auto" };
+  }
+}
+
+/** What one delivery changed (#305) — the card page's **Diff** tab. Read on the server,
+ *  where git is, and capped there: a diff can be megabytes.
+ *
+ *  Null with no delivery to read, and on a board whose rules predate the tab — either way
+ *  the tab does not appear, which is what a tab with nothing in it should do. */
+export async function deliveryDiff(id: string | undefined): Promise<DeliveryDiff | null> {
+  if (!id) return null;
+  try {
+    return (await boardRules()).deliveryDiff?.(id) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** The open cards carrying `query` in their title or body, for the rail's search box.

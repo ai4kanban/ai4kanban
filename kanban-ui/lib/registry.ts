@@ -141,6 +141,33 @@ export async function cancelDelivery(id: string): Promise<StartResult> {
   }
 }
 
+/** Throw a delivery's checkout away: its worktree, its branch, and everything only they
+ *  hold (#303). It ends the delivery first if one is still in flight. The card page says
+ *  what will be lost and asks before it calls this. */
+export async function discardDelivery(id: string): Promise<StartResult> {
+  try {
+    const rules = await boardRules();
+    if (!rules.discardDelivery) {
+      return { ok: false, error: "this board's rules are older than delivery worktrees — run `npm install -g ai4kanban`." };
+    }
+    const res = rules.discardDelivery(id);
+    return { ok: res.ok, error: res.error };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Deliveries whose worktree or branch has gone missing since they were written down. Read
+ *  when the server starts: they are reported, never rebuilt. */
+export async function repairDeliveries(): Promise<string[]> {
+  try {
+    const rules = await boardRules();
+    return rules.repairDeliveries?.() ?? [];
+  } catch {
+    return [];
+  }
+}
+
 // Keyed by id, so one read of the delivery list serves every session in the poll. Absent on
 // a copy of the rules that predates deliveries: sessions then read exactly as they always
 // did, rather than the whole poll failing.

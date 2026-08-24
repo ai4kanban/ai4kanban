@@ -99,6 +99,35 @@ export function setHarnessSetting(key: string, value: string): { ok: boolean; er
   })
 }
 
+// ---- auto-delivery: may the board commit? (#303) ---------------------------
+//
+//   "autoCommit": false
+//
+// On by default, and only written down when somebody turned it off — a missing key and a
+// `true` mean the same thing, and only one of them reads as deliberate.
+//
+// With it ON a delivery builds on its own branch in its own worktree, so several can run at
+// once and what review passed is exactly what lands. With it OFF a delivery works in the
+// user's own checkout, one at a time, and they commit after review.
+
+/** True unless somebody switched automatic commits off. A file that won't parse reads as
+ *  on: a setting nobody can read is not a reason to change how every delivery works. */
+export function autoCommitAllowed(): boolean {
+  try {
+    return readConfigRaw().autoCommit !== false
+  } catch {
+    return true
+  }
+}
+
+/** Save it. Turning it back on drops the key rather than writing `true`. */
+export function setAutoCommit(on: boolean): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => {
+    if (on) delete cfg.autoCommit
+    else cfg.autoCommit = false
+  })
+}
+
 // ---- the spec agents: the switch, and what each one is set to (#191, #255) --
 //
 // The same file also holds which spec agents may run, and what each one is set to:

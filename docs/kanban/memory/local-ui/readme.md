@@ -131,8 +131,10 @@ except where another doc is named.
 ## Refining
 
 - A run that writes or changes a card is followed by a refine of that card, as its own run
-  in the panel. Finishing or rejecting a card refines the ones it was holding up, and a
-  group's main card is left alone when a subtask finishes: "The refine that follows a run".
+  in the panel. A rough card automatically saves a one-shot refine when it first becomes
+  blocked; finishing or rejecting its last blocker makes that schedule eligible. Cancelling
+  lasts for that blocked episode. A group's main card is left alone when a subtask finishes:
+  "The refine that follows a run".
 - Refine the card you are looking at from a **Refine** button on its page, whenever you want.
 
 ## Recurring tasks
@@ -145,9 +147,10 @@ except where another doc is named.
 
 ## Cards
 
-- Schedule an implement or a refine on a card that is waiting on another card, and the board
-  runs it once the last card in its way leaves the board — the card reads **pending** until
-  then, and one control takes the schedule off: "Schedule it instead".
+- A rough card automatically schedules a refine when it becomes blocked; schedule an
+  implement to replace it. The board runs the saved action once the last card in its way
+  leaves, the card reads **pending** until then, and **cancel** takes the schedule off for
+  that blocked episode: "Schedule it instead".
 - Answer a question with choices by ticking a list, with the recommended ones already ticked.
 - Archive a group root once all its subtasks are done or rejected.
 - Read a card's mockups on its page: a card that changes a screen can carry small files that
@@ -284,3 +287,59 @@ except where another doc is named.
   ends badly, a note across the top says so and names `akb changelog <version>` as the way to
   get the changelog after all. Reading the changelog itself is still a matter of opening the
   summary file: "Closing one" in the UI docs.
+
+- Each delivery now builds in a git worktree and branch of its own — `.akb/worktrees/<card>/<delivery>`
+  on `card/<card>/<delivery>` — so several cards can be built at once without touching each other or
+  your open edits, and the board's own files stay out of them. A delivery refuses to start on
+  uncommitted work or a detached HEAD; **Discard delivery** on the card page is the only thing that
+  removes a worktree, and it says what will be lost first. Turn **Allow automatic Git commits** off
+  in Configuration → Auto-delivery and a delivery works in your project folder instead, one at a
+  time, and you commit it after review passes: "Where a delivery's code goes" and "Auto-delivery" in
+  the UI docs.
+
+- Once review passes, the board now **lands** the delivery itself: one squash commit named after
+  the card, on the branch you were on when you pressed Implement. One card lands at a time; your
+  own uncommitted or staged work holds a landing back until the checkout is clean, and it lands
+  by itself once it is. When that branch is the one you have out, your working tree follows it as
+  a `git pull` would; otherwise only the branch moves. A target branch that moved is rebased onto
+  and reviewed again, a conflict is resolved as new work by an agent and reviewed from scratch,
+  and the worktree and branch are removed once it has landed. Nothing is pushed anywhere:
+  "Landing on your branch" in the UI docs.
+
+- One Implement click now carries a card all the way: it builds, reviews, corrects, lands the
+  work as one commit on your branch, and then the board archives the card itself — nothing asks
+  you again in between, and no review archives a card any more. The Implement dialog says the
+  steps in order and names the branch the change will land on, or says instead that the delivery
+  stops after review when manual commit mode is on, where the card is archived on your own commit:
+  "Delivery" and "Landing on your branch" in the UI docs.
+
+- Building a card that still has **open questions** is allowed, with a third warning box and its
+  own tick, beside **Resolve & implement** as the other way out. The card is built and reviewed and
+  then holds outside the landing queue — taking no landing slot, so every other card still lands —
+  until the questions are answered; answering carries the same delivery on with no second click,
+  and an answer that changed what the card asks for starts a fresh delivery instead. `akb implement
+  <id>` warns the same way a blocker does: "Building a card with open questions" in the UI docs.
+
+- The card page now says where a delivery has got to, not just where its code is: a pill beside
+  the title — **Delivery in progress**, **Held at landing**, **Waiting for your commit**, **Code
+  changed after review**, **Landed as `abc123`** — with one line under it naming what the delivery
+  waits on and what answers it. A pause has nothing to press, and the block under the buttons is
+  now the delivery's own: a Diff / Log / Approval tab strip with the log in it, and a foot naming
+  the delivery, how it commits and where its code is. **Resolve** stays live whenever a delivery is
+  waiting on you: "What the card page says while a delivery runs" in the UI docs.
+
+- The Configuration dialog has a **Rules** section: one rule, in your own words, added to the end
+  of any flow's instructions — a column naming every flow the board can start, with a dot on the
+  ones in use, beside one tall box for whichever you click. `implement` and `review` say under the
+  box what their rule is for and what it can cost. Saving is per flow, on blur; clearing a box
+  removes the rule. The rules are files in your board, shared through git with everyone on it:
+  "Flow rules" in the UI docs.
+
+- The card page's **Diff** tab now says what a delivery changed. While the card is being built it
+  is the delivery's own branch against the commit it forked from, read in its worktree; once the
+  work has landed it is the squash commit against the branch tip it landed onto — which is also
+  the one commit to revert if the card has to go. Manual commit mode shows a snapshot of your
+  working tree marked **uncommitted**, with the files git has never seen counted in. The size line
+  leads, a long diff is cut off naming the `git diff` that prints all of it, and a case it cannot
+  read — no git, a worktree someone removed, a commit that is gone — is one plain line rather than
+  an error. The tab appears only when there is a diff: "The Diff tab" in the UI docs.

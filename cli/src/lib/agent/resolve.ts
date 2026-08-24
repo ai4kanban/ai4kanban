@@ -210,7 +210,7 @@ function settingArgs(resolved: ResolvedHarness): string[] {
 //
 // The keys go in the environment and never in the command: argv is spawned as written and
 // would put a key in every process list on the machine.
-function runEnv(resolved: ResolvedHarness): NodeJS.ProcessEnv {
+function runEnv(resolved: ResolvedHarness, cwd = REPO_ROOT): NodeJS.ProcessEnv {
   const { harness, values } = resolved
   const picked = activeProviderOf(resolved)
   const env: NodeJS.ProcessEnv = { ...harness.env() }
@@ -232,7 +232,7 @@ function runEnv(resolved: ResolvedHarness): NodeJS.ProcessEnv {
   // variable a shell would have set alongside, and some CLIs read that instead of asking
   // the OS — an agent inheriting the caller's PWD reports the caller's folder even though
   // its own cwd is the project (agent/harnesses/types.ts, WORKING FOLDER).
-  return { ...env, PWD: REPO_ROOT, ...(picked?.env ?? {}) }
+  return { ...env, PWD: cwd, ...(picked?.env ?? {}) }
 }
 
 // Every variable the provider pick owns, and so every variable a run has dropped before
@@ -274,6 +274,10 @@ export interface RunPlan {
   /** The command that installs this agent's CLI — what to say when the spawn fails
    *  because the binary isn't there. */
   install: string
+  /** The folder this run works in. The project itself for everything but a delivery with
+   *  a worktree of its own (#303), which works in that worktree. Written down with the
+   *  plan so the spawn, the connector's own folder flag and `PWD` are one answer. */
+  cwd?: string
 }
 
 /** Everything one run needs at the moment it spawns. Exactly one of `renderer` and
@@ -290,16 +294,18 @@ export interface ActiveRun extends RunPlan {
   quietStderr?: (line: string) => boolean
 }
 
-/** Work out how to start a fresh run under the agent the board is set to. */
-export function planRun(sessionId: string): RunPlan {
+/** Work out how to start a fresh run under the agent the board is set to. `cwd` is the
+ *  folder it works in — the project, or a delivery's own worktree (#303). */
+export function planRun(sessionId: string, cwd = REPO_ROOT): RunPlan {
   const resolved = resolveHarness()
   const { harness, command } = resolved
   const argv = command.split(/\s+/).filter(Boolean)
   return {
     harness: harness.name,
-    argv: [...argv, ...settingArgs(resolved), ...harness.extraArgs(argv, sessionId, REPO_ROOT)],
+    argv: [...argv, ...settingArgs(resolved), ...harness.extraArgs(argv, sessionId, cwd)],
     resumeId: harness.adoptsSessionId ? sessionId : null,
     install: harness.install,
+    cwd,
   }
 }
 
@@ -310,18 +316,19 @@ export function planRun(sessionId: string): RunPlan {
  *  Null when this can't be done: the agent doesn't resume at all, or the run being resumed
  *  belongs to another agent. That last rule is why the name is checked — resuming a Claude
  *  Code conversation with a different CLI would hand it an id that means nothing there. */
-export function planResume(harnessName: string, resumeId: string): RunPlan | null {
+export function planResume(harnessName: string, resumeId: string, cwd = REPO_ROOT): RunPlan | null {
   const resolved = resolveHarness()
   const { harness, command } = resolved
   if (!harness.resumes || harness.name !== harnessName) return null
   const argv = command.split(/\s+/).filter(Boolean)
   return {
     harness: harness.name,
-    argv: [...argv, ...settingArgs(resolved), ...harness.resumeArgs(argv, resumeId, REPO_ROOT)],
+    argv: [...argv, ...settingArgs(resolved), ...harness.resumeArgs(argv, resumeId, cwd)],
     // The resumed turn runs under the id it resumed, so this run can be resumed again by
     // the same id — a failure two turns deep is still recoverable.
     resumeId,
     install: harness.install,
+    cwd,
   }
 }
 
@@ -333,7 +340,7 @@ export function openPlan(plan: RunPlan): ActiveRun {
   const { harness } = resolved
   return {
     ...plan,
-    env: runEnv(resolved),
+    env: runEnv(resolved, plan.cwd ?? REPO_ROOT),
     renderer: harness.renderer?.(),
     // The client is handed the settings that are actually in effect — the same ones that
     // would have reached the run as flags, minus whatever the picked provider doesn't
