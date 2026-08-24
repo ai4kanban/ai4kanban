@@ -373,7 +373,7 @@ export function BoardView({
     if (seen.status === "done") return;
     setChangelogGone({
       release: changelogRun.release,
-      why: seen.status === "stopped" ? "the run was stopped" : "the run didn't finish",
+      why: seen.status === "stopped" ? "the session was stopped" : "the session didn't finish",
     });
   }, [sessions, changelogRun]);
 

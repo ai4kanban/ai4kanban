@@ -258,6 +258,33 @@ export const MOVES: Move[] = [
     ],
   },
   {
+    name: 'review-verdict',
+    group: 'Cards',
+    brief: [
+      [
+        'review-verdict <id>',
+        'record a review\'s verdict on the delivery in flight:\n--verdict pass|correct|ask, findings in --file <path>',
+      ],
+    ],
+    legacy: [
+      [
+        'review-verdict <id> --verdict pass|correct|ask',
+        [
+          "record what a review made of the delivery in flight on that card,",
+          'so the delivery knows whether to finish, correct, or stop and ask.',
+          'pass — the candidate meets the approved card. correct — it plainly',
+          'does not, and the findings say how. ask — only the user can settle',
+          'it. correct and ask carry the findings: --file <path> (markdown,',
+          'written to a file first), or --text ".." for a one-liner. Write each',
+          'one as `- **<short title>**: <evidence>` — the title is its identity,',
+          'and the same title coming back after a correction stops the delivery.',
+          'Calling it twice in one session replaces the first verdict. A review',
+          'session that never calls it stops the delivery and asks the user.',
+        ],
+      ],
+    ],
+  },
+  {
     name: 'spec-write',
     group: 'Cards',
     brief: [['spec-write <id> <agent>', "write a spec agent's own section onto the card:\n--file <path>, or --text \"..\"; --half human|agent"]],

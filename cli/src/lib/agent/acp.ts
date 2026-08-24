@@ -398,7 +398,7 @@ function decide(params: Json, tail: ReturnType<typeof createTail>): Json {
   const options = Array.isArray(params.options) ? params.options : []
   const no = options.map(obj).find((option) => str(option.kind).startsWith('reject'))
   const title = str(obj(params.toolCall).title) || 'that'
-  tail.line(`[refused] ${title} — a run reaches no further than this project`)
+  tail.line(`[refused] ${title} — a session reaches no further than this project`)
   if (!no) return { outcome: { outcome: 'cancelled' } }
   return { outcome: { outcome: 'selected', optionId: no.optionId } }
 }

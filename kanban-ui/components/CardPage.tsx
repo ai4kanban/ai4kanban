@@ -19,6 +19,7 @@ import {
   FiXCircle,
 } from "react-icons/fi";
 import {
+  cancelDeliveryAction,
   dropVerifyAction,
   patchCardAction,
   scheduleCardAction,
@@ -29,6 +30,7 @@ import {
   NO_RELEASE,
   type AgentInfo,
   type Card,
+  type CardDelivery,
   type CardPatch,
   type MemoryModule,
   type ScheduledAction,
@@ -277,6 +279,91 @@ function visibleActions(card: Card): Set<CardButton> {
   return buttons;
 }
 
+// ---- the delivery in flight (#301) -------------------------------------------
+//
+// A delivery is the whole job one Implement click starts, and it builds the card exactly as
+// it was approved when it started. So while one is in flight the card is held: the five
+// controls that would rewrite the approved sections or take the card off the board are off,
+// and each says why in the same words. What takes the card back is Cancel delivery, which
+// stands where Implement did.
+//
+// The card page does NOT compare the live card against what the delivery captured. A hand
+// edit in the user's own editor still reaches the file and changes nothing for the delivery
+// — it is building from its copy — so the honest thing to say is what it IS building, which
+// is what the held controls say, before the edit is made rather than after.
+const heldNote = (delivery: CardDelivery): string =>
+  delivery.waiting
+    ? `Delivery ${delivery.id} has stopped and is waiting on you — ${delivery.waiting}. ` +
+      `Answer the question it left, then Review again. Cancel delivery to take the card back.`
+    : `Delivery ${delivery.id} is in progress — it is building this card as it was approved when it started. ` +
+      `Cancel delivery to take the card back.`;
+
+// The card's one mark while a delivery holds it and nothing is running inside it — its
+// last session failed or was cut off, and the job is still open. Ember, like the running
+// badge, because the job is still in flight; no pulse, because nothing is working.
+function DeliveryPill({ label, tone }: { label: string; tone: "live" | "ended" }) {
+  const live = tone === "live";
+  return (
+    <span
+      className="nb-chip nb-tip"
+      tabIndex={0}
+      data-tip={label}
+      style={{
+        background: live ? "var(--color-nb-accent-soft)" : "var(--color-nb-sky-soft)",
+        color: live ? "var(--color-nb-accent-deep)" : "var(--color-nb-sky-ink)",
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// Cancel delivery: Implement's place while one is in flight. It stops the running session,
+// ends the delivery as cancelled, unlocks the card and brings Implement back — so it asks
+// for a second click first, the same confirm a cross-off asks for. Whatever the delivery
+// wrote is left where it is.
+function CancelDelivery({
+  delivery,
+  onCancelled,
+  onError,
+}: {
+  delivery: CardDelivery;
+  onCancelled: () => void;
+  onError: (why: string) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!confirming) return;
+    const timer = setTimeout(() => setConfirming(false), CONFIRM_MS);
+    return () => clearTimeout(timer);
+  }, [confirming]);
+
+  const cancel = async () => {
+    setConfirming(false);
+    setBusy(true);
+    const res = await cancelDeliveryAction(delivery.id);
+    setBusy(false);
+    if (!res.ok) onError(res.error || "could not cancel the delivery");
+    else onCancelled();
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      disabled={busy}
+      title={`Delivery ${delivery.id} — end it, stop what it is running, and take the card back. What it has written stays.`}
+      style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
+      onClick={() => (confirming ? void cancel() : setConfirming(true))}
+    >
+      <FiXCircle className="text-[15px]" aria-hidden />
+      {confirming ? "Cancel it — the card comes back" : "Cancel delivery"}
+    </Button>
+  );
+}
+
 // One meta column: micro-caption stacked over its value. Columns flow
 // horizontally and wrap, so the box stays one shallow band instead of a tall
 // stack of full-width rows. Every value is chip-height, so rows self-align.
@@ -380,6 +467,22 @@ export function CardPage({
   const busy = running.has(card.id);
   // The session itself, so the badge can name the action in flight (refining, etc.).
   const liveSession = runningSessionForCard(sessions, card.id);
+  // The delivery in flight on this card, read off the card the server rendered — so the
+  // hold stands BETWEEN a delivery's sessions too, which is exactly when `busy` is false
+  // and the card would otherwise read as free.
+  const delivery = card.delivery;
+  const held = !!delivery;
+  const heldWhy = delivery ? heldNote(delivery) : "";
+  // A delivery whose review stopped is waiting on the question it left here (#302).
+  // Answering is the way on, so Resolve stays live while every other held control is off —
+  // the same one exception the CLI makes.
+  const waiting = delivery?.waiting;
+  // The session this delivery would start if you asked it to: another review once its
+  // question is answered, or the one its watcher died before starting.
+  const carryOn = waiting ? "review" : delivery?.next;
+  // One test for every control the hold covers: a session on this card, or a delivery on it.
+  const off = busy || held;
+  const offUnlessAsked = busy || (held && !waiting);
   const { total, done } = card.todos;
   const actions = visibleActions(card);
 
@@ -392,6 +495,10 @@ export function CardPage({
   // The card is then possibly part-built, which is a thing to learn on arriving at the
   // page, not on clicking around it.
   const unfinished = stoppedShort(latestSession);
+  // The newest session on this card belonged to a delivery somebody cancelled. Worth saying
+  // once, beside the title: the work it left is still in the tree, and nothing is coming
+  // back to finish it.
+  const cancelled = latestSession?.delivery?.status === "cancelled";
   // Open the log by itself in the two cases where its contents are the news: a run
   // just started here, and a run that stopped short. Each fires once on the change,
   // so shutting the window afterwards holds.
@@ -507,7 +614,25 @@ export function CardPage({
               </span>
               <h1 className="text-[20px] font-[800] tracking-[-0.02em] leading-tight">{card.title}</h1>
               {busy ? (
-                <RunningBadge label={liveSession ? `${RUNNING_VERB[liveSession.action]} this card…` : "working…"} />
+                <RunningBadge
+                  label={
+                    liveSession
+                      ? `${RUNNING_VERB[liveSession.action]} this card${delivery ? ` — delivery ${delivery.id}` : ""}…`
+                      : "working…"
+                  }
+                />
+              ) : delivery ? (
+                // A delivery whose session ended without finishing. It still holds the
+                // card, and Resume or Cancel delivery is what moves it on — unless its
+                // review stopped, in which case the move is to answer its question.
+                <DeliveryPill
+                  label={waiting ? `delivery ${delivery.id} waiting on you` : `delivery ${delivery.id} in progress`}
+                  tone="live"
+                />
+              ) : cancelled ? (
+                // The last delivery on this card was cancelled. The card is free again, and
+                // saying "stopped" here would name the session and hide what happened.
+                <DeliveryPill label="delivery cancelled" tone="ended" />
               ) : card.schedule ? (
                 // Waiting on its blockers, with a run already queued (#140) — the mark
                 // stands in for the stage, and says what will run and what it waits for.
@@ -520,19 +645,32 @@ export function CardPage({
             {/* toolbar — the state machine (visibleActions) decides which buttons
                 fit the card's state; busy still disables every one that shows. */}
             <div className="mb-5 flex flex-wrap items-center gap-2">
-              {actions.has("implement") && (
-                <Button size="sm" disabled={busy} onClick={() => setDialog({ kind: "implement", card })}>
-                  <FiPlay className="text-[15px]" aria-hidden />
-                  Implement
-                </Button>
+              {/* Implement, or — while a delivery is in flight — Cancel delivery in its
+                  place. Never both: one starts the job, the other ends it. */}
+              {delivery ? (
+                <CancelDelivery
+                  delivery={delivery}
+                  onCancelled={() => {
+                    router.refresh();
+                    kick();
+                  }}
+                  onError={setError}
+                />
+              ) : (
+                actions.has("implement") && (
+                  <Button size="sm" disabled={busy} onClick={() => setDialog({ kind: "implement", card })}>
+                    <FiPlay className="text-[15px]" aria-hidden />
+                    Implement
+                  </Button>
+                )
               )}
               {/* Run (#64) — Implement's place on a recurring card. Same ember CTA:
                   it is the one thing you came to this card to do. */}
               {actions.has("run") && (
                 <Button
                   size="sm"
-                  disabled={busy}
-                  title="Do one pass of this recurring task now"
+                  disabled={off}
+                  title={held ? heldWhy : "Do one pass of this recurring task now"}
                   onClick={() => setDialog({ kind: "run", card })}
                 >
                   <FiPlay className="text-[15px]" aria-hidden />
@@ -548,11 +686,13 @@ export function CardPage({
                 <Button
                   variant="ghost"
                   size="sm"
-                  disabled={busy}
+                  disabled={off}
                   title={
-                    busy && liveSession
-                      ? `Already ${RUNNING_VERB[liveSession.action]} this card`
-                      : "Take this card's plan one step forward now"
+                    held
+                      ? heldWhy
+                      : busy && liveSession
+                        ? `Already ${RUNNING_VERB[liveSession.action]} this card`
+                        : "Take this card's plan one step forward now"
                   }
                   onClick={() => setDialog({ kind: "refine", card })}
                 >
@@ -561,19 +701,47 @@ export function CardPage({
                 </Button>
               )}
               {actions.has("edit") && (
-                <Button variant="ghost" size="sm" disabled={busy} onClick={() => setDialog({ kind: "edit", card })}>
+                <Button variant="ghost" size="sm" disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "edit", card })}>
                   <FiEdit2 className="text-[15px]" aria-hidden />
                   Edit
                 </Button>
               )}
               {actions.has("resolve") && (
-                <Button variant="ghost" size="sm" disabled={busy} onClick={() => setDialog({ kind: "resolve", card })}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={offUnlessAsked}
+                  title={held ? heldWhy : undefined}
+                  onClick={() => setDialog({ kind: "resolve", card })}
+                >
                   <FiHelpCircle className="text-[15px]" aria-hidden />
                   Resolve
                 </Button>
               )}
+              {/* Review again / Continue delivery (#302). The first is offered while a
+                  delivery is waiting on the question its review left — answer it, or write
+                  the exception you are approving under ## Worth noting after
+                  implementation, and this judges the same work afresh. The second is the
+                  way back for a delivery whose next session never started because the
+                  process watching it died. */}
+              {carryOn && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy}
+                  title={
+                    waiting
+                      ? "Judge what this delivery built again, now that you have answered"
+                      : `This delivery never started its ${carryOn} session — start it now`
+                  }
+                  onClick={() => void runAgent({ action: carryOn, id: card.id }, carryOn)}
+                >
+                  <FiCheckCircle className="text-[15px]" aria-hidden />
+                  {waiting ? "Review again" : "Continue delivery"}
+                </Button>
+              )}
               {actions.has("archive") && (
-                <Button variant="ghost" size="sm" disabled={busy} onClick={() => setDialog({ kind: "archive", card })}>
+                <Button variant="ghost" size="sm" disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "archive", card })}>
                   <FiArchive className="text-[15px]" aria-hidden />
                   Archive
                 </Button>
@@ -583,7 +751,8 @@ export function CardPage({
                   variant="ghost"
                   size="sm"
                   className="ml-auto"
-                  disabled={busy}
+                  disabled={off}
+                  title={held ? heldWhy : undefined}
                   style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
                   onClick={() => setDialog({ kind: "reject", card })}
                 >

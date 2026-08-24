@@ -52,6 +52,7 @@ export type * from './lib/skill/types'
 // copy of the words each run sends the agent. Nothing here is a second implementation of
 // anything the commands do.
 export {
+  cancelDelivery,
   getRun,
   listRuns,
   markSpawned,
@@ -60,6 +61,10 @@ export {
   stopRun,
   titleOf,
 } from './lib/agent/sessions'
+// A delivery (#301): the whole job one Implement click starts, several sessions long. The
+// board reads the live rows to hold a card still and to say what is building it; the
+// permanent record is one file per delivery under docs/kanban/deliveries/.
+export { activeDelivery, heldByDelivery, listDeliveries } from './lib/agent/deliveries'
 export { spawnWatcher } from './lib/agent/launch'
 export { buildPrompt } from './lib/agent/prompts'
 
@@ -73,7 +78,7 @@ export { chatAgent } from './lib/agent/resolve'
 export { agentInfo, activeSettings, setupInstruction, settingSaveError } from './lib/agent/resolve'
 export { setHarness, setHarnessSetting, setSecret } from './lib/agent/settings'
 export { testConnection } from './lib/agent/test'
-export { setBoardRoot } from './lib/paths'
+export { ensureAkbDir, setBoardRoot } from './lib/paths'
 
 // The spec agents (#191): the list a screen draws — each one's two lines and whether it is
 // switched on — and the switch itself. The words and the order are the board's own, so the

@@ -11,7 +11,6 @@ export type RefinementStep = 'refine' | 'resolve' | 'done'
 
 export interface BoardMark {
   wrote: string
-  reviewed: string
   blocked: boolean
 }
 
@@ -40,12 +39,9 @@ const subtaskLinesToIds = (body: string): string => {
 // The line dividing a card's two halves ("Card format" in `akb guide board`).
 const MARKER = /^<!--\s*agent\s*-->$/
 
-// What a pass has to read again, as a bag of lines: sorted, with the boundary marker
-// dropped. A refine repairing an old card's shape moves its sections into the two halves
-// without touching a word, and that is not a plan to re-approve — compared line for line it
-// would send every reshaped `ready` card back to `todo`. The cost is that reordering
-// `## Todo` steps also reads as no change; it leaks one way only, leaving a card `ready`
-// rather than demoting it for nothing.
+// The body as a sorted bag of lines, marker dropped: a repair that only moves sections
+// between the halves reads as no change, so the loop spends no session on it. The cost is
+// that reordering `## Todo` steps reads as no change too.
 const asMoved = (body: string): string[] =>
   body
     .split('\n')
@@ -53,8 +49,12 @@ const asMoved = (body: string): string[] =>
     .filter((line) => line.trim() && !MARKER.test(line.trim()))
     .sort()
 
-const reviewedOf = (card: Card): string =>
+// Did this run change the card at all — the loop's only question. Any edit counts: a rule
+// guessing which ones were substantive would be a second, quieter opinion about the
+// judgment the pass already made by closing ("Close the pass" in `akb guide refine`).
+const wroteOf = (card: Card): string =>
   JSON.stringify([
+    card.status,
     card.relPath,
     card.title,
     card.track,
@@ -67,13 +67,6 @@ const reviewedOf = (card: Card): string =>
     card.modules,
     asMoved(card.isGroup ? subtaskLinesToIds(card.body) : card.body),
   ])
-
-// Whether the loop has another pass to spend is not decided here. Any edit at all reads as a
-// change, and a pass that reviewed the card and found the plan sound is the pass that says
-// so, by marking it `ready` ("Close the pass" in `akb guide refine`). The board only reports
-// a loop that ended without one — a rule guessing which edits were substantive would be a
-// second, quieter opinion about a judgment the pass already made.
-const wroteOf = (card: Card): string => JSON.stringify([card.status, reviewedOf(card)])
 
 const currentCard = (cardId: number): Card | undefined => {
   try {
@@ -88,11 +81,7 @@ export function markBoard(): BoardMarks {
     return new Map(
       allCards().map((card) => [
         card.id,
-        {
-          wrote: wroteOf(card),
-          reviewed: reviewedOf(card),
-          blocked: card.openBlockers.length > 0,
-        },
+        { wrote: wroteOf(card), blocked: card.openBlockers.length > 0 },
       ]),
     )
   } catch {
@@ -118,12 +107,6 @@ export function startRefinement(
   const step = refinementStep(card)
   if (step === 'done') return { error: `a refine would not move #${card.id}` }
   return startRun({ ...req, action: step, refineRound: 1 })
-}
-
-export function refinementNeedsApproval(cardId: number, before: BoardMarks): boolean {
-  const was = before.get(cardId)
-  const card = currentCard(cardId)
-  return !!was && !!card && card.status === 'ready' && was.reviewed !== reviewedOf(card)
 }
 
 /** The next pass in this loop — or `'capped'`, which is a stop with a card still changing

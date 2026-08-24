@@ -67,3 +67,14 @@ date,event,card,detail
 2026-08-23,card-created,307,asked
 2026-08-23,card-created,308,asked
 2026-08-23,card-created,309,asked
+2026-08-24,question-closed,301,board
+2026-08-24,question-closed,301,board
+2026-08-24,card-archived,301,asked
+2026-08-24,decisions-stood,301,35
+2026-08-24,decisions-overruled,301,5
+2026-08-24,question-closed,302,user
+2026-08-24,question-closed,302,board
+2026-08-24,card-archived,302,asked
+2026-08-24,decisions-stood,302,21
+2026-08-24,decisions-overruled,302,0
+2026-08-24,card-created,310,asked

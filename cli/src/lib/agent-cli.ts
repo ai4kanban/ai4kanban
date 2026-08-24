@@ -24,7 +24,7 @@ import { KANBAN, setBoardRoot } from './paths'
 import { cmdAgent } from '../commands/agent'
 import { cmdChat } from '../commands/chat'
 import { cmdGuide } from '../commands/guide'
-import { cmdLog, cmdResume, cmdRuns, cmdStartRun, cmdStop, cmdWatch } from '../commands/run'
+import { cmdCancel, cmdLog, cmdResume, cmdRuns, cmdStartRun, cmdStop, cmdWatch } from '../commands/run'
 import { cmdSpec } from '../commands/spec'
 import { agentManual } from './agent/manual'
 import type { AgentAction } from './agent/types'
@@ -35,6 +35,11 @@ import type { MoveResult } from './types'
 // it under, and both go to the same run.
 const RUNS: Record<string, AgentAction> = {
   implement: 'implement',
+  // The two sessions a delivery runs after its build (#302). The board starts each one
+  // itself as the delivery moves; typed by hand they put a delivery that has stopped back
+  // in motion — after an approved exception, or after a watcher died mid-delivery.
+  review: 'review',
+  correct: 'correct',
   run: 'run',
   refine: 'refine',
   resolve: 'resolve',
@@ -61,6 +66,9 @@ const OTHER: Record<string, (args: string[], program: string) => MoveResult | Pr
   log: cmdLog,
   stop: cmdStop,
   resume: cmdResume,
+  // Ends a DELIVERY, where `stop` ends one session of it. The two are not the same word:
+  // stopping a session leaves the delivery in flight and the card still held.
+  cancel: cmdCancel,
   agent: (args) => cmdAgent(args),
 }
 

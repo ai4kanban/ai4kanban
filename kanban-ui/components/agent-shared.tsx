@@ -123,6 +123,9 @@ export function RunningBadge({
 // read — refine/resolve don't need their own saved status to be visible.
 export const RUNNING_VERB: Record<AgentAction, string> = {
   implement: "implementing",
+  // The two sessions a delivery runs after its build (#302).
+  review: "reviewing",
+  correct: "correcting",
   run: "running",
   edit: "editing",
   refine: "refining",
@@ -277,7 +280,7 @@ export function SessionLog({
       text: cost,
       dim: true,
       title:
-        "Worked out from this run's tokens at list prices. It's what the run would cost to buy — not what you were billed; on a subscription plan a run isn't charged on its own.",
+        "Worked out from this session's tokens at list prices. It's what the session would cost to buy — not what you were billed; on a subscription plan a session isn't charged on its own.",
     });
   }
   // The model the agent itself said it was running, shown exactly as it said it
@@ -289,7 +292,7 @@ export function SessionLog({
       key: "model",
       text: session.model,
       dim: true,
-      title: "The model this run reported it was working with.",
+      title: "The model this session reported it was working with.",
     });
   }
 
@@ -336,7 +339,7 @@ export function SessionLog({
             <p
               className="m-0 mt-2 tabular-nums text-nb-ink-soft opacity-80"
               style={MONO_TEXT}
-              title="This run's token counts, as the agent reported them: fresh input, prompt-cache writes and reads, and output."
+              title="This session's token counts, as the agent reported them: fresh input, prompt-cache writes and reads, and output."
             >
               {formatTokens(session.usage)}
             </p>
@@ -364,7 +367,7 @@ export function SessionLog({
       <span className="mr-1" aria-hidden>
         ⚠
       </span>
-      This run stopped short, so the card may be part-built — whatever it wrote is sitting in
+      This session stopped short, so the card may be part-built — whatever it wrote is sitting in
       your working tree.{carryOn ? " Resume carries it on from where it stopped." : ""}
     </p>
   );
@@ -515,7 +518,7 @@ export function ResumeButton({
         size="sm"
         onClick={resume}
         disabled={busy}
-        title="Continue this run's conversation where it failed"
+        title="Continue this session's conversation where it failed"
         // The same ghost sticker as the other quiet controls (header buttons,
         // dialog cancels), shrunk to meta-row scale — it sits inside full nb
         // panels, so it wears the ink frame + press shadow like everything else.
@@ -576,7 +579,7 @@ function StopButton({ sessionId }: { sessionId: string }) {
       // window. Say it and let the button be pressed again.
       if (!res.ok) {
         setAsked(false);
-        setError(res.error || "couldn't stop that run");
+        setError(res.error || "couldn't stop that session");
       }
     } catch (e) {
       setAsked(false);
@@ -596,9 +599,9 @@ function StopButton({ sessionId }: { sessionId: string }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Stop this run"
+        aria-label="Stop this session"
         aria-expanded={open}
-        title="Stop this run"
+        title="Stop this session"
         className="-my-0.5 grid size-[22px] cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[background-color,color,transform] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90"
       >
         <FiX className="text-[14px]" aria-hidden />
@@ -916,7 +919,7 @@ export function ActionDialog({
         <textarea
           className={INPUT}
           rows={3}
-          placeholder="Optional extra notes for this run…"
+          placeholder="Optional extra notes for this session…"
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
@@ -1202,7 +1205,7 @@ function CreateDialog({
               `akb guide propose`), not a UI limit. */}
           <PickerSection
             label="How many"
-            blurb="Tasks this run writes. More tasks means a longer run and a thinner idea each."
+            blurb="Tasks this session writes. More tasks means a longer session and a thinner idea each."
           >
             {Array.from({ length: PROPOSE_MAX }, (_, i) => i + 1).map((n) => (
               <button
@@ -1291,7 +1294,7 @@ const BOLDNESS_LEVELS: { key: Boldness; label: string; blurb: string }[] = [
   {
     key: "normal",
     label: "normal",
-    blurb: "A feature each — one card a session can finish. This is what a propose run does on its own.",
+    blurb: "A feature each — one card a session can finish. This is what a propose session does on its own.",
   },
   {
     key: "bold",

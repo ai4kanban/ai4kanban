@@ -1,17 +1,12 @@
-// The one record of what is running.
+// What is running, and the rules that decide what may start.
 //
-// It is a file — docs/kanban/.sessions.json — because the processes that need it are not
-// one process. A run started from a terminal, one started from a button, and one the board
-// started on its own all land in the same list, and the rules that keep two of them off
-// the same card hold across all three. Nothing is kept in memory between commands: every
-// read is a read of the file, and every write takes the record's own lock.
+// The record itself is a file — docs/kanban/.sessions.json — and agent/store.ts owns it.
+// This is everything around it: which session may start on which card, the bookkeeping
+// either side of one, and the delivery a session belongs to.
 //
-// The record's lock is NOT the board's writing lock. A run's bookkeeping calls board moves
-// — putting a card's stage back, stamping a recurring run — and those take the board lock
-// themselves, so holding it here would deadlock.
-//
-// Alongside it sits docs/kanban/.sessions/: one log per run, and, while a run is starting,
-// the plan it was started with. Both are the run's own; the record points at them.
+// Alongside the record sits docs/kanban/.sessions/: one log per session, and, while one is
+// starting, the plan it was started with. Both are the session's own; the record points at
+// them.
 
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
@@ -23,14 +18,23 @@ import { locate } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { quietly } from '../io'
 // pidAlive lives with the lock, which needs the same question answered about whoever holds it.
-import { pidAlive, withBoardLock, withLock } from '../lock'
-import { INDEX_LOCK, SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
-import { asUsage, durationLine, KEEP_LOGS, readLogTail, splitLog } from './log'
+import { pidAlive, withBoardLock } from '../lock'
+import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
+import {
+  activeDelivery,
+  endDelivery,
+  findDelivery,
+  joinActive,
+  joinDelivery,
+  settleDelivery,
+  syncAudit,
+} from './deliveries'
+import { durationLine, KEEP_LOGS, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumableHarness, type RunPlan } from './resolve'
+import { logPathOf, readRuns, readStore, withRuns, withStore } from './store'
 import type { AgentAction, AgentRequest, RunRecord, RunStatus, RunView, SpecAsk } from './types'
 
-/** How many finished runs the record keeps. The logs outlive them by the same count. */
-const KEEP_RUNS = 30
+export { logPathOf, readAction, readRuns, withRuns } from './store'
 
 // A run that has been written down but whose watcher hasn't reported its pid yet. Anything
 // older than this with no pid was never really started — the command died between writing
@@ -69,6 +73,8 @@ const VERB: Record<AgentAction, string> = {
   setup: 'set up',
   spec: 'specified',
   changelog: 'written up',
+  review: 'reviewed',
+  correct: 'corrected',
 }
 
 // The refusal a one-at-a-time action gets when one of its own is already going, where the
@@ -78,9 +84,18 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
   setup: 'this board is already being set up',
 }
 
-// A run's action maps to the saved stage it puts the card in while it goes. Only implement
-// sets one — the rest either refine the card or touch no resting card.
-const RUN_STATUS: Partial<Record<AgentAction, string>> = { implement: 'implementing' }
+// A run's action maps to the saved stage it puts the card in while it goes. Only a
+// delivery's own sessions set one — the rest either refine the card or touch no resting
+// card. Review and correction are the delivery still working, so the card reads the same
+// through all three.
+const RUN_STATUS: Partial<Record<AgentAction, string>> = {
+  implement: 'implementing',
+  review: 'implementing',
+  correct: 'implementing',
+}
+
+// The sessions a delivery is made of, in the order it runs them.
+const DELIVERY_ACTIONS = new Set<AgentAction>(['implement', 'review', 'correct'])
 
 /** Everything a watcher needs to start the run it was handed. Written beside the log so
  *  the command that starts a run and the process that runs it are not the same process. */
@@ -106,120 +121,17 @@ export interface StartResult {
 // reach git if a process is killed mid-write.
 export const RUN_IGNORE_LINES = [
   { line: '.sessions.json', comment: '# What is running on this machine, and what ran lately.' },
-  { line: '.sessions/', comment: "# One log per run — the agent's own output." },
+  { line: '.sessions/', comment: "# One log per session — the agent's own output." },
   { line: '.sessions.lock/', comment: '# The lock that record is written under.' },
-  { line: '.index.lock/', comment: '# Held by the one run at a time that may rewrite the board index.' },
+  { line: '.index.lock/', comment: '# Held by the one session at a time that may rewrite the board index.' },
 ]
 
-// ---- the file --------------------------------------------------------------
+// ---- the session's own files ------------------------------------------------
 
-export const logPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.log`)
 const specPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.plan.json`)
-// The spec agents a run asked for while it went, waiting for its watcher to start them.
+// The spec agents a session asked for while it went, waiting for its watcher to start them.
 const asksPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.asks.json`)
 
-// `auto-refine` was this action's name until refine became the loop and there was only one
-// of them. A board's history outlives a version, so an old record still reads.
-export const readAction = (action: unknown): AgentAction =>
-  action === 'auto-refine' ? 'refine' : (action as AgentAction)
-
-/** Every run the record holds, newest last. Reads only — no lock, because a half-written
- *  file is never what a reader sees: every write is atomic (write, then rename). */
-export function readRuns(): RunRecord[] {
-  let data: unknown
-  try {
-    data = JSON.parse(fs.readFileSync(SESSIONS, 'utf8'))
-  } catch {
-    return []
-  }
-  const box = data as { runs?: unknown; live?: unknown; finished?: unknown }
-  // `live`/`finished` is the shape the board UI's own registry wrote before the record
-  // became everyone's. Read so an upgrade mid-run keeps its history.
-  const raw = Array.isArray(box?.runs)
-    ? box.runs
-    : [...(Array.isArray(box?.live) ? box.live : []), ...(Array.isArray(box?.finished) ? box.finished : [])]
-  const runs: RunRecord[] = []
-  for (const entry of raw as Partial<RunRecord>[]) {
-    if (!entry || typeof entry.sessionId !== 'string' || !entry.sessionId) continue
-    runs.push({
-      sessionId: entry.sessionId,
-      cardId: typeof entry.cardId === 'number' ? entry.cardId : null,
-      action: readAction(entry.action),
-      status: asStatus(entry.status),
-      startedAt: typeof entry.startedAt === 'number' ? entry.startedAt : Date.now(),
-      endedAt: typeof entry.endedAt === 'number' ? entry.endedAt : undefined,
-      pid: typeof entry.pid === 'number' ? entry.pid : undefined,
-      input: typeof entry.input === 'string' ? entry.input : undefined,
-      ok: typeof entry.ok === 'boolean' ? entry.ok : undefined,
-      code: entry.code ?? null,
-      error: typeof entry.error === 'string' ? entry.error : undefined,
-      // A run that never reported a cost shows none, rather than a zero it didn't earn.
-      costUsd: typeof entry.costUsd === 'number' && entry.costUsd > 0 ? entry.costUsd : undefined,
-      usage: asUsage(entry.usage),
-      model: typeof entry.model === 'string' && entry.model ? entry.model : undefined,
-      result: typeof entry.result === 'string' ? entry.result : undefined,
-      note: typeof entry.note === 'string' && entry.note ? entry.note : undefined,
-      // A run written down before the agent was recorded carries no name, so it gets no
-      // resume: every agent resumes differently, and the one thing worse than a missing
-      // offer is a command for the wrong agent.
-      harness: typeof entry.harness === 'string' ? entry.harness : '',
-      resumeId: typeof entry.resumeId === 'string' ? entry.resumeId : undefined,
-      logPath: typeof entry.logPath === 'string' && entry.logPath ? entry.logPath : logPathOf(entry.sessionId),
-      resumedFrom: typeof entry.resumedFrom === 'string' ? entry.resumedFrom : undefined,
-      priorStatus: typeof entry.priorStatus === 'string' ? entry.priorStatus : undefined,
-      stopping: entry.stopping === true ? true : undefined,
-      specAgent: typeof entry.specAgent === 'string' && entry.specAgent ? entry.specAgent : undefined,
-      refineRound:
-        typeof entry.refineRound === 'number' && Number.isInteger(entry.refineRound) && entry.refineRound >= 0
-          ? entry.refineRound
-          : undefined,
-    })
-  }
-  return runs.sort((a, b) => a.startedAt - b.startedAt)
-}
-
-// A saved terminal state comes back as itself; anything unrecognized reads as `done`, the
-// one state that claims nothing beyond "it ended".
-function asStatus(value: unknown): RunStatus {
-  return value === 'running' || value === 'error' || value === 'interrupted' || value === 'stopped'
-    ? value
-    : 'done'
-}
-
-function writeRuns(runs: RunRecord[]): void {
-  const kept = prune(runs)
-  fs.mkdirSync(path.dirname(SESSIONS), { recursive: true })
-  const tmp = `${SESSIONS}.tmp`
-  fs.writeFileSync(tmp, JSON.stringify({ runs: kept }, null, 2) + '\n')
-  // Rename rather than write in place, so a reader never catches half a file.
-  fs.renameSync(tmp, SESSIONS)
-}
-
-// Bound the record: keep every live run and the newest KEEP_RUNS finished ones, and drop a
-// finished run whose log is already gone — its record would be a dead pointer.
-function prune(runs: RunRecord[]): RunRecord[] {
-  const live = runs.filter((r) => r.status === 'running')
-  const finished = runs
-    .filter((r) => r.status !== 'running' && fs.existsSync(r.logPath))
-    .sort((a, b) => b.startedAt - a.startedAt)
-    .slice(0, KEEP_RUNS)
-  return [...live, ...finished].sort((a, b) => a.startedAt - b.startedAt)
-}
-
-/** Read the record, change it, write it back — with its lock held the whole way. Every
- *  writer goes through this, so two processes never lose each other's change. */
-export function withRuns<T>(fn: (runs: RunRecord[]) => T): T {
-  return withLock(SESSIONS_LOCK, "writing this board's run list", () => {
-    const runs = readRuns()
-    const before = JSON.stringify(runs)
-    const out = fn(runs)
-    // Only write when something moved. Every read goes through here — a board UI polls it
-    // a couple of times a second — and rewriting the same file that often would be a lot
-    // of churn for nothing.
-    if (JSON.stringify(runs) !== before) writeRuns(runs)
-    return out
-  })
-}
 
 // ---- what is still alive ---------------------------------------------------
 
@@ -229,7 +141,7 @@ export function withRuns<T>(fn: (runs: RunRecord[]) => T): T {
 //
 // Unless a stop had already been asked for: then the process ending is the stop landing,
 // and the run is `stopped`.
-function reap(runs: RunRecord[]): boolean {
+function reap(runs: RunRecord[], reaped: RunRecord[] = []): boolean {
   let changed = false
   const now = Date.now()
   for (const r of runs) {
@@ -247,6 +159,10 @@ function reap(runs: RunRecord[]): boolean {
     r.endedAt = now
     stampDuration(r, r.endedAt)
     restoreCardStatus(r)
+    // A session cut off mid-delivery is settled outside this lock: a build that was cut
+    // off leaves the delivery ACTIVE and unfinished, and a review or a correction that was
+    // cut off stops the loop and asks (#302).
+    if (r.deliveryId) reaped.push({ ...r })
     dropSpec(r.sessionId)
     changed = true
   }
@@ -299,7 +215,15 @@ function cardNow(cardId: number): { status: string; questions: number; title: st
 export function claimCard(run: RunRecord): void {
   const wanted = run.cardId !== null ? RUN_STATUS[run.action] : undefined
   if (run.cardId === null || !wanted) return
-  run.priorStatus = cardNow(run.cardId)?.status ?? 'todo'
+  // Inside a delivery the stage to put back is the delivery's, taken before its first
+  // session touched the card. Reading it here would give every session after the build
+  // `implementing` — the stage the delivery itself put there — and the card would rest on
+  // it forever.
+  const delivery = run.deliveryId ? activeDelivery(run.cardId) : undefined
+  run.priorStatus =
+    (delivery && delivery.deliveryId === run.deliveryId ? delivery.priorStatus : undefined) ??
+    cardNow(run.cardId)?.status ??
+    'todo'
   setCardStatus(run.cardId, wanted)
 }
 
@@ -309,9 +233,19 @@ export function claimCard(run: RunRecord): void {
 // finished the task (archive/reject removed the card) this is a harmless no-op.
 function restoreCardStatus(run: RunRecord): void {
   if (run.cardId === null || !RUN_STATUS[run.action]) return
+  // A delivery still in flight is still building this card — its session ended, not the
+  // job — so the stage stays where the delivery put it until the delivery itself ends.
+  if (run.deliveryId && activeDelivery(run.cardId)?.deliveryId === run.deliveryId) return
   const card = cardNow(run.cardId)
   if (!card) return // archived or rejected — nothing to restore
   setCardStatus(run.cardId, card.questions > 0 ? 'todo' : run.priorStatus ?? 'todo')
+}
+
+// The card's stage when nothing is working on it any more, for the one path that has no
+// session to read a prior stage from: a delivery cancelled between its sessions. Questions
+// or not, a card nobody is building rests at `todo`.
+function releaseCard(cardId: number): void {
+  if (cardNow(cardId)?.status === 'implementing') setCardStatus(cardId, 'todo')
 }
 
 // Recording a recurring run is the board's own bookkeeping, not part of the job the card
@@ -366,10 +300,14 @@ function toView(r: RunRecord, resumable: string | null): RunView {
  *  writes: a run whose watcher died has to stop reading as live for everyone, not just for
  *  whoever noticed. */
 export function listRuns(): RunView[] {
+  const reaped: RunRecord[] = []
   const runs = withRuns((all) => {
-    reap(all)
+    reap(all, reaped)
     return all.map((r) => ({ ...r }))
   })
+  // A session reaped here ended out of everyone's sight, so this is where its delivery is
+  // told — and its permanent record is the only place that ending is written down.
+  for (const run of reaped) settleDelivery(run)
   const resumable = resumableHarness() // one settings read for the whole list
   return runs.map((r) => toView(r, resumable))
 }
@@ -464,8 +402,8 @@ export function heldByRun(cardId: number): string | undefined {
   )
   if (!live) return undefined
   return (
-    `#${cardId} is being ${VERB[live.action]} by run ${live.sessionId.slice(0, 8)} right now, ` +
-    `so the board won't change it. Wait for that run to end, or stop it.`
+    `#${cardId} is being ${VERB[live.action]} by session ${live.sessionId.slice(0, 8)} right now, ` +
+    `so the board won't change it. Wait for that session to end, or stop it.`
   )
 }
 
@@ -519,12 +457,28 @@ export function openRun(
     // Which spec agent this is, on the one action that has one — so the run list can name
     // it, and so a resume starts the same agent rather than a different one.
     specAgent: req.action === 'spec' ? req.specAgent : undefined,
-    refineRound: req.refineRound,
+    // A refine started without a round — a button, which posts the action and nothing else
+    // — is the first pass of a loop, not a run outside one (agent/refine.ts).
+    refineRound:
+      req.refineRound ?? (req.action === 'refine' || req.action === 'resolve' ? 1 : undefined),
   }
-  const out = withRuns<{ run: RunRecord } | { error: string }>((runs) => {
-    const locked = lockedBy(runs, req.action, cardId, req.release)
+  const out = withStore<{ run: RunRecord } | { error: string }>((store) => {
+    const locked = lockedBy(store.runs, req.action, cardId, req.release)
     if (locked) return { error: locked }
-    runs.push(record)
+    store.runs.push(record)
+    // A delivery's own sessions belong to a delivery — the one already in flight on this
+    // card, or, for a build, a new one opened here. Same transaction as the session it
+    // belongs to, so a delivery can never be left holding a card with nothing working on
+    // it. Review and correction join an existing delivery and never open one: there is
+    // nothing to review until something has been built.
+    if (cardId !== null && DELIVERY_ACTIONS.has(req.action)) {
+      if (req.action === 'implement') {
+        joinDelivery(store, record, req.title ?? cardNow(cardId)?.title ?? '', 'implement')
+      } else if (!joinActive(store, record, req.action)) {
+        store.runs.pop()
+        return { error: `no delivery is in flight on #${cardId}, so there is nothing to ${req.action}` }
+      }
+    }
     return { run: record }
   })
   if ('error' in out) return out
@@ -547,14 +501,14 @@ export function openResume(id: string): { run: RunRecord; spec: RunSpec } | { er
     return all.map((r) => ({ ...r }))
   })
   const prev = findRun(runs, id)
-  if (prev === null) return { error: `"${id}" matches more than one run — give more of the id` }
-  if (!prev) return { error: `no run here answers to "${id}"` }
-  if (prev.status === 'running') return { error: 'that run is still going' }
-  if (!canPickUp(prev)) return { error: 'only a failed, interrupted or stopped run can be continued' }
+  if (prev === null) return { error: `"${id}" matches more than one session — give more of the id` }
+  if (!prev) return { error: `no session here answers to "${id}"` }
+  if (prev.status === 'running') return { error: 'that session is still going' }
+  if (!canPickUp(prev)) return { error: 'only a failed, interrupted or stopped session can be continued' }
   const resumeId = resumeIdOf(prev)
-  if (!resumeId) return { error: 'that run never reported an id to continue by' }
+  if (!resumeId) return { error: 'that session never reported an id to continue by' }
   const plan = planResume(prev.harness, resumeId)
-  if (!plan) return { error: `the agent the board runs now can't continue a ${prev.harness || 'earlier'} run` }
+  if (!plan) return { error: `the agent the board runs now can't continue a ${prev.harness || 'earlier'} session` }
 
   const sessionId = randomUUID()
   const record: RunRecord = {
@@ -572,10 +526,21 @@ export function openResume(id: string): { run: RunRecord; spec: RunSpec } | { er
     specAgent: prev.specAgent,
     refineRound: prev.refineRound,
   }
-  const out = withRuns<{ run: RunRecord } | { error: string }>((all) => {
+  const out = withStore<{ run: RunRecord } | { error: string }>((store) => {
+    const all = store.runs
     const locked = lockedBy(all, prev.action, prev.cardId, prev.input)
     if (locked) return { error: locked }
     all.push(record)
+    // Resume carries the DELIVERY on, rather than starting a second one: one delivery id
+    // covers both sessions, and the flow is re-entered so each step checks its own
+    // precondition — the finished work is not done again, because the step that would
+    // redo it finds its precondition already met.
+    const delivery = store.deliveries.find((d) => d.deliveryId === prev.deliveryId && d.status === 'active')
+    if (delivery) {
+      delivery.sessions.push(record.sessionId)
+      delivery.steps.push({ step: 'resume', at: record.startedAt })
+      record.deliveryId = delivery.deliveryId
+    }
     // The new run has the conversation now, so the old record goes — after every refusal
     // above, never before one. A resume that couldn't start leaves the run it would have
     // continued exactly as it was.
@@ -584,6 +549,7 @@ export function openResume(id: string): { run: RunRecord; spec: RunSpec } | { er
     return { run: record }
   })
   if ('error' in out) return out
+  if (record.deliveryId) syncAudit(record.deliveryId)
   // The asks the run being taken over collected come with it. It never got as far as
   // starting them — that is why it is being resumed — and the flow asked once.
   const inherited = readSpecAsks(prev.sessionId)
@@ -698,6 +664,11 @@ export function closeRun(
     return { ...run }
   })
   if (!closed) return
+  // The delivery first: a session ending is a decision for the delivery it belongs to, and
+  // whether the delivery is over is what decides whether the card is still being built.
+  // Restoring the stage before that would read a delivery that was about to end as one
+  // still in flight, and leave the card at `implementing` with nothing working on it.
+  settleDelivery(closed)
   restoreCardStatus(closed)
   recordRecurringRun(closed)
   dropSpec(sessionId)
@@ -714,8 +685,8 @@ export function stopRun(id: string): StartResult {
   const out = withRuns((runs) => {
     reap(runs)
     const run = findRun(runs, id)
-    if (run === null) return { ok: false, error: `"${id}" matches more than one run — give more of the id` }
-    if (!run) return { ok: false, error: `no run here answers to "${id}"` }
+    if (run === null) return { ok: false, error: `"${id}" matches more than one session — give more of the id` }
+    if (!run) return { ok: false, error: `no session here answers to "${id}"` }
     if (run.status !== 'running') return { ok: true, sessionId: run.sessionId }
     run.stopping = true
     return { ok: true, sessionId: run.sessionId, pid: run.pid, live: true }
@@ -735,6 +706,35 @@ export function stopRun(id: string): StartResult {
     closeRun(live.sessionId!, { status: 'stopped', code: null })
   }
   return { ok: true, sessionId: live.sessionId }
+}
+
+/** Cancel a delivery: end it, stop whatever session it has running, and hand the card
+ *  back. Whatever the delivery wrote is left exactly where it is — the board never undoes
+ *  work; #303's **Discard delivery** is what reclaims a worktree.
+ *
+ *  Named by delivery id, by any prefix of one, or by the card it is building. Cancelling
+ *  one that has already ended is not an error: the button is drawn from a poll that can be
+ *  a second and a half stale.
+ *
+ *  The delivery is ended BEFORE the session is stopped, so the card is free from the first
+ *  moment and nothing can slip a second delivery in behind the stop. */
+export function cancelDelivery(id: string): { ok: boolean; deliveryId?: string; error?: string } {
+  const key = id.trim()
+  if (!key) return { ok: false, error: 'name the delivery to cancel' }
+  const byCard = /^#?\d+$/.test(key) ? activeDelivery(Number(key.replace('#', ''))) : undefined
+  const delivery = byCard ?? findDelivery(key)
+  if (!delivery) return { ok: false, error: `no delivery here answers to "${id}"` }
+  if (delivery.status !== 'active') return { ok: true, deliveryId: delivery.deliveryId }
+  endDelivery(delivery.deliveryId, 'cancelled')
+  // A delivery that has ended must not still be writing files.
+  const live = readRuns().find((r) => r.status === 'running' && r.deliveryId === delivery.deliveryId)
+  if (live) stopRun(live.sessionId)
+  // Whether or not there was one to stop: nothing is building this card now.
+  releaseCard(delivery.cardId)
+  // Last, so the permanent record carries how that session actually ended rather than the
+  // state it was in when the cancel arrived.
+  syncAudit(delivery.deliveryId)
+  return { ok: true, deliveryId: delivery.deliveryId }
 }
 
 // ---- the plan a watcher picks up -------------------------------------------

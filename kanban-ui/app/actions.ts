@@ -42,7 +42,7 @@ import {
   setReleaseGoal,
   setSchedule,
 } from "@/lib/edit";
-import { getSession, listSessions, resumeSession, startSession, type StartResult, stopSession } from "@/lib/registry";
+import { cancelDelivery, getSession, listSessions, resumeSession, startSession, type StartResult, stopSession } from "@/lib/registry";
 import { setSecret } from "@/lib/secrets";
 import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
 import { setSpecAgentEnabled, setSpecAgentSetting, specAgents } from "@/lib/spec-agents";
@@ -106,6 +106,11 @@ export async function searchCardsAction(query: string): Promise<CardRef[]> {
 // them whenever they want, not only after something else has run.
 const ACTIONS = new Set([
   "implement",
+  // The two sessions a delivery runs after its build (#302). The board starts each one
+  // itself; **Review again** on the card page starts a review when a delivery has stopped
+  // and its question has been answered.
+  "review",
+  "correct",
   // One pass of a recurring card (#64) — the Run button that stands in for Implement on a
   // card under todo/recurring/.
   "run",
@@ -192,6 +197,16 @@ export async function resumeSessionAction(sessionId: string): Promise<StartResul
 export async function stopSessionAction(sessionId: string): Promise<StartResult> {
   if (typeof sessionId !== "string" || !sessionId) return { ok: false, error: "no session given" };
   return stopSession(sessionId);
+}
+
+// Take a card back from the delivery in flight on it (#301): the delivery ends as
+// cancelled, its running session is stopped, the card unlocks, and Implement is offered
+// again. Whatever the delivery wrote stays in the working tree — the board never undoes
+// work. Named by delivery id, so a stale tab can't cancel the delivery that replaced the
+// one it was drawn from.
+export async function cancelDeliveryAction(deliveryId: string): Promise<StartResult> {
+  if (typeof deliveryId !== "string" || !deliveryId) return { ok: false, error: "no delivery named" };
+  return cancelDelivery(deliveryId);
 }
 
 // The shared run list, for the UI's poll. Every tab reads the same picture. The UI polls

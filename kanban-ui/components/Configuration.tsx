@@ -198,7 +198,7 @@ export function Configuration({
             <div hidden={section !== "harness"}>
               <PaneHeading
                 title="Default harness"
-                description="Choose the coding tool and model used for every board run."
+                description="Choose the coding tool and model used for every board session."
               />
               <HarnessPicker agent={agent} onError={onError} />
             </div>

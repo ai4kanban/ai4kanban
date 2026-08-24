@@ -93,6 +93,27 @@ export interface Subtask {
 }
 
 /** One open card, read whole. */
+/** The delivery in flight on a card, as the card page reads it: enough to hold the card's
+ *  controls still, say which delivery is doing it, and offer Cancel delivery.
+ *
+ *  Only an ACTIVE delivery reaches a card. What one built, and how it ended, is the record
+ *  under `docs/kanban/deliveries/`. */
+export interface CardDelivery {
+  id: string
+  startedAt: number
+  /** The session working right now, when one is. A delivery between sessions — its last one
+   *  failed or was cut off — has none, and still holds the card. */
+  sessionId?: string
+  /** Why the delivery's review stopped and is waiting on the user, in one plain sentence
+   *  (#302). It has put an open question on this card, so the card page says so and lets
+   *  Resolve through the hold — answering is the way on. */
+  waiting?: string
+  /** The session the delivery is due to start next and has not (#302). It is normally
+   *  gone in the same instant the watcher takes it; one that is still here belongs to a
+   *  delivery whose watcher died in between, and the card page offers to start it. */
+  next?: 'review' | 'correct'
+}
+
 export interface Card {
   id: number
   /** Path relative to `docs/kanban/todo/`, e.g. `features/07-local-kanban-ui.md`. */
@@ -153,6 +174,10 @@ export interface Card {
   /** For a subtask nested in a group folder: a link back up to the group root. Absent on a
    *  standalone card or a root. */
   parent?: CardRef
+  /** The delivery in flight on this card, when one is. While it is there the card is held:
+   *  Edit, Refine, Resolve, Reject and Archive are off, and Cancel delivery is what takes
+   *  the card back. Absent on every card nothing is building. */
+  delivery?: CardDelivery
 }
 
 export interface Column {

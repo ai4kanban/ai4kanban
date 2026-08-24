@@ -31,34 +31,22 @@ import { idPrefix, locate } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
-import { die, rel, CONFIG, GOAL, MEMORY, MODULES_MD, SETUP_CHECKLIST, TODO } from '../paths'
+import { die, rel, CONFIG, GOAL, KANBAN, MEMORY, MODULES_MD, SETUP_CHECKLIST, TODO } from '../paths'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
 import { moduleNames } from '../validate'
+import { candidateStat } from './candidate'
+import { activeDelivery } from './deliveries'
+import { MAX_CORRECTIONS, lastRound, openFindings } from './review'
 import { field, metaLine, numbered, trackNames } from './facts'
 import { buildPrompt } from './prompts'
 import { setupInstruction } from './resolve'
 import type { AgentAction, AgentRequest } from './types'
 
-/** The variable a run the board started puts on the agent it spawns, holding that run's id.
- *
- *  It is the one case where the mode is not the caller's to pick: an agent working inside a
- *  run that asks for a board action gets the flow printed, so a run can never spawn a copy
- *  of itself. Anywhere else, guessing from the environment would take away the background
- *  run a user deliberately asked for. */
-export const RUN_ENV = 'KANBAN_RUN'
-
-/** The run this process is working inside, when the board started it — otherwise null. */
-export function insideRun(): string | null {
-  const id = process.env[RUN_ENV]
-  return id && id.trim() ? id.trim() : null
-}
-
-/** Put the run's id into the environment its agent receives. */
-export function runEnv(env: NodeJS.ProcessEnv, value: string): NodeJS.ProcessEnv {
-  return { ...env, [RUN_ENV]: value }
-}
+// The session id an agent runs under. It lives in agent/env.ts, which imports nothing, so
+// the delivery lock can ask the same question without pulling this module in behind it.
+export { insideRun, runEnv, RUN_ENV } from './env'
 
 // How many of a card's remaining steps are printed before the rest are counted instead. A
 // long card's whole plan is in the file the flow names; the point here is to show what is
@@ -212,6 +200,109 @@ function stepsCount(card: CardFacts): string[] {
   )
 }
 
+// What the delivery in flight on this card was approved to build.
+//
+// A delivery takes a copy of the card's approved requirements when it starts and builds
+// from THAT, so a card edited underneath it never changes what it is building. So the flow
+// prints the copy, not the card as it reads now — and says which is which, because the two
+// sit next to each other on disk and only one of them is the job.
+//
+// `## Todo` is deliberately not in the copy: it is the one requirement-shaped section a
+// delivery writes to as it works, so it stays live and is printed from the card below.
+function approvedField(cardId: number): string[] {
+  const delivery = activeDelivery(cardId)
+  if (!delivery) return []
+  const approved = delivery.approved.trim()
+  return [
+    ...field('delivery', `${delivery.deliveryId} — you are working inside it`),
+    ...field(
+      'approved',
+      approved
+        ? [
+            'build THIS, not the card file as it reads now — it is the card as it was approved when',
+            'the delivery started, and the file may have moved on since:',
+            '',
+            ...approved.split('\n'),
+          ]
+        : 'nothing was captured when this delivery started — build the card as it reads',
+    ),
+  ]
+}
+
+// The code a delivery has built so far, and how to read it. The diff is NOT printed: it is
+// the whole of the work and can be enormous, and the reviewer has the repository open — so
+// the flow says where the base is and what to run, and how big the answer will be.
+function candidateField(cardId: number): string[] {
+  const delivery = activeDelivery(cardId)
+  if (!delivery) return []
+  if (!delivery.base) {
+    return field('candidate', [
+      'this project is not a git repository, so there is no base to diff against —',
+      'judge the working tree as it stands, and say so in your findings.',
+    ])
+  }
+  const stat = candidateStat(delivery.base)
+  return field('candidate', [
+    `everything this delivery changed is \`git diff ${delivery.base.slice(0, 12)}\`, plus the files`,
+    'git has never seen (`git ls-files --others --exclude-standard`).',
+    `the board's own files under ${rel(KANBAN)} are not the candidate — the card, the delivery record`,
+    'and the session state all move as a delivery works, and none of them is the code you are judging.',
+    ...(stat ? [`right now: ${stat}.`] : []),
+    'the working tree may hold changes this delivery did not make — say so rather than judging them.',
+  ])
+}
+
+// Where review stands on this delivery: what the last pass said, and how much correction is
+// left. A reviewer that has already been round twice is judging the same candidate for the
+// third time, and it should know that before it starts.
+function reviewField(cardId: number): string[] {
+  const delivery = activeDelivery(cardId)
+  const review = delivery?.review
+  if (!review?.rounds.length) return field('review', 'the first pass on this delivery — nothing has judged it yet')
+  const left = Math.max(0, MAX_CORRECTIONS - review.corrections)
+  const passes = review.rounds.map((r, i) => `${i + 1}. ${r.verdict}${r.findings.length ? ` — ${r.findings.map((f) => f.title).join('; ')}` : ''}`)
+  return field('review', [
+    `${review.rounds.length} pass${review.rounds.length === 1 ? '' : 'es'} so far:`,
+    ...passes.map((line) => `  ${line}`),
+    left
+      ? `${left} correction${left === 1 ? '' : 's'} left before the delivery stops and asks the user.`
+      : 'no correction left — anything you send back now stops the delivery and asks the user.',
+  ])
+}
+
+// The findings a correction session was started to fix, exactly as the review wrote them.
+function findingsField(cardId: number): string[] {
+  const delivery = activeDelivery(cardId)
+  const findings = delivery ? openFindings(delivery) : []
+  if (!findings.length) return field('findings', 'none recorded — there is nothing to correct')
+  const verdict = delivery ? lastRound(delivery)?.verdict : undefined
+  return field('findings', [
+    `${findings.length} from the last review (${verdict ?? 'unknown'}) — fix these and nothing else:`,
+    ...findings.map((f) => `  - **${f.title}**: ${f.detail}`),
+  ])
+}
+
+// The card's post-implementation notes as they read right now — NOT part of the approved
+// copy, and the one place the user records an exception they have approved for this exact
+// candidate. A reviewer that never reads them re-raises what has already been settled.
+function notesField(card: CardFacts): string[] {
+  const lines: string[] = []
+  let inside = false
+  for (const line of card.text.split('\n')) {
+    if (/^##(?!#)\s/.test(line)) {
+      inside = /^##\s+Worth noting after implementation\s*$/i.test(line)
+      continue
+    }
+    if (inside && line.trim()) lines.push(line)
+  }
+  return field(
+    'notes',
+    lines.length
+      ? ['## Worth noting after implementation, as the card reads now:', ...lines.map((l) => `  ${l}`)]
+      : 'the card has no ## Worth noting after implementation yet',
+  )
+}
+
 // The open questions, numbered as the board numbers them — the numbers are what
 // `update-questions` and `tag` take, so a flow that lists them differently is a flow that
 // gets the wrong question answered.
@@ -255,6 +346,11 @@ interface Flow {
  *  Order matters: the general rules first, then the flow for this one job. */
 const GUIDES_FOR: Record<AgentAction, string[]> = {
   implement: ['board', 'document-feature'],
+  // Review writes on the card — a post-implementation note, a follow-up card, an open
+  // question — so it needs the card format as much as the review flow itself.
+  review: ['board', 'review'],
+  // A correction writes code and nothing else, so it gets the review flow alone.
+  correct: ['review'],
   run: ['board', 'recurring-task'],
   refine: ['board', 'refine', 'resolve'],
   resolve: ['board', 'resolve'],
@@ -287,7 +383,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   // never inside the job that wrote the card — so the handover says fresh session, or an
   // agent reading the flow refines right here, in a context already full of the writing.
   const refineNext = (target: number | '<id>', when: string) =>
-    `${program} refine ${target === '<id>' ? target : String(target)} --print — ${when}; in a fresh session, not this one — a run gives each refine its own clean context, and so should you`
+    `${program} refine ${target === '<id>' ? target : String(target)} --print — ${when}; in a fresh session, not this one — the board gives each refine its own clean context, and so should you`
 
   // Every card action opens the same way: where the card is, and what it says about itself.
   if (card) {
@@ -296,21 +392,68 @@ function buildFlow(req: AgentRequest, program: string): Flow {
 
   switch (req.action) {
     case 'implement': {
+      facts.push(...approvedField(req.id!))
       facts.push(...stepsField(card!))
       if (card!.meta.questions.length) facts.push(...questionsField(card!.meta))
       facts.push(...verifyField(card!.meta))
       facts.push(...field('memory', memoryFiles(card!.meta.modules, 'readme.md')))
+      // Inside a delivery the build is not the end of the job: a fresh session reviews what
+      // it made against the approved copy, and the card is archived on the far side of that
+      // (#302). Outside one — a card built by hand from a printed flow — the build closes
+      // the card exactly as it always has.
+      const reviewed = !!activeDelivery(req.id!)
       close.push(
         'tick each box in ## Todo as you finish it — they are the record of what was built',
         `${board} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user; a decision that needs an answer goes to \`update-questions\` instead`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
-        `${board} archive ${req.id} — once every box is ticked and the card's goal is met`,
+        reviewed
+          ? `leave the card on the board — review comes next in this delivery, and it is review that archives the card once it passes`
+          : `${board} archive ${req.id} — once every box is ticked and the card's goal is met`,
       )
       if (card!.meta.questions.length) {
         next.push(
           `${program} resolve ${req.id} --print — first: the card has open questions, and building on a guess is what they are there to stop`,
         )
       }
+      if (reviewed) {
+        next.push(
+          `${program} review ${req.id} --print — the review this delivery runs next. A session the board started has its review started for it; an agent that built this from a printed flow runs it itself, in a fresh session`,
+        )
+      }
+      break
+    }
+    // Judging a delivery's work against the card it was approved to build (#302). The
+    // approved copy and the diff are the whole of what a reviewer is given — never the
+    // session that wrote it, because a reviewer that reads the implementer's reasoning
+    // agrees with it.
+    case 'review': {
+      facts.push(...approvedField(req.id!))
+      facts.push(...candidateField(req.id!))
+      facts.push(...reviewField(req.id!))
+      facts.push(...stepsField(card!))
+      facts.push(...notesField(card!))
+      facts.push(...questionsField(card!.meta))
+      close.push(
+        `${board} review-verdict ${req.id} --verdict pass|correct|ask [--file <findings>] — the ONE way a review is recorded. Without it the delivery stops and asks the user, whatever you wrote in your last message`,
+        'write each finding as `- **<short title>**: <the approved requirement or the changed code it concerns, and the evidence to act on it>` — the title is its identity, so the same mistake keeps the same one',
+        'a finding that needs awareness but no decision is not a finding: put it under `## Worth noting after implementation` on the card, and it stops nothing',
+        `${board} archive ${req.id} — on a pass only, and only once every box in ## Todo is ticked and the card's goal is met`,
+      )
+      break
+    }
+    // Fixing exactly what a review found (#302), and nothing else — a fresh review judges
+    // the whole candidate afterwards, so anything extra done here comes straight back.
+    case 'correct': {
+      facts.push(...approvedField(req.id!))
+      facts.push(...findingsField(req.id!))
+      facts.push(...candidateField(req.id!))
+      facts.push(...stepsField(card!))
+      close.push(
+        'fix what the findings name, and change nothing they do not — a fresh review judges the whole candidate after you',
+        'tick a ## Todo box your fix completes; never untick one',
+        'change nothing else on the card — the delivery builds the approved copy above, not the file as it reads now',
+      )
+      next.push(`${program} review ${req.id} --print — the fresh review of the whole candidate that follows a correction`)
       break
     }
     case 'run': {
@@ -376,7 +519,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${board} update ${req.id} [--title|--priority|--roi|--release|--modules|--track|--blocked-by|--related] — the fields are the command's, never hand-written`,
         'the body is yours to write — the human half (the opening paragraph, ## Worth noting), the <!-- agent --> marker, then the agent half',
       )
-      next.push(refineNext(req.id!, 'the follow-up a run would have started'))
+      next.push(refineNext(req.id!, 'the follow-up the board would have started'))
       break
     }
     case 'create':
@@ -505,11 +648,11 @@ export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
   const flow = buildFlow(req, program)
   const prompt = buildPrompt(req)
   const sections: Section[] = [
-    { head: 'the ask — the same words a run would have been given:', lines: [prompt] },
+    { head: 'the ask — the same words a session would have been given:', lines: [prompt] },
   ]
   if (flow.facts.length) sections.push({ head: 'this board:', lines: flow.facts })
   sections.push({
-    head: 'closing it — no run is watching this one finish, so the bookkeeping is yours:',
+    head: 'closing it — no session is watching this one finish, so the bookkeeping is yours:',
     lines: numbered(flow.close),
   })
   // Named, not left to a guess: a job that hands over part-way is where an agent working

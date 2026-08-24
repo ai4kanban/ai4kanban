@@ -27,11 +27,9 @@ _(none)_
 - [#298 Read a closed version's changelog in the board UI](features/298-read-a-closed-version-s-changelog-in-the-board-ui.md)
 - [#299 Archive a finished group root by itself](features/299-archive-a-finished-group-root-by-itself.md)
 - [#300 Build, review and land an approved card from one click](300-auto-delivery/root.md)
-- [#301 Give every run a record, and the board one writer](300-auto-delivery/features/301-run-records-and-board-writer.md)
-- [#302 Review a run's work against the approved card, and send clear mistakes back](300-auto-delivery/features/302-review-and-corrections.md)
-- [#303 Run each card in its own git worktree, with the board kept out of it](300-auto-delivery/features/303-worktree-per-run.md)
+- [#303 Give each delivery its own git worktree, with the board kept out of it](300-auto-delivery/features/303-worktree-per-delivery.md)
 - [#304 Land reviewed code on the target branch, one card at a time](300-auto-delivery/features/304-landing.md)
-- [#305 Show a run's diff on the card, and keep the one that landed](300-auto-delivery/features/305-card-diff.md)
+- [#305 Show a delivery's diff on the card, and keep the commit that landed](300-auto-delivery/features/305-card-diff.md)
 - [#307 Make one Implement click carry a card all the way to landed](300-auto-delivery/features/307-one-click-delivery.md)
 - [#308 Require diff approval on the cards that need it](300-auto-delivery/features/308-diff-approval-policy.md)
 
@@ -47,7 +45,8 @@ _(none)_
 - [#282 ZCode's 'The login ZCode has' sign-in fails, and two places say it works](skill/282-zcode-s-the-login-zcode-has-sign-in-fails-and-two-places-say.md)
 - [#290 Ask each harness for its model list instead of a free-text box](skill/290-harness-model-list.md)
 - [#306 Let a user add one rule to any flow](300-auto-delivery/skill/306-flow-rules.md)
-- [#309 Link a bug back to the run that introduced it](300-auto-delivery/skill/309-bug-to-run-link.md)
+- [#309 Link a bug back to the delivery that introduced it](300-auto-delivery/skill/309-bug-to-delivery-link.md)
+- [#310 Stop calling a session a run in the guides and the CLI help](skill/310-retire-run-from-flow-text.md)
 
 ## distribution
 

@@ -75,9 +75,10 @@ export const CODEX: Harness = {
   // waits it out and holds the card while it does. Better that than a made-up variable.
   env: () => ({ ...process.env }),
 
-  // A completed turn carries its token counts and nothing else: Codex prices nothing, and
-  // its event stream never names the model.
-  reports: ['tokens'],
+  // A completed turn carries its token counts and nothing else. The model comes from the
+  // session's rollout on disk instead, and the price is worked out from the two
+  // (agent/codex-stream.ts). A model whose rates the board doesn't know shows no price.
+  reports: ['tokens', 'model', 'cost'],
 
   stopsOnRateLimit: false,
 

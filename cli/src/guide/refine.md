@@ -21,6 +21,10 @@ Follow the card format and writing rules in `akb guide board`. Focus this pass o
   covers the same outcome, update that card instead of keeping a duplicate.
 - **Scope**: is every planned change necessary for the card's stated goal? Keep unrelated
   ideas outside the card.
+- **Detail**: does each detail change the deliverable, prevent a likely mistake, or define
+  a contract with related work? Cut repeated rationale, low-level choices that affect no
+  requirement or constraint, scaffolding owned by another card, and narration about how
+  later cards will extend this one.
 - **Design**: is the complete user flow specified well enough to build without guessing?
   Cover important edge cases while keeping the design proportionate to its value.
 - **Plan**: do checked and unchecked todos accurately distinguish what has already been
@@ -69,10 +73,9 @@ them in the shape "Card format" in `akb guide board` shows, in the same pass:
   under the named section it already follows.
 - **Write the marker**: put `<!-- agent -->` directly above the first agent half section,
   unless the card has no agent half.
-- **A repair is not a change**: a pass that only moved sections leaves the card's status
-  where it found it — a `ready` card stays `ready` — and a `todo` card it finds nothing
-  else wrong with may go `ready` in that same pass. A pass that also rewords or replans the
-  card follows the rule above and leaves it at `todo`.
+- **A repair is not a change**: moving sections is not replanning. Close the pass on what
+  the plan says — a card whose shape you repaired and found nothing else wrong with goes
+  `ready` in that same pass.
 
 ## Request specialized input
 

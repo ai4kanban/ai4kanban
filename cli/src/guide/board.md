@@ -15,6 +15,10 @@ Every flow writes a card in this order:
 ## Worth noting              <- answered material decisions; omit when empty
 - **<question the decision settles>**: <answer>
 
+## Worth noting after implementation
+                             <- what building it turned up; written by review, omit when
+                                empty. Never part of what a delivery is approved to build
+
 ## By `<name>` agent         <- only while a [user] open question points at it
 
 <!-- agent -->               <- boundary
@@ -40,6 +44,11 @@ Use professional, comprehensible language that a fresh reader can understand qui
 - **Record answered decisions consistently**: use `- **<question>**: <answer>` in
   `## Worth noting` for material calls a reviewer may reverse, and in
   `## Decided by the agent` for the rest.
+- **Keep post-implementation notes out of the plan**: `## Worth noting after
+  implementation` holds what building the card turned up — a surprise the next card should
+  know, a check that was already failing, a split worth making, an exception the user
+  approved for one delivery's work. It never blocks anything, and a delivery already in
+  flight does not read it as a new requirement (`akb guide review`).
 - **Keep questions distinct**: an untagged `questions:` entry is a necessary case or
   detail not yet considered; a `[user]` open question requires judgment the agent cannot
   supply, such as taste, business direction, spending, or a costly tradeoff.
@@ -66,6 +75,9 @@ docs/kanban/
 │   ├── goal.md     the long-term goal, horizon, and roadmap — this one file only,
 │   │               never in a module folder
 │   └── <module>/   a module's own copy of the four-file set
+├── deliveries/     one JSON file per delivery — what an Implement click built, the card
+│                   exactly as it was approved for it, and how it ended. Tracked in git,
+│                   kept after the card is archived; nobody edits one by hand
 ├── modules.md      one line per module — `akb guide module-map` writes it
 ├── config.md       project settings — created by init and completed by the user
 ├── releases.md     the open releases, in the order they ship — one line each

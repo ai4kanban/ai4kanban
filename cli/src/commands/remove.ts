@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { clearChat } from '../lib/agent/chat'
+import { heldByDelivery } from '../lib/agent/deliveries'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, MOCKUPS } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
@@ -179,6 +180,10 @@ function recordLeaving(id: number, found: Found, metric: Metric): void {
 
 export function cmdRemove(id: number, metric: Metric): MoveResult {
   if (!Number.isInteger(id)) die('need a numeric task id')
+  // A card with a delivery in flight doesn't leave the board under it — except at the hands
+  // of the delivery itself, whose last step is archiving the card it just built.
+  const held = heldByDelivery(id)
+  if (held) die(held, { kind: 'card-held' })
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
   // Archive keeps the card (moved out of todo/), reject deletes it. Resolve the

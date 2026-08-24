@@ -115,6 +115,33 @@ covers it, or a plain-words note.
 - A run outlives the command that started it: it keeps working after the terminal closes,
   and `akb runs`, `akb log --follow`, `akb stop` and `akb resume` reach any run from
   anywhere, whoever started it: `cli/README.md`.
+- `akb implement` starts a **delivery** — the whole job, several agent sessions long, against
+  the card exactly as it read when it started. `akb runs` names the delivery each session
+  belongs to, and `akb cancel <delivery-or-card-id>` ends one and hands the card back:
+  `akb help`.
+- While a delivery is in flight, `akb revise`, `refine`, `resolve`, `reject` and `archive`
+  refuse that card and name what has it — except from inside the delivery's own session,
+  which is how its flow ticks todos and archives the card at the close: `akb help`.
+- Every delivery leaves one JSON file under `docs/kanban/deliveries/`, tracked in git and
+  kept after the card is archived — including every review verdict, its findings, each
+  correction round and why a stopped delivery stopped: `akb guide board`.
+- A delivery reviews its own work before it finishes: `akb review <id>` is the fresh session
+  that judges the candidate against the approved card, `akb correct <id>` is the one that
+  fixes what it found, and the board starts both itself as the delivery moves. Typed by hand
+  they put a stopped delivery back in motion: `akb guide review`.
+- A review answers with `akb board review-verdict <id> --verdict pass|correct|ask` and its
+  findings in `--file <path>`. It is the only thing the delivery reads, so a review session
+  that records nothing stops the delivery and asks: `akb board help review-verdict`.
+- Review takes work nobody asked for back out of the delivery: a change no approved
+  requirement needed goes, and one that could meet a user goal on its own is removed here and
+  written as a new card instead. Wiring, configuration and dependencies a requirement needs
+  are the requirement being met, not extra work: `akb guide review`.
+- A stopped delivery leaves one `[user]` question on its card and keeps holding it, and
+  `akb resolve` is the one held action let back through — answering is the way on:
+  `akb guide review`.
+- A card's `## Worth noting after implementation` holds what building it turned up that
+  needs no decision. It is never part of what a delivery is approved to build:
+  `akb guide board`.
 - A run goes through the settings the board saved, never what your shell exported, and the
   same command changes them — which agent, its model, how hard it thinks, who pays, and the
   key — and says which agents it can run and what each takes: `cli/README.md`.

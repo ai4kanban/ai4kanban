@@ -626,6 +626,10 @@ async function cmdBoard(args) {
 // command line is the command's own.
 const RUN_COMMANDS = new Set([
   'implement',
+  // The two sessions a delivery runs after its build (#302). The board starts each itself;
+  // typed by hand they put a stopped delivery back in motion.
+  'review',
+  'correct',
   'run',
   'refine',
   'resolve',
@@ -650,6 +654,9 @@ const RUN_COMMANDS = new Set([
   'log',
   'stop',
   'resume',
+  // End the DELIVERY in flight on a card and hand the card back (#301). `stop` ends one
+  // session of it; this ends the job.
+  'cancel',
   'agent',
   // The board's flows, shipped with this command rather than copied into each project.
   'guide',

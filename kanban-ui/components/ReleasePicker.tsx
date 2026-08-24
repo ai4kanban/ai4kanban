@@ -416,7 +416,7 @@ function PlanReleaseDialog({
       return;
     }
     setBusy(false);
-    setError(res.error || "could not start the run");
+    setError(res.error || "could not start the session");
   };
 
   return (
@@ -528,7 +528,7 @@ function CloseReleaseDialog({
           <p className="mt-2 text-nb-ink-soft">
             {plan.shipped === 0
               ? "No changelog is written — there is nothing to write it from."
-              : "An agent then writes a short changelog at the top of the summary, saying what the version changed. It runs in the background; watch it in the runs panel."}
+              : "An agent then writes a short changelog at the top of the summary, saying what the version changed. It runs in the background; watch it in the sessions panel."}
           </p>
         )}
         {/* The cards that look finished but were never archived, first and on
@@ -866,7 +866,7 @@ function NewReleaseDialog({
           />
           <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
             {ready
-              ? "The agent moves in the open cards that ship the goal and writes the ones the board hasn't got. The release is made at once; the run carries on behind it, in the runs panel."
+              ? "The agent moves in the open cards that ship the goal and writes the ones the board hasn't got. The release is made at once; the session carries on behind it, in the sessions panel."
               : "Say what the version is for, or make it on the No goal tab — there is nothing to plan a release against until this box says something."}
           </p>
         </>

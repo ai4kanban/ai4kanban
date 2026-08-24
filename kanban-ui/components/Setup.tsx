@@ -106,7 +106,7 @@ function useFinishSetup(onStart: () => Promise<StartAnswer>) {
     setError(null);
     try {
       const res = await onStart();
-      if (!res.ok) setError(res.error || "the setup run didn't start");
+      if (!res.ok) setError(res.error || "the setup session didn't start");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -155,7 +155,7 @@ function SetupRunFailed({ runId }: { runId: string }) {
       <span className="mr-1" aria-hidden>
         ⚠
       </span>
-      The last setup run stopped short —{" "}
+      The last setup session stopped short —{" "}
       <button
         type="button"
         className="cursor-pointer underline underline-offset-2 hover:text-nb-ink"
@@ -742,7 +742,7 @@ function AgentStep({
   return (
     <StepBody
       title="Which harness runs the work?"
-      blurb="The coding tool that runs the board's work. Every button here starts a run on it — refine a card, propose work, implement it. Pick it, then press Test: it sends one tiny message through and says what came back."
+      blurb="The coding tool that runs the board's work. Every button here starts a session on it — refine a card, propose work, implement it. Pick it, then press Test: it sends one tiny message through and says what came back."
     >
       <HarnessPicker
         agent={agent}

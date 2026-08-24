@@ -77,10 +77,28 @@ export let SESSIONS_LOCK = ''
 // The conversations the user has had with the agent — one file per conversation, beside
 // the run logs (lib/agent/chat.ts). A chat is not a run and is nowhere in the record above.
 export let CHATS_DIR = ''
-// Held by the one run at a time that may rewrite the board's shared files (next-id, the
-// README index, metrics.csv). Across processes, so the UI and a terminal wait for each
+// Held by the one session at a time that may rewrite the board's shared files (next-id,
+// the README index, metrics.csv). Across processes, so the UI and a terminal wait for each
 // other and not only for themselves.
 export let INDEX_LOCK = ''
+// The permanent record of every delivery — one JSON file each, tracked in git and kept
+// after the card is archived (lib/agent/deliveries.ts). The live copy is a row in
+// SESSIONS above; this is what outlives the machine it ran on.
+export let DELIVERIES = ''
+// Delivery state that never belongs in git — #303's worktrees are the first thing in it.
+// At the REPOSITORY root, not under docs/kanban/, because docs/kanban/.gitignore cannot
+// reach outside its own folder — so this one line goes in the repo's own.
+export let AKB_DIR = ''
+export let ROOT_GITIGNORE = ''
+export const AKB_IGNORE_LINE = '.akb/'
+
+/** `.akb/`, made if it isn't there. Whatever a delivery needs on disk and must never
+ *  commit goes in here — #303's worktrees first. Nothing creates it up front: an empty
+ *  ignored folder is a folder git wouldn't carry anyway. */
+export function ensureAkbDir(): string {
+  fs.mkdirSync(AKB_DIR, { recursive: true })
+  return AKB_DIR
+}
 // ` --dir <path>` when this command was told which board with `--dir`, empty when it found
 // one from the working directory. Every hint the board prints for a person to paste back —
 // follow it, stop it, resume it — carries this, or the paste lands on whatever board the
@@ -116,6 +134,9 @@ export function setBoardRoot(root: string, named = false): string {
   SESSIONS_LOCK = path.join(KANBAN, '.sessions.lock')
   CHATS_DIR = path.join(KANBAN, '.chats')
   INDEX_LOCK = path.join(KANBAN, '.index.lock')
+  DELIVERIES = path.join(KANBAN, 'deliveries')
+  AKB_DIR = path.join(REPO_ROOT, '.akb')
+  ROOT_GITIGNORE = path.join(REPO_ROOT, '.gitignore')
   return REPO_ROOT
 }
 

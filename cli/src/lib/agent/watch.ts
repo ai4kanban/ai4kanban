@@ -17,15 +17,15 @@ import fs from 'node:fs'
 import { REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { boardComplaints } from '../reconcile'
 import { boardCommand } from './command'
+import { deliveryRunAfter } from './deliveries'
 import { runEnv } from './flow'
 import { specRunsAfter } from './follow'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter } from './stream'
-import { RESUME_PROMPT } from './prompts'
+import { resumePrompt } from './prompts'
 import { openPlan } from './resolve'
 import {
   markBoard,
-  refinementNeedsApproval,
   refinementRunsAfter,
   startRefinement,
   type BoardMarks,
@@ -41,7 +41,6 @@ import {
   peekRun,
   readSpec,
   readSpecAsks,
-  setCardStatus,
 } from './sessions'
 import { startRun } from './start'
 import type { TurnEnd } from './client'
@@ -105,10 +104,11 @@ export async function watchRun(sessionId: string): Promise<number> {
   // The keys are read here and nowhere else: the plan on disk carries the command and the
   // agent's name, never a key, and this is the one moment one is needed.
   const active = openPlan(spec.plan)
-  // A resumed run's prompt is the "carry on" one — the conversation already holds the card,
-  // the work done and the error it died on, so the whole action prompt would be a second
-  // instruction nobody gave.
-  const prompt = record.resumedFrom ? RESUME_PROMPT : spec.prompt
+  // A resumed session's prompt is the "carry on" one — the conversation already holds the
+  // card, the work done and the error it died on, so the whole action prompt would be a
+  // second instruction nobody gave. Inside a delivery it says more: re-enter the flow and
+  // check each step's precondition, rather than carrying on from a half-finished sentence.
+  const prompt = record.resumedFrom ? resumePrompt(record.deliveryId, record.cardId) : spec.prompt
 
   // The board as it was the moment before the agent touched it. What this run wrote — and
   // what it took off the board — is the difference between this and the same read at the
@@ -189,7 +189,7 @@ export async function watchRun(sessionId: string): Promise<number> {
     // user nothing.
     spawnError =
       (err as NodeJS.ErrnoException)?.code === 'ENOENT'
-        ? `${cmd} isn't installed, or isn't on this run's PATH. Install it with: ${active.install}`
+        ? `${cmd} isn't installed, or isn't on this session's PATH. Install it with: ${active.install}`
         : String(err)
     log.write(`\n[error] ${spawnError}`)
   })
@@ -258,7 +258,11 @@ export async function watchRun(sessionId: string): Promise<number> {
         endedAt,
       })
       letGo()
-      if (settled) followUp(sessionId, settled.runs)
+      // The delivery's own next session first, when it has one: review after a build,
+      // a correction after a review that found mistakes, another review after that. It is
+      // read from the record the close just wrote, so it is taken once and started once.
+      const carryOn = deliveryRunAfter(record)
+      followUp(sessionId, settled?.runs ?? [], carryOn)
       resolve(code === 0 ? 0 : 1)
     }
 
@@ -356,7 +360,7 @@ function brokeBoard(wasBroken: Set<string>): string | null {
   const shown = broke.slice(0, MAX_BROKEN)
   const rest = broke.length - shown.length
   return [
-    `the work is done, but the board came out of this run inconsistent — ${broke.length} thing${broke.length === 1 ? '' : 's'} to put right:`,
+    `the work is done, but the board came out of this session inconsistent — ${broke.length} thing${broke.length === 1 ? '' : 's'} to put right:`,
     ...shown.map((line) => `  ${line}`),
     ...(rest ? [`  … and ${rest} more`] : []),
     `a card is taken off the board with \`${boardCommand()} board archive <id>\` or \`${boardCommand()} board reject <id>\`, never by deleting its file.`,
@@ -366,15 +370,11 @@ function brokeBoard(wasBroken: Set<string>): string | null {
 const joinNotes = (...parts: (string | null | undefined)[]): string | undefined =>
   parts.filter(Boolean).join('\n\n') || undefined
 
-// What this run leaves behind on the board, worked out and written down but not started: a
-// `ready` card the run rewrote goes back to `todo` for a fresh pass to approve, and the
-// refines that follow are named. `stalled` is the one thing nothing else would ever say —
-// a refinement loop that ended with its card unsettled (agent/refine.ts).
+// The refines this run leaves behind, worked out and written down but not started, plus
+// `stalled` — a refinement loop that ended with its card unsettled (agent/refine.ts). The
+// pass's own call on the status stands: nothing out here has read the card.
 function settleBoard(run: RunRecord, before: BoardMarks): RefinementFollowUp | null {
   try {
-    if (run.action === 'refine' && run.cardId !== null && refinementNeedsApproval(run.cardId, before)) {
-      setCardStatus(run.cardId, 'todo')
-    }
     return refinementRunsAfter(run, before)
   } catch {
     // an unreadable board — the run it followed is done either way
@@ -391,12 +391,13 @@ function settleBoard(run: RunRecord, before: BoardMarks): RefinementFollowUp | n
 // A refusal is not worth reporting: the only one that comes up is a card that already has a
 // run on it, and that run is doing more than this one would have. Nothing here can fail the
 // run that just ended — it is over.
-function followUp(sessionId: string, runs: AgentRequest[]): void {
+function followUp(sessionId: string, runs: AgentRequest[], carryOn: AgentRequest | null): void {
   try {
     // Started first, then forgotten — so a crash between the two costs a repeated agent at
     // worst, and never a section nobody ever writes.
     for (const req of specRunsAfter(readSpecAsks(sessionId))) startRun(req)
     clearSpecAsks(sessionId)
+    if (carryOn) startRun(carryOn)
     for (const req of runs) {
       if (req.refineRound === undefined) startRefinement(req)
       else startRun(req)

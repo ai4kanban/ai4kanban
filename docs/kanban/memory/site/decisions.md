@@ -31,6 +31,9 @@ re-ask a settled call.
 - **What does "no dashboard, no separate tool" promise?**: no *external* tool — nothing
   outside your repo to sync with. It never promised the board has no charts, so a view
   built into the board doesn't break it. Say "no external tool" in the copy.
+- **Does the copy say a second agent reviews every delivery?**: no. Review is a detail of
+  how a delivery works, not a selling point — keep it off the landing page and the
+  comparison pages.
 
 ## The quick start
 

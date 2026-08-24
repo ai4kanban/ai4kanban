@@ -56,6 +56,17 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   implement) → ✅ scheduling is a modifier on an action, never an action itself: every run
   a blocked card offers — implement, refine — can be scheduled instead of forced through
   an "anyway".
+- ❌ **One word — "run" — names both the whole job and each agent invocation inside it**
+  (a "delivery run" made of "sessions", so a card's lifecycle and one step of it read the
+  same) → ✅ give each level its own word: **delivery** is the tracked lifecycle one
+  **Implement** click starts, **session** is one agent invocation, **commit** is what
+  lands. "Run" stays a verb — run a check.
+- ❌ **A card edited mid-delivery retires the delivery** (hash the approved requirements, compare
+  before each step, stop and offer Implement again) → ✅ deliver the card as it was approved, from
+  a snapshot taken at the start, and keep the card from changing under it: Edit, Refine, Resolve,
+  Reject and Archive are off while a delivery is in flight, and **Cancel delivery** is the one way
+  to take the card back. Throwing away a build because someone fixed a typo is a punishment, not a
+  safeguard.
 
 ## Settings
 

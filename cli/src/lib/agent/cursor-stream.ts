@@ -126,7 +126,7 @@ export function createCursorStreamRenderer(): StreamRenderer {
         if (result) final = result;
         // An error the CLI reports as the result rather than as a message —
         // otherwise the log would end on the events and say nothing about why.
-        if (ev.is_error === true) return `[error] ${result || "the run failed"}\n`;
+        if (ev.is_error === true) return `[error] ${result || "the session failed"}\n`;
         return "";
       }
       default:

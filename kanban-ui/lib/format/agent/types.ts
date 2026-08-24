@@ -59,6 +59,15 @@ export type AgentAction =
    *  version changed, from the goal and the cards the close wrote down. It touches no
    *  card, so it carries a release id, and the close that made the record starts it. */
   | 'changelog'
+  /** Judge a delivery's candidate against the card it was approved to build (#302). A
+   *  fresh session every time: it is given the approved copy and the diff, never the
+   *  implementation transcript, because a reviewer that reads the implementer's reasoning
+   *  agrees with it. */
+  | 'review'
+  /** Fix what a review found (#302). It is given the approved copy, the current diff and
+   *  that review's exact findings, and a fresh review judges the whole candidate after
+   *  it. */
+  | 'correct'
 
 /** Everything one run is asked for. What the user typed rides along so the run list can
  *  show it beside the log. */
@@ -149,6 +158,114 @@ export interface RunRecord {
   specAgent?: string
   /** Position in a watcher-managed refinement session chain. */
   refineRound?: number
+  /** The delivery this session belongs to, when it belongs to one. Only an `implement`
+   *  session does today; a refine, a resolve or a propose stands alone and carries none. */
+  deliveryId?: string
+}
+
+// ---- a delivery: everything one Implement click starts ---------------------
+
+/** How a delivery ended, or that it hasn't.
+ *
+ *  `active` covers a delivery still working AND one whose session failed or was cut off —
+ *  the card stays held either way, until Resume carries it on or Cancel delivery ends it.
+ *  A delivery is never "blocked": it is running or it has ended, and a pause is read off
+ *  the card. */
+export type DeliveryStatus = 'active' | 'finished' | 'failed' | 'cancelled'
+
+/** One step a delivery entered, as history. Resuming never trusts it — a stored position
+ *  goes stale in exactly the crash it exists for — so it is read, not acted on. */
+export interface DeliveryStep {
+  step: string
+  at: number
+}
+
+// ---- what review said about a delivery's work (#302) -----------------------
+
+/** What one review pass concluded.
+ *
+ *  `pass` — the candidate meets the approved card. `correct` — it plainly does not, and
+ *  the findings say how, so a correction session is started. `ask` — only the user can
+ *  settle it, so the delivery stops and the card carries the question. */
+export type ReviewVerdict = 'pass' | 'correct' | 'ask'
+
+/** One thing a review found. `title` is its identity — a repeat of the same title in the
+ *  next round is what tells the loop a correction did not land. */
+export interface ReviewFinding {
+  title: string
+  /** The requirement or changed code it concerns, and the evidence needed to act on it. */
+  detail: string
+}
+
+/** One review pass, as the delivery keeps it. */
+export interface ReviewRound {
+  sessionId: string
+  verdict: ReviewVerdict
+  findings: ReviewFinding[]
+  at: number
+}
+
+/** Why a review loop stopped short of a verdict it could act on. Each one is a stop the
+ *  user has to settle, never a loop that quietly runs again. */
+export type ReviewStopReason = 'ask' | 'repeat' | 'no-progress' | 'session' | 'limit'
+
+/** Review, across a whole delivery: every pass it made, how many corrections it has spent,
+ *  and — once it has stopped — why, and the question the card now carries. */
+export interface DeliveryReview {
+  rounds: ReviewRound[]
+  /** Correction sessions started so far. The limit is `MAX_CORRECTIONS`. */
+  corrections: number
+  /** The candidate's fingerprint when the last correction session started, so a correction
+   *  that changed nothing at all is told from one that did. */
+  mark?: string
+  stopped?: {
+    reason: ReviewStopReason
+    /** One plain sentence: what stopped it, in the words the card's question uses. */
+    why: string
+    at: number
+  }
+}
+
+/** One delivery: one end-to-end effort to implement an exact version of a card. It has an
+ *  id, a card has at most one active one, and it is several sessions long.
+ *
+ *  It lives twice. This row sits in `docs/kanban/.sessions.json`, where the lock and the
+ *  card page read it. The permanent copy is one JSON file per delivery under
+ *  `docs/kanban/deliveries/`, tracked in git and kept after the card is archived. */
+export interface DeliveryRecord {
+  deliveryId: string
+  cardId: number
+  /** The card's title when the delivery started, so a record still names its card after
+   *  the card has been archived. */
+  title: string
+  status: DeliveryStatus
+  startedAt: number
+  endedAt?: number
+  /** Every session in this delivery, oldest first. */
+  sessions: string[]
+  /** The approved requirements, copied out of the card when the delivery started: the
+   *  title, the opening paragraph, `## Worth noting`, `## Scope`, `## Scope out` and every
+   *  spec agent's section. Every session in the delivery builds from THIS, so a change to
+   *  the card file underneath never changes what the delivery was approved to build. */
+  approved: string
+  /** The steps this delivery entered, in order. */
+  steps: DeliveryStep[]
+  /** The commit the candidate is compared against — the repository's HEAD when the
+   *  delivery started. Review reads `git diff <base>`, so the diff is everything this
+   *  delivery changed and nothing that was already there. Absent outside a git
+   *  repository, and review says so rather than guessing at a base. */
+  base?: string
+  /** What review has said about this delivery's work (#302). Absent until the first
+   *  review session records a verdict. */
+  review?: DeliveryReview
+  /** The card's stage the instant before the delivery's FIRST session overwrote it with
+   *  `implementing`, so the end of the delivery puts back what was there — not the
+   *  `implementing` its own second session would otherwise have found and saved. */
+  priorStatus?: string
+  /** The session this delivery is due to start next, written the moment the one before it
+   *  closed. The watcher reads it and clears it; it survives a watcher that died between
+   *  the two, so the delivery still says what it was about to do. */
+  next?: 'review' | 'correct'
 }
 
 /** One ask for a spec agent, as the run that wanted it wrote it down.

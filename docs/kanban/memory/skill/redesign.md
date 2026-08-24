@@ -61,6 +61,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Ship the flows as reference pages copied into each project** → ✅ the command prints
   the flow for the board it was asked about, so it can name that project's own tracks,
   paths and memory files instead of describing them generically.
+- ❌ **Route a flow's card edits through a board command, so the board is the only writer** →
+  ✅ flows edit card bodies with their own file tools. One session per card is already refused
+  and `akb board` only ever rewrites frontmatter, so the clobber this guards against is a
+  frontmatter field lost in a narrow window — far less than the cost of a write path agents
+  are not trained on.
 - ❌ **Give an action a second mode without saying when to pick it** → ✅ a card that adds a
   mode also states the rule for choosing it, and where the agent reads that rule. A mode an
   agent has to guess at is one it will use in the wrong half of the cases.

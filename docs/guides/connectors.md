@@ -14,9 +14,9 @@ changes what you see. The same list appears under the agent grid in Configuratio
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | Chat and resume | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Early-crash resume | ✓ | — | — | — | — | — |
-| Run cost | ✓ | — | — | ✓ | ✓ | — |
+| Run cost | ✓ | ✓ | — | ✓ | ✓ | — |
 | Token counts | ✓ | ✓ | — | ✓ | ✓ | ✓ |
-| Model name | ✓ | — | ✓ | — | ✓ | ✓ |
+| Model name | ✓ | ✓ | ✓ | — | ✓ | ✓ |
 | Rate-limit exit | ✓ | — | — | — | — | — |
 | Direct skill call | ✓ | ✓ | — | — | — | — |
 
@@ -27,7 +27,13 @@ restarting it. Every agent supports this.
 On the others, restart it. Later failures resume normally on all six.
 
 **Run cost, token counts, model name** — what the runs panel shows for a finished run. A
-blank means the agent reported nothing; the board never estimates.
+blank means nothing was reported and nothing could be worked out.
+
+A cost is always an estimate, never a bill: the agent's own arithmetic where it does that
+one, and the run's tokens at the model's published rate where the board does. Codex prices
+nothing, so the board prices it — and shows no cost for a model whose rates it doesn't
+know, which is any local model and most gateways. A run on a subscription still shows a
+number, though nothing was charged for it.
 
 **Rate-limit exit** — Claude Code ends a rate-limited run and frees the card. The others
 wait the limit out, holding the card. Stop the run yourself to get the card back.
@@ -58,6 +64,10 @@ Each agent's fields sit under the grid. A field that isn't shown isn't sent.
 
 Claude Code is the only one with a provider choice for gateways, so it is the one to pick
 for OpenRouter or LiteLLM.
+
+Codex's model and cost are read from the session files it keeps under `~/.codex`, because
+its own output names neither. A `command` that adds `--ephemeral` stops it writing them,
+and both go blank.
 
 ### ZCode
 

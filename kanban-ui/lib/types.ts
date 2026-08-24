@@ -15,7 +15,7 @@
 // no use for and holds its log under another name; lib/registry.ts is where one becomes the
 // other.
 
-import type { AgentAction, TokenUsage } from "./format/agent/types";
+import type { AgentAction, DeliveryStatus, TokenUsage } from "./format/agent/types";
 
 export type {
   AgentAction,
@@ -35,6 +35,7 @@ export type {
   SpecAgentView,
   TokenUsage,
 } from "./format/agent/types";
+export type { DeliveryRecord, DeliveryStatus, DeliveryStep } from "./format/agent/types";
 export { PROPOSE_DEFAULT, PROPOSE_MAX } from "./format/agent/types";
 
 export type {
@@ -42,6 +43,7 @@ export type {
   Board,
   BulkReleaseResult,
   Card,
+  CardDelivery,
   CardPatch,
   CardRef,
   CardSchedule,
@@ -169,4 +171,9 @@ export interface SessionView {
    *  terminal sessions; getSession() attaches it for any session — live or done — by
    *  reading the log file, so the UI can tail a running agent. */
   tail?: string;
+  /** The delivery this session belongs to, when it belongs to one (#301). Only an
+   *  `implement` session does: everything else is a single session that stands alone. The
+   *  status is the DELIVERY's, not this session's — a session the user stopped inside a
+   *  cancelled delivery reads "cancelled", because that is what happened. */
+  delivery?: { id: string; status: DeliveryStatus };
 }

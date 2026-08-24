@@ -448,6 +448,12 @@ function SessionsDialog({
                         <span className="text-[11px] text-nb-ink-soft">
                           {r.cardId !== null ? `#${r.cardId}` : "—"}
                         </span>
+                        {/* A cancelled delivery, said on the row itself: its session
+                            reads "stopped", which describes the session and not what
+                            happened to the job it was part of. */}
+                        {r.delivery?.status === "cancelled" && (
+                          <span className="text-[10.5px] text-nb-ink-soft">cancelled</span>
+                        )}
                       </span>
                       <span className="block truncate text-[10.5px] text-nb-ink-soft">
                         {relTime(r.startedAt)}
@@ -485,9 +491,22 @@ function SessionsDialog({
                     </Link>
                   )}
                   <span className="text-[11px] text-nb-ink-soft">{fullTime(selected.startedAt)}</span>
-                  {/* A run started by Resume says so — otherwise it reads as a
-                      second identical run of the same action out of nowhere. */}
+                  {/* A session started by Resume says so — otherwise it reads as a
+                      second identical session of the same action out of nowhere. */}
                   {selected.resumedFrom && <span className="nb-tag">resumed</span>}
+                  {/* Which delivery this session was part of, and — when the delivery was
+                      cancelled — that word rather than the session's own "stopped". The
+                      session ended because the job did. */}
+                  {selected.delivery && (
+                    <span
+                      className="nb-tag"
+                      title={`Delivery ${selected.delivery.id} — ${selected.delivery.status}`}
+                    >
+                      {selected.delivery.status === "cancelled"
+                        ? "cancelled"
+                        : `delivery ${selected.delivery.id.slice(0, 8)}`}
+                    </span>
+                  )}
                   {/* Only a run that ended before finishing — failed,
                       interrupted or stopped — offers Resume, and the freshly
                       polled `log` wins over the list entry: the poll that drew

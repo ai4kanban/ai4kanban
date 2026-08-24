@@ -497,12 +497,100 @@ you never type into a running session.
 | **Refine** | While a refine would still move the card — see below. |
 | **Edit** | Always. Say what to change and the agent revises the card. |
 | **Resolve** | Only when the card has open questions. |
+| **Review again** | Only while a delivery has stopped and is waiting on the question its review left. |
+| **Continue delivery** | Only when a delivery's next session never started — the process watching the last one died. |
 | **Archive** | Once every todo is checked (a group root: once every subtask is resolved). Never on a recurring card. |
 | **Reject** | Always. |
 
-A card can only have one run at a time; while one is going the button is off and the badge beside
-the title says what's going on. **A run never commits** — it leaves its changes in your working
-tree, and you read `git diff` and commit.
+A card can only have one session at a time; while one is going the button is off and the badge
+beside the title says what's going on. **A session never commits** — it leaves its changes in your
+working tree, and you read `git diff` and commit.
+
+### Delivery
+
+**Implement** starts a **delivery**: the whole job, from the click to the finished work. A delivery
+is usually several **sessions** — one agent invocation each — and it has an id you'll see on the
+card, in the activity panel and in `akb runs`. Every other button is a single session and starts no
+delivery.
+
+- **It is build, then review.** The build is one session; a fresh session then judges it against
+  the card you approved, and corrects it if it has to — see **Review** below.
+- **It builds the card as you approved it.** The delivery copies the card's requirements — the
+  title, the opening paragraph, **Worth noting**, **Scope**, **Scope out** and each agent-written
+  spec section — the moment it starts, and every session inside it builds from that copy. Edit the
+  card file in your own editor afterwards and the delivery carries on with what you approved.
+- **The card is held while one is in flight.** Edit, Refine, Resolve, Archive and Reject are off,
+  on the card page and in the terminal, and each says which delivery has the card. The one
+  exception is a delivery whose review has stopped and is waiting on you: **Resolve** comes back on
+  there, because answering its question is the way on. Priority, ROI,
+  release and modules stay editable — no delivery builds from those. So does **Todo**: the delivery
+  ticks its own boxes as it works, and a box you tick reaches its next session.
+- **Cancel delivery** stands where Implement did. One more click confirms it: the running session
+  stops, the delivery ends as cancelled, the card unlocks and Implement comes back. Whatever the
+  delivery wrote stays in your working tree — the board never undoes work.
+- **A session that fails or is cut off does not end the delivery.** The card stays held and the
+  card page still says so, so **Resume** picks the delivery up rather than starting a second one —
+  one delivery id across both sessions. **Cancel delivery** is the other way out.
+- **Every delivery leaves a record**, one JSON file under `docs/kanban/deliveries/`: its id, the
+  card as it was approved for it, each session and how it went, every review verdict and its
+  findings, each correction round, and how the delivery ended — finished, stopped or cancelled. It
+  is tracked in git and kept after the card is archived.
+- **In a terminal**: `akb cancel <delivery-or-card-id>` is the same thing as the button, and
+  `akb runs` names the delivery each session belongs to.
+
+### Review
+
+The build is not the end of a delivery. A **fresh session** then judges what it built against the
+card as you approved it, and sends clear mistakes back to be corrected. It is a separate agent
+invocation, and it costs one more session on every delivery.
+
+**What review is given**: the approved copy of the card, and the diff of everything the delivery
+changed. It may read the repository and run the project's own checks. It is never given the session
+that wrote the code — a reviewer that reads the implementer's reasoning agrees with it.
+
+**What review answers**, exactly one of three:
+
+- **It passes.** The delivery is finished, and the card is archived.
+- **It found clear mistakes.** A **correction** session fixes exactly those, and another fresh
+  review then judges the whole candidate again — not only the corrected lines. Two corrections by
+  default.
+- **Only you can decide.** The delivery stops.
+
+**What review checks**: the approved requirements, and the checks this repository already has —
+its tests, its linter, its type check. It also takes out work nobody asked for: a change with no
+user outcome is removed, and one that could meet a goal of its own is removed and written up as a
+new card. It asks rather than guessing when it cannot tell whether a change is required, when
+removing something would change behaviour, design, security, compatibility or cost, or when the
+fix itself would.
+
+**What review does not check.** It cannot promise defect-free code, a coverage number, or that a
+change is a good idea. It reads the card, so a card that says the wrong thing produces work that
+passes review. It runs the checks the project has and invents none. Approving the exact diff, and
+acceptance tests written from the card, are separate things a board turns on for itself.
+
+**When it stops**, it leaves **one open question** on the card — what it found, how many
+corrections were tried, and the decision that is yours — and the delivery waits there, still
+holding the card. It stops for five reasons: it asked you something, a finding came back after a
+correction meant to fix it, a correction changed nothing, a session failed or was cut off, or the
+two corrections ran out.
+
+Then the card page reads **delivery … waiting on you**, **Resolve** comes back on while everything
+else stays held, and **Review again** appears beside it. Answer the question — or write the
+exception you are approving under **Worth noting after implementation** on the card — and **Review
+again** judges the same work afresh. **Cancel delivery** is the other way out: changed requirements
+are a new delivery, not a change to what this one was approved to build.
+
+**Worth noting after implementation** is where review puts what it found that needs no decision: a
+surprise the next card should know, a check that was already failing, a split worth making when the
+card turns out to hold separate outcomes. None of it blocks anything, and it is never part of what
+a delivery is approved to build.
+
+If a delivery's next session never starts — the process watching the one before it died —
+**Continue delivery** appears in the same place and starts it. Nothing is lost either way: the
+delivery still says what it was about to do.
+
+**In a terminal**: `akb review <id>` judges the delivery in flight on a card again, `akb correct
+<id>` runs a correction, and `akb guide review` is the flow both follow.
 
 **Resolve** gives each open question an answer box. A question that carries choices shows them as
 a tick list instead — one pick, or as many as you like, depending on the question — with the

@@ -103,7 +103,8 @@ card can be built from a terminal, over ssh, or from a script, without a chat se
 without a browser.
 
 ```bash
-akb implement 12              # build the card
+akb implement 12              # build the card, then review what was built
+akb review 12                 # judge the delivery in flight on it again
 akb refine 12                 # sharpen it until it is ready to build
 akb create "add dark mode"    # write the card(s) for it
 akb propose                   # write the next tasks

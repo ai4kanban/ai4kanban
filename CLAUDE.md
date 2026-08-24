@@ -7,6 +7,14 @@
 - Always use a professional and comprehensible language.
 - **UI text**: assume that readers have ZERO patience. Use clean UI philosophy. The UI must be extremely intuitive and glanceable.
 
+## Answering
+
+- Just answer what I ask, in a minimal language. If you make a mistake, admit and correct it. Don't argue what you already know your're wrong. 
+
+## System Design
+
+We discourage over-design.
+
 ## The public site
 
 `web/design.md` describes how the site in `web/` looks and is put together.

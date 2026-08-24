@@ -9,14 +9,33 @@ import { boardCommand, commandNote } from './command'
 import { skillCall } from './resolve'
 import { PROPOSE_DEFAULT, PROPOSE_MAX, type AgentRequest, type Boldness } from './types'
 
-// What a resumed run says. The conversation is already there — the card, the work done,
+// What a resumed session says. The conversation is already there — the card, the work done,
 // the error it died on — so this is the "continue" you would type in the terminal, not the
 // whole action prompt again.
 export const RESUME_PROMPT = [
-  `Continue. The previous run ended before it finished the task.`,
+  `Continue. The previous session ended before it finished the task.`,
   `Pick up where you left off and carry it through.`,
   `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
 ].join(' ')
+
+// And what one resumed INSIDE a delivery says. A delivery is not picked up where the last
+// session's sentence stopped — it is picked up by re-entering its flow and asking each step
+// whether its precondition is already met, because a session that was cut off may well have
+// finished the step it died in. Nothing here trusts the position the record kept: a stored
+// position goes stale in exactly the crash it exists for.
+const DELIVERY_RESUME = [
+  `Continue delivery %s. The previous session ended before the delivery finished.`,
+  `Re-enter the flow from the top and check each step's precondition before you do it — work that is already done is done, so do not repeat it.`,
+  `Build the card as the delivery holds it, not as the file reads now: \`%c\` prints the approved copy.`,
+  `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
+].join(' ')
+
+/** What a resumed session is told: the plain "carry on", or — inside a delivery — the one
+ *  that re-enters the delivery's flow. */
+export function resumePrompt(deliveryId: string | undefined, cardId: number | null): string {
+  if (!deliveryId || cardId === null) return RESUME_PROMPT
+  return DELIVERY_RESUME.replace('%s', deliveryId).replace('%c', `${boardCommand()} implement ${cardId} --print`)
+}
 
 // What each boldness level tells a propose run. The rule lives in the flow ("Boldness" in
 // `akb guide propose`); these lines name the level and gloss it in one clause, so the
@@ -238,6 +257,26 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         .filter(Boolean)
         .join(' ')
     }
+    // Judging a delivery's work (#302). Nothing here says what the card wants or what the
+    // diff holds: both are on the board, the flow prints them, and a copy pasted in here
+    // would be this file's reading of them. What it DOES say is the one rule a fresh
+    // session cannot work out for itself — you did not build this, so do not go looking
+    // for the session that did.
+    case 'review':
+      return [
+        `${kb}. Review task ${req.id} ${named} — judge what the delivery in flight on it has built against the card as it was approved, following \`akb guide review\`.`,
+        `You did not build this. Read the approved copy and the diff, and do not read the session that wrote them.`,
+        `Record your verdict with \`${command} board review-verdict ${req.id} --verdict pass|correct|ask\` — a review that records nothing stops the delivery.`,
+        `Don't ask me questions with human-in-the-loop — the \`ask\` verdict is how you defer to me.`,
+      ].join(' ')
+    // Fixing what a review found (#302).
+    case 'correct':
+      return [
+        `${kb}. Correct task ${req.id} ${named} — fix exactly what the last review found, following \`akb guide review\`.`,
+        `\`${command} correct ${req.id} --print\` prints the approved copy, the findings to fix and where the diff is.`,
+        `Change nothing the findings do not name: a fresh review judges the whole candidate after you.`,
+        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
+      ].join(' ')
     case 'resolve':
       return [
         `${kb}. Resolve the open questions on task ${req.id} ${named} following \`akb guide resolve\`.`,

@@ -30,13 +30,13 @@ const CAPABILITIES: Capability[] = [
   {
     id: 'resume',
     label: 'Chat and resume',
-    blurb: 'No conversations, and a run that stops short starts over.',
+    blurb: 'No conversations, and a session that stops short starts over.',
     has: (h) => h.resumes,
   },
   {
     id: 'early-resume',
     label: 'Early-crash resume',
-    blurb: 'A run that fails in its first seconds starts over.',
+    blurb: 'A session that fails in its first seconds starts over.',
     has: (h) => h.adoptsSessionId,
   },
   {
@@ -60,7 +60,7 @@ const CAPABILITIES: Capability[] = [
   {
     id: 'rate-limit',
     label: 'Rate-limit exit',
-    blurb: 'A rate-limited run waits it out, holding its card.',
+    blurb: 'A rate-limited session waits it out, holding its card.',
     has: (h) => h.stopsOnRateLimit,
   },
   {

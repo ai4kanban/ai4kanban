@@ -1,159 +1,176 @@
 # Team collaboration
 
-Turn the mid-term direction in `docs/kanban/memory/goal.md` into a design we can argue with,
-and a shipping order where every step is useful before the next one exists.
+Turn the team direction in `docs/kanban/memory/goal.md` into AI4Kanban Cloud. This document
+records the product decisions and shipping order; it deliberately leaves coding and
+infrastructure choices open.
 
-The open-source product stays a local, single-player board. The hosted team version —
-AI4Kanban Cloud — adds identity, routing, and sync on top of it. Cloud never runs agents:
-every member's machine is their own execution node with their own model account.
+## Product boundary
 
-## Terms
+- **Local stays the default**: a local board remains Markdown in `docs/kanban/`, works offline,
+  and needs no account.
+- **Cloud is a different authority**: a Cloud workspace owns its cards, questions, memory,
+  releases, history, members, and active claims. It is not a mirror of the Markdown board.
+- **One authority at a time**: moving to Cloud is an explicit cutover. There is no background
+  merge, CRDT, Git sync, or fallback to an old local snapshot.
+- **Execution stays local**: Cloud never runs agents or stores model credentials. Each member's
+  machine uses their repository, model account, worktrees, and local logs.
+- **Machine-local state stays local**: credentials, processes, raw logs, chats, mockups,
+  worktrees, and source code do not move with the board.
 
-- **Workspace**: one team's board on Cloud — cards, memory, releases, history, members.
-- **Member**: a person in a workspace, identified by login, with a role.
-- **Execution node**: a member's machine running `akb`, connected to a workspace. It pulls
-  work, runs agents locally, and reports run state back.
-- **Claim**: an exclusive hold on a card by one member (or their node) so two agents never
-  work the same card.
-- **Decision inbox**: the browser view where a member sees the questions routed to them,
-  answers agents, and edits deterministic fields.
+## Foundation before Cloud
 
-## The four problems (from goal.md)
+Card #301's single board writer ships first. Agents must stop editing card and memory files
+directly; every board action goes through AI4Kanban and behaves the same on local and Cloud
+boards. Retries must not apply a change twice.
 
-Team collaboration is exactly these, in this order of difficulty:
+This expands #55 beyond swapping card storage. The board boundary must include every shared
+artifact: cards, questions, memory, releases, history, and permanent run records.
 
-1. **Identify members** — who is on this board, and who may do what.
-2. **Route questions** — an agent's open question reaches the one person who can decide,
-   where they already are (browser, then IM).
-3. **Prevent double work** — one card, one claimant, across all machines.
-4. **One memory** — every decision, veto, and answer lands in the same traceable memory,
-   attributed to a person.
+Questions also need stable identities. A browser, agent, or Slack message must be able to answer
+the same question even if its position on the card changes. Existing Markdown questions remain
+valid and gain an identity when next changed.
 
-Everything below either solves one of these or is scaffolding for one.
+The foundation is done when existing local workflows are unchanged, concurrent writes cannot
+overwrite each other, retries are safe, and no agent flow depends on direct board-file edits.
 
-## What stays open source, what is Cloud
+## Workspace model
 
-- **Open source**: the board format, `akb`, the local UI, the desktop app, all flows, all
-  execution. A solo user never needs an account.
-- **Cloud**: the authoritative database for team workspaces, members and roles, the
-  decision inbox, question routing, IM delivery, claims, and sync between nodes.
-- **The seam is the storage layer (#55)**: Cloud is one more backend behind the same
-  read/write interface the markdown board answers. The UI and flows do not know which one
-  they are on. This is why #55 ships first.
-- **Local-first stays true as promised**: the decisions memory already settles this —
-  local-first is a promise about the default backend, not every backend. Moving a board to
-  Cloud is the user's explicit choice, made with the one move command from #55.
+- **Workspace**: one team's complete board. Private by default; optionally public read-only.
+- **Owner**: manages members, visibility, integrations, and releases.
+- **Member**: reads and edits the board, answers questions, and runs cards.
+- **Machine**: a member-approved CLI or desktop installation connected to a workspace.
+- **Attribution**: every meaningful change records the member and, when relevant, the machine
+  and run that performed it.
 
-## Storage and migration
+Members sign in with GitHub. Connecting a machine uses a browser approval flow initiated from the
+CLI or desktop app. A member can rename or revoke a machine. Revocation takes effect on its next
+Cloud interaction and never causes a fallback to local files.
 
-- **Cloud is authoritative for a Cloud board**: no merge protocol, no CRDT. Nodes read and
-  write through the API; the server serializes writes the way the board writer from the
-  auto-implement design already serializes them locally. That design generalizes: the
-  repository-wide writer becomes a workspace-wide writer.
-- **Import, not sync**: `docs/kanban/` migrates to a workspace in one command — cards,
-  memory, releases, `record.csv` history. After the move the git copy is a snapshot, not a
-  replica. Two authoritative copies is how boards diverge.
-- **Export always works**: a workspace can dump back to the markdown format at any time.
-  No lock-in; this is the trust story for an open-source audience.
-- **Code never moves**: repos, worktrees, branches, and landings stay exactly as the
-  auto-implement design built them, on each member's machine.
+A populated local repository must complete the move flow before connecting to a workspace. An
+empty repository may connect directly to an existing Cloud workspace.
 
-## Identity and roles
+## Move and export
 
-- **Login via GitHub**: the audience is developer teams and OSS projects; one provider is
-  enough to start.
-- **Two roles plus a switch**: `owner` (settings, members, releases) and `member`
-  (everything else). A workspace is private by default; an owner may flip it to public
-  read-only so a community can watch the roadmap. No per-card or per-field ACLs.
-- **Attribution everywhere**: every answer, approval, veto, and edit records who did it.
-  This is what makes problem 4 solvable — memory entries carry a name.
+Moving a local board to Cloud is all-or-nothing:
 
-## Question routing and the decision inbox
+1. Select an empty workspace.
+2. Validate cards, references, memory, releases, history, and permanent run records.
+3. Import the complete board without exposing a partial workspace.
+4. Read it back and verify that it matches the local board.
+5. Only then make Cloud authoritative.
+6. Leave `docs/kanban/` untouched as a snapshot, but stop using it for normal board actions.
 
-- **Questions get an owner**: an open question carries an assignee. The agent proposes one
-  from memory (who decided similar things before); unassigned questions land in a shared
-  queue any member can take.
-- **Inbox v1 is single-player**: a browser page — usable from a phone — listing every open
-  question on your boards, with the card's context inline: answer, or edit the
-  deterministic fields directly. This is valuable before any team exists (goal.md's
-  "decide from any device") and it is the exact surface Cloud later routes to.
-- **IM delivery comes after the inbox works**: Slack first. The message carries the
-  question and context; the answer flows back onto the card as if typed in the inbox. IM
-  is a delivery channel, never a second store.
-- **An answer is a board write**: it goes through the writer, lands on the card, and joins
-  the decisions memory with attribution — same path as today, plus a name.
+If any step fails, the local board remains authoritative. Repeating the move resumes or returns
+the completed import rather than duplicating cards. Combining populated boards is out of scope.
 
-## Claims: one card, one agent
+Export writes a complete Markdown board, including attributed decisions and history, to an empty
+destination. It does not overwrite an existing board or change the active authority.
 
-- **Claiming is explicit**: starting a run claims the card in the workspace. Another
-  member's UI shows the card as claimed and by whom; starting a second run is refused, not
-  merged.
-- **Claims expire**: a node that goes silent releases its claim after a timeout, with the
-  run marked interrupted — same recovery story as the auto-implement run states, lifted to
-  the workspace.
-- **Dispatch stays human**: v1 has no scheduler assigning cards to nodes. A member pulls a
-  card and runs it. Automatic dispatch is a later feature with its own limits, as the
-  auto-implement plan already requires for anything that starts cards on its own.
+## Decision inbox and memory
+
+An open question is assigned to a member, claimed from the unassigned workspace queue, or left
+unassigned. A workspace may name a default decision owner; an agent may explicitly choose
+another member. V1 does not infer an owner from past decisions.
+
+The inbox shows the card context needed to decide. A member may answer a question or edit
+deterministic card fields without starting an agent.
+
+Answering is one indivisible board change:
+
+1. Confirm the question is still open and its card context is current.
+2. Store the answer and answering member.
+3. Remove the open question and recalculate card readiness.
+4. Add an attributed decision to project memory or the card's first module memory.
+5. Record the answer and memory change in workspace history.
+
+If someone already answered, the second answer is rejected and the settled answer is shown. If
+the card changed, the member reviews its current context before answering again. Later memory
+cleanup may consolidate prose but cannot erase the attributed history.
+
+The inbox ships with Cloud. A local-only phone inbox would require a second partial copy and a
+sync protocol, adding most of Cloud's complexity without one authoritative board.
+
+## Claims across machines
+
+Starting a Cloud run first claims the card for one member, machine, and run. A second start is
+refused and identifies the current claimant.
+
+Claims are renewable leases. Normal completion releases the claim; a crashed or disconnected
+machine stops renewing and the claim expires. Each new claim supersedes every older one, so an
+old run cannot reconnect and write after another member takes over.
+
+If a machine cannot renew, AI4Kanban stops the run and marks it interrupted. Its worktree and
+logs remain local for recovery. Human edits remain allowed on claimed cards; a change to approved
+requirements retires the run through #301's requirement check.
+
+Claims prevent double work but do not dispatch it. Members choose cards and start them on their
+own machines. Automatic dispatch requires separate concurrency and spend limits.
 
 ## External systems
 
-- **GitHub Issues is the community's door**: import an issue as a proposed card —
-  suggestion only, never a direct write to the board. Progress mirrors back to the issue
-  as comments or labels. The board stays authoritative; goal.md is explicit that external
-  comments cannot overwrite it.
-- **This ships before Cloud**: import is a near-term goal.md item and a solo-user feature.
-  The OSS-team story ("community files issues, maintainer's board triages them") works
-  with a local board plus import, no Cloud needed.
-- **Linear and others follow the same shape**: intake as suggestions, mirror progress out,
-  one authoritative board.
+### GitHub Issues
+
+GitHub Issues is an intake and progress-mirroring integration, not a board backend. It works with
+local and Cloud boards and ships before Cloud.
+
+Import sends the issue's content and identity through #250's existing task-intake flow and
+creates one proposed card with a traceable source. Reimport returns the same card. External
+comments enter only as suggestions; they never overwrite board state.
+
+Archiving, rejecting, or shipping a linked card may mirror progress outward. Failed deliveries
+remain retryable, and retries cannot post the same update twice.
+
+### Slack
+
+Slack is a delivery channel for the Cloud inbox. It ships after browser answering works. An owner
+connects the workspace and maps members to Slack users. Slack answers use the same board action
+as browser answers and never create a second store. Stale or settled questions link back to their
+current inbox state.
 
 ## Shipping order
 
-Every step is a release a solo user benefits from; Cloud multiplies existing features
-instead of inventing new ones. Steps 1–3 are pre-Cloud and near-term; 4–6 are the team
-version.
+1. **Single writer**: finish #301, add stable question identities, and move all board reads and
+   writes behind AI4Kanban. Gate: concurrent and retried local actions are safe.
+2. **GitHub Issues intake**: import once, preserve source, accept comments only as suggestions,
+   and mirror progress outward. Gate: import and delivery retries do not duplicate anything.
+3. **Cloud workspace and cutover**: add GitHub login, roles, machine approval, public read-only
+   boards, move/export, and normal CLI/desktop board actions. Gate: a real board moves without
+   loss, failed moves stay local, and exports work as local boards.
+4. **Team inbox**: add browser editing, routing, attributed answers, shared memory, and complete
+   history. Gate: stale edits cannot overwrite work and two answers produce one decision.
+5. **Claims**: add claimant display, renewal, expiry, interruption, and takeover protection.
+   Gate: two starts produce one run and an expired run can never write after recovery.
+6. **Slack**: add member mapping, delivery, browser-equivalent answers, and retry. Gate: Slack and
+   browser races settle once and attribution remains correct.
 
-1. **Storage layer (#55)**: the read/write seam every backend answers. Already a ready
-   card; unblocks GitHub Projects (#59) and Cloud alike.
-2. **GitHub Issues intake**: import issues as proposed cards, mirror progress back. The
-   OSS community loop with zero infrastructure.
-3. **Decision inbox, single-player**: answer your own agents' questions from a browser or
-   phone. Requires a small relay service — the first Cloud-shaped component, and the
-   natural place for accounts to appear.
-4. **Workspaces**: Cloud backend behind #55, GitHub login, owner/member, the one-command
-   import from `docs/kanban/`, export back to markdown, public read-only switch.
-5. **Team inbox and claims**: assignees on questions, routing, claimed cards visible
-   across nodes, claim expiry. Problems 2 and 3 done.
-6. **Slack delivery**: questions where members already work; answers flow back.
+## Required failure behavior
 
-## Non-goals
+| Situation | Required result |
+| --- | --- |
+| Cloud unavailable | Show an offline error; never read or write the local snapshot. |
+| Move interrupted | Keep the local board authoritative until verification succeeds. |
+| Two edits | Accept the first; make the second review the current card. |
+| Two answers | Settle once; show the winning answer to the other member. |
+| Two run starts | Grant one claim; identify the claimant to the other. |
+| Machine disappears | Expire its claims and preserve local recovery material. |
+| Old machine returns | Refuse writes from its superseded claims. |
+| Member or machine revoked | Refuse its next request and interrupt its active run. |
+| Slack or GitHub unavailable | Keep the board change and retry only the external delivery. |
 
-- **Cloud does not run agents**: no hosted execution, no holding model keys. Machines and
-  accounts stay the members' own.
-- **No realtime co-editing**: cards are claimed and edited whole; this is a kanban, not a
-  document editor.
-- **No bidirectional git sync**: a board is markdown-in-git or Cloud, never both
-  authoritative. Export is the bridge.
-- **No fine-grained permissions**: two roles and a public switch until real teams ask for
-  more.
+## Out of the first team release
 
-## Open questions for discussion
+- Hosted agent execution or model credentials.
+- Offline Cloud edits, merging, CRDTs, or bidirectional Git sync.
+- Realtime document-style co-editing.
+- Per-card or per-field permissions.
+- Automatic assignee inference, dispatch, or execution scheduling.
+- External comments directly changing board state.
+- Combining populated boards or destructive import/export.
 
-- **Where does the inbox relay live** — is step 3 a thin hosted service from day one, or
-  can it start as tunnel-to-your-desktop with no account? Hosted is simpler and seeds
-  Cloud; tunnel keeps step 3 fully local.
-- **Is `record.csv` history worth importing**, or does a workspace start its metrics
-  fresh with a link back to the git history?
-- **OSS support policy**: goal.md promises support for qualifying open-source projects,
-  policy to be published — does that shape the pricing model now or later?
-- **Does step 2 need the storage layer**, or is intake purely additive (it only proposes
-  cards) and shippable in parallel with #55?
+## Existing card changes
 
-## Existing cards
-
-- **#57/#55/#59 (board storage)**: this plan makes #55 the foundation and adds Cloud as a
-  second backend after #59; the group's scope holds.
-- **#250 (friendly task import)** and **#56 (Obsidian)**: intake-adjacent; step 2 should
-  extend #250's shape, not duplicate it.
-- **#300 (auto-delivery)**: the run states, board writer, and claims here are the same
-  machinery lifted to a workspace — no conflict, one dependency direction.
+- **#55** becomes the complete shared-board boundary, not a card-file storage layer.
+- **#59** is not a Cloud dependency; GitHub Projects remains optional future work.
+- **#250** remains the common intake flow used by GitHub Issues.
+- **#300/#301** precede Cloud; their writer, run identity, requirement check, and audit record are
+  the discipline that team claims protect.

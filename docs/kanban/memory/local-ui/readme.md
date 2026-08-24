@@ -77,6 +77,40 @@ except where another doc is named.
 - Close a shipped version or drop one that won't ship from the ⋯ menu, with a confirm that
   lists what changes. Close writes a summary; drop leaves no summary record.
 
+## Deliveries
+
+- Implement starts a **delivery** — the whole job, several sessions long — and the card says
+  which one, by id, until it ends: "Delivery" in `kanban-ui/README.md`.
+- A delivery builds the card as it was approved when the click landed. Edit the card in your
+  own editor afterwards and the delivery carries on with the copy it took.
+- A card with a delivery in flight can't be edited, refined, resolved, archived or rejected
+  — on the card page and in a terminal alike, each saying which delivery has it. Priority,
+  ROI, release, modules and the card's own todos stay yours.
+- **Cancel delivery** stands where Implement did and asks for a second click: the running
+  session stops, the card unlocks, Implement comes back, and whatever the delivery wrote
+  stays in your working tree.
+- A session that fails or is cut off does not end the delivery: the card stays held and
+  Resume picks the same delivery up, one id across both sessions.
+- Every delivery leaves a record in `docs/kanban/deliveries/`, tracked in git and kept after
+  the card is archived: what it was approved to build, every session and how it went, and
+  how it ended.
+- A cancelled delivery reads "cancelled" beside the card's title and in the sessions panel,
+  rather than the "stopped" that would describe only its last session.
+- A delivery reviews what it built before it finishes: a fresh session reads the approved
+  card and the diff — never the session that wrote the code — and either passes it, sends
+  clear mistakes back for up to two corrections, or stops and asks you. "Review" in
+  `kanban-ui/README.md` says what it checks and what it cannot.
+- A stopped delivery reads "waiting on you" and leaves one open question on the card.
+  **Resolve** comes back on while every other held control stays off, and **Review again**
+  beside it judges the same work once you have answered. Cancel delivery is the other way
+  out — changed requirements are a new delivery.
+- **Continue delivery** appears when a delivery's next session never started because the
+  process watching the one before it died, and starts it.
+- The card's `## Worth noting after implementation` is where review puts what it found that
+  needs no decision — a surprise for the next card, a check that was already failing, a
+  split worth making. It blocks nothing, and it is never part of what a delivery is
+  approved to build.
+
 ## Runs
 
 - Stop a running run from the ✕ in the log window's title bar, with one confirmation.

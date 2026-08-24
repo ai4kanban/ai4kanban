@@ -9,6 +9,7 @@ import type {
   ChatReply,
   ChatView,
   ConnectionTest,
+  DeliveryRecord,
   HarnessSetting,
   RunRecord,
   RunView,
@@ -71,6 +72,13 @@ export interface BoardRules {
   stopRun(id: string): { ok: boolean; sessionId?: string; error?: string };
   titleOf(cardId: number | undefined): string | undefined;
   buildPrompt(req: AgentRequest): string;
+
+  // the deliveries (#301) — the whole job one Implement click starts, several sessions
+  // long. Optional: a project can be running rules older than the release that added them,
+  // and then a session simply carries no delivery and no card is ever held.
+  listDeliveries?(): DeliveryRecord[];
+  activeDelivery?(cardId: number): DeliveryRecord | undefined;
+  cancelDelivery?(id: string): { ok: boolean; deliveryId?: string; error?: string };
 
   // the conversation with that agent (#242) — the board's, and each card's. Optional for
   // the same reason as the moves below: a project can be running rules older than the

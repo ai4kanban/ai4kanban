@@ -12,6 +12,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { activeDelivery } from '../agent/deliveries'
+import { readRuns } from '../agent/sessions'
 import { ARCHIVE_MD, README, TODO } from '../paths'
 import { formatStamp, nextDue } from '../cadence'
 import { parseFrontmatter } from '../frontmatter'
@@ -231,7 +233,27 @@ function collectCards(): { board: Card[]; every: Card[] } {
 
 /** Any open card by id, including a group subtask the columns don't show. */
 export function findCard(id: number): Card | null {
-  return collectCards().every.find((c) => c.id === id) ?? null
+  const card = collectCards().every.find((c) => c.id === id) ?? null
+  if (card) attachDelivery(card)
+  return card
+}
+
+// The delivery in flight on this card, read fresh. Only the single-card read attaches it:
+// the board draws no delivery of its own, and the hold it feeds is the card page's.
+//
+// A plain read of the record, never `listRuns()`: that one reaps, which writes the record
+// and calls board moves, and a card can be read with the board's own lock already held.
+function attachDelivery(card: Card): void {
+  const delivery = activeDelivery(card.id)
+  if (!delivery) return
+  const live = readRuns().find((r) => r.status === 'running' && r.deliveryId === delivery.deliveryId)
+  card.delivery = {
+    id: delivery.deliveryId,
+    startedAt: delivery.startedAt,
+    sessionId: live?.sessionId,
+    waiting: delivery.review?.stopped?.why,
+    next: delivery.next,
+  }
 }
 
 /** Every open card, subtasks included. */

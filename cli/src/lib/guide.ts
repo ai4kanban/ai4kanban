@@ -29,6 +29,7 @@ import pruneMemory from '../guide/prune-memory.md'
 import recurringTask from '../guide/recurring-task.md'
 import refine from '../guide/refine.md'
 import reject from '../guide/reject.md'
+import review from '../guide/review.md'
 import releases from '../guide/releases.md'
 import resolve from '../guide/resolve.md'
 import revise from '../guide/revise.md'
@@ -57,6 +58,7 @@ export const GUIDES: Guide[] = [
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
   { name: 'resolve', when: "answer a card's open questions, and hand the user's own back", text: resolve },
   { name: 'reject', when: 'drop a card, and write down why', text: reject },
+  { name: 'review', when: "judge a delivery's work against the card it was approved to build, and correct it", text: review },
   { name: 'recurring-task', when: 'run one pass of a job we repeat', text: recurringTask },
   { name: 'releases', when: 'the versions being planned, and how a card joins one', text: releases },
   { name: 'plan-release', when: 'fill a release from its goal', text: planRelease },

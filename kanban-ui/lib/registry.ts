@@ -1,5 +1,5 @@
 import { boardRules, type AgentRequest, type RunView } from "./cli";
-import type { SessionView } from "./types";
+import type { DeliveryRecord, SessionView } from "./types";
 
 // --- the runs, through the CLI (#168) ----------------------------------------
 // The board no longer runs agents itself. Starting one, watching it, listing them,
@@ -24,7 +24,8 @@ export interface StartResult {
 // One run as the browser reads it. The record carries a couple of fields the UI has no use
 // for (where the log file is, which agent the run was pinned to internally), and the UI
 // wants the log under the name it has always used.
-function toView(run: RunView): SessionView {
+function toView(run: RunView, deliveries?: Map<string, DeliveryRecord>): SessionView {
+  const delivery = run.deliveryId ? deliveries?.get(run.deliveryId) : undefined;
   return {
     sessionId: run.sessionId,
     cardId: run.cardId,
@@ -46,6 +47,10 @@ function toView(run: RunView): SessionView {
     result: run.status !== "running" ? run.result : undefined,
     note: run.status !== "running" ? run.note : undefined,
     tail: run.tail,
+    // The DELIVERY this session belonged to, and how that delivery ended (#301). A session
+    // the user stopped inside a cancelled delivery has to read "cancelled": "stopped" would
+    // describe the session and hide what happened to the job it was part of.
+    delivery: delivery ? { id: delivery.deliveryId, status: delivery.status } : undefined,
   };
 }
 
@@ -94,24 +99,52 @@ export async function stopSession(sessionId: string): Promise<StartResult> {
   }
 }
 
-/** Every run the board knows about. One picture, shared by every tab and every terminal. */
+/** Every session the board knows about, each carrying the delivery it belongs to. One
+ *  picture, shared by every tab and every terminal. */
 export async function listSessions(): Promise<SessionView[]> {
   try {
-    return (await boardRules()).listRuns().map(toView);
+    const rules = await boardRules();
+    const deliveries = deliveryMap(rules.listDeliveries?.());
+    return rules.listRuns().map((r) => toView(r, deliveries));
   } catch {
-    // No rules to load: the board has no runs to show and says why elsewhere, rather than
-    // failing the poll that draws the whole page.
+    // No rules to load: the board has no sessions to show and says why elsewhere, rather
+    // than failing the poll that draws the whole page.
     return [];
   }
 }
 
-/** One run with its log, read from the file — so this works on a run this process never
- *  started, and on one that outlived the process that did. */
+/** One session with its log, read from the file — so this works on a session this process
+ *  never started, and on one that outlived the process that did. */
 export async function getSession(sessionId: string): Promise<SessionView | null> {
   try {
-    const run = (await boardRules()).getRun(sessionId);
-    return run ? toView(run) : null;
+    const rules = await boardRules();
+    const run = rules.getRun(sessionId);
+    return run ? toView(run, deliveryMap(rules.listDeliveries?.())) : null;
   } catch {
     return null;
   }
+}
+
+/** Take the card back from the delivery in flight on it: the delivery ends as cancelled,
+ *  its running session is stopped, and Implement is offered again. Whatever the delivery
+ *  wrote is left where it is. */
+export async function cancelDelivery(id: string): Promise<StartResult> {
+  try {
+    const rules = await boardRules();
+    if (!rules.cancelDelivery) {
+      return { ok: false, error: "this board's rules are older than deliveries — run `npm install -g ai4kanban`." };
+    }
+    const res = rules.cancelDelivery(id);
+    return { ok: res.ok, error: res.error };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// Keyed by id, so one read of the delivery list serves every session in the poll. Absent on
+// a copy of the rules that predates deliveries: sessions then read exactly as they always
+// did, rather than the whole poll failing.
+function deliveryMap(deliveries: DeliveryRecord[] | undefined): Map<string, DeliveryRecord> | undefined {
+  if (!deliveries) return undefined;
+  return new Map(deliveries.map((d) => [d.deliveryId, d]));
 }

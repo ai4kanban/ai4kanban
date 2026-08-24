@@ -1,6 +1,6 @@
 // The two halves of a card, where they are enforced in code (#261): the boundary marker is
-// what a spec agent's section is placed against, and a refine that only moves sections is
-// not a change the user has to approve again.
+// what a spec agent's section is placed against, and a refine that only moves sections has
+// not replanned anything, so the loop does not spend another pass on it.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -9,7 +9,7 @@ import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { cmdSpecWrite } from '../src/commands/spec-write.ts'
-import { markBoard, refinementNeedsApproval } from '../src/lib/agent/refine.ts'
+import { markBoard, refinementAfter } from '../src/lib/agent/refine.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-shape-'))
@@ -125,7 +125,7 @@ describe("a spec agent's section and the boundary", () => {
   })
 })
 
-describe('repairing a card is not a change to approve', () => {
+describe('repairing a card is not a change worth another pass', () => {
   const OLD = [
     'What the task does, and what is wrong without it.',
     '',
@@ -141,16 +141,28 @@ describe('repairing a card is not a change to approve', () => {
   ].join('\n')
 
   it('reads a section move and the new marker as no change', () => {
-    write(OLD)
+    write(OLD, 'todo')
     const before = markBoard()
-    write(SHAPED.replace('## Worth noting\n- a call a reviewer could refuse\n\n', ''))
-    assert.equal(refinementNeedsApproval(5, before), false)
+    write(SHAPED.replace('## Worth noting\n- a call a reviewer could refuse\n\n', ''), 'todo')
+    assert.equal(refinementAfter('refine', 5, 1, before), null)
   })
 
   it('still catches a pass that rewords a line', () => {
-    write(OLD)
+    write(OLD, 'todo')
     const before = markBoard()
-    write(OLD.replace('- a requirement', '- a different requirement'))
-    assert.equal(refinementNeedsApproval(5, before), true)
+    write(OLD.replace('- a requirement', '- a different requirement'), 'todo')
+    assert.deepEqual(refinementAfter('refine', 5, 1, before), {
+      action: 'refine',
+      id: 5,
+      title: 'A card',
+      refineRound: 2,
+    })
+  })
+
+  it('leaves the status a pass closed on alone', () => {
+    write(OLD, 'todo')
+    const before = markBoard()
+    write(OLD.replace('- a requirement', '- a different requirement'), 'ready')
+    assert.equal(refinementAfter('refine', 5, 1, before), null)
   })
 })

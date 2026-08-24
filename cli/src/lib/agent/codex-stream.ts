@@ -17,10 +17,15 @@
 // to-do list, the turn markers) is dropped. Non-JSON lines pass through
 // untouched, so a stray CLI warning still lands in the log as-is.
 //
-// No cost and no model: Codex reports neither — it prices nothing, and it never
-// names the model in this stream. Both are left off rather than invented, and
-// the UI shows nothing where Claude Code shows a number.
+// Neither the model nor a cost is on this stream: Codex prices nothing, and its
+// events never name what ran them. Both are still shown, from beside the stream
+// rather than invented — the thread id above finds the session's rollout on disk,
+// that names the model and its provider (codex-session.ts), and the run's tokens
+// at that model's list rate are the price (prices.ts). A model whose rates aren't
+// known gets no price, the way it did when nothing was worked out at all.
 
+import { readCodexRunFacts, type CodexRunFacts } from "./codex-session";
+import { priceUsd } from "./prices";
 import type { StreamRenderer } from "./stream";
 import type { TokenUsage } from "./types";
 
@@ -80,29 +85,59 @@ function renderCompleted(item: Event): string {
   }
 }
 
-// The token counts a completed turn carries. Codex's four names map onto the
-// board's four, with one left out on purpose: `reasoning_output_tokens` is
-// already part of `output_tokens`, so adding it would count the same tokens
-// twice. All-zero counts read as "reported nothing", like the Claude renderer.
+// The token counts a completed turn carries, in the four buckets the board shows.
+//
+// Codex counts prompt tokens the other way round from Claude: its `input_tokens`
+// is the WHOLE prompt, cached part included, where Claude's is only the fresh
+// part and the cache is counted beside it. The board's four are Claude's, and are
+// added up as four separate numbers — so the cached tokens are taken back out
+// here. Left in, a run's input would carry its cache reads twice.
+//
+// `reasoning_output_tokens` is dropped for the same reason from the other end:
+// it is already inside `output_tokens`. All-zero counts read as "reported
+// nothing", like the Claude renderer.
 function parseUsage(raw: unknown): TokenUsage | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const u = raw as Event;
   const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0);
+  const cacheCreation = n(u.cache_write_input_tokens);
+  const cacheRead = n(u.cached_input_tokens);
   const usage: TokenUsage = {
-    input: n(u.input_tokens),
-    cacheCreation: n(u.cache_write_input_tokens),
-    cacheRead: n(u.cached_input_tokens),
+    input: Math.max(0, n(u.input_tokens) - cacheCreation - cacheRead),
+    cacheCreation,
+    cacheRead,
     output: n(u.output_tokens),
   };
   const total = usage.input + usage.cacheCreation + usage.cacheRead + usage.output;
   return total > 0 ? usage : undefined;
 }
 
+// How often the rollout is looked for while a run is going. The runner asks the
+// renderer for the model on every chunk of output, and a run arrives in hundreds
+// of them; the rollout is a file, and reading it that many times would be a lot
+// of nothing. A few seconds is late enough to be cheap and early enough that the
+// panel names the model while the run is still working, rather than at the end.
+const LOOK_EVERY_MS = 3_000;
+
 export function createCodexStreamRenderer(): StreamRenderer {
   let buf = "";
   let final: string | undefined;
   let usage: TokenUsage | undefined;
   let threadId: string | undefined;
+  let facts: CodexRunFacts | undefined;
+  let lookedAt = 0;
+
+  // Look beside the stream for what the stream doesn't say. Nothing to look for
+  // until the thread id arrives, and nothing to look for again once the model is
+  // known — a turn can't change it. `now` skips the wait, for the last look after
+  // a run has ended.
+  const look = (now: boolean): void => {
+    if (facts?.model || !threadId) return;
+    const at = Date.now();
+    if (!now && at - lookedAt < LOOK_EVERY_MS) return;
+    lookedAt = at;
+    facts = readCodexRunFacts(threadId) ?? facts;
+  };
 
   const renderLine = (line: string): string => {
     if (!line.trim()) return "";
@@ -161,11 +196,25 @@ export function createCodexStreamRenderer(): StreamRenderer {
     flush(): string {
       const rest = buf;
       buf = "";
-      return rest ? renderLine(rest) : "";
+      const out = rest ? renderLine(rest) : "";
+      // The run is over: the rollout is complete, and this is the last chance to
+      // read it before the record closes.
+      look(true);
+      return out;
     },
     result: () => final,
     usage: () => usage,
-    // No costUsd and no model on purpose — see the note at the top.
+    model: () => {
+      look(false);
+      return facts?.model;
+    },
+    // Worked out here rather than reported: the run's tokens at the model's list
+    // rate, and nothing at all unless both the provider and the model are ones
+    // whose rates the board knows.
+    costUsd: () => {
+      look(false);
+      return priceUsd(facts?.provider, facts?.model, usage);
+    },
     resumeId: () => threadId,
   };
 }
