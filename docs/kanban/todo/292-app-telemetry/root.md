@@ -4,7 +4,7 @@ track: distribution
 priority: med
 roi: high
 status: todo
-release: 0.7.2
+release: 0.8.0
 blocked_by: []
 related: []
 modules: [telemetry, local-ui]

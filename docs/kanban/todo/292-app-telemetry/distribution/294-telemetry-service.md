@@ -4,7 +4,7 @@ track: 292-app-telemetry/distribution
 priority: high
 roi: high
 status: todo
-release: 0.7.2
+release: 0.8.0
 blocked_by: []
 related: [292]
 modules: [telemetry]

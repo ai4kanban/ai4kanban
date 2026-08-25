@@ -4,7 +4,7 @@ track: 292-app-telemetry/skill
 priority: med
 roi: med
 status: todo
-release: 0.7.2
+release: 0.8.0
 blocked_by: [295]
 related: [292]
 modules: [skill, telemetry]

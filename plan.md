@@ -1,8 +1,9 @@
 # Team collaboration
 
-Local and Cloud are two first-class ways to host a board. Neither is the product default:
-onboarding asks the user to create or open a Local board or a Cloud board. Both use the same UI
-and `akb` workflows, but they have different authority and consistency models.
+Cloud is the default and recommended way to host a board because it provides the complete
+collaboration experience. Onboarding leads with creating or opening a Cloud board; Local remains
+an explicit option for people who want a filesystem-only board. Both use the same UI and `akb`
+workflows, but they have different authority and consistency models.
 
 Cloud manages card lifecycles and team coordination. It never manages a codebase and never runs
 agents. Each member's machine remains an execution node using its own repository, git tooling,
@@ -15,21 +16,22 @@ agent harness, and model account.
   AI4Kanban Cloud.
 - **Workspace**: a Cloud board together with its members, roles, memory, releases, and history.
 - **Execution node**: a member's machine running `akb` against its own checkout.
-- **Writer lease**: the exclusive right for one member or execution node to mutate one card.
-- **Card metadata**: the card frontmatter, including lifecycle state, ownership, version, and
-  delivery commit where applicable.
+- **Writer lease**: the exclusive, time-bounded right for one member or execution node to mutate
+  one card.
+- **Portable card metadata**: lifecycle fields that survive Local/Cloud import and export, such as
+  stable card ID, status, ownership, and delivery commit.
+- **Coordination metadata**: Cloud-only revisions, leases, fencing tokens, operation records, and
+  audit attribution. It does not belong in exported card frontmatter.
 - **Card body**: the markdown content of the card. Cloud stores the shared body, but does not
   receive live drafts while a card is being edited.
-- **Decision inbox**: the browser view where a member sees questions routed to them and performs
-  card operations through the same access rules as every other client.
 
 ## The four problems (from goal.md)
 
 Team collaboration is exactly these, in this order of difficulty:
 
 1. **Identify members** — who is on this board, and who may do what.
-2. **Route questions** — an agent's open question reaches the person who can decide, where they
-   already are (browser, then IM).
+2. **Route questions** — an agent's open question reaches the person who can decide. Event,
+   notification-center, and IM behavior are specified in [notify-plan.md](notify-plan.md).
 3. **Prevent double work** — one card, one writer, across all machines and all mutations.
 4. **One memory** — every decision, veto, and answer lands in the same traceable memory,
    attributed to a person.
@@ -45,15 +47,35 @@ The Cloud control plane coordinates a Cloud board. It owns:
 - **ID allocation**: stable workspace, card, member, operation, and lease IDs.
 - **Authentication**: who the caller is.
 - **Member access**: workspace membership and role checks.
-- **Card metadata**: authoritative frontmatter and lifecycle transitions.
-- **Card access**: atomic writer-lease acquisition, renewal, release, and conflict rejection.
+- **Lifecycle invariants**: authoritative portable card metadata and valid state transitions.
+- **Revision and idempotency**: per-card and workspace revisions, operation deduplication, and
+  immutable audit events.
+- **Card access**: atomic writer-lease acquisition, renewal, release, expiry, revocation, and
+  conflict rejection.
+- **Consistent reads**: snapshot cursors so a client knows which board revision it rendered.
 
-Every mutation includes the card version and, after acquisition, the writer-lease ID. The server
-checks access and advances the version atomically. A client-side editor badge is only a hint; it
-is never the concurrency control.
+Every durable domain mutation carries a client-generated operation ID and the expected resource
+revision. Card mutations also carry the current lease ID and fencing token. In one database
+transaction, the server checks membership, lifecycle rules, operation uniqueness, revision, and
+the unexpired lease; applies the mutation; advances the revisions; appends the audit event; and
+stores the operation result. Retrying the same operation ID with the same payload returns that
+result; reusing it with a different payload is rejected. Lease heartbeats are conditional updates
+of the current lease, not durable domain operations, so they do not grow the operation ledger.
+
+Acquiring a lease is an atomic compare-and-set on the card revision. Each successful acquisition
+increments a monotonic fencing token. This makes a delayed request from an expired or revoked
+writer fail even after another writer has acquired the card. Lease renewal changes only the lease
+expiry, not the card revision. Server time decides expiry. A client-side editor badge is only a
+hint; it is never the concurrency control.
+
+Workspace-wide mutations such as import use the expected workspace revision and a short
+workspace maintenance lease. It can be acquired only with no live card leases and blocks new card
+lease acquisition. Other multi-card operations either commit atomically while locking their
+affected rows in stable card-ID order or fail without changing any card. They never acquire card
+leases one at a time and leave partial results.
 
 A Local board implements the equivalent operations locally without calling the Cloud control
-plane. Local and Cloud are peer board modes, not a primary mode plus an add-on.
+plane. It remains supported, but it is not the default onboarding path.
 
 ### 2. Board data plane
 
@@ -63,13 +85,43 @@ plane. Local and Cloud are peer board modes, not a primary mode plus an add-on.
   and history. Clients keep an asynchronous whole-board cache for rendering.
 - **While editing**: `akb` first acquires the writer lease and records the current frontmatter in
   Cloud. The body remains a local draft; there is no keystroke, document, or realtime body sync.
-- **On completion**: `akb` uploads the final card body and final frontmatter in one lifecycle
-  operation, then releases the writer lease.
+- **On completion**: `akb` first uploads and freezes the final body and metadata in a durable
+  delivery attempt. It then lands the code locally and confirms the attempt with the verified
+  main-branch commit ID. Confirmation is idempotent, marks the card delivered, and releases the
+  lease.
 - **Migration**: import moves a Local board into a Cloud workspace; export produces the markdown
   format again. Import/export is a bridge, not bidirectional replication.
 
-All UI and agent mutations go through `akb`, including lifecycle-only changes. This lets the CLI
-guarantee the acquire-record-complete sequence rather than relying on each client to remember it.
+The CLI and Cloud UI use the same provider operation contract and Cloud endpoints, including for
+lifecycle-only changes. No client gets a privileged write path around the control plane.
+
+### Metadata model
+
+- **Portable card metadata** keeps the existing board fields and adds `delivery_commit` only when
+  a card is delivered. Stable card IDs are preserved across import and export.
+- **Cloud card rows** add server-owned `revision`, monotonic `lease_epoch`, `body_hash`,
+  `updated_at`, and `updated_by`.
+- **Lease rows** have at most one current row per card and hold `lease_id`, holder member and
+  execution node, fencing token, `expires_at`, and last renewal time.
+- **Operation and event rows** hold the operation ID, payload hash, result revision, actor, time,
+  and immutable audit payload.
+- **Delivery attempts** hold their own ID, frozen card revision and body hash, state, and eventual
+  delivery commit.
+- **Workspace rows** hold a workspace revision, snapshot cursor, schema version, and any active
+  maintenance lease.
+
+Revisions, lease data, delivery-attempt state, and operation IDs are API/database coordination
+state; do not add them to portable frontmatter. A cached Cloud card carries its revision in the
+provider envelope, while an exported Local board is standalone.
+
+### Local-to-Cloud history import
+
+Import is a single maintenance operation into a new, empty workspace. It preserves current cards,
+stable card IDs, hierarchy, releases, memory, and the append-only events in `record.csv`.
+Historical rows are marked as imported and retain their original time, event, card reference, and
+detail; they are not falsely attributed to a Cloud member. The import operation records who
+performed the migration and the source board fingerprint, so retrying it cannot duplicate
+history. Repository and git history stay local and are never uploaded.
 
 ### 3. Codebase data plane
 
@@ -89,22 +141,42 @@ codebase itself. A card cannot be marked delivered until the local landing succe
 - **One writer per card**: every card mutation uses the same exclusive writer lease, regardless
   of whether it edits frontmatter, answers a question, changes lifecycle state, or completes a
   run. Other clients may read the card but cannot mutate it while the lease is held.
-- **Leases recover from dead clients**: the active writer renews its lease. If it disappears, the
-  lease expires and the lifecycle records an interrupted edit before another writer may acquire
-  the card.
+- **Lease policy**: a lease lasts 120 seconds and an active writer renews it every 40 seconds. If
+  connectivity is lost past expiry, the draft remains local but the client must reacquire and
+  compare the latest card revision before continuing.
+- **Recovery is lazy and fenced**: no expiry job is required. The next read treats an expired lease
+  as inactive; the next acquisition records the interruption and issues a higher fencing token.
+  An owner may explicitly revoke a live lease, which is audited and immediately fences the old
+  writer.
 - **The server arbitrates stale clients**: the UI may show no editor because its board cache is
   stale. Its mutation still performs atomic acquisition against Cloud. If another writer exists
   or the card version changed, Cloud rejects the operation; the client refreshes that card and
   shows the current writer and state.
 - **No merges**: conflicting mutations are refused, not merged. Final card bodies are uploaded
   only by the lease holder.
+- **Membership changes take effect on every write**: removing a member or execution node causes
+  its next renewal or mutation to fail; revocation also invalidates its active leases.
 
-The React application hydrates its local state from a whole-board Cloud snapshot and updates it
-asynchronously. V1 should choose the least expensive freshness policy that is adequate in use:
-refresh after local mutations, on explicit refresh, and when the app regains focus; add lazy
-periodic refresh while visible if needed. Webhook or push invalidation is justified only if the
-measured collaboration benefit exceeds its infrastructure cost. None of these policies changes
-the server-side conflict rule.
+The React application hydrates from one whole-board Cloud snapshot. V1 does not poll, refresh on
+focus, or subscribe to push updates. A successful mutation returns the changed resources and new
+snapshot cursor; a rejected stale write refreshes only the affected card; and the user can refresh
+explicitly. This keeps read cost low. Write consistency still comes entirely from atomic server
+checks, never cache freshness.
+
+### Delivery recovery
+
+Uploading and freezing the final card before git landing removes the dangerous case where landing
+succeeds but the final body never reaches Cloud. If landing fails, `akb` aborts the delivery
+attempt and returns the card to its prior lifecycle state. If landing succeeds but confirmation
+fails, it retries the same attempt ID and commit ID; the server returns the original result after
+success. A crashed client leaves an explicit `delivery_pending` attempt that blocks ordinary card
+writes. The same authenticated execution node or an owner can confirm or abort it after checking
+the repository. Confirmation succeeds only while that attempt and its frozen card revision are
+still current; aborting it fences delayed confirmation requests.
+
+For v1, proof of landing is the commit ID after the execution node locally verifies that the
+commit is reachable from the configured local main branch. Cloud records the commit, branch,
+member, execution node, and verification time, but does not contact or manage a git remote.
 
 ## Identity and roles
 
@@ -117,16 +189,12 @@ the server-side conflict rule.
 - **Attribution everywhere**: every answer, approval, veto, edit, and lifecycle transition
   records who performed it.
 
-## Question routing and the decision inbox
+## Question routing
 
-- **Questions get an owner**: an agent proposes an assignee from memory; unassigned questions
-  land in a shared queue any member can take.
-- **The inbox uses normal card operations**: answering a question or editing a deterministic
-  field must acquire the card's writer lease. It cannot bypass an active local agent or editor.
-- **IM is delivery, not storage**: Slack comes after the browser inbox. Replies flow through the
-  same authenticated card operation and are attributed to the responder.
-- **Answers join memory**: after the card mutation succeeds, the decision is stored once in the
-  shared, traceable memory.
+[notify-plan.md](notify-plan.md) owns question eligibility, notification content, the browser
+notification center, deduplication, and IM delivery. This plan adds only the shared write rule:
+resolving a question uses the normal leased card mutation, and its answer, attribution, audit
+event, and memory update commit atomically.
 
 ## External systems
 
@@ -139,24 +207,22 @@ the server-side conflict rule.
 
 ## Shipping order
 
-Each step establishes a boundary used by the next one. Local and Cloud appear as peers wherever
-the board is selected or opened.
+Each step establishes a boundary used by the next one. Product onboarding should offer Cloud
+first and present Local as the explicit filesystem-only alternative.
 
 1. **Board provider boundary (#55)**: define the operations both Local and Cloud providers answer,
-   including versions, lifecycle mutations, and conflict results. Do not encode Local as an
-   implicit fallback or default.
+   including revisions, idempotency, lifecycle mutations, and conflict results. Cloud is the
+   product default; provider selection remains explicit in the implementation.
 2. **GitHub Issues intake**: import issues as proposed cards and mirror progress back, using the
    provider boundary rather than filesystem-only writes.
-3. **Decision inbox, single-player**: validate remote question answering and deterministic card
-   operations before adding team routing.
-4. **Cloud control plane**: ID allocation, GitHub login, workspaces, owner/member access, card
-   metadata, writer leases, and atomic stale-version rejection.
-5. **Cloud board data plane**: import/export, whole-board snapshots, asynchronous React cache
-   refresh, and the `akb` acquire-frontmatter-final-body lifecycle protocol.
-6. **Team delivery loop**: local execution and git landing onto main, delivery commit recorded in
-   card metadata, shared inbox routing, lease recovery, and conflict UX.
-7. **Slack delivery**: send questions where members already work; replies use the same card
-   mutation path.
+3. **Cloud control plane**: ID allocation, GitHub login, workspaces, owner/member access,
+   revisions, operation ledger, audit events, fenced writer leases, and atomic conflict handling.
+4. **Cloud board data plane**: full Local-board import including `record.csv`, export, whole-board
+   snapshots, targeted conflict refresh, and the acquire-draft-prepare-confirm lifecycle.
+5. **Team delivery loop**: local execution, prepared delivery, git landing onto main, idempotent
+   confirmation, recovery, and conflict UX.
+6. **Question routing and delivery**: implement [notify-plan.md](notify-plan.md) against the same
+   authenticated, leased mutation path.
 
 ## Non-goals
 
@@ -164,7 +230,7 @@ the board is selected or opened.
   landing, or model keys.
 - **No realtime card editing**: no collaborative document editor, live draft body, CRDT, or body
   merge protocol.
-- **No client-side concurrency guarantee**: background refresh improves freshness but never grants
+- **No client-side concurrency guarantee**: cache refresh improves freshness but never grants
   permission to write.
 - **No Local/Cloud bidirectional sync**: a board has one authoritative provider. Import and export
   move snapshots across the boundary.
@@ -173,25 +239,9 @@ the board is selected or opened.
 - **No automatic dispatch in v1**: a member chooses a card and starts local execution. Scheduling
   work across nodes is a separate feature.
 
-## Open questions for discussion
-
-- **Refresh policy**: is focus/mutation/manual refresh fresh enough, or does active board use
-  justify lazy polling? Measure this before paying for webhook or push infrastructure.
-- **Lease duration and recovery**: how long may an edit go without a heartbeat, and what explicit
-  recovery may an owner perform after a crashed node?
-- **Landing proof**: is a locally verified main-branch commit ID sufficient, or must Cloud verify
-  the remote default branch before accepting the delivered transition? Verification must not turn
-  into Cloud codebase management.
-- **Partial completion**: if git landing succeeds but final-body upload fails, which idempotency key
-  lets `akb` safely retry the Cloud completion without duplicating history?
-- **History import**: should `record.csv` be imported, or should a Cloud workspace start metrics
-  fresh with a link to its Local history?
-- **OSS support policy**: does support for qualifying open-source projects shape pricing now or
-  after the collaboration model is proven?
-
 ## Existing cards
 
-- **#57/#55/#59 (board storage)**: #55 defines peer Local and Cloud providers; the Cloud provider
+- **#57/#55/#59 (board storage)**: #55 supports both Local and Cloud providers; the Cloud provider
   must expose lifecycle and conflict semantics rather than pretending to be a realtime filesystem.
 - **#250 (friendly task import)** and **#56 (Obsidian)**: intake should extend #250's shape rather
   than create a separate write path.
