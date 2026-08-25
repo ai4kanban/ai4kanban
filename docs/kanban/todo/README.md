@@ -53,6 +53,7 @@ _(none)_
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#202 Test whether the board changes what a coding agent builds](202-board-vs-no-board/root.md)
 - [#292 See how the app is actually used, from download to daily work](292-app-telemetry/root.md)
+- [#321 Publish the privacy and terms pages the Cloud preview needs](311-team-collaboration-cloud/distribution/321-publish-privacy-and-terms-pages.md)
 
 ## recurring
 

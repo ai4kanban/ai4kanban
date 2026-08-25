@@ -23,6 +23,7 @@ Give each Cloud workspace one trusted place that decides who may change what and
 - Allow one 120-second writer lease per card, renewed every 40 seconds and fenced by a rising token.
 - Let owners revoke a lease; membership or node removal must invalidate later renewals and writes.
 - Protect imports with a workspace maintenance lease and make multi-card changes all-or-nothing.
+- Let an owner delete a workspace and everything in it, which is what #321's pages promise.
 
 ## Todo
 - [ ] Add GitHub login, private workspaces, membership, roles, and public read-only access.
@@ -32,6 +33,7 @@ Give each Cloud workspace one trusted place that decides who may change what and
 - [ ] Add atomic writer lease acquisition, renewal, expiry, release, and revocation.
 - [ ] Fence delayed writers after expiry or revocation.
 - [ ] Add safe workspace maintenance and atomic multi-card operations.
+- [ ] Add owner deletion of a workspace and everything stored in it.
 - [ ] Check concurrent writers, stale revisions, retries, and membership removal.
 
 ## Decided by the agent

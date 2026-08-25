@@ -30,7 +30,8 @@ deliberately.
   takes the Cloud path.
 - Let owners invite or remove members, change roles, manage execution nodes, and set public
   read-only access.
-- Explain that Cloud manages board coordination but never receives code or runs agents.
+- Explain that Cloud manages board coordination but never receives code or runs agents, and
+  link the Cloud choice to the published privacy and terms pages (#321).
 - Update product and user documentation to describe the Local and Cloud authority models.
 
 ## Todo
@@ -40,5 +41,6 @@ deliberately.
 - [ ] Add workspace, member, execution-node, and public-access controls.
 - [ ] Offer Local-to-Cloud import when opening or creating a workspace.
 - [ ] Explain the codebase boundary and both authority models in the app and docs.
+- [ ] Link the Cloud choice to the published privacy and terms pages.
 - [ ] Check a new Local user, a new Cloud user, and an existing Local user can each finish
       onboarding.

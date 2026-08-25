@@ -161,9 +161,13 @@ re-ask a settled call.
   and one that declares none is unchanged. `ui-design` gets the first — mockup style —
   and `technology-selection` gets none.
 - **What are the mockup styles, and which is the default?**: `full` — a `.tsx` or `.html`
-  screen styled like the product — and `ascii`, a `.txt` drawing in plain text. `full` is the
-  default, so a board that never opens the setting draws what it always did. The setting is
-  board-wide, so a card is drawn in one style and never a mix.
+  screen styled like the product, in a file the card points at — and `ascii`, a plain-text
+  drawing written straight into the card section as a fenced block, with no file behind it.
+  `full` is the default, so a board that never opens the setting draws what it always did. The
+  setting is board-wide, so a card is drawn in one style and never a mix.
+- **Why does the ASCII style write no file?**: the drawing is already text the card can hold,
+  and a file under gitignored `.mockups/` would have thrown it away on every other machine.
+  In the card it survives the pull, and there is no tag, no folder and no cleanup for it.
 - **How wide may an ASCII mockup be?**: 96 columns, and every character one column wide —
   plain ASCII or the box-drawing characters, never emoji or full-width text. A drawing is
   never re-wrapped, so a longer line is one the reader has to scroll to.

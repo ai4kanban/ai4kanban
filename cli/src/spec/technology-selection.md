@@ -19,24 +19,32 @@ whether it should lean on anything at all. Nothing else on the card is yours.
 
 ## What to answer
 
-Two or three candidates, each written like this:
+One table, and under it one line naming your pick:
 
-    ### <name> — <what it is, half a line>
-    - Gives us: <the one thing it does for this card>
-    - Costs: <licence, upkeep, weight, lock-in — the ones that matter here>
-    - Checked: <latest version and its date, licence, where you looked>
+    | Option | What it is | Pros | Cons |
+    | --- | --- | --- | --- |
+    | <name> | <half a line, with the version and licence you checked> | <what it gives this card> | <what it costs this card> |
 
-Then one line naming the one you recommend, and why it beats the others for this card.
+    **Pick: <name>** — <why it beats the others here, in one line>.
 
-**Two of the candidates are always on the table**: keep what the project already uses, and
-write it ourselves. Weigh them on the same terms as a package — what they give us, what
-they cost — and recommend one when it wins. Adding a dependency is not the default: every
-one is a licence, an upgrade, and a thing that can be abandoned.
+- **Two or three rows**: one per candidate, nothing you did not weigh.
+- **Every cell is a phrase**: a cell that wants a paragraph is answering a question the card
+  did not ask. Version, date and licence go in **What it is**; money, weight, lock-in and
+  upkeep go in **Cons**.
+- **One table per pick**: a card that has to settle two separate things gets two tables, each
+  with its own pick line.
+
+**Two rows are always on the table**: keep what the project already uses, and write it
+ourselves. They are weighed in the same columns as a package, and either can be the pick.
+Adding a dependency is not the default: every one is a licence, an upgrade, and a thing that
+can be abandoned.
 
 ## What to leave out
 
-Install commands, config, code, and how the feature is built on top of the pick. Which
-one, and why, is the whole of it.
+Everything that is not the table and the pick line. No paragraph setting the table up, no
+candidate written out again below it, no list of the ones you dropped, no note on where you
+looked. Install commands, config, code, and how the feature is built on top of the pick are
+out too — which one, and why, is the whole of it.
 
 ## When the pick is the user's
 

@@ -1,9 +1,9 @@
 // ---- flags + validation (guards against hallucinated meta) -----------------
 
 import fs from 'node:fs'
-import path from 'node:path'
 
 import { die, warn, rel, TODO, MODULES_MD } from './paths'
+import { locate } from './cards'
 import type { FlagOrder, FlagValue, Flags, ParsedFlags } from './types'
 
 // Minimal flag parser. `--key value` sets a string; a repeated `--key` builds an
@@ -89,17 +89,17 @@ export function normalizeRelease(raw: unknown): string {
 function trackNames(): string[] {
   return fs
     .readdirSync(TODO, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
+    .filter((e) => e.isDirectory() && !/^\d+-/.test(e.name))
     .map((e) => e.name)
 }
 
 export function validTrack(track: string): void {
-  const dir = path.join(TODO, track)
-  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
+  const known = trackNames()
+  if (!known.includes(track)) {
     die(
-      `unknown track "${track}". existing tracks: ${trackNames().join(', ') || '(none)'}. ` +
-        `make the folder first or pick one of these — don't invent a track.`,
-      { kind: 'unknown-track', track, known: trackNames() },
+      `unknown track "${track}". existing tracks: ${known.join(', ') || '(none)'}. ` +
+        `--track takes a top-level track name, never a group folder path.`,
+      { kind: 'unknown-track', track, known },
     )
   }
 }
@@ -149,8 +149,8 @@ export function validModules(mods: string[]): string[] {
   return mods
 }
 
-// Ids must be plain numbers already allocated (< ceiling). Rejects invented ids
-// like #999 that were never handed out.
+// Card links name open cards. The ceiling catches invented future ids cheaply; locate
+// catches ids that were reserved by an older CLI, rejected, archived, or never existed.
 export function parseIdList(raw: FlagValue, name: string, ceiling: number): number[] {
   const parts = (Array.isArray(raw) ? raw : [raw])
     .flatMap((s) => String(s).split(','))
@@ -162,6 +162,7 @@ export function parseIdList(raw: FlagValue, name: string, ceiling: number): numb
     if (n < 1 || n >= ceiling) {
       die(`--${name} points at #${n}, not a real task id (ids so far go up to ${ceiling - 1}). don't invent ids.`)
     }
+    if (!locate(n)) die(`--${name} points at #${n}, which is not an open card.`)
     return n
   })
 }

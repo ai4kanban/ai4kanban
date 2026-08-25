@@ -17,6 +17,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **The agent half of a card carries a "worth noting" list** → ✅ "worth noting" is a
   reviewer's aid and sits in the human half; the agent reads every line. The human half is
   one short paragraph plus those points and stands alone, since the agent half is folded.
+- ❌ **A `## Worth noting` bullet that states a fact** ("the same commands write the same
+  files") → ✅ name the cost, the tradeoff, or the option it beat, so a reviewer has
+  something to reverse. The human half is written last, by a writer who already knows the
+  plan, so it compresses into allusion a reviewer has no premises for.
 - ❌ **A card's state lives somewhere other than the card** (the UI's memory, a side file)
   → ✅ everything about a card is a frontmatter field the script writes and nothing else
   does, so the state survives a restart and any reader can parse it.

@@ -57,44 +57,22 @@ function cadenceFlag(raw: FlagValue): string {
   return formatCadence(parsed)
 }
 
-const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'count', 'no-body', 'cadence', 'proposed']
+const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'no-body', 'cadence', 'proposed']
 
 // Where a card came from. `--proposed` is what the flows that go looking for work pass —
 // propose, extract-ideas, plan-release; every other way of adding a card is a person
 // asking for it. Kept for the board's own score (lib/record.ts), not shown on the card.
 const originOf = (flags: Flags): Origin => (flags.proposed !== undefined ? 'proposed' : 'asked')
 
-// Two modes:
-//   bare      `create [--count N]`  → allocate ids and print them (no card written).
-//   card mode `create --title ... --track ...` → allocate ONE id, write the card's
-//             frontmatter + a body template, and index it. The script owns the meta;
-//             fill the body with your editor and leave the frontmatter alone.
+// Create allocates one id, writes one card's frontmatter + body template, and indexes it.
+// The script owns the meta; fill the body with your editor and leave the frontmatter alone.
 export function cmdCreate(args: string[]): MoveResult {
   const { flags, positional, order } = parseFlags(args, CREATE_FLAGS)
   if (positional.length) die(`create takes options, not positional args (got "${positional.join(' ')}")`)
-
-  if (flags.title === undefined) {
-    for (const bad of ['track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'no-body', 'cadence']) {
-      if (flags[bad] !== undefined) die(`--${bad} needs --title (that's card mode). Without --title, create only allocates ids.`)
-    }
-    const count = flags.count !== undefined ? Number(flags.count) : 1
-    if (!Number.isInteger(count) || count < 1) die('--count must be a positive integer')
-    const origin = originOf(flags)
-    const start = readNextId()
-    const ids = Array.from({ length: count }, (_, k) => start + k)
-    writeNextId(start + count)
-    bumpMetric('created', count)
-    for (const id of ids) recordFact('card-created', id, origin)
-    say(ids.join('\n'))
-    reconcileBoard()
-    return { ids }
-  }
-
-  // --- card mode ---
-  if (flags.count !== undefined) die("--count can't be combined with --title (card mode makes exactly one card)")
+  if (flags.title === undefined) die('create writes exactly one card: pass --title <title> --track <track>')
   const title = String(flags.title).trim()
   if (!title) die('--title must not be empty')
-  if (flags.track === undefined) die('--track is required in card mode (e.g. --track feature)')
+  if (flags.track === undefined) die('--track is required (e.g. --track feature)')
   const track = String(flags.track).trim()
   validTrack(track)
   const priority = flags.priority !== undefined ? String(flags.priority) : 'med'

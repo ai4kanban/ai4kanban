@@ -41,6 +41,9 @@ Use professional, comprehensible language that a fresh reader can understand qui
 - **Specify behavior**: omit planning notes and unnecessary coding details.
 - **Keep the human half independent**: nothing above the boundary may rely on the folded
   agent half.
+- **Give a reviewer something to disagree with**: a `## Worth noting` bullet names the cost,
+  the tradeoff, or the option it beat. A bullet a reviewer can only nod at is a fact, not a
+  decision, and belongs below the boundary.
 - **Record answered decisions consistently**: use `- **<question>**: <answer>` in
   `## Worth noting` for material calls a reviewer may reverse, and in
   `## Decided by the agent` for the rest.
@@ -119,10 +122,6 @@ the metadata: title, track, priority, roi, status, release, blocked_by, related,
 questions, verify, and schedule. Edit only the card's **body** by hand. `akb board help`
 lists all operations; `akb board help <move>` explains one operation.
 
-Optionally tag a card with up to two modules using `--modules` (see
-`docs/kanban/modules.md`). If no existing module fits, add one according to
-`akb guide module-map`.
-
 ## Group task
 
 A **group task** is broad enough that even its subtasks may need further splitting. It
@@ -150,14 +149,8 @@ then move the files into the group's folder:
    and leave it under the heading it is already in. That index is not frontmatter — edit
    it directly.
 
-- **`--track` always takes a real track name**: the frontmatter `track` is the column the
-  board shows the card in. Passing a folder path such as `<id>-<slug>/<track>` puts the
-  file in the right place but leaves the card out of every column.
 - **The root's `## Todo` lists the subtasks**: one line each, ending in `#<subid>`.
   Archiving a subtask ticks its line off; rejecting one strikes it through.
-- **Never reserve ids up front**: `akb board create --count <N>` prints ids that no card
-  can be given — writing a card always takes a fresh id — so the reserved numbers are
-  burnt and the board's numbering jumps.
 
 ## The memory set
 

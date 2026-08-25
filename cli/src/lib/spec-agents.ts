@@ -11,20 +11,19 @@
 // board UI's Agents section draws them, so neither keeps a copy that could say something
 // else (#191).
 //
-// A setting is a pick from named choices, each choice carrying its own block of prompt
-// text (#255). The picked blocks are appended to the agent's prompt, so a setting means
-// whatever its text says and no board code has to know what any of them do.
+// A setting is a pick from named choices, each choice carrying a short prompt block (#255).
+// The picked blocks are appended to the agent's prompt, so the setting tells the run which
+// path through its prompt to follow.
 //
-// The prompts are markdown under src/spec/, inlined into the one built file the same way
-// the flows are (`loader: {'.md': 'text'}` in cli/scripts/build.mjs). Edit the `.md`.
+// Prompt sources are markdown, inlined into the built file like the flows
+// (`loader: {'.md': 'text'}` in cli/scripts/build.mjs).
 
 import { specAgentEntries, setSpecAgentSwitch, setSpecAgentValue } from './agent/settings'
 import type { SpecAgentEntry } from './agent/settings'
 import type { SpecAgentSetting, SpecAgentView } from './agent/types'
 import technologySelection from '../spec/technology-selection.md'
 import uiDesign from '../spec/ui-design.md'
-import uiDesignAscii from '../spec/ui-design-ascii.md'
-import uiDesignFull from '../spec/ui-design-full.md'
+import uiDesignGuide from '../guide/ui-design.md'
 
 const LEGACY_SPEC_AGENT_NAMES: Record<string, string> = {
   'recommend-tech-stack': 'technology-selection',
@@ -48,8 +47,9 @@ export interface SpecAgent {
 }
 
 /** How `ui-design` draws a layout option (#256). Both styles answer the same way — two or
- *  three options, one line each, one recommended — and differ only in what one option's file
- *  is: a screen the board renders, or a drawing that reads as itself wherever it is opened.
+ *  three options, one recommended — and differ in where a drawing goes: a rendered screen is
+ *  a file under `.mockups/` the card points at, while a plain-text one is a fenced block in
+ *  the card itself, which needs no file and travels with the card through git.
  *
  *  It is board-wide, so a card is drawn in one style and never a mix, and it defaults to
  *  `full`: a board that never opens the setting draws what it drew before this existed. */
@@ -62,13 +62,13 @@ const MOCKUP_STYLE: SpecAgentSetting = {
       value: 'full',
       label: 'Rendered screen',
       cost: 'a `.tsx` or `.html` file per option, styled like the product — a long run, and the board draws it',
-      prompt: uiDesignFull,
+      prompt: '## Selected mockup style\n\nUse the **rendered screen** format from `akb guide ui-design`.',
     },
     {
       value: 'ascii',
       label: 'ASCII drawing',
-      cost: 'a `.txt` file per option, readable wherever it is opened — a short run, and no product styling',
-      prompt: uiDesignAscii,
+      cost: 'a plain-text drawing per option, written into the card itself — a short run, and no product styling',
+      prompt: '## Selected mockup style\n\nUse the **plain-text drawing** format from `akb guide ui-design`.',
     },
   ],
   default: 'full',
@@ -79,7 +79,7 @@ export const SPEC_AGENTS: SpecAgent[] = [
     name: 'ui-design',
     owns: 'the screen a card changes — the layout drawn as options, one of them recommended',
     calledOn: 'called on a card that changes or adds a screen the user sees',
-    prompt: uiDesign,
+    prompt: [uiDesign.trim(), uiDesignGuide.trim()].join('\n\n'),
     settings: [MOCKUP_STYLE],
   },
   {

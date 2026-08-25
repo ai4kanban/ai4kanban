@@ -6,23 +6,15 @@ roi: high
 status: todo
 release: 0.8.0
 blocked_by: []
-related: [312, 313, 314, 315, 316, 317, 318, 319, 320]
+related: [312, 313, 314, 315, 316, 317, 318, 319, 320, 321]
 modules: [cloud, local-ui]
 questions:
-  - question: "[user] The invite-only preview puts other teams' boards on servers we run. What data story ships with it?"
+  - question: "[user] Cloud runs on Cloudflare Workers with a Supabase database. Which plans does the invite-only preview run on?"
     mode: single
     options:
-      - Deletion only — an owner can delete a workspace and everything in it; nothing is published, because the invite list is people who already trust us
-      - Deletion plus a short Cloud data note — what a workspace stores, where it runs, and that code never reaches it — linked from the Cloud choice in onboarding. One more card, and it is the first thing an open-source maintainer asks before putting a roadmap on it
-      - Neither in v1 — the invite list is small enough that a deletion request is handled by hand
-    recommend: [2]
-  - question: "[user] AI4Kanban Cloud needs an account and a plan to run the invite-only preview on — see the `technology-selection` section"
-    mode: single
-    options:
-      - The Cloudflare account the site already deploys from, moved to Workers Paid — $5/month covers the Worker, the Durable Objects and the telemetry service #294 plans, and storage is billed only above the included 5 GB
-      - The same Cloudflare account, staying on the free plan until a limit is hit — costs nothing, and a busy day refuses writes rather than producing a bill
-      - A separate Cloudflare account for Cloud only, so other teams' board data never sits in the account that serves the public site — a second login and a second bill to keep
-      - A different vendor such as Supabase — a second relationship, from $25/month, and it pauses a preview that goes quiet for a week
+      - Supabase Pro ($25/month) with Workers Paid ($5/month) — $30/month; the database never pauses and keeps 7 days of daily backups, which is the least another team's board deserves
+      - Supabase Free with the Workers free plan — $0; the project pauses after a week without traffic, has no daily backups, and a busy day refuses writes rather than producing a bill
+      - Supabase Free with Workers Paid ($5/month) — the Worker keeps its paid limits while the database still pauses when quiet and still has no backups
     recommend: [1]
 ---
 
@@ -40,18 +32,74 @@ changing the same card. This is a group task; each piece is its own subtask in t
   in v1, so the hosting bill cannot outrun us before pricing exists. #314 gates workspace
   creation on the invite and #317 labels the Cloud path as invite-only. Opening signup is a
   later change that comes with pricing.
+- **Where Cloud runs**: Cloudflare Workers for compute, Supabase Postgres for the shared
+  board. Compute stays on the Cloudflare account the site already deploys from; the board
+  gets a Supabase project of its own. Which plans the preview runs on is the group's one
+  remaining question.
+- **What the preview publishes about data**: a privacy page and a terms page on the site,
+  built with the same page code the blog uses and linked from the Cloud choice in
+  onboarding. #321 writes them, and no outside team is invited before they are live.
 - **The group ships in 0.8.0**: team collaboration lands alongside auto-delivery rather than
   waiting for a version of its own. `releases.md` now names both, making 0.8.0 by far the
   longest version this board has planned.
 - **This is the project's first hosted service**: the README and the site sell the board as
   Markdown in your own repo. Cloud is opt-in, so the local-first promise still holds for
   anyone who never takes it.
-- **Nine cards is a program, not a feature**: a provider seam, GitHub intake, a control
-  plane, shared storage, both clients, onboarding, a delivery handoff, and notifications in
-  the app and in Slack — all inside the version whose other goal is auto-delivery.
+- **Ten cards is a program, not a feature**: a provider seam, GitHub intake, a control
+  plane, shared storage, both clients, onboarding, a delivery handoff, notifications in the
+  app and in Slack, and the pages that say what we do with another team's board — all
+  inside the version whose other goal is auto-delivery.
 - **Cloud never sees code, and that is the whole safety story**: if any card ever uploads a
   repository, a credential, or a model key, the group's promise is broken rather than bent.
   #315 and #318 each carry a check for it.
+
+<!-- agent -->
+
+## Today
+- No Cloud code exists. `cloud` is a line in `modules.md` and an empty memory set.
+- A board is one `docs/kanban/` folder on one machine: no member list, no way to route a
+  question to a named person, and no lock that stops two machines editing one card.
+- `akb` and the app write the markdown directly. There is no seam a second board backend
+  could sit behind, which is why #312 comes first.
+- Auto-delivery already builds, reviews, corrects, and lands an approved card from one
+  click, entirely locally. That flow is what #318 has to hand a Cloud card lifecycle.
+- `record.csv` and `metrics.csv` hold the board's own history. #315 must carry them into a
+  workspace without inventing member attribution for events that predate the team.
+- GitHub Issues is named in `goal.md` as an intake door and #250 already owns the intake
+  shape, but nothing is wired up.
+
+## Scope
+- Local stays the default board and the path onboarding leads with; Cloud is an explicit
+  opt-in a user chooses.
+- A workspace, once chosen, owns shared cards, memory, releases, history, membership, and
+  coordination.
+- Repositories, worktrees, agents, model accounts, commits, and merges stay on execution nodes.
+- Solve the four problems in `goal.md`: identify members, route a question to the person who
+  can decide, allow one writer per card, and keep one attributed memory.
+- Attribute every mutation to a member, whether it changes a card, a memory file, or a release.
+- Import and export bridge Local and Cloud; they never keep two writable boards in sync.
+- Creating a Cloud workspace in v1 requires an invite we issue; signup is never open, and a
+  signed-in user without an invite is told so rather than shown a broken path.
+- An owner can delete a workspace and everything in it.
+- The site publishes a privacy page and a terms page before the first outside team is invited.
+- Out of the group: realtime body editing, fine-grained card permissions, automatic dispatch
+  across nodes, and any Cloud handling of code.
+- Out of the group: pricing, billing, and the open-source support policy. Until they exist,
+  onboarding leads with Local, Cloud is never a default, and workspaces stay invite-only.
+- Out of the group: per-workspace usage caps and quota enforcement — the invite list is what
+  bounds cost in v1.
+
+## Todo
+- [ ] Give both board types one operation contract #312
+- [ ] Import GitHub Issues and mirror progress back #313
+- [ ] Build the Cloud control plane #314
+- [ ] Store and migrate the shared board #315
+- [ ] Use Cloud boards from the app and CLI #316
+- [ ] Lead onboarding with Local and make Cloud an explicit choice #317
+- [ ] Connect local delivery to Cloud #318
+- [ ] Notify people in the app when they must act #319
+- [ ] Deliver the same notifications to Slack #320
+- [ ] Publish the privacy and terms pages the Cloud preview needs #321
 
 ## By `technology-selection` agent
 
@@ -138,57 +186,13 @@ safer-looking sibling and the worse fit, because the one thing this program need
 the one thing it does not offer; Supabase is the fastest start and pauses exactly the
 preview we are trying to keep reachable. What is left open is money: see the open question.
 
-<!-- agent -->
-
-## Today
-- No Cloud code exists. `cloud` is a line in `modules.md` and an empty memory set.
-- A board is one `docs/kanban/` folder on one machine: no member list, no way to route a
-  question to a named person, and no lock that stops two machines editing one card.
-- `akb` and the app write the markdown directly. There is no seam a second board backend
-  could sit behind, which is why #312 comes first.
-- Auto-delivery already builds, reviews, corrects, and lands an approved card from one
-  click, entirely locally. That flow is what #318 has to hand a Cloud card lifecycle.
-- `record.csv` and `metrics.csv` hold the board's own history. #315 must carry them into a
-  workspace without inventing member attribution for events that predate the team.
-- GitHub Issues is named in `goal.md` as an intake door and #250 already owns the intake
-  shape, but nothing is wired up.
-
-## Scope
-- Local stays the default board and the path onboarding leads with; Cloud is an explicit
-  opt-in a user chooses.
-- A workspace, once chosen, owns shared cards, memory, releases, history, membership, and
-  coordination.
-- Repositories, worktrees, agents, model accounts, commits, and merges stay on execution nodes.
-- Solve the four problems in `goal.md`: identify members, route a question to the person who
-  can decide, allow one writer per card, and keep one attributed memory.
-- Attribute every mutation to a member, whether it changes a card, a memory file, or a release.
-- Import and export bridge Local and Cloud; they never keep two writable boards in sync.
-- Creating a Cloud workspace in v1 requires an invite we issue; signup is never open, and a
-  signed-in user without an invite is told so rather than shown a broken path.
-- Out of the group: realtime body editing, fine-grained card permissions, automatic dispatch
-  across nodes, and any Cloud handling of code.
-- Out of the group: pricing, billing, and the open-source support policy. Until they exist,
-  onboarding leads with Local, Cloud is never a default, and workspaces stay invite-only.
-- Out of the group: per-workspace usage caps and quota enforcement — the invite list is what
-  bounds cost in v1.
-
-## Todo
-- [ ] Give both board types one operation contract #312
-- [ ] Import GitHub Issues and mirror progress back #313
-- [ ] Build the Cloud control plane #314
-- [ ] Store and migrate the shared board #315
-- [ ] Use Cloud boards from the app and CLI #316
-- [ ] Lead onboarding with Local and make Cloud an explicit choice #317
-- [ ] Connect local delivery to Cloud #318
-- [ ] Notify people in the app when they must act #319
-- [ ] Deliver the same notifications to Slack #320
-
 ## Decided by the agent
 - **Why a group and not one card**: each system above is too large for one run, and none of
   them is worth building without the others.
 - **Why the order runs #312 to #320**: every card establishes the boundary the next one
   writes against — contract, intake, control plane, storage and clients, delivery, then
   notifications. Skipping ahead means building a write path that #312 later has to replace.
+  #321 sits outside that chain; it only has to be live before the first invite goes out.
 - **Why notifications come last instead of shipping on Local first**: the notification
   center reads `status: ready` and `[user]` questions, which a Local board also has, so it
   could be built today. `goal.md` puts notifications and coordination in the hosted tier,
@@ -198,10 +202,41 @@ preview we are trying to keep reachable. What is left open is money: see the ope
 - **Which card carries which of the four problems**: #314 and #317 identify members, #319
   and #320 route questions, #314 and #316 keep one writer per card, and #312 with #314 make
   every memory and card write attributed.
-- **The public site and README stay as they are**: Cloud is an invite-only preview with no
-  pricing, so nothing in the group advertises it publicly. #317 explains both authority
-  models inside the app and in `docs/guides/`; announcing Cloud on the site is a
-  distribution card that ships with pricing.
+- **The site still does not sell Cloud**: it is an invite-only preview with no pricing, so
+  nothing in the group advertises it. The only pages it adds are #321's privacy and terms
+  pages, which describe the preview to someone already invited. #317 explains both authority
+  models inside the app and in `docs/guides/`; announcing Cloud is a distribution card that
+  ships with pricing.
+- **How the Worker reaches the database**: over HTTPS through PostgREST, never a raw
+  socket. PostgREST runs one request in one transaction, so the whole check-apply-advance-
+  audit sequence is one Postgres function called by RPC. Hyperdrive with a Postgres driver
+  is the fallback if a card ever needs ad-hoc SQL: it wants `nodejs_compat`, and Supabase's
+  direct connection is IPv6 unless the Pro IPv4 add-on is bought.
+- **Where the lease and its fencing live now**: rows in Postgres, read and advanced inside
+  those functions. There is no single-threaded object to lean on any more, so #314's
+  guarantee is `BEGIN … COMMIT` plus a rising fencing-token column.
+- **What replaces object alarms**: a Cron Trigger on the Worker. Lease expiry stays lazy —
+  a mutation compares the stored expiry — and #320's Slack retry sweeps a pending table on
+  a schedule.
+- **Who runs GitHub sign-in**: Supabase Auth's GitHub provider, whose asymmetric token the
+  Worker verifies against the project's JWKS endpoint; it comes with the database we now
+  run. This supersedes the `technology-selection` section's note, written before Supabase
+  was in the stack. The rule it was protecting does not change: sign-in asks for identity
+  scopes only, and #313's repository grant is a separate token that is never reused for it.
+- **Which accounts**: the Cloudflare account the site and #294 already use, plus a Supabase
+  project created for Cloud alone. Another team's board sits in Supabase, so no second
+  Cloudflare login buys any separation.
+- **Deletion is what the pages promise**: #314 carries owner deletion of a workspace and
+  everything in it, and #321 states it.
+- **Checked**: pages read 2026-08-25 — supabase.com/pricing, supabase.com/docs/guides/auth/jwts,
+  docs.postgrest.org references/transactions, developers.cloudflare.com/hyperdrive/{platform/pricing,
+  examples/connect-to-postgres/postgres-database-providers/supabase} and
+  developers.cloudflare.com/workers/databases/third-party-integrations/supabase.
+
+### Overruled by the user
+- **The platform recommendation**: `technology-selection` recommended a SQLite-backed
+  Durable Object per workspace. Cloud runs on Workers with Supabase Postgres instead; the
+  section is kept exactly as it was written.
 
 ## Source
 - `plan.md` — the full design: the control, board, and codebase planes, the revision and

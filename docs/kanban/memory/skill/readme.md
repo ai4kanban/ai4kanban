@@ -24,12 +24,14 @@ covers it, or a plain-words note.
   builder needs below a `<!-- agent -->` marker that never shows when the card is rendered.
   Refine repairs an older card into that shape without rewording it: `akb guide board` and
   `akb guide refine`.
-- A card that changes a screen points at its mockups with one tag on a line of its own —
-  `<Mockup src=".mockups/239/a.tsx" label="A" />` — and they live in
-  `docs/kanban/.mockups/<card id>/`, one file each: a `.tsx` component styled with Tailwind, a
-  plain `.html` page, or a `.txt` drawing in plain text. The folder is gitignored, so a drawing
-  never travels with the card and what it settled has to be in the card's words. It is the only
-  tag a card body may carry: `akb guide board`.
+- A card that changes a screen carries its layouts one of two ways. A rendered screen is a
+  file under `docs/kanban/.mockups/<card id>/` — a `.tsx` component styled with Tailwind or a
+  plain `.html` page — that the card points at with one tag on a line of its own,
+  `<Mockup src=".mockups/239/a.tsx" label="A" />`; that folder is gitignored, so the drawing
+  never travels with the card and what it settled has to be in the card's words. A plain-text
+  layout is written into the card body instead, as a fenced block under a `###` heading naming
+  it, so it needs no file and travels with the card. `<Mockup>` is the only tag a card body may
+  carry: `akb guide board`.
 - A card that changes something users see and click is planned against the board's UI design
   reference, `akb guide ui-design`: the screen is matched to the ones the project already
   has, its colours and spacing come from the project, it says what it shows with nothing to
@@ -214,25 +216,24 @@ covers it, or a plain-words note.
   agent's settings and what each one is set to, and an agent that declares no settings is
   unchanged: "The spec agents" in `kanban-ui/README.md`.
 - The `ui-design` spec agent answers with the screen drawn, not described: on a card that
-  changes or adds a screen, it writes two or three mockup files under
-  `docs/kanban/.mockups/<card id>/`, points at each from its own section with a `<Mockup>` tag
-  and a line saying what that layout is good for and what it costs, and recommends one. The
-  card page draws them, so the user picks a layout by looking. Run again on the same card it
-  writes over its old mockups and deletes the ones its new answer dropped: "Let a specialist
-  fill part of the spec" in `docs/guides/daily-loop.md`.
+  changes or adds a screen, it draws two or three layouts labelled `A`, `B`, `C` and
+  recommends one. Nothing is written under a drawing — the user picks a layout by looking.
+  Run again on the same card it writes over its old answer and deletes the mockup files its
+  new one dropped: "Let a specialist fill part of the spec" in `docs/guides/daily-loop.md`.
 - Choose how `ui-design` draws a layout, in the board UI under Configuration → Agents:
-  **Rendered screen** — a `.tsx` or `.html` file per option, styled like the product — or
-  **ASCII drawing**, a `.txt` file per option that is the same drawing wherever it is opened
-  and costs a much shorter run. Rendered screen is what a board starts with, and the setting
-  is board-wide, so one card is drawn in one style: "Picking a layout by looking at it" in
-  `docs/guides/daily-loop.md`.
+  **Rendered screen** — a `.tsx` or `.html` file per option, styled like the product, which
+  the card points at — or **ASCII drawing**, a plain-text drawing written straight into the
+  card section, which needs no file, travels through git and costs a much shorter run.
+  Rendered screen is what a board starts with, and the setting is board-wide, so one card is
+  drawn in one style: "Picking a layout by looking at it" in `docs/guides/daily-loop.md`.
 - The second spec agent is `technology-selection`: on a card that leans on an outside
-  library, tool, or service, it comes back with two or three candidates, what each gives
-  you and what it costs, and one recommended. Keeping what the project already uses and
-  writing it yourself are candidates on the same terms, so a card doesn't come back with
-  something new to install by default, and every name is looked up before it is written
-  down — a renamed or abandoned package never reaches the card: "Let a specialist fill part
-  of the spec" in `docs/guides/daily-loop.md`.
+  library, tool, or service, it comes back with one table — two or three candidates, a row
+  each, with what it is, its pros and its cons — and one line naming the pick. Nothing else
+  goes in the section, because a section too long to read is one nobody reviews. Keeping what
+  the project already uses and writing it yourself are rows on the same terms, so a card
+  doesn't come back with something new to install by default, and every name is looked up
+  before it is written down — a renamed or abandoned package never reaches the card: "Let a
+  specialist fill part of the spec" in `docs/guides/daily-loop.md`.
 - The board asks for a spec agent by itself, so most spec runs are ones nobody typed: the
   flow that writes a card asks for the part it would otherwise guess at, a refine or a
   revise asks only when that part of the spec is still open, and propose and plan-release
@@ -295,9 +296,9 @@ covers it, or a plain-words note.
 
 - "Group task" in `akb guide board` now gives the steps that actually build one: write the
   root card, write each piece related to it, move the files into `todo/<id>-<slug>/`, point
-  the root at its pieces, and repoint the moved bullets in the board index. It no longer
-  tells a flow to reserve ids with `akb board create --count <N>` — nothing can hand those
-  ids to a card, so following the old recipe burnt them and made the board's numbering jump.
+  the root at its pieces, and repoint the moved bullets in the board index. `akb board
+  create` now writes exactly one complete card and allocates its id in the same call; the
+  unusable bare id-reservation mode is gone.
 
 - A board can now add **one rule of its own to any flow** — plain words in
   `docs/kanban/rules/<command>.md`, named by the command that starts the flow (`revise.md` for

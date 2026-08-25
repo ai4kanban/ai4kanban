@@ -98,18 +98,21 @@ export const MOVES: Move[] = [
     name: 'create',
     group: 'Cards',
     brief: [
-      ['create [--count N]', 'take N ids (default 1) and print them'],
       [
         'create --title T --track K',
-        'write one card — its fields, a body template, its index\nentry. Options: --priority, --roi, --release, --blocked-by,\n--related, --modules, --question, --slug, --cadence,\n--no-body, --proposed',
+        'allocate its id and write exactly one card — fields, body\ntemplate, and index entry. Options: --priority, --roi,\n--release, --blocked-by, --related, --modules, --question,\n--slug, --cadence, --no-body, --proposed',
       ],
     ],
     legacy: [
-      ['create [--count N]', ['allocate N task ids (default 1), advance next-id, print them']],
       [
         'create --title T --track K [opts]',
         [
-          'scaffold ONE card: write its frontmatter + a body template, index it.',
+          'write exactly ONE card: allocate its id, write its frontmatter + a body',
+          'template, and index it. There is no separate id-reservation mode.',
+          '--track K is a top-level track name, never a group folder path.',
+          '--blocked-by and --related take ids of existing open cards. For a group,',
+          'create the root first, then create each subtask related to its id. See',
+          '"Group task" in `akb guide board` for the folder and index steps.',
           'opts: --priority high|med|low (default med), --roi high|med|low',
           '(default med), --release v1 (default none — the card is wanted,',
           'not promised to a version; free text, kept as typed),',
@@ -119,8 +122,7 @@ export const MOVES: Move[] = [
           '(--track recurring only — see update below), --proposed.',
           '--proposed says the board went looking for this work rather than',
           'a person asking for it — the propose, extract-ideas and',
-          'plan-release flows pass it, nothing else does. It works with',
-          '--count too, for the bare ids.',
+          'plan-release flows pass it, nothing else does.',
           'The script owns the frontmatter — fill only the body by hand.',
           'A question the user picks from carries its choices: follow its',
           '--question with one --option "a — why" per choice (2+), and',
