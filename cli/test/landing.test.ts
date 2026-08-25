@@ -230,10 +230,9 @@ describe('a target branch that moved', () => {
     assert.equal(landing.attempts, 1)
     assert.deepEqual(log(), ['card two (#2)', 'card one (#1)', 'start'])
     assert.equal(landing.checks?.length, 1)
-    assert.equal(landing.rebaseKind, 'disjoint')
   })
 
-  it('focuses the re-review when a clean rebase touches the same file', () => {
+  it('asks for no review when a clean rebase touches the same file', () => {
     const base = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`)
     const firstText = [...base]
     firstText[1] = 'first changed this'
@@ -242,32 +241,14 @@ describe('a target branch that moved', () => {
     reviewed(1, 'card one', `${firstText.join('\n')}\n`, 'mergeable.txt')
     const second = reviewed(2, 'card two', `${secondText.join('\n')}\n`, 'mergeable.txt')
 
-    const wants = advanceLanding()
-    assert.equal(wants?.action, 'review')
-    assert.equal(wants?.id, 2)
-    assert.equal(landingOf(second.deliveryId)?.rebaseKind, 'overlap')
-
-    const sink = startCollecting()
-    let flow = ''
-    try {
-      printFlow({ action: 'review', id: 2, title: 'card two' })
-      flow = sink.out.join('\n')
-    } finally {
-      stopCollecting()
-    }
-    assert.match(flow, /focused post-rebase integration review/)
-    assert.match(flow, /shared path: mergeable\.txt/)
-    assert.match(flow, /patch omitted for this focused rebase review/)
-    assert.doesNotMatch(flow, /build THIS, not the card file/)
-
-    const again = run('review', 2, 'card two')
-    process.env[RUN_ENV] = again
-    cmdReviewVerdict(['2', '--verdict', 'pass'])
-    delete process.env[RUN_ENV]
-    end(again)
-    advanceLanding()
+    // The rebase merges both edits and the landing carries straight on: review happened in
+    // the worktree, and nothing after the rebase reopens it.
+    assert.equal(advanceLanding(), null)
+    const landing = landingOf(second.deliveryId)!
+    assert.equal(landing.status, 'landed')
+    assert.equal(landing.attempts, 1)
     assert.deepEqual(log(), ['card two (#2)', 'card one (#1)', 'start'])
-    assert.equal(landingOf(second.deliveryId)?.checks?.length, 2)
+    assert.equal(landing.checks?.length, 1)
   })
 
   it('hands over rather than looping when the target keeps moving', () => {
@@ -290,7 +271,7 @@ describe('a target branch that moved', () => {
 })
 
 describe('a conflict', () => {
-  it('is resolved by a session, finished by the board, and reviewed from scratch', () => {
+  it('is resolved by a session, finished by the board, and landed with no review after it', () => {
     const first = reviewed(1, 'card one', 'one\n')
     const second = reviewed(2, 'card two', 'two\n')
     assert.equal(advanceLanding()?.action, 'conflict')
@@ -301,15 +282,9 @@ describe('a conflict', () => {
     git(['add', 'shared.txt'], dir)
     end(session)
 
-    assert.equal(advanceLanding()?.action, 'review')
+    // The board finishes the rebase and lands it in the same pass.
+    assert.equal(advanceLanding(), null)
     assert.equal(rebaseInProgress(dir), false)
-
-    const review = run('review', 2, 'card two')
-    process.env[RUN_ENV] = review
-    cmdReviewVerdict(['2', '--verdict', 'pass'])
-    delete process.env[RUN_ENV]
-    end(review)
-    advanceLanding()
 
     assert.deepEqual(log(), ['card two (#2)', 'card one (#1)', 'start'])
     assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'one\ntwo\n')

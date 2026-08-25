@@ -16,8 +16,9 @@ Every flow writes a card in this order:
 - **<question the decision settles>**: <answer>
 
 ## Worth noting after implementation
-                             <- what building it turned up; written by review, omit when
-                                empty. Never part of what a delivery is approved to build
+- **<question the decision settles>**: <answer>
+                             <- answered material decisions building turned up; written
+                                by review, omit when empty. Never approved delivery scope
 
 ## By `<name>` agent         <- only while a [user] open question points at it
 
@@ -47,11 +48,14 @@ Use professional, comprehensible language that a fresh reader can understand qui
 - **Record answered decisions consistently**: use `- **<question>**: <answer>` in
   `## Worth noting` for material calls a reviewer may reverse, and in
   `## Decided by the agent` for the rest.
-- **Keep post-implementation notes out of the plan**: `## Worth noting after
-  implementation` holds what building the card turned up — a surprise the next card should
-  know, a check that was already failing, a split worth making, an exception the user
-  approved for one delivery's work. It never blocks anything, and a delivery already in
-  flight does not read it as a new requirement (`akb guide review`).
+- **Answer before noting**: `## Worth noting after implementation` uses the same
+  `- **<question>**: <answer>` standard as `## Worth noting`. Include only a material call
+  surfaced by the build that the user could reasonably reverse. Resolve technical questions
+  yourself: fix in-scope work and create or update a separate card for follow-up work. Never
+  put debugging, run history, check results, suggestions, or unresolved questions here.
+- **Keep post-implementation decisions out of the plan**: the section never blocks
+  anything, and a delivery already in flight does not read it as a new requirement (`akb
+  guide review`).
 - **Keep questions distinct**: an untagged `questions:` entry is a necessary case or
   detail not yet considered; a `[user]` open question requires judgment the agent cannot
   supply, such as taste, business direction, spending, or a costly tradeoff.

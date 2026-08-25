@@ -37,7 +37,7 @@ import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
 import { moduleNames } from '../validate'
 import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
-import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
+import { conflictedPaths, worktreeDir } from './worktree'
 import { boardCommandFor } from './command'
 import { activeDelivery } from './deliveries'
 import { lastRound, openFindings } from './review'
@@ -239,7 +239,7 @@ function approvedField(cardId: number): string[] {
 
 // The code a delivery has built so far. A small patch is printed in full; a large one gets
 // every changed file and its line counts so review can open only what needs inspection.
-function candidateField(cardId: number, includePatch = true): string[] {
+function candidateField(cardId: number): string[] {
   const delivery = activeDelivery(cardId)
   if (!delivery) return []
   if (!delivery.base) {
@@ -251,16 +251,14 @@ function candidateField(cardId: number, includePatch = true): string[] {
   const candidate = candidateOf(delivery)
   const stat = candidateStat(candidate)
   const files = candidateFileStats(candidate)
-  const patch = includePatch ? candidatePatch(candidate) : ''
+  const patch = candidatePatch(candidate)
   const command =
     delivery.worktree && delivery.branch
       ? `git diff ${delivery.base.slice(0, 12)} ${delivery.branch}`
       : `git diff ${delivery.base.slice(0, 12)}`
   const shown = files?.length ? ['changed files:', ...files.map((file) => `  ${file}`)] : ['no file changed']
   let diff: string[] = []
-  if (!includePatch) {
-    diff = ['', `patch omitted for this focused rebase review; open \`${command}\` only where the target changes interact.`]
-  } else if (patch === null) diff = ['', 'the diff could not be read']
+  if (patch === null) diff = ['', 'the diff could not be read']
   else if (patch.length > MAX_REVIEW_DIFF) {
     const where = delivery.worktree
       ? `the full patch is \`${command}\``
@@ -272,36 +270,6 @@ function candidateField(cardId: number, includePatch = true): string[] {
     ...shown,
     ...diff,
     ...(!delivery.worktree ? ['this is the shared working tree; report changes that do not belong to the delivery.'] : []),
-  ])
-}
-
-// A clean rebase that touched the same path on both sides needs only an integration pass:
-// the delivery itself already passed. Name the intersection so the reviewer does not
-// repeat the full requirements review and repository-wide checks.
-function rebaseReviewField(cardId: number): string[] {
-  const delivery = activeDelivery(cardId)
-  const landing = delivery?.landing
-  if (
-    !delivery?.base ||
-    !delivery.branch ||
-    !delivery.worktree ||
-    landing?.rebaseKind !== 'overlap' ||
-    !landing.rebasedFrom ||
-    !landing.rebasedAt ||
-    (lastRound(delivery)?.at ?? 0) >= landing.rebasedAt
-  ) {
-    return []
-  }
-  const dir = worktreeDir(delivery.worktree)
-  const targetFiles = changedPaths(landing.rebasedFrom, delivery.base, dir)
-  const targetSet = new Set(targetFiles)
-  const shared = changedPaths(delivery.base, delivery.branch, dir).filter((file) => targetSet.has(file))
-  return field('scope', [
-    'focused post-rebase integration review — this delivery already passed before the clean rebase.',
-    `inspect only how ${delivery.targetBranch} changed since ${landing.rebasedFrom.slice(0, 12)} and how that interacts with the delivery.`,
-    `shared path${shared.length === 1 ? '' : 's'}: ${shared.length ? shared.join(', ') : '(none could be read — inspect the two diffs)'}.`,
-    `target delta: \`git diff ${landing.rebasedFrom.slice(0, 12)} ${delivery.base.slice(0, 12)}\`.`,
-    'rely on the previous pass for unchanged requirements and unaffected checks; run only checks affected by this intersection.',
   ])
 }
 
@@ -545,25 +513,17 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // run that wrote it, because a reviewer that reads the implementer's reasoning
     // agrees with it.
     case 'review': {
-      const focused = rebaseReviewField(req.id!)
-      if (focused.length) {
-        facts.push(...workspaceField(req.id!))
-        facts.push(...focused)
-        facts.push(...candidateField(req.id!, false))
-        facts.push(...reviewField(req.id!))
-      } else {
-        facts.push(...approvedField(req.id!))
-        facts.push(...workspaceField(req.id!))
-        facts.push(...candidateField(req.id!))
-        facts.push(...reviewField(req.id!))
-        facts.push(...stepsField(card!))
-        facts.push(...notesField(card!))
-        facts.push(...questionsField(card!.meta))
-      }
+      facts.push(...approvedField(req.id!))
+      facts.push(...workspaceField(req.id!))
+      facts.push(...candidateField(req.id!))
+      facts.push(...reviewField(req.id!))
+      facts.push(...stepsField(card!))
+      facts.push(...notesField(card!))
+      facts.push(...questionsField(card!.meta))
       close.push(
         `${board} review-verdict ${req.id} --verdict pass|ask [--file <findings>] — the ONE way a review is recorded. Without it the delivery stops and asks the user, whatever you wrote in your last message`,
         'write each finding as `- **<short title>**: <the approved requirement or the changed code it concerns, and the evidence to act on it>` — the title is its identity, so the same mistake keeps the same one',
-        'a finding that needs awareness but no decision is not a finding: put it under `## Worth noting after implementation` on the card, and it stops nothing',
+        'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself and create or update a separate card for follow-up work',
         `leave the card on the board — a pass is not the end of the delivery, and the board archives the card itself once the work has landed`,
       )
       break
@@ -593,7 +553,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...candidateField(req.id!))
       close.push(
         'resolve every conflicted file so both sides survive — the other side is already on the target branch, and this card is what the approved copy above asks for',
-        '`git add` each file you resolved, and leave the rebase alone: the board runs `git rebase --continue` after this run, and a fresh review judges the result from scratch',
+        '`git add` each file you resolved, and leave the rebase alone: the board runs `git rebase --continue` after this run and lands it — no review follows, so this run is the last look at the resolution',
         'change nothing the conflict does not name, and change nothing on the card',
       )
       break

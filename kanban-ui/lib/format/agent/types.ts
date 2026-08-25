@@ -256,10 +256,6 @@ export interface DeliveryLanding {
   attempts: number
   /** When the last rebase finished. */
   rebasedAt?: number
-  /** The base before the last rebase, for a focused review of what arrived on the target. */
-  rebasedFrom?: string
-  /** Why the last rebase did or did not need another review. */
-  rebaseKind?: 'disjoint' | 'overlap' | 'conflict'
   /** The squash commit that landed. */
   commit?: string
   /** The target tip it landed onto — the comparison base the landed commit sits on. */

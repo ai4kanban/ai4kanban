@@ -124,6 +124,15 @@ function reviewFlow(): string {
 }
 
 describe('while a delivery builds', () => {
+  it('keeps technical discoveries with the reviewing agent', () => {
+    reviewed(() => {})
+
+    const flow = reviewFlow()
+    assert.match(flow, /answered material decision surfaced by the build/)
+    assert.match(flow, /resolve technical details yourself/)
+    assert.doesNotMatch(flow, /needs awareness but no decision/)
+  })
+
   it('diffs its own branch against the base it forked from', () => {
     const delivery = reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
 

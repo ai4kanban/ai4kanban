@@ -176,17 +176,8 @@ describe('a card with an open question', () => {
     // Answered — the same delivery carries on, with no second click.
     fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
     assert.equal(openQuestions(1), 0)
-    while (advanceLanding()) {
-      // an overlapping rebase's focused review is asked for by the pass
-      const wants = listDeliveries().find((d) => d.deliveryId === held.deliveryId)
-      if (!wants || wants.status !== 'active') break
-      const session = run('review', 1, 'card one')
-      process.env[RUN_ENV] = session
-      cmdReviewVerdict(['1', '--verdict', 'pass'])
-      delete process.env[RUN_ENV]
-      end(session)
-    }
-    advanceLanding()
+    // No review follows a landing rebase, so the pass lands it on its own.
+    assert.equal(advanceLanding(), null)
     assert.equal(landingOf(held.deliveryId)?.status, 'landed')
     assert.equal(archived(1), true)
   })
