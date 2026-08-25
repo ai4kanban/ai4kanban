@@ -7,4 +7,4 @@ If a line here disagrees with the repo you just read, fix the line.
 - **site** — the marketing and landing site, deployed to Cloudflare Pages. `web/`.
 - **docs** — the user guides. `docs/guides/`.
 - **telemetry** — the service that takes in usage events from the app and the site, and where those events are stored and read. No code yet.
-- **cloud** — the hosted board control plane, shared board data, identity, and team coordination. No code yet.
+- **cloud** — the hosted board control plane, shared board data, identity, and team coordination. `cloud/` (the Worker at `api.ai4kanban.dev`, its Postgres migrations, and its own deploy, rollback and migrate commands).

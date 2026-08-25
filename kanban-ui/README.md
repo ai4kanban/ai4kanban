@@ -680,7 +680,8 @@ repository.
 - **Your own uncommitted work blocks it**, the same way it blocks starting. The delivery
   waits safely on its branch and holds nothing up; commit or stash, and it lands by itself.
   A staged file blocks it too — landing moves your branch under you, and it will not do that
-  over a half-built commit.
+  over a half-built commit. The board's own files under `docs/kanban/` never count, staged or
+  not: they change as every card moves, and no landed commit contains one.
 - **Your working tree follows the branch.** When the target branch is the one you have out,
   the board fast-forwards it in your own checkout, exactly as a `git pull` would. When it is
   not, only the branch moves and your checkout is left alone.

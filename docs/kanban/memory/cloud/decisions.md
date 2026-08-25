@@ -29,6 +29,14 @@ Internal detail stays on the card.
   comes with pricing.
 - **What can a team recover if a workspace is lost?**: only what they exported. The preview
   keeps no backups of its own, so the terms page says so before anyone is invited.
+- **Which region holds a Cloud workspace's board?**: `eu-central-1`, Frankfurt. An EU team's
+  board stays inside the EU, so the privacy page covers an international transfer under an
+  adequacy decision rather than a bare export. Changing it means recreating the project.
+- **What does signing in to Cloud look like?**: GitHub's own consent screen, asking for no
+  scopes at all, and a redirect that passes through the Supabase project's address rather
+  than `ai4kanban.dev`. Putting that redirect on our own name is a paid Supabase add-on the
+  preview does not take. A sign-in reads a public GitHub profile and cannot reach a private
+  repository.
 
 ## What we publish about a team's data
 
@@ -36,6 +44,13 @@ Internal detail stays on the card.
   terms page on the public site, built with the same page code the blog uses and linked from
   the Cloud choice in onboarding. They are live before the first outside team is invited,
   and they promise that an owner can delete a workspace and everything in it.
+- **Who legally runs AI4Kanban Cloud?**: Nullreach Ltd, a private limited company registered
+  in England and Wales. It is the operator on the terms page and the data controller on the
+  privacy page, and the terms are governed by English and Welsh law.
+- **What notice does the preview promise before a workspace is deleted?**: no fixed period —
+  the terms say we may end the preview or close a workspace at any time, with reasonable
+  notice to its owners where practical, given in the app or the workspace's Slack channel
+  rather than by email. An export is the only copy a team is promised.
 
 ## Who answers a question
 

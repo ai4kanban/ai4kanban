@@ -356,6 +356,8 @@ function landingRefusal(delivery: DeliveryRecord): string | undefined {
   if (!target) {
     return `\`${delivery.targetBranch}\` is gone — put the branch back, or discard the delivery`
   }
+  // The user's own staging, not the board's: a card's files move with the work and never
+  // land, so counting them would stop every delivery on the board's own bookkeeping.
   const staged = stagedPaths()
   if (staged.length) {
     return `${some(staged)} ${are(staged.length)} staged in your checkout — commit or unstage ${them(staged.length)}`

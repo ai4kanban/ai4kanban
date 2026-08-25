@@ -6,7 +6,7 @@ roi: med
 status: todo
 release: ""
 blocked_by: []
-related: [312]
+related: []
 modules: [skill, local-ui]
 questions:
   - "[user] Finished cards move to .archive/, and Obsidian never shows a folder whose name starts with a dot. So a user reading the board in Obsidian sees only open work. Accept that, or drop the dot so finished cards are visible too? Dropping it changes the folder name for every board, not just Obsidian ones."

@@ -347,11 +347,15 @@ export const branchTip = (branch: string): string | null =>
 export const isAncestor = (older: string, newer: string, cwd = REPO_ROOT): boolean =>
   spawnSync('git', ['merge-base', '--is-ancestor', older, newer], { cwd, windowsHide: true }).status === 0
 
-/** The paths staged in this checkout's index. Landing refuses while any are: a
- *  fast-forward under a half-built commit would leave the user staring at staged files
- *  they did not stage. */
+/** The paths staged in this checkout's index, the board's own files left out. Landing
+ *  refuses while any are: a fast-forward under a half-built commit would leave the user
+ *  staring at staged files they did not stage.
+ *
+ *  The board's own files change as every card moves, and no landed commit ever contains
+ *  one — a delivery's worktree leaves them out and `commitWork` refuses them — so a staged
+ *  card file is never in a fast-forward's way. */
 export const stagedPaths = (cwd = REPO_ROOT): string[] =>
-  (git(['diff', '--cached', '--name-only'], cwd) ?? '').split('\n').filter(Boolean)
+  (git(['diff', '--cached', '--name-only', ...outsideBoard()], cwd) ?? '').split('\n').filter(Boolean)
 
 /** The files one delivery's work touches, for the overlap warning. */
 export const changedPaths = (base: string, branch: string, cwd = REPO_ROOT): string[] =>

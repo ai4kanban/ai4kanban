@@ -126,3 +126,13 @@ date,event,card,detail
 2026-08-25,question-closed,312,board
 2026-08-25,question-closed,312,user
 2026-08-25,question-closed,312,user
+2026-08-26,question-closed,312,user
+2026-08-26,decisions-stood,312,21
+2026-08-26,decisions-overruled,312,1
+2026-08-26,card-created,324,asked
+2026-08-26,question-closed,321,user
+2026-08-26,question-closed,323,user
+2026-08-26,question-closed,321,user
+2026-08-26,card-archived,323,asked
+2026-08-26,decisions-stood,323,16
+2026-08-26,decisions-overruled,323,0

@@ -26,8 +26,6 @@ _(none)_
 - [#298 Read a closed version's changelog in the board UI](features/298-read-a-closed-version-s-changelog-in-the-board-ui.md)
 - [#299 Archive a finished group root by itself](features/299-archive-a-finished-group-root-by-itself.md)
 - [#311 Bring team collaboration to AI4Kanban Cloud](311-team-collaboration-cloud/root.md)
-- [#312 Give Local and Cloud boards one operation contract](311-team-collaboration-cloud/features/312-give-local-and-cloud-boards-one-operation-contract.md)
-- [#313 Import GitHub Issues and mirror progress back](311-team-collaboration-cloud/features/313-import-github-issues-and-mirror-progress-back.md)
 - [#314 Build the Cloud control plane for team workspaces](311-team-collaboration-cloud/features/314-build-the-cloud-control-plane-for-team-workspaces.md)
 - [#315 Store the shared board in Cloud without moving the codebase](311-team-collaboration-cloud/features/315-store-the-shared-board-in-cloud-without-moving-the-codebase.md)
 - [#316 Use Cloud boards safely from the app and CLI](311-team-collaboration-cloud/features/316-use-cloud-boards-safely-from-the-app-and-cli.md)
@@ -35,8 +33,9 @@ _(none)_
 - [#318 Connect local delivery to the Cloud card lifecycle](311-team-collaboration-cloud/features/318-connect-local-delivery-to-the-cloud-card-lifecycle.md)
 - [#319 Notify one release in the app when people must act](311-team-collaboration-cloud/features/319-notify-one-release-in-the-app-when-people-must-act.md)
 - [#320 Deliver board notifications to Slack](311-team-collaboration-cloud/features/320-deliver-board-notifications-to-slack.md)
+- [#313 Import GitHub Issues and mirror progress back](features/313-import-github-issues-and-mirror-progress-back.md)
 - [#322 Open a Cloud board in the browser](features/322-open-a-cloud-board-in-the-browser.md)
-- [#323 Stand up the service every Cloud workspace runs on](311-team-collaboration-cloud/features/323-stand-up-the-cloud-service.md)
+- [#324 Block commits on the branch a delivery is landing on](features/324-block-commits-on-the-branch-a-delivery-is-landing-on.md)
 
 ## skill
 

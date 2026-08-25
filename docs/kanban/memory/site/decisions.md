@@ -60,3 +60,16 @@ re-ask a settled call.
 - **Who is the Linear comparison for?**: Solo developers and small teams using an AI
   coding agent. Linear is a workspace for a team of people and agents; AI4Kanban is a
   repo-local board an agent plans in.
+
+## The legal pages
+
+- **Whose name is on the site's privacy and terms pages?**: Nullreach Ltd, registered in
+  England and Wales, with English and Welsh law governing the terms. The same company
+  publishes both pages for dist0, so the site's versions adapt those rather than starting
+  from a template — one operator, one set of terms.
+- **Are the legal pages translated?**: no. They follow the blog, which is English-only.
+- **Which address do the legal pages give for support and data requests?**:
+  `support@ai4kanban.dev`, a new mailbox on the site's own domain, rather than the
+  `support@dist0.com` mailbox Nullreach already runs. It is the address for both support and
+  a data request, so any later page that needs a contact uses it too.
+

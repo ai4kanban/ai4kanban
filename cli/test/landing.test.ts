@@ -179,6 +179,18 @@ describe('one card at a time', () => {
     assert.deepEqual(log(), ['start'])
   })
 
+  it('lands over the board\'s own staged files, which never land themselves', async () => {
+    const first = await reviewed(1, 'card one', 'one\n')
+    git(['add', path.join('docs', 'kanban')])
+    assert.notEqual(git(['diff', '--cached', '--name-only']), '')
+
+    await advanceLanding()
+    assert.equal(landingOf(first.deliveryId)?.status, 'landed')
+    assert.deepEqual(log(), ['card one (#1)', 'start'])
+    // The fast-forward left the staged card files exactly as they were.
+    assert.notEqual(git(['diff', '--cached', '--name-only']), '')
+  })
+
   it('leaves the user\'s own checkout alone when the target is not the branch they have out', async () => {
     const delivery = await reviewed(1, 'card one', 'one\n')
     git(['checkout', '--quiet', '-b', 'scratch'])
