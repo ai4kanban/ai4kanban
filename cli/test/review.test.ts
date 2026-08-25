@@ -223,7 +223,7 @@ describe('a clean pass', () => {
 })
 
 describe('a corrected pass', () => {
-  it('corrects what review found, and reviews the whole candidate again', () => {
+  it('corrects what review found, and reviews the correction again', () => {
     const built = build()
     const id = activeDelivery(5)!.deliveryId
     close(built)

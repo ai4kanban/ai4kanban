@@ -297,7 +297,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         `${kb}. Correct task ${req.id} ${named} — fix exactly what the last review found, following \`akb guide review\`.`,
         `\`${command} correct ${req.id} --print\` prints the approved copy, the findings to fix and where the diff is.`,
-        `Change nothing the findings do not name: a fresh review judges the whole candidate after you.`,
+        `Change nothing the findings do not name: a fresh review checks the correction and affected paths after you.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
     // Resolving the conflict a landing's rebase stopped on (#304). It is new work, not a

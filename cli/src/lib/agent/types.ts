@@ -62,8 +62,8 @@ export type AgentAction =
    *  agrees with it. */
   | 'review'
   /** Fix what a review found (#302). It is given the approved copy, the current diff and
-   *  that review's exact findings, and a fresh review judges the whole candidate after
-   *  it. */
+   *  that review's exact findings, and a fresh review checks the correction and affected
+   *  paths after it. */
   | 'correct'
   /** Resolve the conflict a landing's rebase stopped on (#304). It may read both cards,
    *  both diffs and the checkout, it stages the resolution, and the board finishes the

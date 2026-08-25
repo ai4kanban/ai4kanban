@@ -3,7 +3,7 @@
 // Implementation ends, and a FRESH run judges the result against the card as it was
 // approved. Three answers are possible — it passes, it plainly does not and a correction
 // run fixes it, or only the user can settle it. A correction is followed by another
-// fresh review of the whole candidate, never of the corrected lines alone.
+// fresh review of the correction, its affected paths and the repository checks.
 //
 // The loop is deliberately short. Two corrections, and it stops on a finding that came
 // back, on a correction that changed nothing, and on a run that failed — because a

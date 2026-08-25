@@ -293,10 +293,14 @@ function reviewField(cardId: number): string[] {
   const review = delivery?.review
   if (!review?.rounds.length) return field('review', 'the first pass on this delivery — nothing has judged it yet')
   const left = Math.max(0, MAX_CORRECTIONS - review.corrections)
+  const last = review.rounds[review.rounds.length - 1]
   const passes = review.rounds.map((r, i) => `${i + 1}. ${r.verdict}${r.findings.length ? ` — ${r.findings.map((f) => f.title).join('; ')}` : ''}`)
   return field('review', [
     `${review.rounds.length} pass${review.rounds.length === 1 ? '' : 'es'} so far:`,
     ...passes.map((line) => `  ${line}`),
+    ...(last?.verdict === 'correct'
+      ? ['this pass follows a correction — focus on that correction, its affected paths, and the repository checks; do not repeat unaffected manual proofs.']
+      : []),
     left
       ? `${left} correction${left === 1 ? '' : 's'} left before the delivery stops and asks the user.`
       : 'no correction left — anything you send back now stops the delivery and asks the user.',
@@ -524,8 +528,8 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       break
     }
-    // Fixing exactly what a review found (#302), and nothing else — a fresh review judges
-    // the whole candidate afterwards, so anything extra done here comes straight back.
+    // Fixing exactly what a review found (#302), and nothing else — a fresh review checks
+    // the correction and affected paths afterwards, so anything extra comes straight back.
     case 'correct': {
       facts.push(...approvedField(req.id!))
       facts.push(...workspaceField(req.id!))
@@ -534,11 +538,11 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...stepsField(card!))
       close.push(
         ...committingClose(req.id!),
-        'fix what the findings name, and change nothing they do not — a fresh review judges the whole candidate after you',
+        'fix what the findings name, and change nothing they do not — a fresh review checks the correction and affected paths after you',
         'tick a ## Todo box your fix completes; never untick one',
         'change nothing else on the card — the delivery builds the approved copy above, not the file as it reads now',
       )
-      next.push(`${self} review ${req.id} --print — the fresh review of the whole candidate that follows a correction`)
+      next.push(`${self} review ${req.id} --print — the fresh review of the correction and affected paths`)
       break
     }
     // Resolving the conflict a landing's rebase stopped on (#304). It is the only run

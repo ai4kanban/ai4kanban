@@ -28,8 +28,11 @@ deliberately.
   onboarding, labelled as a hosted service and an invite-only preview, never preselected.
 - Guide GitHub sign-in, workspace creation, opening, and Local-to-Cloud import for whoever
   takes the Cloud path.
-- Let owners invite or remove members, change roles, manage execution nodes, and set public
-  read-only access.
+- Write the committed workspace pointer when a Cloud board is created or opened, so every
+  teammate's clone reaches the same workspace (#311).
+- After an import, say the folder's cards are now a stale copy and offer their removal as
+  one change the team reviews and commits; never delete them on the team's behalf (#311).
+- Let owners invite or remove members, change roles, and manage execution nodes.
 - Explain that Cloud manages board coordination but never receives code or runs agents, and
   link the Cloud choice to the published privacy and terms pages (#321).
 - Update product and user documentation to describe the Local and Cloud authority models.
@@ -38,9 +41,17 @@ deliberately.
 - [ ] Make Local the path onboarding leads with.
 - [ ] Offer Cloud beside it as an explicit, labelled choice, marked invite-only preview.
 - [ ] Tell an uninvited signed-in user the preview is closed and how to ask for an invite.
-- [ ] Add workspace, member, execution-node, and public-access controls.
+- [ ] Add workspace, member, and execution-node controls.
 - [ ] Offer Local-to-Cloud import when opening or creating a workspace.
+- [ ] After an import, offer the imported board's removal as a change the team commits, and
+      check declining it leaves a working Cloud board.
+- [ ] Bind a checkout to its workspace so a teammate's clone opens the same Cloud board.
 - [ ] Explain the codebase boundary and both authority models in the app and docs.
 - [ ] Link the Cloud choice to the published privacy and terms pages.
 - [ ] Check a new Local user, a new Cloud user, and an existing Local user can each finish
       onboarding.
+
+## Decided by the agent
+- **Why there is no public-access control here**: a Cloud board is reached only from the
+  installed app in this release, so making one public has nothing to read it. The switch
+  ships with the browser surface in #322.

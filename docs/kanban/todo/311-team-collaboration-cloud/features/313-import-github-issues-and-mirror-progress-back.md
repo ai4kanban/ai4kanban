@@ -25,4 +25,5 @@ Let communities propose work through GitHub Issues without making GitHub another
 - [ ] Keep the board authoritative after import.
 - [ ] Mirror selected card progress back to the source issue.
 - [ ] Make import and mirroring safe to retry.
-- [ ] Check the full loop on Local and Cloud boards.
+- [ ] Check the full loop on a Local board.
+- [ ] Check the same loop against a Cloud board once #316 lands.

@@ -583,6 +583,14 @@ changes anything: it is a read. Nobody has to read it either, unless the board r
 approval — see **Approving a delivery** below, which is the one policy that asks.
 
 - **The size line leads.** Files changed, insertions and deletions, on one line above the diff.
+- **The changed files are a tree** down the left, each with what it added and removed. Picking one
+  jumps the listing to it, and scrolling the listing moves the mark — so forty files stay findable.
+  Hide the tree when you want the width back.
+- **Each file is a section**: its path, whether it is new, deleted or moved, and its counts, in a
+  header that stays put while its hunks pass under it. Collapse one you have read; collapse them
+  all and the listing becomes a table of contents.
+- **Every line is numbered on both sides**, before and after, and the numbers stay pinned to the
+  left edge while a long line scrolls under them.
 - **While the card builds**, it is the delivery's own branch against the commit it forked from,
   read in its worktree. **Log** opens first while a delivery is live — the diff is not finished
   being written.

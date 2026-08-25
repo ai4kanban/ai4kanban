@@ -59,9 +59,9 @@ team is invited.
 - [ ] Check the built export serves both pages and that no link to them 404s.
 
 ## Decided by the agent
-- **Why the site and not an in-app note**: an open-source maintainer reads this before
-  putting a roadmap on a hosted board, which means a URL they can open without installing
-  anything.
+- **Why the site and not an in-app note**: someone weighing the preview reads this before
+  putting their team's board on it, which means a URL they can open without installing
+  anything first.
 - **English only**: the pages follow the blog, which is not translated.
 
 ## Source

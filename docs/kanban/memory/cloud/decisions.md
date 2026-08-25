@@ -37,3 +37,32 @@ Internal detail stays on the card.
   the Cloud choice in onboarding. They are live before the first outside team is invited,
   and they promise that an owner can delete a workspace and everything in it.
 
+## Who answers a question
+
+- **How does a question reach a decider in v1?**: it notifies the workspace's owners. A card
+  never names a person: a user-owned question goes to the owners watching the release, and a
+  member is notified only when a card is ready for review. Any member may still open the card
+  and answer; owner routing decides who is told, not who may write. Asking a named member is a
+  later version's work.
+- **What happens if a workspace has no owner?**: it cannot. The role change or member removal
+  that would leave a workspace ownerless is refused, because owner is the address a question
+  is sent to.
+
+## How a board is reached
+
+- **What does a Cloud team's repo hold?**: one committed pointer to the workspace and the
+  machine's own ignored files — no cards, no memory, no mirrored markdown. `akb` and the app
+  find the board by that pointer, so every teammate's clone opens the same workspace, and
+  export is how a team gets markdown back. Anything that reads the board as files, such as
+  #56's Obsidian view, works on a Local board or on an export, not on a Cloud checkout.
+- **How does a team reach its Cloud board in the invite-only preview?**: from the installed
+  app only. The preview ships no Cloud page at a URL — no public read-only board and no
+  browser review or Resolve — and a Slack action opens the app. Putting a workspace on the
+  web, so a community can read a roadmap and a member can answer from any device, is a later
+  version's work.
+- **Does a save finish before the command returns?**: yes, on every board. There is no write
+  queue and no background flush: a Cloud save takes as long as the network does and `akb`
+  waits for it. That is the price of two teammates never overwriting each other silently.
+- **What happens when two people change the same card?**: the second write is refused as a
+  conflict naming the version the board holds now, and the caller re-reads that card. It is
+  never a silent overwrite, and it is never a message the user has to interpret.

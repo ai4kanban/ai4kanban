@@ -2,7 +2,8 @@
 
 A delivery builds, and then a **fresh run** judges what it built against the card as it was
 approved. That run is the review. When it finds a plain mistake, a **correction** run fixes
-exactly that, and another fresh review judges the whole candidate again.
+exactly that, and another fresh review checks the correction, the paths it affects, and the
+repository's checks.
 
 Two things make this worth paying for, and both are rules rather than advice:
 
@@ -31,8 +32,13 @@ what review passed.
 
 1. **Read the approved copy** the flow prints. That is the card as it was approved when the
    delivery started — build against it, not against the card file, which may have moved on.
-2. **Read the diff** the flow names, and the files it touches. Read the code, not only the
-   patch: a change is judged by what it does.
+2. **Use the right depth**:
+   - On the first review, or after a rebase, conflict resolution, or changed manual commit,
+     read the whole diff and the files it touches.
+   - After a correction, deeply review the correction and the paths it can affect. Scan the
+     whole candidate for drift from that correction, but do not repeat unaffected manual
+     proofs from earlier rounds.
+   Read the code, not only the patch: a change is judged by what it does.
 3. **Run the checks this repository has** — its tests, its linter, its type check. Run what
    the project documents; do not invent a check it does not have. A check this board's own
    review rule asks for — the words at the end of these instructions, if there are any — is
@@ -41,6 +47,12 @@ what review passed.
    approved for this exact candidate is recorded there, and re-raising a settled call is
    the fastest way to waste a correction.
 5. **Record one verdict** and stop.
+
+Keep the evidence proportionate. One clear code path or targeted reproduction is enough for
+a finding. Rebuild or compare the base only when a documented check needs attribution, or
+an approved compatibility requirement cannot be verified from the candidate. Speculative
+hardening, style preferences, and theoretical cases with no conflict against the approved
+card or repository checks do not stop a delivery.
 
 ## The verdict
 
@@ -171,8 +183,8 @@ on its own branch either way.
 
 The flow prints the findings to fix, verbatim.
 
-- **Fix what they name, and nothing they do not.** A fresh review judges the whole
-  candidate afterwards, so anything extra comes straight back as drift.
+- **Fix what they name, and nothing they do not.** A fresh review checks the correction and
+  affected paths afterwards, so anything extra comes straight back as drift.
 - **Work in the delivery's own worktree**, which is where the run already is. Never
   write the board's own files there — `docs/kanban/` and `.akb/` are changed in the project
   itself, and a commit that reaches one is refused and stops the delivery.

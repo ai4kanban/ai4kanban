@@ -21,6 +21,7 @@ import {
   TrackChip,
 } from "@/components/chips";
 import { Dialog } from "@/components/Dialog";
+import { DiffPane } from "@/components/Diff";
 import { Logo, LogoMark } from "@/components/Logo";
 import {
   Select,
@@ -30,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { contrast, flatten, format, verdict } from "@/lib/contrast";
-import type { Card, SessionView } from "@/lib/types";
+import type { Card, DeliveryDiff, SessionView } from "@/lib/types";
 
 // The page body. Everything drawn below is imported from the modules the board
 // itself imports, or is a class out of app/globals.css — the two exceptions are
@@ -70,6 +71,12 @@ const PEACH_INK = "#8a4a28";
 // the sticky header.
 const TRACK = flatten(INK, PAPER, 0.12);
 const HAIRLINE = flatten(INK, CREAM, 0.14);
+
+// And the two the Diff tab mixes: the gutter a changed line's numbers sit in is
+// its own band with the signal stirred back in, the way every diff view seats a
+// gutter a step darker than the row.
+const ADD_GUTTER = flatten(MINT, MINT_SOFT, 0.26);
+const DEL_GUTTER = flatten(PEACH, PEACH_SOFT, 0.26);
 
 const GROUPS: { title: string; note: string; tokens: { name: string; hex: string; use: string }[] }[] = [
   {
@@ -159,6 +166,11 @@ const PAIRS: {
   { fg: PEACH_INK, bg: PEACH_SOFT, label: "peach-ink on peach-soft", where: "the blocked marker, a warning box" },
   { fg: PEACH_INK, bg: PAPER, label: "peach-ink on paper", where: "an error line beside a control" },
   { fg: CREAM, bg: INK, label: "cream on ink", where: "the hover tooltip" },
+  { fg: INK, bg: MINT_SOFT, label: "ink on mint-soft", where: "the code on an added line in the Diff tab" },
+  { fg: INK, bg: PEACH_SOFT, label: "ink on peach-soft", where: "the code on a removed line" },
+  { fg: INK_SOFT, bg: ADD_GUTTER, label: `ink-soft on the added gutter (${ADD_GUTTER})`, where: "an added line's numbers" },
+  { fg: INK_SOFT, bg: DEL_GUTTER, label: `ink-soft on the removed gutter (${DEL_GUTTER})`, where: "a removed line's numbers" },
+  { fg: SKY_INK, bg: WASH, label: "sky-ink on wash", where: "a hunk header in the Diff tab" },
   {
     fg: ACCENT,
     bg: TRACK,
@@ -283,6 +295,47 @@ const DONE_SESSION: SessionView = {
   tail: "> Read app/globals.css\n> Write app/design/page.tsx\n> Bash: pnpm typecheck",
   result:
     "Added `/design` and the contrast helper it needs.\n\n- `app/design/page.tsx` — the route and its title\n- `lib/contrast.ts` — ported from the site\n\nOne pair is under the bar: white on the resting ember, at 4.03:1.",
+};
+
+// A delivery's diff, small enough to read whole and wide enough to carry all
+// three of the marks a file header can wear: an edit, a new file, a move.
+const DIFF_SPECIMEN: DeliveryDiff = {
+  id: "design",
+  stat: "3 files changed, 6 insertions(+), 2 deletions(-)",
+  diff: `diff --git a/lib/contrast.ts b/lib/contrast.ts
+index 1111111..2222222 100644
+--- a/lib/contrast.ts
++++ b/lib/contrast.ts
+@@ -12,7 +12,9 @@ export function contrast(fg: string, bg: string): number {
+ const channel = (c: number): number =>
+   c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+
+-export const verdict = (ratio: number) => ratio >= 4.5
++export const verdict = (ratio: number, size: Size = 'body') =>
++  ratio >= (size === 'body' ? 4.5 : 3)
++
+ export const format = (ratio: number): string => \`\${ratio.toFixed(2)}:1\`
+diff --git a/lib/size.ts b/lib/size.ts
+new file mode 100644
+index 0000000..3333333
+--- /dev/null
++++ b/lib/size.ts
+@@ -0,0 +1,2 @@
++/** The bar a pair has to clear. */
++export type Size = 'body' | 'non-text'
+diff --git a/app/design/page.tsx b/app/design/system.tsx
+similarity index 98%
+rename from app/design/page.tsx
+rename to app/design/system.tsx
+index 4444444..5555555 100644
+--- a/app/design/page.tsx
++++ b/app/design/system.tsx
+@@ -1,3 +1,3 @@
+-export default function DesignPage() {
++export function DesignSystem() {
+   return <main />
+ }
+`,
 };
 
 export function DesignSystem() {
@@ -882,6 +935,16 @@ export function DesignSystem() {
         note="components/agent-shared.tsx — the one artifact every place that shows a run reuses: the card page, the board overlay, the runs panel. An ink-framed window with a gradient title bar, the run's facts in one middot row, and a wash body sunk into it. A live run tails its raw event stream in mono; a finished one leads with the agent's final message as markdown and folds the events it streamed on the way into a collapsed row above."
       >
         <SessionLog session={DONE_SESSION} flush />
+      </Section>
+
+      <Section
+        id="diff"
+        title="The diff"
+        note="components/Diff.tsx — what a delivery changed, laid out to be reviewed. The changed files are a tree on the left and one continuous listing on the right: a file header that sticks while its hunks pass under it, both line numbers pinned to the left edge, and a band per changed line. Mint is added and peach is removed, sky heads a hunk, and the ember marks only the file being read."
+      >
+        <div className="nb-panel overflow-hidden">
+          <DiffPane diff={DIFF_SPECIMEN} />
+        </div>
       </Section>
 
       <Section

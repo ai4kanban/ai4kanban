@@ -35,6 +35,8 @@ _(none)_
 - [#318 Connect local delivery to the Cloud card lifecycle](311-team-collaboration-cloud/features/318-connect-local-delivery-to-the-cloud-card-lifecycle.md)
 - [#319 Notify one release in the app when people must act](311-team-collaboration-cloud/features/319-notify-one-release-in-the-app-when-people-must-act.md)
 - [#320 Deliver board notifications to Slack](311-team-collaboration-cloud/features/320-deliver-board-notifications-to-slack.md)
+- [#322 Open a Cloud board in the browser](features/322-open-a-cloud-board-in-the-browser.md)
+- [#323 Stand up the service every Cloud workspace runs on](311-team-collaboration-cloud/features/323-stand-up-the-cloud-service.md)
 
 ## skill
 

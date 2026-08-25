@@ -47,6 +47,7 @@ import {
 } from "@/lib/types";
 import { Button } from "./button";
 import { RunningNotice } from "./desktop";
+import { DiffPane } from "./Diff";
 import { Header } from "./Header";
 import {
   ActionDialog,
@@ -540,56 +541,6 @@ function TabStrip({
         </button>
       ))}
       {meta}
-    </div>
-  );
-}
-
-// ---- the Diff tab (#305) -----------------------------------------------------
-//
-// What the delivery changed: its branch against the base it forked from while it builds,
-// and the squash commit against the tip it landed onto once it has. The server reads it and
-// caps it, so this only draws.
-//
-// The size line leads, always — it is the glance, and the diff under it is the detail. A
-// case the server could not read is one plain line in the same place, never an empty frame.
-const DIFF_LINE: Record<string, string> = {
-  "+": "var(--color-nb-mint-ink)",
-  "-": "var(--color-nb-peach-ink)",
-  "@": "var(--color-nb-sky-ink)",
-};
-
-// The ink one diff line is drawn in. The two file headers git puts above every hunk start
-// with `+++`/`---` and are not additions, so they read as headers like `diff --git` does.
-function diffInk(line: string): string {
-  if (line.startsWith("+++") || line.startsWith("---") || line.startsWith("diff --git")) return "var(--color-nb-ink)";
-  return DIFF_LINE[line[0] ?? ""] ?? "var(--color-nb-ink-soft)";
-}
-
-function DiffPane({ diff }: { diff: DeliveryDiff }) {
-  return (
-    <div className="border-t-[1.5px] border-nb-ink bg-nb-paper">
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-nb-wash px-4 py-2.5 text-[12px]">
-        {diff.uncommitted && (
-          <span className="nb-chip" style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}>
-            uncommitted
-          </span>
-        )}
-        <span className="font-mono text-nb-ink-soft">{diff.note || diff.stat}</span>
-      </div>
-      {diff.diff && (
-        <pre className="m-0 max-h-[420px] overflow-auto px-4 py-3" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, lineHeight: 1.55 }}>
-          {diff.diff.replace(/\n$/, "").split("\n").map((line, i) => (
-            <div key={i} style={{ color: diffInk(line), whiteSpace: "pre" }}>
-              {line || " "}
-            </div>
-          ))}
-        </pre>
-      )}
-      {diff.truncated && (
-        <p className="border-t border-nb-wash px-4 py-2 text-[11.5px] text-nb-ink-soft">
-          Cut off here — the whole of it is <code className="font-mono text-nb-ink">{diff.whole}</code>.
-        </p>
-      )}
     </div>
   );
 }
