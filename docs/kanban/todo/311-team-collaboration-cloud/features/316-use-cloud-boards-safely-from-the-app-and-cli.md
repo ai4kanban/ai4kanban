@@ -31,6 +31,13 @@ Let the app and CLI work against Cloud without mistaking a stale screen for perm
   rather than from local files, so no two members run one board under different settings.
 - When the preview refuses a write because it is over a free-tier limit, say so in those
   words and keep the user's edit, rather than reporting it as a conflict or a failure.
+- Every app save passes the revision the screen read, so a card rewritten under an open page
+  comes back as a conflict the page re-reads. #312 built the path and left the app writing
+  against its lease, which is right for Local and not for a second teammate.
+- No board write happens inside a board read, and none is fired without being awaited. #312
+  left `manualSettled` archiving a card from inside `view/read.ts`, and three `closeRun` early
+  exits plus `claimCard` in `agent/watch.ts` starting a write they never wait for — harmless on
+  Local, dropped writes once they cross a network.
 
 ## Todo
 - [ ] Open a Cloud board from a checkout's workspace pointer with the machine's own sign-in.
@@ -44,4 +51,6 @@ Let the app and CLI work against Cloud without mistaking a stale screen for perm
 - [ ] Refresh the affected card and explain who holds it after a conflict.
 - [ ] Keep disconnected drafts local and compare revisions before resuming.
 - [ ] Explain a free-tier refusal without losing the edit behind it.
+- [ ] Pass the revision each screen read on every app mutation, and re-read the card on a conflict.
+- [ ] Move delivery completion off the board read path, and await every run-engine board write.
 - [ ] Check stale caches cannot bypass server-side write rules.

@@ -8,10 +8,7 @@ release: 0.8.0
 blocked_by: []
 related: [311, 56]
 modules: [skill, cloud]
-questions:
-  - "[user] The card page now reads a card's revision. Should its Save pass that revision, so an edit made while a run rewrote the card comes back as a conflict and the page re-reads — or keep taking a writer lease, which is what it does today and what keeps this card invisible to a solo user? Passing it is what makes a second teammate's edit safe; it also means a save can now be refused where it never was."
-  - "One board write is still not awaited: a manual-commit delivery whose user commit matches what review passed archives its card from inside the board READ (view/read.ts, manualSettled). The read is synchronous the whole way down, so making it await would mean an asynchronous board read. Local lands the write before the promise exists, so nothing is lost today, but a Cloud board would archive a beat late. Decide before #316 whether the board read becomes asynchronous or completion moves out of the read path."
-  - "[user] Review stopped on delivery ajny9xw9: the correction run failed before it finished. Review found: A lease's revision is read outside the board lock, so a contended write refuses instead of waiting; A card mutation is accepted with no lease, and the lease record is never read. 1 correction tried. Decide: answer here, approve an exception for this exact candidate, or cancel the delivery and start again from a changed card. Once you have, `node /Users/wutao/git/ai4kanban/desktop/resources/cli/bin/ai4kanban.mjs review 312` judges it again."
+questions: []
 verify:
   - Open the board UI and use every control on a card page — edit it, add and cross off a hand-check, schedule and unschedule a blocked card, move cards into a release, close a release, save the goal, cancel and approve a delivery. Each should behave exactly as it did before.
   - Start a real delivery from Implement and let it run to a landing. The run engine's ending path is now asynchronous, so watch that the card's stage is put back, a recurring card is stamped, a landed delivery archives its card, and a stopped review still leaves its question.
@@ -54,6 +51,12 @@ two teammates editing the same card would silently overwrite each other.
   before the process leaves — but a Cloud provider makes those calls network-bound, where a fired write
   can be dropped and a rejection has no handler. Same theme as the open question about `manualSettled`;
   worth settling both together in #316.
+- **A lease refuses by throwing where a mutation refuses by returning**: `lease()` reaches the board's
+  writing lock, and a lock it cannot take dies with a `board-busy` error rather than answering
+  `{ ok: false }`. Review restored the swallow the old `write()` and `boardMove()` helpers gave every
+  caller — `view/api.ts` now answers rather than throwing, and the run engine's own best-effort writes
+  (`setCardStatus`, `recordRecurringRun`, `askUser`, `completeCard`) are silent again. A Cloud provider
+  has the same asymmetry to keep: a lease it cannot grant belongs in the answer, not in a throw.
 
 <!-- agent -->
 
@@ -149,6 +152,18 @@ two teammates editing the same card would silently overwrite each other.
   optional revision from a screen that read the card, and takes a writer lease when none was
   given. Every screen behaves exactly as it did, which is what "nothing changes for anyone
   using the board today" asks for.
+- **A screen's Save keeps writing against its lease, not the revision it read**: the card
+  page is handed a revision and the contract accepts one (`WriteOptions.expect`), but the app
+  does not pass it yet. On Local the board is serialized by one lock and the lease already
+  keeps a run from interleaving, so passing it would only add a refusal a solo user has never
+  seen — which is what "nothing changes for anyone using the board today" rules out. Turning
+  it on is one argument at the call site; #316 does it, where a second teammate makes it real.
+- **The board read stays synchronous; completion moves out of it**: `manualSettled` archives a
+  card from inside `view/read.ts`, and three `closeRun` early exits plus `claimCard` in
+  `agent/watch.ts` fire their write instead of awaiting it. Local loses nothing — every step is
+  a microtask over file work. Making the read asynchronous to fix this would push a promise
+  through every screen for a case Local does not have, so #316 moves completion off the read
+  path instead, where those calls become network-bound.
 
 ### Overruled by the user
 - **Every board operation becomes asynchronous**: a Cloud provider is network-bound, so the

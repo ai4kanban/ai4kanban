@@ -375,19 +375,46 @@ const heldNote = (delivery: CardDelivery): string =>
     ? `${delivery.state.line} Cancel to take the card back.`
     : `${delivery.state.line} Cancel to stop the current work and take the card back.`;
 
+// A control that belongs to the delivery block rather than the page (#307). It rides in the
+// block's tab strip, so it wears the strip's scale — quiet outline, caption-sized text — and
+// not the page toolbar's press-down frame.
+function PanelAction({
+  icon,
+  label,
+  ...props
+}: React.ComponentProps<"button"> & { icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      type="button"
+      className="inline-flex cursor-pointer items-center gap-1 rounded-[7px] border-[1.5px] px-1.5 py-[3px] text-[11px] font-[700] transition-colors hover:bg-nb-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
+      style={{
+        color: "var(--color-nb-accent-deep)",
+        borderColor: "color-mix(in srgb, var(--color-nb-accent-deep) 45%, transparent)",
+      }}
+      {...props}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
 // Discard delivery: the one control on this page that throws work away. It removes the
 // delivery's worktree and its branch — and everything only they hold — so its popover says
 // exactly what will be lost before exposing the irreversible action.
 //
 // Cancelling a delivery deliberately leaves its checkout where it is, so this is offered
 // beside Cancel while one is in flight AND on its own afterwards, when the card is free
-// again but the checkout is still on disk.
+// again but the checkout is still on disk. `panel` picks the block's strip over the toolbar,
+// which is where it stands whenever the delivery still has a block to stand in.
 function DiscardDelivery({
   discard,
+  panel,
   onDiscarded,
   onError,
 }: {
   discard: NonNullable<Card["discard"]>;
+  panel?: boolean;
   onDiscarded: () => void;
   onError: (why: string) => void;
 }) {
@@ -407,18 +434,29 @@ function DiscardDelivery({
 
   return (
     <span ref={anchorRef} className="relative inline-flex">
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={busy}
-        aria-haspopup="dialog"
-        aria-expanded={confirming}
-        style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
-        onClick={() => setConfirming((open) => !open)}
-      >
-        <FiTrash2 className="text-[15px]" aria-hidden />
-        Discard
-      </Button>
+      {panel ? (
+        <PanelAction
+          icon={<FiTrash2 className="text-[12px]" aria-hidden />}
+          label="Discard"
+          disabled={busy}
+          aria-haspopup="dialog"
+          aria-expanded={confirming}
+          onClick={() => setConfirming((open) => !open)}
+        />
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          aria-haspopup="dialog"
+          aria-expanded={confirming}
+          style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
+          onClick={() => setConfirming((open) => !open)}
+        >
+          <FiTrash2 className="text-[15px]" aria-hidden />
+          Discard
+        </Button>
+      )}
       <ConfirmationPopover
         open={confirming}
         anchorRef={anchorRef}
@@ -500,7 +538,7 @@ function SessionMeta({ session }: { session: SessionView | null }) {
     );
   return (
     <span
-      className="ml-auto flex shrink-0 items-center gap-1.5 pb-2 text-[11px] text-nb-ink-soft"
+      className="flex shrink-0 items-center gap-1.5 text-[11px] text-nb-ink-soft"
       aria-label={[state || "running", session.model].filter(Boolean).join(", ")}
     >
       {indicator}
@@ -511,16 +549,20 @@ function SessionMeta({ session }: { session: SessionView | null }) {
   );
 }
 
+// The strip carries the tabs on the left and, on the right, what this delivery is running on
+// and the one control that ends it — the block's own affairs, kept out of the page toolbar.
 function TabStrip({
   tabs,
   current,
   onPick,
   meta,
+  action,
 }: {
   tabs: DeliveryTab[];
   current: string;
   onPick: (name: string) => void;
   meta?: React.ReactNode;
+  action?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center gap-4 rounded-t-[12.5px] bg-nb-wash px-3.5 pt-2.5">
@@ -540,7 +582,10 @@ function TabStrip({
           {tab.note && <span className="text-[10.5px] font-[600] text-nb-ink-soft">{tab.note}</span>}
         </button>
       ))}
-      {meta}
+      <span className="ml-auto flex items-center gap-2.5 pb-2">
+        {meta}
+        {action}
+      </span>
     </div>
   );
 }
@@ -625,12 +670,14 @@ function DeliveryBlock({
   diff,
   session,
   onApproved,
+  onCancelled,
   onError,
 }: {
   delivery: CardDelivery;
   diff: DeliveryDiff | null;
   session: SessionView | null;
   onApproved: () => void;
+  onCancelled: () => void;
   onError: (why: string) => void;
 }) {
   const approval = delivery.approval;
@@ -658,7 +705,13 @@ function DeliveryBlock({
   const current = tabs.some((t) => t.name === tab) ? tab : tabs[0]!.name;
   return (
     <div className="nb-outline mb-4 overflow-hidden bg-nb-paper">
-      <TabStrip tabs={tabs} current={current} onPick={setTab} meta={<SessionMeta session={session} />} />
+      <TabStrip
+        tabs={tabs}
+        current={current}
+        onPick={setTab}
+        meta={<SessionMeta session={session} />}
+        action={<CancelDelivery delivery={delivery} onCancelled={onCancelled} onError={onError} />}
+      />
       {current === "Approval" && approval ? (
         <ApprovalPane delivery={delivery} approval={approval} onApproved={onApproved} onError={onError} />
       ) : current === "Diff" && diff ? (
@@ -699,19 +752,35 @@ function DeliveryBlock({
 // landed when someone comes looking for it. Nothing here is live, so Diff opens first.
 function FinishedBlock({
   finished,
+  discard,
   diff,
   session,
+  onDiscarded,
+  onError,
 }: {
   finished: CardFinished;
+  discard: Card["discard"];
   diff: DeliveryDiff;
   session: SessionView | null;
+  onDiscarded: () => void;
+  onError: (why: string) => void;
 }) {
   const [tab, setTab] = useState("Diff");
   const tabs: DeliveryTab[] = [{ name: "Diff" }, ...(session ? [{ name: "Log" }] : [])];
   const current = tabs.some((t) => t.name === tab) ? tab : "Diff";
   return (
     <div className="nb-outline mb-4 overflow-hidden bg-nb-paper">
-      <TabStrip tabs={tabs} current={current} onPick={setTab} meta={<SessionMeta session={session} />} />
+      <TabStrip
+        tabs={tabs}
+        current={current}
+        onPick={setTab}
+        meta={<SessionMeta session={session} />}
+        action={
+          discard && (
+            <DiscardDelivery panel discard={discard} onDiscarded={onDiscarded} onError={onError} />
+          )
+        }
+      />
       {current === "Log" && session ? (
         <SessionLog session={session} bare warnUnfinished />
       ) : (
@@ -737,9 +806,11 @@ function FinishedBlock({
   );
 }
 
-// Cancel delivery: Implement's place while one is in flight. It stops the running session,
-// ends the delivery as cancelled, unlocks the card and brings Implement back. The anchored
-// confirmation distinguishes that from stopping one internal run. Existing work is kept.
+// Cancel delivery: what takes the card back while one is in flight. It stops the running
+// session, ends the delivery as cancelled, unlocks the card and brings Implement back. The
+// anchored confirmation distinguishes that from stopping one internal run, and existing work
+// is kept. It rides in the delivery block's strip — beside the work it ends, and a caption
+// rather than a page-wide row.
 function CancelDelivery({
   delivery,
   onCancelled,
@@ -764,18 +835,14 @@ function CancelDelivery({
 
   return (
     <span ref={anchorRef} className="relative inline-flex">
-      <Button
-        variant="ghost"
-        size="sm"
+      <PanelAction
+        icon={<FiXCircle className="text-[12px]" aria-hidden />}
+        label="Cancel"
         disabled={busy}
         aria-haspopup="dialog"
         aria-expanded={confirming}
-        style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
         onClick={() => setConfirming((open) => !open)}
-      >
-        <FiXCircle className="text-[15px]" aria-hidden />
-        Cancel
-      </Button>
+      />
       <ConfirmationPopover
         open={confirming}
         anchorRef={anchorRef}
@@ -924,6 +991,11 @@ export function CardPage({
   const offUnlessAsked = busy || (held && !answerable);
   const { total, done } = card.todos;
   const actions = visibleActions(card);
+  // The delivery has ended and its block is still on the page — the one that carries Discard.
+  const finishedBlock = !delivery && !!card.finished && !!diff;
+  // Whether the toolbar has anything to draw. A free card always does (Edit and Reject are
+  // unconditional); a held one only when the delivery leaves it something to click.
+  const toolbar = !delivery || (actions.has("resolve") && answerable) || !!carryOn;
 
   // Tail the newest session on this card: live while it runs, and re-openable once
   // it's done so the user can read back what the agent did (task #14).
@@ -1106,137 +1178,131 @@ export function CardPage({
             )}
 
             {/* toolbar — the state machine (visibleActions) decides which buttons
-                fit the card's state; busy still disables every one that shows. */}
-            <div className="mb-5 flex flex-wrap items-center gap-2">
-              {/* Implement, or — while a delivery is in flight — Cancel delivery in its
-                  place. Never both: one starts the job, the other ends it. */}
-              {delivery ? (
-                <CancelDelivery
-                  delivery={delivery}
-                  onCancelled={() => {
-                    router.refresh();
-                    kick();
-                  }}
-                  onError={setError}
-                />
-              ) : (
-                actions.has("implement") && (
+                fit the card's state; busy still disables every one that shows. It is gone
+                entirely while a held card has nothing left to offer: Cancel and Discard now
+                ride in the delivery block, and an empty row is just a gap. */}
+            {toolbar && (
+              <div className="mb-5 flex flex-wrap items-center gap-2">
+                {/* Implement — gone while a delivery is in flight, since what ends one is
+                    Cancel in the block below. */}
+                {!delivery && actions.has("implement") && (
                   <Button size="sm" disabled={busy} onClick={() => setDialog({ kind: "implement", card })}>
                     <FiPlay className="text-[15px]" aria-hidden />
                     Implement
                   </Button>
-                )
-              )}
-              {/* Discard delivery (#303) — the checkout a delivery built in, thrown away.
-                  Offered whenever one is still on disk: cancelling a delivery leaves its
-                  worktree and branch alone on purpose, so nothing else ever reclaims one. */}
-              {card.discard && !delivery && (
-                <DiscardDelivery
-                  discard={card.discard}
-                  onDiscarded={() => {
-                    router.refresh();
-                    kick();
-                  }}
-                  onError={setError}
-                />
-              )}
-              {/* Run (#64) — Implement's place on a recurring card. Same ember CTA:
-                  it is the one thing you came to this card to do. */}
-              {actions.has("run") && !delivery && (
-                <Button
-                  size="sm"
-                  disabled={off}
-                  title={held ? heldWhy : "Do one pass of this recurring task now"}
-                  onClick={() => setDialog({ kind: "run", card })}
-                >
-                  <FiPlay className="text-[15px]" aria-hidden />
-                  Run
-                </Button>
-              )}
-              {/* Refine — the same run the board makes on its own, on demand. While
-                  another run holds this card it's disabled like every other button,
-                  and its tooltip names what that run is doing, so a second refine is
-                  never a click away. (The server refuses one anyway — the poll behind
-                  `busy` can be a second and a half old.) */}
-              {actions.has("refine") && !delivery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={off}
-                  title={
-                    held
-                      ? heldWhy
-                      : busy && liveSession
-                        ? `Already ${RUNNING_VERB[liveSession.action]} this card`
-                        : "Take this card's plan one step forward now"
-                  }
-                  onClick={() => setDialog({ kind: "refine", card })}
-                >
-                  <FiFeather className="text-[15px]" aria-hidden />
-                  Refine
-                </Button>
-              )}
-              {actions.has("edit") && !delivery && (
-                <Button variant="ghost" size="sm" disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "edit", card })}>
-                  <FiEdit2 className="text-[15px]" aria-hidden />
-                  Edit
-                </Button>
-              )}
-              {actions.has("resolve") && (!delivery || answerable) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={offUnlessAsked}
-                  title={held ? heldWhy : undefined}
-                  onClick={() => setDialog({ kind: "resolve", card })}
-                >
-                  <FiHelpCircle className="text-[15px]" aria-hidden />
-                  Resolve
-                </Button>
-              )}
-              {/* Review again / Continue delivery (#302). The first is offered while a
-                  delivery is waiting on the question its review left — answer it, or write
-                  the exception you are approving under ## Worth noting after
-                  implementation, and this judges the same work afresh. The second is the
-                  way back for a delivery whose next session never started because the
-                  process watching it died. */}
-              {carryOn && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={busy}
-                  title={
-                    waiting
-                      ? "Judge what this delivery built again, now that you have answered"
-                      : `This delivery never started its ${carryOn} run — start it now`
-                  }
-                  onClick={() => void runAgent({ action: carryOn, id: card.id }, carryOn)}
-                >
-                  <FiCheckCircle className="text-[15px]" aria-hidden />
-                  {waiting ? "Review again" : "Continue delivery"}
-                </Button>
-              )}
-              {actions.has("archive") && !delivery && (
-                <Button variant="ghost" size="sm" disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "archive", card })}>
-                  <FiArchive className="text-[15px]" aria-hidden />
-                  Archive
-                </Button>
-              )}
-              {actions.has("reject") && !delivery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto"
-                  disabled={off}
-                  title={held ? heldWhy : undefined}
-                  style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
-                  onClick={() => setDialog({ kind: "reject", card })}
-                >
-                  <FiXCircle className="text-[15px]" aria-hidden />
-                  Reject
-                </Button>
-              )}
-            </div>
+                )}
+                {/* Discard delivery (#303) — the checkout a delivery built in, thrown away.
+                    Offered whenever one is still on disk: cancelling a delivery leaves its
+                    worktree and branch alone on purpose, so nothing else ever reclaims one.
+                    Here only when there is no block to carry it. */}
+                {card.discard && !delivery && !finishedBlock && (
+                  <DiscardDelivery
+                    discard={card.discard}
+                    onDiscarded={() => {
+                      router.refresh();
+                      kick();
+                    }}
+                    onError={setError}
+                  />
+                )}
+                {/* Run (#64) — Implement's place on a recurring card. Same ember CTA:
+                    it is the one thing you came to this card to do. */}
+                {actions.has("run") && !delivery && (
+                  <Button
+                    size="sm"
+                    disabled={off}
+                    title={held ? heldWhy : "Do one pass of this recurring task now"}
+                    onClick={() => setDialog({ kind: "run", card })}
+                  >
+                    <FiPlay className="text-[15px]" aria-hidden />
+                    Run
+                  </Button>
+                )}
+                {/* Refine — the same run the board makes on its own, on demand. While
+                    another run holds this card it's disabled like every other button,
+                    and its tooltip names what that run is doing, so a second refine is
+                    never a click away. (The server refuses one anyway — the poll behind
+                    `busy` can be a second and a half old.) */}
+                {actions.has("refine") && !delivery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={off}
+                    title={
+                      held
+                        ? heldWhy
+                        : busy && liveSession
+                          ? `Already ${RUNNING_VERB[liveSession.action]} this card`
+                          : "Take this card's plan one step forward now"
+                    }
+                    onClick={() => setDialog({ kind: "refine", card })}
+                  >
+                    <FiFeather className="text-[15px]" aria-hidden />
+                    Refine
+                  </Button>
+                )}
+                {actions.has("edit") && !delivery && (
+                  <Button variant="ghost" size="sm" disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "edit", card })}>
+                    <FiEdit2 className="text-[15px]" aria-hidden />
+                    Edit
+                  </Button>
+                )}
+                {actions.has("resolve") && (!delivery || answerable) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={offUnlessAsked}
+                    title={held ? heldWhy : undefined}
+                    onClick={() => setDialog({ kind: "resolve", card })}
+                  >
+                    <FiHelpCircle className="text-[15px]" aria-hidden />
+                    Resolve
+                  </Button>
+                )}
+                {/* Review again / Continue delivery (#302). The first is offered while a
+                    delivery is waiting on the question its review left — answer it, or write
+                    the exception you are approving under ## Worth noting after
+                    implementation, and this judges the same work afresh. The second is the
+                    way back for a delivery whose next session never started because the
+                    process watching it died. */}
+                {carryOn && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={busy}
+                    title={
+                      waiting
+                        ? "Judge what this delivery built again, now that you have answered"
+                        : `This delivery never started its ${carryOn} run — start it now`
+                    }
+                    onClick={() => void runAgent({ action: carryOn, id: card.id }, carryOn)}
+                  >
+                    <FiCheckCircle className="text-[15px]" aria-hidden />
+                    {waiting ? "Review again" : "Continue delivery"}
+                  </Button>
+                )}
+                {actions.has("archive") && !delivery && (
+                  <Button variant="ghost" size="sm" disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "archive", card })}>
+                    <FiArchive className="text-[15px]" aria-hidden />
+                    Archive
+                  </Button>
+                )}
+                {actions.has("reject") && !delivery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="ml-auto"
+                    disabled={off}
+                    title={held ? heldWhy : undefined}
+                    style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
+                    onClick={() => setDialog({ kind: "reject", card })}
+                  >
+                    <FiXCircle className="text-[15px]" aria-hidden />
+                    Reject
+                  </Button>
+                )}
+              </div>
+            )}
 
             {/* The delivery block (#307) while one is in flight: the tab strip, the log in
                 it, and a foot naming the delivery, its commit mode and where its code is.
@@ -1248,13 +1314,27 @@ export function CardPage({
                 diff={diff}
                 session={sessionLog}
                 onApproved={refresh}
+                onCancelled={() => {
+                  router.refresh();
+                  kick();
+                }}
                 onError={setError}
               />
-            ) : card.finished && diff ? (
+            ) : finishedBlock && card.finished && diff ? (
               /* The delivery has ended and the card is still here (#305) — normally the
                  blink before the board archives it. The same block, opening on the Diff:
                  what landed, and the commit to revert if it has to go. */
-              <FinishedBlock finished={card.finished} diff={diff} session={sessionLog} />
+              <FinishedBlock
+                finished={card.finished}
+                discard={card.discard}
+                diff={diff}
+                session={sessionLog}
+                onDiscarded={() => {
+                  router.refresh();
+                  kick();
+                }}
+                onError={setError}
+              />
             ) : (
               latestSession && (
                 <div className="mb-4">

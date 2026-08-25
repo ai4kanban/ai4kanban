@@ -66,3 +66,7 @@ Internal detail stays on the card.
 - **What happens when two people change the same card?**: the second write is refused as a
   conflict naming the version the board holds now, and the caller re-reads that card. It is
   never a silent overwrite, and it is never a message the user has to interpret.
+- **Can a save be refused on a Local board?**: no. The conflict path is built and tested, but
+  the app writes against the writer lease it takes, so a solo user never meets a refusal one
+  machine's lock already makes impossible. Passing the revision a screen read — the thing that
+  turns a stale edit into a conflict — starts on Cloud, where a second teammate makes it real.
