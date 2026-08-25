@@ -26,7 +26,7 @@ import {
   writeRootIgnoreIfMissing,
 } from '../paths'
 import { candidateOf, candidateDiff, candidateMark } from './candidate'
-import { autoCommitAllowed } from './settings'
+import { autoCommitAllowed, diffApprovalRequired } from './settings'
 import { readStore } from './store'
 import type { DeliveryPlan } from '../view/types'
 import type { DeliveryCommitMode, DeliveryRecord } from './types'
@@ -92,6 +92,10 @@ export interface DeliveryStart {
   branch?: string
   /** Why it is in manual mode when the setting did not ask for it. */
   manualWhy?: string
+  /** Whether this delivery has to be approved before it lands (#308), read from the setting
+   *  here and never again. Only ever true in auto commit mode: in manual mode the board
+   *  never commits, so the user's own commit is the approval. */
+  needsApproval?: boolean
 }
 
 /** The checkout a delivery's sessions work in. */
@@ -113,7 +117,7 @@ export function deliveryPlan(): DeliveryPlan {
     return { commitMode: 'manual', manualWhy: 'this repository has no commit yet, so there is nothing to fork a branch from' }
   }
   if (!autoCommitAllowed()) return { commitMode: 'manual', branch: currentBranch() ?? undefined }
-  return { commitMode: 'auto', branch: currentBranch() ?? undefined }
+  return { commitMode: 'auto', branch: currentBranch() ?? undefined, needsApproval: diffApprovalRequired() }
 }
 
 /** Get a delivery ready to start on this card: decide the mode, refuse what can't start,
@@ -139,7 +143,7 @@ export function prepareDelivery(cardId: number): { start: DeliveryStart } | { er
   if (wanted === 'manual' || manualWhy) {
     const refusal = manualRefusal(cardId, !!base)
     if (refusal) return { error: refusal }
-    return { start: { deliveryId, commitMode: 'manual', base: base ?? undefined, manualWhy } }
+    return { start: { deliveryId, commitMode: 'manual', base: base ?? undefined, manualWhy, needsApproval: false } }
   }
 
   const targetBranch = currentBranch()
@@ -176,6 +180,7 @@ export function prepareDelivery(cardId: number): { start: DeliveryStart } | { er
       targetBranch,
       worktree: made.worktree,
       branch: made.branch,
+      needsApproval: diffApprovalRequired(),
     },
   }
 }

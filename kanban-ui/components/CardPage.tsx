@@ -21,6 +21,7 @@ import {
   FiXCircle,
 } from "react-icons/fi";
 import {
+  approveDeliveryAction,
   cancelDeliveryAction,
   discardDeliveryAction,
   dropVerifyAction,
@@ -33,6 +34,7 @@ import {
   NO_RELEASE,
   type AgentInfo,
   type Card,
+  type CardApproval,
   type CardDelivery,
   type CardDeliveryStage,
   type CardFinished,
@@ -395,6 +397,7 @@ const PILL_TONE: Record<CardDeliveryStage, keyof typeof PILL_SKIN> = {
   working: "live",
   stopped: "live",
   held: "live",
+  approval: "live",
   commit: "live",
   rereview: "warn",
   landed: "done",
@@ -484,6 +487,68 @@ function DiffPane({ diff }: { diff: DeliveryDiff }) {
   );
 }
 
+// ---- the Approval tab (#308) -------------------------------------------------
+//
+// On a board with **Require diff approval before landing** on, nothing lands until the tree
+// has been read and signed off. This is where that is done: one line saying what an approval
+// covers, and one button.
+//
+// It is deliberately next to **Diff** rather than instead of it — the block opens on Diff
+// while a delivery waits, so the tree is the first thing read and this is the second.
+function ApprovalPane({
+  delivery,
+  approval,
+  onApproved,
+  onError,
+}: {
+  delivery: CardDelivery;
+  approval: CardApproval;
+  onApproved: () => void;
+  onError: (why: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  const approve = async () => {
+    setBusy(true);
+    const res = await approveDeliveryAction(delivery.id);
+    setBusy(false);
+    if (!res.ok) onError(res.error || "could not approve this tree");
+    else onApproved();
+  };
+
+  return (
+    <div className="border-t-[1.5px] border-nb-ink bg-nb-paper px-4 py-3.5">
+      {approval.approved ? (
+        <>
+          <p className="flex items-center gap-1.5 text-[13px] font-[700] text-nb-ink">
+            <FiCheckCircle className="shrink-0 text-[15px]" aria-hidden />
+            Approved — it lands from here.
+          </p>
+          <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
+            You approved {approval.covers}. Change the tree, or the commit it was built on, and this
+            approval is cancelled and the delivery waits again.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-[13px] font-[700] text-nb-ink">This delivery lands only once you approve it.</p>
+          <p className="mt-1.5 max-w-[68ch] text-[12px] leading-relaxed text-nb-ink-soft">
+            {approval.cancelled ? `${upperFirst(approval.cancelled)}. ` : ""}
+            Read the <strong>Diff</strong> tab, then approve {approval.covers}. An approval covers that
+            one tree: anything that moves it afterwards cancels it.
+          </p>
+          <Button className="mt-3" size="sm" disabled={busy} onClick={() => void approve()}>
+            <FiCheckCircle className="text-[15px]" aria-hidden />
+            Approve this tree
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
+const upperFirst = (text: string): string => (text ? text[0]!.toUpperCase() + text.slice(1) : text);
+
 // The block's foot: which delivery this is, how it commits, and where its code is.
 function DeliveryFoot({ children }: { children: React.ReactNode }) {
   return (
@@ -502,25 +567,47 @@ function DeliveryBlock({
   session,
   busy,
   onResumed,
+  onApproved,
+  onError,
 }: {
   delivery: CardDelivery;
   diff: DeliveryDiff | null;
   session: SessionView | null;
   busy: boolean;
   onResumed: (sessionId: string) => void;
+  onApproved: () => void;
+  onError: (why: string) => void;
 }) {
   const where = whereNote(delivery);
-  // The log opens first while a delivery is live: it is the thing that moves, and the diff
-  // is not finished being written.
-  const [tab, setTab] = useState("Log");
-  const tabs: DeliveryTab[] = [...(diff ? [{ name: "Diff" }] : []), { name: "Log" }];
+  const approval = delivery.approval;
+  // A delivery waiting on an approval opens on **Diff** (#308): the tree is the thing to
+  // read, and approving without reading it is the one outcome this policy exists to stop.
+  // Otherwise the log opens first while a delivery is live — it is the thing that moves, and
+  // the diff is not finished being written.
+  const waitingOnApproval = !!approval?.required && !approval.approved;
+  const [tab, setTab] = useState(waitingOnApproval && diff ? "Diff" : "Log");
+  // A delivery that STARTS waiting while the page is open opens on the diff too — the block
+  // is already mounted then, so the first render's choice above never gets to make it. Only
+  // on the change: whatever the user picked afterwards is theirs.
+  const wasWaiting = useRef(waitingOnApproval);
+  useEffect(() => {
+    if (waitingOnApproval && !wasWaiting.current) setTab("Diff");
+    wasWaiting.current = waitingOnApproval;
+  }, [waitingOnApproval]);
+  const tabs: DeliveryTab[] = [
+    ...(diff ? [{ name: "Diff" }] : []),
+    { name: "Log" },
+    ...(approval ? [{ name: "Approval", note: approval.approved ? "✓" : undefined }] : []),
+  ];
   // A tab that has gone — the diff a re-read no longer has — falls back to the first one
   // rather than leaving the strip pointing at nothing.
   const current = tabs.some((t) => t.name === tab) ? tab : tabs[0]!.name;
   return (
     <div className="nb-outline mb-4 bg-nb-paper">
       <TabStrip tabs={tabs} current={current} onPick={setTab} />
-      {current === "Diff" && diff ? (
+      {current === "Approval" && approval ? (
+        <ApprovalPane delivery={delivery} approval={approval} onApproved={onApproved} onError={onError} />
+      ) : current === "Diff" && diff ? (
         <DiffPane diff={diff} />
       ) : session ? (
         <SessionLog session={session} bare warnUnfinished onResumed={onResumed} />
@@ -536,9 +623,9 @@ function DeliveryBlock({
         </span>
         {/* A pause has no button (#307): what continues it is the answer, the resolve or
             the commit — the line under the title says which — so the foot says so rather
-            than leaving the user hunting for one. A stopped review is the exception: it
-            has Review again, which is a button. */}
-        {delivery.state.paused && delivery.state.stage !== "stopped" && !busy && (
+            than leaving the user hunting for one. Two exceptions have one: a stopped review
+            has Review again, and a delivery waiting on approval has Approve this tree. */}
+        {delivery.state.paused && delivery.state.stage !== "stopped" && delivery.state.stage !== "approval" && !busy && (
           <span className="ml-auto" style={{ color: "var(--color-nb-accent-deep)" }}>
             nothing to press — the delivery carries on by itself
           </span>
@@ -1084,7 +1171,15 @@ export function CardPage({
                 A card with no delivery keeps the plain session log it has always had — a
                 live tail while an agent works, re-openable afterwards. */}
             {delivery ? (
-              <DeliveryBlock delivery={delivery} diff={diff} session={sessionLog} busy={busy} onResumed={onResumed} />
+              <DeliveryBlock
+                delivery={delivery}
+                diff={diff}
+                session={sessionLog}
+                busy={busy}
+                onResumed={onResumed}
+                onApproved={refresh}
+                onError={setError}
+              />
             ) : card.finished && diff ? (
               /* The delivery has ended and the card is still here (#305) — normally the
                  blink before the board archives it. The same block, opening on the Diff:

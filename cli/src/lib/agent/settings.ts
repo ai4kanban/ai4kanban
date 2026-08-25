@@ -128,6 +128,37 @@ export function setAutoCommit(on: boolean): { ok: boolean; error?: string } {
   })
 }
 
+// ---- auto-delivery: must the tree be approved before it lands? (#308) ------
+//
+//   "requireDiffApproval": true
+//
+// OFF by default, and only written down when somebody turned it on — requiring it on every
+// card puts the user back in the loop for every change, which is what auto-delivery exists
+// to remove.
+//
+// With it ON every delivery waits, after review has passed it, until the user approves the
+// exact tree it would land. It has nothing to hold in manual commit mode: the board never
+// commits there, so the user's own commit IS the approval.
+
+/** True only when somebody switched diff approval on. A file that won't parse reads as
+ *  off: the stricter policy is the deliberate one, and a setting nobody can read is not a
+ *  reason to start holding every delivery. */
+export function diffApprovalRequired(): boolean {
+  try {
+    return readConfigRaw().requireDiffApproval === true
+  } catch {
+    return false
+  }
+}
+
+/** Save it. Turning it back off drops the key rather than writing `false`. */
+export function setDiffApproval(on: boolean): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => {
+    if (on) cfg.requireDiffApproval = true
+    else delete cfg.requireDiffApproval
+  })
+}
+
 // ---- the spec agents: the switch, and what each one is set to (#191, #255) --
 //
 // The same file also holds which spec agents may run, and what each one is set to:

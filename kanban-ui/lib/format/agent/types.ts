@@ -281,6 +281,39 @@ export interface DeliveryLanding {
   at: number
 }
 
+// ---- diff approval: the tree the user signed off (#308) ---------------------
+
+/** One thing that happened to a delivery's approval, kept in order so the record says who
+ *  approved what and why an approval stopped standing. */
+export interface DeliveryApprovalEvent {
+  /** `approved` — the user signed the tree off. `cancelled` — the base or the tree moved
+   *  under the approval, so it stopped covering what would land. */
+  kind: 'approved' | 'cancelled'
+  /** The base commit the approval covered. */
+  base?: string
+  /** The candidate's fingerprint it covered. */
+  mark?: string
+  /** On a cancellation: which of the two moved. */
+  moved?: 'base' | 'tree'
+  /** Where the approval came from — the card page, or `akb approve`. */
+  from?: string
+  at: number
+}
+
+/** Whether this delivery needs the user's approval before it lands, and the approval it has
+ *  (#308).
+ *
+ *  `required` is frozen when the delivery starts, the way its commit mode is. `granted` is
+ *  the approval standing right now: it is bound to the base commit and the candidate's
+ *  fingerprint as they stood when it was given, and landing drops it the moment either one
+ *  moves — otherwise "approved" would stop meaning anything. */
+export interface DeliveryApproval {
+  required: boolean
+  granted?: { base?: string; mark?: string; from?: string; at: number }
+  /** Every approval given and every one cancelled, oldest first. */
+  events: DeliveryApprovalEvent[]
+}
+
 /** One delivery: one end-to-end effort to implement an exact version of a card. It has an
  *  id, a card has at most one active one, and it is several sessions long.
  *
@@ -346,6 +379,11 @@ export interface DeliveryRecord {
   /** Where this delivery stands on landing (#304). Absent until review has passed it in
    *  auto commit mode; manual commit mode never lands, because the commit is the user's. */
   landing?: DeliveryLanding
+  /** Whether this delivery needs the user to approve the tree before it lands, and the
+   *  approval it has (#308). `required` is read from the setting when the delivery starts
+   *  and never again, so flipping the setting changes the next delivery. Absent on a
+   *  delivery started before diff approval existed, which needs none. */
+  approval?: DeliveryApproval
   /** The flow rules this delivery froze when it started (#306), keyed by command — the
    *  flows a delivery is made of, and only the ones that had a rule. Every session in the
    *  delivery is given these rather than the files, so editing a rule changes the next

@@ -44,6 +44,7 @@ export type {
   Board,
   BulkReleaseResult,
   Card,
+  CardApproval,
   CardDelivery,
   CardDeliveryStage,
   CardDeliveryState,

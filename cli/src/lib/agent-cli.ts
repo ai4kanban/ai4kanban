@@ -24,7 +24,7 @@ import { KANBAN, setBoardRoot } from './paths'
 import { cmdAgent } from '../commands/agent'
 import { cmdChat } from '../commands/chat'
 import { cmdGuide } from '../commands/guide'
-import { cmdCancel, cmdDiscard, cmdLog, cmdResume, cmdRuns, cmdStartRun, cmdStop, cmdWatch } from '../commands/run'
+import { cmdApprove, cmdCancel, cmdDiscard, cmdLog, cmdResume, cmdRuns, cmdStartRun, cmdStop, cmdWatch } from '../commands/run'
 import { cmdSpec } from '../commands/spec'
 import { RUN_COMMANDS } from './agent/flows'
 import { agentManual } from './agent/manual'
@@ -56,6 +56,9 @@ const OTHER: Record<string, (args: string[], program: string) => MoveResult | Pr
   // Cancel hands the card back and leaves the delivery's checkout alone; this is what
   // throws that checkout away (#303). Two commands because they lose different things.
   discard: cmdDiscard,
+  // Sign off the tree a delivery would land, on a board that requires it (#308). It ends
+  // nothing and starts nothing — it lets a delivery already waiting carry on.
+  approve: cmdApprove,
   agent: (args) => cmdAgent(args),
 }
 

@@ -141,12 +141,30 @@ export interface CardDelivery {
    *  passed it: queued for the repository's one landing slot, holding it, landed, or
    *  stopped on a conflict. */
   landing?: CardLanding
+  /** Whether this delivery has to be approved before it lands, and what an approval covers
+   *  (#308). Absent on a delivery that needs none, and then the block has no **Approval**
+   *  tab. */
+  approval?: CardApproval
+}
+
+/** A delivery's diff approval, as the card page's **Approval** tab draws it (#308). */
+export interface CardApproval {
+  /** This delivery may not land until the user approves the tree. Frozen when it started. */
+  required: boolean
+  /** An approval stands and still covers what would land. */
+  approved: boolean
+  /** What an approval covers, or what the standing one covered: the base commit and the
+   *  candidate's fingerprint, in one line. */
+  covers: string
+  /** Why the last approval stopped counting — the base moved, or the tree did. Absent until
+   *  one has been cancelled. */
+  cancelled?: string
 }
 
 /** Where a delivery stands, as the card page's pill reads it (#307). The stages are the
  *  delivery record's own (`agent/pause.ts`); this file imports nothing, so they are spelled
  *  again rather than shared. */
-export type CardDeliveryStage = 'working' | 'stopped' | 'held' | 'commit' | 'rereview' | 'landed'
+export type CardDeliveryStage = 'working' | 'stopped' | 'held' | 'approval' | 'commit' | 'rereview' | 'landed'
 
 /** The delivery's state, as the title band draws it: the pill's words, the one line under
  *  it saying what the delivery waits on and what answers it, and whether it is waiting on
@@ -307,6 +325,9 @@ export interface DeliveryPlan {
   /** Why it would be manual when the setting did not ask for it — no git, or no commit to
    *  fork from. Absent when the setting is the reason. */
   manualWhy?: string
+  /** The delivery would wait for the user to approve the tree before it lands (#308).
+   *  Never in manual commit mode, where the user's own commit is the approval. */
+  needsApproval?: boolean
 }
 
 export interface Column {

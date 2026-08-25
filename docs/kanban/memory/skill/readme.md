@@ -139,6 +139,11 @@ covers it, or a plain-words note.
 - A stopped delivery leaves one `[user]` question on its card and keeps holding it, and
   `akb resolve` is the one held action let back through — answering is the way on:
   `akb guide review`.
+- `akb approve <delivery-or-card-id>` signs off the tree a delivery would land, on a board
+  with **Require diff approval before landing** on. It ends nothing and starts nothing: a
+  delivery already waiting carries on. The approval covers the base commit and the tree built
+  on it as they stand at that moment, so read the diff first, and either one moving cancels
+  it: `akb help runs` and `akb guide review`.
 - A card's `## Worth noting after implementation` holds what building it turned up that
   needs no decision. It is never part of what a delivery is approved to build:
   `akb guide board`.

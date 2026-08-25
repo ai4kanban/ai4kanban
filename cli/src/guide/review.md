@@ -135,6 +135,13 @@ does that itself: no session, and nothing pushed anywhere.
 - **A card with an open question holds outside the queue** until it is answered. It takes no
   landing slot while it waits, so every other card still lands, and answering the question
   carries the same delivery on.
+- **On a board that requires diff approval, nothing lands unread.** With **Require diff
+  approval before landing** on, every delivery holds outside the queue after review until
+  the user approves the exact tree it would land — the card page's **Approval** tab, or
+  `akb approve <delivery|#card>`. An approval covers the delivery's base commit and the
+  candidate's fingerprint as they stood when it was given, and landing re-reads both
+  immediately before it moves the branch: either one having moved cancels the approval and
+  the delivery waits again. Off by default, and frozen when the delivery starts.
 - **The card is archived last, by the board**, once the delivery has landed and ended. In
   manual commit mode nothing lands, so the card is archived when the user's own commit
   matches what review passed.

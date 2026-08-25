@@ -89,6 +89,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   follows the run that caused it: a run that touches a card starts the next step on that
   card. No sweep, so no switch to turn the sweep off — and the frugality rules the sweep
   needed (skip the blocked cards, cap how many at once) go with it.
+- ❌ **A board-wide setting ships with a per-card override beside it** (a `critical` mark that
+  forces diff approval whatever the setting says) → ✅ ship the setting alone until a card really
+  has to differ from its board. The override costs a field, a flag, a control and a chip while
+  switching on nothing the setting cannot, and a mark with no rule for when to set it gets set by
+  mood until it means nothing.
 - ❌ **Say whether a setup can run by checking its pieces up front** (is the CLI installed,
   is it logged in, is the key set) → ✅ one **Test** button that really runs the thing once
   and shows what came back. A real run answers what a checklist can't see — a revoked key,

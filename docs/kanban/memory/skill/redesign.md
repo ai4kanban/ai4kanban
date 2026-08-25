@@ -58,6 +58,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Let a word mean a bookkeeping move at one layer and an agent run at another** → ✅ one
   meaning per word. Archive, create and reject are agent runs that end in bookkeeping; the
   bare move gets a different name.
+- ❌ **Reuse a coding agent's own word for one of our nested things** (calling one execution a
+  "session", which is what Claude Code and Codex call the conversation underneath it) → ✅ pick a
+  word the neighbouring tool is not already using for a different lifetime. The board has three
+  levels — delivery, run, session — and each keeps one name.
 - ❌ **Ship the flows as reference pages copied into each project** → ✅ the command prints
   the flow for the board it was asked about, so it can name that project's own tracks,
   paths and memory files instead of describing them generically.

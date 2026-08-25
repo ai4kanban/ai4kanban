@@ -22,7 +22,14 @@ import {
   searchCards,
 } from "@/lib/board";
 import { type ChatRead, clearChat, readChat, sendChat } from "@/lib/chat";
-import { autoCommitAllowed, setAutoCommit, setHarness, setHarnessSetting } from "@/lib/config";
+import {
+  autoCommitAllowed,
+  diffApprovalRequired,
+  setAutoCommit,
+  setDiffApproval,
+  setHarness,
+  setHarnessSetting,
+} from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
 import { flowRules, setFlowRule } from "@/lib/flow-rules";
 import {
@@ -44,6 +51,7 @@ import {
   setSchedule,
 } from "@/lib/edit";
 import {
+  approveDelivery,
   cancelDelivery,
   discardDelivery,
   getSession,
@@ -227,6 +235,15 @@ export async function cancelDeliveryAction(deliveryId: string): Promise<StartRes
 export async function discardDeliveryAction(deliveryId: string): Promise<StartResult> {
   if (typeof deliveryId !== "string" || !deliveryId) return { ok: false, error: "no delivery named" };
   return discardDelivery(deliveryId);
+}
+
+// Approve the tree a delivery would land (#308), on a board that requires it. The base
+// commit and the fingerprint are read here, as the click lands, so what the record says was
+// approved is what was on screen. Named by delivery id, so a stale tab can't approve the
+// delivery that replaced the one it was drawn from.
+export async function approveDeliveryAction(deliveryId: string): Promise<StartResult> {
+  if (typeof deliveryId !== "string" || !deliveryId) return { ok: false, error: "no delivery named" };
+  return approveDelivery(deliveryId);
 }
 
 // The shared run list, for the UI's poll. Every tab reads the same picture. The UI polls
@@ -594,6 +611,21 @@ export async function autoCommitAction(): Promise<{ on: boolean; error?: string 
 export async function setAutoCommitAction(on: boolean): Promise<WriteResult> {
   if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
   return setAutoCommit(on);
+}
+
+// **Require diff approval before landing** (#308) — read and saved beside it, in the same
+// file. Off by default, so nothing to read reads as off.
+export async function diffApprovalAction(): Promise<{ on: boolean; error?: string }> {
+  try {
+    return { on: await diffApprovalRequired() };
+  } catch (e) {
+    return { on: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function setDiffApprovalAction(on: boolean): Promise<WriteResult> {
+  if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
+  return setDiffApproval(on);
 }
 
 // --- the flow rules (#306) ---------------------------------------------------

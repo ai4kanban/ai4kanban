@@ -68,6 +68,9 @@ export {
 // board reads the live rows to hold a card still and to say what is building it; the
 // permanent record is one file per delivery under docs/kanban/deliveries/.
 export { activeDelivery, heldByDelivery, listDeliveries } from './lib/agent/deliveries'
+// Diff approval (#308): signing off the tree a delivery would land, on a board that asks
+// for it. The card page's **Approve this tree** and `akb approve` are the same call.
+export { approveDelivery } from './lib/agent/approval'
 export { spawnWatcher } from './lib/agent/launch'
 export { buildPrompt } from './lib/agent/prompts'
 
@@ -85,7 +88,15 @@ export { clearChat, readChat, readChatView, sendChatMessage } from './lib/agent/
 export type { SendOptions as ChatSendOptions } from './lib/agent/chat'
 export { chatAgent } from './lib/agent/resolve'
 export { agentInfo, activeSettings, setupInstruction, settingSaveError } from './lib/agent/resolve'
-export { autoCommitAllowed, setAutoCommit, setHarness, setHarnessSetting, setSecret } from './lib/agent/settings'
+export {
+  autoCommitAllowed,
+  diffApprovalRequired,
+  setAutoCommit,
+  setDiffApproval,
+  setHarness,
+  setHarnessSetting,
+  setSecret,
+} from './lib/agent/settings'
 export { testConnection } from './lib/agent/test'
 export { ensureAkbDir, setBoardRoot } from './lib/paths'
 

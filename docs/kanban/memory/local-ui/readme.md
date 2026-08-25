@@ -343,3 +343,15 @@ except where another doc is named.
   leads, a long diff is cut off naming the `git diff` that prints all of it, and a case it cannot
   read — no git, a worktree someone removed, a commit that is gone — is one plain line rather than
   an error. The tab appears only when there is a diff: "The Diff tab" in the UI docs.
+
+- Make a board where nothing lands unread: **Require diff approval before landing**, in
+  Configuration → Auto-delivery beside **Allow automatic Git commits** and off by default. On,
+  every delivery is built and reviewed as usual and then waits for you — the card reads **Waiting
+  for your approval**, the delivery block opens on **Diff** so the tree is the first thing read,
+  and **Approve this tree** is on the **Approval** tab beside it. It holds outside the landing
+  queue while it waits, taking no slot, so every other card still lands past it. An approval covers
+  one base commit and one tree, and either moving — a correction, a rebase onto a branch that
+  moved, anything else — cancels it and the delivery asks again; the board re-reads both
+  immediately before it moves your branch. The setting is frozen when a delivery starts, and has
+  nothing to hold with automatic Git commits off, where your own commit is already the approval:
+  "Approving a delivery" and "Auto-delivery" in the UI docs.

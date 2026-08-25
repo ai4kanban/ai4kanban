@@ -86,6 +86,12 @@ export interface BoardRules {
    *  its checkout where it is; this is the only thing that removes one. */
   discardDelivery?(id: string): { ok: boolean; deliveryId?: string; error?: string };
   discardCost?(id: string): { deliveryId: string; worktree?: string; branch?: string } | null;
+  /** Sign off the tree a delivery would land (#308), on a board that requires it. `from`
+   *  names where the approval came from and rides into the permanent record. */
+  approveDelivery?(
+    id: string,
+    from?: string,
+  ): { ok: true; deliveryId: string; covers: string } | { ok: false; error: string };
   /** Deliveries whose worktree or branch has gone missing — reported at startup, never
    *  started over. */
   repairDeliveries?(): string[];
@@ -100,6 +106,12 @@ export interface BoardRules {
   // parallel deliveries and landing reviewed code.
   autoCommitAllowed?(): boolean;
   setAutoCommit?(on: boolean): WriteResult;
+
+  // must the tree be approved before it lands? (#308) The other repository-level setting in
+  // the same file, off by default — so rules older than it read as off, which is what they
+  // did.
+  diffApprovalRequired?(): boolean;
+  setDiffApproval?(on: boolean): WriteResult;
 
   // the conversation with that agent (#242) — the board's, and each card's. Optional for
   // the same reason as the moves below: a project can be running rules older than the

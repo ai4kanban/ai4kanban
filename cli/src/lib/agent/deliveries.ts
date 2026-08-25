@@ -10,7 +10,7 @@
 // It leaves two records. The live row sits in docs/kanban/.sessions.json, where the lock
 // and the card page read it. The permanent one is a JSON file per delivery under
 // docs/kanban/deliveries/, tracked in git, kept after the card is archived, and never
-// pruned while the delivery is unfinished — #309 links a bug back to it long afterwards.
+// pruned while the delivery is unfinished.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -227,6 +227,16 @@ export function findDelivery(id: string): DeliveryRecord | undefined {
   return all.find((d) => d.deliveryId === key) ?? all.find((d) => d.deliveryId.startsWith(key))
 }
 
+/** A delivery named by its own id, by any prefix of one, or by the card it is building —
+ *  the one way `cancel`, `discard` and `approve` read what the user typed, so they can never
+ *  disagree about which delivery was meant. */
+export function namedDelivery(id: string): DeliveryRecord | undefined {
+  const key = id.trim()
+  if (!key) return undefined
+  const byCard = /^#?\d+$/.test(key) ? activeDelivery(Number(key.replace('#', ''))) : undefined
+  return byCard ?? findDelivery(key)
+}
+
 /** Every delivery the live record holds, oldest first. */
 export const listDeliveries = (): DeliveryRecord[] => readStore().deliveries
 
@@ -282,6 +292,10 @@ export function joinDelivery(
       targetBranch: start?.targetBranch,
       worktree: start?.worktree,
       branch: start?.branch,
+      // And whether the user has to approve the tree before it lands (#308). Read from the
+      // setting once, here, so turning the policy on or off changes the next delivery and
+      // never one in flight.
+      approval: { required: !!start?.needsApproval, events: [] },
     }
     store.deliveries.push(delivery)
   }
@@ -611,9 +625,15 @@ export function heldByDelivery(cardId: number, program?: string): string | undef
   if (insideDelivery(cardId)) return undefined
   const cmd = program ?? boardCommand()
   const state = deliveryState(delivery, openQuestions(cardId))
+  // What answers the wait: an approval on an approval hold (#308), the card's own questions
+  // everywhere else. Naming the wrong one is a refusal nobody can act on.
+  const answer =
+    state.stage === 'approval'
+      ? `Approve it with \`${cmd} approve ${delivery.deliveryId}\`.`
+      : `Answer it with \`${cmd} resolve ${cardId}\`.`
   const doing = state.paused
     ? `is waiting on you on #${cardId} — ${state.line} — so the board won't change the card. ` +
-      `Answer it with \`${cmd} resolve ${cardId}\`. Or take the card back with `
+      `${answer} Or take the card back with `
     : `is in flight on #${cardId} — it is building the card as it was approved when it started, ` +
       `so the board won't change it. Take the card back with `
   return (

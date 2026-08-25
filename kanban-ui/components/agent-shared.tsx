@@ -882,6 +882,10 @@ export function ActionDialog({
             <>
               the board lands it as one commit on{" "}
               {plan.branch ? <span className={BRANCH}>{plan.branch}</span> : "the branch you are on"}.
+              {/* The one place the click does NOT carry the card all the way (#308). */}
+              {plan.needsApproval
+                ? " It waits for you to approve the tree before that, because this board requires diff approval."
+                : ""}{" "}
               Then it ticks the todos, writes the shipped line, and archives the card.
             </>
           ) : (

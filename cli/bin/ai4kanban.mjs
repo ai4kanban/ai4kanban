@@ -660,6 +660,9 @@ const RUN_COMMANDS = new Set([
   // Throw a delivery's worktree and branch away (#303). Cancel leaves them where they are;
   // this is the only thing that removes one.
   'discard',
+  // Sign off the tree a delivery would land (#308), on a board that requires it. It ends
+  // nothing and starts nothing — it lets a delivery already waiting carry on.
+  'approve',
   'agent',
   // The board's flows, shipped with this command rather than copied into each project.
   'guide',

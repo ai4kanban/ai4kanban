@@ -517,7 +517,8 @@ delivery.
 - **One click carries the card all the way.** The build is one session; a fresh session then
   judges it against the card you approved, and corrects it if it has to — see **Review** below.
   Once review passes, the board lands the work on your branch as one commit — see **Landing on
-  your branch** — and then archives the card. Nothing asks you again in between.
+  your branch** — and then archives the card. Nothing asks you again in between, unless the board
+  requires diff approval: see **Approving a delivery**.
 - **What you are approving is the card**, not the diff: what it should achieve, what to weigh,
   its open questions, and what building it turned up. All four are on the page, unfolded, before
   you press Implement.
@@ -559,24 +560,27 @@ sit, with one line under it naming what the delivery waits on and what answers i
 | --- | --- |
 | **Delivery in progress** | It is building, reviewing or correcting. Nothing is waiting on you. |
 | **Held at landing** | Built and reviewed, holding until the card's open questions are answered. |
+| **Waiting for your approval** | Built and reviewed, holding until you approve the tree it would land. |
 | **Waiting for your commit** | Manual commit mode: review passed, and the commit is yours to make. |
 | **Code changed after review** | You committed something other than what review passed, so it is being reviewed again. |
 | **Landed as `abc123`** | Its commit is on your branch, and the board is taking the card off. |
 
 - **A pause has nothing to press.** What continues it is the answer, the resolve or the commit —
-  the delivery picks itself back up, with no second click.
+  the delivery picks itself back up, with no second click. **Waiting for your approval** is the
+  exception: that one has a button, on the **Approval** tab.
 - **An answer that changes the plan starts a fresh delivery** on the card as it now reads, and the
   page says so. Changed means the approved requirements changed; answering a question is not a
   change of plan, and neither is a note review left under **Worth noting after implementation**.
 - **The block under the buttons is the delivery's.** A **Diff** / **Log** / **Approval** tab strip
-  over it, with the diff and the log in them, and a foot naming the delivery, how it commits and
-  where its code is. A card with no delivery keeps the plain session log. Each tab appears with
-  the thing it holds.
+  over it, and a foot naming the delivery, how it commits and where its code is. A card with no
+  delivery keeps the plain session log. Each tab appears with the thing it holds: **Diff** once
+  there is one to draw, **Approval** only on a board that requires it.
 
 #### The Diff tab
 
-What the delivery changed, so you can read the result rather than take it on trust. Nobody has to
-read it — no policy asks for it — and nothing here changes anything: it is a read.
+What the delivery changed, so you can read the result rather than take it on trust. Nothing here
+changes anything: it is a read. Nobody has to read it either, unless the board requires diff
+approval — see **Approving a delivery** below, which is the one policy that asks.
 
 - **The size line leads.** Files changed, insertions and deletions, on one line above the diff.
 - **While the card builds**, it is the delivery's own branch against the commit it forked from,
@@ -592,6 +596,29 @@ read it — no policy asks for it — and nothing here changes anything: it is a
 - **A case the view cannot show** — no git, a worktree someone removed, a commit that is no longer
   in the repository — is one plain line saying so. The tab does not appear at all when there is no
   diff to show.
+
+#### Approving a delivery
+
+Turn **Require diff approval before landing** on in Configuration → Auto-delivery and nothing
+lands unread. Every delivery is built and reviewed as usual, and then waits for you to approve the
+exact tree it would land. Off by default: requiring it on every card puts you back in the loop for
+every change, which is what auto-delivery exists to remove.
+
+- **The card reads Waiting for your approval**, and the delivery block opens on **Diff** — the tree
+  is the thing to read, and the **Approval** tab beside it is where you sign it off.
+- **Approve this tree** is on that tab, with one line saying what the approval covers: the commit
+  the delivery was built on, and the fingerprint of the tree built on it.
+- **It holds outside the landing queue** while it waits, taking no slot, so every other card still
+  lands past it.
+- **An approval covers one tree.** Change the tree, or the commit it was built on, and the approval
+  is cancelled and the delivery waits again — a rebase onto a moved target branch does both, so a
+  landing that gets rebased asks you again. The board re-reads both immediately before it moves
+  your branch, so nothing lands on an approval that stopped being true in between.
+- **The setting is frozen when the delivery starts**, the way its commit mode is. Turning it off
+  does not release a delivery already waiting; **Cancel delivery** is the way out of one.
+- **The delivery record keeps every approval** — what each one covered, and every cancellation
+  with which of the two moved.
+- **In a terminal**: `akb approve <delivery-or-card-id>`, beside `cancel` and `discard`.
 
 #### Building a card with open questions
 
@@ -653,6 +680,8 @@ repository.
   conflict and its branch is left whole.
 - **A card with an open question waits outside the queue** until it is answered, taking no
   landing slot while it waits.
+- **So does one waiting on your approval**, on a board that requires it — see **Approving a
+  delivery** above.
 - **The worktree and branch are removed once it has landed**, the delivery ends, and the board
   archives the card — the last step of the click, never an earlier one. A landing that changed
   nothing names no commit and archives the card all the same.
@@ -907,16 +936,26 @@ there is nothing to turn on.
 
 ### Auto-delivery
 
-One switch: **Allow automatic Git commits**, on by default.
+Two switches. Both are repository-level answers, saved in `ui.config.json` and shared by everyone
+on the board — never a choice on a single card. A change applies to deliveries started afterwards;
+one already in flight keeps what it started with.
+
+**Allow automatic Git commits**, on by default.
 
 - **On** — each delivery builds on a branch in a git worktree of its own, so several run side by
   side and what review passed is what lands. See **Where a delivery's code goes** above.
 - **Off** — manual commit mode: a delivery works in your project folder, one at a time, and you
   commit it after review passes.
 
-A change applies to deliveries started afterwards; one already in flight keeps the mode it started
-in. It is a repository-level answer, saved in `ui.config.json` and shared by everyone on the board —
-never a choice on a single card.
+**Require diff approval before landing**, off by default.
+
+- **Off** — a delivery that review passed lands by itself. That is right for routine work, and it
+  is what auto-delivery is for.
+- **On** — nothing lands unread: every delivery waits after review until you approve the exact tree
+  it would land. See **Approving a delivery** below.
+
+It has nothing to hold with automatic Git commits off — the board never lands there, so your own
+commit is already the approval — and the switch says so.
 
 ### The harness
 
@@ -1115,6 +1154,7 @@ in the file, so switching agents or providers never touches any of them.
 {
   "harness": "claude-code",
   "autoCommit": false,
+  "requireDiffApproval": true,
   "harnessSettings": {
     "claude-code": {
       "provider": "subscription",
@@ -1130,6 +1170,9 @@ in the file, so switching agents or providers never touches any of them.
 
 `autoCommit` is **Allow automatic Git commits** above. Only written when you turn it off — a
 missing key means on, which is the default.
+
+`requireDiffApproval` is **Require diff approval before landing** above. The other way round:
+only written when you turn it **on**, so a missing key means off, which is the default.
 
 `harness` is the agent that runs: `claude-code` (the default), `codex`, `cursor`, `opencode` or
 `dsh`. The name decides everything about how that agent runs — the command, the flags that make it

@@ -16,6 +16,7 @@
 
 import { say } from '../io'
 import { REPO_ROOT } from '../paths'
+import { approvalStands, cancelApproval } from './approval'
 import { boardCommand } from './command'
 import { completeCard } from './complete'
 import {
@@ -167,6 +168,42 @@ function holdForQuestions(): Set<string> {
   return held
 }
 
+// ---- held on your approval of the tree (#308) -------------------------------
+
+// Why a delivery is waiting outside the queue on an approval. Fixed opening words, the way
+// the question hold has them, so one hold can be told from the other without a field.
+const HELD_ON_APPROVAL = 'held on your approval'
+
+const approvalWhy = (delivery: DeliveryRecord, why: string): string =>
+  `${HELD_ON_APPROVAL}: ${why} — approve it on #${delivery.cardId}, or with \`${boardCommand()} approve ${delivery.deliveryId}\``
+
+/** The deliveries that need the user's approval and have none covering the tree they would
+ *  land. They are built and reviewed, and approval is the step that waits — so one holding
+ *  the slot gives it back, and every other card lands while it waits.
+ *
+ *  An approval that no longer covers the tree is CANCELLED here, once, rather than left
+ *  standing and quietly ignored: the record has to say when it stopped counting and which
+ *  of the two moved.
+ *
+ *  Runs git, so never inside the record's lock. A delivery already held on its card's open
+ *  questions is skipped — those are answered first, and a hold is worth one line at a time. */
+function holdForApproval(already: Set<string>): Set<string> {
+  const held = new Set<string>()
+  for (const delivery of readStore().deliveries) {
+    if (delivery.status !== 'active' || !delivery.approval?.required) continue
+    if (!delivery.landing || delivery.landing.status === 'landed') continue
+    if (already.has(delivery.deliveryId)) continue
+    const stands = approvalStands(delivery)
+    if (stands.ok) continue
+    if (delivery.approval.granted) cancelApproval(delivery.deliveryId, stands.moved)
+    held.add(delivery.deliveryId)
+    const why = approvalWhy(delivery, stands.why)
+    if (delivery.landing.status === 'landing') giveUpSlot(delivery, why)
+    else if (delivery.landing.why !== why) patchLanding(delivery.deliveryId, (landing) => void (landing.why = why))
+  }
+  return held
+}
+
 // ---- an answer that changed the plan (#307) ---------------------------------
 
 /** A delivery whose hold has just been answered, but whose card no longer says what it was
@@ -215,6 +252,9 @@ export function advanceLanding(): AgentRequest | null {
     const held = holdForQuestions()
     const fresh = supersededDelivery(held)
     if (fresh) return fresh
+    // Then the approval each delivery still owes (#308). After the superseded check, which
+    // reads the `why` a question hold left behind.
+    for (const id of holdForApproval(held)) held.add(id)
     // A delivery this pass has already tried is not tried again: one that gave the slot
     // back is still queued, and picking it straight up again is a loop, not a queue.
     const tried = new Set<string>()
@@ -280,6 +320,16 @@ function landStep(delivery: DeliveryRecord): Step {
     // It was rebased and the review that has to follow one has not run yet — a watcher died
     // between the two. Ask for it again rather than landing a tree nothing judged.
     return { start: askForReview(delivery) }
+  }
+  // The last thing read before the branch moves (#308): the base and the fingerprint the
+  // user approved, against the ones that would land right now. One check covers every way
+  // the tree can have changed since — a rebase, a correction, anything else — because it
+  // asks the tree itself rather than what happened to it.
+  const approved = approvalStands(delivery)
+  if (!approved.ok) {
+    if (delivery.approval?.granted) cancelApproval(delivery.deliveryId, approved.moved)
+    giveUpSlot(delivery, approvalWhy(delivery, approved.why))
+    return { done: true }
   }
   return move(delivery, tip, target)
 }

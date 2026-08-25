@@ -5,6 +5,7 @@
 // run's id and exits — the run outlives it — so the same run can be followed, stopped or
 // continued from anywhere, by anyone, including a process that never saw it start.
 
+import { approveDelivery } from '../lib/agent/approval'
 import { deliveryWaiting, heldByDelivery } from '../lib/agent/deliveries'
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { spawnWatcher } from '../lib/agent/launch'
@@ -243,6 +244,24 @@ export function cmdCancel(args: string[]): MoveResult {
   if (!res.ok) die(res.error ?? 'that delivery could not be cancelled', { kind: 'run-refused' })
   say(`delivery ${res.deliveryId} cancelled — the card is yours again.`)
   return { deliveryId: res.deliveryId }
+}
+
+/** Approve the tree a delivery would land (#308), so it may leave the landing queue's
+ *  waiting room. Only a board with **Require diff approval before landing** on has anything
+ *  to approve.
+ *
+ *  The approval covers the delivery's base commit and the tree built on it as they stand
+ *  right now, so read the diff first — `akb log` and the card page's **Diff** tab both show
+ *  it. Either one moving afterwards cancels the approval by itself. */
+export function cmdApprove(args: string[]): MoveResult {
+  const { positional } = parseFlags(args, SHARED)
+  const named = positional[0]
+  if (!named) die('name the delivery or its card: akb approve 12', { kind: 'needs-input' })
+  const res = approveDelivery(named, 'akb approve')
+  if (!res.ok) die(res.error, { kind: 'run-refused' })
+  say(`delivery ${res.deliveryId} approved — ${res.covers}.`)
+  say('It lands from here. Change the tree or the commit it forked from and the approval is cancelled.')
+  return { deliveryId: res.deliveryId, approved: true }
 }
 
 /** Throw a delivery's checkout away: its worktree and its branch, and everything only they

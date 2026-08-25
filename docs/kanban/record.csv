@@ -98,3 +98,13 @@ date,event,card,detail
 2026-08-24,card-archived,305,asked
 2026-08-24,decisions-stood,305,13
 2026-08-24,decisions-overruled,305,0
+2026-08-25,card-archived,308,asked
+2026-08-25,decisions-stood,308,5
+2026-08-25,decisions-overruled,308,3
+2026-08-25,card-rejected,309,asked
+2026-08-25,decisions-stood,309,7
+2026-08-25,decisions-overruled,309,0
+2026-08-25,question-closed,310,user
+2026-08-25,card-archived,300,asked
+2026-08-25,decisions-stood,300,12
+2026-08-25,decisions-overruled,300,0

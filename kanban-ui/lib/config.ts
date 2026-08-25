@@ -31,3 +31,20 @@ export async function setAutoCommit(on: boolean): Promise<{ ok: boolean; error?:
   }
   return rules.setAutoCommit(on);
 }
+
+// --- diff approval (#308) ----------------------------------------------------
+// **Require diff approval before landing** — the other repository-level answer in the same
+// file. Off by default, so rules from before it existed read as off, which is what they did.
+
+export async function diffApprovalRequired(): Promise<boolean> {
+  const rules = await boardRules();
+  return rules.diffApprovalRequired ? rules.diffApprovalRequired() : false;
+}
+
+export async function setDiffApproval(on: boolean): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  if (!rules.setDiffApproval) {
+    return { ok: false, error: "this board's rules are older than diff approval — run `npm install -g ai4kanban`." };
+  }
+  return rules.setDiffApproval(on);
+}

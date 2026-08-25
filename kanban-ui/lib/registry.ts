@@ -157,6 +157,22 @@ export async function discardDelivery(id: string): Promise<StartResult> {
   }
 }
 
+/** Sign off the tree a delivery would land (#308), so it may leave the landing queue's
+ *  waiting room. The base commit and the fingerprint are read as the approval is given, and
+ *  either one moving afterwards cancels it. */
+export async function approveDelivery(id: string): Promise<StartResult> {
+  try {
+    const rules = await boardRules();
+    if (!rules.approveDelivery) {
+      return { ok: false, error: "this board's rules are older than diff approval — run `npm install -g ai4kanban`." };
+    }
+    const res = rules.approveDelivery(id, "the card page");
+    return res.ok ? { ok: true } : { ok: false, error: res.error };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /** Deliveries whose worktree or branch has gone missing since they were written down. Read
  *  when the server starts: they are reported, never rebuilt. */
 export async function repairDeliveries(): Promise<string[]> {

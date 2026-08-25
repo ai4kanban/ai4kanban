@@ -115,6 +115,8 @@ Sessions in flight
   cancel <delivery|#card>      end the delivery in flight on a card and hand it back
   discard <delivery|#card>     throw a delivery's worktree and branch away (--yes to go
                                ahead; without it, it only says what would be lost)
+  approve <delivery|#card>     sign off the tree a delivery would land, on a board that
+                               requires it
 
 An <id> is a session's id, any prefix of one that names only one session, or \`last\`.
 Left out, it means the newest session.
@@ -145,6 +147,15 @@ you pressed Implement. One card lands at a time, however many are building. Unco
 work of your own holds a landing back until the checkout is clean; a target branch that
 moved is rebased onto and reviewed again; a conflict is resolved as new work and reviewed
 from scratch. The worktree and branch are removed once it has landed. Nothing is pushed.
+
+Turn **Require diff approval before landing** on in Configuration → Auto-delivery and no
+delivery lands unread: every one holds after review until you approve the exact tree it
+would land — the **Approval** tab on the card page, or \`approve\` above. It takes no landing
+slot while it waits, so every other card still lands. An approval covers the delivery's base
+commit and the tree built on it, and either one moving — a rebase, a correction, anything
+else — cancels it and the delivery waits again. Off by default, and frozen on a delivery the
+way its commit mode is. It has nothing to hold with automatic commits off: the board never
+commits there, so your own commit is the approval.
 
 Completion is the LAST step, never an earlier one: the board archives the card itself once
 the delivery has landed and ended — no session runs to do it, and the review that passes a
@@ -192,6 +203,8 @@ When an ask can't run, this is the one line that fixes it
   a session died part-way       \`${program} resume <id>\` continues that conversation
   a card won't change           a delivery is in flight on it — \`${program} cancel <id>\`
                                 hands it back
+  a delivery won't land         it is waiting for you to approve its tree —
+                                \`${program} approve <id>\` signs it off
 
 Options — any command takes these
   --dir <path>   the project to work on. Default: the nearest board at or above

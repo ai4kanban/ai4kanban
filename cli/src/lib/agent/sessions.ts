@@ -27,6 +27,7 @@ import {
   joinActive,
   joinDelivery,
   listDeliveries,
+  namedDelivery,
   settleDelivery,
   syncAudit,
 } from './deliveries'
@@ -767,16 +768,6 @@ export function cancelDelivery(id: string): { ok: boolean; deliveryId?: string; 
   // state it was in when the cancel arrived.
   syncAudit(delivery.deliveryId)
   return { ok: true, deliveryId: delivery.deliveryId }
-}
-
-// A delivery named by its own id, by any prefix of one, or by the card it is building —
-// the one way `cancel` and `discard` read what the user typed, so the two can never
-// disagree about which delivery was meant.
-function namedDelivery(id: string): DeliveryRecord | undefined {
-  const key = id.trim()
-  if (!key) return undefined
-  const byCard = /^#?\d+$/.test(key) ? activeDelivery(Number(key.replace('#', ''))) : undefined
-  return byCard ?? findDelivery(key)
 }
 
 /** What discarding this delivery would take away — its worktree and its branch — or

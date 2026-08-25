@@ -18,6 +18,9 @@ export type DeliveryStage =
   | 'stopped'
   /** Built and reviewed; landing waits until the card's open questions are answered. */
   | 'held'
+  /** Built and reviewed; landing waits until the user approves the tree it would land
+   *  (#308). Only on a board with **Require diff approval before landing** on. */
+  | 'approval'
   /** Manual commit mode: review passed, and the commit is the user's to make. */
   | 'commit'
   /** Manual commit mode: they committed something else, so the whole candidate goes back
@@ -96,6 +99,23 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
       line:
         `Built and reviewed. It holds outside the landing queue until this card's ${count(questions)} ` +
         `${questions === 1 ? 'is' : 'are'} answered — answering carries this same delivery on, with no second click.`,
+      paused: true,
+    }
+  }
+  // Last of the holds, and read from the record rather than from git (#308): the approval
+  // is dropped the moment landing finds it no longer covers the tree, so a delivery that
+  // needs one and has none is exactly a delivery waiting on the user.
+  if (landing && delivery.approval?.required && !delivery.approval.granted) {
+    const again = delivery.approval.events.some((e) => e.kind === 'cancelled')
+    return {
+      stage: 'approval',
+      label: 'Waiting for your approval',
+      // Plain words: this line is drawn as text wherever it is shown, so markdown in it
+      // reads as asterisks.
+      line:
+        `Built and reviewed. It holds outside the landing queue until you approve the tree it would land — ` +
+        `read it on the Diff tab, then Approve this tree.` +
+        (again ? ` The tree moved after the last approval, so that one was cancelled.` : ''),
       paused: true,
     }
   }

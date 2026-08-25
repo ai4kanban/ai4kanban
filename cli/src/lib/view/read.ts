@@ -12,6 +12,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { approvalCovers } from '../agent/approval'
 import { activeDelivery, listDeliveries, manualSettled } from '../agent/deliveries'
 import { deliveryState } from '../agent/pause'
 import { readRuns } from '../agent/sessions'
@@ -25,7 +26,7 @@ import { readSetupChecklist } from '../setup'
 import { goalNeedsWork, goalWritten } from './goal'
 import { readMemoryModules } from './memory'
 import { byPickOrder } from './rules'
-import type { ArchiveGroup, Board, Card, CardStatus, Column, SetupState, Subtask } from './types'
+import type { ArchiveGroup, Board, Card, CardApproval, CardStatus, Column, SetupState, Subtask } from './types'
 
 const idPrefix = (name: string): number | null => {
   const m = name.match(/^(\d+)-/)
@@ -281,6 +282,28 @@ function attachDelivery(card: Card): void {
       commit: live.landing.commit,
       overlap: live.landing.overlap?.length ? live.landing.overlap : undefined,
     },
+    approval: cardApproval(live),
+  }
+}
+
+// This delivery's diff approval, as the block's **Approval** tab draws it (#308). Read from
+// the record and never from git: landing drops an approval the moment it stops covering the
+// tree, so a required approval that isn't there is exactly one still owed.
+function cardApproval(live: DeliveryRecord): CardApproval | undefined {
+  const approval = live.approval
+  if (!approval?.required) return undefined
+  const granted = approval.granted
+  const last = [...approval.events].reverse().find((e) => e.kind === 'cancelled')
+  return {
+    required: true,
+    approved: !!granted,
+    covers: approvalCovers(granted?.base ?? live.base, granted?.mark),
+    cancelled:
+      !granted && last
+        ? last.moved === 'base'
+          ? 'the commit it was built on moved, so your last approval was cancelled'
+          : 'the tree changed, so your last approval was cancelled'
+        : undefined,
   }
 }
 

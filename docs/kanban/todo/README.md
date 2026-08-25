@@ -26,8 +26,6 @@ _(none)_
 - [#291 Pick a model from a list in the Harness pane](features/291-pick-model-from-list.md)
 - [#298 Read a closed version's changelog in the board UI](features/298-read-a-closed-version-s-changelog-in-the-board-ui.md)
 - [#299 Archive a finished group root by itself](features/299-archive-a-finished-group-root-by-itself.md)
-- [#300 Build, review and land an approved card from one click](300-auto-delivery/root.md)
-- [#308 Require diff approval on the cards that need it](300-auto-delivery/features/308-diff-approval-policy.md)
 
 ## skill
 
@@ -40,8 +38,7 @@ _(none)_
 - [#246 Give each spec agent its own harness and model](skill/246-give-each-spec-agent-its-own-harness-and-model.md)
 - [#282 ZCode's 'The login ZCode has' sign-in fails, and two places say it works](skill/282-zcode-s-the-login-zcode-has-sign-in-fails-and-two-places-say.md)
 - [#290 Ask each harness for its model list instead of a free-text box](skill/290-harness-model-list.md)
-- [#309 Link a bug back to the delivery that introduced it](300-auto-delivery/skill/309-bug-to-delivery-link.md)
-- [#310 Stop calling a session a run in the guides and the CLI help](skill/310-retire-run-from-flow-text.md)
+- [#310 Name the three levels: delivery, run, session](skill/310-retire-run-from-flow-text.md)
 
 ## distribution
 

@@ -22,6 +22,7 @@ import { SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { asUsage } from './log'
 import type {
   AgentAction,
+  DeliveryApproval,
   DeliveryLanding,
   DeliveryRecord,
   DeliveryReview,
@@ -146,6 +147,9 @@ function readDeliveryRows(raw: unknown): DeliveryRecord[] {
       branch: text(entry.branch),
       reviewed: readReviewed(entry.reviewed),
       landing: readLanding(entry.landing),
+      // Whether this delivery has to be approved before it lands, and the approval it has
+      // (#308). A delivery written down before diff approval existed needs none.
+      approval: readApproval(entry.approval),
       // The flow rules this delivery froze (#306). A delivery written down before they
       // existed has none, and its sessions read the files — which is what they always did.
       rules: readRules(entry.rules),
@@ -205,6 +209,38 @@ function readLanding(raw: unknown): DeliveryRecord['landing'] {
 
 const asLandingStatus = (value: unknown): LandingStatus =>
   value === 'landing' || value === 'landed' || value === 'conflict' ? value : 'waiting'
+
+// This delivery's diff approval (#308). Undefined and `{ required: false }` are not the same
+// thing to write, but they hold a delivery back exactly as much as each other — nothing — so
+// a record from before the setting existed reads as needing none.
+function readApproval(raw: unknown): DeliveryRecord['approval'] {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const box = raw as Partial<DeliveryApproval>
+  const num = (value: unknown): number => (typeof value === 'number' ? value : 0)
+  const granted = box.granted && typeof box.granted === 'object' ? box.granted : undefined
+  return {
+    required: box.required === true,
+    granted: granted
+      ? { base: text(granted.base), mark: text(granted.mark), from: text(granted.from), at: num(granted.at) }
+      : undefined,
+    events: Array.isArray(box.events)
+      ? box.events.flatMap((e) =>
+          e && (e.kind === 'approved' || e.kind === 'cancelled')
+            ? [
+                {
+                  kind: e.kind,
+                  base: text(e.base),
+                  mark: text(e.mark),
+                  moved: e.moved === 'base' || e.moved === 'tree' ? e.moved : undefined,
+                  from: text(e.from),
+                  at: num(e.at),
+                },
+              ]
+            : [],
+        )
+      : [],
+  }
+}
 
 // What review has said about this delivery (#302). Rebuilt field by field like everything
 // else here, so a record written by an older copy of these rules still reads — it simply
