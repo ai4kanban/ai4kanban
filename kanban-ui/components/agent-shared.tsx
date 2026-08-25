@@ -15,6 +15,7 @@ import {
   FiSquare,
   FiZap,
 } from "react-icons/fi";
+import { FaPauseCircle } from "react-icons/fa";
 import { resumeSessionAction, stopSessionAction } from "@/app/actions";
 import { useDraft, useDraftList, useDraftPicks } from "@/lib/draft";
 import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
@@ -622,9 +623,9 @@ function StopButton({ sessionId }: { sessionId: string }) {
         title="Stop this run"
         className="-my-0.5 grid size-[22px] cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[background-color,color,transform] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90"
       >
-        {/* The media square, the same glyph the delivery block's Stop run wears — one verb,
-            one mark, wherever a run can be stopped. Filled, or it reads as an empty box. */}
-        <FiSquare className="text-[12px]" fill="currentColor" strokeWidth={2} aria-hidden />
+        {/* The same glyph the delivery block's Stop run wears — one verb, one mark, wherever
+            a run can be stopped. */}
+        <FaPauseCircle className="text-[13px]" aria-hidden />
       </button>
       {open && (
         // A full nb panel, small: ink frame and hard shadow like every other

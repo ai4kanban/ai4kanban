@@ -21,6 +21,7 @@ import {
   FiX,
   FiXCircle,
 } from "react-icons/fi";
+import { FaPauseCircle } from "react-icons/fa";
 import {
   approveDeliveryAction,
   discardDeliveryAction,
@@ -384,12 +385,13 @@ const heldNote = (delivery: CardDelivery): string => {
     : `${line} Stop the run, then Discard takes the card back.`;
 };
 
-// A control that belongs to the delivery block rather than the page (#307). The strip is
-// typographic — borderless tabs, plain meta text — so this is too: accent ink and the tabs'
-// weight, underlined on hover. A framed button in that row reads as a foreign object.
+// A control that belongs to the delivery block rather than the page (#307). It is the same
+// chip the tabs at the other end of the strip wear — same radius, padding and weight — so the
+// row reads as one strip of chips. Only the ink differs: accent, because this one acts on the
+// run rather than switching what you are looking at.
 //
-// The hover rule is a bottom border, not text-decoration: an underline skips the icon and
-// leaves it stranded outside the line, which reads as a stray glyph rather than a label.
+// Its hover fill is that same accent, not the tabs' grey: the strip under it lightens on hover
+// too, and a neutral chip on a lightening strip is a change you have to look for.
 function PanelAction({
   icon,
   label,
@@ -398,7 +400,7 @@ function PanelAction({
   return (
     <button
       type="button"
-      className="inline-flex cursor-pointer items-center gap-1 border-b-[1.5px] border-transparent pb-[1px] text-[12px] font-[700] transition-colors hover:border-current disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-transparent"
+      className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[12px] font-[700] transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_26%,transparent)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
       style={{ color: "var(--color-nb-accent-deep)" }}
       {...props}
     >
@@ -413,8 +415,8 @@ function PanelAction({
 //
 // It is the ONLY control in the strip while a run is live, so nothing here has to be told
 // apart from anything else (#313). Ending the delivery is the next screen's business: stop
-// first, then Resume or Discard. Its glyph is the media square that pairs with Resume's play —
-// filled, because a hollow one reads as an empty box rather than a mark.
+// first, then Resume or Discard. Its glyph is the filled pause circle that pairs with Resume's
+// play: a solid mark, and one that says the run is held rather than thrown away.
 function StopRun({ session, onError }: { session: SessionView; onError: (why: string) => void }) {
   const [confirming, setConfirming] = useState(false);
   const [asked, setAsked] = useState(false);
@@ -436,7 +438,7 @@ function StopRun({ session, onError }: { session: SessionView; onError: (why: st
   return (
     <span ref={anchorRef} className="relative inline-flex">
       <PanelAction
-        icon={<FiSquare className="text-[11px]" fill="currentColor" strokeWidth={2} aria-hidden />}
+        icon={<FaPauseCircle className="text-[12px]" aria-hidden />}
         label="Stop run"
         aria-haspopup="dialog"
         aria-expanded={confirming}
