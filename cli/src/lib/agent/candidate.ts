@@ -19,7 +19,7 @@ import { git, gitDiff, outsideBoard, worktreeDir } from './worktree'
 // The board is not the candidate. `docs/kanban/` holds the card, the delivery records and
 // the run state, and every one of them moves while a delivery works — so a diff that
 // counted them would show the delivery changing the moment it wrote its own audit line, and
-// "this correction changed nothing" could never be true. Review judges code. The list is
+// Review judges code, so board bookkeeping must not appear in the candidate. The list is
 // `agent/worktree.ts`'s, shared with the checkout and the commit check.
 
 /** Where one delivery's code is read from. */
@@ -78,6 +78,37 @@ export function untrackedDiff(candidate: Candidate, file: string): string {
   return gitDiff(['diff', '--no-index', '--', '/dev/null', file], candidate.cwd) ?? ''
 }
 
+/** The complete patch review judges, including files a manual delivery has not added. */
+export function candidatePatch(candidate: Candidate): string | null {
+  const tracked = candidateDiff(candidate)
+  if (tracked === null) return null
+  if (candidate.branch) return tracked
+  return [tracked, ...untrackedFiles(candidate).map((file) => untrackedDiff(candidate, file))]
+    .filter(Boolean)
+    .join('')
+}
+
+/** Each changed file with its added and removed lines, ready for a printed review flow. */
+export function candidateFileStats(candidate: Candidate): string[] | null {
+  if (!candidate.base) return null
+  const range = candidate.branch ? [candidate.base, candidate.branch] : [candidate.base]
+  const tracked = git(['diff', '--numstat', ...range, ...outsideBoard()], candidate.cwd)
+  if (tracked === null) return null
+
+  const format = (line: string, fresh = false): string => {
+    const [added = '?', removed = '?', ...rest] = line.split('\t')
+    const file = rest.join('\t') || '(unknown file)'
+    const change = added === '-' || removed === '-' ? 'binary' : `+${added} -${removed}`
+    return `${file} (${change}${fresh ? ', new' : ''})`
+  }
+  const files = tracked.split('\n').filter(Boolean).map((line) => format(line))
+  for (const file of untrackedFiles(candidate)) {
+    const stat = gitDiff(['diff', '--no-index', '--numstat', '--', '/dev/null', file], candidate.cwd)?.trim()
+    files.push(stat ? format(stat, true) : `${file} (new)`)
+  }
+  return files
+}
+
 /** One line saying how big the candidate is — files changed, and the insertions and
  *  deletions — so a flow can say what is waiting without printing the diff itself. */
 export function candidateStat(candidate: Candidate): string | null {
@@ -90,15 +121,12 @@ export function candidateStat(candidate: Candidate): string | null {
   return untracked ? `${changed}, ${untracked} new file${untracked === 1 ? '' : 's'} not yet added` : changed
 }
 
-/** A short fingerprint of the candidate as it stands. Two corrections that left the tree
- *  byte-identical share one, which is how "no progress" is told from work that moved.
- *  Null when there is nothing to fingerprint. */
+/** A short fingerprint of the code changes as they stand. */
 export function candidateMark(candidate: Candidate): string | null {
   const diff = candidateDiff(candidate)
   if (diff === null) return null
   const hash = crypto.createHash('sha256').update(diff)
-  // The new files too, by content: a correction that only rewrote a file git has never
-  // seen changed the candidate, and a mark blind to it would read as no progress.
+  // New files count too: approval covers the whole tree, not only tracked files.
   for (const file of untrackedFiles(candidate)) {
     hash.update(file)
     try {

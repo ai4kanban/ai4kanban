@@ -278,7 +278,6 @@ export function manualState(delivery: DeliveryRecord): 'waiting' | 'landed' | 'c
   return treeMark(delivery.base) === delivery.reviewed.mark ? 'landed' : 'changed'
 }
 
-/** The fingerprint a correction is measured against, in whichever mode the delivery runs.
- *  A correction that left the code byte for byte as it found it has addressed nothing. */
+/** The delivery's current code fingerprint, used by diff approval. */
 export const workMark = (delivery: DeliveryRecord): string | undefined =>
   candidateMark(candidateOf(delivery)) ?? undefined

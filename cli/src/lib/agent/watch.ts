@@ -262,7 +262,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       })
       letGo()
       // The delivery's own next run first, when it has one: review after a build,
-      // a correction after a review that found mistakes, another review after that. It is
+      // review after a build, or another review after a rebase. It is
       // read from the record the close just wrote, so it is taken once and started once.
       const carryOn = deliveryRunAfter(record)
       // Then the landing queue (#304): a delivery review has just passed takes the slot and

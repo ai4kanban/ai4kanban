@@ -14,12 +14,14 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { cmdReviewVerdict } from '../src/commands/review-verdict.ts'
 import { activeDelivery, listDeliveries } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
+import { printFlow } from '../src/lib/agent/flow.ts'
 import { advanceLanding } from '../src/lib/agent/landing.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { setAutoCommit } from '../src/lib/agent/settings.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import { worktreeDir } from '../src/lib/agent/worktree.ts'
 import type { AgentAction, DeliveryRecord } from '../src/lib/agent/types.ts'
+import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { deliveryDiff } from '../src/lib/view/diff.ts'
 import { findCard } from '../src/lib/view/read.ts'
@@ -90,12 +92,14 @@ function end(sessionId: string): void {
 
 // Build the card and pass its review, leaving `write` behind in whichever checkout the
 // delivery works in.
-function reviewed(write: (dir: string) => void): DeliveryRecord {
+function reviewed(write: (dir: string) => void, reviewWrite?: (dir: string) => void): DeliveryRecord {
   const built = run('implement', 1, 'card one')
   const delivery = activeDelivery(1)!
-  write(delivery.worktree ? worktreeDir(delivery.worktree) : root)
+  const dir = delivery.worktree ? worktreeDir(delivery.worktree) : root
+  write(dir)
   end(built)
   const review = run('review', 1, 'card one')
+  reviewWrite?.(dir)
   process.env[RUN_ENV] = review
   try {
     cmdReviewVerdict(['1', '--verdict', 'pass'])
@@ -109,6 +113,16 @@ function reviewed(write: (dir: string) => void): DeliveryRecord {
 const recordOf = (deliveryId: string): DeliveryRecord =>
   listDeliveries().find((d) => d.deliveryId === deliveryId)!
 
+function reviewFlow(): string {
+  const sink = startCollecting()
+  try {
+    printFlow({ action: 'review', id: 1, title: 'card one' })
+    return sink.out.join('\n')
+  } finally {
+    stopCollecting()
+  }
+}
+
 describe('while a delivery builds', () => {
   it('diffs its own branch against the base it forked from', () => {
     const delivery = reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
@@ -120,11 +134,28 @@ describe('while a delivery builds', () => {
     assert.match(diff.diff, /^-base$/m)
     // Committed on its branch, so nothing here is called uncommitted.
     assert.equal(diff.uncommitted, undefined)
+
+    const flow = reviewFlow()
+    assert.match(flow, /shared\.txt \(\+1 -1\)/)
+    assert.match(flow, /diff:/)
+    assert.match(flow, /^\s*\+one$/m)
   })
 
   it('leaves the board out of it', () => {
     const delivery = reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
     assert.equal(deliveryDiff(delivery.deliveryId)!.diff.includes('docs/kanban'), false)
+  })
+
+  it('commits fixes made by the review before landing', () => {
+    const delivery = reviewed(
+      (dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'built\n'),
+      (dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'fixed by review\n'),
+    )
+
+    const diff = deliveryDiff(delivery.deliveryId)!
+    assert.match(diff.diff, /^\+fixed by review$/m)
+    assert.doesNotMatch(diff.diff, /^\+built$/m)
+    assert.equal(git(['status', '--porcelain'], worktreeDir(delivery.worktree!)), '')
   })
 
   it('says so plainly when the worktree is gone', () => {
@@ -159,6 +190,10 @@ describe('manual commit mode', () => {
     assert.match(diff.diff, /^\+one$/m)
     assert.match(diff.diff, /brand-new\.txt/)
     assert.match(diff.diff, /^\+whole new module$/m)
+
+    const flow = reviewFlow()
+    assert.match(flow, /shared\.txt \(\+1 -1\)/)
+    assert.match(flow, /brand-new\.txt \(\+1 -0, new\)/)
   })
 })
 
@@ -217,5 +252,10 @@ describe('a diff too long for the page', () => {
     assert.ok(diff.diff.length < 130_000)
     assert.ok(diff.diff.endsWith('\n'))
     assert.match(diff.whole ?? '', /git -C .* diff [0-9a-f]{7}\.\.card\/1\//)
+
+    const flow = reviewFlow()
+    assert.match(flow, /shared\.txt \(\+40000 -1\)/)
+    assert.match(flow, /diff omitted at/)
+    assert.doesNotMatch(flow, /line 39999/)
   })
 })

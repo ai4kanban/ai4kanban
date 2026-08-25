@@ -122,7 +122,7 @@ export interface CardDelivery {
   /** The run the delivery is due to start next and has not (#302). It is normally
    *  gone in the same instant the watcher takes it; one that is still here belongs to a
    *  delivery whose watcher died in between, and the card page offers to start it. */
-  next?: 'review' | 'correct'
+  next?: 'review'
   /** Where this delivery's code is: its own worktree, repo-relative (#303). Absent in
    *  manual commit mode, where the code is in the project itself. */
   worktree?: string

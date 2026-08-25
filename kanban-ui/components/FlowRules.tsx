@@ -163,7 +163,7 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
           {/* The one box, for whichever flow is picked. */}
           <div className="flex min-h-0 flex-1 flex-col">
             {/* What this box changes: the command that starts the flow, and one clause of
-                plain words — `correct`, `plan-release` and `run` name nothing a user can
+                plain words — `plan-release` and `run` name nothing a user can
                 guess at. */}
             <div className="mb-1.5 flex items-baseline gap-2">
               <span className="font-mono text-[13px] font-[800] text-nb-ink">{flow.command}</span>

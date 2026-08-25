@@ -20,7 +20,7 @@ export interface Flow {
   action: AgentAction
   /** The usage line, as the runs table lists it. */
   usage: string
-  /** One clause of plain words: what the flow is. `correct`, `plan-release` and `run` name
+  /** One clause of plain words: what the flow is. `plan-release` and `run` name
    *  nothing a user can guess at, so every flow carries one. */
   gloss: string
   /** The rest of what the runs table says about it, already wrapped — so the layout is the
@@ -45,19 +45,12 @@ export const FLOWS: Flow[] = [
     command: 'review',
     action: 'review',
     usage: 'review <id>',
-    gloss: 'judge what the delivery built against the approved card',
+    gloss: 'review and fix what the delivery built against the approved card',
     more: [
       'The board runs this itself after a build; type it to look',
       'again after answering its question',
     ],
-    ruleNote: 'A check asked for here can send the work back, or stop the delivery for you.',
-  },
-  {
-    command: 'correct',
-    action: 'correct',
-    usage: 'correct <id>',
-    gloss: 'fix what the last review found',
-    more: ['The board runs this itself'],
+    ruleNote: 'Add repository-specific checks here. Review fixes plain failures or stops when it needs you.',
   },
   {
     command: 'conflict',
@@ -139,7 +132,7 @@ export const flowByCommand = (command: string): Flow | undefined =>
 export const flowByAction = (action: AgentAction): Flow | undefined =>
   FLOWS.find((flow) => flow.action === action)
 
-/** The four flows a delivery is made of. Their rules are frozen with the card the delivery
+/** The delivery flows. Their rules are frozen with the card the delivery
  *  was approved to build, and their runs are the ones that may not be working in the
- *  project folder. */
+ *  project folder. `correct` remains only for an old run resumed after upgrade. */
 export const DELIVERY_FLOWS = new Set<AgentAction>(['implement', 'review', 'correct', 'conflict'])

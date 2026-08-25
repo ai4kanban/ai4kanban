@@ -136,7 +136,9 @@ function readDeliveryRows(raw: unknown): DeliveryRecord[] {
       base: typeof entry.base === 'string' && entry.base ? entry.base : undefined,
       review: readReview(entry.review),
       priorStatus: typeof entry.priorStatus === 'string' && entry.priorStatus ? entry.priorStatus : undefined,
-      next: entry.next === 'review' || entry.next === 'correct' ? entry.next : undefined,
+      // An older delivery may have been waiting to start a correction. The combined flow
+      // resumes it as review, which sees and fixes that round's findings itself.
+      next: entry.next === 'review' || entry.next === 'correct' ? 'review' : undefined,
       // A delivery written down before #303 names no mode. It ran in the user's checkout
       // with no worktree, which is exactly what manual commit mode is — so that is what it
       // reads as, rather than a worktree nothing ever made.

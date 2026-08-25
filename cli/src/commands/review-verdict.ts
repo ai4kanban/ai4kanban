@@ -3,7 +3,7 @@
 // The one door a review run answers through (#302).
 //
 // A review's last message is prose, and prose is not a decision — the delivery has to know
-// whether to finish, to correct, or to stop and ask, and it has to know it after the
+// whether to finish or stop and ask, and it has to know it after the
 // run's process is gone. So the verdict is a move: it lands on the delivery's record,
 // where the loop reads it, and it is the ONLY thing that counts as a review having
 // happened. A run that ends without calling this stops the delivery and asks the user,
@@ -13,7 +13,7 @@ import fs from 'node:fs'
 
 import { insideRun } from '../lib/agent/env'
 import { recordVerdict } from '../lib/agent/deliveries'
-import { MAX_CORRECTIONS, VERDICTS } from '../lib/agent/review'
+import { VERDICTS } from '../lib/agent/review'
 import type { ReviewVerdict } from '../lib/agent/types'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
@@ -23,7 +23,7 @@ import { parseFlags } from '../lib/validate'
 export function cmdReviewVerdict(args: string[]): MoveResult {
   const { flags, positional } = parseFlags(args, ['verdict', 'file', 'text'])
   const id = Number(positional[0])
-  if (!Number.isInteger(id)) die('need a numeric task id: review-verdict <id> --verdict pass|correct|ask')
+  if (!Number.isInteger(id)) die('need a numeric task id: review-verdict <id> --verdict pass|ask')
   const verdict = readVerdict(flags.verdict)
   const findings = readFindings(flags.file, flags.text, verdict)
 
@@ -36,11 +36,7 @@ export function cmdReviewVerdict(args: string[]): MoveResult {
 
   const review = out.delivery.review
   const rounds = review?.rounds.length ?? 1
-  const left = Math.max(0, MAX_CORRECTIONS - (review?.corrections ?? 0))
-  say(
-    `#${id}: review ${rounds} recorded "${verdict}" on delivery ${out.delivery.deliveryId}` +
-      (verdict === 'correct' ? ` (${left} correction${left === 1 ? '' : 's'} left)` : ''),
-  )
+  say(`#${id}: review ${rounds} recorded "${verdict}" on delivery ${out.delivery.deliveryId}`)
   return { id, deliveryId: out.delivery.deliveryId, verdict, rounds }
 }
 

@@ -544,8 +544,8 @@ delivery.
   one delivery id across both sessions. **Cancel delivery** is the other way out.
 - **Every delivery leaves a record**, one JSON file under `docs/kanban/deliveries/`: its id, the
   card as it was approved for it, each session and how it went, every review verdict and its
-  findings, each correction round, and how the delivery ended — finished, stopped or cancelled. It
-  is tracked in git and kept after the card is archived.
+  findings, and how the delivery ended — finished, stopped or cancelled. It is tracked in git and
+  kept after the card is archived.
 - **In a terminal**: `akb cancel <delivery-or-card-id>` is the same thing as the button,
   `akb discard <delivery-or-card-id> --yes` is the same as **Discard delivery**, and `akb runs`
   names the delivery each session belongs to. `akb implement <id>` starts the same delivery the
@@ -558,7 +558,7 @@ sit, with one line under it naming what the delivery waits on and what answers i
 
 | Pill | What it means |
 | --- | --- |
-| **Delivery in progress** | It is building, reviewing or correcting. Nothing is waiting on you. |
+| **Delivery in progress** | It is building or reviewing. Nothing is waiting on you. |
 | **Held at landing** | Built and reviewed, holding until the card's open questions are answered. |
 | **Waiting for your approval** | Built and reviewed, holding until you approve the tree it would land. |
 | **Waiting for your commit** | Manual commit mode: review passed, and the commit is yours to make. |
@@ -715,40 +715,33 @@ already in flight.
 
 ### Review
 
-The build is not the end of a delivery. A **fresh session** then judges what it built against the
-card as you approved it, and sends clear mistakes back to be corrected. It is a separate agent
-invocation, and it costs one more session on every delivery.
+The build is not the end of a delivery. A **fresh session** judges what it built against the card
+as you approved it and fixes plain mistakes itself. It is one separate agent invocation per
+review.
 
 **What review is given**: the approved copy of the card, and the diff of everything the delivery
 changed. It may read the repository and run the project's own checks. It is never given the session
 that wrote the code — a reviewer that reads the implementer's reasoning agrees with it.
 
-**What review answers**, exactly one of three:
+**What review answers**, exactly one of two:
 
 - **It passes.** The work goes on to land, and the board archives the card once it has. Review
   itself never archives one.
-- **It found clear mistakes.** A **correction** session fixes exactly those, and another fresh
-  review then judges the whole candidate again — not only the corrected lines. Two corrections by
-  default.
-- **Only you can decide.** The delivery stops.
+- **It needs you.** A fix is unclear, unsafe, or requires your decision, so the delivery stops.
 
-**What review checks**: the approved requirements, and the checks this repository already has —
-its tests, its linter, its type check. It also takes out work nobody asked for: a change with no
-user outcome is removed, and one that could meet a goal of its own is removed and written up as a
-new card. It asks rather than guessing when it cannot tell whether a change is required, when
-removing something would change behaviour, design, security, compatibility or cost, or when the
-fix itself would.
+**What review checks**: the approved requirements and the checks this repository already has —
+its tests, linter and type check. It fixes plain mistakes in the same worktree, updates focused
+tests and reruns affected checks. It does not exhaustively search unaffected code or invent
+hypothetical issues.
 
 **What review does not check.** It cannot promise defect-free code, a coverage number, or that a
 change is a good idea. It reads the card, so a card that says the wrong thing produces work that
 passes review. It runs the checks the project has and invents none. Approving the exact diff, and
 acceptance tests written from the card, are separate things a board turns on for itself.
 
-**When it stops**, it leaves **one open question** on the card — what it found, how many
-corrections were tried, and the decision that is yours — and the delivery waits there, still
-holding the card. It stops for five reasons: it asked you something, a finding came back after a
-correction meant to fix it, a correction changed nothing, a session failed or was cut off, or the
-two corrections ran out.
+**When it stops**, it leaves **one open question** on the card with what it found and the decision
+that is yours. The delivery waits there, still holding the card. A failed, interrupted or silent
+review also stops.
 
 Then the card page reads **delivery … waiting on you**, **Resolve** comes back on while everything
 else stays held, and **Review again** appears beside it. Answer the question — or write the
@@ -765,9 +758,9 @@ If a delivery's next session never starts — the process watching the one befor
 **Continue delivery** appears in the same place and starts it. Nothing is lost either way: the
 delivery still says what it was about to do.
 
-**In a terminal**: `akb review <id>` judges the delivery in flight on a card again, `akb correct
-<id>` runs a correction, `akb conflict <id>` resolves the conflict a landing's rebase stopped
-on, and `akb guide review` is the flow all three follow.
+**In a terminal**: `akb review <id>` reviews and fixes the delivery in flight on a card again,
+`akb conflict <id>` resolves the conflict a landing's rebase stopped on, and `akb guide review`
+prints the review flow.
 
 **Resolve** gives each open question an answer box. A question that carries choices shows them as
 a tick list instead — one pick, or as many as you like, depending on the question — with the
@@ -1290,16 +1283,15 @@ reading it.
 
 The pane is a column naming every flow, with a dot on the ones that have a rule and a count above
 them, beside one tall box for whichever flow you click. Each box says which flow it changes — the
-command that starts it, and one clause of plain words, because `correct`, `plan-release` and `run`
+command that starts it, and one clause of plain words, because `plan-release` and `run`
 name nothing you can guess at.
 
 - **Two flows say what their rule is for**, in a line under the box. On `implement`: each delivery
   builds in a fresh worktree, and this is where you say how to prepare one — installing
-  dependencies, seeding a local config. On `review`: a check asked for here can send the work back,
-  or stop the delivery for you.
+  dependencies, seeding a local config. On `review`: add any repository-specific checks.
 - **Checks a review rule asks for are the repository's checks.** Review already runs your tests,
-  linter and type check, sends a failure back for correction, and stops for you when the correction
-  loop runs out. A check your rule adds is handled in exactly those ways.
+  linter and type check, fixes plain failures, and stops when it needs you. A check your rule adds
+  is handled the same way.
 - **Saving is per flow, on blur**, with a quiet **Saved** beside the flow's name. There is no Save
   button, and a rule is free text, so there is nothing to get wrong — a save that does not land
   says so across the top of the page.
@@ -1308,7 +1300,7 @@ name nothing you can guess at.
   them change, and a run started from a terminal reads the same words. Clearing a box deletes the
   file; a flow with no file runs exactly as the command ships it.
 - **A delivery freezes its rules.** The rules of the flows a delivery is made of — `implement`,
-  `review`, `correct` and `conflict` — are copied onto the delivery record when it starts, beside
+  `review` and `conflict` — are copied onto the delivery record when it starts, beside
   the copy of the card it was approved to build. Every session in that delivery runs with those, so
   editing a rule changes the next delivery and never one in flight.
 - **The list of flows is the board's own** — every command that can start one — so a flow shipped

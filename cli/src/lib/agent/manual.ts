@@ -45,9 +45,8 @@ Print it, or run it — the two modes every command above has
   (no flag)   start a run: a second agent, its own context, working on its own.
 
   Print when the user is asking you for the action here, in a session. You do the job
-  in the conversation you are already in: it costs no second agent, a correction is
-  their next message rather than a whole run thrown away, and it can't collide with
-  the changes already in the working tree.
+  in the conversation you are already in: it costs no second agent and can't collide
+  with the changes already in the working tree.
 
   Start a run when the user wants the work to happen on its own — in the background,
   while they do something else, on a card they are not watching. That is the explicit
@@ -126,8 +125,8 @@ up — the conversation it was having, with everything it had already read — w
 counts the work as a fresh run.
 
 An Implement click starts a DELIVERY — the whole job, several runs long, against the card
-exactly as it was approved when it started: it builds, a fresh run reviews what it built, up
-to two corrections go back and forth, the board lands it, and the board archives the card.
+exactly as it was approved when it started: it builds, a fresh run reviews and fixes what it
+built, the board lands it, and the board archives the card.
 One click carries the card all the way; nothing asks you again in between. While a delivery
 is in flight that card can't be revised, refined, rejected or archived; \`cancel\` is what
 takes it back. A delivery WAITING ON YOU can always be resolved — answering is the way on,
@@ -156,9 +155,9 @@ Turn **Require diff approval before landing** on in Configuration → Auto-deliv
 delivery lands unread: every one holds after review until you approve the exact tree it
 would land — the **Approval** tab on the card page, or \`approve\` above. It takes no landing
 slot while it waits, so every other card still lands. An approval covers the delivery's base
-commit and the tree built on it, and either one moving — a rebase, a correction, anything
-else — cancels it and the delivery waits again. Off by default, and frozen on a delivery the
-way its commit mode is. It has nothing to hold with automatic commits off: the board never
+commit and the tree built on it, and either one moving — a rebase or a review fix — cancels
+it and the delivery waits again. Off by default, and frozen on a delivery the way its commit
+mode is. It has nothing to hold with automatic commits off: the board never
 commits there, so your own commit is the approval.
 
 Completion is the LAST step, never an earlier one: the board archives the card itself once

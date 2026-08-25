@@ -125,11 +125,9 @@ export async function searchCardsAction(query: string): Promise<CardRef[]> {
 // them whenever they want, not only after something else has run.
 const ACTIONS = new Set([
   "implement",
-  // The two runs a delivery makes after its build (#302). The board starts each one
-  // itself; **Review again** on the card page starts a review when a delivery has stopped
-  // and its question has been answered.
+  // The review run after a build (#302). **Review again** starts one when a delivery has
+  // stopped and its question has been answered.
   "review",
-  "correct",
   // One pass of a recurring card (#64) — the Run button that stands in for Implement on a
   // card under todo/recurring/.
   "run",

@@ -17,6 +17,7 @@
 import addTask from '../guide/add-task.md'
 import board from '../guide/board.md'
 import changelog from '../guide/changelog.md'
+import conflict from '../guide/conflict.md'
 import documentFeature from '../guide/document-feature.md'
 import extractIdeas from '../guide/extract-ideas.md'
 import localUi from '../guide/local-ui.md'
@@ -58,7 +59,8 @@ export const GUIDES: Guide[] = [
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
   { name: 'resolve', when: "answer a card's open questions, and hand the user's own back", text: resolve },
   { name: 'reject', when: 'drop a card, and write down why', text: reject },
-  { name: 'review', when: "judge a delivery's work against the card it was approved to build, and correct it", text: review },
+  { name: 'review', when: "review and fix a delivery against the approved requirements", text: review },
+  { name: 'conflict', when: "resolve the conflict in a delivery's landing rebase", text: conflict },
   { name: 'recurring-task', when: 'run one pass of a job we repeat', text: recurringTask },
   { name: 'releases', when: 'the versions being planned, and how a card joins one', text: releases },
   { name: 'plan-release', when: 'fill a release from its goal', text: planRelease },

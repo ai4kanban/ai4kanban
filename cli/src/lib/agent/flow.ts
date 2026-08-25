@@ -36,11 +36,11 @@ import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
 import { moduleNames } from '../validate'
-import { candidateOf, candidateStat } from './candidate'
+import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
 import { conflictedPaths, worktreeDir } from './worktree'
 import { boardCommandFor } from './command'
 import { activeDelivery } from './deliveries'
-import { MAX_CORRECTIONS, lastRound, openFindings } from './review'
+import { lastRound, openFindings } from './review'
 import { field, metaLine, numbered, trackNames } from './facts'
 import { buildAsk, frozenRules } from './prompts'
 import { flowByAction } from './flows'
@@ -56,6 +56,10 @@ export { insideRun, runEnv, RUN_ENV } from './env'
 // long card's whole plan is in the file the flow names; the point here is to show what is
 // left, not to copy the card.
 const MAX_STEPS = 12
+
+// Small candidates arrive inline. Large ones get a complete per-file summary without
+// spending the review's context on a patch it can open selectively.
+const MAX_REVIEW_DIFF = 40_000
 
 // ---- what the board says right now -----------------------------------------
 
@@ -233,39 +237,39 @@ function approvedField(cardId: number): string[] {
   ]
 }
 
-// The code a delivery has built so far, and how to read it. The diff is NOT printed: it is
-// the whole of the work and can be enormous, and the reviewer has the repository open — so
-// the flow says where the base is and what to run, and how big the answer will be.
+// The code a delivery has built so far. A small patch is printed in full; a large one gets
+// every changed file and its line counts so review can open only what needs inspection.
 function candidateField(cardId: number): string[] {
   const delivery = activeDelivery(cardId)
   if (!delivery) return []
   if (!delivery.base) {
-    return field('candidate', [
+    return field('changes', [
       'this project is not a git repository, so there is no base to diff against —',
       'judge the working tree as it stands, and say so in your findings.',
     ])
   }
-  const stat = candidateStat(candidateOf(delivery))
-  const board = [
-    `the board's own files under ${rel(KANBAN)} are not the candidate — the card, the delivery record`,
-    'and the run state all move as a delivery works, and none of them is the code you are judging.',
-  ]
-  // On a branch the candidate is settled: everything the delivery built is committed in
-  // its own worktree, and nothing else on this machine is in it.
-  if (delivery.worktree && delivery.branch) {
-    return field('candidate', [
-      `everything this delivery changed is \`git diff ${delivery.base.slice(0, 12)} ${delivery.branch}\` —`,
-      `its own branch, committed, in its own worktree at ${delivery.worktree}.`,
-      ...board,
-      ...(stat ? [`right now: ${stat}.`] : []),
-    ])
-  }
-  return field('candidate', [
-    `everything this delivery changed is \`git diff ${delivery.base.slice(0, 12)}\`, plus the files`,
-    'git has never seen (`git ls-files --others --exclude-standard`).',
-    ...board,
-    ...(stat ? [`right now: ${stat}.`] : []),
-    'the working tree may hold changes this delivery did not make — say so rather than judging them.',
+  const candidate = candidateOf(delivery)
+  const stat = candidateStat(candidate)
+  const files = candidateFileStats(candidate)
+  const patch = candidatePatch(candidate)
+  const command =
+    delivery.worktree && delivery.branch
+      ? `git diff ${delivery.base.slice(0, 12)} ${delivery.branch}`
+      : `git diff ${delivery.base.slice(0, 12)}`
+  const shown = files?.length ? ['changed files:', ...files.map((file) => `  ${file}`)] : ['no file changed']
+  let diff: string[] = []
+  if (patch === null) diff = ['', 'the diff could not be read']
+  else if (patch.length > MAX_REVIEW_DIFF) {
+    const where = delivery.worktree
+      ? `the full patch is \`${command}\``
+      : `the tracked patch is \`${command}\`; new files are listed above`
+    diff = ['', `diff omitted at ${patch.length.toLocaleString()} characters; ${where}.`]
+  } else if (patch) diff = ['', 'diff:', '```diff', ...patch.trimEnd().split('\n'), '```']
+  return field('changes', [
+    ...(stat ? [`${stat}.`] : []),
+    ...shown,
+    ...diff,
+    ...(!delivery.worktree ? ['this is the shared working tree; report changes that do not belong to the delivery.'] : []),
   ])
 }
 
@@ -285,25 +289,23 @@ function workspaceField(cardId: number): string[] {
   ])
 }
 
-// Where review stands on this delivery: what the last pass said, and how much correction is
-// left. A reviewer that has already been round twice is judging the same candidate for the
-// third time, and it should know that before it starts.
+// Where review stands on this delivery. Historical correction verdicts are named so a
+// review resumed after upgrade can fix their findings in this run.
 function reviewField(cardId: number): string[] {
   const delivery = activeDelivery(cardId)
   const review = delivery?.review
   if (!review?.rounds.length) return field('review', 'the first pass on this delivery — nothing has judged it yet')
-  const left = Math.max(0, MAX_CORRECTIONS - review.corrections)
   const last = review.rounds[review.rounds.length - 1]
   const passes = review.rounds.map((r, i) => `${i + 1}. ${r.verdict}${r.findings.length ? ` — ${r.findings.map((f) => f.title).join('; ')}` : ''}`)
   return field('review', [
     `${review.rounds.length} pass${review.rounds.length === 1 ? '' : 'es'} so far:`,
     ...passes.map((line) => `  ${line}`),
     ...(last?.verdict === 'correct'
-      ? ['this pass follows a correction — focus on that correction, its affected paths, and the repository checks; do not repeat unaffected manual proofs.']
+      ? [
+          'this delivery came from an older review flow — fix these findings in this run before recording pass or ask:',
+          ...last.findings.map((finding) => `  - **${finding.title}**: ${finding.detail}`),
+        ]
       : []),
-    left
-      ? `${left} correction${left === 1 ? '' : 's'} left before the delivery stops and asks the user.`
-      : 'no correction left — anything you send back now stops the delivery and asks the user.',
   ])
 }
 
@@ -327,14 +329,14 @@ function conflictField(cardId: number): string[] {
   ])
 }
 
-// The findings a correction run was started to fix, exactly as the review wrote them.
+// Findings needed only by a legacy correction run already in flight during an upgrade.
 function findingsField(cardId: number): string[] {
   const delivery = activeDelivery(cardId)
   const findings = delivery ? openFindings(delivery) : []
-  if (!findings.length) return field('findings', 'none recorded — there is nothing to correct')
+  if (!findings.length) return field('findings', 'none recorded')
   const verdict = delivery ? lastRound(delivery)?.verdict : undefined
   return field('findings', [
-    `${findings.length} from the last review (${verdict ?? 'unknown'}) — fix these and nothing else:`,
+    `${findings.length} from the last review (${verdict ?? 'unknown'}):`,
     ...findings.map((f) => `  - **${f.title}**: ${f.detail}`),
   ])
 }
@@ -425,11 +427,9 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   // Review writes on the card — a post-implementation note, a follow-up card, an open
   // question — so it needs the card format as much as the review flow itself.
   review: ['board', 'review'],
-  // A correction writes code and nothing else, so it gets the review flow alone.
-  correct: ['review'],
-  // Resolving a landing's conflict writes code and nothing else either, and the flow it
-  // follows is "Resolving a conflict" in the same guide.
-  conflict: ['review'],
+  // Kept only for a correction run resumed from an older delivery.
+  correct: [],
+  conflict: ['conflict'],
   run: ['board', 'recurring-task'],
   refine: ['board', 'refine', 'resolve'],
   resolve: ['board', 'resolve'],
@@ -521,15 +521,14 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...notesField(card!))
       facts.push(...questionsField(card!.meta))
       close.push(
-        `${board} review-verdict ${req.id} --verdict pass|correct|ask [--file <findings>] — the ONE way a review is recorded. Without it the delivery stops and asks the user, whatever you wrote in your last message`,
+        `${board} review-verdict ${req.id} --verdict pass|ask [--file <findings>] — the ONE way a review is recorded. Without it the delivery stops and asks the user, whatever you wrote in your last message`,
         'write each finding as `- **<short title>**: <the approved requirement or the changed code it concerns, and the evidence to act on it>` — the title is its identity, so the same mistake keeps the same one',
         'a finding that needs awareness but no decision is not a finding: put it under `## Worth noting after implementation` on the card, and it stops nothing',
         `leave the card on the board — a pass is not the end of the delivery, and the board archives the card itself once the work has landed`,
       )
       break
     }
-    // Fixing exactly what a review found (#302), and nothing else — a fresh review checks
-    // the correction and affected paths afterwards, so anything extra comes straight back.
+    // Kept only for a legacy correction run already in flight during an upgrade.
     case 'correct': {
       facts.push(...approvedField(req.id!))
       facts.push(...workspaceField(req.id!))
@@ -538,11 +537,11 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...stepsField(card!))
       close.push(
         ...committingClose(req.id!),
-        'fix what the findings name, and change nothing they do not — a fresh review checks the correction and affected paths after you',
+        'fix the recorded findings; a combined review follows',
         'tick a ## Todo box your fix completes; never untick one',
         'change nothing else on the card — the delivery builds the approved copy above, not the file as it reads now',
       )
-      next.push(`${self} review ${req.id} --print — the fresh review of the correction and affected paths`)
+      next.push(`${self} review ${req.id} --print — review and fix the resulting delivery`)
       break
     }
     // Resolving the conflict a landing's rebase stopped on (#304). It is the only run

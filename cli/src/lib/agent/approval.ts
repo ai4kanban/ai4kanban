@@ -5,7 +5,7 @@
 // things as they stood when it was given — the delivery's BASE COMMIT and the candidate's
 // FINGERPRINT — and landing re-reads both immediately before it moves the target branch.
 // Either one having moved cancels the approval and puts the delivery back to waiting: one
-// check that covers a rebase, a correction, and every other way the tree can change,
+// check that covers a rebase, a review fix, and every other way the tree can change,
 // including the ones nobody thought of.
 //
 // Nothing here is stored twice. `approval.required` is frozen when the delivery starts;

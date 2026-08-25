@@ -323,7 +323,7 @@ function landStep(delivery: DeliveryRecord): Step {
   }
   // The last thing read before the branch moves (#308): the base and the fingerprint the
   // user approved, against the ones that would land right now. One check covers every way
-  // the tree can have changed since — a rebase, a correction, anything else — because it
+  // the tree can have changed since — a rebase, a review fix, anything else — because it
   // asks the tree itself rather than what happened to it.
   const approved = approvalStands(delivery)
   if (!approved.ok) {
@@ -446,9 +446,7 @@ function afterRebase(delivery: DeliveryRecord, target: string): Step {
     landing.rebasedAt = at
     landing.why = undefined
     landing.at = at
-    // A rebased candidate is judged from scratch: the corrections spent on the tree before
-    // the rebase were spent on a different tree.
-    reviewOf(live).corrections = 0
+    // A rebased delivery is reviewed again before it may land.
   })
   syncAudit(delivery.deliveryId)
   const started = takeNext(delivery.deliveryId)

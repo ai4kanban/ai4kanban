@@ -59,14 +59,9 @@ export type AgentAction =
    *  version changed, from the goal and the cards the close wrote down. It touches no
    *  card, so it carries a release id, and the close that made the record starts it. */
   | 'changelog'
-  /** Judge a delivery's candidate against the card it was approved to build (#302). A
-   *  fresh run every time: it is given the approved copy and the diff, never the
-   *  implementation transcript, because a reviewer that reads the implementer's reasoning
-   *  agrees with it. */
+  /** Judge and fix a delivery against its approved card in a fresh run (#302). */
   | 'review'
-  /** Fix what a review found (#302). It is given the approved copy, the current diff and
-   *  that review's exact findings, and a fresh review judges the whole candidate after
-   *  it. */
+  /** A correction run already in flight when upgrading from the older review loop. */
   | 'correct'
   /** Resolve the conflict a landing's rebase stopped on (#304). It may read both cards,
    *  both diffs and the checkout, it stages the resolution, and the board finishes the
@@ -186,15 +181,11 @@ export interface DeliveryStep {
 
 // ---- what review said about a delivery's work (#302) -----------------------
 
-/** What one review pass concluded.
- *
- *  `pass` — the candidate meets the approved card. `correct` — it plainly does not, and
- *  the findings say how, so a correction run is started. `ask` — only the user can
- *  settle it, so the delivery stops and the card carries the question. */
+/** What one review pass concluded. `correct` is retained only to read records written by
+ *  the older review/correction loop. New reviews record `pass` or `ask`. */
 export type ReviewVerdict = 'pass' | 'correct' | 'ask'
 
-/** One thing a review found. `title` is its identity — a repeat of the same title in the
- *  next round is what tells the loop a correction did not land. */
+/** One thing a review found. */
 export interface ReviewFinding {
   title: string
   /** The requirement or changed code it concerns, and the evidence needed to act on it. */
@@ -209,8 +200,7 @@ export interface ReviewRound {
   at: number
 }
 
-/** Why a review loop stopped short of a verdict it could act on. Each one is a stop the
- *  user has to settle, never a loop that quietly runs again. */
+/** Why review stopped for the user. Historical reasons remain readable. */
 export type ReviewStopReason =
   | 'ask'
   | 'repeat'
@@ -222,14 +212,12 @@ export type ReviewStopReason =
    *  conflict stayed unresolved. */
   | 'landing'
 
-/** Review, across a whole delivery: every pass it made, how many corrections it has spent,
- *  and — once it has stopped — why, and the question the card now carries. */
+/** Review across a delivery. Correction fields remain for old records. */
 export interface DeliveryReview {
   rounds: ReviewRound[]
-  /** Correction runs started so far. The limit is `MAX_CORRECTIONS`. */
+  /** Legacy correction count. */
   corrections: number
-  /** The candidate's fingerprint when the last correction run started, so a correction
-   *  that changed nothing at all is told from one that did. */
+  /** Legacy pre-correction fingerprint. */
   mark?: string
   stopped?: {
     reason: ReviewStopReason
@@ -353,7 +341,7 @@ export interface DeliveryRecord {
   /** The run this delivery is due to start next, written the moment the one before it
    *  closed. The watcher reads it and clears it; it survives a watcher that died between
    *  the two, so the delivery still says what it was about to do. */
-  next?: 'review' | 'correct'
+  next?: 'review'
   /** How this delivery commits, decided when it started and never afterwards (#303).
    *  `auto` builds on its own branch in its own worktree; `manual` works in the user's
    *  checkout and waits for them to commit. Flipping the setting changes the next

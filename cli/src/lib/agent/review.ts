@@ -1,15 +1,6 @@
-// The review loop: what a delivery does after it has built something (#302).
-//
-// Implementation ends, and a FRESH run judges the result against the card as it was
-// approved. Three answers are possible — it passes, it plainly does not and a correction
-// run fixes it, or only the user can settle it. A correction is followed by another
-// fresh review of the correction, its affected paths and the repository checks.
-//
-// The loop is deliberately short. Two corrections, and it stops on a finding that came
-// back, on a correction that changed nothing, and on a run that failed — because a
-// loop that keeps going on any of those is a loop spending money to make the same mistake
-// again. Every stop becomes one open question on the card, with the findings, the attempts
-// and the decision the user has to make, and the delivery waits there.
+// What a delivery does after implementation (#302). A fresh review run judges the work,
+// fixes plain mistakes in the same session, and records pass or ask. Historical correction
+// runs remain readable and hand back to review, but no new one is started.
 //
 // This file decides; it never starts anything. `deliveries.ts` writes the decision onto
 // the delivery, and the watcher of the run that just closed starts what it says.
@@ -18,7 +9,6 @@ import { cmdUpdateQuestions } from '../../commands/card'
 import { quietly } from '../io'
 import { withBoardLock } from '../lock'
 import { boardCommand } from './command'
-import { workMark } from './commit-mode'
 import type {
   DeliveryRecord,
   DeliveryReview,
@@ -29,11 +19,8 @@ import type {
   RunRecord,
 } from './types'
 
-/** Correction runs one delivery may spend before review stops and asks. */
-export const MAX_CORRECTIONS = 2
-
 /** The verdicts a review may record, as the command spells them. */
-export const VERDICTS: ReviewVerdict[] = ['pass', 'correct', 'ask']
+export const VERDICTS: ReviewVerdict[] = ['pass', 'ask']
 
 // How many findings the card's question names before it stops counting. The rest are on
 // the delivery's permanent record; a question nobody can read to the end is a question
@@ -42,10 +29,8 @@ const MAX_NAMED = 3
 
 // ---- findings ---------------------------------------------------------------
 
-// A finding is one bullet in the card's own style: `- **<title>**: <evidence>`. The title
-// is its identity — the loop tells a correction that landed from one that did not by
-// whether the same title comes back — so a findings file that is prose instead of bullets
-// is read as one finding titled by its first line rather than refused.
+// A finding is one bullet in the card's own style: `- **<title>**: <evidence>`. A findings
+// file that is prose instead is read as one finding titled by its first line.
 const BULLET = /^\s*[-*]\s+\*\*(.+?)\*\*\s*:\s*([\s\S]*)$/
 
 const squash = (text: string): string => text.replace(/\s+/g, ' ').trim()
@@ -72,11 +57,6 @@ export function parseFindings(text: string): ReviewFinding[] {
   return [{ title, detail: whole }]
 }
 
-/** The same finding, whichever round it was written in: a title compared without case or
- *  punctuation, so "Missing the empty case" and "missing the empty case." are one issue. */
-const key = (finding: ReviewFinding): string =>
-  finding.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
-
 // ---- the record a delivery keeps --------------------------------------------
 
 /** This delivery's review state, made if it has none yet. */
@@ -89,7 +69,7 @@ export function reviewOf(delivery: DeliveryRecord): DeliveryReview {
 export const lastRound = (delivery: DeliveryRecord): ReviewRound | undefined =>
   delivery.review?.rounds[delivery.review.rounds.length - 1]
 
-/** The findings the correction run in flight was started to fix. */
+/** Findings from the last non-pass review, including historical correction verdicts. */
 export function openFindings(delivery: DeliveryRecord): ReviewFinding[] {
   const last = lastRound(delivery)
   return last && last.verdict !== 'pass' ? last.findings : []
@@ -100,8 +80,8 @@ export function openFindings(delivery: DeliveryRecord): ReviewFinding[] {
 /** What the delivery does now that one of its runs has closed. */
 export type ReviewNext =
   /** Start another run in this delivery. */
-  | { start: 'review' | 'correct' }
-  /** The candidate passed — the delivery is finished. */
+  | { start: 'review' }
+  /** The delivery's code changes passed — the delivery is finished. */
   | { finish: true }
   /** Stop and ask the user; the card takes one open question. */
   | { stop: ReviewStopReason; why: string }
@@ -115,10 +95,8 @@ const HOLD: ReviewNext = { hold: true }
  *  Only runs inside a delivery reach here, and only the three actions a delivery is
  *  made of. Whatever this returns, it is the caller that writes it down.
  *
- *  `mark` is the candidate's fingerprint as it stands, taken by the caller BEFORE the
- *  record's lock: reading it means running git, and the lock every process shares is not
- *  the place to do that. */
-export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord, mark?: string): ReviewNext {
+ */
+export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord): ReviewNext {
   if (delivery.status !== 'active') return HOLD
   // A run somebody ended is not a failure and not a verdict: they stopped it, so the
   // delivery waits for them rather than asking them a question about their own click.
@@ -129,7 +107,9 @@ export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord, mark?
     return run.status === 'done' ? { start: 'review' } : HOLD
   }
   if (run.action === 'review') return afterReview(delivery, run)
-  if (run.action === 'correct') return afterCorrection(delivery, run, mark)
+  // An old delivery may still have a correction run in flight during an upgrade. Finish
+  // that run, then use the combined review flow.
+  if (run.action === 'correct') return afterLegacyCorrection(run)
   return HOLD
 }
 
@@ -149,34 +129,16 @@ function afterReview(delivery: DeliveryRecord, run: RunRecord): ReviewNext {
   }
   if (round.verdict === 'pass') return { finish: true }
   if (round.verdict === 'ask') return { stop: 'ask', why: 'review found something only you can settle' }
-
-  const review = reviewOf(delivery)
-  const before = new Set(
-    review.rounds
-      .slice(0, -1)
-      .filter((r) => r.verdict === 'correct')
-      .flatMap((r) => r.findings.map(key)),
-  )
-  const again = round.findings.find((f) => before.has(key(f)))
-  if (again) return { stop: 'repeat', why: `"${again.title}" came back after a correction meant to fix it` }
-  if (review.corrections >= MAX_CORRECTIONS) {
-    return { stop: 'limit', why: `${MAX_CORRECTIONS} corrections were spent and review still finds mistakes` }
-  }
-  return { start: 'correct' }
+  // `correct` is kept only for a verdict recorded by an older command before upgrade.
+  return { start: 'review' }
 }
 
-function afterCorrection(delivery: DeliveryRecord, run: RunRecord, now?: string): ReviewNext {
+function afterLegacyCorrection(run: RunRecord): ReviewNext {
   if (run.status !== 'done') {
     return {
       stop: 'session',
       why: `the correction run ${run.status === 'error' ? 'failed' : 'was cut off'} before it finished`,
     }
-  }
-  const mark = delivery.review?.mark
-  // A correction that left the tree byte for byte as it found it has not addressed
-  // anything, and the review after it would find exactly what the last one did.
-  if (mark && now === mark) {
-    return { stop: 'no-progress', why: 'the correction run changed nothing in the candidate' }
   }
   return { start: 'review' }
 }
@@ -188,8 +150,8 @@ function afterCorrection(delivery: DeliveryRecord, run: RunRecord, now?: string)
 // card is not among them on purpose: a delivery builds the card it captured, so new
 // requirements are a new delivery, which is what cancelling leads to.
 
-/** The one line a stopped review puts on the card: what stopped it, what review found, how
- *  many corrections were spent, and the decision that is now the user's. */
+/** The one line a stopped review puts on the card: what stopped it, what review found, and
+ *  the decision that is now the user's. */
 export function stopQuestion(delivery: DeliveryRecord, why: string, program = boardCommand()): string {
   const findings = openFindings(delivery)
   const named = findings.slice(0, MAX_NAMED).map((f) => f.title)
@@ -197,11 +159,9 @@ export function stopQuestion(delivery: DeliveryRecord, why: string, program = bo
   const found = named.length
     ? ` Review found: ${named.join('; ')}${rest ? `, and ${rest} more on the delivery record` : ''}.`
     : ''
-  const spent = delivery.review?.corrections ?? 0
-  const tried = ` ${spent} correction${spent === 1 ? '' : 's'} tried.`
   return (
-    `[user] Review stopped on delivery ${delivery.deliveryId}: ${why}.${found}${tried}` +
-    ` Decide: answer here, approve an exception for this exact candidate, or cancel the delivery` +
+    `[user] Review stopped on delivery ${delivery.deliveryId}: ${why}.${found}` +
+    ` Decide: answer here, explicitly accept the condition under ## Worth noting after implementation, or cancel the delivery` +
     ` and start again from a changed card. Once you have, \`${program} review ${delivery.cardId}\` judges it again.`
   )
 }
@@ -216,7 +176,3 @@ export function askUser(cardId: number, question: string): void {
     // the card is gone, or the board refused — the stop stands regardless
   }
 }
-
-/** The candidate's fingerprint, taken as a correction is about to start, so the correction
- *  after it can be told whether anything moved. */
-export const markCandidate = (delivery: DeliveryRecord): string | undefined => workMark(delivery)

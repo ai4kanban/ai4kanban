@@ -288,16 +288,17 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'review':
       return [
         `${kb}. Review task ${req.id} ${named} — judge what the delivery in flight on it has built against the card as it was approved, following \`akb guide review\`.`,
-        `You did not build this. Read the approved copy and the diff, and do not read the run that wrote them.`,
-        `Record your verdict with \`${command} board review-verdict ${req.id} --verdict pass|correct|ask\` — a review that records nothing stops the delivery.`,
+        `\`${command} review ${req.id} --print\` supplies the approved requirements, changed-file summary and small diff.`,
+        `You did not build this. Do not read the run that wrote it.`,
+        `Fix plain mistakes in this run, rerun the affected checks, then record \`pass\` or \`ask\` with \`${command} board review-verdict ${req.id}\`.`,
+        `A review that records nothing stops the delivery.`,
         `Don't ask me questions with human-in-the-loop — the \`ask\` verdict is how you defer to me.`,
       ].join(' ')
-    // Fixing what a review found (#302).
+    // Kept only so a correction run already in flight during an upgrade can finish.
     case 'correct':
       return [
-        `${kb}. Correct task ${req.id} ${named} — fix exactly what the last review found, following \`akb guide review\`.`,
-        `\`${command} correct ${req.id} --print\` prints the approved copy, the findings to fix and where the diff is.`,
-        `Change nothing the findings do not name: a fresh review checks the correction and affected paths after you.`,
+        `${kb}. Finish the legacy correction run for task ${req.id} ${named}.`,
+        `Fix the recorded findings; a combined review follows.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
     // Resolving the conflict a landing's rebase stopped on (#304). It is new work, not a

@@ -1,7 +1,6 @@
 // A delivery: everything one Implement click starts.
 //
-// One click, one delivery, one card — and several runs inside it: implementation
-// today, review and correction as later cards land. What makes it more than a label is the
+// One click, one delivery, one card — implementation, review, and landing. What makes it more than a label is the
 // SNAPSHOT: a delivery copies the card's approved requirements the moment it starts and
 // builds from that copy, so a card edited underneath it never changes what it was approved
 // to build. While it is in flight the card is held — the board's own screens and commands
@@ -25,7 +24,6 @@ import {
   manualState,
   newDeliveryId,
   snapshotReviewed,
-  workMark,
   type DeliveryStart,
 } from './commit-mode'
 import { completeCard } from './complete'
@@ -308,7 +306,7 @@ export function joinDelivery(
   return delivery
 }
 
-/** Put a review or a correction run into the delivery already in flight on its card.
+/** Put a review or legacy correction run into the delivery already in flight on its card.
  *
  *  Unlike `joinDelivery` it opens nothing: there is no delivery to review when nobody has
  *  built anything, and a run that quietly started one would review an empty diff
@@ -377,11 +375,9 @@ export function recordVerdict(
 
 /** What a run's ending means for the delivery it belonged to.
  *
- *  A delivery is implementation, then review, then a correction and another review for as
- *  long as review asks for one. So the end of a run is a decision rather than an
- *  ending: the delivery finishes only when review passes it, stops with a question on the
- *  card when review can go no further, and otherwise writes down the run it starts
- *  next. A run that failed or was cut off mid-build leaves it ACTIVE and unfinished,
+ *  A delivery is implementation, then a review that fixes plain mistakes itself. The
+ *  delivery finishes only when review passes it, or stops with a question when review
+ *  needs the user. A run that failed or was cut off mid-build leaves it ACTIVE and unfinished,
  *  with the card still held, until Resume carries it on or Cancel delivery ends it. A
  *  run somebody stopped is the same: stopping a run is not ending the job. */
 export function settleDelivery(run: RunRecord): void {
@@ -394,18 +390,12 @@ export function settleDelivery(run: RunRecord): void {
   // on this board waits on that lock, and a git command is not what it should be waiting
   // for.
   //
-  // First the run's work, committed onto the delivery's branch. Review reads the
-  // branch, so an uncommitted change is not part of what it judges — and a change that
-  // reached the board's own files is refused outright rather than landed.
-  const built = run.status === 'done' && (run.action === 'implement' || run.action === 'correct')
+  // First the run's work, committed onto the delivery's branch. Review may fix plain
+  // mistakes itself, so its changes are committed before its pass can land.
+  const built = run.status === 'done' &&
+    (run.action === 'implement' || run.action === 'review' || run.action === 'correct')
   const commit = built && before.status === 'active' ? commitDeliveryWork(before) : { ok: true as const }
   const uncommitted = commit.ok ? undefined : commit.why
-  // Then the candidate's fingerprint, which says whether a correction moved anything and
-  // what the next one will be measured against.
-  const mark =
-    !uncommitted && run.status === 'done' && (run.action === 'review' || run.action === 'correct')
-      ? workMark(before)
-      : undefined
   // And, in manual commit mode, the snapshot a passed review leaves for the user's own
   // commit to be matched against.
   const reviewed =
@@ -425,7 +415,7 @@ export function settleDelivery(run: RunRecord): void {
       releaseLanding(delivery)
       return { ask: stopQuestion(delivery, uncommitted), cardId: delivery.cardId }
     }
-    const next = nextAfterSession(delivery, run, mark)
+    const next = nextAfterSession(delivery, run)
     if ('hold' in next) return null
     if ('finish' in next) {
       delivery.next = undefined
@@ -458,13 +448,6 @@ export function settleDelivery(run: RunRecord): void {
       return { ask: stopQuestion(delivery, next.why), cardId: delivery.cardId }
     }
     delivery.next = next.start
-    if (next.start === 'correct') {
-      const review = reviewOf(delivery)
-      review.corrections += 1
-      // Taken now, before the correction writes anything, so the run after it can be
-      // told whether the candidate moved at all.
-      review.mark = mark
-    }
     return null
   })
   if (settled && 'end' in settled) endDelivery(run.deliveryId, settled.end)

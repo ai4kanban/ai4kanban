@@ -200,7 +200,7 @@ describe('waiting on the approval', () => {
 })
 
 describe('what cancels an approval', () => {
-  it('the tree moving: a correction after the approval sends it back to waiting', () => {
+  it('the tree moving after approval sends it back to waiting', () => {
     const delivery = reviewed(1, 'card one', 'one\n')
     advanceLanding()
     approveDelivery(delivery.deliveryId, 'test')

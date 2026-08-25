@@ -101,8 +101,7 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
 
 // A run's action maps to the saved stage it puts the card in while it goes. Only a
 // delivery's own runs set one — the rest either refine the card or touch no resting
-// card. Review and correction are the delivery still working, so the card reads the same
-// through all three.
+// card. Review is the delivery still working, so the card reads the same through both.
 const RUN_STATUS: Partial<Record<AgentAction, string>> = {
   implement: 'implementing',
   review: 'implementing',
@@ -174,8 +173,8 @@ function reap(runs: RunRecord[], reaped: RunRecord[] = []): boolean {
     stampDuration(r, r.endedAt)
     restoreCardStatus(r)
     // A run cut off mid-delivery is settled outside this lock: a build that was cut
-    // off leaves the delivery ACTIVE and unfinished, and a review or a correction that was
-    // cut off stops the loop and asks (#302).
+    // off leaves the delivery ACTIVE and unfinished, and a review cut off stops and asks
+    // (#302). Legacy correction runs follow the same path.
     if (r.deliveryId) reaped.push({ ...r })
     dropSpec(r.sessionId)
     changed = true
@@ -496,7 +495,7 @@ export function openRun(
     // A delivery's own runs belong to a delivery — the one already in flight on this
     // card, or, for a build, a new one opened here. Same transaction as the run it
     // belongs to, so a delivery can never be left holding a card with nothing working on
-    // it. Review and correction join an existing delivery and never open one: there is
+    // it. Review and legacy correction join an existing delivery and never open one: there is
     // nothing to review until something has been built.
     if (cardId !== null && DELIVERY_FLOWS.has(req.action)) {
       if (req.action === 'implement') {

@@ -98,7 +98,7 @@ describe('the files', () => {
     assert.equal(listed.length, FLOWS.length)
     assert.equal(listed.find((f) => f.command === 'review')!.rule, 'Run the smoke tests.')
     assert.equal(listed.find((f) => f.command === 'propose')!.rule, '')
-    // Every flow says what it is, because `correct` and `plan-release` name nothing a user
+    // Every flow says what it is, because `plan-release` names nothing a user
     // can guess at.
     assert.ok(listed.every((f) => f.gloss.length > 0))
   })

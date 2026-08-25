@@ -267,21 +267,19 @@ export const MOVES: Move[] = [
     brief: [
       [
         'review-verdict <id>',
-        'record a review\'s verdict on the delivery in flight:\n--verdict pass|correct|ask, findings in --file <path>',
+        'record a review\'s verdict on the delivery in flight:\n--verdict pass|ask, findings for ask in --file <path>',
       ],
     ],
     legacy: [
       [
-        'review-verdict <id> --verdict pass|correct|ask',
+        'review-verdict <id> --verdict pass|ask',
         [
           "record what a review made of the delivery in flight on that card,",
-          'so the delivery knows whether to finish, correct, or stop and ask.',
-          'pass — the candidate meets the approved card. correct — it plainly',
-          'does not, and the findings say how. ask — only the user can settle',
-          'it. correct and ask carry the findings: --file <path> (markdown,',
-          'written to a file first), or --text ".." for a one-liner. Write each',
-          'one as `- **<short title>**: <evidence>` — the title is its identity,',
-          'and the same title coming back after a correction stops the delivery.',
+          'so the delivery knows whether to finish or stop and ask.',
+          'pass — the reviewed and corrected work meets the approved card.',
+          'ask — only the user can settle it. Ask carries findings:',
+          '--file <path> (markdown, written to a file first), or --text ".."',
+          'for a one-liner. Write each as `- **<short title>**: <evidence>`.',
           'Calling it twice in one run replaces the first verdict. A review',
           'run that never calls it stops the delivery and asks the user.',
         ],

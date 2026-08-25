@@ -127,7 +127,7 @@ export function RunningBadge({
 // read — refine/resolve don't need their own saved status to be visible.
 export const RUNNING_VERB: Record<AgentAction, string> = {
   implement: "implementing",
-  // The two runs a delivery makes after its build (#302).
+  // Review follows a build. `correct` is retained for historical run records.
   review: "reviewing",
   correct: "correcting",
   // And the one a landing runs when its rebase meets a conflict (#304).
@@ -870,8 +870,8 @@ export function ActionDialog({
     return (
       <Dialog title={`Implement #${dialog.card.id}`} onClose={onClose}>
         <p className={INTRO}>
-          One click carries this card all the way: the agent builds it, a fresh run reviews
-          it, corrections fix what the review found, and{" "}
+          One click carries this card all the way: the agent builds it, then a fresh run
+          reviews and fixes it, and{" "}
           {plan.commitMode === "auto" ? (
             <>
               the board lands it as one commit on{" "}
