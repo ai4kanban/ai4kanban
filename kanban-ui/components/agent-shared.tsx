@@ -251,9 +251,13 @@ export function SessionLog({
   const stopped = session.status === "stopped";
   // This run ended without finishing — the warning and the Resume below hang off it.
   const unfinished = stoppedShort(session);
-  // Resume shows only when the board says the run can actually be picked up: the
-  // line stays either way, so a run too old to continue still says what it left.
-  const carryOn = Boolean(onResumed && unfinished && session.canResume);
+  // Whether this run can actually be picked up. The warning line stays either way, so a run
+  // too old to continue still says what it left.
+  const resumable = Boolean(unfinished && session.canResume);
+  // Resume shows in the title bar only when the view that owns the log wants it there. The
+  // delivery block drops the bar and carries Resume in its own strip instead, so the line
+  // below speaks for the control wherever it is drawn.
+  const carryOn = Boolean(onResumed && resumable);
   // No word while running — the pulse dot already signals progress.
   const state = running
     ? ""
@@ -378,7 +382,7 @@ export function SessionLog({
         ⚠
       </span>
       This run stopped short, so the card may be part-built — whatever it wrote is sitting in
-      your working tree.{carryOn ? " Resume carries it on from where it stopped." : ""}
+      your working tree.{resumable ? " Resume carries it on from where it stopped." : ""}
     </p>
   );
 

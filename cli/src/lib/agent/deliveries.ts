@@ -468,8 +468,8 @@ export function deliveryRunAfter(run: RunRecord): AgentRequest | null {
   return run.deliveryId ? takeNext(run.deliveryId) : null
 }
 
-/** The same, by delivery id: the landing asks for the re-review a rebase owes, and it is
- *  taken here so the one that starts it is the one that gets it. */
+/** The same, by delivery id: landing asks for the focused review an overlapping rebase
+ *  owes, and it is taken here so the one that starts it is the one that gets it. */
 export function takeNext(deliveryId: string): AgentRequest | null {
   const taken = withStore((store) => {
     const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)

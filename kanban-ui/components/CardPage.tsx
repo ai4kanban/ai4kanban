@@ -26,7 +26,9 @@ import {
   discardDeliveryAction,
   dropVerifyAction,
   patchCardAction,
+  resumeSessionAction,
   scheduleCardAction,
+  stopSessionAction,
   unscheduleCardAction,
 } from "@/app/actions";
 
@@ -99,6 +101,7 @@ function ConfirmationPopover({
   cancelLabel,
   confirmLabel,
   busy,
+  align = "left",
   onDismiss,
   onConfirm,
 }: {
@@ -109,6 +112,9 @@ function ConfirmationPopover({
   cancelLabel: string;
   confirmLabel: string;
   busy: boolean;
+  /** Which edge it hangs from. A control at the right edge of a panel has to open
+   *  leftwards: 320px past the page's right edge is horizontal scroll on the whole app. */
+  align?: "left" | "right";
   onDismiss: () => void;
   onConfirm: () => void;
 }) {
@@ -141,7 +147,7 @@ function ConfirmationPopover({
       role="alertdialog"
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
-      className="nb-panel-sm absolute left-0 top-[calc(100%+8px)] z-40 w-[min(320px,calc(100vw-32px))] bg-nb-paper p-3 text-left"
+      className={`nb-panel-sm absolute ${align === "right" ? "right-0" : "left-0"} top-[calc(100%+8px)] z-40 w-[min(320px,calc(100vw-32px))] bg-nb-paper p-3 text-left`}
     >
       <p id={titleId} className="text-[13px] font-[700] text-nb-ink">{title}</p>
       <p id={descriptionId} className="mt-1 text-[12px] leading-relaxed text-nb-ink-soft">{description}</p>
@@ -372,12 +378,12 @@ function visibleActions(card: Card): Set<CardButton> {
 // is what the held controls say, before the edit is made rather than after.
 const heldNote = (delivery: CardDelivery): string =>
   delivery.state.paused
-    ? `${delivery.state.line} Cancel to take the card back.`
-    : `${delivery.state.line} Cancel to stop the current work and take the card back.`;
+    ? `${delivery.state.line} Cancel delivery takes the card back.`
+    : `${delivery.state.line} Cancel delivery stops the work and takes the card back.`;
 
-// A control that belongs to the delivery block rather than the page (#307). It rides in the
-// block's tab strip, so it wears the strip's scale — quiet outline, caption-sized text — and
-// not the page toolbar's press-down frame.
+// A control that belongs to the delivery block rather than the page (#307). The strip is
+// typographic — borderless tabs, plain meta text — so this is too: accent ink and the tabs'
+// weight, underlined on hover. A framed button in that row reads as a foreign object.
 function PanelAction({
   icon,
   label,
@@ -386,16 +392,117 @@ function PanelAction({
   return (
     <button
       type="button"
-      className="inline-flex cursor-pointer items-center gap-1 rounded-[7px] border-[1.5px] px-1.5 py-[3px] text-[11px] font-[700] transition-colors hover:bg-nb-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
-      style={{
-        color: "var(--color-nb-accent-deep)",
-        borderColor: "color-mix(in srgb, var(--color-nb-accent-deep) 45%, transparent)",
-      }}
+      className="inline-flex cursor-pointer items-center gap-1 text-[12px] font-[700] underline-offset-[3px] transition-opacity hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+      style={{ color: "var(--color-nb-accent-deep)" }}
       {...props}
     >
       {icon}
       {label}
     </button>
+  );
+}
+
+// Stop run (#49): ends the run in flight and nothing else. The delivery stands, its work
+// stays where it is, and Resume carries it on — so this is the proportionate way out of a run
+// started by mistake, which the delivery-wide Cancel beside it is not. The two names say
+// which is which without opening either.
+function StopRun({ session, onError }: { session: SessionView; onError: (why: string) => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [asked, setAsked] = useState(false);
+  const anchorRef = useRef<HTMLSpanElement>(null);
+
+  // The agent is asked to end before it is killed, so a few seconds pass before the poll
+  // brings the run back as stopped. Saying so beats a button that looks like it did nothing.
+  const stop = async () => {
+    setConfirming(false);
+    setAsked(true);
+    const res = await stopSessionAction(session.sessionId);
+    if (!res.ok) {
+      setAsked(false);
+      onError(res.error || "could not stop that run");
+    }
+  };
+
+  if (asked) return <span className="text-[11px] text-nb-ink-soft">Stopping…</span>;
+  return (
+    <span ref={anchorRef} className="relative inline-flex">
+      <PanelAction
+        icon={<FiX className="text-[12px]" aria-hidden />}
+        label="Stop run"
+        aria-haspopup="dialog"
+        aria-expanded={confirming}
+        onClick={() => setConfirming((open) => !open)}
+      />
+      <ConfirmationPopover
+        open={confirming}
+        anchorRef={anchorRef}
+        align="right"
+        title="Stop this run?"
+        description="It ends where it is, and whatever it half-wrote stays in your working tree. The delivery keeps the card — Resume carries it on."
+        cancelLabel="Keep running"
+        confirmLabel="Stop run"
+        busy={false}
+        onDismiss={() => setConfirming(false)}
+        onConfirm={() => void stop()}
+      />
+    </span>
+  );
+}
+
+// Resume: the one way on when a delivery has stopped (#179, #302). Two different things can
+// leave one stopped — a run that died mid-conversation, and a run that ended fine whose
+// successor never started because the watcher died — and the way out of both is the same
+// sentence: carry this delivery on. So it is one control with one name, and which of the two
+// happened is the board's business, not the user's.
+//
+// Picking a dead conversation up is preferred whenever one is there: it keeps the turn the
+// agent already spent. Either way the delivery is the same one — a resume re-joins it and
+// re-enters the flow, so finished steps are not redone.
+function ResumeDelivery({
+  delivery,
+  session,
+  onResumed,
+  onCarryOn,
+  onError,
+}: {
+  delivery: CardDelivery;
+  session: SessionView | null;
+  onResumed: (sessionId: string) => void;
+  onCarryOn: (action: NonNullable<CardDelivery["next"]>) => void;
+  onError: (why: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  const pickUp = session && session.canResume && stoppedShort(session) ? session.sessionId : null;
+  const owed = delivery.next;
+
+  const resume = async () => {
+    if (!pickUp) {
+      if (owed) onCarryOn(owed);
+      return;
+    }
+    setBusy(true);
+    const res = await resumeSessionAction(pickUp);
+    setBusy(false);
+    // A refusal is the registry's own words — the card is locked by another run, or this
+    // one aged out of the kept window. Say it and leave the control alive to try again.
+    if (res.ok && res.sessionId) onResumed(res.sessionId);
+    else onError(res.error || "could not resume that run");
+  };
+
+  if (!pickUp && !owed) return null;
+  return (
+    <PanelAction
+      icon={<FiPlay className="text-[12px]" aria-hidden />}
+      label={busy ? "Resuming…" : "Resume"}
+      disabled={busy}
+      title={
+        pickUp
+          ? "Carry this delivery on from where it stopped — the agent picks its own session back up"
+          : "Start the run this delivery never got to"
+      }
+      onClick={() => void resume()}
+    />
   );
 }
 
@@ -460,6 +567,7 @@ function DiscardDelivery({
       <ConfirmationPopover
         open={confirming}
         anchorRef={anchorRef}
+        align={panel ? "right" : "left"}
         title="Discard saved work?"
         description={<>Deletes <code className="break-all font-mono text-nb-ink">{lost}</code>. This cannot be undone.</>}
         cancelLabel="Keep it"
@@ -550,39 +658,60 @@ function SessionMeta({ session }: { session: SessionView | null }) {
 }
 
 // The strip carries the tabs on the left and, on the right, what this delivery is running on
-// and the one control that ends it — the block's own affairs, kept out of the page toolbar.
+// and the controls that carry it on or end it — the block's own affairs, kept out of the page
+// toolbar. It is also the block's fold: a run that has stopped moving is worth a glance, not
+// half a screen, so the pane under it opens on demand.
+//
+// The whole strip is the fold's control — a bar that lights on hover and presses on click,
+// rather than a chevron nobody can see. A tab click opens the pane at that tab; clicking the
+// tab already showing folds it again; the run's own controls inside keep their clicks.
 function TabStrip({
   tabs,
   current,
+  open,
   onPick,
+  onToggle,
   meta,
   action,
 }: {
   tabs: DeliveryTab[];
   current: string;
+  open: boolean;
   onPick: (name: string) => void;
+  onToggle: () => void;
   meta?: React.ReactNode;
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-t-[12.5px] bg-nb-wash px-3.5 pt-2.5">
+    <div
+      role="button"
+      aria-expanded={open}
+      aria-label={open ? "Fold this away" : "Open this up"}
+      onClick={onToggle}
+      className={`flex cursor-pointer select-none items-center gap-4 rounded-t-[12.5px] bg-nb-wash px-3.5 pt-2.5 transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,var(--color-nb-wash))] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_11%,var(--color-nb-wash))]${open ? "" : " rounded-b-[12.5px]"}`}
+    >
       {tabs.map((tab) => (
         <button
           key={tab.name}
           type="button"
-          onClick={() => onPick(tab.name)}
-          className="flex items-center gap-1.5 pb-2 text-[12px] font-[700]"
+          aria-expanded={tab.name === current && open}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (tab.name === current && open) onToggle();
+            else onPick(tab.name);
+          }}
+          className="flex cursor-pointer items-center gap-1.5 pb-2 text-[12px] font-[700]"
           style={{
             color: tab.name === current ? "var(--color-nb-ink)" : "var(--color-nb-ink-soft)",
-            borderBottom: `2px solid ${tab.name === current ? "var(--color-nb-accent)" : "transparent"}`,
-            cursor: tabs.length > 1 ? "pointer" : "default",
+            borderBottom: `2px solid ${tab.name === current && open ? "var(--color-nb-accent)" : "transparent"}`,
           }}
         >
           {tab.name}
           {tab.note && <span className="text-[10.5px] font-[600] text-nb-ink-soft">{tab.note}</span>}
         </button>
       ))}
-      <span className="ml-auto flex items-center gap-2.5 pb-2">
+      {/* The run's own affairs: they act on the delivery, never on the fold. */}
+      <span className="ml-auto flex items-center gap-3.5 pb-2" onClick={(e) => e.stopPropagation()}>
         {meta}
         {action}
       </span>
@@ -671,6 +800,8 @@ function DeliveryBlock({
   session,
   onApproved,
   onCancelled,
+  onResumed,
+  onCarryOn,
   onError,
 }: {
   delivery: CardDelivery;
@@ -678,6 +809,8 @@ function DeliveryBlock({
   session: SessionView | null;
   onApproved: () => void;
   onCancelled: () => void;
+  onResumed: (sessionId: string) => void;
+  onCarryOn: (action: NonNullable<CardDelivery["next"]>) => void;
   onError: (why: string) => void;
 }) {
   const approval = delivery.approval;
@@ -687,14 +820,25 @@ function DeliveryBlock({
   // the diff is not finished being written.
   const waitingOnApproval = !!approval?.required && !approval.approved;
   const [tab, setTab] = useState(waitingOnApproval && diff ? "Diff" : "Log");
-  // A delivery that STARTS waiting while the page is open opens on the diff too — the block
-  // is already mounted then, so the first render's choice above never gets to make it. Only
-  // on the change: whatever the user picked afterwards is theirs.
+  // Open while something is moving, or while a tree is waiting to be read. A run that has
+  // stopped leaves the block folded to its strip — the state is said beside the title, and
+  // the log is there for whoever wants it.
+  const live = session?.status === "running";
+  const [open, setOpen] = useState(!!live || waitingOnApproval);
+  // A delivery that STARTS waiting while the page is open opens on the diff too, and a run
+  // that starts or stops swings the fold with it. Only on the change: whatever the user
+  // picked or folded afterwards is theirs until the delivery moves again.
   const wasWaiting = useRef(waitingOnApproval);
+  const wasLive = useRef(live);
   useEffect(() => {
-    if (waitingOnApproval && !wasWaiting.current) setTab("Diff");
+    if (waitingOnApproval && !wasWaiting.current) {
+      setTab("Diff");
+      setOpen(true);
+    }
+    if (live !== wasLive.current) setOpen(!!live || waitingOnApproval);
     wasWaiting.current = waitingOnApproval;
-  }, [waitingOnApproval]);
+    wasLive.current = live;
+  }, [waitingOnApproval, live]);
   const tabs: DeliveryTab[] = [
     ...(diff ? [{ name: "Diff" }] : []),
     { name: "Log" },
@@ -703,46 +847,70 @@ function DeliveryBlock({
   // A tab that has gone — the diff a re-read no longer has — falls back to the first one
   // rather than leaving the strip pointing at nothing.
   const current = tabs.some((t) => t.name === tab) ? tab : tabs[0]!.name;
+  // No `overflow-hidden` on the frame: the strip and the foot round their own outer
+  // corners, so a confirmation hanging off a control in the strip is not clipped.
   return (
-    <div className="nb-outline mb-4 overflow-hidden bg-nb-paper">
+    <div className="nb-outline mb-4 bg-nb-paper">
       <TabStrip
         tabs={tabs}
         current={current}
-        onPick={setTab}
+        open={open}
+        onPick={(name) => {
+          setTab(name);
+          setOpen(true);
+        }}
+        onToggle={() => setOpen((v) => !v)}
         meta={<SessionMeta session={session} />}
-        action={<CancelDelivery delivery={delivery} onCancelled={onCancelled} onError={onError} />}
+        action={
+          <>
+            {/* One of these two at a time: a run in flight can be stopped, a delivery that
+                has stopped can be carried on. Cancel is beside them either way. */}
+            {live && session && <StopRun session={session} onError={onError} />}
+            <ResumeDelivery
+              delivery={delivery}
+              session={session}
+              onResumed={onResumed}
+              onCarryOn={onCarryOn}
+              onError={onError}
+            />
+            <CancelDelivery delivery={delivery} onCancelled={onCancelled} onError={onError} />
+          </>
+        }
       />
-      {current === "Approval" && approval ? (
-        <ApprovalPane delivery={delivery} approval={approval} onApproved={onApproved} onError={onError} />
-      ) : current === "Diff" && diff ? (
-        <DiffPane diff={diff} />
-      ) : session ? (
-        <SessionLog session={session} bare warnUnfinished />
-      ) : (
-        <p className="border-t-[1.5px] border-nb-ink bg-nb-wash px-4 py-3 text-[12.5px] text-nb-ink-soft">
-          No session has written anything yet — the first one is starting.
-        </p>
+      {open &&
+        (current === "Approval" && approval ? (
+          <ApprovalPane delivery={delivery} approval={approval} onApproved={onApproved} onError={onError} />
+        ) : current === "Diff" && diff ? (
+          <DiffPane diff={diff} />
+        ) : session ? (
+          <SessionLog session={session} bare warnUnfinished />
+        ) : (
+          <p className="border-t-[1.5px] border-nb-ink bg-nb-wash px-4 py-3 text-[12.5px] text-nb-ink-soft">
+            No session has written anything yet — the first one is starting.
+          </p>
+        ))}
+      {open && (
+        <DeliveryFoot>
+          <span
+            className="flex min-w-0 items-center gap-1.5"
+            title={delivery.worktree ?? delivery.manualWhy ?? "Changes are in your project folder"}
+          >
+            <FiGitBranch className="shrink-0 text-[12px]" aria-hidden />
+            <code className="truncate font-mono text-nb-ink">
+              {delivery.branch ?? "Project folder"}
+            </code>
+            {delivery.targetBranch && (
+              <>
+                <span aria-hidden>→</span>
+                <code className="font-mono text-nb-ink">{delivery.targetBranch}</code>
+              </>
+            )}
+          </span>
+          <span className={CAP} title={delivery.manualWhy}>
+            {delivery.commitMode === "auto" ? "Auto-commit" : "Manual commits"}
+          </span>
+        </DeliveryFoot>
       )}
-      <DeliveryFoot>
-        <span
-          className="flex min-w-0 items-center gap-1.5"
-          title={delivery.worktree ?? delivery.manualWhy ?? "Changes are in your project folder"}
-        >
-          <FiGitBranch className="shrink-0 text-[12px]" aria-hidden />
-          <code className="truncate font-mono text-nb-ink">
-            {delivery.branch ?? "Project folder"}
-          </code>
-          {delivery.targetBranch && (
-            <>
-              <span aria-hidden>→</span>
-              <code className="font-mono text-nb-ink">{delivery.targetBranch}</code>
-            </>
-          )}
-        </span>
-        <span className={CAP} title={delivery.manualWhy}>
-          {delivery.commitMode === "auto" ? "Auto-commit" : "Manual commits"}
-        </span>
-      </DeliveryFoot>
     </div>
   );
 }
@@ -766,14 +934,24 @@ function FinishedBlock({
   onError: (why: string) => void;
 }) {
   const [tab, setTab] = useState("Diff");
+  // Nothing here is running, so it opens folded like every other stopped block. What landed
+  // is a click away for whoever came looking for it.
+  const [open, setOpen] = useState(false);
   const tabs: DeliveryTab[] = [{ name: "Diff" }, ...(session ? [{ name: "Log" }] : [])];
   const current = tabs.some((t) => t.name === tab) ? tab : "Diff";
+  // No `overflow-hidden` on the frame: the strip and the foot round their own outer
+  // corners, so a confirmation hanging off a control in the strip is not clipped.
   return (
-    <div className="nb-outline mb-4 overflow-hidden bg-nb-paper">
+    <div className="nb-outline mb-4 bg-nb-paper">
       <TabStrip
         tabs={tabs}
         current={current}
-        onPick={setTab}
+        open={open}
+        onPick={(name) => {
+          setTab(name);
+          setOpen(true);
+        }}
+        onToggle={() => setOpen((v) => !v)}
         meta={<SessionMeta session={session} />}
         action={
           discard && (
@@ -781,27 +959,30 @@ function FinishedBlock({
           )
         }
       />
-      {current === "Log" && session ? (
-        <SessionLog session={session} bare warnUnfinished />
-      ) : (
-        <DiffPane diff={diff} />
+      {open &&
+        (current === "Log" && session ? (
+          <SessionLog session={session} bare warnUnfinished />
+        ) : (
+          <DiffPane diff={diff} />
+        ))}
+      {open && (
+        <DeliveryFoot>
+          <span className="flex items-center gap-1.5">
+            <FiGitBranch className="shrink-0 text-[12px]" aria-hidden />
+            {finished.commit ? (
+              <>
+                <span>Landed</span>
+                <code className="font-mono text-nb-ink">{finished.commit.slice(0, 7)}</code>
+              </>
+            ) : (
+              <span>Finished</span>
+            )}
+          </span>
+          <span className={CAP}>
+            {finished.targetBranch ?? (finished.commitMode === "auto" ? "Auto-commit" : "Manual commits")}
+          </span>
+        </DeliveryFoot>
       )}
-      <DeliveryFoot>
-        <span className="flex items-center gap-1.5">
-          <FiGitBranch className="shrink-0 text-[12px]" aria-hidden />
-          {finished.commit ? (
-            <>
-              <span>Landed</span>
-              <code className="font-mono text-nb-ink">{finished.commit.slice(0, 7)}</code>
-            </>
-          ) : (
-            <span>Finished</span>
-          )}
-        </span>
-        <span className={CAP}>
-          {finished.targetBranch ?? (finished.commitMode === "auto" ? "Auto-commit" : "Manual commits")}
-        </span>
-      </DeliveryFoot>
     </div>
   );
 }
@@ -837,7 +1018,7 @@ function CancelDelivery({
     <span ref={anchorRef} className="relative inline-flex">
       <PanelAction
         icon={<FiXCircle className="text-[12px]" aria-hidden />}
-        label="Cancel"
+        label="Cancel delivery"
         disabled={busy}
         aria-haspopup="dialog"
         aria-expanded={confirming}
@@ -846,10 +1027,11 @@ function CancelDelivery({
       <ConfirmationPopover
         open={confirming}
         anchorRef={anchorRef}
-        title="Cancel implementation?"
-        description="Stops the current run and returns the card to editing. Existing work is kept."
-        cancelLabel="Keep running"
-        confirmLabel="Cancel work"
+        align="right"
+        title="Cancel the whole delivery?"
+        description="Not just this run: the delivery ends, the card unlocks, and Implement starts a new one. Existing work is kept."
+        cancelLabel="Keep it"
+        confirmLabel="Cancel delivery"
         busy={busy}
         onDismiss={() => setConfirming(false)}
         onConfirm={() => void cancel()}
@@ -979,9 +1161,9 @@ export function CardPage({
   // A delivery whose review stopped is waiting on the question it left here (#302).
   // Review again is what judges the same work once it is answered.
   const waiting = delivery?.waiting;
-  // The session this delivery would start if you asked it to: another review once its
-  // question is answered, or the one its watcher died before starting.
-  const carryOn = waiting ? "review" : delivery?.next;
+  // Another review, once the question this delivery is waiting on has been answered. A
+  // delivery that stopped rather than asked is Resume's business, in the block below.
+  const carryOn = waiting ? ("review" as const) : null;
   // Resolve stays live whenever the delivery is waiting on the user (#307) — a hold nothing
   // lets you answer is a dead end — while every other held control is off. The CLI makes
   // exactly the same exception.
@@ -1259,26 +1441,21 @@ export function CardPage({
                     Resolve
                   </Button>
                 )}
-                {/* Review again / Continue delivery (#302). The first is offered while a
-                    delivery is waiting on the question its review left — answer it, or write
-                    the exception you are approving under ## Worth noting after
-                    implementation, and this judges the same work afresh. The second is the
-                    way back for a delivery whose next session never started because the
-                    process watching it died. */}
-                {carryOn && (
+                {/* Review again (#302) — offered while a delivery is waiting on the question
+                    its review left. Answer it, or write the exception you are approving under
+                    ## Worth noting after implementation, and this judges the same work afresh.
+                    A delivery that merely STOPPED is not this: Resume in the block below
+                    carries it on, and the user never has to tell the two kinds of stop apart. */}
+                {waiting && carryOn && (
                   <Button
                     variant="ghost"
                     size="sm"
                     disabled={busy}
-                    title={
-                      waiting
-                        ? "Judge what this delivery built again, now that you have answered"
-                        : `This delivery never started its ${carryOn} run — start it now`
-                    }
+                    title="Judge what this delivery built again, now that you have answered"
                     onClick={() => void runAgent({ action: carryOn, id: card.id }, carryOn)}
                   >
                     <FiCheckCircle className="text-[15px]" aria-hidden />
-                    {waiting ? "Review again" : "Continue delivery"}
+                    Review again
                   </Button>
                 )}
                 {actions.has("archive") && !delivery && (
@@ -1318,6 +1495,8 @@ export function CardPage({
                   router.refresh();
                   kick();
                 }}
+                onResumed={onResumed}
+                onCarryOn={(action) => void runAgent({ action, id: card.id }, action)}
                 onError={setError}
               />
             ) : finishedBlock && card.finished && diff ? (

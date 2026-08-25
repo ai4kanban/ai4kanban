@@ -177,7 +177,7 @@ describe('a card with an open question', () => {
     fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
     assert.equal(openQuestions(1), 0)
     while (advanceLanding()) {
-      // the rebase this one owes, and the review after it, are asked for by the pass
+      // an overlapping rebase's focused review is asked for by the pass
       const wants = listDeliveries().find((d) => d.deliveryId === held.deliveryId)
       if (!wants || wants.status !== 'active') break
       const session = run('review', 1, 'card one')

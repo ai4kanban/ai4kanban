@@ -35,8 +35,11 @@ settled, before the cards that write against it start.
   without a hand edit against the live preview.
 - One scheduled Worker run serves the whole service; #314's keep-awake query and #320's
   Slack retry hang off it rather than each adding a schedule of its own.
-- A GitHub app registered against that host asks for identity scopes only, so a sign-in
-  token cannot read a repository even if everything else is wrong (#311).
+- One GitHub app, registered against that host and asking for identity scopes only, so a
+  sign-in token cannot read a repository even if everything else is wrong (#311).
+- Nothing else is registered here: #320's Slack destinations are webhook URLs an owner
+  pastes, and #313 reaches GitHub from the machine, so neither adds an app or a callback to
+  the service (#311).
 - Secrets live in the Worker's secret store and never in git.
 - Deploy and roll back with one command run from this repository, the way the site deploys.
 - Stay inside the free plans: past the day's request allowance the Worker refuses the write

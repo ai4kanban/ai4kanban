@@ -14,12 +14,14 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { cmdReviewVerdict } from '../src/commands/review-verdict.ts'
 import { activeDelivery, listDeliveries } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
+import { printFlow } from '../src/lib/agent/flow.ts'
 import { advanceLanding, repairLanding } from '../src/lib/agent/landing.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { setAutoCommit } from '../src/lib/agent/settings.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import { rebaseInProgress, worktreeDir } from '../src/lib/agent/worktree.ts'
 import type { AgentAction, DeliveryRecord } from '../src/lib/agent/types.ts'
+import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
 let root = ''
@@ -58,6 +60,7 @@ beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-landing-'))
   fs.mkdirSync(path.join(root, 'docs', 'kanban', 'todo', 'features'), { recursive: true })
   fs.writeFileSync(path.join(root, 'shared.txt'), 'base\n')
+  fs.writeFileSync(path.join(root, 'mergeable.txt'), Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join('\n') + '\n')
   git(['init', '--quiet', '-b', 'main'])
   git(['config', 'user.email', 'test@example.com'])
   git(['config', 'user.name', 'test'])
@@ -93,10 +96,10 @@ function end(sessionId: string, status: 'done' | 'error' = 'done'): void {
 }
 
 // Build a card and pass its review: everything that happens before a landing.
-function reviewed(id: number, title: string, text: string): DeliveryRecord {
+function reviewed(id: number, title: string, text: string, file = 'shared.txt'): DeliveryRecord {
   const built = run('implement', id, title)
   const delivery = activeDelivery(id)!
-  fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), text)
+  fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), file), text)
   end(built)
   const review = run('review', id, title)
   process.env[RUN_ENV] = review
@@ -206,7 +209,7 @@ describe('a target branch that moved', () => {
     assert.equal(wants?.id, 2)
   })
 
-  it('reviews the rebased branch again before it lands', () => {
+  it('keeps the passed review when a clean rebase touches different files', () => {
     const first = reviewed(1, 'card one', 'one\n')
     // A second card that touches a different file rebases cleanly.
     const built = run('implement', 2, 'card two')
@@ -221,15 +224,41 @@ describe('a target branch that moved', () => {
 
     const wants = advanceLanding()
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
-    // Rebased, and the review that has to follow one is what it asks for next.
+    assert.equal(wants, null)
+    const landing = landingOf(second.deliveryId)!
+    assert.equal(landing.status, 'landed')
+    assert.equal(landing.attempts, 1)
+    assert.deepEqual(log(), ['card two (#2)', 'card one (#1)', 'start'])
+    assert.equal(landing.checks?.length, 1)
+    assert.equal(landing.rebaseKind, 'disjoint')
+  })
+
+  it('focuses the re-review when a clean rebase touches the same file', () => {
+    const base = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`)
+    const firstText = [...base]
+    firstText[1] = 'first changed this'
+    const secondText = [...base]
+    secondText[18] = 'second changed this'
+    reviewed(1, 'card one', `${firstText.join('\n')}\n`, 'mergeable.txt')
+    const second = reviewed(2, 'card two', `${secondText.join('\n')}\n`, 'mergeable.txt')
+
+    const wants = advanceLanding()
     assert.equal(wants?.action, 'review')
     assert.equal(wants?.id, 2)
-    const landing = landingOf(second.deliveryId)!
-    assert.equal(landing.status, 'landing')
-    assert.equal(landing.attempts, 1)
-    assert.equal(listDeliveries().find((d) => d.deliveryId === second.deliveryId)?.base, git(['rev-parse', 'main']))
-    // Still on its own branch: nothing lands on a verdict about the tree before the rebase.
-    assert.deepEqual(log(), ['card one (#1)', 'start'])
+    assert.equal(landingOf(second.deliveryId)?.rebaseKind, 'overlap')
+
+    const sink = startCollecting()
+    let flow = ''
+    try {
+      printFlow({ action: 'review', id: 2, title: 'card two' })
+      flow = sink.out.join('\n')
+    } finally {
+      stopCollecting()
+    }
+    assert.match(flow, /focused post-rebase integration review/)
+    assert.match(flow, /shared path: mergeable\.txt/)
+    assert.match(flow, /patch omitted for this focused rebase review/)
+    assert.doesNotMatch(flow, /build THIS, not the card file/)
 
     const again = run('review', 2, 'card two')
     process.env[RUN_ENV] = again

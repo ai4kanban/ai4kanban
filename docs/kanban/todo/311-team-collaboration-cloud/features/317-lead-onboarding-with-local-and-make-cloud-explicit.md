@@ -33,6 +33,12 @@ deliberately.
 - After an import, say the folder's cards are now a stale copy and offer their removal as
   one change the team reviews and commits; never delete them on the team's behalf (#311).
 - Let owners invite or remove members, change roles, and manage execution nodes.
+- Let an owner export the workspace to a standalone markdown board at any time, and say
+  there that the preview keeps no backups, so this is the team's only recoverable copy (#311).
+- Offer leaving Cloud beside that export: write the board back into `docs/kanban/` and take
+  the committed pointer off as one change the team reviews and commits (#311).
+- Let an owner delete the workspace and everything in it from the same controls, behind a
+  confirmation that names what goes, since #321's privacy page promises it (#311).
 - Explain that Cloud manages board coordination but never receives code or runs agents, and
   link the Cloud choice to the published privacy and terms pages (#321).
 - Update product and user documentation to describe the Local and Cloud authority models.
@@ -42,6 +48,11 @@ deliberately.
 - [ ] Offer Cloud beside it as an explicit, labelled choice, marked invite-only preview.
 - [ ] Tell an uninvited signed-in user the preview is closed and how to ask for an invite.
 - [ ] Add workspace, member, and execution-node controls.
+- [ ] Offer the workspace export from the owner controls, and check what it writes opens as
+      a Local board.
+- [ ] Offer leaving Cloud, and check the checkout opens as a Local board once the team
+      commits the removed pointer.
+- [ ] Offer workspace deletion from the owner controls, behind a confirmation.
 - [ ] Offer Local-to-Cloud import when opening or creating a workspace.
 - [ ] After an import, offer the imported board's removal as a change the team commits, and
       check declining it leaves a working Cloud board.

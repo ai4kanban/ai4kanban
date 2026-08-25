@@ -21,6 +21,10 @@ Let the app and CLI work against Cloud without mistaking a stale screen for perm
 - If connectivity outlasts a lease, keep the draft local and compare the newest revision before continuing.
 - Apply returned resources and snapshot cursors after successful mutations.
 - Use the same authenticated Cloud endpoints from the app and CLI.
+- Sign a machine in once for both clients: `akb` signs in and out through the same GitHub
+  flow the app's onboarding uses and into the same machine-local session, falls back to a
+  URL the user opens elsewhere when the machine has no browser, and renews the session so a
+  long agent run never stops to sign in again (#311).
 - Find a Cloud board from a checkout through its committed workspace pointer, and keep the
   machine's sign-in out of git (#311).
 - Let the pointer win over board markdown left beside it: open the Cloud board and never
@@ -29,6 +33,7 @@ Let the app and CLI work against Cloud without mistaking a stale screen for perm
   owner for an invite, rather than reporting a missing or broken board (#311).
 - Read the board's configuration, tracks, modules, and per-flow rules from the workspace
   rather than from local files, so no two members run one board under different settings.
+  The harness settings in `ui.config.json` are the exception and stay on the machine (#311).
 - When the preview refuses a write because it is over a free-tier limit, say so in those
   words and keep the user's edit, rather than reporting it as a conflict or a failure.
 - Every app save passes the revision the screen read, so a card rewritten under an open page
@@ -40,6 +45,8 @@ Let the app and CLI work against Cloud without mistaking a stale screen for perm
   Local, dropped writes once they cross a network.
 
 ## Todo
+- [ ] Sign in and out from `akb` into the session the app's onboarding writes, and check a
+      machine with no browser and a run that outlives one token both get through.
 - [ ] Open a Cloud board from a checkout's workspace pointer with the machine's own sign-in.
 - [ ] Check a checkout holding both a pointer and leftover cards opens the Cloud board, and
       that no command reads or writes those files.

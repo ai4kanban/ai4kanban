@@ -262,12 +262,12 @@ export async function watchRun(sessionId: string): Promise<number> {
       })
       letGo()
       // The delivery's own next run first, when it has one: review after a build,
-      // review after a build, or another review after a rebase. It is
+      // or a focused review after an overlapping rebase. It is
       // read from the record the close just wrote, so it is taken once and started once.
       const carryOn = deliveryRunAfter(record)
       // Then the landing queue (#304): a delivery review has just passed takes the slot and
-      // lands here, and what it hands back is the run that landing wants — a re-review
-      // after a rebase, or the agent that resolves a conflict.
+      // lands here, and what it hands back is the run that landing wants — a focused
+      // re-review after overlap, or the agent that resolves a conflict.
       const landing = advanceLanding()
       followUp(sessionId, settled?.runs ?? [], carryOn, landing)
       resolve(code === 0 ? 0 : 1)

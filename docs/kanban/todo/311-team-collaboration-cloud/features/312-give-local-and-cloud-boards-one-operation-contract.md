@@ -8,7 +8,8 @@ release: 0.8.0
 blocked_by: []
 related: [311, 56]
 modules: [skill, cloud]
-questions: []
+questions:
+  - "[user] Review stopped on delivery ajny9xw9: the review run failed before it recorded a verdict. Decide: answer here, explicitly accept the condition under ## Worth noting after implementation, or cancel the delivery and start again from a changed card. Once you have, `node /Users/wutao/git/ai4kanban/desktop/resources/cli/bin/ai4kanban.mjs review 312` judges it again."
 verify:
   - Open the board UI and use every control on a card page — edit it, add and cross off a hand-check, schedule and unschedule a blocked card, move cards into a release, close a release, save the goal, cancel and approve a delivery. Each should behave exactly as it did before.
   - Start a real delivery from Implement and let it run to a landing. The run engine's ending path is now asynchronous, so watch that the card's stage is put back, a recurring card is stamped, a landed delivery archives its card, and a stopped review still leaves its question.
@@ -164,6 +165,12 @@ two teammates editing the same card would silently overwrite each other.
   a microtask over file work. Making the read asynchronous to fix this would push a promise
   through every screen for a case Local does not have, so #316 moves completion off the read
   path instead, where those calls become network-bound.
+- **No shipped line goes in `readme.md`**: that file records what a user can now see or do,
+  and this card changes only how the code reaches the board — the same commands, files,
+  output and screens. `akb guide board` rules internal-only changes out of it, so both
+  module readmes stay as they are. The calls a user would care about are already in
+  `memory/cloud/decisions.md`: a save finishing before the command returns, a second write
+  coming back as a conflict, and a Local save never being refused.
 
 ### Overruled by the user
 - **Every board operation becomes asynchronous**: a Cloud provider is network-bound, so the

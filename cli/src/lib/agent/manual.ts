@@ -148,8 +148,9 @@ time, and you commit after review passes.
 Once review passes, the delivery LANDS: one squash commit on the branch you were on when
 you pressed Implement. One card lands at a time, however many are building. Uncommitted
 work of your own holds a landing back until the checkout is clean; a target branch that
-moved is rebased onto and reviewed again; a conflict is resolved as new work and reviewed
-from scratch. The worktree and branch are removed once it has landed. Nothing is pushed.
+moved is rebased onto, with a focused review only when both sides touched the same file; a
+conflict is resolved as new work and reviewed from scratch. The worktree and branch are
+removed once it has landed. Nothing is pushed.
 
 Turn **Require diff approval before landing** on in Configuration → Auto-delivery and no
 delivery lands unread: every one holds after review until you approve the exact tree it

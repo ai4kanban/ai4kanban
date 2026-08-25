@@ -3,8 +3,8 @@
 // Review passes and the work is still on the delivery's own branch. Landing is the last
 // step, and it is the BOARD's own work — no run does it. The branch is squashed to one
 // commit, rebased onto the target branch's tip when that has moved, and the target branch
-// is moved to it. Only the re-review a rebase costs and the resolution of a conflict are
-// agent sessions.
+// is moved to it. Only a same-file rebase review and conflict resolution cost agent
+// sessions; a disjoint clean rebase keeps the review that already passed.
 //
 // One card lands at a time. The slot is held on the delivery record rather than in a lock:
 // a landing can span a whole review run, and the board's own lock is held for the
@@ -239,7 +239,7 @@ function supersededDelivery(held: Set<string>): AgentRequest | null {
 // ---- one pass ---------------------------------------------------------------
 
 /** Move the landing queue on by one step, and hand back the run it wants started —
- *  a re-review after a rebase, or the agent that resolves a conflict.
+ *  a focused review after an overlapping rebase, or the agent that resolves a conflict.
  *
  *  Called by the watcher of every run that closes, by `nextWork()` each tick so a
  *  waiter nothing handed off to is still picked up, and once as a board comes up. It never
@@ -312,13 +312,13 @@ function landStep(delivery: DeliveryRecord): Step {
   }
 
   if (!isAncestor(target, tip, dir)) {
-    // The target branch moved while this card was being built. The reviewed tree is not the
-    // tree that would land, so it is rebased and reviewed again.
+    // The target branch moved while this card was being built. Replay onto it. A disjoint
+    // replay preserves the review; touching the same file costs a focused integration pass.
     return rebaseAndReview(delivery, dir, target)
   }
   if (owesReview(delivery)) {
-    // It was rebased and the review that has to follow one has not run yet — a watcher died
-    // between the two. Ask for it again rather than landing a tree nothing judged.
+    // An overlapping rebase still owes its focused review — a watcher died between the
+    // two. Ask for it again rather than landing before the integration was judged.
     return { start: askForReview(delivery) }
   }
   // The last thing read before the branch moves (#308): the base and the fingerprint the
@@ -404,9 +404,10 @@ function warnOverlap(delivery: DeliveryRecord): void {
 
 // ---- the target branch moved ------------------------------------------------
 
-// Rebase the one squash commit onto the target's new tip, and review the rebased branch
-// again. The slot is HELD across that review: the tree being judged is the tree that lands,
-// and a second card landing under it would make that untrue again.
+// Rebase the one squash commit onto the target's new tip. Changes in separate files cannot
+// alter the reviewed patch, so they land without paying for another agent. A clean rebase
+// that touches the same file gets a focused integration review, and a conflict gets a full
+// one. The slot stays held whenever a review is needed.
 function rebaseAndReview(delivery: DeliveryRecord, dir: string, target: string): Step {
   const spent = delivery.landing?.attempts ?? 0
   if (spent >= MAX_LAND_ATTEMPTS) {
@@ -421,41 +422,52 @@ function rebaseAndReview(delivery: DeliveryRecord, dir: string, target: string):
     )
     return { done: true }
   }
+  const mine = new Set(changedPaths(delivery.base!, delivery.branch!, dir))
+  const overlap = changedPaths(delivery.base!, target, dir).some((file) => mine.has(file))
   const rebased = rebaseOnto(dir, target, delivery.base!)
   if ('conflict' in rebased) return startConflict(delivery, target, rebased.conflict)
   if (!rebased.ok) {
     giveUpSlot(delivery, rebased.error)
     return { done: true }
   }
-  return afterRebase(delivery, target)
+  return afterRebase(delivery, target, overlap ? 'overlap' : 'disjoint')
 }
 
-// The rebase landed. The tip it was rebased onto becomes the delivery's base — the same
-// field, so the diff review reads is still everything this delivery changed — and a fresh
-// review judges the rebased branch.
-function afterRebase(delivery: DeliveryRecord, target: string): Step {
+// The rebase landed. The new target becomes the candidate's base. A disjoint replay keeps
+// the existing verdict; overlap and conflict queue the appropriate review.
+function afterRebase(
+  delivery: DeliveryRecord,
+  target: string,
+  kind: NonNullable<DeliveryLanding['rebaseKind']>,
+): Step {
   const at = Date.now()
   withStore((store) => {
     const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
     if (!live || live.status !== 'active') return
+    const from = live.base
     live.base = target
-    live.next = 'review'
+    live.next = kind === 'disjoint' ? undefined : 'review'
     const landing = (live.landing = live.landing ?? { status: 'landing', attempts: 0, at })
     landing.status = 'landing'
     landing.attempts += 1
     landing.rebasedAt = at
+    landing.rebasedFrom = from
+    landing.rebaseKind = kind
     landing.why = undefined
     landing.at = at
-    // A rebased delivery is reviewed again before it may land.
   })
   syncAudit(delivery.deliveryId)
+  if (kind === 'disjoint') {
+    const live = readStore().deliveries.find((d) => d.deliveryId === delivery.deliveryId)
+    return live && live.status === 'active' ? landStep(live) : { done: true }
+  }
   const started = takeNext(delivery.deliveryId)
   return started ? { start: started } : { done: false }
 }
 
-// A review the delivery owes but has not had: it was rebased, and no review has passed
-// since. Nothing lands on the strength of a verdict about a different tree.
+// A same-file rebase review the delivery owes but has not had.
 function owesReview(delivery: DeliveryRecord): boolean {
+  if (delivery.landing?.rebaseKind === 'disjoint') return false
   const at = delivery.landing?.rebasedAt
   if (!at) return false
   const round = lastRound(delivery)
@@ -496,7 +508,7 @@ function finishConflict(delivery: DeliveryRecord, dir: string): Step {
   const left = conflictedPaths(dir)
   const done = left.length ? { ok: false, why: `${names(left)} ${are(left.length)} still conflicted` } : continueRebase(dir)
   if (done.ok && !rebaseInProgress(dir)) {
-    return afterRebase(delivery, branchTip(delivery.targetBranch!) ?? delivery.base!)
+    return afterRebase(delivery, branchTip(delivery.targetBranch!) ?? delivery.base!, 'conflict')
   }
   abortRebase(dir)
   const why =

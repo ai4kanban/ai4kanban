@@ -27,6 +27,8 @@ Send the app's proven board notifications to Slack without adding a second set o
 - Open card review or Resolve in the installed app from each Slack action.
 - Attribute an answer to the member who completes the Resolve flow.
 - Retry Slack delivery independently without duplicating the underlying event.
+- Connect a destination as an incoming webhook URL an owner pastes, one per audience, so a
+  question posts to an owners-only channel and nothing registers a Slack app (#311).
 - Keep Slack credentials and connection setup outside the notification content model.
 
 ## Todo

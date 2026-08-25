@@ -221,7 +221,7 @@ describe('what cancels an approval', () => {
     assert.match(live(delivery.deliveryId).landing?.why ?? '', /held on your approval/)
   })
 
-  it('the base moving: a rebase costs the approval as well as the review', () => {
+  it('the base moving cancels approval even when a disjoint rebase keeps its review', () => {
     const delivery = reviewed(1, 'card one', 'one\n')
     advanceLanding()
     approveDelivery(delivery.deliveryId, 'test')
@@ -232,18 +232,9 @@ describe('what cancels an approval', () => {
     git(['add', '-A'])
     git(['commit', '--quiet', '-m', 'someone else'])
 
-    // The rebase asks for the re-review it owes; run it, then the pass after that.
+    // The disjoint rebase keeps its passed review, but not an approval of the old base.
     const asked = advanceLanding()
-    assert.equal(asked?.action, 'review')
-    const review = run('review', 1, 'card one')
-    process.env[RUN_ENV] = review
-    try {
-      cmdReviewVerdict(['1', '--verdict', 'pass'])
-    } finally {
-      delete process.env[RUN_ENV]
-    }
-    end(review)
-    advanceLanding()
+    assert.equal(asked, null)
 
     // Nothing landed: the approval went with the base.
     assert.deepEqual(log(), ['someone else', 'start'])
