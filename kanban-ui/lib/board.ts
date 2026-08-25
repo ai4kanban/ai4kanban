@@ -44,7 +44,7 @@ export async function findCard(id: number): Promise<Card | null> {
  *  then says what the click does without naming a branch it cannot know. */
 export async function deliveryPlan(): Promise<DeliveryPlan> {
   try {
-    return (await boardRules()).deliveryPlan?.() ?? { commitMode: "auto" };
+    return (await (await boardRules()).deliveryPlan?.()) ?? { commitMode: "auto" };
   } catch {
     return { commitMode: "auto" };
   }
@@ -58,7 +58,7 @@ export async function deliveryPlan(): Promise<DeliveryPlan> {
 export async function deliveryDiff(id: string | undefined): Promise<DeliveryDiff | null> {
   if (!id) return null;
   try {
-    return (await boardRules()).deliveryDiff?.(id) ?? null;
+    return (await (await boardRules()).deliveryDiff?.(id)) ?? null;
   } catch {
     return null;
   }
@@ -80,7 +80,7 @@ export async function searchCards(query: string): Promise<CardRef[]> {
   if (!q) return [];
   let cards: Card[];
   try {
-    cards = (await boardRules()).allCards();
+    cards = await (await boardRules()).allCards();
   } catch {
     return [];
   }
@@ -99,7 +99,7 @@ export async function searchCards(query: string): Promise<CardRef[]> {
  *  with no map — or no rules to read one with — has nothing to pick from. */
 export async function readModules(): Promise<string[]> {
   try {
-    return (await boardRules()).readModules();
+    return await (await boardRules()).readModules();
   } catch {
     return [];
   }
@@ -108,7 +108,7 @@ export async function readModules(): Promise<string[]> {
 /** The open releases, in ship order. */
 export async function readReleases(): Promise<string[]> {
   try {
-    return (await boardRules()).readReleases();
+    return await (await boardRules()).readReleases();
   } catch {
     return [];
   }
@@ -119,7 +119,7 @@ export async function readReleases(): Promise<string[]> {
  *  activity would read as their history being gone. */
 export async function readMetrics(): Promise<MetricsResult> {
   try {
-    return (await boardRules()).readMetricsView();
+    return await (await boardRules()).readMetricsView();
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
@@ -139,7 +139,7 @@ export async function readScore(): Promise<ScoreResult> {
           "This board's copy of the rules is older than the planning scores. Run `npm install -g ai4kanban` to update it.",
       };
     }
-    return rules.readScoreView();
+    return await rules.readScoreView();
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
@@ -149,7 +149,7 @@ export async function readScore(): Promise<ScoreResult> {
  *  none, and on one with no rules to read it with: the save is what says why. */
 export async function readGoalText(): Promise<string> {
   try {
-    return (await boardRules()).readGoalText();
+    return await (await boardRules()).readGoalText();
   } catch {
     return "";
   }

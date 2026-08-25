@@ -1,102 +1,113 @@
 // ---- the board, as a front end asks for it ---------------------------------
 //
 // One door onto everything a screen does with the board: read it, edit a card, plan and end
-// a release, save the goal, tick a setup box, and ask what to start on its own. It is the
-// same code every command runs — nothing here is a second implementation of a move — with
-// three things done once, on the way through, so no caller has to remember them:
+// a release, save the goal, tick a setup box, and ask what to start on its own.
 //
-//   • a write takes the board's lock, so an edit saved from a screen waits its turn behind
-//     whatever an agent is writing at that moment rather than landing on top of it,
-//   • a refusal comes back as `{ ok: false, error }` instead of throwing: the caller is a
-//     dialog someone is still typing in, and it must be able to say why and stay open,
-//   • prose a move would have printed is swallowed. These callers read the value, and a
-//     board's stdout is not theirs.
+// Every call here is one operation of the board's contract (../board/contract.ts) and
+// nothing else — the same operations `akb board`, the run engine and the board timer use,
+// so a button and a command can never disagree about what a card says. What this file adds
+// is what a screen needs and the contract deliberately doesn't:
 //
-// Reads take no lock. Nothing they do can be half-written, and a board someone is mid-write
-// on is still readable.
+//   • the envelope. Every write takes a writer lease first. A dialog that read the card
+//     passes the revision it read, and a stale edit comes back as a CONFLICT for the screen
+//     to re-read; a control that read nothing writes against the lease's own revision.
+//   • a refusal that does not throw. The caller is a dialog someone is still typing in, so
+//     everything answers `{ ok, error }` and the dialog stays open on what they typed.
+//
+// Reads take no lock and may be a moment old. Writes never are: each one has landed on the
+// authoritative board by the time its promise resolves.
 
-import { quietly } from '../io'
-import { withBoardLock } from '../lock'
-import { tickSetupStep } from '../setup'
 import {
-  addRelease,
-  closeRelease as closeReleaseMove,
-  dropRelease as dropReleaseMove,
-  endingCards,
-  fillCandidates,
-  fillRelease as fillReleaseMove,
-  foldGoal,
-  readReleases,
-  setReleaseGoal as setReleaseGoalMove,
-  type CardRow,
-} from '../releases'
+  board,
+  envelope,
+  opRefused,
+  withLease,
+  type CardOp,
+  type OpEnvelope,
+  type OpResult,
+  type ReleaseFill,
+  type Revision,
+  type VerifyOp,
+} from '../board'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../schedule'
-import { NO_RELEASE, normalizeRelease } from '../validate'
-import {
-  addVerifyLine,
-  dropVerifyLine,
-  patchCard as patchCardWrite,
-  setCardSchedule,
-} from './edit'
-import { writeGoalText } from './goal'
-import { saveProject as saveProjectWrite } from './first-run'
-import type {
-  BulkReleaseResult,
-  CardPatch,
-  ClosePlan,
-  DropPlan,
-  FillPlan,
-  PlanCard,
-  SaveProjectResult,
-  TrackDraft,
-  VerifyResult,
-  WriteResult,
-} from './types'
+import type { BulkReleaseResult, CardPatch, SaveProjectResult, TrackDraft, WriteResult } from './types'
 
-import { findCard as findCardRow } from './read'
+export type { ReleaseFill }
 
-export { readBoard, findCard, allCards, readSetupState } from './read'
-export { boardStamp } from './stamp'
-export { readMetricsView } from './metrics'
-export { readScoreView } from './score'
-export { readModules, readSetupDraft } from './first-run'
-export { readGoalText } from './goal'
-export { readMemoryFile, readMemoryModules } from './memory'
-export { nextWork } from './dispatch'
-export { deliveryDiff } from './diff'
-export { deliveryPlan } from '../agent/commit-mode'
-export { readReleases } from '../releases'
+// ---- reads -----------------------------------------------------------------
+//
+// Named exactly as they were when they were plain functions, so the app and every caller
+// read the same words; each one is now the contract's own read.
 
-/** Run one write with the board's lock held, and answer with `{ ok }` either way. A refusal
- *  is a BoardError and its message is written to be read; anything else is a bug, whose
- *  message still beats a blank dialog. */
-function write<T extends object>(fn: () => T): WriteResult & Partial<T> {
+export const readBoard = () => board().readBoard()
+export const boardStamp = () => board().boardStamp()
+export const findCard = (id: number) => board().readCard(id)
+export const allCards = () => board().readCards()
+export const readSetupState = () => board().readSetupState()
+export const readSetupDraft = () => board().readSetupDraft()
+export const readModules = () => board().readModules()
+export const readMetricsView = () => board().readMetricsView()
+export const readScoreView = () => board().readScoreView()
+export const readReleases = () => board().readReleases()
+export const readGoalText = () => board().readGoalText()
+export const readMemoryFile = (name: string, module = '') => board().readMemoryFile(name, module)
+export const readMemoryModules = () => board().readMemoryModules()
+export const deliveryPlan = () => board().deliveryPlan()
+export const deliveryDiff = (deliveryId: string) => board().deliveryDiff(deliveryId)
+export const nextWork = () => board().nextWork()
+export const fillPlan = () => board().fillPlan()
+export const closePlan = (id: string) => board().closePlan(id)
+export const dropPlan = (id: string) => board().dropPlan(id)
+
+// ---- the envelope a screen writes with -------------------------------------
+
+/** What a screen may hand in beside a change: the revision it read the card at, and the id
+ *  of the attempt. Both optional — a control that read nothing gets a lease instead. */
+export interface WriteOptions {
+  expect?: Revision
+  opId?: string
+}
+
+/** Run one mutation with an envelope. The lease is taken either way — no card is written
+ *  without one — and what the write is checked against is the revision the screen read, or
+ *  the lease's own for a control that read nothing. */
+function envelopeFor<T>(
+  target: { card: number } | { board: true },
+  opts: WriteOptions | undefined,
+  run: (env: OpEnvelope) => Promise<OpResult<T>>,
+): Promise<OpResult<T>> {
+  return answering(() =>
+    withLease(target, (env) =>
+      run({
+        ...env,
+        expect: opts?.expect ?? env.expect,
+        opId: opts?.opId ?? env.opId,
+      }),
+    ),
+  )
+}
+
+/** Every write here answers, none throws. A mutation refuses by returning, but taking the
+ *  lease can still throw — a board another writer is holding is the one that matters — and
+ *  a dialog someone is still typing in has to be told, not crashed. */
+async function answering<T>(run: () => Promise<OpResult<T>>): Promise<OpResult<T>> {
   try {
-    return { ok: true, ...quietly(() => withBoardLock(fn)) }
+    return await run()
   } catch (e) {
-    // A refusal carries none of the move's own fields — there was no move.
-    return { ok: false, error: e instanceof Error ? e.message : String(e) } as WriteResult & Partial<T>
+    return opRefused(e)
   }
 }
 
-/** Run one read that may refuse, and answer with the fallback when it does — used where a
- *  screen has somewhere sensible to fall back to: an empty picker, an empty plan. */
-function read<T>(fn: () => T, fallback: T): T {
-  try {
-    return quietly(fn)
-  } catch {
-    return fallback
-  }
-}
+/** Whatever a mutation answered with, flattened to the `{ ok, error }` a dialog reads —
+ *  `kind` rides along, so a caller that cares can tell a stale read from a refusal. */
+const flat = <T>(res: OpResult<T>): WriteResult & Partial<T> & { kind: string; current?: Revision } =>
+  res as unknown as WriteResult & Partial<T> & { kind: string; current?: Revision }
 
 // ---- a card ----------------------------------------------------------------
 
 /** Apply a direct edit to one card: its title, body, priority, roi, release, cadence. */
-export function patchCard(id: number, patch: CardPatch): WriteResult {
-  return write(() => {
-    patchCardWrite(id, patch)
-    return {}
-  })
+export async function patchCard(id: number, patch: CardPatch, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ card: id }, opts, (env) => board().patchCard(id, patch, env)))
 }
 
 /**
@@ -108,17 +119,21 @@ export function patchCard(id: number, patch: CardPatch): WriteResult {
  * add or take away hand-checks while the page sits open. A line that is no longer there
  * refuses, and the refusal is what the screen says.
  */
-export function addVerify(id: number, line: string): VerifyResult {
-  return write(() => ({ verify: addVerifyLine(id, line) }))
+export async function addVerify(id: number, line: string, opts?: WriteOptions) {
+  return flat<{ verify: string[] }>(
+    (await envelopeFor({ card: id }, opts, (env) => board().addVerify(id, line, env))) as VerifyOp,
+  )
 }
 
-export function dropVerify(id: number, line: string): VerifyResult {
-  const res = write(() => ({ verify: dropVerifyLine(id, line) }))
+export async function dropVerify(id: number, line: string, opts?: WriteOptions) {
+  const res = flat<{ verify: string[] }>(
+    (await envelopeFor({ card: id }, opts, (env) => board().dropVerify(id, line, env))) as VerifyOp,
+  )
   if (res.ok) return res
   // Refused — most often because a run took that line off while the page sat open. Hand
   // back what the card holds now, so the panel redraws to the truth beside the message
   // rather than keeping a line that is no longer there.
-  return { ...res, verify: read(() => findCardRow(id)?.verify, undefined) }
+  return { ...res, verify: (await board().readCard(id))?.verify }
 }
 
 /**
@@ -129,154 +144,72 @@ export function dropVerify(id: number, line: string): VerifyResult {
  * nothing will ever fire; everything else about whether this card may carry a schedule is
  * the board's own rule, and the refusal comes back as the line it wrote.
  */
-export function setSchedule(id: number, action: string, notes = ''): WriteResult {
+export async function setSchedule(id: number, action: string, notes = '', opts?: WriteOptions): Promise<WriteResult> {
   const wanted = asScheduledAction(action)
   if (!wanted) {
     return { ok: false, error: `"${action}" isn't an action the board can schedule — ${SCHEDULED_ACTIONS.join(' or ')}.` }
   }
-  return write(() => {
-    setCardSchedule(id, { action: wanted, notes: typeof notes === 'string' ? notes : '' })
-    return {}
-  })
+  const schedule = { action: wanted, notes: typeof notes === 'string' ? notes : '' }
+  return flat(await envelopeFor({ card: id }, opts, (env) => board().setSchedule(id, schedule, env)))
 }
 
 /** Take a card's schedule off. Nothing fires after this. Silent about a card that had none:
  *  the button and the mark it takes off are drawn from a read that can be a moment old. */
-export function clearSchedule(id: number): WriteResult {
-  return write(() => {
-    setCardSchedule(id, null)
-    return {}
-  })
+export async function clearSchedule(id: number, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ card: id }, opts, (env) => board().setSchedule(id, null, env)))
 }
 
 /**
  * Move several cards into one release, or back out of one.
  *
- * Each card is written on its own, by the very call one card's release picker makes: one
- * bad card must not cost the rest their move, and the card files stay the record either
- * way. The release is checked once, before any card is written — a release that isn't on
- * the list would fail every card for the same reason, and a bar listing that message twenty
- * times says less than one line saying the release doesn't exist.
+ * Each card is written on its own, under its own lease: one bad card must not cost the rest
+ * their move, and the card files stay the record either way. The release is checked once,
+ * before any card is written — a release that isn't on the list would fail every card for
+ * the same reason, and a bar listing that message twenty times says less than one line
+ * saying the release doesn't exist.
  */
-export function setCardsRelease(ids: number[], release: string): BulkReleaseResult {
-  const target = normalizeRelease(release)
-  if (target !== NO_RELEASE) {
-    const known = read(readReleases, [])
-    if (!known.includes(target)) {
-      return {
-        moved: 0,
-        failed: [],
-        error: `unknown release "${target}" — releases on the list: ${known.join(', ') || '(none)'}.`,
-      }
-    }
-  }
-  const failed: { id: number; error: string }[] = []
-  let moved = 0
-  for (const id of ids) {
-    // A group root is one card here like any other, and moves the way it does on its own
-    // page: its root.md is written and then the same release down every subtask, nested
-    // groups included. No column ever draws a subtask, so ticking a root is the only way
-    // those cards move at all — and a group is one piece of work, so it ships as one.
-    const res = patchCard(id, { release: target })
-    if (res.ok) moved += 1
-    else failed.push({ id, error: res.error || 'could not be moved' })
-  }
-  return { moved, failed }
+export function setCardsRelease(ids: number[], release: string): Promise<BulkReleaseResult> {
+  return board().setCardsRelease(ids, release)
 }
 
 // ---- releases --------------------------------------------------------------
-
-const planCard = (card: CardRow): PlanCard => ({ id: card.id, title: card.title })
-
-/** What a fill would move right now, and which high-priority cards it would leave, each
- *  with the test it failed. Read as a New release dialog opens, so its toggle carries the
- *  number of cards before the release is made. */
-export function fillPlan(): FillPlan {
-  return read(
-    () => {
-      const { fill, skipped } = fillCandidates()
-      return { fill: fill.map(planCard), skipped: skipped.map((c) => ({ ...planCard(c), reason: c.reason })) }
-    },
-    { fill: [], skipped: [] },
-  )
-}
-
-/** What a close would write down and move. It carries the open cards with every todo
- *  ticked, since a close counts those as not shipped and cannot be undone; seeing them is
- *  what lets someone cancel, archive the card, and close after. */
-export function closePlan(id: string): ClosePlan {
-  return read(
-    () => {
-      const { archived, left } = endingCards(id)
-      return { left: left.map((c) => ({ ...planCard(c), done: c.done })), shipped: archived.length }
-    },
-    { left: [], shipped: 0 },
-  )
-}
-
-/** Which archived cards stay put and which open cards a drop strips of their release. */
-export function dropPlan(id: string): DropPlan {
-  return read(
-    () => {
-      const { archived, left } = endingCards(id)
-      return { archived: archived.map(planCard), left: left.map(planCard) }
-    },
-    { archived: [], left: [] },
-  )
-}
-
-/** How a new release was filled. `fill` is the plain rule, run there and then. `agent` means
- *  the release has a goal, so filling it is a run someone still has to start — the release
- *  is already on the list, and it stands whatever that run does. */
-export type ReleaseFill = 'none' | 'fill' | 'agent'
 
 /**
  * Start a release: one line appended to `docs/kanban/releases.md`, in ship order, carrying
  * what the version is for when one was given.
  *
  * `fill` asks for the release to be filled as it is made. Which way that happens is decided
- * here, not by the caller — a goal is what an agent can plan against, and a release without
- * one has nothing for an agent to decide, so it takes the plain rule instead: the
- * high-priority, unblocked, non-root cards in no release go in at once.
+ * by the board, not by the caller — a goal is what an agent can plan against, and a release
+ * without one has nothing for an agent to decide, so it takes the plain rule instead.
  */
-export function newRelease(id: string, goal = '', fill = false): WriteResult & { fill?: ReleaseFill } {
-  return write(() => {
-    const made = addRelease(id, goal)
-    if (!fill) return { fill: 'none' as ReleaseFill }
-    if (foldGoal(goal)) return { fill: 'agent' as ReleaseFill }
-    fillReleaseMove(made)
-    return { fill: 'fill' as ReleaseFill }
-  })
+export async function newRelease(
+  id: string,
+  goal = '',
+  fill = false,
+  opts?: WriteOptions,
+): Promise<WriteResult & { fill?: ReleaseFill }> {
+  return flat<{ fill: ReleaseFill }>(
+    await envelopeFor({ board: true }, opts, (env) => board().newRelease(id, goal, fill, env)),
+  )
 }
 
 /** Change what a release is for, after it was made. An empty goal clears it — a release
  *  with no goal is a state the board works over, so unsaying it has to be possible too. */
-export function setReleaseGoal(id: string, goal: string): WriteResult {
-  return write(() => {
-    setReleaseGoalMove(id.trim(), goal)
-    return {}
-  })
+export async function setReleaseGoal(id: string, goal: string, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ board: true }, opts, (env) => board().setReleaseGoal(id, goal, env)))
 }
 
 /** Close a shipped release: one dated section in its summary file, the open cards' release
- *  cleared, the line off the list. Recomputed rather than trusting the plan a dialog
- *  fetched — a second tab may already have taken the release off. */
-export function closeRelease(id: string): WriteResult & { shipped?: number } {
-  return write(() => {
-    const { shipped } = closeReleaseMove(id.trim())
-    // How many cards the close counted as shipped, so the caller knows whether a changelog
-    // run has anything to write. A version that shipped none gets none (#232).
-    return { shipped: shipped.length }
-  })
+ *  cleared, the line off the list. `shipped` is how many cards the close counted, so the
+ *  caller knows whether a changelog run has anything to write (#232). */
+export async function closeRelease(id: string, opts?: WriteOptions): Promise<WriteResult & { shipped?: number }> {
+  return flat<{ shipped: number }>(await envelopeFor({ board: true }, opts, (env) => board().closeRelease(id, env)))
 }
 
 /** Give up on a release: the open cards' release cleared and the line off the list, with no
  *  summary written. */
-export function dropRelease(id: string): WriteResult {
-  return write(() => {
-    dropReleaseMove(id.trim())
-    return {}
-  })
+export async function dropRelease(id: string, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ board: true }, opts, (env) => board().dropRelease(id, env)))
 }
 
 // ---- the goal and setup ----------------------------------------------------
@@ -288,37 +221,63 @@ export function dropRelease(id: string): WriteResult {
  * board finishes itself. On a board with no checklist the tick is a no-op, which is the
  * whole of the "a goal judged weak long after setup" case.
  */
-export function saveGoal(text: string): WriteResult {
-  if (typeof text !== 'string' || !text.trim()) return { ok: false, error: 'the goal must not be empty' }
-  return write(() => {
-    writeGoalText(text)
-    tickSetupStep('goal')
-    return {}
-  })
+export async function saveGoal(text: string, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ board: true }, opts, (env) => board().saveGoal(text, env)))
 }
 
 /** Save what the project is and what tracks its work falls into, and tick setup's `project`
  *  box. The tracks are folders as well as words, so this is also where a new one is made
  *  and an empty one that was dropped is removed. A track holding cards is kept and named in
  *  the answer rather than deleted. */
-export function saveProject(name: string, description: string, tracks: TrackDraft[]): SaveProjectResult {
-  return write(() => {
-    const result = saveProjectWrite(name, description, tracks)
-    // Saying what the project is IS setup's `project` step, so the save ticks that box —
-    // the same way saving the goal ticks its own. It matters more than the meter: setup
-    // starts at the first unticked box, so a box left open here is a run that comes back
-    // and asks the repo what the user already answered.
-    tickSetupStep('project')
-    return result
-  })
+export async function saveProject(
+  name: string,
+  description: string,
+  tracks: TrackDraft[],
+): Promise<SaveProjectResult> {
+  let lease: string | undefined
+  try {
+    const got = await board().lease({ board: true })
+    if (!got.ok) return { ok: false, error: got.error }
+    lease = got.lease.id
+    return await board().saveProject(name, description, tracks, envelope(got.lease.revision, lease))
+  } catch (e) {
+    return { ok: false, error: opRefused(e).error }
+  } finally {
+    if (lease) await board().releaseLease(lease)
+  }
 }
 
 /** Tick one setup box by name. Silent about a board with no checklist, an unknown step, or
  *  one already ticked: all three mean there is nothing to do, and a setup bar is a nudge,
  *  never something that should fail what the user actually asked for. */
-export function finishSetupStep(name: string): WriteResult {
-  return write(() => {
-    tickSetupStep(name)
-    return {}
-  })
+export async function finishSetupStep(name: string, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ board: true }, opts, (env) => board().finishSetupStep(name, env)))
 }
+
+// ---- the delivery lifecycle ------------------------------------------------
+//
+// The card page's Cancel delivery, Discard delivery and Approve this tree. They write the
+// board, so they are the contract's operations like every other write a screen makes.
+
+export async function cancelDelivery(deliveryId: string): Promise<WriteResult & { deliveryId?: string }> {
+  return flat<{ deliveryId?: string }>(
+    await answering(() => withLease({ board: true }, (env) => board().cancelDelivery(deliveryId, env))),
+  )
+}
+
+export async function discardDelivery(deliveryId: string): Promise<WriteResult & { deliveryId?: string }> {
+  return flat<{ deliveryId?: string }>(
+    await answering(() => withLease({ board: true }, (env) => board().discardDelivery(deliveryId, env))),
+  )
+}
+
+export async function approveDelivery(
+  deliveryId: string,
+  from = '',
+): Promise<WriteResult & { deliveryId?: string; covers?: string }> {
+  return flat<{ deliveryId: string; covers: string }>(
+    await answering(() => withLease({ board: true }, (env) => board().approveDelivery(deliveryId, from, env))),
+  )
+}
+
+export type { CardOp }

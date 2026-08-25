@@ -148,12 +148,26 @@ export function withLock<T>(dir: string, what: string, fn: () => T): T {
   }
 }
 
+// How deep this process already is inside the board's own lock. The board's operations hold
+// it around their file work (lib/board/local.ts), and one of them may call another — a
+// scheduled card's mark comes off inside the pass that hands its run back. Without this the
+// inner call would wait ten seconds for a lock this very process holds and then refuse.
+// Only synchronous nesting counts, which is all there is: nothing holds this lock across an
+// `await`.
+let depth = 0
+
 // Run `fn` with this board's writing lock held.
 export function withBoardLock<T>(fn: () => T): T {
   // No board yet (a fresh `init`) — there is nothing for a second writer to corrupt, and
   // creating the folder here would make `init` think the board already exists.
   if (!fs.existsSync(KANBAN)) return fn()
-  return withLock(LOCK, 'writing this board', fn)
+  if (depth > 0) return fn()
+  depth++
+  try {
+    return withLock(LOCK, 'writing this board', fn)
+  } finally {
+    depth--
+  }
 }
 
 // The lock folder is transient — it exists for the milliseconds a write takes. It only

@@ -115,14 +115,14 @@ function carryOn(after: RunRecord): RunRecord {
   return { ...readStore().runs.find((r) => r.sessionId === run.sessionId)! }
 }
 
-function close(run: RunRecord, status: RunRecord['status'] = 'done'): RunRecord {
+async function close(run: RunRecord, status: RunRecord['status'] = 'done'): Promise<RunRecord> {
   const closed = withStore((store) => {
     const found = store.runs.find((r) => r.sessionId === run.sessionId)!
     found.status = status
     found.endedAt = Date.now()
     return { ...found }
   })
-  settleDelivery(closed)
+  await settleDelivery(closed)
   return closed
 }
 
@@ -152,7 +152,7 @@ const passedOn = (cardId: number): boolean => {
 }
 
 describe('reading a review answer', () => {
-  it('takes each bullet as one finding', () => {
+  it('takes each bullet as one finding', async () => {
     const found = parseFindings(
       ['- **Empty input crashes**: `parse("")` throws in read.ts:20.', '- **Missing test**: nothing covers it.'].join('\n'),
     )
@@ -163,13 +163,13 @@ describe('reading a review answer', () => {
     assert.match(found[0]!.detail, /read\.ts:20/)
   })
 
-  it('folds a wrapped line into the preceding finding', () => {
+  it('folds a wrapped line into the preceding finding', async () => {
     const found = parseFindings(['- **One thing**: the first half', '      and the second half.'].join('\n'))
     assert.equal(found.length, 1)
     assert.match(found[0]!.detail, /first half and the second half/)
   })
 
-  it('reads prose as one finding', () => {
+  it('reads prose as one finding', async () => {
     const found = parseFindings('the change does not do what the card asked for')
     assert.equal(found.length, 1)
     assert.match(found[0]!.title, /does not do what the card asked/)
@@ -177,36 +177,36 @@ describe('reading a review answer', () => {
 })
 
 describe('reviewing and fixing in one session', () => {
-  it('reviews after implementation and finishes on pass', () => {
+  it('reviews after implementation and finishes on pass', async () => {
     const built = build()
     const id = activeDelivery(5)!.deliveryId
-    close(built)
+    await close(built)
     const review = carryOn(built)
     assert.equal(review.action, 'review')
     verdict(review.sessionId, 'pass')
-    close(review)
+    await close(review)
 
     assert.equal(passedOn(5), true)
     assert.equal(deliveryRunAfter(review), null)
     assert.equal(readAudit(id).reviewed !== undefined, true)
   })
 
-  it('keeps fixes made by the review and needs no correction run', () => {
+  it('keeps fixes made by the review and needs no correction run', async () => {
     const built = build()
-    close(built)
+    await close(built)
     const review = carryOn(built)
     fs.writeFileSync(code, 'fixed by review\n')
     verdict(review.sessionId, 'pass')
-    close(review)
+    await close(review)
 
     assert.equal(fs.readFileSync(code, 'utf8'), 'fixed by review\n')
     assert.equal(deliveryRunAfter(review), null)
     assert.equal(activeDelivery(5)!.review!.rounds.length, 1)
   })
 
-  it('waits when implementation was cut off', () => {
+  it('waits when implementation was cut off', async () => {
     const built = build()
-    close(built, 'interrupted')
+    await close(built, 'interrupted')
     assert.equal(activeDelivery(5)?.status, 'active')
     assert.equal(deliveryRunAfter(built), null)
     assert.equal(deliveryWaiting(5), undefined)
@@ -221,42 +221,42 @@ describe('stopping for the user', () => {
     assert.match(questions()[0]!, /Review stopped on delivery/)
   }
 
-  it('stops on ask and records the finding', () => {
+  it('stops on ask and records the finding', async () => {
     const built = build()
-    close(built)
+    await close(built)
     const review = carryOn(built)
     verdict(review.sessionId, 'ask', '- **Is the retry wanted?**: the card does not say.')
-    close(review)
+    await close(review)
     stops(/only you can settle/)
     assert.match(questions()[0]!, /Is the retry wanted\?/)
   })
 
-  it('stops when review failed before recording a verdict', () => {
+  it('stops when review failed before recording a verdict', async () => {
     const built = build()
-    close(built)
-    close(carryOn(built), 'error')
+    await close(built)
+    await close(carryOn(built), 'error')
     stops(/failed before it recorded a verdict/)
   })
 
-  it('stops when review ended without a verdict', () => {
+  it('stops when review ended without a verdict', async () => {
     const built = build()
-    close(built)
-    close(carryOn(built))
+    await close(built)
+    await close(carryOn(built))
     stops(/without recording a verdict/)
   })
 
-  it('does not add a question when the user stopped the session', () => {
+  it('does not add a question when the user stopped the session', async () => {
     const built = build()
-    close(built)
-    close(carryOn(built), 'stopped')
+    await close(built)
+    await close(carryOn(built), 'stopped')
     assert.equal(deliveryWaiting(5), undefined)
     assert.equal(questions().length, 0)
   })
 
-  it('clears a stop when a fresh review starts', () => {
+  it('clears a stop when a fresh review starts', async () => {
     const built = build()
-    close(built)
-    close(carryOn(built), 'error')
+    await close(built)
+    await close(carryOn(built), 'error')
     assert.ok(deliveryWaiting(5))
     const again = session('review')
     withStore((store) => {
@@ -268,16 +268,16 @@ describe('stopping for the user', () => {
 })
 
 describe('recording a verdict', () => {
-  it('refuses a card with no delivery in flight', () => {
+  it('refuses a card with no delivery in flight', async () => {
     assert.throws(() => cmdReviewVerdict(['5', '--verdict', 'pass']), /no delivery is in flight/)
   })
 
-  it('accepts only pass or ask', () => {
+  it('accepts only pass or ask', async () => {
     build()
     assert.throws(() => cmdReviewVerdict(['5', '--verdict', 'correct']), /takes pass, ask/)
   })
 
-  it('requires findings for ask and refuses them for pass', () => {
+  it('requires findings for ask and refuses them for pass', async () => {
     build()
     assert.throws(() => cmdReviewVerdict(['5', '--verdict', 'ask']), /has to say what was found/)
     assert.throws(
@@ -286,23 +286,23 @@ describe('recording a verdict', () => {
     )
   })
 
-  it('replaces the verdict when one session records twice', () => {
+  it('replaces the verdict when one session records twice', async () => {
     const built = build()
-    close(built)
+    await close(built)
     const review = carryOn(built)
     verdict(review.sessionId, 'ask', '- **First thought**: needs a decision.')
     verdict(review.sessionId, 'pass')
     assert.equal(activeDelivery(5)!.review!.rounds.length, 1)
-    close(review)
+    await close(review)
     assert.equal(passedOn(5), true)
   })
 
-  it('does not trust a verdict recorded outside the review session', () => {
+  it('does not trust a verdict recorded outside the review session', async () => {
     const built = build()
-    close(built)
+    await close(built)
     const review = carryOn(built)
     cmdReviewVerdict(['5', '--verdict', 'pass'])
-    close(review)
+    await close(review)
     assert.equal(activeDelivery(5)?.status, 'active')
     assert.match(deliveryWaiting(5) ?? '', /without recording a verdict/)
   })

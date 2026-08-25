@@ -143,7 +143,7 @@ export async function runAgent(argv: string[], options: RunAgentOptions = {}): P
 
   const box = json ? startCollecting() : null
   try {
-    const data = action ? cmdStartRun(action, args, program) : await other!(args, program)
+    const data = action ? await cmdStartRun(action, args, program) : await other!(args, program)
     if (json) answer({ ok: true, board: KANBAN, ...data, ...prose(box) })
     return 0
   } catch (err) {

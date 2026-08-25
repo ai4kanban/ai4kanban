@@ -12,13 +12,11 @@ import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { cmdUpdate } from '../../commands/card'
-import { cmdRun } from '../../commands/misc'
 import { locate } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
-import { quietly } from '../io'
+import { recordCardRun, setCardStatusOn } from '../board'
 // pidAlive lives with the lock, which needs the same question answered about whoever holds it.
-import { pidAlive, withBoardLock } from '../lock'
+import { pidAlive } from '../lock'
 import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
 import {
   activeDelivery,
@@ -154,7 +152,7 @@ const asksPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${ses
 //
 // Unless a stop had already been asked for: then the process ending is the stop landing,
 // and the run is `stopped`.
-function reap(runs: RunRecord[], reaped: RunRecord[] = []): boolean {
+function reap(runs: RunRecord[], reaped: RunRecord[] = [], restore: RunRecord[] = []): boolean {
   let changed = false
   const now = Date.now()
   for (const r of runs) {
@@ -171,7 +169,10 @@ function reap(runs: RunRecord[], reaped: RunRecord[] = []): boolean {
     // We only know it ended by the time we noticed, so this duration is an upper bound.
     r.endedAt = now
     stampDuration(r, r.endedAt)
-    restoreCardStatus(r)
+    // The card's stage is put back OUTSIDE this lock, like the delivery below it: writing
+    // the board is one of the board's own operations now, and holding the record's lock
+    // across it would be holding one lock while waiting on another (#312).
+    restore.push({ ...r })
     // A run cut off mid-delivery is settled outside this lock: a build that was cut
     // off leaves the delivery ACTIVE and unfinished, and a review cut off stops and asks
     // (#302). Legacy correction runs follow the same path.
@@ -195,18 +196,15 @@ function stampDuration(run: RunRecord, endedAt: number): void {
 // ---- the board's own bookkeeping around a run ------------------------------
 
 // The board owns every frontmatter field, so a run never hand-writes one — it calls the
-// move. Best-effort and silent: if the card is gone (archived by the very run that just
-// ended) or the board refuses, the run is over either way and its answer is elsewhere.
-function boardMove(fn: () => void): void {
+// board's own operation (lib/board). Best-effort and silent: if the card is gone (archived
+// by the very run that just ended) or the board refuses, the run is over either way and its
+// answer is elsewhere.
+export async function setCardStatus(cardId: number, status: string): Promise<void> {
   try {
-    withBoardLock(() => quietly(fn))
+    await setCardStatusOn(cardId, status)
   } catch {
-    // card removed, or the board refused — leave it as it is
+    // the board would not take the write — leave the stage as it is
   }
-}
-
-export function setCardStatus(cardId: number, status: string): void {
-  boardMove(() => cmdUpdate([String(cardId), '--status', status]))
 }
 
 /** The card's stage and whether it has open questions, or null when there is no such card.
@@ -225,7 +223,7 @@ function cardNow(cardId: number): { status: string; questions: number; title: st
 
 /** Mark the card as being worked on, and remember the stage it had — so the end of the run
  *  puts back what was there rather than always dropping it to `todo`. */
-export function claimCard(run: RunRecord): void {
+export async function claimCard(run: RunRecord): Promise<void> {
   const wanted = run.cardId !== null ? RUN_STATUS[run.action] : undefined
   if (run.cardId === null || !wanted) return
   // Inside a delivery the stage to put back is the delivery's, taken before its first
@@ -237,28 +235,28 @@ export function claimCard(run: RunRecord): void {
     (delivery && delivery.deliveryId === run.deliveryId ? delivery.priorStatus : undefined) ??
     cardNow(run.cardId)?.status ??
     'todo'
-  setCardStatus(run.cardId, wanted)
+  await setCardStatus(run.cardId, wanted)
 }
 
 // When a run ends and its card still exists, restore the stage it had before — so a `ready`
 // card is `ready` again, not knocked back to `todo`. Questions always win: if the run left
 // the card with open questions, drop it to `todo` whatever the prior stage. If the run
 // finished the task (archive/reject removed the card) this is a harmless no-op.
-function restoreCardStatus(run: RunRecord): void {
+async function restoreCardStatus(run: RunRecord): Promise<void> {
   if (run.cardId === null || !RUN_STATUS[run.action]) return
   // A delivery still in flight is still building this card — its run ended, not the
   // job — so the stage stays where the delivery put it until the delivery itself ends.
   if (run.deliveryId && activeDelivery(run.cardId)?.deliveryId === run.deliveryId) return
   const card = cardNow(run.cardId)
   if (!card) return // archived or rejected — nothing to restore
-  setCardStatus(run.cardId, card.questions > 0 ? 'todo' : run.priorStatus ?? 'todo')
+  await setCardStatus(run.cardId, card.questions > 0 ? 'todo' : run.priorStatus ?? 'todo')
 }
 
 // The card's stage when nothing is working on it any more, for the one path that has no
 // run to read a prior stage from: a delivery cancelled between its runs. Questions
 // or not, a card nobody is building rests at `todo`.
-function releaseCard(cardId: number): void {
-  if (cardNow(cardId)?.status === 'implementing') setCardStatus(cardId, 'todo')
+async function releaseCard(cardId: number): Promise<void> {
+  if (cardNow(cardId)?.status === 'implementing') await setCardStatus(cardId, 'todo')
 }
 
 // Recording a recurring run is the board's own bookkeeping, not part of the job the card
@@ -268,9 +266,13 @@ function releaseCard(cardId: number): void {
 //
 // Only a run that PASSED is recorded. A failed, stopped or interrupted run never reached
 // the end of the `## Process`, so `last_run` stays where it was and the card is still due.
-function recordRecurringRun(run: RunRecord): void {
+async function recordRecurringRun(run: RunRecord): Promise<void> {
   if (run.action !== 'run' || run.cardId === null || run.status !== 'done') return
-  boardMove(() => cmdRun(run.cardId as number))
+  try {
+    await recordCardRun(run.cardId)
+  } catch {
+    // the card is gone, or the board would not take the write — the run is over either way
+  }
 }
 
 // ---- reading ---------------------------------------------------------------
@@ -312,15 +314,18 @@ function toView(r: RunRecord, resumable: string | null): RunView {
 /** Every run the board knows about, oldest first. Reaping happens here, which is why this
  *  writes: a run whose watcher died has to stop reading as live for everyone, not just for
  *  whoever noticed. */
-export function listRuns(): RunView[] {
+export async function listRuns(): Promise<RunView[]> {
   const reaped: RunRecord[] = []
+  const restore: RunRecord[] = []
   const runs = withRuns((all) => {
-    reap(all, reaped)
+    reap(all, reaped, restore)
     return all.map((r) => ({ ...r }))
   })
-  // A run reaped here ended out of everyone's sight, so this is where its delivery is
-  // told — and its permanent record is the only place that ending is written down.
-  for (const run of reaped) settleDelivery(run)
+  // Both outside the record's lock. The card's stage first, then the delivery: a run reaped
+  // here ended out of everyone's sight, so this is where its delivery is told — and its
+  // permanent record is the only place that ending is written down.
+  for (const run of restore) await restoreCardStatus(run)
+  for (const run of reaped) await settleDelivery(run)
   const resumable = resumableHarness() // one settings read for the whole list
   return runs.map((r) => toView(r, resumable))
 }
@@ -340,11 +345,13 @@ export function findRun(runs: RunRecord[], id: string): RunRecord | undefined | 
 }
 
 /** One run with its log read from the file, or null when no run answers to that id. */
-export function getRun(id: string, bytes?: number): RunView | null {
+export async function getRun(id: string, bytes?: number): Promise<RunView | null> {
+  const restore: RunRecord[] = []
   const runs = withRuns((all) => {
-    reap(all)
+    reap(all, [], restore)
     return all.map((r) => ({ ...r }))
   })
+  for (const run of restore) await restoreCardStatus(run)
   const found = findRun(runs, id)
   if (!found) return null
   const view = toView(found, resumableHarness())
@@ -409,8 +416,8 @@ function lockedBy(
  *  Read through `listRuns`, so a run whose process died has already stopped counting as
  *  live. That read takes the record's lock and may reach for the board's, so this is asked
  *  BEFORE the board's own lock is taken, never while it is held. */
-export function heldByRun(cardId: number): string | undefined {
-  const live = listRuns().find(
+export async function heldByRun(cardId: number): Promise<string | undefined> {
+  const live = (await listRuns()).find(
     (r) => r.status === 'running' && r.cardId === cardId && r.action !== 'spec',
   )
   if (!live) return undefined
@@ -526,11 +533,13 @@ export function openRun(
  *  its log deleted. The two are one piece of work — the same conversation, carried on — so
  *  the list keeps one row for it, the one that is still going. The cost is that the earlier
  *  run's log goes with it; `resumedFrom` survives as the mark of where this run began. */
-export function openResume(id: string): { run: RunRecord; spec: RunSpec } | { error: string } {
+export async function openResume(id: string): Promise<{ run: RunRecord; spec: RunSpec } | { error: string }> {
+  const restore: RunRecord[] = []
   const runs = withRuns((all) => {
-    reap(all)
+    reap(all, [], restore)
     return all.map((r) => ({ ...r }))
   })
+  for (const run of restore) await restoreCardStatus(run)
   const prev = findRun(runs, id)
   if (prev === null) return { error: `"${id}" matches more than one run — give more of the id` }
   if (!prev) return { error: `no run here answers to "${id}"` }
@@ -674,7 +683,7 @@ export function peekRun(sessionId: string): RunRecord | undefined {
 
 /** Close a run out: its outcome, the card's stage put back, a recurring card stamped, and
  *  the old logs trimmed. Whichever path gets here first wins and the rest are no-ops. */
-export function closeRun(
+export async function closeRun(
   sessionId: string,
   res: {
     status: RunStatus
@@ -684,7 +693,7 @@ export function closeRun(
     note?: string
     endedAt?: number
   },
-): void {
+): Promise<void> {
   const closed = withRuns((runs) => {
     const run = runs.find((r) => r.sessionId === sessionId)
     if (!run || run.status !== 'running') return undefined
@@ -702,9 +711,9 @@ export function closeRun(
   // whether the delivery is over is what decides whether the card is still being built.
   // Restoring the stage before that would read a delivery that was about to end as one
   // still in flight, and leave the card at `implementing` with nothing working on it.
-  settleDelivery(closed)
-  restoreCardStatus(closed)
-  recordRecurringRun(closed)
+  await settleDelivery(closed)
+  await restoreCardStatus(closed)
+  await recordRecurringRun(closed)
   dropSpec(sessionId)
   pruneLogs()
 }
@@ -715,9 +724,10 @@ export function closeRun(
  *
  *  Stopping a run that has already ended does nothing and reports no error: a run list can
  *  be a moment old, so the run may well have finished between the read and the ask. */
-export function stopRun(id: string): StartResult {
+export async function stopRun(id: string): Promise<StartResult> {
+  const restore: RunRecord[] = []
   const out = withRuns((runs) => {
-    reap(runs)
+    reap(runs, [], restore)
     const run = findRun(runs, id)
     if (run === null) return { ok: false, error: `"${id}" matches more than one run — give more of the id` }
     if (!run) return { ok: false, error: `no run here answers to "${id}"` }
@@ -725,6 +735,7 @@ export function stopRun(id: string): StartResult {
     run.stopping = true
     return { ok: true, sessionId: run.sessionId, pid: run.pid, live: true }
   })
+  for (const run of restore) await restoreCardStatus(run)
   const live = out as StartResult & { pid?: number; live?: boolean }
   if (!live.ok || !live.live) return { ok: live.ok, sessionId: live.sessionId, error: live.error }
   if (live.pid) {
@@ -737,7 +748,7 @@ export function stopRun(id: string): StartResult {
   } else {
     // Nothing to signal: the run is queued behind the shared-file lock and has not spawned
     // a watcher yet, or it died a moment ago. Nothing will ever tell us it ended.
-    closeRun(live.sessionId!, { status: 'stopped', code: null })
+    await closeRun(live.sessionId!, { status: 'stopped', code: null })
   }
   return { ok: true, sessionId: live.sessionId }
 }
@@ -753,7 +764,7 @@ export function stopRun(id: string): StartResult {
  *
  *  The delivery is ended BEFORE the run is stopped, so the card is free from the first
  *  moment and nothing can slip a second delivery in behind the stop. */
-export function cancelDelivery(id: string): { ok: boolean; deliveryId?: string; error?: string } {
+export async function cancelDelivery(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }> {
   if (!id.trim()) return { ok: false, error: 'name the delivery to cancel' }
   const delivery = namedDelivery(id)
   if (!delivery) return { ok: false, error: `no delivery here answers to "${id}"` }
@@ -761,9 +772,9 @@ export function cancelDelivery(id: string): { ok: boolean; deliveryId?: string; 
   endDelivery(delivery.deliveryId, 'cancelled')
   // A delivery that has ended must not still be writing files.
   const live = readRuns().find((r) => r.status === 'running' && r.deliveryId === delivery.deliveryId)
-  if (live) stopRun(live.sessionId)
+  if (live) await stopRun(live.sessionId)
   // Whether or not there was one to stop: nothing is building this card now.
-  releaseCard(delivery.cardId)
+  await releaseCard(delivery.cardId)
   // Last, so the permanent record carries how that run actually ended rather than the
   // state it was in when the cancel arrived.
   syncAudit(delivery.deliveryId)
@@ -785,12 +796,12 @@ export function discardCost(id: string): { deliveryId: string; worktree?: string
  *
  *  It never reaches the user's main checkout: only a path inside `.akb/` is ever removed
  *  (agent/worktree.ts). */
-export function discardDelivery(id: string): { ok: boolean; deliveryId?: string; error?: string } {
+export async function discardDelivery(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }> {
   if (!id.trim()) return { ok: false, error: 'name the delivery to discard' }
   const delivery = namedDelivery(id)
   if (!delivery) return { ok: false, error: `no delivery here answers to "${id}"` }
   if (delivery.status === 'active') {
-    const cancelled = cancelDelivery(delivery.deliveryId)
+    const cancelled = await cancelDelivery(delivery.deliveryId)
     if (!cancelled.ok) return cancelled
   }
   const removed = removeWorktree(delivery.worktree, delivery.branch, true)

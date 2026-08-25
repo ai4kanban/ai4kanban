@@ -234,6 +234,7 @@ function Row({ children }: { children: ReactNode }) {
 
 const CARD: Card = {
   id: 42,
+  revision: "design-page",
   title: "Give the board a design page",
   track: "ui",
   priority: "high",

@@ -32,7 +32,7 @@ async function tick(): Promise<void> {
   try {
     if (!autoWorkAllowed()) return;
     const rules = await boardRules();
-    for (const req of rules.nextWork()) {
+    for (const req of await rules.nextWork()) {
       // Each start is independently refused-or-not by the run record's own rules; a refusal
       // on one card is not a reason to skip the rest.
       await startSession(req, rules.buildPrompt(req));

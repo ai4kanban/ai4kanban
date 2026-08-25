@@ -58,14 +58,18 @@ function toView(run: RunView, deliveries?: Map<string, DeliveryRecord>): Session
 // and they are the same two `akb implement 12` takes — which is the point: a run started
 // from a button and one started in a terminal are the same run, watched the same way, and
 // both outlive whatever asked for them.
-async function launch(open: (rules: Awaited<ReturnType<typeof boardRules>>) => { run: { sessionId: string } } | { error: string }): Promise<StartResult> {
+async function launch(
+  open: (
+    rules: Awaited<ReturnType<typeof boardRules>>,
+  ) => ({ run: { sessionId: string } } | { error: string }) | Promise<{ run: { sessionId: string } } | { error: string }>,
+): Promise<StartResult> {
   let rules;
   try {
     rules = await boardRules();
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
-  const opened = open(rules);
+  const opened = await open(rules);
   if ("error" in opened) return { ok: false, error: opened.error };
   const { sessionId } = opened.run;
   const pid = rules.spawnWatcher(sessionId);
@@ -93,7 +97,7 @@ export async function resumeSession(sessionId: string): Promise<StartResult> {
  *  from a poll that can be a second and a half stale. */
 export async function stopSession(sessionId: string): Promise<StartResult> {
   try {
-    return (await boardRules()).stopRun(sessionId);
+    return await (await boardRules()).stopRun(sessionId);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
@@ -105,7 +109,7 @@ export async function listSessions(): Promise<SessionView[]> {
   try {
     const rules = await boardRules();
     const deliveries = deliveryMap(rules.listDeliveries?.());
-    return rules.listRuns().map((r) => toView(r, deliveries));
+    return (await rules.listRuns()).map((r) => toView(r, deliveries));
   } catch {
     // No rules to load: the board has no sessions to show and says why elsewhere, rather
     // than failing the poll that draws the whole page.
@@ -118,7 +122,7 @@ export async function listSessions(): Promise<SessionView[]> {
 export async function getSession(sessionId: string): Promise<SessionView | null> {
   try {
     const rules = await boardRules();
-    const run = rules.getRun(sessionId);
+    const run = await rules.getRun(sessionId);
     return run ? toView(run, deliveryMap(rules.listDeliveries?.())) : null;
   } catch {
     return null;
@@ -134,7 +138,7 @@ export async function cancelDelivery(id: string): Promise<StartResult> {
     if (!rules.cancelDelivery) {
       return { ok: false, error: "this board's rules are older than deliveries — run `npm install -g ai4kanban`." };
     }
-    const res = rules.cancelDelivery(id);
+    const res = await rules.cancelDelivery(id);
     return { ok: res.ok, error: res.error };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -150,7 +154,7 @@ export async function discardDelivery(id: string): Promise<StartResult> {
     if (!rules.discardDelivery) {
       return { ok: false, error: "this board's rules are older than delivery worktrees — run `npm install -g ai4kanban`." };
     }
-    const res = rules.discardDelivery(id);
+    const res = await rules.discardDelivery(id);
     return { ok: res.ok, error: res.error };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -166,7 +170,7 @@ export async function approveDelivery(id: string): Promise<StartResult> {
     if (!rules.approveDelivery) {
       return { ok: false, error: "this board's rules are older than diff approval — run `npm install -g ai4kanban`." };
     }
-    const res = rules.approveDelivery(id, "the card page");
+    const res = await rules.approveDelivery(id, "the card page");
     return res.ok ? { ok: true } : { ok: false, error: res.error };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };

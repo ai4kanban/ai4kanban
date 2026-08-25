@@ -5,9 +5,7 @@
 // This file decides; it never starts anything. `deliveries.ts` writes the decision onto
 // the delivery, and the watcher of the run that just closed starts what it says.
 
-import { cmdUpdateQuestions } from '../../commands/card'
-import { quietly } from '../io'
-import { withBoardLock } from '../lock'
+import { appendCardQuestion } from '../board'
 import { boardCommand } from './command'
 import type {
   DeliveryRecord,
@@ -169,9 +167,9 @@ export function stopQuestion(delivery: DeliveryRecord, why: string, program = bo
 /** Put that question on the card. Best-effort and silent, exactly as every other board move
  *  a run makes at its close: a delivery that could not write its question is still
  *  stopped, and the reason is on its permanent record either way. */
-export function askUser(cardId: number, question: string): void {
+export async function askUser(cardId: number, question: string): Promise<void> {
   try {
-    withBoardLock(() => quietly(() => cmdUpdateQuestions([String(cardId), '--append', question])))
+    await appendCardQuestion(cardId, question)
   } catch {
     // the card is gone, or the board refused — the stop stands regardless
   }

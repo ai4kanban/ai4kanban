@@ -53,6 +53,10 @@ const TO = path.join(ROOT, "kanban-ui", "lib", "format");
 //   skill/types              whether this project can be driven from a coding agent,
 //                            and what one install wrote. The Configuration dialog
 //                            draws that answer.
+//   board/contract           the operations every part of AI4Kanban reads and writes a
+//                            board through (#312), the envelope each write carries and the
+//                            conflict it can answer with. The server calls them and the
+//                            browser names what comes back, so both sides need one copy.
 const SHARED = [
   "cadence.ts",
   "yaml.ts",
@@ -61,6 +65,7 @@ const SHARED = [
   "skill/types.ts",
   "view/types.ts",
   "view/rules.ts",
+  "board/contract.ts",
 ];
 
 const BANNER = (name) =>

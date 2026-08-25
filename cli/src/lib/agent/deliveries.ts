@@ -381,7 +381,7 @@ export function recordVerdict(
  *  needs the user. A run that failed or was cut off mid-build leaves it ACTIVE and unfinished,
  *  with the card still held, until Resume carries it on or Discard ends it. A
  *  run somebody stopped is the same: stopping a run is not ending the job. */
-export function settleDelivery(run: RunRecord): void {
+export async function settleDelivery(run: RunRecord): Promise<void> {
   if (!run.deliveryId) return
   const before = readStore().deliveries.find((d) => d.deliveryId === run.deliveryId)
   if (!before) return
@@ -452,7 +452,7 @@ export function settleDelivery(run: RunRecord): void {
     return null
   })
   if (settled && 'end' in settled) endDelivery(run.deliveryId, settled.end)
-  if (settled && 'ask' in settled) askUser(settled.cardId, settled.ask)
+  if (settled && 'ask' in settled) await askUser(settled.cardId, settled.ask)
   // Whatever happened, the permanent record follows the run that just closed — from
   // the caller's copy, since closing and pruning it are one write.
   syncAudit(run.deliveryId, run)
@@ -547,7 +547,11 @@ export function manualSettled(delivery: DeliveryRecord): string | undefined {
     // completed here, the way a landing completes one (#307). The delivery is ended first,
     // so nothing is holding the card when it is archived.
     endDelivery(delivery.deliveryId, 'finished')
-    completeCard(delivery.cardId, delivery.deliveryId)
+    // Started rather than awaited: this is read from the card page's own read of the board
+    // (view/read.ts), which is synchronous all the way down. The archive itself is one
+    // board operation like any other, and it has landed by the time the Local board's call
+    // resolves (lib/board/local.ts).
+    void completeCard(delivery.cardId, delivery.deliveryId)
     return undefined
   }
   // They committed something other than what review passed, so the whole candidate goes

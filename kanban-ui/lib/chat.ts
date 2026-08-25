@@ -100,7 +100,7 @@ export async function readChat(cardId: number | null): Promise<ChatRead> {
     // Our own reply in flight, or anyone's — a conversation carried on from a terminal is
     // writing this same board, and the window follows it the same way.
     answering: Boolean(flight) || view.answering === true,
-    stamp: rules.boardStamp ? rules.boardStamp() : null,
+    stamp: rules.boardStamp ? await rules.boardStamp() : null,
     // Asked of the board rather than remembered: the card may have gone at any moment, and
     // a title read is one card file.
     cardGone: cardId !== null && !rules.titleOf(cardId),

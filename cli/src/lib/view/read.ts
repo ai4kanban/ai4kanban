@@ -23,6 +23,7 @@ import { formatStamp, nextDue } from '../cadence'
 import { parseFrontmatter } from '../frontmatter'
 import { readReleaseEntries } from '../releases'
 import { readSetupChecklist } from '../setup'
+import { revisionOf } from '../board/revision'
 import { goalNeedsWork, goalWritten } from './goal'
 import { readMemoryModules } from './memory'
 import { byPickOrder } from './rules'
@@ -89,7 +90,8 @@ function readCard(file: string, relFromTodo: string): Card | null {
 }
 
 function buildCard(id: number, file: string, relFromTodo: string): Card | null {
-  const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+  const text = fs.readFileSync(file, 'utf8')
+  const { meta, body } = parseFrontmatter(text)
   if (!meta) return null
   // The frontmatter `track` is authoritative — it decides which column the card shows
   // under. A group root lives in `<id>-<slug>/root.md` (a folder that is NOT a track), so
@@ -102,6 +104,9 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
   const recurring = relPath.split('/')[0] === 'recurring'
   return {
     id,
+    // Derived from the file exactly as it is on disk (lib/board/revision.ts), so a card
+    // read here and a card read by the contract agree on what version this is.
+    revision: revisionOf(text),
     relPath,
     title: meta.title,
     track,

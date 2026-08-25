@@ -32,7 +32,7 @@ const refused = (e: unknown): WriteResult => ({
 /** Apply a direct edit to one card. */
 export async function patchCard(id: number, patch: CardPatch): Promise<WriteResult> {
   try {
-    return (await boardRules()).patchCard(id, patch);
+    return await (await boardRules()).patchCard(id, patch);
   } catch (e) {
     return refused(e);
   }
@@ -51,7 +51,7 @@ const OLD_RULES: WriteResult = {
 export async function addVerify(id: number, line: string): Promise<VerifyResult> {
   try {
     const rules = await boardRules();
-    return rules.addVerify ? rules.addVerify(id, line) : OLD_RULES;
+    return rules.addVerify ? await rules.addVerify(id, line) : OLD_RULES;
   } catch (e) {
     return refused(e);
   }
@@ -60,7 +60,7 @@ export async function addVerify(id: number, line: string): Promise<VerifyResult>
 export async function dropVerify(id: number, line: string): Promise<VerifyResult> {
   try {
     const rules = await boardRules();
-    return rules.dropVerify ? rules.dropVerify(id, line) : OLD_RULES;
+    return rules.dropVerify ? await rules.dropVerify(id, line) : OLD_RULES;
   } catch (e) {
     return refused(e);
   }
@@ -71,7 +71,7 @@ export async function dropVerify(id: number, line: string): Promise<VerifyResult
  *  wouldn't move it, refuses with the line saying why. */
 export async function setSchedule(id: number, action: string, notes = ""): Promise<WriteResult> {
   try {
-    return (await boardRules()).setSchedule(id, action, notes);
+    return await (await boardRules()).setSchedule(id, action, notes);
   } catch (e) {
     return refused(e);
   }
@@ -80,7 +80,7 @@ export async function setSchedule(id: number, action: string, notes = ""): Promi
 /** Take a card's schedule off. Nothing fires after this. */
 export async function clearSchedule(id: number): Promise<WriteResult> {
   try {
-    return (await boardRules()).clearSchedule(id);
+    return await (await boardRules()).clearSchedule(id);
   } catch (e) {
     return refused(e);
   }
@@ -91,7 +91,7 @@ export async function clearSchedule(id: number): Promise<WriteResult> {
  *  its own comes back in `failed` while the rest go through. */
 export async function setCardsRelease(ids: number[], release: string): Promise<BulkReleaseResult> {
   try {
-    return (await boardRules()).setCardsRelease(ids, release);
+    return await (await boardRules()).setCardsRelease(ids, release);
   } catch (e) {
     return { moved: 0, failed: [], error: refused(e).error };
   }
@@ -107,7 +107,7 @@ export async function newRelease(
   fill = false,
 ): Promise<WriteResult & { fill?: "none" | "fill" | "agent" }> {
   try {
-    return (await boardRules()).newRelease(id, goal, fill);
+    return await (await boardRules()).newRelease(id, goal, fill);
   } catch (e) {
     return refused(e);
   }
@@ -116,7 +116,7 @@ export async function newRelease(
 /** Change what a release is for, after it was made. An empty goal clears it. */
 export async function setReleaseGoal(id: string, goal: string): Promise<WriteResult> {
   try {
-    return (await boardRules()).setReleaseGoal(id, goal);
+    return await (await boardRules()).setReleaseGoal(id, goal);
   } catch (e) {
     return refused(e);
   }
@@ -126,7 +126,7 @@ export async function setReleaseGoal(id: string, goal: string): Promise<WriteRes
  *  whether a changelog run has anything to write (#232). */
 export async function closeRelease(id: string): Promise<WriteResult & { shipped?: number }> {
   try {
-    return (await boardRules()).closeRelease(id);
+    return await (await boardRules()).closeRelease(id);
   } catch (e) {
     return refused(e);
   }
@@ -135,7 +135,7 @@ export async function closeRelease(id: string): Promise<WriteResult & { shipped?
 /** Give up on a release. */
 export async function dropRelease(id: string): Promise<WriteResult> {
   try {
-    return (await boardRules()).dropRelease(id);
+    return await (await boardRules()).dropRelease(id);
   } catch (e) {
     return refused(e);
   }
@@ -144,7 +144,7 @@ export async function dropRelease(id: string): Promise<WriteResult> {
 /** Save the project goal, which is also setup's goal step. */
 export async function saveGoal(text: string): Promise<WriteResult> {
   try {
-    return (await boardRules()).saveGoal(text);
+    return await (await boardRules()).saveGoal(text);
   } catch (e) {
     return refused(e);
   }
@@ -158,7 +158,7 @@ export async function saveProject(
   tracks: TrackDraft[],
 ): Promise<SaveProjectResult> {
   try {
-    return (await boardRules()).saveProject(name, description, tracks);
+    return await (await boardRules()).saveProject(name, description, tracks);
   } catch (e) {
     return refused(e);
   }
@@ -167,7 +167,7 @@ export async function saveProject(
 /** Tick one setup box by name. */
 export async function finishSetupStep(name: string): Promise<WriteResult> {
   try {
-    return (await boardRules()).finishSetupStep(name);
+    return await (await boardRules()).finishSetupStep(name);
   } catch (e) {
     return refused(e);
   }
@@ -179,7 +179,7 @@ export async function finishSetupStep(name: string): Promise<WriteResult> {
 
 export async function fillPlan(): Promise<FillPlan> {
   try {
-    return (await boardRules()).fillPlan();
+    return await (await boardRules()).fillPlan();
   } catch {
     return { fill: [], skipped: [] };
   }
@@ -187,7 +187,7 @@ export async function fillPlan(): Promise<FillPlan> {
 
 export async function closePlan(id: string): Promise<ClosePlan> {
   try {
-    return (await boardRules()).closePlan(id);
+    return await (await boardRules()).closePlan(id);
   } catch {
     return { left: [], shipped: 0 };
   }
@@ -195,7 +195,7 @@ export async function closePlan(id: string): Promise<ClosePlan> {
 
 export async function dropPlan(id: string): Promise<DropPlan> {
   try {
-    return (await boardRules()).dropPlan(id);
+    return await (await boardRules()).dropPlan(id);
   } catch {
     return { archived: [], left: [] };
   }

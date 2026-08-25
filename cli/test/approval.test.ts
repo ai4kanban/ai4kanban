@@ -88,18 +88,18 @@ function run(action: AgentAction, id: number, title: string): string {
   return opened.run.sessionId
 }
 
-function end(sessionId: string, status: 'done' | 'error' = 'done'): void {
+async function end(sessionId: string, status: 'done' | 'error' = 'done'): Promise<void> {
   const record = withStore((store) => store.runs.find((r) => r.sessionId === sessionId))
   fs.writeFileSync(record!.logPath, 'log\n')
-  closeRun(sessionId, { status, ok: status === 'done', code: 0 })
+  await closeRun(sessionId, { status, ok: status === 'done', code: 0 })
 }
 
 // Build a card and pass its review: everything that happens before a landing.
-function reviewed(id: number, title: string, text: string): DeliveryRecord {
+async function reviewed(id: number, title: string, text: string): Promise<DeliveryRecord> {
   const built = run('implement', id, title)
   const delivery = activeDelivery(id)!
   fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), text)
-  end(built)
+  await end(built)
   const review = run('review', id, title)
   process.env[RUN_ENV] = review
   try {
@@ -107,7 +107,7 @@ function reviewed(id: number, title: string, text: string): DeliveryRecord {
   } finally {
     delete process.env[RUN_ENV]
   }
-  end(review)
+  await end(review)
   return delivery
 }
 
@@ -115,43 +115,43 @@ const live = (deliveryId: string): DeliveryRecord => listDeliveries().find((d) =
 const log = (ref = 'main'): string[] => git(['log', '--format=%s', ref]).split('\n')
 
 describe('the setting', () => {
-  it('is off by default, and a delivery started then lands unasked', () => {
+  it('is off by default, and a delivery started then lands unasked', async () => {
     setDiffApproval(false)
-    const delivery = reviewed(1, 'card one', 'one\n')
+    const delivery = await reviewed(1, 'card one', 'one\n')
     assert.equal(live(delivery.deliveryId).approval?.required, false)
 
-    advanceLanding()
+    await advanceLanding()
     assert.equal(live(delivery.deliveryId).landing?.status, 'landed')
     assert.deepEqual(log(), ['card one (#1)', 'start'])
   })
 
-  it('is frozen when the delivery starts, so flipping it changes only the next one', () => {
-    const delivery = reviewed(1, 'card one', 'one\n')
+  it('is frozen when the delivery starts, so flipping it changes only the next one', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
     assert.equal(live(delivery.deliveryId).approval?.required, true)
 
     // Switched off while this one is in flight: it still waits, because the answer it
     // started under is the answer it keeps.
     setDiffApproval(false)
-    advanceLanding()
+    await advanceLanding()
     assert.equal(live(delivery.deliveryId).landing?.status, 'waiting')
     assert.deepEqual(log(), ['start'])
   })
 
-  it('has nothing to hold in manual commit mode — the user\'s own commit is the approval', () => {
+  it('has nothing to hold in manual commit mode — the user\'s own commit is the approval', async () => {
     setAutoCommit(false)
     const built = run('implement', 1, 'card one')
     assert.equal(activeDelivery(1)!.approval?.required, false)
-    end(built)
+    await end(built)
   })
 })
 
 describe('waiting on the approval', () => {
-  it('holds outside the queue, taking no slot, so every other card still lands', () => {
-    const first = reviewed(1, 'card one', 'one\n')
-    const second = reviewed(2, 'card two', 'two\n')
+  it('holds outside the queue, taking no slot, so every other card still lands', async () => {
+    const first = await reviewed(1, 'card one', 'one\n')
+    const second = await reviewed(2, 'card two', 'two\n')
     approveDelivery(second.deliveryId, 'test')
 
-    advanceLanding()
+    await advanceLanding()
 
     // The unapproved one is still waiting, and says what on; the approved one landed past it.
     assert.equal(live(first.deliveryId).landing?.status, 'waiting')
@@ -160,9 +160,9 @@ describe('waiting on the approval', () => {
     assert.deepEqual(log(), ['card two (#2)', 'start'])
   })
 
-  it('says what it waits on, and that there is something to press', () => {
-    const delivery = reviewed(1, 'card one', 'one\n')
-    advanceLanding()
+  it('says what it waits on, and that there is something to press', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
     const state = deliveryState(live(delivery.deliveryId), 0)
     assert.equal(state.stage, 'approval')
     assert.equal(state.paused, true)
@@ -170,15 +170,15 @@ describe('waiting on the approval', () => {
     assert.match(state.line, /Diff/)
   })
 
-  it('lands once approved, and the record says what the approval covered', () => {
-    const delivery = reviewed(1, 'card one', 'one\n')
-    advanceLanding()
+  it('lands once approved, and the record says what the approval covered', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
     assert.deepEqual(log(), ['start'])
 
     const approved = approveDelivery(delivery.deliveryId, 'test')
     assert.equal(approved.ok, true)
 
-    advanceLanding()
+    await advanceLanding()
     assert.equal(live(delivery.deliveryId).landing?.status, 'landed')
     assert.deepEqual(log(), ['card one (#1)', 'start'])
 
@@ -190,9 +190,9 @@ describe('waiting on the approval', () => {
     assert.ok(events[0]!.mark)
   })
 
-  it('refuses to approve a delivery that was never asked to be approved', () => {
+  it('refuses to approve a delivery that was never asked to be approved', async () => {
     setDiffApproval(false)
-    const delivery = reviewed(1, 'card one', 'one\n')
+    const delivery = await reviewed(1, 'card one', 'one\n')
     const res = approveDelivery(delivery.deliveryId, 'test')
     assert.equal(res.ok, false)
     assert.match('error' in res ? res.error : '', /needs no approval/)
@@ -200,9 +200,9 @@ describe('waiting on the approval', () => {
 })
 
 describe('what cancels an approval', () => {
-  it('the tree moving after approval sends it back to waiting', () => {
-    const delivery = reviewed(1, 'card one', 'one\n')
-    advanceLanding()
+  it('the tree moving after approval sends it back to waiting', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
     approveDelivery(delivery.deliveryId, 'test')
 
     // Somebody changed the candidate after it was signed off.
@@ -210,7 +210,7 @@ describe('what cancels an approval', () => {
     git(['add', '-A'], worktreeDir(delivery.worktree!))
     git(['commit', '--quiet', '-m', 'after the approval'], worktreeDir(delivery.worktree!))
 
-    advanceLanding()
+    await advanceLanding()
 
     assert.deepEqual(log(), ['start'])
     const approval = live(delivery.deliveryId).approval!
@@ -221,9 +221,9 @@ describe('what cancels an approval', () => {
     assert.match(live(delivery.deliveryId).landing?.why ?? '', /held on your approval/)
   })
 
-  it('the base moving cancels approval even though the rebase keeps its review', () => {
-    const delivery = reviewed(1, 'card one', 'one\n')
-    advanceLanding()
+  it('the base moving cancels approval even though the rebase keeps its review', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
     approveDelivery(delivery.deliveryId, 'test')
 
     // The target branch moved under it, so landing rebases — and the base it was approved
@@ -233,7 +233,7 @@ describe('what cancels an approval', () => {
     git(['commit', '--quiet', '-m', 'someone else'])
 
     // The rebase keeps its passed review, but not an approval of the old base.
-    const asked = advanceLanding()
+    const asked = await advanceLanding()
     assert.equal(asked, null)
 
     // Nothing landed: the approval went with the base.
@@ -244,21 +244,21 @@ describe('what cancels an approval', () => {
 
     // Approving the rebased tree lands it.
     approveDelivery(delivery.deliveryId, 'test')
-    advanceLanding()
+    await advanceLanding()
     assert.deepEqual(log(), ['card one (#1)', 'someone else', 'start'])
   })
 
-  it('a cancelled approval is only recorded once, however many passes go by', () => {
-    const delivery = reviewed(1, 'card one', 'one\n')
-    advanceLanding()
+  it('a cancelled approval is only recorded once, however many passes go by', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
     approveDelivery(delivery.deliveryId, 'test')
     fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), 'else\n')
     git(['add', '-A'], worktreeDir(delivery.worktree!))
     git(['commit', '--quiet', '-m', 'after'], worktreeDir(delivery.worktree!))
 
-    advanceLanding()
-    advanceLanding()
-    advanceLanding()
+    await advanceLanding()
+    await advanceLanding()
+    await advanceLanding()
 
     const cancelled = live(delivery.deliveryId).approval!.events.filter((e) => e.kind === 'cancelled')
     assert.equal(cancelled.length, 1)

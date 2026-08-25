@@ -84,20 +84,23 @@ function run(action: AgentAction, id: number, title: string): string {
   return opened.run.sessionId
 }
 
-function end(sessionId: string): void {
+async function end(sessionId: string): Promise<void> {
   const record = withStore((store) => store.runs.find((r) => r.sessionId === sessionId))
   fs.writeFileSync(record!.logPath, 'log\n')
-  closeRun(sessionId, { status: 'done', ok: true, code: 0 })
+  await closeRun(sessionId, { status: 'done', ok: true, code: 0 })
 }
 
 // Build the card and pass its review, leaving `write` behind in whichever checkout the
 // delivery works in.
-function reviewed(write: (dir: string) => void, reviewWrite?: (dir: string) => void): DeliveryRecord {
+async function reviewed(
+  write: (dir: string) => void,
+  reviewWrite?: (dir: string) => void,
+): Promise<DeliveryRecord> {
   const built = run('implement', 1, 'card one')
   const delivery = activeDelivery(1)!
   const dir = delivery.worktree ? worktreeDir(delivery.worktree) : root
   write(dir)
-  end(built)
+  await end(built)
   const review = run('review', 1, 'card one')
   reviewWrite?.(dir)
   process.env[RUN_ENV] = review
@@ -106,7 +109,7 @@ function reviewed(write: (dir: string) => void, reviewWrite?: (dir: string) => v
   } finally {
     delete process.env[RUN_ENV]
   }
-  end(review)
+  await end(review)
   return delivery
 }
 
@@ -124,8 +127,8 @@ function reviewFlow(): string {
 }
 
 describe('while a delivery builds', () => {
-  it('keeps technical discoveries with the reviewing agent', () => {
-    reviewed(() => {})
+  it('keeps technical discoveries with the reviewing agent', async () => {
+    await reviewed(() => {})
 
     const flow = reviewFlow()
     assert.match(flow, /answered material decision surfaced by the build/)
@@ -133,8 +136,8 @@ describe('while a delivery builds', () => {
     assert.doesNotMatch(flow, /needs awareness but no decision/)
   })
 
-  it('diffs its own branch against the base it forked from', () => {
-    const delivery = reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
+  it('diffs its own branch against the base it forked from', async () => {
+    const delivery = await reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
 
     const diff = deliveryDiff(delivery.deliveryId)!
     assert.equal(diff.id, delivery.deliveryId)
@@ -150,13 +153,13 @@ describe('while a delivery builds', () => {
     assert.match(flow, /^\s*\+one$/m)
   })
 
-  it('leaves the board out of it', () => {
-    const delivery = reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
+  it('leaves the board out of it', async () => {
+    const delivery = await reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
     assert.equal(deliveryDiff(delivery.deliveryId)!.diff.includes('docs/kanban'), false)
   })
 
-  it('commits fixes made by the review before landing', () => {
-    const delivery = reviewed(
+  it('commits fixes made by the review before landing', async () => {
+    const delivery = await reviewed(
       (dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'built\n'),
       (dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'fixed by review\n'),
     )
@@ -167,8 +170,8 @@ describe('while a delivery builds', () => {
     assert.equal(git(['status', '--porcelain'], worktreeDir(delivery.worktree!)), '')
   })
 
-  it('says so plainly when the worktree is gone', () => {
-    const delivery = reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
+  it('says so plainly when the worktree is gone', async () => {
+    const delivery = await reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
     fs.rmSync(worktreeDir(delivery.worktree!), { recursive: true, force: true })
 
     const diff = deliveryDiff(delivery.deliveryId)!
@@ -176,7 +179,7 @@ describe('while a delivery builds', () => {
     assert.equal(diff.diff, '')
   })
 
-  it('is nothing at all for a delivery nobody has heard of', () => {
+  it('is nothing at all for a delivery nobody has heard of', async () => {
     assert.equal(deliveryDiff('d-nope'), null)
   })
 })
@@ -184,8 +187,8 @@ describe('while a delivery builds', () => {
 describe('manual commit mode', () => {
   beforeEach(() => setAutoCommit(false))
 
-  it('snapshots the working tree, counts in the files git has never seen, and labels it', () => {
-    const delivery = reviewed((dir) => {
+  it('snapshots the working tree, counts in the files git has never seen, and labels it', async () => {
+    const delivery = await reviewed((dir) => {
       fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n')
       fs.writeFileSync(path.join(dir, 'brand-new.txt'), 'whole new module\n')
     })
@@ -207,9 +210,9 @@ describe('manual commit mode', () => {
 })
 
 describe('once it has landed', () => {
-  it('diffs the commit that landed against the tip it landed onto', () => {
-    const delivery = reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
-    advanceLanding()
+  it('diffs the commit that landed against the tip it landed onto', async () => {
+    const delivery = await reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
+    await advanceLanding()
     const landing = recordOf(delivery.deliveryId).landing!
     assert.equal(landing.status, 'landed')
 
@@ -220,9 +223,9 @@ describe('once it has landed', () => {
     assert.match(diff.whole ?? '', /^$|git diff/)
   })
 
-  it('is reachable from the card, which still names the delivery that landed', () => {
-    const delivery = reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
-    advanceLanding()
+  it('is reachable from the card, which still names the delivery that landed', async () => {
+    const delivery = await reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
+    await advanceLanding()
     // The board archives a landed card in the same breath, so the card page only ever sees
     // this in the blink between the two — or when the archive itself could not be made,
     // which is the state put back here.
@@ -235,9 +238,9 @@ describe('once it has landed', () => {
     assert.ok(deliveryDiff(finished.id))
   })
 
-  it('says so plainly when the commit is no longer there', () => {
-    const delivery = reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
-    advanceLanding()
+  it('says so plainly when the commit is no longer there', async () => {
+    const delivery = await reviewed((dir) => fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n'))
+    await advanceLanding()
     // Rewritten history: the commit that landed is not in this repository any more.
     withStore((store) => {
       const held = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)!
@@ -251,8 +254,8 @@ describe('once it has landed', () => {
 })
 
 describe('a diff too long for the page', () => {
-  it('is cut at a line, and says where the whole of it is', () => {
-    const delivery = reviewed((dir) =>
+  it('is cut at a line, and says where the whole of it is', async () => {
+    const delivery = await reviewed((dir) =>
       fs.writeFileSync(path.join(dir, 'shared.txt'), Array.from({ length: 40_000 }, (_, i) => `line ${i}`).join('\n')),
     )
 

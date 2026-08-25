@@ -53,6 +53,9 @@ const STOP_GRACE_MS = 5_000
 // And how long after that before the run is closed out whatever the child's pipes are
 // doing. See the note beside askToStop.
 const STOP_CLOSE_MS = 2_000
+// And how long the ending path itself gets to write the board out before the process
+// leaves anyway.
+const STOP_FINISH_MS = 10_000
 
 /** Watch one run from start to finish. Resolves when the record is closed out. */
 export async function watchRun(sessionId: string): Promise<number> {
@@ -204,7 +207,7 @@ export async function watchRun(sessionId: string): Promise<number> {
     // How the conversation ended, on a run the board talked to. It stands in for
     // everything a printing agent's own output would have said.
     let spoken: TurnEnd | undefined
-    const finish = (code: number | null, asked: boolean) => {
+    const finish = async (code: number | null, asked: boolean): Promise<void> => {
       if (done) return
       done = true
       if (renderer) {
@@ -248,7 +251,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       // the note it ended with rather than catching the record a beat too early.
       const settled = status === 'done' ? settleBoard(record, before) : null
       const note = status === 'done' ? joinNotes(settled?.stalled, brokeBoard(wasBroken)) : undefined
-      closeRun(sessionId, {
+      await closeRun(sessionId, {
         status,
         // `ok` stays unset on a stopped run, as it does on one that was cut off: it
         // neither passed nor failed, it was ended.
@@ -267,7 +270,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       // Then the landing queue (#304): a delivery review has just passed takes the slot and
       // lands here, and what it hands back is the run that landing wants — the agent that
       // resolves a conflict.
-      const landing = advanceLanding()
+      const landing = await advanceLanding()
       followUp(sessionId, settled?.runs ?? [], carryOn, landing)
       resolve(code === 0 ? 0 : 1)
     }
@@ -307,10 +310,13 @@ export async function watchRun(sessionId: string): Promise<number> {
       stopped = true
       endChild()
       after(STOP_GRACE_MS + STOP_CLOSE_MS, () => {
-        finish(null, true)
         // Nothing else is waiting on this process, and something is still holding a pipe
-        // open — so leave rather than sit here for as long as it does.
-        process.exit(0)
+        // open — so leave rather than sit here for as long as it does. The ending path
+        // writes the board, so it is awaited first: exiting on the same tick would drop
+        // the card's stage, a stopped run's question, and the delivery's next run. The
+        // second timer is the bound — a landing that hangs cannot hold the process open.
+        after(STOP_FINISH_MS, () => process.exit(0))
+        void finish(null, true).finally(() => process.exit(0))
       })
     }
     process.on('SIGTERM', askToStop)
@@ -324,7 +330,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       const toAgent = child.stdin
       if (!toAgent) {
         log.write(`\n[error] nothing could be written to ${cmd}, so there was no way to send it the task\n`)
-        finish(1, false)
+        void finish(1, false)
       } else {
         void client
           .turn({
@@ -342,12 +348,12 @@ export async function watchRun(sessionId: string): Promise<number> {
           .then((end) => {
             spoken = end
             endChild()
-            finish(end.ok ? 0 : 1, peekRun(sessionId)?.stopping === true || stopped)
+            void finish(end.ok ? 0 : 1, peekRun(sessionId)?.stopping === true || stopped)
           })
       }
     }
 
-    child.on('close', (code) => finish(code, peekRun(sessionId)?.stopping === true || stopped))
+    child.on('close', (code) => void finish(code, peekRun(sessionId)?.stopping === true || stopped))
   })
 }
 

@@ -12,25 +12,31 @@
 // The delivery is ended BEFORE this is called, so nothing is still holding the card when
 // it is archived.
 
-import { cmdRemove } from '../../commands/remove'
-import { quietly, say } from '../io'
-import { withBoardLock } from '../lock'
+import { archiveCard } from '../board'
+import { say } from '../io'
 import { boardCommand } from './command'
 
-/** Take the card off the board, now that its delivery is over.
+/** Take the card off the board, now that its delivery is over — the board's own archive
+ *  operation, like every other write a run makes (#312).
  *
  *  Best-effort and never thrown from: the code has landed either way, and a card that
  *  could not be archived is one board command away rather than a lost delivery. What went
  *  wrong is said out loud, with the command that finishes the job. */
-export function completeCard(cardId: number, deliveryId: string): void {
+export async function completeCard(cardId: number, deliveryId: string): Promise<void> {
+  let why: string
   try {
-    withBoardLock(() => quietly(() => cmdRemove(cardId, 'completed')))
-    say(`#${cardId} archived — delivery ${deliveryId} is done.`)
+    const res = await archiveCard(cardId)
+    if (res.ok) {
+      say(`#${cardId} archived — delivery ${deliveryId} is done.`)
+      return
+    }
+    why = res.error
   } catch (e) {
-    const why = e instanceof Error ? e.message : String(e)
-    say(
-      `delivery ${deliveryId} is done, but #${cardId} could not be archived: ${why} ` +
-        `Archive it with \`${boardCommand()} board archive ${cardId}\`.`,
-    )
+    // A board another writer is holding refuses by throwing, and this path must not.
+    why = e instanceof Error ? e.message : String(e)
   }
+  say(
+    `delivery ${deliveryId} is done, but #${cardId} could not be archived: ${why} ` +
+      `Archive it with \`${boardCommand()} board archive ${cardId}\`.`,
+  )
 }

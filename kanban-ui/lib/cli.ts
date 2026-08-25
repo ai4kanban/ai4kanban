@@ -61,18 +61,24 @@ import type {
 // the fix rather than coming up empty.
 
 /** What the built file gives us. It is the CLI's own public surface — see the exports at
- *  the top of `cli/src/kanban.ts`. */
+ *  the top of `cli/src/kanban.ts`.
+ *
+ *  Everything that reads or writes the board is promise-returning: a board can live
+ *  somewhere other than this machine, and the CLI's operation contract (#312) is
+ *  asynchronous all the way through so a Cloud board is one more provider rather than a
+ *  second write path. A copy of the rules older than that contract answers with the plain
+ *  value, which `await` takes just as happily — so awaiting is safe on every board. */
 export interface BoardRules {
   setBoardRoot(root: string): string;
 
   // the runs
-  listRuns(): RunView[];
-  getRun(id: string, bytes?: number): RunView | null;
+  listRuns(): Promise<RunView[]>;
+  getRun(id: string, bytes?: number): Promise<RunView | null>;
   openRun(req: AgentRequest, prompt: string): { run: RunRecord } | { error: string };
-  openResume(id: string): { run: RunRecord } | { error: string };
+  openResume(id: string): Promise<{ run: RunRecord } | { error: string }>;
   markSpawned(sessionId: string, pid: number | undefined): void;
   spawnWatcher(sessionId: string): number | undefined;
-  stopRun(id: string): { ok: boolean; sessionId?: string; error?: string };
+  stopRun(id: string): Promise<{ ok: boolean; sessionId?: string; error?: string }>;
   titleOf(cardId: number | undefined): string | undefined;
   buildPrompt(req: AgentRequest): string;
 
@@ -81,17 +87,17 @@ export interface BoardRules {
   // and then a run simply carries no delivery and no card is ever held.
   listDeliveries?(): DeliveryRecord[];
   activeDelivery?(cardId: number): DeliveryRecord | undefined;
-  cancelDelivery?(id: string): { ok: boolean; deliveryId?: string; error?: string };
+  cancelDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }>;
   /** A delivery's worktree and branch, thrown away on request (#303). Cancelling one leaves
    *  its checkout where it is; this is the only thing that removes one. */
-  discardDelivery?(id: string): { ok: boolean; deliveryId?: string; error?: string };
+  discardDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }>;
   discardCost?(id: string): { deliveryId: string; worktree?: string; branch?: string } | null;
   /** Sign off the tree a delivery would land (#308), on a board that requires it. `from`
    *  names where the approval came from and rides into the permanent record. */
   approveDelivery?(
     id: string,
     from?: string,
-  ): { ok: true; deliveryId: string; covers: string } | { ok: false; error: string };
+  ): Promise<{ ok: true; deliveryId: string; covers: string } | { ok: false; error: string }>;
   /** Deliveries whose worktree or branch has gone missing — reported at startup, never
    *  started over. */
   repairDeliveries?(): string[];
@@ -135,59 +141,59 @@ export interface BoardRules {
   testConnection(): Promise<ConnectionTest>;
 
   // the board, read
-  readBoard(): Board;
+  readBoard(): Promise<Board>;
   /** A short string that changes when anything the board draws does (#243). The window asks
    *  it a few times a second while a chat is writing, and re-reads the board only when it
    *  moves. Optional: on older rules the window falls back to re-reading when a run ends. */
-  boardStamp?(): string;
-  findCard(id: number): Card | null;
-  allCards(): Card[];
+  boardStamp?(): Promise<string>;
+  findCard(id: number): Promise<Card | null>;
+  allCards(): Promise<Card[]>;
   /** What an Implement click would do on this board right now (#307): the branch the change
    *  would land on, and whether it lands at all. Optional: a board can be running rules from
    *  before the one-click flow, and the dialog then says only what it always said. */
-  deliveryPlan?(): DeliveryPlan;
+  deliveryPlan?(): Promise<DeliveryPlan>;
   /** What one delivery changed (#305), for the card page's **Diff** tab: its branch against
    *  its base while it builds, and the commit it landed once it has. Optional: an older
    *  board's rules have no diff to give, and the tab simply doesn't appear. */
-  deliveryDiff?(deliveryId: string): DeliveryDiff | null;
-  readModules(): string[];
-  readMetricsView(): MetricsResult;
+  deliveryDiff?(deliveryId: string): Promise<DeliveryDiff | null>;
+  readModules(): Promise<string[]>;
+  readMetricsView(): Promise<MetricsResult>;
   /** The planning scores, release by release (#224). Optional: a board can be running rules
    *  from before the score existed, and the chart says so in one line rather than drawing an
    *  empty panel that would read as a board that has planned nothing. */
-  readScoreView?(): ScoreResult;
-  readReleases(): string[];
-  readGoalText(): string;
+  readScoreView?(): Promise<ScoreResult>;
+  readReleases(): Promise<string[]>;
+  readGoalText(): Promise<string>;
   /** One of the four memory files, whole — the project's copy, or a module's when `module`
    *  names one the map knows (#129, #130). Optional: a board can be running rules older than
    *  the release that added it, and the memory page then says so rather than the whole app
    *  failing to draw. */
-  readMemoryFile?(name: string, module?: string): MemoryFile | null;
-  readSetupDraft(): SetupDraft;
-  readSetupState(): SetupState | null;
-  fillPlan(): FillPlan;
-  closePlan(id: string): ClosePlan;
-  dropPlan(id: string): DropPlan;
+  readMemoryFile?(name: string, module?: string): Promise<MemoryFile | null>;
+  readSetupDraft(): Promise<SetupDraft>;
+  readSetupState(): Promise<SetupState | null>;
+  fillPlan(): Promise<FillPlan>;
+  closePlan(id: string): Promise<ClosePlan>;
+  dropPlan(id: string): Promise<DropPlan>;
 
   // the board, written
-  patchCard(id: number, patch: CardPatch): WriteResult;
+  patchCard(id: number, patch: CardPatch): Promise<WriteResult>;
   // One hand-check added or crossed off from the card page (#276). Optional: a project can
   // be running rules older than the release that added them, and the panel then reads the
   // way it always did rather than the page failing to draw.
-  addVerify?(id: number, line: string): VerifyResult;
-  dropVerify?(id: number, line: string): VerifyResult;
-  setSchedule(id: number, action: string, notes?: string): WriteResult;
-  clearSchedule(id: number): WriteResult;
-  setCardsRelease(ids: number[], release: string): BulkReleaseResult;
-  newRelease(id: string, goal?: string, fill?: boolean): WriteResult & { fill?: "none" | "fill" | "agent" };
-  setReleaseGoal(id: string, goal: string): WriteResult;
+  addVerify?(id: number, line: string): Promise<VerifyResult>;
+  dropVerify?(id: number, line: string): Promise<VerifyResult>;
+  setSchedule(id: number, action: string, notes?: string): Promise<WriteResult>;
+  clearSchedule(id: number): Promise<WriteResult>;
+  setCardsRelease(ids: number[], release: string): Promise<BulkReleaseResult>;
+  newRelease(id: string, goal?: string, fill?: boolean): Promise<WriteResult & { fill?: "none" | "fill" | "agent" }>;
+  setReleaseGoal(id: string, goal: string): Promise<WriteResult>;
   // `shipped` is how many cards the close counted, so the caller knows whether a changelog
   // run has anything to write (#232). Absent on a copy of the rules that predates it.
-  closeRelease(id: string): WriteResult & { shipped?: number };
-  dropRelease(id: string): WriteResult;
-  saveGoal(text: string): WriteResult;
-  saveProject(name: string, description: string, tracks: TrackDraft[]): SaveProjectResult;
-  finishSetupStep(name: string): WriteResult;
+  closeRelease(id: string): Promise<WriteResult & { shipped?: number }>;
+  dropRelease(id: string): Promise<WriteResult>;
+  saveGoal(text: string): Promise<WriteResult>;
+  saveProject(name: string, description: string, tracks: TrackDraft[]): Promise<SaveProjectResult>;
+  finishSetupStep(name: string): Promise<WriteResult>;
 
   // the spec agents, and which of them may run (#191). Optional for the same reason as the
   // skill moves below: a project can be running rules older than the release that added
@@ -207,7 +213,7 @@ export interface BoardRules {
   readCommandState?(): CommandState;
 
   // what the board would start on its own, this minute
-  nextWork(): AgentRequest[];
+  nextWork(): Promise<AgentRequest[]>;
 }
 
 export type { AgentRequest, RunRecord, RunView } from "./format/agent/types";

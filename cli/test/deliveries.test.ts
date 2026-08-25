@@ -100,7 +100,7 @@ const start = (run: RunRecord): string =>
   })
 
 describe('the approved requirements', () => {
-  it('copies the title, the opening, Worth noting, Scope and a spec agent section', () => {
+  it('copies the title, the opening, Worth noting, Scope and a spec agent section', async () => {
     const approved = approvedRequirements(5)
     assert.match(approved, /^# A card/)
     assert.match(approved, /What this card is for/)
@@ -109,7 +109,7 @@ describe('the approved requirements', () => {
     assert.match(approved, /## By `security` agent/)
   })
 
-  it('leaves out Todo, Today, Decided by the agent and the boundary', () => {
+  it('leaves out Todo, Today, Decided by the agent and the boundary', async () => {
     const approved = approvedRequirements(5)
     assert.doesNotMatch(approved, /## Todo/)
     assert.doesNotMatch(approved, /## Today/)
@@ -118,7 +118,7 @@ describe('the approved requirements', () => {
     assert.doesNotMatch(approved, /the first step/)
   })
 
-  it('is a copy: an edit to the card afterwards never reaches the delivery', () => {
+  it('is a copy: an edit to the card afterwards never reaches the delivery', async () => {
     const id = start(session())
     fs.writeFileSync(file, CARD.replace('- **A requirement**: one line.', '- **A requirement**: something else.'))
     assert.match(activeDelivery(5)!.approved, /one line/)
@@ -128,22 +128,22 @@ describe('the approved requirements', () => {
 })
 
 describe('one delivery, several sessions', () => {
-  it('gives a second session on the same card the same delivery id', () => {
+  it('gives a second session on the same card the same delivery id', async () => {
     const first = start(session())
-    settleDelivery({ ...readStore().runs[0]!, status: 'interrupted' })
+    await settleDelivery({ ...readStore().runs[0]!, status: 'interrupted' })
     const second = start(session())
     assert.equal(second, first)
     assert.equal(activeDelivery(5)!.sessions.length, 2)
   })
 
-  it('opens a new delivery once the old one has ended', () => {
+  it('opens a new delivery once the old one has ended', async () => {
     const first = start(session())
     endDelivery(first, 'finished')
     assert.equal(activeDelivery(5), undefined)
     assert.notEqual(start(session()), first)
   })
 
-  it('leaves a standalone session with no delivery at all', () => {
+  it('leaves a standalone session with no delivery at all', async () => {
     withStore((store) => store.runs.push(session({ action: 'refine' })))
     assert.equal(activeDelivery(5), undefined)
     assert.equal(readStore().runs[0]!.deliveryId, undefined)
@@ -151,29 +151,29 @@ describe('one delivery, several sessions', () => {
 })
 
 describe('ending one', () => {
-  it('does not end when the build finished — review comes next (#302)', () => {
+  it('does not end when the build finished — review comes next (#302)', async () => {
     const id = start(session())
-    settleDelivery({ ...readStore().runs[0]!, status: 'done' })
+    await settleDelivery({ ...readStore().runs[0]!, status: 'done' })
     assert.equal(activeDelivery(5)?.deliveryId, id)
     assert.equal(activeDelivery(5)?.next, 'review')
     assert.equal(readAudit(id).status, 'active')
   })
 
-  it('leaves it active and unfinished when its session was cut off', () => {
+  it('leaves it active and unfinished when its session was cut off', async () => {
     start(session())
-    settleDelivery({ ...readStore().runs[0]!, status: 'interrupted' })
+    await settleDelivery({ ...readStore().runs[0]!, status: 'interrupted' })
     assert.equal(activeDelivery(5)?.status, 'active')
   })
 
-  it('leaves it active when its session was stopped', () => {
+  it('leaves it active when its session was stopped', async () => {
     start(session())
-    settleDelivery({ ...readStore().runs[0]!, status: 'stopped' })
+    await settleDelivery({ ...readStore().runs[0]!, status: 'stopped' })
     assert.equal(activeDelivery(5)?.status, 'active')
   })
 })
 
 describe('the permanent record', () => {
-  it('is written when the delivery starts and says how it ended', () => {
+  it('is written when the delivery starts and says how it ended', async () => {
     const id = start(session())
     const started = readAudit(id)
     assert.equal(started.status, 'active')
@@ -186,7 +186,7 @@ describe('the permanent record', () => {
     assert.equal(readAudit(id).status, 'cancelled')
   })
 
-  it('keeps one record per delivery, so two cards never share one', () => {
+  it('keeps one record per delivery, so two cards never share one', async () => {
     fs.writeFileSync(path.join(todo, 'features', '6-another.md'), CARD.replace('title: A card', 'title: Another'))
     const first = start(session())
     const second = start(session({ cardId: 6 }))
@@ -200,34 +200,34 @@ describe('the permanent record', () => {
 })
 
 describe('cancelling one', () => {
-  it('ends the delivery, unlocks the card and leaves the record saying cancelled', () => {
+  it('ends the delivery, unlocks the card and leaves the record saying cancelled', async () => {
     const id = start(session())
-    assert.equal(cancelDelivery(id).ok, true)
+    assert.equal((await cancelDelivery(id)).ok, true)
     assert.equal(activeDelivery(5), undefined)
     assert.equal(heldByDelivery(5), undefined)
     assert.equal(readAudit(id).status, 'cancelled')
   })
 
-  it('takes the card back when named by the card rather than the delivery', () => {
+  it('takes the card back when named by the card rather than the delivery', async () => {
     const id = start(session())
-    assert.equal(cancelDelivery('5').deliveryId, id)
+    assert.equal((await cancelDelivery('5')).deliveryId, id)
     assert.equal(activeDelivery(5), undefined)
   })
 
-  it('says so rather than failing when the delivery has already ended', () => {
+  it('says so rather than failing when the delivery has already ended', async () => {
     const id = start(session())
     endDelivery(id, 'finished')
-    assert.equal(cancelDelivery(id).ok, true)
+    assert.equal((await cancelDelivery(id)).ok, true)
     assert.equal(readAudit(id).status, 'finished')
   })
 
-  it('refuses a delivery this board has never had', () => {
-    assert.equal(cancelDelivery('nosuchid').ok, false)
+  it('refuses a delivery this board has never had', async () => {
+    assert.equal((await cancelDelivery('nosuchid')).ok, false)
   })
 })
 
 describe('the hold on the card', () => {
-  it('names the delivery and what takes the card back', () => {
+  it('names the delivery and what takes the card back', async () => {
     const id = start(session())
     const held = heldByDelivery(5)
     assert.match(held!, new RegExp(id))
@@ -237,7 +237,7 @@ describe('the hold on the card', () => {
     assert.match(held!, new RegExp(`cancel ${id}`))
   })
 
-  it('lifts once the delivery has ended', () => {
+  it('lifts once the delivery has ended', async () => {
     endDelivery(start(session()), 'cancelled')
     assert.equal(heldByDelivery(5), undefined)
   })
@@ -250,7 +250,7 @@ describe('the hold on the card', () => {
     assert.equal(heldByDelivery(5), undefined)
   })
 
-  it('holds against a session that is not part of it', () => {
+  it('holds against a session that is not part of it', async () => {
     start(session())
     process.env[RUN_ENV] = 'some-other-session'
     assert.equal(insideDelivery(5), false)

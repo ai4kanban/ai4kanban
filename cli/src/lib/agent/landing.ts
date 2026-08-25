@@ -129,7 +129,12 @@ function giveUpSlot(delivery: DeliveryRecord, why: string): void {
 // Stop, and leave the card an open question. The slot goes back and nothing picks the
 // delivery up again until the user answers — `review.stopped` is the same gate a stopped
 // review waits at, and joining a run clears it.
-function handOver(delivery: DeliveryRecord, status: 'waiting' | 'conflict', why: string, question: string): void {
+async function handOver(
+  delivery: DeliveryRecord,
+  status: 'waiting' | 'conflict',
+  why: string,
+  question: string,
+): Promise<void> {
   withStore((store) => {
     const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
     if (!live || live.status !== 'active') return
@@ -138,7 +143,7 @@ function handOver(delivery: DeliveryRecord, status: 'waiting' | 'conflict', why:
     live.next = undefined
   })
   syncAudit(delivery.deliveryId)
-  askUser(delivery.cardId, question)
+  await askUser(delivery.cardId, question)
 }
 
 // ---- held on the card's open questions (#307) -------------------------------
@@ -245,7 +250,7 @@ function supersededDelivery(held: Set<string>): AgentRequest | null {
  *  Called by the watcher of every run that closes, by `nextWork()` each tick so a
  *  waiter nothing handed off to is still picked up, and once as a board comes up. It never
  *  throws: a caller on a timer must survive an unreadable repository and try again. */
-export function advanceLanding(): AgentRequest | null {
+export async function advanceLanding(): Promise<AgentRequest | null> {
   try {
     // First the cards whose questions are still open, and the ones whose answers changed
     // the plan (#307). Both are read from the card files, so both are settled once, before
@@ -263,7 +268,7 @@ export function advanceLanding(): AgentRequest | null {
       const picked = takeSlot(tried, held)
       if (!picked) return null
       tried.add(picked.deliveryId)
-      const step = landStep(picked)
+      const step = await landStep(picked)
       if (step.start) return step.start
       if (!step.done) return null
       // It landed, or it gave the slot back — either way the next waiter's turn is now.
@@ -279,7 +284,7 @@ export function advanceLanding(): AgentRequest | null {
 // landing being over (the slot is free, so try the next waiter), or neither.
 type Step = { start?: AgentRequest; done?: boolean }
 
-function landStep(delivery: DeliveryRecord): Step {
+async function landStep(delivery: DeliveryRecord): Promise<Step> {
   const dir = worktreeDir(delivery.worktree!)
   if (!worktreeExists(delivery.worktree)) {
     giveUpSlot(delivery, `its worktree ${delivery.worktree} is gone, so there is nothing to land`)
@@ -287,7 +292,7 @@ function landStep(delivery: DeliveryRecord): Step {
   }
   // A rebase stopped part-way through is a conflict somebody has been resolving — or a
   // crash. Either way it is finished before anything else is decided.
-  if (rebaseInProgress(dir)) return finishConflict(delivery, dir)
+  if (rebaseInProgress(dir)) return await finishConflict(delivery, dir)
 
   const refusal = landingRefusal(delivery)
   if (refusal) {
@@ -308,14 +313,14 @@ function landStep(delivery: DeliveryRecord): Step {
   if (!tip) {
     // A delivery whose tree is identical to its base built nothing to land. It is finished
     // rather than stuck: there is no commit to add, and the card's work is done.
-    finish(delivery, { onto: target })
+    await finish(delivery, { onto: target })
     return { done: true }
   }
 
   if (!isAncestor(target, tip, dir)) {
     // The target branch moved while this card was being built. Replay onto it and carry the
     // verdict the worktree review already gave.
-    return replayOntoTarget(delivery, dir, target)
+    return await replayOntoTarget(delivery, dir, target)
   }
   // The last thing read before the branch moves (#308): the base and the fingerprint the
   // user approved, against the ones that would land right now. One check covers every way
@@ -327,7 +332,7 @@ function landStep(delivery: DeliveryRecord): Step {
     giveUpSlot(delivery, approvalWhy(delivery, approved.why))
     return { done: true }
   }
-  return move(delivery, tip, target)
+  return await move(delivery, tip, target)
 }
 
 // The commit message: the card's title, its id, and the delivery — so a line of
@@ -401,11 +406,11 @@ function warnOverlap(delivery: DeliveryRecord): void {
 // Rebase the one squash commit onto the target's new tip. No review follows it: review is
 // the worktree's job, and a replay of a reviewed patch does not reopen the verdict. Only a
 // conflict costs an agent, and that agent resolves the conflict rather than re-reviewing.
-function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: string): Step {
+async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: string): Promise<Step> {
   const spent = delivery.landing?.attempts ?? 0
   if (spent >= MAX_LAND_ATTEMPTS) {
     const why = `${delivery.targetBranch} moved again after ${spent} rebases, so this landing is not converging`
-    handOver(
+    await handOver(
       delivery,
       'waiting',
       why,
@@ -421,13 +426,13 @@ function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: string)
     giveUpSlot(delivery, rebased.error)
     return { done: true }
   }
-  return afterRebase(delivery, target)
+  return await afterRebase(delivery, target)
 }
 
 // The rebase landed. The tip it was rebased onto becomes the delivery's base — the same
 // field, so the diff the card shows is still everything this delivery changed — and the
 // landing carries straight on with the verdict it already had.
-function afterRebase(delivery: DeliveryRecord, target: string): Step {
+async function afterRebase(delivery: DeliveryRecord, target: string): Promise<Step> {
   const at = Date.now()
   withStore((store) => {
     const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
@@ -442,7 +447,7 @@ function afterRebase(delivery: DeliveryRecord, target: string): Step {
   })
   syncAudit(delivery.deliveryId)
   const live = readStore().deliveries.find((d) => d.deliveryId === delivery.deliveryId)
-  return live && live.status === 'active' ? landStep(live) : { done: true }
+  return live && live.status === 'active' ? await landStep(live) : { done: true }
 }
 
 // ---- a conflict is new work -------------------------------------------------
@@ -461,17 +466,17 @@ function startConflict(delivery: DeliveryRecord, target: string, files: string[]
 // Finish the rebase the conflict run resolved. It staged the resolution and stopped;
 // this is the `--continue` it deliberately did not run. A rebase that still will not go
 // through is aborted — the branch is whole again — and the card is asked.
-function finishConflict(delivery: DeliveryRecord, dir: string): Step {
+async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<Step> {
   const left = conflictedPaths(dir)
   const done = left.length ? { ok: false, why: `${names(left)} ${are(left.length)} still conflicted` } : continueRebase(dir)
   if (done.ok && !rebaseInProgress(dir)) {
-    return afterRebase(delivery, branchTip(delivery.targetBranch!) ?? delivery.base!)
+    return await afterRebase(delivery, branchTip(delivery.targetBranch!) ?? delivery.base!)
   }
   abortRebase(dir)
   const why =
     `the conflict between #${delivery.cardId} and ${delivery.targetBranch} was not resolved — ` +
     `${done.why ?? 'the rebase would not go through'}`
-  handOver(
+  await handOver(
     delivery,
     'conflict',
     why,
@@ -488,7 +493,7 @@ function finishConflict(delivery: DeliveryRecord, dir: string): Step {
 // The last step, and the only one that touches the user's own checkout. Their branch is
 // fast-forwarded under them when it is the one they have out, so their index and working
 // tree move with it; otherwise the ref is moved, and only from where the landing found it.
-function move(delivery: DeliveryRecord, tip: string, target: string): Step {
+async function move(delivery: DeliveryRecord, tip: string, target: string): Promise<Step> {
   const branch = delivery.targetBranch!
   const here = currentBranch(REPO_ROOT) === branch
   const moved = here ? asMove(fastForward(tip)) : moveBranchRef(branch, tip, target)
@@ -497,14 +502,14 @@ function move(delivery: DeliveryRecord, tip: string, target: string): Step {
     // Try the whole step again against wherever it is now; the attempt count bounds it,
     // because the next pass finds the target no longer an ancestor and rebases.
     const live = readStore().deliveries.find((d) => d.deliveryId === delivery.deliveryId)
-    return live && live.status === 'active' ? landStep(live) : { done: true }
+    return live && live.status === 'active' ? await landStep(live) : { done: true }
   }
   if (!moved.ok) {
     giveUpSlot(delivery, moved.error)
     return { done: true }
   }
   cleanUp(delivery)
-  finish(delivery, { commit: tip, onto: target })
+  await finish(delivery, { commit: tip, onto: target })
   return { done: true }
 }
 
@@ -546,7 +551,7 @@ function cleanUp(delivery: DeliveryRecord): void {
 //
 // The order is the point (#307): the delivery ends first, so nothing is still holding the
 // card when the board archives it.
-function finish(delivery: DeliveryRecord, landed: { commit?: string; onto: string }): void {
+async function finish(delivery: DeliveryRecord, landed: { commit?: string; onto: string }): Promise<void> {
   patchLanding(delivery.deliveryId, (landing) => {
     landing.status = 'landed'
     landing.why = undefined
@@ -559,7 +564,7 @@ function finish(delivery: DeliveryRecord, landed: { commit?: string; onto: strin
       ? `delivery ${delivery.deliveryId} landed on ${delivery.targetBranch} as ${landed.commit.slice(0, 12)}.`
       : `delivery ${delivery.deliveryId} changed nothing, so nothing landed on ${delivery.targetBranch}.`,
   )
-  completeCard(delivery.cardId, delivery.deliveryId)
+  await completeCard(delivery.cardId, delivery.deliveryId)
 }
 
 // ---- picking up after a crash -----------------------------------------------

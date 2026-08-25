@@ -65,14 +65,14 @@ function run(action: 'implement' | 'review', id: number): string {
   return opened.run.sessionId
 }
 
-function end(sessionId: string): void {
+async function end(sessionId: string): Promise<void> {
   const record = withStore((store) => store.runs.find((r) => r.sessionId === sessionId))
   fs.writeFileSync(record!.logPath, 'log\n')
-  closeRun(sessionId, { status: 'done', ok: true, code: 0 })
+  await closeRun(sessionId, { status: 'done', ok: true, code: 0 })
 }
 
 describe('the files', () => {
-  it('is nothing until a rule is saved, and nothing again when one is cleared', () => {
+  it('is nothing until a rule is saved, and nothing again when one is cleared', async () => {
     assert.equal(fs.existsSync(RULES), false)
     assert.deepEqual(setFlowRule('implement', 'Install first.'), { ok: true })
     assert.equal(fs.readFileSync(path.join(RULES, 'implement.md'), 'utf8').trim(), 'Install first.')
@@ -80,19 +80,19 @@ describe('the files', () => {
     assert.equal(fs.existsSync(path.join(RULES, 'implement.md')), false)
   })
 
-  it('is named by the command a user types, not the action the board keeps', () => {
+  it('is named by the command a user types, not the action the board keeps', async () => {
     setFlowRule('revise', 'Say what changed.')
     assert.equal(fs.existsSync(path.join(RULES, 'revise.md')), true)
     assert.equal(fs.existsSync(path.join(RULES, 'edit.md')), false)
   })
 
-  it('refuses a flow this board does not have', () => {
+  it('refuses a flow this board does not have', async () => {
     const res = setFlowRule('deploy', 'Ship it.')
     assert.equal(res.ok, false)
     assert.match(res.error!, /deploy/)
   })
 
-  it('lists every flow the board can start, rule or no rule', () => {
+  it('lists every flow the board can start, rule or no rule', async () => {
     setFlowRule('review', 'Run the smoke tests.')
     const listed = readFlowRules()
     assert.equal(listed.length, FLOWS.length)
@@ -105,19 +105,19 @@ describe('the files', () => {
 })
 
 describe('the prompt', () => {
-  it('ends on the rule, after everything the board writes', () => {
+  it('ends on the rule, after everything the board writes', async () => {
     setFlowRule('implement', 'Install dependencies first.')
     const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })
     assert.ok(prompt.trimEnd().endsWith('Install dependencies first.'))
     assert.match(prompt, /adds one rule of its own to every `implement` run/)
   })
 
-  it('carries no rule when the flow has none', () => {
+  it('carries no rule when the flow has none', async () => {
     const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })
     assert.doesNotMatch(prompt, /rule of its own/)
   })
 
-  it('reads only its own flow file', () => {
+  it('reads only its own flow file', async () => {
     setFlowRule('review', 'Run the smoke tests.')
     assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /smoke tests/)
     assert.match(buildPrompt({ action: 'review', id: 1 }), /smoke tests/)
@@ -125,7 +125,7 @@ describe('the prompt', () => {
 })
 
 describe('a delivery', () => {
-  it('freezes the rules of the flows it is made of', () => {
+  it('freezes the rules of the flows it is made of', async () => {
     setFlowRule('implement', 'Install dependencies first.')
     setFlowRule('review', 'Run the smoke tests.')
     setFlowRule('propose', 'Stay small.')
@@ -135,23 +135,23 @@ describe('a delivery', () => {
       implement: 'Install dependencies first.',
       review: 'Run the smoke tests.',
     })
-    end(built)
+    await end(built)
   })
 
-  it('gives its later sessions the rules it started with, not the files as they read now', () => {
+  it('gives its later sessions the rules it started with, not the files as they read now', async () => {
     setFlowRule('review', 'Run the smoke tests.')
     const built = run('implement', 1)
-    end(built)
+    await end(built)
     setFlowRule('review', 'Something else entirely.')
     const prompt = buildPrompt({ action: 'review', id: 1, title: 'card one' })
     assert.match(prompt, /smoke tests/)
     assert.doesNotMatch(prompt, /Something else entirely/)
   })
 
-  it('leaves a flow that is not one of its own reading the file', () => {
+  it('leaves a flow that is not one of its own reading the file', async () => {
     const built = run('implement', 1)
     setFlowRule('refine', 'Ask about the data model.')
     assert.match(buildPrompt({ action: 'refine', id: 1 }), /data model/)
-    end(built)
+    await end(built)
   })
 })

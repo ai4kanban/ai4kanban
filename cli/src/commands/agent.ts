@@ -180,12 +180,12 @@ function setSetting(args: string[]): MoveResult {
 //
 // Silent unless it actually ticked something: a board with no checklist, or one whose box
 // is already ticked, has nothing to say.
-function tickAgentStep(): { setupStep?: string } {
-  const before = readSetupState()
+async function tickAgentStep(): Promise<{ setupStep?: string }> {
+  const before = await readSetupState()
   if (!before?.steps.some((s) => s.name === 'agent' && !s.done)) return {}
-  const ticked = finishSetupStep('agent')
+  const ticked = await finishSetupStep('agent')
   if (!ticked.ok) return {}
-  const after = readSetupState()
+  const after = await readSetupState()
   say('')
   say(
     after
@@ -203,7 +203,7 @@ async function testAgent(): Promise<MoveResult> {
   const res = await testConnection()
   if (res.ok) {
     say(`it answered in ${(res.ms / 1000).toFixed(1)}s. The board can run it.`)
-    return { test: res, ...tickAgentStep() }
+    return { test: res, ...(await tickAgentStep()) }
   }
   if (res.missing) {
     say(`${res.missing} isn't installed, or isn't on this terminal's PATH.`)

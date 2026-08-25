@@ -242,6 +242,11 @@ export interface CardLanding {
 
 export interface Card {
   id: number
+  /** What version of this card was read (#312). A write passes it back as the revision it
+   *  expects, and a board that has moved on refuses with a conflict instead of overwriting
+   *  someone else's edit. Opaque: nothing but equality may be read into it, and it is
+   *  derived rather than stored, so it never reaches the card's portable frontmatter. */
+  revision: string
   /** Path relative to `docs/kanban/todo/`, e.g. `features/07-local-kanban-ui.md`. */
   relPath: string
   title: string

@@ -52,9 +52,7 @@ export type * from './lib/skill/types'
 // copy of the words each run sends the agent. Nothing here is a second implementation of
 // anything the commands do.
 export {
-  cancelDelivery,
   discardCost,
-  discardDelivery,
   getRun,
   listRuns,
   markSpawned,
@@ -68,9 +66,10 @@ export {
 // board reads the live rows to hold a card still and to say what is building it; the
 // permanent record is one file per delivery under docs/kanban/deliveries/.
 export { activeDelivery, heldByDelivery, listDeliveries } from './lib/agent/deliveries'
-// Diff approval (#308): signing off the tree a delivery would land, on a board that asks
-// for it. The card page's **Approve this tree** and `akb approve` are the same call.
-export { approveDelivery } from './lib/agent/approval'
+// Ending, discarding and approving a delivery are board WRITES, so they are operations of
+// the contract below like every other one (#312) — the card page's buttons and `akb cancel`,
+// `akb discard` and `akb approve` are the same call.
+export { approveDelivery, cancelDelivery, discardDelivery } from './lib/view/api'
 export { spawnWatcher } from './lib/agent/launch'
 export { buildPrompt } from './lib/agent/prompts'
 
@@ -144,8 +143,15 @@ export {
   setReleaseGoal,
   setSchedule,
 } from './lib/view/api'
-export type { ReleaseFill } from './lib/view/api'
 export type * from './lib/view/types'
+
+// The board's operation contract (#312): the one set of operations every part of AI4Kanban
+// reads and writes a board through, and the provider answering them. Local is the markdown
+// board in `docs/kanban/`; a board that lives elsewhere is one more provider and nothing
+// else changed. `setBoardProvider` is what puts a different one in front of the callers.
+export { board, envelope, moveTarget, newOpId, setBoardProvider, withLease } from './lib/board'
+export { NO_REVISION } from './lib/board'
+export type * from './lib/board/contract'
 
 const SELF = fileURLToPath(import.meta.url)
 
@@ -186,15 +192,17 @@ if (invokedDirectly()) {
         process.exitCode = code
       })
     } else {
-      process.exitCode = runBoard(argv.slice(1), {
+      void runBoard(argv.slice(1), {
         program: `node ${SELF} board`,
         style: 'board',
         version: `ai4kanban ${SKILL_VERSION}`,
         usage: `node ${SELF} board <move> [args]`,
+      }).then((code) => {
+        process.exitCode = code
       })
     }
   } else {
-    process.exitCode = runBoard(argv, {
+    void runBoard(argv, {
       program: 'kanban',
       style: 'legacy',
       version: `ai4kanban ${SKILL_VERSION}`,
@@ -202,6 +210,8 @@ if (invokedDirectly()) {
       // a path relative to a working directory that may be anywhere runs from that one
       // folder and nowhere else.
       usage: `node ${SELF} <command> [args]`,
+    }).then((code) => {
+      process.exitCode = code
     })
   }
 }

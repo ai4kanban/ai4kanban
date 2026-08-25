@@ -33,7 +33,7 @@ import { followRun, short } from './run'
 
 const FLAGS = ['follow', 'dir', 'json', 'notes', 'print']
 
-export function cmdSpec(args: string[], program = 'akb'): MoveResult {
+export async function cmdSpec(args: string[], program = 'akb'): Promise<MoveResult> {
   const { flags, positional } = parseFlags(args, FLAGS)
 
   // No agent named: say which ones there are. This is the list a flow reads to decide
@@ -123,7 +123,7 @@ export function cmdSpec(args: string[], program = 'akb'): MoveResult {
   say(`spec ${name} #${id} — run ${run.sessionId}`)
   say(`  follow it: ${program} log ${short(run.sessionId)} --follow${DIR_FLAG}`)
   say(`  stop it:   ${program} stop ${short(run.sessionId)}${DIR_FLAG}`)
-  if (flags.follow === true) return { sessionId: run.sessionId, ...followRun(run.sessionId, '', program) }
+  if (flags.follow === true) return { sessionId: run.sessionId, ...(await followRun(run.sessionId, '', program)) }
   return { sessionId: run.sessionId, action: 'spec', specAgent: name, cardId: id }
 }
 

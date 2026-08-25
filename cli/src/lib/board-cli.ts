@@ -8,7 +8,9 @@
 //   - which board to work on: `--dir <path>`, or the nearest one at or above the folder the
 //     command was run in. Two boards at once never see each other's answers, because the
 //     paths are set per call (lib/paths.mjs),
-//   - one writer at a time, so two commands never hand out the same id (lib/lock.mjs),
+//   - handing the move to the board itself (lib/board/): what each move does, and the one
+//     writer at a time that keeps two commands from handing out the same id, belong to the
+//     board rather than to the command line in front of it,
 //   - refusing without ending the process: a move throws, this catches, says why, and
 //     returns an exit code (lib/io.mjs),
 //   - answering a program instead of a person: `--json` puts the move's own fields, its
@@ -17,59 +19,12 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, setBoardRoot, readNextId, KANBAN, METRICS } from './paths'
-import { BoardError, say, startCollecting, stopCollecting, type Sink } from './io'
-import { withBoardLock } from './lock'
+import { die, setBoardRoot, KANBAN } from './paths'
+import { BoardError, say, startCollecting, stopCollecting, warn, type Sink } from './io'
+import { board, moveTarget, withLease } from './board'
+import { BOARD_MOVES, READ_ONLY_MOVES } from './board/local'
 import { boardHelp, findMove, legacyHelp, moveHelp, MOVE_NAMES } from './help'
-import { cmdInit, cmdMemoryInit } from '../commands/init'
-import { cmdCreate, cmdUpdate, cmdUpdateQuestions, cmdUpdateVerify, cmdSchedule, cmdTag } from '../commands/card'
-import { cmdRemove } from '../commands/remove'
-import { cmdMigrate, cmdRun } from '../commands/misc'
-import { cmdList } from '../commands/list'
-import { cmdRelease } from '../commands/release'
-import { cmdSetupDone, cmdSetupStatus } from '../commands/setup'
-import { cmdReviewVerdict } from '../commands/review-verdict'
-import { cmdSpecWrite } from '../commands/spec-write'
-import type { MoveResult } from './types'
-
-// How a move is run: whatever argv had left after the shared options were taken out.
-type RunMove = (rest: string[]) => MoveResult | void
-
-// Every move, by its canonical name. Aliases are resolved before the lookup (help.mjs).
-const RUN: Record<string, RunMove> = {
-  init: (rest) => cmdInit(rest),
-  'memory-init': (rest) => cmdMemoryInit(rest[0]),
-  'setup-done': (rest) => cmdSetupDone(rest),
-  'setup-status': () => cmdSetupStatus(),
-  create: (rest) => cmdCreate(rest),
-  update: (rest) => cmdUpdate(rest),
-  'update-questions': (rest) => cmdUpdateQuestions(rest),
-  'update-verify': (rest) => cmdUpdateVerify(rest),
-  schedule: (rest) => cmdSchedule(rest),
-  tag: (rest) => cmdTag(rest),
-  list: (rest) => cmdList(rest),
-  release: (rest) => cmdRelease(rest),
-  migrate: (rest) => cmdMigrate(rest),
-  archive: (rest) => cmdRemove(Number(rest[0]), 'completed'),
-  reject: (rest) => cmdRemove(Number(rest[0]), 'rejected'),
-  'record-run': (rest) => cmdRun(Number(rest[0])),
-  'spec-write': (rest) => cmdSpecWrite(rest),
-  'review-verdict': (rest) => cmdReviewVerdict(rest),
-  peek: () => {
-    const id = readNextId()
-    say(String(id))
-    return { next_id: id }
-  },
-  metrics: () => {
-    const csv = fs.existsSync(METRICS) ? fs.readFileSync(METRICS, 'utf8').trim() : ''
-    say(csv || '(no metrics yet)')
-    return { csv }
-  },
-}
-
-// Moves that only read. They take no lock — nothing they do can be half-written, and a
-// board someone is mid-write on is still readable.
-const READ_ONLY = new Set(['list', 'peek', 'metrics', 'setup-status'])
+import type { MoveOutput, OpResult } from './board'
 
 // `init` is the one move that may run where no board exists yet — it is what makes one.
 const MAKES_A_BOARD = 'init'
@@ -200,7 +155,7 @@ export interface RunBoardOptions {
 //   installHint what to tell someone who has no board yet
 //   version     what `version` prints; without it the move is not offered
 //   usage       the Usage: line of the legacy help
-export function runBoard(argv: string[], options: RunBoardOptions = {}): number {
+export async function runBoard(argv: string[], options: RunBoardOptions = {}): Promise<number> {
   const {
     program = 'kanban',
     style = 'legacy',
@@ -248,22 +203,41 @@ export function runBoard(argv: string[], options: RunBoardOptions = {}): number 
   }
 
   const found = findMove(raw)
-  const move = found && RUN[found.name] ? found.name : null
+  const move = found && BOARD_MOVES.has(found.name) ? found.name : null
   if (!move) return report(unknownMove(raw), { program, json, help: help() })
 
   const box = json ? startCollecting() : null
   try {
     const root = resolveBoard(move, { dir, cwd, installHint })
     setBoardRoot(root, dir !== null)
-    const invoke = () => RUN[move](args) || {}
-    const data = READ_ONLY.has(move) ? invoke() : withBoardLock(invoke)
-    if (json) answer({ ok: true, board: KANBAN, ...data, ...prose(box) })
+    // A read answers straight off the board. A write is one operation of the contract, under
+    // a lease taken for it — whoever typed this never read the card, so the lease is what
+    // hands them the revision they write against (lib/board/ops.ts).
+    const data = READ_ONLY_MOVES.has(move)
+      ? await board().readMove(move, args)
+      : unwrap(await withLease(moveTarget(move, args), (env) => board().runMove(move, args, env)))
+    // A board that ran the move somewhere else sends its prose back rather than printing it;
+    // Local printed as it went and has none to add.
+    const { output, warnings, ...fields } = data
+    if (output) say(output)
+    for (const line of (warnings as string[] | undefined) ?? []) warn(line)
+    if (json) answer({ ok: true, board: KANBAN, ...fields, ...prose(box) })
     return 0
   } catch (err) {
     return report(err, { program, json, box, move: withMove ? move : null })
   } finally {
     if (json) stopCollecting()
   }
+}
+
+// What a mutation answered with, as the dispatcher needs it: the move's own fields, or the
+// refusal thrown so the one reporter below turns it into a message and an exit code.
+function unwrap(res: OpResult<{ data: MoveOutput }>): MoveOutput {
+  if (res.ok) return res.data
+  // A conflict reaches a terminal only when something else wrote the same card in the
+  // milliseconds between the lease and the write. Reading it again is the whole fix, so
+  // that is what it says.
+  throw new BoardError(res.error, res.kind === 'conflict' ? { kind: 'conflict' } : { kind: 'refused' })
 }
 
 export const unknownMove = (raw: string): BoardError => {

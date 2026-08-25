@@ -16,14 +16,17 @@
 // See `dueScheduled`.
 
 import { nextDue } from '../cadence'
-import { withBoardLock } from '../lock'
 import { advanceLanding } from '../agent/landing'
 import { listRuns } from '../agent/sessions'
 import type { AgentRequest, RunView } from '../agent/types'
-import { setCardSchedule } from './edit'
 import { readBoard } from './read'
 import { byDispatchOrder, scheduleWouldDoNothing } from './rules'
 import type { Card } from './types'
+
+/** How the timer takes a card's mark off. Handed in rather than reached for, because the
+ *  write is the board's own operation (lib/board/local.ts) and this file holds the rules,
+ *  not the writer. It answers false when the card moved or went away in between. */
+export type ClearMark = (id: number) => Promise<boolean>
 
 // The newest `run` on each card. Only run records count here: this asks "has a pass already
 // been started for the window the card is due in", and an edit or a refine on the same card
@@ -93,26 +96,20 @@ const scheduledRequest = (card: Card): AgentRequest => ({
  * took to `ready` — is dropped in the same pass rather than started, and dropping one is not
  * a start, so it never uses up the tick.
  */
-function dueScheduled(cards: Card[], busy: Set<number>): AgentRequest | null {
+async function dueScheduled(cards: Card[], busy: Set<number>, clearMark: ClearMark): Promise<AgentRequest | null> {
   const ready = cards.filter((c) => c.schedule && !busy.has(c.id) && c.openBlockers.length === 0)
   if (ready.length === 0) return null
-  return withBoardLock(() => {
-    let request: AgentRequest | null = null
-    for (const card of ready.sort(byDispatchOrder)) {
-      const stale = scheduleWouldDoNothing(card)
-      // One start per tick. Everything after it keeps its mark — except a stale one, which
-      // is dropped whenever we meet it, since no later tick would do anything else with it.
-      if (!stale && request) continue
-      try {
-        setCardSchedule(card.id, null)
-      } catch {
-        // The card moved or went away between the read and this write — leave it be.
-        continue
-      }
-      if (!stale) request = scheduledRequest(card)
-    }
-    return request
-  })
+  let request: AgentRequest | null = null
+  for (const card of ready.sort(byDispatchOrder)) {
+    const stale = scheduleWouldDoNothing(card)
+    // One start per tick. Everything after it keeps its mark — except a stale one, which
+    // is dropped whenever we meet it, since no later tick would do anything else with it.
+    if (!stale && request) continue
+    // The card moved or went away between the read and this write — leave it be.
+    if (!(await clearMark(card.id))) continue
+    if (!stale) request = scheduledRequest(card)
+  }
+  return request
 }
 
 /**
@@ -125,11 +122,11 @@ function dueScheduled(cards: Card[], busy: Set<number>): AgentRequest | null {
  * An empty list means there is nothing to do. It never throws — a caller on a timer must
  * survive an unreadable board and try again next tick.
  */
-export function nextWork(): AgentRequest[] {
+export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   let runs: RunView[]
   let cards: Card[]
   try {
-    runs = listRuns()
+    runs = await listRuns()
     cards = readBoard().columns.flatMap((c) => c.cards)
   } catch {
     return []
@@ -142,7 +139,7 @@ export function nextWork(): AgentRequest[] {
   const work: AgentRequest[] = []
   let scheduled: AgentRequest | null = null
   try {
-    scheduled = dueScheduled(cards, busy)
+    scheduled = await dueScheduled(cards, busy, clearMark)
   } catch {
     // The board was busy being written, or a card wouldn't take the write. Every card keeps
     // its mark, and the next tick tries again.
@@ -162,7 +159,7 @@ export function nextWork(): AgentRequest[] {
   // because that process died between the two. `advanceLanding` does the git work itself
   // and hands back only the run it wants started, which is why it isn't gated on the
   // slots above: a re-review inside a landing is that delivery's own next run.
-  const landing = advanceLanding()
+  const landing = await advanceLanding()
   if (landing) work.push(landing)
   return work
 }

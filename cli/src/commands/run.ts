@@ -5,16 +5,13 @@
 // run's id and exits — the run outlives it — so the same run can be followed, stopped or
 // continued from anywhere, by anyone, including a process that never saw it start.
 
-import { approveDelivery } from '../lib/agent/approval'
 import { deliveryWaiting, heldByDelivery } from '../lib/agent/deliveries'
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { spawnWatcher } from '../lib/agent/launch'
 import { readLogTail, splitLog } from '../lib/agent/log'
 import { startRefinement } from '../lib/agent/refine'
 import {
-  cancelDelivery as endDelivery,
   discardCost,
-  discardDelivery,
   getRun,
   listRuns,
   markSpawned,
@@ -35,6 +32,7 @@ import { die, DIR_FLAG } from '../lib/paths'
 import { changelogRefusal } from '../lib/releases'
 import { findCard } from '../lib/view/read'
 import type { MoveResult } from '../lib/types'
+import { approveDelivery, cancelDelivery, discardDelivery } from '../lib/view/api'
 import { parseFlags } from '../lib/validate'
 
 // How long a `--follow` waits between reads of a run's log. Short enough that the log
@@ -49,7 +47,7 @@ const FOLLOW_MS = 400
  *  Or print the flow and start nothing — `--print`. An agent inside a run the board started
  *  always prints because a run never starts another. A chat follows the same choice as any
  *  coding-agent conversation: `--print` works here, and omitting it starts a run. */
-export function cmdStartRun(action: AgentAction, args: string[], program = 'akb'): MoveResult {
+export async function cmdStartRun(action: AgentAction, args: string[], program = 'akb'): Promise<MoveResult> {
   const { req, follow, print } = readRequest(action, args)
   const inside = insideRun()
   if (inside || print) {
@@ -65,7 +63,7 @@ export function cmdStartRun(action: AgentAction, args: string[], program = 'akb'
   say(`${action} — run ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
   say(`  follow it: ${program} log ${short(run.sessionId)} --follow${DIR_FLAG}`)
   say(`  stop it:   ${program} stop ${short(run.sessionId)}${DIR_FLAG}`)
-  if (follow) return { sessionId: run.sessionId, ...followRun(run.sessionId, '', program) }
+  if (follow) return { sessionId: run.sessionId, ...(await followRun(run.sessionId, '', program)) }
   return { sessionId: run.sessionId, action, cardId: run.cardId }
 }
 
@@ -220,27 +218,27 @@ const FLAGS: Record<AgentAction, string[]> = {
 
 /** Send one more turn into a run that stopped short: same agent, same conversation, same
  *  card — and the prompt is just "carry on". */
-export function cmdResume(args: string[]): MoveResult {
+export async function cmdResume(args: string[]): Promise<MoveResult> {
   const { flags, positional } = parseFlags(args, SHARED)
-  const opened = openResume(positional[0] ?? 'last')
+  const opened = await openResume(positional[0] ?? 'last')
   if ('error' in opened) die(opened.error, { kind: 'run-refused' })
   const { run } = opened
   const pid = spawnWatcher(run.sessionId)
   markSpawned(run.sessionId, pid)
   if (!pid) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
   say(`continuing ${short(run.resumedFrom!)} — run ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
-  if (flags.follow === true) return { sessionId: run.sessionId, ...followRun(run.sessionId) }
+  if (flags.follow === true) return { sessionId: run.sessionId, ...(await followRun(run.sessionId)) }
   return { sessionId: run.sessionId, resumedFrom: run.resumedFrom }
 }
 
 /** Take a card back from the delivery in flight on it: the delivery ends as cancelled, its
  *  running run is stopped, the card unlocks, and Implement is offered again. Whatever
  *  the delivery wrote stays exactly where it is. */
-export function cmdCancel(args: string[]): MoveResult {
+export async function cmdCancel(args: string[]): Promise<MoveResult> {
   const { positional } = parseFlags(args, SHARED)
   const named = positional[0]
   if (!named) die('name the delivery or its card: akb cancel 12', { kind: 'needs-input' })
-  const res = endDelivery(named)
+  const res = await cancelDelivery(named)
   if (!res.ok) die(res.error ?? 'that delivery could not be cancelled', { kind: 'run-refused' })
   say(`delivery ${res.deliveryId} cancelled — the card is yours again.`)
   return { deliveryId: res.deliveryId }
@@ -253,12 +251,12 @@ export function cmdCancel(args: string[]): MoveResult {
  *  The approval covers the delivery's base commit and the tree built on it as they stand
  *  right now, so read the diff first — `akb log` and the card page's **Diff** tab both show
  *  it. Either one moving afterwards cancels the approval by itself. */
-export function cmdApprove(args: string[]): MoveResult {
+export async function cmdApprove(args: string[]): Promise<MoveResult> {
   const { positional } = parseFlags(args, SHARED)
   const named = positional[0]
   if (!named) die('name the delivery or its card: akb approve 12', { kind: 'needs-input' })
-  const res = approveDelivery(named, 'akb approve')
-  if (!res.ok) die(res.error, { kind: 'run-refused' })
+  const res = await approveDelivery(named, 'akb approve')
+  if (!res.ok) die(res.error ?? 'that delivery could not be approved', { kind: 'run-refused' })
   say(`delivery ${res.deliveryId} approved — ${res.covers}.`)
   say('It lands from here. Change the tree or the commit it forked from and the approval is cancelled.')
   return { deliveryId: res.deliveryId, approved: true }
@@ -270,7 +268,7 @@ export function cmdApprove(args: string[]): MoveResult {
  *
  *  Cancelling a delivery deliberately leaves its worktree where it is; this is how one is
  *  reclaimed. */
-export function cmdDiscard(args: string[]): MoveResult {
+export async function cmdDiscard(args: string[]): Promise<MoveResult> {
   const { flags, positional } = parseFlags(args, [...SHARED, 'yes'])
   const named = positional[0]
   if (!named) die('name the delivery or its card: akb discard 12', { kind: 'needs-input' })
@@ -278,7 +276,7 @@ export function cmdDiscard(args: string[]): MoveResult {
   if (!cost) {
     // Nothing to lose, so nothing to confirm: a delivery with no worktree left is already
     // as discarded as it gets.
-    const res = discardDelivery(named)
+    const res = await discardDelivery(named)
     if (!res.ok) die(res.error ?? 'that delivery could not be discarded', { kind: 'run-refused' })
     say(`delivery ${res.deliveryId} has no worktree left — nothing to discard.`)
     return { deliveryId: res.deliveryId }
@@ -291,7 +289,7 @@ export function cmdDiscard(args: string[]): MoveResult {
     say(`nothing was removed. Run it again with --yes to go ahead.`)
     return { deliveryId: cost.deliveryId, discarded: false }
   }
-  const res = discardDelivery(named)
+  const res = await discardDelivery(named)
   if (!res.ok) die(res.error ?? 'that delivery could not be discarded', { kind: 'run-refused' })
   say(`delivery ${res.deliveryId} discarded — its worktree and branch are gone.`)
   return { deliveryId: res.deliveryId, discarded: true }
@@ -299,9 +297,9 @@ export function cmdDiscard(args: string[]): MoveResult {
 
 /** End a run. Its half-finished edits are left in the working tree — the board never
  *  undoes work. */
-export function cmdStop(args: string[]): MoveResult {
+export async function cmdStop(args: string[]): Promise<MoveResult> {
   const { positional } = parseFlags(args, SHARED)
-  const res = stopRun(positional[0] ?? 'last')
+  const res = await stopRun(positional[0] ?? 'last')
   if (!res.ok) die(res.error ?? 'that run could not be stopped', { kind: 'run-refused' })
   say(`stopping ${short(res.sessionId!)}`)
   return { sessionId: res.sessionId }
@@ -310,9 +308,9 @@ export function cmdStop(args: string[]): MoveResult {
 // ---- reading ---------------------------------------------------------------
 
 /** What is running, and what ran lately. */
-export function cmdRuns(args: string[], program = 'akb'): MoveResult {
+export async function cmdRuns(args: string[], program = 'akb'): Promise<MoveResult> {
   const { flags } = parseFlags(args, [...SHARED, 'card', 'all'])
-  let runs = listRuns()
+  let runs = await listRuns()
   const card = flags.card === undefined ? null : Number(flags.card)
   if (card !== null) {
     if (!Number.isInteger(card)) die('--card takes a card id', { kind: 'bad-option' })
@@ -335,14 +333,14 @@ export function cmdRuns(args: string[], program = 'akb'): MoveResult {
 }
 
 /** One run's log — what it is doing, or what it did. */
-export function cmdLog(args: string[], program = 'akb'): MoveResult {
+export async function cmdLog(args: string[], program = 'akb'): Promise<MoveResult> {
   const { flags, positional } = parseFlags(args, [...SHARED, 'full'])
   const id = positional[0] ?? 'last'
-  const view = getRun(id, flags.full === true ? Infinity : undefined)
+  const view = await getRun(id, flags.full === true ? Infinity : undefined)
   if (!view) die(`no run here answers to "${id}"`, { kind: 'no-such-run', run: id })
   if (flags.follow === true) {
     say(runLine(view, program))
-    return { sessionId: view.sessionId, ...followRun(view.sessionId, view.tail ?? '', program) }
+    return { sessionId: view.sessionId, ...(await followRun(view.sessionId, view.tail ?? '', program)) }
   }
   say(runLine(view, program))
   say('')
@@ -369,8 +367,8 @@ export function cmdLog(args: string[], program = 'akb'): MoveResult {
 //
 // It reads the file rather than the run's own output, so it works on any run, including
 // one this machine did not start.
-export function followRun(sessionId: string, already = '', program = 'akb'): MoveResult {
-  const view = getRun(sessionId)
+export async function followRun(sessionId: string, already = '', program = 'akb'): Promise<MoveResult> {
+  const view = await getRun(sessionId)
   if (!view) return {}
   let seen = already.length
   // Written into the log as it goes, so a follow that started late still catches up.
@@ -387,7 +385,7 @@ export function followRun(sessionId: string, already = '', program = 'akb'): Mov
   // way it prints in the order the run wrote.
   for (;;) {
     drain()
-    const now = getRun(sessionId)
+    const now = await getRun(sessionId)
     if (!now || now.status !== 'running') {
       drain()
       if (now?.result) {
@@ -396,7 +394,7 @@ export function followRun(sessionId: string, already = '', program = 'akb'): Mov
       }
       // The board's own last word, when it has one. It is written by the watcher after the
       // run closes, so a follow can outrun it by a beat — read it again rather than assume.
-      const note = getRun(sessionId)?.note
+      const note = (await getRun(sessionId))?.note
       if (note) {
         process.stdout.write('\n')
         say(note)
