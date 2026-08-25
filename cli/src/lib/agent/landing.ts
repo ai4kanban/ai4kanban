@@ -1,13 +1,13 @@
 // Landing: putting a delivery's reviewed code on the target branch (#304).
 //
 // Review passes and the work is still on the delivery's own branch. Landing is the last
-// step, and it is the BOARD's own work — no session does it. The branch is squashed to one
+// step, and it is the BOARD's own work — no run does it. The branch is squashed to one
 // commit, rebased onto the target branch's tip when that has moved, and the target branch
 // is moved to it. Only the re-review a rebase costs and the resolution of a conflict are
 // agent sessions.
 //
 // One card lands at a time. The slot is held on the delivery record rather than in a lock:
-// a landing can span a whole review session, and the board's own lock is held for the
+// a landing can span a whole review run, and the board's own lock is held for the
 // milliseconds of one write and breaks itself as stale after a minute.
 //
 // Nothing here is ever pushed, and nothing is ever staged in the user's checkout: the
@@ -76,10 +76,10 @@ function takeSlot(skip: Set<string>, held: Set<string>): DeliveryRecord | undefi
     const holder = store.deliveries.find((d) => d.status === 'active' && d.landing?.status === 'landing')
     if (holder) {
       if (skip.has(holder.deliveryId) || held.has(holder.deliveryId)) return undefined
-      // Its own session is working — a re-review, or the agent resolving a conflict. The
-      // landing carries on when that session ends.
+      // Its own run is working — a re-review, or the agent resolving a conflict. The
+      // landing carries on when that run ends.
       if (store.runs.some((r) => r.status === 'running' && r.deliveryId === holder.deliveryId)) return undefined
-      // It has a session written down and not yet started; whoever starts it carries on.
+      // It has a run written down and not yet started; whoever starts it carries on.
       if (holder.next) return undefined
       return { ...holder }
     }
@@ -123,7 +123,7 @@ function giveUpSlot(delivery: DeliveryRecord, why: string): void {
 
 // Stop, and leave the card an open question. The slot goes back and nothing picks the
 // delivery up again until the user answers — `review.stopped` is the same gate a stopped
-// review waits at, and joining a session clears it.
+// review waits at, and joining a run clears it.
 function handOver(delivery: DeliveryRecord, status: 'waiting' | 'conflict', why: string, question: string): void {
   withStore((store) => {
     const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
@@ -238,10 +238,10 @@ function supersededDelivery(held: Set<string>): AgentRequest | null {
 
 // ---- one pass ---------------------------------------------------------------
 
-/** Move the landing queue on by one step, and hand back the session it wants started —
+/** Move the landing queue on by one step, and hand back the run it wants started —
  *  a re-review after a rebase, or the agent that resolves a conflict.
  *
- *  Called by the watcher of every session that closes, by `nextWork()` each tick so a
+ *  Called by the watcher of every run that closes, by `nextWork()` each tick so a
  *  waiter nothing handed off to is still picked up, and once as a board comes up. It never
  *  throws: a caller on a timer must survive an unreadable repository and try again. */
 export function advanceLanding(): AgentRequest | null {
@@ -269,12 +269,12 @@ export function advanceLanding(): AgentRequest | null {
     }
   } catch {
     // A repository that would not answer. The delivery keeps the slot it holds and the
-    // next pass tries again; nothing here may fail the session that called it.
+    // next pass tries again; nothing here may fail the run that called it.
     return null
   }
 }
 
-// What one pass concluded: a session to start (the slot stays held while it runs), the
+// What one pass concluded: a run to start (the slot stays held while it runs), the
 // landing being over (the slot is free, so try the next waiter), or neither.
 type Step = { start?: AgentRequest; done?: boolean }
 
@@ -297,7 +297,7 @@ function landStep(delivery: DeliveryRecord): Step {
   warnOverlap(delivery)
 
   // One commit, made before the rebase rather than after it: a single commit conflicts at
-  // most once, so a conflict is one session and `--continue` finishes the replay.
+  // most once, so a conflict is one run and `--continue` finishes the replay.
   const squashed = squashOnto(dir, delivery.base!, landingMessage(delivery))
   if (!squashed.ok) {
     giveUpSlot(delivery, squashed.error)
@@ -481,7 +481,7 @@ function askForReview(delivery: DeliveryRecord): AgentRequest {
 // ---- a conflict is new work -------------------------------------------------
 
 // The rebase stopped on a conflict. An agent resolves it in the worktree, where the
-// conflict actually is, and the board finishes the rebase afterwards — so the session has
+// conflict actually is, and the board finishes the rebase afterwards — so the run has
 // one job and no rebase state to get wrong.
 function startConflict(delivery: DeliveryRecord, target: string, files: string[]): Step {
   patchLanding(delivery.deliveryId, (landing) => {
@@ -491,7 +491,7 @@ function startConflict(delivery: DeliveryRecord, target: string, files: string[]
   return { start: { action: 'conflict', id: delivery.cardId, title: delivery.title } }
 }
 
-// Finish the rebase the conflict session resolved. It staged the resolution and stopped;
+// Finish the rebase the conflict run resolved. It staged the resolution and stopped;
 // this is the `--continue` it deliberately did not run. A rebase that still will not go
 // through is aborted — the branch is whole again — and the card is asked.
 function finishConflict(delivery: DeliveryRecord, dir: string): Step {

@@ -77,7 +77,7 @@ export let SESSIONS_LOCK = ''
 // The conversations the user has had with the agent — one file per conversation, beside
 // the run logs (lib/agent/chat.ts). A chat is not a run and is nowhere in the record above.
 export let CHATS_DIR = ''
-// Held by the one session at a time that may rewrite the board's shared files (next-id,
+// Held by the one run at a time that may rewrite the board's shared files (next-id,
 // the README index, metrics.csv). Across processes, so the UI and a terminal wait for each
 // other and not only for themselves.
 export let INDEX_LOCK = ''

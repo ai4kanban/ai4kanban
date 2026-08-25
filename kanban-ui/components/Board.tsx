@@ -88,7 +88,7 @@ export function BoardView({
     setLeftFlow(true);
     setInFlow(false);
   }, []);
-  // The session whose log is open in the overlay, opened by clicking a card's
+  // The run whose log is open in the overlay, opened by clicking a card's
   // running badge. The board has no inline session log of its own.
   const [logSessionId, setLogSessionId] = useState<string | null>(null);
   const openLog = useSessionLog(logSessionId);
@@ -373,7 +373,7 @@ export function BoardView({
     if (seen.status === "done") return;
     setChangelogGone({
       release: changelogRun.release,
-      why: seen.status === "stopped" ? "the session was stopped" : "the session didn't finish",
+      why: seen.status === "stopped" ? "the run was stopped" : "the run didn't finish",
     });
   }, [sessions, changelogRun]);
 

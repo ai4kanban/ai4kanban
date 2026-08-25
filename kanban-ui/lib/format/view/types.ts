@@ -112,14 +112,14 @@ export interface CardDelivery {
    *  the last one was paused (#307). It ended, and this one is building the card as it now
    *  reads. Absent on a delivery that replaced nothing. */
   supersedes?: string
-  /** The session working right now, when one is. A delivery between sessions — its last one
+  /** The run working right now, when one is. A delivery between runs — its last one
    *  failed or was cut off — has none, and still holds the card. */
   sessionId?: string
   /** Why the delivery's review stopped and is waiting on the user, in one plain sentence
    *  (#302). It has put an open question on this card, so the card page says so and lets
    *  Resolve through the hold — answering is the way on. */
   waiting?: string
-  /** The session the delivery is due to start next and has not (#302). It is normally
+  /** The run the delivery is due to start next and has not (#302). It is normally
    *  gone in the same instant the watcher takes it; one that is still here belongs to a
    *  delivery whose watcher died in between, and the card page offers to start it. */
   next?: 'review' | 'correct'

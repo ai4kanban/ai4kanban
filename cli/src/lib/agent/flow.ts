@@ -48,7 +48,7 @@ import { ruleFor } from './rules'
 import { setupInstruction } from './resolve'
 import type { AgentAction, AgentRequest } from './types'
 
-// The session id an agent runs under. It lives in agent/env.ts, which imports nothing, so
+// The run id an agent works under. It lives in agent/env.ts, which imports nothing, so
 // the delivery lock can ask the same question without pulling this module in behind it.
 export { insideRun, runEnv, RUN_ENV } from './env'
 
@@ -248,7 +248,7 @@ function candidateField(cardId: number): string[] {
   const stat = candidateStat(candidateOf(delivery))
   const board = [
     `the board's own files under ${rel(KANBAN)} are not the candidate — the card, the delivery record`,
-    'and the session state all move as a delivery works, and none of them is the code you are judging.',
+    'and the run state all move as a delivery works, and none of them is the code you are judging.',
   ]
   // On a branch the candidate is settled: everything the delivery built is committed in
   // its own worktree, and nothing else on this machine is in it.
@@ -304,7 +304,7 @@ function reviewField(cardId: number): string[] {
 }
 
 // The conflict a landing's rebase stopped on: the files, the branch it clashed with, and
-// the cards on the other side — everything the session needs to see both intentions rather
+// the cards on the other side — everything the run needs to see both intentions rather
 // than only the markers in front of it.
 function conflictField(cardId: number): string[] {
   const delivery = activeDelivery(cardId)
@@ -323,7 +323,7 @@ function conflictField(cardId: number): string[] {
   ])
 }
 
-// The findings a correction session was started to fix, exactly as the review wrote them.
+// The findings a correction run was started to fix, exactly as the review wrote them.
 function findingsField(cardId: number): string[] {
   const delivery = activeDelivery(cardId)
   const findings = delivery ? openFindings(delivery) : []
@@ -376,9 +376,9 @@ function verifyField(meta: Meta): string[] {
   ])
 }
 
-// What a session that wrote code has to leave behind for review to read it. In a worktree
-// the board commits the whole change onto the delivery's branch as the session closes — so
-// the one thing asked of the session is to leave nothing of the board's own in there, which
+// What a run that wrote code has to leave behind for review to read it. In a worktree the
+// board commits the whole change onto the delivery's branch as the run closes — so the one
+// thing asked of the run is to leave nothing of the board's own in there, which
 // is what a commit would be refused for. In manual commit mode nothing is committed at all:
 // the code stays in the user's checkout and the commit is theirs, after review passes.
 function committingClose(cardId: number): string[] {
@@ -386,7 +386,7 @@ function committingClose(cardId: number): string[] {
   if (!delivery) return []
   if (delivery.worktree) {
     return [
-      `leave your work in ${delivery.worktree} — the board commits all of it onto ${delivery.branch} when this session ends, and review reads that branch`,
+      `leave your work in ${delivery.worktree} — the board commits all of it onto ${delivery.branch} when this run ends, and review reads that branch`,
       `never write the board's own files into the worktree: a commit that reaches one is refused, and the delivery stops`,
     ]
   }
@@ -460,10 +460,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   const card = req.id !== undefined ? readCard(req.id) : null
 
   // The refine a job hands over to. A run starts each follow-up refine as its own run,
-  // never inside the job that wrote the card — so the handover says fresh session, or an
+  // never inside the job that wrote the card — so the handover says fresh run, or an
   // agent reading the flow refines right here, in a context already full of the writing.
   const refineNext = (target: number | '<id>', when: string) =>
-    `${self} refine ${target === '<id>' ? target : String(target)} --print — ${when}; in a fresh session, not this one — the board gives each refine its own clean context, and so should you`
+    `${self} refine ${target === '<id>' ? target : String(target)} --print — ${when}; in a fresh run, not this one — the board gives each refine its own clean context, and so should you`
 
   // Every card action opens the same way: where the card is, and what it says about itself.
   if (card) {
@@ -478,7 +478,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       if (card!.meta.questions.length) facts.push(...questionsField(card!.meta))
       facts.push(...verifyField(card!.meta))
       facts.push(...field('memory', memoryFiles(card!.meta.modules, 'readme.md')))
-      // Inside a delivery the build is not the end of the job: a fresh session reviews what
+      // Inside a delivery the build is not the end of the job: a fresh run reviews what
       // it made against the approved copy, the board lands it, and the board archives the
       // card once it has landed (#302, #307). Outside one — a card built by hand from a
       // printed flow — the build closes the card exactly as it always has.
@@ -499,14 +499,14 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       }
       if (reviewed) {
         next.push(
-          `${self} review ${req.id} --print — the review this delivery runs next. A session the board started has its review started for it; an agent that built this from a printed flow runs it itself, in a fresh session`,
+          `${self} review ${req.id} --print — the review this delivery makes next. A run the board started has its review started for it; an agent that built this from a printed flow runs it itself, in a fresh run`,
         )
       }
       break
     }
     // Judging a delivery's work against the card it was approved to build (#302). The
     // approved copy and the diff are the whole of what a reviewer is given — never the
-    // session that wrote it, because a reviewer that reads the implementer's reasoning
+    // run that wrote it, because a reviewer that reads the implementer's reasoning
     // agrees with it.
     case 'review': {
       facts.push(...approvedField(req.id!))
@@ -541,7 +541,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       next.push(`${self} review ${req.id} --print — the fresh review of the whole candidate that follows a correction`)
       break
     }
-    // Resolving the conflict a landing's rebase stopped on (#304). It is the only session
+    // Resolving the conflict a landing's rebase stopped on (#304). It is the only run
     // that reads TWO cards: this one, and whatever is on the target branch it clashed with.
     case 'conflict': {
       facts.push(...approvedField(req.id!))
@@ -550,7 +550,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...candidateField(req.id!))
       close.push(
         'resolve every conflicted file so both sides survive — the other side is already on the target branch, and this card is what the approved copy above asks for',
-        '`git add` each file you resolved, and leave the rebase alone: the board runs `git rebase --continue` after this session, and a fresh review judges the result from scratch',
+        '`git add` each file you resolved, and leave the rebase alone: the board runs `git rebase --continue` after this run, and a fresh review judges the result from scratch',
         'change nothing the conflict does not name, and change nothing on the card',
       )
       break
@@ -744,15 +744,15 @@ function leadLine(req: AgentRequest, program: string): string {
 export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
   const flow = buildFlow(req, program)
   // The ask WITHOUT this board's own rule for the action (#306). A printed flow gets the
-  // same rule a started session does, but at the very end — see below.
+  // same rule a started run does, but at the very end — see below.
   const prompt = buildAsk(req)
   const rule = ruleFor(req, frozenRules(req))
   const sections: Section[] = [
-    { head: 'the ask — the same words a session would have been given:', lines: [prompt] },
+    { head: 'the ask — the same words a run would have been given:', lines: [prompt] },
   ]
   if (flow.facts.length) sections.push({ head: 'this board:', lines: flow.facts })
   sections.push({
-    head: 'closing it — no session is watching this one finish, so the bookkeeping is yours:',
+    head: 'closing it — no run is watching this one finish, so the bookkeeping is yours:',
     lines: numbered(flow.close),
   })
   // Named, not left to a guess: a job that hands over part-way is where an agent working
@@ -809,7 +809,7 @@ export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
     }
   }
   // Last of all: this board's own rule for the action, in the user's words (#306). A
-  // started session is given one block of words and reads the rule wherever it sits; a
+  // started run is given one block of words and reads the rule wherever it sits; a
   // printed flow is several sections and pages of guides, so a rule left up in the ask
   // would be read before everything that buries it. Here the reader ends on it.
   if (rule) {

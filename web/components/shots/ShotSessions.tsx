@@ -1,10 +1,10 @@
 import { FiX } from "react-icons/fi";
 import { CROP, Code, LogBar, NB, Outline, Shot, Tag, em } from "./nb";
 
-// Step 03 推进执行 — a finished implement run, read back from the session
-// history: what the agent did, which files it touched, how long it took and what
-// it cost. Mirrors kanban-ui/components/sessions.tsx (`SessionsDialog`: the
-// 240px rail, the selected-session pane) and agent-shared.tsx's `SessionLog` in
+// Step 03 推进执行 — a finished implement run, read back from the run history:
+// what the agent did, which files it touched, how long it took and what it cost.
+// Mirrors kanban-ui/components/sessions.tsx (`SessionsDialog`: the 240px rail,
+// the selected-run pane) and agent-shared.tsx's `SessionLog` in
 // its `flush` form.
 //
 // Drawn without the board behind it. The real dialog floats on a scrim over the
@@ -104,7 +104,7 @@ export function ShotSessions() {
                 letterSpacing: "-0.02em",
               }}
             >
-              Sessions
+              Runs
             </h2>
             <FiX
               aria-hidden
@@ -113,7 +113,7 @@ export function ShotSessions() {
           </div>
 
           <div style={{ display: "flex", minHeight: 0 }}>
-            {/* left: every session, newest first */}
+            {/* left: every run, newest first */}
             <div
               style={{
                 width: em(160),

@@ -1,12 +1,12 @@
 // ---- review-verdict --------------------------------------------------------
 //
-// The one door a review session answers through (#302).
+// The one door a review run answers through (#302).
 //
 // A review's last message is prose, and prose is not a decision — the delivery has to know
 // whether to finish, to correct, or to stop and ask, and it has to know it after the
-// session's process is gone. So the verdict is a move: it lands on the delivery's record,
+// run's process is gone. So the verdict is a move: it lands on the delivery's record,
 // where the loop reads it, and it is the ONLY thing that counts as a review having
-// happened. A session that ends without calling this stops the delivery and asks the user,
+// happened. A run that ends without calling this stops the delivery and asks the user,
 // because a delivery that reads silence as a pass has no review in it.
 
 import fs from 'node:fs'
@@ -27,8 +27,8 @@ export function cmdReviewVerdict(args: string[]): MoveResult {
   const verdict = readVerdict(flags.verdict)
   const findings = readFindings(flags.file, flags.text, verdict)
 
-  // The session recording it. A review run always has one; a person typing this by hand does
-  // not, and the empty string is a truthful answer — it belongs to no session, so the loop
+  // The run recording it. A review run always has one; a person typing this by hand does
+  // not, and the empty string is a truthful answer — it belongs to no run, so the loop
   // treats it as a verdict the delivery's own review never gave and stops to ask.
   const sessionId = insideRun() ?? ''
   const out = recordVerdict(id, sessionId, verdict, findings)

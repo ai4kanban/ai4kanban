@@ -88,7 +88,7 @@ function remarkMockups(mockups: MockupSet | null) {
 // one component defined once. A component built inside the render is a NEW type on every
 // render, and React answers a new type by throwing the old subtree away and mounting a
 // fresh one — which reloads the mockup's iframe and forgets whether it was showing the
-// code. The board re-renders on every session poll, so that was a mockup flashing back to
+// code. The board re-renders on every run poll, so that was a mockup flashing back to
 // the picture every few seconds.
 const MockupsContext = createContext<MockupSet | null>(null);
 

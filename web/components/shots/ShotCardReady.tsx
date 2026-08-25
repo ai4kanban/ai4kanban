@@ -22,7 +22,7 @@ import {
 //
 // Two things the real card carries are left off, both because they belong to a
 // later step and the crop only has room for what this one is about: the
-// finished session-log bar between the toolbar and the meta band (step 03), and
+// finished run-log bar between the toolbar and the meta band (step 03), and
 // the mint "Ready to implement" pill beside the title, which is what step 02
 // ends with rather than what step 01 produces. So this draws a card still
 // sitting at `todo` — which is the honest state for "the agent decided this is

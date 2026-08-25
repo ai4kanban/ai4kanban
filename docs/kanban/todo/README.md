@@ -38,7 +38,6 @@ _(none)_
 - [#246 Give each spec agent its own harness and model](skill/246-give-each-spec-agent-its-own-harness-and-model.md)
 - [#282 ZCode's 'The login ZCode has' sign-in fails, and two places say it works](skill/282-zcode-s-the-login-zcode-has-sign-in-fails-and-two-places-say.md)
 - [#290 Ask each harness for its model list instead of a free-text box](skill/290-harness-model-list.md)
-- [#310 Name the three levels: delivery, run, session](skill/310-retire-run-from-flow-text.md)
 
 ## distribution
 

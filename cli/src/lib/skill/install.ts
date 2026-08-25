@@ -160,7 +160,7 @@ export function readSkillState(root?: string): SkillState {
  *  the command, since a copy read out of a plugin cache was installed by nobody. An install
  *  is not general: it is being run BY the command, on this machine, so it knows the answer
  *  and writes it down. That is a line the agent reads instead of a sequence it works
- *  through, and working through it is where a session goes wrong. */
+ *  through, and working through it is where a run goes wrong. */
 const COMMAND_BLOCK = /<!-- command -->\n[\s\S]*?\n<!-- \/command -->/
 
 const NPX = `npx --yes ai4kanban@${SKILL_VERSION}`

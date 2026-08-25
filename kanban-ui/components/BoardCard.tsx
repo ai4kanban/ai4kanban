@@ -20,8 +20,8 @@ import {
 // sits — a queue column, the recurring column — so there is one component and
 // the callers only differ in what they pass in.
 //
-// `liveSession` is the one running session on this card (if any); `onOpenLog`
-// makes its badge open that session's log overlay, which the page owns.
+// `liveSession` is the one live run on this card (if any); `onOpenLog`
+// makes its badge open that run's log overlay, which the page owns.
 //
 // The track is NOT on the card. Both views band their cards by track and head
 // each band with its name — the kanban column heading, the queue's rule — so a

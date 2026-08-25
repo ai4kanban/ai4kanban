@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 // text you typed is gone. These hooks seed the input from localStorage instead
 // and write back on every keystroke, keyed per action + card, so an accidental
 // close keeps the draft and reopening restores it. Call `clear()` once the input
-// has been consumed (the session started) so the next open is blank.
+// has been consumed (the run started) so the next open is blank.
 
 const PREFIX = "kanban-draft:";
 

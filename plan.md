@@ -1,8 +1,5 @@
 # Team collaboration
 
-Turn the mid-term direction in `docs/kanban/memory/goal.md` into a design we can argue with,
-and a shipping order where every step is useful before the next one exists.
-
 Local and Cloud are two first-class ways to host a board. Neither is the product default:
 onboarding asks the user to create or open a Local board or a Cloud board. Both use the same UI
 and `akb` workflows, but they have different authority and consistency models.

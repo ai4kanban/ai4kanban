@@ -43,7 +43,7 @@ Ask **"what's next?"**. The skill:
 2. Scans your planning sources for real gaps.
 3. Proposes **new tasks** from real gaps — not a pick from the existing pile. Three of
    them unless you ask for a different count (ten is the most it will write), each one
-   short-term: a card a session can finish and you can feel right away.
+   short-term: a card a run can finish and you can feel right away.
 
 You approve, tweak, or drop each. Approved ones become cards.
 
@@ -257,7 +257,7 @@ a new plan — so a big group doesn't refine its main card once per subtask.
 ## Build a card
 
 Press **Implement** on the card page, or say **"build #4"**. One click carries the card all
-the way: an agent builds it, a fresh session reviews what it built against the card as you
+the way: an agent builds it, a fresh run reviews what it built against the card as you
 approved it, corrections fix what the review found, the board lands the work as one commit
 on the branch you are on, and then it archives the card. Nothing asks you again in between.
 

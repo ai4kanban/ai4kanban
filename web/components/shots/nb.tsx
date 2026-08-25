@@ -466,7 +466,7 @@ export function Code({ children }: { children: ReactNode }) {
   );
 }
 
-/** The session log's title bar — the kicker, the outcome glyph, and the run's
+/** The run log's title bar — the kicker, the outcome glyph, and the run's
  *  facts in one middot row. `agent-shared.tsx`'s `titleBar`, resting state. */
 export function LogBar({
   facts,
@@ -491,7 +491,7 @@ export function LogBar({
         background: `linear-gradient(${NB.cream}, color-mix(in srgb, #24231f 9%, ${NB.cream}))`,
       }}
     >
-      <Tag>session log</Tag>
+      <Tag>run log</Tag>
       <span
         style={{
           marginLeft: "auto",

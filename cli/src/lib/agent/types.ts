@@ -57,7 +57,7 @@ export type AgentAction =
    *  card, so it carries a release id, and the close that made the record starts it. */
   | 'changelog'
   /** Judge a delivery's candidate against the card it was approved to build (#302). A
-   *  fresh session every time: it is given the approved copy and the diff, never the
+   *  fresh run every time: it is given the approved copy and the diff, never the
    *  implementation transcript, because a reviewer that reads the implementer's reasoning
    *  agrees with it. */
   | 'review'
@@ -87,7 +87,7 @@ export interface AgentRequest {
   count?: number // propose: how many tasks to write (1–PROPOSE_MAX)
   boldness?: Boldness // propose: how big a swing the tasks take
   andImplement?: boolean // resolve: keep going and implement once the questions settle
-  /** Internal position in a watcher-managed refinement session chain. */
+  /** Internal position in a watcher-managed refinement run chain. */
   refineRound?: number
   /** spec: which spec agent this run is — a name from `lib/spec-agents.ts`. It decides
    *  the prompt the run is given and the section it is allowed to write. */
@@ -157,10 +157,10 @@ export interface RunRecord {
   /** Which spec agent this run is, on a `spec` run. Kept on the record so the run list can
    *  say which one is working, and so a resume starts the same agent again. */
   specAgent?: string
-  /** Position in a watcher-managed refinement session chain. */
+  /** Position in a watcher-managed refinement run chain. */
   refineRound?: number
-  /** The delivery this session belongs to, when it belongs to one. Only an `implement`
-   *  session does today; a refine, a resolve or a propose stands alone and carries none. */
+  /** The delivery this run belongs to, when it belongs to one. Only an `implement` run
+   *  does today; a refine, a resolve or a propose stands alone and carries none. */
   deliveryId?: string
 }
 
@@ -168,7 +168,7 @@ export interface RunRecord {
 
 /** How a delivery ended, or that it hasn't.
  *
- *  `active` covers a delivery still working AND one whose session failed or was cut off —
+ *  `active` covers a delivery still working AND one whose run failed or was cut off —
  *  the card stays held either way, until Resume carries it on or Cancel delivery ends it.
  *  A delivery is never "blocked": it is running or it has ended, and a pause is read off
  *  the card. */
@@ -186,7 +186,7 @@ export interface DeliveryStep {
 /** What one review pass concluded.
  *
  *  `pass` — the candidate meets the approved card. `correct` — it plainly does not, and
- *  the findings say how, so a correction session is started. `ask` — only the user can
+ *  the findings say how, so a correction run is started. `ask` — only the user can
  *  settle it, so the delivery stops and the card carries the question. */
 export type ReviewVerdict = 'pass' | 'correct' | 'ask'
 
@@ -223,9 +223,9 @@ export type ReviewStopReason =
  *  and — once it has stopped — why, and the question the card now carries. */
 export interface DeliveryReview {
   rounds: ReviewRound[]
-  /** Correction sessions started so far. The limit is `MAX_CORRECTIONS`. */
+  /** Correction runs started so far. The limit is `MAX_CORRECTIONS`. */
   corrections: number
-  /** The candidate's fingerprint when the last correction session started, so a correction
+  /** The candidate's fingerprint when the last correction run started, so a correction
    *  that changed nothing at all is told from one that did. */
   mark?: string
   stopped?: {
@@ -312,7 +312,7 @@ export interface DeliveryApproval {
 }
 
 /** One delivery: one end-to-end effort to implement an exact version of a card. It has an
- *  id, a card has at most one active one, and it is several sessions long.
+ *  id, a card has at most one active one, and it is several runs long.
  *
  *  It lives twice. This row sits in `docs/kanban/.sessions.json`, where the lock and the
  *  card page read it. The permanent copy is one JSON file per delivery under
@@ -326,11 +326,11 @@ export interface DeliveryRecord {
   status: DeliveryStatus
   startedAt: number
   endedAt?: number
-  /** Every session in this delivery, oldest first. */
+  /** Every run in this delivery, oldest first. */
   sessions: string[]
   /** The approved requirements, copied out of the card when the delivery started: the
    *  title, the opening paragraph, `## Worth noting`, `## Scope`, `## Scope out` and every
-   *  spec agent's section. Every session in the delivery builds from THIS, so a change to
+   *  spec agent's section. Every run in the delivery builds from THIS, so a change to
    *  the card file underneath never changes what the delivery was approved to build. */
   approved: string
   /** The steps this delivery entered, in order. */
@@ -341,13 +341,13 @@ export interface DeliveryRecord {
    *  repository, and review says so rather than guessing at a base. */
   base?: string
   /** What review has said about this delivery's work (#302). Absent until the first
-   *  review session records a verdict. */
+   *  review run records a verdict. */
   review?: DeliveryReview
-  /** The card's stage the instant before the delivery's FIRST session overwrote it with
+  /** The card's stage the instant before the delivery's FIRST run overwrote it with
    *  `implementing`, so the end of the delivery puts back what was there — not the
-   *  `implementing` its own second session would otherwise have found and saved. */
+   *  `implementing` its own second run would otherwise have found and saved. */
   priorStatus?: string
-  /** The session this delivery is due to start next, written the moment the one before it
+  /** The run this delivery is due to start next, written the moment the one before it
    *  closed. The watcher reads it and clears it; it survives a watcher that died between
    *  the two, so the delivery still says what it was about to do. */
   next?: 'review' | 'correct'
@@ -382,7 +382,7 @@ export interface DeliveryRecord {
    *  delivery started before diff approval existed, which needs none. */
   approval?: DeliveryApproval
   /** The flow rules this delivery froze when it started (#306), keyed by command — the
-   *  flows a delivery is made of, and only the ones that had a rule. Every session in the
+   *  flows a delivery is made of, and only the ones that had a rule. Every run in the
    *  delivery is given these rather than the files, so editing a rule changes the next
    *  delivery and never one in flight. Absent on a delivery started before flow rules
    *  existed, which reads the files instead. */

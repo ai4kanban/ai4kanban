@@ -1136,7 +1136,7 @@ export function CardPage({
                   title={
                     waiting
                       ? "Judge what this delivery built again, now that you have answered"
-                      : `This delivery never started its ${carryOn} session — start it now`
+                      : `This delivery never started its ${carryOn} run — start it now`
                   }
                   onClick={() => void runAgent({ action: carryOn, id: card.id }, carryOn)}
                 >

@@ -1,5 +1,5 @@
 // The refinement state machine. Agent sessions decide what a card should say; this file
-// decides which session runs next and when the loop stops.
+// decides which run comes next and when the loop stops.
 
 import { allCards, findCard } from '../view/read'
 import { byDispatchOrder, canRefine } from '../view/rules'
@@ -35,7 +35,7 @@ const subtaskLinesToIds = (body: string): string => {
 const MARKER = /^<!--\s*agent\s*-->$/
 
 // The body as a sorted bag of lines, marker dropped: a repair that only moves sections
-// between the halves reads as no change, so the loop spends no session on it. The cost is
+// between the halves reads as no change, so the loop spends no run on it. The cost is
 // that reordering `## Todo` steps reads as no change too.
 const asMoved = (body: string): string[] =>
   body
@@ -157,7 +157,7 @@ function stalledLine(cardId: number | null, next: AgentRequest | 'capped' | null
 }
 
 export interface RefinementFollowUp {
-  /** Every refinement session to start after a completed run, with the current loop first
+  /** Every refinement run to start after a completed run, with the current loop first
    *  removed from the ordinary changed-card candidates to prevent a duplicate start. */
   runs: AgentRequest[]
   /** One plain line for a loop that ended without settling its card. */

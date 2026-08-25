@@ -84,7 +84,7 @@ const SECTIONS: { id: Section; label: string; icon: IconType }[] = [
 ];
 
 // --- opening the dialog from elsewhere (#174) --------------------------------
-// A tiny shared store, the same shape as the sessions panel's (components/
+// A tiny shared store, the same shape as the runs panel's (components/
 // sessions.tsx), so a sibling that isn't in this tree can open the dialog on one
 // section. The setup strip uses it: the line it hands to a coding agent only
 // works once the skill is installed, so when it isn't, the way out of that strip
@@ -207,7 +207,7 @@ export function Configuration({
             <div hidden={section !== "harness"}>
               <PaneHeading
                 title="Default harness"
-                description="Choose the coding tool and model used for every board session."
+                description="Choose the coding tool and model used for every board run."
               />
               <HarnessPicker agent={agent} onError={onError} />
             </div>
@@ -254,7 +254,7 @@ function PaneHeading({ title, description }: { title: string; description: strin
 // framed in ember, and under them the settings that agent declares (#93) — for
 // Claude Code, the model it runs with (#71). Clicking a card saves
 // that harness's name to docs/kanban/ui.config.json — nothing else changes, and
-// a running session keeps the harness it started under. Selecting optimistically
+// a run in flight keeps the harness it started under. Selecting optimistically
 // and reverting on a failed save.
 //
 // Exported, because the guided first run asks for the agent with this same pane

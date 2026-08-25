@@ -98,19 +98,19 @@ Talking to the agent — a conversation that also does the board work
   whether to print a flow and do it here or start a background run; saying which one you
   want wins.
 
-  A change to a card a session is working on is refused, and the refusal names the card
-  and what that session is doing.
+  A change to a card a run is working on is refused, and the refusal names the card and
+  what that run is doing.
 
-  A chat is still not a session: it never shows in \`runs\`, never holds a card, and never
-  keeps a session off the card it is about.
+  A chat is still not a run: it never shows in \`runs\`, never holds a card, and never keeps
+  a run off the card it is about.
 
   Only an agent whose command can take a second message into its own session can hold a
   conversation. On any other one, chat says so and names the agents that can.
 
-Sessions in flight
+Runs in flight
   runs [--card <id>] [--all]   what is running, and what ran lately
-  log [<id>] [--follow]        one session's log; --full for all of it
-  stop [<id>]                  end a session
+  log [<id>] [--follow]        one run's log; --full for all of it
+  stop [<id>]                  end a run
   resume [<id>]                continue one that failed, was cut off or was stopped
   cancel <delivery|#card>      end the delivery in flight on a card and hand it back
   discard <delivery|#card>     throw a delivery's worktree and branch away (--yes to go
@@ -118,17 +118,21 @@ Sessions in flight
   approve <delivery|#card>     sign off the tree a delivery would land, on a board that
                                requires it
 
-An <id> is a session's id, any prefix of one that names only one session, or \`last\`.
-Left out, it means the newest session.
+An <id> is a run's id, any prefix of one that names only one run, or \`last\`. Left out, it
+means the newest run.
 
-An Implement click starts a DELIVERY — the whole job, several sessions long, against the
-card exactly as it was approved when it started: it builds, a fresh session reviews what it
-built, up to two corrections go back and forth, the board lands it, and the board archives
-the card. One click carries the card all the way; nothing asks you again in between. While a
-delivery is in flight that card can't be revised, refined, rejected or archived; \`cancel\` is
-what takes it back. A delivery WAITING ON YOU can always be resolved — answering is the way
-on, and it carries the same delivery on with no second click. Every other action is a single
-session and holds nothing.
+Resume is the one that reaches past the board: it picks the coding agent's own session back
+up — the conversation it was having, with everything it had already read — while the board
+counts the work as a fresh run.
+
+An Implement click starts a DELIVERY — the whole job, several runs long, against the card
+exactly as it was approved when it started: it builds, a fresh run reviews what it built, up
+to two corrections go back and forth, the board lands it, and the board archives the card.
+One click carries the card all the way; nothing asks you again in between. While a delivery
+is in flight that card can't be revised, refined, rejected or archived; \`cancel\` is what
+takes it back. A delivery WAITING ON YOU can always be resolved — answering is the way on,
+and it carries the same delivery on with no second click. Every other action is a single run
+and holds nothing.
 
 Building a card that still has open questions is allowed and warned about: it is built and
 reviewed, and then holds outside the landing queue — taking no slot, so every other card
@@ -158,7 +162,7 @@ way its commit mode is. It has nothing to hold with automatic commits off: the b
 commits there, so your own commit is the approval.
 
 Completion is the LAST step, never an earlier one: the board archives the card itself once
-the delivery has landed and ended — no session runs to do it, and the review that passes a
+the delivery has landed and ended — no run is started to do it, and the review that passes a
 delivery leaves the card where it is. In manual commit mode nothing lands, so the card is
 archived when your own commit matches what review passed.
 
@@ -198,9 +202,9 @@ When an ask can't run, this is the one line that fixes it
   the agent isn't installed     \`${program} agent test\` — it names the install command
   no key, or the wrong one      \`${program} agent\` says what is set; the user runs
                                 \`${program} agent set apiKey <their-key>\`
-  a session won't start         \`${program} runs\` — one session per card at a time, and
-                                the refusal names the session already on it
-  a session died part-way       \`${program} resume <id>\` continues that conversation
+  a run won't start             \`${program} runs\` — one run per card at a time, and the
+                                refusal names the run already on it
+  a run died part-way           \`${program} resume <id>\` continues that conversation
   a card won't change           a delivery is in flight on it — \`${program} cancel <id>\`
                                 hands it back
   a delivery won't land         it is waiting for you to approve its tree —

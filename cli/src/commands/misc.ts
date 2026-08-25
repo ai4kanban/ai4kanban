@@ -88,7 +88,7 @@ export function cmdRun(id: number): MoveResult {
     die(`#${id} is not recurring (${found.rel} is not under recurring/). Use \`archive\` for one-shot tasks.`)
   }
   // Records one pass of a recurring card. The local UI calls this itself at the end
-  // of a run session, so a card run from the board never needs anyone to remember
+  // of a run, so a card run from the board never needs anyone to remember
   // it — this is for a pass done by hand, outside the board.
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))

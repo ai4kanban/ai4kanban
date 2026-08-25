@@ -1,6 +1,6 @@
 // A delivery: everything one Implement click starts.
 //
-// One click, one delivery, one card — and several sessions inside it: implementation
+// One click, one delivery, one card — and several runs inside it: implementation
 // today, review and correction as later cards land. What makes it more than a label is the
 // SNAPSHOT: a delivery copies the card's approved requirements the moment it starts and
 // builds from that copy, so a card edited underneath it never changes what it was approved
@@ -53,7 +53,7 @@ import type {
 
 const auditPath = (deliveryId: string): string => path.join(DELIVERIES, `${deliveryId}.json`)
 
-/** One session, as the permanent record keeps it: what ran, how it went, and where its log
+/** One run, as the permanent record keeps it: what ran, how it went, and where its log
  *  was — the path, never the contents. A log is this machine's and ages out; the record is
  *  the repository's and does not. */
 interface DeliverySessionEntry {
@@ -70,11 +70,11 @@ interface DeliverySessionEntry {
 }
 
 /** Write the delivery's permanent record, or bring it up to date. Best-effort: a delivery
- *  that couldn't write its file is still a delivery, and failing the session that owns it
+ *  that couldn't write its file is still a delivery, and failing the run that owns it
  *  would cost the user their work over an audit line. */
 export function writeAudit(delivery: DeliveryRecord, runs: RunRecord[]): void {
-  // What this file already said about each session. The live record keeps only the newest
-  // 30, so a long delivery's first session leaves it long before the delivery ends — and
+  // What this file already said about each run. The live record keeps only the newest
+  // 30, so a long delivery's first run leaves it long before the delivery ends — and
   // the permanent record is exactly the thing that must not forget it.
   const known = new Map(readAudit(delivery.deliveryId)?.sessions.map((s) => [s.sessionId, s]) ?? [])
   const sessions: DeliverySessionEntry[] = delivery.sessions.flatMap((id) => {
@@ -120,8 +120,8 @@ function readAudit(deliveryId: string): { sessions: DeliverySessionEntry[] } | n
 
 /** Bring one delivery's permanent record up to date from the live record.
  *
- *  `just` is a session the caller holds that the live record may already have let go of: a
- *  session closes and is pruned in the same write, so the caller's copy is the only one
+ *  `just` is a run the caller holds that the live record may already have let go of: a
+ *  run closes and is pruned in the same write, so the caller's copy is the only one
  *  carrying how it ended. */
 export function syncAudit(deliveryId: string, just?: RunRecord): void {
   const store = readStore()
@@ -240,18 +240,18 @@ export function namedDelivery(id: string): DeliveryRecord | undefined {
 /** Every delivery the live record holds, oldest first. */
 export const listDeliveries = (): DeliveryRecord[] => readStore().deliveries
 
-/** Put a session into the delivery its card is being built under, opening one when the
+/** Put a run into the delivery its card is being built under, opening one when the
  *  card has none. Called with the record's lock already held, from inside the same
- *  transaction that writes the session down — so a delivery can never exist with no
- *  session to it, and two clicks can never open two deliveries on one card.
+ *  transaction that writes the run down — so a delivery can never exist with no run to
+ *  it, and two clicks can never open two deliveries on one card.
  *
- *  `step` is what the session is entering the delivery to do. It is kept as history and
+ *  `step` is what the run is entering the delivery to do. It is kept as history and
  *  never trusted on a resume: a stored position goes stale in exactly the crash it exists
  *  for.
  *
  *  `start` is what `prepareDelivery` settled before anything was written down (#303): the
  *  commit mode, the fork commit, the branch this delivery lands on, and the worktree it
- *  works in. A session joining a delivery that already exists brings none — the mode a
+ *  works in. A run joining a delivery that already exists brings none — the mode a
  *  delivery started in is the mode it keeps. */
 export function joinDelivery(
   store: Store,
@@ -277,7 +277,7 @@ export function joinDelivery(
       // delivery writes is the difference from here, which is the diff review judges.
       base: start ? start.base : (candidateBase() ?? undefined),
       // The stage to put back when the whole delivery ends. Read here, from the first
-      // session, because every session after this one would read `implementing` — the
+      // run, because every run after this one would read `implementing` — the
       // stage this delivery itself put there.
       priorStatus: cardStatus(cardId),
       // How it commits, and where. Written now and never again: flipping the setting
@@ -285,7 +285,7 @@ export function joinDelivery(
       commitMode: start?.commitMode ?? 'manual',
       manualWhy: start?.manualWhy,
       // And the one read of the flow rules this delivery runs under (#306) — the four
-      // flows a delivery is made of, frozen the way the card is. Every session in it is
+      // flows a delivery is made of, frozen the way the card is. Every run in it is
       // given these words rather than the files, a printed flow included, so editing a
       // rule changes the next delivery and never one in flight.
       rules: deliveryRules(),
@@ -308,15 +308,15 @@ export function joinDelivery(
   return delivery
 }
 
-/** Put a review or a correction session into the delivery already in flight on its card.
+/** Put a review or a correction run into the delivery already in flight on its card.
  *
  *  Unlike `joinDelivery` it opens nothing: there is no delivery to review when nobody has
- *  built anything, and a session that quietly started one would review an empty diff
+ *  built anything, and a run that quietly started one would review an empty diff
  *  against a card it had just captured. Undefined when the card has no active delivery,
  *  and the caller refuses.
  *
  *  Starting one also clears the stop it may be waiting at: the user has answered, approved
- *  an exception, or asked for another look, and this session is that look. */
+ *  an exception, or asked for another look, and this run is that look. */
 export function joinActive(store: Store, run: RunRecord, step: string): DeliveryRecord | undefined {
   const cardId = run.cardId as number
   const delivery = activeIn(store, cardId)
@@ -330,7 +330,7 @@ export function joinActive(store: Store, run: RunRecord, step: string): Delivery
 }
 
 /** End a delivery, and say how. Nothing happens to one that has already ended: a cancel
- *  and a session closing can reach here in either order, and the first answer stands. */
+ *  and a run closing can reach here in either order, and the first answer stands. */
 export function endDelivery(deliveryId: string, status: Exclude<DeliveryStatus, 'active'>): DeliveryRecord | undefined {
   const ended = withStore((store) => {
     const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)
@@ -343,14 +343,14 @@ export function endDelivery(deliveryId: string, status: Exclude<DeliveryStatus, 
   return ended
 }
 
-// ---- review, across a delivery's sessions (#302) -----------------------------
+// ---- review, across a delivery's runs (#302) --------------------------------
 
 /** Write one review's verdict onto the delivery in flight on this card.
  *
- *  The review session records its own verdict — it is the only thing that read the diff —
- *  and everything the loop does next is decided from it once the session has closed. A
- *  second call in one session REPLACES the first: a reviewer that changed its mind mid-
- *  session leaves one verdict, not two. */
+ *  The review run records its own verdict — it is the only thing that read the diff —
+ *  and everything the loop does next is decided from it once the run has closed. A second
+ *  call in one run REPLACES the first: a reviewer that changed its mind mid-run leaves
+ *  one verdict, not two. */
 export function recordVerdict(
   cardId: number,
   sessionId: string,
@@ -375,15 +375,15 @@ export function recordVerdict(
   return out
 }
 
-/** What a session's ending means for the delivery it belonged to.
+/** What a run's ending means for the delivery it belonged to.
  *
  *  A delivery is implementation, then review, then a correction and another review for as
- *  long as review asks for one. So the end of a session is a decision rather than an
+ *  long as review asks for one. So the end of a run is a decision rather than an
  *  ending: the delivery finishes only when review passes it, stops with a question on the
- *  card when review can go no further, and otherwise writes down the session it starts
- *  next. A session that failed or was cut off mid-build leaves it ACTIVE and unfinished,
+ *  card when review can go no further, and otherwise writes down the run it starts
+ *  next. A run that failed or was cut off mid-build leaves it ACTIVE and unfinished,
  *  with the card still held, until Resume carries it on or Cancel delivery ends it. A
- *  session somebody stopped is the same: stopping a session is not ending the job. */
+ *  run somebody stopped is the same: stopping a run is not ending the job. */
 export function settleDelivery(run: RunRecord): void {
   if (!run.deliveryId) return
   const before = readStore().deliveries.find((d) => d.deliveryId === run.deliveryId)
@@ -394,7 +394,7 @@ export function settleDelivery(run: RunRecord): void {
   // on this board waits on that lock, and a git command is not what it should be waiting
   // for.
   //
-  // First the session's work, committed onto the delivery's branch. Review reads the
+  // First the run's work, committed onto the delivery's branch. Review reads the
   // branch, so an uncommitted change is not part of what it judges — and a change that
   // reached the board's own files is refused outright rather than landed.
   const built = run.status === 'done' && (run.action === 'implement' || run.action === 'correct')
@@ -461,7 +461,7 @@ export function settleDelivery(run: RunRecord): void {
     if (next.start === 'correct') {
       const review = reviewOf(delivery)
       review.corrections += 1
-      // Taken now, before the correction writes anything, so the session after it can be
+      // Taken now, before the correction writes anything, so the run after it can be
       // told whether the candidate moved at all.
       review.mark = mark
     }
@@ -469,16 +469,16 @@ export function settleDelivery(run: RunRecord): void {
   })
   if (settled && 'end' in settled) endDelivery(run.deliveryId, settled.end)
   if (settled && 'ask' in settled) askUser(settled.cardId, settled.ask)
-  // Whatever happened, the permanent record follows the session that just closed — from
+  // Whatever happened, the permanent record follows the run that just closed — from
   // the caller's copy, since closing and pruning it are one write.
   syncAudit(run.deliveryId, run)
 }
 
-/** The session this delivery starts next, now that one of its own has closed — and it is
+/** The run this delivery starts next, now that one of its own has closed — and it is
  *  taken as it is read, so nothing starts it twice.
  *
- *  Called by the watcher of the session that just closed, which is the one process that
- *  can start it: a session never starts another. A watcher that dies in between leaves
+ *  Called by the watcher of the run that just closed, which is the one process that
+ *  can start it: a run never starts another. A watcher that dies in between leaves
  *  `next` on the record, so the delivery still says what it was about to do and
  *  `akb review <id>` puts it back in motion. */
 export function deliveryRunAfter(run: RunRecord): AgentRequest | null {
@@ -534,8 +534,8 @@ function releaseLanding(delivery: DeliveryRecord): void {
 export const latestVerdict = (delivery: DeliveryRecord): ReviewVerdict | undefined =>
   lastRound(delivery)?.verdict
 
-// This very session recorded a pass. A review whose session ended without a verdict told
-// us nothing, and a verdict from an earlier round is not this session's answer.
+// This very run recorded a pass. A review whose run ended without a verdict told us
+// nothing, and a verdict from an earlier round is not this run's answer.
 function passedIn(delivery: DeliveryRecord, run: RunRecord): boolean {
   const round = lastRound(delivery)
   return round?.sessionId === run.sessionId && round.verdict === 'pass'
@@ -582,7 +582,7 @@ export function manualSettled(delivery: DeliveryRecord): string | undefined {
 
 // ---- the hold a delivery puts on its card -----------------------------------
 
-/** True when THIS process is a session of that card's delivery, so the hold does not apply
+/** True when THIS process is a run of that card's delivery, so the hold does not apply
  *  to it. The implement flow closes by ticking todos, appending verify lines and archiving
  *  the card — card writes like any other, so a hold that couldn't tell them from a user's
  *  edit would refuse the delivery its last step. */
@@ -618,7 +618,7 @@ export function deliveryWaiting(cardId: number): string | undefined {
  *  names the one thing that takes the card back; "try again later" without any of those is
  *  a refusal nobody can act on.
  *
- *  A session of the delivery itself passes straight through. */
+ *  A run of the delivery itself passes straight through. */
 export function heldByDelivery(cardId: number, program?: string): string | undefined {
   const delivery = activeDelivery(cardId)
   if (!delivery) return undefined

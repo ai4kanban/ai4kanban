@@ -71,7 +71,7 @@ export function formatCadence(c: Cadence): string {
  *
  *  Local rather than UTC, for the same reason the stamps above are. The board is one
  *  person's tool on one machine, and the day it means is the day they are having — east of
- *  UTC, a UTC date files an evening's work under yesterday, and a session either side of
+ *  UTC, a UTC date files an evening's work under yesterday, and a run either side of
  *  midnight lands on two rows that disagree with the clock on the wall. */
 export function formatDay(d: Date = new Date()): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`

@@ -17,7 +17,7 @@ import type { DeliveryRecord } from './types'
 import { git, gitDiff, outsideBoard, worktreeDir } from './worktree'
 
 // The board is not the candidate. `docs/kanban/` holds the card, the delivery records and
-// the session state, and every one of them moves while a delivery works — so a diff that
+// the run state, and every one of them moves while a delivery works — so a diff that
 // counted them would show the delivery changing the moment it wrote its own audit line, and
 // "this correction changed nothing" could never be true. Review judges code. The list is
 // `agent/worktree.ts`'s, shared with the checkout and the commit check.

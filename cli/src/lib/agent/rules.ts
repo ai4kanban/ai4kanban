@@ -10,7 +10,7 @@
 // The files sit in docs/kanban/rules/, named by the command a user types — `revise.md` for
 // `akb revise`, whose action the board keeps under the name `edit`. They are versioned in
 // git so a team shares them, and they are inside docs/kanban/, which every delivery
-// worktree leaves out — which is why a session is given the WORDS and never the path.
+// worktree leaves out — which is why a run is given the WORDS and never the path.
 //
 // Nothing is created up front: a missing or empty file means the flow runs unchanged.
 
@@ -76,7 +76,7 @@ export function deliveryRules(): Record<string, string> {
   return rules
 }
 
-/** The rule one run is given: the delivery's frozen copy when the run is a session of one,
+/** The rule one run is given: the delivery's frozen copy when the run is part of one,
  *  and the file otherwise.
  *
  *  `frozen` is the caller's read of the delivery in flight — the caller's, because a

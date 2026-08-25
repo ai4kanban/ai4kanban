@@ -105,7 +105,7 @@ export async function watchRun(sessionId: string): Promise<number> {
   // The keys are read here and nowhere else: the plan on disk carries the command and the
   // agent's name, never a key, and this is the one moment one is needed.
   const active = openPlan(spec.plan)
-  // A resumed session's prompt is the "carry on" one — the conversation already holds the
+  // A resumed run's prompt is the "carry on" one — the conversation already holds the
   // card, the work done and the error it died on, so the whole action prompt would be a
   // second instruction nobody gave. Inside a delivery it says more: re-enter the flow and
   // check each step's precondition, rather than carrying on from a half-finished sentence.
@@ -139,7 +139,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       cwd: workDir,
       // The run's own id goes into the agent's environment, and this is the one place it
       // can: the environment a run starts under is settled by the settings (resolve.ts),
-      // which never see a session id. It is what stops a run spawning a copy of itself —
+      // which never see a run id. It is what stops a run spawning a copy of itself —
       // an agent inside a run that asks for a board action gets the flow printed instead
       // (lib/agent/flow.ts).
       env: runEnv(active.env, sessionId),
@@ -192,7 +192,7 @@ export async function watchRun(sessionId: string): Promise<number> {
     // user nothing.
     spawnError =
       (err as NodeJS.ErrnoException)?.code === 'ENOENT'
-        ? `${cmd} isn't installed, or isn't on this session's PATH. Install it with: ${active.install}`
+        ? `${cmd} isn't installed, or isn't on this run's PATH. Install it with: ${active.install}`
         : String(err)
     log.write(`\n[error] ${spawnError}`)
   })
@@ -261,12 +261,12 @@ export async function watchRun(sessionId: string): Promise<number> {
         endedAt,
       })
       letGo()
-      // The delivery's own next session first, when it has one: review after a build,
+      // The delivery's own next run first, when it has one: review after a build,
       // a correction after a review that found mistakes, another review after that. It is
       // read from the record the close just wrote, so it is taken once and started once.
       const carryOn = deliveryRunAfter(record)
       // Then the landing queue (#304): a delivery review has just passed takes the slot and
-      // lands here, and what it hands back is the session that landing wants — a re-review
+      // lands here, and what it hands back is the run that landing wants — a re-review
       // after a rebase, or the agent that resolves a conflict.
       const landing = advanceLanding()
       followUp(sessionId, settled?.runs ?? [], carryOn, landing)
@@ -367,7 +367,7 @@ function brokeBoard(wasBroken: Set<string>): string | null {
   const shown = broke.slice(0, MAX_BROKEN)
   const rest = broke.length - shown.length
   return [
-    `the work is done, but the board came out of this session inconsistent — ${broke.length} thing${broke.length === 1 ? '' : 's'} to put right:`,
+    `the work is done, but the board came out of this run inconsistent — ${broke.length} thing${broke.length === 1 ? '' : 's'} to put right:`,
     ...shown.map((line) => `  ${line}`),
     ...(rest ? [`  … and ${rest} more`] : []),
     `a card is taken off the board with \`${boardCommand()} board archive <id>\` or \`${boardCommand()} board reject <id>\`, never by deleting its file.`,

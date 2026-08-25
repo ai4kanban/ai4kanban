@@ -44,14 +44,14 @@ export function boardCommand(): string {
   return pathLookup()('akb') ? 'akb' : selfCommand()
 }
 
-/** The board's command as a session working OUTSIDE the project folder has to type it: the
+/** The board's command as a run working OUTSIDE the project folder has to type it: the
  *  command itself, and `--dir` naming the project whose board it means (#303).
  *
  *  A delivery with a worktree of its own works in `.akb/worktrees/…`, where a relative
  *  `node cli/bin/…` would run that worktree's copy of the command — a copy the delivery may
  *  be halfway through rewriting — and where a board command with no `--dir` is one folder
  *  layout away from finding no board at all. Both are settled by saying which project, once,
- *  in the words the session is given.
+ *  in the words the run is given.
  *
  *  `cardId` only names what the flow is about; the answer is the same for every card. */
 export function boardCommandFor(_cardId?: number): string {
@@ -86,13 +86,13 @@ export function noteCommand(root: string, invoked?: string): string {
  *  learns it by having a command fail.
  *
  *  Two things can make it differ, and the sentence says whichever ones apply: there is no
- *  `akb` on this machine, and — inside a delivery — this session's working folder is its
+ *  `akb` on this machine, and — inside a delivery — the working folder is its
  *  own worktree rather than the project, so the board is named with `--dir` (#303). */
 export function commandNote(command: string): string {
   if (command === 'akb') return ''
   const why = [
     command.startsWith('akb') ? '' : `there is no \`akb\` on this machine's PATH`,
-    command.includes(' --dir ') ? `this session's working folder is not the project` : '',
+    command.includes(' --dir ') ? `the working folder here is not the project` : '',
   ].filter(Boolean)
   return (
     `${why.length ? `Because ${why.join(', and ')}, ` : ''}\`${command}\` is the board's command here — ` +

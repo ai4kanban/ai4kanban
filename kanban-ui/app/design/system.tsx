@@ -128,7 +128,7 @@ const PAIRS: {
   { fg: INK, bg: PAPER, label: "ink on paper", where: "a card title, a dialog" },
   { fg: INK_SOFT, bg: PAPER, label: "ink-soft on paper", where: "a card's meta row, a blurb under a label" },
   { fg: INK, bg: WASH, label: "ink on wash", where: "a column header, a log body" },
-  { fg: INK_SOFT, bg: WASH, label: "ink-soft on wash", where: "the session log's mono tail" },
+  { fg: INK_SOFT, bg: WASH, label: "ink-soft on wash", where: "the run log's mono tail" },
   {
     fg: PAPER,
     bg: ACCENT,
@@ -503,7 +503,7 @@ export function DesignSystem() {
           <div className="nb-outline bg-nb-paper p-4">
             <p className="font-mono text-[12.5px] font-[700]">.nb-outline</p>
             <p className="mt-2 text-[12.5px] leading-relaxed text-nb-ink-soft">
-              14px radius, framed, flat. The session log window, an option row, a
+              14px radius, framed, flat. The run log window, an option row, a
               cadence box.
             </p>
           </div>
@@ -877,8 +877,8 @@ export function DesignSystem() {
       </Section>
 
       <Section
-        id="session"
-        title="The session log"
+        id="run"
+        title="The run log"
         note="components/agent-shared.tsx — the one artifact every place that shows a run reuses: the card page, the board overlay, the runs panel. An ink-framed window with a gradient title bar, the run's facts in one middot row, and a wash body sunk into it. A live run tails its raw event stream in mono; a finished one leads with the agent's final message as markdown and folds the events it streamed on the way into a collapsed row above."
       >
         <SessionLog session={DONE_SESSION} flush />

@@ -140,6 +140,6 @@ export const flowByAction = (action: AgentAction): Flow | undefined =>
   FLOWS.find((flow) => flow.action === action)
 
 /** The four flows a delivery is made of. Their rules are frozen with the card the delivery
- *  was approved to build, and their sessions are the ones that may not be working in the
+ *  was approved to build, and their runs are the ones that may not be working in the
  *  project folder. */
 export const DELIVERY_FLOWS = new Set<AgentAction>(['implement', 'review', 'correct', 'conflict'])

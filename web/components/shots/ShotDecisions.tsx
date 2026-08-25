@@ -66,7 +66,7 @@ export function ShotDecisions() {
     <Shot crop={CROP}>
       <div style={{ padding: em(20) }}>
         <Panel style={{ overflow: "hidden" }}>
-          {/* The file header: what changed and by how much. Set like the session
+          {/* The file header: what changed and by how much. Set like the run
               log's title bar, since the board has no diff view to copy. */}
           <div
             style={{

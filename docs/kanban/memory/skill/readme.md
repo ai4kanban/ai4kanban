@@ -313,3 +313,13 @@ covers it, or a plain-words note.
   is. `akb implement <id>` warns about a card's open questions the way it already warned about a
   blocker: the delivery still starts, and holds at landing until they are answered. `akb help` and
   `akb guide review` carry the whole of it.
+
+- The board's three nested things now each have one name, said the same way everywhere. A
+  **delivery** is the whole job one Implement click starts; a **run** is one execution attempt
+  inside it — implement, review, correct; a **session** is the coding agent's own conversation,
+  the thing a resume picks back up. Every surface follows it: `akb help` and `akb help runs`, the
+  CLI's own output and errors, the flows in `akb guide`, the board UI (the header's **Runs**
+  button and its panel, and the **run log** window), `docs/guides/`, and the landing page's mock
+  of that panel. Resume is where the third level is stated outright — it continues the coding
+  agent's own session while the board counts the work as a fresh run: `akb help runs` and
+  `docs/guides/connectors.md`.

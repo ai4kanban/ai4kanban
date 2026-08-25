@@ -76,9 +76,9 @@ export interface BoardRules {
   titleOf(cardId: number | undefined): string | undefined;
   buildPrompt(req: AgentRequest): string;
 
-  // the deliveries (#301) — the whole job one Implement click starts, several sessions
+  // the deliveries (#301) — the whole job one Implement click starts, several runs
   // long. Optional: a project can be running rules older than the release that added them,
-  // and then a session simply carries no delivery and no card is ever held.
+  // and then a run simply carries no delivery and no card is ever held.
   listDeliveries?(): DeliveryRecord[];
   activeDelivery?(cardId: number): DeliveryRecord | undefined;
   cancelDelivery?(id: string): { ok: boolean; deliveryId?: string; error?: string };

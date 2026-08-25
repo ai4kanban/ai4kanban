@@ -50,8 +50,8 @@ const OTHER: Record<string, (args: string[], program: string) => MoveResult | Pr
   log: cmdLog,
   stop: cmdStop,
   resume: cmdResume,
-  // Ends a DELIVERY, where `stop` ends one session of it. The two are not the same word:
-  // stopping a session leaves the delivery in flight and the card still held.
+  // Ends a DELIVERY, where `stop` ends one run of it. The two are not the same word:
+  // stopping a run leaves the delivery in flight and the card still held.
   cancel: cmdCancel,
   // Cancel hands the card back and leaves the delivery's checkout alone; this is what
   // throws that checkout away (#303). Two commands because they lose different things.

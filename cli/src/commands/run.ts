@@ -61,8 +61,8 @@ export function cmdStartRun(action: AgentAction, args: string[], program = 'akb'
   const started = action === 'refine' ? startRefinement(req) : startRun(req)
   if ('error' in started) die(started.error, { kind: 'run-refused', action })
   const { run, spawned } = started
-  if (!spawned) die(`couldn't start a process for session ${run.sessionId}`, { kind: 'spawn-failed' })
-  say(`${action} — session ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
+  if (!spawned) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
+  say(`${action} — run ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
   say(`  follow it: ${program} log ${short(run.sessionId)} --follow${DIR_FLAG}`)
   say(`  stop it:   ${program} stop ${short(run.sessionId)}${DIR_FLAG}`)
   if (follow) return { sessionId: run.sessionId, ...followRun(run.sessionId, '', program) }
@@ -72,11 +72,11 @@ export function cmdStartRun(action: AgentAction, args: string[], program = 'akb'
 // The actions a delivery holds its card against. Each one either rewrites the sections the
 // delivery is building from — revise, refine and resolve all do — or takes the card off the
 // board under it. What is NOT here is the delivery's own work: `implement` reaches the
-// per-card session rule instead, and a resume carries the delivery on rather than starting
+// per-card run rule instead, and a resume carries the delivery on rather than starting
 // against it.
 //
 // The hold is the board's, not one screen's: the card page turns the same five controls off
-// (kanban-ui/components/CardPage.tsx), and a session of the delivery itself passes both.
+// (kanban-ui/components/CardPage.tsx), and a run of the delivery itself passes both.
 const HELD_BY_DELIVERY = new Set<AgentAction>(['edit', 'refine', 'resolve', 'reject', 'archive'])
 
 function sayIfHeld(req: AgentRequest, program: string): void {
@@ -227,14 +227,14 @@ export function cmdResume(args: string[]): MoveResult {
   const { run } = opened
   const pid = spawnWatcher(run.sessionId)
   markSpawned(run.sessionId, pid)
-  if (!pid) die(`couldn't start a process for session ${run.sessionId}`, { kind: 'spawn-failed' })
-  say(`continuing ${short(run.resumedFrom!)} — session ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
+  if (!pid) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
+  say(`continuing ${short(run.resumedFrom!)} — run ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
   if (flags.follow === true) return { sessionId: run.sessionId, ...followRun(run.sessionId) }
   return { sessionId: run.sessionId, resumedFrom: run.resumedFrom }
 }
 
 /** Take a card back from the delivery in flight on it: the delivery ends as cancelled, its
- *  running session is stopped, the card unlocks, and Implement is offered again. Whatever
+ *  running run is stopped, the card unlocks, and Implement is offered again. Whatever
  *  the delivery wrote stays exactly where it is. */
 export function cmdCancel(args: string[]): MoveResult {
   const { positional } = parseFlags(args, SHARED)
@@ -297,12 +297,12 @@ export function cmdDiscard(args: string[]): MoveResult {
   return { deliveryId: res.deliveryId, discarded: true }
 }
 
-/** End a session. Its half-finished edits are left in the working tree — the board never
+/** End a run. Its half-finished edits are left in the working tree — the board never
  *  undoes work. */
 export function cmdStop(args: string[]): MoveResult {
   const { positional } = parseFlags(args, SHARED)
   const res = stopRun(positional[0] ?? 'last')
-  if (!res.ok) die(res.error ?? 'that session could not be stopped', { kind: 'run-refused' })
+  if (!res.ok) die(res.error ?? 'that run could not be stopped', { kind: 'run-refused' })
   say(`stopping ${short(res.sessionId!)}`)
   return { sessionId: res.sessionId }
 }
@@ -339,7 +339,7 @@ export function cmdLog(args: string[], program = 'akb'): MoveResult {
   const { flags, positional } = parseFlags(args, [...SHARED, 'full'])
   const id = positional[0] ?? 'last'
   const view = getRun(id, flags.full === true ? Infinity : undefined)
-  if (!view) die(`no session here answers to "${id}"`, { kind: 'no-such-run', run: id })
+  if (!view) die(`no run here answers to "${id}"`, { kind: 'no-such-run', run: id })
   if (flags.follow === true) {
     say(runLine(view, program))
     return { sessionId: view.sessionId, ...followRun(view.sessionId, view.tail ?? '', program) }
@@ -435,8 +435,8 @@ function runLine(r: RunView, program = 'akb'): string {
     what.padEnd(18),
     r.status === 'running' ? `running ${ago(Date.now() - r.startedAt)}` : r.status,
   ]
-  // Which delivery this session belongs to, when it belongs to one. Without it a delivery's
-  // three sessions read as three unrelated attempts at the same card.
+  // Which delivery this run belongs to, when it belongs to one. Without it a delivery's
+  // three runs read as three unrelated attempts at the same card.
   if (r.deliveryId) bits.push(`delivery ${r.deliveryId}`)
   if (r.durationMs !== undefined) bits.push(`in ${ago(r.durationMs)}`)
   if (r.model) bits.push(r.model)
@@ -450,7 +450,7 @@ function runLine(r: RunView, program = 'akb'): string {
   return under.length ? [line, ...under.map((s) => `    ${s}`)].join('\n') : line
 }
 
-// Eight characters of a session's id: enough to name one on a board, short enough to type
+// Eight characters of a run's id: enough to name one on a board, short enough to type
 // and to read down a column. Every command that takes an id takes any prefix of one.
 export const short = (sessionId: string): string => sessionId.slice(0, 8)
 

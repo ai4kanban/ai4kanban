@@ -1,16 +1,16 @@
 // docs/kanban/.sessions.json — the live record every process on this board shares.
 //
-// It holds two lists. The SESSIONS are agent invocations: what is running, and what ran
-// lately. The DELIVERIES are the jobs those sessions belong to — one Implement click each,
-// and several sessions long. Both live in a file rather than in memory because the
-// processes that need them are not one process: a session started from a terminal, one
+// It holds two lists. The RUNS are agent invocations: what is running, and what ran
+// lately. The DELIVERIES are the jobs those runs belong to — one Implement click each,
+// and several runs long. Both live in a file rather than in memory because the
+// processes that need them are not one process: a run started from a terminal, one
 // started from a button, and one the board started on its own all land in the same lists,
 // and the rules that hold a card still hold across all three.
 //
 // Nothing is kept between commands: every read is a read of the file, and every write
 // takes the record's own lock.
 //
-// That lock is NOT the board's writing lock. A session's bookkeeping calls board moves —
+// That lock is NOT the board's writing lock. A run's bookkeeping calls board moves —
 // putting a card's stage back, stamping a recurring card — and those take the board lock
 // themselves, so holding it here would deadlock.
 
@@ -35,15 +35,15 @@ import type {
   RunStatus,
 } from './types'
 
-/** How many finished sessions the record keeps. The logs outlive them by the same count. */
+/** How many finished runs the record keeps. The logs outlive them by the same count. */
 const KEEP_RUNS = 30
 
-// And how many ended deliveries. Far fewer are needed here than sessions: this row is only
+// And how many ended deliveries. Far fewer are needed here than runs: this row is only
 // the live copy, and the permanent one is the file under docs/kanban/deliveries/, which is
 // tracked in git and never pruned.
 const KEEP_DELIVERIES = 30
 
-/** Where a session's log is written, from its id alone. */
+/** Where a run's log is written, from its id alone. */
 export const logPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.log`)
 
 // `auto-refine` was this action's name until refine became the loop and there was only one
@@ -68,7 +68,7 @@ export function readStore(): Store {
   }
   const box = data as { runs?: unknown; live?: unknown; finished?: unknown; deliveries?: unknown }
   // `live`/`finished` is the shape the board UI's own registry wrote before the record
-  // became everyone's. Read so an upgrade mid-session keeps its history.
+  // became everyone's. Read so an upgrade mid-run keeps its history.
   const raw = Array.isArray(box?.runs)
     ? box.runs
     : [...(Array.isArray(box?.live) ? box.live : []), ...(Array.isArray(box?.finished) ? box.finished : [])]
@@ -87,13 +87,13 @@ export function readStore(): Store {
       ok: typeof entry.ok === 'boolean' ? entry.ok : undefined,
       code: entry.code ?? null,
       error: typeof entry.error === 'string' ? entry.error : undefined,
-      // A session that never reported a cost shows none, rather than a zero it didn't earn.
+      // A run that never reported a cost shows none, rather than a zero it didn't earn.
       costUsd: typeof entry.costUsd === 'number' && entry.costUsd > 0 ? entry.costUsd : undefined,
       usage: asUsage(entry.usage),
       model: typeof entry.model === 'string' && entry.model ? entry.model : undefined,
       result: typeof entry.result === 'string' ? entry.result : undefined,
       note: typeof entry.note === 'string' && entry.note ? entry.note : undefined,
-      // A session written down before the agent was recorded carries no name, so it gets no
+      // A run written down before the agent was recorded carries no name, so it gets no
       // resume: every agent resumes differently, and the one thing worse than a missing
       // offer is a command for the wrong agent.
       harness: typeof entry.harness === 'string' ? entry.harness : '',
@@ -114,7 +114,7 @@ export function readStore(): Store {
   return { runs, deliveries: readDeliveryRows(box?.deliveries) }
 }
 
-/** Every session the record holds, newest last. */
+/** Every run the record holds, newest last. */
 export const readRuns = (): RunRecord[] => readStore().runs
 
 function readDeliveryRows(raw: unknown): DeliveryRecord[] {
@@ -151,7 +151,7 @@ function readDeliveryRows(raw: unknown): DeliveryRecord[] {
       // (#308). A delivery written down before diff approval existed needs none.
       approval: readApproval(entry.approval),
       // The flow rules this delivery froze (#306). A delivery written down before they
-      // existed has none, and its sessions read the files — which is what they always did.
+      // existed has none, and its runs read the files — which is what they always did.
       rules: readRules(entry.rules),
     })
   }
@@ -163,7 +163,7 @@ const text = (value: unknown): string | undefined =>
 
 // The rules a delivery froze, keyed by the command that starts the flow. An empty object is
 // kept and undefined is not: `{}` means this delivery froze rules and none were set, while
-// nothing at all means a delivery from before rules existed, whose sessions read the files.
+// nothing at all means a delivery from before rules existed, whose runs read the files.
 function readRules(raw: unknown): Record<string, string> | undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
   const rules: Record<string, string> = {}
@@ -324,7 +324,7 @@ function writeStore(store: Store): void {
   fs.renameSync(tmp, SESSIONS)
 }
 
-// Bound the record: keep every live session and the newest KEEP_RUNS finished ones, and
+// Bound the record: keep every live run and the newest KEEP_RUNS finished ones, and
 // drop a finished one whose log is already gone — its record would be a dead pointer.
 function prune(runs: RunRecord[]): RunRecord[] {
   const live = runs.filter((r) => r.status === 'running')
@@ -349,7 +349,7 @@ function pruneDeliveries(deliveries: DeliveryRecord[]): DeliveryRecord[] {
 /** Read the record, change it, write it back — with its lock held the whole way. Every
  *  writer goes through this, so two processes never lose each other's change. */
 export function withStore<T>(fn: (store: Store) => T): T {
-  return withLock(SESSIONS_LOCK, "writing this board's session list", () => {
+  return withLock(SESSIONS_LOCK, "writing this board's run list", () => {
     const store = readStore()
     const before = JSON.stringify(store)
     const out = fn(store)
@@ -361,7 +361,7 @@ export function withStore<T>(fn: (store: Store) => T): T {
   })
 }
 
-/** The sessions half of the record, changed under the same lock. */
+/** The runs half of the record, changed under the same lock. */
 export function withRuns<T>(fn: (runs: RunRecord[]) => T): T {
   return withStore((store) => fn(store.runs))
 }

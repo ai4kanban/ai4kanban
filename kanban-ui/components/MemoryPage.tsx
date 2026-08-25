@@ -57,7 +57,7 @@ export function MemoryPage({
   // The file keeps up on its own, on the two triggers a card page uses: a run finishing, and
   // the window being focused again. The app has no file watcher, so a file the user edits
   // themselves catches up on the second of those. Nothing is started from this page, so
-  // there is no session of our own to hear about.
+  // there is no run of our own to hear about.
   const noRunsOfOurOwn = useCallback(() => {}, []);
   const { sessions } = useAgentSessions(noRunsOfOurOwn);
   const prevRunning = useRef<Set<string>>(new Set());

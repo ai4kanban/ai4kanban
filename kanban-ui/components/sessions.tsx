@@ -1,10 +1,10 @@
 "use client";
 
-// Shared client plumbing for the session registry (task #12). Both the board and
+// Shared client plumbing for the run registry (task #12). Both the board and
 // the card page use it to: poll the server-side registry, know which cards have a
-// live agent, start a session without blocking, and get told when a session they
+// live agent, start a run without blocking, and get told when a run they
 // started finishes (to show its result and refresh). It also hosts the global
-// sessions panel (task #21) — the header's activity button and its two-pane
+// runs panel (task #21) — the header's activity button and its two-pane
 // history dialog.
 
 import Link from "next/link";
@@ -16,11 +16,11 @@ import type { SessionView } from "@/lib/types";
 import { type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
 import { TOOL_BTN } from "./chrome";
 
-const POLL_MS = 1500; // while a session is live
+const POLL_MS = 1500; // while a run is live
 const IDLE_POLL_MS = 5000; // while nothing is running — see the effect below
 const LOG_POLL_MS = 1200; // how often the live log tail refreshes
 
-// A session this tab started, remembered until it finishes so onFinish can fire once.
+// A run this tab started, remembered until it finishes so onFinish can fire once.
 export interface StartedSession {
   sessionId: string;
   label: string;
@@ -60,7 +60,7 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
       try {
         const next = await listSessionsAction();
         if (!alive) return;
-        // Fire onFinish for any session this tab started that just went terminal.
+        // Fire onFinish for any run this tab started that just went terminal.
         for (const r of next) {
           const started = mine.current.get(r.sessionId);
           if (started && r.status !== "running") {
@@ -120,9 +120,9 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
     [],
   );
 
-  // Take on a session this tab caused but didn't start through `start` above.
+  // Take on a run this tab caused but didn't start through `start` above.
   // A plan-release run is the case (#165): the server starts it as part of
-  // writing the release, so the session id comes back from that action rather
+  // writing the release, so the run id comes back from that action rather
   // than from here. Same effect either way — onFinish fires for it, and the poll
   // wakes at once, so the run joins the runs panel in the same moment the
   // release does rather than up to a slow tick later.
@@ -133,7 +133,7 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
 
   // Force an immediate poll. `start` does this itself; a caller that made the
   // registry move some other way (resuming a failed run) uses this so the new
-  // session shows up now instead of on the next idle tick.
+  // run shows up now instead of on the next idle tick.
   const kick = useCallback(() => kickRef.current(), []);
 
   return { sessions, start, watch, kick };
@@ -141,11 +141,11 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
 
 // Run `fn` each time the tab becomes visible again. A hidden tab stops polling,
 // and the running-set diff a view uses to catch finishes only fires on a
-// running→finished change the view actually witnessed while polling. A session
+// running→finished change the view actually witnessed while polling. A run
 // that both starts and finishes while the tab is hidden is never witnessed, so
 // on focus that diff finds nothing and the view stays stale. An unconditional
 // re-read on focus is always correct and doesn't depend on witnessing the
-// transition — it also covers a finished session evicted from the kept-30 window
+// transition — it also covers a finished run evicted from the kept-30 window
 // before the tab woke. Board and CardPage both use this to re-read on focus.
 export function useOnTabFocus(fn: () => void) {
   const ref = useRef(fn);
@@ -168,7 +168,7 @@ export function runningCardIds(sessions: SessionView[]): Set<number> {
   return ids;
 }
 
-// The newest session (live or finished) that touched this card, so the card page
+// The newest run (live or finished) that touched this card, so the card page
 // can tail the live one and re-open the last finished one from the same slot.
 export function latestSessionForCard(sessions: SessionView[], cardId: number): SessionView | undefined {
   let best: SessionView | undefined;
@@ -178,15 +178,15 @@ export function latestSessionForCard(sessions: SessionView[], cardId: number): S
   return best;
 }
 
-// The live session on this card, if any (used to open its log from a board badge).
+// The live run on this card, if any (used to open its log from a board badge).
 export function runningSessionForCard(sessions: SessionView[], cardId: number): SessionView | undefined {
   return sessions.find((r) => r.status === "running" && r.cardId === cardId);
 }
 
 // Tail one session's log. Polls getSessionAction while the session is live (task
-// #14 reuses the poll channel — no SSE, matching the session badges), then
+// #14 reuses the poll channel — no SSE, matching the run badges), then
 // fetches once more when it ends and stops. Pass null to watch nothing. Returns
-// the session with its log tail, or null while it hasn't loaded / the session is
+// the run with its log tail, or null while it hasn't loaded / the run is
 // unknown.
 export function useSessionLog(sessionId: string | null): SessionView | null {
   const [log, setLog] = useState<SessionView | null>(null);
@@ -202,7 +202,7 @@ export function useSessionLog(sessionId: string | null): SessionView | null {
         const r = await getSessionAction(sessionId);
         if (!alive) return;
         setLog(r);
-        // Keep polling only while the session is live; a terminal tail is final.
+        // Keep polling only while the run is live; a terminal tail is final.
         if (r && r.status === "running") timer = setTimeout(tick, LOG_POLL_MS);
       } catch {
         if (alive) timer = setTimeout(tick, LOG_POLL_MS);
@@ -217,10 +217,10 @@ export function useSessionLog(sessionId: string | null): SessionView | null {
   return log;
 }
 
-// --- the global sessions panel (task #21) -----------------------------------
+// --- the global runs panel (task #21) ---------------------------------------
 
 // A tiny shared store so the header's Create button (a sibling component) can pop
-// the sessions panel open on the session it just started — without threading
+// the runs panel open on the run it just started — without threading
 // state through the server-rendered Header. One store per browser tab; the
 // panel's open/selected state lives here so any header control can drive it.
 type PanelState = { open: boolean; selected: string | null };
@@ -231,7 +231,7 @@ function setPanel(next: PanelState) {
   for (const fn of panelSubs) fn();
 }
 export const sessionsPanel = {
-  // Open the panel; optionally select a session (e.g. the create just started). A
+  // Open the panel; optionally select a run (e.g. the create just started). A
   // missing selection keeps whatever was selected, so the panel defaults to the
   // newest session (see SessionsDialog).
   open(selected?: string | null) {
@@ -258,9 +258,9 @@ function usePanelState(): PanelState {
   );
 }
 
-// A relative "2m ago" for the session list; an absolute stamp for the detail
+// A relative "2m ago" for the run list; an absolute stamp for the detail
 // header. Both read the clock at render — fine, the poll re-renders while
-// sessions are live.
+// runs are live.
 function relTime(ts: number): string {
   const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
   if (s < 45) return "just now";
@@ -279,9 +279,9 @@ function fullTime(ts: number): string {
   });
 }
 
-// The status dot shown against each session in the list: a pulsing ember while
+// The status dot shown against each run in the list: a pulsing ember while
 // live, mint when it passed, sky when the user stopped it, peach otherwise. Peach
-// covers both a failed run and an interrupted one (a session that outlived a UI
+// covers both a failed run and an interrupted one (a run that outlived a UI
 // restart — see registry): the dot only says whether the run got there, and
 // neither of those did. Which one it was, and what to do about it, is the log
 // pane's word. A stopped run (#49) is the one that reached no end and yet is not
@@ -301,15 +301,15 @@ function SessionDot({ session }: { session: SessionView }) {
   return <span className={`size-[8px] shrink-0 rounded-full ${tone}`} aria-hidden />;
 }
 
-// The header entry point to the session history (task #21): one activity-icon
-// button. While any session is live it wears an iOS-style badge — a small ember
-// circle with the count of running sessions and a ping pulse. Clicking opens the
-// two-pane dialog. The panel is GLOBAL: every session, every card and every
-// action, newest first — the one place to browse across sessions (a per-card
-// page still shows only its own most recent session; see redesign.md).
+// The header entry point to the run history (task #21): one activity-icon
+// button. While any run is live it wears an iOS-style badge — a small ember
+// circle with the count of running runs and a ping pulse. Clicking opens the
+// two-pane dialog. The panel is GLOBAL: every run, every card and every
+// action, newest first — the one place to browse across runs (a per-card
+// page still shows only its own most recent run; see redesign.md).
 export function Sessions() {
   // Poll the shared registry for the picture every tab sees. This instance never
-  // starts a session, so its onFinish never fires — pass a no-op.
+  // starts a run, so its onFinish never fires — pass a no-op.
   const { sessions, kick } = useAgentSessions(() => {});
   const panel = usePanelState();
   const runningCount = sessions.reduce((n, r) => n + (r.status === "running" ? 1 : 0), 0);
@@ -319,8 +319,8 @@ export function Sessions() {
       <button
         type="button"
         onClick={() => sessionsPanel.toggle()}
-        title={runningCount > 0 ? `${runningCount} running — session history` : "Session history"}
-        aria-label="Session history"
+        title={runningCount > 0 ? `${runningCount} running — run history` : "Run history"}
+        aria-label="Run history"
         // The middle tool in the header's cluster (components/chrome.tsx): no
         // frame of its own, a hairline on each side of it.
         className={TOOL_BTN}
@@ -351,17 +351,17 @@ export function Sessions() {
   );
 }
 
-// The two-pane dialog: session list on the left, the selected session's input +
+// The two-pane dialog: run list on the left, the selected run's input +
 // log tail on the right. Portaled to <body> like Dialog/SessionLogOverlay so the
 // blurred, backdrop-filtered header can't become the scrim's containing block and
-// trap it. Mounts only while open, so the selected session's log is tailed only
+// trap it. Mounts only while open, so the selected run's log is tailed only
 // when visible.
 function SessionsDialog({
   sessions,
   onStarted,
 }: {
   sessions: SessionView[];
-  // Called when the dialog itself put a session into the registry (Resume), so
+  // Called when the dialog itself put a run into the registry (Resume), so
   // the poll wakes at once and the new run joins the list without a wait.
   onStarted: () => void;
 }) {
@@ -376,15 +376,15 @@ function SessionsDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Newest first. Default the selection to the newest session when none is set,
+  // Newest first. Default the selection to the newest run when none is set,
   // so the panel always opens on something.
   const ordered = [...sessions].sort((a, b) => b.startedAt - a.startedAt);
   const selectedId = panel.selected ?? ordered[0]?.sessionId ?? null;
-  // Tail the selected session's log from the file — live while running, one fetch
-  // when done. The list entry carries the input and (for finished sessions) the
+  // Tail the selected run's log from the file — live while running, one fetch
+  // when done. The list entry carries the input and (for finished runs) the
   // tail, so the pane fills in before the tail loads.
   const log = useSessionLog(selectedId);
-  // The list is a poll behind: a session this dialog just started by resuming a
+  // The list is a poll behind: a run this dialog just started by resuming a
   // failed run isn't in `sessions` yet. Its own fetch already has it, so that
   // stands in until the next tick rather than flashing the empty pane.
   const selected =
@@ -404,7 +404,7 @@ function SessionsDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between border-b-[1.5px] border-nb-ink px-5 py-3">
-          <h2 className="text-[15px] font-[800] tracking-[-0.02em]">Sessions</h2>
+          <h2 className="text-[15px] font-[800] tracking-[-0.02em]">Runs</h2>
           <button
             onClick={() => sessionsPanel.close()}
             aria-label="Close"
@@ -415,14 +415,14 @@ function SessionsDialog({
         </div>
 
         <div className="flex min-h-0 flex-1">
-          {/* left: the session list. A faint cream canvas behind the rows so the
-              selected session — paper fill + ember edge, the vertical cousin of
+          {/* left: the run list. A faint cream canvas behind the rows so the
+              selected run — paper fill + ember edge, the vertical cousin of
               the tab strip's "bold ink + short ember underline" — reads as the one
               raised sheet. The divider is a soft ink hairline, not a full ink
               rule: 1.5px ink borders stay reserved for structural frames. */}
           <div className="w-[240px] shrink-0 overflow-y-auto border-r border-nb-ink/10 bg-nb-cream/70">
             {ordered.length === 0 ? (
-              <p className="p-4 text-[12.5px] text-nb-ink-soft">No sessions yet.</p>
+              <p className="p-4 text-[12.5px] text-nb-ink-soft">No runs yet.</p>
             ) : (
               ordered.map((r) => {
                 const active = r.sessionId === selectedId;
@@ -448,8 +448,8 @@ function SessionsDialog({
                         <span className="text-[11px] text-nb-ink-soft">
                           {r.cardId !== null ? `#${r.cardId}` : "—"}
                         </span>
-                        {/* A cancelled delivery, said on the row itself: its session
-                            reads "stopped", which describes the session and not what
+                        {/* A cancelled delivery, said on the row itself: its run
+                            reads "stopped", which describes the run and not what
                             happened to the job it was part of. */}
                         {r.delivery?.status === "cancelled" && (
                           <span className="text-[10.5px] text-nb-ink-soft">cancelled</span>
@@ -465,7 +465,7 @@ function SessionsDialog({
             )}
           </div>
 
-          {/* right: the selected session's input + log */}
+          {/* right: the selected run's input + log */}
           <div className="min-w-0 flex-1 overflow-y-auto p-4">
             {selected ? (
               <>
@@ -491,12 +491,12 @@ function SessionsDialog({
                     </Link>
                   )}
                   <span className="text-[11px] text-nb-ink-soft">{fullTime(selected.startedAt)}</span>
-                  {/* A session started by Resume says so — otherwise it reads as a
-                      second identical session of the same action out of nowhere. */}
+                  {/* A run started by Resume says so — otherwise it reads as a
+                      second identical run of the same action out of nowhere. */}
                   {selected.resumedFrom && <span className="nb-tag">resumed</span>}
-                  {/* Which delivery this session was part of, and — when the delivery was
-                      cancelled — that word rather than the session's own "stopped". The
-                      session ended because the job did. */}
+                  {/* Which delivery this run was part of, and — when the delivery was
+                      cancelled — that word rather than the run's own "stopped". The
+                      run ended because the job did. */}
                   {selected.delivery && (
                     <span
                       className="nb-tag"
@@ -511,7 +511,7 @@ function SessionsDialog({
                       interrupted or stopped — offers Resume, and the freshly
                       polled `log` wins over the list entry: the poll that drew
                       this row may be a second and a half old. Selecting the new
-                      session moves the panel onto it, so the log tail plays on. */}
+                      run moves the panel onto it, so the log tail plays on. */}
                   {(log?.canResume ?? selected.canResume) && (
                     <span className="ml-auto">
                       <ResumeButton
@@ -525,10 +525,10 @@ function SessionsDialog({
                   )}
                 </div>
                 {/* The note is the optional free text the user typed when
-                    starting the session (a create's description, a reject's
-                    reason, else the notes field). Most sessions are started
+                    starting the run (a create's description, a reject's
+                    reason, else the notes field). Most runs are started
                     without one — so only show the section when there's actually a
-                    note, rather than a "no note" placeholder on every session. */}
+                    note, rather than a "no note" placeholder on every run. */}
                 {input && (
                   <div className="mb-3">
                     <div className="nb-tag mb-1.5">note</div>
@@ -538,7 +538,7 @@ function SessionsDialog({
                 <SessionLog session={log ?? selected} flush />
               </>
             ) : (
-              <p className="text-[13px] text-nb-ink-soft">Select a session to see its input and log.</p>
+              <p className="text-[13px] text-nb-ink-soft">Select a run to see its input and log.</p>
             )}
           </div>
         </div>

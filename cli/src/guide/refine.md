@@ -1,7 +1,7 @@
 # Refine
 
 Review one task and make its plan ready to build. This guide describes one pass. `akb
-refine <id>` controls the loop and starts a fresh session when another pass or a
+refine <id>` controls the loop and starts a fresh run when another pass or a
 question-resolution pass is needed.
 
 Refine assumes the task is wanted. Its job is to make the task minimal, complete, and clear
@@ -54,7 +54,7 @@ the user during this pass; leave their decision on the card for a resolve pass.
 At the end of the pass: if you are highly confident the plan is ready to build — no
 substantive gap left, no question open — run `akb board update <id> --status ready`.
 
-Otherwise leave it at `todo`. A fresh session reads the card cold and takes the next pass;
+Otherwise leave it at `todo`. A fresh run reads the card cold and takes the next pass;
 whatever you do not write into the card is lost.
 
 - ❌ Wording you would have phrased differently is not a gap.

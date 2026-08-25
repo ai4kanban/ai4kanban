@@ -1,6 +1,6 @@
 // A delivery's own checkout: the git worktree it builds in, and the branch it builds on.
 //
-// Every session in a delivery works here instead of in the user's checkout, so two
+// Every run in a delivery works here instead of in the user's checkout, so two
 // deliveries never write the same file and neither one mixes with the edits the user has
 // open. The worktree lives under `.akb/worktrees/<cardID>/<deliveryID>` — ignored at the
 // repository root, because it is this machine's build space and never something git
@@ -8,7 +8,7 @@
 // recorded base.
 //
 // The board's OWN files are kept out of it. A delivery writes to the card, the delivery
-// record and the session state as it works, and all three live in the repo root's copy —
+// record and the run state as it works, and all three live in the repo root's copy —
 // so the worktree is checked out without them, and a task commit that reaches one is
 // refused rather than landed. That refusal is the boundary; sparse checkout is only what
 // keeps the files out of the way.
@@ -75,7 +75,7 @@ const scripted = (args: string[], cwd: string): { ok: boolean; why?: string } =>
 /** Every path the BOARD writes, repo-relative and slash-spelled — the one list, read by
  *  the worktree's checkout, by the candidate's diff and by the commit check.
  *
- *  `docs/kanban/` is the board itself: the card, the delivery records, the session state.
+ *  `docs/kanban/` is the board itself: the card, the delivery records, the run state.
  *  `.akb/` is delivery state that never belongs in git, the worktrees among it. A delivery
  *  changes both while it works, and neither is the code it is judged on. */
 export function boardManagedPaths(): string[] {
@@ -178,7 +178,7 @@ export function addWorktree(
   fs.mkdirSync(path.dirname(dir), { recursive: true })
   // Checked out empty first, so the board's own paths are switched off before any file
   // lands — a full checkout followed by a delete would put the card into the worktree and
-  // then take it away, and a session that read it in between read the wrong copy.
+  // then take it away, and a run that read it in between read the wrong copy.
   const added = tryGit(['worktree', 'add', '--no-checkout', '-b', branch, dir, base])
   if (!added.ok) return { ok: false, error: `couldn't make the delivery's worktree: ${added.why ?? 'git refused'}` }
   keepBoardOut(dir)
@@ -270,7 +270,7 @@ export function pendingPaths(dir: string): string[] {
     .filter(Boolean)
 }
 
-/** Commit whatever a session left in the delivery's worktree, so the branch IS the
+/** Commit whatever a run left in the delivery's worktree, so the branch IS the
  *  candidate and review reads a settled tree.
  *
  *  Refused outright when the change reaches a board-managed path: the board's own files
@@ -360,7 +360,7 @@ export const changedPaths = (base: string, branch: string, cwd = REPO_ROOT): str
 /** Squash everything this branch has since `base` into ONE commit on top of it.
  *
  *  Done before the rebase, not after: a single commit conflicts at most once, so the
- *  conflict step is one session and `--continue` finishes the replay. `empty` is a
+ *  conflict step is one run and `--continue` finishes the replay. `empty` is a
  *  delivery whose tree is identical to its base — there is nothing to land.  */
 export function squashOnto(
   dir: string,

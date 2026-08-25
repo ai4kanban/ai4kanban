@@ -318,7 +318,7 @@ function ProjectRow({
     >
       <span className="flex items-center gap-1.5">
         {open && <Dot tone="var(--color-nb-accent)" title="Open in this window" />}
-        {!open && running && <Dot tone="var(--color-nb-mint-ink)" title="A session is going here" pulse />}
+        {!open && running && <Dot tone="var(--color-nb-mint-ink)" title="A run is going here" pulse />}
         {missing && <FiAlertTriangle size={12} className="shrink-0 text-nb-ink-soft" />}
         <span className="truncate font-[700] text-nb-ink">{name}</span>
         {missing && <span className="shrink-0 text-[11px] text-nb-ink-soft">folder is gone</span>}

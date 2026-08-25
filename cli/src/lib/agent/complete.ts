@@ -5,8 +5,8 @@
 // leave the board while its code was still queued behind another landing, still rebasing,
 // or still waiting on a conflict.
 //
-// It is the board's own work, like landing: no session runs to do it. The two steps that
-// need judgment — ticking the todos and writing the shipped line — are the build session's,
+// It is the board's own work, like landing: no run is started to do it. The two steps that
+// need judgment — ticking the todos and writing the shipped line — are the build run's,
 // and review checks them. What is left is `akb board archive`, which is a board command.
 //
 // The delivery is ended BEFORE this is called, so nothing is still holding the card when

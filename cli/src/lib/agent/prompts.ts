@@ -12,29 +12,29 @@ import { skillCall } from './resolve'
 import { ruleBlock } from './rules'
 import { PROPOSE_DEFAULT, PROPOSE_MAX, type AgentRequest, type Boldness } from './types'
 
-// What a resumed session says. The conversation is already there — the card, the work done,
-// the error it died on — so this is the "continue" you would type in the terminal, not the
-// whole action prompt again.
+// What a resumed run says. The coding agent's own session is already there — the card, the
+// work done, the error it died on — so this is the "continue" you would type in the
+// terminal, not the whole action prompt again.
 export const RESUME_PROMPT = [
-  `Continue. The previous session ended before it finished the task.`,
+  `Continue. The previous run ended before it finished the task.`,
   `Pick up where you left off and carry it through.`,
   `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
 ].join(' ')
 
 // And what one resumed INSIDE a delivery says. A delivery is not picked up where the last
-// session's sentence stopped — it is picked up by re-entering its flow and asking each step
-// whether its precondition is already met, because a session that was cut off may well have
+// run's sentence stopped — it is picked up by re-entering its flow and asking each step
+// whether its precondition is already met, because a run that was cut off may well have
 // finished the step it died in. Nothing here trusts the position the record kept: a stored
 // position goes stale in exactly the crash it exists for.
 const DELIVERY_RESUME = [
-  `Continue delivery %s. The previous session ended before the delivery finished.`,
+  `Continue delivery %s. The previous run ended before the delivery finished.`,
   `Re-enter the flow from the top and check each step's precondition before you do it — work that is already done is done, so do not repeat it.`,
   `Build the card as the delivery holds it, not as the file reads now: \`%c\` prints the approved copy.`,
   `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
 ].join(' ')
 
-/** What a resumed session is told: the plain "carry on", or — inside a delivery — the one
- *  that re-enters the delivery's flow. */
+/** What a resumed run is told: the plain "carry on", or — inside a delivery — the one that
+ *  re-enters the delivery's flow. */
 export function resumePrompt(deliveryId: string | undefined, cardId: number | null): string {
   if (!deliveryId || cardId === null) return RESUME_PROMPT
   return DELIVERY_RESUME.replace('%s', deliveryId).replace('%c', `${boardCommandFor(cardId)} implement ${cardId} --print`)
@@ -47,7 +47,7 @@ export function resumePrompt(deliveryId: string | undefined, cardId: number | nu
 const BOLDNESS_LINE: Record<Boldness, string> = {
   safe: `Boldness: **safe** (see "Boldness" in \`akb guide propose\`) — small moves that polish or fill gaps in what already works.`,
   normal: '',
-  bold: `Boldness: **bold** (see "Boldness" in \`akb guide propose\`) — each task is a big leap: a capability the module doesn't have at all, still sized so one session finishes it.`,
+  bold: `Boldness: **bold** (see "Boldness" in \`akb guide propose\`) — each task is a big leap: a capability the module doesn't have at all, still sized so one run finishes it.`,
 }
 
 // The count a propose run is asked for, made safe: a whole number between 1 and the cap,
@@ -78,7 +78,7 @@ const NO_IMPLEMENT = `(Unless the request explicitly asks for implementation, do
  *  Split out from `buildPrompt` for the one caller that needs the ask alone: a printed flow
  *  puts the rule at the very end, after the flows themselves (`flow.ts`). */
 export function buildAsk(req: AgentRequest, notes: string[] = []): string {
-  // A delivery's sessions work in that delivery's own worktree, so their board commands
+  // A delivery's runs work in that delivery's own worktree, so their board commands
   // name the project's own copy outright (#303). Everything else runs in the project and
   // spells the command the ordinary way.
   const command = DELIVERY_FLOWS.has(req.action) ? boardCommandFor(req.id) : boardCommand()
@@ -93,8 +93,8 @@ export function buildPrompt(req: AgentRequest, notes: string[] = []): string {
 }
 
 /** The rules the delivery in flight on this card froze when it started, or nothing when
- *  this run is not a session of one. A delivery's sessions run on the rules it started
- *  with, the way they build the card it started with. */
+ *  this run is not part of one. A delivery's runs work to the rules it started with, the
+ *  way they build the card it started with. */
 export function frozenRules(req: AgentRequest): Record<string, string> | undefined {
   if (!DELIVERY_FLOWS.has(req.action) || req.id === undefined) return undefined
   return activeDelivery(req.id)?.rules
@@ -282,13 +282,13 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     }
     // Judging a delivery's work (#302). Nothing here says what the card wants or what the
     // diff holds: both are on the board, the flow prints them, and a copy pasted in here
-    // would be this file's reading of them. What it DOES say is the one rule a fresh
-    // session cannot work out for itself — you did not build this, so do not go looking
-    // for the session that did.
+    // would be this file's reading of them. What it DOES say is the one rule a fresh run
+    // cannot work out for itself — you did not build this, so do not go looking for the
+    // run that did.
     case 'review':
       return [
         `${kb}. Review task ${req.id} ${named} — judge what the delivery in flight on it has built against the card as it was approved, following \`akb guide review\`.`,
-        `You did not build this. Read the approved copy and the diff, and do not read the session that wrote them.`,
+        `You did not build this. Read the approved copy and the diff, and do not read the run that wrote them.`,
         `Record your verdict with \`${command} board review-verdict ${req.id} --verdict pass|correct|ask\` — a review that records nothing stops the delivery.`,
         `Don't ask me questions with human-in-the-loop — the \`ask\` verdict is how you defer to me.`,
       ].join(' ')
@@ -304,7 +304,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     // correction: the two cards were both right on their own, and what to keep is a
     // judgment neither card wrote down. Nothing here names the files — they are in the
     // worktree and the flow prints them — and nothing here says to finish the rebase: the
-    // board does that, so the session has one job and no rebase state to get wrong.
+    // board does that, so the run has one job and no rebase state to get wrong.
     case 'conflict':
       return [
         `${kb}. Task ${req.id} ${named} is landing, and its rebase onto the target branch stopped on a conflict.`,
@@ -316,7 +316,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         `${kb}. Resolve the open questions on task ${req.id} ${named} following \`akb guide resolve\`.`,
         req.andImplement
-          ? `Then, if resolving settles every question and nothing genuine is left for me to decide, go straight on to implementing the task — one continuous session. But if any real judgment call stays open, stop there and report it: don't implement on a guess.`
+          ? `Then, if resolving settles every question and nothing genuine is left for me to decide, go straight on to implementing the task — one continuous run. But if any real judgment call stays open, stop there and report it: don't implement on a guess.`
           : NO_IMPLEMENT,
         req.notes ? `Extra notes: ${req.notes}` : '',
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,

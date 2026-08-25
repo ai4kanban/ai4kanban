@@ -1,15 +1,15 @@
 # Review a delivery, and correct it
 
-A delivery builds, and then a **fresh session** judges what it built against the card as it
-was approved. That session is the review. When it finds a plain mistake, a **correction**
-session fixes exactly that, and another fresh review judges the whole candidate again.
+A delivery builds, and then a **fresh run** judges what it built against the card as it was
+approved. That run is the review. When it finds a plain mistake, a **correction** run fixes
+exactly that, and another fresh review judges the whole candidate again.
 
 Two things make this worth paying for, and both are rules rather than advice:
 
 - **The reviewer did not build it**: it is given the approved copy and the diff, never the
-  session that wrote them. A reviewer that reads the implementer's reasoning agrees with it.
+  run that wrote them. A reviewer that reads the implementer's reasoning agrees with it.
 - **The verdict is recorded, not written**: `akb board review-verdict` is the only thing the
-  delivery reads. A review session that ends without calling it stops the delivery.
+  delivery reads. A review run that ends without calling it stops the delivery.
 
 Review cannot promise defect-free code. It promises that the approved card and the checks
 this repository already has were applied by something that did not write the change.
@@ -17,7 +17,7 @@ this repository already has were applied by something that did not write the cha
 ## Where the work is
 
 A delivery builds in a **git worktree of its own**, on a branch of its own, and the board
-commits each session's work onto it. So the candidate is settled by the time you read it:
+commits each run's work onto it. So the candidate is settled by the time you read it:
 `git diff <base> <branch>`, with nothing of the user's own in it and nothing of the board's.
 The flow names the worktree, the branch and the base.
 
@@ -50,8 +50,7 @@ One of three, and nothing else:
   pass. Leave the card on the board: a pass is not the end of the delivery, and the board
   archives the card itself once the work has landed.
 - **`correct`**: something plainly conflicts with an approved requirement, or a repository
-  check that used to pass now fails. The findings say what, and a correction session fixes
-  them.
+  check that used to pass now fails. The findings say what, and a correction run fixes them.
 - **`ask`**: the call is the user's — see "When to ask" below. The delivery stops and the
   card takes one open question.
 
@@ -72,7 +71,7 @@ Every finding on a `correct` or `ask` verdict is one bullet:
   back after a correction meant to fix it stops the delivery — that is the point.
 - **Evidence, not a verdict twice**: name the file and what is wrong with it, quote the
   failing check's output, or quote the requirement the change contradicts. A finding a
-  correction session cannot act on is a finding that costs a session and fixes nothing.
+  correction run cannot act on is a finding that costs a run and fixes nothing.
 - **One mistake per bullet**: two mistakes in one bullet are corrected as one and repeat as
   one.
 
@@ -93,7 +92,7 @@ requirement being met.
 
 ## When to ask
 
-`ask` is for a call this session must not make on the user's behalf:
+`ask` is for a call this run must not make on the user's behalf:
 
 - **It is unclear whether a change is required** by the approved card.
 - **Removing something is not safe**: behaviour, design, security, compatibility or cost.
@@ -121,7 +120,7 @@ Routine findings and corrected mistakes belong on the delivery's record, not on 
 
 A pass is not the end of the delivery in auto commit mode. The board then **lands** the
 work on the target branch — the branch the user was on when the delivery started — and it
-does that itself: no session, and nothing pushed anywhere.
+does that itself: no run, and nothing pushed anywhere.
 
 - **One card lands at a time**, however many are building. A card that is ready waits.
 - **The user's own work comes first.** A staged file or an uncommitted change of theirs
@@ -146,12 +145,12 @@ does that itself: no session, and nothing pushed anywhere.
   manual commit mode nothing lands, so the card is archived when the user's own commit
   matches what review passed.
 
-None of it is a review session's job. A review records its verdict and stops.
+None of it is a review run's job. A review records its verdict and stops.
 
 ## Resolving a conflict
 
-When the rebase meets a conflict, the board starts one session to resolve it. That session
-is **new work**, not a correction: both cards were right on their own, and what to keep is
+When the rebase meets a conflict, the board starts one run to resolve it. That run is
+**new work**, not a correction: both cards were right on their own, and what to keep is
 a judgment neither card wrote down.
 
 `akb conflict <id> --print` names the conflicted files, the branch on the other side, and
@@ -174,7 +173,7 @@ The flow prints the findings to fix, verbatim.
 
 - **Fix what they name, and nothing they do not.** A fresh review judges the whole
   candidate afterwards, so anything extra comes straight back as drift.
-- **Work in the delivery's own worktree**, which is where the session already is. Never
+- **Work in the delivery's own worktree**, which is where the run already is. Never
   write the board's own files there — `docs/kanban/` and `.akb/` are changed in the project
   itself, and a commit that reaches one is refused and stops the delivery.
 - **Tick a `## Todo` box your fix completes**; never untick one.
@@ -186,7 +185,7 @@ The flow prints the findings to fix, verbatim.
 ## When the loop stops
 
 Two corrections by default. It also stops early on a finding that came back, a correction
-that changed nothing, and a review or correction session that failed or was cut off.
+that changed nothing, and a review or correction run that failed or was cut off.
 
 A landing stops the same way, for its own two reasons: a target branch that kept moving
 after three rebases, and a conflict that stayed unresolved.

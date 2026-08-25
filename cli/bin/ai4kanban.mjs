@@ -568,8 +568,8 @@ Put an agent to work on the board:
   akb agent                      which agent runs them, and how it is set up
 
 A run keeps working after the command returns. Add \`--print\` to any of the first four and
-nothing starts: it prints what to do instead, filled in for this board — which is how an
-agent already in a session does the job itself rather than starting a second one.
+nothing starts: it prints what to do instead, filled in for this board — which is how the
+agent you are already talking to does the job itself rather than starting a run of its own.
 
 \`akb help runs\` is the whole of it — every command a coding agent may call, and when.
 \`akb agent\` is where you pick the agent, its model and its key.
@@ -626,7 +626,7 @@ async function cmdBoard(args) {
 // command line is the command's own.
 const RUN_COMMANDS = new Set([
   'implement',
-  // The two sessions a delivery runs after its build (#302). The board starts each itself;
+  // The two runs a delivery makes after its build (#302). The board starts each itself;
   // typed by hand they put a stopped delivery back in motion.
   'review',
   'correct',
@@ -655,7 +655,7 @@ const RUN_COMMANDS = new Set([
   'stop',
   'resume',
   // End the DELIVERY in flight on a card and hand the card back (#301). `stop` ends one
-  // session of it; this ends the job.
+  // run of it; this ends the job.
   'cancel',
   // Throw a delivery's worktree and branch away (#303). Cancel leaves them where they are;
   // this is the only thing that removes one.

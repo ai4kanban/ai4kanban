@@ -125,7 +125,7 @@ export async function searchCardsAction(query: string): Promise<CardRef[]> {
 // them whenever they want, not only after something else has run.
 const ACTIONS = new Set([
   "implement",
-  // The two sessions a delivery runs after its build (#302). The board starts each one
+  // The two runs a delivery makes after its build (#302). The board starts each one
   // itself; **Review again** on the card page starts a review when a delivery has stopped
   // and its question has been answered.
   "review",
@@ -199,8 +199,8 @@ export async function planReleaseAction(id: string): Promise<StartResult> {
   return startSession(req, await buildPrompt(req));
 }
 
-// Continue a failed run's conversation: a new session on the same card and the same action,
-// spawned with the agent's resume flags and a "continue" prompt. Returns the NEW session's
+// Continue a failed run: a fresh run on the same card and the same action, spawned with
+// the agent's resume flags and a "continue" prompt. Returns the NEW run's
 // id (or a refusal message) exactly like starting one, so the panel can select it and watch
 // it the same way. The CLI re-checks that the run really did fail and really can be resumed
 // — the button is drawn from a poll that's up to a second and a half stale.
@@ -219,7 +219,7 @@ export async function stopSessionAction(sessionId: string): Promise<StartResult>
 }
 
 // Take a card back from the delivery in flight on it (#301): the delivery ends as
-// cancelled, its running session is stopped, the card unlocks, and Implement is offered
+// cancelled, its running run is stopped, the card unlocks, and Implement is offered
 // again. Whatever the delivery wrote stays in the working tree — the board never undoes
 // work. Named by delivery id, so a stale tab can't cancel the delivery that replaced the
 // one it was drawn from.
@@ -254,8 +254,8 @@ export async function listSessionsAction(): Promise<SessionView[]> {
   return listSessions();
 }
 
-// One session with its log tail, read from the log file. The UI polls this while a session
-// is live to tail its output, and calls it once to open a finished session's log.
+// One run with its log tail, read from the log file. The UI polls this while a run is
+// live to tail its output, and calls it once to open a finished run's log.
 export async function getSessionAction(sessionId: string): Promise<SessionView | null> {
   if (typeof sessionId !== "string" || !sessionId) return null;
   return getSession(sessionId);
@@ -579,7 +579,7 @@ export async function getScoreAction(): Promise<ScoreResult> {
 
 // Save the agent the user picked in the Configuration dialog (#68), persisted to the same
 // file. The name is checked against the harnesses this build ships, so a stale client can't
-// write a setting nothing can run. Running sessions are untouched — each read the setting
+// write a setting nothing can run. Runs in flight are untouched — each read the setting
 // when it started.
 //
 // A save comes back with the whole agent setting as it now reads, because switching is the

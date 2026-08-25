@@ -109,7 +109,7 @@ body {
 
 /* --- Board-specific bits built from the same language --------------------- */
 
-/* The header's agent indicator and Sessions button are a matched pair of quiet
+/* The header's agent indicator and Runs button are a matched pair of quiet
    outlined controls built from Tailwind utilities inline in their components
    (AgentBadge / sessions.tsx) — no shared class here. */
 
@@ -185,7 +185,7 @@ body {
 }
 
 /* --- shadcn sheet animations — Radix data-state driven, no token changes --- */
-/* Pulse dot + session-log chrome (title bar, chrome toggle, body, live stream) now
+/* Pulse dot + run-log chrome (title bar, chrome toggle, body, live stream) now
    live as Tailwind utilities in components/agent-shared.tsx — colocated with the
    markup. This keyframe stays here because the .nb-pulse element references it by
    name via animate-[nbPulse_...]. */

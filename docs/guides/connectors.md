@@ -21,7 +21,9 @@ changes what you see. The same list appears under the agent grid in Configuratio
 | Direct skill call | ✓ | ✓ | — | — | — | — |
 
 **Chat and resume** — talk to the board or a card, and pick up a failed run instead of
-restarting it. Every agent supports this.
+restarting it. A resume picks the coding agent's own session back up — the conversation it
+was having, with everything it had already read — while the board counts the work as a
+fresh run. Every agent supports this.
 
 **Early-crash resume** — only Claude Code can resume a run that failed in its first seconds.
 On the others, restart it. Later failures resume normally on all six.

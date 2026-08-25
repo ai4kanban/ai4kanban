@@ -1,18 +1,18 @@
 // The review loop: what a delivery does after it has built something (#302).
 //
-// Implementation ends, and a FRESH session judges the result against the card as it was
+// Implementation ends, and a FRESH run judges the result against the card as it was
 // approved. Three answers are possible — it passes, it plainly does not and a correction
-// session fixes it, or only the user can settle it. A correction is followed by another
+// run fixes it, or only the user can settle it. A correction is followed by another
 // fresh review of the whole candidate, never of the corrected lines alone.
 //
 // The loop is deliberately short. Two corrections, and it stops on a finding that came
-// back, on a correction that changed nothing, and on a session that failed — because a
+// back, on a correction that changed nothing, and on a run that failed — because a
 // loop that keeps going on any of those is a loop spending money to make the same mistake
 // again. Every stop becomes one open question on the card, with the findings, the attempts
 // and the decision the user has to make, and the delivery waits there.
 //
 // This file decides; it never starts anything. `deliveries.ts` writes the decision onto
-// the delivery, and the watcher of the session that just closed starts what it says.
+// the delivery, and the watcher of the run that just closed starts what it says.
 
 import { cmdUpdateQuestions } from '../../commands/card'
 import { quietly } from '../io'
@@ -29,7 +29,7 @@ import type {
   RunRecord,
 } from './types'
 
-/** Correction sessions one delivery may spend before review stops and asks. */
+/** Correction runs one delivery may spend before review stops and asks. */
 export const MAX_CORRECTIONS = 2
 
 /** The verdicts a review may record, as the command spells them. */
@@ -89,7 +89,7 @@ export function reviewOf(delivery: DeliveryRecord): DeliveryReview {
 export const lastRound = (delivery: DeliveryRecord): ReviewRound | undefined =>
   delivery.review?.rounds[delivery.review.rounds.length - 1]
 
-/** The findings the correction session in flight was started to fix. */
+/** The findings the correction run in flight was started to fix. */
 export function openFindings(delivery: DeliveryRecord): ReviewFinding[] {
   const last = lastRound(delivery)
   return last && last.verdict !== 'pass' ? last.findings : []
@@ -97,9 +97,9 @@ export function openFindings(delivery: DeliveryRecord): ReviewFinding[] {
 
 // ---- what happens next ------------------------------------------------------
 
-/** What the delivery does now that one of its sessions has closed. */
+/** What the delivery does now that one of its runs has closed. */
 export type ReviewNext =
-  /** Start another session in this delivery. */
+  /** Start another run in this delivery. */
   | { start: 'review' | 'correct' }
   /** The candidate passed — the delivery is finished. */
   | { finish: true }
@@ -110,9 +110,9 @@ export type ReviewNext =
 
 const HOLD: ReviewNext = { hold: true }
 
-/** What follows the session that just closed.
+/** What follows the run that just closed.
  *
- *  Only sessions inside a delivery reach here, and only the three actions a delivery is
+ *  Only runs inside a delivery reach here, and only the three actions a delivery is
  *  made of. Whatever this returns, it is the caller that writes it down.
  *
  *  `mark` is the candidate's fingerprint as it stands, taken by the caller BEFORE the
@@ -120,7 +120,7 @@ const HOLD: ReviewNext = { hold: true }
  *  the place to do that. */
 export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord, mark?: string): ReviewNext {
   if (delivery.status !== 'active') return HOLD
-  // A session somebody ended is not a failure and not a verdict: they stopped it, so the
+  // A run somebody ended is not a failure and not a verdict: they stopped it, so the
   // delivery waits for them rather than asking them a question about their own click.
   if (run.status === 'stopped') return HOLD
   if (run.action === 'implement') {
@@ -135,7 +135,7 @@ export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord, mark?
 
 function afterReview(delivery: DeliveryRecord, run: RunRecord): ReviewNext {
   const round = lastRound(delivery)
-  // The verdict is recorded by the session itself, so a review whose session ended without
+  // The verdict is recorded by the run itself, so a review whose run ended without
   // one told us nothing — and a delivery that treats silence as a pass is a delivery with
   // no review in it.
   if (!round || round.sessionId !== run.sessionId) {
@@ -143,8 +143,8 @@ function afterReview(delivery: DeliveryRecord, run: RunRecord): ReviewNext {
       stop: 'session',
       why:
         run.status === 'done'
-          ? 'the review session ended without recording a verdict'
-          : `the review session ${run.status === 'error' ? 'failed' : 'was cut off'} before it recorded a verdict`,
+          ? 'the review run ended without recording a verdict'
+          : `the review run ${run.status === 'error' ? 'failed' : 'was cut off'} before it recorded a verdict`,
     }
   }
   if (round.verdict === 'pass') return { finish: true }
@@ -169,14 +169,14 @@ function afterCorrection(delivery: DeliveryRecord, run: RunRecord, now?: string)
   if (run.status !== 'done') {
     return {
       stop: 'session',
-      why: `the correction session ${run.status === 'error' ? 'failed' : 'was cut off'} before it finished`,
+      why: `the correction run ${run.status === 'error' ? 'failed' : 'was cut off'} before it finished`,
     }
   }
   const mark = delivery.review?.mark
   // A correction that left the tree byte for byte as it found it has not addressed
   // anything, and the review after it would find exactly what the last one did.
   if (mark && now === mark) {
-    return { stop: 'no-progress', why: 'the correction session changed nothing in the candidate' }
+    return { stop: 'no-progress', why: 'the correction run changed nothing in the candidate' }
   }
   return { start: 'review' }
 }
@@ -207,7 +207,7 @@ export function stopQuestion(delivery: DeliveryRecord, why: string, program = bo
 }
 
 /** Put that question on the card. Best-effort and silent, exactly as every other board move
- *  a session makes at its close: a delivery that could not write its question is still
+ *  a run makes at its close: a delivery that could not write its question is still
  *  stopped, and the reason is on its permanent record either way. */
 export function askUser(cardId: number, question: string): void {
   try {

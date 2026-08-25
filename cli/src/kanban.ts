@@ -64,7 +64,7 @@ export {
   stopRun,
   titleOf,
 } from './lib/agent/sessions'
-// A delivery (#301): the whole job one Implement click starts, several sessions long. The
+// A delivery (#301): the whole job one Implement click starts, several runs long. The
 // board reads the live rows to hold a card still and to say what is building it; the
 // permanent record is one file per delivery under docs/kanban/deliveries/.
 export { activeDelivery, heldByDelivery, listDeliveries } from './lib/agent/deliveries'

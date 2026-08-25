@@ -50,7 +50,7 @@ for this work, nobody asked for it. Every proposal:
 - **Sized by boldness** — the user picks the level; **normal** if they don't.
   It decides between low-hanging fruit and foundational features:
   - **safe** — polish a rough edge, fill a gap, or pick a low-hanging fruit. No new surface.
-  - **normal** — a feature each: one card a session can finish. The default.
+  - **normal** — a feature each: one card a run can finish. The default.
   - **bold** — a capability the module doesn't have at all — often a foundational v0 that
     future versions grow from. Still one card, still short-term.
 

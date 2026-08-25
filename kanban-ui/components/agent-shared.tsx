@@ -1,6 +1,6 @@
 "use client";
 
-// Shared agent-session plumbing used by both the board (Create task) and the
+// Shared agent-run plumbing used by both the board (Create task) and the
 // card page (per-card actions): the request/result shapes, the running + result
 // overlays, and the input dialogs for each action.
 
@@ -36,7 +36,7 @@ import { PULSE_DOT } from "./chrome";
 import { Dialog } from "./Dialog";
 import { Markdown } from "./Markdown";
 
-// Session-log chrome as Tailwind utilities, colocated with the markup that uses it.
+// Run-log chrome as Tailwind utilities, colocated with the markup that uses it.
 // The pulse dot the running badge and the live title bar wear is the board's
 // shared one (components/chrome.tsx) — the rail and the card page's subtasks say
 // "running" with the same mark.
@@ -90,10 +90,10 @@ export type DialogState =
   | { kind: "create" }
   | null;
 
-// A small inline "running" pill. Sessions are non-blocking now (task #12):
+// A small inline "running" pill. Runs are non-blocking now (task #12):
 // several agents can work at once and the user keeps using the UI, so instead of
 // one full-screen overlay each running card shows this badge. Pass onClick to
-// make it open the session's log (task #14) — e.g. from a card on the board.
+// make it open the run's log (task #14) — e.g. from a card on the board.
 export function RunningBadge({
   label,
   onClick,
@@ -107,7 +107,7 @@ export function RunningBadge({
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
-      title={onClick ? "watch the session log" : label ? `${label} — running` : "agent running"}
+      title={onClick ? "watch the run log" : label ? `${label} — running` : "agent running"}
       style={{
         background: "var(--color-nb-accent-soft)",
         color: "var(--color-nb-accent-deep)",
@@ -127,7 +127,7 @@ export function RunningBadge({
 // read — refine/resolve don't need their own saved status to be visible.
 export const RUNNING_VERB: Record<AgentAction, string> = {
   implement: "implementing",
-  // The two sessions a delivery runs after its build (#302).
+  // The two runs a delivery makes after its build (#302).
   review: "reviewing",
   correct: "correcting",
   // And the one a landing runs when its rebase meets a conflict (#304).
@@ -150,7 +150,7 @@ export const RUNNING_VERB: Record<AgentAction, string> = {
 };
 
 // The live tail is the agent's event stream — tool calls and turn text — so it
-// reads mono. A finished session leads with the agent's final message (markdown)
+// reads mono. A finished run leads with the agent's final message (markdown)
 // and folds the intermediate events away underneath.
 const MONO_TEXT = {
   whiteSpace: "pre-wrap",
@@ -158,7 +158,7 @@ const MONO_TEXT = {
   fontSize: 12,
 } as const;
 
-// How long a finished session ran, in the coarsest unit that still tells you
+// How long a finished run took, in the coarsest unit that still tells you
 // something: seconds under a minute, minutes and seconds under an hour, hours and
 // minutes above. Agent runs are minutes-long, so this is nearly always "4m 12s".
 function formatDuration(ms: number): string {
@@ -195,9 +195,9 @@ export function stoppedShort(session: SessionView | null | undefined): boolean {
   return session?.status === "error" || session?.status === "interrupted";
 }
 
-// A tailing view of one session's captured output (task #14). Shows the last few
+// A tailing view of one run's captured output (task #14). Shows the last few
 // KB; auto-scrolls to the newest line unless the user has scrolled up to read
-// back. Once the session ends with a parsed final message, the view leads with
+// back. Once the run ends with a parsed final message, the view leads with
 // that message and the intermediate events fold into a collapsed row above it.
 // `session` is the polled SessionView (see useSessionLog); null renders nothing.
 export function SessionLog({
@@ -223,7 +223,7 @@ export function SessionLog({
   warnUnfinished?: boolean;
   onResumed?: (sessionId: string) => void;
   // `flush` drops the collapse toggle and the body's height cap (the panel it's
-  // dropped into — the sessions dialog, the board overlay — owns the scrolling)
+  // dropped into — the runs dialog, the board overlay — owns the scrolling)
   // but keeps the full ink-framed window with its title bar, so the log is the
   // same artifact everywhere it appears. The collapsible form is for the inline
   // card-page log.
@@ -291,7 +291,7 @@ export function SessionLog({
       text: cost,
       dim: true,
       title:
-        "Worked out from this session's tokens at list prices. It's what the session would cost to buy — not what you were billed; on a subscription plan a session isn't charged on its own.",
+        "Worked out from this run's tokens at list prices. It's what the run would cost to buy — not what you were billed; on a subscription plan a run isn't charged on its own.",
     });
   }
   // The model the agent itself said it was running, shown exactly as it said it
@@ -303,7 +303,7 @@ export function SessionLog({
       key: "model",
       text: session.model,
       dim: true,
-      title: "The model this session reported it was working with.",
+      title: "The model this run reported it was working with.",
     });
   }
 
@@ -350,7 +350,7 @@ export function SessionLog({
             <p
               className="m-0 mt-2 tabular-nums text-nb-ink-soft opacity-80"
               style={MONO_TEXT}
-              title="This session's token counts, as the agent reported them: fresh input, prompt-cache writes and reads, and output."
+              title="This run's token counts, as the agent reported them: fresh input, prompt-cache writes and reads, and output."
             >
               {formatTokens(session.usage)}
             </p>
@@ -360,7 +360,7 @@ export function SessionLog({
       <Markdown body={result} className="nb-sessionlog-md" />
     </>
   ) : tail ? (
-    // No parsed final message (custom agent command, or a session re-adopted
+    // No parsed final message (custom agent command, or a run re-adopted
     // after a restart) — the tail is all there is.
     <Markdown body={tail} className="nb-sessionlog-md" />
   ) : (
@@ -378,7 +378,7 @@ export function SessionLog({
       <span className="mr-1" aria-hidden>
         ⚠
       </span>
-      This session stopped short, so the card may be part-built — whatever it wrote is sitting in
+      This run stopped short, so the card may be part-built — whatever it wrote is sitting in
       your working tree.{carryOn ? " Resume carries it on from where it stopped." : ""}
     </p>
   );
@@ -398,7 +398,7 @@ export function SessionLog({
     </>
   );
 
-  // The title bar — the "session log" kicker + the live/done indicator on a
+  // The title bar — the "run log" kicker + the live/done indicator on a
   // gradient strip. Shared by both forms; only the card-page form passes
   // onToggle, which also makes it the expand/collapse control.
   const titleBar = (
@@ -406,10 +406,10 @@ export function SessionLog({
       className={`flex items-center gap-2.5 px-3 py-1 bg-[linear-gradient(var(--color-nb-cream),color-mix(in_srgb,var(--color-nb-ink)_9%,var(--color-nb-cream)))]${bare ? "" : " rounded-t-[12.5px]"}${collapsed && !bare ? " rounded-b-[12.5px]" : " border-b-[1.5px] border-nb-ink"}${onToggle ? " cursor-pointer select-none" : ""}`}
       role={onToggle ? "button" : undefined}
       aria-expanded={onToggle ? !collapsed : undefined}
-      aria-label={onToggle ? (collapsed ? "Expand session log" : "Collapse session log") : undefined}
+      aria-label={onToggle ? (collapsed ? "Expand run log" : "Collapse run log") : undefined}
       onClick={onToggle}
     >
-      <span className="nb-tag">session log</span>
+      <span className="nb-tag">run log</span>
       <span className="ml-auto flex items-center gap-1.5">
         {/* Stop (#49) rides in the title bar, the one piece of chrome every place
             that shows a run already has — so the card page, the board's log
@@ -466,7 +466,7 @@ export function SessionLog({
   }
 
   // Flush: the same ink-framed window, minus the collapse toggle and the body's
-  // height cap — the panel it's dropped into (the sessions dialog / board
+  // height cap — the panel it's dropped into (the runs dialog / board
   // overlay) owns the scrolling, so the log flows at full length inside the frame.
   if (flush) {
     return (
@@ -508,7 +508,7 @@ export function ResumeButton({
   onResumed,
 }: {
   sessionId: string;
-  // Told the new session's id, so the view that owns the selection can follow the
+  // Told the new run's id, so the view that owns the selection can follow the
   // resumed run instead of staying on the dead one.
   onResumed?: (sessionId: string) => void;
 }) {
@@ -521,10 +521,10 @@ export function ResumeButton({
     try {
       const res = await resumeSessionAction(sessionId);
       // A refusal is the registry's own words — the card is locked by another
-      // run, the session aged out of the kept-30 window. Say it and leave the
+      // run, or this one aged out of the kept-30 window. Say it and leave the
       // button alive to try again.
       if (res.ok && res.sessionId) onResumed?.(res.sessionId);
-      else setError(res.error || "couldn't resume that session");
+      else setError(res.error || "couldn't resume that run");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -539,7 +539,7 @@ export function ResumeButton({
         size="sm"
         onClick={resume}
         disabled={busy}
-        title="Continue this session's conversation where it failed"
+        title="Continue where this run failed — the coding agent picks its own session back up"
         // The same ghost sticker as the other quiet controls (header buttons,
         // dialog cancels), shrunk to meta-row scale — it sits inside full nb
         // panels, so it wears the ink frame + press shadow like everything else.
@@ -600,7 +600,7 @@ function StopButton({ sessionId }: { sessionId: string }) {
       // window. Say it and let the button be pressed again.
       if (!res.ok) {
         setAsked(false);
-        setError(res.error || "couldn't stop that session");
+        setError(res.error || "couldn't stop that run");
       }
     } catch (e) {
       setAsked(false);
@@ -620,9 +620,9 @@ function StopButton({ sessionId }: { sessionId: string }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Stop this session"
+        aria-label="Stop this run"
         aria-expanded={open}
-        title="Stop this session"
+        title="Stop this run"
         className="-my-0.5 grid size-[22px] cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[background-color,color,transform] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90"
       >
         <FiX className="text-[14px]" aria-hidden />
@@ -662,7 +662,7 @@ function StopButton({ sessionId }: { sessionId: string }) {
   );
 }
 
-// What to call a session that names no card: what it is doing while it runs,
+// What to call a run that names no card: what it is doing while it runs,
 // what it did once it's over. A plan-release carries its version id as its
 // input, so the title says which release it planned.
 function cardlessTitle(session: SessionView): string {
@@ -680,7 +680,7 @@ function cardlessTitle(session: SessionView): string {
   return running ? "Creating task" : "Create task";
 }
 
-// The session log in a modal, opened from a running badge on a board card. Like
+// The run log in a modal, opened from a running badge on a board card. Like
 // Dialog, the fixed scrim is portaled to <body>: the sticky
 // header has a `backdrop-filter`, which would otherwise become the containing
 // block for the fixed scrim and trap it inside the header (the board then paints
@@ -693,7 +693,7 @@ export function SessionLogOverlay({
 }: {
   session: SessionView | null;
   onClose: () => void;
-  // Resuming a failed run starts a new session; the overlay follows it, so the
+  // Resuming a failed run starts a fresh run; the overlay follows it, so the
   // owner of `session` is handed the new id to watch.
   onResumed?: (sessionId: string) => void;
 }) {
@@ -707,15 +707,15 @@ export function SessionLogOverlay({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // A create, propose or plan-release session touches no card, so it has no
+  // A create, propose or plan-release run touches no card, so it has no
   // `#id — action` handle: name it by what it's doing instead. A plan-release
   // names the version it planned, which is the whole of what that run was about
   // and the only thing the panel could say to tell two of them apart. Every
-  // other session is tied to a card and reads `#5 — refine`, with the id linking
-  // to that card the way every other `#id` in the UI does (see the sessions
+  // other run is tied to a card and reads `#5 — refine`, with the id linking
+  // to that card the way every other `#id` in the UI does (see the runs
   // dialog for why it isn't gated on the card still being open).
   const title = !session ? (
-    "session log"
+    "run log"
   ) : session.cardId === null ? (
     cardlessTitle(session)
   ) : (
@@ -828,7 +828,7 @@ export function ActionDialog({
 }) {
   // Persist the draft per action + card so an accidental close keeps the text
   // (resolve keeps its own list-shaped draft in ResolveDialog below). `run`
-  // clears the draft once the session has actually started.
+  // clears the draft once the run has actually started.
   const draftKey = dialog.kind === "create" ? "create" : `${dialog.kind}:${dialog.card.id}`;
   const [text, setText, clearDraft] = useDraft(draftKey);
   // "Yes, I know" for a warned action (see the implement branch). Deliberately NOT
@@ -876,7 +876,7 @@ export function ActionDialog({
     return (
       <Dialog title={`Implement #${dialog.card.id}`} onClose={onClose}>
         <p className={INTRO}>
-          One click carries this card all the way: the agent builds it, a fresh session reviews
+          One click carries this card all the way: the agent builds it, a fresh run reviews
           it, corrections fix what the review found, and{" "}
           {plan.commitMode === "auto" ? (
             <>
@@ -992,7 +992,7 @@ export function ActionDialog({
         <textarea
           className={INPUT}
           rows={3}
-          placeholder="Optional extra notes for this session…"
+          placeholder="Optional extra notes for this run…"
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
@@ -1278,7 +1278,7 @@ function CreateDialog({
               `akb guide propose`), not a UI limit. */}
           <PickerSection
             label="How many"
-            blurb="Tasks this session writes. More tasks means a longer session and a thinner idea each."
+            blurb="Tasks this run writes. More tasks means a longer run and a thinner idea each."
           >
             {Array.from({ length: PROPOSE_MAX }, (_, i) => i + 1).map((n) => (
               <button
@@ -1367,13 +1367,13 @@ const BOLDNESS_LEVELS: { key: Boldness; label: string; blurb: string }[] = [
   {
     key: "normal",
     label: "normal",
-    blurb: "A feature each — one card a session can finish. This is what a propose session does on its own.",
+    blurb: "A feature each — one card a run can finish. This is what a propose run does on its own.",
   },
   {
     key: "bold",
     label: "bold",
     blurb:
-      "A big leap each — a capability the module doesn't have at all, still sized so one session can finish it.",
+      "A big leap each — a capability the module doesn't have at all, still sized so one run can finish it.",
   },
 ];
 
@@ -1415,7 +1415,7 @@ function ResolveDialog({
   onRun: (req: AgentReq, label: string) => void;
 }) {
   // Persist the per-question answers so an accidental close keeps them; reconciled
-  // to the current question count on reopen. Cleared once the session starts.
+  // to the current question count on reopen. Cleared once the run starts.
   const [answers, setAnswer, clearAnswers] = useDraftList(`resolve:${card.id}`, card.questions.length);
   // The ticked options beside them. An untouched question opens on the agent's
   // recommendation, so a whole card of options questions is one click to confirm.

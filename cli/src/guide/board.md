@@ -80,7 +80,7 @@ docs/kanban/
 │                   kept after the card is archived; nobody edits one by hand
 ├── rules/          one rule per flow, in the user's own words — `<command>.md`, named by
 │                   the command a user types (`revise.md` for `akb revise`). It is appended
-│                   to the end of that flow's instructions, so every session the board
+│                   to the end of that flow's instructions, so every run the board
 │                   starts from that flow reads it. Tracked in git; a missing or empty file
 │                   means the flow runs unchanged. Written from the board UI, not by hand
 ├── modules.md      one line per module — `akb guide module-map` writes it

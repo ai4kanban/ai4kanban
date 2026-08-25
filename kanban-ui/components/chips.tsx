@@ -106,7 +106,7 @@ export function TodoProgress({ done, total, width = 26 }: { done: number; total:
   );
 }
 
-// The card's saved stage, shown when no agent is running on it (a live session
+// The card's saved stage, shown when no agent is running on it (a live run
 // shows the RunningBadge instead — one mark per card, never both). `todo` is the
 // resting default and shows nothing, so the board stays quiet until a card is
 // vetted or in flight. `ready` (mint) marks a vetted card the user can scan for.

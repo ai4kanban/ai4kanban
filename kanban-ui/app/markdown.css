@@ -209,7 +209,7 @@
   text-underline-offset: 2px;
 }
 
-/* A finished session's final message is prose, so it reads in the body sans font
+/* A finished run's final message is prose, so it reads in the body sans font
    at a compact log scale (code blocks keep their mono via .nb-md code). */
 .nb-sessionlog-md {
   font-size: 13px;
