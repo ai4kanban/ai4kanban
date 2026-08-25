@@ -46,6 +46,8 @@ team is invited.
   workspace and everything in it, and where to write for a data request.
 - The terms page states that Cloud is an invite-only preview with no availability promise,
   what we may do with a workspace, and how the preview ends.
+- The terms page states that the preview keeps no backups, and that exporting a workspace
+  is how a team keeps its own copy.
 - Both pages carry the operator's name and contact address.
 - Link both from the site footer and from the Cloud choice in onboarding (#317).
 - Out of scope: pricing, billing terms, and any public announcement of Cloud.

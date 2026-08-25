@@ -3,7 +3,7 @@ title: Give Local and Cloud boards one operation contract
 track: features
 priority: high
 roi: high
-status: ready
+status: implementing
 release: 0.8.0
 blocked_by: []
 related: [311, 56]

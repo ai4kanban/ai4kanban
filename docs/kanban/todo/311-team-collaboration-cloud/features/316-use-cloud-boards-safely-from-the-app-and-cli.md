@@ -21,6 +21,8 @@ Let the app and CLI work against Cloud without mistaking a stale screen for perm
 - If connectivity outlasts a lease, keep the draft local and compare the newest revision before continuing.
 - Apply returned resources and snapshot cursors after successful mutations.
 - Use the same authenticated Cloud endpoints from the app and CLI.
+- When the preview refuses a write because it is over a free-tier limit, say so in those
+  words and keep the user's edit, rather than reporting it as a conflict or a failure.
 
 ## Todo
 - [ ] Open and render a Cloud workspace from a consistent snapshot.
@@ -28,4 +30,5 @@ Let the app and CLI work against Cloud without mistaking a stale screen for perm
 - [ ] Acquire, renew, release, and recover card writer leases from both clients.
 - [ ] Refresh the affected card and explain who holds it after a conflict.
 - [ ] Keep disconnected drafts local and compare revisions before resuming.
+- [ ] Explain a free-tier refusal without losing the edit behind it.
 - [ ] Check stale caches cannot bypass server-side write rules.

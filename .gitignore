@@ -13,6 +13,7 @@ docs/kanban/.sessions.json
 docs/kanban/.sessions/
 # Archived proposals
 docs/kanban/.archive/
+docs/kanban/deliveries/
 
 kanban-ui/.next-guide-test/
 
@@ -23,3 +24,5 @@ social-posts/
 .wrangler/
 video/
 .omo/
+# Delivery state — worktrees and the like. Never committed.
+.akb/

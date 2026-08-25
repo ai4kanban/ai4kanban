@@ -5,7 +5,7 @@ priority: high
 roi: high
 status: todo
 release: 0.8.0
-blocked_by: [312, 313]
+blocked_by: [312]
 related: [311]
 modules: [cloud]
 questions: []
@@ -24,6 +24,8 @@ Give each Cloud workspace one trusted place that decides who may change what and
 - Let owners revoke a lease; membership or node removal must invalidate later renewals and writes.
 - Protect imports with a workspace maintenance lease and make multi-card changes all-or-nothing.
 - Let an owner delete a workspace and everything in it, which is what #321's pages promise.
+- Query the database on the Worker's schedule, so the free-tier project never pauses for
+  inactivity while the preview is open.
 
 ## Todo
 - [ ] Add GitHub login, private workspaces, membership, roles, and public read-only access.
@@ -35,6 +37,8 @@ Give each Cloud workspace one trusted place that decides who may change what and
 - [ ] Add safe workspace maintenance and atomic multi-card operations.
 - [ ] Add owner deletion of a workspace and everything stored in it.
 - [ ] Check concurrent writers, stale revisions, retries, and membership removal.
+- [ ] Keep the Supabase project active from the scheduled Worker run, and check a quiet
+      week leaves the workspace reachable.
 
 ## Decided by the agent
 - **How an invite is handed out**: as a list of allowed GitHub logins the project maintains,

@@ -23,6 +23,12 @@ Internal detail stays on the card.
 - **Which platform hosts Cloud?**: Cloudflare Workers for compute and Supabase Postgres for
   the shared board. Compute sits on the Cloudflare account the site already deploys from;
   the board gets a Supabase project of its own.
+- **Which plans does the invite-only preview run on?**: the free tier of both — Supabase Free
+  and the Workers free plan, $0 a month. The preview keeps no backups, and a free-tier limit
+  refuses writes rather than producing a bill; moving to paid plans is a later change that
+  comes with pricing.
+- **What can a team recover if a workspace is lost?**: only what they exported. The preview
+  keeps no backups of its own, so the terms page says so before anyone is invited.
 
 ## What we publish about a team's data
 

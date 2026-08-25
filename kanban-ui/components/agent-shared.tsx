@@ -212,9 +212,8 @@ export function SessionLog({
   session: SessionView | null;
   collapsed?: boolean;
   onToggle?: () => void;
-  // Drop the ink frame and the rounded corners: the delivery block (#307) owns them, and
-  // the log is one tab inside it rather than a window of its own. Everything else — the
-  // title bar with its state, cost, Stop and Resume — is the same log everywhere it shows.
+  // Drop the frame and title bar: the delivery block owns the frame, and folds the useful
+  // run status into its tab strip so an embedded log does not grow a second toolbar.
   bare?: boolean;
   // The card page turns these two on for a run that stopped short (#179): the
   // window says in words that the card is part-built, and carries Resume in its
@@ -409,7 +408,7 @@ export function SessionLog({
       aria-label={onToggle ? (collapsed ? "Expand run log" : "Collapse run log") : undefined}
       onClick={onToggle}
     >
-      <span className="nb-tag">run log</span>
+      {!bare && <span className="nb-tag">run log</span>}
       <span className="ml-auto flex items-center gap-1.5">
         {/* Stop (#49) rides in the title bar, the one piece of chrome every place
             that shows a run already has — so the card page, the board's log
@@ -449,7 +448,7 @@ export function SessionLog({
         const el = e.currentTarget;
         pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
       }}
-      className={`max-h-[50vh] overflow-auto px-4 py-3 bg-nb-wash shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]${bare ? "" : " rounded-b-[12.5px]"}`}
+      className={`max-h-[50vh] overflow-auto px-4 py-3 bg-nb-wash shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]${bare ? " border-t-[1.5px] border-nb-ink" : " rounded-b-[12.5px]"}`}
     >
       {body}
     </div>
@@ -457,12 +456,7 @@ export function SessionLog({
 
   // Bare: the frame belongs to whatever this is dropped into — the delivery block.
   if (bare) {
-    return (
-      <>
-        {titleBar}
-        {bodyWell}
-      </>
-    );
+    return bodyWell;
   }
 
   // Flush: the same ink-framed window, minus the collapse toggle and the body's

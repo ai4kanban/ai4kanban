@@ -122,8 +122,8 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
   const where = delivery.commitMode === 'auto' && delivery.targetBranch ? `, to land on ${delivery.targetBranch}` : ''
   return {
     stage: 'working',
-    label: 'Delivery in progress',
-    line: `Building this card as it was approved when the delivery started${where}.`,
+    label: 'In progress',
+    line: `Building this card as it was approved when work started${where}.`,
     paused: false,
   }
 }
