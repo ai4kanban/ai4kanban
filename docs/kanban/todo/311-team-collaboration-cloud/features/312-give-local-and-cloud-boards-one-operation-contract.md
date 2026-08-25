@@ -8,8 +8,7 @@ release: 0.8.0
 blocked_by: []
 related: [311, 56]
 modules: [skill, cloud]
-questions:
-  - "[user] Review stopped on delivery ajny9xw9: the review run failed before it recorded a verdict. Decide: answer here, explicitly accept the condition under ## Worth noting after implementation, or cancel the delivery and start again from a changed card. Once you have, `node /Users/wutao/git/ai4kanban/desktop/resources/cli/bin/ai4kanban.mjs review 312` judges it again."
+questions: []
 verify:
   - Open the board UI and use every control on a card page — edit it, add and cross off a hand-check, schedule and unschedule a blocked card, move cards into a release, close a release, save the goal, cancel and approve a delivery. Each should behave exactly as it did before.
   - Start a real delivery from Implement and let it run to a landing. The run engine's ending path is now asynchronous, so watch that the card's stage is put back, a recurring card is stamped, a landed delivery archives its card, and a stopped review still leaves its question.
@@ -40,10 +39,18 @@ two teammates editing the same card would silently overwrite each other.
   before it, and they get rewritten afterwards.
 
 ## Worth noting after implementation
-- **One CLI test was already failing before this delivery**: `cli/test/deliveries.test.ts`, "names the
-  delivery and what takes the card back", asserts the hold line matches `/akb cancel/`. On a machine
-  with no `akb` on PATH, `boardCommand()` spells the command as `node <path>/ai4kanban.mjs`, so the
-  assertion fails. Confirmed on the delivery base commit afc4a33ff102 as well: 186/187 pass there,
+- **The stopped review was already answered when the question was asked**: the review run that failed
+  (`1bba70d6`) was resumed as `7399346e`, which recorded `pass`, and the delivery's landing now holds
+  three passing reviews — the newest one after the rebase. The user closed the question as fixed
+  rather than accepting a condition or cancelling, so the delivery stands and landing takes it up on
+  its next pass.
+- **One CLI test was already failing before this delivery, and the test is what is wrong**:
+  `cli/test/deliveries.test.ts`, "names the delivery and what takes the card back", asserts the hold
+  line matches `/akb cancel/`. On a machine with no `akb` on PATH, `boardCommand()` spells the command
+  as `node <path>/ai4kanban.mjs`, so the assertion fails. The user has settled that this spelling is
+  the intended behavior — nothing installs the command or fetches it from npm so the name `akb`
+  works — so the fix belongs in the test rather than in `boardCommand()`, and is separate work outside
+  this delivery. Confirmed on the delivery base commit afc4a33ff102 as well: 186/187 pass there,
   198/199 pass on the candidate, same single failure. Nothing in this card caused it.
 - **Three of the run engine's ending writes are fired rather than awaited**: `cli/src/lib/agent/watch.ts`
   calls `closeRun` without awaiting it on the three early-exit paths (a record that has gone, a run

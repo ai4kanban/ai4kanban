@@ -94,7 +94,7 @@ export interface Subtask {
 
 /** One open card, read whole. */
 /** The delivery in flight on a card, as the card page reads it: enough to hold the card's
- *  controls still, say which delivery is doing it, and offer Cancel delivery.
+ *  controls still, say which delivery is doing it, and offer Discard.
  *
  *  Only an ACTIVE delivery reaches a card. What one built, and how it ended, is the record
  *  under `docs/kanban/deliveries/`. */
@@ -164,7 +164,15 @@ export interface CardApproval {
 /** Where a delivery stands, as the card page's pill reads it (#307). The stages are the
  *  delivery record's own (`agent/pause.ts`); this file imports nothing, so they are spelled
  *  again rather than shared. */
-export type CardDeliveryStage = 'working' | 'stopped' | 'held' | 'approval' | 'commit' | 'rereview' | 'landed'
+export type CardDeliveryStage =
+  | 'working'
+  | 'stopped'
+  | 'held'
+  | 'approval'
+  | 'commit'
+  | 'rereview'
+  | 'refused'
+  | 'landed'
 
 /** The delivery's state, as the title band draws it: the pill's words, the one line under
  *  it saying what the delivery waits on and what answers it, and whether it is waiting on
@@ -293,12 +301,12 @@ export interface Card {
    *  standalone card or a root. */
   parent?: CardRef
   /** The delivery in flight on this card, when one is. While it is there the card is held:
-   *  Edit, Refine, Resolve, Reject and Archive are off, and Cancel delivery is what takes
+   *  Edit, Refine, Resolve, Reject and Archive are off, and Discard is what takes
    *  the card back. Absent on every card nothing is building. */
   delivery?: CardDelivery
   /** A delivery of this card whose worktree is still on disk and can be thrown away
    *  (#303) — the one in flight, or the newest ended one that still holds one. The card
-   *  page's **Discard delivery** says what this would lose before it asks. */
+   *  page's **Discard** says what this would lose before it asks. */
   discard?: { id: string; worktree: string; branch?: string; active: boolean }
   /** This card's newest delivery landed, and the card is still on the board (#307). The
    *  board archives it in the same breath, so this is normally the blink between the two —

@@ -76,6 +76,9 @@ re-ask a settled call.
   many as you want — and one with no options stays an open-ended ask.
 - A question written as prose with the choices inside it keeps working and is never
   rewritten. Both shapes live side by side; no card is migrated.
+- **May a run stop and ask the user in the moment?**: no. No flow puts a human in the loop
+  while it works — anything it cannot settle is left on the card as an open question and the
+  run finishes. The card is where the user answers, at the time they choose.
 
 ## Releases
 
@@ -130,6 +133,11 @@ re-ask a settled call.
 - **What does `akb` typed alone do?**: installed by the app, it opens the app — the same
   command is the CLI when given an action, the way `cursor` works. The npm copy keeps
   printing help; it has no app to open.
+- **How does the board spell its own command on a machine with no `akb`?**: as `node
+  <path>/ai4kanban.mjs`, pointing at the copy that is running. Every flow and guide writes
+  `akb`, and each printed line resolves it for the machine. Nothing installs the command or
+  fetches it from npm so that the name works, so a test or doc that hard-codes `akb` is the
+  thing to fix.
 
 ## Storage
 

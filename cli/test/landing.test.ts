@@ -158,7 +158,7 @@ describe('one card at a time', () => {
 
     assert.equal(advanceLanding(), null)
     assert.equal(landingOf(first.deliveryId)?.status, 'waiting')
-    assert.match(landingOf(first.deliveryId)?.why ?? '', /uncommitted changes in shared\.txt/)
+    assert.match(landingOf(first.deliveryId)?.why ?? '', /uncommitted changes in `shared\.txt` — commit or stash it$/)
     assert.deepEqual(log(), ['start'])
 
     // Stashed, and the next pass lands it. (Committing instead moves the target branch, so
@@ -175,7 +175,7 @@ describe('one card at a time', () => {
     git(['add', 'staged.txt'])
 
     assert.equal(advanceLanding(), null)
-    assert.match(landingOf(first.deliveryId)?.why ?? '', /staged\.txt staged/)
+    assert.match(landingOf(first.deliveryId)?.why ?? '', /^`staged\.txt` is staged in your checkout/)
     assert.deepEqual(log(), ['start'])
   })
 

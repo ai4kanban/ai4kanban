@@ -535,26 +535,32 @@ delivery.
   back on there, because answering is the way on. Priority, ROI,
   release and modules stay editable — no delivery builds from those. So does **Todo**: the delivery
   ticks its own boxes as it works, and a box you tick reaches its next session.
-- **Cancel delivery** stands where Implement did. One more click confirms it: the running session
-  stops, the delivery ends as cancelled, the card unlocks and Implement comes back. Whatever the
-  delivery built stays exactly where it is — the board never undoes work — so its worktree and
-  branch are still there afterwards, and **Discard delivery** is what removes them.
+- **One control at a time in the delivery block.** While a run is live the only control is **Stop
+  run**: it ends that run where it is and nothing else, and the delivery keeps the card. Once
+  nothing is running, **Resume** and **Discard** take its place — carry the delivery on, or end it.
+- **Discard** is the one way out of a delivery, and the one control that throws work away. The
+  delivery ends, the card unlocks, Implement comes back, and the worktree and branch it built in
+  are removed. The confirmation names them first. A delivery working in your project folder has
+  neither, so it leaves your own tree alone.
 - **A session that fails or is cut off does not end the delivery.** The card stays held and the
   card page still says so, so **Resume** picks the delivery up rather than starting a second one —
-  one delivery id across both sessions. **Cancel delivery** is the other way out.
+  one delivery id across both sessions. **Discard** is the other way out.
 - **Every delivery leaves a record**, one JSON file under `docs/kanban/deliveries/`: its id, the
   card as it was approved for it, each session and how it went, every review verdict and its
   findings, and how the delivery ended — finished, stopped or cancelled. It is tracked in git and
   kept after the card is archived.
-- **In a terminal**: `akb cancel <delivery-or-card-id>` is the same thing as the button,
-  `akb discard <delivery-or-card-id> --yes` is the same as **Discard delivery**, and `akb runs`
-  names the delivery each session belongs to. `akb implement <id>` starts the same delivery the
+- **In a terminal**: `akb discard <delivery-or-card-id> --yes` is the same thing as the button.
+  `akb cancel <delivery-or-card-id>` is the half of it the UI does not offer — it ends the
+  delivery and leaves its worktree and branch on disk, for when there is something in there to
+  salvage. `akb runs` names the delivery each session belongs to. `akb implement <id>` starts the same delivery the
   button does, and warns about an open question the same way it warns about a blocker.
 
 #### What the card page says while a delivery runs
 
 The delivery's state rides the title band as a pill, where the stage and schedule pills already
-sit, with one line under it naming what the delivery waits on and what answers it.
+sit, with one line under it naming what the delivery waits on and what answers it. A delivery
+that is simply building gets no line: the pill has said it, and prose is kept for what you have
+to act on.
 
 | Pill | What it means |
 | --- | --- |
@@ -623,7 +629,7 @@ every change, which is what auto-delivery exists to remove.
   landing that gets rebased asks you again. The board re-reads both immediately before it moves
   your branch, so nothing lands on an approval that stopped being true in between.
 - **The setting is frozen when the delivery starts**, the way its commit mode is. Turning it off
-  does not release a delivery already waiting; **Cancel delivery** is the way out of one.
+  does not release a delivery already waiting; **Discard** is the way out of one.
 - **The delivery record keeps every approval** — what each one covered, and every cancellation
   with which of the two moved.
 - **In a terminal**: `akb approve <delivery-or-card-id>`, beside `cancel` and `discard`.
@@ -656,10 +662,10 @@ pressed Implement. `.akb/` is added to your `.gitignore`, so none of it is ever 
   are all changed in your project folder, as they always were.
 - **The board commits each session's work** onto the delivery's branch, so review reads a settled
   tree rather than a half-written one. Nothing reaches your own branch.
-- **Discard delivery** on the card page removes the worktree and the branch, and everything only
-  they hold. It says exactly what will be lost and asks for a second click. It is the one control
-  here that throws work away — nothing removes a worktree on its own, not even cancelling.
-- **If a worktree or branch goes missing**, the card page says so and nothing is rebuilt: cancel
+- **Discard** on the card page removes the worktree and the branch, and everything only they hold.
+  It says exactly what will be lost and asks for a second click. It is the one control here that
+  throws work away — nothing removes a worktree on its own, and `akb cancel` deliberately does not.
+- **If a worktree or branch goes missing**, the card page says so and nothing is rebuilt: discard
   the delivery and start the card again.
 
 #### Landing on your branch
@@ -746,7 +752,7 @@ review also stops.
 Then the card page reads **delivery … waiting on you**, **Resolve** comes back on while everything
 else stays held, and **Review again** appears beside it. Answer the question — or write the
 exception you are approving under **Worth noting after implementation** on the card — and **Review
-again** judges the same work afresh. **Cancel delivery** is the other way out: changed requirements
+again** judges the same work afresh. **Discard** is the other way out: changed requirements
 are a new delivery, not a change to what this one was approved to build.
 
 **Worth noting after implementation** is where review puts what it found that needs no decision: a

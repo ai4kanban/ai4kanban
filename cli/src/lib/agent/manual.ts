@@ -111,9 +111,11 @@ Runs in flight
   log [<id>] [--follow]        one run's log; --full for all of it
   stop [<id>]                  end a run
   resume [<id>]                continue one that failed, was cut off or was stopped
-  cancel <delivery|#card>      end the delivery in flight on a card and hand it back
-  discard <delivery|#card>     throw a delivery's worktree and branch away (--yes to go
-                               ahead; without it, it only says what would be lost)
+  cancel <delivery|#card>      end the delivery in flight on a card and hand it back,
+                               leaving its worktree and branch on disk
+  discard <delivery|#card>     end it AND throw its worktree and branch away — what the
+                               card page's Discard does (--yes to go ahead; without it,
+                               it only says what would be lost)
   approve <delivery|#card>     sign off the tree a delivery would land, on a board that
                                requires it
 
@@ -128,8 +130,8 @@ An Implement click starts a DELIVERY — the whole job, several runs long, again
 exactly as it was approved when it started: it builds, a fresh run reviews and fixes what it
 built, the board lands it, and the board archives the card.
 One click carries the card all the way; nothing asks you again in between. While a delivery
-is in flight that card can't be revised, refined, rejected or archived; \`cancel\` is what
-takes it back. A delivery WAITING ON YOU can always be resolved — answering is the way on,
+is in flight that card can't be revised, refined, rejected or archived; \`cancel\` and
+\`discard\` are what take it back. A delivery WAITING ON YOU can always be resolved — answering is the way on,
 and it carries the same delivery on with no second click. Every other action is a single run
 and holds nothing.
 
@@ -140,8 +142,8 @@ for ends that delivery and starts a fresh one on the card as it now reads.
 
 Each delivery builds in a git worktree of its own — \`.akb/worktrees/<card>/<delivery>\`, on
 branch \`card/<card>/<delivery>\` — so several run at once without touching each other or
-your own edits, and the board's own files stay out of them. Cancelling one leaves its
-worktree where it is; \`discard\` is what throws one away. Turn **Allow automatic Git
+your own edits, and the board's own files stay out of them. \`cancel\` leaves the worktree
+where it is; \`discard\` — and the card page's Discard — throws it away with the delivery. Turn **Allow automatic Git
 commits** off in Configuration and a delivery works in your checkout instead, one at a
 time, and you commit after review passes.
 

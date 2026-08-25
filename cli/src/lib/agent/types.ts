@@ -164,7 +164,7 @@ export interface RunRecord {
 /** How a delivery ended, or that it hasn't.
  *
  *  `active` covers a delivery still working AND one whose run failed or was cut off —
- *  the card stays held either way, until Resume carries it on or Cancel delivery ends it.
+ *  the card stays held either way, until Resume carries it on or Discard ends it.
  *  A delivery is never "blocked": it is running or it has ended, and a pause is read off
  *  the card. */
 export type DeliveryStatus = 'active' | 'finished' | 'failed' | 'cancelled'

@@ -28,6 +28,7 @@ import {
   takeNext,
   wantsLanding,
 } from './deliveries'
+import { HELD_ON_APPROVAL, HELD_ON_QUESTIONS } from './pause'
 import { askUser, lastRound, reviewOf } from './review'
 import { readStore, withStore } from './store'
 import type { AgentRequest, DeliveryLanding, DeliveryRecord } from './types'
@@ -61,6 +62,11 @@ const MAX_NAMED = 5
 
 const names = (files: string[]): string =>
   `${files.slice(0, MAX_NAMED).join(', ')}${files.length > MAX_NAMED ? `, and ${files.length - MAX_NAMED} more` : ''}`
+
+// The same files where a reader has to act on them. One is named, because naming it saves a
+// look; more are counted, because the reader's next move is the same for two as for ninety
+// and a list of ninety is not a sentence.
+const some = (files: string[]): string => (files.length === 1 ? `\`${files[0]}\`` : `${files.length} files`)
 
 const are = (n: number): string => (n === 1 ? 'is' : 'are')
 const them = (n: number): string => (n === 1 ? 'it' : 'them')
@@ -138,11 +144,9 @@ function handOver(delivery: DeliveryRecord, status: 'waiting' | 'conflict', why:
 
 // ---- held on the card's open questions (#307) -------------------------------
 
-// Why a delivery is waiting outside the queue. The opening words are fixed, so a landing
-// that was held on a question can be told from one waiting for any other reason — that is
+// Why a delivery is waiting outside the queue. The opening words are fixed (`pause.ts`), so
+// a landing held on a question can be told from one waiting for any other reason — that is
 // what says the pause has been answered, without a field of its own.
-const HELD_ON_QUESTIONS = 'held on an open question'
-
 const questionWhy = (cardId: number, asked: number): string =>
   `${HELD_ON_QUESTIONS}: #${cardId} has ${asked} of them, and landing waits until ${asked === 1 ? 'it is' : 'they are'} answered`
 
@@ -172,8 +176,6 @@ function holdForQuestions(): Set<string> {
 
 // Why a delivery is waiting outside the queue on an approval. Fixed opening words, the way
 // the question hold has them, so one hold can be told from the other without a field.
-const HELD_ON_APPROVAL = 'held on your approval'
-
 const approvalWhy = (delivery: DeliveryRecord, why: string): string =>
   `${HELD_ON_APPROVAL}: ${why} — approve it on #${delivery.cardId}, or with \`${boardCommand()} approve ${delivery.deliveryId}\``
 
@@ -343,34 +345,32 @@ const landingMessage = (delivery: DeliveryRecord): string =>
 
 // Why this delivery can't land right this moment, or nothing when it may. Everything here
 // is about the USER's checkout: the delivery's own branch was settled by review.
+//
+// These are read on the card page as much as in the terminal, so each is ONE line: the thing
+// in the way, and the move that clears it. Nothing explains why landing cares — the reader
+// wants the move, and the sentence that argues for it is the one they skip. Files, branches
+// and commands are wrapped in backticks; the page draws those as marks, and the terminal has
+// always spelled a command that way.
 function landingRefusal(delivery: DeliveryRecord): string | undefined {
-  const cmd = boardCommand()
   if (!delivery.base) return 'it has no base commit to land against'
   const target = branchTip(delivery.targetBranch!)
   if (!target) {
-    return `${delivery.targetBranch} is gone, so there is nowhere to land — put the branch back, or cancel the delivery`
+    return `\`${delivery.targetBranch}\` is gone — put the branch back, or discard the delivery`
   }
   const staged = stagedPaths()
   if (staged.length) {
-    return (
-      `you have ${names(staged)} staged in your own checkout. Landing moves ${delivery.targetBranch} under you, ` +
-      `so it waits until your index is clean — commit or unstage ${them(staged.length)}.`
-    )
+    return `${some(staged)} ${are(staged.length)} staged in your checkout — commit or unstage ${them(staged.length)}`
   }
   // Tracked changes only, exactly as the start gate counts them (`prepareDelivery`): the
   // board's own files are left out, and an untracked file of the user's is not in the way
   // of a fast-forward unless the landed commit adds that same path, which git says itself.
   const dirty = dirtyPaths(false)
   if (dirty.length) {
-    return (
-      `you have uncommitted changes in ${names(dirty)}. Landing moves ${delivery.targetBranch} under you and your ` +
-      `files change with it, so it waits until the checkout is clean — commit or stash ${them(dirty.length)}, and it lands by itself. ` +
-      `(\`${cmd} runs\` says what is waiting.)`
-    )
+    return `your checkout has uncommitted changes in ${some(dirty)} — commit or stash ${them(dirty.length)}`
   }
   const pending = pendingPaths(worktreeDir(delivery.worktree!))
   if (pending.length) {
-    return `its own worktree still holds uncommitted work in ${names(pending)}, so there is no settled tree to land`
+    return `its worktree still holds ${some(pending)} — clear ${them(pending.length)}`
   }
   return undefined
 }

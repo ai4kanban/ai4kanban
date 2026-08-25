@@ -22,9 +22,13 @@ re-ask a settled call.
   delivery works in the user's project folder, one at a time, from clean code, and the
   user commits after review passes. It is never a choice on a single card, and a change
   applies only to deliveries started afterwards.
-- **What a delivery leaves behind**: cancelling one leaves its worktree and branch exactly
-  where they are; **Discard delivery** on the card page is the only thing that removes
-  them, and it says what will be lost first.
+- **What a delivery leaves behind**: **Discard** on the card page is the one way out of a
+  delivery and the only thing that removes its worktree and branch, and it says what will
+  be lost first. `akb cancel` is the terminal-only half — it ends a delivery and leaves the
+  checkout on disk, for when there is something in there to salvage.
+- **How the delivery block's controls are chosen**: by whether a run is live, one question
+  at a time. Live means **Stop run** alone; nothing running means **Resume** and
+  **Discard**. Two ways to end a delivery never share a row.
 - Setup runs in the UI, as a guided first run that asks the user what only they know — the
   project, its tracks, the goal, and which agent does the work. Defaults are offered so it
   can be pressed through. The steps that read the repo and think run after it.
@@ -249,7 +253,8 @@ re-ask a settled call.
   stays how you last left it, so a reader who wants the detail keeps it open.
 - **Where does a delivery's state show on the card page?**: on the title band — the delivery pill
   beside the title, with one line under it saying what the delivery waits on and what answers it.
-  A pause never gets a panel of its own.
+  A delivery that is simply building gets no line — the pill says that already. A pause never
+  gets a panel of its own.
 - **Where do a delivery's diff and approval live?**: in the block that already holds the session
   log, which grows a **Diff** / **Log** / **Approval** tab strip. The page gains no new furniture,
   so a card's own words sit in the same place whether or not a delivery is live.

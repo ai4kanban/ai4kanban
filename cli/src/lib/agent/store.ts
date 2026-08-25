@@ -317,7 +317,7 @@ function asStatus(value: unknown): RunStatus {
 
 // A delivery whose state we can't read is still in flight as far as anyone knows, and the
 // safe reading of that is `active`: a card held by a delivery nobody can end would be the
-// worse mistake, and Cancel delivery is one click from the card page either way.
+// worse mistake, and Discard is one click from the card page either way.
 function asDeliveryStatus(value: unknown): DeliveryStatus {
   return value === 'finished' || value === 'failed' || value === 'cancelled' ? value : 'active'
 }

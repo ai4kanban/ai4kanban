@@ -64,9 +64,27 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A card edited mid-delivery retires the delivery** (hash the approved requirements, compare
   before each step, stop and offer Implement again) → ✅ deliver the card as it was approved, from
   a snapshot taken at the start, and keep the card from changing under it: Edit, Refine, Resolve,
-  Reject and Archive are off while a delivery is in flight, and **Cancel delivery** is the one way
+  Reject and Archive are off while a delivery is in flight, and **Discard** is the one way
   to take the card back. Throwing away a build because someone fixed a typo is a punishment, not a
   safeguard.
+- ❌ **Two controls that end the same thing stand side by side, told apart only by their
+  names** (Stop run and Cancel delivery in one strip, both wearing an ✕) → ✅ ask one
+  question at a time: while a run is live, the only control is Stop run; once nothing is
+  running, Resume and Discard take its place. Two ways to end something in one row are read
+  as one, and a shared glyph settles it.
+- ❌ **A control is named after a noun the page never says anywhere else** (Cancel
+  *delivery*, on a page where the word appears in no heading, pill or label) → ✅ name the
+  control after what it does — **Discard** — rather than teaching the page a noun to carry
+  it. A caption added to hold up a name is a second thing to read, not a fix.
+- ❌ **A line of prose restates a mark right above it** (an IN PROGRESS pill, then
+  "Building this card as it was approved when work started") → ✅ say it once, in the
+  smallest mark that can carry it. Prose earns its place by saying what the reader has to
+  act on — what a delivery waits on, and what answers it.
+- ❌ **Two controls differ only in what they leave on disk** (Cancel ends the delivery and
+  keeps its worktree; Discard removes it, so the tidy way out is two clicks and two
+  confirmations) → ✅ one control does the whole thing, and its confirmation names what will
+  be lost. The salvage path stays in the terminal, where someone who wants the branch
+  already is.
 
 ## Settings
 

@@ -41,7 +41,7 @@ export function CardBody({
         // reaches into a closed one and opens it at the word, in the browsers that can do
         // that, and the `toggle` it fires is how the control above catches up.
         <details
-          className="nb-panel-sm nb-fold mt-3 overflow-hidden"
+          className="nb-panel-sm nb-fold overflow-hidden"
           open={open}
           onToggle={(e) => onToggle(e.currentTarget.open)}
         >

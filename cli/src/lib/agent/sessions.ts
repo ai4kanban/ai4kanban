@@ -744,7 +744,8 @@ export function stopRun(id: string): StartResult {
 
 /** Cancel a delivery: end it, stop whatever run it has going, and hand the card
  *  back. Whatever the delivery wrote is left exactly where it is — the board never undoes
- *  work; #303's **Discard delivery** is what reclaims a worktree.
+ *  work; `discard` is what reclaims a worktree, and what the card page offers (#313). This
+ *  is the CLI-only way out for anyone who wants the branch kept.
  *
  *  Named by delivery id, by any prefix of one, or by the card it is building. Cancelling
  *  one that has already ended is not an error: the button is drawn from a poll that can be
@@ -824,7 +825,7 @@ export function repairDeliveries(): string[] {
     const gone = lostTree && lostBranch ? 'worktree and branch are' : lostTree ? 'worktree is' : 'branch is'
     complaints.push(
       `delivery ${d.deliveryId} on #${d.cardId}: its ${gone} gone (${d.worktree}${d.branch ? `, ${d.branch}` : ''}). ` +
-        `Cancel it and start the card again — nothing will rebuild it on its own.`,
+        `Discard it and start the card again — nothing will rebuild it on its own.`,
     )
   }
   return complaints

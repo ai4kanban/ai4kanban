@@ -357,12 +357,12 @@ function lostCheckout(delivery: DeliveryRecord): string | undefined {
   const lostBranch = !branchExists(delivery.branch)
   if (!lostTree && !lostBranch) return undefined
   const gone = lostTree && lostBranch ? 'worktree and branch are' : lostTree ? 'worktree is' : 'branch is'
-  return `its ${gone} gone — cancel this delivery and start the card again, nothing will rebuild it`
+  return `its ${gone} gone — discard this delivery and start the card again, nothing will rebuild it`
 }
 
 // The delivery of this card whose worktree could still be thrown away: the one in flight,
-// or the newest ended one that never gave its worktree back. Cancelling a delivery leaves
-// its worktree where it is on purpose, so this is the only way one is ever offered up.
+// or the newest ended one that never gave its worktree back. `akb cancel` leaves a worktree
+// where it is on purpose, so this is the only way one of those is ever offered up.
 function attachDiscard(card: Card, active: DeliveryRecord | undefined): void {
   const holder =
     active?.worktree

@@ -29,7 +29,7 @@
     "node": ">=18.18.0"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm --prefix ../cli run build && AI4KANBAN_CLI=../cli/dist/kanban.mjs next dev",
     "build": "next build",
     "build:standalone": "next build && node scripts/copy-standalone-assets.mjs",
     "start": "next start",

@@ -279,5 +279,23 @@ describe('where a delivery stands', () => {
     }
     assert.equal(deliveryState(changed, 0).label, 'Code changed after review')
     assert.equal(deliveryState(changed, 0).paused, false)
+
+    // Landing refused it and said why. Without this the pill read "In progress" over a
+    // delivery nothing was building.
+    const refused = { ...queued, landing: { ...queued.landing, why: 'you have changes in `a.ts`' } }
+    assert.equal(deliveryState(refused, 0).stage, 'refused')
+    assert.equal(deliveryState(refused, 0).label, "Can't land yet")
+    assert.equal(deliveryState(refused, 0).paused, true)
+    // Landing's own words, taken as the sentence they are: capitalised, closed, and with
+    // the marks it put round the names left alone.
+    assert.equal(deliveryState(refused, 0).line, 'You have changes in `a.ts`.')
+    // A refusal that already ends in one keeps its own punctuation.
+    assert.match(deliveryState({ ...refused, landing: { ...refused.landing, why: 'main is gone.' } }, 0).line, /gone\.$/)
+    // The card's own questions still come first: answering them is what moves it.
+    assert.equal(deliveryState(refused, 1).stage, 'held')
+    // And the hold's own `why` outlives the hold. Answering leaves it on the record until
+    // the next pass, and it must not read back as a refusal.
+    const answered = { ...queued, landing: { ...queued.landing, why: 'held on an open question: #1 has 1 of them' } }
+    assert.equal(deliveryState(answered, 0).stage, 'working')
   })
 })

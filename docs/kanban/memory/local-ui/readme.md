@@ -86,9 +86,11 @@ except where another doc is named.
 - A card with a delivery in flight can't be edited, refined, resolved, archived or rejected
   — on the card page and in a terminal alike, each saying which delivery has it. Priority,
   ROI, release, modules and the card's own todos stay yours.
-- **Cancel delivery** stands where Implement did and asks for a second click: the running
-  session stops, the card unlocks, Implement comes back, and whatever the delivery wrote
-  stays in your working tree.
+- The delivery block shows one control while a run is live — **Stop run**, which ends that
+  run and nothing else — and **Resume** and **Discard** once nothing is running.
+- **Discard** asks for a second click and is the one way out of a delivery: the card
+  unlocks, Implement comes back, and the worktree and branch it built in are removed. A
+  delivery working in your project folder has neither, and leaves your tree alone.
 - A session that fails or is cut off does not end the delivery: the card stays held and
   Resume picks the same delivery up, one id across both sessions.
 - Every delivery leaves a record in `docs/kanban/deliveries/`, tracked in git and kept after
@@ -102,8 +104,8 @@ except where another doc is named.
   `kanban-ui/README.md` says what it checks and what it cannot.
 - A stopped delivery reads "waiting on you" and leaves one open question on the card.
   **Resolve** comes back on while every other held control stays off, and **Review again**
-  beside it judges the same work once you have answered. Cancel delivery is the other way
-  out — changed requirements are a new delivery.
+  beside it judges the same work once you have answered. Discard is the other way out —
+  changed requirements are a new delivery.
 - **Continue delivery** appears when a delivery's next session never started because the
   process watching the one before it died, and starts it.
 - The card's `## Worth noting after implementation` is where review puts what it found that
@@ -291,8 +293,8 @@ except where another doc is named.
 - Each delivery now builds in a git worktree and branch of its own — `.akb/worktrees/<card>/<delivery>`
   on `card/<card>/<delivery>` — so several cards can be built at once without touching each other or
   your open edits, and the board's own files stay out of them. A delivery refuses to start on
-  uncommitted work or a detached HEAD; **Discard delivery** on the card page is the only thing that
-  removes a worktree, and it says what will be lost first. Turn **Allow automatic Git commits** off
+  uncommitted work or a detached HEAD; **Discard** on the card page is the only thing that removes
+  a worktree, and it says what will be lost first. Turn **Allow automatic Git commits** off
   in Configuration → Auto-delivery and a delivery works in your project folder instead, one at a
   time, and you commit it after review passes: "Where a delivery's code goes" and "Auto-delivery" in
   the UI docs.
@@ -322,8 +324,12 @@ except where another doc is named.
 
 - The card page now says where a delivery has got to, not just where its code is: a pill beside
   the title — **Delivery in progress**, **Held at landing**, **Waiting for your commit**, **Code
-  changed after review**, **Landed as `abc123`** — with one line under it naming what the delivery
-  waits on and what answers it. A pause has nothing to press, and the block under the buttons is
+  changed after review**, **Can't land yet**, **Landed as `abc123`** — and under it what the delivery
+  waits on and what answers it. A pause is drawn as a **waiting on you** note in the pill's own
+  colour, not a grey line: it is the one thing on the page the reader has to act on. The names in it
+  — a file, a branch, a commit, the control to press — are marked, and the sentence is kept to one
+  or two. **Can't land yet** carries landing's own refusal: a dirty checkout, a target branch that is
+  gone, a worktree with work left in it. A pause has nothing to press, and the block under the buttons is
   now the delivery's own: a Diff / Log / Approval tab strip with the log in it, and a foot naming
   the delivery, how it commits and where its code is. **Resolve** stays live whenever a delivery is
   waiting on you: "What the card page says while a delivery runs" in the UI docs.

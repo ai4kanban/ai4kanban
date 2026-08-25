@@ -13,7 +13,6 @@ import {
   FiCircle,
   FiPlay,
   FiSquare,
-  FiX,
   FiZap,
 } from "react-icons/fi";
 import { resumeSessionAction, stopSessionAction } from "@/app/actions";
@@ -623,12 +622,14 @@ function StopButton({ sessionId }: { sessionId: string }) {
         title="Stop this run"
         className="-my-0.5 grid size-[22px] cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[background-color,color,transform] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90"
       >
-        <FiX className="text-[14px]" aria-hidden />
+        {/* The media square, the same glyph the delivery block's Stop run wears — one verb,
+            one mark, wherever a run can be stopped. Filled, or it reads as an empty box. */}
+        <FiSquare className="text-[12px]" fill="currentColor" strokeWidth={2} aria-hidden />
       </button>
       {open && (
         // A full nb panel, small: ink frame and hard shadow like every other
-        // surface, hung off the ✕ and right-aligned so it can't run off the edge
-        // of the log window.
+        // surface, hung off the button and right-aligned so it can't run off the
+        // edge of the log window.
         <span className="nb-panel-sm absolute right-0 top-full z-30 mt-2 block w-[248px] p-3 text-left">
           <span className="block text-[13px] font-[700] leading-snug text-nb-ink">
             Stop this run?

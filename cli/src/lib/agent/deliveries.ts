@@ -4,7 +4,8 @@
 // SNAPSHOT: a delivery copies the card's approved requirements the moment it starts and
 // builds from that copy, so a card edited underneath it never changes what it was approved
 // to build. While it is in flight the card is held — the board's own screens and commands
-// won't change it — and the way to take the card back is Cancel delivery.
+// won't change it — and the way to take the card back is Discard on the card page, or
+// `cancel` here, which ends it the same way but leaves its worktree behind.
 //
 // It leaves two records. The live row sits in docs/kanban/.sessions.json, where the lock
 // and the card page read it. The permanent one is a JSON file per delivery under
@@ -378,7 +379,7 @@ export function recordVerdict(
  *  A delivery is implementation, then a review that fixes plain mistakes itself. The
  *  delivery finishes only when review passes it, or stops with a question when review
  *  needs the user. A run that failed or was cut off mid-build leaves it ACTIVE and unfinished,
- *  with the card still held, until Resume carries it on or Cancel delivery ends it. A
+ *  with the card still held, until Resume carries it on or Discard ends it. A
  *  run somebody stopped is the same: stopping a run is not ending the job. */
 export function settleDelivery(run: RunRecord): void {
   if (!run.deliveryId) return
@@ -613,14 +614,18 @@ export function heldByDelivery(cardId: number, program?: string): string | undef
   const answer =
     state.stage === 'approval'
       ? `Approve it with \`${cmd} approve ${delivery.deliveryId}\`.`
-      : `Answer it with \`${cmd} resolve ${cardId}\`.`
+      : state.stage === 'refused'
+        ? `Clear that and it lands by itself.`
+        : `Answer it with \`${cmd} resolve ${cardId}\`.`
   const doing = state.paused
     ? `is waiting on you on #${cardId} — ${state.line} — so the board won't change the card. ` +
       `${answer} Or take the card back with `
     : `is in flight on #${cardId} — it is building the card as it was approved when it started, ` +
       `so the board won't change it. Take the card back with `
+  // Two ways out, and they differ in what they leave behind: Discard throws the delivery's
+  // worktree away with it, `cancel` ends it and leaves the work on disk.
   return (
     `delivery ${delivery.deliveryId} ${doing}` +
-    `Cancel delivery on the card page, or \`${cmd} cancel ${delivery.deliveryId}\`.`
+    `Discard on the card page, or \`${cmd} cancel ${delivery.deliveryId}\` to end it and keep its work.`
   )
 }

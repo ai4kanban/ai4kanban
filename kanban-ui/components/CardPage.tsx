@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 import {
+  FiAlertCircle,
   FiArchive,
   FiCheckCircle,
   FiCheckSquare,
@@ -22,7 +23,6 @@ import {
 } from "react-icons/fi";
 import {
   approveDeliveryAction,
-  cancelDeliveryAction,
   discardDeliveryAction,
   dropVerifyAction,
   patchCardAction,
@@ -236,12 +236,12 @@ function HandChecks({
   if (lines.length === 0 && !note) return null;
 
   return (
-    <div className="nb-outline mb-3 p-3" style={{ background: "var(--color-nb-sky-soft)" }}>
+    <div className="nb-outline p-3" style={{ background: "var(--color-nb-sky-soft)" }}>
       <div className="nb-tag mb-2">
         <span style={{ color: "var(--color-nb-sky-ink)" }}>✓</span> check by hand
       </div>
       {lines.length > 0 && (
-        <ul className="mb-1 flex flex-col gap-1 text-[13px] leading-[19px]">
+        <ul className="flex flex-col gap-1 text-[13px] leading-[19px]">
           {lines.map((line) => (
             <li key={line} className="flex items-start gap-1.5">
               <span className="relative top-[7px] shrink-0 text-[5px]" aria-hidden>
@@ -276,7 +276,7 @@ function HandChecks({
         </ul>
       )}
       {note && (
-        <p className="mb-1 text-[12px] leading-snug" style={{ color: "var(--color-nb-peach-ink)" }}>
+        <p className="mt-2 text-[12px] leading-snug" style={{ color: "var(--color-nb-peach-ink)" }}>
           {note}
         </p>
       )}
@@ -369,21 +369,27 @@ function visibleActions(card: Card): Set<CardButton> {
 // A delivery is the whole job one Implement click starts, and it builds the card exactly as
 // it was approved when it started. So while one is in flight the card is held: the five
 // controls that would rewrite the approved sections or take the card off the board are off,
-// and each says why in the same words. What takes the card back is Cancel delivery, which
-// stands where Implement did.
+// and each says why in the same words. What takes the card back is Discard, in the delivery
+// block below.
 //
 // The card page does NOT compare the live card against what the delivery captured. A hand
 // edit in the user's own editor still reaches the file and changes nothing for the delivery
 // — it is building from its copy — so the honest thing to say is what it IS building, which
 // is what the held controls say, before the edit is made rather than after.
-const heldNote = (delivery: CardDelivery): string =>
-  delivery.state.paused
-    ? `${delivery.state.line} Cancel delivery takes the card back.`
-    : `${delivery.state.line} Cancel delivery stops the work and takes the card back.`;
+// A native tooltip draws whatever it is given, so the line's backticks come off here.
+const heldNote = (delivery: CardDelivery): string => {
+  const line = delivery.state.line.replace(/`/g, "");
+  return delivery.state.paused
+    ? `${line} Discard ends the delivery and takes the card back.`
+    : `${line} Stop the run, then Discard takes the card back.`;
+};
 
 // A control that belongs to the delivery block rather than the page (#307). The strip is
 // typographic — borderless tabs, plain meta text — so this is too: accent ink and the tabs'
 // weight, underlined on hover. A framed button in that row reads as a foreign object.
+//
+// The hover rule is a bottom border, not text-decoration: an underline skips the icon and
+// leaves it stranded outside the line, which reads as a stray glyph rather than a label.
 function PanelAction({
   icon,
   label,
@@ -392,7 +398,7 @@ function PanelAction({
   return (
     <button
       type="button"
-      className="inline-flex cursor-pointer items-center gap-1 text-[12px] font-[700] underline-offset-[3px] transition-opacity hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex cursor-pointer items-center gap-1 border-b-[1.5px] border-transparent pb-[1px] text-[12px] font-[700] transition-colors hover:border-current disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-transparent"
       style={{ color: "var(--color-nb-accent-deep)" }}
       {...props}
     >
@@ -403,9 +409,12 @@ function PanelAction({
 }
 
 // Stop run (#49): ends the run in flight and nothing else. The delivery stands, its work
-// stays where it is, and Resume carries it on — so this is the proportionate way out of a run
-// started by mistake, which the delivery-wide Cancel beside it is not. The two names say
-// which is which without opening either.
+// stays where it is, and Resume carries it on.
+//
+// It is the ONLY control in the strip while a run is live, so nothing here has to be told
+// apart from anything else (#313). Ending the delivery is the next screen's business: stop
+// first, then Resume or Discard. Its glyph is the media square that pairs with Resume's play —
+// filled, because a hollow one reads as an empty box rather than a mark.
 function StopRun({ session, onError }: { session: SessionView; onError: (why: string) => void }) {
   const [confirming, setConfirming] = useState(false);
   const [asked, setAsked] = useState(false);
@@ -427,7 +436,7 @@ function StopRun({ session, onError }: { session: SessionView; onError: (why: st
   return (
     <span ref={anchorRef} className="relative inline-flex">
       <PanelAction
-        icon={<FiX className="text-[12px]" aria-hidden />}
+        icon={<FiSquare className="text-[11px]" fill="currentColor" strokeWidth={2} aria-hidden />}
         label="Stop run"
         aria-haspopup="dialog"
         aria-expanded={confirming}
@@ -438,7 +447,7 @@ function StopRun({ session, onError }: { session: SessionView; onError: (why: st
         anchorRef={anchorRef}
         align="right"
         title="Stop this run?"
-        description="It ends where it is, and whatever it half-wrote stays in your working tree. The delivery keeps the card — Resume carries it on."
+        description="It ends where it is, and whatever it half-wrote stays in your working tree. The delivery keeps the card — then Resume carries it on, or Discard ends it."
         cancelLabel="Keep running"
         confirmLabel="Stop run"
         busy={false}
@@ -506,21 +515,31 @@ function ResumeDelivery({
   );
 }
 
-// Discard delivery: the one control on this page that throws work away. It removes the
-// delivery's worktree and its branch — and everything only they hold — so its popover says
-// exactly what will be lost before exposing the irreversible action.
+// Discard: the one way out of a delivery, and the one control on this page that throws work
+// away (#303, #313). It ends the delivery if it is still in flight — the card unlocks and
+// Implement comes back — and removes the worktree and branch it built in.
 //
-// Cancelling a delivery deliberately leaves its checkout where it is, so this is offered
-// beside Cancel while one is in flight AND on its own afterwards, when the card is free
-// again but the checkout is still on disk. `panel` picks the block's strip over the toolbar,
-// which is where it stands whenever the delivery still has a block to stand in.
+// One control, not two. Ending a delivery and reclaiming its checkout used to be Cancel and
+// Discard, which read as the same act under two names and left the checkout behind unless you
+// remembered the second click. `akb cancel` is still the way to end one and keep its branch.
+//
+// The popover says exactly what will be lost, and there is nothing to lose in a delivery with
+// no checkout of its own — one working in the project folder leaves the user's own tree alone.
+// `panel` picks the block's strip over the toolbar, which is where it stands whenever the
+// delivery still has a block to stand in.
 function DiscardDelivery({
-  discard,
+  id,
+  worktree,
+  branch,
+  active,
   panel,
   onDiscarded,
   onError,
 }: {
-  discard: NonNullable<Card["discard"]>;
+  id: string;
+  worktree?: string;
+  branch?: string;
+  active?: boolean;
   panel?: boolean;
   onDiscarded: () => void;
   onError: (why: string) => void;
@@ -529,11 +548,11 @@ function DiscardDelivery({
   const [busy, setBusy] = useState(false);
   const anchorRef = useRef<HTMLSpanElement>(null);
 
-  const lost = `${discard.worktree}${discard.branch ? ` and ${discard.branch}` : ""}`;
+  const lost = worktree ? `${worktree}${branch ? ` and ${branch}` : ""}` : null;
   const discardIt = async () => {
     setConfirming(false);
     setBusy(true);
-    const res = await discardDeliveryAction(discard.id);
+    const res = await discardDeliveryAction(id);
     setBusy(false);
     if (!res.ok) onError(res.error || "could not discard the delivery");
     else onDiscarded();
@@ -568,8 +587,19 @@ function DiscardDelivery({
         open={confirming}
         anchorRef={anchorRef}
         align={panel ? "right" : "left"}
-        title="Discard saved work?"
-        description={<>Deletes <code className="break-all font-mono text-nb-ink">{lost}</code>. This cannot be undone.</>}
+        title={active ? "Discard this delivery?" : "Discard saved work?"}
+        description={
+          <>
+            {active && "The card unlocks and Implement starts a fresh delivery. "}
+            {lost ? (
+              <>
+                Deletes <code className="break-all font-mono text-nb-ink">{lost}</code>. This cannot be undone.
+              </>
+            ) : (
+              "Whatever it wrote in your project folder stays where it is."
+            )}
+          </>
+        }
         cancelLabel="Keep it"
         confirmLabel="Discard"
         busy={busy}
@@ -600,6 +630,49 @@ function DeliveryPill({ label, tone }: { label: string; tone: keyof typeof PILL_
   );
 }
 
+// A delivery's own words mark the names that matter — a file, a branch, a commit, the
+// control to press — in backticks, and nothing else in them is markdown. Drawn as marks the
+// eye finds them without reading the sentence twice.
+function marked(line: string): ReactNode[] {
+  return line.split(/`([^`]+)`/).map((part, i) =>
+    i % 2 === 0 ? (
+      part
+    ) : (
+      <code key={i} className="font-mono font-[700] text-nb-ink">
+        {part}
+      </code>
+    ),
+  );
+}
+
+// What the delivery waits on. A pause is the one thing on this page asking the reader to do
+// something, so it is a note in the stage's own colour and not a grey line under the title —
+// which read as a subtitle and got skipped. Everything the board is still moving along by
+// itself stays a line: that is news, not a job.
+function DeliveryNote({
+  tone,
+  paused,
+  children,
+}: {
+  tone: keyof typeof PILL_SKIN;
+  paused: boolean;
+  children: ReactNode;
+}) {
+  if (!paused) {
+    return <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">{children}</p>;
+  }
+  const skin = PILL_SKIN[tone]!;
+  return (
+    <div className="nb-outline px-3 py-2.5" style={{ background: skin.bg }}>
+      <div className="nb-tag mb-1.5" style={{ color: skin.ink }}>
+        <FiAlertCircle className="text-[13px]" aria-hidden />
+        waiting on you
+      </div>
+      <p className="text-[13px] leading-[19px] text-nb-ink">{children}</p>
+    </div>
+  );
+}
+
 // Which of those a delivery's stage wears.
 const PILL_TONE: Record<CardDeliveryStage, keyof typeof PILL_SKIN> = {
   working: "live",
@@ -608,6 +681,7 @@ const PILL_TONE: Record<CardDeliveryStage, keyof typeof PILL_SKIN> = {
   approval: "live",
   commit: "live",
   rereview: "warn",
+  refused: "warn",
   landed: "done",
 };
 
@@ -688,30 +762,39 @@ function TabStrip({
       aria-expanded={open}
       aria-label={open ? "Fold this away" : "Open this up"}
       onClick={onToggle}
-      className={`flex cursor-pointer select-none items-center gap-4 rounded-t-[12.5px] bg-nb-wash px-3.5 pt-2.5 transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,var(--color-nb-wash))] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_11%,var(--color-nb-wash))]${open ? "" : " rounded-b-[12.5px]"}`}
+      className={`flex cursor-pointer select-none items-center gap-1 rounded-t-[12.5px] bg-nb-paper py-1.5 pl-1.5 pr-3.5 transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_4%,var(--color-nb-paper))] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,var(--color-nb-paper))]${open ? "" : " rounded-b-[12.5px]"}`}
     >
-      {tabs.map((tab) => (
-        <button
-          key={tab.name}
-          type="button"
-          aria-expanded={tab.name === current && open}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (tab.name === current && open) onToggle();
-            else onPick(tab.name);
-          }}
-          className="flex cursor-pointer items-center gap-1.5 pb-2 text-[12px] font-[700]"
-          style={{
-            color: tab.name === current ? "var(--color-nb-ink)" : "var(--color-nb-ink-soft)",
-            borderBottom: `2px solid ${tab.name === current && open ? "var(--color-nb-accent)" : "transparent"}`,
-          }}
-        >
-          {tab.name}
-          {tab.note && <span className="text-[10.5px] font-[600] text-nb-ink-soft">{tab.note}</span>}
-        </button>
-      ))}
+      {tabs.map((tab) => {
+        const on = tab.name === current && open;
+        return (
+          <button
+            key={tab.name}
+            type="button"
+            aria-expanded={on}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (on) onToggle();
+              else onPick(tab.name);
+            }}
+            // The open tab is a filled chip, not an underlined one: the pane below already
+            // draws a rule under this strip, and an underline four pixels above it read as
+            // two lines doing one job. The fill is a neutral grey step off the paper strip,
+            // never the accent — that ember is the diff's deletion tint a few pixels below,
+            // and a chip wearing it reads as "something is wrong with this tab".
+            className={`flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[12px] font-[700] transition-colors${on ? "" : " hover:bg-nb-wash"}`}
+            style={
+              on
+                ? { background: "color-mix(in srgb, var(--color-nb-ink) 9%, var(--color-nb-paper))" }
+                : { color: "var(--color-nb-ink-soft)" }
+            }
+          >
+            {tab.name}
+            {tab.note && <span className="text-[10.5px] font-[600] text-nb-ink-soft">{tab.note}</span>}
+          </button>
+        );
+      })}
       {/* The run's own affairs: they act on the delivery, never on the fold. */}
-      <span className="ml-auto flex items-center gap-3.5 pb-2" onClick={(e) => e.stopPropagation()}>
+      <span className="ml-auto flex items-center gap-3.5" onClick={(e) => e.stopPropagation()}>
         {meta}
         {action}
       </span>
@@ -799,7 +882,7 @@ function DeliveryBlock({
   diff,
   session,
   onApproved,
-  onCancelled,
+  onEnded,
   onResumed,
   onCarryOn,
   onError,
@@ -808,7 +891,7 @@ function DeliveryBlock({
   diff: DeliveryDiff | null;
   session: SessionView | null;
   onApproved: () => void;
-  onCancelled: () => void;
+  onEnded: () => void;
   onResumed: (sessionId: string) => void;
   onCarryOn: (action: NonNullable<CardDelivery["next"]>) => void;
   onError: (why: string) => void;
@@ -850,7 +933,7 @@ function DeliveryBlock({
   // No `overflow-hidden` on the frame: the strip and the foot round their own outer
   // corners, so a confirmation hanging off a control in the strip is not clipped.
   return (
-    <div className="nb-outline mb-4 bg-nb-paper">
+    <div className="nb-outline bg-nb-paper">
       <TabStrip
         tabs={tabs}
         current={current}
@@ -862,19 +945,31 @@ function DeliveryBlock({
         onToggle={() => setOpen((v) => !v)}
         meta={<SessionMeta session={session} />}
         action={
-          <>
-            {/* One of these two at a time: a run in flight can be stopped, a delivery that
-                has stopped can be carried on. Cancel is beside them either way. */}
-            {live && session && <StopRun session={session} onError={onError} />}
-            <ResumeDelivery
-              delivery={delivery}
-              session={session}
-              onResumed={onResumed}
-              onCarryOn={onCarryOn}
-              onError={onError}
-            />
-            <CancelDelivery delivery={delivery} onCancelled={onCancelled} onError={onError} />
-          </>
+          /* One question at a time (#313). While a run is live the only thing to decide is
+             whether it should keep going, so Stop run stands alone. Once nothing is running,
+             the question becomes what to do with the delivery: carry it on, or end it. */
+          live && session ? (
+            <StopRun session={session} onError={onError} />
+          ) : (
+            <>
+              <ResumeDelivery
+                delivery={delivery}
+                session={session}
+                onResumed={onResumed}
+                onCarryOn={onCarryOn}
+                onError={onError}
+              />
+              <DiscardDelivery
+                panel
+                active
+                id={delivery.id}
+                worktree={delivery.worktree}
+                branch={delivery.branch}
+                onDiscarded={onEnded}
+                onError={onError}
+              />
+            </>
+          )
         }
       />
       {open &&
@@ -942,7 +1037,7 @@ function FinishedBlock({
   // No `overflow-hidden` on the frame: the strip and the foot round their own outer
   // corners, so a confirmation hanging off a control in the strip is not clipped.
   return (
-    <div className="nb-outline mb-4 bg-nb-paper">
+    <div className="nb-outline bg-nb-paper">
       <TabStrip
         tabs={tabs}
         current={current}
@@ -955,7 +1050,14 @@ function FinishedBlock({
         meta={<SessionMeta session={session} />}
         action={
           discard && (
-            <DiscardDelivery panel discard={discard} onDiscarded={onDiscarded} onError={onError} />
+            <DiscardDelivery
+              panel
+              id={discard.id}
+              worktree={discard.worktree}
+              branch={discard.branch}
+              onDiscarded={onDiscarded}
+              onError={onError}
+            />
           )
         }
       />
@@ -984,59 +1086,6 @@ function FinishedBlock({
         </DeliveryFoot>
       )}
     </div>
-  );
-}
-
-// Cancel delivery: what takes the card back while one is in flight. It stops the running
-// session, ends the delivery as cancelled, unlocks the card and brings Implement back. The
-// anchored confirmation distinguishes that from stopping one internal run, and existing work
-// is kept. It rides in the delivery block's strip — beside the work it ends, and a caption
-// rather than a page-wide row.
-function CancelDelivery({
-  delivery,
-  onCancelled,
-  onError,
-}: {
-  delivery: CardDelivery;
-  onCancelled: () => void;
-  onError: (why: string) => void;
-}) {
-  const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const anchorRef = useRef<HTMLSpanElement>(null);
-
-  const cancel = async () => {
-    setConfirming(false);
-    setBusy(true);
-    const res = await cancelDeliveryAction(delivery.id);
-    setBusy(false);
-    if (!res.ok) onError(res.error || "could not cancel the delivery");
-    else onCancelled();
-  };
-
-  return (
-    <span ref={anchorRef} className="relative inline-flex">
-      <PanelAction
-        icon={<FiXCircle className="text-[12px]" aria-hidden />}
-        label="Cancel delivery"
-        disabled={busy}
-        aria-haspopup="dialog"
-        aria-expanded={confirming}
-        onClick={() => setConfirming((open) => !open)}
-      />
-      <ConfirmationPopover
-        open={confirming}
-        anchorRef={anchorRef}
-        align="right"
-        title="Cancel the whole delivery?"
-        description="Not just this run: the delivery ends, the card unlocks, and Implement starts a new one. Existing work is kept."
-        cancelLabel="Keep it"
-        confirmLabel="Cancel delivery"
-        busy={busy}
-        onDismiss={() => setConfirming(false)}
-        onConfirm={() => void cancel()}
-      />
-    </span>
   );
 }
 
@@ -1168,6 +1217,11 @@ export function CardPage({
   // lets you answer is a dead end — while every other held control is off. The CLI makes
   // exactly the same exception.
   const answerable = !!delivery?.state.paused;
+  // A delivery that is only building — waiting on nothing, holding nothing up. The one stage
+  // with nothing to say beyond the pill already saying it.
+  const justBuilding = delivery?.state.stage === "working";
+  // The one line under the title band — see where it renders for what it says.
+  const deliveryLine = !!delivery && (!justBuilding || !!delivery.supersedes || !!delivery.lost);
   // One test for every control the hold covers: a session on this card, or a delivery on it.
   const off = busy || held;
   const offUnlessAsked = busy || (held && !answerable);
@@ -1280,218 +1334,235 @@ export function CardPage({
               to the app in a browser. */}
           <RunningNotice desktop={desktop} />
 
-          <main className="mx-auto w-full max-w-[840px] px-6 py-6">
+          {/* Every gap on this page is a `gap` — nothing on it carries a margin of its own,
+              so no two blocks can drift apart. Two stacks: the title, and everything under
+              it evenly spaced. The one wider step (gap-8) is the title's, set once. */}
+          <main className="mx-auto flex w-full max-w-[840px] flex-col gap-8 px-6 py-6">
             {error && (
-              <div className="nb-panel-sm mb-4 p-3 text-[13px]" style={{ background: "var(--color-nb-peach-soft)" }}>
+              <div className="nb-panel-sm p-3 text-[13px]" style={{ background: "var(--color-nb-peach-soft)" }}>
                 {error}
               </div>
             )}
 
-            {/* part of a group — link up to the tracking root */}
-            {card.parent && (
-              <Link
-                href={`/${card.parent.id}`}
-                className="mb-2 inline-flex items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-accent-deep"
-              >
-                <FiCornerLeftUp className="text-[13px]" aria-hidden />
-                Part of #{card.parent.id} {card.parent.title}
-              </Link>
-            )}
-
-            {/* title band — the card's one mark rides beside the title: a live
-                session's badge while busy, otherwise where the delivery has got to
-                (#307), otherwise the saved stage (nothing while `todo`). Never two. */}
-            <div className={`${delivery ? "mb-1.5" : "mb-4"} flex flex-wrap items-center gap-x-2.5 gap-y-2`}>
-              <span className="shrink-0 text-[20px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
-                #{card.id}
-              </span>
-              <h1 className="text-[20px] font-[800] tracking-[-0.02em] leading-tight">{card.title}</h1>
-              {busy ? (
-                <RunningBadge
-                  label={
-                    liveSession
-                      ? `${RUNNING_VERB[liveSession.action]} this card…`
-                      : "working…"
-                  }
-                />
-              ) : delivery ? (
-                // What the delivery is doing, or what it is waiting for — the board's own
-                // answer, worked out from the card's questions and the delivery's records.
-                <DeliveryPill label={delivery.state.label} tone={PILL_TONE[delivery.state.stage]} />
-              ) : card.landed ? (
-                // It landed, and the board is taking the card off. Normally the blink
-                // between the two; on screen for longer only when the archive failed.
-                <DeliveryPill
-                  label={card.landed.commit ? `Landed as ${card.landed.commit.slice(0, 7)}` : "Landed — nothing to commit"}
-                  tone="done"
-                />
-              ) : cancelled ? (
-                // The last delivery on this card was cancelled. The card is free again, and
-                // saying "stopped" here would name the session and hide what happened.
-                <DeliveryPill label="Cancelled" tone="ended" />
-              ) : card.schedule ? (
-                // Waiting on its blockers, with a run already queued (#140) — the mark
-                // stands in for the stage, and says what will run and what it waits for.
-                <PendingPill label={scheduleLabel(card)} detailed />
-              ) : (
-                card.status !== "todo" && <StatusPill status={card.status} detailed />
+            {/* Where the card came from, and what it is called. */}
+            <div className="flex flex-col gap-2">
+              {/* part of a group — link up to the tracking root */}
+              {card.parent && (
+                <Link
+                  href={`/${card.parent.id}`}
+                  className="inline-flex self-start items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-accent-deep"
+                >
+                  <FiCornerLeftUp className="text-[13px]" aria-hidden />
+                  Part of #{card.parent.id} {card.parent.title}
+                </Link>
               )}
-            </div>
 
-            {/* One line under the band: what the delivery waits on, and what answers it.
-                The worktree and branch used to sit here; they moved to the delivery
-                block's foot (#307), so the band carries one line and not two. */}
-            {delivery && (
-              <p className="mb-4 text-[12.5px] leading-relaxed text-nb-ink-soft">
-                {delivery.state.line}
-                {delivery.supersedes && (
-                  <>
-                    {" "}
-                    Earlier approved work no longer matched this card, so this run started fresh
-                    from the current version.
-                  </>
-                )}
-                {delivery.lost && (
-                  <span className="ml-1" style={{ color: "var(--color-nb-accent-deep)" }}>
-                    {delivery.lost}.
-                  </span>
-                )}
-              </p>
-            )}
-
-            {/* toolbar — the state machine (visibleActions) decides which buttons
-                fit the card's state; busy still disables every one that shows. It is gone
-                entirely while a held card has nothing left to offer: Cancel and Discard now
-                ride in the delivery block, and an empty row is just a gap. */}
-            {toolbar && (
-              <div className="mb-5 flex flex-wrap items-center gap-2">
-                {/* Implement — gone while a delivery is in flight, since what ends one is
-                    Cancel in the block below. */}
-                {!delivery && actions.has("implement") && (
-                  <Button size="sm" disabled={busy} onClick={() => setDialog({ kind: "implement", card })}>
-                    <FiPlay className="text-[15px]" aria-hidden />
-                    Implement
-                  </Button>
-                )}
-                {/* Discard delivery (#303) — the checkout a delivery built in, thrown away.
-                    Offered whenever one is still on disk: cancelling a delivery leaves its
-                    worktree and branch alone on purpose, so nothing else ever reclaims one.
-                    Here only when there is no block to carry it. */}
-                {card.discard && !delivery && !finishedBlock && (
-                  <DiscardDelivery
-                    discard={card.discard}
-                    onDiscarded={() => {
-                      router.refresh();
-                      kick();
-                    }}
-                    onError={setError}
-                  />
-                )}
-                {/* Run (#64) — Implement's place on a recurring card. Same ember CTA:
-                    it is the one thing you came to this card to do. */}
-                {actions.has("run") && !delivery && (
-                  <Button
-                    size="sm"
-                    disabled={off}
-                    title={held ? heldWhy : "Do one pass of this recurring task now"}
-                    onClick={() => setDialog({ kind: "run", card })}
-                  >
-                    <FiPlay className="text-[15px]" aria-hidden />
-                    Run
-                  </Button>
-                )}
-                {/* Refine — the same run the board makes on its own, on demand. While
-                    another run holds this card it's disabled like every other button,
-                    and its tooltip names what that run is doing, so a second refine is
-                    never a click away. (The server refuses one anyway — the poll behind
-                    `busy` can be a second and a half old.) */}
-                {actions.has("refine") && !delivery && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={off}
-                    title={
-                      held
-                        ? heldWhy
-                        : busy && liveSession
-                          ? `Already ${RUNNING_VERB[liveSession.action]} this card`
-                          : "Take this card's plan one step forward now"
+              {/* title band — the card's one mark rides beside the title: a live
+                  session's badge while busy, otherwise where the delivery has got to
+                  (#307), otherwise the saved stage (nothing while `todo`). Never two. */}
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
+                <span className="shrink-0 text-[20px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
+                  #{card.id}
+                </span>
+                <h1 className="text-[20px] font-[800] tracking-[-0.02em] leading-tight">{card.title}</h1>
+                {busy ? (
+                  <RunningBadge
+                    label={
+                      liveSession
+                        ? `${RUNNING_VERB[liveSession.action]} this card…`
+                        : "working…"
                     }
-                    onClick={() => setDialog({ kind: "refine", card })}
-                  >
-                    <FiFeather className="text-[15px]" aria-hidden />
-                    Refine
-                  </Button>
-                )}
-                {actions.has("edit") && !delivery && (
-                  <Button variant="ghost" size="sm" disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "edit", card })}>
-                    <FiEdit2 className="text-[15px]" aria-hidden />
-                    Edit
-                  </Button>
-                )}
-                {actions.has("resolve") && (!delivery || answerable) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={offUnlessAsked}
-                    title={held ? heldWhy : undefined}
-                    onClick={() => setDialog({ kind: "resolve", card })}
-                  >
-                    <FiHelpCircle className="text-[15px]" aria-hidden />
-                    Resolve
-                  </Button>
-                )}
-                {/* Review again (#302) — offered while a delivery is waiting on the question
-                    its review left. Answer it, or write the exception you are approving under
-                    ## Worth noting after implementation, and this judges the same work afresh.
-                    A delivery that merely STOPPED is not this: Resume in the block below
-                    carries it on, and the user never has to tell the two kinds of stop apart. */}
-                {waiting && carryOn && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={busy}
-                    title="Judge what this delivery built again, now that you have answered"
-                    onClick={() => void runAgent({ action: carryOn, id: card.id }, carryOn)}
-                  >
-                    <FiCheckCircle className="text-[15px]" aria-hidden />
-                    Review again
-                  </Button>
-                )}
-                {actions.has("archive") && !delivery && (
-                  <Button variant="ghost" size="sm" disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "archive", card })}>
-                    <FiArchive className="text-[15px]" aria-hidden />
-                    Archive
-                  </Button>
-                )}
-                {actions.has("reject") && !delivery && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="ml-auto"
-                    disabled={off}
-                    title={held ? heldWhy : undefined}
-                    style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
-                    onClick={() => setDialog({ kind: "reject", card })}
-                  >
-                    <FiXCircle className="text-[15px]" aria-hidden />
-                    Reject
-                  </Button>
+                  />
+                ) : delivery ? (
+                  // What the delivery is doing, or what it is waiting for — the board's own
+                  // answer, worked out from the card's questions and the delivery's records.
+                  <DeliveryPill label={delivery.state.label} tone={PILL_TONE[delivery.state.stage]} />
+                ) : card.landed ? (
+                  // It landed, and the board is taking the card off. Normally the blink
+                  // between the two; on screen for longer only when the archive failed.
+                  <DeliveryPill
+                    label={card.landed.commit ? `Landed as ${card.landed.commit.slice(0, 7)}` : "Landed — nothing to commit"}
+                    tone="done"
+                  />
+                ) : cancelled ? (
+                  // The last delivery on this card was ended before it landed — Discard here,
+                  // or `akb cancel`. The card is free again, and saying "stopped" would name
+                  // the session and hide what happened. One word for both ways out: the record
+                  // spells them the same, and which one it was changes nothing from here.
+                  <DeliveryPill label="Ended" tone="ended" />
+                ) : card.schedule ? (
+                  // Waiting on its blockers, with a run already queued (#140) — the mark
+                  // stands in for the stage, and says what will run and what it waits for.
+                  <PendingPill label={scheduleLabel(card)} detailed />
+                ) : (
+                  card.status !== "todo" && <StatusPill status={card.status} detailed />
                 )}
               </div>
-            )}
+            </div>
 
-            {/* The delivery block (#307) while one is in flight: the tab strip, the log in
-                it, and a foot naming the delivery, its commit mode and where its code is.
-                A card with no delivery keeps the plain session log it has always had — a
-                live tail while an agent works, re-openable afterwards. */}
-            {delivery ? (
+            {/* Everything under the title, evenly spaced. Each block draws itself and
+                nothing else — the spacing between them is this stack's, so one added or
+                taken away costs no other block a class. */}
+            <div className="flex flex-col gap-4">
+              {/* What the delivery waits on, and what answers it. The worktree and branch
+                  used to sit here; they moved to the delivery block's foot (#307). A pause
+                  is drawn as a note in the stage's colour — it is the one thing here the
+                  reader has to act on — and everything else stays a line. A delivery just
+                  building says nothing: the IN PROGRESS pill above already does, and
+                  restating it in a sentence buys the reader nothing. */}
+              {deliveryLine && delivery && (
+                <DeliveryNote tone={PILL_TONE[delivery.state.stage]} paused={delivery.state.paused}>
+                  {!justBuilding && marked(delivery.state.line)}
+                  {delivery.supersedes && (
+                    <>
+                      {" "}
+                      Earlier approved work no longer matched this card, so this run started fresh
+                      from the current version.
+                    </>
+                  )}
+                  {delivery.lost && (
+                    <span className="ml-1" style={{ color: "var(--color-nb-accent-deep)" }}>
+                      {delivery.lost}.
+                    </span>
+                  )}
+                </DeliveryNote>
+              )}
+
+              {/* toolbar — the state machine (visibleActions) decides which buttons
+                  fit the card's state; busy still disables every one that shows. It is gone
+                  entirely while a held card has nothing left to offer: Discard rides in the
+                  delivery block, and an empty row is just a gap. */}
+              {toolbar && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Implement — gone while a delivery is in flight, since what ends one is
+                      Discard in the block below. */}
+                  {!delivery && actions.has("implement") && (
+                    <Button size="sm" disabled={busy} onClick={() => setDialog({ kind: "implement", card })}>
+                      <FiPlay className="text-[15px]" aria-hidden />
+                      Implement
+                    </Button>
+                  )}
+                  {/* Discard (#303) — the checkout a delivery built in, thrown away. Offered
+                      whenever one is still on disk: `akb cancel` ends a delivery and leaves its
+                      worktree and branch alone, so nothing else ever reclaims one. Here only
+                      when there is no block to carry it. */}
+                  {card.discard && !delivery && !finishedBlock && (
+                    <DiscardDelivery
+                      id={card.discard.id}
+                      worktree={card.discard.worktree}
+                      branch={card.discard.branch}
+                      onDiscarded={() => {
+                        router.refresh();
+                        kick();
+                      }}
+                      onError={setError}
+                    />
+                  )}
+                  {/* Run (#64) — Implement's place on a recurring card. Same ember CTA:
+                      it is the one thing you came to this card to do. */}
+                  {actions.has("run") && !delivery && (
+                    <Button
+                      size="sm"
+                      disabled={off}
+                      title={held ? heldWhy : "Do one pass of this recurring task now"}
+                      onClick={() => setDialog({ kind: "run", card })}
+                    >
+                      <FiPlay className="text-[15px]" aria-hidden />
+                      Run
+                    </Button>
+                  )}
+                  {/* Refine — the same run the board makes on its own, on demand. While
+                      another run holds this card it's disabled like every other button,
+                      and its tooltip names what that run is doing, so a second refine is
+                      never a click away. (The server refuses one anyway — the poll behind
+                      `busy` can be a second and a half old.) */}
+                  {actions.has("refine") && !delivery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={off}
+                      title={
+                        held
+                          ? heldWhy
+                          : busy && liveSession
+                            ? `Already ${RUNNING_VERB[liveSession.action]} this card`
+                            : "Take this card's plan one step forward now"
+                      }
+                      onClick={() => setDialog({ kind: "refine", card })}
+                    >
+                      <FiFeather className="text-[15px]" aria-hidden />
+                      Refine
+                    </Button>
+                  )}
+                  {actions.has("edit") && !delivery && (
+                    <Button variant="ghost" size="sm" disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "edit", card })}>
+                      <FiEdit2 className="text-[15px]" aria-hidden />
+                      Edit
+                    </Button>
+                  )}
+                  {actions.has("resolve") && (!delivery || answerable) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={offUnlessAsked}
+                      title={held ? heldWhy : undefined}
+                      onClick={() => setDialog({ kind: "resolve", card })}
+                    >
+                      <FiHelpCircle className="text-[15px]" aria-hidden />
+                      Resolve
+                    </Button>
+                  )}
+                  {/* Review again (#302) — offered while a delivery is waiting on the question
+                      its review left. Answer it, or write the exception you are approving under
+                      ## Worth noting after implementation, and this judges the same work afresh.
+                      A delivery that merely STOPPED is not this: Resume in the block below
+                      carries it on, and the user never has to tell the two kinds of stop apart. */}
+                  {waiting && carryOn && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy}
+                      title="Judge what this delivery built again, now that you have answered"
+                      onClick={() => void runAgent({ action: carryOn, id: card.id }, carryOn)}
+                    >
+                      <FiCheckCircle className="text-[15px]" aria-hidden />
+                      Review again
+                    </Button>
+                  )}
+                  {actions.has("archive") && !delivery && (
+                    <Button variant="ghost" size="sm" disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "archive", card })}>
+                      <FiArchive className="text-[15px]" aria-hidden />
+                      Archive
+                    </Button>
+                  )}
+                  {actions.has("reject") && !delivery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto"
+                      disabled={off}
+                      title={held ? heldWhy : undefined}
+                      style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
+                      onClick={() => setDialog({ kind: "reject", card })}
+                    >
+                      <FiXCircle className="text-[15px]" aria-hidden />
+                      Reject
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* The delivery block (#307) while one is in flight: the tab strip, the log in
+                  it, and a foot naming the delivery, its commit mode and where its code is.
+                  A card with no delivery keeps the plain session log it has always had — a
+                  live tail while an agent works, re-openable afterwards. */}
+              {delivery ? (
               <DeliveryBlock
                 delivery={delivery}
                 diff={diff}
                 session={sessionLog}
                 onApproved={refresh}
-                onCancelled={() => {
+                onEnded={() => {
                   router.refresh();
                   kick();
                 }}
@@ -1516,21 +1587,19 @@ export function CardPage({
               />
             ) : (
               latestSession && (
-                <div className="mb-4">
-                  <SessionLog
-                    session={sessionLog}
-                    collapsed={!busy && !showLog}
-                    onToggle={busy ? undefined : () => setShowLog((v) => !v)}
-                    warnUnfinished
-                    onResumed={onResumed}
-                  />
-                </div>
+                <SessionLog
+                  session={sessionLog}
+                  collapsed={!busy && !showLog}
+                  onToggle={busy ? undefined : () => setShowLog((v) => !v)}
+                  warnUnfinished
+                  onResumed={onResumed}
+                />
               )
             )}
 
             {/* meta box — stacked label/value columns in a flat outlined band; no
                 shadow, so it reads subordinate to the content panel below */}
-            <div className="nb-outline mb-4 flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-paper px-4 py-3">
+            <div className="nb-outline flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-paper px-4 py-3">
               <MetaItem label="Track">
                 <TrackChip track={card.track} />
               </MetaItem>
@@ -1671,7 +1740,7 @@ export function CardPage({
             </div>
 
             {card.subtasks && card.subtasks.length > 0 && (
-              <div className="nb-outline mb-4 bg-nb-paper p-3">
+              <div className="nb-outline bg-nb-paper p-3">
                 <div className="nb-tag mb-2">
                   <span style={{ color: "var(--color-nb-accent)" }}>●</span>
                   subtasks
@@ -1708,7 +1777,7 @@ export function CardPage({
             )}
 
             {card.questions.length > 0 && (
-              <div className="nb-outline mb-3 p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
+              <div className="nb-outline p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
                 <div className="nb-tag mb-2">
                   <span style={{ color: "var(--color-nb-accent)" }}>?</span> open questions
                 </div>
@@ -1731,14 +1800,15 @@ export function CardPage({
               </div>
             )}
 
-            <HandChecks cardId={card.id} verify={card.verify} busy={busy} />
+              <HandChecks cardId={card.id} verify={card.verify} busy={busy} />
 
-            <CardBody
-              body={card.body}
-              title={card.title}
-              cardId={card.id}
-              mockups={mockups}
-            />
+              <CardBody
+                body={card.body}
+                title={card.title}
+                cardId={card.id}
+                mockups={mockups}
+              />
+            </div>
           </main>
 
           {dialog && (

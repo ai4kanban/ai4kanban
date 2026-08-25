@@ -118,12 +118,20 @@ export function DiffPane({ diff }: { diff: DeliveryDiff }) {
           </span>
         )}
         <span className="font-mono text-nb-ink-soft">{diff.note || diff.stat}</span>
+        {/* The stat counts the whole tree, so a cut-off diff would otherwise look complete.
+            The git command that prints the rest used to sit in a foot below; the block's
+            own foot already names the branch, which is what a reader needs to go look. */}
+        {diff.truncated && (
+          <span className="text-nb-ink-soft" title="Too long to show in full — this is the first part">
+            · cut off
+          </span>
+        )}
         {files.length > 1 && (
           <button
             type="button"
             onClick={() => setShowTree((on) => !on)}
             aria-pressed={showTree}
-            className="nb-tip ml-auto rounded-[7px] p-1 text-[14px] text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink"
+            className="nb-tip ml-auto cursor-pointer rounded-[7px] p-1 text-[14px] text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink"
             data-tip={showTree ? "Hide the file list" : "Show the file list"}
             aria-label={showTree ? "Hide the file list" : "Show the file list"}
           >
@@ -166,12 +174,6 @@ export function DiffPane({ diff }: { diff: DeliveryDiff }) {
             ))}
           </div>
         </div>
-      )}
-
-      {diff.truncated && (
-        <p className="px-4 py-2 text-[11.5px] text-nb-ink-soft" style={{ borderTop: `1px solid ${RULE}` }}>
-          Cut off here — the whole of it is <code className="font-mono text-nb-ink">{diff.whole}</code>.
-        </p>
       )}
     </div>
   );
