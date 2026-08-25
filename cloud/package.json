@@ -1,0 +1,23 @@
+{
+  "name": "ai4kanban-cloud",
+  "version": "0.1.0",
+  "private": true,
+  "license": "SEE LICENSE IN ../LICENSE",
+  "description": "The service every AI4Kanban Cloud workspace runs on — the Worker at api.ai4kanban.dev and its Postgres schema.",
+  "type": "module",
+  "scripts": {
+    "deploy": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler deploy",
+    "rollback": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler rollback",
+    "migrate": "node scripts/migrate.mjs",
+    "check:closed": "node scripts/check-closed.mjs",
+    "dev": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler dev",
+    "tail": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler tail",
+    "typecheck": "tsc --noEmit",
+    "lint": "npm run typecheck",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "wrangler": "^4.125.0"
+  }
+}

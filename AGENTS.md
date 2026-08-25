@@ -23,13 +23,14 @@ We discourage over-design.
 
 - **Python**: `uv run pre-commit run --all-files`
 - **JavaScript/Typescript**: run in whichever app you touched — `web/` (the public site),
-  `kanban-ui/` (the local board UI) and `cli/` (the `akb` command and the board's rules)
-  each have their own checks. Don't use `pnpm build`.
+  `kanban-ui/` (the local board UI), `cli/` (the `akb` command and the board's rules) and
+  `cloud/` (the Cloud service) each have their own checks. Don't use `pnpm build`.
   - `cd web && pnpm typecheck && pnpm run lint`
   - `cd kanban-ui && pnpm typecheck && pnpm run lint`
   - `cd cli && npm run lint` — typechecks `src/`. The rules build to `cli/dist/kanban.mjs`,
     which is a build product and not in git: `npm install` in `cli/` makes it, and there is
     nothing to commit or keep in sync.
+  - `cd cloud && npm run lint && npm test`
 
 ## The `akb` command in this repo
 

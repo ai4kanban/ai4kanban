@@ -1,0 +1,4 @@
+# Copy to .dev.vars for `npm run dev`. Never commit either file; the deployed Worker reads
+# these from its secret store instead (`wrangler secret put <NAME>`).
+SUPABASE_URL="https://<project-ref>.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="<the project's service role key>"
