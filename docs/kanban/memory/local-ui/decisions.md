@@ -281,3 +281,9 @@ re-ask a settled call.
   dialog, group tasks. Any card that changes visible UI behavior updates that file.
 - The skill's `akb guide local-ui` covers installation only — how to run it, the
   options, updating. It never describes using the UI.
+
+## Onboarding
+
+- **What does onboarding lead with?**: a Local board. Cloud is offered beside it as an
+  explicit, labelled hosted-service choice, never preselected.
+

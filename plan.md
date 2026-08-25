@@ -1,9 +1,9 @@
 # Team collaboration
 
-Cloud is the default and recommended way to host a board because it provides the complete
-collaboration experience. Onboarding leads with creating or opening a Cloud board; Local remains
-an explicit option for people who want a filesystem-only board. Both use the same UI and `akb`
-workflows, but they have different authority and consistency models.
+Local is the board onboarding leads with, and Cloud is an explicit choice beside it: an
+invite-only preview of the hosted, collaborative board. Leading with Cloud waits for pricing
+and the open-source support policy. Both use the same UI and `akb` workflows, but they have
+different authority and consistency models.
 
 Cloud manages card lifecycles and team coordination. It never manages a codebase and never runs
 agents. Each member's machine remains an execution node using its own repository, git tooling,
@@ -207,21 +207,21 @@ event, and memory update commit atomically.
 
 ## Shipping order
 
-Each step establishes a boundary used by the next one. Product onboarding should offer Cloud
-first and present Local as the explicit filesystem-only alternative.
+Each step establishes a boundary used by the next one. Product onboarding leads with Local and
+offers Cloud beside it as an explicit, invite-only choice.
 
-1. **Board provider boundary (#55)**: define the operations both Local and Cloud providers answer,
-   including revisions, idempotency, lifecycle mutations, and conflict results. Cloud is the
-   product default; provider selection remains explicit in the implementation.
-2. **GitHub Issues intake**: import issues as proposed cards and mirror progress back, using the
+1. **Board provider boundary (#312)**: define the operations both Local and Cloud providers answer,
+   including revisions, idempotency, lifecycle mutations, and conflict results. Local is the
+   default provider; provider selection is always explicit.
+2. **GitHub Issues intake (#313)**: import issues as proposed cards and mirror progress back, using the
    provider boundary rather than filesystem-only writes.
-3. **Cloud control plane**: ID allocation, GitHub login, workspaces, owner/member access,
+3. **Cloud control plane (#314)**: ID allocation, GitHub login, workspaces, owner/member access,
    revisions, operation ledger, audit events, fenced writer leases, and atomic conflict handling.
-4. **Cloud board data plane**: full Local-board import including `record.csv`, export, whole-board
+4. **Cloud board data plane (#315/#316)**: full Local-board import including `record.csv`, export, whole-board
    snapshots, targeted conflict refresh, and the acquire-draft-prepare-confirm lifecycle.
-5. **Team delivery loop**: local execution, prepared delivery, git landing onto main, idempotent
+5. **Team delivery loop (#318)**: local execution, prepared delivery, git landing onto main, idempotent
    confirmation, recovery, and conflict UX.
-6. **Question routing and delivery**: implement [notify-plan.md](notify-plan.md) against the same
+6. **Question routing and delivery (#319/#320)**: implement [notify-plan.md](notify-plan.md) against the same
    authenticated, leased mutation path.
 
 ## Non-goals
@@ -241,9 +241,9 @@ first and present Local as the explicit filesystem-only alternative.
 
 ## Existing cards
 
-- **#57/#55/#59 (board storage)**: #55 supports both Local and Cloud providers; the Cloud provider
-  must expose lifecycle and conflict semantics rather than pretending to be a realtime filesystem.
+- **#311/#312 (team collaboration and providers)** replace the old generic storage group. The
+  Cloud provider exposes lifecycle and conflict semantics rather than pretending to be a filesystem.
 - **#250 (friendly task import)** and **#56 (Obsidian)**: intake should extend #250's shape rather
   than create a separate write path.
-- **#300 (auto-delivery)**: its local run state and git landing feed the Cloud lifecycle. Cloud
+- **Existing auto-delivery**: its local run state and git landing feed #318's Cloud lifecycle. Cloud
   records coordination and the delivered commit but does not absorb execution or codebase duties.

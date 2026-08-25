@@ -4,8 +4,9 @@ track: features
 priority: med
 roi: med
 status: todo
+release: ""
 blocked_by: []
-related: [55]
+related: [312]
 modules: [skill, local-ui]
 questions:
   - "[user] Finished cards move to .archive/, and Obsidian never shows a folder whose name starts with a dot. So a user reading the board in Obsidian sees only open work. Accept that, or drop the dot so finished cards are visible too? Dropping it changes the folder name for every board, not just Obsidian ones."
@@ -57,7 +58,7 @@ repo as a vault, and every card reads like a normal Obsidian note.
       points at a file that is gone.
 - [ ] Write list properties as a bulleted block when the switch is on, so an edit in
       Obsidian leaves no diff.
-- [ ] Read both list styles. Obsidian rewrites `blocked_by: [55]` into a bulleted list the
+- [ ] Read both list styles. Obsidian rewrites `blocked_by: [123]` into a bulleted list the
       moment a user edits properties.
 - [ ] Carry through every frontmatter line the tool does not own, whatever it is named —
       including names with a space, a digit in front, or a hyphen.

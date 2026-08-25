@@ -72,7 +72,7 @@ its own subtask in this folder.
 - **A spec file is checked once, not twice**: #157 lists the cards it is about to write, and
   that list is the check. It does not also pass the brief.
 - **Why the outside connectors are out**: Notion, GitHub Issues and Obsidian read another
-  product's API, and they are planned elsewhere (#57, #56). A file the user picks and words
+  product's API, and they are planned elsewhere (#313, #56). A file the user picks and words
   the user speaks are material the board can already read.
 - **Why file and voice are one group**: they are the two ways into the Create task dialog
   that the app is missing, they land in the same box, and the same router decides what

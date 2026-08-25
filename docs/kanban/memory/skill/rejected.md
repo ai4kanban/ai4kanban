@@ -88,6 +88,15 @@ before proposing so you don't re-suggest them.
 
 ## Storage
 
+- **A file-storage-only backend layer for team collaboration** — Local and Cloud boards
+  need one provider contract, but Cloud also owns revisions, leases, audit events, and
+  lifecycle rules. The narrower file-storage abstraction would hide the behavior clients
+  must handle.
+- **GitHub Projects as the shared board authority** — AI4Kanban Cloud is the shared board.
+  GitHub Issues is an intake door and progress mirror, not another writable copy.
+- **A storage picker as the whole collaboration feature** — choosing Local or Cloud is
+  only the entry point. Team collaboration also needs identity, question routing, one
+  writer per card, shared memory, and delivery recovery.
 - **Mirror the board to a second backend** — two live copies means two-way sync and a
   conflict story, a product of its own rather than a setting. One backend per project.
 - **Move every flow off Read and Grep and onto script commands** — the script already

@@ -5,6 +5,15 @@ before proposing so you don't re-suggest them.
 
 ## The board
 
+- **A file-storage-only switch for team collaboration** — a Cloud screen must handle
+  members, stale revisions, active writers, and conflicts. Treating Cloud as another file
+  location would leave those states invisible.
+- **GitHub Projects as the team's board UI** — the shared board lives in AI4Kanban Cloud.
+  GitHub Issues supplies proposals and receives progress, but never becomes a second place
+  where a card can be changed.
+- **A board-location picker as the whole collaboration UI** — choosing Local or Cloud is
+  only onboarding. The app must also show membership, questions, card ownership, shared
+  memory, and delivery recovery.
 - **Ready-only focus toggle** — hiding every card that isn't `ready` isn't useful; the
   board is small enough to scan. The queue view and the release dropdown are both different
   ideas and both fine.

@@ -8,7 +8,7 @@ notifications to Slack and other IM tools.
 Only two events need human attention:
 
 1. **Ready for review** — a buildable task reaches `status: ready`. The user reviews the
-   task and, once satisfied, chooses **Implement**. The existing #300 flow then builds,
+   task and, once satisfied, chooses **Implement**. The existing delivery flow then builds,
    reviews, corrects, and lands the work on the target branch.
 2. **Questions need answers** — a task has one or more questions explicitly assigned to
    the user. The notification shows the human-readable part of the task and those questions,
@@ -51,7 +51,7 @@ filesystem links, or destination-specific formatting.
 ### Ready example
 
 ```md
-## #300 Build, review and land an approved card from one click
+## #318 Connect local delivery to the Cloud card lifecycle
 
 **Release:** 0.8.0
 
@@ -148,6 +148,6 @@ rules.
 - Each event contains clean Markdown with the task's human half.
 - Unchanged state does not produce duplicates.
 - Events created by CLI and agent activity appear in the UI center.
-- Review leaves implementation to #300's existing **Implement** flow.
+- Review leaves implementation to the existing **Implement** flow and #318's Cloud lifecycle.
 - Questions enter the existing **Resolve** flow.
 - Adding Slack later does not change event eligibility or message construction.
