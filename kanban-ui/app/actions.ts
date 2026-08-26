@@ -11,7 +11,7 @@
 
 import { activeSettings, agentInfo, type AgentRequest, buildPrompt, settingSaveError } from "@/lib/agent";
 import {
-  findCard,
+  cardStillThere,
   readBoard,
   readGoalText,
   readMetrics,
@@ -114,7 +114,7 @@ export async function getBoard(): Promise<BoardResult> {
 export async function cardOnBoardAction(id: number): Promise<boolean> {
   if (!Number.isInteger(id)) return true;
   try {
-    return (await findCard(id)) !== null;
+    return await cardStillThere(id);
   } catch {
     return true;
   }

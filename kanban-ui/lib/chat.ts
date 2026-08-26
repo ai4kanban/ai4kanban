@@ -1,3 +1,4 @@
+import { cardStillThere } from "./board";
 import { boardRules, whyNoRules } from "./cli";
 import type { Chat } from "./types";
 
@@ -102,8 +103,9 @@ export async function readChat(cardId: number | null): Promise<ChatRead> {
     answering: Boolean(flight) || view.answering === true,
     stamp: rules.boardStamp ? await rules.boardStamp() : null,
     // Asked of the board rather than remembered: the card may have gone at any moment, and
-    // a title read is one card file.
-    cardGone: cardId !== null && !rules.titleOf(cardId),
+    // a title read is one card file. A card page gives itself up on this, so a miss is
+    // confirmed before it counts — see `cardStillThere`.
+    cardGone: cardId !== null && !(await cardStillThere(cardId)),
     canChat: view.canChat,
     agent: view.agent,
     able: view.able,

@@ -6,21 +6,18 @@ roi: high
 status: todo
 release: ""
 blocked_by: []
-related: [314, 315, 316, 317, 321, 322, 325]
+related: [314, 315, 316, 317, 321, 322, 325, 328]
 modules: [cloud, local-ui]
-questions:
-  - question: "[user] Cloud's Supabase project, GitHub OAuth app and api.ai4kanban.dev route still do not exist, and only you can create them — cloud/README.md, Standing up a new project, is the list. Do we provision them before team collaboration resumes, or let #314 proceed against the checkout first?"
-    mode: single
-    options:
-      - Provision first — run the account setup before #314, then check the team Cloud chain against a live service as it lands.
-      - Build first — let #314 proceed with live checks recorded as outstanding until the service is provisioned.
-    recommend: [1]
+questions: []
+verify:
+  - "The service is provisioned: cloud/README.md's \"Standing up a new project\" worked through end to end, `curl https://api.ai4kanban.dev/health` answers unauthenticated, and `POST /v1/self-check` answers when it carries an admitted account's access token — without one it is refused rather than proving the deploy."
 ---
 
 Let a team share one authoritative board while every member keeps code and agent work on
 their own machine. Today a board is one person's folder: a second contributor cannot be
 identified, cannot be reached when a question needs an answer, and nothing stops two
-machines from changing the same card. This is a group task; each piece is its own subtask in this folder.
+machines from changing the same card. This is a group task; each piece is its own subtask
+in this folder.
 
 ## Worth noting
 - **Owners answer the questions**: no card names a person in this version. A user-owned
@@ -40,10 +37,12 @@ machines from changing the same card. This is a group task; each piece is its ow
   priced nor promised to keep running. #317 now leads with a Local board and offers Cloud as
   an explicit, clearly labelled choice beside it. Onboarding can lead with Cloud once those
   policies are published.
-- **Cloud ships as an invite-only preview**: only someone we invite can create a workspace
-  in v1, so the preview cannot outgrow what a free tier holds before pricing exists. #314
-  gates workspace creation on the invite and #317 labels the Cloud path as invite-only.
-  Opening signup is a later change that comes with pricing.
+- **Cloud ships as an invite-only preview, and 0.8.0 already holds the gate**: #326 admits
+  an account and #327 issues the code that redeems one, both before this group. So the group
+  adds no second list: any admitted account may create a workspace, and #314 gates on
+  workspace membership alone. The cost is that admission is service-wide rather than
+  per-workspace, so an admitted member of one team can start a team of their own. Opening
+  signup is a later change that comes with pricing.
 - **Where Cloud runs**: Cloudflare Workers for compute, Supabase Postgres for the shared
   board — taken over the SQLite-backed Durable Object per workspace `technology-selection`
   recommended. Postgres transactions carry the writer lease and fencing model with no
@@ -83,6 +82,11 @@ machines from changing the same card. This is a group task; each piece is its ow
   repository, a credential, or a model key, the group's promise is broken rather than bent.
   #315 carries the shared-board check, and #325 establishes the same boundary for remote
   actions before this group ships.
+- **The service is provisioned before #314 resumes**: the account work — the Supabase
+  project, its GitHub OAuth app, and the `api.ai4kanban.dev` route — is done first, so every
+  card from #314 on can prove itself against a live service instead of recording its live
+  checks as outstanding. 0.8.0 needs the same account work for #325, so this group inherits
+  a live service rather than waiting on one.
 
 <!-- agent -->
 
@@ -97,18 +101,22 @@ machines from changing the same card. This is a group task; each piece is its ow
   called over PostgREST, board tables live in `cloud`, and a refusal is
   `{ error: { code, message } }` whose message is shown to a user as it stands. That is the
   shape every card from #314 on writes inside.
-- Every endpoint stops at a verified token, because membership is #314's: today any
-  signed-in GitHub account can spend the service's 20,000 daily writes.
+- #325 ships first, in 0.8.0, and lands four things this group builds on: #326's Cloud
+  account with the machine-local session the app and `akb` share, its admitted-account list,
+  the event and action contract, and Slack as a connected app. #327 turns admission into a
+  code the invited person redeems.
+- Nothing above knows what a workspace is. #326 admits a person to the service and stops
+  there — no member list, no roles, and no board a second account can reach.
 - The service is not provisioned: no Supabase project, no GitHub OAuth app, no
   `api.ai4kanban.dev` route. That is account work no card can run from a checkout —
-  `cloud/README.md`, "Standing up a new project", is the list a person works through — so
-  nothing from #314 on can be checked against a live service until it is done.
+  `cloud/README.md`, "Standing up a new project", is the list a person works through — and
+  0.8.0 has to work through it for #325 before this group starts.
 - The `cloud` module's memory already holds this group's settled decisions.
 - Auto-delivery already builds, reviews, corrects, and lands an approved card from one
-  click, entirely locally. #325 first makes that flow reachable through authenticated
-  single-user Cloud actions.
+  click, entirely locally, and #325 makes that click reachable from a Cloud action.
 - `record.csv` and `metrics.csv` hold the board's own history. #315 must carry them into a
   workspace without inventing member attribution for events that predate the team.
+
 ## Scope
 - Local stays the default board and the path onboarding leads with; Cloud is an explicit
   opt-in a user chooses.
@@ -125,12 +133,10 @@ machines from changing the same card. This is a group task; each piece is its ow
   local card by accident.
 - Import never deletes a file the team committed. Clearing the imported board out of the
   repository is one change the team reviews and commits itself.
-- A member is a signed-in GitHub account; the group adds no second way to sign in.
-- Signing in happens once per machine and serves both clients: the app's onboarding and
-  `akb` share one machine-local session, kept out of git.
-- Every workspace is private, and signing in is not membership: every endpoint that reads a
-  workspace, writes to it, or spends the service's daily budget answers only that
-  workspace's members.
+- A member is a signed-in GitHub account, signed in the way one user already is: #326's
+  machine-local session serves the app and `akb`, and the group adds no second sign-in.
+- Every workspace is private, and being admitted to Cloud is not membership: every endpoint
+  that reads a workspace or writes to it answers only that workspace's members.
 - A teammate whose signed-in account is not a member of the workspace the pointer names is
   told to ask an owner for an invite, not that the board is missing.
 - Solve the four problems in `goal.md`: identify members, route a question to the person who
@@ -151,12 +157,10 @@ machines from changing the same card. This is a group task; each piece is its ow
 - Leaving Cloud is a move a team makes, never one that happens to it: the export writes the
   board back into `docs/kanban/` and the committed pointer comes off in the same change the
   team reviews and commits. Nothing removes a pointer on a team's behalf.
-- Creating a Cloud workspace in v1 requires an invite we issue; signup is never open, and a
-  signed-in user without an invite is told so rather than shown a broken path.
+- Any admitted account may create a workspace; the preview stays invite-only because #326
+  refuses an account we have not admitted before it reaches anything here.
 - An owner can delete a workspace and everything in it.
 - The site publishes a privacy page and a terms page before the first outside team is invited.
-- The service the workspaces run on — its host, database, schema migrations, scheduled run,
-  GitHub app, and deploy — is built once, before any card writes against it.
 - Out of the group: realtime body editing, fine-grained card permissions, automatic dispatch
   across nodes, and any Cloud handling of code.
 - Out of the group: any Cloud page at a URL, public or authenticated — the browser surface is
@@ -164,6 +168,8 @@ machines from changing the same card. This is a group task; each piece is its ow
 - Out of the group: GitHub Issues intake — #313 is an intake door into either board, and a
   team shares a board without it.
 - Out of the group: pricing, billing, and the open-source support policy.
+- Out of the group: admission to Cloud and the sign-in that carries it — #326 and #327 decide
+  who reaches the service at all; this group decides who is in a workspace.
 - Out of the group: per-workspace usage caps and quota enforcement — the invite list and the
   service's own daily write budget (#323) are what bound cost and capacity in v1.
 - Out of the group: naming a decider on a card — question routing follows the owner role, not
@@ -176,6 +182,7 @@ machines from changing the same card. This is a group task; each piece is its ow
 - [ ] Store the shared board in Cloud without moving the codebase #315
 - [ ] Use Cloud boards safely from the app and CLI #316
 - [ ] Lead onboarding with Local and make Cloud an explicit choice #317
+- [ ] Notify a workspace's owners and members about a card that needs them #328
 - [ ] Publish the privacy and terms pages the Cloud preview needs #321
 
 ## By `technology-selection` agent
@@ -271,39 +278,43 @@ preview we are trying to keep reachable. What is left open is money: see the ope
   status a delivery reads, and #299 is what takes this root off the board once they are all
   finished.
 - **Why the Todo runs in that order**: every card in the chain establishes the boundary the
-  next one writes against — contract, control plane, storage and clients, delivery, then
-  notifications. #323 sits beside #312 rather than behind it, because the contract is local
-  work and the service is hosting work, and #314 is the first card that needs both. #321 sits
-  outside the chain: the pages only have to be live before the first invite goes out.
+  next one writes against — contract, service, control plane, storage, then clients and
+  onboarding, then routing. #323 sits beside #312 rather than behind it, because the contract
+  is local work and the service is hosting work, and #314 is the first card that needs both.
+  #328 comes after #316 because there is no team event to address until a team's writes reach
+  a Cloud board. #321 sits outside the chain: 0.8.0 needs the pages for #327's email, so they
+  are live well before the first team is invited.
 - **Which card stands the service up**: #323. Every card from #314 on assumes an API on a
   host, a database with a schema, a GitHub app, and somewhere to keep secrets, and no other
   card creates them. #294 is the precedent: standing a service up is its own card, separate
   from the behaviour it serves.
-- **Which card gates the endpoints #323 shipped**: #314. #323 stops at a verified token
-  because membership is its own card's, so `/v1/session` and the budgeted `/v1/self-check`
-  answer any signed-in GitHub account today. #314 is where signing in stops being enough,
-  and the self-check is one of the endpoints it has to bring behind membership rather than a
-  fixture it may leave open.
+- **Which card gates the endpoints #323 shipped**: #326, before this group — it refuses
+  every account it has not admitted, including on the budgeted `/v1/self-check`. #314 adds the
+  second gate this group needs: an admitted account still answers for nothing inside a
+  workspace it is not a member of.
 - **What a card can check before the service is provisioned**: whatever runs from the
   checkout — `cd cloud && npm run lint && npm test`, and a migration read back by
-  `npm run migrate -- --dry-run`. Nothing from #314 on can prove itself against a live
-  workspace until a person has worked through `cloud/README.md`'s "Standing up a new
-  project", so a card whose checks need one records them as outstanding instead of reporting
-  a check it did not run.
-- **Which card creates an execution node**: #314. #316's leases and #317's node controls
-  need a team-owned node identity, so #314
-  registers a machine as a named node under the member signed in on it, and revoking one
-  refuses its next renewal, write, and delivery confirmation.
-- **Which card carries which of the four problems**: #314 and #317 identify members, #325
-  supplies the event and action contract team routing will extend, #314 and #316 keep one
-  writer per card, #312 with #314 make every card write attributed, and #315 does the same
-  for memory.
+  `npm run migrate -- --dry-run`. 0.8.0 works through `cloud/README.md`'s "Standing up a new
+  project" for #325, so a card here that still meets an unprovisioned service records its live
+  checks as outstanding instead of reporting a check it did not run.
+- **Which card creates an execution node**: #314. #316's leases and #317's node controls need
+  a team-owned node identity, so #314 registers a machine as a named node under the member
+  signed in on it, and revoking one refuses its next renewal, write, and delivery
+  confirmation.
+- **Which card carries which of the four problems**: #326 identifies the person and #314 with
+  #317 turn that account into a member, #328 routes a question to the owners on top of #325's
+  event and action contract, #314 and #316 keep one writer per card, #312 with #314 make every
+  card write attributed, and #315 does the same for memory.
+- **Why team routing is its own card**: #325 addresses an event to the one account that
+  published it — right for a solo board, and nobody on a team — and no other card here
+  touches the event contract, since #314 holds the membership an audience is resolved from,
+  #316 the clients and #317 the controls. #328 is where the group's second problem is closed.
 - **Why #313 is not in the group**: GitHub intake is not on the Cloud critical path — nothing
   in #314 reads or writes what #313 builds, and no team needs it to share a board. It is built
   and checked against a Local board; its Cloud side is checked once #316 lands.
 - **Whether a member may still answer a user question**: yes. Owner routing decides who is
-  told, not who may write. `plan.md` keeps per-card permissions out of v1, so any member who
-  opens the card can still Resolve it.
+  told, not who may write. Per-card permissions are out of the group, so any member who opens
+  the card can still Resolve it.
 - **What stops a question reaching nobody**: a workspace always keeps at least one owner.
   #314 refuses the role change or member removal that would leave none, because owner is now
   the address a question is sent to.
@@ -317,12 +328,15 @@ preview we are trying to keep reachable. What is left open is money: see the ope
   and one committed pointer to the workspace — no cards, no memory, no mirrored markdown,
   and no token. Every teammate's clone then resolves the same workspace, while sign-in stays
   in the machine's own ignored `.env`. #317 writes the pointer, #316 reads it.
-- **How a machine gets that sign-in**: #316. Every card so far assumed a machine was
-  already signed in, and only #317's app onboarding ever signs one in — which leaves `akb`
-  on a machine nobody opens the app on, the way a coding agent uses the board, unauthenticated
-  on every call. `akb` gains sign-in and sign-out that run the same GitHub flow into the same
-  machine-local session, print the URL to open elsewhere when the machine has no browser, and
-  renew the session so a long delivery never stops to sign in again.
+- **How a machine gets that sign-in**: #326, before this group. It signs a machine in from
+  the app's Configuration dialog into one machine-local session that `akb` reads and that
+  refreshes itself, so a long delivery never stops to sign in again. #316 therefore drops its
+  own sign-in and sign-out and only reads that session; a member who has never opened the app
+  on a machine is told to sign in there, not offered a second flow.
+- **What a team execution node is, given that sign-in**: a member's own machine with the app
+  installed. #326 rules out signing in without a desktop in 0.8.0, so a headless build server
+  cannot be a team node here — which sits with automatic dispatch across nodes, already out of
+  the group.
 - **What happens to the board a team imported**: it stays in the repository until the team
   removes it. Import writes the workspace and stops; #317 then says the folder's cards are a
   stale copy and offers the removal as a change the team commits, because deleting a team's
@@ -338,11 +352,6 @@ preview we are trying to keep reachable. What is left open is money: see the ope
   checkout would open nowhere. #317 owns the owner controls and the pointer it wrote, so it
   offers both the export and the pointer's removal — the same shape as the import's
   stale-copy removal, one change the team commits.
-- **Which card stores the board's configuration**: #315, with #316's clients reading it
-  from the workspace instead of from local files. `config.md`, `modules.md` and `rules/`
-  are board content, not machine settings: two members must not run one board under
-  different tracks, and a per-flow rule written from one member's board UI has to reach
-  every member's runs.
 - **What the contract still does not carry**: the memory set, the module map, and per-flow
   rules. #312 landed a read for each and a write for none — `refine`, `resolve`, `complete`,
   `reject` and `prune-memory` write `docs/kanban/memory/*.md` as plain file edits, `modules.md`
@@ -351,30 +360,12 @@ preview we are trying to keep reachable. What is left open is money: see the ope
   those files exists, so each of those flows would write a local file nothing ever reads —
   which loses the one attributed memory this group exists to keep. #315 adds the write
   operations when it makes all three workspace content.
-- **What a workspace holds once work is finished**: the archived cards and the closed
-  releases' summaries, stored and carried by #315 like the rest of the board. `archive` files
-  a card into `docs/kanban/.archive/` and closing a release writes `.release-summaries/<id>.md`;
-  both are committed board content that the board's own `.gitignore` keeps, so a workspace
-  that drops them loses a team's finished work and its export stops being the whole board it
-  promises.
-- **Which settings never become workspace content**: `ui.config.json` — which coding agent
-  runs the board, and the provider and model it runs with. It sits in `docs/kanban/` and is
-  committed, so #315's rule that board configuration lives in the workspace would sweep it in
-  and hand every member one member's agent and model account, which the Scope keeps on the
-  node. #315 leaves it a machine file and #316 keeps reading it locally.
-- **Which card lets an owner delete a workspace**: #317, beside the export. #314 builds the
-  operation and #321's privacy page promises it to everyone invited, and neither one puts it
-  in front of an owner — so it is one confirmed action on the owner controls #317 already
-  has, the same place the export and the pointer's removal sit.
-- **Where a delivery record lives on a Cloud board**: in the workspace. #315 carries the
-  board-facing record into shared storage, while #325 has already kept execution details and
-  repository state on the local node.
-- **What the rest of the board's history does on import**: #315 carries `metrics.csv` and the
-  committed `deliveries/` records in beside `record.csv`, as imported events with no member
-  attribution. Both are read through the surface #312 puts behind the contract —
-  `readMetricsView` in `view/api.ts` and `listDeliveries` in `view/read.ts` — so a converted
-  board that carries neither draws an empty progress chart and an empty delivery history
-  while the repository still holds both.
+- **Where a delivery record lives on a Cloud board**: in the workspace, carried there by #315,
+  so a team reads one audit trail rather than one per checkout. #318, now in #325's group,
+  keeps only the node-side record — the worktree path and the branch names.
+- **Who carries Slack**: #325, which moved #318, #319 and #320 into its own group and connects
+  a Slack app rather than taking a webhook URL an owner pastes. #328 extends that connector —
+  which channel an owners' question reaches — and picks no transport of its own.
 - **Where #313's GitHub access lives**: on the machine, never in Cloud. Intake and progress
   mirroring run from `akb` and the app with the member's own repository credentials and reach
   the board through the contract, so no workspace holds a token that can read a repository.
@@ -415,9 +406,9 @@ preview we are trying to keep reachable. What is left open is money: see the ope
   own. #323 instead gives the Worker a share of that pool to count and refuse at, because
   #294 can move the account to a paid plan and take the platform's own stop away. Past it,
   #316 says the preview is over its daily limit rather than reporting a generic failure.
-- **How an account reaches the preview invite list**: an operator adds it in the database
-  console. No card builds an admin surface for a list that is a handful of rows while the
-  preview is invite-only; #314 only reads it.
+- **How an account reaches the preview**: #327's invitation code, redeemed in the app against
+  #326's admitted-account list. Nothing in this group reads or extends that list, and no card
+  here builds an admin surface for it.
 - **What is stale in the `technology-selection` section**: it predates both the platform
   override, the no-Cloud-page call, and the 0.8.0 scope change, so it still recommends a
   Durable Object, names Cloud pages, assigns #318–#320 to this group, and ends on an open
@@ -439,30 +430,12 @@ preview we are trying to keep reachable. What is left open is money: see the ope
   app. The hosted browser surface — a public read-only board plus authenticated card review
   and Resolve — is #322, outside 0.8.0. #314 and #317 therefore carry no public-access
   switch, and #320 links into the app instead of a page.
-- **A Slack question lands in a channel, not a member's inbox**: an owner pastes an incoming
-  webhook URL per audience, so #320 posts to a channel and the service registers no Slack app
-  and no OAuth callback. The cost is that whoever else sits in the owners' channel reads a
-  question addressed to owners. Direct messages need a Slack app and a Slack-account-to-member
-  map, which is more setup than the group's lowest-priority card earns.
-- **The group ships in 0.8.0**: team collaboration lands alongside auto-delivery rather than
-  waiting for a version of its own. `releases.md` now names both, making 0.8.0 by far the
-  longest version this board has planned.
-- **Why notifications come last instead of shipping on Local first**: the notification
-  center reads `status: ready` and `[user]` questions, which a Local board also has, so it
-  could be built today. `goal.md` puts notifications and coordination in the hosted tier,
-  so it waits for Cloud rather than shipping as a solo-Local feature.
-- **Where a delivery record lives on a Cloud board**: in the workspace. `docs/kanban/deliveries/`
-  is one JSON per delivery on the machine that ran it, so on a team it splits the audit trail
-  across checkouts — the fourth problem this group exists to solve. Cloud keeps the
-  board-facing part — the card as approved, the review outcome, the rules applied, how it
-  ended, and the commit with who landed it — and the node keeps its worktree path and branch
-  names. #318 carries it.
 
 ## Source
-- `plan.md` — the full design: the control, board, and codebase planes, the revision and
-  writer-lease model, import and export, identity and roles, and the shipping order this
-  Todo follows. Written before the browser surface moved to #322, so its "public read-only"
-  switch and its Cloud UI belong to that card, not to this group.
+- The subtasks are the design. `plan.md` held it — the control, board, and codebase planes,
+  the revision and writer-lease model, import and export, identity and roles — and was
+  deleted in `464b6fc` when #318, #319 and #320 moved to #325; nothing else carries it, so a
+  card here states what it needs rather than citing that file.
 - `notify-plan.md` — the single-user event, action, desktop inbox, execution-node, and Slack
   plan that #325 ships before this group.
 - `docs/kanban/memory/goal.md`, the 团队协作 section — the four problems, the Local/Cloud

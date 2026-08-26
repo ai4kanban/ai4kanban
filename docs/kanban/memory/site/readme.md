@@ -54,3 +54,10 @@ covers it, or a plain-words note.
 - ZCode is on the home page's agent strip and named in the comparison pages, in all five
   languages and in the plain-markdown copies under `web/public/`, so someone on a Z.ai GLM
   plan can see the board runs on their agent before downloading anything.
+
+## Legal pages
+
+- `/privacy` and `/terms` are their own English-only pages, set in the blog's prose and
+  linked from the site footer in all five languages. Both name NULLREACH LTD as the operator and
+  `support@ai4kanban.dev` as the address for support and data requests. The bodies are MDX
+  in `web/legal/`, and the effective date on each page is also its sitemap `lastmod`.

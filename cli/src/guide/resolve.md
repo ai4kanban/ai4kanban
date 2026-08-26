@@ -40,8 +40,8 @@ decision rules in `akb guide board`.
 
 ## Ask the user the rest
 
-When the evidence cannot settle a user-owned decision, keep the question to one line the
-user can answer at a glance.
+When the evidence cannot settle a user-owned decision, write it in the form "Ask a user
+question" in `akb guide board` defines.
 
 Two commands hand a question over. Pick by one rule: does its wording change?
 

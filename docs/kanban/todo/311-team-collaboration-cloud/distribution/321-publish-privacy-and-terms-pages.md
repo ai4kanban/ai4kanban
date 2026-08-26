@@ -3,12 +3,16 @@ title: Publish the privacy and terms pages the Cloud preview needs
 track: distribution
 priority: high
 roi: med
-status: ready
+status: implementing
 release: 0.8.0
 blocked_by: []
 related: [293, 311, 314, 317, 325]
 modules: [site, cloud]
 questions: []
+verify:
+  - Route support@ai4kanban.dev with Cloudflare Email Routing on ai4kanban.dev, to a mailbox someone reads. This is account work no checkout can do, and both pages give that address for support and for a data request, so it has to answer before they go live.
+  - "Check what the live Supabase project actually holds for a signed-in member against the privacy page's 'What signing in stores about you' list. The project is not provisioned yet (#323 left that account work to the user), so this was checked against the code only: cloud/src/auth.ts reads sub, email and app_metadata.provider off the token, and migration 0001 creates no member table. Open the auth.users row for a real GitHub sign-in before publishing and correct the list if it differs."
+  - Deploy web/ so /privacy and /terms answer on ai4kanban.dev before the first outside team is invited, and before #327 emails any invitation code — #327's scope holds that order.
 ---
 
 The Cloud preview keeps another team's board on servers we run, and the site says nothing
@@ -135,19 +139,19 @@ Cloud choice links a reader to them from inside the app.
   link from the Cloud choice in onboarding (#317), and any public announcement of Cloud.
 
 ## Todo
-- [ ] Add `/privacy` and `/terms` as routes rendering an MDX body with the blog's MDX
+- [x] Add `/privacy` and `/terms` as routes rendering an MDX body with the blog's MDX
       components and prose stylesheet.
-- [ ] Adapt the dist0 pages: keep their section order and boilerplate, rewrite every product
+- [x] Adapt the dist0 pages: keep their section order and boilerplate, rewrite every product
       passage for AI4Kanban.
-- [ ] Write the privacy page's site and Cloud sections, and the whole terms page.
-- [ ] Name the operator, its registered address, `support@ai4kanban.dev`, Tao Wu as the data
+- [x] Write the privacy page's site and Cloud sections, and the whole terms page.
+- [x] Name the operator, its registered address, `support@ai4kanban.dev`, Tao Wu as the data
       protection contact, and the effective date on both pages.
 - [ ] Route `support@ai4kanban.dev` to a mailbox someone reads, with Cloudflare Email
       Routing on the site's own domain.
 - [ ] Check what the live project stores for a signed-in member against what the privacy page
       lists, before publishing.
-- [ ] Add both to the footer copy in all five languages, and to the sitemap.
-- [ ] Check the built export serves both pages, that the footer reaches them from every
+- [x] Add both to the footer copy in all five languages, and to the sitemap.
+- [x] Check the built export serves both pages, that the footer reaches them from every
       language, and that no link to them 404s.
 
 ## Decided by the agent

@@ -38,6 +38,7 @@ _(none)_
 - [#325 Handle local task events asynchronously through Cloud](325-handle-local-task-events-asynchronously-through-cloud/root.md)
 - [#326 Identify the user who sends and acts on Cloud events](325-handle-local-task-events-asynchronously-through-cloud/features/326-identify-the-user-who-sends-and-acts-on-cloud-events.md)
 - [#327 Admit a Cloud account with an invitation code](features/327-admit-a-cloud-account-with-an-invitation-code.md)
+- [#328 Notify a workspace's owners and members about a card that needs them](311-team-collaboration-cloud/features/328-notify-a-workspace-s-owners-and-members-about-a-card-that-ne.md)
 
 ## skill
 
@@ -49,7 +50,6 @@ _(none)_
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
 - [#246 Give each spec agent its own harness and model](skill/246-give-each-spec-agent-its-own-harness-and-model.md)
 - [#290 Ask each harness for its model list instead of a free-text box](skill/290-harness-model-list.md)
-- [#282 ZCode's 'The login ZCode has' sign-in fails, and the docs say it works](skill/282-zcode-s-the-login-zcode-has-sign-in-fails-and-two-places-say.md)
 
 ## distribution
 

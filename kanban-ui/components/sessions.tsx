@@ -494,19 +494,10 @@ function SessionsDialog({
                   {/* A run started by Resume says so — otherwise it reads as a
                       second identical run of the same action out of nowhere. */}
                   {selected.resumedFrom && <span className="nb-tag">resumed</span>}
-                  {/* Which delivery this run was part of, and — when the delivery was
-                      cancelled — that word rather than the run's own "stopped". The
-                      run ended because the job did. */}
-                  {selected.delivery && (
-                    <span
-                      className="nb-tag"
-                      title={`Delivery ${selected.delivery.id} — ${selected.delivery.status}`}
-                    >
-                      {selected.delivery.status === "cancelled"
-                        ? "cancelled"
-                        : `delivery ${selected.delivery.id.slice(0, 8)}`}
-                    </span>
-                  )}
+                  {/* A cancelled delivery says so rather than the run's own "stopped":
+                      the run ended because the job did. The delivery's id is internal
+                      and says nothing to read, so it stays out of the header. */}
+                  {selected.delivery?.status === "cancelled" && <span className="nb-tag">cancelled</span>}
                   {/* Only a run that ended before finishing — failed,
                       interrupted or stopped — offers Resume, and the freshly
                       polled `log` wins over the list entry: the poll that drew

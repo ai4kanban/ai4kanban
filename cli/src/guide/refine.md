@@ -46,8 +46,9 @@ the user during this pass; leave their decision on the card for a resolve pass.
 - **Resolve what the evidence supports**: use the code, project sources, goal, prior
   decisions, and product conventions.
 - **Hand over only user-owned decisions**: add the question with
-  `akb board update-questions <id> --append ".."`, tag it `[user]`, and include concise
-  options with relevant tradeoffs when useful.
+  `akb board update-questions <id> --append ".."`, tag it `[user]`, and write it in the form
+  "Ask a user question" in `akb guide board` defines — options included when the answer is a
+  pick.
 - **Ask everything in one pass**: treat this as the card's only chance to ask. Walk the
   review checklist above a second time asking "what here is the user's call, not mine?",
   and append every question you find in one command — `--append` repeats. Raising them one

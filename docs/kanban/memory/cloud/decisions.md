@@ -53,6 +53,10 @@ Internal detail stays on the card.
   comes with pricing.
 - **What can a team recover if a workspace is lost?**: only what they exported. The preview
   keeps no backups of its own, so the terms page says so before anyone is invited.
+- **Does the service get provisioned before team collaboration is built?**: yes. The Supabase
+  project, its GitHub OAuth app, and the `api.ai4kanban.dev` route are stood up first, so
+  every card from #314 on is checked against a live service rather than recording its live
+  checks as outstanding.
 - **Which region holds a Cloud workspace's board?**: `eu-central-1`, Frankfurt. An EU team's
   board stays inside the EU, so the privacy page covers an international transfer under an
   adequacy decision rather than a bare export. Changing it means recreating the project.
@@ -75,6 +79,10 @@ Internal detail stays on the card.
 - **Who legally runs AI4Kanban Cloud?**: Nullreach Ltd, a private limited company registered
   in England and Wales. It is the operator on the terms page and the data controller on the
   privacy page, and the terms are governed by English and Welsh law.
+- **Does deleting a workspace take effect at once, or after a grace window?**: at once. The
+  confirmed operation removes the workspace and everything in it — cards, members, execution
+  nodes and the audit trail — inside the one call, with no recovery window behind it, so an
+  owner's export is the only copy that survives a mis-click.
 - **What notice does the preview promise before a workspace is deleted?**: no fixed period —
   the terms say we may end the preview or close a workspace at any time, with reasonable
   notice to its owners where practical, given in the app or the workspace's Slack channel

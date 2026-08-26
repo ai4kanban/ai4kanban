@@ -32,9 +32,42 @@ export async function readBoard(): Promise<Board> {
   return (await boardRules()).readBoard();
 }
 
+// A card file is rewritten in place — by the agent editing it mid-run, and by the
+// `git merge --ff-only` that lands a delivery into this checkout — so a read can land in the
+// moment the file is empty and come back with nothing where the card is. That miss is what
+// takes the card page off to the board, and it used to do so mid-write, with the user's
+// half-typed answers in a dialog on it. So a miss is read again: a card that has really gone
+// is still gone a beat later, and one that was only being written is back. Only a miss
+// waits, and only a card page ever asks.
+const MISS_TRIES = 4;
+const MISS_WAIT_MS = 200;
+
+async function confirmMiss<T>(read: () => Promise<T> | T, missed: (v: T) => boolean): Promise<T> {
+  let value = await read();
+  for (let tries = 1; missed(value) && tries < MISS_TRIES; tries++) {
+    await new Promise((r) => setTimeout(r, MISS_WAIT_MS));
+    value = await read();
+  }
+  return value;
+}
+
 /** Any open card by id, including a group subtask the columns don't show. */
 export async function findCard(id: number): Promise<Card | null> {
-  return (await boardRules()).findCard(id);
+  const rules = await boardRules();
+  return confirmMiss(
+    () => rules.findCard(id),
+    (card) => card === null,
+  );
+}
+
+/** Whether the card is still on the board — the one question the card page asks before it
+ *  gives up on the page it is showing. Same confirmed read as `findCard`. */
+export async function cardStillThere(id: number): Promise<boolean> {
+  const rules = await boardRules();
+  return confirmMiss(
+    () => Boolean(rules.titleOf(id)),
+    (there) => !there,
+  );
 }
 
 /** What an Implement click would do on this board right now (#307) — the branch the change

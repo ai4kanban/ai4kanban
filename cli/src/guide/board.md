@@ -67,6 +67,29 @@ Use professional, comprehensible language that a fresh reader can understand qui
   flows may only move it across the boundary.
 - **Record user decisions in `decisions.md`**: see "The memory set".
 
+## Ask a user question
+
+Every flow that hands a decision over writes it the same way: one line the user answers at a
+glance, naming the decision rather than the trouble that raised it.
+
+- **Ask, don't report**: ✅ `[user] Which region should the Supabase project live in?` —
+  ❌ `[user] The region is undecided and cannot be changed later.`
+- **Offer options when the answer is a pick**: two or more short lines, each carrying its own
+  reason, with the one you recommend opening ticked. The user keeps a text box either way, so
+  options never trap the answer.
+- **One decision per question**: fold a dependent choice into the options of the question it
+  depends on rather than asking it separately.
+- **Never by hand**: a question reaches a card through `akb board update-questions` and
+  nowhere else, like every other frontmatter field.
+
+```text
+akb board update-questions 12 --append "[user] Which region should the Supabase project live in?" \
+  --recommended-option "eu-central-1 — nearest to the users the site has" \
+  --option "us-east-1 — cheapest, and where #294 already runs"
+```
+
+`akb guide resolve` covers the rest of the question ops.
+
 ## Layout
 
 ```
