@@ -324,3 +324,8 @@ covers it, or a plain-words note.
   of that panel. Resume is where the third level is stated outright — it continues the coding
   agent's own session while the board counts the work as a fresh run: `akb help runs` and
   `docs/guides/connectors.md`.
+- A **group closes itself**: the command that resolves the last subtask line archives the group's
+  root in the same run, through the same bookkeeping a hand-pressed Archive takes. A finished root
+  still waits for a person when every line was struck out by reject, or when it carries an open
+  question or an unticked todo of its own — the receipt names which rule kept it, and the subtask's
+  own archive stands either way: "Group task" in `akb guide board`.

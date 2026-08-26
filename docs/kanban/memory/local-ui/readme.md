@@ -361,3 +361,7 @@ except where another doc is named.
   immediately before it moves your branch. The setting is frozen when a delivery starts, and has
   nothing to hold with automatic Git commits off, where your own commit is already the approval:
   "Approving a delivery" and "Auto-delivery" in the UI docs.
+- Sitting on a card the board archived under you no longer lands you on the "not on the board"
+  countdown: the page's own re-read after a run finishes checks the card is still there and goes
+  straight to the board when it isn't. A stale link somebody pastes still gets the page and its
+  countdown, which is what it is for.

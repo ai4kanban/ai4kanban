@@ -86,6 +86,9 @@ Rewrite, don't append. Follow "Card format" and "Writing rules" in `akb guide bo
 card a minimal task spec. Merge answers on the same topic into one entry — not necessarily one
 entry per question. Cut what the spec no longer needs.
 
+When the answer was a pick from options, keep only what was picked and delete the rest from
+the spec. The card states the decision, not the menu it came from.
+
 An answer sometimes creates work the `## Todo` list doesn't cover — append it as new
 unchecked todos, even when every box is ticked: a question meant the card wasn't
 finished, so the answers are the remaining work.

@@ -24,7 +24,6 @@ _(none)_
 - [#280 Set the board up by talking to it, not by filling in a form](features/280-set-the-board-up-by-talking-to-it-not-by-filling-in-a-form.md)
 - [#291 Pick a model from a list in the Harness pane](features/291-pick-model-from-list.md)
 - [#298 Read a closed version's changelog in the board UI](features/298-read-a-closed-version-s-changelog-in-the-board-ui.md)
-- [#299 Archive a finished group root by itself](features/299-archive-a-finished-group-root-by-itself.md)
 - [#311 Bring team collaboration to AI4Kanban Cloud](311-team-collaboration-cloud/root.md)
 - [#314 Build the Cloud control plane for team workspaces](311-team-collaboration-cloud/features/314-build-the-cloud-control-plane-for-team-workspaces.md)
 - [#315 Store the shared board in Cloud without moving the codebase](311-team-collaboration-cloud/features/315-store-the-shared-board-in-cloud-without-moving-the-codebase.md)
@@ -38,6 +37,7 @@ _(none)_
 - [#324 Block commits on the branch a delivery is landing on](features/324-block-commits-on-the-branch-a-delivery-is-landing-on.md)
 - [#325 Handle local task events asynchronously through Cloud](325-handle-local-task-events-asynchronously-through-cloud/root.md)
 - [#326 Identify the user who sends and acts on Cloud events](325-handle-local-task-events-asynchronously-through-cloud/features/326-identify-the-user-who-sends-and-acts-on-cloud-events.md)
+- [#327 Admit a Cloud account with an invitation code](features/327-admit-a-cloud-account-with-an-invitation-code.md)
 
 ## skill
 
@@ -48,8 +48,8 @@ _(none)_
 - [#157 Turn a spec you already wrote into the cards that build it](skill/157-turn-a-spec-you-already-wrote-into-the-cards-that-build-it.md)
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
 - [#246 Give each spec agent its own harness and model](skill/246-give-each-spec-agent-its-own-harness-and-model.md)
-- [#282 ZCode's 'The login ZCode has' sign-in fails, and two places say it works](skill/282-zcode-s-the-login-zcode-has-sign-in-fails-and-two-places-say.md)
 - [#290 Ask each harness for its model list instead of a free-text box](skill/290-harness-model-list.md)
+- [#282 ZCode's 'The login ZCode has' sign-in fails, and the docs say it works](skill/282-zcode-s-the-login-zcode-has-sign-in-fails-and-two-places-say.md)
 
 ## distribution
 

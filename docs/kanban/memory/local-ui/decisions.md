@@ -46,6 +46,12 @@ re-ask a settled call.
   same group as `ui-design` and `technology-selection`, not as a card of its own later. The
   first release with spec agents is also the first release where the user can see and
   switch them off.
+- **Where does the Cloud account live in the UI?**: a **Cloud** section in the Configuration
+  dialog, listed after the board's own settings and separated from them, because the sign-in
+  is one machine's rather than one board's. It carries every state a sign-in can be in, and
+  the rest of the app is unchanged when nobody is signed in — no header control and no
+  prompt. The cost the user accepted: two clicks to reach it, and an expired sign-in that is
+  invisible until something needing Cloud fails.
 - **How does a Configuration pane hold many editable items?**: a picker and one box — a
   narrow column naming every item, marked where one is set, beside a single tall box for
   whichever is picked. Flow rules is the first pane built this way, because a rule is a
@@ -163,6 +169,10 @@ re-ask a settled call.
   with Replace and Clear.
 - What `.env` names wins for a run; a variable it doesn't name is left alone, so a key
   already exported in the shell keeps working. Switching connector never touches the keys.
+- **How does ZCode sign in?**: with a Coding Plan key and nothing else. The *The login
+  ZCode has* pick was dropped rather than taught to explain itself — it left a user with a
+  run that died naming a provider they never chose, and no login has been shown to work
+  from the board yet. An option comes back when one does (#282).
 
 ## Notifications
 

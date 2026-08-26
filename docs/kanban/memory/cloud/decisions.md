@@ -23,6 +23,23 @@ Internal detail stays on the card.
 - **Who can create a Cloud workspace in v1?**: only an account we invite. Cloud ships as an
   invite-only preview so hosting cost stays bounded until pricing exists; open signup is a
   later change that ships with pricing.
+- **Who may sign in to the Cloud relay?**: only an account we admit, on the same invite-only
+  terms. 0.8.0 ships the notification relay in a public release, so most people who download
+  it meet a refusal saying Cloud is an invite-only preview rather than the asynchronous flow
+  the release leads with. Approving an invitation is a hand step we run, and the invited
+  person then admits themselves with the code; there is no self-serve sign-up and no admin
+  screen in this release.
+- **How does a refused person ask to be let in?**: with **Request an invite** in the refusal
+  itself. The request is recorded against their account and emailed to
+  `support@ai4kanban.dev`, which we approve by hand; the site gets no invite page, no
+  waitlist and no public thread, and no time is promised for a reply.
+- **How is an invitation given out?**: as a code the invited person redeems in the app,
+  admitting one account each (#327), from 0.8.0 onward. It replaces the hand-written row
+  without opening sign-up — a code is still something we decide to give.
+- **How does a code reach the person who asked for one?**: Cloud emails it once we approve
+  their recorded request, so approving is the whole answer rather than a reply someone
+  writes. The preview therefore does send one email to a user, from the site's own domain
+  with `support@ai4kanban.dev` as the reply address, and the terms and privacy pages say so.
 
 ## Where Cloud runs
 

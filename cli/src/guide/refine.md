@@ -48,6 +48,14 @@ the user during this pass; leave their decision on the card for a resolve pass.
 - **Hand over only user-owned decisions**: add the question with
   `akb board update-questions <id> --append ".."`, tag it `[user]`, and include concise
   options with relevant tradeoffs when useful.
+- **Ask everything in one pass**: treat this as the card's only chance to ask. Walk the
+  review checklist above a second time asking "what here is the user's call, not mine?",
+  and append every question you find in one command — `--append` repeats. Raising them one
+  per pass turns a single review into a chain of them, each costing a refine run and a
+  resolve run.
+- **Fold a dependent question in**: when a decision only matters under one answer to
+  another, ask it now as part of that question — options that carry the follow-up, or one
+  question that names the condition.
 
 ## Close the pass
 
@@ -58,6 +66,7 @@ Otherwise leave it at `todo`. A fresh run reads the card cold and takes the next
 whatever you do not write into the card is lost.
 
 - ❌ Wording you would have phrased differently is not a gap.
+- ❌ A question you were saving for the next pass is a question for this one.
 
 ## Repair the card's shape
 
