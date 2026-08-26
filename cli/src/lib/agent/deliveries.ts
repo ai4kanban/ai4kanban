@@ -526,6 +526,13 @@ function passedIn(delivery: DeliveryRecord, run: RunRecord): boolean {
 
 // ---- manual commit mode: the user's own commit (#303) -----------------------
 
+// A manual delivery that review has passed, or nothing when this card has no such
+// delivery waiting on the user's commit.
+function awaitingCommit(delivery: DeliveryRecord | undefined): DeliveryRecord | undefined {
+  if (!delivery || delivery.status !== 'active' || delivery.commitMode === 'auto' || !delivery.reviewed) return undefined
+  return delivery
+}
+
 /** Where a manual delivery stands now that review has passed it and the code is the user's
  *  to commit — and act on it if they have.
  *
@@ -534,26 +541,18 @@ function passedIn(delivery: DeliveryRecord, run: RunRecord): boolean {
  *  delivery is done; they committed something else and a fresh review judges it; or the
  *  code is still sitting there uncommitted and the delivery waits.
  *
+ *  Reports what it found. Ending a finished delivery is `settleManualCommit`, which the
+ *  Local board's `readCard` awaits before this is asked.
+ *
  *  Returns the sentence the card page shows while it waits, and nothing once it has moved
  *  on. */
 export function manualSettled(delivery: DeliveryRecord): string | undefined {
-  if (delivery.status !== 'active' || delivery.commitMode === 'auto' || !delivery.reviewed) return undefined
+  if (!awaitingCommit(delivery)) return undefined
   const state = manualState(delivery)
   if (state === 'waiting') {
     return `review passed — commit the change in your own checkout and this delivery is done`
   }
-  if (state === 'landed') {
-    // Their commit IS what review passed, so the delivery is done — and the card is
-    // completed here, the way a landing completes one (#307). The delivery is ended first,
-    // so nothing is holding the card when it is archived.
-    endDelivery(delivery.deliveryId, 'finished')
-    // Started rather than awaited: this is read from the card page's own read of the board
-    // (view/read.ts), which is synchronous all the way down. The archive itself is one
-    // board operation like any other, and it has landed by the time the Local board's call
-    // resolves (lib/board/local.ts).
-    void completeCard(delivery.cardId, delivery.deliveryId)
-    return undefined
-  }
+  if (state === 'landed') return undefined
   // They committed something other than what review passed, so the whole candidate goes
   // back through review. The snapshot is dropped first, so a second read of the card page
   // can't ask for a second review of the same commit.
@@ -565,6 +564,20 @@ export function manualSettled(delivery: DeliveryRecord): string | undefined {
   })
   syncAudit(delivery.deliveryId)
   return undefined
+}
+
+/** End the delivery on this card and archive it, when the user has committed exactly what
+ *  review passed (#303) — and do nothing at all otherwise.
+ *
+ *  Reading a card must not write the board, so this is the awaited step that comes first:
+ *  the Local board's `readCard` calls it, and the read that follows finds a card the
+ *  delivery has already let go. The delivery is ended before the archive, so nothing is
+ *  holding the card when it goes. */
+export async function settleManualCommit(cardId: number): Promise<void> {
+  const delivery = awaitingCommit(activeDelivery(cardId))
+  if (!delivery || manualState(delivery) !== 'landed') return
+  endDelivery(delivery.deliveryId, 'finished')
+  await completeCard(delivery.cardId, delivery.deliveryId)
 }
 
 // ---- the hold a delivery puts on its card -----------------------------------

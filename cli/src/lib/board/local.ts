@@ -23,7 +23,7 @@ import fs from 'node:fs'
 
 import { approveDelivery } from '../agent/approval'
 import { deliveryPlan } from '../agent/commit-mode'
-import { activeDelivery, listDeliveries } from '../agent/deliveries'
+import { activeDelivery, listDeliveries, settleManualCommit } from '../agent/deliveries'
 import { cancelDelivery, discardDelivery } from '../agent/sessions'
 import { cmdCreate, cmdSchedule, cmdTag, cmdUpdate, cmdUpdateQuestions, cmdUpdateVerify } from '../../commands/card'
 import { cmdInit, cmdMemoryInit } from '../../commands/init'
@@ -210,7 +210,13 @@ export function localBoard(): BoardProvider {
 
     readBoard: () => Promise.resolve(readBoard()),
     boardStamp: () => Promise.resolve(boardStamp()),
-    readCard: (id) => Promise.resolve(findCard(id)),
+    // The one awaited caller on the card page's read path, so the card's own writes hang
+    // off it: a manual delivery the user has committed ends and archives its card HERE,
+    // before the read, rather than from inside the read itself (#303).
+    readCard: async (id) => {
+      await settleManualCommit(id)
+      return findCard(id)
+    },
     readCards: () => Promise.resolve(allCards()),
     readReleases: () => read(readReleases, []),
     readModules: () => Promise.resolve(readModules()),

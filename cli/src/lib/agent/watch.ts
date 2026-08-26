@@ -42,6 +42,8 @@ import {
   peekRun,
   readSpec,
   readSpecAsks,
+  setCardStatus,
+  type CardClaim,
 } from './sessions'
 import { startRun } from './start'
 import type { TurnEnd } from './client'
@@ -64,7 +66,7 @@ export async function watchRun(sessionId: string): Promise<number> {
   if (!run || !spec) {
     // Nothing to watch. Either the record has gone (a stop that landed before this process
     // was up closed it) or the plan was never written.
-    if (run?.status === 'running') closeRun(sessionId, { status: 'interrupted', code: null })
+    if (run?.status === 'running') await closeRun(sessionId, { status: 'interrupted', code: null })
     return 1
   }
 
@@ -78,7 +80,7 @@ export async function watchRun(sessionId: string): Promise<number> {
     releaseIndex = await acquireIndexLock(stopping)
     if (!releaseIndex) {
       // Stopped while queued, or waited past all reason. Either way nothing spawned.
-      if (!stopping()) closeRun(sessionId, { status: 'interrupted', code: null })
+      if (!stopping()) await closeRun(sessionId, { status: 'interrupted', code: null })
       return 0
     }
   }
@@ -95,8 +97,16 @@ export async function watchRun(sessionId: string): Promise<number> {
   // Save the stage before the agent touches the card, so anything reading the board
   // mid-run finds it already marked. The record keeps what was there, so the end of the run
   // can put it back.
-  const claimed = patch(sessionId, (r) => claimCard(r))
+  //
+  // Two steps, because `patch` holds the run record's lock across its callback and the
+  // board write is awaited: the record remembers the prior stage under the lock, and the
+  // card is marked once the lock is back.
+  let claim: CardClaim | undefined
+  const claimed = patch(sessionId, (r) => {
+    claim = claimCard(r)
+  })
   const record = claimed ?? run
+  if (claim) await setCardStatus(claim.cardId, claim.status)
 
   fs.mkdirSync(SESSIONS_DIR, { recursive: true })
   const log = fs.createWriteStream(record.logPath, { flags: 'a' })
@@ -153,7 +163,7 @@ export async function watchRun(sessionId: string): Promise<number> {
     }) as ChildProcessByStdio<Writable | null, Readable, Readable>
   } catch (e) {
     log.end()
-    closeRun(sessionId, { status: 'error', ok: false, code: null, error: String(e) })
+    await closeRun(sessionId, { status: 'error', ok: false, code: null, error: String(e) })
     letGo()
     return 1
   }

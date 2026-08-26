@@ -21,12 +21,14 @@ import { activeDelivery, listDeliveries, openQuestions } from '../src/lib/agent/
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { advanceLanding } from '../src/lib/agent/landing.ts'
 import { deliveryState } from '../src/lib/agent/pause.ts'
-import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
+import { claimCard, closeRun, openRun, peekRun, stopRun } from '../src/lib/agent/sessions.ts'
 import { setAutoCommit } from '../src/lib/agent/settings.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { AgentAction, DeliveryRecord } from '../src/lib/agent/types.ts'
+import { watchRun } from '../src/lib/agent/watch.ts'
 import { worktreeDir } from '../src/lib/agent/worktree.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
+import { board } from '../src/lib/board/index.ts'
+import { SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 import { findCard } from '../src/lib/view/read.ts'
 
 let root = ''
@@ -102,7 +104,8 @@ async function end(sessionId: string, status: 'done' | 'error' = 'done'): Promis
 async function reviewed(id: number, title: string, text: string, file = 'shared.txt'): Promise<DeliveryRecord> {
   const built = run('implement', id, title)
   const delivery = activeDelivery(id)!
-  fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), file), text)
+  // Auto mode builds in a worktree of its own; manual mode is the user's own checkout.
+  fs.writeFileSync(path.join(delivery.worktree ? worktreeDir(delivery.worktree) : root, file), text)
   await end(built)
   const review = run('review', id, title)
   process.env[RUN_ENV] = review
@@ -288,5 +291,75 @@ describe('where a delivery stands', () => {
     // the next pass, and it must not read back as a refusal.
     const answered = { ...queued, landing: { ...queued.landing, why: 'held on an open question: #1 has 1 of them' } }
     assert.equal(deliveryState(answered, 0).stage, 'working')
+  })
+})
+
+describe('a manual delivery waiting on the user\'s commit', () => {
+  beforeEach(() => setAutoCommit(false))
+
+  it('leaves the card alone while the code is still uncommitted', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    assert.equal(delivery.worktree, undefined)
+
+    const card = await board().readCard(1)
+    assert.equal(card?.delivery?.state.label, 'Waiting for your commit')
+    assert.equal(listDeliveries().find((d) => d.deliveryId === delivery.deliveryId)?.status, 'active')
+    assert.equal(archived(1), false)
+  })
+
+  it('ends and archives the card once they have committed what review passed', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    git(['add', '-A'])
+    git(['commit', '--quiet', '-m', 'mine'])
+
+    // The read is what notices — and it is awaited, so by the time it answers the archive
+    // has happened and the card has gone.
+    assert.equal(await board().readCard(1), null)
+    assert.equal(listDeliveries().find((d) => d.deliveryId === delivery.deliveryId)?.status, 'finished')
+    assert.equal(archived(1), true)
+  })
+})
+
+describe('claiming the card for a run', () => {
+  it('remembers the stage on the record and leaves the write to its caller', async () => {
+    const started = run('implement', 1, 'card one')
+    const record = peekRun(started)!
+    // The card is `ready` on the board, and the claim only says what to write.
+    const claim = claimCard(record)
+    assert.deepEqual(claim, { cardId: 1, status: 'implementing' })
+    assert.equal(record.priorStatus, 'ready')
+    assert.match(fs.readFileSync(cardPath(1), 'utf8'), /^status: ready$/m)
+  })
+
+  it('claims nothing for a run with no card of its own', async () => {
+    const opened = run('propose', 0, '')
+    assert.equal(claimCard(peekRun(opened)!), undefined)
+  })
+})
+
+describe('a run that ends before it spawns', () => {
+  it('is closed out by the watcher itself, which waits for that close', async () => {
+    const started = run('implement', 1, 'card one')
+    // A finished run with no log is pruned from the record, so give it one to be found by.
+    fs.writeFileSync(peekRun(started)!.logPath, 'log\n')
+    // No plan on disk is the watcher's first early exit: nothing to spawn, so it closes the
+    // run out — and the close is awaited, so the record has settled by the time it returns.
+    fs.rmSync(path.join(SESSIONS_DIR, `${started}.plan.json`))
+    assert.equal(await watchRun(started), 1)
+    assert.equal(peekRun(started)?.status, 'interrupted')
+  })
+
+  it('is closed out as stopped', async () => {
+    const started = run('implement', 1, 'card one')
+    // A finished run with no log is pruned from the record, so give it one to be found by.
+    fs.writeFileSync(peekRun(started)!.logPath, 'log\n')
+    assert.equal((await stopRun(started)).ok, true)
+    assert.equal(peekRun(started)?.status, 'stopped')
+  })
+
+  it('is closed out as errored', async () => {
+    const started = run('implement', 1, 'card one')
+    await end(started, 'error')
+    assert.equal(peekRun(started)?.status, 'error')
   })
 })

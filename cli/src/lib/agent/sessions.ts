@@ -221,11 +221,20 @@ function cardNow(cardId: number): { status: string; questions: number; title: st
   }
 }
 
-/** Mark the card as being worked on, and remember the stage it had — so the end of the run
- *  puts back what was there rather than always dropping it to `todo`. */
-export async function claimCard(run: RunRecord): Promise<void> {
+/** The card write a claim still owes, once the run record has remembered what was there. */
+export interface CardClaim {
+  cardId: number
+  status: string
+}
+
+/** Remember the stage the card had — so the end of the run puts back what was there rather
+ *  than always dropping it to `todo` — and say how to mark it as being worked on.
+ *
+ *  Only the record is changed here: this runs under the run record's lock (`patch`), and
+ *  the caller awaits `setCardStatus` with that lock released. */
+export function claimCard(run: RunRecord): CardClaim | undefined {
   const wanted = run.cardId !== null ? RUN_STATUS[run.action] : undefined
-  if (run.cardId === null || !wanted) return
+  if (run.cardId === null || !wanted) return undefined
   // Inside a delivery the stage to put back is the delivery's, taken before its first
   // run touched the card. Reading it here would give every run after the build
   // `implementing` — the stage the delivery itself put there — and the card would rest on
@@ -235,7 +244,7 @@ export async function claimCard(run: RunRecord): Promise<void> {
     (delivery && delivery.deliveryId === run.deliveryId ? delivery.priorStatus : undefined) ??
     cardNow(run.cardId)?.status ??
     'todo'
-  await setCardStatus(run.cardId, wanted)
+  return { cardId: run.cardId, status: wanted }
 }
 
 // When a run ends and its card still exists, restore the stage it had before — so a `ready`
