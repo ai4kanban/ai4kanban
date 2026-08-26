@@ -10,6 +10,8 @@
 //   format/skill/types  the coding agent skill: whether this project has one, and what
 //                       adding it wrote
 //   format/cloud/types  the Cloud sign-in: which account this machine acts as
+//   format/machine/types  the languages the app works in: each one's own name, and the
+//                       `<html lang>` tag the layout wears
 //
 // What IS declared here is the one shape the CLI has no opinion about: `SessionView`, a run
 // as the browser reads it. The record the CLI keeps carries a couple of fields the UI has
@@ -105,6 +107,9 @@ export type {
 } from "./format/skill/types";
 
 export type { CloudAccount, CloudState } from "./format/cloud/types";
+
+export type { Language } from "./format/machine/types";
+export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from "./format/machine/types";
 
 /** A running or finished agent run, as the UI sees it when it polls the server. One shared
  *  picture across every tab. */

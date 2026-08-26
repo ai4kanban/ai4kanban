@@ -116,6 +116,10 @@ export const CHANNELS = {
    *  the page (#326). The app carries it no further: the board server is what
    *  holds the session, so the Configuration dialog is what exchanges it. */
   cloudCallback: "a4k:cloud-callback",
+  /** The board is now drawing in another language (#334), so the menu — which lives
+   *  outside the page — follows. The setting itself is already saved by the time this
+   *  arrives; the app reads it for itself at startup. */
+  languageChanged: "a4k:language-changed",
 } as const;
 
 /**
@@ -161,4 +165,8 @@ export interface Ai4kanbanBridge {
    *  handed to the first subscriber, so a slow-drawing pane doesn't lose it.
    *  Returns the way to stop being told. */
   onCloudCallback(fn: (url: string) => void): () => void;
+  /** Say which language the board is now drawing in (#334), so the menu follows. The
+   *  language is a string the command's own list decides — the app checks it against that
+   *  list rather than keeping a copy of it. */
+  languageChanged(language: string): Promise<null>;
 }

@@ -59,11 +59,15 @@ const TO = path.join(ROOT, "kanban-ui", "lib", "format");
 //                            board through (#312), the envelope each write carries and the
 //                            conflict it can answer with. The server calls them and the
 //                            browser names what comes back, so both sides need one copy.
+//   machine/types            the languages the app works in (#334) — each one's own name
+//                            and its `<html lang>` tag. The switcher draws them and the
+//                            layout tags the document with them.
 const SHARED = [
   "cadence.ts",
   "yaml.ts",
   "agent/types.ts",
   "agent/providers.ts",
+  "machine/types.ts",
   "skill/types.ts",
   "cloud/types.ts",
   "view/types.ts",

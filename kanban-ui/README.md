@@ -935,9 +935,11 @@ struck through, so the outcome survives after the subtask files are gone.
 ## Configuration
 
 The gear in the header opens the **Configuration** dialog. A sidebar names its sections —
-**Harness**, **Agents**, **Auto-delivery**, **Rules** and **Setup**. Settings live in `docs/kanban/ui.config.json`, next to your board, so
+**Harness**, **Agents**, **Auto-delivery**, **Rules** and **Setup**, then **Language** and **Cloud**
+under a rule. Settings live in `docs/kanban/ui.config.json`, next to your board, so
 `npx` always serves the latest UI and an update never touches them. Everything the dialog holds
-writes itself there, with one exception: a key goes to `docs/kanban/.env` and never to this file.
+writes itself there, with two exceptions: a key goes to `docs/kanban/.env`, and everything below
+the rule settles this machine rather than this board and is held outside every project.
 
 There is no Auto-refine section and no switch: a refine follows the run that touched the card, so
 there is nothing to turn on.
@@ -1359,6 +1361,24 @@ If you never want it, you never need it. Nothing else in the board asks for it �
 places that hand you a line to paste into a coding agent (the first run's handover, and the setup
 strip), which say the skill isn't there and offer this pane instead of a line that would reach
 nothing.
+
+### Language
+
+**Language** picks the language you read in — **English** or **中文**. It is the first section under
+the rule in the sidebar, because it is not a setting of this board: it is a fact about you, so one
+answer covers every project you open and every terminal on this machine. The change takes effect at
+once, with no reload.
+
+It is held in `~/.ai4kanban/settings.json`, beside the Cloud sign-in and outside every repository,
+so the app, a board served to a browser and a bare `akb` in a terminal all read the same answer —
+and so it is never cloned along with your project or shared with your team. There is no `akb`
+command that sets it; the switcher is the app's.
+
+The board still draws in English: this release ships the setting, and the words are translated in a
+later one. What the `akb` command prints in a terminal stays English either way.
+
+A project whose copy of the board's rules predates this setting draws in English and says so when you
+try to change it — `npm install -g ai4kanban` brings that project up to date.
 
 ## When a run fails or is interrupted
 

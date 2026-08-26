@@ -11,6 +11,7 @@
 // the same list where a person's hand already is.
 
 import { app, Menu, shell, type MenuItemConstructorOptions } from "electron";
+import { DEFAULT_LANGUAGE } from "./rules";
 import { DOWNLOADS_URL } from "./update";
 import type { ProjectInfo } from "../shared/bridge";
 
@@ -31,6 +32,9 @@ export interface MenuOptions {
   canGoBack?: boolean;
   canGoForward?: boolean;
   projects?: ProjectInfo[];
+  /** The language this machine reads in (#334). Every label below is still English —
+   *  translating them is #336 — so what this carries is the answer, not yet its words. */
+  language?: string;
 }
 
 function recentSubmenu(
@@ -59,7 +63,10 @@ export function buildMenu({
   canGoBack = false,
   canGoForward = false,
   projects = [],
+  language = DEFAULT_LANGUAGE,
 }: MenuOptions): void {
+  // Carried, not yet read: every label below is English until #336 translates them.
+  void language;
   const isMac = process.platform === "darwin";
   const template: MenuItemConstructorOptions[] = [
     ...(isMac

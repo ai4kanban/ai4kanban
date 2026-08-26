@@ -24,6 +24,7 @@ import {
 } from "@/lib/board";
 import { type ChatRead, clearChat, readChat, sendChat } from "@/lib/chat";
 import { cloudAccount, finishCloudSignIn, signOutOfCloud, startCloudSignIn } from "@/lib/cloud";
+import { setMachineLanguage } from "@/lib/language";
 import {
   autoCommitAllowed,
   diffApprovalRequired,
@@ -67,6 +68,7 @@ import { setSecret } from "@/lib/secrets";
 import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
 import { setSpecAgentEnabled, setSpecAgentSetting, specAgents } from "@/lib/spec-agents";
 import { testConnection } from "@/lib/test-connection";
+import { isLanguage } from "@/lib/types";
 import type {
   AgentInfo,
   Board,
@@ -81,6 +83,7 @@ import type {
   FillPlan,
   FlowRuleView,
   HarnessOption,
+  Language,
   MetricsResult,
   SaveProjectResult,
   ScoreResult,
@@ -873,6 +876,19 @@ export async function finishCloudSignInAction(callback: string): Promise<{ ok: b
 export async function signOutOfCloudAction(): Promise<{ ok: boolean; error?: string }> {
   try {
     return await signOutOfCloud();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- the language this machine works in (#334) -------------------------------
+// Only the write: the answer is read on the server in `app/layout.tsx` and handed to every
+// screen through the context below it, so nothing here has to ask for it.
+
+export async function setLanguageAction(value: Language): Promise<WriteResult> {
+  if (!isLanguage(value)) return { ok: false, error: "that is not a language this app knows" };
+  try {
+    return await setMachineLanguage(value);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

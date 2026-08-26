@@ -32,6 +32,7 @@ import { launcherUrl } from "./lib/launcher";
 import { buildMenu } from "./lib/menu";
 import { attachNavigation, type Navigation } from "./lib/navigation";
 import * as projects from "./lib/projects";
+import { DEFAULT_LANGUAGE, knownLanguage, machineLanguage } from "./lib/rules";
 import { BoardServers } from "./lib/server";
 import { loginShellEnv, type Env } from "./lib/shell-env";
 import * as store from "./lib/store";
@@ -57,6 +58,9 @@ let nav: Navigation | null = null;
 // Set the first time the window is asked, so switching project or reloading
 // doesn't hit GitHub again in the same sitting.
 let updatePromise: Promise<UpdateInfo | null> | null = null;
+// The language the menu is drawn in (#334). Read from the machine's own settings before
+// the first menu, and set again whenever the page says the user changed it.
+let language: string = DEFAULT_LANGUAGE;
 
 // --- the app's own URL scheme (#326) -----------------------------------------
 // `ai4kanban://…` opens this app. It is what a finished Cloud sign-in comes back to: the
@@ -150,6 +154,10 @@ async function start(): Promise<void> {
   // Started by the launcher from a project folder — that board is the one to show, ahead
   // of whatever was open last.
   const repo = boardNear(namedCwd(process.argv)) ?? store.lastRepo();
+
+  // Before the first menu: waiting for the board to load and report would leave an English
+  // menu bar up for as long as that takes, on every launch.
+  language = await machineLanguage();
 
   createWindow();
   refreshMenu();
@@ -460,6 +468,7 @@ function refreshMenu(): void {
     canGoBack: nav?.canGoBack() ?? false,
     canGoForward: nav?.canGoForward() ?? false,
     projects: listProjects(),
+    language,
   });
 }
 
@@ -538,6 +547,15 @@ ipcMain.handle(CHANNELS.skipUpdate, (_e, version: unknown) => {
 
 ipcMain.handle(CHANNELS.openExternal, (_e, url: unknown) => {
   if (typeof url === "string" && /^https?:/.test(url)) void shell.openExternal(url);
+  return null;
+});
+
+// The board changed language (#334). The setting is already saved by the time this
+// arrives — the page is only telling the menu, which lives outside it.
+ipcMain.handle(CHANNELS.languageChanged, async (_e, next: unknown) => {
+  if (next === language || !(await knownLanguage(next))) return null;
+  language = next as string;
+  refreshMenu();
   return null;
 });
 

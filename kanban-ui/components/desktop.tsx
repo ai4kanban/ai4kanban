@@ -97,6 +97,10 @@ interface AppBridge {
   /** Told each time the window moves between views — a swipe, the menu, a
    *  mouse's own buttons. Returns the way to stop being told. */
   onNavigated(fn: (direction: NavSide) => void): () => void;
+  /** Say which language the board is now drawing in (#334), so the app's menu — which
+   *  lives outside the page — follows. Optional: an app older than the setting has no ear
+   *  for it, and its menu simply stays as it was. */
+  languageChanged?(language: string): Promise<void>;
 }
 
 declare global {

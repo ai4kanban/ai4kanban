@@ -14,15 +14,16 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { machineHome } from '../machine/home'
 import { readCloudAccount } from './account'
 import { cloudConfigured, cloudEndpoints, NOT_CONFIGURED, SIGN_IN_REDIRECT } from './config'
-import { cloudHome, rememberProfile, sessionFrom, writeSession } from './session'
+import { rememberProfile, sessionFrom, writeSession } from './session'
 
 /** How long a started sign-in stays good. Long enough to read a consent screen, short
  *  enough that an abandoned one is not still waiting tomorrow. */
 const PENDING_TTL_MS = 10 * 60 * 1000
 
-const pendingFile = (): string => path.join(cloudHome(), 'signing-in.json')
+const pendingFile = (): string => path.join(machineHome(), 'signing-in.json')
 
 export interface SignInStart {
   ok: true
@@ -46,7 +47,7 @@ export function startSignIn(): SignInStart | { ok: false; error: string } {
   const verifier = base64url(crypto.randomBytes(32))
   const challenge = base64url(crypto.createHash('sha256').update(verifier).digest())
 
-  fs.mkdirSync(cloudHome(), { recursive: true, mode: 0o700 })
+  fs.mkdirSync(machineHome(), { recursive: true, mode: 0o700 })
   fs.writeFileSync(pendingFile(), `${JSON.stringify({ verifier, startedAt: Date.now() })}\n`, {
     mode: 0o600,
   })

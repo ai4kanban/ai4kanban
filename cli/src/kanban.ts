@@ -113,6 +113,15 @@ export type { CloudSession, TokenResult as CloudTokenResult } from './lib/cloud/
 export { keepAuthorized as keepCloudRealtimeAuthorized } from './lib/cloud/realtime'
 export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME as CLOUD_URL_SCHEME } from './lib/cloud/config'
 
+// The language the app and the agent work in (#334): one answer for this MACHINE, held in
+// `~/.ai4kanban/settings.json` beside the Cloud sign-in. The Language section of the
+// Configuration dialog reads and writes it through these, and the desktop app reads it at
+// startup so its first menu is right. It is never a board setting — a language is a fact
+// about the reader, and follows the person into every project.
+export { readLanguage, setLanguage, settingsFile as machineSettingsFile } from './lib/machine/settings'
+export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from './lib/machine/types'
+export type { Language } from './lib/machine/types'
+
 // The spec agents (#191): the list a screen draws — each one's two lines and whether it is
 // switched on — and the switch itself. The words and the order are the board's own, so the
 // Agents section in the Configuration dialog and `akb spec` can never say different things.

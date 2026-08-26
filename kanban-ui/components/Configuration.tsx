@@ -29,7 +29,7 @@
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiAlignLeft, FiCheck, FiCloud, FiGitBranch, FiLink, FiSettings, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiAlignLeft, FiCheck, FiCloud, FiGitBranch, FiGlobe, FiLink, FiSettings, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
   installedAgentsAction,
   setHarnessAction,
@@ -44,6 +44,7 @@ import { TOOL_BTN } from "./chrome";
 import { CloudPanel } from "./Cloud";
 import { Dialog } from "./Dialog";
 import { FlowRulesPanel } from "./FlowRules";
+import { LanguagePanel } from "./language";
 import { SkillPanel } from "./Skill";
 import { SpecAgentsPanel } from "./SpecAgents";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -72,7 +73,7 @@ function AgentMark({ src, size }: { src: string; size: number }) {
 
 // The dialog's sections, in sidebar order. Adding a settings group is one entry
 // here plus its pane below — nothing else moves.
-type Section = "harness" | "agents" | "delivery" | "rules" | "skill" | "cloud";
+type Section = "harness" | "agents" | "delivery" | "rules" | "skill" | "language" | "cloud";
 const SECTIONS: { id: Section; label: string; icon: IconType; apart?: boolean }[] = [
   { id: "harness", label: "Harness", icon: FiTerminal },
   { id: "agents", label: "Agents", icon: FiUsers },
@@ -82,9 +83,11 @@ const SECTIONS: { id: Section; label: string; icon: IconType; apart?: boolean }[
   // name — Flow rules — where a reader meets it cold.
   { id: "rules", label: "Rules", icon: FiAlignLeft },
   { id: "skill", label: "Setup", icon: FiLink },
-  // Last, and behind a rule (#326): everything above settles THIS BOARD, and Cloud is the
-  // person this MACHINE signs in as. One sign-in covers every project the app has open.
-  { id: "cloud", label: "Cloud", icon: FiCloud, apart: true },
+  // Below the rule, everything settles this MACHINE rather than this board (#326, #334):
+  // the language its reader reads in, and the person it signs in as. Both follow the person
+  // into every project the app has open, and neither is cloned with the repository.
+  { id: "language", label: "Language", icon: FiGlobe, apart: true },
+  { id: "cloud", label: "Cloud", icon: FiCloud },
 ];
 
 // --- opening the dialog from elsewhere (#174) --------------------------------
@@ -246,6 +249,10 @@ export function Configuration({
                 on screen: it reads the project when it draws, and one of those
                 reads spawns a process to ask what `akb` on the PATH is. */}
             {section === "skill" && <SkillPanel onError={onError} />}
+            {/* The language this MACHINE reads in (#334) — not a setting of this board.
+                Mounted only while it is the section on screen; it draws from the context the
+                layout put above every page, so it needs no read of its own. */}
+            {section === "language" && <LanguagePanel onError={onError} />}
             {/* The Cloud sign-in (#326) — the account this MACHINE acts as, not a setting of
                 this board. Mounted only while it is the section on screen: it asks the
                 service who is signed in, over the network. */}

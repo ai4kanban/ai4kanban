@@ -17,6 +17,7 @@ import type {
   SpecAgentView,
 } from "./format/agent/types";
 import type { CloudAccount } from "./format/cloud/types";
+import type { Language } from "./format/machine/types";
 import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
 import type {
   Board,
@@ -195,6 +196,12 @@ export interface BoardRules {
   saveGoal(text: string): Promise<WriteResult>;
   saveProject(name: string, description: string, tracks: TrackDraft[]): Promise<SaveProjectResult>;
   finishSetupStep(name: string): Promise<WriteResult>;
+
+  // the language the app and the agent work in (#334) — one answer for this MACHINE, held
+  // outside every repository. Optional: a project can be running rules older than the
+  // release that added them, and every screen then draws in English, which is what it did.
+  readLanguage?(): Language;
+  setLanguage?(value: Language): WriteResult;
 
   // the spec agents, and which of them may run (#191). Optional for the same reason as the
   // skill moves below: a project can be running rules older than the release that added

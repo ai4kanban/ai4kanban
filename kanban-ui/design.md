@@ -131,6 +131,17 @@ shadow. Shadows never blur or change direction.
 - Pair progress and status graphics with readable text or values.
 - Treat zoom, narrow windows, long labels, and reduced motion as standard states.
 
+## Language
+
+- **Read it from context, never from a prop**: `useLanguage()` in
+  `components/language.tsx` gives the language the app is drawing in. `app/layout.tsx`
+  reads it on the server and provides it above every page, so a component has it in its
+  first paint and no screen draws English and corrects itself.
+- **Tag text in another language**: put `lang` on the element when its words are not the
+  language the document is in — the switcher's own two entries are the standing example.
+- **Leave the setting where it is**: the switcher lives in Configuration under the rule,
+  with Cloud. Nothing else offers one.
+
 ## Styling rules
 
 - Write Tailwind utilities next to markup by default.

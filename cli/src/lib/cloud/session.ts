@@ -13,9 +13,9 @@
 // rather than refreshing again.
 
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 
+import { machineHome } from '../machine/home'
 import { cloudEndpoints } from './config'
 
 /** What a signed-in machine holds. Nothing here decides anything: admission is the
@@ -45,14 +45,8 @@ const LOCK_STALE_MS = 30_000
 const LOCK_WAIT_MS = 20_000
 const LOCK_RETRY_MS = 50
 
-/** The folder every machine-level Cloud file lives in. `AI4KANBAN_HOME` moves it, which is
- *  what a test uses. */
-export function cloudHome(): string {
-  return process.env.AI4KANBAN_HOME || path.join(os.homedir(), '.ai4kanban')
-}
-
-export const sessionFile = (): string => path.join(cloudHome(), 'session.json')
-const lockDir = (): string => path.join(cloudHome(), 'session.lock')
+export const sessionFile = (): string => path.join(machineHome(), 'session.json')
+const lockDir = (): string => path.join(machineHome(), 'session.lock')
 const lockOwner = (): string => path.join(lockDir(), 'owner')
 
 /** The session on this machine, or null when nobody is signed in. Unreadable or damaged
@@ -78,7 +72,7 @@ export function readSession(): CloudSession | null {
 /** Write it, readable by its owner alone. Through a temporary file, so a reader never sees
  *  half of one. */
 export function writeSession(session: CloudSession): void {
-  fs.mkdirSync(cloudHome(), { recursive: true, mode: 0o700 })
+  fs.mkdirSync(machineHome(), { recursive: true, mode: 0o700 })
   const tmp = `${sessionFile()}.${process.pid}.tmp`
   fs.writeFileSync(tmp, `${JSON.stringify(session, null, 2)}\n`, { mode: 0o600 })
   fs.renameSync(tmp, sessionFile())
@@ -226,7 +220,7 @@ async function takeLock(): Promise<() => void> {
   const until = Date.now() + LOCK_WAIT_MS
   for (;;) {
     try {
-      fs.mkdirSync(cloudHome(), { recursive: true, mode: 0o700 })
+      fs.mkdirSync(machineHome(), { recursive: true, mode: 0o700 })
       fs.mkdirSync(lockDir())
       try {
         fs.writeFileSync(lockOwner(), `${process.pid}\n`)
