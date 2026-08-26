@@ -14,6 +14,7 @@ const ADMITTED = {
   name: 'Tao Wu',
   avatar_url: 'https://avatars.example/1',
   account_id: SUBJECT,
+  invite_requested_at: null,
 }
 const REFUSED = {
   admitted: false,
@@ -21,6 +22,7 @@ const REFUSED = {
   name: 'Someone Else',
   avatar_url: null,
   account_id: null,
+  invite_requested_at: null,
 }
 
 const realFetch = globalThis.fetch
@@ -74,6 +76,14 @@ describe('readSession', () => {
     assert.equal(session.accountId, null)
   })
 
+  it('carries the open invite request, so the pane shows it in place of the button', async () => {
+    row = { ...REFUSED, invite_requested_at: '2026-08-24T09:00:00Z' }
+
+    const session = await readSession(await signedIn(), ENV)
+
+    assert.equal(session.inviteRequestedAt, '2026-08-24T09:00:00Z')
+  })
+
   it('refuses a request carrying no sign-in at all', async () => {
     await assert.rejects(readSession(new Request('https://api.example/v1/session'), ENV), {
       code: 'unauthenticated',
@@ -110,7 +120,8 @@ describe('requireOwner', () => {
       assert.equal(error.code, 'not_admitted')
       assert.equal(error.status, 403)
       assert.match(error.message, /invite-only preview/)
-      assert.match(error.message, /support@ai4kanban\.dev/)
+      // It names the two doors the pane offers (#327), not the mailbox #326 pointed at.
+      assert.match(error.message, /invitation code/)
       return true
     })
   })

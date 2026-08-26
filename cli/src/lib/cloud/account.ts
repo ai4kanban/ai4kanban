@@ -7,9 +7,9 @@
 
 import { cloudConfigured, cloudEndpoints, NOT_CONFIGURED } from './config'
 import { accessToken, clearSession, readSession, sessionFile } from './session'
-import type { CloudAccount } from './types'
+import type { CloudAccount, CloudMove } from './types'
 
-export type { CloudAccount, CloudState } from './types'
+export type { CloudAccount, CloudMove, CloudState } from './types'
 
 interface SessionBody {
   session?: {
@@ -20,6 +20,7 @@ interface SessionBody {
     avatarUrl?: string | null
     email?: string
     accountId?: string | null
+    inviteRequestedAt?: string | null
   }
   refusal?: { code?: string; message?: string }
 }
@@ -33,6 +34,7 @@ export async function readCloudAccount(): Promise<CloudAccount> {
     avatarUrl: null,
     email: null,
     message: null,
+    inviteRequestedAt: null,
     sessionFile: sessionFile(),
     configured: cloudConfigured(),
   }
@@ -86,10 +88,65 @@ export async function readCloudAccount(): Promise<CloudAccount> {
     name: session.name ?? null,
     avatarUrl: session.avatar_url ?? session.avatarUrl ?? null,
     email: session.email ?? null,
+    inviteRequestedAt: session.inviteRequestedAt ?? null,
   }
   return session.admitted
     ? { ...blank, ...attested, state: 'signed-in' }
     : { ...blank, ...attested, state: 'not-admitted', message: body.refusal?.message ?? null }
+}
+
+// --- the two doors out of the not-admitted state (#327) -----------------------
+// Both are open to a verified sign-in we have not admitted, and both are one call. Neither
+// decides anything: the service answers, and its refusal is carried through word for word.
+
+/** Ask us for an invite. Pressing again records no second request and sends no second email,
+ *  so the caller can simply call it and re-read the account. */
+export async function requestCloudInvite(): Promise<CloudMove> {
+  return post('/v1/invite-request')
+}
+
+/** Spend a code on this account. One code admits one account, and admits it for good. */
+export async function redeemCloudInvitation(code: string): Promise<CloudMove> {
+  const typed = typeof code === 'string' ? code.trim() : ''
+  if (!typed) return { ok: false, error: 'Paste the code from the email we sent.' }
+  return post('/v1/invitations/redeem', { code: typed })
+}
+
+async function post(path: string, body?: unknown): Promise<CloudMove> {
+  if (!cloudConfigured()) return { ok: false, error: NOT_CONFIGURED }
+
+  const token = await accessToken()
+  if (!token.ok) {
+    return {
+      ok: false,
+      error:
+        token.reason === 'signed-out'
+          ? 'Sign in to Cloud first.'
+          : token.reason === 'expired'
+            ? 'Your Cloud sign-in has expired. Sign in again.'
+            : `Cloud could not be reached: ${token.error}`,
+    }
+  }
+
+  let response: Response
+  try {
+    response = await fetch(`${cloudEndpoints().api}${path}`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token.token}`,
+        ...(body ? { 'content-type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    })
+  } catch (e) {
+    return { ok: false, error: `Cloud could not be reached: ${e instanceof Error ? e.message : String(e)}` }
+  }
+
+  if (response.ok) return { ok: true }
+  const refused = (await response.json().catch(() => ({}))) as {
+    error?: { message?: string }
+  }
+  return { ok: false, error: refused.error?.message ?? `Cloud answered ${response.status}.` }
 }
 
 /** Sign this machine out. Nothing already on any board is touched. */

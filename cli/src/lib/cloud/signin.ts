@@ -38,8 +38,9 @@ export type SignInResult =
 /**
  * Begin a sign-in: the consent URL to open, with the secret half kept here.
  *
- * GitHub is asked for no scopes at all (cloud/README.md, "Standing up a new project"), so
- * the consent screen offers a public profile and nothing else.
+ * GitHub is asked for `user:email` and nothing else (cloud/README.md, "Standing up a new
+ * project"), so every account carries an address GitHub itself verified — which is what an
+ * invitation is mailed to (#327) — and no repository is reachable with the grant.
  */
 export function startSignIn(): SignInStart | { ok: false; error: string } {
   if (!cloudConfigured()) return { ok: false, error: NOT_CONFIGURED }
@@ -55,6 +56,7 @@ export function startSignIn(): SignInStart | { ok: false; error: string } {
   const url = new URL(`${supabaseUrl}/auth/v1/authorize`)
   url.searchParams.set('provider', 'github')
   url.searchParams.set('redirect_to', SIGN_IN_REDIRECT)
+  url.searchParams.set('scopes', 'user:email')
   url.searchParams.set('code_challenge', challenge)
   url.searchParams.set('code_challenge_method', 's256')
   return { ok: true, url: url.toString() }

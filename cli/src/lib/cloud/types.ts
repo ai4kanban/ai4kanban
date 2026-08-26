@@ -24,6 +24,10 @@ export interface CloudAccount {
   email: string | null
   /** The service's own words for a refusal, shown as they stand. Null when there is none. */
   message: string | null
+  /** When this account last asked for an invite and has not been answered (#327). Null when
+   *  it never asked. The not-admitted pane shows it in place of the button, so pressing again
+   *  neither writes a second request nor sends a second email. */
+  inviteRequestedAt: string | null
   /** Where the sign-in is held on this machine, named on screen. */
   sessionFile: string
   /** Whether this build knows a Cloud project to sign in against at all. */
@@ -31,3 +35,7 @@ export interface CloudAccount {
   /** Cloud could not be reached. `state` is what this machine last knew. */
   error?: string
 }
+
+/** What a press in the not-admitted pane comes back with (#327). The service's own words on
+ *  a refusal, shown as they stand — the same rule the refusal itself follows. */
+export type CloudMove = { ok: true } | { ok: false; error: string }

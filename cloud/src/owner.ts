@@ -6,8 +6,9 @@
  * code of its own. A later card's route calls `requireOwner` and gets an `owner.accountId`
  * to hang its rows off, rather than inventing an owner column and a check of its own.
  *
- * Exactly one route is open before admission — the one that reports the session, so the app
- * can name the account it refused. It calls `readSession`; everything else calls
+ * Three routes are open before admission — the one that reports the session, so the app can
+ * name the account it refused, and #327's two, where a refused person asks for an invite and
+ * redeems the code that answers. They call `readSession`; everything else calls
  * `requireOwner`.
  */
 
@@ -23,6 +24,9 @@ interface AccountRow {
   name: string | null
   avatar_url: string | null
   account_id: string | null
+  /** When this account last asked for an invite and has not been answered (#327). Null when
+   *  it never asked, or when the request has been closed out. */
+  invite_requested_at: string | null
 }
 
 /** A verified sign-in, admitted or not. What `GET /v1/session` reports. */
@@ -39,6 +43,9 @@ export interface Session {
   avatarUrl: string | null
   /** The account row every later row hangs off. Null until the account is admitted. */
   accountId: string | null
+  /** The open invite request, if there is one — what the pane shows in place of the button
+   *  so pressing again neither writes a second row nor sends a second email (#327). */
+  inviteRequestedAt: string | null
 }
 
 /** An admitted account. Every #325 row's owner. */
@@ -69,6 +76,7 @@ export async function readSession(request: Request, env: Env): Promise<Session> 
     name: row.name,
     avatarUrl: row.avatar_url,
     accountId: row.account_id,
+    inviteRequestedAt: row.invite_requested_at ?? null,
   }
 }
 

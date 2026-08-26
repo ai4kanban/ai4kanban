@@ -23,7 +23,14 @@ import {
   searchCards,
 } from "@/lib/board";
 import { type ChatRead, clearChat, readChat, sendChat } from "@/lib/chat";
-import { cloudAccount, finishCloudSignIn, signOutOfCloud, startCloudSignIn } from "@/lib/cloud";
+import {
+  cloudAccount,
+  finishCloudSignIn,
+  redeemCloudInvitation,
+  requestCloudInvite,
+  signOutOfCloud,
+  startCloudSignIn,
+} from "@/lib/cloud";
 import { setMachineLanguage } from "@/lib/language";
 import {
   autoCommitAllowed,
@@ -76,6 +83,7 @@ import type {
   CardPatch,
   CardRef,
   CloudAccount,
+  CloudMove,
   ClosePlan,
   CommandState,
   ConnectionTest,
@@ -876,6 +884,29 @@ export async function finishCloudSignInAction(callback: string): Promise<{ ok: b
 export async function signOutOfCloudAction(): Promise<{ ok: boolean; error?: string }> {
   try {
     return await signOutOfCloud();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- the two doors out of the not-admitted state (#327) ----------------------
+// Both press once and then re-read the account: what the pane draws next — the requested
+// state, or the admitted one — is the service's answer, never this screen's guess.
+
+/** Ask us for an invite. Pressing again records no second request and sends no second email. */
+export async function requestCloudInviteAction(): Promise<CloudMove> {
+  try {
+    return await requestCloudInvite();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Spend an invitation code on this account. The service's own words come back on a refusal. */
+export async function redeemCloudInvitationAction(code: string): Promise<CloudMove> {
+  if (typeof code !== "string") return { ok: false, error: "that is not a code" };
+  try {
+    return await redeemCloudInvitation(code);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

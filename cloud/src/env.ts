@@ -4,6 +4,12 @@ export interface Env {
   SUPABASE_URL: string
   /** The project's service role key. It never leaves the Worker. */
   SUPABASE_SERVICE_ROLE_KEY: string
+  /**
+   * Resend's API key, for the invitation mail (#327). Deliberately not required: a Worker
+   * that cannot mail still answers every route, and the hourly run says so in the log rather
+   * than the whole service refusing requests over a secret only the schedule needs.
+   */
+  RESEND_API_KEY?: string
 }
 
 export function requireEnv(env: Env): void {

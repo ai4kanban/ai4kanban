@@ -11,6 +11,7 @@ effective: 2026-08-26
 - **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. The app asks GitHub once whether a newer release is out, and sends nothing else.
 - **AI4Kanban Cloud is an invite-only preview** that stores a team's board — cards, memory, releases, history — on servers we run in Frankfurt. Only that workspace's members can read it.
 - **Your code never reaches Cloud.** No repository, no worktree, no commit, no credential and no model key is sent to it, and no AI model is ever run over your board content.
+- **The only email we send is your invitation code**, and the notice to ourselves that you asked for one. There is no mailing list.
 - **We do not sell your personal information**, and we do not share it for cross-context behavioral advertising.
 - **You can ask us to access, correct, export, or delete** your personal information at any time at [support@ai4kanban.dev](mailto:support@ai4kanban.dev). An owner can delete a Cloud workspace and everything in it from the app.
 
@@ -80,7 +81,7 @@ Cloud coordinates a board. It does not run your project, and the following never
 
 ### What signing in stores about you
 
-A Cloud member signs in with a GitHub account, through Supabase Auth's GitHub provider. Our GitHub OAuth app requests **no scopes at all**, so a sign-in can read a public profile and cannot reach a private repository even if everything else went wrong.
+A Cloud member signs in with a GitHub account, through Supabase Auth's GitHub provider. Our GitHub OAuth app requests **`user:email` and nothing else**, so a sign-in reads your profile and the email address GitHub has verified for you, and cannot reach a private repository even if everything else went wrong. We ask for the address because it is what an invitation code is sent to, so nothing about asking for one has to be typed.
 
 Signing in creates one account record, held by Supabase Auth on our behalf. It holds:
 
@@ -88,9 +89,20 @@ Signing in creates one account record, held by Supabase Auth on our behalf. It h
 - **Any email address Supabase Auth records with that account.** GitHub's sign-in response can include the address on your GitHub account, and Supabase Auth stores it with the account record when it does.
 - **Sign-in timestamps** and the identity provider behind the account, which is `github` for every member.
 
-That email address is **the one place the preview may hold a personal contact detail**, so it is worth being exact: we do not ask you for it, we have no mailing list, and the preview sends no email at all. It is there because that is what the sign-in returns. You can ask us to remove it, or to delete the account record entirely, at [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
+We do not ask you to type that address, we have no mailing list, and we send nothing to it but the invitation loop below. You can ask us to remove it, or to delete the account record entirely, at [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
 
 Beyond that record, a workspace stores your member row — the account it points at, your role, and when you joined — and your name against the changes you made, which is the point of a shared board.
+
+### Asking for an invite, and the code that answers
+
+Cloud is invite-only, so there are two records behind getting in, and both hold your email address:
+
+- **An invite request** — written when you press **Request an invite** in the app. It holds your GitHub handle, the email address GitHub has verified for your account, and when you asked. You type none of it: it is read from what the identity provider attested at sign-in.
+- **An invitation** — written when we approve a request, or when we invite somebody who never asked. It holds the code, the address it was sent to, the request it answers, and — once redeemed — which account redeemed it and when. That is what ties an admitted account back to the invitation that let it in.
+
+We email you once from each: a code, sent to that address from `invites@send.ai4kanban.dev`, with `support@ai4kanban.dev` to reply to. A request also sends **us** a notice at `support@ai4kanban.dev` carrying your handle and address, so we can answer you by replying. **These are the only emails the preview sends.** There is no mailing list, no announcement, and no marketing.
+
+The mail goes through **Resend**, which is therefore a subprocessor and appears in the table below. Resend keeps 30 days of sending logs under its own policy.
 
 ### Where it runs, and who can read it
 
@@ -102,12 +114,13 @@ Beyond that record, a workspace stores your member row — the account it points
 
 ### Subprocessors
 
-The preview uses two subprocessors and one identity provider. There is no separate subprocessors page, because this is the whole list:
+The preview uses three subprocessors and one identity provider. There is no separate subprocessors page, because this is the whole list:
 
 | Who | What they do | Where |
 | --- | --- | --- |
 | **Cloudflare, Inc.** | Compute and hosting — the API, and the static site | Global network |
 | **Supabase, Inc.** | The workspace database and sign-in | `eu-central-1`, Frankfurt |
+| **Resend (Plus Five Five, Inc.)** | Sending the invitation email and the request notice | United States |
 | **GitHub, Inc.** | The identity provider a member signs in through | GitHub's own infrastructure |
 
 Each processes data on our behalf under its published data processing agreement. If we add or replace a subprocessor, this table changes with it and the effective date at the top of the page moves.
@@ -174,6 +187,7 @@ We keep personal information only as long as we need it for the purposes describ
 - **App use** — nothing is retained, because nothing is collected.
 - **Workspace content** — kept for as long as the workspace exists. Deleting the workspace removes it at once, and no backup of it survives (see above). A workspace whose preview access ends is closed under the [Terms](/terms).
 - **Your account record** — kept while your account can sign in. Ask us at [support@ai4kanban.dev](mailto:support@ai4kanban.dev) and we will delete it.
+- **Your invite request and your invitation** — kept for as long as the account is admitted, because the invitation is what ties an admission back to the code that made it. Removing an account takes its request and its invitation with it. Resend's own sending logs are kept for 30 days under Resend's policy.
 - **The audit trail** — an attributed record of who changed what lives inside the workspace and goes with it when the workspace is deleted.
 - **Email correspondence** — kept for as long as needed to handle the conversation and any follow-up, then deleted.
 
@@ -186,7 +200,7 @@ We use reasonable administrative and technical safeguards to protect personal in
 - **Encryption** — workspace data is encrypted at rest by our database provider, and every connection to the Service uses TLS 1.2 or later.
 - **A closed database** — the database denies every caller but the service, exposes only the functions the service calls, and its keys are held in the service's secret store and never in our source code.
 - **Asymmetric sign-in tokens** — the service verifies a session against the project's published signing keys, so there is no shared signing secret for anyone to hold or leak.
-- **A no-scope OAuth app** — the GitHub app behind sign-in asks for no permissions at all, so a compromised session still cannot read a private repository.
+- **A minimal-scope OAuth app** — the GitHub app behind sign-in asks for `user:email` and nothing more, so a compromised session still cannot read a private repository.
 - **Least privilege** — access to production systems is limited to the people who need it.
 
 No system is perfectly secure. If we experience a breach that materially affects you, we will notify you in line with applicable law.
@@ -230,7 +244,7 @@ A Cloud workspace's board is stored in **Frankfurt, Germany**, inside the EU. An
 Two transfers can still happen, and we would rather name them than leave them implied:
 
 - **The API runs on Cloudflare's global network.** A request is handled close to where it was made, so a member working outside the EEA has their request processed in that region in transit before it reaches the database in Frankfurt.
-- **Our subprocessors are US companies.** Cloudflare, Supabase, and GitHub may access data from the United States for support and operations, under their own commitments.
+- **Our subprocessors are US companies.** Cloudflare, Supabase, Resend, and GitHub may access data from the United States for support and operations, under their own commitments. Resend sends from the United States, so an invitation to an EU address is processed there in transit.
 
 Where personal information is transferred out of the UK, the EEA, or Switzerland, we rely on the European Commission's Standard Contractual Clauses, the UK's International Data Transfer Agreement or Addendum, the EU–US and UK–US Data Privacy Framework where a recipient is certified, or another safeguard recognized under applicable law. Copies of these safeguards are available on request.
 
@@ -240,7 +254,7 @@ The Service is not directed to children under 16, and we do not knowingly collec
 
 ## Changes to this policy
 
-We will update this Policy as the Service evolves. When we do, we will change the effective date at the top of this page and, for material changes, give reasonable notice through the Service. Because the preview sends no email, the app and any destination your workspace has connected are where a notice reaches you.
+We will update this Policy as the Service evolves. When we do, we will change the effective date at the top of this page and, for material changes, give reasonable notice through the Service. Because the preview sends no email as a notice, the app and any destination your workspace has connected are where a notice reaches you.
 
 ## Contact
 

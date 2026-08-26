@@ -1,5 +1,5 @@
 import { boardRules } from "./cli";
-import type { CloudAccount } from "./types";
+import type { CloudAccount, CloudMove } from "./types";
 
 // --- the Cloud sign-in (#326) ------------------------------------------------
 // Which account this MACHINE acts as. Not a board setting: one sign-in covers every project
@@ -21,6 +21,7 @@ const UNKNOWN: CloudAccount = {
   avatarUrl: null,
   email: null,
   message: TOO_OLD,
+  inviteRequestedAt: null,
   sessionFile: "",
   configured: false,
 };
@@ -51,4 +52,20 @@ export async function signOutOfCloud(): Promise<{ ok: boolean; error?: string }>
   const rules = await boardRules();
   if (!rules.signOutOfCloud) return { ok: false, error: TOO_OLD };
   return rules.signOutOfCloud();
+}
+
+// --- the two doors out of the not-admitted state (#327) ----------------------
+
+/** Ask us for an invite. Pressing again records no second request and sends no second email. */
+export async function requestCloudInvite(): Promise<CloudMove> {
+  const rules = await boardRules();
+  if (!rules.requestCloudInvite) return { ok: false, error: TOO_OLD };
+  return rules.requestCloudInvite();
+}
+
+/** Spend a code on this account. The service's own words come back on a refusal. */
+export async function redeemCloudInvitation(code: string): Promise<CloudMove> {
+  const rules = await boardRules();
+  if (!rules.redeemCloudInvitation) return { ok: false, error: TOO_OLD };
+  return rules.redeemCloudInvitation(code);
 }

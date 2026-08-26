@@ -104,7 +104,10 @@ export { ensureAkbDir, setBoardRoot } from './lib/paths'
 // section of the Configuration dialog reads and writes it through these; a sign-in starts
 // there and nowhere else, and the desktop app is only what catches the answer.
 export { readCloudAccount, signOutOfCloud } from './lib/cloud/account'
-export type { CloudAccount, CloudState } from './lib/cloud/account'
+export type { CloudAccount, CloudMove, CloudState } from './lib/cloud/account'
+// The two doors out of the not-admitted state (#327): ask us for an invite, and spend the
+// code we answer with. Both are open to a verified sign-in we have not admitted.
+export { redeemCloudInvitation, requestCloudInvite } from './lib/cloud/account'
 export { finishSignIn as finishCloudSignIn, startSignIn as startCloudSignIn } from './lib/cloud/signin'
 export { accessToken as cloudAccessToken, sessionFile as cloudSessionFile } from './lib/cloud/session'
 export type { CloudSession, TokenResult as CloudTokenResult } from './lib/cloud/session'

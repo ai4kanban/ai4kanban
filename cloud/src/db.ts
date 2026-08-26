@@ -60,7 +60,13 @@ async function rpc<T>(env: Env, fn: string, args: Record<string, unknown>): Prom
     throw serviceUnavailable()
   }
 
-  if (response.ok) return (await response.json()) as T
+  // A function returning `void` answers with no body at all — `mark_mail_sent` is one, and
+  // parsing that as JSON would throw a send that Resend already accepted back into the
+  // failed path, mailing the same code again every hour.
+  if (response.ok) {
+    const body = await response.text()
+    return (body ? JSON.parse(body) : undefined) as T
+  }
 
   const error = (await response.json().catch(() => ({}))) as PostgrestError
   throw refusalFor(error, response.status)

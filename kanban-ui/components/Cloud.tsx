@@ -16,13 +16,20 @@
 // admitted, signed in and not admitted, and expired. What the service refuses is shown in
 // the service's own words — Cloud writes its refusals to be read as they stand, and a copy
 // of them here would be a second thing to keep true.
+//
+// The not-admitted state is the one with something to do in it (#327), and it reads as one
+// column: the refusal, the code box, **Request an invite** under a hairline, and Sign out
+// last. Whoever was handed a code meets the box immediately; whoever has none pays one short
+// line of reading before the button.
 
 import { useCallback, useEffect, useState } from "react";
-import { FiAlertCircle, FiCheck, FiHome, FiLogOut, FiRefreshCw } from "react-icons/fi";
+import { FiAlertCircle, FiCheck, FiHome, FiKey, FiLogOut, FiMail, FiRefreshCw } from "react-icons/fi";
 import { SiGithub } from "react-icons/si";
 import {
   cloudAccountAction,
   finishCloudSignInAction,
+  redeemCloudInvitationAction,
+  requestCloudInviteAction,
   signOutOfCloudAction,
   startCloudSignInAction,
 } from "@/app/actions";
@@ -120,6 +127,14 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
         <p className="text-[13px] text-nb-ink-soft">Checking this machine…</p>
       ) : account.state === "signed-in" ? (
         <SignedIn account={account} busy={busy} onSignOut={() => void signOut()} />
+      ) : account.state === "not-admitted" ? (
+        <NotAdmitted
+          account={account}
+          busy={busy}
+          onDone={load}
+          onError={onError}
+          onSignOut={() => void signOut()}
+        />
       ) : (
         <SignedOut
           account={account}
@@ -203,7 +218,7 @@ function SignedIn({
   );
 }
 
-// --- not signed in, not admitted, expired -------------------------------------
+// --- not signed in, or expired ------------------------------------------------
 
 function SignedOut({
   account,
@@ -220,30 +235,15 @@ function SignedOut({
   onSignIn: () => void;
   onSignOut: () => void;
 }) {
-  const refused = account.state === "not-admitted";
   const expired = account.state === "expired";
 
   return (
     <>
-      {refused && (
-        <Note title="This account is not in the preview yet.">
-          {account.handle && (
-            <>
-              You are signed in as{" "}
-              <code className="font-mono text-[11.5px] font-[700]">@{account.handle}</code>.{" "}
-            </>
-          )}
-          {account.message}
-        </Note>
-      )}
-
-      {expired && (
+      {expired ? (
         <Note title="Your Cloud sign-in expired.">
           Nothing was lost. Sign in again and whatever was waiting to send carries on.
         </Note>
-      )}
-
-      {!refused && !expired && (
+      ) : (
         <div className="rounded-[10px] bg-nb-wash px-4 py-3.5">
           <p className="text-[13px] font-[800] text-nb-ink">Cloud is an invite-only preview.</p>
           <p className="mt-1 max-w-[58ch] text-[12.5px] leading-relaxed text-nb-ink-soft">
@@ -253,22 +253,21 @@ function SignedOut({
       )}
 
       {/* What Cloud does and does not do, before the sign-in rather than after it. */}
-      {!refused && <Boundary />}
+      <Boundary />
 
       <div className="flex flex-wrap items-center gap-3">
-        {!refused &&
-          (inApp ? (
-            <Button size="sm" disabled={busy || !account.configured} onClick={onSignIn}>
-              <SiGithub size={14} aria-hidden />
-              {expired ? "Sign in again" : "Sign in with GitHub"}
-            </Button>
-          ) : (
-            <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">
-              Signing in needs the AI4Kanban app — the consent screen comes back to it. Open this
-              project there once, and every terminal on this machine is signed in with it.
-            </p>
-          ))}
-        {(refused || expired) && (
+        {inApp ? (
+          <Button size="sm" disabled={busy || !account.configured} onClick={onSignIn}>
+            <SiGithub size={14} aria-hidden />
+            {expired ? "Sign in again" : "Sign in with GitHub"}
+          </Button>
+        ) : (
+          <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">
+            Signing in needs the AI4Kanban app — the consent screen comes back to it. Open this
+            project there once, and every terminal on this machine is signed in with it.
+          </p>
+        )}
+        {expired && (
           <Button size="sm" variant="ghost" disabled={busy} onClick={onSignOut}>
             <FiLogOut size={13} aria-hidden />
             Sign out
@@ -281,11 +280,157 @@ function SignedOut({
         )}
       </div>
 
-      {!account.configured && account.message && !refused && (
-        <Note>{account.message}</Note>
-      )}
+      {!account.configured && account.message && <Note>{account.message}</Note>}
     </>
   );
+}
+
+// --- signed in and not admitted (#327) ----------------------------------------
+// Two doors, one under the other: the code box first, because whoever was handed a code has
+// nothing to read, and **Request an invite** under a hairline for whoever has none. Both
+// press once and then re-read the account, so what is drawn next is the service's answer.
+
+function NotAdmitted({
+  account,
+  busy,
+  onDone,
+  onError,
+  onSignOut,
+}: {
+  account: CloudAccount;
+  busy: boolean;
+  onDone: () => Promise<void>;
+  onError?: (msg: string) => void;
+  onSignOut: () => void;
+}) {
+  const [code, setCode] = useState("");
+  /** The service's own words for the last code we tried. Cleared as soon as it is retyped.
+   *  Only a code lands here — a request that fails has no box to sit under, so it goes to
+   *  the pane's own error line. */
+  const [refusal, setRefusal] = useState<string | null>(null);
+  const [working, setWorking] = useState<"redeem" | "request" | null>(null);
+  const held = busy || working !== null;
+
+  const redeem = async () => {
+    if (held || !code.trim()) return;
+    setWorking("redeem");
+    setRefusal(null);
+    try {
+      const done = await redeemCloudInvitationAction(code);
+      // A redemption moves the pane to the admitted state on the spot, so there is nothing
+      // to say on success — the pane it drew is gone.
+      if (!done.ok) setRefusal(done.error);
+      else await onDone();
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  const request = async () => {
+    if (held) return;
+    setWorking("request");
+    try {
+      const done = await requestCloudInviteAction();
+      if (!done.ok) onError?.(done.error);
+      else await onDone();
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  return (
+    <>
+      <Note title="This account is not in the preview yet.">
+        {account.handle && (
+          <>
+            You are signed in as{" "}
+            <code className="font-mono text-[11.5px] font-[700]">@{account.handle}</code>.{" "}
+          </>
+        )}
+        {account.message}
+      </Note>
+
+      <div className="rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-4 py-3.5 shadow-[2px_2px_0_0_var(--color-nb-ink)]">
+        <p className="flex items-center gap-2 text-[13px] font-[800] text-nb-ink">
+          <FiKey size={14} aria-hidden />
+          Have an invitation code?
+        </p>
+        <form
+          className="mt-2.5 flex items-center gap-2.5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void redeem();
+          }}
+        >
+          <input
+            value={code}
+            onChange={(e) => {
+              setCode(e.target.value);
+              setRefusal(null);
+            }}
+            spellCheck={false}
+            autoComplete="off"
+            aria-label="Invitation code"
+            aria-invalid={refusal ? true : undefined}
+            placeholder="AK4B-7QF2-M3XD"
+            className={`h-9 min-w-0 flex-1 rounded-[9px] border-[1.5px] bg-nb-paper px-3 font-mono text-[13px] font-[700] tracking-[0.06em] text-nb-ink outline-none placeholder:font-[500] placeholder:tracking-normal placeholder:text-nb-ink-soft/50 ${
+              refusal ? "border-nb-peach-ink" : "border-nb-ink"
+            }`}
+          />
+          <Button size="sm" type="submit" disabled={held || !code.trim()}>
+            {working === "redeem" ? "Redeeming…" : "Redeem"}
+          </Button>
+        </form>
+        {refusal ? (
+          <div
+            className="mt-2 flex items-start gap-2 rounded-[8px] bg-nb-peach-soft px-3 py-2"
+            role="status"
+          >
+            <FiAlertCircle className="mt-[1px] shrink-0 text-nb-peach-ink" size={12} aria-hidden />
+            <span className="text-[11.5px] leading-[16px] text-nb-ink">{refusal}</span>
+          </div>
+        ) : (
+          <p className="mt-2 text-[11.5px] leading-[16px] text-nb-ink-soft">
+            One code admits one account, and admits it for good.
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center gap-4 border-t border-nb-ink/12 pt-3.5">
+        <div className="min-w-0 flex-1">
+          <p className="text-[12.5px] font-[800] text-nb-ink">No code yet?</p>
+          <p className="mt-[3px] text-[11.5px] leading-[16px] text-nb-ink-soft">
+            We read every request by hand and email a code. No date is promised.
+          </p>
+        </div>
+        {account.inviteRequestedAt ? (
+          <span className="flex h-[34px] shrink-0 items-center gap-2 rounded-[9px] bg-nb-mint-soft px-3 text-[12px] font-[700] text-nb-mint-ink">
+            <FiCheck size={12} aria-hidden />
+            Asked {asked(account.inviteRequestedAt)} — we’ll email
+          </span>
+        ) : (
+          <Button size="sm" variant="ghost" disabled={held} onClick={() => void request()}>
+            <FiMail size={13} aria-hidden />
+            {working === "request" ? "Asking…" : "Request an invite"}
+          </Button>
+        )}
+      </div>
+
+      <div>
+        <Button size="sm" variant="ghost" disabled={held} onClick={onSignOut}>
+          <FiLogOut size={13} aria-hidden />
+          Sign out
+        </Button>
+      </div>
+    </>
+  );
+}
+
+/** When the request went in, in the shortest form that still says which day. */
+function asked(at: string): string {
+  const when = new Date(at);
+  if (Number.isNaN(when.getTime())) return "already";
+  return when.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 /** What Cloud is for, and what it never receives. Said here because in 0.8.0 this pane is
@@ -301,8 +446,8 @@ function Boundary() {
       <p className="mt-2 text-[12px] leading-relaxed text-nb-ink-soft">
         Signing in confirms you have read the{" "}
         <Link href={PRIVACY_URL}>Privacy Policy</Link> and the <Link href={TERMS_URL}>Terms of
-        Service</Link>. GitHub is asked for your name and handle and nothing else — no repository
-        access.
+        Service</Link>. GitHub is asked for your name, your handle and your verified email
+        address, and nothing else — no repository access.
       </p>
     </div>
   );

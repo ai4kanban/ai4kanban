@@ -35,15 +35,23 @@ cloud/
   `auth.identities`, which Auth rewrites on every sign-in. A token carries only
   `user_metadata`, which the account holder can rewrite through Auth, so neither admission
   nor a Slack link may read a handle from one.
+- **Two doors admit an account**: the hand-written handle list, and a code the account
+  redeemed. A redemption is keyed on the sign-in subject rather than the handle, because
+  GitHub lets a handle be given up and taken by somebody else.
 - **One schedule serves the whole service**: an hourly run touches the database, which is
-  what keeps a free Supabase project from pausing after a quiet week. Later scheduled work
-  hangs off that run.
+  what keeps a free Supabase project from pausing after a quiet week. It is also the one
+  thing that sends email — every request notice and every issued invitation — so the mail
+  key never leaves the Worker and a failed send is retried rather than lost.
 
 ## Endpoints
 
 - `GET /health` — liveness. Reaches nothing, so it stays honest while the database is
   read-only.
 - `GET /v1/session` — the caller's verified identity. Needs `Authorization: Bearer <token>`.
+- `POST /v1/invite-request` — record that this account asked for an invite. Open to a verified
+  sign-in that is **not** admitted. Pressing it again returns the request already open.
+- `POST /v1/invitations/redeem` — `{ "code": "…" }`. Open to the same. One code admits one
+  account.
 - `POST /v1/self-check` — one budgeted write through the path every mutation uses. Needs the
   same bearer token **and an admitted account**; run it after a deploy.
 
@@ -55,6 +63,7 @@ to be shown to a user as it stands. The two a client must tell apart:
 | `unauthenticated` | No sign-in, or one that is expired or unreadable. Signing in again fixes it. |
 | `not_admitted` | A good sign-in from an account we have not admitted. Signing in again lands on the same refusal, so a client must never answer it with "sign in again". |
 | `not_yours` | The request named a row belonging to another account. |
+| `invitation_unknown` / `invitation_redeemed` / `invitation_withdrawn` | The three ways a code can fail. Each asks the reader for something different, so each has its own code. A refused code writes nothing at all. |
 
 `GET /v1/session` answers `200` either way and carries `session.admitted`. When that is
 false it also carries `refusal`, the very refusal every other route would give, so the app
@@ -110,12 +119,57 @@ select handle, note, admitted_at from cloud.admitted_accounts order by admitted_
 delete from cloud.admitted_accounts where lower(handle) = lower('neverchanje');
 ```
 
-Removing a row refuses that account from its next request. It leaves the `cloud.accounts`
-row and everything hanging off it exactly where it is — take the rows out separately if
-that is what you mean.
+Removing a row refuses that account from its next request **by this door only**. It leaves
+the `cloud.accounts` row, everything hanging off it, and any code the account redeemed
+exactly where they are. `cloud.remove_account` below is the one that closes both doors.
 
 The handle is matched against what GitHub attests for the sign-in, so a row admits the
-account GitHub says owns that name. #327 replaces this hand step with an invitation code.
+account GitHub says owns that name. It is the door we admit **ourselves** through — an
+invitation code (below) is the one everybody else comes in by.
+
+## Answer an invite request
+
+A refused person presses **Request an invite** in the app, which records a row and nothing
+else. The next hourly run mails the notice to `support@ai4kanban.dev` with the requester as
+the reply address; the **record**, not the mail, is what an answer is written from.
+
+Approving is one statement. It issues the code, points it at the address the sign-in
+attested, and leaves it for the next hourly run to send — nobody types a code, and no mail
+credential reaches whoever approves.
+
+```sql
+-- who is waiting
+select handle, email, requested_at, notified_at, notify_attempts, notify_error
+from cloud.invite_requests where closed_at is null order by requested_at;
+
+-- approve one: returns the code, and the next hourly run mails it
+select cloud.approve_invite_request('neverchanje');
+
+-- invite somebody who never asked, by naming the address
+select cloud.issue_invitation('someone@example.com', 'Ana — design review');
+
+-- every code, and what became of it
+select code, email, note, issued_at, sent_at, send_attempts, send_error,
+       withdrawn_at, redeemed_by, redeemed_at
+from cloud.invitations order by issued_at desc;
+
+-- withdraw a code: before it is redeemed this stops it admitting anybody and stops it
+-- going out; after, it closes the door it opened
+select cloud.withdraw_invitation('AK4B-7QF2-M3XD');
+
+-- remove an admitted account by BOTH doors, taking its request and its invitation with it
+select cloud.remove_account('neverchanje');
+```
+
+A code is twelve characters of a thirty-two-letter alphabet with no `0`, `O`, `1` or `I` in
+it. It is matched with case and dashes ignored, so it can be pasted however it was read.
+
+`cloud.remove_account` matches on the handle, and `cloud.accounts.handle` is deliberately not
+unique — check `select id, handle from cloud.accounts where lower(handle) = lower('…')` first
+if there is any chance two accounts share one.
+
+Nothing here is reachable over REST: these functions live in `cloud`, which PostgREST serves
+to nobody. Run them in the project's SQL editor, the same way an account is admitted above.
 
 ## Migrate
 
@@ -140,8 +194,11 @@ npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY   # from cloud/
 The new value is live on the next request; no deploy is needed. To rotate the Supabase
 service role key itself: roll it in the Supabase dashboard, put the new value in with the
 command above, then `curl https://api.ai4kanban.dev/health` and run `POST /v1/self-check`.
-The secrets the Worker holds are `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`;
-`.dev.vars.example` lists them for local runs.
+The secrets the Worker holds are `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and
+`RESEND_API_KEY`; `.dev.vars.example` lists them for local runs. `RESEND_API_KEY` is
+deliberately not required at startup: a Worker that cannot mail still answers every route,
+and the hourly run logs `RESEND_API_KEY is not set — nothing sent` rather than the whole
+service refusing requests over a secret only the schedule needs.
 
 ## Limits the preview lives inside
 
@@ -154,7 +211,11 @@ The secrets the Worker holds are `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`;
   That reaches the client as `storage_limit_reached`, never as a conflict or a generic
   failure.
 - **The scheduled run is outside the budget** — 24 rows a day, and a busy day must not switch
-  off the thing keeping the project awake.
+  off the thing keeping the project awake. The mail it sends is outside it for the same
+  reason: a busy day must not hold an invitation back.
+- **A send is given up on after five attempts** — `MAIL_MAX_ATTEMPTS` in `src/config.ts`. Past
+  that the record keeps its last error and stops being mailed every hour forever, so a dead
+  address is something the queries above can see.
 - **No backups** — Supabase Free keeps none. A workspace export is the only copy anyone can
   restore from.
 
@@ -168,10 +229,12 @@ Only needed once, and again if the project is ever recreated.
    gets a throwaway workspace instead.
 2. **Asymmetric sign-in keys** — in the project's JWT settings, move to an asymmetric signing
    key so `/auth/v1/.well-known/jwks.json` publishes one. The Worker verifies against it.
-3. **GitHub OAuth app** — one app, **no scopes at all**, callback
+3. **GitHub OAuth app** — one app, callback
    `https://<project-ref>.supabase.co/auth/v1/callback`. Its client id and secret go into the
-   project's GitHub auth provider, not into the Worker. A token with no scopes reads a public
-   profile and cannot read a private repository.
+   project's GitHub auth provider, not into the Worker. The sign-in asks for **`user:email`
+   and nothing else** (`cli/src/lib/cloud/signin.ts`), so every account carries an address
+   GitHub itself verified — which is what an invitation is mailed to — and the grant still
+   cannot read a repository.
 4. **The sign-in's return address** — in the project's Auth URL configuration, add
    `ai4kanban://cloud/signed-in` to the redirect allow-list. That is the URL scheme the
    desktop app registers for itself (#326): the board UI server's loopback port is whatever
@@ -183,8 +246,9 @@ Only needed once, and again if the project is ever recreated.
    `anon` or `authenticated`, which step 8 proves. `AI4KANBAN_SUPABASE_URL`,
    `AI4KANBAN_SUPABASE_ANON_KEY` and `AI4KANBAN_CLOUD_URL` override all three, so a checkout
    can be pointed at a throwaway project without a build.
-6. **Worker secrets** — `npx wrangler secret put SUPABASE_URL` and
-   `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY`.
+6. **Worker secrets** — `npx wrangler secret put SUPABASE_URL`,
+   `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` and
+   `npx wrangler secret put RESEND_API_KEY`.
 7. **Exposed schemas** — in the project's API settings, set the exposed schema list to
    `api` alone. Dropping `public` and `graphql_public` is what closes PostgREST and the
    GraphQL endpoint to everyone but the Worker.
@@ -192,6 +256,13 @@ Only needed once, and again if the project is ever recreated.
 9. **Route** — `npm run deploy` claims `api.ai4kanban.dev` as a custom domain on the
    Cloudflare account the site deploys from. `cloud.ai4kanban.dev` stays free for the hosted
    browser surface.
+10. **The sending domain** — add `send.ai4kanban.dev` as a domain in Resend and publish the
+    DKIM and return-path records it gives you. **Leave the root domain's MX and SPF records
+    alone**: they belong to the Cloudflare Email Routing that delivers `support@ai4kanban.dev`,
+    and a sender on the same name fights them. Mail goes out as
+    `AI4Kanban <invites@send.ai4kanban.dev>` replying to `support@ai4kanban.dev`
+    (`src/config.ts`). Resend's free tier is 3,000 emails a month and 100 a day from one
+    verified domain, which is far more than an invite-only preview issues.
 
 Nothing else is registered against this service: Slack destinations are webhook URLs an owner
 pastes, and GitHub is reached from a member's own machine with its own grant.

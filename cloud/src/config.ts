@@ -15,3 +15,22 @@ export const JWKS_MIN_REFETCH_MS = 30 * 1000
 
 /** Clock skew allowed when checking a token's `exp` and `nbf`. */
 export const CLOCK_SKEW_SECONDS = 60
+
+// --- the invitation mail (#327) ----------------------------------------------
+// One sender, one queue, one retry. Both messages the preview sends — the notice that
+// somebody asked, and the code that answers — go out from the hourly run through Resend.
+
+/** Who an invitation comes from. A sending subdomain, so Resend's records stay clear of the
+ *  Email Routing that delivers `support@ai4kanban.dev` on the root name. */
+export const MAIL_FROM = 'AI4Kanban <invites@send.ai4kanban.dev>'
+
+/** Where a reply lands, for both messages. The one mailbox a person reads. */
+export const SUPPORT_EMAIL = 'support@ai4kanban.dev'
+
+/** How many records one run picks up. Far above what an invite-only preview queues in an
+ *  hour, and inside the free tier's day either way. */
+export const MAIL_BATCH = 20
+
+/** Attempts before a record is left alone. Past this it keeps its last error and stops being
+ *  mailed every hour forever. */
+export const MAIL_MAX_ATTEMPTS = 5

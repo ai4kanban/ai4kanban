@@ -2,3 +2,6 @@
 # these from its secret store instead (`wrangler secret put <NAME>`).
 SUPABASE_URL="https://<project-ref>.supabase.co"
 SUPABASE_SERVICE_ROLE_KEY="<the project's service role key>"
+# The invitation mail (#327). Optional: without it every route still answers and the hourly
+# run logs that it sent nothing.
+RESEND_API_KEY="<a Resend API key for send.ai4kanban.dev>"

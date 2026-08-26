@@ -16,7 +16,7 @@ import type {
   RunView,
   SpecAgentView,
 } from "./format/agent/types";
-import type { CloudAccount } from "./format/cloud/types";
+import type { CloudAccount, CloudMove } from "./format/cloud/types";
 import type { Language } from "./format/machine/types";
 import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
 import type {
@@ -228,6 +228,13 @@ export interface BoardRules {
   startCloudSignIn?(): { ok: true; url: string } | { ok: false; error: string };
   finishCloudSignIn?(callback: string): Promise<{ ok: boolean; error?: string }>;
   signOutOfCloud?(): { ok: true };
+
+  // the two doors out of the not-admitted state (#327) — ask us for an invite, and spend the
+  // code we answer with. Optional on their own: a project can be running rules that sign in
+  // to Cloud but predate the invitation loop, and the pane offers neither rather than a
+  // button nothing can answer.
+  requestCloudInvite?(): Promise<CloudMove>;
+  redeemCloudInvitation?(code: string): Promise<CloudMove>;
 
   // what the board would start on its own, this minute
   nextWork(): Promise<AgentRequest[]>;

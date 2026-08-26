@@ -106,7 +106,7 @@ export type {
   SkillWrite,
 } from "./format/skill/types";
 
-export type { CloudAccount, CloudState } from "./format/cloud/types";
+export type { CloudAccount, CloudMove, CloudState } from "./format/cloud/types";
 
 export type { Language } from "./format/machine/types";
 export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from "./format/machine/types";
