@@ -8,6 +8,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Make Slack the only place to inspect and test notification messages** → ✅ prove the
   complete event, message, and action flow in a desktop notification center first, then let
   external connectors reuse it.
+- ❌ **Name a local publisher without saying which process owns it** → ✅ ship one shared
+  publisher module in the desktop board server and `akb`, beside every process that can
+  commit an actionable board write.
 
 - ❌ **UI lets people hand-edit the board** (toggle todos, write cards, move, mark done) →
   ✅ the UI spawns agent runs to do the kanban work; on-card buttons call the agent

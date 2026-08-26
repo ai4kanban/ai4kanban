@@ -184,10 +184,10 @@ except where another doc is named.
   all work, and a resumed run carries on in the same dsh session with its history:
   "Running on DeepSeek Harness" in `kanban-ui/README.md`.
 - Run the board on **ZCode**, Z.ai's agent for its GLM models: pick it in the same list,
-  leave Sign-in on the login `zcode` already has or paste a Z.AI Coding Plan key, and every
-  button spawns `zcode app-server`. Its log streams text, thinking and tool calls as they
-  arrive, and a resumed run carries on in the same ZCode session:
-  `docs/guides/connectors.md`.
+  paste a Z.AI or BigModel Coding Plan key — the key box is the only way in, and a run
+  without it stops with the board's line saying so — and every button spawns
+  `zcode app-server`. Its log streams text, thinking and tool calls as they arrive, and a
+  resumed run carries on in the same ZCode session: `docs/guides/connectors.md`.
 - Install dsh in two commands, never one — `npm install -g @deepseek-ai/dsh` and then
   `npm install -g @openma/deepseek-harness-acp`. Named together, npm gives each its own
   folder and the bridge comes out with no dsh under it. A run then points the bridge at the

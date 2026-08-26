@@ -5,16 +5,10 @@ priority: med
 roi: med
 status: todo
 release: 0.8.0
-blocked_by: [326]
+blocked_by: [326, 321]
 related: [326, 321, 311]
 modules: [cloud, local-ui]
-questions:
-  - question: "[user] #321's privacy and terms pages are in no release, but 0.8.0 cannot email a code until they are live and rewritten. Does #321 ship in 0.8.0?"
-    mode: single
-    options:
-      - Yes — put #321 in 0.8.0, so the release carries the pages the invitation email depends on.
-      - No — leave #321 unreleased and treat its pages being live as a gate we clear before turning Cloud on.
-    recommend: [1]
+questions: []
 ---
 
 Let someone we have decided to invite admit themselves: we approve their request, Cloud
@@ -47,6 +41,11 @@ somebody writes.
   preview never has to guess who a code was meant for, and a leaked code costs one admission
   we can revoke rather than an open door. The cost is that a code handed to a team admits one
   of them, so inviting three people means issuing three codes.
+- **Which release publishes the privacy and terms pages**: 0.8.0, the release this card
+  ships in. The version that starts emailing a code carries the pages that say what it
+  emails, rather than leaving them a gate somebody has to clear before Cloud is turned on.
+  The cost is that #321 leaves its group — #311 is still in no release — and has to be
+  written, reviewed and published on this release's schedule.
 - **This does not open sign-up**: a code is still something we decide to give, so the preview
   stays invite-only and its capacity stays bounded, the way #311 settled. Nobody is admitted
   without a person approving them first. Self-serve sign-up is a later change that arrives
@@ -74,7 +73,8 @@ somebody writes.
 - Cloud's `api` schema is the only thing PostgREST serves, and a mutation is one `api`
   function and one transaction counted against the day's write budget.
 - #321's terms page says the preview sends no email at all, and its privacy page names
-  Cloudflare and Supabase as its only subprocessors. #321 is in no release.
+  Cloudflare and Supabase as its only subprocessors. #321 ships in 0.8.0, ahead of this
+  card.
 
 ## Scope
 - Approve a recorded invite request by hand, against the live database the way an account is
@@ -97,8 +97,8 @@ somebody writes.
 - Let a code be withdrawn before it is redeemed, and an admitted account be removed, both by
   hand.
 - Close out the invite request the code answers when the account that made it redeems.
-- Send no code before #321's pages are live and say what the preview now emails, the same
-  order #326 fixed for taking the request.
+- Send no code before #321's pages are live and say what the preview now emails — #321
+  ships in this release and lands first, the same order #326 fixed for taking the request.
 - Out of scope: open sign-up, a code anyone can request without us, expiry dates, an admin
   screen, workspaces, roles, and everything else #314 owns.
 
@@ -118,8 +118,9 @@ somebody writes.
 - [ ] Write approving a request, issuing a code to someone who never asked, withdrawing a
       code, and the sending domain's setup into `cloud/README.md`, beside standing the
       project up.
-- [ ] Rewrite #321's terms line that the preview sends no email, and add the invitation email
-      and its provider to #321's privacy page.
+- [ ] Amend the pages #321 published earlier in this release: rewrite the terms line saying
+      the preview sends no email, and add the invitation email and its provider to the
+      privacy page.
 - [ ] Check that a code admits one account only, that a second redemption is refused, that a
       withdrawn code admits nobody, and that one approval sends exactly one email.
 
@@ -141,6 +142,9 @@ somebody writes.
 - **Does #326's request notice move to Resend too?**: no. It goes to our own verified
   destination, which is free on the plan the preview runs, and moving a working send buys
   nothing.
+- **Why #321 became a blocker rather than a line in the scope**: both cards ship in 0.8.0
+  now, and no code may be emailed until the pages are live, so the board holds that order in
+  `blocked_by` instead of leaving it to whoever picks the card up.
 - **What a redeemed code leaves behind**: the invitation record, holding the address it was
   sent to. That is what ties an admitted account back to the invitation, so #321's privacy
   page lists it beside the invite request.

@@ -4,7 +4,7 @@ track: distribution
 priority: high
 roi: med
 status: ready
-release: ""
+release: 0.8.0
 blocked_by: []
 related: [293, 311, 314, 317, 325]
 modules: [site, cloud]

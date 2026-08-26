@@ -3,7 +3,7 @@ title: ZCode's 'The login ZCode has' sign-in fails, and the docs say it works
 track: skill
 priority: high
 roi: high
-status: ready
+status: implementing
 release: 0.8.0
 blocked_by: []
 related: [229]
@@ -13,6 +13,7 @@ verify:
   - Run a card end to end on ZCode with a Coding Plan key after the Sign-in box is gone — the key box is the only route left, so nothing else proves it still reaches the run.
   - Configuration shows ZCode with a Model box and a key box, and no Sign-in box.
   - Clear the key box and start a run — the log ends with ZCode's own error and the board's line about the key box.
+  - The board's half of the key rename is now covered by cli/test/run-env.test.ts — the end-to-end run only has to prove ZCode reads ANTHROPIC_API_KEY.
 ---
 
 Picking ZCode's default sign-in, *The login ZCode has*, can leave a user unable to start at
@@ -72,18 +73,18 @@ $ akb agent test
 - **Nothing changes for the other five agents.**
 
 ## Todo
-- [ ] Let a secret setting name the variable a run gets its value under, beside the `env`
+- [x] Let a secret setting name the variable a run gets its value under, beside the `env`
       name its `docs/kanban/.env` line keeps (`cli/src/lib/agent/types.ts`,
       `agent/resolve.ts`, `agent/harnesses/check.ts`).
-- [ ] Drop the Sign-in setting from `cli/src/lib/agent/harnesses/zcode.ts`, keeping the key
+- [x] Drop the Sign-in setting from `cli/src/lib/agent/harnesses/zcode.ts`, keeping the key
       on `ZAI_API_KEY` in the file and on `ANTHROPIC_API_KEY` in the run.
-- [ ] Make a ZCode run that stops for a missing key add the board's line about the key box,
+- [x] Make a ZCode run that stops for a missing key add the board's line about the key box,
       under the error ZCode ended it with.
-- [ ] Rewrite the sign-in bullet and the ZCode settings row in `docs/guides/connectors.md`
+- [x] Rewrite the sign-in bullet and the ZCode settings row in `docs/guides/connectors.md`
       so the key is the path it teaches.
-- [ ] Fix the ZCode claims in `kanban-ui/README.md`: the settings table row, the **Sign-in**
+- [x] Fix the ZCode claims in `kanban-ui/README.md`: the settings table row, the **Sign-in**
       bullet, the key-box bullet and the ZCode section.
-- [ ] Fix the ZCode lines in `docs/kanban/memory/skill/readme.md` and
+- [x] Fix the ZCode lines in `docs/kanban/memory/skill/readme.md` and
       `docs/kanban/memory/local-ui/readme.md`.
 
 ## Decided by the agent

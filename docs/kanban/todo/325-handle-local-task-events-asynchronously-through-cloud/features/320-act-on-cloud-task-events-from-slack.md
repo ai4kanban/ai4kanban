@@ -11,30 +11,31 @@ modules: [cloud, local-ui]
 questions: []
 ---
 
-Deliver #319's proven task events to Slack and return the user's decisions to Cloud. Today
-Slack can receive an outbound message, but it cannot authenticate a button press or continue
-the local task lifecycle.
+Deliver #319's proven task events to Slack and return authenticated decisions through the
+same Worker action path. Cloud records durable state immediately, and the local node catches
+up with the request when it is available.
 
 ## Worth noting
-- **Slack must be interactive**: an incoming webhook can post a message but cannot provide
-  the authenticated actions this flow needs, so the user connects a Slack app instead.
-- **The desktop app need not be open for the click**: Cloud records the action immediately;
-  the local execution node handles it when available.
+- **Slack uses an interactive app**: signed callbacks and actor linking provide the actions
+  this flow needs, at the cost of connector credentials and connection setup.
+- **The click lands before the node runs**: Cloud records the action immediately, and the
+  desktop board server or `akb` handles it through durable catch-up when available.
 
 <!-- agent -->
 
 ## Scope
 - Let the authenticated user connect and disconnect one Slack destination.
-- Associate the Slack actor with the AI4Kanban account from #326 before accepting a task action.
+- Associate the Slack actor with the Supabase-authenticated AI4Kanban account from #326
+  before accepting a task action.
 - Render the same ready-review and user-question events proven by the desktop notification
   center, with enough task context to make the decision deliberate.
 - Offer **Implement** for the exact ready revision and the relevant answer controls for
   user-owned questions.
 - Return actions to #319's connector-neutral action path instead of changing task state
   inside the connector.
-- Show accepted, waiting-for-node, running, delivered, failed, stale, and unauthorized
-  outcomes in the original Slack message.
-- Retry Slack delivery independently without duplicating the event, action, or implementation.
+- Render accepted, waiting-for-node, running, delivered, failed, stale, and unauthorized
+  outcomes from the same durable state as the desktop notification center.
+- Retry Slack delivery under the event's stable action and execution IDs.
 - Keep Slack credentials and connection setup outside the event content model.
 
 ## Todo
@@ -43,8 +44,9 @@ the local task lifecycle.
 - [ ] Return **Implement** and question answers through the authenticated Cloud action path.
 - [ ] Refuse unlinked, unauthorized, duplicate, and stale Slack actions clearly.
 - [ ] Keep the original Slack message synchronized with the decision and delivery outcome.
-- [ ] Retry failed delivery without duplicate events or task actions.
-- [ ] Check adding Slack changes no event eligibility, message meaning, or execution rules.
+- [ ] Retry failed delivery under the original event and action IDs.
+- [ ] Check that Slack preserves the existing event eligibility, message meaning, and
+      execution rules.
 
 ## Decided by the agent
 ### Overruled by the user

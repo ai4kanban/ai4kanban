@@ -8,7 +8,8 @@ Internal detail stays on the card.
 
 - **Which version does team collaboration ship in?**: no release yet. Shared Cloud boards,
   membership, roles, imports, and multi-user conflict handling follow the smaller 0.8.0
-  Cloud foundation.
+  Cloud foundation. Its privacy and terms pages are the exception — 0.8.0 needs them, so
+  they ship there.
 - **What Cloud behavior ships in 0.8.0?**: single-user asynchronous task handling. The local
   Markdown board stays authoritative; Cloud authenticates the user and relays revisioned
   events, human actions, execution requests, and their outcomes.
@@ -67,6 +68,10 @@ Internal detail stays on the card.
   terms page on the public site, built with the same page code the blog uses and linked from
   the Cloud choice in onboarding. They are live before the first outside team is invited,
   and they promise that an owner can delete a workspace and everything in it.
+- **Which release publishes the privacy and terms pages?**: 0.8.0, the same release that
+  starts emailing an invitation code. The version that sends a user mail is the one that
+  carries the pages saying so, rather than treating them as a gate cleared before Cloud is
+  turned on.
 - **Who legally runs AI4Kanban Cloud?**: Nullreach Ltd, a private limited company registered
   in England and Wales. It is the operator on the terms page and the data controller on the
   privacy page, and the terms are governed by English and Welsh law.

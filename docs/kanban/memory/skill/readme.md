@@ -161,8 +161,10 @@ covers it, or a plain-words note.
 - A sixth agent runs the board: **ZCode**, with `akb agent use zcode`. Z.ai ships no
   terminal command, so it needs `npm install -g zcode-app-cli` — a community package, not
   Z.ai's — or ZCode Desktop with this agent's `command` pointed at the `zcode` inside it.
-  Sign in with `zcode login`, or paste a Z.AI or BigModel Coding Plan key. A ZCode run is
-  not fenced to the project: ZCode ships no sandbox: `docs/guides/connectors.md`.
+  It signs in with a Z.AI or BigModel Coding Plan key and nothing else — a `zcode login`
+  credential belongs to a provider `zcode`'s own config never points at, so a run without
+  the key stops on `Model provider is missing an API key: zai`. A ZCode run is not fenced to
+  the project: ZCode ships no sandbox: `docs/guides/connectors.md`.
 - A dsh run is pinned to the dsh sitting beside the bridge, with `--dsh-path`. `dsh-acp`
   otherwise takes the first `dsh` on the PATH, and on a machine that has one that is a
   second copy of the same plugin system — every run then dies as it opens, on

@@ -11,31 +11,61 @@ If the machine is unavailable, the action remains `waiting for node` until AI4Ka
 ## Boundaries
 
 - The local Markdown board remains authoritative.
-- Cloud receives only the review snapshot needed for a decision, never the repository, board
-  files, paths, credentials, branches, or worktrees.
-- Cloud sends structured actions, never shell commands, scripts, prompts, or executable data.
+- Cloud receives only the review snapshot needed for a decision; the repository, board files,
+  paths, credentials, branches, and worktrees stay on the user's machine.
+- Cloud sends actions from a fixed data schema; the local node translates a valid action into
+  the existing local flow.
 - Cloud is opt-in for one selected open release.
 - The desktop notification center proves the flow before Slack is added.
-- Slack reuses the same events and actions; it has no separate task model.
+- Slack and the desktop notification center share the same events and actions.
 - Team workspaces, roles, shared boards, and Cloud-hosted execution are outside 0.8.0.
 
 ## Architecture
 
-| Component | Responsibility |
-| --- | --- |
-| Local publisher | Detect actionable board states, keep failed publications locally, and retry without blocking board changes. |
-| Cloudflare Worker | Authenticate callers, enforce ownership and idempotency, accept actions and node reports, and operate Slack. |
-| Supabase Auth | Existing GitHub sign-in and invite-only admission. Better Auth is not added. |
-| Supabase Postgres | Durable events, connector deliveries, human actions, execution requests, claims, and outcomes. |
-| Supabase Realtime Broadcast | Private wake-up and state-change hints after durable writes. It is not a queue or authority. |
-| Desktop execution node | Catch up, claim one request, validate the local task revision, run the existing flow, and report the outcome. |
+| Component | Runtime / deployment | Responsibility |
+| --- | --- | --- |
+| Local publisher | User's machine; a shared module bundled into the desktop board server and `akb` CLI | After a successful board mutation, detect an actionable state, save the publication in a local outbox, and send or retry it independently of the board write. It ships only as local application code. |
+| Cloudflare Worker | `api.ai4kanban.dev` | Verify Supabase sessions, enforce admission, ownership, and idempotency, accept actions and node reports, and operate Slack. |
+| Supabase Auth | Managed Supabase project | Run GitHub OAuth, issue and refresh user sessions, and provide the JWT identity used by the Worker and private Realtime topics. |
+| Supabase Postgres | Same managed Supabase project | Hold durable events, connector deliveries, human actions, execution requests, claims, and outcomes. |
+| Supabase Realtime Broadcast | Same managed Supabase project | Deliver private wake-up and state-change hints after durable writes; Postgres remains the durable authority. |
+| Desktop notification center | Desktop app on the user's machine | Show review events and outcomes, and send the user's selected action to the Worker. |
+| Local execution node | Desktop board server or `akb` on the user's machine | Catch up, claim one request, validate the local task revision, run the existing flow, and report the outcome. |
 
-There is no continuous HTTPS polling and no Cloudflare Durable Object gateway. The desktop
-uses one authenticated Supabase Realtime connection while it is running. On every connection
-or reconnection, it reads durable pending work from the Worker before listening for new hints.
+Yes, this design uses Supabase Auth. GitHub sign-in produces the user session; the Worker
+verifies its JWT against Supabase's JWKS and applies invite-only admission, while Realtime
+uses the same authenticated identity to authorize private topics.
 
-Realtime is the only intentional direct app connection to Supabase. It exposes private topic
-delivery only; all Cloud reads, writes, claims, and actions remain behind the Worker.
+```text
+AUTHENTICATION
+[GitHub OAuth] -> [Supabase Auth] -> session/JWT -> [Desktop app + akb]
+                         |
+                         +------ JWKS ------> [Cloudflare Worker]
+                         +-- JWT identity --> [Private Realtime topics]
+
+EVENTS AND ACTIONS
+USER'S MACHINE                                      CLOUD
+[Markdown board]
+       |
+       +-- successful write --> [Local publisher] -- HTTPS --> [Cloudflare Worker]
+                                 (desktop + akb)                   |
+                                                                  | durable reads/writes
+                                                                  v
+                                                        [Supabase Postgres]
+                                                                  |
+                                                                  | stored IDs
+                                                                  v
+[Desktop notification center + execution node] <-- hints -- [Realtime Broadcast]
+       |
+       +---------------- actions / catch-up / claims / reports --> [Cloudflare Worker]
+
+[Cloudflare Worker] <-------- delivery and callbacks --------> [Slack]
+```
+
+While running, the desktop keeps one authenticated Realtime connection. On each connection
+or reconnection it first reads durable pending work through the Worker, then listens for new
+hints. Durable reads, writes, claims, and actions go through the Worker; Realtime carries only
+private event and request identifiers.
 
 ## Identity and routing
 
@@ -51,14 +81,14 @@ delivery only; all Cloud reads, writes, claims, and actions remain behind the Wo
 - **Question needs an answer**: user-owned question, choices, recommendation, revision, and
   answer action. Whether this remains in 0.8.0 is an open decision below.
 
-Ordinary progress, completion, and agent-owned questions do not create new notifications.
-Execution state updates the original notification.
+New notifications cover the two actionable events above. Execution progress and completion
+update the original notification.
 
 ## End-to-end flow
 
 1. An app, CLI, or agent operation changes the local board.
 2. The local publisher records a pending publication, then sends the revisioned snapshot to
-   the Worker. Cloud failure never rolls back the local change.
+   the Worker. The committed local change and its retriable publication remain independent.
 3. The Worker stores or deduplicates the event and its connector-delivery records in one
    transaction.
 4. Supabase broadcasts the stored event ID. The desktop refreshes it; Slack delivery starts
@@ -81,11 +111,11 @@ Execution state updates the original notification.
   pending publication.
 - Stable IDs make publication, Slack callbacks, actions, claims, and reports idempotent.
 - Cloud may reject a revision already known to be stale; the local check is final.
-- A lost execution lease becomes `interrupted` or `unknown`. It is not automatically assigned
-  elsewhere because local side effects may already exist.
+- A lost execution lease becomes `interrupted` or `unknown` and remains bound to that delivery
+  because local side effects may already exist.
 - The same node may resume the recorded delivery, or the user may cancel it.
-- Slack retries only its connector delivery; it cannot duplicate the action or execution.
-- Signing out or disabling a node prevents new claims without changing the local board.
+- Slack retries its connector delivery under the same stable action and execution IDs.
+- Signing out or disabling a node leaves the local board unchanged and stops future claims.
 
 User-visible states are: actionable, accepted, waiting for node, running, completed, failed,
 stale, cancelled, and interrupted.
@@ -121,14 +151,16 @@ isolation, data boundaries, and Supabase free-tier usage.
 
 ## Release acceptance
 
-- Entering `ready` never starts implementation.
-- The desktop flow works without Slack.
-- Realtime messages alone cannot authorize or start work.
+- Entering `ready` creates a review event; explicit approval starts implementation.
+- The desktop notification center provides the complete core flow; Slack is an additional
+  destination.
+- The Worker authorizes every action and the node validates its local revision before work
+  starts.
 - One valid action creates one durable local request and one local execution.
-- Offline nodes discover waiting work after reconnecting without continuous polling.
-- Old messages cannot mutate a changed or non-actionable task.
+- Reconnected nodes discover waiting work through durable catch-up.
+- Revision and state checks keep changed or non-actionable tasks unchanged.
 - Local changes succeed while Cloud or Slack is unavailable and publish later.
-- A lost node never causes automatic duplicate execution.
+- A lost node leaves one interrupted delivery for explicit resume or cancellation.
 - Every destination shows the same decision and meaningful outcome.
 
 ## Decisions needed
@@ -147,7 +179,7 @@ isolation, data boundaries, and Supabase free-tier usage.
 ## Outside 0.8.0
 
 - Shared Cloud boards and team collaboration.
-- Automatic implementation without human approval.
+- Approval-free automatic implementation.
 - General-purpose task editing from notifications.
 - Cloud-hosted execution or automatic routing across several nodes.
 - An always-on background service unless decision 1 changes.

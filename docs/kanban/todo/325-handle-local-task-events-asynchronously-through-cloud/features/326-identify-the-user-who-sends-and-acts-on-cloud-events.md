@@ -11,11 +11,10 @@ modules: [cloud, local-ui, skill]
 questions: []
 ---
 
-Give the Cloud relay an account that the desktop app, the `akb` command, and Slack all act
-as. The service #323 stood up verifies a sign-in token, but nothing issues one: no surface
-signs a user in, no record ties a verified token to an account, and any GitHub account that
-signs in reaches the service and can spend its daily write budget. Until that account
-exists, the rest of #325 has no owner to hang an event, an action, or an execution node off.
+Give the Cloud relay one Supabase Auth account shared by the desktop app, `akb`, and Slack.
+The service #323 already verifies Supabase JWTs; this card adds GitHub sign-in, durable session
+refresh, invite-only admission, and the account record that owns every later #325 event,
+action, connector, and execution node.
 
 ## Worth noting
 - **Who may sign in to the relay?**: only an account we have admitted, keeping Cloud the
@@ -41,10 +40,9 @@ exists, the rest of #325 has no owner to hang an event, an action, or an executi
   once and never again. Giving the command a consent flow of its own would be a second
   sign-in to build and keep working for a step taken once. The cost is that a machine with
   no desktop — a server, a container, a remote shell — cannot reach Cloud in 0.8.0.
-- **Sign-in is the one #323 already stood up**: the Worker verifies Supabase sign-in tokens
-  from a GitHub app that asks for no scopes, so this card adds the surfaces that obtain and
-  hold a token. Adding Better Auth instead would mean running a second session layer beside
-  a working one, and re-deciding a sign-in the project has already published.
+- **One Supabase session serves every Cloud path**: its GitHub provider issues and refreshes
+  the session shared by the app and `akb`; refresh must update both Worker requests and the
+  live Realtime identity together.
 - **Authentication is not team membership**: 0.8.0 needs one account boundary per user, not
   workspaces, invitations, roles, or shared-board permissions. The cost is that #314 revisits
   this account record when teams ship, rather than inheriting one built for them.
@@ -98,9 +96,8 @@ exists, the rest of #325 has no owner to hang an event, an action, or an executi
   app open, and #319 needs events from CLI-caused changes too.
 
 ## Scope
-- Sign in and out of Cloud from a **Cloud** section of the Configuration dialog, listed after
-  the board's own settings and separated from them, through the GitHub consent screen the
-  Supabase project already runs.
+- Sign in and out through Supabase Auth's GitHub provider from a **Cloud** section of the
+  Configuration dialog, listed after the board's own settings and separated from them.
 - Start the sign-in from the app alone: the consent screen opens in the user's own browser
   and the answer comes back to the app. A terminal `akb` reads the session the app wrote and
   never starts one of its own.
@@ -139,6 +136,7 @@ exists, the rest of #325 has no owner to hang an event, an action, or an executi
   server and a terminal `akb` act as the same account without a second sign-in.
 - Keep the session across ordinary desktop restarts, and refresh it without interrupting a
   delivery already running.
+- Supply the refreshed Supabase JWT to private Realtime topics as well as Worker requests.
 - Let one process refresh at a time: a refresh takes a lock on the session file, and a process
   that finds the file newer than what it read takes what is there rather than refreshing
   again, so two readers never sign the user out by racing.
@@ -162,14 +160,15 @@ exists, the rest of #325 has no owner to hang an event, an action, or an executi
 - [ ] Take an invite request on its own route: one open request per account, recorded inside
       the transaction, and the email sent after the response returns over a `send_email`
       binding restricted to the one support recipient.
-- [ ] Add the Cloud section to the Configuration dialog, with its not-signed-in, signed-in,
-      not-admitted, and expired states, and **Request an invite** with its requested state.
+- [ ] Add Supabase Auth GitHub sign-in and sign-out to the Cloud section, with its
+      not-signed-in, signed-in, not-admitted, and expired states, and **Request an invite**
+      with its requested state.
 - [ ] Bring a finished sign-in back into the app over a URL scheme it registers for itself,
       and hand it to the open Configuration dialog.
 - [ ] Hold the session on the machine outside the board and the repository, and read it from
       both the board UI server and a terminal `akb`.
 - [ ] Refresh an expiring session under a lock on that file, without interrupting a running
-      delivery, and keep it across a restart.
+      delivery, keep it across a restart, and update the private Realtime connection.
 - [ ] Expose the account handle #320 links a Slack actor to.
 - [ ] Write admitting an account, removing one, registering the sign-in's return address, and
       enabling email sending against the verified support mailbox into `cloud/README.md`,

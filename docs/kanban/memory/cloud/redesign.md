@@ -18,3 +18,6 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Let a connector button change a task without identifying its user or approved
   revision** → ✅ authenticate the actor, bind the action to the reviewed revision, then let
   the local node recheck both before changing the board.
+- ❌ **Explain a relay by listing unused transports and services** → ✅ name each component's
+  runtime and trace the chosen path through Supabase Auth, the Worker, Postgres, Realtime,
+  local processes, and connectors.
