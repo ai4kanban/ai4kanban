@@ -17,6 +17,8 @@ const zh: SharedCopy = {
     recipes: "Recipes",
     blog: "Blog",
     comparisons: "Comparisons",
+    privacy: "Privacy",
+    terms: "Terms",
     license: "Apache License 2.0",
     credit: "created by Tao Wu",
     x: "Tao Wu 的 X 主页",

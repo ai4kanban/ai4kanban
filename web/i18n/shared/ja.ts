@@ -17,6 +17,8 @@ const ja: SharedCopy = {
     recipes: "Recipes",
     blog: "Blog",
     comparisons: "Comparisons",
+    privacy: "Privacy",
+    terms: "Terms",
     license: "Apache License 2.0",
     credit: "Tao Wu が作成",
     x: "Tao Wu の X",

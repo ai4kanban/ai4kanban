@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { recipes } from "@/components/recipes/recipes-content";
 import { getAllPosts, postPath } from "@/lib/blog";
+import { getLegalDocs } from "@/lib/legal";
 import { BASE_URL } from "@/lib/site";
 import { LOCALES, TRANSLATED_PATHS, localePath } from "@/lib/i18n";
 
@@ -110,6 +111,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entries.push({
       url: `${BASE_URL}${postPath(post)}`,
       lastModified: postDate(post),
+    });
+  }
+
+  // The privacy and terms pages, English-only like the blog. Their `lastmod` is
+  // the effective date on the page: on a legal page that date *is* the claim
+  // that the text changed, and it is the one a reader is told to check.
+  for (const doc of getLegalDocs()) {
+    entries.push({
+      url: `${BASE_URL}${doc.path}`,
+      lastModified: new Date(doc.effective),
     });
   }
 

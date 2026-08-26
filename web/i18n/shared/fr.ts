@@ -17,6 +17,8 @@ const fr: SharedCopy = {
     recipes: "Recipes",
     blog: "Blog",
     comparisons: "Comparisons",
+    privacy: "Privacy",
+    terms: "Terms",
     license: "Licence Apache 2.0",
     credit: "créé par Tao Wu",
     x: "Tao Wu sur X",
