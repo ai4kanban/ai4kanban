@@ -31,7 +31,7 @@ import {
   type TokenUsage,
 } from "@/lib/types";
 import { Button } from "./button";
-import { QuestionTagBadge } from "./chips";
+import { ELASTIC_CHIP, QuestionTagBadge } from "./chips";
 import { PULSE_DOT } from "./chrome";
 import { Dialog } from "./Dialog";
 import { Markdown } from "./Markdown";
@@ -103,19 +103,20 @@ export function RunningBadge({
 }) {
   return (
     <span
-      className="nb-chip inline-flex items-center gap-1.5 whitespace-nowrap"
+      className="nb-chip gap-1.5"
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
       title={onClick ? "watch the run log" : label ? `${label} — running` : "agent running"}
       style={{
+        ...ELASTIC_CHIP,
         background: "var(--color-nb-accent-soft)",
         color: "var(--color-nb-accent-deep)",
         cursor: onClick ? "pointer" : undefined,
       }}
     >
       <span className={PULSE_DOT} aria-hidden />
-      {label ? label : "running"}
+      <span className="truncate">{label ? label : "running"}</span>
     </span>
   );
 }

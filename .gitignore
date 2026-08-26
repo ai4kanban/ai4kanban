@@ -26,3 +26,4 @@ video/
 .omo/
 # Delivery state — worktrees and the like. Never committed.
 .akb/
+*.tmp.mjs

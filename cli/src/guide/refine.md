@@ -4,9 +4,10 @@ Review one task and make its plan ready to build. This guide describes one pass.
 refine <id>` controls the loop and starts a fresh run when another pass or a
 question-resolution pass is needed.
 
-Refine assumes the task is wanted. Its job is to make the task minimal, complete, and clear
-enough to build. It does not decide whether the task belongs on the roadmap, reject it, or
-archive completed work.
+Refine assumes the task is wanted and takes its placement as given — the release, priority,
+and track on the card are the user's standing decisions. Its job is to make the task
+minimal, complete, and clear enough to build. It does not decide whether the task belongs on
+the roadmap, reject it, or archive completed work.
 
 **Revising is not refining.** `akb revise` applies one requested change and stops.
 
@@ -57,6 +58,10 @@ the user during this pass; leave their decision on the card for a resolve pass.
 - **Fold a dependent question in**: when a decision only matters under one answer to
   another, ask it now as part of that question — options that carry the follow-up, or one
   question that names the condition.
+- **Leave settled calls alone**: a card's release, priority, and track are answers the user
+  already gave. Never ask whether the card still belongs where it sits, and never argue the
+  release's theme or size back at them. Raise it only when building the card as written is
+  impossible — a blocker that ships in a later release — and then ask about that conflict.
 
 ## Close the pass
 

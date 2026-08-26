@@ -10,6 +10,12 @@ before proposing so you don't re-suggest them.
   the user can. A container is the only fence it offers. Every agent we run stays in the
   repo, and we don't ship one that can write outside it.
 
+- **Asking each harness for its model list** — no harness hands a list over for free: it
+  means spawning a CLI or opening a throwaway session per harness, plus a disk cache keyed by
+  provider, for a list that goes stale anyway. The board exposes settings at the harness level
+  and lets the user configure the details — the common arguments are offered, custom arguments
+  are typed in — so the model stays a box you fill in.
+
 - **Calling spec agents when a card is written** — the add-task flow would run `akb spec`
   and put agents on the card as it is created. Spec agents belong to refine alone: a card
   written from a one-line ask has no spec to fill in yet, and a second place to call them

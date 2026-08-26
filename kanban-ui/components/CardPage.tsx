@@ -1375,7 +1375,9 @@ export function CardPage({
                 <span className="shrink-0 text-[20px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
                   #{card.id}
                 </span>
-                <h1 className="text-[20px] font-[800] tracking-[-0.02em] leading-tight">{card.title}</h1>
+                <h1 className="min-w-0 text-[20px] font-[800] tracking-[-0.02em] leading-tight break-words">
+                  {card.title}
+                </h1>
                 {busy ? (
                   <RunningBadge
                     label={

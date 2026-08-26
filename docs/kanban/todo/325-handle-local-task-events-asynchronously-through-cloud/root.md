@@ -6,7 +6,7 @@ roi: high
 status: todo
 release: 0.8.0
 blocked_by: []
-related: [319, 318, 320, 329, 330, 331]
+related: [319, 318, 320, 329, 330]
 modules: [cloud, local-ui, skill]
 questions: []
 ---
@@ -119,7 +119,7 @@ act        the desktop inbox or [Slack] -> [Cloudflare Worker] records one actio
 
 ## Todo
 - [x] Identify the user who sends and acts on Cloud events #326
-- [ ] Await every board write so events can hang off it #331
+- [x] Await every board write so events can hang off it #331
 - [ ] Sync actionable events through Cloud and show them in the app #319
 - [ ] Run local delivery from an approved Cloud action #318
 - [ ] Act on Cloud task events from Slack #320

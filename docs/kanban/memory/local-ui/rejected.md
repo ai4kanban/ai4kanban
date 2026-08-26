@@ -51,6 +51,9 @@ before proposing so you don't re-suggest them.
 - **Dropping the Edit button from the card page** — keep it. A button that says Edit is the
   straightforward way to ask for a rewrite; the chat rail is folded away by default, so
   cutting it would leave no visible way in.
+- **Reading a closed version's changelog in the board UI** — not a common demand, and the
+  board stays cleaner without a screen for it. A closed version leaves a plain-words file
+  in `docs/kanban/.release-summaries/`, readable in an editor or on GitHub Releases.
 
 ## Runs
 
@@ -105,6 +108,11 @@ before proposing so you don't re-suggest them.
   run. We still said no: pi never asks permission and nothing holds a run to the project,
   so picking it in the agent dialog would hand a run the whole machine. The other four
   agents stay in the repo, and no wording in the dialog makes that safe.
+- **Offering a list of model ids in the Harness pane's Model field** — neither source of ids
+  was worth the field it would change. A list we keep per harness goes stale and is the same
+  maintenance that sank asking each harness for its own list; offering only the ids already
+  used on this board is empty on a fresh board, which is the one moment a newcomer needs
+  telling what to type. The Model field stays a plain box you type any id into.
 
 ## Setup
 

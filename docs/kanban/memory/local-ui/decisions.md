@@ -307,3 +307,14 @@ re-ask a settled call.
 
 - **What does onboarding lead with?**: a Local board. Cloud is offered beside it as an
   explicit, labelled hosted-service choice, never preselected.
+
+## The app's language
+
+- **Does the app's language also decide what the agent writes?**: yes — one setting, not
+  two. The chosen language covers the app's own words and the prose the agent writes into
+  cards, open questions, memory and changelogs. The board's structure — frontmatter,
+  section headings, file names, commands and paths — stays English in both.
+- **What happens to a board already written in English when the language changes?**:
+  nothing — what is on disk stays as written, and only new writing follows the setting. No
+  one-off pass rewrites existing cards or memory into the new language, so a board that
+  switches holds both languages at once.

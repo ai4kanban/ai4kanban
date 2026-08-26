@@ -74,8 +74,14 @@ export function BoardCard({
         selected ? "outline-2 outline-offset-2 outline-nb-accent" : ""
       }`}
     >
+      {/* The meta row. A column can be dragged narrow and a status label can be
+          as long as "resolving a conflict", so the row has to say which side
+          gives: the id NEVER does (`shrink-0`) — it is how the card is named,
+          and a shrunken id overflows its box and gets painted over by the chip
+          beside it — and the mark side gives at its one elastic pill, whose
+          words stay on hover. Everything else in here holds its size. */}
       <div className="mb-1.5 flex items-center justify-between gap-1.5">
-        <span className="flex min-w-0 items-center gap-1.5">
+        <span className="flex shrink-0 items-center gap-1.5">
           {onSelect && (
             <button
               type="button"
@@ -109,7 +115,7 @@ export function BoardCard({
             #{card.id}
           </span>
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex min-w-0 items-center gap-1.5">
           {isGroup && <GroupChip />}
           {/* Something this card waits on is still open (#63). The card stays
               exactly where it is — this only says the work has an order to it. */}
@@ -148,7 +154,7 @@ export function BoardCard({
               return (
                 <span
                   tabIndex={0}
-                  className="nb-tip inline-flex"
+                  className="nb-tip inline-flex shrink-0"
                   data-tip={tip}
                   style={{
                     color:
@@ -167,7 +173,7 @@ export function BoardCard({
           {card.verify.length > 0 && (
             <span
               tabIndex={0}
-              className="nb-tip inline-flex"
+              className="nb-tip inline-flex shrink-0"
               data-tip={`${card.verify.length} to check by hand`}
               style={{ color: "var(--color-nb-sky-ink)" }}
             >
@@ -182,7 +188,11 @@ export function BoardCard({
       {/* A board can hold hundreds of cards, so the title sits just one rung
           above the meta around it (13 vs 11.5) — still the loudest thing on the
           card, but small enough that a long column stays scannable. */}
-      <p className="mb-2.5 text-[13px] font-[700] leading-snug tracking-[-0.01em]">{card.title}</p>
+      {/* `break-words`: a title can carry a path or an identifier with no space
+          in it, and one of those is wider than any column. */}
+      <p className="mb-2.5 text-[13px] font-[700] leading-snug tracking-[-0.01em] break-words">
+        {card.title}
+      </p>
       <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <PriorityChip value={card.priority} />
         <RoiTag value={card.roi} />

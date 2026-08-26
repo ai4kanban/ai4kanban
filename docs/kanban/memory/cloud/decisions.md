@@ -87,6 +87,9 @@ Internal detail stays on the card.
   the terms say we may end the preview or close a workspace at any time, with reasonable
   notice to its owners where practical, given in the app or the workspace's Slack channel
   rather than by email. An export is the only copy a team is promised.
+- **How long does Cloud keep a finished event's history?**: an event is kept for as long as it
+  is unresolved, then deleted 30 days after it reaches a final outcome, together with its
+  deliveries, action and outcome. The privacy page's Data retention section states that period.
 
 ## Who answers a question
 

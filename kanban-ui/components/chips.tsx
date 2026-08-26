@@ -75,11 +75,13 @@ export function RoiTag({ value }: { value: string }) {
 // Todo progress — a thin bar + count for the card's top meta row. Reads as
 // status (empty → full, mint when complete) rather than yet another chip.
 // `width` lets the card page draw a longer bar than the board's 26px sliver.
+// `shrink-0`: the bar is a fixed measure, so a squashed one would read as a
+// different tally. The row gives way at its elastic pill instead.
 export function TodoProgress({ done, total, width = 26 }: { done: number; total: number; width?: number }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const complete = total > 0 && done >= total;
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex shrink-0 items-center gap-1.5">
       <span
         style={{
           display: "block",
@@ -132,14 +134,24 @@ const STATUS: Record<string, { label: string; long: string; icon: IconType; soft
   },
 };
 
+// The one elastic thing in a card's meta row. Every other chip holds its size
+// (see `.nb-chip`), so the row gives way HERE when it runs out of width: the
+// label truncates and the full words stay on hover. Anything else giving way
+// means a fixed-size thing overflows its box and paints over the card's id.
+// The three marks a card can wear — running, pending, saved stage — all take it,
+// because exactly one of them is ever drawn and its label is the only one long
+// enough to matter.
+export const ELASTIC_CHIP = { flex: "0 1 auto" } as const;
+
 export function StatusPill({ status, detailed = false }: { status: CardStatus; detailed?: boolean }) {
   const c = STATUS[status];
   if (!c) return null; // `todo` — no pill
   const Icon = c.icon;
+  const label = detailed ? c.long : c.label;
   return (
-    <span className="nb-chip" style={{ background: c.soft, color: c.ink }}>
+    <span className="nb-chip" title={label} style={{ ...ELASTIC_CHIP, background: c.soft, color: c.ink }}>
       <Icon aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
-      {detailed ? c.long : c.label}
+      <span className="truncate">{label}</span>
     </span>
   );
 }
@@ -158,10 +170,10 @@ export function PendingPill({ label, detailed = false }: { label: string; detail
       className="nb-chip nb-tip"
       tabIndex={0}
       data-tip={label}
-      style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
+      style={{ ...ELASTIC_CHIP, background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
     >
       <FiClock aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
-      {detailed ? label : "pending"}
+      <span className="truncate">{detailed ? label : "pending"}</span>
     </span>
   );
 }
