@@ -1,153 +1,135 @@
-# Notification center and IM delivery
+# Asynchronous Cloud task handling — 0.8.0 implementation plan
 
-Build notifications once, show them first in the AI4Kanban UI, then deliver the same
-notifications to Slack and other IM tools.
+## Outcome
 
-## Scope
+One person can leave a local board unattended and handle its next request for judgment from
+the desktop notification center or Slack. A ready task still requires explicit approval;
+after approval, the user's local execution node runs the existing delivery flow.
 
-Only two events need human attention:
+## Boundaries
 
-1. **Ready for review** — a buildable task reaches `status: ready`. The user reviews the
-   task and, once satisfied, chooses **Implement**. The existing delivery flow then builds,
-   reviews, corrects, and lands the work on the target branch.
-2. **Questions need answers** — a task has one or more questions explicitly assigned to
-   the user. The notification shows the human-readable part of the task and those questions,
-   then leads into the existing **Resolve** flow.
+- **The board stays local**: Markdown remains authoritative. Cloud never becomes a second
+  writable board and never receives the repository.
+- **Cloud is an authenticated relay**: it stores event snapshots, connector deliveries,
+  human actions, execution requests, and their outcomes for one user.
+- **The desktop center is the first destination**: the full message and action flow works
+  without Slack, so Slack is not required to build or test the foundation.
+- **Slack is the first external connector**: it reuses the same events and actions as the
+  desktop center.
+- **Execution stays local**: Cloud dispatches approved work; the local node owns agents,
+  worktrees, branches, credentials, commits, and merges.
+- **Approval targets one revision**: if the local task changed after the message was created,
+  the old action cannot start implementation.
+- **One action has one effect**: repeated clicks, retries, and duplicate connector callbacks
+  cannot create a second delivery.
 
-Do not notify for progress, completion, delivery failures, hand checks, ordinary edits, or
-agent-owned questions. If a delivery failure genuinely needs a decision, it should raise a
-user question and use the second event.
+Team workspaces, shared Cloud boards, membership, roles, imports, exports, and multi-user
+conflict handling remain in #311 for a later release.
 
-## Configuration
+## Events in 0.8.0
 
-- Notifications are off by default.
-- The user must enable them manually and choose one open release.
-- The initial release choice is the current release: the first open release in ship order.
-  This keeps notifications focused on the nearest short-term goal.
-- The first destination is **Notification center**. It mainly proves that an event fired and
-  rendered correctly.
-- If the configured release closes, pause notifications and ask the user to choose another
-  release. Do not silently switch releases.
-- Tasks outside the configured release, including tasks with no release, never notify.
+### Ready for review
 
-## Notification content
+When refinement leaves a task at `ready`, the local node publishes a review event containing
+the task number, title, release, human-readable specification, revision, and allowed actions.
 
-Every notification uses one clean, portable Markdown message so future IM destinations do
-not need their own content rules.
+The primary action is **Implement**. It records the human sign-off in Cloud, then creates one
+request for the local execution node. Reaching `ready` alone never starts implementation.
 
-Include:
+### Questions need answers
 
-- task number and title;
-- release;
-- the human half of the task—the content above `<!-- agent -->`;
-- the action the user should take.
+When a task has user-owned questions, the local node publishes the task context, question
+choices, recommendations, revision, and allowed answer action. Agent-owned questions and
+ordinary progress do not notify.
 
-For question notifications, include only user-owned questions. Preserve question options
-and clearly identify recommendations, but do not expose internal tags such as `[user]`.
+## End-to-end flow
 
-Keep messages to simple headings, paragraphs, emphasis, and lists. Do not use tables, HTML,
-filesystem links, or destination-specific formatting.
+1. An app, CLI, or agent operation changes the local board.
+2. The local node detects an actionable state and publishes its revisioned event snapshot.
+3. Cloud stores one durable event for the authenticated user.
+4. The desktop notification center shows the event; connected external connectors receive
+   the same event independently.
+5. The user reviews the snapshot and takes an explicit action.
+6. Cloud authenticates the actor, rejects duplicate or stale actions it can identify, and
+   records the decision.
+7. The local node claims the action, re-reads the authoritative task, and verifies its state
+   and revision.
+8. A question action enters the existing local Resolve flow; an **Implement** action enters
+   the existing local delivery flow.
+9. The node reports the meaningful outcome to Cloud, and each destination updates its
+   original message.
 
-### Ready example
+Event creation, delivery, human action, and local execution are separate stages. A failure
+or retry in one stage cannot duplicate another or block the local mutation that created the
+event.
 
-```md
-## #318 Connect local delivery to the Cloud card lifecycle
+## Delivery order
 
-**Release:** 0.8.0
+### 1. Basic user authentication — #326
 
-<human half of the task>
+- Give the desktop app and local execution node one shared Cloud account.
+- Scope every event, connector, action, and node to that authenticated user.
+- Use a maintained authentication system rather than building password and session security.
+- Keep sessions and credentials outside the board and repository.
+- Provide the identity boundary an external connector must link to before it may act.
 
-Review this task. If it is approved, open the task and choose **Implement**.
-```
+### 2. Cloud events and desktop notification center — #319
 
-### Questions example
+- Establish the two event rules, revisioned snapshots, allowed actions, durable history, and
+  deduplication.
+- Add explicit notification enablement and one open-release selection.
+- Add the desktop bell, unread count, newest-first history, complete message context, actions,
+  and clear disabled, empty, stale, and failed states.
+- Let the user approve implementation and answer questions from the desktop message.
+- Prove the complete event and action contract without Slack connected.
 
-```md
-## #123 Pick the import behavior
+### 3. Approved action to local delivery — #318
 
-**Release:** 0.8.0
+- Register the user's local execution node.
+- Turn one accepted **Implement** action into one claimable request.
+- Verify the approved revision against the local authoritative task before starting.
+- Run the existing implementation, review, correction, and landing lifecycle.
+- Report waiting, running, delivered, failed, and cancelled outcomes without uploading board
+  files, repository content, or execution credentials.
+- Recover or cancel an interrupted request without starting it twice.
 
-<human half of the task>
+### 4. Interactive Slack connector — #320
 
-### Questions
+- Let the authenticated user connect a Slack destination and link the Slack actor to the
+  AI4Kanban account.
+- Render the same task context and allowed actions as the desktop notification center.
+- Return **Implement** and question answers through the shared Cloud action path.
+- Update the original message with accepted, waiting, running, delivered, failed, stale, and
+  unauthorized outcomes.
+- Retry Slack delivery without duplicating the event, action, or delivery.
 
-1. Which source should win on a conflict?
-   - Local board — recommended
-   - Imported issue
+### 5. Release hardening
 
-Open **Resolve** to answer these questions.
-```
+- Check repeated clicks, delayed actions, task changes after message delivery, expired
+  sessions, connector retries, disconnected nodes, and interrupted deliveries.
+- Check each user can see and act only on their own events.
+- Check local task changes continue when Cloud or Slack is unavailable.
+- Check Cloud and Slack never receive the repository, task files, or execution credentials.
 
-## Event behavior
+## Release acceptance
 
-- Events are created by board state changes, regardless of whether the change came from the
-  UI, CLI, or an agent flow.
-- A qualifying state produces one notification, not one per destination.
-- Re-reading unchanged state does not create duplicates.
-- If the meaningful human content or user questions change while attention is still needed,
-  create a new notification.
-- If a task leaves and later re-enters a qualifying state, notify again.
-- Enabling notifications or changing the selected release should surface currently
-  qualifying tasks in that release once.
-- Delivery to one destination may fail or retry without duplicating the underlying event or
-  blocking the task change that caused it.
+- A task entering `ready` never implements automatically.
+- The desktop app shows actionable events without Slack connected.
+- Each request and action belongs to one authenticated user.
+- A reviewer can understand and approve the exact task revision from either destination.
+- One valid **Implement** action creates exactly one local delivery request.
+- A changed or non-ready local task cannot be implemented from an old message.
+- User-owned questions can be answered remotely with responder attribution.
+- Cloud or connector retries do not duplicate events, actions, or deliveries.
+- The user can trace an event through decision and local execution outcome.
+- Adding another connector does not change event eligibility or task-action semantics.
 
-## Notification center
+## Outside 0.8.0
 
-Add a bell to the shared header on both board and task pages.
-
-- Show an unread count when it is greater than zero.
-- Open a simple newest-first notification list.
-- Use mint for ready reviews and peach for open questions, following the existing design
-  language.
-- Render the same Markdown that future IM tools receive.
-- Keep read notifications in the list so the center remains useful for verifying events.
-- **Review task** opens the task page. It must not start implementation automatically—the
-  task itself is what the user is reviewing.
-- **Resolve questions** opens the task page directly in its existing Resolve flow. If the
-  questions have already gone, show the normal task page and do nothing.
-- When notifications are disabled, explain that they are off and link to their configuration.
-- When enabled but empty, name the selected release and say that no relevant events have
-  fired yet.
-
-The center is a local delivery destination, not another source of task state or a separate
-team inbox.
-
-## Delivery plan
-
-1. **Notification primitive** — establish the two event rules, release filtering, portable
-   Markdown content, deduplication, and durable history.
-2. **Configuration** — add explicit enablement, required release selection, and the
-   Notification center destination.
-3. **Notification center** — add the bell, unread state, notification list, and empty/error
-   states.
-4. **Actions** — connect ready notifications to task review and question notifications to
-   the existing Resolve flow.
-5. **Slack** — add Slack as another destination after the center proves that event creation,
-   content, and actions are correct.
-
-## Slack follow-up
-
-Slack must consume the same events and Markdown rather than introduce new notification
-rules.
-
-- Slack is delivery, not storage or task authority.
-- A review action opens the task for sign-off.
-- A resolve action enters the same authenticated Resolve flow and attributes the answer to
-  the responder.
-- Delivery failures retry independently and never create duplicate events.
-- Credentials and connection setup belong to the Slack integration, not the notification
-  content model.
-
-## Acceptance criteria
-
-- A fresh board sends nothing.
-- A user can enable notifications for exactly one open release.
-- Only ready reviews and user-owned questions notify.
-- No task outside the selected release notifies.
-- Each event contains clean Markdown with the task's human half.
-- Unchanged state does not produce duplicates.
-- Events created by CLI and agent activity appear in the UI center.
-- Review leaves implementation to the existing **Implement** flow and #318's Cloud lifecycle.
-- Questions enter the existing **Resolve** flow.
-- Adding Slack later does not change event eligibility or message construction.
+- Shared Cloud boards and team collaboration.
+- Skipping human approval or automatically implementing every ready task.
+- General-purpose task editing from notifications.
+- Cloud-hosted code execution.
+- Multiple execution nodes per user and automatic node selection.
+- Notifications for ordinary progress, completion, or agent-owned questions.
+- External connectors beyond Slack.

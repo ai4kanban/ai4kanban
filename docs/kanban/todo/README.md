@@ -30,12 +30,14 @@ _(none)_
 - [#315 Store the shared board in Cloud without moving the codebase](311-team-collaboration-cloud/features/315-store-the-shared-board-in-cloud-without-moving-the-codebase.md)
 - [#316 Use Cloud boards safely from the app and CLI](311-team-collaboration-cloud/features/316-use-cloud-boards-safely-from-the-app-and-cli.md)
 - [#317 Lead onboarding with Local and make Cloud an explicit choice](311-team-collaboration-cloud/features/317-lead-onboarding-with-local-and-make-cloud-explicit.md)
-- [#318 Connect local delivery to the Cloud card lifecycle](311-team-collaboration-cloud/features/318-connect-local-delivery-to-the-cloud-card-lifecycle.md)
-- [#319 Notify one release in the app when people must act](311-team-collaboration-cloud/features/319-notify-one-release-in-the-app-when-people-must-act.md)
-- [#320 Deliver board notifications to Slack](311-team-collaboration-cloud/features/320-deliver-board-notifications-to-slack.md)
+- [#318 Run local delivery from an approved Cloud action](325-handle-local-task-events-asynchronously-through-cloud/features/318-run-local-delivery-from-an-approved-cloud-action.md)
+- [#319 Sync actionable events through Cloud and show them in the app](325-handle-local-task-events-asynchronously-through-cloud/features/319-sync-actionable-events-through-cloud-and-show-them-in-the-ap.md)
+- [#320 Act on Cloud task events from Slack](325-handle-local-task-events-asynchronously-through-cloud/features/320-act-on-cloud-task-events-from-slack.md)
 - [#313 Import GitHub Issues and mirror progress back](features/313-import-github-issues-and-mirror-progress-back.md)
 - [#322 Open a Cloud board in the browser](features/322-open-a-cloud-board-in-the-browser.md)
 - [#324 Block commits on the branch a delivery is landing on](features/324-block-commits-on-the-branch-a-delivery-is-landing-on.md)
+- [#325 Handle local task events asynchronously through Cloud](325-handle-local-task-events-asynchronously-through-cloud/root.md)
+- [#326 Identify the user who sends and acts on Cloud events](325-handle-local-task-events-asynchronously-through-cloud/features/326-identify-the-user-who-sends-and-acts-on-cloud-events.md)
 
 ## skill
 

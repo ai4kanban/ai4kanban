@@ -4,10 +4,16 @@ Settled answers to cards' open questions, grouped by topic. Keep only **user-fac
 calls that guide future planning — what a user can see, do, or would care about.
 Internal detail stays on the card.
 
-## Shipping the team-collaboration program
+## Shipping the Cloud programs
 
-- **Which version does team collaboration ship in?**: 0.8.0, alongside auto-delivery, not a
-  release of its own. 0.8.0 is a much longer version as a result.
+- **Which version does team collaboration ship in?**: no release yet. Shared Cloud boards,
+  membership, roles, imports, and multi-user conflict handling follow the smaller 0.8.0
+  Cloud foundation.
+- **What Cloud behavior ships in 0.8.0?**: single-user asynchronous task handling. The local
+  Markdown board stays authoritative; Cloud authenticates the user and relays revisioned
+  events, human actions, execution requests, and their outcomes.
+- **Where is the notification flow proven?**: in the desktop notification center first, so
+  messages and actions work without Slack; Slack is the first external connector afterward.
 
 ## Cloud as a choice, not a default
 

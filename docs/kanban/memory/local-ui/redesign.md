@@ -5,6 +5,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## What the UI does
 
+- ❌ **Make Slack the only place to inspect and test notification messages** → ✅ prove the
+  complete event, message, and action flow in a desktop notification center first, then let
+  external connectors reuse it.
+
 - ❌ **UI lets people hand-edit the board** (toggle todos, write cards, move, mark done) →
   ✅ the UI spawns agent runs to do the kanban work; on-card buttons call the agent
   connector. Only priority/roi and a title/body edit are direct.

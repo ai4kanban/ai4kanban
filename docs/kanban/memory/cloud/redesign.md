@@ -9,3 +9,12 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   authoritative board before its call returns; only reads may come from a cached snapshot.
   Returning a promise is plumbing, not permission to queue, buffer, or apply a write
   locally and reconcile later — that is precisely how two people's edits diverge.
+
+## Event handling
+
+- ❌ **Require a shared Cloud board before one person can act on a notification remotely** →
+  ✅ keep the board authoritative on the local machine and use authenticated Cloud only to
+  relay revisioned event snapshots, decisions, execution requests, and outcomes.
+- ❌ **Let a connector button change a task without identifying its user or approved
+  revision** → ✅ authenticate the actor, bind the action to the reviewed revision, then let
+  the local node recheck both before changing the board.

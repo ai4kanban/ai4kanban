@@ -164,6 +164,12 @@ re-ask a settled call.
 - What `.env` names wins for a run; a variable it doesn't name is left alone, so a key
   already exported in the shell keeps working. Switching connector never touches the keys.
 
+## Notifications
+
+- **Where does a user review Cloud-relayed task events first?**: in a desktop notification
+  center. It proves complete messages and actions without Slack; Slack reuses the same event
+  contract as the first external connector.
+
 ## Answering open questions
 
 - A question with options keeps its text box, but the two ways don't mix: on a
@@ -291,4 +297,3 @@ re-ask a settled call.
 
 - **What does onboarding lead with?**: a Local board. Cloud is offered beside it as an
   explicit, labelled hosted-service choice, never preselected.
-

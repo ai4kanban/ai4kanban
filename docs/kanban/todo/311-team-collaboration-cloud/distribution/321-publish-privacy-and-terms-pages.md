@@ -4,9 +4,9 @@ track: distribution
 priority: high
 roi: med
 status: ready
-release: 0.8.0
+release: ""
 blocked_by: []
-related: [293, 311, 314, 317, 319, 320]
+related: [293, 311, 314, 317, 325]
 modules: [site, cloud]
 questions: []
 ---
@@ -113,9 +113,8 @@ Cloud choice links a reader to them from inside the app.
   profile, and any email address Supabase Auth records with them — taken from what the live
   project holds rather than from what the OAuth app was registered with. This is the one place
   the preview may hold a personal contact detail, so the page states it exactly.
-- The privacy page names the Slack webhook an owner pastes (#320) as a destination the team
-  chooses, where board content leaves Cloud on the team's own instruction rather than a
-  vendor we contract with.
+- The privacy page names a connected Slack destination as somewhere the team may choose to
+  send board content, and says that content leaves Cloud on the team's own instruction.
 - The terms page states that Cloud is an invite-only preview with no availability promise,
   and what we may do with a workspace.
 - The terms page states how the preview ends: we may end the preview or close a workspace at
@@ -163,9 +162,9 @@ Cloud choice links a reader to them from inside the app.
 - **No subprocessors page**: the preview has two subprocessors and one identity provider, and
   a page for a three-line list is more site than the list earns. They go inline on the
   privacy page.
-- **Why the Slack webhook is not listed as a subprocessor**: an owner pastes their own
-  incoming webhook (#320), so board content reaches Slack because the team sent it there.
-  Listing it beside Cloudflare and Supabase would claim a contract we do not have.
+- **Why Slack is not listed as a subprocessor**: the team connects its own Slack destination
+  and chooses to send board content there; the privacy page names that disclosure without
+  presenting Slack as infrastructure AI4Kanban uses to run Cloud.
 - **Why deletion can be promised outright**: the preview keeps no backups (#311), so there is
   no second copy to chase before the promise is true.
 - **No DMCA section**: a Cloud workspace is private and invite-only, so there is no public
@@ -174,12 +173,20 @@ Cloud choice links a reader to them from inside the app.
   over it, since agents work on a member's own machine. The terms keep only the licence
   needed to store and serve a team's board.
 - **Why the terms promise no email notice**: the preview builds no way to send email, and an
-  address Supabase Auth keeps so sign-in works is not one a member handed us to be written to.
-  The channels the preview already has — the app's notifications (#319) and a workspace's
-  Slack webhook (#320) — are what "where practical" means.
+  address kept for sign-in is not one a member handed us for notices. The app and any
+  user-connected destination are what "where practical" means.
 - **Their own publish date**: both pages carry the date they ship, not dist0's.
 - **Who links the pages from onboarding**: #317 builds that screen and already carries the
   step. This card publishes the pages and the footer link, so the URLs exist for it.
+
+### Overruled by the user
+- **Why the Slack webhook is not listed as a subprocessor**: an owner pastes their own
+  incoming webhook (#320), so board content reaches Slack because the team sent it there.
+  Listing it beside Cloudflare and Supabase would claim a contract we do not have.
+- **Why the terms promise no email notice**: the preview builds no way to send email, and an
+  address Supabase Auth keeps so sign-in works is not one a member handed us to be written to.
+  The channels the preview already has — the app's notifications (#319) and a workspace's
+  Slack webhook (#320) — are what "where practical" means.
 
 ## Source
 - `web/app/(en)/blog/[slug]/page.tsx`, `web/components/blog/BlogMdx.tsx`,
@@ -192,6 +199,5 @@ Cloud choice links a reader to them from inside the app.
 - #311 — the Cloud preview these pages have to describe.
 - #314 — the workspace and membership tables whose contents the privacy page describes.
 - #317 — links the Cloud choice to these pages.
-- #319 — the in-app notification channel a notice about the preview ending uses.
-- #320 — the Slack webhook the privacy page names.
+- #325 — the authenticated event and connector foundation team notifications will extend.
 - #323 — creates the database whose region the privacy page names.
