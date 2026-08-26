@@ -53,6 +53,8 @@ const TO = path.join(ROOT, "kanban-ui", "lib", "format");
 //   skill/types              whether this project can be driven from a coding agent,
 //                            and what one install wrote. The Configuration dialog
 //                            draws that answer.
+//   cloud/types              which account this MACHINE is signed in to Cloud as (#326).
+//                            The Cloud section of the same dialog draws its four states.
 //   board/contract           the operations every part of AI4Kanban reads and writes a
 //                            board through (#312), the envelope each write carries and the
 //                            conflict it can answer with. The server calls them and the
@@ -63,6 +65,7 @@ const SHARED = [
   "agent/types.ts",
   "agent/providers.ts",
   "skill/types.ts",
+  "cloud/types.ts",
   "view/types.ts",
   "view/rules.ts",
   "board/contract.ts",

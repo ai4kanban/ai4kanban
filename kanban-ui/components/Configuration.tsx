@@ -27,9 +27,9 @@
 // the picked agent declares in lib/agent.ts, and knows no agent by name.
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiAlignLeft, FiCheck, FiGitBranch, FiLink, FiSettings, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiAlignLeft, FiCheck, FiCloud, FiGitBranch, FiLink, FiSettings, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
   installedAgentsAction,
   setHarnessAction,
@@ -41,6 +41,7 @@ import { missingRequired, pickedProvider, providerSetting, shownForProvider } fr
 import type { AgentInfo, ConnectionTest, HarnessGap, HarnessOption, HarnessSetting } from "@/lib/types";
 import { AutoDeliveryPanel } from "./AutoDelivery";
 import { TOOL_BTN } from "./chrome";
+import { CloudPanel } from "./Cloud";
 import { Dialog } from "./Dialog";
 import { FlowRulesPanel } from "./FlowRules";
 import { SkillPanel } from "./Skill";
@@ -71,8 +72,8 @@ function AgentMark({ src, size }: { src: string; size: number }) {
 
 // The dialog's sections, in sidebar order. Adding a settings group is one entry
 // here plus its pane below — nothing else moves.
-type Section = "harness" | "agents" | "delivery" | "rules" | "skill";
-const SECTIONS: { id: Section; label: string; icon: IconType }[] = [
+type Section = "harness" | "agents" | "delivery" | "rules" | "skill" | "cloud";
+const SECTIONS: { id: Section; label: string; icon: IconType; apart?: boolean }[] = [
   { id: "harness", label: "Harness", icon: FiTerminal },
   { id: "agents", label: "Agents", icon: FiUsers },
   { id: "delivery", label: "Auto-delivery", icon: FiGitBranch },
@@ -81,6 +82,9 @@ const SECTIONS: { id: Section; label: string; icon: IconType }[] = [
   // name — Flow rules — where a reader meets it cold.
   { id: "rules", label: "Rules", icon: FiAlignLeft },
   { id: "skill", label: "Setup", icon: FiLink },
+  // Last, and behind a rule (#326): everything above settles THIS BOARD, and Cloud is the
+  // person this MACHINE signs in as. One sign-in covers every project the app has open.
+  { id: "cloud", label: "Cloud", icon: FiCloud, apart: true },
 ];
 
 // --- opening the dialog from elsewhere (#174) --------------------------------
@@ -175,11 +179,18 @@ export function Configuration({
             aria-label="Configuration sections"
             className="flex w-[168px] shrink-0 flex-col gap-1 border-r border-nb-ink/12 bg-nb-wash p-3 max-sm:w-full max-sm:flex-row max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
           >
-            {SECTIONS.map(({ id, label, icon: Icon }) => {
+            {SECTIONS.map(({ id, label, icon: Icon, apart }) => {
               const on = id === section;
               return (
+                <Fragment key={id}>
+                  {/* Everything above settles this board; below it is the machine's. */}
+                  {apart && (
+                    <span
+                      aria-hidden
+                      className="my-2 block h-px bg-nb-ink/12 max-sm:my-0 max-sm:h-auto max-sm:w-px max-sm:self-stretch"
+                    />
+                  )}
                 <button
-                  key={id}
                   type="button"
                   aria-current={on}
                   onClick={() => setSection(id)}
@@ -192,6 +203,7 @@ export function Configuration({
                   <Icon className="shrink-0 text-[15px]" aria-hidden />
                   {label}
                 </button>
+                </Fragment>
               );
             })}
           </nav>
@@ -234,6 +246,10 @@ export function Configuration({
                 on screen: it reads the project when it draws, and one of those
                 reads spawns a process to ask what `akb` on the PATH is. */}
             {section === "skill" && <SkillPanel onError={onError} />}
+            {/* The Cloud sign-in (#326) — the account this MACHINE acts as, not a setting of
+                this board. Mounted only while it is the section on screen: it asks the
+                service who is signed in, over the network. */}
+            {section === "cloud" && <CloudPanel onError={onError} />}
           </div>
         </Dialog>
       )}

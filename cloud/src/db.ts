@@ -9,12 +9,16 @@ import type { Env } from './env.ts'
 import {
   Refusal,
   dailyWriteBudgetReached,
+  notYours,
   serviceUnavailable,
   storageLimitReached,
 } from './errors.ts'
 
 /** SQLSTATE the schema raises when a mutation would go past the day's write budget. */
 export const PG_WRITE_BUDGET_EXCEEDED = 'AKB01'
+
+/** SQLSTATE `cloud.require_owner` raises when a row belongs to another account. */
+export const PG_NOT_YOURS = 'AKB02'
 
 /** Postgres' own codes for a database that has stopped taking writes. */
 const PG_READ_ONLY = ['25006', '53100']
@@ -65,6 +69,7 @@ async function rpc<T>(env: Env, fn: string, args: Record<string, unknown>): Prom
 /** Turns a Postgres failure into the refusal a client is meant to show. */
 export function refusalFor(error: PostgrestError, status: number): Refusal {
   if (error.code === PG_WRITE_BUDGET_EXCEEDED) return dailyWriteBudgetReached()
+  if (error.code === PG_NOT_YOURS) return notYours()
   if (error.code && PG_READ_ONLY.includes(error.code)) return storageLimitReached()
   console.error('cloud: database refused a call', {
     status,

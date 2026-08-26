@@ -664,6 +664,9 @@ const RUN_COMMANDS = new Set([
   // nothing and starts nothing — it lets a delivery already waiting carry on.
   'approve',
   'agent',
+  // Which account this MACHINE is signed in to Cloud as (#326). Like `guide`, it needs no
+  // board: the sign-in belongs to the machine, not to any one project.
+  'cloud',
   // The board's flows, shipped with this command rather than copied into each project.
   'guide',
   // What a started run's watcher is spawned as. Never typed by a person.

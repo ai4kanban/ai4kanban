@@ -6,7 +6,7 @@ here — they are #314's, written against what this stands up.
 
 ```
 cloud/
-├── src/            the Worker
+├── src/            the Worker — `owner.ts` is the check every route applies
 ├── migrations/     the schema, one numbered file per change, applied forward only
 ├── scripts/        migrate and the closed-database check
 ├── test/           the Worker's own checks, run by `npm test`
@@ -27,6 +27,14 @@ cloud/
 - **Sign-in is verified, never issued here**: Supabase Auth signs sessions with an asymmetric
   key and the Worker checks them against the project's JWKS. There is no shared signing
   secret to hold or leak.
+- **One owner check, applied by every route**: `src/owner.ts` turns a verified sign-in into
+  an account (`cloud.accounts`), refuses one we have not admitted, and hands the route an
+  `owner.accountId` to hang its rows off. Exactly one route is open before admission — the
+  one that reports the session, so the app can name the account it refused.
+- **The trusted handle comes from the provider, not from a token**: the `api` function reads
+  `auth.identities`, which Auth rewrites on every sign-in. A token carries only
+  `user_metadata`, which the account holder can rewrite through Auth, so neither admission
+  nor a Slack link may read a handle from one.
 - **One schedule serves the whole service**: an hourly run touches the database, which is
   what keeps a free Supabase project from pausing after a quiet week. Later scheduled work
   hangs off that run.
@@ -37,10 +45,20 @@ cloud/
   read-only.
 - `GET /v1/session` — the caller's verified identity. Needs `Authorization: Bearer <token>`.
 - `POST /v1/self-check` — one budgeted write through the path every mutation uses. Needs the
-  same bearer token; run it after a deploy.
+  same bearer token **and an admitted account**; run it after a deploy.
 
 A refusal is always `{ "error": { "code": ..., "message": ... } }`, and `message` is written
-to be shown to a user as it stands.
+to be shown to a user as it stands. The two a client must tell apart:
+
+| Code | Means |
+| --- | --- |
+| `unauthenticated` | No sign-in, or one that is expired or unreadable. Signing in again fixes it. |
+| `not_admitted` | A good sign-in from an account we have not admitted. Signing in again lands on the same refusal, so a client must never answer it with "sign in again". |
+| `not_yours` | The request named a row belonging to another account. |
+
+`GET /v1/session` answers `200` either way and carries `session.admitted`. When that is
+false it also carries `refusal`, the very refusal every other route would give, so the app
+shows the service's own words rather than a copy of them.
 
 ## Commands
 
@@ -60,8 +78,9 @@ Run these from `cloud/`.
 1. `npm run migrate` — the schema goes first, so the Worker version being deployed always
    has the tables it expects.
 2. `npm run deploy`.
-3. `curl https://api.ai4kanban.dev/health`, then `POST /v1/self-check` with a signed-in
-   token.
+3. `curl https://api.ai4kanban.dev/health`, then `POST /v1/self-check` with an **admitted**
+   account's token. An account that is not on the invite list is refused with
+   `not_admitted`, which is the check working rather than the deploy failing.
 
 ## Roll back
 
@@ -70,6 +89,33 @@ the schema.** Migrations run forward only, because reversing a schema while a wo
 a team's board is how a preview with no backups loses work it cannot restore. Every migration
 must therefore leave the Worker version before it working; if it cannot, ship it in two
 deploys.
+
+## Admit an account to the preview
+
+Cloud is an invite-only preview, and the invite list is `cloud.admitted_accounts` — one row
+per GitHub handle, matched case-insensitively. Adding a row is neither a deploy nor a
+migration: run the SQL in the project's SQL editor, or through `POST
+/v1/projects/<ref>/database/query` the way `npm run migrate` does.
+
+```sql
+-- admit
+insert into cloud.admitted_accounts (handle, note)
+values ('neverchanje', 'Tao — 0.8.0 preview')
+on conflict (handle) do nothing;
+
+-- who is in
+select handle, note, admitted_at from cloud.admitted_accounts order by admitted_at;
+
+-- remove
+delete from cloud.admitted_accounts where lower(handle) = lower('neverchanje');
+```
+
+Removing a row refuses that account from its next request. It leaves the `cloud.accounts`
+row and everything hanging off it exactly where it is — take the rows out separately if
+that is what you mean.
+
+The handle is matched against what GitHub attests for the sign-in, so a row admits the
+account GitHub says owns that name. #327 replaces this hand step with an invitation code.
 
 ## Migrate
 
@@ -126,13 +172,24 @@ Only needed once, and again if the project is ever recreated.
    `https://<project-ref>.supabase.co/auth/v1/callback`. Its client id and secret go into the
    project's GitHub auth provider, not into the Worker. A token with no scopes reads a public
    profile and cannot read a private repository.
-4. **Worker secrets** — `npx wrangler secret put SUPABASE_URL` and
+4. **The sign-in's return address** — in the project's Auth URL configuration, add
+   `ai4kanban://cloud/signed-in` to the redirect allow-list. That is the URL scheme the
+   desktop app registers for itself (#326): the board UI server's loopback port is whatever
+   the OS handed out at launch, so there is no fixed `http` address to register instead. Set
+   the site URL to `https://ai4kanban.dev`.
+5. **The client's own two values** — put the project URL and its publishable (anon) key into
+   `cli/src/lib/cloud/config.ts`, which is what the app, the board UI server and `akb` sign
+   in against. Neither is a secret: PostgREST serves `api` alone and `api` grants nothing to
+   `anon` or `authenticated`, which step 8 proves. `AI4KANBAN_SUPABASE_URL`,
+   `AI4KANBAN_SUPABASE_ANON_KEY` and `AI4KANBAN_CLOUD_URL` override all three, so a checkout
+   can be pointed at a throwaway project without a build.
+6. **Worker secrets** — `npx wrangler secret put SUPABASE_URL` and
    `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY`.
-5. **Exposed schemas** — in the project's API settings, set the exposed schema list to
+7. **Exposed schemas** — in the project's API settings, set the exposed schema list to
    `api` alone. Dropping `public` and `graphql_public` is what closes PostgREST and the
    GraphQL endpoint to everyone but the Worker.
-6. **Schema** — `npm run migrate`, then `npm run check:closed`.
-7. **Route** — `npm run deploy` claims `api.ai4kanban.dev` as a custom domain on the
+8. **Schema** — `npm run migrate`, then `npm run check:closed`.
+9. **Route** — `npm run deploy` claims `api.ai4kanban.dev` as a custom domain on the
    Cloudflare account the site deploys from. `cloud.ai4kanban.dev` stays free for the hosted
    browser surface.
 

@@ -58,6 +58,20 @@ let nav: Navigation | null = null;
 // doesn't hit GitHub again in the same sitting.
 let updatePromise: Promise<UpdateInfo | null> | null = null;
 
+// --- the app's own URL scheme (#326) -----------------------------------------
+// `ai4kanban://…` opens this app. It is what a finished Cloud sign-in comes back to: the
+// board UI server's loopback port is whatever the OS handed out at launch, so there is no
+// fixed address of its own to register with the Supabase project, and the window is where
+// the user started the sign-in anyway. #320 reuses the scheme to open a card from Slack.
+//
+// Claimed here as well as in the packaged app's manifest (electron-builder.yml), which is
+// what makes a build from a checkout work.
+const URL_SCHEME = "ai4kanban";
+
+// One caught before the window can show it. Held rather than dropped: on macOS a launch
+// through the scheme fires `open-url` before `whenReady`.
+let pendingUrl: string | null = null;
+
 // One window, one board. A second launch raises the window that is already
 // there rather than starting a second app over the same projects.
 //
@@ -65,22 +79,61 @@ let updatePromise: Promise<UpdateInfo | null> | null = null;
 // process's own untouched argv. The `argv` the event hands over is Chromium's retelling —
 // switches are reordered and split from their values, so `--cwd <dir>` arrives in pieces
 // and must not be parsed there.
-if (!app.requestSingleInstanceLock({ dir: namedCwd(process.argv) ?? process.cwd() })) app.exit(0);
+if (
+  !app.requestSingleInstanceLock({
+    dir: namedCwd(process.argv) ?? process.cwd(),
+    url: schemeUrl(process.argv),
+  })
+) {
+  app.exit(0);
+}
 app.on("second-instance", (_e, _argv, workingDirectory, data) => {
   if (!win) return;
   if (win.isMinimized()) win.restore();
   win.focus();
+  const carried = data as { dir?: string; url?: string | null } | undefined;
+  // Windows and Linux hand a scheme URL to a fresh process as an argument, and a
+  // single-instance app meets it here. macOS uses `open-url` below instead.
+  if (carried?.url) return handleSchemeUrl(carried.url);
   // `akb` typed on its own in a project opens that project. The launcher inside the app
   // (resources/bin/akb) starts the app again with the folder it was standing in, and a
   // second launch of a single-instance app arrives right here.
-  const dir = (data as { dir?: string } | undefined)?.dir ?? workingDirectory;
+  const dir = carried?.dir ?? workingDirectory;
   const near = boardNear(dir);
   if (near && near !== servers?.boardDir) void open(near);
+});
+
+/** The scheme URL a launch carries, when one does. */
+function schemeUrl(argv: string[]): string | null {
+  return argv.find((arg) => arg.startsWith(`${URL_SCHEME}://`)) ?? null;
+}
+
+/** Hand it to the page. The app carries it no further — the board server is what holds the
+ *  Cloud session, so the open Configuration dialog is what exchanges the answer. */
+function handleSchemeUrl(url: string): void {
+  if (!url.startsWith(`${URL_SCHEME}://`)) return;
+  if (!win || win.webContents.isLoading()) {
+    pendingUrl = url;
+    return;
+  }
+  if (win.isMinimized()) win.restore();
+  win.focus();
+  win.webContents.send(CHANNELS.cloudCallback, url);
+}
+
+app.on("open-url", (e, url) => {
+  e.preventDefault();
+  handleSchemeUrl(url);
 });
 
 app.whenReady().then(start).catch(fatal);
 
 async function start(): Promise<void> {
+  // Tell the system this app answers `ai4kanban://`. A packaged build already says so in
+  // its manifest; this is what makes a build run from a checkout answer too.
+  app.setAsDefaultProtocolClient(URL_SCHEME);
+  pendingUrl ??= schemeUrl(process.argv);
+
   // Before anything else: the environment a terminal would have given us. Every
   // run the board starts inherits it, so an agent installed the normal way is
   // found even though nothing here came from a terminal.
@@ -105,6 +158,8 @@ async function start(): Promise<void> {
   // move there is, rather than opening a file dialog over an empty screen.
   if (repo) await open(repo);
   else await showLauncher();
+  // A sign-in caught before there was a page to hand it to.
+  flushPendingUrl();
   // And then, on a machine with no `akb`, the one offer this app makes on its own.
   await offerCommand();
 }
@@ -161,6 +216,8 @@ function createWindow(): void {
     },
   });
   win.once("ready-to-show", () => win?.show());
+  // A page that has just finished loading is a page that can be handed a sign-in.
+  win.webContents.on("did-finish-load", flushPendingUrl);
   win.on("closed", () => {
     win = null;
     nav = null;
@@ -383,6 +440,14 @@ async function putCommandOnPath(): Promise<CommandInstallResult> {
   // path that is.
   if (boardDir && (await commandAnswers(shellEnv))) await refreshSkillNote(shellEnv, boardDir);
   return result;
+}
+
+/** Hand over a scheme URL that arrived before the page could take it. */
+function flushPendingUrl(): void {
+  const url = pendingUrl;
+  if (!url || !win) return;
+  pendingUrl = null;
+  win.webContents.send(CHANNELS.cloudCallback, url);
 }
 
 function refreshMenu(): void {

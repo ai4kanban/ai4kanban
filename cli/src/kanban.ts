@@ -99,6 +99,20 @@ export {
 export { testConnection } from './lib/agent/test'
 export { ensureAkbDir, setBoardRoot } from './lib/paths'
 
+// The Cloud sign-in (#326): the account this MACHINE acts as, held in one file outside every
+// repository, so the board UI server and a terminal `akb` are the same account. The Cloud
+// section of the Configuration dialog reads and writes it through these; a sign-in starts
+// there and nowhere else, and the desktop app is only what catches the answer.
+export { readCloudAccount, signOutOfCloud } from './lib/cloud/account'
+export type { CloudAccount, CloudState } from './lib/cloud/account'
+export { finishSignIn as finishCloudSignIn, startSignIn as startCloudSignIn } from './lib/cloud/signin'
+export { accessToken as cloudAccessToken, sessionFile as cloudSessionFile } from './lib/cloud/session'
+export type { CloudSession, TokenResult as CloudTokenResult } from './lib/cloud/session'
+// What #319 hands its private Realtime connection, so a refreshed sign-in reaches the
+// socket as well as the Worker.
+export { keepAuthorized as keepCloudRealtimeAuthorized } from './lib/cloud/realtime'
+export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME as CLOUD_URL_SCHEME } from './lib/cloud/config'
+
 // The spec agents (#191): the list a screen draws — each one's two lines and whether it is
 // switched on — and the switch itself. The words and the order are the board's own, so the
 // Agents section in the Configuration dialog and `akb spec` can never say different things.

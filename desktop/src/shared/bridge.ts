@@ -112,6 +112,10 @@ export const CHANNELS = {
    *  went out of. A swipe needs no message: the page reads that gesture itself
    *  and moves its own history. */
   navigated: "a4k:navigated",
+  /** A finished Cloud sign-in, caught on the app's own URL scheme and handed to
+   *  the page (#326). The app carries it no further: the board server is what
+   *  holds the session, so the Configuration dialog is what exchanges it. */
+  cloudCallback: "a4k:cloud-callback",
 } as const;
 
 /**
@@ -152,4 +156,9 @@ export interface Ai4kanbanBridge {
   /** Be told each time the window moves between views, so the page can mark the
    *  edge it went out of. Returns the way to stop being told. */
   onNavigated(fn: (direction: NavDirection) => void): () => void;
+  /** Be handed a finished Cloud sign-in (#326) — the whole callback URL the app
+   *  was opened with. One that arrived before anybody was listening is kept and
+   *  handed to the first subscriber, so a slow-drawing pane doesn't lose it.
+   *  Returns the way to stop being told. */
+  onCloudCallback(fn: (url: string) => void): () => void;
 }

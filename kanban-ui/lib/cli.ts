@@ -16,6 +16,7 @@ import type {
   RunView,
   SpecAgentView,
 } from "./format/agent/types";
+import type { CloudAccount } from "./format/cloud/types";
 import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
 import type {
   Board,
@@ -211,6 +212,15 @@ export interface BoardRules {
   readSkillState?(root?: string): SkillState;
   installSkill?(root?: string, only?: "present"): SkillInstall;
   readCommandState?(): CommandState;
+
+  // the Cloud sign-in (#326) — which account this MACHINE acts as, held outside every
+  // repository so a terminal `akb` is the same account. Optional for the same reason as
+  // the moves above: a project can be running rules older than the release that added
+  // Cloud, and the section says so rather than the dialog failing to draw.
+  readCloudAccount?(): Promise<CloudAccount>;
+  startCloudSignIn?(): { ok: true; url: string } | { ok: false; error: string };
+  finishCloudSignIn?(callback: string): Promise<{ ok: boolean; error?: string }>;
+  signOutOfCloud?(): { ok: true };
 
   // what the board would start on its own, this minute
   nextWork(): Promise<AgentRequest[]>;

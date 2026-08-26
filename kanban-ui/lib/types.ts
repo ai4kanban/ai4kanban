@@ -9,6 +9,7 @@
 //   format/agent/types  a run: which agents there are, what each one takes, what it cost
 //   format/skill/types  the coding agent skill: whether this project has one, and what
 //                       adding it wrote
+//   format/cloud/types  the Cloud sign-in: which account this machine acts as
 //
 // What IS declared here is the one shape the CLI has no opinion about: `SessionView`, a run
 // as the browser reads it. The record the CLI keeps carries a couple of fields the UI has
@@ -102,6 +103,8 @@ export type {
   SkillState,
   SkillWrite,
 } from "./format/skill/types";
+
+export type { CloudAccount, CloudState } from "./format/cloud/types";
 
 /** A running or finished agent run, as the UI sees it when it polls the server. One shared
  *  picture across every tab. */

@@ -35,6 +35,7 @@ const CHANNELS: typeof Channels = {
   openExternal: "a4k:open-external",
   fullscreen: "a4k:fullscreen",
   navigated: "a4k:navigated",
+  cloudCallback: "a4k:cloud-callback",
 };
 
 const bridge: Ai4kanbanBridge = {
@@ -53,7 +54,32 @@ const bridge: Ai4kanbanBridge = {
     navWatchers.add(fn);
     return () => navWatchers.delete(fn);
   },
+  onCloudCallback: (fn) => {
+    cloudWatchers.add(fn);
+    // The browser has been away and the page may have only just drawn the pane, so an
+    // answer that arrived first is handed over now rather than dropped.
+    if (pendingCloudCallback) {
+      const url = pendingCloudCallback;
+      pendingCloudCallback = null;
+      queueMicrotask(() => fn(url));
+    }
+    return () => cloudWatchers.delete(fn);
+  },
 };
+
+// A finished Cloud sign-in, on its way to the Configuration dialog (#326). Kept when it
+// beats its listener: the app raised this window from the browser, and the pane that asked
+// for the sign-in is what exchanges the answer.
+const cloudWatchers = new Set<(url: string) => void>();
+let pendingCloudCallback: string | null = null;
+ipcRenderer.on(CHANNELS.cloudCallback, (_e, url: string) => {
+  if (typeof url !== "string" || !url) return;
+  if (cloudWatchers.size === 0) {
+    pendingCloudCallback = url;
+    return;
+  }
+  cloudWatchers.forEach((fn) => fn(url));
+});
 
 // Whoever is drawing the mark on the edge. Two things feed it: a swipe, read
 // below, and a move made from the menu, which main tells us about.

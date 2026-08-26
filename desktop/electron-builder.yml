@@ -35,6 +35,17 @@ files:
 # The hook runs before code signing, so what it copies is signed with the rest.
 afterPack: scripts/after-pack.js
 
+# The address a finished Cloud sign-in comes back to (#326). The board UI server's loopback
+# port is whatever the OS handed out at launch, so no fixed http address of its own can be
+# registered with the Supabase project — the app registers a scheme instead, and hands what
+# arrives to the open Configuration dialog. #320 reuses it to open a card from Slack.
+# This is what writes CFBundleURLTypes on macOS and the registry keys on Windows; the
+# running app still claims it itself (src/main.ts), which is what makes a checkout work.
+protocols:
+  - name: AI4Kanban
+    schemes:
+      - ai4kanban
+
 # --- macOS: the one we test, shipped unsigned this release -------------------
 # `identity: "-"` is an ad-hoc signature: Gatekeeper still treats the app as
 # unidentified and warns on first open, but the signature is valid, which is

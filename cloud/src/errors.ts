@@ -5,6 +5,8 @@
 export type RefusalCode =
   | 'bad_request'
   | 'unauthenticated'
+  | 'not_admitted'
+  | 'not_yours'
   | 'not_found'
   | 'method_not_allowed'
   | 'daily_write_budget_reached'
@@ -30,6 +32,23 @@ export const badRequest = (message: string) => new Refusal('bad_request', 400, m
 
 export const unauthenticated = (message = 'Sign in to reach this workspace.') =>
   new Refusal('unauthenticated', 401, message)
+
+/**
+ * Signed in, and not in the preview. Its own code, so a client never answers it with
+ * "sign in again" — signing in again lands on the same refusal. The message is the whole
+ * of what a refused person is given, so it names the mailbox in plain text.
+ */
+export const notAdmitted = () =>
+  new Refusal(
+    'not_admitted',
+    403,
+    'AI4Kanban Cloud is an invite-only preview and this account is not in it yet. ' +
+      'Write to support@ai4kanban.dev to ask for an invite.',
+  )
+
+/** The request named a row belonging to another account. Whatever the row is. */
+export const notYours = () =>
+  new Refusal('not_yours', 403, 'That belongs to another account.')
 
 export const notFound = () => new Refusal('not_found', 404, 'No such endpoint.')
 

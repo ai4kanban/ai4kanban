@@ -181,6 +181,20 @@ The agent that runs them
   \`${program} agent set apiKey <their-key>\` — and let them type it: a key an agent types
   lands in its transcript and in the shell history, and a saved key is never read back.
 
+AI4Kanban Cloud — the account this MACHINE acts as
+  cloud                        who this machine is signed in as, and whether Cloud
+                               takes its work
+  cloud sign-out               forget it. This machine stops reaching Cloud, and
+                               nothing on any board changes
+
+  A sign-in is started in the AI4Kanban app, under Configuration → Cloud, and nowhere
+  else: the consent screen opens in your own browser and comes back to the app. Once
+  per machine — every \`${program}\` on it then acts as that account, because they read
+  the one session the app wrote, outside every repository.
+
+  Cloud is an invite-only preview. A signed-in account we have not admitted is told so,
+  and given the address to ask at.
+
 The flows
   guide                        every flow the board has, one line each
   guide <topic>                one in full. \`guide board\` is how the board works at

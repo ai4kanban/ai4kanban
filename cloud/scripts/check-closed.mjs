@@ -67,6 +67,10 @@ async function exposesNothing(url, anonKey, caller) {
 const RPCS = [
   ['service_heartbeat', {}],
   ['service_self_check', { p_daily_write_budget: DAILY_WRITE_BUDGET }],
+  [
+    'account_for_session',
+    { p_subject: '00000000-0000-4000-8000-000000000000', p_daily_write_budget: DAILY_WRITE_BUDGET },
+  ],
 ]
 
 async function refusesRpc(url, anonKey, caller, fn, args) {

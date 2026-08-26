@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { PG_WRITE_BUDGET_EXCEEDED, refusalFor } from '../src/db.ts'
+import { PG_NOT_YOURS, PG_WRITE_BUDGET_EXCEEDED, refusalFor } from '../src/db.ts'
 import { secondsUntilNextUtcDay } from '../src/errors.ts'
 
 describe('refusalFor', () => {
@@ -22,6 +22,13 @@ describe('refusalFor', () => {
       assert.equal(refusal.status, 507)
       assert.match(refusal.message, /not saved/)
     }
+  })
+
+  it('turns a row belonging to another account into its own refusal', () => {
+    const refusal = refusalFor({ code: PG_NOT_YOURS }, 400)
+
+    assert.equal(refusal.code, 'not_yours')
+    assert.equal(refusal.status, 403)
   })
 
   it('says nothing specific about anything else', () => {

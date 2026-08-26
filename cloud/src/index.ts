@@ -1,10 +1,9 @@
-import { bearerToken, verifyAccessToken } from './auth.ts'
-import type { Identity } from './auth.ts'
 import { mutate } from './db.ts'
 import { requireEnv } from './env.ts'
 import type { Env } from './env.ts'
-import { Refusal, methodNotAllowed, notFound } from './errors.ts'
+import { Refusal, methodNotAllowed, notAdmitted, notFound } from './errors.ts'
 import { json, refusalResponse } from './http.ts'
+import { readSession, requireOwner } from './owner.ts'
 import { runScheduled } from './scheduled.ts'
 
 interface SelfCheck {
@@ -38,27 +37,30 @@ async function route(request: Request, env: Env): Promise<Response> {
     return json({ service: 'ai4kanban-cloud', ok: true })
   }
 
-  // Proves a sign-in end to end: the token is verified against the project's JWKS and
-  // nothing else is consulted. Membership and roles are #314's.
+  // The one route open to a verified sign-in we have not admitted (#326), so the app can
+  // name the account it refused rather than showing a refusal about nobody.
   if (pathname === '/v1/session') {
     requireMethod(request, 'GET')
-    return json({ session: await identify(request, env) })
+    const session = await readSession(request, env)
+    // The refusal every other route would give, carried here so the app shows the service's
+    // own words rather than writing its own copy of them.
+    const refusal = session.admitted ? undefined : notAdmitted()
+    return json({
+      session,
+      ...(refusal ? { refusal: { code: refusal.code, message: refusal.message } } : {}),
+    })
   }
 
   // The post-deploy check: one budgeted write through the same path every mutation uses,
   // so a deploy shows the write budget and the read-only refusal working before a client
-  // meets them.
+  // meets them. Behind the owner check like every route that is not the session.
   if (pathname === '/v1/self-check') {
     requireMethod(request, 'POST')
-    await identify(request, env)
+    await requireOwner(request, env)
     return json(await mutate<SelfCheck>(env, 'service_self_check'))
   }
 
   throw notFound()
-}
-
-function identify(request: Request, env: Env): Promise<Identity> {
-  return verifyAccessToken(bearerToken(request), env.SUPABASE_URL)
 }
 
 function requireMethod(request: Request, method: string): void {

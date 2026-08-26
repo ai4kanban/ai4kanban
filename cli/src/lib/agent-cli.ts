@@ -23,6 +23,7 @@ import {
 import { KANBAN, setBoardRoot } from './paths'
 import { cmdAgent } from '../commands/agent'
 import { cmdChat } from '../commands/chat'
+import { cmdCloud } from '../commands/cloud'
 import { cmdGuide } from '../commands/guide'
 import { cmdApprove, cmdCancel, cmdDiscard, cmdLog, cmdResume, cmdRuns, cmdStartRun, cmdStop, cmdWatch } from '../commands/run'
 import { cmdSpec } from '../commands/spec'
@@ -62,12 +63,14 @@ const OTHER: Record<string, (args: string[], program: string) => MoveResult | Pr
   agent: (args) => cmdAgent(args),
 }
 
-// The flows themselves. Alone among these it needs no board: a guide is the same text
-// wherever it is read, and an agent asking what a flow says before installing one is
-// exactly who should get an answer.
+// The two that need no board. A guide is the same text wherever it is read, and an agent
+// asking what a flow says before installing one is exactly who should get an answer; the
+// Cloud sign-in belongs to the machine rather than to any one project (#326).
 const GUIDE = 'guide'
+const CLOUD = 'cloud'
+const BOARDLESS = [GUIDE, CLOUD]
 
-const NAMES = [...Object.keys(RUNS), ...Object.keys(OTHER), GUIDE]
+const NAMES = [...Object.keys(RUNS), ...Object.keys(OTHER), ...BOARDLESS]
 
 // The watcher's own door. Not a command anyone types — `akb implement 12` spawns it — and
 // spelled so it can never be mistaken for one. It is handled before everything else
@@ -102,11 +105,11 @@ export async function runAgent(argv: string[], options: RunAgentOptions = {}): P
     return 0
   }
 
-  // Before the board lookup, on purpose — see GUIDE above.
-  if (raw === GUIDE) {
+  // Before the board lookup, on purpose — see BOARDLESS above.
+  if (raw === GUIDE || raw === CLOUD) {
     const box = json ? startCollecting() : null
     try {
-      const data = cmdGuide(args, program)
+      const data = raw === GUIDE ? cmdGuide(args, program) : await cmdCloud(args, program)
       if (json) answer({ ok: true, ...data, ...prose(box) })
       return 0
     } catch (err) {

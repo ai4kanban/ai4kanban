@@ -23,6 +23,7 @@ import {
   searchCards,
 } from "@/lib/board";
 import { type ChatRead, clearChat, readChat, sendChat } from "@/lib/chat";
+import { cloudAccount, finishCloudSignIn, signOutOfCloud, startCloudSignIn } from "@/lib/cloud";
 import {
   autoCommitAllowed,
   diffApprovalRequired,
@@ -72,6 +73,7 @@ import type {
   BulkReleaseResult,
   CardPatch,
   CardRef,
+  CloudAccount,
   ClosePlan,
   CommandState,
   ConnectionTest,
@@ -828,5 +830,50 @@ export async function installSkillAction(): Promise<SkillInstall> {
       skipped: [],
       state: UNKNOWN_SKILL,
     };
+  }
+}
+
+// --- the Cloud sign-in (#326) ------------------------------------------------
+// Which account this MACHINE acts as. Asked when the Cloud section opens and after every
+// press in it, never on the board's poll: it reaches the service over the network.
+//
+// The sign-in itself is three steps between three places — this server makes the consent
+// URL and keeps the secret half, the app opens the browser and catches the answer on its
+// URL scheme, and the answer comes back here to be exchanged. The board UI server is the
+// one that holds the session file, so a terminal `akb` reads what a press here wrote.
+
+export async function cloudAccountAction(): Promise<CloudAccount> {
+  return cloudAccount();
+}
+
+/** The consent screen to open. The app opens it in the user's own browser — a desktop
+ *  window must never navigate away from the board. */
+export async function startCloudSignInAction(): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  try {
+    return await startCloudSignIn();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** The answer the app caught, exchanged for a session. `callback` is the whole URL the
+ *  scheme was opened with — checked here so a stale client cannot hand over anything else. */
+export async function finishCloudSignInAction(callback: string): Promise<{ ok: boolean; error?: string }> {
+  if (typeof callback !== "string" || !callback.startsWith("ai4kanban://")) {
+    return { ok: false, error: "that is not a sign-in answer" };
+  }
+  try {
+    return await finishCloudSignIn(callback);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Sign this machine out. Nothing already on the board is touched. */
+export async function signOutOfCloudAction(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    return await signOutOfCloud();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
