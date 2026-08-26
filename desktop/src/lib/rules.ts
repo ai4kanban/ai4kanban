@@ -15,7 +15,13 @@ import { bundledResource } from "./resources";
 /** The little of the rules' surface this process asks for. */
 interface Rules {
   readLanguage?(): string;
+  languageChosen?(): boolean;
+  setLanguage?(value: string): { ok: boolean };
   isLanguage?(value: unknown): boolean;
+  languageForTag?(tag: string): string | null;
+  LANGUAGES?: readonly string[];
+  LANGUAGE_NAMES?: Record<string, string>;
+  LANGUAGE_TAGS?: Record<string, string>;
 }
 
 // The rules are ESM and this process is CommonJS, so a plain `import()` would be compiled
@@ -47,4 +53,50 @@ export async function machineLanguage(): Promise<string> {
 export async function knownLanguage(value: unknown): Promise<boolean> {
   const mod = await rules();
   return mod.isLanguage ? mod.isLanguage(value) : value === DEFAULT_LANGUAGE;
+}
+
+/** Save the language this machine reads in (#339). The board saves through its own board
+ *  server; the launcher is a `data:` page with none behind it, so its switcher comes here. */
+export async function saveLanguage(value: string): Promise<void> {
+  (await rules()).setLanguage?.(value);
+}
+
+/** Open in the machine's own language on the launch that finds nothing saved (#339).
+ *
+ *  `preferred` is the reader's languages in the order they asked for them
+ *  (`app.getPreferredSystemLanguages()`); the first this build has a copy for is written
+ *  down, and every surface reads it from the file afterwards. Nothing is guessed once an
+ *  answer is saved — including an explicit English one — and nothing is guessed by a build
+ *  whose bundled rules predate the setting.
+ *
+ *  A guess that cannot be saved is not made: a home directory the app cannot write opens
+ *  English and the next launch guesses again, rather than leaving the menu and the board
+ *  reading two different answers. */
+export async function guessLanguage(preferred: readonly string[]): Promise<void> {
+  const mod = await rules();
+  if (!mod.languageChosen || !mod.languageForTag || mod.languageChosen()) return;
+  for (const tag of preferred) {
+    const guess = typeof tag === "string" ? mod.languageForTag(tag) : null;
+    if (guess) {
+      mod.setLanguage?.(guess);
+      return;
+    }
+  }
+}
+
+/** One language a switcher offers: its code, its own name for itself, and the BCP 47 tag a
+ *  page carries for it. Empty when the bundled rules predate the setting — then the launcher
+ *  draws no switcher, since a control that cannot save is worse than no control. */
+export interface LanguageChoice {
+  code: string;
+  name: string;
+  tag: string;
+}
+
+export async function languageChoices(): Promise<LanguageChoice[]> {
+  const mod = await rules();
+  if (!mod.LANGUAGES || !mod.LANGUAGE_NAMES || !mod.LANGUAGE_TAGS || !mod.setLanguage) return [];
+  const names = mod.LANGUAGE_NAMES;
+  const tags = mod.LANGUAGE_TAGS;
+  return mod.LANGUAGES.map((code) => ({ code, name: names[code] ?? code, tag: tags[code] ?? code }));
 }

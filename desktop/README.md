@@ -45,6 +45,14 @@ What the app adds, and all it adds:
   file there the app draws its own panel instead. The folder badge in the
   header opens another one later; so does **File → Open Project…**. One board at a time, and
   a folder with no board lands on the make-a-board screen.
+- **Opening in your language.** On the launch that finds nothing saved, the app reads the
+  machine's own preferred languages (`app.getPreferredSystemLanguages()`) and writes down the
+  first one the board's rules have a copy for — any Chinese is 中文, and a language they don't
+  have falls through to English. It is guessed once, before the window opens, so the menu and
+  the board's first paint read one answer; every launch after that reads what was saved. The
+  launcher carries an **English / 中文** switcher in its corner, since it comes before there is
+  a board to open **Configuration → Language** on. A guess that cannot be saved is not made,
+  and a build whose bundled rules predate the setting opens English and draws no switcher.
 - **Going back.** On a card, a two-finger swipe right goes back to the view before and left
   goes forward again, the same as in a browser, and the edge you left by lights up for a
   moment. The board is the one page the swipe leaves alone: its columns are scrolled

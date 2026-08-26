@@ -34,6 +34,15 @@ export function readLanguage(): Language {
   return isLanguage(value) ? value : DEFAULT_LANGUAGE
 }
 
+/** Whether this machine has ever said which language to read in. `readLanguage` cannot
+ *  answer that — it reads `en` both for a file holding nothing and for a reader who picked
+ *  English — and the desktop app guesses from the system only on the first (#339). A saved
+ *  `language` this build cannot read still counts as said, so an older app never guesses
+ *  over a newer one's pick. */
+export function languageChosen(): boolean {
+  return held().language !== undefined
+}
+
 /** Save it. Through a temporary file, so a reader never sees half of one, and keeping
  *  whatever else the file holds — a setting a later release added is not this one's to drop. */
 export function setLanguage(value: Language): WriteResult {

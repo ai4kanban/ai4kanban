@@ -118,8 +118,18 @@ export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME
 // Configuration dialog reads and writes it through these, and the desktop app reads it at
 // startup so its first menu is right. It is never a board setting — a language is a fact
 // about the reader, and follows the person into every project.
-export { readLanguage, setLanguage, settingsFile as machineSettingsFile } from './lib/machine/settings'
-export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from './lib/machine/types'
+// `languageChosen` and `languageForTag` are the desktop app's (#339): on the launch that
+// finds nothing said, it walks the system's preferred languages through the mapping here and
+// saves the first this build has a copy for.
+export { languageChosen, readLanguage, setLanguage, settingsFile as machineSettingsFile } from './lib/machine/settings'
+export {
+  DEFAULT_LANGUAGE,
+  isLanguage,
+  LANGUAGE_NAMES,
+  LANGUAGE_TAGS,
+  LANGUAGES,
+  languageForTag,
+} from './lib/machine/types'
 export type { Language } from './lib/machine/types'
 
 // The spec agents (#191): the list a screen draws — each one's two lines and whether it is

@@ -37,6 +37,7 @@ const CHANNELS: typeof Channels = {
   navigated: "a4k:navigated",
   cloudCallback: "a4k:cloud-callback",
   languageChanged: "a4k:language-changed",
+  setLanguage: "a4k:set-language",
 };
 
 const bridge: Ai4kanbanBridge = {
@@ -52,6 +53,7 @@ const bridge: Ai4kanbanBridge = {
   skipUpdate: (version) => ipcRenderer.invoke(CHANNELS.skipUpdate, version),
   openExternal: (url) => ipcRenderer.invoke(CHANNELS.openExternal, url),
   languageChanged: (language) => ipcRenderer.invoke(CHANNELS.languageChanged, language),
+  setLanguage: (language) => ipcRenderer.invoke(CHANNELS.setLanguage, language),
   onNavigated: (fn) => {
     navWatchers.add(fn);
     return () => navWatchers.delete(fn);

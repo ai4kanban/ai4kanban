@@ -33,3 +33,12 @@ export const LANGUAGE_TAGS: Record<Language, string> = {
 export function isLanguage(value: unknown): value is Language {
   return typeof value === 'string' && (LANGUAGES as readonly string[]).includes(value)
 }
+
+/** The language a BCP 47 tag reads as — `en-GB` is English, and any `zh-*` is Simplified
+ *  Chinese, the only Chinese copy this build has. Null when this build has no language for
+ *  the tag, so a walk down a reader's preferred languages carries on to the next one
+ *  instead of stopping on English at the first entry. */
+export function languageForTag(tag: string): Language | null {
+  const primary = tag.split('-')[0]?.toLowerCase()
+  return isLanguage(primary) ? primary : null
+}

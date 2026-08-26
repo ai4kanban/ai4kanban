@@ -16,6 +16,7 @@
 // the board, so `window.ai4kanban` is the same bridge (../preload.ts).
 
 import fs from "node:fs";
+import type { LanguageChoice } from "./rules";
 import { bundledResource } from "./resources";
 
 /** Everything the page can't ask for, because it is true before it loads. */
@@ -23,10 +24,37 @@ export interface LauncherOptions {
   /** macOS, where the window has no title bar of its own and the page has to
    *  leave a drag strip and room for the traffic lights. */
   mac: boolean;
+  /** The language this machine reads in (#339) — what `<html lang>` carries and
+   *  which entry the switcher marks. The page's own words stay English until
+   *  #336 translates them. */
+  language: string;
+  /** What the switcher offers, each written in its own name. Empty draws no
+   *  switcher: a build whose bundled rules predate the setting cannot save a
+   *  pick, and a control that cannot save is worse than no control. */
+  languages: LanguageChoice[];
 }
 
 export function launcherUrl(options: LauncherOptions): string {
   return `data:text/html;charset=utf-8,${encodeURIComponent(page(options))}`;
+}
+
+/** A folder name is whoever made it's, and so is nothing here — but the page is
+ *  built as a string, so everything put into one goes through this. */
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+/** The switcher, top right: one chip per language, each in its own name, the one
+ *  in force filled. Nothing at all when there is nothing that could save a pick. */
+function switcher(language: string, languages: LanguageChoice[]): string {
+  if (languages.length < 2) return "";
+  const chips = languages
+    .map((l) => {
+      const current = l.code === language;
+      return `<button type="button" class="lang" lang="${escapeHtml(l.tag)}" data-lang="${escapeHtml(l.code)}"${current ? ' aria-current="true"' : ""}>${escapeHtml(l.name)}</button>`;
+    })
+    .join("");
+  return `<div class="langs">${chips}</div>`;
 }
 
 /** The artwork down the left, as a tag ready to drop in the page.
@@ -49,9 +77,10 @@ function artwork(): string {
 // ink outlines, one ember accent, a hard offset shadow that presses down. This
 // screen is the app's front door, so it has to be the same object as the board
 // behind it.
-function page({ mac }: LauncherOptions): string {
+function page({ mac, language, languages }: LauncherOptions): string {
+  const tag = languages.find((l) => l.code === language)?.tag ?? "en";
   return `<!doctype html>
-<html lang="en">
+<html lang="${escapeHtml(tag)}">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
@@ -63,6 +92,7 @@ function page({ mac }: LauncherOptions): string {
     --cream: #f7f7f4;
     --paper: #ffffff;
     --accent: #dd4f1e;
+    --accent-soft: #f7ddce;
     --accent-deep: #b83a12;
     --mint-ink: #2f6b46;
   }
@@ -232,10 +262,44 @@ function page({ mac }: LauncherOptions): string {
   }
   .item:hover .forget, .forget:focus-visible, .item.gone .forget { opacity: 1; }
   .forget:hover { color: var(--ink); }
+
+  /* The language switcher (#339). Framed like window chrome in the corner rather
+     than set under the column: this is the one screen with no header to reach
+     Configuration from, so a guess the app got wrong has to be one click to undo
+     on the way in. Below the drag strip, and small enough that Open Folder stays
+     the one thing the page leads with. */
+  .langs {
+    -webkit-app-region: no-drag;
+    position: fixed;
+    top: 55px;
+    right: 28px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px;
+    border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
+    border-radius: 10px;
+    background: var(--paper);
+  }
+  .lang {
+    padding: 4px 9px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ink-soft);
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .lang:hover { color: var(--ink); }
+  .lang[aria-current="true"] { background: var(--accent-soft); color: var(--accent-deep); cursor: default; }
+  .lang:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 </style>
 </head>
 <body>
 <div class="titlebar"></div>
+${switcher(language, languages)}
 <aside class="art">${artwork()}</aside>
 <main>
   <div class="inner">
@@ -348,6 +412,15 @@ const DRAWN_ART = `<svg viewBox="0 0 480 900" preserveAspectRatio="xMidYMid slic
 const SCRIPT = `
   const app = window.ai4kanban;
   document.getElementById("open").addEventListener("click", () => app?.pickRepo());
+
+  // The switcher saves through the app rather than through a board server, which this
+  // page has none of. The app draws this page again in whatever was saved, so a click
+  // that lands shows the new language and one that could not save shows the old.
+  for (const chip of document.querySelectorAll(".lang")) {
+    chip.addEventListener("click", () => {
+      if (chip.getAttribute("aria-current") !== "true") app?.setLanguage(chip.dataset.lang);
+    });
+  }
 
   const recent = document.getElementById("recent");
   const rows = document.getElementById("rows");

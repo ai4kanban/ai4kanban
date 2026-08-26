@@ -32,7 +32,14 @@ import { launcherUrl } from "./lib/launcher";
 import { buildMenu } from "./lib/menu";
 import { attachNavigation, type Navigation } from "./lib/navigation";
 import * as projects from "./lib/projects";
-import { DEFAULT_LANGUAGE, knownLanguage, machineLanguage } from "./lib/rules";
+import {
+  DEFAULT_LANGUAGE,
+  guessLanguage,
+  knownLanguage,
+  languageChoices,
+  machineLanguage,
+  saveLanguage,
+} from "./lib/rules";
 import { BoardServers } from "./lib/server";
 import { loginShellEnv, type Env } from "./lib/shell-env";
 import * as store from "./lib/store";
@@ -156,7 +163,10 @@ async function start(): Promise<void> {
   const repo = boardNear(namedCwd(process.argv)) ?? store.lastRepo();
 
   // Before the first menu: waiting for the board to load and report would leave an English
-  // menu bar up for as long as that takes, on every launch.
+  // menu bar up for as long as that takes, on every launch. On the launch that finds nothing
+  // saved, this is also where the machine's own language is guessed and written down (#339),
+  // so the menu and the board's first paint read one answer.
+  await guessLanguage(app.getPreferredSystemLanguages());
   language = await machineLanguage();
 
   createWindow();
@@ -310,7 +320,7 @@ async function openProject(repo: unknown): Promise<string | null> {
  *  and never has to undraw itself. */
 async function showLauncher(): Promise<void> {
   win?.setTitle("AI4Kanban");
-  await win?.loadURL(launcherUrl({ mac: MAC }));
+  await win?.loadURL(launcherUrl({ mac: MAC, language, languages: await languageChoices() }));
   nav?.reset();
 }
 
@@ -547,6 +557,23 @@ ipcMain.handle(CHANNELS.skipUpdate, (_e, version: unknown) => {
 
 ipcMain.handle(CHANNELS.openExternal, (_e, url: unknown) => {
   if (typeof url === "string" && /^https?:/.test(url)) void shell.openExternal(url);
+  return null;
+});
+
+// The launcher's switcher (#339). The launcher is a `data:` page with no board server
+// behind it, so the app saves for it, and then draws the page and the menu again in what was
+// saved — a click that changes nothing on screen reads as a control that does not work. A
+// save that failed leaves both where they were, which is the only error this page can say.
+ipcMain.handle(CHANNELS.setLanguage, async (_e, next: unknown) => {
+  if (typeof next !== "string" || next === language || !(await knownLanguage(next))) return null;
+  await saveLanguage(next);
+  const saved = await machineLanguage();
+  if (saved === language) return null;
+  language = saved;
+  refreshMenu();
+  // Only ever the launcher: every way off that page loads a board over it, and a board saves
+  // through its own server and comes back on the channel below.
+  if (!servers?.boardDir) void showLauncher();
   return null;
 });
 

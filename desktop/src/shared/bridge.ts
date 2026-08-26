@@ -120,6 +120,9 @@ export const CHANNELS = {
    *  outside the page — follows. The setting itself is already saved by the time this
    *  arrives; the app reads it for itself at startup. */
   languageChanged: "a4k:language-changed",
+  /** Save the language this machine reads in (#339) — the launcher's own switcher, which
+   *  has no board server behind it to save through. */
+  setLanguage: "a4k:set-language",
 } as const;
 
 /**
@@ -169,4 +172,8 @@ export interface Ai4kanbanBridge {
    *  language is a string the command's own list decides — the app checks it against that
    *  list rather than keeping a copy of it. */
   languageChanged(language: string): Promise<null>;
+  /** Save the language this machine reads in (#339), for a page with no board server behind
+   *  it: the launcher. The app saves it, then draws that page and the menu again in whatever
+   *  was saved, so a save that failed leaves the page where it was. */
+  setLanguage(language: string): Promise<null>;
 }

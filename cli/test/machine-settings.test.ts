@@ -3,6 +3,10 @@
 // What is asked here: the setting is one machine's and not one board's, a missing,
 // damaged or unknown answer reads as English, and saving keeps whatever else the file
 // holds rather than dropping a setting this build has never heard of.
+//
+// And what the desktop app's first-launch guess rests on (#339): a machine that has never
+// said is told apart from one that picked English, and a BCP 47 tag the system hands over
+// either names a language this build has or names none at all.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -10,7 +14,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { readLanguage, setLanguage, settingsFile } from '../src/lib/machine/settings.ts'
+import { languageChosen, readLanguage, setLanguage, settingsFile } from '../src/lib/machine/settings.ts'
+import { languageForTag } from '../src/lib/machine/types.ts'
 
 let home = ''
 
@@ -60,9 +65,43 @@ describe('the machine settings', () => {
     assert.match(saved.error ?? '', /not a language/)
   })
 
+  it('tells a machine that has never said from one that picked English', () => {
+    assert.equal(languageChosen(), false)
+    setLanguage('en')
+    assert.equal(languageChosen(), true)
+  })
+
+  it('counts a language this build cannot read as said, so no app guesses over a newer one', () => {
+    write(JSON.stringify({ language: 'kl' }))
+    assert.equal(readLanguage(), 'en')
+    assert.equal(languageChosen(), true)
+  })
+
   it('keeps settings a later release added', () => {
     write(JSON.stringify({ language: 'en', theme: 'dark' }))
     setLanguage('zh')
     assert.deepEqual(JSON.parse(fs.readFileSync(settingsFile(), 'utf8')), { language: 'zh', theme: 'dark' })
+  })
+})
+
+describe('the language a system tag reads as', () => {
+  it('takes the tag on its own', () => {
+    assert.equal(languageForTag('en'), 'en')
+    assert.equal(languageForTag('zh'), 'zh')
+  })
+
+  it('reads any Chinese as the Simplified copy, the only one this build has', () => {
+    assert.equal(languageForTag('zh-Hans-CN'), 'zh')
+    assert.equal(languageForTag('zh-Hant-TW'), 'zh')
+  })
+
+  it('ignores the region and the case', () => {
+    assert.equal(languageForTag('en-GB'), 'en')
+    assert.equal(languageForTag('ZH-hant'), 'zh')
+  })
+
+  it('answers nothing for a language this build has no copy for, rather than English', () => {
+    assert.equal(languageForTag('fr-FR'), null)
+    assert.equal(languageForTag(''), null)
   })
 })

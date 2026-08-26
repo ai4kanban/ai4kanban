@@ -1374,6 +1374,20 @@ so the app, a board served to a browser and a bare `akb` in a terminal all read 
 and so it is never cloned along with your project or shared with your team. There is no `akb`
 command that sets it; the switcher is the app's.
 
+On a machine that has never said, the app picks for you the first time it opens: it reads your
+system's preferred languages and keeps the first one it has a copy for — any Chinese is **中文**, and
+a language it doesn't have falls through to the next one and then to English. The answer is written
+down like any other pick, so it is guessed once and never again: a machine whose system language
+changes later keeps what it was opened in, and this section is what moves it. An app that has been
+reading English under a Chinese system turns Chinese once when it updates, for the same reason.
+Guessing is the app's alone — a board served to a browser and `akb` in a terminal read the answer and
+never write one.
+
+The **launcher** — the screen with no project open — carries its own **English / 中文** switcher in
+its top-right corner. It is the one screen you meet before there is a board to open this dialog on,
+so a guess it got wrong costs one click there. A build whose bundled rules predate the setting draws
+no switcher at all.
+
 The board still draws in English: this release ships the setting, and the words are translated in a
 later one. What the `akb` command prints in a terminal stays English either way.
 
