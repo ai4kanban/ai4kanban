@@ -970,14 +970,14 @@ commit is already the approval — and the switch says so.
 **Harness** is the coding tool that runs the board's work — every button here starts a run on it, in
 your repo root. Six ship:
 
-| Agent | It spawns | Settings | Optional key | Cost | Model name |
+| Agent | It spawns | Settings | Key | Cost | Model name |
 | --- | --- | --- | --- | --- | --- |
-| **Claude Code** (default) | `claude` | Provider, Endpoint base URL, Model, Reasoning effort | `ANTHROPIC_API_KEY` | yes | yes |
-| **Codex** | `codex exec --json --sandbox workspace-write` | Model | `OPENAI_API_KEY` | no | no |
-| **Cursor** | `cursor-agent -p --output-format stream-json --force` | Model | `CURSOR_API_KEY` | no | yes |
+| **Claude Code** (default) | `claude` | Provider, Endpoint base URL, Model, Reasoning effort | `ANTHROPIC_API_KEY` (optional) | yes | yes |
+| **Codex** | `codex exec --json --sandbox workspace-write` | Model | `OPENAI_API_KEY` (optional) | no | no |
+| **Cursor** | `cursor-agent -p --output-format stream-json --force` | Model | `CURSOR_API_KEY` (optional) | no | yes |
 | **OpenCode** | `opencode run --format json` | Model, Reasoning effort | none | yes | no |
-| **DeepSeek Harness** | `dsh-acp --permission-mode workspace-write` | Model | `DEEPSEEK_API_KEY` | yes | yes |
-| **ZCode** | `zcode app-server` | Sign-in, Model | `ZAI_API_KEY` | no | yes |
+| **DeepSeek Harness** | `dsh-acp --permission-mode workspace-write` | Model | `DEEPSEEK_API_KEY` (optional) | yes | yes |
+| **ZCode** | `zcode app-server` | Model | `ZAI_API_KEY` (required) | no | yes |
 
 Same cards, same buttons, same files whichever you pick. **Cost** and **Model name** say whether a
 run's log can show them: the board prints what the run itself reported and never invents either, so
@@ -995,7 +995,6 @@ Each agent brings its own settings, so the fields change when you pick another o
 empties them — a Claude model id means nothing to Codex — and leaves your saved keys alone.
 
 - **Provider** (Claude Code only) — who pays for a run and where it goes. See below.
-- **Sign-in** (ZCode only) — the login `zcode` already has, or a Z.AI Coding Plan key you paste in.
 - **Endpoint base URL** (Claude Code only) — the address your gateway answers on. Required before
   the endpoint pick will save.
 - **Model** — the id that agent runs with, passed as `--model`. Leave it empty for the agent's own
@@ -1009,10 +1008,13 @@ empties them — a Claude model id means nothing to Codex — and leaves your sa
   Low, Medium, High, Extra high (xhigh), Max. **Agent's default** passes nothing. OpenCode makes this
   a box you type in, because the level is your provider's own word (`minimal`, `high`, `max`) and
   providers don't agree on the words.
-- **The key box** — optional every time. Leave it empty and runs use whatever login that CLI already
-  has; for dsh, the key it saved in its own `$DSH_HOME`; for ZCode, the one `zcode login` made. Clear
-  it and the next run goes straight back to that login. OpenCode has no key box on purpose: it reaches any provider and each has its own
-  key, so its runs use the login `opencode auth login` made. See **Keys**.
+- **The key box** — optional everywhere but ZCode. Leave it empty and runs use whatever login that
+  CLI already has; for dsh, the key it saved in its own `$DSH_HOME`. Clear it and the next run goes
+  straight back to that login. **ZCode** is the exception: a `zcode login` credential belongs to a
+  provider `zcode`'s own config never points at, so a run without the key stops on
+  `Model provider is missing an API key: zai`, and the log says where to paste one. OpenCode has no
+  key box on purpose: it reaches any provider and each has its own key, so its runs use the login
+  `opencode auth login` made. See **Keys**.
 - **Test** — under those settings. See **Testing the connection**.
 
 ### What each agent needs
@@ -1058,8 +1060,8 @@ empties them — a Claude model id means nothing to Codex — and leaves your sa
   `app-server`. The board holds a conversation with `app-server` rather than using `zcode --prompt`,
   which prints for a person to read and never says which session it ran under. A run opens its
   session in ZCode's `yolo` mode: nothing stops to ask, and nothing holds it to the project folder
-  either — ZCode ships no sandbox. Sign in with `zcode login` (macOS) or `/login` once, or paste a
-  Coding Plan key from Z.ai or BigModel. ZCode reads `.agents/skills/kanban/` on its own.
+  either — ZCode ships no sandbox. Sign in by pasting a Coding Plan key from Z.ai or BigModel into
+  the key box; a `zcode login` does not carry a run. ZCode reads `.agents/skills/kanban/` on its own.
 
 Every agent's rate limit but Claude Code's is waited out, holding the card while it does.
 

@@ -550,6 +550,12 @@ export interface HarnessSetting {
   /** The environment variable this setting's value reaches the run under. For a `secret`
    *  it is also the name of the line in `docs/kanban/.env`. */
   env?: string
+  /** The variable a run gets this value under, INSTEAD of `env` — for a key whose
+   *  `docs/kanban/.env` line has to keep a name of its own while the agent reads another.
+   *  ZCode's Coding Plan key is `ZAI_API_KEY` in the file and `ANTHROPIC_API_KEY` in the
+   *  run, because sharing Claude Code's line would mean one key box overwriting the other.
+   *  A picked provider's own `envAs` wins over this one. */
+  envAs?: string
   /** Every flag name this agent's CLI takes for this setting. The first one is what a
    *  run appends. A setting with no flags reaches the run some other way. */
   flags?: string[]

@@ -51,12 +51,16 @@ export function checkHarnesses(harnesses: Harness[]): void {
       seen.add(key)
       // A secret reaches the run as an environment variable and nothing else: it has to name
       // the variable, that name has to be its own, and it can carry no flag — a key on a
-      // command line is a key in every process list on the machine.
+      // command line is a key in every process list on the machine. `envAs` renames it on
+      // the way out, so the name a run sees is checked alongside the file's: two secrets
+      // landing on one variable is one of them overwriting the other.
       if (setting.kind !== 'secret') continue
       if (!setting.env) throw new Error(`harness "${harness.name}": the secret "${key}" names no environment variable`)
-      if (setting.flags?.length) throw new Error(`harness "${harness.name}": the secret "${key}" can't take a flag — a secret reaches the run as ${setting.env}`)
-      if (seenEnv.has(setting.env)) throw new Error(`harness "${harness.name}": two secrets share the variable "${setting.env}"`)
-      seenEnv.add(setting.env)
+      if (setting.flags?.length) throw new Error(`harness "${harness.name}": the secret "${key}" can't take a flag — a secret reaches the run as ${setting.envAs ?? setting.env}`)
+      for (const name of new Set([setting.env, setting.envAs ?? setting.env])) {
+        if (seenEnv.has(name)) throw new Error(`harness "${harness.name}": two secrets share the variable "${name}"`)
+        seenEnv.add(name)
+      }
     }
     // The provider list, checked the same way and for the same reason. A provider that needs
     // a setting the harness never declared would draw an empty box, and a default that names

@@ -62,7 +62,7 @@ Each agent's fields sit under the grid. A field that isn't shown isn't sent.
 | Cursor | Model, Cursor key (optional). Reasoning goes inside the model id: `claude-opus-4-8[effort=high]` |
 | OpenCode | Model as `provider/model`, reasoning effort. Keys come from `opencode auth login` |
 | DeepSeek Harness | Model, DeepSeek key (optional — otherwise the one `dsh` saved) |
-| ZCode | Sign-in (the login ZCode has, or a Z.AI Coding Plan key), model |
+| ZCode | Model, Z.AI Coding Plan key (a `zcode login` won't run the board) |
 
 Claude Code is the only one with a provider choice for gateways, so it is the one to pick
 for OpenRouter or LiteLLM.
@@ -81,9 +81,10 @@ GLM Coding Plan.
   README says its right to republish that runtime is unconfirmed. If you would rather not
   rely on it, install ZCode Desktop and point this agent's `command` in
   `docs/kanban/ui.config.json` at the `zcode` inside it, followed by `app-server`.
-- **Signing in**: leave **Sign-in** on *The login ZCode has* and run `zcode login` (macOS)
-  or `/login` in `zcode` once. Otherwise pick *Z.AI Coding Plan key* and paste the key —
-  from Z.ai, or from BigModel for the same plan bought in mainland China.
+- **Signing in**: paste a Coding Plan key into **Z.AI Coding Plan key** — from Z.ai, or
+  from BigModel for the same plan bought in mainland China. It is the only way in.
+  A `zcode login` credential belongs to a provider `zcode`'s own config never points at,
+  so a run without the key stops on `Model provider is missing an API key: zai`.
 - **Model**: `glm-5.3`, `glm-5.2`, `glm-5.1` or `glm-5-turbo`. Empty runs whatever ZCode is
   already set to. Write `zai/glm-5.3` to name the provider as well.
 - **The board's rules**: ZCode finds them in `.agents/skills/kanban/` by itself.

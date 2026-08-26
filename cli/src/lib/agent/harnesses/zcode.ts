@@ -8,9 +8,8 @@ import { SKILL_SENTENCE, type Harness } from './types'
 // ZCode's own Z.AI provider is an Anthropic-format one, and the key it reads for it is
 // ANTHROPIC_API_KEY — the same variable Claude Code's runs use. Left alone, a ZCode run on
 // a board with a Claude Code key would send that key to `api.z.ai`. So the variable is
-// dropped from every ZCode run (`providerEnv`), and the Coding Plan pick below puts the
-// board's own Z.ai key back under that name and nothing else does. Someone already signed
-// in to ZCode keeps working: their login is in ZCode's own credential store, not here.
+// dropped from every ZCode run (`providerEnv`), and the key box below puts the board's own
+// Z.ai key back under that name and nothing else does.
 //
 // The second is quieter: `zcode` checks npm for a newer version and prints a notice about
 // it. On `app-server` that notice would land in the middle of a protocol stream.
@@ -50,37 +49,11 @@ export const ZCODE: Harness = {
     return []
   },
 
-  // What ZCode takes: how the run signs in, a model, and the key. Both boxes can stay
-  // empty — someone already set up with ZCode has a login in its own credential store and
-  // a model in its own settings, and a board run then uses exactly what `zcode` would.
+  // What ZCode takes: a model and the key. There is no pick between sign-ins, because only
+  // one of them ever worked — a `zcode login` lands under a Coding Plan provider that the
+  // command's own config never points at, so a run signed in that way asks for a `zai` key
+  // the user never chose and stops (#282).
   settings: [
-    {
-      key: 'provider',
-      label: 'Sign-in',
-      kind: 'provider',
-      defaultProvider: 'zcode-login',
-      providers: [
-        {
-          id: 'zcode-login',
-          label: 'The login ZCode has',
-          blurb: 'Runs on whatever `zcode login` or `/login` already signed you in as.',
-          needs: [],
-        },
-        {
-          id: 'coding-plan',
-          label: 'Z.AI Coding Plan key',
-          blurb: 'A Coding Plan key from Z.ai, or the same plan bought through BigModel.',
-          needs: ['apiKey'],
-          requires: ['apiKey'],
-          // ZCode reads its Z.AI provider's key from ANTHROPIC_API_KEY, because that
-          // provider speaks the Anthropic format. The board keeps the key under a name of
-          // its own in docs/kanban/.env — sharing Claude Code's line would mean one key
-          // box overwriting the other — and sends it out under the name ZCode reads.
-          envAs: { apiKey: 'ANTHROPIC_API_KEY' },
-          preferWhenSet: ['apiKey'],
-        },
-      ],
-    },
     // Free text, for the same reason the others' are: model ids change between releases
     // and a stale list would block one the agent already runs. It carries no flag — ZCode
     // has none — so this reaches the run inside the conversation instead, on the session
@@ -93,19 +66,24 @@ export const ZCODE: Harness = {
       placeholder: 'glm-5.3',
       help: "Chosen as the run's session opens. Empty runs the model ZCode is set to. A wrong id fails the run; the log says why.",
     },
+    // ZCode reads its Z.AI provider's key from ANTHROPIC_API_KEY, because that provider
+    // speaks the Anthropic format. The board keeps the key under a name of its own in
+    // docs/kanban/.env — sharing Claude Code's line would mean one key box overwriting the
+    // other — and sends it out under the name ZCode reads.
     {
       key: 'apiKey',
       label: 'Z.AI Coding Plan key',
       kind: 'secret',
       env: 'ZAI_API_KEY',
+      envAs: 'ANTHROPIC_API_KEY',
       placeholder: 'sk-…',
-      help: 'Saved to docs/kanban/.env (kept out of git), never shown back.',
+      help: 'From Z.ai, or BigModel for the same plan. A `zcode login` is not enough — a run signs in with this key. Saved to docs/kanban/.env (kept out of git), never shown back.',
     },
   ],
 
-  // Everything that could send ZCode somewhere the sign-in pick didn't ask for. The
-  // Anthropic pair is the one that matters: ZCode's Z.AI provider reads both, so a key or
-  // a base URL exported for Claude Code would otherwise ride along on every ZCode run.
+  // Everything that could send ZCode somewhere the board didn't ask for. The Anthropic pair
+  // is the one that matters: ZCode's Z.AI provider reads both, so a key or a base URL
+  // exported for Claude Code would otherwise ride along on every ZCode run.
   providerEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL', 'ZCODE_MODEL', 'ZCODE_BASE_URL'],
 
   env: zcodeEnv,

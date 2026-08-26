@@ -338,6 +338,19 @@ const RUNTIME_PREFERENCES = {
   modelContextBudgetStrategy: 'preflight-v1',
 }
 
+// A run with no key stops on ZCode's own message, and that message names the provider
+// ZCode's config points at rather than anything the user picked — so it reads as a board
+// fault. The board answers with where the key goes, under the error and nowhere else: on
+// any other failure the same line would point a wrong model id at the key box.
+const MISSING_KEY = /missing an API key/i
+
+function stopped(io: ClientTurn, why: string): void {
+  io.log(`[error] ${why}\n`)
+  if (MISSING_KEY.test(why)) {
+    io.log("[board] paste a Z.AI or BigModel Coding Plan key into ZCode's key box in Configuration.\n")
+  }
+}
+
 async function oneTurn(io: ClientTurn, options: ZcodeOptions): Promise<TurnEnd> {
   const tail = createTail(io.log)
   const parts = createParts(tail)
@@ -445,17 +458,17 @@ async function oneTurn(io: ClientTurn, options: ZcodeOptions): Promise<TurnEnd> 
     const usage = await tokensOf(rpc, sessionId)
     if (!done.ok) {
       const why = done.error ?? 'the agent stopped without saying why'
-      io.log(`[error] ${why}\n`)
+      stopped(io, why)
       return { ok: false, result, error: why, usage }
     }
     return { ok: true, result, usage }
   } catch (e) {
     // Whatever went wrong is the agent's own message — a key it wouldn't take, a model it
     // doesn't have, a connection that went away mid-turn. It goes into the log where the
-    // user reads it, and nothing is added on top of it.
+    // user reads it, and nothing is added on top of it but the missing-key line.
     const error = e instanceof Error ? e.message : String(e)
     const result = tail.end()
-    io.log(`[error] ${error}\n`)
+    stopped(io, error)
     return { ok: false, result, error }
   }
 }

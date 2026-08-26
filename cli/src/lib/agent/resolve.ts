@@ -222,11 +222,12 @@ function runEnv(resolved: ResolvedHarness, cwd = REPO_ROOT): NodeJS.ProcessEnv {
     if (!shownForProvider(harness.settings, setting.key, picked)) continue
     const value = setting.kind === 'secret' ? file[setting.env] : values[setting.key]
     if (!value) continue
-    // The picked provider can send this setting out under a different variable than the
-    // setting's own — the same key is ANTHROPIC_API_KEY on Anthropic's API and
-    // ANTHROPIC_AUTH_TOKEN on a gateway. Instead of, never as well as: both at once is two
-    // auth sources, and the agent picks one of them.
-    env[picked?.envAs?.[setting.key] ?? setting.env] = value
+    // A setting can go out under a different variable than the one its own line keeps: the
+    // picked provider renames it — the same key is ANTHROPIC_API_KEY on Anthropic's API and
+    // ANTHROPIC_AUTH_TOKEN on a gateway — or the setting says so itself, for a connector
+    // with no pick to make. Instead of, never as well as: both at once is two auth sources,
+    // and the agent picks one of them.
+    env[picked?.envAs?.[setting.key] ?? setting.envAs ?? setting.env] = value
   }
   // The project, said a second way. Every spawn sets `cwd` to it already; this is the
   // variable a shell would have set alongside, and some CLIs read that instead of asking
@@ -248,7 +249,7 @@ function ownedVars(harness: Harness): string[] {
     for (const name of Object.keys(provider.env ?? {})) names.add(name)
     for (const key of provider.needs) {
       const setting = harness.settings.find((s) => s.key === key)
-      if (setting?.env) names.add(setting.env)
+      for (const name of [setting?.env, setting?.envAs]) if (name) names.add(name)
     }
   }
   return [...names]
