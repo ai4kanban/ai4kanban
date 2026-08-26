@@ -40,7 +40,9 @@ deliberately.
 - Let an owner delete the workspace and everything in it from the same controls, behind a
   confirmation that names what goes, since #321's privacy page promises it (#311).
 - Explain that Cloud manages board coordination but never receives code or runs agents, and
-  link the Cloud choice to the published privacy and terms pages (#321).
+  link the Cloud choice to the published privacy and terms pages. #326 already says this and
+  links them from the machine's Cloud sign-in; this card carries the same sentence and the
+  same links onto the board choice, and extends it to what a workspace holds for a team.
 - Update product and user documentation to describe the Local and Cloud authority models.
 
 ## Todo
@@ -66,3 +68,8 @@ deliberately.
 - **Why there is no public-access control here**: a Cloud board is reached only from the
   installed app in this release, so making one public has nothing to read it. The switch
   ships with the browser surface in #322.
+- **What 0.8.0 already did of this card's explaining**: #326 puts the Cloud boundary and the
+  two page links above the machine's sign-in, because that release invites people and its
+  Configuration section is the only place Cloud is offered. This card is not the first to say
+  it, so it says the workspace half — what a team's board holds once Cloud is authoritative —
+  and reuses the wording rather than writing a second one.

@@ -5,12 +5,15 @@ priority: high
 roi: high
 status: todo
 release: ""
-blocked_by: []
-related: [314, 315, 316, 317, 321, 322, 325, 328]
+blocked_by: [325]
+related: [314, 315, 316, 317, 322, 325, 328]
 modules: [cloud, local-ui]
+schedule:
+  action: refine
 questions: []
 verify:
   - "The service is provisioned: cloud/README.md's \"Standing up a new project\" worked through end to end, `curl https://api.ai4kanban.dev/health` answers unauthenticated, and `POST /v1/self-check` answers when it carries an admitted account's access token — without one it is refused rather than proving the deploy."
+  - "The published pages describe the workspace this group actually built: /privacy and /terms on ai4kanban.dev name a shared board, its members, their roles, the owner's export and the owner's deletion as they were shipped, and no paragraph still describes the single-account relay #330 rewrote them for. #330 already checks the deploy and the mailbox in 0.8.0, so this gate is about the wording alone."
 ---
 
 Let a team share one authoritative board while every member keeps code and agent work on
@@ -59,13 +62,16 @@ in this folder.
   shares that one budget. Paid plans, at $30 a month, come with pricing.
 - **The preview keeps no backup of its own**: Supabase Free has no daily backups and no
   point-in-time recovery, so a workspace export (#315) is the only copy anyone can restore
-  from. #317 puts that export where an owner can reach it, and #321 says so before a team is
-  invited.
+  from. #317 puts that export where an owner can reach it, and the terms page now says so.
 - **What the preview publishes about data**: a privacy page and a terms page on the site,
-  built with the same page code the blog uses and linked from the Cloud choice in
-  onboarding. #321 writes them, and no outside team is invited before they are live. What
-  they commit to is now settled: Nullreach Ltd is the operator, and the terms promise
-  reasonable notice where practical, not a fixed period, before a workspace is closed.
+  linked from the site footer and from the Cloud choice in onboarding. #321 wrote them and
+  settled what they commit to: Nullreach Ltd is the operator, and the terms promise
+  reasonable notice where practical, not a fixed period, before a workspace is closed. The
+  cost is that those are now published promises rather than a plan — a card here that
+  changes what the preview does with a team's data rewrites the pages in the same delivery,
+  the way #327 already does for the invitation email. They no longer arrive describing a
+  workspace: #330 rewrote them in 0.8.0 for the single-account relay that release actually
+  ships, so this group writes the team half back page by page as it builds it.
 - **Going Cloud costs a team the file-shaped board**: a Cloud checkout holds no cards, so
   reading the board on GitHub, grepping it, and #56's Obsidian view all stop working there,
   and an export is the only way back to files. Keeping a markdown mirror in the repo would
@@ -101,6 +107,18 @@ in this folder.
   called over PostgREST, board tables live in `cloud`, and a refusal is
   `{ error: { code, message } }` whose message is shown to a user as it stands. That is the
   shape every card from #314 on writes inside.
+- #321 has landed: the privacy and terms pages are written and linked from the site footer.
+  They commit the preview to what a workspace stores, that only its members read it, that no
+  model is run over board content, that deleting a workspace removes everything at once with
+  no backup behind it, and that a notice reaches a team in the app or a connected Slack
+  channel and never by email. Deploying `web/` and routing `support@ai4kanban.dev` were
+  hand-checks that card left for the user, and 0.8.0 now carries them on #330, because it
+  invites the first outside person.
+- The pages describe a Cloud that stores a team's board in a workspace, read by its members
+  and exported and deleted by an owner. 0.8.0 ships none of that, so #330 rewrites both pages
+  for the relay a person is actually invited to and takes the workspace wording off them. This
+  group is what puts it back, correctly, once a team can share a board — and #330 is where the
+  privacy page's pasted Slack webhook becomes the connected app #325 settled on.
 - #325 ships first, in 0.8.0, and lands four things this group builds on: #326's Cloud
   account with the machine-local session the app and `akb` share, its admitted-account list,
   the event and action contract, and Slack as a connected app. #327 turns admission into a
@@ -161,6 +179,13 @@ in this folder.
   refuses an account we have not admitted before it reaches anything here.
 - An owner can delete a workspace and everything in it.
 - The site publishes a privacy page and a terms page before the first outside team is invited.
+- A card that changes what the preview does with a team's data rewrites the published privacy
+  and terms pages in the same delivery.
+- The published pages describe what the group actually built before the first outside team is
+  invited: the card that adds a workspace, a member, a role, an export or a deletion is the
+  card that writes it back onto the pages #330 rewrote for the 0.8.0 relay.
+- No model is ever run over a workspace's board content: every agent run stays on an
+  execution node, which is what the privacy page commits us to.
 - Out of the group: realtime body editing, fine-grained card permissions, automatic dispatch
   across nodes, and any Cloud handling of code.
 - Out of the group: any Cloud page at a URL, public or authenticated — the browser surface is
@@ -168,8 +193,10 @@ in this folder.
 - Out of the group: GitHub Issues intake — #313 is an intake door into either board, and a
   team shares a board without it.
 - Out of the group: pricing, billing, and the open-source support policy.
-- Out of the group: admission to Cloud and the sign-in that carries it — #326 and #327 decide
-  who reaches the service at all; this group decides who is in a workspace.
+- Out of the group: the sign-in that carries a Cloud account, and the admission list itself —
+  #326 and #327 decide who reaches the service at all; this group decides who is in a
+  workspace. Whether adding a member also admits that account is #314's open question, and is
+  the one place this group may write to that list.
 - Out of the group: per-workspace usage caps and quota enforcement — the invite list and the
   service's own daily write budget (#323) are what bound cost and capacity in v1.
 - Out of the group: naming a decider on a card — question routing follows the owner role, not
@@ -183,7 +210,7 @@ in this folder.
 - [ ] Use Cloud boards safely from the app and CLI #316
 - [ ] Lead onboarding with Local and make Cloud an explicit choice #317
 - [ ] Notify a workspace's owners and members about a card that needs them #328
-- [ ] Publish the privacy and terms pages the Cloud preview needs #321
+- [x] Publish the privacy and terms pages the Cloud preview needs #321
 
 ## By `technology-selection` agent
 
@@ -282,8 +309,13 @@ preview we are trying to keep reachable. What is left open is money: see the ope
   onboarding, then routing. #323 sits beside #312 rather than behind it, because the contract
   is local work and the service is hosting work, and #314 is the first card that needs both.
   #328 comes after #316 because there is no team event to address until a team's writes reach
-  a Cloud board. #321 sits outside the chain: 0.8.0 needs the pages for #327's email, so they
-  are live well before the first team is invited.
+  a Cloud board. #321 sat outside the chain: 0.8.0 needs the pages for #327's email, so they
+  were written well before the first team is invited.
+- **How an operator notice reaches a workspace**: by hand, as one event written against the
+  live database — the way #326 admits an account. The terms promise notice in the app or a
+  connected Slack channel, never by email, before a workspace is closed, and #325's contract
+  already delivers a stored event to both, so no card here builds a broadcast surface for a
+  preview whose whole invite list fits on one page.
 - **Which card stands the service up**: #323. Every card from #314 on assumes an API on a
   host, a database with a schema, a GitHub app, and somewhere to keep secrets, and no other
   card creates them. #294 is the precedent: standing a service up is its own card, separate
@@ -366,6 +398,14 @@ preview we are trying to keep reachable. What is left open is money: see the ope
 - **Who carries Slack**: #325, which moved #318, #319 and #320 into its own group and connects
   a Slack app rather than taking a webhook URL an owner pastes. #328 extends that connector —
   which channel an owners' question reaches — and picks no transport of its own.
+- **Who rewrites the published pages, and when**: #330, in 0.8.0, then this group. The pages
+  were written for the workspace this group builds, and 0.8.0 invites people to something else
+  entirely, so #330 rewrites them for a single-account relay and takes the workspace, member,
+  role and owner-export wording off. Every card here that adds one of those back rewrites the
+  paragraph in the same delivery, the way #327 already does for the invitation email.
+- **Why this root is blocked by #325**: every subtask starts from #326's session and admitted
+  account, #318's execution node, or #319's event contract, and all of them ship in #325. The
+  three prose lines saying the group follows 0.8.0 were the only record of it.
 - **Where #313's GitHub access lives**: on the machine, never in Cloud. Intake and progress
   mirroring run from `akb` and the app with the member's own repository credentials and reach
   the board through the contract, so no workspace holds a token that can read a repository.
@@ -386,10 +426,12 @@ preview we are trying to keep reachable. What is left open is money: see the ope
   functions. There is no single-threaded object to lean on, so #314's guarantee is
   `BEGIN … COMMIT` plus a rising fencing-token column.
 - **What one scheduled run does**: an hourly Cron Trigger on the Worker, built once by #323.
-  Lease expiry stays lazy — a mutation compares the stored expiry — and #314's sweep hangs
-  off that one run instead of adding a schedule of its own; its query
-  is the activity that stops the free Supabase project pausing. If one ever does pause, an
-  owner resumes it from the Supabase dashboard with its data intact.
+  Its `api.service_heartbeat()` call is the write that keeps the free Supabase project from
+  pausing, and sits outside the daily write budget so a busy day cannot switch it off.
+  Nothing sweeps for an expired lease — a mutation compares the stored expiry — so the only
+  step #314 adds to that run is its operation-ledger prune, not a schedule of its own. If a
+  project ever does pause, an owner resumes it from the Supabase dashboard with its data
+  intact.
 - **Who runs GitHub sign-in**: Supabase Auth's GitHub provider, whose asymmetric token the
   Worker verifies against the project's JWKS endpoint; it comes with the database we now
   run. Sign-in asks for no scopes at all, so its token cannot read a private repository, and

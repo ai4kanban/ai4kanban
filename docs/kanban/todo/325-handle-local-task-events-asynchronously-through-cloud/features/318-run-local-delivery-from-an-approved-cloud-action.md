@@ -16,19 +16,24 @@ node catches up with durable requests, claims the approved revision, and runs it
 machine that owns the board and repository.
 
 ## Worth noting
-- **Approval dispatches local work**: Cloud records and routes the decision; the execution
-  node still reads the board, runs the agent, reviews the result, and lands the code.
 - **The node ships with both local tools**: one shared node module serves the desktop board
-  server while the app runs and `akb` when invoked from a terminal, adding one lifecycle that
-  must work in both long- and short-lived processes.
+  server while the app runs and `akb` when invoked from a terminal, at the cost of one
+  lifecycle that must work in both long- and short-lived processes.
 - **The approved revision is binding**: if the local task changed after its message was
-  created, the request is refused instead of implementing a specification the user did not
-  approve.
+  created, the request is refused rather than implementing a specification the user did not
+  approve. The cost is an approval that can be wasted by an edit made a moment later.
+- **A killed node leaves work to finish by hand**: the claim runs on a lease, and a lease that
+  expires marks the delivery interrupted and keeps it on that node rather than handing it to
+  another. The cost is that a crashed machine's delivery waits for the user to resume or
+  cancel it; the alternative would rerun a build on a repository the first node may already
+  have written to.
 
 <!-- agent -->
 
 ## Scope
 - Register an authenticated execution node for the user's local board and repository.
+- Let the user disable a node, and stop a node claiming anything once it is disabled or the
+  machine signs out; the local board is unchanged either way.
 - Catch up through the Worker on startup and reconnection, then use private Supabase Realtime
   request hints while the local process remains active.
 - Turn one accepted **Implement** action from #319 into one claimable execution request.
@@ -37,18 +42,37 @@ machine that owns the board and repository.
 - Re-read the local task before starting and require the approved revision to remain `ready`.
 - Run the existing build, review, correction, and landing flow inside its local repository
   boundary.
-- Report waiting, running, delivered, failed, and cancelled outcomes to Cloud while task
-  files, repository content, credentials, branches, and worktrees stay on the local machine.
+- Hold the claim on a lease the running node renews, so a node that is killed, put to sleep,
+  or cut off releases the request instead of holding it forever.
+- Mark a request whose lease ran out `interrupted`, or `unknown` when the node never reported
+  what it had already done, and keep it bound to that delivery because local changes may
+  already exist.
+- Report the same state names #319 fixed — waiting for node, running, completed, failed,
+  cancelled, interrupted — to Cloud while task files, repository content, credentials,
+  branches, and worktrees stay on the local machine.
 - Recover or cancel an interrupted request as the same delivery rather than creating another.
 
 ## Todo
 - [ ] Register the user's local execution node and associate it with the local board.
+- [ ] Let the user disable a node, and refuse a claim from a disabled node or a signed-out
+      machine.
 - [ ] Add durable request catch-up through the Worker and private Realtime wake-up hints to
       the desktop board server and `akb`.
 - [ ] Turn an accepted current-revision approval into one claimable request.
 - [ ] Refuse stale, duplicate, cancelled, and already-claimed requests.
 - [ ] Start the existing local delivery flow from a valid request.
-- [ ] Report meaningful delivery states and the final outcome to Cloud.
+- [ ] Renew the claim's lease while the delivery runs, and mark an expired lease `interrupted`
+      or `unknown` without freeing the request for another node.
+- [ ] Report meaningful delivery states and the final outcome to Cloud, under #319's state
+      names.
 - [ ] Recover or cancel an interrupted request under its original delivery ID.
 - [ ] Check that Cloud receives only request state and execution outcomes while local files
       and credentials remain on the machine.
+- [ ] Check that killing the node mid-delivery leaves exactly one interrupted request, and
+      that a disabled node claims nothing.
+
+## Decided by the agent
+- **What tells Cloud a node has died**: the lease expiring, not a report. A killed node sends
+  nothing, so a claim with no expiry would show the user `running` forever.
+- **Why disablement sits here rather than in #326**: signing out belongs to the account, but a
+  node is a machine registered against a board, and this card is what registers one.

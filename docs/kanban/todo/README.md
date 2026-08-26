@@ -38,6 +38,7 @@ _(none)_
 - [#325 Handle local task events asynchronously through Cloud](325-handle-local-task-events-asynchronously-through-cloud/root.md)
 - [#326 Identify the user who sends and acts on Cloud events](325-handle-local-task-events-asynchronously-through-cloud/features/326-identify-the-user-who-sends-and-acts-on-cloud-events.md)
 - [#327 Admit a Cloud account with an invitation code](features/327-admit-a-cloud-account-with-an-invitation-code.md)
+- [#329 Harden the Cloud event flow before the first invite](325-handle-local-task-events-asynchronously-through-cloud/features/329-harden-the-cloud-event-flow-before-the-first-invite.md)
 - [#328 Notify a workspace's owners and members about a card that needs them](311-team-collaboration-cloud/features/328-notify-a-workspace-s-owners-and-members-about-a-card-that-ne.md)
 
 ## skill
@@ -56,7 +57,7 @@ _(none)_
 - [#2 List on a second marketplace and decide the site](distribution/02-second-marketplace-and-site.md)
 - [#202 Test whether the board changes what a coding agent builds](202-board-vs-no-board/root.md)
 - [#292 See how the app is actually used, from download to daily work](292-app-telemetry/root.md)
-- [#321 Publish the privacy and terms pages the Cloud preview needs](311-team-collaboration-cloud/distribution/321-publish-privacy-and-terms-pages.md)
+- [#330 Make the published Cloud pages describe what 0.8.0 ships](325-handle-local-task-events-asynchronously-through-cloud/distribution/330-make-the-published-cloud-pages-describe-what-0-8-0-ships.md)
 
 ## recurring
 

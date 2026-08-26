@@ -5,28 +5,33 @@ priority: med
 roi: med
 status: todo
 release: 0.8.0
-blocked_by: [326, 321]
-related: [326, 321, 311]
+blocked_by: [326]
+related: [326, 311]
 modules: [cloud, local-ui]
 questions: []
 ---
 
-Let someone we have decided to invite admit themselves: we approve their request, Cloud
-emails them a code, and they redeem it in the app. #326 admits an account by hand — a row
-naming a GitHub handle, written against the live database — so every invitation costs a
-person with database access one careful edit, and the invited person waits on it without
-being able to see it happen. A code turns the admission into something they finish
-themselves, and the email turns answering a request into one step rather than a letter
-somebody writes.
+Run the whole invitation loop: a refused person asks for an invite from the app, we approve
+the request, Cloud emails them a code, and they redeem it. #326 admits an account by hand — a
+row naming a GitHub handle, written against the live database — and leaves everyone else a
+support address to write to. This turns the ask into one button and the admission into
+something the invited person finishes themselves.
 
 ## Worth noting
+- **What a refused person presses**: **Request an invite**, in the not-admitted state of the
+  Cloud section. The request is recorded against their account and emailed to
+  `support@ai4kanban.dev`, which we answer by hand. Nothing is built on the site — no waitlist
+  page, no queue, no public thread. The costs: a request is answered whenever someone reads
+  that mailbox, with no promise of when, and the preview now holds a requester's email
+  address. It beat a GitHub Discussion, which needs a GitHub account and puts the ask beside
+  unrelated threads, and no link at all.
 - **How a code reaches the person who asked for one**: Cloud emails it when we approve the
-  invite request #326 recorded. Approving becomes one step instead of a reply written by
-  hand, and nobody waits on a mailbox being read a second time. The costs are that the
-  preview starts sending email to users — so #321's terms line saying it sends none is
-  rewritten and its privacy page gains the mail provider — and that a sending domain has to
-  stay verified. It beat replying by hand from `support@ai4kanban.dev`, which sends no mail
-  at all but leaves every invitation as one person's letter.
+  request. Approving becomes one step instead of a reply written by hand, and nobody waits on
+  a mailbox being read a second time. The costs are that the preview starts sending email to
+  users — so the published terms line saying it sends none is rewritten and the privacy page
+  gains the mail provider — and that a sending domain has to stay verified. It beat replying
+  by hand from `support@ai4kanban.dev`, which sends no mail at all but leaves every invitation
+  as one person's letter.
 - **Why this ships in 0.8.0**: every invitation is self-serve from the first public release,
   rather than 0.8.0 admitting by hand and a later version replacing it. The cost is more
   Cloud work in a version whose headline is the asynchronous flow, and a second personal
@@ -41,44 +46,42 @@ somebody writes.
   preview never has to guess who a code was meant for, and a leaked code costs one admission
   we can revoke rather than an open door. The cost is that a code handed to a team admits one
   of them, so inviting three people means issuing three codes.
-- **Which release publishes the privacy and terms pages**: 0.8.0, the release this card
-  ships in. The version that starts emailing a code carries the pages that say what it
-  emails, rather than leaving them a gate somebody has to clear before Cloud is turned on.
-  The cost is that #321 leaves its group — #311 is still in no release — and has to be
-  written, reviewed and published on this release's schedule.
-- **This does not open sign-up**: a code is still something we decide to give, so the preview
-  stays invite-only and its capacity stays bounded, the way #311 settled. Nobody is admitted
-  without a person approving them first. Self-serve sign-up is a later change that arrives
-  with pricing.
 
 <!-- agent -->
 
 ## Today
 - #326 keeps the admitted-accounts list and refuses every account not on it. Admission is a
   hand-written row, documented in `cloud/README.md` beside standing the project up.
-- #326's refusal offers **Request an invite**, which records the request against the account
-  with the handle and email address the sign-in attested, and emails it to
-  `support@ai4kanban.dev`. There is no way to answer that request other than by hand.
+- #326's refusal names `support@ai4kanban.dev` in plain text and offers nothing to press.
+  There is no request record, and the Worker sends no mail and has no `send_email` binding.
 - #326 puts the Cloud sign-in in a **Cloud** section of the Configuration dialog, with one
-  state per answer a sign-in can come back with, including signed in but not admitted.
-- The Worker sends one message today, over a Cloudflare `send_email` binding restricted to
-  the verified `support@ai4kanban.dev` destination. That is free on every plan; sending to
-  any other recipient over that binding needs Workers Paid.
+  state per answer a sign-in can come back with, including signed in but not admitted, and
+  leaves the session route open to an account that is not admitted.
 - `ai4kanban.dev` receives mail through Cloudflare Email Routing (#321), which owns the
-  domain's MX and SPF records.
+  domain's MX and SPF records. Cloudflare's `send_email` binding is free to a verified
+  destination address on any plan; any other recipient needs Workers Paid.
 - Resend's free tier sends 3,000 emails a month and 100 a day from one verified domain, and
   keeps 30 days of logs.
 - The Worker already runs hourly (#323) to keep the Supabase project from pausing, and that
   run is where later scheduled work hangs.
 - Cloud's `api` schema is the only thing PostgREST serves, and a mutation is one `api`
   function and one transaction counted against the day's write budget.
-- #321's terms page says the preview sends no email at all, and its privacy page names
-  Cloudflare and Supabase as its only subprocessors. #321 ships in 0.8.0, ahead of this
-  card.
+- #321's pages are live. The terms page says the preview sends no email at all, and the
+  privacy page names Cloudflare and Supabase as its only subprocessors.
 
 ## Scope
-- Approve a recorded invite request by hand, against the live database the way an account is
-  admitted today, and let approving alone issue the code and start it on its way.
+- Offer **Request an invite** in the not-admitted state, record it against the signed-in
+  account, and show its state beside the button so pressing again neither writes a second row
+  nor sends a second email.
+- Leave the request route open to a verified sign-in that is not yet admitted, alongside
+  #326's session route.
+- Put in the request only what the sign-in already verified — the GitHub handle, the account's
+  email address, and when it was asked — and email it to `support@ai4kanban.dev` with the
+  requester as the reply address, after the response has been returned, so a slow or failing
+  send never delays the sign-in.
+- Treat the recorded request, not the mail, as what an answer is written from.
+- Approve a recorded request by hand, against the live database the way an account is admitted
+  today, and let approving alone issue the code and start it on its way.
 - Issue a code the same way to someone who never made a request, by naming the address to
   send it to.
 - Email the code to that address from the site's own domain, with `support@ai4kanban.dev` as
@@ -88,48 +91,60 @@ somebody writes.
   leaves the Worker.
 - Send one email per invitation: one already sent is never sent again, whatever a later run
   finds.
-- Redeem a code from the not-admitted state of the Configuration dialog's Cloud section: the
-  user pastes it, and the account is admitted or told plainly why not.
+- Redeem a code from the not-admitted state of the Cloud section: the user pastes it, and the
+  account is admitted or told plainly why not.
 - Admit exactly one account per code, and refuse a code that is unknown, already redeemed, or
   withdrawn, each with its own reason.
 - Record which account redeemed which code and when, so an admission can be traced back to
   the invitation it came from.
 - Let a code be withdrawn before it is redeemed, and an admitted account be removed, both by
   hand.
-- Close out the invite request the code answers when the account that made it redeems.
-- Send no code before #321's pages are live and say what the preview now emails — #321
-  ships in this release and lands first, the same order #326 fixed for taking the request.
+- Close out the request the code answers when the account that made it redeems.
+- Amend the published privacy and terms pages before the first request is taken: the terms
+  line saying the preview sends no email, and the personal details a request and an invitation
+  hold, with the mail provider behind them.
 - Out of scope: open sign-up, a code anyone can request without us, expiry dates, an admin
   screen, workspaces, roles, and everything else #314 owns.
 
 ## Todo
-- [ ] Add the invitation record to Cloud's schema: the code, the address it goes to, the
-      request it answers, whether it has been sent, and the account and time it was redeemed.
+- [ ] Add the request record to Cloud's schema — the handle, address, and time — with one open
+      request per account, and the invitation record beside it: the code, the address it goes
+      to, the request it answers, whether it has been sent, and the account and time it was
+      redeemed.
+- [ ] Take the request on its own route, open to a not-yet-admitted sign-in, recorded inside
+      the transaction, with the notice emailed after the response returns over a `send_email`
+      binding restricted to the one support recipient.
+- [ ] Add **Request an invite** and its requested state to the not-admitted state of the Cloud
+      section, and the code box beside it with the answer it gives on each refusal.
 - [ ] Send issued invitations from the Worker's hourly run through Resend, marking one sent
       in the same transaction so a retry never sends twice.
 - [ ] Write the invitation email: what the code admits, where to paste it, and
       `support@ai4kanban.dev` as the reply address.
 - [ ] Add the redeem route: one code, one account, refusing unknown, redeemed, and withdrawn
       codes with their own reasons.
-- [ ] Add the code box to the not-admitted state of the Cloud section, with the answer it
-      gives on each refusal.
 - [ ] Verify a sending subdomain of `ai4kanban.dev` with Resend and hold its API key as a
       Worker secret.
 - [ ] Write approving a request, issuing a code to someone who never asked, withdrawing a
-      code, and the sending domain's setup into `cloud/README.md`, beside standing the
-      project up.
-- [ ] Amend the pages #321 published earlier in this release: rewrite the terms line saying
-      the preview sends no email, and add the invitation email and its provider to the
-      privacy page.
-- [ ] Check that a code admits one account only, that a second redemption is refused, that a
-      withdrawn code admits nobody, and that one approval sends exactly one email.
+      code, enabling the support send, and the sending domain's setup into `cloud/README.md`,
+      beside standing the project up.
+- [ ] Amend the published pages: rewrite the terms line saying the preview sends no email, and
+      add the request, the invitation, and Resend to the privacy page.
+- [ ] Check that a request pressed twice sends one email, that a code admits one account only,
+      that a second redemption is refused, that a withdrawn code admits nobody, and that one
+      approval sends exactly one email.
 
 ## Decided by the agent
-- **What sends the mail**: Resend, from a subdomain of `ai4kanban.dev` verified for sending.
-  The root domain's MX and SPF belong to the Email Routing that delivers
-  `support@ai4kanban.dev`, and a sender on the same name fights them. The Cloudflare
-  `send_email` binding #326 uses cannot serve: any recipient but a verified destination needs
+- **Why the request lives here rather than in #326**: it is the first half of this loop and
+  the only thing that makes a request answerable, and moving it here keeps a mail binding, a
+  second table, and a privacy-page amendment off the card every other #325 card is blocked by.
+  The cost is a window inside 0.8.0 where a refused person has only an address to write to.
+- **What sends the mail**: Resend for the code, from a subdomain of `ai4kanban.dev` verified
+  for sending. The root domain's MX and SPF belong to the Email Routing that delivers
+  `support@ai4kanban.dev`, and a sender on the same name fights them. Cloudflare's
+  `send_email` binding cannot carry the code: any recipient but a verified destination needs
   Workers Paid.
+- **Why the request notice does not use Resend too**: it goes to our own verified destination,
+  which the free Cloudflare binding covers on the plan the preview runs.
 - **What the preview pays for it**: nothing. Resend's free tier covers 3,000 emails a month
   and 100 a day, and an invite-only preview issues codes in ones.
 - **Where approving happens**: in the database, in the statement that admits an account
@@ -139,23 +154,24 @@ somebody writes.
   stays one write, the mail key never leaves the Worker, and a failed send is retried on the
   next run. The cost is up to an hour between approving and the code arriving, against a
   request nobody was promised an answer to.
-- **Does #326's request notice move to Resend too?**: no. It goes to our own verified
-  destination, which is free on the plan the preview runs, and moving a working send buys
-  nothing.
-- **Why #321 became a blocker rather than a line in the scope**: both cards ship in 0.8.0
-  now, and no code may be emailed until the pages are live, so the board holds that order in
-  `blocked_by` instead of leaving it to whoever picks the card up.
+- **What the request asks the user for**: nothing. The button is one click, because the
+  sign-in already attests everything a hand-run admission needs, and a "why do you want in"
+  box would be a form nobody has agreed to read.
+- **What we promise about a reply**: no time at all. Naming a period would bind a mailbox one
+  person reads, and a promise we break costs more than one we never made.
 - **What a redeemed code leaves behind**: the invitation record, holding the address it was
-  sent to. That is what ties an admitted account back to the invitation, so #321's privacy
-  page lists it beside the invite request.
+  sent to. That is what ties an admitted account back to the invitation, so the privacy page
+  lists it beside the request.
 
 ## Source
-- #326 — the account record, the admitted-accounts list, the invite request this card
-  approves, and the Cloud section it adds a box to.
+- #326 — the account record, the admitted-accounts list, the refusal this card gives a button
+  to, and the Cloud section it adds the button and the code box to.
 - #311 and `docs/kanban/memory/cloud/decisions.md` — the invite-only preview and what opens
   sign-up.
-- #321 — the terms page that says the preview sends no email, and the privacy page that lists
-  what it holds and who processes it.
+- #321 — the published terms page that says the preview sends no email, and the privacy page
+  that lists what the preview holds and who processes it.
 - #323 — the hourly scheduled run the send hangs off.
 - Resend — free tier of 3,000 emails a month and 100 a day from one verified domain; a
   sending subdomain is what it recommends beside a domain that receives mail elsewhere.
+- Cloudflare Email Service — sending to a verified destination address is free on every plan;
+  any other recipient needs Workers Paid.

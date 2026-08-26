@@ -72,7 +72,8 @@ private event and request identifiers.
 - The Supabase user session identifies the person and authorizes their private Realtime topics.
 - Each enabled board gets an opaque Cloud ID mapped to its local path only on that machine.
 - Every event and request identifies its account, board, task, revision, and intended node.
-- A registered node should use a separate revocable credential when claiming execution.
+- A registered node claims execution as the signed-in user's own session; revoking it means
+  disabling the node or signing the machine out (#318).
 - A Slack actor must be linked to the AI4Kanban account before an action is accepted.
 
 ## Events
@@ -143,7 +144,7 @@ local revision validation, interruption recovery, and outcome reporting.
 Add Slack connection and actor linking, shared message rendering, signed and replay-safe
 callbacks, independent delivery retry, and original-message updates.
 
-### 5. Hardening
+### 5. Hardening — #329
 
 Check offline publication, app restarts, reconnect catch-up, duplicate broadcasts and clicks,
 stale revisions, expired sessions, disabled nodes, Slack retries, interrupted runs, account
@@ -163,18 +164,24 @@ isolation, data boundaries, and Supabase free-tier usage.
 - A lost node leaves one interrupted delivery for explicit resume or cancellation.
 - Every destination shows the same decision and meaningful outcome.
 
-## Decisions needed
+## Decisions
 
-1. **Runner lifetime**: require the desktop app to remain open, or add an OS background
-   service? Recommended for 0.8.0: app open; otherwise add a separate card.
-2. **Question actions**: ship remote answers or only ready → implement? Recommended for a
-   tighter 0.8.0: defer remote answers and remove them from #319 and #320.
-3. **Board scope**: one enabled board and release per machine, or several? Recommended for
-   0.8.0: one.
-4. **Node credential**: #326 currently gives the node the user session. Recommended: use the
-   user session for Realtime, but a separate revocable credential for execution claims.
-5. **History retention**: recommended: keep active events until resolved and completed history
-   for 30 days.
+1. **Runner lifetime** — settled on #325: the app stays open. A background service is a later
+   card.
+2. **Question actions** — settled on #325: remote answers ship, because an unanswered question
+   stalls a card exactly as long as an unapproved one.
+3. **Board scope** — settled on #325: as many boards as the user turns on, each picking its own
+   release. The sign-in belongs to the machine, so binding it to one board would silently drop
+   a second project's events.
+4. **Node credential** — settled on #326: the node uses the signed-in user's session, and
+   #318's node disablement is what revokes it.
+5. **History retention** — open, on #325. #319 deletes finished history on whatever period is
+   chosen and the published privacy page states it.
+
+## Slack action shape — open
+
+Whether pressing **Implement** in Slack records the decision there or opens the desktop app is
+an open question on #320. This plan assumes the first; the card carries both.
 
 ## Outside 0.8.0
 
