@@ -331,3 +331,7 @@ covers it, or a plain-words note.
   still waits for a person when every line was struck out by reject, or when it carries an open
   question or an unticked todo of its own — the receipt names which rule kept it, and the subtask's
   own archive stands either way: "Group task" in `akb guide board`.
+- `akb cloud` says which account this machine is signed in to AI4Kanban Cloud as, and whether
+  Cloud takes its work; `akb cloud sign-out` forgets it. Neither needs a board — the sign-in
+  belongs to the machine. Starting one is the app's, in **Configuration → Cloud**: the consent
+  screen comes back to the app, so there is no address a terminal could be answered at.

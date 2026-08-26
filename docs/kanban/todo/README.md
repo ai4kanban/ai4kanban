@@ -36,7 +36,6 @@ _(none)_
 - [#322 Open a Cloud board in the browser](features/322-open-a-cloud-board-in-the-browser.md)
 - [#324 Block commits on the branch a delivery is landing on](features/324-block-commits-on-the-branch-a-delivery-is-landing-on.md)
 - [#325 Handle local task events asynchronously through Cloud](325-handle-local-task-events-asynchronously-through-cloud/root.md)
-- [#326 Identify the user who sends and acts on Cloud events](325-handle-local-task-events-asynchronously-through-cloud/features/326-identify-the-user-who-sends-and-acts-on-cloud-events.md)
 - [#327 Admit a Cloud account with an invitation code](features/327-admit-a-cloud-account-with-an-invitation-code.md)
 - [#329 Harden the Cloud event flow before the first invite](325-handle-local-task-events-asynchronously-through-cloud/features/329-harden-the-cloud-event-flow-before-the-first-invite.md)
 - [#328 Notify a workspace's owners and members about a card that needs them](311-team-collaboration-cloud/features/328-notify-a-workspace-s-owners-and-members-about-a-card-that-ne.md)
@@ -51,6 +50,7 @@ _(none)_
 - [#158 Say how a card will be checked before it counts as done](skill/158-say-how-a-card-will-be-checked-before-it-counts-as-done.md)
 - [#246 Give each spec agent its own harness and model](skill/246-give-each-spec-agent-its-own-harness-and-model.md)
 - [#290 Ask each harness for its model list instead of a free-text box](skill/290-harness-model-list.md)
+- [#331 Await every board write so events can hang off it](325-handle-local-task-events-asynchronously-through-cloud/skill/331-await-every-board-write-so-events-can-hang-off-it.md)
 
 ## distribution
 

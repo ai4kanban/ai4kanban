@@ -123,6 +123,10 @@ in this folder.
   account with the machine-local session the app and `akb` share, its admitted-account list,
   the event and action contract, and Slack as a connected app. #327 turns admission into a
   code the invited person redeems.
+- #331 left #316 for 0.8.0: awaiting every board write and taking the card archive out of the
+  card page's read. #319's publisher hangs off a settled write, so the fix could not wait for
+  the release that puts a network between the app and the board. #316 keeps the
+  revision-on-save conflict path, which only a second teammate needs.
 - Nothing above knows what a workspace is. #326 admits a person to the service and stops
   there — no member list, no roles, and no board a second account can reach.
 - The service is not provisioned: no Supabase project, no GitHub OAuth app, no

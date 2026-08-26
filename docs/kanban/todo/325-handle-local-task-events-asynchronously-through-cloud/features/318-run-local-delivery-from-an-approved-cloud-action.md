@@ -22,11 +22,10 @@ machine that owns the board and repository.
 - **The approved revision is binding**: if the local task changed after its message was
   created, the request is refused rather than implementing a specification the user did not
   approve. The cost is an approval that can be wasted by an edit made a moment later.
-- **A killed node leaves work to finish by hand**: the claim runs on a lease, and a lease that
-  expires marks the delivery interrupted and keeps it on that node rather than handing it to
-  another. The cost is that a crashed machine's delivery waits for the user to resume or
-  cancel it; the alternative would rerun a build on a repository the first node may already
-  have written to.
+- **A killed node leaves work to finish by hand**: the claim runs on a lease, and an expired
+  lease reads as interrupted and stays on that node rather than passing to another. The cost is
+  that a crashed machine's delivery waits for the user to resume or cancel it; the alternative
+  would rerun a build on a repository the first node may already have written to.
 
 <!-- agent -->
 
@@ -43,10 +42,12 @@ machine that owns the board and repository.
 - Run the existing build, review, correction, and landing flow inside its local repository
   boundary.
 - Hold the claim on a lease the running node renews, so a node that is killed, put to sleep,
-  or cut off releases the request instead of holding it forever.
-- Mark a request whose lease ran out `interrupted`, or `unknown` when the node never reported
-  what it had already done, and keep it bound to that delivery because local changes may
-  already exist.
+  or cut off stops looking like it is still working.
+- Read an expired lease as `interrupted` wherever the request is read or written, rather than
+  waiting for a sweep or for the dead node to say so: the expiry is in the row, and the node
+  that would have reported is the one that is gone.
+- Keep an interrupted request bound to the node that claimed it, and let no other node claim
+  it, because local changes may already exist in that repository.
 - Report the same state names #319 fixed — waiting for node, running, completed, failed,
   cancelled, interrupted — to Cloud while task files, repository content, credentials,
   branches, and worktrees stay on the local machine.
@@ -61,8 +62,8 @@ machine that owns the board and repository.
 - [ ] Turn an accepted current-revision approval into one claimable request.
 - [ ] Refuse stale, duplicate, cancelled, and already-claimed requests.
 - [ ] Start the existing local delivery flow from a valid request.
-- [ ] Renew the claim's lease while the delivery runs, and mark an expired lease `interrupted`
-      or `unknown` without freeing the request for another node.
+- [ ] Renew the claim's lease while the delivery runs, and read an expired lease as
+      `interrupted` on every read and write of the request, without freeing it for another node.
 - [ ] Report meaningful delivery states and the final outcome to Cloud, under #319's state
       names.
 - [ ] Recover or cancel an interrupted request under its original delivery ID.
@@ -74,5 +75,11 @@ machine that owns the board and repository.
 ## Decided by the agent
 - **What tells Cloud a node has died**: the lease expiring, not a report. A killed node sends
   nothing, so a claim with no expiry would show the user `running` forever.
+- **What turns `running` into `interrupted`**: whoever next reads or writes the request,
+  comparing the stored expiry. Cloud runs no sweep, and the only process that could report is
+  the one that died — so a state nobody derives is a state nobody ever sees.
+- **Why `unknown` is not a tenth state**: an expired lease already means we do not know what
+  the node finished, and the user's next move — resume or cancel — is the same either way.
+  #319 fixes nine names, and a tenth would be one the desktop and Slack cannot render.
 - **Why disablement sits here rather than in #326**: signing out belongs to the account, but a
   node is a machine registered against a board, and this card is what registers one.

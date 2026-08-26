@@ -28,6 +28,9 @@ up with the request when it is available.
 <!-- agent -->
 
 ## Scope
+- The open question above decides what a Slack button does, and the scope below assumes the
+  answer is "records the decision in Cloud". If the answer is "opens the app", the action,
+  refusal, and outcome lines stop applying and the message keeps only its link.
 - Let the authenticated user connect and disconnect one Slack destination.
 - Associate the Slack actor with the Supabase-authenticated AI4Kanban account from #326
   before accepting a task action.

@@ -5,10 +5,17 @@ priority: high
 roi: high
 status: todo
 release: 0.8.0
-blocked_by: [326]
+blocked_by: [331]
 related: [325]
 modules: [cloud, local-ui, skill]
-questions: []
+questions:
+  - question: "[user] Cloud keeps every event, delivery attempt, action and outcome in a free-tier Supabase project with no backups. The published privacy page needs a Data retention line before the first invite goes out. How long does Cloud keep a finished event's history?"
+    mode: single
+    options:
+      - Keep an event until it resolves, then keep the completed history for 30 days — enough to look back over a week's work, and a number the privacy page can state plainly.
+      - Keep everything for as long as the preview runs, and revisit it when the free tier fills up — nothing to build now, but the privacy page then promises no deletion at all.
+      - Keep active events only, deleting each one as its delivery completes or its question is answered — the least data held, and no history to read after the fact.
+    recommend: [1]
 ---
 
 Turn local task states that need judgment into durable Cloud events and show them in the
@@ -41,7 +48,7 @@ same flow into Slack.
 - Give each event the authenticated user, board, task number, release, human-readable context,
   current revision, requested decision, and allowed actions.
 - Send every event to the one signed-in account: this release has no assignee, role, or
-  watcher to route by.
+  watcher to route by, and #328 is what gives an event a team audience.
 - Preserve question choices and recommendations without exposing internal ownership tags.
 - Store the event, its connector deliveries, human action, and outcome separately so any
   stage can retry without duplicating another.
@@ -59,7 +66,7 @@ same flow into Slack.
 - Update a notification with its actionable, accepted, waiting for node, running, completed,
   failed, stale, cancelled, or interrupted outcome without creating progress noise; those nine
   names are the ones #318 and #320 also use.
-- Delete finished event history on the schedule #325's retention question settles, and give
+- Delete finished event history on the schedule this card's retention question settles, and give
   the published privacy page a Data retention line saying so.
 - Pause notifications when the selected release closes and ask the user to choose another.
 
@@ -82,7 +89,7 @@ same flow into Slack.
 - [ ] Return stale or duplicate outcomes and preserve the local task.
 - [ ] Reflect meaningful action and execution outcomes in the existing notification, under the
       nine state names this card fixes.
-- [ ] Delete finished history on the schedule #325's retention question settles, and add that
+- [ ] Delete finished history on the schedule this card's retention question settles, and add that
       period to the published privacy page's Data retention section.
 - [ ] Check the complete desktop message and action flow before adding Slack, including a
       restart with an event and an answer that both landed while the app was closed.
@@ -100,3 +107,8 @@ same flow into Slack.
   user-owned question is addressed to the workspace's owner role and a ready-for-review card
   to everyone watching the release. Routing a question to a named member waits for the
   version that gives a card an assignee.
+
+  That rule now belongs to #328, which addresses a Cloud board's event to a workspace
+  audience. It stands there rather than here because this release ships no workspace, no
+  membership, and no roles to resolve an audience from — the one signed-in account is the
+  whole audience, and #328 replaces that with the owners and watchers above.

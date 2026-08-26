@@ -13,9 +13,10 @@
 // The copy is a build product, not a source file — it is gitignored.
 //
 // So is what it copies: cli/dist/kanban.mjs is the CLI's TypeScript sources built into one
-// file (cli/scripts/build.mjs), and it is not in git either (#213). `npm install` in cli/
-// makes it; this refuses rather than shipping an app whose board rules are missing.
+// file (cli/scripts/build.mjs), and it is not in git either (#213). This builds it first, so
+// the app never starts on a stale copy of the board's rules.
 
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -28,20 +29,22 @@ const to = path.join(desktop, "resources", "cli");
 
 const rules = path.join(cli, "dist", "kanban.mjs");
 
+console.log("bundle-cli: building the board's rules…");
+execFileSync("npm", ["run", "build"], { cwd: cli, stdio: "inherit" });
+
 for (const [what, at] of [
   ["the CLI", path.join(cli, "bin", "ai4kanban.mjs")],
   ["the board's rules", rules],
 ]) {
   if (!fs.existsSync(at)) {
-    console.error(`bundle-cli: ${what} is missing at ${at}`);
-    console.error("bundle-cli: run `npm run build` in cli/ to build the board's rules");
+    console.error(`bundle-cli: the build left no ${what} at ${at}`);
     process.exit(1);
   }
 }
 
 const built = fs.readFileSync(rules, "utf8").slice(0, 400);
 if (!/^\/\/ ai4kanban (\S+) — built /m.test(built)) {
-  console.error("bundle-cli: cli/dist/kanban.mjs is not a built file — run `npm run build` in cli/");
+  console.error("bundle-cli: cli/dist/kanban.mjs is not a built file");
   process.exit(1);
 }
 

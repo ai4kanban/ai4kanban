@@ -38,10 +38,9 @@ Let the app and CLI work against Cloud without mistaking a stale screen for perm
 - Every app save passes the revision the screen read, so a card rewritten under an open page
   comes back as a conflict the page re-reads. #312 built the path and left the app writing
   against its lease, which is right for Local and not for a second teammate.
-- No board write happens inside a board read, and none is fired without being awaited. #312
-  left `manualSettled` archiving a card from inside `view/read.ts`, and three `closeRun` early
-  exits plus `claimCard` in `agent/watch.ts` starting a write they never wait for — harmless on
-  Local, dropped writes once they cross a network.
+- Out of scope: awaiting every board write and taking the archive out of the card page's read.
+  #331 does that in 0.8.0, because #319's publisher needs a settled write to hang off and this
+  card is in no release.
 
 ## Todo
 - [ ] Read #326's session from `akb` and the app, and tell a machine that holds none to sign
@@ -58,5 +57,4 @@ Let the app and CLI work against Cloud without mistaking a stale screen for perm
 - [ ] Keep disconnected drafts local and compare revisions before resuming.
 - [ ] Explain a free-tier refusal without losing the edit behind it.
 - [ ] Pass the revision each screen read on every app mutation, and re-read the card on a conflict.
-- [ ] Move delivery completion off the board read path, and await every run-engine board write.
 - [ ] Check stale caches cannot bypass server-side write rules.

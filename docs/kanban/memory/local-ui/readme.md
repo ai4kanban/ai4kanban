@@ -365,3 +365,8 @@ except where another doc is named.
   countdown: the page's own re-read after a run finishes checks the card is still there and goes
   straight to the board when it isn't. A stale link somebody pastes still gets the page and its
   countdown, which is what it is for.
+- The Configuration dialog has a **Cloud** section, last and behind a rule: everything above it
+  settles this board, and Cloud is the person this machine signs in as. It says what Cloud
+  relays and what it never receives, links the published privacy and terms pages, and shows one
+  state per answer a sign-in can come back with — not signed in, signed in and admitted, signed
+  in and not admitted, and expired. A board with nobody signed in looks exactly as it did.

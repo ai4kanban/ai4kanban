@@ -6,16 +6,9 @@ roi: high
 status: todo
 release: 0.8.0
 blocked_by: []
-related: [326, 319, 318, 320, 329, 330]
+related: [319, 318, 320, 329, 330, 331]
 modules: [cloud, local-ui, skill]
-questions:
-  - question: "[user] Cloud keeps every event, delivery attempt, action and outcome in a free-tier Supabase project with no backups, and no card says for how long one is kept. The published privacy page needs a Data retention line before the first invite goes out. How long does Cloud keep a finished event's history?"
-    mode: single
-    options:
-      - Keep an event until it resolves, then keep the completed history for 30 days — enough to look back over a week's work, and a number the privacy page can state plainly.
-      - Keep everything for as long as the preview runs, and revisit it when the free tier fills up — nothing to build now, but the privacy page then promises no deletion at all.
-      - Keep active events only, deleting each one as its delivery completes or its question is answered — the least data held, and no history to read after the fact.
-    recommend: [1]
+questions: []
 ---
 
 Let one person leave AI4Kanban running locally and handle its requests for judgment later,
@@ -125,7 +118,8 @@ act        the desktop inbox or [Slack] -> [Cloudflare Worker] records one actio
 ```
 
 ## Todo
-- [ ] Identify the user who sends and acts on Cloud events #326
+- [x] Identify the user who sends and acts on Cloud events #326
+- [ ] Await every board write so events can hang off it #331
 - [ ] Sync actionable events through Cloud and show them in the app #319
 - [ ] Run local delivery from an approved Cloud action #318
 - [ ] Act on Cloud task events from Slack #320
