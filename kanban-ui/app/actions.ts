@@ -11,6 +11,7 @@
 
 import { activeSettings, agentInfo, type AgentRequest, buildPrompt, settingSaveError } from "@/lib/agent";
 import {
+  findCard,
   readBoard,
   readGoalText,
   readMetrics,
@@ -102,6 +103,20 @@ export async function getBoard(): Promise<BoardResult> {
     return { board: await readBoard(), error: null };
   } catch (e) {
     return { board: null, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Whether this card is still on the board (#299). The card page asks before it re-reads
+ *  itself: a group root is archived by the board the moment its last subtask leaves, so a
+ *  page that only refreshed would render the "not on the board" page and its countdown
+ *  under a user who did nothing wrong. A board that cannot be read answers `true` — the
+ *  page stays where it is and says so itself, rather than being sent away by an error. */
+export async function cardOnBoardAction(id: number): Promise<boolean> {
+  if (!Number.isInteger(id)) return true;
+  try {
+    return (await findCard(id)) !== null;
+  } catch {
+    return true;
   }
 }
 

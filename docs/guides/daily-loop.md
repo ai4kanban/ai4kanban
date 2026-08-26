@@ -252,7 +252,10 @@ skipped — a card still blocked,
 one already ready, a
 recurring card, one whose todos are all ticked, and one waiting only on your answers. A
 group's main card is skipped too when a subtask finishes — ticking its line is progress, not
-a new plan — so a big group doesn't refine its main card once per subtask.
+a new plan — so a big group doesn't refine its main card once per subtask. And when that was
+the last subtask, the main card leaves the board with it: a group is over the moment its
+pieces are, so it is archived in the same breath rather than waiting for you to press
+Archive.
 
 ## Build a card
 

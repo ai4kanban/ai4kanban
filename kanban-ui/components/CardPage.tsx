@@ -24,6 +24,7 @@ import {
 import { FaPauseCircle } from "react-icons/fa";
 import {
   approveDeliveryAction,
+  cardOnBoardAction,
   discardDeliveryAction,
   dropVerifyAction,
   patchCardAction,
@@ -1165,7 +1166,15 @@ export function CardPage({
   // open, so give the page the same running-set diff Board uses. (Own-session
   // reject/archive still navigate home via onFinish; this only adds the in-place
   // refresh for the rest.)
-  const refresh = useCallback(() => router.refresh(), [router]);
+  //
+  // Asks first whether the card is still there (#299). Another card's run can take this
+  // one off the board — a group root is archived by the board itself the moment its last
+  // subtask leaves — and a plain refresh would then render "not on the board" and count
+  // down at a user who did nothing. Gone means straight back to the board, which is where
+  // the countdown was going anyway.
+  const refresh = useCallback(() => {
+    void cardOnBoardAction(card.id).then((there) => (there ? router.refresh() : router.push("/")));
+  }, [router, card.id]);
   const prevRunning = useRef<Set<string>>(new Set());
   useEffect(() => {
     const now = new Set(sessions.filter((r) => r.status === "running").map((r) => r.sessionId));

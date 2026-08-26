@@ -155,6 +155,11 @@ then move the files into the group's folder:
 
 - **The root's `## Todo` lists the subtasks**: one line each, ending in `#<subid>`.
   Archiving a subtask ticks its line off; rejecting one strikes it through.
+- **The group closes itself**: resolving the last subtask line archives the root in the same
+  run — a group is over the moment its pieces are, so nobody presses Archive. A finished
+  root stays for a person when every line was struck out by reject, or when it carries an
+  open question or an unticked todo of its own; the receipt names the rule that kept it. A
+  root listing no subtasks is only ever closed by hand.
 
 ## The memory set
 

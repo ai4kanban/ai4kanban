@@ -18,6 +18,7 @@ import { deliveryState } from '../agent/pause'
 import { readRuns } from '../agent/sessions'
 import type { DeliveryRecord } from '../agent/types'
 import { branchExists, worktreeExists } from '../agent/worktree'
+import { subtaskLines } from '../cards'
 import { ARCHIVE_MD, README, TODO } from '../paths'
 import { formatStamp, nextDue } from '../cadence'
 import { parseFrontmatter } from '../frontmatter'
@@ -38,29 +39,6 @@ function countTodos(body: string): { total: number; done: number } {
   const matches = body.match(/^[ \t]*[-*]\s+\[( |x|X)\]/gm) || []
   const done = matches.filter((l) => /\[[xX]\]/.test(l)).length
   return { total: matches.length, done }
-}
-
-// A group root's subtask lines: the todo lines that carry a `#<subid>` ref. That ref is how
-// `archive` and `reject` find the line, so it is what makes a line a subtask — the root's
-// own stray todos (a leftover doc-update line) carry none and are left out, since the gate
-// is "all subtasks resolved", not "all todos done".
-//
-// Resolved means the subtask is finished either way: `archive` ticks the box to `[x]`,
-// `reject` strikes the text with `~~…~~` and leaves the box `[ ]`. A rejected subtask never
-// becomes `[x]`, so a struck line has to count or one rejection would block the root's
-// archive forever. This is why it can't reuse `countTodos` — that one's plain done/total
-// drives every card's progress bar and must keep reading a struck-but-unticked line as
-// unfinished.
-function countSubtaskLines(body: string): { total: number; resolved: number } {
-  let total = 0
-  let resolved = 0
-  for (const line of body.split('\n')) {
-    const m = line.match(/^[ \t]*[-*]\s+\[( |x|X)\]\s*(.*)$/)
-    if (!m || !/#\d+/.test(m[2]!)) continue
-    total++
-    if (/[xX]/.test(m[1]!) || /~~[\s\S]*~~/.test(m[2]!)) resolved++
-  }
-  return { total, resolved }
 }
 
 // When a recurring card comes round again, in words a page can print as it stands. Empty
@@ -168,7 +146,12 @@ function readGroup(folderName: string): { root: Card; subCards: Card[] } | null 
   // reads as zero subtasks and would stop looking like a group right when it becomes
   // archiveable.
   root.isGroup = true
-  root.subtaskLines = countSubtaskLines(root.body)
+  // The gate is "all subtasks resolved", not "all todos done", so this can't reuse
+  // `countTodos` — that one's plain done/total drives the progress bar and must keep
+  // reading a struck-but-unticked line as unfinished. `ticked` is the closing rule's
+  // (lib/group-close.ts) and no screen's, so it is dropped here.
+  const { total, resolved } = subtaskLines(root.body)
+  root.subtaskLines = { total, resolved }
 
   const subCards: Card[] = []
   const recurse = (dir: string, relDir: string): void => {

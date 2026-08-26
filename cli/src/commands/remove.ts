@@ -14,6 +14,7 @@ import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
 import { countDecisions, countsForRecord, originOf, recordFact } from '../lib/record'
 import { walkMd, walkDirs, idPrefix, locate, enclosingGroupRoot, markSubtask, archiveDest } from '../lib/cards'
+import { groupCloseCall } from '../lib/group-close'
 import { stripReadmeRefs } from '../lib/readme'
 import { parseFrontmatter, serializeFrontmatter, frontmatterEnd, frontmatterField } from '../lib/frontmatter'
 import { memoryTargets } from '../lib/memory'
@@ -114,15 +115,17 @@ function dropChats(ids: number[]): number[] {
 // `dropCrossRefs` above repairs the machine-readable links; these are the sentences, and
 // each one needs a new sentence, so the script reports them and edits nothing.
 //
-// Run this AFTER the card is gone and cross-refs are dropped: the leaving card can't
-// report itself, and a `blocked_by`/`related` the script already fixed can't show up as
-// work. What's left is exactly what a person still has to rewrite.
+// Run this AFTER the cards are gone and cross-refs are dropped: a leaving card can't report
+// itself, and a `blocked_by`/`related` the script already fixed can't show up as work.
+// What's left is exactly what a person still has to rewrite. `ids` is more than one when a
+// group root left with its last subtask (#299) — a sentence in the root would otherwise be
+// handed over to be rewritten in a file that is no longer on the board.
 //
 // The `(?!\d)` guard is the whole reason this beats a grep — `#5` must not match `#58`,
 // and searching the bare number matches `158` and every date on the board.
-function findMentions(id: number): Mention[] {
+function findMentions(ids: number[]): Mention[] {
   const hits: Mention[] = []
-  const re = new RegExp(`#${id}(?!\\d)`)
+  const re = new RegExp(ids.map((id) => `#${id}(?!\\d)`).join('|'))
   for (const dir of [TODO, MEMORY]) {
     if (!fs.existsSync(dir)) continue
     for (const file of walkMd(dir)) {
@@ -178,7 +181,16 @@ function recordLeaving(id: number, found: Found, metric: Metric): void {
   }
 }
 
-export function cmdRemove(id: number, metric: Metric): MoveResult {
+export interface RemoveOptions {
+  /** This removal is the board closing a group root under its last subtask (#299). The
+   *  root's own enclosing group is not chased any further, and no memory note is asked
+   *  for: each subtask wrote its own shipped line as it left, and the root's would only
+   *  restate them. The sentences still naming the root are reported by the subtask's
+   *  receipt instead, in one list with its own. */
+  closing?: boolean
+}
+
+export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {}): MoveResult {
   if (!Number.isInteger(id)) die('need a numeric task id')
   // A card with a delivery in flight doesn't leave the board under it — except at the hands
   // of the delivery itself, whose last step is archiving the card it just built.
@@ -209,7 +221,7 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
   // A subtask's fate is reflected in its group's root.md ## Todo, so the tracking card
   // stays accurate after the subtask file is gone: archive ticks it done, reject strikes
   // it out. Warn if the subtask isn't listed there, so the stale checklist gets noticed.
-  const groupRoot = found.kind === 'file' ? enclosingGroupRoot(found.target) : null
+  const groupRoot = found.kind === 'file' && !options.closing ? enclosingGroupRoot(found.target) : null
   let marked: 'tick' | 'strike' | null = null
   if (groupRoot) {
     const action = metric === 'completed' ? 'tick' : 'strike'
@@ -252,10 +264,16 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
     say(`  deleted ${m.dir}/ — ${m.files} mockup file(s)`)
   }
   for (const chatId of droppedChats) say(`  forgot the conversation about #${chatId}`)
+  // The group closes with its last subtask (#299). Taken before the mentions below, so a
+  // sentence in a root that left with this card is never handed over to be rewritten.
+  const closed = groupRoot ? closeGroup(groupRoot) : null
   // Everything above is done. What follows is the part no script can do: the memory note,
   // and the sentences other cards wrote about an id that just left the board.
-  const mentions = findMentions(id)
-  const note = printHandoff(id, metric, cardMeta, mentions)
+  const gone = closed?.archived_to ? [id, closed.id] : [id]
+  const mentions = options.closing ? [] : findMentions(gone)
+  // A closing root asks for no note of its own, and its sentences are in the list the
+  // subtask's receipt prints — so it hands nothing over.
+  const note = options.closing ? null : printHandoff(gone, metric, cardMeta, mentions)
   if (!dest) printEpitaph(id, rel(cardFile), cardText, alsoRemoved)
   return {
     id,
@@ -266,9 +284,47 @@ export function cmdRemove(id: number, metric: Metric): MoveResult {
     also_removed: alsoRemoved,
     mockups_removed: droppedMockups.map((m) => m.dir),
     chats_removed: droppedChats,
+    // The group this card's departure closed, or the rule that kept a finished-looking root
+    // on the board (#299). Null when the card was in no group, or its group is still open.
+    group_close: closed,
     // What the caller still has to do by hand: write the note, rewrite the sentences.
     note,
     mentions: mentions.map((m) => ({ file: rel(m.file), line: m.line, where: m.where, text: m.text })),
+  }
+}
+
+// ---- close the group (#299) ------------------------------------------------
+
+/** What became of the group root this subtask has just left. */
+interface GroupClose {
+  id: number
+  /** Where the root's folder moved to, or null when it stayed on the board. */
+  archived_to: string | null
+  /** The rule that kept it, or null when it left. */
+  held: string | null
+}
+
+// The root, once its last subtask has gone. Never throws and never fails the run: the
+// subtask's archive has already happened, so a root that cannot go is a line in the receipt
+// and a card still on the board, archiveable by hand exactly as before.
+function closeGroup(rootFile: string): GroupClose | null {
+  const rootId = idPrefix(path.basename(path.dirname(rootFile)))
+  if (rootId === null) return null
+  const call = groupCloseCall(rootFile)
+  if (!call.close) {
+    if (!call.held) return null
+    say(`\nevery subtask line on #${rootId} is resolved, but the group stays on the board: ${call.held}`)
+    return { id: rootId, archived_to: null, held: call.held }
+  }
+  say(`\nevery subtask line on #${rootId} is resolved — closing the group:`)
+  try {
+    const res = cmdRemove(rootId, 'completed', { closing: true })
+    return { id: rootId, archived_to: (res.archived_to as string | null) ?? null, held: null }
+  } catch (e) {
+    const held = e instanceof Error ? e.message : String(e)
+    say(`  #${rootId} could not be archived: ${held}`)
+    say(`  it stays on the board — Archive on its page finishes the job.`)
+    return { id: rootId, archived_to: null, held }
   }
 }
 
@@ -301,7 +357,7 @@ function quoteLine(text: string, width = 96): string {
   return `${(lastSpace > width / 2 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`
 }
 
-function printHandoff(id: number, metric: Metric, meta: Meta | null, mentions: Mention[]): { what: string; files: string[] } {
+function printHandoff(ids: number[], metric: Metric, meta: Meta | null, mentions: Mention[]): { what: string; files: string[] } {
   const kind = NOTE_KIND[metric]
   const targets = memoryTargets(meta?.modules ?? [], kind.file)
   say(`\nnext — what the script can't do:\n`)
@@ -318,12 +374,13 @@ function printHandoff(id: number, metric: Metric, meta: Meta | null, mentions: M
   }
 
   const note = { what: kind.what, files: targets.map((t) => rel(t.file)) }
+  const which = ids.map((x) => `#${x}`).join(' or ')
   if (!mentions.length) {
-    say(`\n  2. nothing — no other card or note mentions #${id}, so there is nothing to rewrite`)
+    say(`\n  2. nothing — no other card or note mentions ${which}, so there is nothing to rewrite`)
     return note
   }
   const n = mentions.length
-  say(`\n  2. rewrite ${n} mention${n > 1 ? 's' : ''} of #${id} — each line below now points at a card that isn't there:`)
+  say(`\n  2. rewrite ${n} mention${n > 1 ? 's' : ''} of ${which} — each line below now points at a card that isn't there:`)
   for (const m of mentions) {
     say(`       ${rel(m.file)}:${m.line}  (${m.where})`)
     say(`         ${quoteLine(m.text)}`)

@@ -93,6 +93,29 @@ export function markSubtask(rootFile: string, id: number, action: 'tick' | 'stri
   return false
 }
 
+// A group root's subtask lines: the todo lines carrying a `#<subid>` ref. That ref is how
+// `markSubtask` above finds the line, so it is also what makes a line a subtask — the
+// root's own stray todos (a leftover doc-update line) carry none and are left out.
+//
+// Resolved means the subtask is finished either way: archive ticks the box to `[x]`, reject
+// strikes the text with `~~…~~` and leaves the box `[ ]`. `ticked` is the archived ones on
+// their own, which is how a group whose every line was struck out is told apart from one
+// that shipped something (#299).
+export function subtaskLines(body: string): { total: number; resolved: number; ticked: number } {
+  let total = 0
+  let resolved = 0
+  let ticked = 0
+  for (const line of body.split('\n')) {
+    const m = line.match(/^[ \t]*[-*]\s+\[( |x|X)\]\s*(.*)$/)
+    if (!m || !/#\d+/.test(m[2]!)) continue
+    total++
+    const done = /[xX]/.test(m[1]!)
+    if (done) ticked++
+    if (done || /~~[\s\S]*~~/.test(m[2]!)) resolved++
+  }
+  return { total, resolved, ticked }
+}
+
 // Where a finished card goes. It sits next to `todo/`, not inside it: everything that
 // walks the board reads every folder under `todo/` without skipping dot-names, so an
 // archive folder there would show up as a track column and finished cards would look
