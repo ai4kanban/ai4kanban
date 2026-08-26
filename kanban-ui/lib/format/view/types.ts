@@ -90,6 +90,10 @@ export interface Subtask {
    *  group under a picked release. */
   release: string
   todos: { total: number; done: number }
+  /** The subtask's raw `blocked_by` ids, so the root page can draw the group's build
+   *  order. Raw rather than the card's `openBlockers`: those are attached after this list
+   *  is built, and a finished subtask has already left the group folder anyway. */
+  blocked_by: number[]
 }
 
 /** One open card, read whole. */

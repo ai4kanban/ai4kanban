@@ -81,6 +81,7 @@ import { canImplement, canRefine } from "@/lib/refine";
 import { scheduleLabel } from "@/lib/schedule";
 import { CardBody } from "./CardBody";
 import { OpenIdsProvider } from "./open-ids";
+import { SubtaskMap } from "./SubtaskMap";
 import { Window } from "./Window";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
@@ -1751,6 +1752,8 @@ export function CardPage({
                 </MetaItem>
               )}
             </div>
+
+            {card.subtasks && card.subtasks.length > 0 && <SubtaskMap subtasks={card.subtasks} />}
 
             {card.subtasks && card.subtasks.length > 0 && (
               <div className="nb-outline bg-nb-paper p-3">
