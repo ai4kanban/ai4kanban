@@ -335,3 +335,8 @@ covers it, or a plain-words note.
   Cloud takes its work; `akb cloud sign-out` forgets it. Neither needs a board — the sign-in
   belongs to the machine. Starting one is the app's, in **Configuration → Cloud**: the consent
   screen comes back to the app, so there is no address a terminal could be answered at.
+- The language you read in belongs to the machine, not to a board: `akb` holds it in
+  `~/.ai4kanban/settings.json`, beside the Cloud sign-in and outside every repository, so the app,
+  a board served to a browser and a bare `akb` in a terminal all reach one answer and no project
+  carries a language in git. There is no command that sets it — the switcher is the app's, in
+  **Configuration → Language** — and what `akb` prints in a terminal stays English either way.

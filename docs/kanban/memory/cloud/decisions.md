@@ -111,9 +111,13 @@ Internal detail stays on the card.
   #56's Obsidian view, works on a Local board or on an export, not on a Cloud checkout.
 - **How does a team reach its Cloud board in the invite-only preview?**: from the installed
   app only. The preview ships no Cloud page at a URL — no public read-only board and no
-  browser review or Resolve — and a Slack action opens the app. Putting a workspace on the
-  web, so a community can read a roadmap and a member can answer from any device, is a later
-  version's work.
+  browser review or Resolve. Putting a workspace on the web, so a community can read a roadmap,
+  is a later version's work.
+- **What does pressing Implement in a Slack message do?**: it records the decision in Cloud on
+  the spot, from wherever the message is read, a phone included. It does not open the app and
+  it does not need the machine to be awake — the board's server picks the decision up and runs
+  it when it is next reachable. Slack's link into the app is for reading the whole card, not
+  for deciding.
 - **Does a save finish before the command returns?**: yes, on every board. There is no write
   queue and no background flush: a Cloud save takes as long as the network does and `akb`
   waits for it. That is the price of two teammates never overwriting each other silently.
@@ -124,3 +128,13 @@ Internal detail stays on the card.
   the app writes against the writer lease it takes, so a solo user never meets a refusal one
   machine's lock already makes impossible. Passing the revision a screen read — the thing that
   turns a stale edit into a conflict — starts on Cloud, where a second teammate makes it real.
+
+## The machine that runs the work
+
+- **What is the machine that runs a board's work called?**: a **server**. It replaces "node"
+  everywhere a person can see it, including the `waiting for server` state every destination
+  renders.
+- **How many servers can a board have?**: exactly one for now — the machine that holds the
+  board. A second attachment is refused rather than routed between, so a board whose server is
+  off waits for that machine and no other. Routing across several servers is a later version's
+  work.

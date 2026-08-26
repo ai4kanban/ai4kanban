@@ -9,7 +9,7 @@ blocked_by: [314]
 related: [311]
 modules: [cloud, local-ui]
 questions:
-  - question: "[user] Which release ships the browser surface? Deferring it means a member reading Slack on a phone can read a notification but cannot answer it, and goal.md asks for decisions from any device."
+  - question: "[user] Which release ships the browser surface? Deferring it means a Cloud board has no page a community can read, and a member away from their machine can press the two decisions Slack carries but cannot open a card or Resolve one."
     mode: single
     options:
       - 0.9.0 — the version after team collaboration lands, so app-first Cloud gets one release of real use first
@@ -20,8 +20,9 @@ questions:
 
 Give a Cloud workspace a URL. Today Cloud is reachable only from the installed app (#316),
 so a maintainer cannot publish a roadmap the community can read, and a member away from
-their machine can read a Slack notification but cannot answer it. This card adds the hosted
-pages that make #314's public read-only access and `goal.md`'s browser decision inbox real.
+their machine can press the two decisions Slack carries but cannot open a card, read it whole,
+or Resolve one. This card adds the hosted pages that make #314's public read-only access and
+`goal.md`'s browser decision inbox real.
 
 ## Worth noting
 - **Not in 0.8.0**: team collaboration ships app-first, so #311's group leaves the browser
@@ -35,7 +36,9 @@ pages that make #314's public read-only access and `goal.md`'s browser decision 
 ## Today
 - Cloud has no page at a URL. #314 stores an owner/member role model and #316 drives every
   mutation from the app and CLI over the same authenticated endpoints.
-- #319's notification center and #320's Slack delivery both open the installed app.
+- #319's notification center runs inside the installed app, and #320's Slack message records
+  its own decision in Cloud and links into the app for the rest. Nothing renders a board at a
+  URL.
 - `kanban-ui/` already renders a board, a card page, and the Resolve flow against the board
   provider #312 defines, which is what a hosted page would render too.
 - The site in `web/` is a static export on Cloudflare Pages; these pages are a different app

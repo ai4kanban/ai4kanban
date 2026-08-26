@@ -3,12 +3,15 @@ title: Remember which language the app and the agent work in
 track: features
 priority: med
 roi: high
-status: ready
+status: implementing
 release: 0.8.0
 blocked_by: []
 related: [332]
 modules: [local-ui, skill]
 questions: []
+verify:
+  - "In the packaged desktop app, switch the language in Configuration → Language and confirm the app does not stall or log an error — the menu bar's own words are still English until #336, so nothing on screen changes. It could not be exercised here: the app already running on this machine holds the single-instance lock."
+  - Launch the app fresh with the language already set to 中文 and confirm the first menu bar is drawn from that answer rather than after the board loads — visible only once #336 translates the labels, but the read happens before the window opens.
 ---
 
 
@@ -65,15 +68,15 @@ agent run is #337.
   still renders English until #336 lands.
 
 ## Todo
-- [ ] Hold the language in `~/.ai4kanban/settings.json`, and export a read and a write from
+- [x] Hold the language in `~/.ai4kanban/settings.json`, and export a read and a write from
       the board's rules.
-- [ ] Read it on the server in `app/layout.tsx` and hold it in a context every component
+- [x] Read it on the server in `app/layout.tsx` and hold it in a context every component
       can reach, falling back to English when the project's rules do not know it.
-- [ ] Add the Language section to Configuration, below the divider, and make a change take
+- [x] Add the Language section to Configuration, below the divider, and make a change take
       effect without a reload.
-- [ ] Give `buildMenu` the language, tell the desktop main process when it changes, and
+- [x] Give `buildMenu` the language, tell the desktop main process when it changes, and
       have the main process read the setting at startup so the first menu is right.
-- [ ] Say in `kanban-ui/README.md` what the Language setting does and where it lives, and
+- [x] Say in `kanban-ui/README.md` what the Language setting does and where it lives, and
       in `kanban-ui/design.md` how a component reads it.
 
 ## Decided by the agent

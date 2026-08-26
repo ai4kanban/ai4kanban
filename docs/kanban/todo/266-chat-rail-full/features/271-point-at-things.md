@@ -45,7 +45,7 @@ the cards whose title carries those letters.
 
 ### What a row says
 
-- **The id, then the title**: `#298` in mono, the title after it, and the letters typed
+- **The id, then the title**: `#12` in mono, the title after it, and the letters typed
   after the `#` are the strong part of the title with the rest of it quiet.
 - **The chosen row is filled and carries `↵`**, so the key that picks a card sits on the row
   it picks.

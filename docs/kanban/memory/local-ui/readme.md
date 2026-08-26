@@ -370,3 +370,10 @@ except where another doc is named.
   relays and what it never receives, links the published privacy and terms pages, and shows one
   state per answer a sign-in can come back with — not signed in, signed in and admitted, signed
   in and not admitted, and expired. A board with nobody signed in looks exactly as it did.
+- Pick the language you read in — English or 中文 — in **Configuration → Language**, the first
+  section under the rule beside Cloud. It settles this machine rather than this board: the answer
+  is held in `~/.ai4kanban/settings.json`, outside every project, so every board you open and every
+  terminal reads it and it is never cloned with your repository. The change takes effect with no
+  reload, and there is no `akb` command for it. The board still draws in English — the words are
+  translated in a later release — and a project whose copy of the rules predates the setting draws
+  in English and says so: "Language" in `kanban-ui/README.md`.

@@ -14,7 +14,7 @@ questions: []
 ---
 
 Put the assembled #325 flow through the failures it will actually meet — a closed app, a
-killed node, a duplicate click, an expired sign-in — and fix what breaks. Each of #318, #319,
+killed server, a duplicate click, an expired sign-in — and fix what breaks. Each of #318, #319,
 #320 and #326 checks its own piece against a working system; nobody yet checks what happens
 when two pieces fail at once, and the preview opens to real people the moment they land.
 
@@ -39,9 +39,9 @@ when two pieces fail at once, and the preview opens to real people the moment th
   replayed.
 - Check a task edited, resolved, or moved after its message was created: the action is refused
   and the local task is unchanged.
-- Check an expired sign-in mid-delivery, a signed-out machine, and a disabled node.
+- Check an expired sign-in mid-delivery, a signed-out machine, and a disabled server.
 - Check a Slack delivery that failed and retried, and a Slack actor who is not linked.
-- Check a node killed mid-delivery: exactly one interrupted request, resumable or cancellable
+- Check a server killed mid-delivery: exactly one interrupted request, resumable or cancellable
   as that delivery.
 - Check that a second account reaches nothing belonging to the first, over every #325 route.
 - Check that Cloud holds only the event snapshot and its decisions — no repository content,
@@ -56,9 +56,9 @@ when two pieces fail at once, and the preview opens to real people the moment th
 - [ ] Check reconnect catch-up with missed and with duplicated broadcasts.
 - [ ] Check duplicate clicks and a replayed Slack callback.
 - [ ] Check a stale revision and a task that left its actionable state.
-- [ ] Check an expired session, a signed-out machine, and a disabled node.
+- [ ] Check an expired session, a signed-out machine, and a disabled server.
 - [ ] Check a failed Slack delivery retried, and an unlinked Slack actor.
-- [ ] Check a node killed mid-delivery, and resuming and cancelling what it left.
+- [ ] Check a server killed mid-delivery, and resuming and cancelling what it left.
 - [ ] Check account isolation across every #325 route.
 - [ ] Check that Cloud holds no repository content, path, or credential.
 - [ ] Measure free-tier and write-budget usage, and write the account ceiling into

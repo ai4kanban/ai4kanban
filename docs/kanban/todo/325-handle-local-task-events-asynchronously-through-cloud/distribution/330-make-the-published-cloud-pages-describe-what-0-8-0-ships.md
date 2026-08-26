@@ -40,7 +40,7 @@ about a product they were not given.
   Their Cloud sections describe a workspace holding a team's board — cards, memory, releases,
   history — read by its members, exported and deleted by an owner.
 - 0.8.0 stores none of that. #319 stores an event snapshot, its connector deliveries, the
-  human decision and its outcome; #318 stores an execution node and its delivery requests;
+  human decision and its outcome; #318 stores a board's server and its delivery requests;
   #326 stores the account and its admission. The board and the repository never leave the
   machine.
 - The privacy page describes a workspace's Slack as an incoming webhook an owner pastes.

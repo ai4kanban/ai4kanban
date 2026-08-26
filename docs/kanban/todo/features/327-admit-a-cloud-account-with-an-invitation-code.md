@@ -16,6 +16,13 @@ questions:
       - No — keep the promise, and give a person GitHub returns no address for a box to type one into. We then send one branded email to an address nobody verified, and if Supabase refuses an address-less sign-in outright they never reach the box.
       - No — keep the promise, and send only where a sign-in already points. Nothing goes to an unverified address; anyone GitHub gives us no address for is invited by hand from the mailbox instead.
     recommend: [1]
+  - question: "[user] Which layout for the not-admitted Cloud pane? — see the `ui-design` section"
+    mode: single
+    options:
+      - A — the code box first, Request an invite under a hairline below it; costs whoever has no code one short line of reading before the button
+      - B — the two doors side by side, each half narrower in a 544px pane
+      - C — the code box alone, Request an invite demoted to the foot row beside Sign out
+    recommend: [1]
 ---
 
 Run the whole invitation loop: a refused person asks for an invite from the app, we approve
@@ -53,6 +60,16 @@ something the invited person finishes themselves.
   preview never has to guess who a code was meant for, and a leaked code costs one admission
   we can revoke rather than an open door. The cost is that a code handed to a team admits one
   of them, so inviting three people means issuing three codes.
+
+## By `ui-design` agent
+
+<Mockup src=".mockups/327/a.tsx" label="A" />
+
+<Mockup src=".mockups/327/b.tsx" label="B" />
+
+<Mockup src=".mockups/327/c.tsx" label="C" />
+
+Recommended: **A**.
 
 <!-- agent -->
 

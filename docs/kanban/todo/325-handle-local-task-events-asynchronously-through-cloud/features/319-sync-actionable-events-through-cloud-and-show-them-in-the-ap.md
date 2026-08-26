@@ -18,8 +18,15 @@ questions:
   - question: "[user] May a user-owned question be answered with free text from a notification, or only by picking one of its listed options?"
     mode: single
     options:
-      - Free text too — most questions are answered in a sentence, and Cloud stores that sentence until the node applies it.
+      - Free text too — most questions are answered in a sentence, and Cloud stores that sentence until the server applies it.
       - Options only — nothing the user types reaches Cloud, and a question with no options is answered on the board.
+    recommend: [1]
+  - question: "[user] Which layout for the notification center? — see the `ui-design` section"
+    mode: single
+    options:
+      - A — a dialog over the board from the header's tool cluster, the run history's shape; it is modal, so the board is behind a scrim while you answer
+      - B — a rail down the right beside the board, events open in place; it wants the side the chat rail already folds down
+      - C — a page of its own with a permanent rail row; the most room per event, and a destination that stays there for a few events a day
     recommend: [1]
 verify:
   - "Against the live Supabase project: moving a task to `ready` on this machine lights the bell within seconds, the same event is still there after the app is restarted, and a second signed-in account's Realtime channel receives none of it."
@@ -33,7 +40,7 @@ same flow into Slack.
 
 ## Worth noting
 - **Publication belongs to every local writer**: one shared publisher module ships in the
-  desktop board server and `akb`, so a change made by the app, the CLI, or an agent raises the
+  desktop app and `akb`, so a change made by the app, the CLI, or an agent raises the
   same event. The cost is a library boundary; publishing from the app alone would be less to
   build and would miss every board change made in a terminal.
 - **An event outlives the app being open**: the desktop reads pending events through the
@@ -45,16 +52,26 @@ same flow into Slack.
   privacy page can state plainly. The cost is that a notification older than that is gone from
   the bell history, and that an event nobody ever answers is never deleted.
 - **A notification here decides, it does not write**: approving or answering records a durable
-  action and stops at `waiting for node`, and #318's node is what changes the local card. The
+  action and stops at `waiting for server`, and #318's server is what changes the local card. The
   cost is that until #318 lands nothing on the board moves from a notification; the option it
   beat was letting the desktop app write the card directly, which would give a Slack answer
   and a desktop answer two different paths to the same edit.
+
+## By `ui-design` agent
+
+<Mockup src=".mockups/319/a.tsx" label="A" />
+
+<Mockup src=".mockups/319/b.tsx" label="B" />
+
+<Mockup src=".mockups/319/c.tsx" label="C" />
+
+Recommended: **A** — it is the run history's shape, in the cluster the run history is in, and the board keeps its full width.
 
 <!-- agent -->
 
 ## Today
 - #326 landed: one Supabase GitHub sign-in per machine, held in `cli/src/lib/cloud/` and read
-  by the app, the board UI server and `akb`. The Worker verifies it against JWKS and refuses an
+  by the desktop app and `akb`. The Worker verifies it against JWKS and refuses an
   unadmitted account in the service's own words. `cloud.accounts` is the row every later table
   hangs `owner_id` off.
 - `cli/src/lib/cloud/realtime.ts` already keeps a Realtime client's token fresh
@@ -96,7 +113,7 @@ same flow into Slack.
   stage can retry without duplicating another.
 - Store durable state in Supabase Postgres through the Worker, then send the stored event or
   request ID over a private Supabase Realtime topic authorized by the user's Auth session.
-- Authorize account and node topics with RLS policies on `realtime.messages`, subscribe as
+- Authorize account and server topics with RLS policies on `realtime.messages`, subscribe as
   private channels, and apply refreshed JWTs to the live connection.
 - On every start and reconnect, read the account's pending events through the Worker before
   listening for hints, so an event that arrived while the app was closed still appears.
@@ -107,10 +124,10 @@ same flow into Slack.
   context, clear empty and disabled states, and the actions the event permits.
 - Let the user approve implementation or answer a user-owned question from the notification
   center.
-- Record either as one durable action that reads `accepted` and then `waiting for node`;
-  #318's node applies both to the local card, so nothing in this card writes to a board from
+- Record either as one durable action that reads `accepted` and then `waiting for server`;
+  #318's server applies both to the local card, so nothing in this card writes to a board from
   a notification.
-- Update a notification with its actionable, accepted, waiting for node, running, completed,
+- Update a notification with its actionable, accepted, waiting for server, running, completed,
   failed, stale, cancelled, or interrupted outcome without creating progress noise; those nine
   names are the ones #318 and #320 also use.
 - Keep an event for as long as it is unresolved, and 30 days after it reaches a final outcome
@@ -122,21 +139,21 @@ same flow into Slack.
 - [ ] Add the board record: a Cloud ID per enabled board, the local path held on the machine
       alone, and that board named on every event.
 - [ ] Add the two event rules, release filter, portable message, and durable deduplication.
-- [ ] Add the shared local publisher to the desktop board server and `akb`, with one local
+- [ ] Add the shared local publisher to the desktop app and `akb`, with one local
       outbox and retry path for qualifying state changes.
 - [ ] Publish at start any actionable task with no publication on record.
 - [ ] Retire an event as stale when the publisher sees its task leave `ready` or lose its
       question.
 - [ ] Publish through the Worker under the Supabase Auth session, then broadcast stored IDs
       over private Realtime topics.
-- [ ] Configure private Realtime channels and account- and node-scoped authorization policies,
+- [ ] Configure private Realtime channels and account- and server-scoped authorization policies,
       including live JWT refresh.
 - [ ] Read pending events through the Worker at every start and reconnect, before listening
       for hints.
 - [ ] Record connector delivery, human action, and outcome independently.
 - [ ] Add the desktop notification center, unread state, history, and empty states.
 - [ ] Approve implementation and answer user-owned questions from the desktop message, each
-      recorded as one durable action that stops at `waiting for node`.
+      recorded as one durable action that stops at `waiting for server`.
 - [ ] Return stale or duplicate outcomes and preserve the local task.
 - [ ] Reflect meaningful action and execution outcomes in the existing notification, under the
       nine state names this card fixes.
@@ -160,18 +177,18 @@ same flow into Slack.
 - **Why the outbox retry is not enough on its own**: the board write and the outbox row are
   not one transaction, so a crash between them leaves a `ready` task nothing will ever retry.
   The scan at start is what closes that gap.
-- **Where an answer is applied**: on the local machine by #318's node, the same way an approval
-  is. `notify-plan.md` step 9 sends both through the node, and one path is what keeps a Slack
+- **Where an answer is applied**: on the local machine by #318's server, the same way an approval
+  is. `notify-plan.md` step 9 sends both through the server, and one path is what keeps a Slack
   answer and a desktop answer the same act. #318's Scope names only **Implement** today and has
   to carry an answer request too.
 - **What closes an event nobody acted on**: the publisher that already runs after every board
   write. It sees the task leave `ready` or lose its question and retires the event as `stale`,
   so a user who answered on the board is not asked the same thing twice from the bell.
-- **Why the nine state names are fixed here**: the desktop, Slack, and the execution node all
+- **Why the nine state names are fixed here**: the desktop, Slack, and the execution server all
   render one durable row, so a name invented in one of them shows the user two words for one
   outcome. This card names them because it stores them first.
 - **Which events the 30 days applies to**: the five final outcomes — completed, failed, stale,
-  cancelled, and interrupted. An event still actionable, accepted, waiting for node, or running
+  cancelled, and interrupted. An event still actionable, accepted, waiting for server, or running
   is live work and is kept however old it is.
 - **What deletes them**: a step in the Worker's existing hourly scheduled run, which
   `cloud/src/scheduled.ts` is built to collect such steps in, rather than a schedule of its own.
@@ -201,6 +218,6 @@ same flow into Slack.
 - #326 — the machine's sign-in, `cloud.accounts`, and `keepAuthorized` in
   `cli/src/lib/cloud/realtime.ts`.
 - #331 — the awaited board write the publisher hangs off.
-- #318 and #320 — the node and the connector that read this card's states and actions.
+- #318 and #320 — the server and the connector that read this card's states and actions.
 - #330 — the sweep that re-reads the retention line this card writes.
 - `docs/kanban/memory/cloud/decisions.md` — the 30-day retention and the desktop-first order.

@@ -472,17 +472,17 @@ preview we are trying to keep reachable. What is left open is money: see the ope
   Durable Object per workspace. Cloud runs on Workers with Supabase Postgres instead; the
   section is kept exactly as it was written.
 - **The preview ships no Cloud page at a URL**: a team works its Cloud board from the
-  installed app, which is what this version connects to Cloud, and a Slack action opens that
-  app. The hosted browser surface — a public read-only board plus authenticated card review
-  and Resolve — is #322, outside 0.8.0. #314 and #317 therefore carry no public-access
-  switch, and #320 links into the app instead of a page.
+  installed app, which is what this version connects to Cloud. The hosted browser surface — a
+  public read-only board plus authenticated card review and Resolve — is #322, outside 0.8.0.
+  #314 and #317 therefore carry no public-access switch, and #320's Slack message records its
+  own decision in Cloud and links into the app for the rest, rather than pointing at a page.
 
 ## Source
 - The subtasks are the design. `plan.md` held it — the control, board, and codebase planes,
   the revision and writer-lease model, import and export, identity and roles — and was
   deleted in `464b6fc` when #318, #319 and #320 moved to #325; nothing else carries it, so a
   card here states what it needs rather than citing that file.
-- `notify-plan.md` — the single-user event, action, desktop inbox, execution-node, and Slack
+- `notify-plan.md` — the single-user event, action, desktop inbox, board-server, and Slack
   plan that #325 ships before this group.
 - `docs/kanban/memory/goal.md`, the 团队协作 section — the four problems, the Local/Cloud
   authority split, and the hosted-tier boundary.
