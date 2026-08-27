@@ -1,5 +1,5 @@
-// A question the board hands to the user is always the same shape: choices to tick, as many
-// as they like. `update-questions` is the only way one reaches a card, so it is where that
+// A question the board hands to the user always carries choices to tick, exclusive unless it
+// says otherwise. `update-questions` is the only way one reaches a card, so it is where that
 // shape is enforced — a bare line is refused rather than quietly written.
 
 import assert from 'node:assert/strict'
@@ -40,25 +40,7 @@ describe('a question handed to the user carries choices', () => {
     )
   })
 
-  it('refuses --mode: every question is multi-select', () => {
-    assert.throws(
-      () =>
-        cmdUpdateQuestions([
-          '1',
-          '--append',
-          'which region?',
-          '--option',
-          'a — why',
-          '--option',
-          'b — why',
-          '--mode',
-          'single',
-        ]),
-      /always multi-select/,
-    )
-  })
-
-  it('writes the choices as a multi-select question', () => {
+  it('writes an exclusive question unless told otherwise', () => {
     cmdUpdateQuestions([
       '1',
       '--append',
@@ -70,9 +52,42 @@ describe('a question handed to the user carries choices', () => {
     ])
     const written = card()
     assert.match(written, /- question: "\[user\] Which region\?"/)
-    assert.match(written, /mode: multi/)
+    assert.match(written, /mode: single/)
     assert.match(written, /- eu-central-1 — nearest to the users/)
     assert.match(written, /recommend: \[1\]/)
+  })
+
+  it('takes --mode multi when the picks may be combined', () => {
+    cmdUpdateQuestions([
+      '1',
+      '--append',
+      '[user] Which regions?',
+      '--mode',
+      'multi',
+      '--recommended-option',
+      'eu-central-1 — nearest to the users',
+      '--recommended-option',
+      'us-east-1 — cheapest',
+    ])
+    const written = card()
+    assert.match(written, /mode: multi/)
+    assert.match(written, /recommend: \[1, ?2\]/)
+  })
+
+  it('refuses two recommendations on an exclusive question', () => {
+    assert.throws(
+      () =>
+        cmdUpdateQuestions([
+          '1',
+          '--append',
+          'which region?',
+          '--recommended-option',
+          'a — why',
+          '--recommended-option',
+          'b — why',
+        ]),
+      /at most one --recommended-option/,
+    )
   })
 
   it('leaves the ops that only remove questions alone', () => {

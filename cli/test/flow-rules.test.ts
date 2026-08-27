@@ -106,7 +106,7 @@ describe('the files', () => {
 
 describe('the prompt', () => {
   it('leaves QA requirements in the guide', () => {
-    const prompt = buildPrompt({ action: 'raise-questions', id: 1, refineRound: 1 })
+    const prompt = buildPrompt({ action: 'clarify', id: 1, refineRound: 1 })
     assert.match(prompt, /akb guide qa-loop/)
     assert.doesNotMatch(prompt, /Append the gaps|Do not resolve|don't implement/)
   })
@@ -124,7 +124,7 @@ describe('the prompt', () => {
   })
 
   it('shows the spec-agent roster to every QA-carrying session', () => {
-    for (const action of ['raise-questions', 'resolve', 'edit'] as const) {
+    for (const action of ['clarify', 'resolve', 'edit'] as const) {
       assert.match(buildPrompt({ action, id: 1 }), /<spec-agents>/)
     }
     assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /<spec-agents>/)
@@ -158,7 +158,7 @@ describe('the prompt', () => {
   it('uses the refine rule throughout the composite flow', async () => {
     setFlowRule('refine', 'Ask about the data model.')
     setFlowRule('resolve', 'Use the standalone resolver rule.')
-    for (const action of ['raise-questions', 'resolve', 'writing'] as const) {
+    for (const action of ['clarify', 'resolve', 'writing'] as const) {
       const prompt = buildPrompt({ action, id: 1, refineRound: 2 })
       assert.match(prompt, /data model/)
       assert.doesNotMatch(prompt, /standalone resolver/)
@@ -194,7 +194,7 @@ describe('a delivery', () => {
   it('leaves a flow that is not one of its own reading the file', async () => {
     const built = run('implement', 1)
     setFlowRule('refine', 'Ask about the data model.')
-    assert.match(buildPrompt({ action: 'raise-questions', id: 1, refineRound: 1 }), /data model/)
+    assert.match(buildPrompt({ action: 'clarify', id: 1, refineRound: 1 }), /data model/)
     await end(built)
   })
 })

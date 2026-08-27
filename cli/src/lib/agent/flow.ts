@@ -433,7 +433,7 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   run: ['board', 'recurring-task'],
   // One guide owns the complete convergence loop; resolve is only for answers the user
   // supplies after that loop stops.
-  'raise-questions': ['qa-loop'],
+  clarify: ['qa-loop'],
   // Apply the user's answers first, then validate the resulting plan to convergence in the
   // same session. The watcher may start writing afterwards, but never another QA session.
   resolve: ['board', 'resolve', 'qa-loop'],
@@ -580,7 +580,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       break
     }
-    case 'raise-questions': {
+    case 'clarify': {
       facts.push(...stepsField(card!), ...questionsField(card!.meta))
       next.push(refineNext(req.id!, 'continue the programmatic refinement flow'))
       break

@@ -130,7 +130,7 @@ export const flowByCommand = (command: string): Flow | undefined =>
   FLOWS.find((flow) => flow.command === command)
 
 export const flowByAction = (action: AgentAction): Flow | undefined => {
-  if (action === 'raise-questions' || action === 'writing') return flowByCommand('refine')
+  if (action === 'clarify' || action === 'writing') return flowByCommand('refine')
   return FLOWS.find((flow) => flow.action === action)
 }
 

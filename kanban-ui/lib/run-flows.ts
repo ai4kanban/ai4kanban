@@ -63,12 +63,12 @@ export function flowOf(flows: RunFlow[], sessionId: string | null): RunFlow | nu
 // the ones that differ are here; everything else reads the same either way.
 const COMMAND_NAME: Partial<Record<AgentAction, string>> = {
   edit: "Revise",
-  "raise-questions": "Refine",
+  clarify: "Refine",
   writing: "Refine",
 };
 
-/** An action as a person reads it: "raise-questions" → "Raise questions". A session of a
- *  job is named by its action, so a step reads the same as a standalone run of it. */
+/** An action as a person reads it: "plan-release" → "Plan release". A session of a job is
+ *  named by its action, so a step reads the same as a standalone run of it. */
 export function stepLabel(action: AgentAction): string {
   const words = action.replace(/-/g, " ");
   return words.charAt(0).toUpperCase() + words.slice(1);

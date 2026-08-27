@@ -3,7 +3,7 @@ title: Sync actionable events through Cloud and show them in the app
 track: features
 priority: high
 roi: high
-status: ready
+status: implementing
 release: 0.8.0
 blocked_by: []
 related: [325]

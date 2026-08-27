@@ -46,10 +46,13 @@ const KEEP_DELIVERIES = 30
 /** Where a run's log is written, from its id alone. */
 export const logPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.log`)
 
-// Older builds stored the public refine flow as one run action. A board's history outlives
-// a version, so those records remain readable as question-audit sessions.
+// Names the clarify session went by in older builds: the whole refine flow as one action,
+// then `raise-questions`. A board's history outlives a version, so those records stay
+// readable.
+const WAS_CLARIFY = new Set(['auto-refine', 'refine', 'raise-questions'])
+
 export const readAction = (action: unknown): AgentAction =>
-  action === 'auto-refine' || action === 'refine' ? 'raise-questions' : (action as AgentAction)
+  typeof action === 'string' && WAS_CLARIFY.has(action) ? 'clarify' : (action as AgentAction)
 
 /** Both lists as the file holds them. */
 export interface Store {

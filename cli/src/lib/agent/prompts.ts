@@ -107,7 +107,7 @@ export function frozenRules(req: AgentRequest): Record<string, string> | undefin
 // or a new one ships.
 //
 // It goes after everything else because it is a block and the rest is prose.
-const ROSTER_FOR = new Set(['raise-questions', 'resolve', 'edit'])
+const ROSTER_FOR = new Set(['clarify', 'resolve', 'edit'])
 
 const roster = (req: AgentRequest): string =>
   ROSTER_FOR.has(req.action) && req.id !== undefined ? specAgentRoster(req.id) : ''
@@ -227,7 +227,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Change nothing but that version's summary file, and write it with \`akb board release changelog\`.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
-    case 'raise-questions':
+    case 'clarify':
       return [
         `${kb}. Finish the planning QA loop for task ${req.id} ${named} following \`akb guide qa-loop\`.`,
         // A refine has no note box of its own, but one SCHEDULED on a blocked card

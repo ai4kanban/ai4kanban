@@ -7,7 +7,7 @@ import type { Card } from '../view/types'
 import { startRun } from './start'
 import type { AgentAction, AgentRequest, CommandRequest, RunRecord } from './types'
 
-export type RefinementStep = 'raise-questions' | 'writing' | 'done'
+export type RefinementStep = 'clarify' | 'writing' | 'done'
 
 export type BoardMarks = Map<number, string>
 
@@ -87,7 +87,7 @@ function cardChanged(card: Card, before: BoardMarks): boolean {
 
 export function refinementStep(card: Card): RefinementStep {
   if (!canRefine(card)) return 'done'
-  return 'raise-questions'
+  return 'clarify'
 }
 
 export function refinementRequest(req: CommandRequest): AgentRequest | { error: string } {
@@ -132,7 +132,7 @@ export function refinementAfter(
 ): AgentRequest | 'incomplete' | null {
   if (
     round === undefined ||
-    (action !== 'raise-questions' && action !== 'resolve' && action !== 'writing')
+    (action !== 'clarify' && action !== 'resolve' && action !== 'writing')
   ) {
     return null
   }
@@ -147,7 +147,7 @@ export function refinementAfter(
   if (action === 'resolve') {
     if (!cardChanged(card, before) || refinementStep(card) === 'done') return null
     return {
-      action: 'raise-questions',
+      action: 'clarify',
       id: card.id,
       title: card.title,
       refineRound: round + 1,
@@ -162,7 +162,7 @@ export function refinementAfter(
 const NO_FOLLOW = new Set<AgentAction>([
   'implement',
   'edit',
-  'raise-questions',
+  'clarify',
   'resolve',
   'writing',
   'setup',
@@ -218,7 +218,7 @@ function qaAfterSpec(run: RunRecord): AgentRequest | null {
   const card = currentCard(run.cardId)
   if (!card || card.openBlockers.length > 0 || card.schedule || !canRefine(card)) return null
   return {
-    action: 'raise-questions',
+    action: 'clarify',
     id: card.id,
     title: card.title,
     refineRound: 1,

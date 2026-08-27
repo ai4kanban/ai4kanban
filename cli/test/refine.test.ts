@@ -97,7 +97,7 @@ describe('entering refinement', () => {
   it('starts with a question audit when the card has no questions', () => {
     writeCard()
     assert.deepEqual(refinementRequest({ action: 'refine', id: 7 }), {
-      action: 'raise-questions',
+      action: 'clarify',
       id: 7,
       title: 'A card to refine',
       notes: undefined,
@@ -109,28 +109,28 @@ describe('entering refinement', () => {
     writeCard({ questions: ['Which boundary applies?'] })
     const request = refinementRequest({ action: 'refine', id: 7 })
     assert.ok(!('error' in request))
-    assert.equal(request.action, 'raise-questions')
+    assert.equal(request.action, 'clarify')
   })
 
   it('starts the same QA session with mixed tagged and untagged questions', () => {
     writeCard({ questions: ['[user] Which layout?', 'Which boundary applies?'] })
     const request = refinementRequest({ action: 'refine', id: 7 })
     assert.ok(!('error' in request))
-    assert.equal(request.action, 'raise-questions')
+    assert.equal(request.action, 'clarify')
   })
 })
 
 describe('the QA pass', () => {
   it('goes straight from a clean audit to writing', () => {
     writeCard()
-    const { runs, stalled } = afterSession('raise-questions', 1, () => {})
+    const { runs, stalled } = afterSession('clarify', 1, () => {})
     assert.equal(stalled, undefined)
     assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['writing', 2]])
   })
 
   it('goes to writing after exhausting an existing question list', () => {
     writeCard({ questions: ['Which boundary applies?'] })
-    const { runs, stalled } = afterSession('raise-questions', 1, () => {
+    const { runs, stalled } = afterSession('clarify', 1, () => {
       writeCard({ body: 'The boundary is settled.' })
     })
     assert.equal(stalled, undefined)
@@ -139,7 +139,7 @@ describe('the QA pass', () => {
 
   it('waits when QA leaves only revalidated user questions', () => {
     writeCard({ questions: ['Which boundary applies?'] })
-    const { runs, stalled } = afterSession('raise-questions', 1, () => {
+    const { runs, stalled } = afterSession('clarify', 1, () => {
       writeCard({ questions: ['[user] Which boundary applies?'] })
     })
     assert.deepEqual(runs, [])
@@ -148,7 +148,7 @@ describe('the QA pass', () => {
 
   it('reports an untagged question as incomplete instead of starting another session', () => {
     writeCard()
-    const { runs, stalled } = afterSession('raise-questions', 1, () => {
+    const { runs, stalled } = afterSession('clarify', 1, () => {
       writeCard({ questions: ['Which boundary applies?'] })
     })
     assert.deepEqual(runs, [])
@@ -158,7 +158,7 @@ describe('the QA pass', () => {
   it('waits for requested spec agents instead of starting writing', () => {
     writeCard()
     const before = markBoard()
-    const { runs, stalled } = refinementRunsAfter(run('raise-questions', 1), before, true)
+    const { runs, stalled } = refinementRunsAfter(run('clarify', 1), before, true)
     assert.deepEqual(runs, [])
     assert.equal(stalled, undefined)
   })
@@ -236,7 +236,7 @@ describe('writing', () => {
 describe('one job, several sessions', () => {
   const openPass = (round: number, flowId?: string) => {
     const opened = openRun(
-      { action: 'raise-questions', id: 7, title: 'A card to refine', refineRound: round, flowId },
+      { action: 'clarify', id: 7, title: 'A card to refine', refineRound: round, flowId },
       'prompt',
       [],
     )
@@ -336,7 +336,7 @@ describe('specialized input', () => {
       before,
     )
     assert.equal(stalled, undefined)
-    assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['raise-questions', 1]])
+    assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['clarify', 1]])
   })
 
   it('resumes QA even when a spec agent could not write a section', () => {
@@ -347,6 +347,6 @@ describe('specialized input', () => {
       before,
     )
     assert.equal(stalled, undefined)
-    assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['raise-questions', 1]])
+    assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['clarify', 1]])
   })
 })

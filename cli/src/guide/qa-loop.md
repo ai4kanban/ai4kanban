@@ -85,6 +85,10 @@ akb board update-questions <id> \
   --recommended-option "A — reason" --option "B — reason"
 ```
 
+A question is exclusive: the user picks one option. Add `--mode multi` only when the options
+can genuinely be combined — "which of these to include", not "which way to go" — and then
+recommend every option you would take.
+
 ## Success criteria
 
 The session ends only in one of these states:

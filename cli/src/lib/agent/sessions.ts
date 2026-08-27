@@ -81,7 +81,7 @@ const VERB: Record<AgentAction, string> = {
   edit: 'edited',
   create: 'created',
   propose: 'proposed',
-  'raise-questions': 'audited',
+  clarify: 'clarified',
   resolve: 'resolved',
   writing: 'rewritten',
   'plan-release': 'planned',

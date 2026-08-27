@@ -43,8 +43,9 @@ export type AgentAction =
    *  needs that the board is missing. It touches no single card, so it carries a release
    *  id instead of a card id. */
   | 'plan-release'
-  /** Find the decisions a task still needs without answering or rewriting them. */
-  | 'raise-questions'
+  /** Work a task's plan over to convergence (`akb guide qa-loop`): settle every gap the
+   *  session can settle itself, and leave only the decisions that are the user's. */
+  | 'clarify'
   | 'resolve'
   /** Improve a settled card's writing and mark it ready. */
   | 'writing'
@@ -73,7 +74,7 @@ export type AgentAction =
 /** The passes a refinement is made of (`agent/refine.ts`). None of them is a flow a user
  *  types: each one belongs to a refine loop, and carries that loop's id and its round. */
 export const REFINE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([
-  'raise-questions',
+  'clarify',
   'resolve',
   'writing',
 ])
@@ -84,7 +85,7 @@ export interface AgentRequest {
   action: AgentAction
   id?: number
   title?: string
-  notes?: string // implement, edit, raise-questions, resolve, archive, run
+  notes?: string // implement, edit, clarify, resolve, archive, run
   reason?: string // reject
   description?: string // create
   /** create: the version the new card(s) ship in. plan-release: the version being
@@ -107,7 +108,7 @@ export interface AgentRequest {
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<AgentAction, 'raise-questions' | 'writing' | 'spec' | 'correct'>
+  | Exclude<AgentAction, 'clarify' | 'writing' | 'spec' | 'correct'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */

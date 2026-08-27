@@ -143,7 +143,7 @@ describe('the default refine schedule', () => {
     const run: RunRecord = {
       sessionId: 'refine-2',
       cardId: 2,
-      action: 'raise-questions',
+      action: 'clarify',
       status: 'done',
       startedAt: 0,
       harness: 'test',

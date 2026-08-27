@@ -152,7 +152,7 @@ describe('repairing a card is not a change worth another pass', () => {
     const before = markBoard()
     write(OLD.replace('- a requirement', '- a different requirement'), 'todo')
     assert.deepEqual(refinementAfter('resolve', 5, 1, before), {
-      action: 'raise-questions',
+      action: 'clarify',
       id: 5,
       title: 'A card',
       refineRound: 2,

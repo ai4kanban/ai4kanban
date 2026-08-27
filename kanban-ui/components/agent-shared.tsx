@@ -136,7 +136,7 @@ export const RUNNING_VERB: Record<AgentAction, string> = {
   conflict: "resolving a conflict",
   run: "running",
   edit: "editing",
-  "raise-questions": "auditing questions",
+  "clarify": "clarifying",
   resolve: "resolving",
   writing: "rewriting",
   reject: "rejecting",
