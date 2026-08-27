@@ -160,7 +160,7 @@ function memoryFiles(modules: string[], name: string): string[] {
 // The jobs `akb guide board` tells to read the project's settings before they start:
 // proposing, adding, refining. For those it is a certain read, and a certain read costs
 // less printed here than fetched in a round of its own.
-const CONFIG_FOR = new Set<AgentAction>(['propose', 'create', 'refine'])
+const CONFIG_FOR = new Set<AgentAction>(['propose', 'create'])
 
 // The settings file as it stands, or null when the board has none.
 function configText(): string | null {
@@ -426,27 +426,28 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   implement: ['board', 'document-feature'],
   // Review writes on the card — a post-implementation note, a follow-up card, an open
   // question — so it needs the card format as much as the review flow itself.
-  review: ['board', 'review'],
+  review: ['board', 'user-question', 'review'],
   // Kept only for a correction run resumed from an older delivery.
   correct: [],
   conflict: ['conflict'],
-  run: ['board', 'recurring-task'],
-  refine: ['board', 'refine', 'resolve'],
-  resolve: ['board', 'resolve'],
+  run: ['board', 'user-question', 'recurring-task'],
+  'raise-questions': ['raise-questions'],
+  resolve: ['board', 'user-question', 'resolve'],
+  writing: ['board'],
   edit: ['board', 'revise'],
-  create: ['board', 'add-task'],
-  propose: ['board', 'propose', 'add-task'],
-  'plan-release': ['board', 'releases', 'plan-release', 'add-task'],
+  create: ['board', 'evaluate-task', 'add-task'],
+  propose: ['board', 'propose', 'evaluate-task', 'add-task'],
+  'plan-release': ['board', 'releases', 'plan-release', 'evaluate-task', 'add-task'],
   // A changelog run gets its own flow and NOT `board`: it writes no card, so the card
   // format, the memory set and the tracks are a page of rules about work it cannot do.
   changelog: ['changelog'],
   archive: ['board'],
   reject: ['board', 'reject'],
-  setup: ['board', 'setup'],
+  setup: ['board', 'user-question', 'setup'],
   // A spec agent gets its own flow and NOT `board`: it writes one section, never a card,
   // so the card format, the memory set and the tracks are a page of rules about work it is
   // not allowed to do. `akb spec` has no --print, so this is only ever read by the run.
-  spec: ['spec-agent'],
+  spec: ['user-question', 'spec-agent'],
 }
 
 /** Build the flow for one action. A `board` command spelled out here is spelled with the
@@ -572,18 +573,13 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       break
     }
-    case 'refine': {
+    case 'raise-questions': {
       facts.push(...stepsField(card!), ...questionsField(card!.meta))
-      facts.push(...field('tracks', trackNames().join(', ') || '(none)'))
-      facts.push(...field('goal', rel(GOAL)))
       close.push(
-        `${board} update-questions ${req.id} --append ".." — for each call that is really the user's`,
-        `${board} tag ${req.id} <n> user — hand the ones only they can settle over`,
-        `${board} update ${req.id} --status ready — when you are highly confident the plan is ready to build: no substantive gap left, no question open. Otherwise leave it todo, and a fresh pass takes it on`,
+        `${board} update-questions ${req.id} --append ".." --option ".." --option ".." — append every substantive gap as an untagged question in one command; do not recommend or resolve it`,
+        `change nothing else — not the card body, its status, another card, or project code`,
       )
-      if (card!.meta.questions.length) {
-        next.push(`${self} resolve ${req.id} --print — first: a card with open questions can't be refined`)
-      }
+      next.push(refineNext(req.id!, 'continue the programmatic refinement flow'))
       break
     }
     case 'resolve': {
@@ -593,13 +589,24 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         `${board} update-verify ${req.id} --append ".." — first, for any entry that is a hand-check and not a question; then drop it from the question list`,
         `${board} update-questions ${req.id} --drop <n> — take each question you answered off`,
-        `${board} tag ${req.id} <n> user — for the ones only the user can settle, worded as they stand`,
+        `${board} update-questions ${req.id} --update <n> ".." --recommended-option ".." --option ".." — for the ones only the user can settle, rewritten as choices they tick; \`${board} tag ${req.id} <n> user\` instead when the question already carries options`,
         `write what you decided on the card, one line each — a call the user could reasonably refuse goes under "## Worth noting", the rest under "## Decided by the agent"`,
       )
       next.push(
-        req.andImplement
-          ? `${self} implement ${req.id} --print — carry straight on, but only if nothing real is left for the user`
-          : `${self} implement ${req.id} --print — once every question is settled`,
+        req.refineRound !== undefined
+          ? refineNext(req.id!, 'continue the QA loop after this resolution')
+          : req.andImplement
+            ? `${self} implement ${req.id} --print — carry straight on, but only if nothing real is left for the user`
+            : `${self} implement ${req.id} --print — once every question is settled`,
+      )
+      break
+    }
+    case 'writing': {
+      facts.push(...stepsField(card!), ...questionsField(card!.meta))
+      close.push(
+        'improve only the card body\'s writing according to "Card format" and "Writing rules" in `akb guide board` — preserve every settled requirement, decision, checked todo, and spec-agent section',
+        `do not research, change the plan, raise or resolve questions, touch another card, or edit project code`,
+        `${board} update ${req.id} --status ready — after the body is compact, clear, and internally consistent`,
       )
       break
     }

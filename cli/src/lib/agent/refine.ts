@@ -5,9 +5,9 @@ import { allCards, findCard } from '../view/read'
 import { byDispatchOrder, canRefine } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
-import type { AgentAction, AgentRequest, RunRecord } from './types'
+import type { AgentAction, AgentRequest, CommandRequest, RunRecord } from './types'
 
-export type RefinementStep = 'refine' | 'resolve' | 'done'
+export type RefinementStep = 'raise-questions' | 'resolve' | 'writing' | 'done'
 
 export type BoardMarks = Map<number, string>
 
@@ -44,11 +44,14 @@ const asMoved = (body: string): string[] =>
     .filter((line) => line.trim() && !MARKER.test(line.trim()))
     .sort()
 
-// Did this run change the card's plan — the loop's only question. `blocked_by` is omitted:
+// Did this run change the card? A resolver that changed nothing cannot move the QA loop,
+// while a clean question audit deliberately changes nothing and advances to writing.
+// What ENDS the loop is writing reaching `ready`, or questions only the user owns.
+// `blocked_by` is omitted:
 // entering a blocked episode writes its own refine schedule, and leaving one consumes that
 // schedule (or honors its cancellation), so dependency movement is never inferred here.
 // Every other edit counts; guessing which was substantive would be a second, quieter
-// opinion about the judgment the pass already made by closing (`akb guide refine`).
+// opinion about the agent session that made it.
 const wroteOf = (card: Card): string =>
   JSON.stringify([
     card.status,
@@ -87,17 +90,22 @@ function cardChanged(card: Card, before: BoardMarks): boolean {
 
 export function refinementStep(card: Card): RefinementStep {
   if (!canRefine(card)) return 'done'
-  return card.questions.length > 0 ? 'resolve' : 'refine'
+  return card.questions.length > 0 ? 'resolve' : 'raise-questions'
 }
 
-export function startRefinement(
-  req: AgentRequest,
-): { run: RunRecord; spawned: boolean } | { error: string } {
+export function refinementRequest(req: CommandRequest): AgentRequest | { error: string } {
   const card = req.id === undefined ? null : currentCard(req.id)
   if (!card) return { error: `task #${req.id} does not exist` }
   const step = refinementStep(card)
   if (step === 'done') return { error: `a refine would not move #${card.id}` }
-  return startRun({ ...req, action: step, refineRound: 1 })
+  return { action: step, id: card.id, title: card.title, notes: req.notes, refineRound: 1 }
+}
+
+export function startRefinement(
+  req: CommandRequest,
+): { run: RunRecord; spawned: boolean } | { error: string } {
+  const next = refinementRequest(req)
+  return 'error' in next ? next : startRun(next)
 }
 
 /** The next pass in this loop — or `'capped'`, which is a stop with a card still changing
@@ -108,21 +116,36 @@ export function refinementAfter(
   round: number | undefined,
   before: BoardMarks,
 ): AgentRequest | 'capped' | null {
-  if (round === undefined || (action !== 'refine' && action !== 'resolve')) return null
+  if (
+    round === undefined ||
+    (action !== 'raise-questions' && action !== 'resolve' && action !== 'writing')
+  ) {
+    return null
+  }
   const card = currentCard(cardId)
-  if (!card || !cardChanged(card, before)) return null
+  if (!card || action === 'writing') return null
   // A pass that put work in the card's way stops here. The card now carries the one-shot
   // refine schedule written with that blocker, so continuing this loop would do the work
   // early and start it again when the blocker clears.
   if (card.openBlockers.length > 0) return null
-
-  const step = refinementStep(card)
+  const step = action === 'raise-questions'
+    ? card.questions.length > 0
+      ? refinementStep(card)
+      : 'writing'
+    : cardChanged(card, before)
+      ? refinementStep(card)
+      : 'done'
   if (step === 'done') return null
-  if (round >= MAX_SESSIONS) return 'capped'
-  return { action: step, id: card.id, title: card.title, refineRound: round + 1 }
+  if (step !== 'writing' && round >= MAX_SESSIONS) return 'capped'
+  return {
+    action: step,
+    id: card.id,
+    title: card.title,
+    refineRound: round + 1,
+  }
 }
 
-const NO_FOLLOW = new Set<AgentAction>(['implement', 'refine', 'setup', 'spec'])
+const NO_FOLLOW = new Set<AgentAction>(['implement', 'raise-questions', 'writing', 'setup'])
 
 /** Cards another run changed and left worth refining. A blocked card carries its own
  * one-shot refine schedule, so dependency completion is not inferred here. */
@@ -139,7 +162,12 @@ function refinesAfter(action: AgentAction, before: BoardMarks): AgentRequest[] {
     .filter((card) => cardChanged(card, before))
     .filter((card) => card.openBlockers.length === 0 && !card.schedule && canRefine(card))
     .sort(byDispatchOrder)
-    .map((card) => ({ action: 'refine' as const, id: card.id, title: card.title }))
+    .flatMap((card) => {
+      const action = refinementStep(card)
+      return action === 'done' || action === 'writing'
+        ? []
+        : [{ action, id: card.id, title: card.title, refineRound: 1 }]
+    })
 }
 
 // The loop this run belonged to has ended with its card still worth refining. Nothing else
@@ -151,13 +179,13 @@ function stalledLine(cardId: number | null, next: AgentRequest | 'capped' | null
   if (!card || card.schedule || refinementStep(card) === 'done') return null
   const why =
     next === 'capped'
-      ? `${MAX_SESSIONS} refine passes and #${card.id} changed on every one, so the loop stopped there. `
+      ? `${MAX_SESSIONS} QA sessions ran and #${card.id} is still unsettled, so the loop stopped there. `
       : ''
   return `${why}#${card.id} is still at todo and nothing else will pick it up — refine it again, or mark it ready yourself.`
 }
 
 export interface RefinementFollowUp {
-  /** Every refinement run to start after a completed run, with the current loop first
+  /** Every refinement session to start after a completed run, with the current loop first
    *  removed from the ordinary changed-card candidates to prevent a duplicate start. */
   runs: AgentRequest[]
   /** One plain line for a loop that ended without settling its card. */

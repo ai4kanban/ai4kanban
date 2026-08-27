@@ -8,3 +8,13 @@
 
 export { hasOptions, parseQuestion } from "./format/view/rules";
 export type { Question, Question as CardQuestion, QuestionMode, QuestionTag } from "./format/view/types";
+
+import type { Question } from "./format/view/types";
+
+/** The last choice on every options question, added here rather than written onto the
+ *  card: picking it opens a box to answer in the user's own words. So "none of these" is
+ *  a tick like the others, and no card has to carry the same boilerplate line. */
+export const FREE_TEXT_CHOICE = "Something else — I'll type it";
+
+/** Its 1-based position, one past the choices the card carries. */
+export const freeTextPick = (q: Question): number => (q.options?.length ?? 0) + 1;

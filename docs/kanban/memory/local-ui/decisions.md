@@ -52,6 +52,10 @@ re-ask a settled call.
   the rest of the app is unchanged when nobody is signed in — no header control and no
   prompt. The cost the user accepted: two clicks to reach it, and an expired sign-in that is
   invisible until something needing Cloud fails.
+- **How is the not-admitted Cloud pane laid out?**: one column — the refusal, then the
+  invitation-code box, then **Request an invite** under a hairline, then **Sign out**. Whoever
+  was handed a code meets the box first; whoever has none reads one short line before the
+  button. Two doors side by side was turned down, because each half is narrow in that pane.
 - **How does a Configuration pane hold many editable items?**: a picker and one box — a
   narrow column naming every item, marked where one is set, beside a single tall box for
   whichever is picked. Flow rules is the first pane built this way, because a rule is a
@@ -102,6 +106,9 @@ re-ask a settled call.
   card whose questions are all `[user]`.
 - Stopping a background refine holds: the dispatcher doesn't pick that card again while
   its newest run is a stopped one.
+- **Does finishing setup refine the first cards it writes?**: yes — they are the roughest
+  cards the board will ever hold and nothing else comes for them, so a brand-new board
+  opens with a refine loop running on each.
 
 ## Runs
 
@@ -179,6 +186,26 @@ re-ask a settled call.
 - **Where does a user review Cloud-relayed task events first?**: in a desktop notification
   center. It proves complete messages and actions without Slack; Slack reuses the same event
   contract as the first external connector.
+- **What does the notification center look like?**: a rail down the right of the window, like
+  the chat rail, listing rows that carry the card's number and title with the event's name under
+  them and nothing more. A row opens that card's page, where the event's state and its actions
+  are; no separate page is drawn for an event, because it would duplicate the card page. The bell
+  leads the header's tool cluster with its unread count inside the segment, an unread row is an
+  accent dot and ink-weight text, and the event's state rides in the card's title band, in the
+  slot a delivery's pill already uses.
+- **Does the app's own card page wait on Cloud to act?**: no. **Implement** and **Resolve** on a
+  task with a live Cloud event start the delivery and write the answer at once, as they do today;
+  the action is recorded in Cloud afterwards and every other surface showing that event is told it
+  was taken. Only a surface that is not the board's machine waits for the board's server.
+- **Does an actionable event interrupt the user?**: yes — it raises a system notification as well
+  as lighting the bell, and clicking it opens the app on that card's page. The system asks
+  permission the first time, and a switch beside the board's notification setting silences the
+  interruption while the bell keeps filling.
+- **Does a finished delivery interrupt the user too?**: yes — every final outcome of a delivery a
+  notification started raises a second system notification, completed as well as failed,
+  interrupted and cancelled, so a run you approved and walked away from tells you it is done. It
+  names the outcome rather than the event, opens the same card page, and the same switch silences
+  it. An event retired as `stale` started no delivery and raises nothing.
 
 ## Answering open questions
 
@@ -191,6 +218,10 @@ re-ask a settled call.
   appears on the root once every subtask is done or rejected; a group whose subtasks were
   all rejected is closed with Reject instead. The root shows each subtask's outcome, and
   done looks different from rejected.
+- **How does a group root show what waits on what?**: a map above the subtasks list, one
+  column per layer left to right, blockers before what they block. A chip is the subtask's
+  id alone and shows its title on hover; nothing labels the columns and the panel carries no
+  heading. A group with no dependency inside it shows no map.
 - "Implement group" is one run owned by the root that keeps working until every subtask is
   done or rejected. It locks the root and every subtask and keeps one log, shown on all of
   them. Only Claude Code can do this — another connector falls back to one long run with
@@ -310,6 +341,18 @@ re-ask a settled call.
 
 ## The app's language
 
+- **How is the language picked?**: guessed once from the operating system on a machine that
+  has never said, then owned by the user — a switcher changes it, and nothing guesses over
+  that answer again. The site does not guess; the app does, because its first screen carries
+  neither the reader's languages nor a switcher of the browser's own.
+- **Where is the language reachable before there is a board?**: from a small switcher on the
+  launcher — the Open Folder screen the app opens onto. Setup draws the header, so
+  Configuration → Language is already on it; the launcher covers the screens that draw no
+  header, because every one of them is reached through it.
+- **Where does the switcher sit on the launcher?**: in the top-right corner, framed like
+  window chrome — outside the centred column, so Open Folder stays the one thing the page
+  leads with. The quieter placements, plain words at the foot of the column and a pill in the
+  artwork, were turned down as too easy to miss.
 - **Does the app's language also decide what the agent writes?**: yes — one setting, not
   two. The chosen language covers the app's own words and the prose the agent writes into
   cards, open questions, memory and changelogs. The board's structure — frontmatter,

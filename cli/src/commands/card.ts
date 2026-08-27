@@ -30,7 +30,7 @@ const TODO_ITEM = /^[ \t]*[-*+][ \t]*\[[ xX]?\]/m
 
 function defaultBody() {
   return [
-    '<one short paragraph: what the task does, and what is wrong without it.>',
+    '<one short paragraph: the observable result and the current behavior or constraint it changes.>',
     '',
     '<!-- agent -->',
     '',

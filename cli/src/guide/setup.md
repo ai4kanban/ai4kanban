@@ -23,8 +23,8 @@ and the board starts the run itself. You may be either one — nothing below cha
 While the checklist exists, create no cards — not from propose, not from add. And never
 stop to ask the user anything except the goal: the moment you hit a call you can't make
 on your own, append it to the questions card the install created —
-`akb board update-questions <id> --append "[user] .."`, with options where the answer is a
-pick (`akb guide resolve`). `akb board setup-status` prints the card's id.
+`akb board update-questions <id> --append "[user] .." --recommended-option ".." --option ".."`
+— following `akb guide user-question`. `akb board setup-status` prints the card's id.
 
 ## `project`
 

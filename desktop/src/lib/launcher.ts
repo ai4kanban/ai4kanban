@@ -44,17 +44,40 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-/** The switcher, top right: one chip per language, each in its own name, the one
- *  in force filled. Nothing at all when there is nothing that could save a pick. */
+/** Languages the app doesn't speak yet. They sit on the menu, greyed and marked
+ *  Soon, so "is mine coming?" is answered where it is asked rather than nowhere.
+ *  A row here is a promise — nothing goes on the list that isn't being written. */
+const SOON: LanguageChoice[] = [
+  { code: "fr", name: "Français", tag: "fr" },
+  { code: "es", name: "Español", tag: "es" },
+  { code: "ja", name: "日本語", tag: "ja" },
+];
+
+/** The switcher, top right: the language in force on a button, and the rest on a
+ *  menu under it. A row of chips was the whole list on screen at once, which
+ *  stops working the moment the list is longer than the two that work — so the
+ *  closed control says one thing and the open one says everything.
+ *
+ *  Nothing at all when there is nothing that could save a pick. */
 function switcher(language: string, languages: LanguageChoice[]): string {
   if (languages.length < 2) return "";
-  const chips = languages
+  const now = languages.find((l) => l.code === language) ?? { code: language, name: language, tag: language };
+  const rows = languages
     .map((l) => {
       const current = l.code === language;
-      return `<button type="button" class="lang" lang="${escapeHtml(l.tag)}" data-lang="${escapeHtml(l.code)}"${current ? ' aria-current="true"' : ""}>${escapeHtml(l.name)}</button>`;
+      return `<button type="button" class="lang" role="menuitemradio" aria-checked="${current}" lang="${escapeHtml(l.tag)}" data-lang="${escapeHtml(l.code)}">${escapeHtml(l.name)}${current ? CHECK_ICON : ""}</button>`;
     })
     .join("");
-  return `<div class="langs">${chips}</div>`;
+  const soon = SOON.map(
+    (l) =>
+      `<div class="lang soon" aria-disabled="true" lang="${escapeHtml(l.tag)}">${escapeHtml(l.name)}<span class="tag">Soon</span></div>`,
+  ).join("");
+  return `<div class="langs">
+  <details id="langs">
+    <summary class="current" title="Language">${GLOBE_ICON}<span lang="${escapeHtml(now.tag)}">${escapeHtml(now.name)}</span>${CHEVRON_ICON}</summary>
+    <div class="menu" role="menu">${rows}<div class="rule"></div>${soon}</div>
+  </details>
+</div>`;
 }
 
 /** The artwork down the left, as a tag ready to drop in the page.
@@ -130,6 +153,38 @@ function page({ mac, language, languages }: LauncherOptions): string {
   .art-img, .art svg { display: block; width: 100%; height: 100%; object-fit: cover; }
   /* A window dragged narrow is all board and no gallery. */
   @media (max-width: 760px) { .art { display: none; } }
+
+  /* The picture breathes. Only the drawn one — a PNG dropped in is whatever it
+     is — and only opacity and transform, so the compositor carries it and no
+     frame is repainted: an app sitting on its front door should not be warm.
+     Every cycle is slow enough to be noticed rather than watched; the eye
+     belongs on Open Folder. */
+  .halo { animation: glow 11s ease-in-out infinite; }
+  /* The sun rises. A hair of it over eleven seconds — enough that a window left
+     open is not the same picture it was, and not enough to watch. */
+  .sun { transform-box: view-box; transform-origin: 240px 300px; animation: rise 11s ease-in-out infinite; }
+  /* The sun coming apart on the water: each glint widens and fades on its own
+     count, so the light never repeats as a block. Four counts, dealt round, is
+     what keeps them from breathing together. */
+  .reflection ellipse { transform-box: fill-box; transform-origin: center; animation: ripple 6s ease-in-out infinite; }
+  .reflection ellipse:nth-child(4n + 2) { animation-duration: 7.5s; animation-delay: -1.2s; }
+  .reflection ellipse:nth-child(4n + 3) { animation-duration: 5.5s; animation-delay: -2.6s; }
+  .reflection ellipse:nth-child(4n) { animation-duration: 8.5s; animation-delay: -3.4s; }
+  /* The swell runs, alternate lines the other way, over half a minute — a tide,
+     not a current. */
+  .swell ellipse { animation: drift-out 34s ease-in-out infinite; }
+  .swell ellipse:nth-child(even) { animation: drift-in 46s ease-in-out infinite; }
+  .beacon { animation: blink 5s ease-in-out infinite; }
+  @keyframes glow { 50% { opacity: 0.8; } }
+  @keyframes rise { 50% { transform: translateY(-4px) scale(1.01); } }
+  @keyframes ripple { 50% { transform: scaleX(1.09); opacity: 0.72; } }
+  @keyframes drift-out { 50% { transform: translateX(-18px); } }
+  @keyframes drift-in { 50% { transform: translateX(14px); } }
+  @keyframes blink { 50% { opacity: 0.3; } }
+  /* A reader who has asked for stillness gets the drawing, held. */
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; }
+  }
 
   main {
     display: flex;
@@ -273,28 +328,74 @@ function page({ mac, language, languages }: LauncherOptions): string {
     position: fixed;
     top: 55px;
     right: 28px;
+  }
+  .langs details { position: relative; }
+  .current {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px;
+    gap: 6px;
+    padding: 5px 8px 5px 9px;
     border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
     border-radius: 10px;
     background: var(--paper);
-  }
-  .lang {
-    padding: 4px 9px;
-    border: 0;
-    border-radius: 7px;
-    background: transparent;
     color: var(--ink-soft);
-    font: inherit;
     font-size: 11.5px;
     font-weight: 700;
+    list-style: none;
     cursor: pointer;
   }
-  .lang:hover { color: var(--ink); }
-  .lang[aria-current="true"] { background: var(--accent-soft); color: var(--accent-deep); cursor: default; }
-  .lang:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .current::-webkit-details-marker { display: none; }
+  .current:hover, details[open] .current { color: var(--ink); }
+  details[open] .chev { transform: rotate(180deg); }
+  .current:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* The menu is a block the way everything else here is: ink outline, hard
+     shadow, the same 12px corner as the button it drops from. */
+  .menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 176px;
+    padding: 4px;
+    border: 1.5px solid var(--ink);
+    border-radius: 12px;
+    background: var(--paper);
+    box-shadow: 3px 3px 0 0 var(--ink);
+  }
+  .lang {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 6px 9px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+  }
+  .lang:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+  .lang[aria-checked="true"] { background: var(--accent-soft); color: var(--accent-deep); cursor: default; }
+  .lang:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+  .rule { margin: 4px 9px; border-top: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); }
+  /* Written but not shipped yet: on the list so the question is answered, dimmed
+     and inert so it is never mistaken for a pick. */
+  .lang.soon { color: var(--ink-soft); cursor: default; }
+  .lang.soon:hover { background: transparent; }
+  .tag {
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
 </style>
 </head>
 <body>
@@ -335,70 +436,201 @@ const FOLDER_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"
 
 const CLOSE_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
 
+// The switcher's own three marks: what the control is, that it opens, and which
+// row is in force.
+const GLOBE_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg>`;
+
+const CHEVRON_ICON = `<svg class="chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+
+const CHECK_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m20 6-11 11-5-5"/></svg>`;
+
 // The panel that stands in for the picture until there is one.
 //
-// A poster, not a diagram: an ember sun going down over dark water, cut into
-// slats that widen as they fall, its reflection breaking up on the surface. The
-// board is already named an inch to the right, so this says the other half —
-// the end of a working day. Geometry only, so it costs a paint and nothing
-// else: no font, no file, nothing to load.
+// Sunrise over open water: the sun half out of the sea, cloud bands lying across
+// it, and its light running down the water to the bottom of the frame. The board
+// is already named an inch to the right, so this says the other half — the start
+// of a working day. Geometry only, so it costs a paint and nothing else: no
+// font, no file, nothing to load.
 //
-// The slats are filled with the ground itself (`userSpaceOnUse`, so every shape
-// samples the same vertical ramp) rather than with a flat colour — that is what
-// lets them cut the disc without leaving a seam anywhere off it.
+// ── What makes it read as a place ───────────────────────────────────────────
+// Three things, and each of them was missing when this was a disc on a field:
+//
+// - The sun SITS ON the horizon, cut by it, rather than floating above a
+//   waterline drawn somewhere else. Sun and sea meet at y=300, and that contact
+//   is the whole picture; nothing may be laid between them.
+// - Sky and sea are separate ramps. Two different gradients meeting on a line is
+//   what a horizon is — one ramp behind everything reads as a wall.
+// - The light on the water WIDENS as it comes toward you. A glitter path is a
+//   perspective, so it opens out; drawn narrowing it becomes a triangle pointing
+//   nowhere, which is what it was.
+// - Nothing that lies flat has an end. Every band, glint and swell line is
+//   filled with a gradient that fades to nothing at both edges, so the shapes
+//   sit IN the water. Hard-ended strips at low opacity read as ruled lines over
+//   the picture, and a screenful of them reads as dirt.
+//
+// Kept centred on purpose. The frame is cropped to cover (`slice`), so a window
+// dragged narrow shows only the middle half of this width — anything that has to
+// be seen lives between x=130 and x=350.
 const DRAWN_ART = `<svg viewBox="0 0 480 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
-        <linearGradient id="ground" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="900">
-          <stop offset="0" stop-color="#2b2620"/>
-          <stop offset="0.55" stop-color="#191710"/>
-          <stop offset="1" stop-color="#100f0a"/>
+        <!-- Night still at the top, warming all the way down to the water. -->
+        <linearGradient id="sky" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="300">
+          <stop offset="0" stop-color="#13151f"/>
+          <stop offset="0.4" stop-color="#2a1c22"/>
+          <stop offset="0.72" stop-color="#5c2c1c"/>
+          <stop offset="0.93" stop-color="#a03d1a"/>
+          <stop offset="1" stop-color="#c4471b"/>
         </linearGradient>
-        <radialGradient id="halo" gradientUnits="userSpaceOnUse" cx="240" cy="340" r="330">
-          <stop offset="0" stop-color="#dd4f1e" stop-opacity="0.3"/>
+        <!-- The sea takes the sky at its far edge and loses it within a few
+             strokes: water off the light path is nearly black, which is what
+             lets the path be the brightest thing under the horizon. -->
+        <linearGradient id="sea" gradientUnits="userSpaceOnUse" x1="0" y1="300" x2="0" y2="900">
+          <stop offset="0" stop-color="#5c2814"/>
+          <stop offset="0.05" stop-color="#2a170f"/>
+          <stop offset="0.22" stop-color="#15120d"/>
+          <stop offset="1" stop-color="#0b0a08"/>
+        </linearGradient>
+        <!-- Brightest where it meets the water, the way a sun coming up is. -->
+        <radialGradient id="disc" gradientUnits="userSpaceOnUse" cx="240" cy="304" r="98">
+          <stop offset="0" stop-color="#ffd0a0"/>
+          <stop offset="0.4" stop-color="#f8802f"/>
+          <stop offset="1" stop-color="#dd4f1e"/>
+        </radialGradient>
+        <radialGradient id="halo" gradientUnits="userSpaceOnUse" cx="240" cy="300" r="220">
+          <stop offset="0" stop-color="#dd4f1e" stop-opacity="0.36"/>
           <stop offset="1" stop-color="#dd4f1e" stop-opacity="0"/>
         </radialGradient>
+        <!-- The body of the light on the water. The bars below are the glitter on
+             it; without something under them they are a stack of dashes. A glow
+             squashed narrow rather than a drawn cone — a cone has two straight
+             edges, and two straight edges on water is a searchlight. -->
+        <radialGradient id="path" gradientUnits="userSpaceOnUse" cx="240" cy="300" r="340"
+          gradientTransform="translate(240 300) scale(0.5 1) translate(-240 -300)">
+          <stop offset="0" stop-color="#f8802f" stop-opacity="0.34"/>
+          <stop offset="0.4" stop-color="#dd4f1e" stop-opacity="0.13"/>
+          <stop offset="1" stop-color="#dd4f1e" stop-opacity="0"/>
+        </radialGradient>
+        <!-- Haze: the air the sun has to come up through, thickest on the water. -->
+        <linearGradient id="haze" gradientUnits="userSpaceOnUse" x1="0" y1="232" x2="0" y2="300">
+          <stop offset="0" stop-color="#f4762f" stop-opacity="0"/>
+          <stop offset="1" stop-color="#f4762f" stop-opacity="0.32"/>
+        </linearGradient>
+        <!-- Nothing lying flat in this picture is allowed a visible end. Every
+             band, glint and swell line is filled with one of these three, so it
+             is full strength in the middle and gone before its edge: a shape
+             that stops somewhere is a slat, and a field of slats is what makes
+             water look like a barcode. Object-bounding-box units, so one
+             gradient serves every length. -->
+        <linearGradient id="glint" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#ffb787" stop-opacity="0"/>
+          <stop offset="0.5" stop-color="#ffb787" stop-opacity="1"/>
+          <stop offset="1" stop-color="#ffb787" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="foam" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#f7f7f4" stop-opacity="0"/>
+          <stop offset="0.5" stop-color="#f7f7f4" stop-opacity="1"/>
+          <stop offset="1" stop-color="#f7f7f4" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="band" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#171319" stop-opacity="0"/>
+          <stop offset="0.42" stop-color="#171319" stop-opacity="1"/>
+          <stop offset="0.62" stop-color="#171319" stop-opacity="1"/>
+          <stop offset="1" stop-color="#171319" stop-opacity="0"/>
+        </linearGradient>
+        <!-- Everything above the water. The sun is cut by this and by nothing else. -->
+        <clipPath id="sky-only"><rect width="480" height="300"/></clipPath>
         <filter id="grain" x="0" y="0" width="100%" height="100%">
           <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
           <feColorMatrix type="saturate" values="0"/>
         </filter>
       </defs>
-      <rect width="480" height="900" fill="url(#ground)"/>
-      <rect width="480" height="900" fill="url(#halo)"/>
 
-      <!-- The sun, and the slats that take it apart on the way down. -->
-      <circle cx="240" cy="340" r="152" fill="#dd4f1e"/>
-      <g fill="url(#ground)">
-        <rect x="-10" y="392" width="500" height="5"/>
-        <rect x="-10" y="412" width="500" height="7"/>
-        <rect x="-10" y="437" width="500" height="9"/>
-        <rect x="-10" y="466" width="500" height="12"/>
-        <rect x="-10" y="500" width="500" height="16"/>
-        <rect x="-10" y="540" width="500" height="21"/>
-      </g>
-
-      <!-- The waterline, the sun coming apart on it, and the swell running out
-           to the bottom of the frame so the water is water and not a floor. -->
-      <rect x="-10" y="596" width="500" height="1.5" fill="#f7f7f4" fill-opacity="0.28"/>
-      <g fill="#dd4f1e">
-        <rect x="130" y="614" width="220" height="7" fill-opacity="0.55"/>
-        <rect x="155" y="640" width="170" height="6" fill-opacity="0.4"/>
-        <rect x="180" y="668" width="120" height="5" fill-opacity="0.28"/>
-        <rect x="203" y="698" width="74" height="4" fill-opacity="0.18"/>
-        <rect x="221" y="730" width="38" height="3.5" fill-opacity="0.11"/>
-      </g>
+      <rect width="480" height="300" fill="url(#sky)"/>
       <g fill="#f7f7f4">
-        <rect x="24" y="626" width="86" height="2" fill-opacity="0.09"/>
-        <rect x="372" y="654" width="120" height="2" fill-opacity="0.075"/>
-        <rect x="-10" y="690" width="150" height="2.5" fill-opacity="0.06"/>
-        <rect x="300" y="722" width="190" height="2.5" fill-opacity="0.05"/>
-        <rect x="60" y="762" width="250" height="3" fill-opacity="0.04"/>
-        <rect x="330" y="806" width="160" height="3" fill-opacity="0.03"/>
-        <rect x="-10" y="852" width="230" height="3.5" fill-opacity="0.025"/>
+        <circle cx="150" cy="64" r="2.2" fill-opacity="0.45"/>
+        <circle cx="322" cy="42" r="1.8" fill-opacity="0.3"/>
+        <circle cx="212" cy="108" r="1.5" fill-opacity="0.22"/>
+        <circle cx="298" cy="146" r="1.4" fill-opacity="0.14"/>
       </g>
-      <!-- One green light out on the water: the colour the board finishes in. -->
-      <circle cx="356" cy="176" r="4" fill="#7fca9c" fill-opacity="0.85"/>
-      <circle cx="96" cy="118" r="2.5" fill="#f7f7f4" fill-opacity="0.4"/>
-      <circle cx="404" cy="98" r="2" fill="#f7f7f4" fill-opacity="0.25"/>
+
+      <rect class="halo" width="480" height="900" fill="url(#halo)"/>
+
+      <g clip-path="url(#sky-only)">
+        <circle class="sun" cx="240" cy="300" r="90" fill="url(#disc)"/>
+        <!-- Cloud bands, not slats: filled with the fading band, so each one is
+             solid in the middle and dissolves before either end.
+             The sun is the picture, so nothing dense is allowed on its face —
+             every band's solid middle sits off the disc and only a faded tail
+             passes in front of it. That still layers the sky, and the sun stays
+             a whole disc rather than a stack of slices. They flank it: two
+             high, two at its shoulders, one low on the water. The two at its
+             shoulders carry a lit edge on the side facing the sun, which is
+             what says a cloud has light behind it. -->
+        <g fill="url(#band)">
+          <ellipse cx="140" cy="166" rx="108" ry="3.5" fill-opacity="0.5"/>
+          <ellipse cx="362" cy="198" rx="94" ry="4" fill-opacity="0.55"/>
+          <ellipse cx="66" cy="243" rx="120" ry="6" fill-opacity="0.74"/>
+          <ellipse cx="412" cy="262" rx="112" ry="5.5" fill-opacity="0.68"/>
+          <ellipse cx="86" cy="288" rx="102" ry="4.5" fill-opacity="0.58"/>
+        </g>
+        <g fill="url(#glint)">
+          <ellipse cx="66" cy="250" rx="112" ry="1.6" fill-opacity="0.32"/>
+          <ellipse cx="412" cy="268.5" rx="104" ry="1.6" fill-opacity="0.28"/>
+        </g>
+        <rect y="232" width="480" height="68" fill="url(#haze)"/>
+      </g>
+
+      <rect y="300" width="480" height="600" fill="url(#sea)"/>
+      <rect y="300" width="480" height="600" fill="url(#path)"/>
+      <!-- The line the whole picture hangs on. Brightest where the sun stands in
+           it and gone by either edge: a hairline carried the full width is a
+           ruled line, and the sky and sea meet on their own without one. -->
+      <rect y="299" width="480" height="1.6" fill="url(#glint)" fill-opacity="0.5"/>
+
+      <!-- The sun on the water. Each glint is an ellipse filled with the fading
+           streak, so it has no ends and no edges — the thing the eye reads is a
+           patch of light, not a mark. They spread and dim as they come toward
+           you, and none is centred or the length of its neighbour: a stack of
+           centred bars is a ladder, and water has none. Near the horizon they
+           are tight and bright; by the bottom of the frame there is little left
+           but the glow behind them, which is where the light should end. -->
+      <g class="reflection" fill="url(#glint)">
+        <ellipse cx="240" cy="307" rx="24" ry="2" fill-opacity="0.72"/>
+        <ellipse cx="225" cy="319" rx="37" ry="2.4" fill-opacity="0.55"/>
+        <ellipse cx="288" cy="321" rx="13" ry="2" fill-opacity="0.3"/>
+        <ellipse cx="213" cy="335" rx="50" ry="2.8" fill-opacity="0.44"/>
+        <ellipse cx="234" cy="354" rx="61" ry="3.2" fill-opacity="0.34"/>
+        <ellipse cx="308" cy="357" rx="17" ry="2.6" fill-opacity="0.22"/>
+        <ellipse cx="237" cy="378" rx="78" ry="3.6" fill-opacity="0.26"/>
+        <ellipse cx="203" cy="405" rx="64" ry="4" fill-opacity="0.19"/>
+        <ellipse cx="311" cy="411" rx="33" ry="3.2" fill-opacity="0.15"/>
+        <ellipse cx="240" cy="441" rx="98" ry="4.4" fill-opacity="0.14"/>
+        <ellipse cx="191" cy="482" rx="76" ry="4.6" fill-opacity="0.1"/>
+        <ellipse cx="322" cy="489" rx="50" ry="4" fill-opacity="0.085"/>
+        <ellipse cx="240" cy="531" rx="128" ry="5" fill-opacity="0.075"/>
+        <ellipse cx="177" cy="583" rx="88" ry="5.2" fill-opacity="0.045"/>
+        <ellipse cx="344" cy="591" rx="58" ry="4.6" fill-opacity="0.036"/>
+        <ellipse cx="240" cy="651" rx="120" ry="5.6" fill-opacity="0.026"/>
+      </g>
+      <!-- Swell: the gaps open up as the water comes toward you, which is the
+           other half of the perspective the glints above are drawing. Held clear
+           of both edges — a line that runs off the side of the frame is a rule
+           laid over the picture rather than something floating in it. -->
+      <g class="swell" fill="url(#foam)">
+        <ellipse cx="352" cy="323" rx="66" ry="1.1" fill-opacity="0.09"/>
+        <ellipse cx="114" cy="347" rx="62" ry="1.1" fill-opacity="0.075"/>
+        <ellipse cx="384" cy="393" rx="82" ry="1.4" fill-opacity="0.062"/>
+        <ellipse cx="68" cy="449" rx="74" ry="1.4" fill-opacity="0.05"/>
+        <ellipse cx="386" cy="521" rx="94" ry="1.7" fill-opacity="0.038"/>
+        <ellipse cx="82" cy="607" rx="86" ry="1.7" fill-opacity="0.028"/>
+      </g>
+
+      <!-- One green light out on the water, and its own thread of it underneath:
+           the colour the board finishes in. -->
+      <g class="beacon">
+        <circle cx="344" cy="313" r="2.8" fill="#7fca9c" fill-opacity="0.9"/>
+        <ellipse cx="344" cy="322" rx="1.6" ry="6" fill="#7fca9c" fill-opacity="0.2"/>
+      </g>
 
       <!-- Print grain, so it reads as something pressed rather than plotted. -->
       <rect width="480" height="900" filter="url(#grain)" opacity="0.09" style="mix-blend-mode:overlay"/>
@@ -416,9 +648,21 @@ const SCRIPT = `
   // The switcher saves through the app rather than through a board server, which this
   // page has none of. The app draws this page again in whatever was saved, so a click
   // that lands shows the new language and one that could not save shows the old.
-  for (const chip of document.querySelectorAll(".lang")) {
-    chip.addEventListener("click", () => {
-      if (chip.getAttribute("aria-current") !== "true") app?.setLanguage(chip.dataset.lang);
+  const langs = document.getElementById("langs");
+  for (const row of document.querySelectorAll(".lang[data-lang]")) {
+    row.addEventListener("click", () => {
+      if (langs) langs.open = false;
+      if (row.getAttribute("aria-checked") !== "true") app?.setLanguage(row.dataset.lang);
+    });
+  }
+  // A menu left open over the page is chrome nobody asked for: anywhere else, or
+  // Escape, puts it away.
+  if (langs) {
+    document.addEventListener("click", (e) => {
+      if (!langs.contains(e.target)) langs.open = false;
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") langs.open = false;
     });
   }
 

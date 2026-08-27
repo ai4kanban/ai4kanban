@@ -370,6 +370,13 @@ except where another doc is named.
   relays and what it never receives, links the published privacy and terms pages, and shows one
   state per answer a sign-in can come back with — not signed in, signed in and admitted, signed
   in and not admitted, and expired. A board with nobody signed in looks exactly as it did.
+- The app **opens in the machine's own language**. On the first launch that finds nothing saved it
+  reads the system's preferred languages and keeps the first one it has a copy for — any Chinese is
+  中文, anything else it has no copy for falls through to English — and writes that answer down like
+  any other pick, so it is guessed once and never again. The **launcher** carries its own English /
+  中文 switcher in the top-right corner, because it is the screen you meet before there is a board to
+  open Configuration on; a build whose bundled rules predate the setting opens English and draws no
+  switcher: "Language" in `kanban-ui/README.md`.
 - Pick the language you read in — English or 中文 — in **Configuration → Language**, the first
   section under the rule beside Cloud. It settles this machine rather than this board: the answer
   is held in `~/.ai4kanban/settings.json`, outside every project, so every board you open and every
@@ -377,3 +384,15 @@ except where another doc is named.
   reload, and there is no `akb` command for it. The board still draws in English — the words are
   translated in a later release — and a project whose copy of the rules predates the setting draws
   in English and says so: "Language" in `kanban-ui/README.md`.
+- A group root's page opens with a **map of its subtasks in build order**, above the subtasks
+  list: one chip per subtask, a line from a blocker to what it blocks, a column per step left
+  to right. A chip is the id alone and opens that card; hovering one puts its title in the band
+  at the top of the map. A subtask waiting on a card outside the group wears a lock and names
+  it on hover. A group with no subtask blocking another shows no map at all.
+- The **Cloud** section's not-admitted state is one column with something to do in it: the
+  refusal, then a box to paste an invitation code into with **Redeem** beside it, then **No
+  code yet?** and **Request an invite** under a hairline, and **Sign out** last. Whoever was
+  handed a code meets the box immediately; whoever has none pays one short line of reading
+  first. A refused code answers in the service's own words under the box, a redeemed one
+  moves the pane to the admitted state without signing in again, and once an invite has been
+  asked for the button becomes the day it was asked.

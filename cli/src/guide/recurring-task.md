@@ -6,8 +6,8 @@ shipped behavior.
 
 ## Add one
 
-Validate it with "Add one task idea" in `akb guide add-task`, then create it with
-`--track recurring`:
+Evaluate it with `akb guide evaluate-task`, then follow "Add one task idea" in
+`akb guide add-task` and create it with `--track recurring`:
 
 ```
 akb board create --title "Prune the memory" --track recurring \
@@ -55,12 +55,13 @@ imperative sentences.
   card for the user to confirm later —
 
   ```
-  akb board update-questions <id> --append ".."
+  akb board update-questions <id> --append ".." --recommended-option ".." --option ".."
   ```
 
   Leave it untagged: a run doesn't decide who answers. `akb guide resolve` later records
   the answers according to `akb guide board` and hands the user only the rest. Write the
-  question the way the resolve guide says to: one plain line, answerable at a glance.
+  question according to `akb guide user-question`: one line, two or more options,
+  answerable at a glance.
 
 ## Run one
 

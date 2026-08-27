@@ -64,7 +64,9 @@ export function cmdSetupStatus(): MoveResult {
   for (const s of steps) say(`  [${s.done ? 'x' : ' '}] ${s.name} (${s.owner}) — ${s.text}`)
   const card = findSetupQuestionsCard()
   if (card) {
-    say(`  questions card: #${card.id} (${card.questions} open) — \`update-questions ${card.id} --append "[user] .."\` adds a call you can't settle`)
+    say(
+      `  questions card: #${card.id} (${card.questions} open) — \`update-questions ${card.id} --append "[user] .." --recommended-option ".." --option ".."\` adds a call you can't settle`,
+    )
   }
   return {
     setup_finished: false,

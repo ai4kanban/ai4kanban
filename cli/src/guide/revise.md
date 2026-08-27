@@ -1,10 +1,10 @@
 # Revise
 
-Make the requested change and stop.
+Make the requested change and stop. A fresh refinement loop follows.
 
-- **Full rewrite only**: If the request replaces most of the card, changes its overall plan,
-  or explicitly asks to refine it, read `docs/kanban/config.md`, the goal, and the relevant
-  named memory, then load `akb guide refine` and follow it.
+- **Changed outcome**: If the request materially changes what the task delivers, run the
+  affected checks in `akb guide evaluate-task` against the proposed revision before writing
+  it. Ordinary scope and wording changes do not repeat evaluation.
 - **Spec agent sections**: Preserve them as required by `akb guide board`. If the revision
   invalidates one, run `akb spec <agent> <id> <short note>` after the edit.
 - **Superseded decisions**: An entry under `## Decided by the agent`, or a line under the

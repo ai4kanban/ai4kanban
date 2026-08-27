@@ -5,7 +5,7 @@ priority: high
 roi: high
 status: todo
 release: 0.8.0
-blocked_by: [320, 327]
+blocked_by: [320]
 related: [325]
 modules: [site, cloud]
 schedule:

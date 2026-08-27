@@ -46,10 +46,10 @@ const KEEP_DELIVERIES = 30
 /** Where a run's log is written, from its id alone. */
 export const logPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.log`)
 
-// `auto-refine` was this action's name until refine became the loop and there was only one
-// of them. A board's history outlives a version, so an old record still reads.
+// Older builds stored the public refine flow as one run action. A board's history outlives
+// a version, so those records remain readable as question-audit sessions.
 export const readAction = (action: unknown): AgentAction =>
-  action === 'auto-refine' ? 'refine' : (action as AgentAction)
+  action === 'auto-refine' || action === 'refine' ? 'raise-questions' : (action as AgentAction)
 
 /** Both lists as the file holds them. */
 export interface Store {

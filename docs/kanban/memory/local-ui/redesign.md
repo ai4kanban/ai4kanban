@@ -11,6 +11,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Name a local publisher without saying which process owns it** → ✅ ship one shared
   publisher module in the desktop board server and `akb`, beside every process that can
   commit an actionable board write.
+- ❌ **Route the app's own control through the network so every surface shares one path**
+  (Implement on the card page in front of you records a Cloud action and waits for the board's
+  server) → ✅ a control on the machine that holds the board acts at once; the act is recorded
+  and pushed out afterwards, and the remote surfaces showing it are redrawn as already answered.
+  Uniformity is not worth making the local case wait on the remote one.
 
 - ❌ **UI lets people hand-edit the board** (toggle todos, write cards, move, mark done) →
   ✅ the UI spawns agent runs to do the kanban work; on-card buttons call the agent

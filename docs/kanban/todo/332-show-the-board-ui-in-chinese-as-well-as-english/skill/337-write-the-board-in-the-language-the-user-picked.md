@@ -5,7 +5,7 @@ priority: med
 roi: high
 status: todo
 release: 0.8.0
-blocked_by: [334]
+blocked_by: []
 related: [332]
 modules: [skill]
 schedule:
@@ -31,6 +31,10 @@ which stay English whatever it says.
 - **One place tells every run**: the language rides in the prompt where `buildPrompt`
   already appends the board's flow rules (`cli/src/lib/agent/prompts.ts`), so every flow and
   every connector is told once.
+- **Chat is a second path**: a chat message never reaches `buildPrompt` — it is sent as
+  `skillPrompt(text)` (`cli/src/lib/agent/chat.ts`), and only the message that opens a
+  conversation carries even that, since every later one resumes the agent's own session. So
+  the language is said there too, on the opening message.
 - **What follows the language**: the prose a person reads — card titles and bodies, open
   questions and their options, memory entries, changelogs, and chat replies.
 - **What stays English whatever the setting**: frontmatter keys and values, section
@@ -57,6 +61,8 @@ which stay English whatever it says.
 ## Todo
 - [ ] Add the language to every run's prompt, where `buildPrompt` appends the board's flow
       rules.
+- [ ] Say the language on the message that opens a chat, which does not go through
+      `buildPrompt`.
 - [ ] Say in `akb guide board` which parts of a card follow the board's language, which stay
       English, and that an edit keeps the file's existing language.
 - [ ] Have the flows that write a card pass `board create --slug` an English slug when the

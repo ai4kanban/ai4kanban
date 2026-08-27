@@ -10,7 +10,7 @@ A card has a **human half** for review and a folded **agent half** for implement
 Every flow writes a card in this order:
 
 ```
-<one short paragraph: what the task does, and what is wrong without it.>
+<one short paragraph: the observable result and the current behavior or constraint it changes.>
 
 ## Worth noting              <- answered material decisions; omit when empty
 - **<question the decision settles>**: <answer>
@@ -58,7 +58,9 @@ Use professional, comprehensible language that a fresh reader can understand qui
   guide review`).
 - **Keep questions distinct**: an untagged `questions:` entry is a necessary case or
   detail not yet considered; a `[user]` open question requires judgment the agent cannot
-  supply, such as taste, business direction, spending, or a costly tradeoff.
+  supply — taste, product direction, spending, or a promise to users. A named tradeoff is
+  not one of them: the rule above asks every decision to name its cost, so naming one says
+  nothing about who owns the call. `akb guide user-question` sets the full bar.
 - **Answer agent-owned questions**: research or choose a sensible reversible default,
   record the decision, and remove the question.
 - **Preserve completed work**: never edit, delete, or untick a checked todo; append a todo
@@ -66,29 +68,6 @@ Use professional, comprehensible language that a fresh reader can understand qui
 - **Preserve spec-agent sections**: only the named agent may rewrite its section; other
   flows may only move it across the boundary.
 - **Record user decisions in `decisions.md`**: see "The memory set".
-
-## Ask a user question
-
-Every flow that hands a decision over writes it the same way: one line the user answers at a
-glance, naming the decision rather than the trouble that raised it.
-
-- **Ask, don't report**: ✅ `[user] Which region should the Supabase project live in?` —
-  ❌ `[user] The region is undecided and cannot be changed later.`
-- **Offer options when the answer is a pick**: two or more short lines, each carrying its own
-  reason, with the one you recommend opening ticked. The user keeps a text box either way, so
-  options never trap the answer.
-- **One decision per question**: fold a dependent choice into the options of the question it
-  depends on rather than asking it separately.
-- **Never by hand**: a question reaches a card through `akb board update-questions` and
-  nowhere else, like every other frontmatter field.
-
-```text
-akb board update-questions 12 --append "[user] Which region should the Supabase project live in?" \
-  --recommended-option "eu-central-1 — nearest to the users the site has" \
-  --option "us-east-1 — cheapest, and where #294 already runs"
-```
-
-`akb guide resolve` covers the rest of the question ops.
 
 ## Layout
 
@@ -127,10 +106,10 @@ docs/kanban/
 
 ## Configuration
 
-**Read `docs/kanban/config.md` before proposing, adding, or refining tasks.** It defines
-the project name, tracks, planning sources, reference docs, and optional preset. Board
-updates leave it unchanged. References to "your tracks," "planning sources," or
-"reference docs" mean the values in this file.
+**Read `docs/kanban/config.md` before proposing or adding tasks, and when a question audit
+needs planning sources or reference docs.** It defines the project name, tracks, planning
+sources, reference docs, and optional preset. Board updates leave it unchanged. References
+to "your tracks," "planning sources," or "reference docs" mean the values in this file.
 
 ## Task ID
 

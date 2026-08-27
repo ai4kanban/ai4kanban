@@ -58,8 +58,8 @@ function clampCount(count: number | undefined): number {
 }
 
 // Nothing here asks a run to refine the card afterwards. A command does one job and stops;
-// the refine that follows is a run of its own, started once this one has ended (see
-// `follow.ts`), so it has its own log and can be stopped on its own.
+// the refinement sessions that follow are started once it ends (`refine.ts`), so each has
+// its own log and can be stopped on its own.
 
 // Every action that revises a card revises the CARD — the revision request says what the
 // text should say, not "go build it". Without this line an agent reads a request like
@@ -107,7 +107,7 @@ export function frozenRules(req: AgentRequest): Record<string, string> | undefin
 // or a new one ships.
 //
 // It goes after everything else because it is a block and the rest is prose.
-const ROSTER_FOR = new Set(['refine', 'edit'])
+const ROSTER_FOR = new Set(['edit'])
 
 const roster = (req: AgentRequest): string =>
   ROSTER_FOR.has(req.action) && req.id !== undefined ? specAgentRoster(req.id) : ''
@@ -226,11 +226,11 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Change nothing but that version's summary file, and write it with \`akb board release changelog\`.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
-    case 'refine':
+    case 'raise-questions':
       return [
-        `${kb}. Perform one refinement pass on task ${req.id} ${named} following \`akb guide refine\`.`,
-        `Don't ask me questions with human-in-the-loop — the \`[user]\` tag is how you defer to me.`,
-        // A refine has no note box of its own, but a refine SCHEDULED on a blocked card
+        `${kb}. Audit task ${req.id} ${named} for unresolved planning decisions following \`akb guide raise-questions\`.`,
+        `Append the gaps untagged. Do not resolve them or decide which belong to the user.`,
+        // A refine has no note box of its own, but one SCHEDULED on a blocked card
         // carries whatever was typed when it was scheduled — often the very reason the user
         // wanted it to wait — so it has to reach the run when it finally fires.
         req.notes ? `Extra notes: ${req.notes}` : '',
@@ -324,5 +324,12 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ]
         .filter(Boolean)
         .join(' ')
+    case 'writing':
+      return [
+        `${kb}. Improve the writing of task ${req.id} ${named} according to \`akb guide board\`.`,
+        `Preserve the settled plan exactly. Do not research, replan, or raise questions.`,
+        NO_IMPLEMENT,
+        `Don't ask me questions with human-in-the-loop.`,
+      ].join(' ')
   }
 }

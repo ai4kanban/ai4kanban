@@ -143,33 +143,43 @@ function afterLegacyCorrection(run: RunRecord): ReviewNext {
 
 // ---- the question a stop leaves ---------------------------------------------
 
-// What the user is being asked to do about it — the same three ways out of every stop, so
-// the question ends by saying what to do rather than only what went wrong. Changing the
-// card is not among them on purpose: a delivery builds the card it captured, so new
-// requirements are a new delivery, which is what cancelling leads to.
+// What the user is being asked to do about it — the same ways out of every stop, written as
+// the choices they tick. Changing the card is not among them on purpose: a delivery builds
+// the card it captured, so new requirements are a new delivery, which is what cancelling
+// leads to. Answering in their own words is the free-text choice the board adds itself.
 
-/** The one line a stopped review puts on the card: what stopped it, what review found, and
+/** One question a run leaves on a card: the line, and the choices under it. */
+export interface Ask {
+  text: string
+  options: string[]
+}
+
+/** The question a stopped review puts on the card: what stopped it, what review found, and
  *  the decision that is now the user's. */
-export function stopQuestion(delivery: DeliveryRecord, why: string, program = boardCommand()): string {
+export function stopQuestion(delivery: DeliveryRecord, why: string, program = boardCommand()): Ask {
   const findings = openFindings(delivery)
   const named = findings.slice(0, MAX_NAMED).map((f) => f.title)
   const rest = findings.length - named.length
   const found = named.length
     ? ` Review found: ${named.join('; ')}${rest ? `, and ${rest} more on the delivery record` : ''}.`
     : ''
-  return (
-    `[user] Review stopped on delivery ${delivery.deliveryId}: ${why}.${found}` +
-    ` Decide: answer here, explicitly accept the condition under ## Worth noting after implementation, or cancel the delivery` +
-    ` and start again from a changed card. Once you have, \`${program} review ${delivery.cardId}\` judges it again.`
-  )
+  return {
+    text:
+      `[user] Review stopped on delivery ${delivery.deliveryId}: ${why}.${found}` +
+      ` Once you have decided, \`${program} review ${delivery.cardId}\` judges it again.`,
+    options: [
+      'accept the condition — I\'ll write it under "## Worth noting after implementation"',
+      'cancel the delivery, and start again from a changed card',
+    ],
+  }
 }
 
 /** Put that question on the card. Best-effort and silent, exactly as every other board move
  *  a run makes at its close: a delivery that could not write its question is still
  *  stopped, and the reason is on its permanent record either way. */
-export async function askUser(cardId: number, question: string): Promise<void> {
+export async function askUser(cardId: number, ask: Ask): Promise<void> {
   try {
-    await appendCardQuestion(cardId, question)
+    await appendCardQuestion(cardId, ask.text, ask.options)
   } catch {
     // the card is gone, or the board refused — the stop stands regardless
   }

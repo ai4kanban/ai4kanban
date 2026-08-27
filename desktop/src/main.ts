@@ -314,6 +314,28 @@ async function openProject(repo: unknown): Promise<string | null> {
   return servers?.boardDir ?? null;
 }
 
+/** Close Project: leave the one on screen without opening another, and let the
+ *  next launch start on the launcher too.
+ *
+ *  The gesture exists because the app has no other way to say "I am done with
+ *  this one" — the window is the app here, so closing it is quitting, and a
+ *  quit that quietly forgot your project would punish everyone who ends the app
+ *  that way. Said out loud on the menu, it is one click to undo from Recent.
+ *
+ *  A run going in the project keeps going, the way it does when the window
+ *  moves to another project; the launcher's list marks it. */
+async function closeProject(): Promise<void> {
+  if (!servers?.boardDir) return;
+  store.clearRepo();
+  // The project is let go before anything waits: stopping its server takes a
+  // moment, and that moment belongs behind the launcher rather than in front of
+  // a board the user has already closed.
+  const stopped = servers.close();
+  refreshMenu();
+  await showLauncher();
+  await stopped;
+}
+
 /** The window with no project in it (./lib/launcher.ts): the app's mark, Open
  *  Folder, and the projects opened before. Every way out of it — the button, a
  *  recent project, the menu — loads a board over this page, so it is drawn once
@@ -334,7 +356,10 @@ async function askForRepo(): Promise<string | null> {
     message: "Pick the project folder to open. It doesn't need a board yet.",
     buttonLabel: "Open",
     properties: ["openDirectory", "createDirectory"],
-    defaultPath: store.lastRepo() ?? app.getPath("home"),
+    // Where the last pick was, even after Close Project forgot which one was
+    // open: the newest project on the list is the same folder, and a dialog
+    // that opens at home after every close is a dialog you navigate twice.
+    defaultPath: store.lastRepo() ?? store.projects()[0]?.path ?? app.getPath("home"),
   });
   const picked = res.filePaths[0];
   return res.canceled || !picked ? null : picked;
@@ -472,6 +497,8 @@ function refreshMenu(): void {
   buildMenu({
     onOpenRepo: pickRepo,
     onOpenProject: openProject,
+    onCloseProject: closeProject,
+    hasProject: Boolean(servers?.boardDir),
     onCheckUpdates: checkUpdatesFromMenu,
     onBack: () => nav?.back(),
     onForward: () => nav?.forward(),

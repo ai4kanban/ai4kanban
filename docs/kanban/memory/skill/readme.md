@@ -339,4 +339,7 @@ covers it, or a plain-words note.
   `~/.ai4kanban/settings.json`, beside the Cloud sign-in and outside every repository, so the app,
   a board served to a browser and a bare `akb` in a terminal all reach one answer and no project
   carries a language in git. There is no command that sets it — the switcher is the app's, in
-  **Configuration → Language** — and what `akb` prints in a terminal stays English either way.
+  **Configuration → Language**, and one more on the app's launcher — and what `akb` prints in a
+  terminal stays English either way. `akb` does own the answer to "which language is this system
+  tag?": the app hands over the machine's preferred languages and the rules decide, so any `zh-*` is
+  Simplified Chinese and a tag no copy exists for is no answer rather than English.

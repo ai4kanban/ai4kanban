@@ -46,8 +46,8 @@ export function withLease<T>(
 export const setCardStatusOn = (id: number, status: string) =>
   withLease({ card: id }, (env) => board().setStatus(id, status, env))
 
-export const appendCardQuestion = (id: number, question: string) =>
-  withLease({ card: id }, (env) => board().appendQuestion(id, question, env))
+export const appendCardQuestion = (id: number, question: string, options: string[]) =>
+  withLease({ card: id }, (env) => board().appendQuestion(id, question, options, env))
 
 export const archiveCard = (id: number) => withLease({ card: id }, (env) => board().archiveCard(id, env))
 

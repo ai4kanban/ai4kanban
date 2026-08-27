@@ -19,7 +19,7 @@ import path from 'node:path'
 
 import { RULES } from '../paths'
 import type { WriteResult } from '../view/types'
-import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand } from './flows'
+import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, type Flow } from './flows'
 import type { AgentRequest, FlowRuleView } from './types'
 
 const rulePath = (command: string): string => path.join(RULES, `${command}.md`)
@@ -69,12 +69,18 @@ export function readFlowRules(): FlowRuleView[] {
 export function deliveryRules(): Record<string, string> {
   const rules: Record<string, string> = {}
   for (const flow of FLOWS) {
-    if (!DELIVERY_FLOWS.has(flow.action)) continue
+    if (flow.action === 'refine' || !DELIVERY_FLOWS.has(flow.action)) continue
     const rule = readRule(flow.command)
     if (rule) rules[flow.command] = rule
   }
   return rules
 }
+
+const flowForRequest = (req: AgentRequest): Flow | undefined =>
+  req.refineRound !== undefined &&
+  (req.action === 'raise-questions' || req.action === 'resolve' || req.action === 'writing')
+    ? flowByCommand('refine')
+    : flowByAction(req.action)
 
 /** The rule one run is given: the delivery's frozen copy when the run is part of one,
  *  and the file otherwise.
@@ -85,7 +91,7 @@ export function deliveryRules(): Record<string, string> {
  *  is about to freeze is this same read. An action that is not a flow (a spec run) has no
  *  rule at all. */
 export function ruleFor(req: AgentRequest, frozen?: Record<string, string>): string {
-  const flow = flowByAction(req.action)
+  const flow = flowForRequest(req)
   if (!flow) return ''
   if (frozen && DELIVERY_FLOWS.has(req.action)) return frozen[flow.command] ?? ''
   return readRule(flow.command)
@@ -96,7 +102,7 @@ export function ruleFor(req: AgentRequest, frozen?: Record<string, string>): str
 export function ruleBlock(req: AgentRequest, frozen?: Record<string, string>): string {
   const rule = ruleFor(req, frozen)
   if (!rule) return ''
-  const flow = flowByAction(req.action)
+  const flow = flowForRequest(req)
   return [
     `This board adds one rule of its own to every \`${flow?.command}\` run. It is the user's, it applies here, and nothing of the board's follows it:`,
     rule,

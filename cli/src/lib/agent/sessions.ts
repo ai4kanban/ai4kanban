@@ -79,8 +79,9 @@ const VERB: Record<AgentAction, string> = {
   edit: 'edited',
   create: 'created',
   propose: 'proposed',
-  refine: 'refined',
+  'raise-questions': 'audited',
   resolve: 'resolved',
+  writing: 'rewritten',
   'plan-release': 'planned',
   setup: 'set up',
   spec: 'specified',
@@ -499,10 +500,13 @@ export function openRun(
     // Which spec agent this is, on the one action that has one — so the run list can name
     // it, and so a resume starts the same agent rather than a different one.
     specAgent: req.action === 'spec' ? req.specAgent : undefined,
-    // A refine started without a round — a button, which posts the action and nothing else
-    // — is the first pass of a loop, not a run outside one (agent/refine.ts).
+    // Internal refinement sessions carry their position so the watcher can choose the next
+    // QA or writing session. A standalone resolve starts a new chain.
     refineRound:
-      req.refineRound ?? (req.action === 'refine' || req.action === 'resolve' ? 1 : undefined),
+      req.refineRound ??
+      (req.action === 'raise-questions' || req.action === 'resolve' || req.action === 'writing'
+        ? 1
+        : undefined),
   }
   const out = withStore<{ run: RunRecord } | { error: string }>((store) => {
     const locked = lockedBy(store.runs, req.action, cardId, req.release)

@@ -29,14 +29,14 @@ import { cmdApprove, cmdCancel, cmdDiscard, cmdLog, cmdResume, cmdRuns, cmdStart
 import { cmdSpec } from '../commands/spec'
 import { RUN_COMMANDS } from './agent/flows'
 import { agentManual } from './agent/manual'
-import type { AgentAction } from './agent/types'
+import type { CommandAction } from './agent/types'
 import type { MoveResult } from './types'
 
 // The word a person types, and the kind of run it starts — the board's own list of flows
 // (agent/flows.ts), which the runs table and the Rules pane read too, so a flow shipped
 // later reaches all three at once. `revise` reads better than the name the record keeps it
 // under (`edit`), and both go to the same run.
-const RUNS: Record<string, AgentAction> = RUN_COMMANDS
+const RUNS: Record<string, CommandAction> = RUN_COMMANDS
 
 // Everything else these commands do — reading and steering the runs, and the settings they
 // run under.

@@ -24,6 +24,11 @@ const RECENT_IN_MENU = 10;
 export interface MenuOptions {
   onOpenRepo: () => unknown;
   onOpenProject: (dir: string) => unknown;
+  onCloseProject: () => unknown;
+  /** Whether a project is on screen. False on the launcher, where Close Project
+   *  is greyed rather than hidden — the app should say it has the move even on
+   *  the one screen where there is nothing to use it on. */
+  hasProject?: boolean;
   onCheckUpdates: () => unknown;
   onBack: () => unknown;
   onForward: () => unknown;
@@ -57,6 +62,8 @@ function recentSubmenu(
 export function buildMenu({
   onOpenRepo,
   onOpenProject,
+  onCloseProject,
+  hasProject = false,
   onCheckUpdates,
   onBack,
   onForward,
@@ -93,6 +100,16 @@ export function buildMenu({
       submenu: [
         { label: "Open Project…", accelerator: "CmdOrCtrl+O", click: onOpenRepo },
         { label: "Open Recent", submenu: recentSubmenu(projects, onOpenProject) },
+        // Done with this project, without quitting: back to the launcher, and
+        // the next launch starts there too. The one way to say that — closing
+        // the window is quitting in a one-window app, so it can't also mean
+        // this.
+        {
+          label: "Close Project",
+          accelerator: "CmdOrCtrl+Shift+W",
+          enabled: hasProject,
+          click: onCloseProject,
+        },
         { type: "separator" },
         ...(isMac
           ? [{ role: "close" } satisfies MenuItemConstructorOptions]

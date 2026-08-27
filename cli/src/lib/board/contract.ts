@@ -188,7 +188,8 @@ export interface BoardProvider {
   setSchedule(id: number, schedule: CardSchedule | null, env: OpEnvelope): Promise<CardOp>
   addVerify(id: number, line: string, env: OpEnvelope): Promise<VerifyOp>
   dropVerify(id: number, line: string, env: OpEnvelope): Promise<VerifyOp>
-  appendQuestion(id: number, question: string, env: OpEnvelope): Promise<CardOp>
+  /** `options` are the choices the user ticks — two or more, as every question carries. */
+  appendQuestion(id: number, question: string, options: string[], env: OpEnvelope): Promise<CardOp>
   archiveCard(id: number, env: OpEnvelope): Promise<OpResult<{ data: MoveOutput }>>
   rejectCard(id: number, env: OpEnvelope): Promise<OpResult<{ data: MoveOutput }>>
 

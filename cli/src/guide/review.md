@@ -9,31 +9,22 @@ Review and fix in this run. Record one verdict when the work is ready or needs t
    affected checks. Investigate technical discoveries yourself; fix in-scope work and create
    or update a separate card for follow-up work. Do not exhaustively search unaffected code
    or invent hypothetical issues.
-3. Ask the user first, when the decision is theirs. Every question reaches a card through
-   `akb board update-questions` and never by editing the card — write it in the form "Ask a
-   user question" in `akb guide board` defines, with the answer you recommend as the option
-   that opens ticked.
-
-```text
-akb board update-questions <id> \
-  --append "[user] Which region should the Supabase project live in?" \
-    --recommended-option "eu-central-1 — nearest to the users the site has" \
-    --option "us-east-1 — cheapest, and where #294 already runs" \
-  --append "[user] Who runs the account setup?" \
-    --recommended-option "I'll do it myself, then re-run review" \
-    --option "you do it, and I'll paste in credentials"
-```
+3. Follow `akb guide user-question` when a decision is the user's. For review, it is
+   blocking only when this delivery cannot land safely without the answer.
 
 4. Record one verdict:
    - **`pass`**: the requirements are met and the checks pass.
-   - **`ask`**: a fix is unclear, cannot be completed safely, or requires the user's decision
-     about behavior, design, security, compatibility, or ongoing cost. Never ask the user to
-     diagnose the code or choose an agent-owned implementation detail.
+   - **`ask`**: a fix is unclear, cannot be completed safely, or requires a decision the
+     section below leaves to the user.
 
 ```text
 akb board review-verdict <id> --verdict pass
 akb board review-verdict <id> --verdict ask --file <findings>
 ```
+
+Do not reopen anything the card already answers, including
+`## Worth noting after implementation`. A separate problem that does not block this
+delivery belongs on another card.
 
 The findings file is the delivery's record, not the question — one bullet per finding,
 `- **<the question you asked>**: <evidence>`, so the record and the card name the same

@@ -24,7 +24,38 @@ covers it, or a plain-words note.
   changes nothing already on the board. `akb cloud` says who a terminal is signed in as.
 - **Cloud is an invite-only preview, and says so to everyone else.** An account we have not
   admitted signs in successfully, is named on screen, and is refused with one message naming
-  `support@ai4kanban.dev` as where to ask for an invite. It is a refusal of its own, never
-  "sign in again", so nobody is sent round a loop that cannot end.
+  the two doors in: paste an invitation code, or ask us for one. It is a refusal of its own,
+  never "sign in again", so nobody is sent round a loop that cannot end.
 - A machine with no desktop app cannot reach Cloud in 0.8.0: the consent screen comes back to
   the app over a URL scheme, and a terminal never starts a sign-in of its own.
+
+## Getting into the preview
+
+- **A refused account has two doors, and finishes the job itself.** In **Configuration →
+  Cloud** it can paste an invitation code, or press **Request an invite**. A code admits one
+  account — whichever redeems it first — and admits it for good; the pane moves to the
+  admitted state on the spot, with no second sign-in. A wrong code is told which of the three
+  things went wrong: we don't know it, it has been used, or it was withdrawn.
+- **Asking is one click and types nothing.** The request carries the GitHub handle and the
+  email address GitHub verified, both read from the identity provider's own record. Pressing
+  again records no second request and sends no second email; the pane shows the day it was
+  asked instead of the button.
+- **We answer by hand, and approving is one statement.** `select
+  cloud.approve_invite_request('<handle>')` in the project's SQL editor issues the code and
+  the next hourly run mails it — no admin screen, and no mail credential reaches whoever
+  approves. `cloud.issue_invitation('<address>')` invites somebody who never asked,
+  `cloud.withdraw_invitation` closes a code, and `cloud.remove_account` closes both doors and
+  takes the request and the invitation with it. All of it is in `cloud/README.md`, "Answer an
+  invite request".
+- **The preview now sends email, and only this.** The code that answers a request, and the
+  notice to `support@ai4kanban.dev` that somebody asked. Both go out from the Worker's hourly
+  run through Resend, from `invites@send.ai4kanban.dev` replying to `support@ai4kanban.dev`,
+  so a failed send is retried rather than lost. There is no mailing list and no announcement.
+- **The sign-in now asks GitHub for `user:email`.** The consent screen names an email
+  permission where it named none, so every account carries an address GitHub itself verified
+  and nothing about a request has to be typed. It still cannot read a repository.
+- **[/privacy](https://ai4kanban.dev/privacy) and [/terms](https://ai4kanban.dev/terms) say
+  so.** The privacy page describes the request and the invitation, names Resend as a third
+  subprocessor, and says both records are kept as long as the account is admitted; the terms
+  page no longer claims the preview sends no email at all, only that it sends none as a
+  notice.

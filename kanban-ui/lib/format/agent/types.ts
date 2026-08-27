@@ -28,7 +28,7 @@ export interface TokenUsage {
   output: number
 }
 
-/** Every kind of run the board can start. Each one is a command of its own. */
+/** Every kind of agent session the board can start. */
 export type AgentAction =
   | 'implement'
   /** One pass of a recurring card — the agent walks its `## Process` and the run is
@@ -43,9 +43,11 @@ export type AgentAction =
    *  needs that the board is missing. It touches no single card, so it carries a release
    *  id instead of a card id. */
   | 'plan-release'
-  /** One review pass in the refinement loop. The watcher starts later passes. */
-  | 'refine'
+  /** Find the decisions a task still needs without answering or rewriting them. */
+  | 'raise-questions'
   | 'resolve'
+  /** Improve a settled card's writing and mark it ready. */
+  | 'writing'
   /** Finish setting the board up — every step still unticked on
    *  `docs/kanban/setup-checklist.md`, in one run. It names no card and no release: the
    *  checklist is the plan, and the run starts at its first unticked box, so a run started
@@ -74,7 +76,7 @@ export interface AgentRequest {
   action: AgentAction
   id?: number
   title?: string
-  notes?: string // implement, edit, refine, resolve, archive, run
+  notes?: string // implement, edit, raise-questions, resolve, archive, run
   reason?: string // reject
   description?: string // create
   /** create: the version the new card(s) ship in. plan-release: the version being
@@ -90,6 +92,16 @@ export interface AgentRequest {
   /** spec: which spec agent this run is — a name from `lib/spec-agents.ts`. It decides
    *  the prompt the run is given and the section it is allowed to write. */
   specAgent?: string
+}
+
+/** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
+export type CommandAction =
+  | Exclude<AgentAction, 'raise-questions' | 'writing' | 'spec' | 'correct'>
+  | 'refine'
+
+/** A user-facing command request; `refine` is transformed before a session starts. */
+export interface CommandRequest extends Omit<AgentRequest, 'action'> {
+  action: CommandAction
 }
 
 /** How a run ended, or that it hasn't.

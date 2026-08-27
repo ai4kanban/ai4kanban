@@ -95,6 +95,13 @@ export function rememberRepo(dir: string): void {
   write({ repo: dir, projects: next });
 }
 
+/** Forget which project was open, keeping the list. Closing a project is the
+ *  user saying they are done with it, and the next launch honours that by
+ *  starting on the launcher rather than back where they left. */
+export function clearRepo(): void {
+  if (read().repo) write({ repo: null });
+}
+
 /** Take a project off the list. Nothing on disk is touched — the folder, its
  *  board and its history are all exactly where they were, and opening it again
  *  puts it straight back on the list. */

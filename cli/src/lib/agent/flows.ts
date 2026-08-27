@@ -1,6 +1,6 @@
 // The flows this board can start — the one list, read by everything that needs it.
 //
-// A flow is a command a person types (`akb implement 12`) and the kind of run it starts.
+// A flow is a command a person types (`akb implement 12`) and the program it starts.
 // The list used to be written down three times: the dispatcher's table of commands, the
 // runs table `akb help` prints, and — once flow rules shipped (#306) — the pane that
 // writes them. Three copies fall behind each other, and a flow shipped later would take a
@@ -11,13 +11,13 @@
 // the user typed and the one a pane can show — `revise.md` for `akb revise`, whose action
 // the board keeps under the name `edit`.
 
-import type { AgentAction } from './types'
+import type { AgentAction, CommandAction } from './types'
 
 export interface Flow {
   /** The word a person types — and the name of this flow's rule file. */
   command: string
-  /** The kind of run it starts. */
-  action: AgentAction
+  /** The public action the command dispatcher receives. */
+  action: CommandAction
   /** The usage line, as the runs table lists it. */
   usage: string
   /** One clause of plain words: what the flow is. `plan-release` and `run` name
@@ -121,16 +121,18 @@ export const FLOWS: Flow[] = [
   { command: 'reject', action: 'reject', usage: 'reject <id> "<why>"', gloss: 'drop the card' },
 ]
 
-/** The word a person types, and the kind of run it starts — the dispatcher's own table. */
-export const RUN_COMMANDS: Record<string, AgentAction> = Object.fromEntries(
+/** The word a person types and the public action it starts — the dispatcher's table. */
+export const RUN_COMMANDS: Record<string, CommandAction> = Object.fromEntries(
   FLOWS.map((flow) => [flow.command, flow.action]),
 )
 
 export const flowByCommand = (command: string): Flow | undefined =>
   FLOWS.find((flow) => flow.command === command)
 
-export const flowByAction = (action: AgentAction): Flow | undefined =>
-  FLOWS.find((flow) => flow.action === action)
+export const flowByAction = (action: AgentAction): Flow | undefined => {
+  if (action === 'raise-questions' || action === 'writing') return flowByCommand('refine')
+  return FLOWS.find((flow) => flow.action === action)
+}
 
 /** The delivery flows. Their rules are frozen with the card the delivery
  *  was approved to build, and their runs are the ones that may not be working in the

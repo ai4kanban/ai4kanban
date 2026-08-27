@@ -28,7 +28,6 @@ import { openPlan } from './resolve'
 import {
   markBoard,
   refinementRunsAfter,
-  startRefinement,
   type BoardMarks,
   type RefinementFollowUp,
 } from './refine'
@@ -392,7 +391,7 @@ function brokeBoard(wasBroken: Set<string>): string | null {
 const joinNotes = (...parts: (string | null | undefined)[]): string | undefined =>
   parts.filter(Boolean).join('\n\n') || undefined
 
-// The refines this run leaves behind, worked out and written down but not started, plus
+// The refinement sessions this run leaves behind, worked out but not started, plus
 // `stalled` — a refinement loop that ended with its card unsettled (agent/refine.ts). The
 // pass's own call on the status stands: nothing out here has read the card.
 function settleBoard(run: RunRecord, before: BoardMarks): RefinementFollowUp | null {
@@ -404,7 +403,7 @@ function settleBoard(run: RunRecord, before: BoardMarks): RefinementFollowUp | n
   }
 }
 
-// What follows this run: the spec agents it asked for, and a refine on each card it wrote,
+// What follows this run: the spec agents it asked for, and refinement on each card it wrote,
 // changed, or set free. Each one is an ordinary run of its own, so it shows in the panel
 // with its own log and can be stopped.
 //
@@ -426,10 +425,7 @@ function followUp(
     clearSpecAsks(sessionId)
     if (carryOn) startRun(carryOn)
     if (landing) startRun(landing)
-    for (const req of runs) {
-      if (req.refineRound === undefined) startRefinement(req)
-      else startRun(req)
-    }
+    for (const req of runs) startRun(req)
   } catch {
     // a spawn that wouldn't — the run it followed is done either way
   }

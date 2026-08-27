@@ -1,6 +1,7 @@
 # Add tasks
 
-Route every request that may create a card through this file.
+Route every request that may create a card through this file. Evaluate each task idea with
+`akb guide evaluate-task` before creating it.
 
 **Stop if setup is unfinished** — `docs/kanban/setup-checklist.md` being there says it is.
 Create no card; follow `akb guide setup` instead.
@@ -18,19 +19,9 @@ summarizing a source without asking for tasks creates no card.
 
 ## Add one task idea
 
-Turn one direct task idea or one validated draft into a card.
-
-1. **Resolve the modules.** If the modules are not explicitly given, infer them
-   yourself: read `docs/kanban/modules.md` and decide which modules the idea
-   touches. Never ask the user which modules to use.
-   If no module fits, repair `modules.md` according to `akb guide module-map`.
-2. **Validate the idea.** Read `docs/kanban/memory/goal.md`, the resolved modules'
-   memory, `akb board list --module <module>`, and relevant code and docs. Skip work already
-   supported or rejected; update the card that already owns planned work. If value,
-   direction, or feasibility is unclear, explain the concern and ask before creating.
-3. **Scaffold, then write the body.** Run `akb board create --title "..." --track <track>
-   --modules <the step-1 modules>` plus any other meta flags (`akb board help create`) to
-   write the file, its frontmatter, and the README entry.
+Turn one evaluated direct idea or validated draft into a card. Run
+`akb board create --title "..." --track <track> --modules <modules>` plus any other meta
+flags (`akb board help create`) to write the file, its frontmatter, and the README entry.
 
 ## Tightly coupled tasks go in one group
 
@@ -43,12 +34,6 @@ system + a subtask for the Slack plugin + a subtask for the Notion plugin.
 
 See "Group task" in `akb guide board` for the folder layout and the steps that build one.
 Cards that stand on their own stay loose.
-
-## Don't split off near-duplicates
-
-If the new card is mostly a tweak, reframe, or extra detail on an upstream card that
-**isn't built yet**, update the upstream card instead. A card earns its own id only
-for genuinely separate work — a different file, system, or deliverable.
 
 ## Scaffold the card
 
@@ -69,7 +54,8 @@ akb board create --title "Add a GitHub Projects storage backend for the board" \
              --blocked-by 55,61 --related 57
 ```
 
-A new card carries no questions — that's refine's job (`akb guide refine`).
+A new card carries no questions. Its follow-up refinement discovers the details and
+decisions the initial body does not cover.
 
 Got a field wrong, or learned something after the fact? `akb board update <id> --priority low`
 — never an editor.

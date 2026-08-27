@@ -27,6 +27,8 @@ export type {
   Boldness,
   Chat,
   ChatMessage,
+  CommandAction,
+  CommandRequest,
   ConnectionTest,
   FlowRuleView,
   HarnessGap,

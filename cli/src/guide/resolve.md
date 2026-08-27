@@ -1,8 +1,8 @@
 # Resolve questions
 
-Use the distinction between questions and open questions in `akb guide board`. This pass
-works through untagged questions and leaves only decisions that genuinely require the
-user tagged `[user]`.
+Use the distinction between questions and open questions in `akb guide board` and the
+ownership bar in `akb guide user-question`. This pass works through untagged questions and
+leaves only decisions that genuinely require the user tagged `[user]`.
 
 ## Move the ones that aren't questions
 
@@ -23,7 +23,7 @@ is dropped for you. Use one test:
 
 Verify lines are short notes, not questions. They do not block a card from reaching
 `ready`, resolving, or being archived, and they remain with the archived card. Do this
-pass first; it often makes the remaining questions easy to settle in one round.
+pass first; it often makes the remaining questions easy to settle in one batch.
 
 ## Try to answer each question yourself
 
@@ -40,17 +40,14 @@ decision rules in `akb guide board`.
 
 ## Ask the user the rest
 
-When the evidence cannot settle a user-owned decision, write it in the form "Ask a user
-question" in `akb guide board` defines.
+When the evidence cannot settle a user-owned decision, write it according to
+`akb guide user-question`.
 
-Two commands hand a question over. Pick by one rule: does its wording change?
-
-- **No — hand it over as it stands.** `akb board tag <id> 1,3 user` flips ownership on the
-  numbered questions and touches nothing else.
-- **Yes — you're rewriting it**, usually because the answer is a pick between choices:
-  list them as options so the user ticks one instead of reading a sentence to find them.
-  `akb board update-questions <id> --update <n> ".."` rewrites question `n` in place — text,
-  tag and options together — and never touches its siblings.
+A question the user answers is always a list of choices they tick, so handing one over
+means rewriting it with its options. `akb board update-questions <id> --update <n> ".."`
+rewrites question `n` in place — text, tag and options together — and never touches its
+siblings. (`akb board tag <id> 1,3 user` only flips ownership; use it for a question that
+already carries options.)
 
 ```
 akb board update-questions 12 \
@@ -58,18 +55,17 @@ akb board update-questions 12 \
     --recommended-option "local files — simple" \
     --option "GitHub Projects — syncs with issues" \
   --update 2 "[user] Which parts ship in v1?" \
-    --mode multi \
     --option "the board" \
     --option "the CLI" \
     --option "the web UI"
 ```
 
 `--recommended-option` is an `--option` that opens ticked — one flag, so the choice is
-written once and sits wherever you list it.
+written once and sits wherever you list it. Two options is the minimum; fewer is refused.
 
-The user always keeps the text box, so an options question can still be answered "none of
-these" in their own words. You get back the option lines they ticked, or their words —
-never both.
+Every question is multi-select, and the board adds a last choice, "Something else", that
+opens a text box — so an open-ended question is still asked as options. Never write that
+choice yourself. You get back the option lines the user ticked, their words, or both.
 
 ## Update the frontmatter
 

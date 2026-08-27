@@ -9,7 +9,7 @@ import { deliveryWaiting, heldByDelivery } from '../lib/agent/deliveries'
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { spawnWatcher } from '../lib/agent/launch'
 import { readLogTail, splitLog } from '../lib/agent/log'
-import { startRefinement } from '../lib/agent/refine'
+import { refinementRequest, startRefinement } from '../lib/agent/refine'
 import {
   discardCost,
   getRun,
@@ -22,8 +22,9 @@ import {
 import { startRun } from '../lib/agent/start'
 import {
   PROPOSE_MAX,
-  type AgentAction,
   type AgentRequest,
+  type CommandAction,
+  type CommandRequest,
   type Boldness,
   type RunView,
 } from '../lib/agent/types'
@@ -47,16 +48,18 @@ const FOLLOW_MS = 400
  *  Or print the flow and start nothing — `--print`. An agent inside a run the board started
  *  always prints because a run never starts another. A chat follows the same choice as any
  *  coding-agent conversation: `--print` works here, and omitting it starts a run. */
-export async function cmdStartRun(action: AgentAction, args: string[], program = 'akb'): Promise<MoveResult> {
+export async function cmdStartRun(action: CommandAction, args: string[], program = 'akb'): Promise<MoveResult> {
   const { req, follow, print } = readRequest(action, args)
+  const runnable = action === 'refine' ? refinementRequest(req) : (req as AgentRequest)
+  if ('error' in runnable) die(runnable.error, { kind: 'run-refused', action })
   const inside = insideRun()
   if (inside || print) {
     if (!print) say(`inside run ${short(inside!)} — a run never starts another, so here is the flow instead.`)
-    return printFlow(req, program)
+    return printFlow(runnable, program)
   }
   sayBeforeStart(req, program)
   sayIfHeld(req, program)
-  const started = action === 'refine' ? startRefinement(req) : startRun(req)
+  const started = action === 'refine' ? startRefinement(req) : startRun(runnable)
   if ('error' in started) die(started.error, { kind: 'run-refused', action })
   const { run, spawned } = started
   if (!spawned) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
@@ -75,9 +78,9 @@ export async function cmdStartRun(action: AgentAction, args: string[], program =
 //
 // The hold is the board's, not one screen's: the card page turns the same five controls off
 // (kanban-ui/components/CardPage.tsx), and a run of the delivery itself passes both.
-const HELD_BY_DELIVERY = new Set<AgentAction>(['edit', 'refine', 'resolve', 'reject', 'archive'])
+const HELD_BY_DELIVERY = new Set<CommandAction>(['edit', 'refine', 'resolve', 'reject', 'archive'])
 
-function sayIfHeld(req: AgentRequest, program: string): void {
+function sayIfHeld(req: CommandRequest, program: string): void {
   if (!HELD_BY_DELIVERY.has(req.action) || req.id === undefined) return
   // One way through: a delivery whose review stopped is waiting on a question it put on
   // this card, so answering that question is the very thing the hold would otherwise
@@ -97,7 +100,7 @@ function sayIfHeld(req: AgentRequest, program: string): void {
 // delivery is started, builds and is reviewed, and then holds at landing until the question
 // is answered. The card page's Implement dialog says exactly this; the terminal was the
 // only side of the click missing it.
-function sayBeforeStart(req: AgentRequest, program: string): void {
+function sayBeforeStart(req: CommandRequest, program: string): void {
   if (req.action !== 'implement' && req.action !== 'run') return
   if (req.id === undefined) return
   const card = findCard(req.id)
@@ -123,9 +126,9 @@ const SHARED = ['follow', 'dir', 'json']
 const START_SHARED = [...SHARED, 'print']
 
 function readRequest(
-  action: AgentAction,
+  action: CommandAction,
   args: string[],
-): { req: AgentRequest; follow: boolean; print: boolean } {
+): { req: CommandRequest; follow: boolean; print: boolean } {
   const allowed = [...START_SHARED, ...FLAGS[action]]
   const { flags, positional } = parseFlags(args, allowed)
   const follow = flags.follow === true
@@ -181,7 +184,7 @@ function readRequest(
   // Everything else works on one card.
   const id = Number(positional[0])
   if (!Number.isInteger(id)) die(`${action} takes a card id, e.g. \`akb ${action} 12\``, { kind: 'needs-input' })
-  const req: AgentRequest = { action, id, title: titleOf(id) }
+  const req: CommandRequest = { action, id, title: titleOf(id) }
   if (action === 'reject') {
     req.reason = positional.slice(1).join(' ').trim() || text('reason')
     if (!req.reason) die('say why: akb reject 12 "the reason"', { kind: 'needs-input' })
@@ -195,10 +198,9 @@ function readRequest(
   return { req, follow, print }
 }
 
-const FLAGS: Record<AgentAction, string[]> = {
+const FLAGS: Record<CommandAction, string[]> = {
   implement: ['notes'],
   review: ['notes'],
-  correct: ['notes'],
   conflict: ['notes'],
   run: ['notes'],
   reject: ['reason'],
@@ -211,9 +213,6 @@ const FLAGS: Record<AgentAction, string[]> = {
   refine: [],
   resolve: ['notes', 'and-implement'],
   setup: [],
-  // Never reached: a spec run is started by `akb spec` (commands/spec.ts), which reads its
-  // own arguments. It is here so the table still covers every action.
-  spec: ['notes'],
 }
 
 /** Send one more turn into a run that stopped short: same agent, same conversation, same

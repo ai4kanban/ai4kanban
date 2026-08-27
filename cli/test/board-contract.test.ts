@@ -224,7 +224,7 @@ describe('a board that will not grant a lease', () => {
   })
 
   it("leaves a run's question unwritten rather than ending the run", async () => {
-    await assert.doesNotReject(() => askUser(1, 'is this still silent?'))
+    await assert.doesNotReject(() => askUser(1, { text: 'is this still silent?', options: ['yes', 'no'] }))
   })
 
   it('says how to archive the card by hand rather than ending the landing', async () => {

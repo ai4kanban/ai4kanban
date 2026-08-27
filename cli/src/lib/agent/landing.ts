@@ -28,7 +28,7 @@ import {
   wantsLanding,
 } from './deliveries'
 import { HELD_ON_APPROVAL, HELD_ON_QUESTIONS } from './pause'
-import { askUser, reviewOf } from './review'
+import { askUser, reviewOf, type Ask } from './review'
 import { readStore, withStore } from './store'
 import type { AgentRequest, DeliveryLanding, DeliveryRecord } from './types'
 import {
@@ -133,7 +133,7 @@ async function handOver(
   delivery: DeliveryRecord,
   status: 'waiting' | 'conflict',
   why: string,
-  question: string,
+  question: Ask,
 ): Promise<void> {
   withStore((store) => {
     const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
@@ -416,9 +416,16 @@ async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: s
       delivery,
       'waiting',
       why,
-      `[user] Delivery ${delivery.deliveryId} could not land on ${delivery.targetBranch}: ${why}. ` +
-        `Decide: land it yourself from ${delivery.branch}, pause whatever keeps moving ${delivery.targetBranch}, or cancel the delivery. ` +
-        `Once you have, \`${boardCommand()} review ${delivery.cardId}\` puts it back in motion.`,
+      {
+        text:
+          `[user] Delivery ${delivery.deliveryId} could not land on ${delivery.targetBranch}: ${why}. ` +
+          `Once you have decided, \`${boardCommand()} review ${delivery.cardId}\` puts it back in motion.`,
+        options: [
+          `I'll land it myself from ${delivery.branch}`,
+          `pause whatever keeps moving ${delivery.targetBranch}, then the board lands it`,
+          'cancel the delivery',
+        ],
+      },
     )
     return { done: true }
   }
@@ -482,10 +489,16 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
     delivery,
     'conflict',
     why,
-    `[user] Delivery ${delivery.deliveryId} could not land on ${delivery.targetBranch}: ${why}. ` +
-      `Its work is whole on ${delivery.branch}. Decide: resolve it yourself and land that branch, or cancel the delivery ` +
-      `and start the card again on top of ${delivery.targetBranch}. Once you have, ` +
-      `\`${boardCommand()} review ${delivery.cardId}\` puts it back in motion.`,
+    {
+      text:
+        `[user] Delivery ${delivery.deliveryId} could not land on ${delivery.targetBranch}: ${why}. ` +
+        `Its work is whole on ${delivery.branch}. Once you have decided, ` +
+        `\`${boardCommand()} review ${delivery.cardId}\` puts it back in motion.`,
+      options: [
+        `I'll resolve it myself and land ${delivery.branch}`,
+        `cancel the delivery, and start the card again on top of ${delivery.targetBranch}`,
+      ],
+    },
   )
   return { done: true }
 }

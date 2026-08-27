@@ -19,6 +19,7 @@ import board from '../guide/board.md'
 import changelog from '../guide/changelog.md'
 import conflict from '../guide/conflict.md'
 import documentFeature from '../guide/document-feature.md'
+import evaluateTask from '../guide/evaluate-task.md'
 import extractIdeas from '../guide/extract-ideas.md'
 import localUi from '../guide/local-ui.md'
 import moduleMap from '../guide/module-map.md'
@@ -28,7 +29,7 @@ import presetValidateOnReddit from '../guide/preset-validate-on-reddit.md'
 import propose from '../guide/propose.md'
 import pruneMemory from '../guide/prune-memory.md'
 import recurringTask from '../guide/recurring-task.md'
-import refine from '../guide/refine.md'
+import raiseQuestions from '../guide/raise-questions.md'
 import reject from '../guide/reject.md'
 import review from '../guide/review.md'
 import releases from '../guide/releases.md'
@@ -38,6 +39,7 @@ import setup from '../guide/setup.md'
 import specAgent from '../guide/spec-agent.md'
 import uiDesign from '../guide/ui-design.md'
 import update from '../guide/update.md'
+import userQuestion from '../guide/user-question.md'
 
 /** One flow: the name it is asked for by, the one line the list shows, and the text. */
 export interface Guide {
@@ -52,12 +54,14 @@ export interface Guide {
 
 export const GUIDES: Guide[] = [
   { name: 'board', when: 'how this board works — card format, layout, memory, the rules every flow stands on', text: board },
+  { name: 'evaluate-task', when: 'check one task idea before it becomes a card', text: evaluateTask },
   { name: 'add-task', when: 'turn one idea into a card', text: addTask },
   { name: 'propose', when: 'find the work the board is missing and write it', text: propose },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
-  { name: 'refine', when: 'take one card from vague to ready — refine and resolve in a loop', text: refine },
+  { name: 'raise-questions', when: "find the decisions one task's plan still needs", text: raiseQuestions },
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
   { name: 'resolve', when: "answer a card's open questions, and hand the user's own back", text: resolve },
+  { name: 'user-question', when: 'decide when and how a workflow hands a decision to the user', text: userQuestion },
   { name: 'reject', when: 'drop a card, and write down why', text: reject },
   { name: 'review', when: "review and fix a delivery against the approved requirements", text: review },
   { name: 'conflict', when: "resolve the conflict in a delivery's landing rebase", text: conflict },

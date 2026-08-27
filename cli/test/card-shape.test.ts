@@ -50,7 +50,7 @@ const read = (): string[] => fs.readFileSync(file, 'utf8').split('\n')
 const headings = (): string[] => read().filter((l) => /^(##\s|<!-- agent -->)/.test(l))
 
 const SHAPED = [
-  'What the task does, and what is wrong without it.',
+  'The observable result and the current behavior or constraint it changes.',
   '',
   '## Worth noting',
   '- a call a reviewer could refuse',
@@ -127,7 +127,7 @@ describe("a spec agent's section and the boundary", () => {
 
 describe('repairing a card is not a change worth another pass', () => {
   const OLD = [
-    'What the task does, and what is wrong without it.',
+    'The observable result and the current behavior or constraint it changes.',
     '',
     '## Decided by the agent',
     '- **One?** Yes.',
@@ -144,15 +144,15 @@ describe('repairing a card is not a change worth another pass', () => {
     write(OLD, 'todo')
     const before = markBoard()
     write(SHAPED.replace('## Worth noting\n- a call a reviewer could refuse\n\n', ''), 'todo')
-    assert.equal(refinementAfter('refine', 5, 1, before), null)
+    assert.equal(refinementAfter('resolve', 5, 1, before), null)
   })
 
   it('still catches a pass that rewords a line', () => {
     write(OLD, 'todo')
     const before = markBoard()
     write(OLD.replace('- a requirement', '- a different requirement'), 'todo')
-    assert.deepEqual(refinementAfter('refine', 5, 1, before), {
-      action: 'refine',
+    assert.deepEqual(refinementAfter('resolve', 5, 1, before), {
+      action: 'raise-questions',
       id: 5,
       title: 'A card',
       refineRound: 2,
@@ -163,6 +163,6 @@ describe('repairing a card is not a change worth another pass', () => {
     write(OLD, 'todo')
     const before = markBoard()
     write(OLD.replace('- a requirement', '- a different requirement'), 'ready')
-    assert.equal(refinementAfter('refine', 5, 1, before), null)
+    assert.equal(refinementAfter('resolve', 5, 1, before), null)
   })
 })

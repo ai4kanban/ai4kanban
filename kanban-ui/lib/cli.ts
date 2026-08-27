@@ -6,6 +6,7 @@ import { repoRoot } from "./paths";
 import type {
   AgentInfo,
   AgentRequest,
+  CommandRequest,
   ChatReply,
   ChatView,
   ConnectionTest,
@@ -83,6 +84,7 @@ export interface BoardRules {
   stopRun(id: string): Promise<{ ok: boolean; sessionId?: string; error?: string }>;
   titleOf(cardId: number | undefined): string | undefined;
   buildPrompt(req: AgentRequest): string;
+  refinementRequest?(req: CommandRequest): AgentRequest | { error: string };
 
   // the deliveries (#301) — the whole job one Implement click starts, several runs
   // long. Optional: a project can be running rules older than the release that added them,
@@ -240,7 +242,7 @@ export interface BoardRules {
   nextWork(): Promise<AgentRequest[]>;
 }
 
-export type { AgentRequest, RunRecord, RunView } from "./format/agent/types";
+export type { AgentRequest, CommandRequest, RunRecord, RunView } from "./format/agent/types";
 
 /** The one line every screen shows when there is no usable copy of the board's rules —
  *  none installed, or one too old to read the board. It names the fix, because the fix is

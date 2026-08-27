@@ -1,7 +1,5 @@
-// How a refinement loop ends. The loop runs one pass at a time and each pass decides for
-// itself whether the card is settled — so the one thing the board owes the user is a word
-// when a loop ends with the card still rough. That failure is silent by nature: a card left
-// at `todo` looks exactly like a card nobody has refined yet. These tests are what fixes it.
+// Refinement is orchestration, not one agent job: a question audit and resolver loop until
+// the plan is settled, followed by one writing session.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -9,26 +7,33 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
+import {
+  markBoard,
+  refinementRequest,
+  refinementRunsAfter,
+  type BoardMarks,
+} from '../src/lib/agent/refine.ts'
+import type { AgentAction, RunRecord } from '../src/lib/agent/types.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { markBoard, refinementRunsAfter, type BoardMarks } from '../src/lib/agent/refine.ts'
-import type { RunRecord } from '../src/lib/agent/types.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-refine-'))
-const TRACK = path.join(root, 'docs', 'kanban', 'todo', 'skill')
+const track = path.join(root, 'docs', 'kanban', 'todo', 'skill')
+const cardFile = path.join(track, '7-a-card-to-refine.md')
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
-  fs.mkdirSync(TRACK, { recursive: true })
+  fs.mkdirSync(track, { recursive: true })
   setBoardRoot(root)
 })
 
 after(() => fs.rmSync(root, { recursive: true, force: true }))
 
-const CARD = path.join(TRACK, '7-a-card-to-refine.md')
-
-function writeCard(opts: { status?: string; body?: string } = {}): void {
+function writeCard(opts: { status?: string; body?: string; questions?: string[] } = {}): void {
+  const questions = opts.questions?.length
+    ? ['questions:', ...opts.questions.map((q) => `  - ${q}`)]
+    : ['questions: []']
   fs.writeFileSync(
-    CARD,
+    cardFile,
     [
       '---',
       'title: A card to refine',
@@ -40,7 +45,7 @@ function writeCard(opts: { status?: string; body?: string } = {}): void {
       'blocked_by: []',
       'related: []',
       'modules: []',
-      'questions: []',
+      ...questions,
       '---',
       '',
       opts.body ?? 'The plan as it stands.',
@@ -53,65 +58,111 @@ function writeCard(opts: { status?: string; body?: string } = {}): void {
   )
 }
 
-// One finished refinement pass on #7, at a given round of the loop.
-const pass = (round: number): RunRecord => ({
+const run = (action: AgentAction, round: number, extra: Partial<RunRecord> = {}): RunRecord => ({
   sessionId: 's',
   cardId: 7,
-  action: 'refine',
+  action,
   status: 'done',
   startedAt: 0,
   harness: 'test',
   logPath: '/dev/null',
   refineRound: round,
+  ...extra,
 })
 
-// The board as it stood before that pass, then what the pass left behind.
-function afterPass(round: number, wrote: () => void): ReturnType<typeof refinementRunsAfter> {
+function afterSession(
+  action: AgentAction,
+  round: number,
+  wrote: () => void,
+): ReturnType<typeof refinementRunsAfter> {
   const before: BoardMarks = markBoard()
   wrote()
-  return refinementRunsAfter(pass(round), before)
+  return refinementRunsAfter(run(action, round), before)
 }
 
-describe('a refinement loop that keeps going', () => {
-  it('starts the next pass when the card changed and rounds are left', () => {
+describe('entering refinement', () => {
+  it('starts with a question audit when the card has no questions', () => {
     writeCard()
-    const { runs, stalled } = afterPass(2, () => writeCard({ body: 'A sharper plan.' }))
-    assert.equal(stalled, undefined)
-    assert.deepEqual(
-      runs.map((r) => [r.action, r.id, r.refineRound]),
-      [['refine', 7, 3]],
-    )
+    assert.deepEqual(refinementRequest({ action: 'refine', id: 7 }), {
+      action: 'raise-questions',
+      id: 7,
+      title: 'A card to refine',
+      notes: undefined,
+      refineRound: 1,
+    })
   })
 
-  it('ends without a word when the pass marked the card ready', () => {
-    writeCard()
-    const { runs, stalled } = afterPass(2, () => writeCard({ status: 'ready', body: 'Approved.' }))
-    assert.equal(stalled, undefined)
-    assert.deepEqual(runs, [])
+  it('starts with a resolver when questions already exist', () => {
+    writeCard({ questions: ['Which boundary applies?'] })
+    const request = refinementRequest({ action: 'refine', id: 7 })
+    assert.ok(!('error' in request))
+    assert.equal(request.action, 'resolve')
   })
 })
 
-describe('a refinement loop that ends with the card still rough', () => {
-  it('says so when the pass left it at todo without approving it', () => {
+describe('the QA loop', () => {
+  it('goes straight from a clean audit to writing', () => {
     writeCard()
-    const { runs, stalled } = afterPass(2, () => {})
+    const { runs, stalled } = afterSession('raise-questions', 1, () => {})
+    assert.equal(stalled, undefined)
+    assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['writing', 2]])
+  })
+
+  it('hands questions from the audit to a resolver', () => {
+    writeCard()
+    const { runs } = afterSession('raise-questions', 1, () => {
+      writeCard({ questions: ['Which boundary applies?'] })
+    })
+    assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['resolve', 2]])
+  })
+
+  it('audits again after the resolver clears the questions', () => {
+    writeCard({ questions: ['Which boundary applies?'] })
+    const { runs, stalled } = afterSession('resolve', 2, () => {
+      writeCard({ body: 'The boundary is settled.' })
+    })
+    assert.equal(stalled, undefined)
+    assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['raise-questions', 3]])
+  })
+
+  it('waits when the resolver leaves only user questions', () => {
+    writeCard({ questions: ['Which boundary applies?'] })
+    const { runs, stalled } = afterSession('resolve', 2, () => {
+      writeCard({ questions: ['[user] Which boundary applies?'] })
+    })
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+})
+
+describe('writing', () => {
+  it('ends refinement when it marks the card ready', () => {
+    writeCard()
+    const { runs, stalled } = afterSession('writing', 2, () => {
+      writeCard({ status: 'ready', body: 'A clear plan.' })
+    })
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+
+  it('reports a writer that leaves the card unsettled', () => {
+    writeCard()
+    const { runs, stalled } = afterSession('writing', 2, () => {})
     assert.deepEqual(runs, [])
     assert.match(stalled ?? '', /#7 is still at todo/)
-    // Nothing about running out of passes: this loop stopped early, it did not exhaust.
-    assert.doesNotMatch(stalled ?? '', /refine passes/)
   })
+})
 
-  it('names the round cap when the last pass was still changing the card', () => {
-    writeCard()
-    const { runs, stalled } = afterPass(6, () => writeCard({ body: 'Changed again.' }))
-    assert.deepEqual(runs, [])
-    assert.match(stalled ?? '', /refine passes and #7 changed on every one/)
-  })
-
-  it('says nothing about a run that was never a refinement pass', () => {
+describe('specialized input', () => {
+  it('starts a fresh audit after a spec agent writes its section', () => {
     writeCard()
     const before = markBoard()
-    const { stalled } = refinementRunsAfter({ ...pass(1), refineRound: undefined }, before)
+    writeCard({ body: 'A plan with its specialized section.' })
+    const { runs, stalled } = refinementRunsAfter(
+      { ...run('spec', 1), refineRound: undefined },
+      before,
+    )
     assert.equal(stalled, undefined)
+    assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['raise-questions', 1]])
   })
 })

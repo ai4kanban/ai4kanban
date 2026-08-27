@@ -18,13 +18,14 @@ import {
 import { FaPauseCircle } from "react-icons/fa";
 import { resumeSessionAction, stopSessionAction } from "@/app/actions";
 import { useDraft, useDraftList, useDraftPicks } from "@/lib/draft";
-import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
+import { FREE_TEXT_CHOICE, freeTextPick, hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
 import {
   PROPOSE_DEFAULT,
   PROPOSE_MAX,
   type AgentAction,
   type Boldness,
   type Card,
+  type CommandAction,
   type DeliveryPlan,
   type ScheduledAction,
   type SessionView,
@@ -66,7 +67,7 @@ const PICK_CHIP_OFF = "bg-nb-wash text-nb-ink-soft hover:text-nb-ink";
 const PICK_CHIP_DIM = "bg-nb-wash text-nb-ink-soft opacity-45 hover:opacity-100 hover:text-nb-ink";
 
 export interface AgentReq {
-  action: AgentAction;
+  action: CommandAction;
   id?: number;
   notes?: string;
   reason?: string;
@@ -135,8 +136,9 @@ export const RUNNING_VERB: Record<AgentAction, string> = {
   conflict: "resolving a conflict",
   run: "running",
   edit: "editing",
-  refine: "refining",
+  "raise-questions": "auditing questions",
   resolve: "resolving",
+  writing: "rewriting",
   reject: "rejecting",
   archive: "archiving",
   create: "creating",
@@ -1425,9 +1427,10 @@ function ResolveDialog({
     card.questions.map((q) => (hasOptions(q) ? (q.recommend ?? []) : [])),
   );
 
-  // Ticking and typing are the two ways to answer one question, and they never
-  // mix: whichever the user just used wipes the other. So the answer that
-  // reaches the agent is either the options or the words, never a muddle of both.
+  // Typing is a choice too: "Something else" is the last row of the tick list, and
+  // ticking it opens the box. So on a multi-select question the user can pick two of
+  // the choices AND add a word of their own, which is the answer they'd have given
+  // anyway. Only the box behind an unticked "Something else" is dropped.
   const tick = (i: number, q: CardQuestion, n: number) => {
     const current = picks[i] ?? [];
     const next =
@@ -1439,11 +1442,6 @@ function ResolveDialog({
           ? [] // clicking the ticked option again unticks it — back to unanswered
           : [n];
     setPick(i, next);
-    if (next.length > 0 && answers[i]) setAnswer(i, "");
-  };
-  const type = (i: number, value: string) => {
-    setAnswer(i, value);
-    if (value.trim() && (picks[i] ?? []).length > 0) setPick(i, []);
   };
 
   // Both footer buttons share this — resolve alone, or resolve then keep going into
@@ -1475,6 +1473,10 @@ function ResolveDialog({
       <div className="flex flex-col gap-3.5">
         {card.questions.map((q, i) => {
           const { tag, text } = parseQuestion(q.text);
+          const options = hasOptions(q);
+          // The box belongs to the "Something else" tick, so it only shows when that
+          // one is on. A question with no choices at all is all box, as it always was.
+          const typing = !options || (picks[i] ?? []).includes(freeTextPick(q));
           return (
           <div key={i} className="flex flex-col gap-1.5">
             {/* Marker inline ahead of the question, not in a column beside it — see
@@ -1483,20 +1485,23 @@ function ResolveDialog({
               <QuestionTagBadge tag={tag} />
               {text}
             </label>
-            {hasOptions(q) && (
+            {options && (
               <OptionPicker question={q} picked={picks[i] ?? []} onTick={(n) => tick(i, q, n)} />
             )}
-            <textarea
-              className={INPUT}
-              rows={2}
-              placeholder={
-                hasOptions(q)
-                  ? "None of these? Answer in your own words — that clears the ticks…"
-                  : "Your answer, or leave blank for the agent to research…"
-              }
-              value={answers[i]}
-              onChange={(e) => type(i, e.target.value)}
-            />
+            {typing && (
+              <textarea
+                className={INPUT}
+                rows={2}
+                autoFocus={options}
+                placeholder={
+                  options
+                    ? "In your own words…"
+                    : "Your answer, or leave blank for the agent to research…"
+                }
+                value={answers[i]}
+                onChange={(e) => setAnswer(i, e.target.value)}
+              />
+            )}
           </div>
           );
         })}
@@ -1515,6 +1520,9 @@ function ResolveDialog({
 // it — a native radio can't — and leaving everything unticked is a real answer
 // here ("I have no view; you research it"). The marker's shape still says how many
 // may be picked: round for one, square for as many as you like.
+//
+// The last row is "Something else", the free-text choice every options question
+// gets. It ticks like the rest; what it opens is the box under the list.
 function OptionPicker({
   question,
   picked,
@@ -1533,7 +1541,7 @@ function OptionPicker({
       aria-label={parseQuestion(question.text).text}
       className="flex flex-col gap-1"
     >
-      {(question.options ?? []).map((option, k) => {
+      {[...(question.options ?? []), FREE_TEXT_CHOICE].map((option, k) => {
         const n = k + 1;
         const on = picked.includes(n);
         const Icon = on ? On : Off;
@@ -1570,6 +1578,7 @@ function OptionPicker({
 // Pair the questions the user answered with their answers into a note block the
 // agent can fold into the card. A question answered by ticking sends the option
 // lines themselves, so the agent reads a choice rather than interpreting prose.
+// Ticks and words can arrive together — "Something else" is one of the ticks.
 // Unanswered questions are dropped — those are the ones the agent researches —
 // and if nothing was answered we send no note at all, so the agent resolves every
 // question on its own just as before.
@@ -1581,14 +1590,23 @@ function composeAnswers(
   const answered = questions
     .map((q, i) => {
       const asked = parseQuestion(q.text).text;
-      const chosen = hasOptions(q)
+      const options = hasOptions(q);
+      const chosen = options
         ? (picks[i] ?? []).map((n) => (q.options ?? [])[n - 1]).filter(Boolean)
         : [];
-      if (chosen.length > 0) {
-        return `Q: ${asked}\nPicked:\n${chosen.map((o) => `- ${o}`).join("\n")}`;
-      }
-      const typed = answers[i]?.trim();
-      return typed ? `Q: ${asked}\nA: ${typed}` : null;
+      // Words count only when the box was open: an unticked "Something else" leaves
+      // its draft behind, and that draft is not an answer the user gave.
+      const typed = (!options || (picks[i] ?? []).includes(freeTextPick(q)))
+        ? answers[i]?.trim()
+        : "";
+      if (chosen.length === 0 && !typed) return null;
+      return [
+        `Q: ${asked}`,
+        chosen.length > 0 ? `Picked:\n${chosen.map((o) => `- ${o}`).join("\n")}` : null,
+        typed ? `A: ${typed}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
     })
     .filter((x): x is string => x !== null);
   if (answered.length === 0) return undefined;

@@ -275,7 +275,7 @@ const GROUP_CARD: Card = {
 const LIVE_SESSION: SessionView = {
   sessionId: "design-live",
   cardId: 43,
-  action: "refine",
+  action: "raise-questions",
   status: "running",
   startedAt: 0,
 };

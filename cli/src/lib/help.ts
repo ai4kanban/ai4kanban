@@ -169,7 +169,7 @@ export const MOVES: Move[] = [
     brief: [
       [
         'update-questions <id>',
-        'patch the open questions one op at a time: --append,\n--update <n>, --drop <n,n>, --to-verify <n,n>, --clear',
+        'patch the open questions one op at a time: --append,\n--update <n>, --drop <n,n>, --to-verify <n,n>, --clear.\n--append/--update need 2+ --option "a — why"',
       ],
     ],
     legacy: [
@@ -183,11 +183,14 @@ export const MOVES: Move[] = [
           'moves ones that turned out to be hand-checks into the card\'s',
           'verify: list (tag dropped, wording kept), --clear removes',
           'them all. Positions are 1-based, read against the list as',
-          'it stands when the op runs. --option / --mode /',
+          'it stands when the op runs. --option and',
           '--recommended-option attach to the --append or --update',
-          "before them, same as create's --question. A question may",
-          "carry a leading [user] tag marking it as the human's",
-          'judgment call.',
+          "before them, same as create's --question. Every question",
+          'written here is multi-select and needs 2 or more --option',
+          '"a — why" — a bare line is refused, and there is no --mode.',
+          'The user also gets a free-text choice, added by the board:',
+          'never write one yourself. A question may carry a leading',
+          "[user] tag marking it as the human's judgment call.",
         ],
       ],
     ],

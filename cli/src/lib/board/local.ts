@@ -313,9 +313,9 @@ export function localBoard(): BoardProvider {
     dropVerify: (id, line, env): Promise<VerifyOp> =>
       mutate({ card: id }, env, () => ({ verify: dropVerifyLine(id, line) })),
 
-    appendQuestion: (id, question, env) =>
+    appendQuestion: (id, question, options, env) =>
       mutate({ card: id }, env, () => {
-        cmdUpdateQuestions([String(id), '--append', question])
+        cmdUpdateQuestions([String(id), '--append', question, ...options.flatMap((o) => ['--option', o])])
         return { card: findCard(id) ?? undefined }
       }),
 

@@ -34,12 +34,9 @@ _(none)_
 - [#322 Open a Cloud board in the browser](features/322-open-a-cloud-board-in-the-browser.md)
 - [#324 Block commits on the branch a delivery is landing on](features/324-block-commits-on-the-branch-a-delivery-is-landing-on.md)
 - [#325 Handle local task events asynchronously through Cloud](325-handle-local-task-events-asynchronously-through-cloud/root.md)
-- [#327 Admit a Cloud account with an invitation code](features/327-admit-a-cloud-account-with-an-invitation-code.md)
 - [#329 Harden the Cloud event flow before the first invite](325-handle-local-task-events-asynchronously-through-cloud/features/329-harden-the-cloud-event-flow-before-the-first-invite.md)
 - [#328 Notify a workspace's owners and members about a card that needs them](311-team-collaboration-cloud/features/328-notify-a-workspace-s-owners-and-members-about-a-card-that-ne.md)
 - [#332 Show the board UI in Chinese as well as English](332-show-the-board-ui-in-chinese-as-well-as-english/root.md)
-- [#333 Show a group's subtasks as a dependency map](features/333-show-a-group-s-subtasks-as-a-dependency-map.md)
-- [#334 Remember which language the app and the agent work in](332-show-the-board-ui-in-chinese-as-well-as-english/features/334-remember-which-language-the-app-and-the-agent-work-in.md)
 - [#335 Move the board UI's words into one typed copy module](332-show-the-board-ui-in-chinese-as-well-as-english/features/335-move-the-board-ui-s-words-into-one-typed-copy-module.md)
 - [#336 Show the board UI in Simplified Chinese](332-show-the-board-ui-in-chinese-as-well-as-english/features/336-show-the-board-ui-in-simplified-chinese.md)
 

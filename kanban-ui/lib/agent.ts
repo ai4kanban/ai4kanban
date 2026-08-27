@@ -1,4 +1,4 @@
-import { boardRules, type AgentRequest } from "./cli";
+import { boardRules, type AgentRequest, type CommandRequest } from "./cli";
 import type { AgentInfo, HarnessSetting } from "./types";
 
 // --- which agent runs, and the words it is sent (#168) -----------------------
@@ -10,7 +10,18 @@ import type { AgentInfo, HarnessSetting } from "./types";
 // Everything here is async because the rules are loaded from the built file the project
 // has (lib/cli.ts). Nothing else about them changed.
 
-export type { AgentRequest } from "./cli";
+export type { AgentRequest, CommandRequest } from "./cli";
+
+/** Turn a public command into the one agent session it starts now. */
+export async function prepareAgentRequest(req: CommandRequest): Promise<AgentRequest> {
+  if (req.action !== "refine") return req as AgentRequest;
+  const prepare = (await boardRules()).refinementRequest;
+  // An older installed command still knows refine as one session.
+  if (!prepare) return req as unknown as AgentRequest;
+  const result = prepare(req);
+  if ("error" in result) throw new Error(result.error);
+  return result;
+}
 
 /** Which agent runs the board, what it is set to, and what it could be switched to —
  *  including the settings each of those agents takes, so the dialog draws them without

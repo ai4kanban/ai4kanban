@@ -3,12 +3,16 @@ title: Move the board UI's words into one typed copy module
 track: features
 priority: med
 roi: med
-status: ready
+status: implementing
 release: 0.8.0
 blocked_by: []
 related: [332]
 modules: [local-ui]
-questions: []
+questions:
+  - "[user] Review stopped on delivery jn2wsntz: the review run failed before it recorded a verdict. Decide: answer here, explicitly accept the condition under ## Worth noting after implementation, or cancel the delivery and start again from a changed card. Once you have, `node /Users/wutao/git/ai4kanban/desktop/resources/cli/bin/ai4kanban.mjs review 335` judges it again."
+verify:
+  - Read every screen once and confirm the words are unchanged — the sweep was by eye, and English-only means the build stays green whether a string was missed or not.
+  - "Check the Configuration dialog's Setup pane and the Cloud pane: their sentences carry code chips that now render through i18n/rich.tsx rather than inline <code>."
 ---
 
 
@@ -30,6 +34,14 @@ does today when this lands.
   by screen and #336's read-through in Chinese is what turns a leftover up. The alternative
   was a lint rule banning bare text in JSX — it fires on every `—`, `·` and `{" "}` the
   layout uses, so its allowlist would outgrow the copy it guards.
+
+## Worth noting after implementation
+- **How does a sentence with a link in it stay one key?**: it doesn't. `i18n/rich.tsx` draws
+  a code chip and a bolded run, not a link, so the one sentence that carries two — the
+  privacy and terms line in the Cloud pane — is four keys around them, one of which is the
+  bare connector `" and the "`. Every other sentence in the app is whole. The alternative was
+  teaching `Rich` a link token, which buys a translator word order in one sentence and costs
+  the module a second markup form to keep.
 
 <!-- agent -->
 
@@ -71,18 +83,18 @@ does today when this lands.
   it at a second folder waits for #336, when there is a Chinese half to keep in sync.
 
 ## Todo
-- [ ] Create `kanban-ui/i18n/` with the shape `web/i18n/` uses, English only, and the way a
+- [x] Create `kanban-ui/i18n/` with the shape `web/i18n/` uses, English only, and the way a
       component asks it for a string.
-- [ ] Move the shared chrome in — header, dialogs, buttons, the guide drawer, the not-found
+- [x] Move the shared chrome in — header, dialogs, buttons, the guide drawer, the not-found
       page, and the window's title and description.
-- [ ] Move the board and the card page in — columns, cards, chips, the release picker, the
+- [x] Move the board and the card page in — columns, cards, chips, the release picker, the
       card body, the diff, the spec agents, the queue and the mockup frame.
-- [ ] Move runs, auto-delivery and chat in.
-- [ ] Move Setup, Configuration, Cloud, and the no-board and no-rules screens in.
-- [ ] Move the rail, memory, goal and Insights in.
-- [ ] Move the rendered strings in `lib/cli.ts` and `lib/cloud.ts` in, and point
+- [x] Move runs, auto-delivery and chat in.
+- [x] Move Setup, Configuration, Cloud, and the no-board and no-rules screens in.
+- [x] Move the rail, memory, goal and Insights in.
+- [x] Move the rendered strings in `lib/cli.ts` and `lib/cloud.ts` in, and point
       `components/Rail.tsx` at copy keyed by `MEMORY_FILES`' names.
-- [ ] Say in `kanban-ui/README.md` and `kanban-ui/design.md` where copy lives and that new
+- [x] Say in `kanban-ui/README.md` and `kanban-ui/design.md` where copy lives and that new
       copy is written in English first.
 
 ## By `technology-selection` agent
@@ -103,3 +115,21 @@ does today when this lands.
 - **Why one card for a sweep this size?**: the screens divide cleanly and the work is the
   same move repeated, so a run that stops partway leaves the remaining todos naming exactly
   what is left. A card per screen would buy bookkeeping and nothing else.
+- **How does a sentence keep a code chip or a bold run in it?**: `i18n/rich.tsx` renders the
+  same `` `code` ``/`**bold**` subset `web/components/Rich.tsx` does, so `**v1** is closed`
+  is one key rather than a bold span and a fragment after it. Without it every sentence with
+  inline markup would have split into clauses no language can reorder.
+- **How does a component ask?**: `useCopy()` (`i18n/use-copy.ts`) in a client component,
+  `copy` from `i18n/` on the server and in `lib/`. `useCopy()` hands back English today; #336
+  changes only its body, so no caller is touched twice.
+- **Every `lib/` message moved, not only `cli.ts` and `cloud.ts`**: the too-old and refusal
+  lines in `board.ts`, `chat.ts`, `chat-rail.ts`, `config.ts`, `edit.ts`, `flow-rules.ts`,
+  `language.ts`, `mockup.ts`, `registry.ts`, `skill.ts` and `spec-agents.ts` are the same
+  kind of sentence the scope named, drawn in the same places. Leaving them would have been a
+  gap a reader hits on the day they matter.
+- **Two folders the scope did not name**: `chips/` (the level, status, cadence and question
+  words a card wears on both screens) and `chat/`. Both are surfaces of their own; folding
+  them into `shared` would have made `shared` the place everything lands.
+- **Level words and action names are drawn from copy, written as they were**: `high`/`med`/
+  `low` and a run's `implement`/`refine` are still what the file holds and what a save
+  writes — only the word on screen comes from `i18n/`.

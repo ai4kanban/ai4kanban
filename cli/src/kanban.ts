@@ -72,6 +72,7 @@ export { activeDelivery, heldByDelivery, listDeliveries } from './lib/agent/deli
 export { approveDelivery, cancelDelivery, discardDelivery } from './lib/view/api'
 export { spawnWatcher } from './lib/agent/launch'
 export { buildPrompt } from './lib/agent/prompts'
+export { refinementRequest } from './lib/agent/refine'
 
 // The flow rules (#306): one rule per flow, in the user's own words, appended to that
 // flow's built-in prompt. The Rules pane in the Configuration dialog reads and writes them

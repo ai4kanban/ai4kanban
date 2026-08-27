@@ -309,6 +309,18 @@ export class BoardServers {
     return url;
   }
 
+  /** Leave the open project without opening another — Close Project. The same
+   *  letting-go as a switch, minus the arrival: a run going in it keeps going,
+   *  exactly as it does when the window moves to a different project. */
+  async close(): Promise<void> {
+    const previous = this.current;
+    if (!previous) return;
+    this.current = null;
+    this.writeFocus();
+    await this.retire(previous);
+    this.sweep();
+  }
+
   /** Let go of a server the window has just left: stopped now when nothing is
    *  going in it, kept (and swept later) when a run is. */
   async retire(server: BoardServer): Promise<void> {

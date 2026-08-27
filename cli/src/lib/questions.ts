@@ -18,6 +18,9 @@
 // dialog opens already ticked; `[]` means nothing is pre-ticked. An option is
 // one short line with its reason inside it; there is no note field beside it.
 //
+// A question `update-questions` hands to the user is always the multi form with
+// choices — see `parseQuestionOps` below.
+//
 // In memory every question is an object: `{ text }` for a plain one, plus
 // `mode`, `options` and `recommend` when it has options. Kept in step with
 // kanban-ui/lib/frontmatter.ts and kanban-ui/lib/questions.ts.
@@ -180,6 +183,22 @@ export function collectQuestions(order: FlagOrder): Question[] {
   return out.map(finalizeDraft)
 }
 
+// A question handed to the user is always the same shape: choices to tick, as many
+// as they like. So `update-questions` refuses a bare line — the user should answer by
+// ticking, not by reading a sentence for the choices hidden in it. The free-text
+// choice is offered by the board itself, last in the list, so "none of these" is a
+// pick like the others and no caller has to remember to write it.
+function finalizeHandover(q: QuestionDraft): Question {
+  if (q.options.length === 0) {
+    die(
+      `"${q.question}" needs choices to tick — add 2 or more --option "a — why". ` +
+        'The user always gets a free-text choice too, so never write one yourself.',
+    )
+  }
+  q.mode = 'multi'
+  return finalizeDraft(q)
+}
+
 // One op of `update-questions`, as read off argv.
 export interface QuestionOp {
   kind: 'append' | 'update' | 'drop' | 'clear' | 'to-verify'
@@ -191,11 +210,12 @@ export interface QuestionOp {
 
 // The ops of `update-questions`, read straight off argv — parseFlags carries one
 // value per flag, and `--update` takes two (position, then the new text). Every op
-// patches the list in place; nothing rewrites it wholesale. `--option`, `--mode` and
+// patches the list in place; nothing rewrites it wholesale. `--option` and
 // `--recommended-option` attach to the `--append` or `--update` before them, the
-// same grammar as create's `--question`.
+// same grammar as create's `--question`. There is no `--mode`: every question this
+// writes is multi-select (see finalizeHandover).
 export function parseQuestionOps(args: string[]): QuestionOp[] {
-  const OPS = ['append', 'update', 'drop', 'clear', 'to-verify', 'option', 'mode', 'recommended-option']
+  const OPS = ['append', 'update', 'drop', 'clear', 'to-verify', 'option', 'recommended-option']
   const ops: QuestionOp[] = []
   const take = (flag: string, v: string | undefined): string => {
     if (v === undefined || v.startsWith('--')) die(`--${flag} needs a value`)
@@ -205,6 +225,7 @@ export function parseQuestionOps(args: string[]): QuestionOp[] {
     const a = args[i]!
     if (!a.startsWith('--')) die(`update-questions takes ops, not positional args (got "${a}")`)
     const key = a.slice(2)
+    if (key === 'mode') die('a question handed to the user is always multi-select — drop --mode')
     if (!OPS.includes(key)) die(`unknown option "--${key}". allowed: ${OPS.map((f) => '--' + f).join(', ')}`)
     if (key === 'clear') {
       ops.push({ kind: 'clear' })
@@ -229,7 +250,7 @@ export function parseQuestionOps(args: string[]): QuestionOp[] {
   }
   for (const op of ops) {
     if (op.draft) {
-      op.question = finalizeDraft(op.draft)
+      op.question = finalizeHandover(op.draft)
       delete op.draft
     }
   }

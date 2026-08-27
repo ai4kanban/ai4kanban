@@ -46,7 +46,7 @@ Draw layout options instead of describing them in a question.
 
   ```
   akb board update-questions <id> --append "[user] Which layout for the run panel?" \
-    --recommended-option "A" --option "B" --mode single
+    --recommended-option "A" --option "B"
   ```
 
 Keep the mockups in the card body, not the question.

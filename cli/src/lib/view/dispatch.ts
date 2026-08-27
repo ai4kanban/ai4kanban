@@ -17,6 +17,7 @@
 
 import { nextDue } from '../cadence'
 import { advanceLanding } from '../agent/landing'
+import { refinementStep } from '../agent/refine'
 import { listRuns } from '../agent/sessions'
 import type { AgentRequest, RunView } from '../agent/types'
 import { readBoard } from './read'
@@ -70,10 +71,11 @@ function dueRecurring(cards: Card[], runs: RunView[], busy: Set<number>): Card[]
 // words a run is started by, so it carries straight over. The notes typed when it was
 // scheduled ride along and reach the agent.
 const scheduledRequest = (card: Card): AgentRequest => ({
-  action: card.schedule!.action,
+  action: card.schedule!.action === 'refine' ? refinementStep(card) as 'raise-questions' | 'resolve' : 'implement',
   id: card.id,
   title: card.title,
   notes: card.schedule!.notes || undefined,
+  ...(card.schedule!.action === 'refine' ? { refineRound: 1 } : {}),
 })
 
 /**

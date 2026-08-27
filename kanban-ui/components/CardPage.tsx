@@ -75,7 +75,7 @@ import {
 } from "./chips";
 import { PULSE_DOT } from "./chrome";
 import type { MockupSet } from "@/lib/mockup-tag";
-import { hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
+import { FREE_TEXT_CHOICE, hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
 import type { BoardChange } from "@/lib/chat-rail";
 import { canImplement, canRefine } from "@/lib/refine";
 import { scheduleLabel } from "@/lib/schedule";
@@ -288,17 +288,17 @@ function HandChecks({
 }
 
 // The choices on an options question, read-only — the same list the Resolve
-// dialog hands the user, shown here so the options can be read without opening
-// the dialog. The recommended ones wear a filled marker and say so in words; the
-// marker's SHAPE says how many may be picked (round = one, square = as many as
-// you like), matching the radio / checkbox the dialog shows.
+// dialog hands the user, "Something else" included, shown here so the options can
+// be read without opening the dialog. The recommended ones wear a filled marker and
+// say so in words; the marker's SHAPE says how many may be picked (round = one,
+// square = as many as you like), matching the radio / checkbox the dialog shows.
 function QuestionOptions({ question }: { question: CardQuestion }) {
   const many = question.mode === "multi";
   const On = many ? FiCheckSquare : FiCheckCircle;
   const Off = many ? FiSquare : FiCircle;
   return (
     <ul className="mt-1.5 flex flex-col gap-1">
-      {(question.options ?? []).map((option, k) => {
+      {[...(question.options ?? []), FREE_TEXT_CHOICE].map((option, k) => {
         const recommended = (question.recommend ?? []).includes(k + 1);
         const Icon = recommended ? On : Off;
         return (
@@ -1146,6 +1146,8 @@ export function CardPage({
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
   const [error, setError] = useState<string | null>(null);
+  // The subtask chip under the cursor, said in the panel's heading (#333).
+  const [mapTip, setMapTip] = useState("");
 
   // A session this tab started just finished. Reject/archive take the card off the
   // board, so we go back to it (the inline SessionLog can't show output for a card
@@ -1753,14 +1755,23 @@ export function CardPage({
               )}
             </div>
 
-            {card.subtasks && card.subtasks.length > 0 && <SubtaskMap subtasks={card.subtasks} />}
-
+            {/* The group, in one panel (#333): its build order drawn at the head, and the
+                rows the drawing's ids stand for right under it. One heading covers both —
+                the map has no words of its own, and the list is what reads them out. */}
             {card.subtasks && card.subtasks.length > 0 && (
               <div className="nb-outline bg-nb-paper p-3">
-                <div className="nb-tag mb-2">
+                <div className="nb-tag mb-2 w-full">
                   <span style={{ color: "var(--color-nb-accent)" }}>●</span>
                   subtasks
+                  {/* What the chip under the cursor is. It replaces nothing and moves
+                      nothing: the heading is one line whether it is here or not. */}
+                  {mapTip && (
+                    <span className="min-w-0 truncate text-[11.5px] font-[600] normal-case tracking-normal text-nb-ink-soft">
+                      {mapTip}
+                    </span>
+                  )}
                 </div>
+                <SubtaskMap subtasks={card.subtasks} onHover={setMapTip} />
                 <ul className="flex flex-col gap-1.5">
                   {card.subtasks.map((s) => (
                     <li key={s.id}>

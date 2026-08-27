@@ -122,6 +122,17 @@ describe('the prompt', () => {
     assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /smoke tests/)
     assert.match(buildPrompt({ action: 'review', id: 1 }), /smoke tests/)
   })
+
+  it('uses the refine rule throughout the composite flow', async () => {
+    setFlowRule('refine', 'Ask about the data model.')
+    setFlowRule('resolve', 'Use the standalone resolver rule.')
+    for (const action of ['raise-questions', 'resolve', 'writing'] as const) {
+      const prompt = buildPrompt({ action, id: 1, refineRound: 2 })
+      assert.match(prompt, /data model/)
+      assert.doesNotMatch(prompt, /standalone resolver/)
+    }
+    assert.match(buildPrompt({ action: 'resolve', id: 1 }), /standalone resolver/)
+  })
 })
 
 describe('a delivery', () => {
@@ -151,7 +162,7 @@ describe('a delivery', () => {
   it('leaves a flow that is not one of its own reading the file', async () => {
     const built = run('implement', 1)
     setFlowRule('refine', 'Ask about the data model.')
-    assert.match(buildPrompt({ action: 'refine', id: 1 }), /data model/)
+    assert.match(buildPrompt({ action: 'raise-questions', id: 1, refineRound: 1 }), /data model/)
     await end(built)
   })
 })

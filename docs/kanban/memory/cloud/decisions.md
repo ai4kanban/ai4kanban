@@ -60,11 +60,13 @@ Internal detail stays on the card.
 - **Which region holds a Cloud workspace's board?**: `eu-central-1`, Frankfurt. An EU team's
   board stays inside the EU, so the privacy page covers an international transfer under an
   adequacy decision rather than a bare export. Changing it means recreating the project.
-- **What does signing in to Cloud look like?**: GitHub's own consent screen, asking for no
-  scopes at all, and a redirect that passes through the Supabase project's address rather
-  than `ai4kanban.dev`. Putting that redirect on our own name is a paid Supabase add-on the
-  preview does not take. A sign-in reads a public GitHub profile and cannot reach a private
-  repository.
+- **What does signing in to Cloud look like?**: GitHub's own consent screen, asking for the
+  `user:email` scope and nothing else, and a redirect that passes through the Supabase
+  project's address rather than `ai4kanban.dev`. Putting that redirect on our own name is a
+  paid Supabase add-on the preview does not take. A sign-in reads a public GitHub profile and
+  the account's verified email address, and cannot reach a repository; the privacy page's
+  earlier "no scopes at all" promise goes with the change, because an invitation code needs a
+  verified address to reach (#327).
 
 ## What we publish about a team's data
 
@@ -93,6 +95,11 @@ Internal detail stays on the card.
 
 ## Who answers a question
 
+- **May a question be answered from a notification in the user's own words?**: yes. An event
+  carries the question's options and the one it recommends, and the answer is either a ticked
+  option or a sentence the user types — never both, the way the board's own Resolve works. Cloud
+  holds a typed answer unchanged; an answer given in the app is applied there and then, and one
+  given anywhere else waits for the board's server.
 - **How does a question reach a decider in v1?**: it notifies the workspace's owners. A card
   never names a person: a user-owned question goes to the owners watching the release, and a
   member is notified only when a card is ready for review. Any member may still open the card
@@ -138,3 +145,10 @@ Internal detail stays on the card.
   board. A second attachment is refused rather than routed between, so a board whose server is
   off waits for that machine and no other. Routing across several servers is a later version's
   work.
+- **Does an action taken on the board's own machine go through the server?**: no. The app's card
+  page starts the delivery or writes the answer at once and records the Cloud action afterwards,
+  so a click in front of the user never waits for a round trip. `waiting for server` is for an
+  action taken somewhere else, which the board's server picks up.
+- **How many actions may one event take?**: exactly one, from whichever surface acts first. Cloud
+  refuses a second and tells every other surface showing that event, so a Slack message for an
+  event already handled in the app is redrawn as answered rather than left pressable.

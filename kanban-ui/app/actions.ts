@@ -9,7 +9,15 @@
 // the board, and answer with a value rather than a throw, so the browser gets the reason
 // instead of a framework crash page.
 
-import { activeSettings, agentInfo, type AgentRequest, buildPrompt, settingSaveError } from "@/lib/agent";
+import {
+  activeSettings,
+  agentInfo,
+  type AgentRequest,
+  type CommandRequest,
+  buildPrompt,
+  prepareAgentRequest,
+  settingSaveError,
+} from "@/lib/agent";
 import {
   cardStillThere,
   readBoard,
@@ -188,7 +196,7 @@ const CARDLESS = new Set(["create", "propose", "plan-release", "changelog", "set
 // Start an agent and return immediately with a sessionId (or a lock message). The request
 // never waits for the child — the client polls listSessionsAction() to see the session's
 // progress and outcome.
-export async function startAgentAction(req: AgentRequest): Promise<StartResult> {
+export async function startAgentAction(req: CommandRequest): Promise<StartResult> {
   // A tab left open across the upgrade that made refine the loop still posts the old name.
   if (req && (req.action as string) === "auto-refine") req = { ...req, action: "refine" };
   if (!req || !ACTIONS.has(req.action)) throw new Error("unknown action");
@@ -201,7 +209,8 @@ export async function startAgentAction(req: AgentRequest): Promise<StartResult> 
   if (req.action === "changelog" && !req.release?.trim()) {
     throw new Error("a changelog needs a version id");
   }
-  return startSession(req, await buildPrompt(req));
+  const runnable = await prepareAgentRequest(req);
+  return startSession(runnable, await buildPrompt(runnable));
 }
 
 // Fill a release from its goal (#165): a normal board run — it shows in the runs panel, can

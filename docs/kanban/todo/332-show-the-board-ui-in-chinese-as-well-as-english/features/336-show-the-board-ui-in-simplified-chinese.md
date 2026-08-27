@@ -5,7 +5,7 @@ priority: med
 roi: high
 status: todo
 release: 0.8.0
-blocked_by: [334, 335]
+blocked_by: [335]
 related: [332]
 modules: [local-ui]
 schedule:
@@ -24,8 +24,11 @@ Chinese to fix what a translated string breaks.
 - **Simplified Chinese for every string in `kanban-ui/i18n/`**: written, professional
   register, following the vocabulary in `docs/kanban/memory/goal.md` — 自主拆解、循环澄清、
   需求、决策可追溯、自进化、交付闭环 — and full-width ，。；：？（）.
-- **The desktop menu too**: the labels in `desktop/src/lib/menu.ts` are read by the main
-  process and are not in the copy module, so they are translated in place.
+- **The desktop menu, the launcher and its dialogs too**: the labels in
+  `desktop/src/lib/menu.ts`, the launcher page in `desktop/src/lib/launcher.ts` (#339), and
+  the dialogs in `desktop/src/main.ts` — the folder picker, the `akb`-on-PATH prompt, the
+  update notices and the start-up failure — are drawn by the main process and are not in the
+  copy module, so they are translated in place.
 - **Names stay English**: product names, file names, paths, track names, shell commands and
   URLs, matching `web/i18n/index.ts`.
 - **Read the app in Chinese**: every screen, and fix what overflows, wraps badly, or reads
@@ -36,7 +39,8 @@ Chinese to fix what a translated string breaks.
 
 ## Todo
 - [ ] Write the Chinese half of `kanban-ui/i18n/`.
-- [ ] Translate the desktop menu's labels.
+- [ ] Translate the desktop menu's labels, the launcher page, and the main process's own
+      dialogs.
 - [ ] Read every screen in Chinese and fix what overflows, wraps badly, or reads like a
       translation.
 

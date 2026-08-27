@@ -38,6 +38,7 @@ import {
   parseFindings,
   reviewOf,
   stopQuestion,
+  type Ask,
 } from './review'
 import { readStore, withStore, type Store } from './store'
 import type {
@@ -385,7 +386,7 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
   if (!run.deliveryId) return
   const before = readStore().deliveries.find((d) => d.deliveryId === run.deliveryId)
   if (!before) return
-  type Settled = { end: 'finished' } | { ask: string; cardId: number }
+  type Settled = { end: 'finished' } | { ask: Ask; cardId: number }
 
   // Everything that has to run git happens here, before the record's lock — every process
   // on this board waits on that lock, and a git command is not what it should be waiting

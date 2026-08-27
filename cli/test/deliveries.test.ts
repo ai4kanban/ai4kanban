@@ -144,7 +144,7 @@ describe('one delivery, several sessions', () => {
   })
 
   it('leaves a standalone session with no delivery at all', async () => {
-    withStore((store) => store.runs.push(session({ action: 'refine' })))
+    withStore((store) => store.runs.push(session({ action: 'raise-questions' })))
     assert.equal(activeDelivery(5), undefined)
     assert.equal(readStore().runs[0]!.deliveryId, undefined)
   })
