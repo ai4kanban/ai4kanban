@@ -120,7 +120,7 @@ describe('sendPendingMail', () => {
     assert.deepEqual(await sendPendingMail(ENV), { queued: 1, sent: 1, failed: 0 })
     assert.deepEqual(sends[0].to, ['invited@example.com'])
     assert.equal(sends[0].reply_to, 'support@ai4kanban.dev')
-    assert.match(sends[0].from, /invites@send\.ai4kanban\.dev/)
+    assert.match(sends[0].from, /invites@ai4kanban\.dev/)
     assert.match(sends[0].text, /AK4B-7QF2-M3XD/)
     assert.match(sends[0].text, /Configuration/)
   })

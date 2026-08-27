@@ -9,7 +9,7 @@ Review and fix in this run. Record one verdict when the work is ready or needs t
    affected checks. Investigate technical discoveries yourself; fix in-scope work and create
    or update a separate card for follow-up work. Do not exhaustively search unaffected code
    or invent hypothetical issues.
-3. Follow `akb guide user-question` when a decision is the user's. For review, it is
+3. Follow "Who owns the question" in `akb guide resolve` when a decision is the user's. For review, it is
    blocking only when this delivery cannot land safely without the answer.
 
 4. Record one verdict:

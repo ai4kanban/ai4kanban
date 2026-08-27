@@ -31,7 +31,7 @@ const subtaskLinesToIds = (body: string): string => {
   return out.join('\n')
 }
 
-// The line dividing a card's two halves ("Card format" in `akb guide board`).
+// The line dividing a card's two halves (`akb guide writing`).
 const MARKER = /^<!--\s*agent\s*-->$/
 
 // The body as a sorted bag of lines, marker dropped: a repair that only moves sections
@@ -109,12 +109,16 @@ export function startRefinement(
 }
 
 /** The next pass in this loop — or `'capped'`, which is a stop with a card still changing
- *  under it and not the same thing as a loop that settled. */
+ *  under it and not the same thing as a loop that settled.
+ *
+ *  `flowId` is the loop the finished pass belonged to; the pass that follows joins it, so
+ *  every session of one refinement shares an id. */
 export function refinementAfter(
   action: AgentAction,
   cardId: number,
   round: number | undefined,
   before: BoardMarks,
+  flowId?: string,
 ): AgentRequest | 'capped' | null {
   if (
     round === undefined ||
@@ -142,6 +146,7 @@ export function refinementAfter(
     id: card.id,
     title: card.title,
     refineRound: round + 1,
+    ...(flowId ? { flowId } : {}),
   }
 }
 
@@ -196,7 +201,7 @@ export function refinementRunsAfter(run: RunRecord, before: BoardMarks): Refinem
   const next =
     run.cardId === null || run.refineRound === undefined
       ? null
-      : refinementAfter(run.action, run.cardId, run.refineRound, before)
+      : refinementAfter(run.action, run.cardId, run.refineRound, before, run.flowId)
   const starts = refinesAfter(run.action, before).filter(
     (req) => run.refineRound === undefined || req.id !== run.cardId,
   )

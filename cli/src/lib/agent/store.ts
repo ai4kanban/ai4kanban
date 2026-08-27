@@ -107,6 +107,7 @@ export function readStore(): Store {
         typeof entry.refineRound === 'number' && Number.isInteger(entry.refineRound) && entry.refineRound >= 0
           ? entry.refineRound
           : undefined,
+      flowId: typeof entry.flowId === 'string' && entry.flowId ? entry.flowId : undefined,
       deliveryId: typeof entry.deliveryId === 'string' && entry.deliveryId ? entry.deliveryId : undefined,
     })
   }

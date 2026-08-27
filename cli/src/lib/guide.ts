@@ -39,7 +39,7 @@ import setup from '../guide/setup.md'
 import specAgent from '../guide/spec-agent.md'
 import uiDesign from '../guide/ui-design.md'
 import update from '../guide/update.md'
-import userQuestion from '../guide/user-question.md'
+import writing from '../guide/writing.md'
 
 /** One flow: the name it is asked for by, the one line the list shows, and the text. */
 export interface Guide {
@@ -53,7 +53,8 @@ export interface Guide {
 }
 
 export const GUIDES: Guide[] = [
-  { name: 'board', when: 'how this board works — card format, layout, memory, the rules every flow stands on', text: board },
+  { name: 'board', when: 'how this board works — layout, memory, the rules every flow stands on', text: board },
+  { name: 'writing', when: "write a card body — its format, and the rules every card is held to", text: writing },
   { name: 'evaluate-task', when: 'check one task idea before it becomes a card', text: evaluateTask },
   { name: 'add-task', when: 'turn one idea into a card', text: addTask },
   { name: 'propose', when: 'find the work the board is missing and write it', text: propose },
@@ -61,7 +62,6 @@ export const GUIDES: Guide[] = [
   { name: 'raise-questions', when: "find the decisions one task's plan still needs", text: raiseQuestions },
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
   { name: 'resolve', when: "answer a card's open questions, and hand the user's own back", text: resolve },
-  { name: 'user-question', when: 'decide when and how a workflow hands a decision to the user', text: userQuestion },
   { name: 'reject', when: 'drop a card, and write down why', text: reject },
   { name: 'review', when: "review and fix a delivery against the approved requirements", text: review },
   { name: 'conflict', when: "resolve the conflict in a delivery's landing rebase", text: conflict },

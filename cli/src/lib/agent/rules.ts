@@ -20,6 +20,7 @@ import path from 'node:path'
 import { RULES } from '../paths'
 import type { WriteResult } from '../view/types'
 import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, type Flow } from './flows'
+import { REFINE_ACTIONS } from './types'
 import type { AgentRequest, FlowRuleView } from './types'
 
 const rulePath = (command: string): string => path.join(RULES, `${command}.md`)
@@ -77,8 +78,7 @@ export function deliveryRules(): Record<string, string> {
 }
 
 const flowForRequest = (req: AgentRequest): Flow | undefined =>
-  req.refineRound !== undefined &&
-  (req.action === 'raise-questions' || req.action === 'resolve' || req.action === 'writing')
+  req.refineRound !== undefined && REFINE_ACTIONS.has(req.action)
     ? flowByCommand('refine')
     : flowByAction(req.action)
 

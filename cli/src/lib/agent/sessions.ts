@@ -36,6 +36,7 @@ import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } f
 import { durationLine, KEEP_LOGS, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumableHarness, type RunPlan } from './resolve'
 import { logPathOf, readRuns, readStore, withRuns, withStore } from './store'
+import { REFINE_ACTIONS } from './types'
 import type {
   AgentAction,
   AgentRequest,
@@ -502,11 +503,12 @@ export function openRun(
     specAgent: req.action === 'spec' ? req.specAgent : undefined,
     // Internal refinement sessions carry their position so the watcher can choose the next
     // QA or writing session. A standalone resolve starts a new chain.
-    refineRound:
-      req.refineRound ??
-      (req.action === 'raise-questions' || req.action === 'resolve' || req.action === 'writing'
-        ? 1
-        : undefined),
+    refineRound: req.refineRound ?? (REFINE_ACTIONS.has(req.action) ? 1 : undefined),
+    // And the loop they belong to. The pass that starts one is given an id here — the
+    // watcher copies it onto every pass after it — so a refinement is one thing in the
+    // record however many sessions it takes, and a second refine on the same card is never
+    // mistaken for a continuation of the first.
+    flowId: REFINE_ACTIONS.has(req.action) ? (req.flowId ?? randomUUID()) : undefined,
   }
   const out = withStore<{ run: RunRecord } | { error: string }>((store) => {
     const locked = lockedBy(store.runs, req.action, cardId, req.release)
@@ -581,6 +583,9 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     logPath: logPathOf(sessionId),
     specAgent: prev.specAgent,
     refineRound: prev.refineRound,
+    // The same refinement carried on, not a second one — the way a resume re-joins the
+    // delivery it continues rather than opening another.
+    flowId: prev.flowId,
   }
   const out = withStore<{ run: RunRecord } | { error: string }>((store) => {
     const all = store.runs

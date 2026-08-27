@@ -49,7 +49,7 @@ covers it, or a plain-words note.
   invite request".
 - **The preview now sends email, and only this.** The code that answers a request, and the
   notice to `support@ai4kanban.dev` that somebody asked. Both go out from the Worker's hourly
-  run through Resend, from `invites@send.ai4kanban.dev` replying to `support@ai4kanban.dev`,
+  run through Resend, from `invites@ai4kanban.dev` replying to `support@ai4kanban.dev`,
   so a failed send is retried rather than lost. There is no mailing list and no announcement.
 - **The sign-in now asks GitHub for `user:email`.** The consent screen names an email
   permission where it named none, so every account carries an address GitHub itself verified

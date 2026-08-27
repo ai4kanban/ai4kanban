@@ -426,14 +426,21 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   implement: ['board', 'document-feature'],
   // Review writes on the card — a post-implementation note, a follow-up card, an open
   // question — so it needs the card format as much as the review flow itself.
-  review: ['board', 'user-question', 'review'],
+  review: ['board', 'review'],
   // Kept only for a correction run resumed from an older delivery.
   correct: [],
   conflict: ['conflict'],
-  run: ['board', 'user-question', 'recurring-task'],
+  run: ['board', 'recurring-task'],
+  // An audit reads its own flow and nothing else: it writes no card body, so the layout,
+  // the memory set and the tracks are a page about work it is forbidden to do — and a pass
+  // with pages to read and nothing to write finds something to write.
   'raise-questions': ['raise-questions'],
-  resolve: ['board', 'user-question', 'resolve'],
-  writing: ['board'],
+  resolve: ['board', 'resolve'],
+  // The writing pass is where every refinement ends, so it is the one flow that reads the
+  // prose rules in full; the flows that reach it cite `akb guide writing` instead. It gets
+  // that guide alone — it writes a body and nothing else, so the layout, the memory set and
+  // the tracks are a page about work it is forbidden to do.
+  writing: ['writing'],
   edit: ['board', 'revise'],
   create: ['board', 'evaluate-task', 'add-task'],
   propose: ['board', 'propose', 'evaluate-task', 'add-task'],
@@ -443,11 +450,11 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   changelog: ['changelog'],
   archive: ['board'],
   reject: ['board', 'reject'],
-  setup: ['board', 'user-question', 'setup'],
+  setup: ['board', 'setup'],
   // A spec agent gets its own flow and NOT `board`: it writes one section, never a card,
   // so the card format, the memory set and the tracks are a page of rules about work it is
   // not allowed to do. `akb spec` has no --print, so this is only ever read by the run.
-  spec: ['user-question', 'spec-agent'],
+  spec: ['spec-agent'],
 }
 
 /** Build the flow for one action. A `board` command spelled out here is spelled with the
@@ -575,10 +582,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
     case 'raise-questions': {
       facts.push(...stepsField(card!), ...questionsField(card!.meta))
-      close.push(
-        `${board} update-questions ${req.id} --append ".." --option ".." --option ".." — append every substantive gap as an untagged question in one command; do not recommend or resolve it`,
-        `change nothing else — not the card body, its status, another card, or project code`,
-      )
       next.push(refineNext(req.id!, 'continue the programmatic refinement flow'))
       break
     }
@@ -604,7 +607,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     case 'writing': {
       facts.push(...stepsField(card!), ...questionsField(card!.meta))
       close.push(
-        'improve only the card body\'s writing according to "Card format" and "Writing rules" in `akb guide board` — preserve every settled requirement, decision, checked todo, and spec-agent section',
+        'improve only the card body\'s writing according to `akb guide writing` — preserve every settled requirement, checked todo, and spec-agent section, and merge decisions that repeat each other rather than dropping either',
         `do not research, change the plan, raise or resolve questions, touch another card, or edit project code`,
         `${board} update ${req.id} --status ready — after the body is compact, clear, and internally consistent`,
       )

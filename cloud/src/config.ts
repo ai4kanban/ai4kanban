@@ -20,9 +20,9 @@ export const CLOCK_SKEW_SECONDS = 60
 // One sender, one queue, one retry. Both messages the preview sends — the notice that
 // somebody asked, and the code that answers — go out from the hourly run through Resend.
 
-/** Who an invitation comes from. A sending subdomain, so Resend's records stay clear of the
- *  Email Routing that delivers `support@ai4kanban.dev` on the root name. */
-export const MAIL_FROM = 'AI4Kanban <invites@send.ai4kanban.dev>'
+/** Who an invitation comes from. The root name is what Resend verifies; it signs with a DKIM
+ *  key there and keeps its return path on `send.`, so the mailbox MX and SPF stay untouched. */
+export const MAIL_FROM = 'AI4Kanban <invites@ai4kanban.dev>'
 
 /** Where a reply lands, for both messages. The one mailbox a person reads. */
 export const SUPPORT_EMAIL = 'support@ai4kanban.dev'

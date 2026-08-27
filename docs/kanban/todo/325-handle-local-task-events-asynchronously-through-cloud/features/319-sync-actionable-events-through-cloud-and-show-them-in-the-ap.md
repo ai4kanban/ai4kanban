@@ -8,14 +8,7 @@ release: 0.8.0
 blocked_by: []
 related: [325]
 modules: [cloud, local-ui, skill, site]
-questions:
-  - question: "[user] The Supabase project this card connects to is still not stood up. How should #319 be delivered?"
-    mode: single
-    options:
-      - "Stand it up first — run cloud/README.md's \"Standing up a new project\" and fill in cli/src/lib/cloud/config.ts, so the private channels, the realtime.messages policies and the whole round trip are checked for real. It is the hand step every card from #326 on has been deferring."
-      - Against a throwaway project — the migrations, Worker routes and UI land and are checked, and the policies are re-applied to the real project when it exists. Costs the setup twice.
-      - Blind — everything lands unchecked and #329 is the first run against a live service. Cheapest now, and it puts every Realtime and RLS mistake in one late card.
-    recommend: [1]
+questions: []
 verify:
   - "Against the live Supabase project: moving a task to `ready` on this machine lights the bell within seconds, the same event is still there after the app is restarted, and a second signed-in account's Realtime channel receives none of it."
   - The first actionable event asks for the system's notification permission, and clicking the notification opens the app on that card's page; with the silencing switch on, the bell still fills and nothing interrupts.
@@ -99,14 +92,14 @@ same flow into Slack.
   where the client is chosen; `cli/` has no runtime dependencies at all and bundles to one
   `dist/kanban.mjs`.
 - #331 landed: every board write is awaited, so a publication can hang off one.
-- `cloud/` holds the Worker, `0001_service.sql` and `0002_accounts.sql`. There is no board,
-  event, delivery, action or outcome table, and the only routes are `/health`, `/v1/session`
-  and `/v1/self-check`. `cloud/src/scheduled.ts` runs one hourly heartbeat that later steps
-  join rather than adding a schedule of their own.
-- The Supabase project is not stood up: `SUPABASE_URL` and `SUPABASE_ANON_KEY` in
-  `cli/src/lib/cloud/config.ts` are blank, and `cloud/README.md`'s "Standing up a new project"
-  is the list a person runs by hand. Private channels and the `realtime.messages` policies
-  cannot be configured or checked until it exists.
+- `cloud/` holds the Worker and `0001_service.sql`, `0002_accounts.sql` and
+  `0003_invitations.sql`. There is no board, event, delivery, action or outcome table, and the
+  only routes are `/health`, `/v1/session` and `/v1/self-check`. `cloud/src/scheduled.ts` runs
+  one hourly heartbeat that later steps join rather than adding a schedule of their own.
+- The service is live: the Supabase project stands in `eu-central-1` with all three migrations
+  applied and PostgREST closed to everyone but the Worker, `cli/src/lib/cloud/config.ts` carries
+  its URL and publishable key, and the Worker answers on `api.ai4kanban.dev`. So this card's
+  private channels and `realtime.messages` policies are configured against the real project.
 - `web/legal/privacy.mdx`'s Data retention section covers site visits, app use, workspace
   content, the account record, the audit trail and email — there is no line for event history.
 - Nothing local shows a notification. `kanban-ui/components/Header.tsx` carries the mark, the
@@ -271,6 +264,10 @@ Recommended: **A** — the rail reads as one list at a glance, and the card keep
 **Pick: `@supabase/realtime-js`** — the one dependency that buys private channels and live `setAuth` without handing this project's own sign-in a second owner.
 
 ## Decided by the agent
+- **Where this card's Realtime and RLS work is checked**: on the live Supabase project, which
+  now exists. The private channels and the `realtime.messages` policies are configured there as
+  part of this card, so the first `verify:` line is a real round trip rather than a check
+  deferred to #329.
 - **Why this is one card and not two**: the publisher and the notification center check each
   other and nothing else — a pipeline with no bell shows the user nothing, and a bell with no
   pipeline has nothing to show. #325 already split this group where its seams are: the

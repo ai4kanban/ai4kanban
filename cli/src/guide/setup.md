@@ -24,7 +24,7 @@ While the checklist exists, create no cards — not from propose, not from add. 
 stop to ask the user anything except the goal: the moment you hit a call you can't make
 on your own, append it to the questions card the install created —
 `akb board update-questions <id> --append "[user] .." --recommended-option ".." --option ".."`
-— following `akb guide user-question`. `akb board setup-status` prints the card's id.
+— following "Who owns the question" in `akb guide resolve`. `akb board setup-status` prints the card's id.
 
 ## `project`
 

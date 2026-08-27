@@ -35,8 +35,8 @@ Return `add`, `update #<id>`, or `skip`, with one-line evidence.
 Merge duplicate drafts across modules and group tightly coupled work. Apply updates,
 send each surviving `add` draft to "Add one task idea" in `akb guide add-task` — adding
 `--proposed` to the `create` call, because the board found this work rather than a person
-asking for it — then report what was created, updated, and skipped. Follow "Card format"
-and "Writing rules" in `akb guide board` for every body you change.
+asking for it — then report what was created, updated, and skipped. Follow
+`akb guide writing` for every body you change.
 
 **Rules**:
 

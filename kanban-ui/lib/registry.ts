@@ -47,6 +47,10 @@ function toView(run: RunView, deliveries?: Map<string, DeliveryRecord>): Session
     result: run.status !== "running" ? run.result : undefined,
     note: run.status !== "running" ? run.note : undefined,
     tail: run.tail,
+    // The REFINEMENT this session is one pass of. Every pass of one loop carries the same
+    // id, so the panel can show the loop rather than its sessions. A run under an older
+    // rules build carries none and stands on its own, which is what it did before.
+    flow: run.flowId ? { id: run.flowId, kind: "refine", round: run.refineRound ?? 1 } : undefined,
     // The DELIVERY this session belonged to, and how that delivery ended (#301). A session
     // the user stopped inside a cancelled delivery has to read "cancelled": "stopped" would
     // describe the session and hide what happened to the job it was part of.

@@ -10,8 +10,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { FiActivity, FiX } from "react-icons/fi";
+import { FiActivity, FiChevronRight, FiX } from "react-icons/fi";
 import { getSessionAction, listSessionsAction, startAgentAction } from "@/app/actions";
+import { flowLabel, flowOf, runFlows, stepLabel, type RunFlow } from "@/lib/run-flows";
 import type { SessionView } from "@/lib/types";
 import { type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
 import { TOOL_BTN } from "./chrome";
@@ -301,6 +302,123 @@ function SessionDot({ session }: { session: SessionView }) {
   return <span className={`size-[8px] shrink-0 rounded-full ${tone}`} aria-hidden />;
 }
 
+// One row of the run list. A refinement is a loop several passes long
+// (lib/run-flows.ts), so it takes ONE row — the chevron opens it to reach a single pass.
+// Every other run is one row and no chevron, exactly as it was.
+function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | null }) {
+  const passes = flow.sessions.length;
+  const holds = flow.sessions.some((s) => s.sessionId === selectedId);
+  // Open by default: the passes are the only place to reach a single one, and a
+  // loop with them hidden looks like a run with nothing inside it.
+  const [open, setOpen] = useState(true);
+  // The row stands for the loop, so it selects the pass the loop is ON: the live one, or
+  // the one it ended with.
+  const head = flow.latest;
+
+  return (
+    <div className="border-b border-nb-ink/8">
+      <div
+        className={`flex items-stretch transition-colors ${
+          holds ? "bg-nb-paper shadow-[inset_2.5px_0_0_0_var(--color-nb-accent)]" : "hover:bg-nb-wash/70"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => sessionsPanel.select(head.sessionId)}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 px-3 py-2.5 text-left"
+        >
+          <SessionDot session={head} />
+          <span className="min-w-0 flex-1">
+            <span className="flex items-baseline gap-1.5">
+              <span
+                className={`text-[12.5px] font-[700] ${holds ? "text-nb-ink" : "text-nb-ink-soft"}`}
+              >
+                {flowLabel(flow)}
+              </span>
+              <span className="text-[11px] text-nb-ink-soft">
+                {flow.cardId !== null ? `#${flow.cardId}` : "—"}
+              </span>
+              {/* A cancelled delivery, said on the row itself: its run reads
+                  "stopped", which describes the run and not what happened to the
+                  job it was part of. */}
+              {head.delivery?.status === "cancelled" && (
+                <span className="text-[10.5px] text-nb-ink-soft">cancelled</span>
+              )}
+            </span>
+            <span className="block truncate text-[10.5px] text-nb-ink-soft">
+              {passes > 1 && `${passes} sessions · `}
+              {relTime(head.startedAt)}
+            </span>
+          </span>
+        </button>
+        {passes > 1 && (
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            aria-label={open ? "Hide the sessions" : "Show the sessions"}
+            aria-expanded={open}
+            className="grid w-8 shrink-0 cursor-pointer place-items-center text-nb-ink-soft transition-colors hover:text-nb-ink"
+          >
+            <FiChevronRight
+              size={14}
+              className={`transition-transform duration-100 ${open ? "rotate-90" : ""}`}
+              aria-hidden
+            />
+          </button>
+        )}
+      </div>
+      {/* The passes, threaded on a rail through their own dots: the loop ran them in this
+          order, and a timeline says so at a glance. The rail stops at the last dot rather
+          than running past it, so where the loop has got to is the line's end. */}
+      {open && (
+        <div className="pb-1">
+          {flow.sessions.map((s, i) => {
+            const active = s.sessionId === selectedId;
+            const last = i === flow.sessions.length - 1;
+            return (
+              <button
+                key={s.sessionId}
+                type="button"
+                onClick={() => sessionsPanel.select(s.sessionId)}
+                title={fullTime(s.startedAt)}
+                className={`relative flex w-full cursor-pointer items-center gap-2 py-1.5 pl-7 pr-3 text-left transition-colors ${
+                  active ? "bg-nb-paper" : "hover:bg-nb-wash/70"
+                }`}
+              >
+                <span
+                  aria-hidden
+                  className={`absolute left-[31.5px] w-px bg-nb-ink/15 ${last ? "top-0 h-1/2" : "inset-y-0"}`}
+                />
+                {/* Lifted over the rail, or the hairline draws straight across the dot. */}
+                <span className="relative z-[1] flex shrink-0">
+                  <SessionDot session={s} />
+                </span>
+                <span className={`text-[11.5px] ${active ? "font-[700] text-nb-ink" : "text-nb-ink-soft"}`}>
+                  {stepLabel(s.action)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The board's last word on a loop that ended with its card still unsettled
+// (agent/refine.ts). It rides on the final pass's record, where it reads as that one run's
+// footnote — here it is what it actually is, how the LOOP ended, and so it is shown
+// whichever step is open. The pass that carries it prints it itself, under its log.
+function FlowEnding({ flow, selectedId }: { flow: RunFlow; selectedId: string | null }) {
+  const last = flow.latest;
+  if (selectedId === last.sessionId || !last.note) return null;
+  return (
+    <p className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
+      {last.note}
+    </p>
+  );
+}
+
 // The header entry point to the run history (task #21): one activity-icon
 // button. While any run is live it wears an iOS-style badge — a small ember
 // circle with the count of running runs and a ping pulse. Clicking opens the
@@ -376,10 +494,11 @@ function SessionsDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Newest first. Default the selection to the newest run when none is set,
-  // so the panel always opens on something.
-  const ordered = [...sessions].sort((a, b) => b.startedAt - a.startedAt);
-  const selectedId = panel.selected ?? ordered[0]?.sessionId ?? null;
+  // Newest activity first, and a refinement is ONE row however many passes it took
+  // (lib/run-flows.ts). Default the selection to the newest run when none is set, so the
+  // panel always opens on something.
+  const flows = runFlows(sessions);
+  const selectedId = panel.selected ?? flows[0]?.latest.sessionId ?? null;
   // Tail the selected run's log from the file — live while running, one fetch
   // when done. The list entry carries the input and (for finished runs) the
   // tail, so the pane fills in before the tail loads.
@@ -388,8 +507,9 @@ function SessionsDialog({
   // failed run isn't in `sessions` yet. Its own fetch already has it, so that
   // stands in until the next tick rather than flashing the empty pane.
   const selected =
-    ordered.find((r) => r.sessionId === selectedId) ??
+    sessions.find((r) => r.sessionId === selectedId) ??
     (log?.sessionId === selectedId ? log : null);
+  const flow = flowOf(flows, selectedId);
   const input = (log?.input ?? selected?.input ?? "").trim();
 
   if (!mounted) return null;
@@ -421,47 +541,12 @@ function SessionsDialog({
               raised sheet. The divider is a soft ink hairline, not a full ink
               rule: 1.5px ink borders stay reserved for structural frames. */}
           <div className="w-[240px] shrink-0 overflow-y-auto border-r border-nb-ink/10 bg-nb-cream/70">
-            {ordered.length === 0 ? (
+            {flows.length === 0 ? (
               <p className="p-4 text-[12.5px] text-nb-ink-soft">No runs yet.</p>
             ) : (
-              ordered.map((r) => {
-                const active = r.sessionId === selectedId;
-                return (
-                  <button
-                    key={r.sessionId}
-                    type="button"
-                    onClick={() => sessionsPanel.select(r.sessionId)}
-                    className={`flex w-full cursor-pointer items-center gap-2.5 border-b border-nb-ink/8 px-3 py-2.5 text-left transition-colors ${
-                      active
-                        ? "bg-nb-paper shadow-[inset_2.5px_0_0_0_var(--color-nb-accent)]"
-                        : "hover:bg-nb-wash/70"
-                    }`}
-                  >
-                    <SessionDot session={r} />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline gap-1.5">
-                        <span
-                          className={`text-[12.5px] font-[700] capitalize ${active ? "text-nb-ink" : "text-nb-ink-soft"}`}
-                        >
-                          {r.action}
-                        </span>
-                        <span className="text-[11px] text-nb-ink-soft">
-                          {r.cardId !== null ? `#${r.cardId}` : "—"}
-                        </span>
-                        {/* A cancelled delivery, said on the row itself: its run
-                            reads "stopped", which describes the run and not what
-                            happened to the job it was part of. */}
-                        {r.delivery?.status === "cancelled" && (
-                          <span className="text-[10.5px] text-nb-ink-soft">cancelled</span>
-                        )}
-                      </span>
-                      <span className="block truncate text-[10.5px] text-nb-ink-soft">
-                        {relTime(r.startedAt)}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })
+              flows.map((f) => (
+                <FlowRow key={f.id} flow={f} selectedId={selectedId} />
+              ))
             )}
           </div>
 
@@ -470,8 +555,11 @@ function SessionsDialog({
             {selected ? (
               <>
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="text-[14px] font-[800] capitalize tracking-[-0.02em]">
-                    {selected.action}
+                  {/* A pass of a refinement is titled by the LOOP, not by its own action:
+                      "Resolve" alone says nothing about the job it is a step of. Which
+                      step you are reading is the strip's word, below. */}
+                  <span className="text-[14px] font-[800] tracking-[-0.02em]">
+                    {flow ? flowLabel(flow) : stepLabel(selected.action)}
                   </span>
                   {/* The card this run worked on, as a link to it — the same
                       `#id` → `/id` jump the markdown bodies make, so an id reads
@@ -490,7 +578,11 @@ function SessionsDialog({
                       #{selected.cardId}
                     </Link>
                   )}
-                  <span className="text-[11px] text-nb-ink-soft">{fullTime(selected.startedAt)}</span>
+                  {/* A loop is dated by when IT started, not by the pass you happen to be
+                      reading — each pass carries its own time on its step below. */}
+                  <span className="text-[11px] text-nb-ink-soft">
+                    {fullTime(flow?.kind ? flow.startedAt : selected.startedAt)}
+                  </span>
                   {/* A run started by Resume says so — otherwise it reads as a
                       second identical run of the same action out of nowhere. */}
                   {selected.resumedFrom && <span className="nb-tag">resumed</span>}
@@ -515,6 +607,8 @@ function SessionsDialog({
                     </span>
                   )}
                 </div>
+                {/* How the loop ended — its steps are the left list's job. */}
+                {flow?.kind && <FlowEnding flow={flow} selectedId={selectedId} />}
                 {/* The note is the optional free text the user typed when
                     starting the run (a create's description, a reject's
                     reason, else the notes field). Most runs are started

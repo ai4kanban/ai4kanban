@@ -62,8 +62,8 @@ Got a field wrong, or learned something after the fact? `akb board update <id> -
 
 ## Write the card's body
 
-Replace the scaffolded body according to "Card format" and "Writing rules" in
-`akb guide board`. A new card normally needs the opening paragraph, `## Scope`, and
+Replace the scaffolded body according to `akb guide writing`. A new card normally needs
+the opening paragraph, `## Scope`, and
 `## Todo`; add other sections only when that guide calls for them.
 
 The title lives in frontmatter, so do not repeat it as an H1 in the body.

@@ -13,7 +13,7 @@ Write the markdown to a file first so the shell cannot mangle it. The command pu
 ``## By `<your-name>` agent`` and replaces your earlier section. Inside it, use `###`
 headings; `##` is refused.
 
-A card has two halves ("Card format" in `akb guide board`). Add `--half human` when your
+A card has two halves (`akb guide writing`). Add `--half human` when your
 section holds the pick you are leaving to the user below, so it lands above the boundary
 with the rest of their reading. Without the flag a new section goes in the agent half and a
 rewrite stays where it already sits.
@@ -31,7 +31,7 @@ wrong, say so in your section. Do not change another card or project code.
 
 ## When the pick is the user's
 
-Follow `akb guide user-question` and leave at most one genuinely user-owned choice as an
+Follow "Who owns the question" in `akb guide resolve` and leave at most one genuinely user-owned choice as an
 open question pointing to your section:
 
     akb board update-questions <id> --append "[user] <the question> — see the \`<your-name>\` section" \
@@ -44,7 +44,7 @@ boundary until the question is answered.
 
 ## How to answer
 
-- Follow the card writing rules in `akb guide board`.
+- Follow `akb guide writing`.
 - If your part needs nothing, write one line saying so.
 - If you cannot answer without guessing, write no section and explain why in your last
   message.

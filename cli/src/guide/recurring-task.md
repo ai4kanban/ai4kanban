@@ -38,7 +38,7 @@ questions: []
 ```
 
 The paragraph is the card's human half and `## Process` its agent half — the same two
-halves every card has ("Card format" in `akb guide board`).
+halves every card has (`akb guide writing`).
 
 Don't edit frontmatter by hand.
 
@@ -59,9 +59,8 @@ imperative sentences.
   ```
 
   Leave it untagged: a run doesn't decide who answers. `akb guide resolve` later records
-  the answers according to `akb guide board` and hands the user only the rest. Write the
-  question according to `akb guide user-question`: one line, two or more options,
-  answerable at a glance.
+  the answers according to `akb guide board` and hands the user only the rest. Write it as
+  one line with two or more options, answerable at a glance.
 
 ## Run one
 

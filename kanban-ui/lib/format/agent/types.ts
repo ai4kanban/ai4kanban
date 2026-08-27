@@ -70,6 +70,14 @@ export type AgentAction =
    *  rebase after it. Its result is reviewed from scratch. */
   | 'conflict'
 
+/** The passes a refinement is made of (`agent/refine.ts`). None of them is a flow a user
+ *  types: each one belongs to a refine loop, and carries that loop's id and its round. */
+export const REFINE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([
+  'raise-questions',
+  'resolve',
+  'writing',
+])
+
 /** Everything one run is asked for. What the user typed rides along so the run list can
  *  show it beside the log. */
 export interface AgentRequest {
@@ -89,6 +97,9 @@ export interface AgentRequest {
   andImplement?: boolean // resolve: keep going and implement once the questions settle
   /** Internal position in a watcher-managed refinement run chain. */
   refineRound?: number
+  /** The refinement this run continues. Absent on the first pass — the run that starts a
+   *  loop is given its id when it is written down. */
+  flowId?: string
   /** spec: which spec agent this run is — a name from `lib/spec-agents.ts`. It decides
    *  the prompt the run is given and the section it is allowed to write. */
   specAgent?: string
@@ -169,6 +180,11 @@ export interface RunRecord {
   specAgent?: string
   /** Position in a watcher-managed refinement run chain. */
   refineRound?: number
+  /** The refinement this run is one pass of — the id its whole chain shares, from the
+   *  first question audit to the writing session that ends it. A run outside a refinement
+   *  carries none. It is what lets the runs panel show one loop instead of six unrelated
+   *  rows. */
+  flowId?: string
   /** The delivery this run belongs to, when it belongs to one. Only an `implement` run
    *  does today; a refine, a resolve or a propose stands alone and carries none. */
   deliveryId?: string

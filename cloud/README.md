@@ -256,11 +256,12 @@ Only needed once, and again if the project is ever recreated.
 9. **Route** — `npm run deploy` claims `api.ai4kanban.dev` as a custom domain on the
    Cloudflare account the site deploys from. `cloud.ai4kanban.dev` stays free for the hosted
    browser surface.
-10. **The sending domain** — add `send.ai4kanban.dev` as a domain in Resend and publish the
-    DKIM and return-path records it gives you. **Leave the root domain's MX and SPF records
-    alone**: they belong to the Cloudflare Email Routing that delivers `support@ai4kanban.dev`,
-    and a sender on the same name fights them. Mail goes out as
-    `AI4Kanban <invites@send.ai4kanban.dev>` replying to `support@ai4kanban.dev`
+10. **The sending domain** — add `ai4kanban.dev` as a domain in Resend and publish the three
+    records it gives you: the DKIM `TXT` at `resend._domainkey`, and the return-path `MX` and
+    `SPF TXT` on `send`. **Leave the root domain's own MX and SPF alone**: they belong to the
+    mailbox that delivers `support@ai4kanban.dev`, and Resend needs neither — it aligns SPF on
+    its own return path and DMARC on the DKIM key. Mail goes out as
+    `AI4Kanban <invites@ai4kanban.dev>` replying to `support@ai4kanban.dev`
     (`src/config.ts`). Resend's free tier is 3,000 emails a month and 100 a day from one
     verified domain, which is far more than an invite-only preview issues.
 

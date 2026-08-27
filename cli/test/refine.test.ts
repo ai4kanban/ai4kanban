@@ -13,6 +13,7 @@ import {
   refinementRunsAfter,
   type BoardMarks,
 } from '../src/lib/agent/refine.ts'
+import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import type { AgentAction, RunRecord } from '../src/lib/agent/types.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
@@ -150,6 +151,43 @@ describe('writing', () => {
     const { runs, stalled } = afterSession('writing', 2, () => {})
     assert.deepEqual(runs, [])
     assert.match(stalled ?? '', /#7 is still at todo/)
+  })
+})
+
+// A refinement is one job several sessions long, and the record has to say so: the runs
+// panel groups by this id, so a broken chain reads as unrelated runs on the same card.
+describe('one refinement, several sessions', () => {
+  const openPass = (round: number, flowId?: string) => {
+    const opened = openRun(
+      { action: 'raise-questions', id: 7, title: 'A card to refine', refineRound: round, flowId },
+      'prompt',
+      [],
+    )
+    if ('error' in opened) throw new Error(opened.error)
+    return opened.run
+  }
+
+  it('carries the first pass id down the loop', () => {
+    writeCard()
+    const first = openPass(1)
+    assert.ok(first.flowId)
+    const before = markBoard()
+    writeCard({ questions: ['Which boundary applies?'] })
+    const { runs } = refinementRunsAfter(first, before)
+    assert.deepEqual(
+      runs.map((r) => [r.action, r.flowId]),
+      [['resolve', first.flowId]],
+    )
+  })
+
+  it('gives a second refinement on the same card an id of its own', async () => {
+    writeCard()
+    const first = openPass(1)
+    fs.writeFileSync(first.logPath, 'log\n')
+    await closeRun(first.sessionId, { status: 'done', ok: true, code: 0 })
+    const second = openPass(1)
+    assert.ok(second.flowId)
+    assert.notEqual(second.flowId, first.flowId)
   })
 })
 

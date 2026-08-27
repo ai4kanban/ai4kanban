@@ -24,7 +24,7 @@ import { parseFlags } from '../lib/validate'
 // not after the footnotes. A card with neither takes it at the end.
 const TAIL_HEADINGS = [/^##\s+Decided by the agent\s*$/i, /^##\s+Source\s*$/i]
 
-// The line dividing a card's two halves ("Card format" in `akb guide board`).
+// The line dividing a card's two halves (`akb guide writing`).
 const MARKER = /^<!--\s*agent\s*-->$/
 
 /** Which half the section goes in. A section holding a pick the user has to make is their

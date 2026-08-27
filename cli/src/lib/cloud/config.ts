@@ -6,15 +6,14 @@
 // `npm run check:closed` proves from outside. The key's whole job is to let Auth answer a
 // sign-in and a refresh.
 //
-// The two project values are blank until the Supabase project is stood up — see "Standing
-// up a new project" in cloud/README.md, which is where they are filled in. The environment
-// overrides all three, so a checkout can be pointed at a throwaway project without a build.
+// The environment overrides all three, so a checkout can be pointed at a throwaway project
+// without a build. See "Standing up a new project" in cloud/README.md.
 
 /** The Supabase project Cloud signs in against. */
-const SUPABASE_URL = ''
+const SUPABASE_URL = 'https://yajrbpprmdvtkvjjfpbk.supabase.co'
 
 /** That project's publishable (anon) key. */
-const SUPABASE_ANON_KEY = ''
+const SUPABASE_ANON_KEY = 'sb_publishable_ioUQ23BTtoj8NKqndp0Jrw_omVR3m4n'
 
 /** The Worker every Cloud request goes to. */
 const API_URL = 'https://api.ai4kanban.dev'
