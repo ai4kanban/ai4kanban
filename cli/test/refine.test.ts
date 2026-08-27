@@ -9,6 +9,7 @@ import { after, beforeEach, describe, it } from 'node:test'
 
 import { refineRunsAfter } from '../src/lib/agent/follow.ts'
 import {
+  claimChanges,
   markBoard,
   refinementRequest,
   refinementRunsAfter,
@@ -83,6 +84,15 @@ const run = (action: AgentAction, round: number, extra: Partial<RunRecord> = {})
   ...extra,
 })
 
+// A close, as the watcher does it: take what this run is answerable for, then work out the
+// sessions that follow from it.
+const closing = (
+  record: RunRecord,
+  before: BoardMarks,
+  waitingForSpec = false,
+): ReturnType<typeof refinementRunsAfter> =>
+  refinementRunsAfter(record, claimChanges(before, record.sessionId), waitingForSpec)
+
 function afterSession(
   action: AgentAction,
   round: number,
@@ -90,7 +100,7 @@ function afterSession(
 ): ReturnType<typeof refinementRunsAfter> {
   const before: BoardMarks = markBoard()
   wrote()
-  return refinementRunsAfter(run(action, round), before)
+  return closing(run(action, round), before)
 }
 
 describe('entering refinement', () => {
@@ -158,7 +168,7 @@ describe('the QA pass', () => {
   it('waits for requested spec agents instead of starting writing', () => {
     writeCard()
     const before = markBoard()
-    const { runs, stalled } = refinementRunsAfter(run('clarify', 1), before, true)
+    const { runs, stalled } = closing(run('clarify', 1), before, true)
     assert.deepEqual(runs, [])
     assert.equal(stalled, undefined)
   })
@@ -174,7 +184,7 @@ describe('applying user answers', () => {
     writeCard({ questions: ['[user] Which boundary applies?'] })
     const before = markBoard()
     writeCard({ body: 'The selected boundary is applied.' })
-    const { runs, stalled } = refinementRunsAfter(resolveRun(), before)
+    const { runs, stalled } = closing(resolveRun(), before)
     assert.equal(stalled, undefined)
     assert.deepEqual(
       runs.map((r) => [r.action, r.refineRound, r.flowId]),
@@ -186,7 +196,7 @@ describe('applying user answers', () => {
     writeCard({ questions: ['[user] Which boundary?', '[user] Which layout?'] })
     const before = markBoard()
     writeCard({ body: 'The boundary is applied.', questions: ['[user] Which layout?'] })
-    const { runs, stalled } = refinementRunsAfter(resolveRun(), before)
+    const { runs, stalled } = closing(resolveRun(), before)
     assert.deepEqual(runs, [])
     assert.equal(stalled, undefined)
   })
@@ -195,7 +205,7 @@ describe('applying user answers', () => {
     writeCard({ questions: ['[user] Which boundary applies?'] })
     const before = markBoard()
     writeCard({ questions: ['Which dependent boundary applies?'] })
-    const { runs, stalled } = refinementRunsAfter(resolveRun(), before)
+    const { runs, stalled } = closing(resolveRun(), before)
     assert.deepEqual(runs, [])
     assert.match(stalled ?? '', /QA left untagged questions/)
   })
@@ -249,7 +259,7 @@ describe('one job, several sessions', () => {
     const first = openPass(1)
     assert.ok(first.flowId)
     const before = markBoard()
-    const { runs } = refinementRunsAfter(first, before)
+    const { runs } = closing(first, before)
     assert.deepEqual(
       runs.map((r) => [r.action, r.flowId]),
       [['writing', first.flowId]],
@@ -285,7 +295,7 @@ describe('a revise', () => {
     writeCard()
     const before = markBoard()
     writeCard({ body: 'The plan, revised.' })
-    const { runs, stalled } = refinementRunsAfter(reviseRun(), before)
+    const { runs, stalled } = closing(reviseRun(), before)
     assert.equal(stalled, undefined)
     assert.deepEqual(
       runs.map((r) => [r.action, r.refineRound, r.flowId]),
@@ -297,7 +307,7 @@ describe('a revise', () => {
     writeCard({ questions: ['[user] Which boundary applies?'] })
     const before = markBoard()
     writeCard({ body: 'The plan, revised.', questions: ['[user] Which boundary applies?'] })
-    const { runs, stalled } = refinementRunsAfter(reviseRun(), before)
+    const { runs, stalled } = closing(reviseRun(), before)
     assert.deepEqual(runs, [])
     assert.equal(stalled, undefined)
   })
@@ -306,7 +316,7 @@ describe('a revise', () => {
     writeCard()
     const before = markBoard()
     writeCard({ questions: ['Which boundary applies?'] })
-    const { runs, stalled } = refinementRunsAfter(reviseRun(), before)
+    const { runs, stalled } = closing(reviseRun(), before)
     assert.deepEqual(runs, [])
     assert.match(stalled ?? '', /QA left untagged questions/)
   })
@@ -326,15 +336,58 @@ describe('an explicit refine handoff', () => {
   })
 })
 
+// Several runs are up at once and their windows overlap, so "the board changed while I was
+// running" is not the same question as "I changed the board". A run that answered the first
+// one adopted its neighbours' cards and started their loops over.
+describe('two runs at once', () => {
+  // A long run elsewhere on the board — a review of another card, say. It is up before the
+  // pass on #7 starts and still up when that pass has finished.
+  const other = (): RunRecord => ({
+    ...run('review', 1, { sessionId: 'review-9', cardId: 9 }),
+    refineRound: undefined,
+  })
+
+  it('leaves a card the run that changed it has already accounted for', () => {
+    writeCard()
+    const wide = markBoard()
+    const narrow = markBoard()
+    writeCard({ body: 'The plan, rewritten by the pass on #7.' })
+    // The pass on #7 closes first and takes its own change with it.
+    assert.deepEqual(
+      closing(run('clarify', 1), narrow).runs.map((r) => [r.action, r.id]),
+      [['writing', 7]],
+    )
+    // The long run closes later. #7 changed inside its window too, and it is none of its
+    // business.
+    assert.deepEqual(closing(other(), wide).runs, [])
+  })
+
+  it('still refines a card it changed itself', () => {
+    writeCard()
+    const wide = markBoard()
+    writeCard({ body: 'A follow-up the long run wrote itself.' })
+    assert.deepEqual(
+      closing(other(), wide).runs.map((r) => [r.action, r.id]),
+      [['clarify', 7]],
+    )
+  })
+
+  it('leaves a card another run is still working on to that run', () => {
+    writeCard()
+    const opened = openRun({ action: 'clarify', id: 7, title: 'A card to refine' }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    const wide = markBoard()
+    writeCard({ body: 'What the live pass on #7 is writing.' })
+    assert.deepEqual(closing(other(), wide).runs, [])
+  })
+})
+
 describe('specialized input', () => {
   it('starts a fresh audit after a spec agent writes its section', () => {
     writeCard()
     const before = markBoard()
     writeCard({ body: 'A plan with its specialized section.' })
-    const { runs, stalled } = refinementRunsAfter(
-      { ...run('spec', 1), refineRound: undefined },
-      before,
-    )
+    const { runs, stalled } = closing({ ...run('spec', 1), refineRound: undefined }, before)
     assert.equal(stalled, undefined)
     assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['clarify', 1]])
   })
@@ -342,10 +395,7 @@ describe('specialized input', () => {
   it('resumes QA even when a spec agent could not write a section', () => {
     writeCard()
     const before = markBoard()
-    const { runs, stalled } = refinementRunsAfter(
-      { ...run('spec', 1), refineRound: undefined },
-      before,
-    )
+    const { runs, stalled } = closing({ ...run('spec', 1), refineRound: undefined }, before)
     assert.equal(stalled, undefined)
     assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['clarify', 1]])
   })

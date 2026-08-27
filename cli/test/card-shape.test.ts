@@ -9,7 +9,7 @@ import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { cmdSpecWrite } from '../src/commands/spec-write.ts'
-import { markBoard, refinementAfter } from '../src/lib/agent/refine.ts'
+import { claimChanges, markBoard, refinementAfter } from '../src/lib/agent/refine.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-shape-'))
@@ -144,14 +144,14 @@ describe('repairing a card is not a change worth another pass', () => {
     write(OLD, 'todo')
     const before = markBoard()
     write(SHAPED.replace('## Worth noting\n- a call a reviewer could refuse\n\n', ''), 'todo')
-    assert.equal(refinementAfter('resolve', 5, 1, before), null)
+    assert.equal(refinementAfter('resolve', 5, 1, claimChanges(before, 'resolve-5')), null)
   })
 
   it('still catches a pass that rewords a line', () => {
     write(OLD, 'todo')
     const before = markBoard()
     write(OLD.replace('- a requirement', '- a different requirement'), 'todo')
-    assert.deepEqual(refinementAfter('resolve', 5, 1, before), {
+    assert.deepEqual(refinementAfter('resolve', 5, 1, claimChanges(before, 'resolve-5')), {
       action: 'clarify',
       id: 5,
       title: 'A card',
@@ -163,6 +163,6 @@ describe('repairing a card is not a change worth another pass', () => {
     write(OLD, 'todo')
     const before = markBoard()
     write(OLD.replace('- a requirement', '- a different requirement'), 'ready')
-    assert.equal(refinementAfter('resolve', 5, 1, before), null)
+    assert.equal(refinementAfter('resolve', 5, 1, claimChanges(before, 'resolve-5')), null)
   })
 })

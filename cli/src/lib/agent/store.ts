@@ -1,11 +1,12 @@
 // docs/kanban/.sessions.json — the live record every process on this board shares.
 //
-// It holds two lists. The RUNS are agent invocations: what is running, and what ran
-// lately. The DELIVERIES are the jobs those runs belong to — one Implement click each,
-// and several runs long. Both live in a file rather than in memory because the
-// processes that need them are not one process: a run started from a terminal, one
-// started from a button, and one the board started on its own all land in the same lists,
-// and the rules that hold a card still hold across all three.
+// It holds two lists and a set of marks. The RUNS are agent invocations: what is running,
+// and what ran lately. The DELIVERIES are the jobs those runs belong to — one Implement
+// click each, and several runs long. The MARKS say how far each card has been accounted
+// for, so two runs never both claim one edit (agent/refine.ts). All three live in a file
+// rather than in memory because the processes that need them are not one process: a run
+// started from a terminal, one started from a button, and one the board started on its own
+// all land in the same lists, and the rules that hold a card still hold across all three.
 //
 // Nothing is kept between commands: every read is a read of the file, and every write
 // takes the record's own lock.
@@ -54,10 +55,14 @@ const WAS_CLARIFY = new Set(['auto-refine', 'refine', 'raise-questions'])
 export const readAction = (action: unknown): AgentAction =>
   typeof action === 'string' && WAS_CLARIFY.has(action) ? 'clarify' : (action as AgentAction)
 
-/** Both lists as the file holds them. */
+/** Everything the file holds. */
 export interface Store {
   runs: RunRecord[]
   deliveries: DeliveryRecord[]
+  /** One board mark per card, by id: the card as the last run to close over it left it.
+   *  A change is claimed once, by the first close that sees it — see `claimChanges` in
+   *  agent/refine.ts, which is the only thing that reads or writes this. */
+  marks: Record<string, string>
 }
 
 /** Everything the record holds, newest last. Reads only — no lock, because a half-written
@@ -67,9 +72,15 @@ export function readStore(): Store {
   try {
     data = JSON.parse(fs.readFileSync(SESSIONS, 'utf8'))
   } catch {
-    return { runs: [], deliveries: [] }
+    return { runs: [], deliveries: [], marks: {} }
   }
-  const box = data as { runs?: unknown; live?: unknown; finished?: unknown; deliveries?: unknown }
+  const box = data as {
+    runs?: unknown
+    live?: unknown
+    finished?: unknown
+    deliveries?: unknown
+    marks?: unknown
+  }
   // `live`/`finished` is the shape the board UI's own registry wrote before the record
   // became everyone's. Read so an upgrade mid-run keeps its history.
   const raw = Array.isArray(box?.runs)
@@ -115,7 +126,19 @@ export function readStore(): Store {
     })
   }
   runs.sort((a, b) => a.startedAt - b.startedAt)
-  return { runs, deliveries: readDeliveryRows(box?.deliveries) }
+  return { runs, deliveries: readDeliveryRows(box?.deliveries), marks: readMarks(box?.marks) }
+}
+
+// A board written by a copy of these rules from before marks existed has none, and reads as
+// a board nothing has accounted for yet — the first close after the upgrade takes what it
+// finds and every one after that reads its own mark back.
+function readMarks(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const marks: Record<string, string> = {}
+  for (const [id, mark] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof mark === 'string' && mark) marks[id] = mark
+  }
+  return marks
 }
 
 /** Every run the record holds, newest last. */
@@ -322,7 +345,11 @@ function asDeliveryStatus(value: unknown): DeliveryStatus {
 }
 
 function writeStore(store: Store): void {
-  const kept = { runs: prune(store.runs), deliveries: pruneDeliveries(store.deliveries) }
+  const kept = {
+    runs: prune(store.runs),
+    deliveries: pruneDeliveries(store.deliveries),
+    marks: store.marks,
+  }
   fs.mkdirSync(path.dirname(SESSIONS), { recursive: true })
   const tmp = `${SESSIONS}.tmp`
   fs.writeFileSync(tmp, JSON.stringify(kept, null, 2) + '\n')

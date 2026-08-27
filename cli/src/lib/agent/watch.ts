@@ -26,9 +26,9 @@ import { createStderrFilter } from './stream'
 import { resumePrompt } from './prompts'
 import { openPlan } from './resolve'
 import {
+  claimChanges,
   markBoard,
   refinementRunsAfter,
-  type BoardMarks,
   type RefinementFollowUp,
 } from './refine'
 import {
@@ -125,9 +125,10 @@ export async function watchRun(sessionId: string): Promise<number> {
   // check each step's precondition, rather than carrying on from a half-finished sentence.
   const prompt = record.resumedFrom ? resumePrompt(record.deliveryId, record.cardId) : spec.prompt
 
-  // The board as it was the moment before the agent touched it. What this run wrote — and
-  // what it took off the board — is the difference between this and the same read at the
-  // close, and that difference is what earns a card the refine that follows.
+  // The board as it was the moment before the agent touched it. The difference between this
+  // and the same read at the close is what this run could be answerable for; which of it
+  // really is its own — and not a neighbouring run's — is settled at the close by
+  // `claimChanges`, and that is what earns a card the refine that follows.
   const before = markBoard()
   // And what was already broken about it. Only what a run BREAKS is worth reporting on that
   // run: a board carrying a stale link from last month would otherwise put the same line on
@@ -264,13 +265,17 @@ export async function watchRun(sessionId: string): Promise<number> {
           // The refinement state below reports the card still at todo.
         }
       }
-      // Only after a run that finished. One that failed or was ended left the board
-      // half-written, and a refine of half a card is a refine you throw away — and a spec
-      // agent sent at half a plan would answer the wrong plan.
+      // What this run changed, taken now and taken once (agent/refine.ts). Every ending
+      // claims, a failure included: a half-written card is not a card to refine, but leaving
+      // its edits unclaimed would hand them to whichever run closes next.
+      const changed = claimChanges(before, sessionId)
+      // The refines themselves are only for a run that finished. One that failed or was
+      // ended left the board half-written, and a refine of half a card is a refine you throw
+      // away — and a spec agent sent at half a plan would answer the wrong plan.
       //
       // Worked out BEFORE the record closes, so anything watching for the run to end sees
       // the note it ended with rather than catching the record a beat too early.
-      const settled = status === 'done' ? settleBoard(record, before) : null
+      const settled = status === 'done' ? settleBoard(record, changed) : null
       const note = status === 'done' ? joinNotes(settled?.stalled, brokeBoard(wasBroken)) : undefined
       await closeRun(sessionId, {
         status,
@@ -406,10 +411,10 @@ const joinNotes = (...parts: (string | null | undefined)[]): string | undefined 
 // The refinement sessions this run leaves behind, worked out but not started, plus
 // `stalled` — a refinement loop that ended with its card unsettled (agent/refine.ts). The
 // pass's own call on the status stands: nothing out here has read the card.
-function settleBoard(run: RunRecord, before: BoardMarks): RefinementFollowUp | null {
+function settleBoard(run: RunRecord, changed: readonly number[]): RefinementFollowUp | null {
   try {
     const waitingForSpec = readSpecAsks(run.sessionId).some((ask) => ask.cardId === run.cardId)
-    return refinementRunsAfter(run, before, waitingForSpec)
+    return refinementRunsAfter(run, changed, waitingForSpec)
   } catch {
     // an unreadable board — the run it followed is done either way
     return null

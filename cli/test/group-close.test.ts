@@ -11,7 +11,7 @@ import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { cmdRemove } from '../src/commands/remove.ts'
-import { markBoard, refinementRunsAfter } from '../src/lib/agent/refine.ts'
+import { claimChanges, markBoard, refinementRunsAfter } from '../src/lib/agent/refine.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
@@ -206,7 +206,7 @@ describe('the refine a finished run starts on its own', () => {
       harness: 'test',
       logPath: '/dev/null',
     }
-    const { runs } = refinementRunsAfter(run, before)
+    const { runs } = refinementRunsAfter(run, claimChanges(before, run.sessionId))
     assert.deepEqual(runs.map((r) => r.id), [])
   })
 })

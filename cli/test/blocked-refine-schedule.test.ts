@@ -9,7 +9,7 @@ import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { cmdCreate, cmdUpdate } from '../src/commands/card.ts'
-import { refinementRunsAfter, markBoard } from '../src/lib/agent/refine.ts'
+import { claimChanges, refinementRunsAfter, markBoard } from '../src/lib/agent/refine.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
 import { parseFrontmatter, serializeFrontmatter } from '../src/lib/frontmatter.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
@@ -151,7 +151,10 @@ describe('the default refine schedule', () => {
       refineRound: 1,
     }
 
-    assert.deepEqual(refinementRunsAfter(run, before), { runs: [], stalled: undefined })
+    assert.deepEqual(refinementRunsAfter(run, claimChanges(before, run.sessionId)), {
+      runs: [],
+      stalled: undefined,
+    })
   })
 })
 
@@ -172,6 +175,6 @@ describe('removing a blocker', () => {
       logPath: '/dev/null',
     }
 
-    assert.deepEqual(refinementRunsAfter(run, before).runs, [])
+    assert.deepEqual(refinementRunsAfter(run, claimChanges(before, run.sessionId)).runs, [])
   })
 })
