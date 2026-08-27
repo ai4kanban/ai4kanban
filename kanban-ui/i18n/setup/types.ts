@@ -1,0 +1,124 @@
+/** The guided first run, the two notices the board keeps once it is over, and the
+ *  two screens a board that can't be read falls back to. */
+export type SetupCopy = {
+  rail: {
+    title: string;
+    blurb: string;
+    steps: string;
+    exit: string;
+    /** What each step has settled, under its name in the rail. */
+    projectSettledOne: (name: string) => string;
+    projectSettledMany: (name: string, tracks: number) => string;
+    goalWritten: string;
+    goalSkipped: string;
+  };
+  /** The rail's short name for each step. The checklist's own names are the
+   *  script's and stay as they are. */
+  stepTitles: { project: string; goal: string; agent: string };
+  reading: string;
+  project: {
+    title: string;
+    blurb: string;
+    name: string;
+    what: string;
+    whatPlaceholder: string;
+    tracks: string;
+    tracksBlurb: string;
+    trackName: (n: number) => string;
+    trackNote: (track: string) => string;
+    thisTrack: string;
+    trackNotePlaceholder: string;
+    dropTrack: (track: string) => string;
+    dropTrackHint: string;
+    /** A track that holds cards is never dropped out from under them. */
+    trackLocked: (track: string) => string;
+    addTrack: string;
+    keptOne: (tracks: string) => string;
+    keptMany: (tracks: string) => string;
+    saveFailed: string;
+    continue: string;
+  };
+  goal: {
+    title: string;
+    blurb: string;
+    placeholder: string;
+    guideTitle: string;
+    guideLine: string;
+    skip: string;
+    saveFailed: string;
+  };
+  agent: {
+    title: string;
+    blurb: string;
+    answered: string;
+    testFirst: string;
+    saveFailed: string;
+  };
+  done: {
+    title: string;
+    blurb: string;
+    /** The goal was left for later and every step left is planned from it. */
+    goalFirst: string;
+    writeGoal: string;
+    offer: string;
+    finish: string;
+    starting: string;
+    handOver: string;
+    open: string;
+    startFailed: string;
+  };
+  /** The setup run, wherever it is reported. */
+  run: {
+    watching: string;
+    watch: string;
+    failed: string;
+    readLog: string;
+    failedAfter: string;
+  };
+  notice: {
+    title: string;
+    working: string;
+    next: string;
+    lastStep: string;
+    resume: string;
+    addSkill: string;
+    addSkillHint: string;
+    meter: (done: number, total: number) => string;
+  };
+  goalNotice: {
+    tag: string;
+    body: string;
+    write: string;
+    dismiss: string;
+    dismissHint: string;
+  };
+  handover: {
+    open: string;
+    close: string;
+    title: string;
+    blurb: string;
+  };
+  /** The skill a paste into a coding agent needs first. */
+  addSkillFirst: string;
+  copy: { hint: string };
+  /** The whole-page screens: no board here, and a board with nothing to read it with. */
+  noBoard: {
+    title: string;
+    where: (folder: string) => string;
+    startTitle: string;
+    startApp: string;
+    startBrowser: string;
+    wrongTitle: string;
+    wrongApp: string;
+    wrongBrowser: string;
+    comeBack: string;
+    copy: string;
+  };
+  noRules: {
+    title: string;
+    installTitle: string;
+    installApp: string;
+    installBrowser: string;
+    comeBack: string;
+  };
+};

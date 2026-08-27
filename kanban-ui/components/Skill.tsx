@@ -22,6 +22,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { FiAlertCircle, FiCheck, FiChevronDown, FiCopy, FiRefreshCw } from "react-icons/fi";
 import { installSkillAction, skillStateAction } from "@/app/actions";
+import type { ConfigurationCopy } from "@/i18n/configuration/types";
+import { Rich } from "@/i18n/rich";
+import { useCopy } from "@/i18n/use-copy";
 import type { CommandState, SkillFolder, SkillInstall, SkillState } from "@/lib/types";
 import { Button } from "./button";
 import { InstallCommand } from "./desktop";
@@ -29,6 +32,7 @@ import { InstallCommand } from "./desktop";
 /** The section in the Configuration dialog. It reads its own state when it first draws —
  *  the board's poll never carries it, since one of the two answers spawns a process. */
 export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
+  const c = useCopy().configuration.skill;
   const [skill, setSkill] = useState<SkillState | null>(null);
   const [command, setCommand] = useState<CommandState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -66,7 +70,7 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
       const res = await installSkillAction();
       setDone(res);
       setSkill(res.state.folders.length ? res.state : skill);
-      if (!res.ok) onError?.(res.error || "couldn't add the skill");
+      if (!res.ok) onError?.(res.error || c.addFailed);
       // The command on the PATH can't have changed, but the folders have — re-read so the
       // list under the button is what is on disk rather than what was there a click ago.
       await load();
@@ -83,10 +87,9 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">Setup</h3>
+        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{c.title}</h3>
         <p className="mt-1 max-w-[58ch] text-[13px] leading-relaxed text-nb-ink-soft">
-          Two things let a coding agent work on this board: the AI4Kanban skill, installed in
-          this project, and the <code>akb</code> command.
+          <Rich>{c.blurb}</Rich>
         </p>
       </div>
 
@@ -99,15 +102,15 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
 
       <div className="rounded-[10px] bg-nb-wash p-4" aria-live="polite">
         {!skill ? (
-          <p className="text-[13px] text-nb-ink-soft">Checking this project…</p>
+          <p className="text-[13px] text-nb-ink-soft">{c.checking}</p>
         ) : (
           <div className="flex items-start justify-between gap-4 max-sm:flex-col">
             <div className="flex min-w-0 items-start gap-3">
               <StatusMark ready={!checking && !skillNeedsWork && !!command && !command.behind} />
               <div>
-                <p className="text-[14px] font-[800] text-nb-ink">{headline(skill, command)}</p>
+                <p className="text-[14px] font-[800] text-nb-ink">{headline(skill, command, c)}</p>
                 <p className="mt-0.5 text-[12.5px] leading-relaxed text-nb-ink-soft">
-                  {statusDetail(skill, command)}
+                  {statusDetail(skill, command, c)}
                 </p>
               </div>
             </div>
@@ -118,7 +121,7 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
                 disabled={installing || !skill.folders.length}
                 onClick={() => void install()}
               >
-                {installing ? "Writing…" : buttonLabel(skill)}
+                {installing ? c.writing : buttonLabel(skill, c)}
               </Button>
             ) : (
               <Button
@@ -129,25 +132,25 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
                 onClick={() => void load()}
               >
                 <FiRefreshCw className="text-[13px]" aria-hidden />
-                {checking ? "Checking…" : "Check again"}
+                {checking ? c.commandStatus.checking : c.checkAgain}
               </Button>
             )}
           </div>
         )}
       </div>
 
-      {done && <Receipt result={done} />}
+      {done && <Receipt result={done} copy={c} />}
 
       {skill && (
         <dl className="flex flex-col gap-2">
           <CheckRow
-            label="AI4Kanban skill"
-            status={skillStatus(skill)}
+            label={c.skillRow}
+            status={skillStatus(skill, c)}
             ready={!skillNeedsWork}
           />
           <CheckRow
-            label="akb command"
-            status={commandStatus(command, checking)}
+            label={c.commandRow}
+            status={commandStatus(command, checking, c)}
             ready={!checking && !!command && !command.behind}
           />
         </dl>
@@ -157,21 +160,19 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
           the small copyable command below as the answer. */}
       <InstallCommand onInstalled={() => void load()} onFixable={setButtonFixes} />
 
-      {command?.behind && <CommandBehind command={command} button={buttonFixes} />}
+      {command?.behind && <CommandBehind command={command} button={buttonFixes} copy={c} />}
 
       {skill?.folders.length ? (
         <details className="group border-t border-nb-ink/12 pt-3">
           <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent [&::-webkit-details-marker]:hidden">
             <FiChevronDown className="transition-transform duration-100 group-open:rotate-180" aria-hidden />
-            Technical details
+            {c.details}
           </summary>
           <div className="mt-3 pl-5">
-            <p className="mb-2 text-[11.5px] text-nb-ink-soft">
-              Skill files written by AI4Kanban {skill.version}
-            </p>
+            <p className="mb-2 text-[11.5px] text-nb-ink-soft">{c.writtenBy(skill.version)}</p>
             <ul className="flex flex-col gap-2">
               {skill.folders.map((folder) => (
-                <FolderRow key={folder.path} folder={folder} carries={skill.version} />
+                <FolderRow key={folder.path} folder={folder} carries={skill.version} copy={c} />
               ))}
             </ul>
             {!skillNeedsWork && (
@@ -183,10 +184,10 @@ export function SkillPanel({ onError }: { onError?: (msg: string) => void }) {
                   onClick={() => void install()}
                 >
                   <FiRefreshCw className="text-[13px]" aria-hidden />
-                  {installing ? "Writing…" : "Write the skill again"}
+                  {installing ? c.writing : c.writeAgain}
                 </Button>
                 <p className="text-[11.5px] leading-relaxed text-nb-ink-soft">
-                  Changes project files. Review <code>git diff</code> before committing.
+                  <Rich>{c.reviewDiff}</Rich>
                 </p>
               </div>
             )}
@@ -218,50 +219,54 @@ function CheckRow({ label, status, ready }: { label: string; status: string; rea
   );
 }
 
-function headline(skill: SkillState, command: CommandState | null): string {
-  if (!skill.folders.length) return "Couldn't check this project";
-  if (!skill.installed || skill.folders.some((folder) => folder.state === "absent")) return "Not finished";
-  if (skill.outdated || command?.behind) return "Update needed";
-  return "Ready";
-}
+type SkillCopy = ConfigurationCopy["skill"];
 
-function statusDetail(skill: SkillState, command: CommandState | null): string {
-  if (!skill.folders.length) return "Update AI4Kanban before checking this project.";
-  const available = skill.folders.filter((folder) => folder.state !== "absent").map((folder) => folder.agent);
-  if (!available.length) return "Add the skill and a coding agent can work on this board.";
-  if (skill.folders.some((folder) => folder.state === "absent")) {
-    return `${available.join(", ")} can use this board. Add the skill for the rest.`;
+function headline(skill: SkillState, command: CommandState | null, c: SkillCopy): string {
+  if (!skill.folders.length) return c.headline.unchecked;
+  if (!skill.installed || skill.folders.some((folder) => folder.state === "absent")) {
+    return c.headline.unfinished;
   }
-  if (skill.outdated) return "The skill in this project is older than this version of AI4Kanban.";
-  if (command?.behind) return "The skill is ready, but the akb command needs an update.";
-  return `${available.join(", ")} can use this board.`;
+  if (skill.outdated || command?.behind) return c.headline.update;
+  return c.headline.ready;
 }
 
-function skillStatus(skill: SkillState): string {
-  if (!skill.folders.length) return "Couldn't check";
-  if (!skill.installed) return "Not installed";
-  if (skill.folders.some((folder) => folder.state === "absent")) return "In some agents only";
-  if (skill.outdated) return "Update available";
-  return `Ready · ${skill.version}`;
+function statusDetail(skill: SkillState, command: CommandState | null, c: SkillCopy): string {
+  if (!skill.folders.length) return c.detail.unchecked;
+  const available = skill.folders.filter((folder) => folder.state !== "absent").map((folder) => folder.agent);
+  if (!available.length) return c.detail.none;
+  if (skill.folders.some((folder) => folder.state === "absent")) {
+    return c.detail.some(available.join(", "));
+  }
+  if (skill.outdated) return c.detail.outdated;
+  if (command?.behind) return c.detail.commandBehind;
+  return c.detail.ready(available.join(", "));
 }
 
-function commandStatus(command: CommandState | null, checking: boolean): string {
-  if (checking) return "Checking…";
-  if (!command) return "Couldn't check";
-  if (!command.onPath) return "Not found";
-  if (command.behind) return `${command.onPath} · update available`;
-  return `Ready · ${command.onPath}`;
+function skillStatus(skill: SkillState, c: SkillCopy): string {
+  if (!skill.folders.length) return c.status.unchecked;
+  if (!skill.installed) return c.status.notInstalled;
+  if (skill.folders.some((folder) => folder.state === "absent")) return c.status.partial;
+  if (skill.outdated) return c.status.updateAvailable;
+  return c.status.ready(skill.version);
 }
 
-function buttonLabel(skill: SkillState): string {
-  if (!skill.installed) return "Add the skill";
-  if (skill.folders.some((folder) => folder.state === "absent")) return "Add the rest";
-  return "Update the skill";
+function commandStatus(command: CommandState | null, checking: boolean, c: SkillCopy): string {
+  if (checking) return c.commandStatus.checking;
+  if (!command) return c.commandStatus.unchecked;
+  if (!command.onPath) return c.commandStatus.notFound;
+  if (command.behind) return c.commandStatus.behind(command.onPath);
+  return c.commandStatus.ready(command.onPath);
+}
+
+function buttonLabel(skill: SkillState, c: SkillCopy): string {
+  if (!skill.installed) return c.button.add;
+  if (skill.folders.some((folder) => folder.state === "absent")) return c.button.addRest;
+  return c.button.update;
 }
 
 // One folder, and what is in it. The state words are the board's own answer, not a guess
 // this screen makes from a file listing.
-function FolderRow({ folder, carries }: { folder: SkillFolder; carries: string }) {
+function FolderRow({ folder, carries, copy }: { folder: SkillFolder; carries: string; copy: SkillCopy }) {
   const there = folder.state !== "absent";
   return (
     <li className="flex items-start gap-2 text-[12.5px] leading-relaxed">
@@ -274,30 +279,30 @@ function FolderRow({ folder, carries }: { folder: SkillFolder; carries: string }
       />
       <span className="min-w-0">
         <code className="font-mono text-[12px] text-nb-ink">{folder.path}/</code>{" "}
-        <span className="text-nb-ink-soft">— {folderWords(folder, carries)}</span>
+        <span className="text-nb-ink-soft">— {folderWords(folder, carries, copy)}</span>
       </span>
     </li>
   );
 }
 
-function folderWords(folder: SkillFolder, carries: string): string {
+function folderWords(folder: SkillFolder, carries: string, c: SkillCopy): string {
   switch (folder.state) {
     case "absent":
-      return `nothing here (${folder.agent})`;
+      return c.folder.absent(folder.agent);
     case "linked":
-      return "a link into a source checkout — left alone";
+      return c.folder.linked;
     case "unknown":
-      return `installed, though it doesn't say which version (${folder.agent})`;
+      return c.folder.unknown(folder.agent);
     case "stale":
-      return `${folder.version}, older than ${carries} (${folder.agent})`;
+      return c.folder.stale(folder.version, carries, folder.agent);
     default:
-      return `${folder.version} (${folder.agent})`;
+      return c.folder.ready(folder.version, folder.agent);
   }
 }
 
 // What the press wrote, folder by folder — in the board's words, so a change to what a
 // skill folder holds shows up here with nothing edited on this screen.
-function Receipt({ result }: { result: SkillInstall }) {
+function Receipt({ result, copy }: { result: SkillInstall; copy: SkillCopy }) {
   const ok = result.ok;
   return (
     <div
@@ -310,13 +315,15 @@ function Receipt({ result }: { result: SkillInstall }) {
         style={{ color: ok ? "var(--color-nb-mint-ink)" : "var(--color-nb-peach-ink)" }}
       >
         {ok ? <FiCheck className="mt-[2px] shrink-0" aria-hidden /> : <FiAlertCircle className="mt-[2px] shrink-0" aria-hidden />}
-        {ok ? "Done — your coding agent can drive this board." : result.error || "Nothing was written."}
+        {ok ? copy.receipt.ok : result.error || copy.receipt.nothing}
       </p>
       {result.wrote.length > 0 && (
         <ul className="mt-2 flex flex-col gap-1">
           {result.wrote.map((w) => (
             <li key={w.path} className="text-[12px] leading-relaxed text-nb-ink">
-              <code className="font-mono text-[11.5px]">{w.path}/</code> — {w.refreshed ? "refreshed" : "wrote"} {w.files}{" "}
+              <Rich code="font-mono text-[11.5px]">
+                {(w.refreshed ? copy.receipt.refreshed : copy.receipt.wrote)(w.path, String(w.files))}
+              </Rich>{" "}
               <span className="text-nb-ink-soft">({w.agent})</span>
             </li>
           ))}
@@ -339,7 +346,7 @@ function Receipt({ result }: { result: SkillInstall }) {
 // pressing it beats pasting it. The line stays for the two cases a press can't fix: the
 // board in a browser, and an `akb` that came from somewhere else and comes first on the
 // PATH. Then it is the user's line to run, never ours.
-function CommandBehind({ command, button }: { command: CommandState; button: boolean }) {
+function CommandBehind({ command, button, copy }: { command: CommandState; button: boolean; copy: SkillCopy }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -348,28 +355,28 @@ function CommandBehind({ command, button }: { command: CommandState; button: boo
   }, [copied]);
 
   const said = command.onPath
-    ? `The \`akb\` on your PATH is ${command.onPath}; this board runs ${command.version}.`
-    : "There is no working `akb` on your PATH.";
+    ? copy.behind.onPath(command.onPath, command.version)
+    : copy.behind.none;
 
   if (button) {
     return (
       <p className="text-[12px] leading-relaxed text-nb-ink-soft">
-        {said} Use the button above to connect this app&rsquo;s current command.
+        {said} {copy.behind.useButton}
       </p>
     );
   }
 
   return (
     <div className="rounded-[10px] bg-nb-peach-soft p-3">
-      <p className="text-[12.5px] font-[700] text-nb-peach-ink">Update the akb command</p>
+      <p className="text-[12.5px] font-[700] text-nb-peach-ink">{copy.behind.title}</p>
       <p className="mt-1 text-[12px] leading-relaxed text-nb-ink-soft">
-        {said} Run this in a terminal to use the current AI4Kanban flows:
+        {said} {copy.behind.runThis}
       </p>
       <div className="mt-2 flex items-center gap-1 rounded-[9px] bg-nb-wash py-1 pr-1 pl-3">
         <code className="min-w-0 flex-1 font-mono text-[12px] break-words text-nb-ink">{command.line}</code>
         <button
           type="button"
-          title="Copy"
+          title={copy.behind.copy}
           onClick={() => {
             navigator.clipboard
               ?.writeText(command.line)

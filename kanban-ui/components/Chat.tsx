@@ -19,6 +19,7 @@
 
 import { createContext, memo, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FiMessageSquare, FiSend, FiTrash2, FiX } from "react-icons/fi";
+import { useCopy } from "@/i18n/use-copy";
 import type { ChatRail } from "@/lib/chat-rail";
 import type { ChatMessage } from "@/lib/types";
 import { Button } from "./button";
@@ -46,6 +47,7 @@ export function ChatProvider({ rail, children }: { rail: ChatRail; children: Rea
  *  arrived while the rail was folded — an ember dot, and the same thing in words for a
  *  reader who isn't looking at colour. */
 export function ChatButton() {
+  const c = useCopy().chat;
   const rail = useContext(RailContext);
   if (!rail) return null;
   return (
@@ -55,13 +57,13 @@ export function ChatButton() {
         size="xs"
         // The top row's 28px box; a narrow window keeps the button and drops the label.
         className="shrink-0 max-sm:w-7 max-sm:px-0"
-        aria-label="Chat"
+        aria-label={c.label}
         aria-pressed={rail.open}
         onClick={rail.toggle}
         style={rail.open ? { background: "var(--color-nb-accent-soft)" } : undefined}
       >
         <FiMessageSquare className="text-[14px]" aria-hidden />
-        <span className="sr-only sm:not-sr-only">Chat</span>
+        <span className="sr-only sm:not-sr-only">{c.label}</span>
       </Button>
       {rail.unread && (
         <>
@@ -69,7 +71,7 @@ export function ChatButton() {
             aria-hidden
             className="pointer-events-none absolute -right-[3px] -top-[3px] size-[9px] rounded-full border-[1.5px] border-nb-ink bg-nb-accent"
           />
-          <span className="sr-only">a new reply is waiting</span>
+          <span className="sr-only">{c.unread}</span>
         </>
       )}
     </div>
@@ -79,6 +81,7 @@ export function ChatButton() {
 /** The rail itself. Drawn by the window in whichever shape fits — a panel beside the body,
  *  or a cover over it — with the same contents either way. */
 export function ChatPane({ rail }: { rail: ChatRail }) {
+  const c = useCopy().chat;
   const read = rail.read;
   const messages = read?.chat?.messages ?? [];
   const answering = rail.live !== null;
@@ -91,13 +94,11 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
   // The agent's CLI isn't on this board's PATH. Said, not enforced: someone whose agent
   // lives outside the PATH the board was started on can still send, the same way the
   // Configuration dialog still lets them pick it.
-  const missing = read?.missing
-    ? `${read.agent} isn't installed on this machine, so a message may have nothing to reach. Pick an agent in Configuration — the ⚙ in the top row.`
-    : undefined;
+  const missing = read?.missing ? c.agentMissing(read.agent) : undefined;
   const trouble = rail.error ?? read?.failed ?? (answering ? undefined : blocked) ?? missing;
 
   return (
-    <section aria-label="Chat" className="flex h-full flex-col py-2 pl-1 pr-3">
+    <section aria-label={c.label} className="flex h-full flex-col py-2 pl-1 pr-3">
       <Head rail={rail} />
       <Transcript
         messages={messages}
@@ -123,6 +124,7 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
 /** The rail's own top line: what this conversation is about, and the two things you can do
  *  to the rail — throw the conversation away, or fold it. */
 function Head({ rail }: { rail: ChatRail }) {
+  const c = useCopy().chat;
   const [confirming, setConfirming] = useState(false);
   useEffect(() => {
     if (!confirming) return;
@@ -130,15 +132,15 @@ function Head({ rail }: { rail: ChatRail }) {
     return () => clearTimeout(timer);
   }, [confirming]);
   const has = (rail.read?.chat?.messages.length ?? 0) > 0;
-  const about = rail.cardId === null ? "the board" : `#${rail.cardId}`;
+  const about = rail.cardId === null ? c.aboutBoard : c.aboutCard(rail.cardId);
 
   return (
     <div className="mb-1.5 flex h-[30px] shrink-0 items-center gap-2 px-2.5">
       <FiMessageSquare size={13} className="shrink-0" aria-hidden />
-      <span className="shrink-0 text-[12.5px] font-[700]">Chat</span>
+      <span className="shrink-0 text-[12.5px] font-[700]">{c.label}</span>
       <span
         className="truncate text-[12px] text-nb-ink-soft"
-        title={rail.cardId === null ? "about the whole board" : `about #${rail.cardId} ${rail.cardTitle}`}
+        title={rail.cardId === null ? c.aboutBoardHint : c.aboutCardHint(rail.cardId, rail.cardTitle)}
       >
         {about}
       </span>
@@ -154,14 +156,14 @@ function Head({ rail }: { rail: ChatRail }) {
               className="cursor-pointer rounded-[6px] px-1.5 py-1 text-[11px] font-[700] uppercase tracking-[0.04em]"
               style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
             >
-              Clear it
+              {c.clearConfirm}
             </button>
           ) : (
-            <IconButton label="Clear this conversation" onClick={() => setConfirming(true)}>
+            <IconButton label={c.clear} onClick={() => setConfirming(true)}>
               <FiTrash2 size={13} aria-hidden />
             </IconButton>
           ))}
-        <IconButton label="Fold the chat away" onClick={rail.fold}>
+        <IconButton label={c.fold} onClick={rail.fold}>
           <FiX size={14} aria-hidden />
         </IconButton>
       </span>
@@ -233,6 +235,7 @@ function Transcript({
  *  a long exchange means parsing every message's markdown again. */
 const Said = memo(
   function Said({ message }: { message: ChatMessage }) {
+    const c = useCopy().chat;
     if (message.role === "you") {
       return (
         <div className="whitespace-pre-wrap rounded-[10px] bg-nb-wash px-2.5 py-2 text-[13px] leading-[1.5]">
@@ -242,7 +245,7 @@ const Said = memo(
     }
     return (
       <div>
-        {message.text ? <Reply text={message.text} /> : <p className="text-[13px] italic text-nb-ink-soft">nothing came back</p>}
+        {message.text ? <Reply text={message.text} /> : <p className="text-[13px] italic text-nb-ink-soft">{c.nothingCameBack}</p>}
         {message.stoppedWhy && <Stopped why={message.stoppedWhy} />}
       </div>
     );
@@ -256,12 +259,13 @@ const Said = memo(
 
 /** The reply as it is being written. The dot is the board's own mark for an agent at work. */
 function Writing({ text }: { text: string }) {
+  const c = useCopy().chat;
   return (
     <div>
-      {text ? <Reply text={text} /> : <p className="text-[13px] text-nb-ink-soft">Thinking…</p>}
+      {text ? <Reply text={text} /> : <p className="text-[13px] text-nb-ink-soft">{c.thinking}</p>}
       <span className="mt-1.5 flex items-center gap-1.5 text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">
         <span className={PULSE_DOT} aria-hidden />
-        writing
+        {c.writing}
       </span>
     </div>
   );
@@ -315,12 +319,13 @@ function blocksOf(text: string): Block[] {
 
 /** A reply that stopped part way. What arrived is kept above it — this only says so. */
 function Stopped({ why }: { why: string }) {
+  const c = useCopy().chat;
   return (
     <p
       className="mt-1.5 rounded-[8px] px-2 py-1.5 text-[12px] leading-snug"
       style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
     >
-      {why} What arrived is kept — send another message to carry on.
+      {why} {c.stopped}
     </p>
   );
 }
@@ -329,30 +334,20 @@ function Stopped({ why }: { why: string }) {
  *  way of having one at all. A card's page says what a card's chat is for, and offers the
  *  three questions worth asking about any card before it is built. */
 function Empty({ cardId, hopeless }: { cardId: number | null; hopeless?: string }) {
+  const c = useCopy().chat;
   if (hopeless) {
     return (
       <div className="nb-outline bg-nb-paper px-3 py-2.5 text-[12.5px] leading-relaxed">
-        <p className="font-[700]">No coding agent to talk to.</p>
+        <p className="font-[700]">{c.noAgent}</p>
         <p className="mt-1 text-nb-ink-soft">{hopeless}</p>
-        <p className="mt-1.5 text-nb-ink-soft">Set one up in Configuration — the ⚙ in the top row.</p>
+        <p className="mt-1.5 text-nb-ink-soft">{c.noAgentFix}</p>
       </div>
     );
   }
   const [about, asks] =
     cardId === null
-      ? [
-          "Ask about this project, or say what to change. It answers from this board, and it makes the changes you settle on.",
-          [
-            "What should I build next?",
-            "What is holding everything up?",
-            "Put #12 in v1 and drop #14.",
-            "Start a build on #12.",
-          ],
-        ]
-      : [
-          `Ask about #${cardId}, or say what to change. It answers from this card and the rest of the board, and it makes the changes you settle on.`,
-          ["What is unclear about this card?", "Is it too big to build in one go?", "What could be cut?"],
-        ];
+      ? [c.emptyBoard, c.emptyBoardAsks]
+      : [c.emptyCard(cardId), c.emptyCardAsks];
   return (
     <div className="px-0.5 text-[12.5px] leading-relaxed text-nb-ink-soft">
       <p>{about}</p>
@@ -371,10 +366,11 @@ function Empty({ cardId, hopeless }: { cardId: number | null; hopeless?: string 
 /** The box at the foot. Enter sends and Shift-Enter starts a line, which is what anyone who
  *  has used a chat expects; the button is there for anyone who hasn't. */
 function Composer({ rail, disabled, answering }: { rail: ChatRail; disabled: boolean; answering: boolean }) {
+  const c = useCopy().chat;
   const empty = !rail.draft.trim();
   // On a card's page the box asks about that card, so the words in it never read as an
   // invitation to talk about the whole board.
-  const ask = rail.cardId === null ? "Ask, or say what to change" : `Ask about #${rail.cardId}, or say what to change`;
+  const ask = rail.cardId === null ? c.ask : c.askCard(rail.cardId);
   return (
     <div className="shrink-0 px-2.5 pt-1.5" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
       <textarea
@@ -388,17 +384,17 @@ function Composer({ rail, disabled, answering }: { rail: ChatRail; disabled: boo
         }}
         rows={3}
         disabled={disabled}
-        placeholder={answering ? "Waiting for the reply…" : ask}
-        aria-label="Your message"
+        placeholder={answering ? c.waiting : ask}
+        aria-label={c.message}
         className="w-full resize-none rounded-[8px] bg-nb-paper px-2.5 py-2 text-[13px] leading-[1.5] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none disabled:opacity-60 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]"
       />
       <div className="mt-1.5 flex items-center gap-2">
         <span className="min-w-0 flex-1 truncate text-[11px] text-nb-ink-soft">
-          {answering ? "One message at a time." : "Enter sends · Shift-Enter starts a line"}
+          {answering ? c.oneAtATime : c.keys}
         </span>
-        <Button size="xs" disabled={disabled || empty} onClick={() => void rail.send()} aria-label="Send">
+        <Button size="xs" disabled={disabled || empty} onClick={() => void rail.send()} aria-label={c.send}>
           <FiSend className="text-[13px]" aria-hidden />
-          <span className="sr-only">Send</span>
+          <span className="sr-only">{c.send}</span>
         </Button>
       </div>
     </div>

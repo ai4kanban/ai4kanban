@@ -1,5 +1,6 @@
 "use client";
 
+import { useCopy } from "@/i18n/use-copy";
 import type { Card, Column, SessionView } from "@/lib/types";
 import { byQueueOrder } from "@/lib/pick-order";
 import { BoardCard } from "./BoardCard";
@@ -71,6 +72,7 @@ export function QueueView({
   selected: Set<number>;
   onSelect: (id: number, next: boolean) => void;
 }) {
+  const c = useCopy().board.queue;
   // A recurring card is pulled out before the split, not sorted by it: it is a
   // job on a cadence, never finished and never "ready to build", so leaving it
   // in would park every one of them at the bottom of Not ready — a pile of work
@@ -101,8 +103,8 @@ export function QueueView({
     // reading as one 4-up grid.
     <div className="flex min-h-0 flex-1 items-stretch gap-8 overflow-x-auto p-4">
       <QueueColumn
-        title="Ready to build"
-        count={`${readyCount} ready · ${implementingCount} implementing`}
+        title={c.ready}
+        count={c.readyCount(readyCount, implementingCount)}
         width={HALF_W}
       >
         <Bands
@@ -114,7 +116,7 @@ export function QueueView({
         />
       </QueueColumn>
 
-      <QueueColumn title="Not ready" count={`${notReadyCount}`} width={HALF_W}>
+      <QueueColumn title={c.notReady} count={`${notReadyCount}`} width={HALF_W}>
         <Bands
           bands={notReady}
           sessions={sessions}
@@ -133,7 +135,7 @@ export function QueueView({
           teaching a feature nobody on this board uses is just noise. */}
       {recurring.length > 0 && (
         <QueueColumn
-          title="Recurring"
+          title={c.recurring}
           count={`${recurring.length}`}
           width={NARROW_W}
           tint="color-mix(in srgb, var(--color-nb-lilac) 16%, var(--color-nb-wash))"
@@ -214,7 +216,8 @@ function Bands({
   selected: Set<number>;
   onSelect: (id: number, next: boolean) => void;
 }) {
-  if (bands.length === 0) return <p className="text-[12px] italic text-nb-ink-soft">no open cards</p>;
+  const c = useCopy().board.queue;
+  if (bands.length === 0) return <p className="text-[12px] italic text-nb-ink-soft">{c.empty}</p>;
   return (
     <div className="flex flex-col gap-2">
       {bands.map((band) => (

@@ -17,6 +17,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { FiCheck } from "react-icons/fi";
 import { setLanguageAction } from "@/app/actions";
+import { Rich } from "@/i18n/rich";
+import { useCopy } from "@/i18n/use-copy";
 import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES, type Language } from "@/lib/types";
 
 const LanguageContext = createContext<{
@@ -25,6 +27,7 @@ const LanguageContext = createContext<{
 }>({ language: DEFAULT_LANGUAGE, choose: async () => null });
 
 export function LanguageProvider({ initial, children }: { initial: Language; children: React.ReactNode }) {
+  const c = useCopy().configuration.language;
   const [language, hold] = useState(initial);
 
   // A refresh re-reads the setting on the server. Take what it says, so a save made in
@@ -50,7 +53,7 @@ export function LanguageProvider({ initial, children }: { initial: Language; chi
         const saved = await setLanguageAction(next);
         if (!saved.ok) {
           hold(was);
-          return saved.error || "couldn't save that language";
+          return saved.error || c.saveFailed;
         }
         // The menu bar is outside the page, so the app is told once the setting is safely
         // saved. Absent in a browser, and in an app older than the setting.
@@ -58,7 +61,7 @@ export function LanguageProvider({ initial, children }: { initial: Language; chi
         return null;
       },
     }),
-    [language],
+    [language, c],
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
@@ -72,6 +75,7 @@ export function useLanguage(): Language {
 /** The **Language** section of the Configuration dialog: two entries, each written in its
  *  own name, so a reader recognises theirs without knowing the other. */
 export function LanguagePanel({ onError }: { onError?: (msg: string) => void }) {
+  const c = useCopy().configuration.language;
   const { language, choose } = useContext(LanguageContext);
   const [saving, setSaving] = useState(false);
 
@@ -89,14 +93,11 @@ export function LanguagePanel({ onError }: { onError?: (msg: string) => void }) 
   return (
     <div>
       <div className="mb-5">
-        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">Language</h3>
-        <p className="mt-1 max-w-[58ch] text-[13px] leading-relaxed text-nb-ink-soft">
-          The language this machine reads in. Saved outside every project, so it follows you
-          into every board you open on this machine.
-        </p>
+        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{c.title}</h3>
+        <p className="mt-1 max-w-[58ch] text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
       </div>
 
-      <div role="radiogroup" aria-label="Language" className="flex flex-col gap-2">
+      <div role="radiogroup" aria-label={c.group} className="flex flex-col gap-2">
         {LANGUAGES.map((code) => {
           const on = code === language;
           return (
@@ -122,8 +123,7 @@ export function LanguagePanel({ onError }: { onError?: (msg: string) => void }) 
       </div>
 
       <p className="mt-4 max-w-[58ch] text-[12px] leading-relaxed text-nb-ink-soft">
-        The board still draws in English — the words are translated in a later release. What
-        the <code>akb</code> command prints in a terminal stays English either way.
+        <Rich>{c.note}</Rich>
       </p>
     </div>
   );

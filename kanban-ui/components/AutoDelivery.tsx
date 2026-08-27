@@ -18,6 +18,7 @@
 
 import { useEffect, useState } from "react";
 import { FiAlertCircle } from "react-icons/fi";
+import { useCopy } from "@/i18n/use-copy";
 import {
   autoCommitAction,
   diffApprovalAction,
@@ -43,6 +44,7 @@ function SettingRow({
   disabled?: boolean;
   onFlip: (next: boolean) => Promise<void>;
 }) {
+  const c = useCopy().configuration.delivery;
   const [saving, setSaving] = useState(false);
   const flip = async () => {
     if (on === null) return;
@@ -64,13 +66,13 @@ function SettingRow({
 
         <div className="flex shrink-0 items-center gap-2.5">
           <span className="text-[11px] font-[700] leading-none text-nb-ink-soft">
-            {on === null ? "…" : on ? "On" : "Off"}
+            {on === null ? c.loading : on ? c.on : c.off}
           </span>
           <button
             type="button"
             role="switch"
             aria-checked={on === true}
-            aria-label={`${title} — ${on ? "on" : "off"}`}
+            aria-label={(on ? c.switchOn : c.switchOff)(title)}
             disabled={on === null || saving || disabled}
             onClick={() => void flip()}
             className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-[1.5px] border-nb-ink transition-[background-color,opacity] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -92,11 +94,8 @@ function SettingRow({
   );
 }
 
-// The one thing a flip does NOT do, said where the flip is made: a delivery already building
-// keeps what it started with.
-const FROZEN = "A change applies to deliveries started afterwards. One already in flight keeps what it started with.";
-
 export function AutoDeliveryPanel({ onError }: { onError?: (msg: string) => void }) {
+  const c = useCopy().configuration.delivery;
   const [commits, setCommits] = useState<boolean | null>(null);
   const [approval, setApproval] = useState<boolean | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -119,7 +118,7 @@ export function AutoDeliveryPanel({ onError }: { onError?: (msg: string) => void
     const res = await setAutoCommitAction(next);
     if (!res.ok) {
       setCommits(!next);
-      onError?.(res.error || `couldn't switch automatic Git commits ${next ? "on" : "off"}`);
+      onError?.(res.error || (next ? c.commits.failedOn : c.commits.failedOff));
     }
   };
 
@@ -128,17 +127,15 @@ export function AutoDeliveryPanel({ onError }: { onError?: (msg: string) => void
     const res = await setDiffApprovalAction(next);
     if (!res.ok) {
       setApproval(!next);
-      onError?.(res.error || `couldn't switch diff approval ${next ? "on" : "off"}`);
+      onError?.(res.error || (next ? c.approval.failedOn : c.approval.failedOff));
     }
   };
 
   return (
     <div>
       <div className="mb-5">
-        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">Auto-delivery</h3>
-        <p className="mt-1 max-w-[56ch] text-[13px] leading-relaxed text-nb-ink-soft">
-          How the board builds a card once you press Implement.
-        </p>
+        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{c.title}</h3>
+        <p className="mt-1 max-w-[56ch] text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
       </div>
 
       {loadError && (
@@ -148,28 +145,20 @@ export function AutoDeliveryPanel({ onError }: { onError?: (msg: string) => void
         </p>
       )}
 
-      <SettingRow title="Allow automatic Git commits" on={commits} note={FROZEN} onFlip={flipCommits}>
-        Each delivery gets its own branch and worktree, so several run side by side and the
-        reviewed code is what lands. Off, a delivery works in your project folder, one at a
-        time, and you commit it after review.
+      <SettingRow title={c.commits.title} on={commits} note={c.frozen} onFlip={flipCommits}>
+        {c.commits.body}
       </SettingRow>
 
       {/* With commits off the board never lands anything, so there is nothing to approve —
           the switch stays readable and says why rather than disappearing. */}
       <SettingRow
-        title="Require diff approval before landing"
+        title={c.approval.title}
         on={approval}
         disabled={commits === false}
-        note={
-          commits === false
-            ? "Nothing to hold while automatic Git commits are off: the board never lands there, so your own commit is the approval."
-            : FROZEN
-        }
+        note={commits === false ? c.approval.moot : c.frozen}
         onFlip={flipApproval}
       >
-        Every delivery waits after review until you approve the exact tree it would land — the
-        Approval tab on the card. It takes no landing slot while it waits. An approval covers
-        one base commit and one tree; either moving cancels it.
+        {c.approval.body}
       </SettingRow>
     </div>
   );

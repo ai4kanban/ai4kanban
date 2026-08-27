@@ -27,6 +27,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { FiAlertTriangle, FiCheck, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } from "react-icons/fi";
+import type { ChromeCopy } from "@/i18n/chrome/types";
+import { Rich } from "@/i18n/rich";
+import { useCopy } from "@/i18n/use-copy";
 import { Button } from "./button";
 import {
   DropdownMenu,
@@ -232,6 +235,7 @@ export function ProjectPath({ projectRoot, desktop }: { projectRoot: string; des
  *  the containing block for `fixed` children, so a full-screen click catcher
  *  covers only the header strip. This menu portals out to <body> instead. */
 function ProjectsMenu({ projectRoot, children }: { projectRoot: string; children: React.ReactNode }) {
+  const c = useCopy().chrome.projects;
   const [projects, setProjects] = useState<ProjectEntry[] | null>(null);
 
   // Every answer ends the "reading…" line, including no answer at all: the app
@@ -253,7 +257,7 @@ function ProjectsMenu({ projectRoot, children }: { projectRoot: string; children
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          title={`${projectRoot}/docs/kanban — click for your projects`}
+          title={c.badge(`${projectRoot}/docs/kanban`)}
           className={`${BADGE} max-w-full cursor-pointer hover:text-nb-ink`}
           style={BADGE_STYLE}
         >
@@ -264,10 +268,10 @@ function ProjectsMenu({ projectRoot, children }: { projectRoot: string; children
           what the window can hold, and paths past that ellipsise. A fixed width
           was either too wide for `~/x` or too narrow for a real checkout. */}
       <DropdownMenuContent align="start" className="max-w-[min(28rem,calc(100vw-1.5rem))]">
-        <DropdownMenuLabel>Projects</DropdownMenuLabel>
+        <DropdownMenuLabel>{c.heading}</DropdownMenuLabel>
         <div className="max-h-[50vh] overflow-y-auto overflow-x-hidden">
-          {projects === null && <Line muted>Reading your projects…</Line>}
-          {projects?.length === 0 && <Line muted>Only this one so far.</Line>}
+          {projects === null && <Line muted>{c.reading}</Line>}
+          {projects?.length === 0 && <Line muted>{c.onlyThisOne}</Line>}
           {projects?.map((p) => (
             <ProjectRow
               key={p.path}
@@ -284,7 +288,7 @@ function ProjectsMenu({ projectRoot, children }: { projectRoot: string; children
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="gap-2 py-2" onSelect={() => void bridge()?.pickRepo()}>
-          <FiFolderPlus aria-hidden className="size-[1em] shrink-0" /> Open folder…
+          <FiFolderPlus aria-hidden className="size-[1em] shrink-0" /> {c.openFolder}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -300,6 +304,7 @@ function ProjectRow({
   onOpen: () => void;
   onForget: () => void;
 }) {
+  const c = useCopy().chrome.projects;
   const { name, path, open, running, missing } = project;
   // The board on screen and a folder that has gone are both rows with nothing to
   // open. They stay in the list, and keep their hover, because each still says
@@ -309,7 +314,7 @@ function ProjectRow({
   return (
     <DropdownMenuItem
       className={`group flex-col items-stretch gap-0 pr-8 font-[400] ${inert ? "cursor-default" : ""}`}
-      title={missing ? `${path} — the folder is gone` : path}
+      title={missing ? c.missing(path) : path}
       onSelect={(e) => (inert ? e.preventDefault() : onOpen())}
       // The ✕ is a pointer target inside a menu row, where the keyboard can't
       // reach it — Tab leaves the menu. Delete is the same verb for the hands
@@ -321,11 +326,11 @@ function ProjectRow({
       }}
     >
       <span className="flex items-center gap-1.5">
-        {open && <Dot tone="var(--color-nb-accent)" title="Open in this window" />}
-        {!open && running && <Dot tone="var(--color-nb-mint-ink)" title="A run is going here" pulse />}
+        {open && <Dot tone="var(--color-nb-accent)" title={c.openHere} />}
+        {!open && running && <Dot tone="var(--color-nb-mint-ink)" title={c.runningHere} pulse />}
         {missing && <FiAlertTriangle size={12} className="shrink-0 text-nb-ink-soft" />}
         <span className="truncate font-[700] text-nb-ink">{name}</span>
-        {missing && <span className="shrink-0 text-[11px] text-nb-ink-soft">folder is gone</span>}
+        {missing && <span className="shrink-0 text-[11px] text-nb-ink-soft">{c.missingLabel}</span>}
       </span>
       <span className="mt-0.5 block truncate font-mono text-[11px] text-nb-ink-soft">{path}</span>
       {/* The open project has no ✕: forgetting the board on screen would leave
@@ -342,7 +347,7 @@ function ProjectRow({
           // stay open, and the row underneath must not be opened.
           onPointerDown={(e) => e.stopPropagation()}
           onPointerUp={(e) => e.stopPropagation()}
-          title="Take this project off the list — nothing on disk is touched"
+          title={c.forget}
           className="absolute right-1.5 top-1/2 shrink-0 -translate-y-1/2 cursor-pointer rounded-[6px] p-1.5 text-nb-ink-soft opacity-0 hover:text-nb-ink group-hover:opacity-100 group-data-[highlighted]:opacity-100"
         >
           <FiX size={13} />
@@ -382,6 +387,7 @@ export function RunningNotice({ desktop }: { desktop: boolean }) {
 }
 
 function UpdateNotice() {
+  const c = useCopy().chrome.update;
   const [found, setFound] = useState<{ version: string; url: string } | null>(null);
   useEffect(() => {
     // Asked once per window. The app answers from a check it made when it
@@ -395,14 +401,13 @@ function UpdateNotice() {
   return (
     <Strip tone="sky">
       <span>
-        <strong>AI4Kanban {found.version}</strong> is out. The app never updates itself — get the
-        new one when you want it.
+        <Rich>{c.available(found.version)}</Rich>
       </span>
       <Button size="sm" className="shrink-0" onClick={() => openLink(found.url)}>
-        <FiDownload size={13} /> Download
+        <FiDownload size={13} /> {c.download}
       </Button>
       <Close
-        title="Don't mention this version again"
+        title={c.skip}
         onClick={() => {
           void bridge()?.skipUpdate(found.version);
           setFound(null);
@@ -419,6 +424,7 @@ const DISMISS_KEY = "kanban-ui.app-available-dismissed";
  *  same server, and it is what a remote box, a container and anyone working on
  *  these pages actually uses. So the line points at the app and stops there. */
 function AppAvailable() {
+  const c = useCopy().chrome.app;
   // Start hidden and reveal after mount: sessionStorage doesn't exist during
   // SSR, so reading it in the first render would mismatch the server markup.
   const [hidden, setHidden] = useState(true);
@@ -429,9 +435,7 @@ function AppAvailable() {
   return (
     <Strip tone="sky">
       <span>
-        <strong>There&rsquo;s a desktop app for this.</strong> The same board in a window, with
-        nothing to install first — no Node, no npx, no terminal to keep alive. Running it here
-        works and stays supported.
+        <Rich>{c.notice}</Rich>
       </span>
       <Button
         size="sm"
@@ -439,10 +443,10 @@ function AppAvailable() {
         className="shrink-0"
         onClick={() => openLink(DOWNLOAD_URL)}
       >
-        <FiDownload size={13} /> Get the app
+        <FiDownload size={13} /> {c.get}
       </Button>
       <Close
-        title="Hide until this tab is reopened"
+        title={c.hide}
         onClick={() => {
           sessionStorage.setItem(DISMISS_KEY, "1");
           setHidden(true);
@@ -488,6 +492,7 @@ function Close({ title, onClick }: { title: string; onClick: () => void }) {
  *  Sized to fill its card on that screen (components/NoBoard.tsx), which is the
  *  only place either of these two is used. */
 export function PickAnotherProject({ desktop }: { desktop: boolean }) {
+  const c = useCopy().chrome.noBoard;
   if (!desktop) return null;
   return (
     <Button
@@ -496,7 +501,7 @@ export function PickAnotherProject({ desktop }: { desktop: boolean }) {
       className="w-full"
       onClick={() => void bridge()?.pickRepo()}
     >
-      <FiFolder size={14} /> Open another project…
+      <FiFolder size={14} /> {c.pickAnother}
     </Button>
   );
 }
@@ -509,6 +514,7 @@ export function PickAnotherProject({ desktop }: { desktop: boolean }) {
  *
  *  Null outside the app: the browser screen keeps the command it already gives. */
 export function MakeBoardHere({ desktop }: { desktop: boolean }) {
+  const c = useCopy().chrome.noBoard;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   if (!desktop) return null;
@@ -528,7 +534,7 @@ export function MakeBoardHere({ desktop }: { desktop: boolean }) {
               // so there is nothing to do here but keep the button quiet until
               // the new page arrives.
               if (!res.ok) {
-                setError(res.error ?? "the board could not be made");
+                setError(res.error ?? c.makeFailed);
                 setBusy(false);
               }
             })
@@ -538,7 +544,7 @@ export function MakeBoardHere({ desktop }: { desktop: boolean }) {
             });
         }}
       >
-        <FiFolderPlus size={14} /> {busy ? "Making the board…" : "Make a board here"}
+        <FiFolderPlus size={14} /> {busy ? c.making : c.make}
       </Button>
       {error && (
         <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-[8px] border-[1.5px] border-nb-ink bg-nb-peach-soft px-2.5 py-1.5 text-[11.5px] leading-relaxed text-nb-ink">
@@ -573,6 +579,7 @@ export function InstallCommand({
   onInstalled?: () => void;
   onFixable?: (fixable: boolean) => void;
 }) {
+  const c = useCopy().chrome.command;
   const [state, setState] = useState<CommandInstall | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -602,7 +609,7 @@ export function InstallCommand({
   // Plain words on the button, like its neighbour that adds the skill — the backticks the
   // card spells it with are markdown, and a button is not prose.
   const label =
-    state.state === "dangling" ? "Repair it" : state.state === "installed" ? "Write it again" : "Install the akb command";
+    state.state === "dangling" ? c.repair : state.state === "installed" ? c.writeAgain : c.install;
 
   const install = () => {
     if (busy) return;
@@ -614,7 +621,7 @@ export function InstallCommand({
       .then((res) => {
         setState(res.state);
         if (res.ok) setDone(true);
-        else setError(res.error ?? "the command was not installed");
+        else setError(res.error ?? c.failed);
         // The PATH has changed under the rest of the pane: the notice about a missing or
         // old `akb` is read from the command itself, and it has to be asked again.
         if (res.ok) onInstalled?.();
@@ -627,20 +634,18 @@ export function InstallCommand({
     <div className="rounded-[10px] bg-nb-peach-soft p-3">
       <div className="flex items-center justify-between gap-4 max-sm:items-start max-sm:flex-col">
         <div>
-          <p className="text-[12.5px] font-[700] text-nb-peach-ink">Connect the akb command</p>
-          <p className="mt-0.5 text-[12px] leading-relaxed text-nb-ink-soft">{commandHeadline(state)}</p>
+          <p className="text-[12.5px] font-[700] text-nb-peach-ink">{c.heading}</p>
+          <p className="mt-0.5 text-[12px] leading-relaxed text-nb-ink-soft">{commandHeadline(state, c.state)}</p>
         </div>
         <Button size="sm" disabled={busy} onClick={install}>
-          {busy ? "Writing…" : <>{<FiTerminal className="text-[13px]" aria-hidden />}{label}</>}
+          {busy ? c.writing : <>{<FiTerminal className="text-[13px]" aria-hidden />}{label}</>}
         </Button>
       </div>
       {done && (
         <p className="mt-2 flex items-start gap-1.5 text-[12.5px] leading-relaxed text-nb-mint-ink">
           <FiCheck className="mt-[3px] shrink-0" aria-hidden />
           <span>
-            {state.kind === "path"
-              ? "Done. Open a new terminal and run `akb version`."
-              : "Done. Run `akb version` in a terminal — typing `akb` on its own opens this app on the project you are standing in."}
+            {state.kind === "path" ? c.donePath : c.doneSymlink}
           </span>
         </p>
       )}
@@ -654,19 +659,23 @@ export function InstallCommand({
   );
 }
 
-/** Which of the four this machine is, in one line. */
-function commandHeadline(state: CommandInstall): string {
+/** Which of the four this machine is, in one line. `blocked` is the app's own words,
+ *  which stay as they come. */
+function commandHeadline(state: CommandInstall, c: ChromeCopy["command"]["state"]): string {
   if (state.blocked) return state.blocked;
+  const holder = state.holder ?? c.holderUnknown;
   switch (state.state) {
     case "installed":
-      return `Installed at ${state.writes}.`;
+      return c.installed(state.writes);
     case "dangling":
-      return `Installed at ${state.writes}, but it points at an app that is no longer there — ${state.points}.`;
+      return c.dangling(state.writes, state.points ?? "");
     case "foreign":
       // The npm note only fits the system path — npm's global bin is /usr/local/bin, not
       // a bin folder of the user's own.
-      return `${state.writes} is held by ${state.holder ?? "something the app didn't put there"}${state.writes === "/usr/local/bin/akb" ? " — an `akb` installed from npm lands at that same path, so this is yours to sort out" : " — this is yours to sort out"}.`;
+      return state.writes === "/usr/local/bin/akb"
+        ? c.foreignNpm(state.writes, holder)
+        : c.foreign(state.writes, holder);
     default:
-      return "Not installed — your terminal has no `akb` from this app.";
+      return c.absent;
   }
 }

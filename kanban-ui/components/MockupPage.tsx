@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiArrowLeft } from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import { useCopy } from "@/i18n/use-copy";
 import type { MockupView } from "@/lib/mockup-tag";
 import type { AgentInfo, MemoryModule } from "@/lib/types";
 import { RunningNotice } from "./desktop";
@@ -54,6 +55,7 @@ export function MockupPage({
   memoryModules: MemoryModule[];
   desktop: boolean;
 }) {
+  const c = useCopy().card.mockup;
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [showCode, setShowCode] = useState(!!view.error);
@@ -113,7 +115,7 @@ export function MockupPage({
                 className="inline-flex min-w-0 items-center gap-1.5 text-[12.5px] font-[700] text-nb-ink-soft hover:text-nb-accent-deep"
               >
                 <FiArrowLeft aria-hidden className="shrink-0 text-[14px]" />
-                <span className="shrink-0">Back to #{card.id}</span>
+                <span className="shrink-0">{c.back(card.id)}</span>
                 <span className="truncate font-[500]">{card.title}</span>
               </Link>
             )}
@@ -127,7 +129,7 @@ export function MockupPage({
                 disabled={!!view.error}
                 className="ml-auto shrink-0 cursor-pointer text-[11px] font-[800] uppercase tracking-[0.06em] text-nb-ink-soft hover:text-nb-accent-deep disabled:cursor-default disabled:opacity-40"
               >
-                {showCode ? "Screen" : "Code"}
+                {showCode ? c.screen : c.code}
               </button>
             )}
           </div>

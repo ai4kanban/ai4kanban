@@ -14,6 +14,7 @@
 // in a sandboxed iframe, so nothing in it runs, nothing reaches the network, and its styling
 // and the board's never meet.
 
+import { copy } from "@/i18n";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,7 +63,7 @@ export async function readMockup(src: string, contain = true): Promise<MockupVie
   if (!match) {
     return {
       src,
-      error: `${src} — a mockup is a .tsx, .html or .txt file under docs/kanban/.mockups/`,
+      error: copy.messages.mockup.notAMockup(src),
     };
   }
   const [, folder, name, ext] = match;
@@ -70,7 +71,7 @@ export async function readMockup(src: string, contain = true): Promise<MockupVie
   const file = path.join(root, folder!, `${name}.${ext}`);
   // The regex already refuses a path that climbs; this is the check that answers for it.
   if (!file.startsWith(root + path.sep)) {
-    return { src, error: `${src} — a mockup is read from docs/kanban/.mockups/, and this points outside it` };
+    return { src, error: copy.messages.mockup.outside(src) };
   }
   let code: string;
   try {
@@ -78,7 +79,7 @@ export async function readMockup(src: string, contain = true): Promise<MockupVie
   } catch {
     // Mockups are not in git, so a card pulled from someone else's board points at
     // drawings this machine never made. Nothing is broken — the card still reads.
-    return { src, error: `${src} — no such file on this machine (mockups are not in git)` };
+    return { src, error: copy.messages.mockup.missing(src) };
   }
   // A `.txt` mockup is the drawing itself (#256) — nothing to transpile, nothing to style,
   // and so nothing that can fail once the file has been read.
@@ -88,7 +89,7 @@ export async function readMockup(src: string, contain = true): Promise<MockupVie
     return { src, code, doc };
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
-    return { src, code, error: `${src} — this mockup could not be drawn: ${why}` };
+    return { src, code, error: copy.messages.mockup.notDrawn(src, why) };
   }
 }
 
@@ -98,7 +99,7 @@ async function drawComponent(code: string, src: string, contain: boolean): Promi
   for (const found of code.matchAll(IMPORTS)) {
     const id = (found[1] ?? found[2])!;
     if (!REACT_IDS.has(id)) {
-      throw new Error(`it imports "${id}", and a mockup may import React and nothing else`);
+      throw new Error(copy.messages.mockup.importsOther(id));
     }
   }
 
@@ -119,7 +120,7 @@ async function drawComponent(code: string, src: string, contain: boolean): Promi
     exports: mod.exports,
     require: (id: string) => {
       if (REACT_IDS.has(id)) return React;
-      throw new Error(`cannot import "${id}"`);
+      throw new Error(copy.messages.mockup.cannotImport(id));
     },
     console: { log() {}, warn() {}, error() {}, info() {}, debug() {} },
   };
@@ -128,7 +129,7 @@ async function drawComponent(code: string, src: string, contain: boolean): Promi
 
   const Component = mod.exports.default;
   if (typeof Component !== "function") {
-    throw new Error("it exports no component as its default");
+    throw new Error(copy.messages.mockup.noDefault);
   }
   sandbox.__draw = () =>
     renderToStaticMarkup(React.createElement(Component as React.FunctionComponent));
@@ -144,7 +145,7 @@ function run(script: string, context: vm.Context, src: string): unknown {
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
     if (/timed out/i.test(why)) {
-      throw new Error(`it did not finish drawing inside ${DRAW_MS / 1000} seconds`);
+      throw new Error(copy.messages.mockup.tooSlow(DRAW_MS / 1000));
     }
     throw new Error(why.replace(/^Error:\s*/, ""));
   }
@@ -183,7 +184,7 @@ function findTailwindCss(): string {
       dir = parent;
     }
   }
-  throw new Error("Tailwind's stylesheet is not beside the app — the board cannot style a mockup");
+  throw new Error(copy.messages.mockup.noStylesheet);
 }
 
 const CLASS_ATTR = /class="([^"]*)"/g;

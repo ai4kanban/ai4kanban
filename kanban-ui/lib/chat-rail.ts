@@ -1,3 +1,4 @@
+import { copy } from "@/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePanelRef, type Layout, type LayoutChangedMeta } from "react-resizable-panels";
 import { clearChatAction, readChatAction, sendChatAction } from "@/app/actions";
@@ -237,7 +238,7 @@ export function useChatRail({
     setError(null);
     const res = await sendChatAction(cardId, text);
     if (!res.ok) {
-      setError(res.error ?? "the message could not be sent.");
+      setError(res.error ?? copy.messages.chat.sendFailed);
       // The words go back in the box rather than being lost to a refusal.
       setDraft((typed) => (typed ? typed : text));
     }
@@ -247,7 +248,7 @@ export function useChatRail({
   const clear = useCallback(async () => {
     setError(null);
     const res = await clearChatAction(cardId);
-    if (!res.ok) setError(res.error ?? "the conversation could not be cleared.");
+    if (!res.ok) setError(res.error ?? copy.messages.chat.clearFailed);
     seen.mark(0);
     kickRef.current();
   }, [cardId, seen]);

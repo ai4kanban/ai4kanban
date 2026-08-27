@@ -21,6 +21,7 @@
 import { useEffect, useState } from "react";
 import { TbNorthStar } from "react-icons/tb";
 import { getGoalAction, saveGoalAction } from "@/app/actions";
+import { useCopy } from "@/i18n/use-copy";
 import { Button } from "./button";
 import { Dialog } from "./Dialog";
 import { GuideDrawer } from "./Guide";
@@ -32,6 +33,7 @@ const INPUT =
   "min-h-[260px] w-full resize-y rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2.5 font-mono text-[13px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent";
 
 export function Goal({ written }: { written: boolean }) {
+  const c = useCopy().rail.goal;
   const [open, setOpen] = useState(false);
   if (!written) return null;
   return (
@@ -40,16 +42,16 @@ export function Goal({ written }: { written: boolean }) {
         variant="ghost"
         size="xs"
         className="shrink-0 font-[700] max-sm:w-7 max-sm:px-0"
-        title="What this board is for"
-        aria-label="Goal"
+        title={c.openHint}
+        aria-label={c.open}
         onClick={() => setOpen(true)}
       >
         <TbNorthStar className="text-[15px]" aria-hidden />
-        <span className="sr-only sm:not-sr-only">Goal</span>
+        <span className="sr-only sm:not-sr-only">{c.open}</span>
       </Button>
 
       {open && (
-        <Dialog title="Goal" width={720} height="min(660px, 85vh)" flush onClose={() => setOpen(false)}>
+        <Dialog title={c.title} width={720} height="min(660px, 85vh)" flush onClose={() => setOpen(false)}>
           <GoalPanel />
         </Dialog>
       )}
@@ -62,11 +64,12 @@ export function Goal({ written }: { written: boolean }) {
 // `flush`, so the long file scrolls inside the dialog rather than the dialog
 // growing to hold it.
 function GoalPanel() {
+  const c = useCopy().rail.goal;
   const { text, error } = useGoalText();
 
   if (error) return <div className="min-w-0 flex-1 p-5"><Failure text={error} /></div>;
   if (text === null) {
-    return <p className="min-w-0 flex-1 p-5 text-[13px] italic text-nb-ink-soft">Reading goal.md…</p>;
+    return <p className="min-w-0 flex-1 p-5 text-[13px] italic text-nb-ink-soft">{c.reading}</p>;
   }
 
   return (
@@ -81,22 +84,21 @@ function GoalPanel() {
 // and the judgment stays the agent's: a save marks the goal `reviewed: pending`
 // and leaves the rest of the frontmatter alone (#108).
 export function GoalEditor({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const c = useCopy().rail.goal;
   const { text, setText, error } = useGoalText();
   return (
-    <Dialog title="Write the goal" width={640} onClose={onClose}>
+    <Dialog title={c.editTitle} width={640} onClose={onClose}>
       {/* The box starts empty (#108), so what belongs in a goal is said here — the
           file no longer opens with a paragraph the user has to delete first. */}
       <GuideDrawer
         guide="what-makes-a-good-goal"
-        title="What makes a good goal"
+        title={c.guideTitle}
         className="mb-3 text-[13px] leading-relaxed text-nb-ink-soft"
       >
-        Where the project is headed, in your own words: what you want, how far out, and roughly
-        what comes next. Rough and short is fine, and you can change it later — the agent never
-        drafts the goal for you.
+        {c.guideLine}
       </GuideDrawer>
       {error && <Failure text={error} />}
-      {text === null && !error && <p className="text-[13px] italic text-nb-ink-soft">Reading goal.md…</p>}
+      {text === null && !error && <p className="text-[13px] italic text-nb-ink-soft">{c.reading}</p>}
       {text !== null && (
         <GoalForm
           initial={text}
@@ -122,6 +124,7 @@ function GoalForm({
   onCancel: () => void;
   onSaved: (text: string) => void;
 }) {
+  const t = useCopy();
   const [text, setText] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +135,7 @@ function GoalForm({
     const res = await saveGoalAction(text);
     setSaving(false);
     if (!res.ok) {
-      setError(res.error || "could not save the goal");
+      setError(res.error || t.rail.goal.saveFailed);
       return;
     }
     onSaved(text);
@@ -144,10 +147,10 @@ function GoalForm({
       {error && <div className="mt-3"><Failure text={error} /></div>}
       <div className="mt-4 flex justify-end gap-2.5">
         <Button size="sm" variant="ghost" disabled={saving} onClick={onCancel}>
-          Cancel
+          {t.shared.cancel}
         </Button>
         <Button size="sm" disabled={saving} onClick={save}>
-          {saving ? "Saving…" : "Save"}
+          {saving ? t.shared.saving : t.shared.save}
         </Button>
       </div>
     </>

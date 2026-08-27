@@ -31,6 +31,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FiChevronRight, FiColumns, FiFileText, FiSearch, FiX } from "react-icons/fi";
 import { searchCardsAction } from "@/app/actions";
+import type { RailCopy } from "@/i18n/rail/types";
+import { useCopy } from "@/i18n/use-copy";
 import { memoryKey, memoryModuleOf, useMemoryPanel, useOpenModules } from "@/lib/memory-panel";
 import type { OpenCard } from "@/lib/open-cards";
 import { MEMORY_FILES, type CardRef, type MemoryModule } from "@/lib/types";
@@ -69,6 +71,7 @@ export function Rail({
   running: Set<number>;
   onClose: (id: number) => void;
 }) {
+  const c = useCopy().rail;
   const router = useRouter();
   const { query, setQuery, matches } = useCardSearch();
   const searching = query.trim().length > 0;
@@ -92,14 +95,14 @@ export function Rail({
           be taking away the way out of a search. */}
       <nav
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto"
-        aria-label={searching ? "Matching cards" : "Open cards"}
+        aria-label={searching ? c.matching : c.openCards}
       >
         {/* A memory page is neither a card nor the board, so All cards is not where
             you are while one is open. */}
-        <RailRow href="/" label="All cards" active={activeId === null && !activeMemory} count={total} />
+        <RailRow href="/" label={c.allCards} active={activeId === null && !activeMemory} count={total} />
         {searching ? (
           <>
-            {matches !== null && <RailLabel text="Matches" count={matches.length} />}
+            {matches !== null && <RailLabel text={c.matches} count={matches.length} />}
             {/* The word that found the card travels with the click, so a match sitting
                 only in the card's agent half opens that half rather than landing the
                 reader on a page with nothing the search found on it (#262). */}
@@ -116,13 +119,13 @@ export function Rail({
             ))}
             {matches?.length === 0 && (
               <p className="px-2.5 pt-1 text-[12px] leading-snug text-nb-ink-soft">
-                No card matches.
+                {c.noMatches}
               </p>
             )}
           </>
         ) : (
           <>
-            {rows.length > 0 && <RailLabel text="Open cards" count={rows.length} />}
+            {rows.length > 0 && <RailLabel text={c.openCards} count={rows.length} />}
             {rows.map((card) => (
               <RailRow
                 key={card.id}
@@ -156,6 +159,7 @@ export function Rail({
  *  they came from is visible instead of guessed at. The height is animated with a grid row
  *  going 0fr → 1fr, which needs no measuring and so keeps working when the list grows. */
 function MemoryPanel({ active, modules }: { active: string | null; modules: MemoryModule[] }) {
+  const c = useCopy().rail.memory;
   const { open, toggle, animate } = useMemoryPanel(active);
   const { isOpen, toggle: toggleModule } = useOpenModules(memoryModuleOf(active));
   const slide = animate ? "transition-[grid-template-rows,opacity] duration-200 ease-out" : "";
@@ -169,11 +173,11 @@ function MemoryPanel({ active, modules }: { active: string | null; modules: Memo
         onClick={toggle}
         aria-expanded={open}
         aria-controls="memory-files"
-        title={open ? "Hide the project's memory" : "What the agent remembers about this project"}
+        title={open ? c.hide : c.show}
         className="mt-2.5 flex w-full shrink-0 cursor-pointer items-center justify-between px-2.5 pb-1.5 pt-2.5 text-nb-ink-soft hover:text-nb-ink"
         style={{ borderTop: `1px solid ${HAIRLINE}` }}
       >
-        <span className="text-[10px] font-[800] uppercase tracking-[0.12em]">Memory</span>
+        <span className="text-[10px] font-[800] uppercase tracking-[0.12em]">{c.heading}</span>
         <FiChevronRight
           size={13}
           aria-hidden
@@ -189,13 +193,13 @@ function MemoryPanel({ active, modules }: { active: string | null; modules: Memo
           open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
         }`}
       >
-        <nav id="memory-files" inert={!open} className="min-h-0 overflow-y-auto" aria-label="Memory">
+        <nav id="memory-files" inert={!open} className="min-h-0 overflow-y-auto" aria-label={c.heading}>
           {/* The rows' own breathing room is inside the scroller, not padding on it: padding
               is floor a 0fr track can't shrink past, and closed has to close all the way. */}
           <div className="flex flex-col gap-0.5 py-1">
-            {split && <PanelLabel text="Project" />}
+            {split && <PanelLabel text={c.project} />}
             <MemoryFileRows module="" active={active} />
-            {split && <PanelLabel text="Modules" divider />}
+            {split && <PanelLabel text={c.modules} divider />}
             {modules.map((module) => (
               <div key={module.name}>
                 <button
@@ -224,7 +228,7 @@ function MemoryPanel({ active, modules }: { active: string | null; modules: Memo
                       // Four rows that all lead nowhere would read as four empty files
                       // rather than as a module nothing has been written about yet.
                       <p className="px-2.5 pb-1 text-[12px] leading-snug text-nb-ink-soft">
-                        Nothing remembered about this module yet.
+                        {c.empty}
                       </p>
                     )}
                   </div>
@@ -241,6 +245,7 @@ function MemoryPanel({ active, modules }: { active: string | null; modules: Memo
 /** The four memory rows of one set — the project's, or a module's (#130). The same four
  *  names in the same order either way, so a module's set is read the way the project's is. */
 function MemoryFileRows({ module, active }: { module: string; active: string | null }) {
+  const c = useCopy().rail.memory;
   const folder = module ? `docs/kanban/memory/${module}` : "docs/kanban/memory";
   return (
     <>
@@ -248,7 +253,7 @@ function MemoryFileRows({ module, active }: { module: string; active: string | n
         <RailRow
           key={file.name}
           href={`/memory/${memoryKey(module, file.name)}`}
-          label={file.label}
+          label={c.files[file.name as keyof RailCopy["memory"]["files"]] ?? file.label}
           // The path is what a hover says, not the row's own words back at it: the words
           // are already on screen, the file they open is not.
           title={`${folder}/${file.name}.md`}
@@ -331,6 +336,7 @@ function useCardSearch(): {
  *  The ✕ appears only with something to clear, and clearing is also Escape: the
  *  search is a detour off the rail's own list and both ways back are cheap. */
 function SearchBox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const c = useCopy().rail;
   return (
     <div className="relative mb-1.5 shrink-0">
       <FiSearch
@@ -345,8 +351,8 @@ function SearchBox({ value, onChange }: { value: string; onChange: (v: string) =
         onKeyDown={(e) => {
           if (e.key === "Escape") onChange("");
         }}
-        placeholder="Find a card"
-        aria-label="Find a card"
+        placeholder={c.search}
+        aria-label={c.search}
         spellCheck={false}
         autoComplete="off"
         className={`h-[30px] w-full rounded-[8px] bg-nb-paper pl-[30px] text-[12.5px] font-[600] text-nb-ink placeholder:font-[600] placeholder:text-nb-ink-soft/70 focus:outline-none ${
@@ -357,8 +363,8 @@ function SearchBox({ value, onChange }: { value: string; onChange: (v: string) =
         <button
           type="button"
           onClick={() => onChange("")}
-          title="Clear the search"
-          aria-label="Clear the search"
+          title={c.clearSearch}
+          aria-label={c.clearSearch}
           className="absolute right-1 top-1/2 grid size-5 -translate-y-1/2 cursor-pointer place-items-center rounded-[5px] text-nb-ink opacity-60 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] hover:opacity-100"
         >
           <FiX size={13} aria-hidden />
@@ -404,12 +410,13 @@ function RailRow({
   /** Run just before the row opens what it points at. */
   onOpen?: () => void;
 }) {
+  const c = useCopy().rail;
   return (
     <div className="group relative">
       <Link
         href={href}
         onClick={onOpen}
-        title={running ? `${label} — running` : (title ?? label)}
+        title={running ? c.runningRow(label) : (title ?? label)}
         className={`flex h-[30px] w-full items-center gap-2 rounded-[8px] pl-2.5 text-left text-[12.5px] ${
           onClose ? "pr-7" : "pr-2"
         } ${
@@ -435,7 +442,7 @@ function RailRow({
         {running && (
           <>
             <span className={`ml-auto ${PULSE_DOT}`} aria-hidden />
-            <span className="sr-only">running</span>
+            <span className="sr-only">{c.running}</span>
           </>
         )}
         {count !== undefined && (
@@ -448,8 +455,8 @@ function RailRow({
         <button
           type="button"
           onClick={onClose}
-          title={`Close ${label}`}
-          aria-label={`Close ${label}`}
+          title={c.close(label)}
+          aria-label={c.close(label)}
           className={`absolute right-1 top-1/2 grid size-5 -translate-y-1/2 cursor-pointer place-items-center rounded-[5px] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] focus-visible:opacity-100 group-hover:opacity-60 group-hover:hover:opacity-100 ${
             active ? "opacity-40" : "opacity-0"
           }`}

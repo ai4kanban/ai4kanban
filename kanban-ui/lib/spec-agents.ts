@@ -1,3 +1,4 @@
+import { copy } from "@/i18n";
 import { boardRules } from "./cli";
 import type { SpecAgentView, WriteResult } from "./types";
 
@@ -23,7 +24,7 @@ export async function specAgents(): Promise<SpecAgentView[] | null> {
 export async function setSpecAgentEnabled(name: string, on: boolean): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.setSpecAgentEnabled) {
-    return { ok: false, error: "the board's rules in this project are too old to switch a spec agent" };
+    return { ok: false, error: copy.messages.tooOld.specAgentSwitch };
   }
   return rules.setSpecAgentEnabled(name, on);
 }
@@ -35,7 +36,7 @@ export async function setSpecAgentEnabled(name: string, on: boolean): Promise<Wr
 export async function setSpecAgentSetting(name: string, key: string, value: string): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.setSpecAgentSetting) {
-    return { ok: false, error: "the board's rules in this project are too old to set a spec agent" };
+    return { ok: false, error: copy.messages.tooOld.specAgentSetting };
   }
   return rules.setSpecAgentSetting(name, key, value);
 }

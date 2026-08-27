@@ -1,3 +1,4 @@
+import { copy } from "@/i18n";
 import { cardStillThere } from "./board";
 import { boardRules, whyNoRules } from "./cli";
 import type { Chat } from "./types";
@@ -54,8 +55,7 @@ export interface ChatRead {
 /** The chat a window is showing: the board's, or one card's. */
 const keyOf = (cardId: number | null): string => (cardId === null ? "board" : `card-${cardId}`);
 
-const TOO_OLD =
-  "This board's copy of the board's rules is too old to hold a conversation. Run `npm install -g ai4kanban` to update it.";
+const TOO_OLD = `${copy.messages.rules.tooOldForChat} ${copy.messages.rules.updateIt}`;
 
 interface Flight {
   /** The reply so far, as the agent writes it. */
@@ -129,7 +129,7 @@ export async function sendChat(cardId: number | null, message: string): Promise<
 
   const key = keyOf(cardId);
   const { live, failed } = flights();
-  if (live.has(key)) return { ok: false, error: "this conversation is still answering the last message." };
+  if (live.has(key)) return { ok: false, error: copy.messages.chat.busy };
   failed.delete(key);
 
   const flight: Flight = { text: "" };

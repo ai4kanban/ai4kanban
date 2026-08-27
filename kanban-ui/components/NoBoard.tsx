@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FiCheck, FiCopy, FiTerminal } from "react-icons/fi";
+import { Rich } from "@/i18n/rich";
+import { useCopy } from "@/i18n/use-copy";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { MakeBoardHere, PickAnotherProject } from "./desktop";
@@ -45,6 +47,7 @@ export function NoBoard({
    *  to type (#178). */
   desktop?: boolean;
 }) {
+  const c = useCopy().setup.noBoard;
   const router = useRouter();
   // Install a board in a terminal, switch back to this tab, and it's there — the
   // same re-read on tab focus the board itself does. No timer, no Try again
@@ -62,33 +65,24 @@ export function NoBoard({
         <div className="nb-panel w-full overflow-hidden">
           <header className="px-7 pt-6 pb-5">
             <Logo size="sm" />
-            <h1 className="mt-4 text-[20px] leading-tight font-[700]">There is no board here.</h1>
+            <h1 className="mt-4 text-[20px] leading-tight font-[700]">{c.title}</h1>
             <p className="mt-2 text-[13px] leading-relaxed text-nb-ink-soft">
-              Nothing at <Code>docs/kanban/todo/</Code> in <Code>{searchedFrom}</Code>, or in any
-              folder above it.
+              <Rich code="font-mono text-[12px] text-nb-ink">{c.where(searchedFrom)}</Rich>
             </p>
           </header>
 
           <Cause
-            title="Start one here"
+            title={c.startTitle}
             stack={!desktop}
-            body={
-              desktop
-                ? "The board and a setup checklist — in this window."
-                : "Scaffolds the board under docs/kanban/. Run it in the repo root."
-            }
+            body={desktop ? c.startApp : c.startBrowser}
           >
             {desktop ? <MakeBoardHere desktop /> : <CopyCommand text="npx ai4kanban install" />}
           </Cause>
 
           <Cause
-            title="Wrong project"
+            title={c.wrongTitle}
             stack={!desktop}
-            body={
-              desktop
-                ? "Open another folder in this window. Past ones are behind the name up top."
-                : "Point the UI at the repo you meant, or restart it from that repo's root."
-            }
+            body={desktop ? c.wrongApp : c.wrongBrowser}
           >
             {desktop ? (
               <PickAnotherProject desktop />
@@ -100,7 +94,7 @@ export function NoBoard({
           {!desktop && (
             <p className="flex items-center gap-2 border-t-[1.5px] border-nb-ink bg-nb-wash px-7 py-3 text-[12px] text-nb-ink-soft">
               <FiTerminal size={13} className="shrink-0" />
-              Run one, then come back to this tab — the board shows up on its own.
+              {c.comeBack}
             </p>
           )}
         </div>
@@ -118,6 +112,7 @@ export function NoBoard({
 // goes through the rules, so there is nothing to draw underneath a warning. The board page
 // says the same thing in its own error strip instead, where the chrome is already up.
 export function NoRules({ why, desktop = false }: { why: string; desktop?: boolean }) {
+  const c = useCopy().setup.noRules;
   const router = useRouter();
   // Install it in a terminal, come back to the tab, and the board is there — the same
   // re-read on tab focus the board itself does.
@@ -129,7 +124,7 @@ export function NoRules({ why, desktop = false }: { why: string; desktop?: boole
         <div className="nb-panel w-full overflow-hidden">
           <header className="px-7 pt-6 pb-5">
             <Logo size="sm" />
-            <h1 className="mt-4 text-[20px] leading-tight font-[700]">This board can&apos;t be read.</h1>
+            <h1 className="mt-4 text-[20px] leading-tight font-[700]">{c.title}</h1>
             <p className="mt-2 text-[13px] leading-relaxed text-nb-ink-soft">{why}</p>
           </header>
 
@@ -139,13 +134,9 @@ export function NoRules({ why, desktop = false }: { why: string; desktop?: boole
               `update`, which repairs a board rather than installing a command. The
               same line lib/cli.ts names in its refusal; the two must not disagree. */}
           <Cause
-            title="Install the board's rules"
+            title={c.installTitle}
             stack={!desktop}
-            body={
-              desktop
-                ? "The app carries its own copy — reopening this project picks it up."
-                : "The `akb` command carries them. Install it once, for every project."
-            }
+            body={desktop ? c.installApp : c.installBrowser}
           >
             {desktop ? (
               <PickAnotherProject desktop />
@@ -157,7 +148,7 @@ export function NoRules({ why, desktop = false }: { why: string; desktop?: boole
           {!desktop && (
             <p className="flex items-center gap-2 border-t-[1.5px] border-nb-ink bg-nb-wash px-7 py-3 text-[12px] text-nb-ink-soft">
               <FiTerminal size={13} className="shrink-0" />
-              Run it, then come back to this tab — the board shows up on its own.
+              {c.comeBack}
             </p>
           )}
         </div>
@@ -238,6 +229,7 @@ function Mat({ className, children }: { className?: string; children: React.Reac
 // the button. A bordered code block and a bordered button here would be the two
 // outlines this screen just got rid of, put back one level deeper.
 function CopyCommand({ text }: { text: string }) {
+  const c = useCopy().setup.noBoard;
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -250,7 +242,7 @@ function CopyCommand({ text }: { text: string }) {
       <code className="min-w-0 flex-1 font-mono text-[12px] break-words text-nb-ink">{text}</code>
       <button
         type="button"
-        title="Copy"
+        title={c.copy}
         onClick={() => {
           navigator.clipboard
             ?.writeText(text)
@@ -267,6 +259,3 @@ function CopyCommand({ text }: { text: string }) {
   );
 }
 
-function Code({ children }: { children: React.ReactNode }) {
-  return <code className="font-mono text-[12px] text-nb-ink">{children}</code>;
-}

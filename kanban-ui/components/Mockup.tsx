@@ -19,6 +19,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { FiAlertCircle, FiMaximize2 } from "react-icons/fi";
+import { useCopy } from "@/i18n/use-copy";
 import { mockupHref, type MockupView } from "@/lib/mockup-tag";
 
 /** The desktop screen every mockup is drawn on, before it is scaled. Every option gets
@@ -101,6 +102,7 @@ function Screen({ doc, title }: { doc: string; title: string }) {
 /** One mockup, framed: its label and its file over the screen, and the switch between the
  *  screen and the code the file holds. */
 export function Mockup({ view, label }: { view: MockupView; label: string }) {
+  const c = useCopy().card.mockup;
   const [showCode, setShowCode] = useState(false);
 
   if (view.error !== undefined) return <Note text={view.error} />;
@@ -125,7 +127,7 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
         <Link
           href={mockupHref(view.src)}
           className="inline-flex min-w-0 items-center gap-1 font-mono text-[11.5px] text-nb-ink-soft underline decoration-dotted underline-offset-2 hover:text-nb-accent-deep"
-          title="Open this mockup on its own, at full size"
+          title={c.openFull}
         >
           <span className="truncate">{view.src}</span>
           <FiMaximize2 aria-hidden className="shrink-0" style={{ width: 11, height: 11 }} />
@@ -138,7 +140,7 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
             onClick={() => setShowCode((v) => !v)}
             className="ml-auto shrink-0 cursor-pointer text-[11px] font-[800] uppercase tracking-[0.06em] text-nb-ink-soft hover:text-nb-accent-deep"
           >
-            {showCode ? "Screen" : "Code"}
+            {showCode ? c.screen : c.code}
           </button>
         )}
       </span>
@@ -152,7 +154,7 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
           {view.code}
         </span>
       ) : (
-        <Screen doc={view.doc} title={label ? `Mockup ${label}` : view.src} />
+        <Screen doc={view.doc} title={label ? c.frame(label) : view.src} />
       )}
     </span>
   );

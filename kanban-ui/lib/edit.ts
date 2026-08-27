@@ -1,3 +1,4 @@
+import { copy } from "@/i18n";
 import { boardRules } from "./cli";
 import type {
   BulkReleaseResult,
@@ -44,8 +45,7 @@ export async function patchCard(id: number, patch: CardPatch): Promise<WriteResu
  *  the line that names the update. */
 const OLD_RULES: WriteResult = {
   ok: false,
-  error:
-    "This board's copy of the rules is older than editing hand-checks. Run `npm install -g ai4kanban` to update it.",
+  error: `${copy.messages.rules.tooOldForHandChecks} ${copy.messages.rules.updateIt}`,
 };
 
 export async function addVerify(id: number, line: string): Promise<VerifyResult> {

@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { FiCheck, FiClipboard, FiHelpCircle } from "react-icons/fi";
+import { useCopy } from "@/i18n/use-copy";
 import { type Card, type SessionView } from "@/lib/types";
 import { parseQuestion } from "@/lib/questions";
 import { scheduleLabel } from "@/lib/schedule";
-import { RUNNING_VERB, RunningBadge } from "./agent-shared";
+import { RunningBadge } from "./agent-shared";
 import {
   BlockedChip,
   GroupChip,
@@ -59,6 +60,8 @@ export function BoardCard({
   // Group-ness is the reader's flag (the folder has a root.md), not a subtask
   // count — the count drops to zero once every subtask is finished, and the chip
   // would vanish right then.
+  const t = useCopy();
+  const c = t.board.card;
   const isGroup = card.isGroup;
   return (
     <Link
@@ -87,8 +90,10 @@ export function BoardCard({
               type="button"
               role="checkbox"
               aria-checked={selected}
-              aria-label={`${selected ? "Untick" : "Tick"} #${card.id} ${card.title}`}
-              title="Tick to move this card into a release"
+              aria-label={
+                selected ? c.untick(card.id, card.title) : c.tick(card.id, card.title)
+              }
+              title={c.tickHint}
               onClick={(e) => {
                 // The card is a link; keep the click on the tick.
                 e.preventDefault();
@@ -122,7 +127,7 @@ export function BoardCard({
           {card.openBlockers.length > 0 && <BlockedChip blockers={card.openBlockers} />}
           {liveSession ? (
             <RunningBadge
-              label={RUNNING_VERB[liveSession.action]}
+              label={t.runs.verb[liveSession.action]}
               onClick={(e) => {
                 // The card is a link; keep the click on the badge.
                 e.preventDefault();
@@ -146,11 +151,18 @@ export function BoardCard({
               ).length;
               // A `[user]` question waits on the human (accent); the rest a
               // refine can settle on its own (quieter).
-              const tip =
-                `${total} open question${total === 1 ? "" : "s"}` +
-                (userCount > 0
-                  ? ` · ${userCount} need${userCount === 1 ? "s" : ""} you`
-                  : "");
+              // Two whole sentences joined, never a plural suffix: the branch
+              // stays here and each side of it is its own key.
+              const tip = [
+                total === 1 ? c.questionsOne : c.questionsMany(total),
+                userCount === 0
+                  ? null
+                  : userCount === 1
+                    ? c.needsYouOne
+                    : c.needsYouMany(userCount),
+              ]
+                .filter(Boolean)
+                .join(" · ");
               return (
                 <span
                   tabIndex={0}
@@ -174,7 +186,7 @@ export function BoardCard({
             <span
               tabIndex={0}
               className="nb-tip inline-flex shrink-0"
-              data-tip={`${card.verify.length} to check by hand`}
+              data-tip={c.verify(card.verify.length)}
               style={{ color: "var(--color-nb-sky-ink)" }}
             >
               <FiClipboard aria-hidden style={{ width: 12.5, height: 12.5 }} />

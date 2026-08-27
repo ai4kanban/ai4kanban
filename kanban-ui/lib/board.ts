@@ -1,3 +1,4 @@
+import { copy } from "@/i18n";
 import { boardRules, NoRulesError } from "./cli";
 import type {
   Board,
@@ -168,8 +169,7 @@ export async function readScore(): Promise<ScoreResult> {
     if (!rules.readScoreView) {
       return {
         ok: false,
-        error:
-          "This board's copy of the rules is older than the planning scores. Run `npm install -g ai4kanban` to update it.",
+        error: `${copy.messages.rules.tooOldForScores} ${copy.messages.rules.updateIt}`,
       };
     }
     return await rules.readScoreView();
@@ -199,7 +199,7 @@ export async function readGoalText(): Promise<string> {
 export async function readMemory(name: string, module = ""): Promise<MemoryFile | null> {
   const rules = await boardRules();
   if (!rules.readMemoryFile) {
-    throw new NoRulesError("The board's rules this board runs are too old to read its memory.");
+    throw new NoRulesError(copy.messages.rules.tooOldForMemory);
   }
   return rules.readMemoryFile(name, module);
 }

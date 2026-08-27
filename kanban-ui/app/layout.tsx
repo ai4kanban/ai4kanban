@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { NavEdge } from "@/components/desktop";
+import { copy } from "@/i18n";
 import { LanguageProvider } from "@/components/language";
 import { insetTitleBar, isDesktop } from "@/lib/desktop";
 import { machineLanguage } from "@/lib/language";
@@ -23,8 +24,8 @@ const ICON =
   "</g></svg>";
 
 export const metadata: Metadata = {
-  title: "AI4Kanban",
-  description: "Local kanban board — spawn agents to do the work.",
+  title: copy.chrome.window.title,
+  description: copy.chrome.window.description,
   icons: { icon: ICON },
 };
 

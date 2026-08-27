@@ -1,3 +1,4 @@
+import { copy } from "@/i18n";
 import { boardRules, type AgentRequest, type RunView } from "./cli";
 import type { DeliveryRecord, SessionView } from "./types";
 
@@ -78,7 +79,7 @@ async function launch(
   const { sessionId } = opened.run;
   const pid = rules.spawnWatcher(sessionId);
   rules.markSpawned(sessionId, pid);
-  if (!pid) return { ok: false, error: "couldn't start a process for that run" };
+  if (!pid) return { ok: false, error: copy.messages.run.noProcess };
   return { ok: true, sessionId };
 }
 
@@ -140,7 +141,7 @@ export async function cancelDelivery(id: string): Promise<StartResult> {
   try {
     const rules = await boardRules();
     if (!rules.cancelDelivery) {
-      return { ok: false, error: "this board's rules are older than deliveries — run `npm install -g ai4kanban`." };
+      return { ok: false, error: copy.messages.tooOld.deliveries };
     }
     const res = await rules.cancelDelivery(id);
     return { ok: res.ok, error: res.error };
@@ -156,7 +157,7 @@ export async function discardDelivery(id: string): Promise<StartResult> {
   try {
     const rules = await boardRules();
     if (!rules.discardDelivery) {
-      return { ok: false, error: "this board's rules are older than delivery worktrees — run `npm install -g ai4kanban`." };
+      return { ok: false, error: copy.messages.tooOld.worktrees };
     }
     const res = await rules.discardDelivery(id);
     return { ok: res.ok, error: res.error };
@@ -172,7 +173,7 @@ export async function approveDelivery(id: string): Promise<StartResult> {
   try {
     const rules = await boardRules();
     if (!rules.approveDelivery) {
-      return { ok: false, error: "this board's rules are older than diff approval — run `npm install -g ai4kanban`." };
+      return { ok: false, error: copy.messages.tooOld.diffApproval };
     }
     const res = await rules.approveDelivery(id, "the card page");
     return res.ok ? { ok: true } : { ok: false, error: res.error };

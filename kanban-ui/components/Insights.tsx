@@ -22,6 +22,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiTrendingUp } from "react-icons/fi";
 import { getMetricsAction, getScoreAction } from "@/app/actions";
+import { Rich } from "@/i18n/rich";
+import { useCopy } from "@/i18n/use-copy";
 import type { MetricsDay, MetricsResult, ScoreResult, ScoreSeries, ScoreWindow } from "@/lib/types";
 
 import { TOOL_BTN } from "./chrome";
@@ -31,20 +33,18 @@ type SeriesKey = "completed" | "created" | "rejected";
 
 // Three distinct hues that hold up on the cream/paper canvas: the board's mint,
 // sky and ember inks, darkened enough to read as thin lines.
-const SERIES: { key: SeriesKey; label: string; color: string }[] = [
-  { key: "completed", label: "Completed", color: "#2f6b46" },
-  { key: "created", label: "Created", color: "#2c5c86" },
-  { key: "rejected", label: "Rejected", color: "#b83a12" },
+const SERIES: { key: SeriesKey; color: string }[] = [
+  { key: "completed", color: "#2f6b46" },
+  { key: "created", color: "#2c5c86" },
+  { key: "rejected", color: "#b83a12" },
 ];
 
-const TABS = [
-  { key: "daily", label: "Daily progress" },
-  { key: "quality", label: "Planning quality" },
-] as const;
+const TABS = ["daily", "quality"] as const;
 
-type TabKey = (typeof TABS)[number]["key"];
+type TabKey = (typeof TABS)[number];
 
 export function Insights() {
+  const c = useCopy().rail.insights;
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabKey>("daily");
   return (
@@ -56,35 +56,35 @@ export function Insights() {
       <button
         type="button"
         className={TOOL_BTN}
-        title="Insights"
-        aria-label="Insights"
+        title={c.open}
+        aria-label={c.open}
         onClick={() => setOpen(true)}
       >
         <FiTrendingUp size={15} aria-hidden />
       </button>
 
       {open && (
-        <Dialog title="Insights" onClose={() => setOpen(false)} width={760}>
+        <Dialog title={c.title} onClose={() => setOpen(false)} width={760}>
           {/* design.md's tab-strip pattern, the same one New release and Create
               task wear: hairline under both tabs, bold ink on the active one
               over a short ember underline that laps the hairline. */}
           <div className="mb-4 flex gap-5 border-b border-nb-ink/12" role="tablist">
-            {TABS.map((t) => {
-              const active = tab === t.key;
+            {TABS.map((key) => {
+              const active = tab === key;
               return (
                 <button
-                  key={t.key}
+                  key={key}
                   type="button"
                   role="tab"
-                  id={`insights-tab-${t.key}`}
+                  id={`insights-tab-${key}`}
                   aria-selected={active}
-                  aria-controls={`insights-pane-${t.key}`}
-                  onClick={() => setTab(t.key)}
+                  aria-controls={`insights-pane-${key}`}
+                  onClick={() => setTab(key)}
                   className={`relative cursor-pointer pb-2 text-[13.5px] tracking-[-0.01em] transition-colors ${
                     active ? "font-[800] text-nb-ink" : "font-[600] text-nb-ink-soft hover:text-nb-ink"
                   }`}
                 >
-                  {t.label}
+                  {key === "daily" ? c.tabDaily : c.tabQuality}
                   {active && (
                     <span
                       className="absolute inset-x-0 bottom-[-1px] h-[2px] rounded-full bg-nb-accent"
@@ -130,6 +130,7 @@ function Pane({ id, active, children }: { id: TabKey; active: boolean; children:
 // Reads once on mount — the dialog only mounts while open, so every open is a
 // fresh read. metrics.csv changes a few times a day at most; nothing polls it.
 function DailyProgress() {
+  const c = useCopy().rail.insights.daily;
   const [result, setResult] = useState<MetricsResult | null>(null);
   const [error, setError] = useState("");
 
@@ -147,16 +148,14 @@ function DailyProgress() {
   // the empty note below — that would tell a user whose history is damaged that
   // they simply have none.
   if (error) return <Failure text={error} />;
-  if (!result) return <p className="text-[13px] text-nb-ink-soft">Reading metrics.csv…</p>;
+  if (!result) return <p className="text-[13px] text-nb-ink-soft">{c.reading}</p>;
   if (!result.ok) return <Failure text={result.error} />;
 
   const view = result.view;
   if (view.empty) {
     return (
       <p className="text-[13px] text-nb-ink-soft">
-        No activity recorded yet. The board writes a row to{" "}
-        <code className="font-mono text-[12px]">metrics.csv</code> the first time a card is
-        created, archived, or rejected.
+        <Rich code="font-mono text-[12px]">{c.empty}</Rich>
       </p>
     );
   }
@@ -164,11 +163,8 @@ function DailyProgress() {
   const { completed, created, rejected } = view.totals;
   return (
     <>
-      <p className="mb-4 text-[13px] text-nb-ink-soft">
-        Last {view.days.length} days —{" "}
-        <strong className="font-[800] text-nb-ink">{completed} completed</strong>,{" "}
-        <strong className="font-[800] text-nb-ink">{created} created</strong>,{" "}
-        <strong className="font-[800] text-nb-ink">{rejected} rejected</strong>.
+      <p className="mb-4 text-[13px] text-nb-ink-soft [&_strong]:font-[800] [&_strong]:text-nb-ink">
+        <Rich>{c.totals(view.days.length, completed, created, rejected)}</Rich>
       </p>
       <Chart days={view.days} />
     </>
@@ -208,6 +204,7 @@ function yAxis(max: number): { top: number; ticks: number[] } {
 }
 
 export function Chart({ days }: { days: MetricsDay[] }) {
+  const c = useCopy().rail.insights.daily;
   const max = Math.max(...days.flatMap((d) => SERIES.map((s) => d[s.key])));
   const { top, ticks } = yAxis(max);
 
@@ -232,7 +229,7 @@ export function Chart({ days }: { days: MetricsDay[] }) {
               style={{ backgroundColor: s.color }}
               aria-hidden
             />
-            {s.label}
+            {c[s.key]}
           </span>
         ))}
       </div>
@@ -240,7 +237,7 @@ export function Chart({ days }: { days: MetricsDay[] }) {
         viewBox={`0 0 ${W} ${H}`}
         className="w-full"
         role="img"
-        aria-label={`Daily board activity over the last ${days.length} days: completed, created, and rejected cards.`}
+        aria-label={c.chart(days.length)}
       >
         {/* horizontal gridlines + y ticks */}
         {ticks.map((t) => (
@@ -326,6 +323,7 @@ function Marker({ shape, x, y, color }: { shape: Shape; x: number; y: number; co
 }
 
 function PlanningQuality() {
+  const c = useCopy().rail.insights.quality;
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [error, setError] = useState("");
 
@@ -343,15 +341,13 @@ function PlanningQuality() {
   // scores out, both arrive here as one line — inside this tab, so the other
   // chart is still drawn when you switch back to it.
   if (error) return <Failure text={error} />;
-  if (!result) return <p className="text-[13px] text-nb-ink-soft">Reading record.csv…</p>;
+  if (!result) return <p className="text-[13px] text-nb-ink-soft">{c.reading}</p>;
   if (!result.ok) return <Failure text={result.error} />;
 
   if (result.view.empty) {
     return (
       <p className="text-[13px] text-nb-ink-soft">
-        No planning evidence yet. The board writes a row to{" "}
-        <code className="font-mono text-[12px]">record.csv</code> as it settles a question,
-        proposes a card, or closes a release — the three scores are worked out from those rows.
+        <Rich code="font-mono text-[12px]">{c.empty}</Rich>
       </p>
     );
   }
@@ -375,6 +371,7 @@ const MAX_LABELS = 9;
 const shortId = (id: string) => (id.length > 12 ? `${id.slice(0, 11)}…` : id);
 
 function ScoreChart({ windows }: { windows: ScoreWindow[] }) {
+  const c = useCopy().rail.insights.quality;
   // The readout opens on the current window — the last one, always open — because
   // that is the score still worth acting on.
   const [at, setAt] = useState(windows.length - 1);
@@ -483,7 +480,7 @@ function ScoreChart({ windows }: { windows: ScoreWindow[] }) {
       <div
         tabIndex={0}
         role="group"
-        aria-label="Planning quality by release. Use the left and right arrow keys to move from release to release; the readout below gives that release's three scores."
+        aria-label={c.chart}
         onKeyDown={onKeyDown}
         className="rounded-[6px] outline-none focus-visible:ring-2 focus-visible:ring-nb-ink/40"
       >
@@ -576,7 +573,7 @@ function ScoreChart({ windows }: { windows: ScoreWindow[] }) {
               fontSize={11}
             >
               {shortId(windows[i].release)}
-              {windows[i].open ? " · open" : ""}
+              {windows[i].open ? c.axisOpen : ""}
             </text>
           ))}
 
@@ -613,6 +610,7 @@ function ScoreChart({ windows }: { windows: ScoreWindow[] }) {
 // gives a rough value, and a figure drawn only on screen leaves out the reader
 // who most needs it spoken.
 function Readout({ ref, window: w }: { ref: React.Ref<HTMLDivElement>; window: ScoreWindow }) {
+  const c = useCopy().rail.insights.quality;
   return (
     <div
       ref={ref}
@@ -622,7 +620,7 @@ function Readout({ ref, window: w }: { ref: React.Ref<HTMLDivElement>; window: S
     >
       <p className="mb-2 font-[800] text-nb-ink">
         {w.release}
-        {w.open && <span className="ml-2 font-[600] text-nb-ink-soft">{" · still open"}</span>}
+        {w.open && <span className="ml-2 font-[600] text-nb-ink-soft">{c.stillOpen}</span>}
       </p>
       <div className="grid gap-2">
         {w.series.map((s) => (
@@ -634,6 +632,7 @@ function Readout({ ref, window: w }: { ref: React.Ref<HTMLDivElement>; window: S
 }
 
 function Reading({ series: s }: { series: ScoreSeries }) {
+  const c = useCopy().rail.insights.quality;
   const { color, dash, shape } = style(s.key);
   const [hit, miss] = s.counts;
   return (
@@ -654,11 +653,11 @@ function Reading({ series: s }: { series: ScoreSeries }) {
         </svg>
         <span className="font-[800]">{s.label}</span>
         <span className="font-mono font-[800]">
-          {s.percent === null ? "not enough yet" : `${s.percent}%`}
+          {s.percent === null ? c.notEnough : c.percent(s.percent)}
         </span>
         <span className="text-nb-ink-soft">
           {hit.label} {hit.value} · {miss.label} {miss.value}
-          {s.percent === null && ` — ${s.floor} needed`}
+          {s.percent === null && c.needed(s.floor)}
         </span>
       </p>
       {/* Every contributing id, in full and in order, so a figure can be
@@ -666,7 +665,7 @@ function Reading({ series: s }: { series: ScoreSeries }) {
           counts only once it has been archived or rejected, so almost every
           link would lead nowhere. */}
       <p className="mt-0.5 break-words pl-[34px] font-mono text-[11px] text-nb-ink-soft">
-        {s.cards.length ? `Cards ${s.cards.map((id) => `#${id}`).join(", ")}` : "No cards yet"}
+        {s.cards.length ? c.cards(s.cards.map((id) => `#${id}`).join(", ")) : c.noCards}
       </p>
     </div>
   );

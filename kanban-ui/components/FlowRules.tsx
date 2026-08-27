@@ -18,9 +18,11 @@
 import { useEffect, useRef, useState } from "react";
 import { FiAlertCircle, FiCheck } from "react-icons/fi";
 import { flowRulesAction, setFlowRuleAction } from "@/app/actions";
+import { useCopy } from "@/i18n/use-copy";
 import type { FlowRuleView } from "@/lib/types";
 
 export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void }) {
+  const c = useCopy().configuration.flowRules;
   const [flows, setFlows] = useState<FlowRuleView[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -61,8 +63,8 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
   //
   // It reads the boxes off a ref rather than off the render it was made in, because the
   // callers below outlive that render — one of them fires as the pane is coming apart.
-  const latest = useRef({ flows, drafts, onError });
-  latest.current = { flows, drafts, onError };
+  const latest = useRef({ flows, drafts, onError, c });
+  latest.current = { flows, drafts, onError, c };
   const save = useRef(async (command: string) => {
     const box = latest.current;
     const flow = box.flows?.find((f) => f.command === command);
@@ -73,7 +75,7 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
     try {
       const res = await setFlowRuleAction(command, rule);
       if (!res.ok) {
-        box.onError?.(res.error || `couldn't save the ${command} rule`);
+        box.onError?.(res.error || box.c.saveFailed(command));
         return;
       }
       setFlows((all) => all?.map((f) => (f.command === command ? { ...f, rule } : f)) ?? all);
@@ -99,19 +101,13 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="mb-4 shrink-0">
-        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">Flow rules</h3>
-        <p className="mt-1 max-w-[56ch] text-[13px] leading-relaxed text-nb-ink-soft">
-          One rule, in your own words, added to the end of a flow&apos;s instructions. Every
-          session the board starts from that flow reads it — so a long rule makes every card
-          slower.
-        </p>
+        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{c.title}</h3>
+        <p className="mt-1 max-w-[56ch] text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
       </div>
 
       {loadError && <Note text={loadError} />}
-      {!loaded && <Loading />}
-      {loaded && !loadError && flows === null && (
-        <Note text="The board's rules in this project are too old to carry flow rules. Update the command and reopen this dialog." />
-      )}
+      {!loaded && <Loading text={c.loading} />}
+      {loaded && !loadError && flows === null && <Note text={c.tooOld} />}
 
       {flows && flow && (
         <div className="flex min-h-0 flex-1 gap-4">
@@ -119,11 +115,11 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
               scrolls; the box beside it never does. */}
           <div className="flex w-[136px] shrink-0 flex-col">
             <p className="mb-1.5 text-[10.5px] font-[800] uppercase tracking-[0.1em] text-nb-ink-soft">
-              {inUse} of {flows.length} set
+              {c.set(inUse, flows.length)}
             </p>
             <div
               role="tablist"
-              aria-label="Flows"
+              aria-label={c.flows}
               aria-orientation="vertical"
               className="min-h-0 flex-1 overflow-y-auto"
             >
@@ -171,7 +167,7 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
               {saved === flow.command && !saving && (
                 <span className="ml-auto flex shrink-0 items-center gap-1 text-[11px] font-[700] text-nb-mint-ink">
                   <FiCheck aria-hidden />
-                  Saved
+                  {c.saved}
                 </span>
               )}
             </div>
@@ -186,8 +182,8 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
               }}
               onBlur={() => void save.current(flow.command)}
               spellCheck={false}
-              aria-label={`Rule for the ${flow.command} flow`}
-              placeholder={`No rule. Every \`${flow.command}\` run reads exactly what the board ships.`}
+              aria-label={c.rule(flow.command)}
+              placeholder={c.placeholder(flow.command)}
               className="min-h-0 flex-1 resize-none rounded-[12px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2.5 text-[12.5px] leading-[20px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
             />
 
@@ -204,11 +200,11 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
   );
 }
 
-function Loading() {
+function Loading({ text }: { text: string }) {
   return (
     <p className="flex items-center gap-2 text-[12px] text-nb-ink-soft" aria-live="polite">
       <span className="size-1.5 rounded-full bg-nb-ink-soft animate-[nbPulse_1.1s_ease-in-out_infinite]" aria-hidden />
-      Loading flows…
+      {text}
     </p>
   );
 }

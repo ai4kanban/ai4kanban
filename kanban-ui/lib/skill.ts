@@ -1,3 +1,4 @@
+import { copy } from "@/i18n";
 import { boardRules } from "./cli";
 import type { CommandState, SkillInstall, SkillState } from "./types";
 
@@ -40,7 +41,7 @@ export async function installSkill(): Promise<SkillInstall> {
   if (!rules.installSkill) {
     return {
       ok: false,
-      error: "the board's rules in this project are too old to install the skill",
+      error: copy.messages.tooOld.skillInstall,
       wrote: [],
       skipped: [],
       state: UNKNOWN_SKILL,

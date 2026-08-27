@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { FiChevronRight } from "react-icons/fi";
 import type { MockupSet } from "@/lib/mockup-tag";
+import { useCopy } from "@/i18n/use-copy";
 import { splitCardBody, useAgentHalf } from "@/lib/agent-half";
 import { HAIRLINE } from "./chrome";
 import { Markdown } from "./Markdown";
@@ -28,6 +29,7 @@ export function CardBody({
   cardId: number;
   mockups?: MockupSet;
 }) {
+  const c = useCopy().card;
   const halves = useMemo(() => splitCardBody(body), [body]);
   const { open, onToggle } = useAgentHalf(cardId, halves, title);
 
@@ -53,7 +55,7 @@ export function CardBody({
               aria-hidden
               className={`shrink-0 transition-transform duration-150 ease-out ${open ? "rotate-90" : ""}`}
             />
-            <span>what the agent worked out</span>
+            <span>{c.agentHalf}</span>
           </summary>
           <div className="px-5 pb-5 pt-4" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
             <Markdown body={halves.agent} mockups={mockups} className="nb-md-soft" />

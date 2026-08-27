@@ -15,6 +15,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiCheck, FiCopy, FiMoreHorizontal } from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import type { RailCopy } from "@/i18n/rail/types";
+import { useCopy } from "@/i18n/use-copy";
 import { memoryKey } from "@/lib/memory-panel";
 import type { AgentInfo, MemoryFile, MemoryModule } from "@/lib/types";
 import { RunningNotice } from "./desktop";
@@ -50,6 +52,7 @@ export function MemoryPage({
   memoryModules: MemoryModule[];
   desktop: boolean;
 }) {
+  const c = useCopy().rail;
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const refresh = useCallback(() => router.refresh(), [router]);
@@ -114,7 +117,7 @@ export function MemoryPage({
                   </p>
                 )}
                 <h1 className="text-[20px] font-[800] leading-tight tracking-[-0.02em]">
-                  {file.label}
+                  {c.memory.files[file.name as keyof RailCopy["memory"]["files"]] ?? file.label}
                 </h1>
                 <p className="mt-1 break-all font-mono text-[12px] text-nb-ink-soft">
                   {file.relPath}
@@ -130,8 +133,7 @@ export function MemoryPage({
                 // The row stays on a board that has never written this file, so the page has
                 // to say why it is empty. An empty panel would read as a failed read.
                 <p className="text-[13px] leading-relaxed text-nb-ink-soft">
-                  Nothing has been written here yet. The agent adds a line as work is
-                  finished, decided, or turned down — this file fills in as the board is used.
+                  {c.memoryPage.unwritten}
                 </p>
               )}
             </div>
@@ -149,6 +151,7 @@ export function MemoryPage({
  *  what a coding agent working in this repo is given, the full one is what an editor or a
  *  terminal somewhere else wants. */
 function PathMenu({ file }: { file: MemoryFile }) {
+  const c = useCopy().rail.memoryPage;
   const [copied, setCopied] = useState<string | null>(null);
   useEffect(() => {
     if (!copied) return;
@@ -174,31 +177,31 @@ function PathMenu({ file }: { file: MemoryFile }) {
           style={{ background: "var(--color-nb-mint-soft)", color: "var(--color-nb-mint-ink)" }}
         >
           <FiCheck aria-hidden className="size-[1em]" />
-          {copied} copied
+          {c.copied(copied)}
         </span>
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            aria-label="What to do with this file"
-            title="What to do with this file"
+            aria-label={c.menu}
+            title={c.menu}
             className="grid size-7 cursor-pointer place-items-center rounded-[7px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] hover:text-nb-ink"
           >
             <FiMoreHorizontal aria-hidden style={{ width: 15, height: 15 }} />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem className="gap-2" onSelect={() => copy(file.path, "Path")}>
+          <DropdownMenuItem className="gap-2" onSelect={() => copy(file.path, c.path)}>
             <FiCopy aria-hidden className="size-[1em] shrink-0" />
-            Copy path
+            {c.copyPath}
           </DropdownMenuItem>
           <DropdownMenuItem
             className="gap-2"
-            onSelect={() => copy(file.relPath, "Relative path")}
+            onSelect={() => copy(file.relPath, c.relativePath)}
           >
             <FiCopy aria-hidden className="size-[1em] shrink-0" />
-            Copy relative path
+            {c.copyRelative}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

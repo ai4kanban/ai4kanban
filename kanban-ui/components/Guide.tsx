@@ -9,6 +9,7 @@
 
 import { useEffect, useId, useState } from "react";
 import { FiChevronRight } from "react-icons/fi";
+import { useCopy } from "@/i18n/use-copy";
 import { Markdown } from "./Markdown";
 
 // One fetch per guide per page, kept across open/close. A failed read is dropped
@@ -43,6 +44,7 @@ export function GuideDrawer({
   children: React.ReactNode;
   className?: string;
 }) {
+  const c = useCopy().chrome.guide;
   const id = useId();
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState<string | null>(null);
@@ -96,19 +98,19 @@ export function GuideDrawer({
           <div className="mt-2 max-h-[45vh] overflow-y-auto">
             {failed ? (
               <p>
-                The guide didn&rsquo;t load —{" "}
+                {c.failed}{" "}
                 <a
                   href={`https://github.com/ai4kanban/ai4kanban/blob/main/docs/guides/${guide}.md`}
                   target="_blank"
                   rel="noreferrer"
                   className="underline underline-offset-2 hover:text-nb-ink"
                 >
-                  read it on GitHub
+                  {c.readOnGitHub}
                 </a>
-                .
+                {c.failedEnd}
               </p>
             ) : body === null ? (
-              <p className="italic">Reading the guide…</p>
+              <p className="italic">{c.reading}</p>
             ) : (
               <Markdown body={body} />
             )}

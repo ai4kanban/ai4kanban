@@ -1,3 +1,4 @@
+import { copy } from "@/i18n";
 import { boardRules } from "./cli";
 import type { CloudAccount, CloudMove } from "./types";
 
@@ -12,7 +13,7 @@ import type { CloudAccount, CloudMove } from "./types";
 
 /** What the section shows when the rules loaded here predate Cloud. It draws the not
  *  signed-in state and says why the button cannot help. */
-const TOO_OLD = "The board's rules in this project are too old to sign in to Cloud.";
+const TOO_OLD = copy.messages.rules.tooOldForCloud;
 
 const UNKNOWN: CloudAccount = {
   state: "signed-out",

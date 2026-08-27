@@ -11,6 +11,8 @@ import {
   setReleaseGoalAction,
   startSetupRunAction,
 } from "@/app/actions";
+import { Rich } from "@/i18n/rich";
+import { useCopy } from "@/i18n/use-copy";
 import { filterColumns, hasOwnCards, useReleasePick } from "@/lib/release-pick";
 import type { AgentInfo, Board, SessionView } from "@/lib/types";
 import { BulkReleaseBar } from "./BulkReleaseBar";
@@ -54,6 +56,8 @@ export function BoardView({
    *  server so the first paint is already right. */
   desktop: boolean;
 }) {
+  const t = useCopy();
+  const c = t.board;
   const [board, setBoard] = useState<Board | null>(initialBoard);
   // Which agent runs this board. It starts as the server's first paint and moves
   // when a screen here answers that question — the guided run's agent step, or the
@@ -214,10 +218,10 @@ export function BoardView({
       await refresh();
       setRelease(id);
       if (res.planSessionId) takeOnPlan(id, res.planSessionId);
-      if (res.planError) setError(`${id} was made, but filling it from its goal didn't start: ${res.planError}`);
+      if (res.planError) setError(c.notice.planNotStarted(id, res.planError));
       return res;
     },
-    [refresh, setRelease, takeOnPlan],
+    [refresh, setRelease, takeOnPlan, c],
   );
 
   // Fill a release that already exists from its goal (#165) — the ⋯ menu's entry.
@@ -373,9 +377,10 @@ export function BoardView({
     if (seen.status === "done") return;
     setChangelogGone({
       release: changelogRun.release,
-      why: seen.status === "stopped" ? "the run was stopped" : "the run didn't finish",
+      why:
+        seen.status === "stopped" ? c.notice.changelogStopped : c.notice.changelogUnfinished,
     });
-  }, [sessions, changelogRun]);
+  }, [sessions, changelogRun, c]);
 
   // Say what the release on screen is for, or change it (#164). Only the board
   // file changes, so the pick stays where it is — but the board is re-read, since
@@ -496,7 +501,7 @@ export function BoardView({
           {board && !board.setup && board.goalNeedsWork && <GoalNotice onSaved={refresh} />}
 
           {!board && !error && (
-            <div className="p-10 text-nb-ink-soft">Reading the board…</div>
+            <div className="p-10 text-nb-ink-soft">{c.reading}</div>
           )}
 
           {/* A release being filled from its goal (#165) says so, and says it
@@ -507,16 +512,15 @@ export function BoardView({
               cards arrive over the run rather than all at once at the close. */}
           {board && planSessionId && (
             <div className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6" style={{ background: "var(--color-nb-sky-soft)" }}>
-              <strong>{release}</strong> is being planned — the agent is moving in the cards that ship
-              its goal and writing the ones the board hasn&apos;t got. They appear here as it goes.{" "}
+              <Rich>{c.notice.planning(release ?? "")}</Rich>{" "}
               <button
                 type="button"
                 className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
                 onClick={() => sessionsPanel.open(planSessionId)}
               >
-                Watch the run
+                {c.notice.watchRun}
               </button>
-              .
+              {t.shared.stop}
             </div>
           )}
 
@@ -528,17 +532,16 @@ export function BoardView({
               className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6"
               style={{ background: "var(--color-nb-peach-soft)" }}
             >
-              <strong>{changelogGone.release}</strong> is closed, but its changelog was not
-              written — {changelogGone.why}. Write it with{" "}
-              <code>akb changelog {changelogGone.release}</code>.{" "}
+              <Rich>{c.notice.changelogMissing(changelogGone.release, changelogGone.why)}</Rich>{" "}
+              <Rich>{c.notice.changelogWriteIt(`akb changelog ${changelogGone.release}`)}</Rich>{" "}
               <button
                 type="button"
                 className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
                 onClick={() => setChangelogGone(null)}
               >
-                Dismiss
+                {c.notice.dismiss}
               </button>
-              .
+              {t.shared.stop}
             </div>
           )}
 
@@ -553,18 +556,18 @@ export function BoardView({
           {board && emptyPick && !planSessionId && (
             <div className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6" style={{ background: "var(--color-nb-sky-soft)" }}>
               {release === null ? (
-                <>Every open card is in a release — nothing is waiting to be planned. Pick a version above to see it.</>
+                <>{c.notice.allPlanned}</>
               ) : (
                 <>
-                  <strong>{release}</strong> has no open cards.{" "}
+                  <Rich>{c.notice.releaseEmpty(release)}</Rich>{" "}
                   <button
                     type="button"
                     className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
                     onClick={() => setRelease(null)}
                   >
-                    Show the cards in no release
+                    {c.notice.showNoRelease}
                   </button>
-                  .
+                  {t.shared.stop}
                 </>
               )}
             </div>

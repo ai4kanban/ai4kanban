@@ -17,12 +17,14 @@ import {
 } from "react-icons/fi";
 import { FaPauseCircle } from "react-icons/fa";
 import { resumeSessionAction, stopSessionAction } from "@/app/actions";
+import type { RunsCopy } from "@/i18n/runs/types";
+import { Rich } from "@/i18n/rich";
+import { useCopy } from "@/i18n/use-copy";
 import { useDraft, useDraftList, useDraftPicks } from "@/lib/draft";
 import { FREE_TEXT_CHOICE, freeTextPick, hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
 import {
   PROPOSE_DEFAULT,
   PROPOSE_MAX,
-  type AgentAction,
   type Boldness,
   type Card,
   type CommandAction,
@@ -102,13 +104,14 @@ export function RunningBadge({
   label?: string;
   onClick?: (e: React.MouseEvent) => void;
 }) {
+  const c = useCopy().runs.badge;
   return (
     <span
       className="nb-chip gap-1.5"
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
-      title={onClick ? "watch the run log" : label ? `${label} — running` : "agent running"}
+      title={onClick ? c.watch : label ? c.doing(label) : c.idle}
       style={{
         ...ELASTIC_CHIP,
         background: "var(--color-nb-accent-soft)",
@@ -117,40 +120,10 @@ export function RunningBadge({
       }}
     >
       <span className={PULSE_DOT} aria-hidden />
-      <span className="truncate">{label ? label : "running"}</span>
+      <span className="truncate">{label ? label : c.running}</span>
     </span>
   );
 }
-
-// Present-participle label for a live session, so the single mark a card shows while
-// busy names WHICH action is in flight (implementing / refining / resolving / …)
-// instead of a generic "running". The badge always replaces the saved-stage pill
-// (one mark per card, never both), so this is the one place the running action is
-// read — refine/resolve don't need their own saved status to be visible.
-export const RUNNING_VERB: Record<AgentAction, string> = {
-  implement: "implementing",
-  // Review follows a build. `correct` is retained for historical run records.
-  review: "reviewing",
-  correct: "correcting",
-  // And the one a landing runs when its rebase meets a conflict (#304).
-  conflict: "resolving a conflict",
-  run: "running",
-  edit: "editing",
-  "clarify": "clarifying",
-  resolve: "resolving",
-  writing: "rewriting",
-  reject: "rejecting",
-  archive: "archiving",
-  create: "creating",
-  propose: "proposing",
-  "plan-release": "planning",
-  // Writing one closed version's changelog (#232). It names a version, never a card.
-  changelog: "writing the changelog",
-  setup: "setting up",
-  // A spec agent filling one part of the card's spec (#187). It writes one section and
-  // never the plan, so the card is not "being planned" while it works.
-  spec: "drafting a spec",
-};
 
 // The live tail is the agent's event stream — tool calls and turn text — so it
 // reads mono. A finished run leads with the agent's final message (markdown)
@@ -164,12 +137,12 @@ const MONO_TEXT = {
 // How long a finished run took, in the coarsest unit that still tells you
 // something: seconds under a minute, minutes and seconds under an hour, hours and
 // minutes above. Agent runs are minutes-long, so this is nearly always "4m 12s".
-function formatDuration(ms: number): string {
+function formatDuration(ms: number, c: RunsCopy["log"]): string {
   const total = Math.max(0, Math.round(ms / 1000));
-  if (total < 60) return `${total}s`;
+  if (total < 60) return c.seconds(total);
   const mins = Math.floor(total / 60);
-  if (mins < 60) return `${mins}m ${total % 60}s`;
-  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  if (mins < 60) return c.minutes(mins, total % 60);
+  return c.hours(Math.floor(mins / 60), mins % 60);
 }
 
 // What a finished run cost, in US dollars (task #90). Two decimals is the unit
@@ -177,17 +150,17 @@ function formatDuration(ms: number): string {
 // rather than "$0.00", which would read as free. The word "est." carries the
 // rest: the agent worked the number out from tokens at list prices, and on a
 // subscription plan nothing was charged for the run at all.
-function formatCost(usd: number): string {
-  return usd < 0.005 ? "est. <$0.01" : `est. $${usd.toFixed(2)}`;
+function formatCost(usd: number, c: RunsCopy["log"]): string {
+  return usd < 0.005 ? c.costTiny : c.cost(usd.toFixed(2));
 }
 
 // The run's token counts as one readable line, closing out the intermediate
 // events: what the agent read fresh, wrote to and read back from the prompt
 // cache, and wrote out. Full numbers with separators, not "1.2M" — the counts
 // are the point here, and the line only appears in an opened fold.
-function formatTokens(u: TokenUsage): string {
+function formatTokens(u: TokenUsage, c: RunsCopy["log"]): string {
   const n = (v: number) => v.toLocaleString("en-US");
-  return `tokens · ${n(u.input)} input · ${n(u.cacheCreation)} cache write · ${n(u.cacheRead)} cache read · ${n(u.output)} output`;
+  return c.tokens(n(u.input), n(u.cacheCreation), n(u.cacheRead), n(u.output));
 }
 
 // A run that ended without finishing: it failed, or it was cut off when the UI
@@ -231,6 +204,8 @@ export function SessionLog({
   // card-page log.
   flush?: boolean;
 }) {
+  const t = useCopy();
+  const c = t.runs.log;
   const ref = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
   const tail = (session?.tail || "").trim();
@@ -265,25 +240,25 @@ export function SessionLog({
   const state = running
     ? ""
     : stopped
-      ? "stopped"
+      ? c.stopped
       : interrupted
-        ? "interrupted"
+        ? c.interrupted
         : session.ok
-          ? "done"
-          : `exited ${session.code ?? "?"}`;
+          ? c.done
+          : c.exited(String(session.code ?? "?"));
   // How long it took, next to the outcome: "done · 4m 12s". An interrupted run
   // ended out of our sight and was only noticed on the next pid poll — that's an
   // upper bound, not a measurement, so it's marked "~".
   const took =
     running || session.durationMs === undefined
       ? ""
-      : `${interrupted ? "~" : ""}${formatDuration(session.durationMs)}`;
+      : `${interrupted ? "~" : ""}${formatDuration(session.durationMs, c)}`;
   // And what it cost, after the duration: "done · 4m 12s · est. $0.42". One run,
   // one number — this run's own, never a total. A run that reported no cost (a
   // live one, one cut off early, an agent that says nothing about money) shows
   // nothing here at all.
   const cost =
-    running || session.costUsd === undefined ? "" : formatCost(session.costUsd);
+    running || session.costUsd === undefined ? "" : formatCost(session.costUsd, c);
 
   // The run's facts, in one middot-separated row: what came of it, how long it
   // took, what it cost, and which model did the work. A live run shows only the
@@ -296,8 +271,7 @@ export function SessionLog({
       key: "cost",
       text: cost,
       dim: true,
-      title:
-        "Worked out from this run's tokens at list prices. It's what the run would cost to buy — not what you were billed; on a subscription plan a run isn't charged on its own.",
+      title: c.costHint,
     });
   }
   // The model the agent itself said it was running, shown exactly as it said it
@@ -309,7 +283,7 @@ export function SessionLog({
       key: "model",
       text: session.model,
       dim: true,
-      title: "The model this run reported it was working with.",
+      title: c.modelHint,
     });
   }
 
@@ -333,7 +307,7 @@ export function SessionLog({
     // A live tail is streaming events, not markdown — keep the raw terminal look
     // so partial lines don't get mangled mid-render.
     <pre className="m-0 text-nb-ink-soft" style={MONO_TEXT}>
-      {tail || "…"}
+      {tail || c.waiting}
     </pre>
   ) : result ? (
     // The final message leads; the event lines it streamed on the way fold into
@@ -345,7 +319,7 @@ export function SessionLog({
       {(tail || (session.ok && session.usage)) && (
         <details className="mb-2">
           <summary className="cursor-pointer select-none text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft hover:text-nb-ink">
-            intermediate events
+            {c.events}
           </summary>
           {tail && (
             <pre className="m-0 mt-2 text-nb-ink-soft" style={MONO_TEXT}>
@@ -356,9 +330,9 @@ export function SessionLog({
             <p
               className="m-0 mt-2 tabular-nums text-nb-ink-soft opacity-80"
               style={MONO_TEXT}
-              title="This run's token counts, as the agent reported them: fresh input, prompt-cache writes and reads, and output."
+              title={c.tokensHint}
             >
-              {formatTokens(session.usage)}
+              {formatTokens(session.usage, c)}
             </p>
           )}
         </details>
@@ -371,7 +345,7 @@ export function SessionLog({
     <Markdown body={tail} className="nb-sessionlog-md" />
   ) : (
     <pre className="m-0 text-nb-ink-soft" style={MONO_TEXT}>
-      (no output)
+      {c.noOutput}
     </pre>
   );
 
@@ -384,8 +358,8 @@ export function SessionLog({
       <span className="mr-1" aria-hidden>
         ⚠
       </span>
-      This run stopped short, so the card may be part-built — whatever it wrote is sitting in
-      your working tree.{resumable ? " Resume carries it on from where it stopped." : ""}
+      {c.stoppedShort}
+      {resumable ? c.stoppedShortResume : ""}
     </p>
   );
 
@@ -412,10 +386,10 @@ export function SessionLog({
       className={`flex items-center gap-2.5 px-3 py-1 bg-[linear-gradient(var(--color-nb-cream),color-mix(in_srgb,var(--color-nb-ink)_9%,var(--color-nb-cream)))]${bare ? "" : " rounded-t-[12.5px]"}${collapsed && !bare ? " rounded-b-[12.5px]" : " border-b-[1.5px] border-nb-ink"}${onToggle ? " cursor-pointer select-none" : ""}`}
       role={onToggle ? "button" : undefined}
       aria-expanded={onToggle ? !collapsed : undefined}
-      aria-label={onToggle ? (collapsed ? "Expand run log" : "Collapse run log") : undefined}
+      aria-label={onToggle ? (collapsed ? c.expand : c.collapse) : undefined}
       onClick={onToggle}
     >
-      {!bare && <span className="nb-tag">run log</span>}
+      {!bare && <span className="nb-tag">{c.title}</span>}
       <span className="ml-auto flex items-center gap-1.5">
         {/* Stop (#49) rides in the title bar, the one piece of chrome every place
             that shows a run already has — so the card page, the board's log
@@ -513,6 +487,7 @@ export function ResumeButton({
   // resumed run instead of staying on the dead one.
   onResumed?: (sessionId: string) => void;
 }) {
+  const c = useCopy().runs.resume;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const resume = async () => {
@@ -525,7 +500,7 @@ export function ResumeButton({
       // run, or this one aged out of the kept-30 window. Say it and leave the
       // button alive to try again.
       if (res.ok && res.sessionId) onResumed?.(res.sessionId);
-      else setError(res.error || "couldn't resume that run");
+      else setError(res.error || c.failed);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -540,7 +515,7 @@ export function ResumeButton({
         size="sm"
         onClick={resume}
         disabled={busy}
-        title="Continue where this run failed — the coding agent picks its own session back up"
+        title={c.hint}
         // The same ghost sticker as the other quiet controls (header buttons,
         // dialog cancels), shrunk to meta-row scale — it sits inside full nb
         // panels, so it wears the ink frame + press shadow like everything else.
@@ -549,7 +524,7 @@ export function ResumeButton({
         className="gap-1 rounded-[7px] px-2 py-1 text-[11px] font-[700]"
       >
         <FiPlay className="text-[12px]" aria-hidden />
-        {busy ? "Resuming…" : "Resume"}
+        {busy ? c.resuming : c.label}
       </Button>
     </span>
   );
@@ -568,6 +543,8 @@ export function ResumeButton({
 // first and only killed if it doesn't, so a few seconds pass, and pretending
 // otherwise would be a lie the next poll undoes.
 function StopButton({ sessionId }: { sessionId: string }) {
+  const t = useCopy();
+  const c = t.runs.stop;
   const [open, setOpen] = useState(false);
   const [asked, setAsked] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -601,7 +578,7 @@ function StopButton({ sessionId }: { sessionId: string }) {
       // window. Say it and let the button be pressed again.
       if (!res.ok) {
         setAsked(false);
-        setError(res.error || "couldn't stop that run");
+        setError(res.error || c.failed);
       }
     } catch (e) {
       setAsked(false);
@@ -610,7 +587,7 @@ function StopButton({ sessionId }: { sessionId: string }) {
   };
 
   if (asked) {
-    return <span className="text-[11px] text-nb-ink-soft">stopping…</span>;
+    return <span className="text-[11px] text-nb-ink-soft">{c.stopping}</span>;
   }
 
   return (
@@ -621,9 +598,9 @@ function StopButton({ sessionId }: { sessionId: string }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Stop this run"
+        aria-label={c.title}
         aria-expanded={open}
-        title="Stop this run"
+        title={c.title}
         className="-my-0.5 grid size-[22px] cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[background-color,color,transform] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90"
       >
         {/* The same glyph the delivery block's Stop run wears — one verb, one mark, wherever
@@ -636,10 +613,10 @@ function StopButton({ sessionId }: { sessionId: string }) {
         // edge of the log window.
         <span className="nb-panel-sm absolute right-0 top-full z-30 mt-2 block w-[248px] p-3 text-left">
           <span className="block text-[13px] font-[700] leading-snug text-nb-ink">
-            Stop this run?
+            {c.confirm}
           </span>
           <span className="mt-1 block text-[12px] leading-relaxed text-nb-ink-soft">
-            It ends where it is. Anything it half-wrote stays in your working tree.
+            {c.body}
           </span>
           <span className="mt-2.5 flex justify-end gap-2">
             <Button
@@ -648,7 +625,7 @@ function StopButton({ sessionId }: { sessionId: string }) {
               className="rounded-[7px] px-2 py-1 text-[11px] font-[700]"
               onClick={() => setOpen(false)}
             >
-              Cancel
+              {t.shared.cancel}
             </Button>
             <Button
               variant="ghost"
@@ -656,7 +633,7 @@ function StopButton({ sessionId }: { sessionId: string }) {
               className="rounded-[7px] border-nb-peach-ink px-2 py-1 text-[11px] font-[700] text-nb-peach-ink"
               onClick={stop}
             >
-              Stop run
+              {c.label}
             </Button>
           </span>
         </span>
@@ -668,19 +645,14 @@ function StopButton({ sessionId }: { sessionId: string }) {
 // What to call a run that names no card: what it is doing while it runs,
 // what it did once it's over. A plan-release carries its version id as its
 // input, so the title says which release it planned.
-function cardlessTitle(session: SessionView): string {
+function cardlessTitle(session: SessionView, c: RunsCopy["cardless"]): string {
   const running = session.status === "running";
-  if (session.action === "plan-release") {
-    const of = session.input ? ` ${session.input}` : "";
-    return running ? `Planning${of}` : `Plan${of}`;
-  }
-  if (session.action === "changelog") {
-    const of = session.input ? ` ${session.input}` : "";
-    return running ? `Writing the changelog for${of}` : `Changelog${of}`;
-  }
-  if (session.action === "propose") return running ? "Proposing tasks" : "Propose tasks";
-  if (session.action === "setup") return running ? "Finishing setup" : "Finish setup";
-  return running ? "Creating task" : "Create task";
+  const of = session.input ? ` ${session.input}` : "";
+  if (session.action === "plan-release") return running ? c.planning(of) : c.plan(of);
+  if (session.action === "changelog") return running ? c.writingChangelog(of) : c.changelog(of);
+  if (session.action === "propose") return running ? c.proposing : c.propose;
+  if (session.action === "setup") return running ? c.finishingSetup : c.finishSetup;
+  return running ? c.creating : c.create;
 }
 
 // The run log in a modal, opened from a running badge on a board card. Like
@@ -700,6 +672,7 @@ export function SessionLogOverlay({
   // owner of `session` is handed the new id to watch.
   onResumed?: (sessionId: string) => void;
 }) {
+  const t = useCopy();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -718,15 +691,15 @@ export function SessionLogOverlay({
   // to that card the way every other `#id` in the UI does (see the runs
   // dialog for why it isn't gated on the card still being open).
   const title = !session ? (
-    "run log"
+    t.runs.log.title
   ) : session.cardId === null ? (
-    cardlessTitle(session)
+    cardlessTitle(session, t.runs.cardless)
   ) : (
     <>
       <Link href={`/${session.cardId}`} className="nb-idlink" onClick={onClose}>
         #{session.cardId}
       </Link>
-      {` — ${session.action}`}
+      {` — ${t.runs.action[session.action]}`}
     </>
   );
 
@@ -745,7 +718,7 @@ export function SessionLogOverlay({
             {session?.canResume && (
               <ResumeButton sessionId={session.sessionId} onResumed={onResumed} />
             )}
-            <button aria-label="Close" className="text-[18px] text-nb-ink-soft hover:text-nb-ink" onClick={onClose}>×</button>
+            <button aria-label={t.shared.close} className="text-[18px] text-nb-ink-soft hover:text-nb-ink" onClick={onClose}>×</button>
           </div>
         </div>
         <div className="overflow-y-auto p-4">
@@ -832,6 +805,8 @@ export function ActionDialog({
   // Persist the draft per action + card so an accidental close keeps the text
   // (resolve keeps its own list-shaped draft in ResolveDialog below). `run`
   // clears the draft once the run has actually started.
+  const t = useCopy();
+  const d = t.runs.dialog;
   const draftKey = dialog.kind === "create" ? "create" : `${dialog.kind}:${dialog.card.id}`;
   const [text, setText, clearDraft] = useDraft(draftKey);
   // "Yes, I know" for a warned action (see the implement branch). Deliberately NOT
@@ -877,27 +852,21 @@ export function ActionDialog({
     const answerable = dialog.card.questions.some((q) => parseQuestion(q.text).tag === "user");
     const warned = blockers.length > 0 || notReady || asked > 0;
     const canSchedule = onSchedule && dialog.card.openBlockers.length > 0;
+    const ids = blockers.map((n) => `#${n}`).join(", ");
+    const one = blockers.length === 1;
+    const c = d.implement;
     return (
-      <Dialog title={`Implement #${dialog.card.id}`} onClose={onClose}>
+      <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
         <p className={INTRO}>
-          One click carries this card all the way: the agent builds it, then a fresh run
-          reviews and fixes it, and{" "}
           {plan.commitMode === "auto" ? (
             <>
-              the board lands it as one commit on{" "}
-              {plan.branch ? <span className={BRANCH}>{plan.branch}</span> : "the branch you are on"}.
+              <Rich code={BRANCH}>{plan.branch ? c.autoBranch(plan.branch) : c.autoHere}</Rich>
               {/* The one place the click does NOT carry the card all the way (#308). */}
-              {plan.needsApproval
-                ? " It waits for you to approve the tree before that, because this board requires diff approval."
-                : ""}{" "}
-              Then it ticks the todos, writes the shipped line, and archives the card.
+              {plan.needsApproval ? c.needsApproval : ""}
+              {c.thenArchives}
             </>
           ) : (
-            <>
-              it stops. <strong>Manual commit mode</strong> is on
-              {plan.manualWhy ? ` — ${plan.manualWhy}` : ""}, so nothing is committed for you: commit
-              what review passed, and the card is archived then.
-            </>
+            <Rich>{plan.manualWhy ? c.manualWhy(plan.manualWhy) : c.manual}</Rich>
           )}
         </p>
         {asked > 0 && (
@@ -905,13 +874,9 @@ export function ActionDialog({
             tone="accent"
             ack={ackAsked}
             onAck={setAckAsked}
-            ackLabel={`I know ${asked === 1 ? "a question is" : `${asked} questions are`} still open.`}
+            ackLabel={asked === 1 ? c.ackQuestionsOne : c.ackQuestionsMany(asked)}
           >
-            This card has <strong>{asked} open question{asked === 1 ? "" : "s"}</strong>. It will be
-            built and reviewed, then hold at landing until{" "}
-            {asked === 1 ? "you answer it" : "you answer them"} — or press{" "}
-            <strong>Resolve &amp; implement</strong> to answer{" "}
-            {asked === 1 ? "it" : "them"} first.
+            <Rich>{asked === 1 ? c.questionsOne : c.questionsMany(asked)}</Rich>
           </WarningBox>
         )}
         {blockers.length > 0 && (
@@ -919,19 +884,17 @@ export function ActionDialog({
             tone="peach"
             ack={ack}
             onAck={setAck}
-            ackLabel={`I know ${blockers.map((n) => `#${n}`).join(", ")} ${blockers.length === 1 ? "isn't" : "aren't"} done yet.`}
+            ackLabel={one ? c.ackBlockedOne(ids) : c.ackBlockedMany(ids)}
           >
-            This card is blocked by {blockers.map((n) => `#${n}`).join(", ")}, still open on the
-            board. Finish {blockers.length === 1 ? "that card" : "those cards"} first
-            {canSchedule ? (
-              <>
-                {" "}
-                — or <strong>Schedule</strong> the build and the board will start it by itself
-                once {blockers.length === 1 ? "that card is" : "those cards are"} done.
-              </>
-            ) : (
-              "."
-            )}
+            <Rich>
+              {canSchedule
+                ? one
+                  ? c.blockedOneSchedule(ids)
+                  : c.blockedManySchedule(ids)
+                : one
+                  ? c.blockedOne(ids)
+                  : c.blockedMany(ids)}
+            </Rich>
           </WarningBox>
         )}
         {notReady && (
@@ -939,30 +902,29 @@ export function ActionDialog({
             tone="accent"
             ack={ackRough}
             onAck={setAckRough}
-            ackLabel="I know the plan may still be rough."
+            ackLabel={c.ackNotReady}
           >
-            This card isn&apos;t marked <strong>ready</strong> yet — its plan may still be
-            rough. Press <strong>Refine</strong> on its page to take it to ready first.
+            <Rich>{c.notReady}</Rich>
           </WarningBox>
         )}
-        <textarea className={INPUT} rows={4} placeholder="Optional extra notes for the agent…" value={text} onChange={(e) => setText(e.target.value)} />
+        <textarea className={INPUT} rows={4} placeholder={c.notes} value={text} onChange={(e) => setText(e.target.value)} />
         <DialogButtons
           onClose={onClose}
-          confirmLabel={warned ? "Implement anyway" : "Implement"}
+          confirmLabel={warned ? c.confirmAnyway : c.confirm}
           risky={warned}
           disabled={(blockers.length > 0 && !ack) || (notReady && !ackRough) || (asked > 0 && !ackAsked)}
           onConfirm={() => run({ action: "implement", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Implement #${dialog.card.id}`)}
           alternate={
             answerable && onResolveFirst
               ? {
-                  label: "Resolve & implement",
-                  title: "Answer the open questions first, and build the card once nothing is left to decide",
+                  label: c.resolveFirst,
+                  title: c.resolveFirstHint,
                   onClick: onResolveFirst,
                 }
               : canSchedule
                 ? {
-                    label: "Schedule",
-                    title: "Build this card by itself, once nothing is in its way",
+                    label: c.schedule,
+                    title: c.scheduleHint,
                     disabled: notReady && !ackRough,
                     onClick: () => schedule("implement"),
                   }
@@ -981,28 +943,25 @@ export function ActionDialog({
   // normal thing to do to it, not a leap.
   if (dialog.kind === "run") {
     const { last_run: lastRun } = dialog.card;
+    const c = d.run;
     return (
-      <Dialog title={`Run #${dialog.card.id}`} onClose={onClose}>
+      <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
         <p className={INTRO}>
-          The agent works through this card&apos;s <strong>Process</strong> in order, records
-          the run, and rewrites a step or two so the next run needs less of you. The card
-          stays on the board — a recurring task is never finished.
+          <Rich>{c.blurb}</Rich>
         </p>
         <p className={INTRO}>
-          Nobody watches a run, so a step that needs your judgment is left undone and written
-          into this run&apos;s open-questions file for you to answer later.{" "}
-          {lastRun ? `Last run ${lastRun}.` : "This card has never run."}
+          {c.unattended} {lastRun ? c.lastRun(lastRun) : c.neverRun}
         </p>
         <textarea
           className={INPUT}
           rows={3}
-          placeholder="Optional extra notes for this run…"
+          placeholder={c.notes}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
         <DialogButtons
           onClose={onClose}
-          confirmLabel="Run"
+          confirmLabel={c.confirm}
           onConfirm={() =>
             run(
               {
@@ -1027,13 +986,12 @@ export function ActionDialog({
     // nothing here to warn about.
     const blockers = dialog.card.openBlockers;
     const canSchedule = onSchedule && blockers.length > 0;
+    const ids = blockers.map((b) => `#${b.id}`).join(", ");
+    const one = blockers.length === 1;
+    const c = d.refine;
     return (
-      <Dialog title={`Refine #${dialog.card.id}`} onClose={onClose}>
-        <p className={INTRO}>
-          The agent takes this card one step forward: it answers the open questions it can
-          settle itself, leaves the ones only you can decide for you, and sharpens the plan.
-          It works on the card, not the code.
-        </p>
+      <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
+        <p className={INTRO}>{c.blurb}</p>
         {/* A blocked card is refined all the same — the board's rule for blocked
             is warn, don't stop — so this is one plain line saying what's still
             open, with nothing to tick. Scheduling (#140) is the answer it now
@@ -1042,22 +1000,20 @@ export function ActionDialog({
             blocker is exactly the fix. */}
         {blockers.length > 0 && (
           <p className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
-            This card is blocked by {blockers.map((b) => `#${b.id}`).join(", ")}, still open on
-            the board. The plan may change once {blockers.length === 1 ? "that card is" : "those cards are"} done
-            {canSchedule ? (
-              <>
-                {" "}
-                — <strong>Schedule</strong> it and the board refines it by itself once{" "}
-                {blockers.length === 1 ? "that card is" : "they are"} off the board.
-              </>
-            ) : (
-              "."
-            )}
+            <Rich>
+              {canSchedule
+                ? one
+                  ? c.blockedOneSchedule(ids)
+                  : c.blockedManySchedule(ids)
+                : one
+                  ? c.blockedOne(ids)
+                  : c.blockedMany(ids)}
+            </Rich>
           </p>
         )}
         <DialogButtons
           onClose={onClose}
-          confirmLabel={blockers.length > 0 ? "Refine anyway" : "Refine"}
+          confirmLabel={blockers.length > 0 ? c.confirmAnyway : c.confirm}
           risky={blockers.length > 0}
           onConfirm={() =>
             run(
@@ -1068,8 +1024,8 @@ export function ActionDialog({
           alternate={
             canSchedule
               ? {
-                  label: "Schedule",
-                  title: "Refine this card by itself, once nothing is in its way",
+                  label: c.schedule,
+                  title: c.scheduleHint,
                   onClick: () => schedule("refine"),
                 }
               : undefined
@@ -1080,15 +1036,14 @@ export function ActionDialog({
   }
 
   if (dialog.kind === "reject") {
+    const c = d.reject;
     return (
-      <Dialog title={`Reject #${dialog.card.id}`} onClose={onClose}>
-        <p className={INTRO}>
-          The agent adds a one-line note to rejected.md and removes the card.
-        </p>
-        <textarea className={INPUT} rows={3} placeholder="Why are you rejecting this?" value={text} onChange={(e) => setText(e.target.value)} />
+      <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
+        <p className={INTRO}>{c.blurb}</p>
+        <textarea className={INPUT} rows={3} placeholder={c.placeholder} value={text} onChange={(e) => setText(e.target.value)} />
         <DialogButtons
           onClose={onClose}
-          confirmLabel="Reject"
+          confirmLabel={c.confirm}
           disabled={!text.trim()}
           onConfirm={() => run({ action: "reject", id: dialog.card.id, title: dialog.card.title, reason: text.trim() }, `Reject #${dialog.card.id}`)}
         />
@@ -1097,15 +1052,14 @@ export function ActionDialog({
   }
 
   if (dialog.kind === "archive") {
+    const c = d.archive;
     return (
-      <Dialog title={`Archive #${dialog.card.id}`} onClose={onClose}>
-        <p className={INTRO}>
-          All todos are done. The agent writes the &ldquo;what you can now do&rdquo; note into readme.md and moves the card off the board into .archive/.
-        </p>
-        <textarea className={INPUT} rows={3} placeholder="Optional note for the agent…" value={text} onChange={(e) => setText(e.target.value)} />
+      <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
+        <p className={INTRO}>{c.blurb}</p>
+        <textarea className={INPUT} rows={3} placeholder={c.placeholder} value={text} onChange={(e) => setText(e.target.value)} />
         <DialogButtons
           onClose={onClose}
-          confirmLabel="Archive"
+          confirmLabel={c.confirm}
           onConfirm={() => run({ action: "archive", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Archive #${dialog.card.id}`)}
         />
       </Dialog>
@@ -1113,22 +1067,20 @@ export function ActionDialog({
   }
 
   if (dialog.kind === "edit") {
+    const c = d.edit;
     return (
-      <Dialog title={`Edit #${dialog.card.id}`} onClose={onClose}>
-        <p className={INTRO}>
-          Tell the agent how to change this task. It re-reads the card and rewrites the plan —
-          summary, scope, and todos — to match. The card body is only ever edited by the agent.
-        </p>
+      <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
+        <p className={INTRO}>{c.blurb}</p>
         <textarea
           className={INPUT}
           rows={4}
-          placeholder="What should change about this task? e.g. narrow the scope to…, add a todo for…"
+          placeholder={c.placeholder}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
         <DialogButtons
           onClose={onClose}
-          confirmLabel="Save edit"
+          confirmLabel={c.confirm}
           disabled={!text.trim()}
           onConfirm={() => run({ action: "edit", id: dialog.card.id, title: dialog.card.title, notes: text.trim() }, `Edit #${dialog.card.id}`)}
         />
@@ -1167,6 +1119,8 @@ function CreateDialog({
   onClose: () => void;
   onRun: (req: AgentReq, label: string) => void;
 }) {
+  const t = useCopy();
+  const c = t.runs.dialog.create;
   const [text, setText, clearDraft] = useDraft("create");
   const [mode, setMode] = useState<"describe" | "propose">("describe");
   const [module, setModule] = useState("");
@@ -1183,12 +1137,12 @@ function CreateDialog({
   };
 
   const TABS = [
-    { key: "describe", label: "Describe a task" },
-    { key: "propose", label: "Propose tasks" },
+    { key: "describe", label: c.tabDescribe },
+    { key: "propose", label: c.tabPropose },
   ] as const;
 
   return (
-    <Dialog title="Create task" onClose={onClose} width={600}>
+    <Dialog title={c.title} onClose={onClose} width={600}>
       {/* The mode strip. Hairline under both tabs; the active tab's ember
           underline laps the hairline (bottom-[-1px]) and is the strip's only
           strong mark, per design.md. */}
@@ -1218,9 +1172,7 @@ function CreateDialog({
       </div>
 
       <p className={INTRO}>
-        {propose
-          ? "The agent walks one module of the product as a user and proposes new tasks inside it — nothing to describe."
-          : "Describe what you want. The agent turns it into one or more cards and figures out which modules they touch."}
+        {propose ? c.proposeBlurb : c.describeBlurb}
         {/* Where the new cards land, when the board is showing one release. Said
             here rather than left to be discovered: a card that quietly joined a
             version is worse than one you were told about. Propose says nothing —
@@ -1228,7 +1180,7 @@ function CreateDialog({
         {!propose && release && (
           <>
             {" "}
-            They ship in <strong>{release}</strong>, the release on screen.
+            <Rich>{c.shipsIn(release)}</Rich>
           </>
         )}
       </p>
@@ -1243,10 +1195,7 @@ function CreateDialog({
               that's how you switch. No module map → no row; the agent picks
               anyway. */}
           {modules.length > 0 && (
-            <PickerSection
-              label="Focus module"
-              blurb="Pick the part of the product you want new tasks in — they all land inside it. Leave it on “auto-pick” and the agent chooses the part that needs work most."
-            >
+            <PickerSection label={c.module.label} blurb={c.module.blurb}>
               <button
                 type="button"
                 onClick={() => setModule("")}
@@ -1254,7 +1203,7 @@ function CreateDialog({
                 className={`${PICK_CHIP} ${module === "" ? PICK_CHIP_ON : PICK_CHIP_DIM}`}
               >
                 <FiZap className="text-[12px]" aria-hidden />
-                auto-pick
+                {c.module.auto}
               </button>
               <span aria-hidden className="mx-1 h-[18px] w-px bg-nb-ink/15" />
               {modules.map((m) => {
@@ -1280,10 +1229,7 @@ function CreateDialog({
               fits one wrapped row and every count is one tap — no stepper to
               click up ten times. PROPOSE_MAX is the skill's cap ("How many" in
               `akb guide propose`), not a UI limit. */}
-          <PickerSection
-            label="How many"
-            blurb="Tasks this run writes. More tasks means a longer run and a thinner idea each."
-          >
+          <PickerSection label={c.count.label} blurb={c.count.blurb}>
             {Array.from({ length: PROPOSE_MAX }, (_, i) => i + 1).map((n) => (
               <button
                 key={n}
@@ -1302,20 +1248,24 @@ function CreateDialog({
               there are, and how big they are. The picked level's own words sit
               under the row — one line changes as you tap, instead of three lines
               of small print spelling out every level at once. */}
-          <PickerSection label="Boldness" blurb="How big a move each task is.">
+          <PickerSection label={c.boldness.label} blurb={c.boldness.blurb}>
             {BOLDNESS_LEVELS.map((b) => (
               <button
-                key={b.key}
+                key={b}
                 type="button"
-                onClick={() => setBoldness(b.key)}
-                aria-pressed={boldness === b.key}
-                className={`${PICK_CHIP} ${boldness === b.key ? PICK_CHIP_ON : PICK_CHIP_OFF}`}
+                onClick={() => setBoldness(b)}
+                aria-pressed={boldness === b}
+                className={`${PICK_CHIP} ${boldness === b ? PICK_CHIP_ON : PICK_CHIP_OFF}`}
               >
-                {b.label}
+                {c.boldness[b]}
               </button>
             ))}
             <p className="mt-2 basis-full text-[12px] leading-relaxed text-nb-ink-soft">
-              {BOLDNESS_LEVELS.find((b) => b.key === boldness)?.blurb}
+              {boldness === "safe"
+                ? c.boldness.safeBlurb
+                : boldness === "bold"
+                  ? c.boldness.boldBlurb
+                  : c.boldness.normalBlurb}
             </p>
           </PickerSection>
         </div>
@@ -1324,7 +1274,7 @@ function CreateDialog({
           className={INPUT}
           rows={5}
           autoFocus
-          placeholder="What do you want to happen?"
+          placeholder={c.describePlaceholder}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
@@ -1332,7 +1282,7 @@ function CreateDialog({
 
       <DialogButtons
         onClose={onClose}
-        confirmLabel={propose ? `Propose ${count} task${count === 1 ? "" : "s"}` : "Create task"}
+        confirmLabel={propose ? (count === 1 ? c.proposeOne : c.proposeMany(count)) : c.confirm}
         disabled={!propose && !text.trim()}
         onConfirm={() =>
           propose
@@ -1358,28 +1308,10 @@ function CreateDialog({
   );
 }
 
-// The three boldness levels, in order of how big a swing they take, with the
-// words the dialog shows for each. What the levels MEAN to the agent is the
-// skill's ("Boldness" in `akb guide propose`) — these blurbs say the same
-// thing in the user's terms, so the row isn't three bare adjectives.
-const BOLDNESS_LEVELS: { key: Boldness; label: string; blurb: string }[] = [
-  {
-    key: "safe",
-    label: "safe",
-    blurb: "Small moves — polish a rough edge, fill a gap in something that already works.",
-  },
-  {
-    key: "normal",
-    label: "normal",
-    blurb: "A feature each — one card a run can finish. This is what a propose run does on its own.",
-  },
-  {
-    key: "bold",
-    label: "bold",
-    blurb:
-      "A big leap each — a capability the module doesn't have at all, still sized so one run can finish it.",
-  },
-];
+// The three boldness levels, in order of how big a swing they take. What each one
+// MEANS to the agent is the skill's ("Boldness" in `akb guide propose`); the words
+// under the row are `i18n/runs`.
+const BOLDNESS_LEVELS: Boldness[] = ["safe", "normal", "bold"];
 
 // One labelled row in the propose tab: the uppercase kicker, a quiet one-liner
 // under it, then the chips. Both picks (focus module, boldness) wear this, so
@@ -1420,6 +1352,8 @@ function ResolveDialog({
   const questions = card.questions.filter((q) => parseQuestion(q.text).tag === "user");
   // Persist the per-question answers so an accidental close keeps them; reconciled
   // to the current question count on reopen. Cleared once the run starts.
+  const t = useCopy();
+  const c = t.runs.dialog.resolve;
   const [answers, setAnswer, clearAnswers] = useDraftList(`resolve:${card.id}`, questions.length);
   // The ticked options beside them. An untouched question opens on the agent's
   // recommendation, so a whole card of options questions is one click to confirm.
@@ -1472,10 +1406,9 @@ function ResolveDialog({
   };
 
   return (
-    <Dialog title={`Resolve #${card.id}`} onClose={onClose}>
+    <Dialog title={c.title(card.id)} onClose={onClose}>
       <p className={INTRO}>
-        Confirm or change the answers you want to settle. Unanswered questions stay open.
-        <strong> Resolve &amp; implement</strong> also builds the task when none remain.
+        <Rich>{c.blurb}</Rich>
       </p>
       <div className="flex flex-col gap-3.5">
         {questions.map((q, i) => {
@@ -1500,11 +1433,7 @@ function ResolveDialog({
                 className={INPUT}
                 rows={2}
                 autoFocus={options}
-                placeholder={
-                  options
-                    ? "In your own words…"
-                    : "Your answer…"
-                }
+                placeholder={options ? c.optionsPlaceholder : c.answerPlaceholder}
                 value={answers[i]}
                 onChange={(e) => setAnswer(i, e.target.value)}
               />
@@ -1514,9 +1443,9 @@ function ResolveDialog({
         })}
       </div>
       <div className="mt-4 flex flex-wrap justify-end gap-2.5">
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button variant="ghost" disabled={!hasAnswer} onClick={() => submit(false)}>Resolve</Button>
-        <Button disabled={!hasAnswer} onClick={() => submit(true)}>Resolve &amp; implement</Button>
+        <Button variant="ghost" onClick={onClose}>{t.shared.cancel}</Button>
+        <Button variant="ghost" disabled={!hasAnswer} onClick={() => submit(false)}>{c.confirm}</Button>
+        <Button disabled={!hasAnswer} onClick={() => submit(true)}>{c.andImplement}</Button>
       </div>
     </Dialog>
   );
@@ -1539,6 +1468,7 @@ function OptionPicker({
   picked: number[];
   onTick: (n: number) => void;
 }) {
+  const c = useCopy().runs.dialog.resolve;
   const many = question.mode === "multi";
   const On = many ? FiCheckSquare : FiCheckCircle;
   const Off = many ? FiSquare : FiCircle;
@@ -1571,7 +1501,7 @@ function OptionPicker({
               {option}
               {(question.recommend ?? []).includes(n) && (
                 <span className="ml-1.5 text-[10.5px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
-                  recommended
+                  {c.recommended}
                 </span>
               )}
             </span>
@@ -1645,9 +1575,10 @@ export function DialogButtons({
   // lands on and "anyway" stays the deliberate choice it is.
   alternate?: { label: string; title?: string; disabled?: boolean; onClick: () => void };
 }) {
+  const c = useCopy().shared;
   return (
     <div className="mt-4 flex justify-end gap-2.5">
-      <Button variant="ghost" onClick={onClose}>Cancel</Button>
+      <Button variant="ghost" onClick={onClose}>{c.cancel}</Button>
       <Button
         variant={risky || alternate ? "ghost" : "accent"}
         className={risky ? "border-nb-peach-ink text-nb-peach-ink" : undefined}

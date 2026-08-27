@@ -1,0 +1,49 @@
+/** The few sentences `lib/` renders itself, outside any component. */
+export type MessagesCopy = {
+  rules: {
+    /** No usable copy of the board's rules — the two ways that happens, and the
+     *  one command that fixes both. */
+    none: string;
+    noneLookedIn: (paths: string) => string;
+    tooOld: (path: string) => string;
+    installIt: string;
+    /** The rules loaded here predate one thing the board asks of them. Each names
+     *  what is missing, and every one ends in the same line that fixes them all. */
+    tooOldForCloud: string;
+    tooOldForChat: string;
+    tooOldForHandChecks: string;
+    tooOldForScores: string;
+    tooOldForMemory: string;
+    /** The line the four above end with. */
+    updateIt: string;
+  };
+  /** A copy of the rules that predates one thing the board asks of it. Each names
+   *  what is missing and the command that fixes it. */
+  tooOld: {
+    autoDelivery: string;
+    diffApproval: string;
+    deliveries: string;
+    worktrees: string;
+    flowRule: string;
+    language: string;
+    skillInstall: string;
+    specAgentSwitch: string;
+    specAgentSetting: string;
+  };
+  run: { noProcess: string };
+  chat: { busy: string; sendFailed: string; clearFailed: string };
+  /** What a `<Mockup>` tag says when the file behind it can't be drawn. Each names
+   *  the `src` the card gave. */
+  mockup: {
+    notAMockup: (src: string) => string;
+    outside: (src: string) => string;
+    missing: (src: string) => string;
+    notDrawn: (src: string, why: string) => string;
+    /** The reasons a `.tsx` mockup wouldn't draw, which fill `why` above. */
+    importsOther: (id: string) => string;
+    cannotImport: (id: string) => string;
+    noDefault: string;
+    tooSlow: (seconds: number) => string;
+    noStylesheet: string;
+  };
+};

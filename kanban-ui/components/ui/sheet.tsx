@@ -9,6 +9,7 @@ import * as React from "react";
 import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { FiX } from "react-icons/fi";
 
+import { useCopy } from "@/i18n/use-copy";
 import { cn } from "@/lib/utils";
 
 const Sheet = SheetPrimitive.Root;
@@ -45,7 +46,9 @@ const SheetContent = React.forwardRef<
      *  detail renders its own header close. */
     showClose?: boolean;
   }
->(({ className, children, showClose = false, ...props }, ref) => (
+>(({ className, children, showClose = false, ...props }, ref) => {
+  const c = useCopy().shared;
+  return (
   <SheetPortal>
     <SheetOverlay />
     <SheetPrimitive.Content
@@ -65,7 +68,7 @@ const SheetContent = React.forwardRef<
       {children}
       {showClose && (
         <SheetPrimitive.Close
-          aria-label="Close"
+          aria-label={c.close}
           className="absolute right-4 top-4 text-[18px] leading-none text-nb-ink-soft transition-colors hover:text-nb-ink"
         >
           <FiX />
@@ -73,7 +76,8 @@ const SheetContent = React.forwardRef<
       )}
     </SheetPrimitive.Content>
   </SheetPortal>
-));
+  );
+});
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
 const SheetHeader = ({

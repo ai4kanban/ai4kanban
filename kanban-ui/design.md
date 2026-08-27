@@ -133,6 +133,18 @@ shadow. Shadows never blur or change direction.
 
 ## Language
 
+- **Every word the app renders lives in `i18n/`**: one folder per surface, one file per
+  language inside it, and that folder's `types.ts` beside them. A component asks with
+  `useCopy()`; a server component or `lib/` imports `copy` from `i18n/`. Nothing is written
+  where it is drawn.
+- **Write new copy in English first**: `<surface>/en.ts` is the source of truth, and its
+  folder's `types.ts` is the shape every other language has to fill — a key a language
+  hasn't translated fails `pnpm typecheck`.
+- **Extract whole sentences, never grammar**: branch on count in the component and give each
+  branch its own key. A sentence with a code chip or a bolded run in it stays one key, drawn
+  with `<Rich>` (`i18n/rich.tsx`).
+- **Names are not copy**: product names, file names, paths, track names, shell commands and
+  URLs stay in the component, as do the words the board's own rules hand down.
 - **Read it from context, never from a prop**: `useLanguage()` in
   `components/language.tsx` gives the language the app is drawing in. `app/layout.tsx`
   reads it on the server and provides it above every page, so a component has it in its

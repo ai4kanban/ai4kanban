@@ -15,11 +15,14 @@
 import { useEffect, useState } from "react";
 import { FiAlertCircle, FiChevronDown } from "react-icons/fi";
 import { setSpecAgentAction, setSpecAgentSettingAction, specAgentsAction } from "@/app/actions";
+import { Rich } from "@/i18n/rich";
+import { useCopy } from "@/i18n/use-copy";
 import type { SpecAgentSettingView, SpecAgentView } from "@/lib/types";
 
 /** The section in the Configuration dialog. It reads the board's list when it first draws;
  *  the board's poll never carries it, and nothing else on screen shows these switches. */
 export function SpecAgentsPanel({ onError }: { onError?: (msg: string) => void }) {
+  const c = useCopy().configuration.specAgents;
   const [agents, setAgents] = useState<SpecAgentView[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -52,7 +55,7 @@ export function SpecAgentsPanel({ onError }: { onError?: (msg: string) => void }
       const res = await setSpecAgentAction(agent.name, on);
       if (!res.ok) {
         setAgents((all) => all?.map((a) => (a.name === agent.name ? { ...a, enabled: !on } : a)) ?? all);
-        onError?.(res.error || `couldn't switch ${agent.name} ${on ? "on" : "off"}`);
+        onError?.(res.error || (on ? c.flipFailedOn : c.flipFailedOff)(agent.name));
       }
     } finally {
       setSaving((names) => names.filter((n) => n !== agent.name));
@@ -77,7 +80,7 @@ export function SpecAgentsPanel({ onError }: { onError?: (msg: string) => void }
       const res = await setSpecAgentSettingAction(agent.name, key, value);
       if (!res.ok) {
         put(was);
-        onError?.(res.error || `couldn't save ${agent.name}'s setting`);
+        onError?.(res.error || c.saveFailed(agent.name));
       }
     } finally {
       setSaving((names) => names.filter((n) => n !== token));
@@ -87,18 +90,13 @@ export function SpecAgentsPanel({ onError }: { onError?: (msg: string) => void }
   return (
     <div>
       <div className="mb-5">
-        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">Spec agents</h3>
-        <p className="mt-1 max-w-[56ch] text-[13px] leading-relaxed text-nb-ink-soft">
-          Choose which specialists may add focused recommendations while a card is being
-          planned. They never run while a card is being built.
-        </p>
+        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{c.title}</h3>
+        <p className="mt-1 max-w-[56ch] text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
       </div>
 
       {loadError && <Note text={loadError} />}
-      {!loaded && <Loading />}
-      {loaded && !loadError && agents === null && (
-        <Note text="The board's rules in this project are too old to list the spec agents. Update the command and reopen this dialog." />
-      )}
+      {!loaded && <Loading text={c.loading} />}
+      {loaded && !loadError && agents === null && <Note text={c.tooOld} />}
 
       {agents && (
         <div className="border-y border-nb-ink/12">
@@ -119,13 +117,13 @@ export function SpecAgentsPanel({ onError }: { onError?: (msg: string) => void }
 
                   <div className="flex shrink-0 items-center gap-2.5">
                     <span className="text-[11px] font-[700] leading-none text-nb-ink-soft">
-                      {agent.enabled ? "Enabled" : "Paused"}
+                      {agent.enabled ? c.enabled : c.paused}
                     </span>
                     <button
                       type="button"
                       role="switch"
                       aria-checked={agent.enabled}
-                      aria-label={`${agentTitle(agent.name)} — ${agent.enabled ? "enabled" : "paused"}`}
+                      aria-label={(agent.enabled ? c.switchOn : c.switchOff)(agentTitle(agent.name))}
                       disabled={busy}
                       onClick={() => void flip(agent)}
                       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-[1.5px] border-nb-ink transition-[background-color,opacity] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-wait disabled:opacity-50 ${
@@ -143,9 +141,9 @@ export function SpecAgentsPanel({ onError }: { onError?: (msg: string) => void }
                 </div>
 
                 <dl className={`mt-3 grid grid-cols-[88px_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[12px] leading-relaxed ${off ? "text-nb-ink-soft" : ""}`}>
-                  <dt className="font-[700] text-nb-ink-soft">Contributes</dt>
+                  <dt className="font-[700] text-nb-ink-soft">{c.contributes}</dt>
                   <dd className="text-nb-ink-soft">{sentence(agent.owns)}</dd>
-                  <dt className="font-[700] text-nb-ink-soft">Runs when</dt>
+                  <dt className="font-[700] text-nb-ink-soft">{c.runsWhen}</dt>
                   <dd className="text-nb-ink-soft">{sentence(agent.calledOn.replace(/^called on\s+/i, ""))}</dd>
                 </dl>
 
@@ -201,8 +199,10 @@ function SettingLine({
   busy: boolean;
   onPick: (value: string) => void;
 }) {
+  const copy = useCopy().configuration.specAgents;
   const [open, setOpen] = useState(false);
   const picked = setting.choices.find((c) => c.value === value);
+  const shown = picked?.label ?? value;
 
   return (
     <div
@@ -212,12 +212,12 @@ function SettingLine({
         {/* Closed, the line carries the cost too — that is the whole answer, and it wraps
             rather than trailing off in an ellipsis. Open, the cost is dropped: every
             choice below says its own, and repeating the picked one says it twice. */}
-        <p className="min-w-0 text-[12px] leading-relaxed text-nb-ink-soft">
-          {setting.label}:{" "}
-          <span className={`font-[700] ${off ? "text-nb-ink-soft" : "text-nb-ink"}`}>
-            {picked?.label ?? value}
-          </span>
-          {!open && picked?.cost ? ` — ${picked.cost}` : ""}
+        <p className={`min-w-0 text-[12px] leading-relaxed text-nb-ink-soft [&_strong]:font-[700] ${off ? "[&_strong]:text-nb-ink-soft" : "[&_strong]:text-nb-ink"}`}>
+          <Rich>
+            {!open && picked?.cost
+              ? copy.settingWithCost(setting.label, shown, picked.cost)
+              : copy.setting(setting.label, shown)}
+          </Rich>
         </p>
         <button
           type="button"
@@ -225,7 +225,7 @@ function SettingLine({
           onClick={() => setOpen((was) => !was)}
           className="flex shrink-0 cursor-pointer items-center gap-1.5 pt-[1px] text-[12px] font-[700] text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
         >
-          Change
+          {copy.change}
           <FiChevronDown
             aria-hidden
             className={`shrink-0 text-nb-ink-soft transition-transform duration-150 ${open ? "rotate-180" : ""}`}
@@ -295,11 +295,11 @@ function sentenceStart(text: string): string {
   return text ? text[0].toUpperCase() + text.slice(1) : text;
 }
 
-function Loading() {
+function Loading({ text }: { text: string }) {
   return (
     <p className="flex items-center gap-2 text-[12px] text-nb-ink-soft" aria-live="polite">
       <span className="size-1.5 rounded-full bg-nb-ink-soft animate-[nbPulse_1.1s_ease-in-out_infinite]" aria-hidden />
-      Loading spec agents…
+      {text}
     </p>
   );
 }

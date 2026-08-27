@@ -1,3 +1,4 @@
+import { copy } from "@/i18n";
 import { boardRules } from "./cli";
 
 // --- the settings, through the CLI (#168) ------------------------------------
@@ -27,7 +28,7 @@ export async function autoCommitAllowed(): Promise<boolean> {
 export async function setAutoCommit(on: boolean): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
   if (!rules.setAutoCommit) {
-    return { ok: false, error: "this board's rules are older than auto-delivery — run `npm install -g ai4kanban`." };
+    return { ok: false, error: copy.messages.tooOld.autoDelivery };
   }
   return rules.setAutoCommit(on);
 }
@@ -44,7 +45,7 @@ export async function diffApprovalRequired(): Promise<boolean> {
 export async function setDiffApproval(on: boolean): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
   if (!rules.setDiffApproval) {
-    return { ok: false, error: "this board's rules are older than diff approval — run `npm install -g ai4kanban`." };
+    return { ok: false, error: copy.messages.tooOld.diffApproval };
   }
   return rules.setDiffApproval(on);
 }

@@ -16,6 +16,7 @@
 //
 // See app/design/layouts for the mockup this is drawn from.
 
+import { useCopy } from "@/i18n/use-copy";
 import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail, type BoardChange } from "@/lib/chat-rail";
 import { useOpenCards } from "@/lib/open-cards";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
@@ -69,6 +70,7 @@ export function Window({
   onBoardChanged?(change: BoardChange): void;
   children: React.ReactNode;
 }) {
+  const c = useCopy().chrome;
   const { rows, close } = useOpenCards(projectRoot, openIds, currentId, currentTitle);
   const { panel, onLayoutChanged, onDoubleClick } = useRailWidth();
   // The chat rail follows what this window is showing (#242): a card's page gets that
@@ -121,7 +123,7 @@ export function Window({
               onClose={close}
             />
           </ResizablePanel>
-          <ResizableHandle aria-label="Resize the rail" onDoubleClick={onDoubleClick} />
+          <ResizableHandle aria-label={c.resize.rail} onDoubleClick={onDoubleClick} />
           {/* Without the rail (under `md`) the body still keeps the gutter, so the
               paper sits inside the window rather than against it. With it, the
               gutter is shared with the handle and the rail's own padding, and
@@ -141,7 +143,7 @@ export function Window({
           </ResizablePanel>
           {beside && (
             <>
-              <ResizableHandle aria-label="Resize the chat" onDoubleClick={chat.onDoubleClick} />
+              <ResizableHandle aria-label={c.resize.chat} onDoubleClick={chat.onDoubleClick} />
               <ResizablePanel
                 id="chat"
                 panelRef={chat.panel}

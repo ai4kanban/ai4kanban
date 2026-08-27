@@ -37,6 +37,9 @@ import {
   setHarnessSettingAction,
   testConnectionAction,
 } from "@/app/actions";
+import type { ConfigurationCopy } from "@/i18n/configuration/types";
+import { Rich } from "@/i18n/rich";
+import { useCopy } from "@/i18n/use-copy";
 import { missingRequired, pickedProvider, providerSetting, shownForProvider } from "@/lib/providers";
 import type { AgentInfo, ConnectionTest, HarnessGap, HarnessOption, HarnessSetting } from "@/lib/types";
 import { AutoDeliveryPanel } from "./AutoDelivery";
@@ -74,20 +77,20 @@ function AgentMark({ src, size }: { src: string; size: number }) {
 // The dialog's sections, in sidebar order. Adding a settings group is one entry
 // here plus its pane below — nothing else moves.
 type Section = "harness" | "agents" | "delivery" | "rules" | "skill" | "language" | "cloud";
-const SECTIONS: { id: Section; label: string; icon: IconType; apart?: boolean }[] = [
-  { id: "harness", label: "Harness", icon: FiTerminal },
-  { id: "agents", label: "Agents", icon: FiUsers },
-  { id: "delivery", label: "Auto-delivery", icon: FiGitBranch },
+const SECTIONS: { id: Section; icon: IconType; apart?: boolean }[] = [
+  { id: "harness", icon: FiTerminal },
+  { id: "agents", icon: FiUsers },
+  { id: "delivery", icon: FiGitBranch },
   // The tool, the agents, how a card is delivered, then the rules that delivery follows
   // (#306). Shortened to **Rules** here, beside Harness and Setup; the pane wears its full
   // name — Flow rules — where a reader meets it cold.
-  { id: "rules", label: "Rules", icon: FiAlignLeft },
-  { id: "skill", label: "Setup", icon: FiLink },
+  { id: "rules", icon: FiAlignLeft },
+  { id: "skill", icon: FiLink },
   // Below the rule, everything settles this MACHINE rather than this board (#326, #334):
   // the language its reader reads in, and the person it signs in as. Both follow the person
   // into every project the app has open, and neither is cloned with the repository.
-  { id: "language", label: "Language", icon: FiGlobe, apart: true },
-  { id: "cloud", label: "Cloud", icon: FiCloud },
+  { id: "language", icon: FiGlobe, apart: true },
+  { id: "cloud", icon: FiCloud },
 ];
 
 // --- opening the dialog from elsewhere (#174) --------------------------------
@@ -126,6 +129,7 @@ export function Configuration({
   // Save failures surface where the page already shows errors, across its top.
   onError?: (msg: string) => void;
 }) {
+  const c = useCopy().configuration;
   const [open, setOpen] = useState(false);
   // Which pane shows. Reopening the dialog starts back on Harness.
   const [section, setSection] = useState<Section>("harness");
@@ -148,8 +152,8 @@ export function Configuration({
       <button
         type="button"
         className={TOOL_BTN}
-        title="Configuration"
-        aria-label="Configuration"
+        title={c.open}
+        aria-label={c.open}
         onClick={() => {
           setSection("harness");
           setOpen(true);
@@ -160,7 +164,7 @@ export function Configuration({
 
       {open && (
         <Dialog
-          title="Configuration"
+          title={c.title}
           onClose={() => {
             setOpen(false);
             // Re-read the settings on the server. Every field in here is seeded
@@ -179,10 +183,10 @@ export function Configuration({
           {/* The section list. A quiet vertical nav on the wash, the active entry
               in the ember tint — the same active language as the harness rows. */}
           <nav
-            aria-label="Configuration sections"
+            aria-label={c.sections}
             className="flex w-[168px] shrink-0 flex-col gap-1 border-r border-nb-ink/12 bg-nb-wash p-3 max-sm:w-full max-sm:flex-row max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
           >
-            {SECTIONS.map(({ id, label, icon: Icon, apart }) => {
+            {SECTIONS.map(({ id, icon: Icon, apart }) => {
               const on = id === section;
               return (
                 <Fragment key={id}>
@@ -204,7 +208,7 @@ export function Configuration({
                   }`}
                 >
                   <Icon className="shrink-0 text-[15px]" aria-hidden />
-                  {label}
+                  {c.section[id]}
                 </button>
                 </Fragment>
               );
@@ -220,10 +224,7 @@ export function Configuration({
             {/* The harness — pick the coding tool every card action runs on (#68),
                 and the settings it declares (#93). */}
             <div hidden={section !== "harness"}>
-              <PaneHeading
-                title="Default harness"
-                description="Choose the coding tool and model used for every board run."
-              />
+              <PaneHeading title={c.harness.title} description={c.harness.description} />
               <HarnessPicker agent={agent} onError={onError} />
             </div>
             {/* The spec agents (#191) — what each one fills in, and whether it may run.
@@ -300,6 +301,7 @@ export function HarnessPicker({
   // paint and is replaced by what a switch writes back, so the override note and
   // the notices below always describe the agent on screen rather than the one
   // that was picked when the page loaded.
+  const c = useCopy().configuration.harness;
   const [info, setInfo] = useState(agent);
   // The agents to offer, and which of them this machine can run (#207). Kept apart from
   // `info` because it is the one part of the setting that changes without anybody saving
@@ -400,7 +402,7 @@ export function HarnessPicker({
       const res = await setHarnessAction(option.name);
       if (!res.ok || !res.agent) {
         revert();
-        onError?.(res.error || "couldn't save the agent setting");
+        onError?.(res.error || c.saveFailed);
         return;
       }
       // The file as it now reads: this agent's own block — the settings it had
@@ -434,7 +436,7 @@ export function HarnessPicker({
     try {
       const res = await setHarnessSecretAction(setting.key, next);
       if (!res.ok) {
-        onError?.(res.error || `couldn't save the ${setting.label.toLowerCase()}`);
+        onError?.(res.error || c.saveSecretFailed(setting.label.toLowerCase()));
         return false;
       }
       setSecretsSet((all) =>
@@ -465,7 +467,7 @@ export function HarnessPicker({
         return true;
       }
       put(was);
-      onError?.(res.error || `couldn't save the ${setting.label.toLowerCase()} setting`);
+      onError?.(res.error || c.saveSettingFailed(setting.label.toLowerCase()));
       return false;
     } catch (e) {
       put(was);
@@ -548,7 +550,7 @@ export function HarnessPicker({
               aria-pressed={on}
               disabled={saving}
               onClick={() => pick(option)}
-              title={missing ? `${option.binary} isn't on this machine` : undefined}
+              title={missing ? c.notHere(option.binary) : undefined}
               className="nb-outline flex cursor-pointer flex-col items-center gap-2 bg-nb-paper px-2 pb-2.5 pt-4 disabled:cursor-wait"
               style={{
                 borderColor: on
@@ -572,7 +574,7 @@ export function HarnessPicker({
               </span>
               {missing && (
                 <span className="-mt-1 text-[10px] font-[700] uppercase leading-none tracking-[0.04em] text-nb-ink-soft">
-                  not installed
+                  {c.notInstalled}
                 </span>
               )}
             </button>
@@ -590,8 +592,7 @@ export function HarnessPicker({
         <p className="flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
           <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
           <span>
-            <code>{activeOption.binary}</code> isn&rsquo;t on this machine, so a run would fail
-            to start. Install it:{" "}
+            <Rich>{c.missingHint(activeOption.binary)}</Rich>{" "}
             <code className="rounded bg-nb-ink/8 px-1 py-0.5">{activeOption.install}</code>
           </span>
         </p>
@@ -605,7 +606,7 @@ export function HarnessPicker({
           draws nothing, and so does a board reading older rules, which doesn't answer this
           at all. */}
       {activeOption?.gaps?.length ? (
-        <HarnessGaps label={activeOption.label} gaps={activeOption.gaps} />
+        <HarnessGaps heading={c.gaps(activeOption.label)} gaps={activeOption.gaps} />
       ) : null}
 
       {/* The override, when there is one, so what actually runs is never hidden.
@@ -614,7 +615,7 @@ export function HarnessPicker({
           switching back brings that agent's note back with it. */}
       {overridden && active === info.name && (
         <p className="text-[12px] leading-relaxed text-nb-ink-soft">
-          Runs your override: <code>{info.command}</code>
+          <Rich>{c.override(info.command)}</Rich>
         </p>
       )}
 
@@ -696,8 +697,11 @@ export function HarnessPicker({
           <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
           <span>
             {info.unknownName
-              ? `Your ui.config.json asks for the agent "${info.unknownName}", which this UI doesn't know, so ${options.find((o) => o.name === info.name)?.label ?? info.name} is running instead.`
-              : `Your ui.config.json still has the old top-level "command" key. Nothing reads it — the agent above is what runs. You can delete the key; it's your file, so nothing here touches it.`}
+              ? c.unknown(
+                  info.unknownName,
+                  options.find((o) => o.name === info.name)?.label ?? info.name,
+                )
+              : c.staleCommand}
           </span>
         </p>
       )}
@@ -720,11 +724,11 @@ export function HarnessPicker({
 // The cross wears the pane's grey, not the peach a failure wears: none of this is broken,
 // and every agent here runs the board. It is aria-hidden — the heading says "not supported"
 // once, and a reader that hears it four more times learns nothing.
-function HarnessGaps({ label, gaps }: { label: string; gaps: HarnessGap[] }) {
+function HarnessGaps({ heading, gaps }: { heading: string; gaps: HarnessGap[] }) {
   return (
     <div className="rounded-[10px] border border-nb-ink/15 bg-nb-wash px-3 py-2.5">
       <p className="mb-1.5 text-[11px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft">
-        Not supported by {label}
+        {heading}
       </p>
       <dl className="flex flex-col gap-1">
         {gaps.map((gap) => (
@@ -776,6 +780,7 @@ function ConnectionTester({
   // Nothing in the dialog itself listens.
   onResult?: (result: ConnectionTest | null) => void;
 }) {
+  const c = useCopy().configuration.harness.test;
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<ConnectionTest | null>(null);
 
@@ -814,15 +819,13 @@ function ConnectionTester({
           className={`${QUIET_BTN} inline-flex shrink-0 items-center gap-1.5`}
         >
           <FiZap className="text-[13px]" aria-hidden />
-          {running ? "Testing…" : "Test"}
+          {running ? c.running : c.run}
         </button>
         <p className="text-[12px] leading-relaxed text-nb-ink-soft">
-          {unsavedPick
-            ? "Save the provider pick above first — Test runs the setup that is saved."
-            : `Sends one tiny message through ${agentLabel} as it is saved here. On a paid provider that costs a few tokens.`}
+          {unsavedPick ? c.unsavedPick : c.blurb(agentLabel)}
         </p>
       </div>
-      {(running || result) && <TestResult running={running} result={result} />}
+      {(running || result) && <TestResult copy={c} running={running} result={result} />}
     </div>
   );
 }
@@ -835,7 +838,15 @@ function ConnectionTester({
 // real error ("spawn claude ENOENT") tells a user nothing. Everything else is
 // already a real message from the thing that refused, and a guess written over
 // it would send people down the wrong path.
-function TestResult({ running, result }: { running: boolean; result: ConnectionTest | null }) {
+function TestResult({
+  copy,
+  running,
+  result,
+}: {
+  copy: ConfigurationCopy["harness"]["test"];
+  running: boolean;
+  result: ConnectionTest | null;
+}) {
   const tone = running
     ? { bg: "var(--color-nb-wash)", ink: "var(--color-nb-ink-soft)" }
     : result?.ok
@@ -855,21 +866,21 @@ function TestResult({ running, result }: { running: boolean; result: ConnectionT
               className="mt-[5px] size-[6px] shrink-0 rounded-full bg-nb-ink-soft animate-[nbPulse_1.1s_ease-in-out_infinite]"
               aria-hidden
             />
-            Running one small chat through this setup…
+            {copy.trying}
           </>
         ) : result?.ok ? (
           <>
             <FiCheck className="mt-[2px] shrink-0" aria-hidden />
-            Passed — the agent answered in {seconds(result.ms)}.
+            {copy.passed(seconds(result.ms, copy))}
           </>
         ) : (
           <>
             <FiAlertCircle className="mt-[2px] shrink-0" aria-hidden />
             {result?.missing
-              ? `Failed — the ${result.missing} command isn't on this machine.`
+              ? copy.failedMissing(result.missing)
               : result?.timedOut
-                ? `Failed — no answer after ${seconds(result?.ms ?? 0)}, so the test gave up.`
-                : "Failed — the agent didn't answer."}
+                ? copy.failedTimeout(seconds(result?.ms ?? 0, copy))
+                : copy.failed}
           </>
         )}
       </p>
@@ -878,7 +889,7 @@ function TestResult({ running, result }: { running: boolean; result: ConnectionT
           installs the agent's CLI, so there is something to do about it. */}
       {!running && result?.install && (
         <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-          Install it, then test again:{" "}
+          {copy.install}{" "}
           <code className="rounded bg-nb-ink/8 px-1 py-0.5">{result.install}</code>
         </p>
       )}
@@ -896,9 +907,9 @@ function TestResult({ running, result }: { running: boolean; result: ConnectionT
 
 // How long a test took, in the plainest form: "1.4s". Whole seconds past ten —
 // nobody needs a tenth of a second on a run that slow.
-function seconds(ms: number): string {
+function seconds(ms: number, copy: ConfigurationCopy["harness"]["test"]): string {
   const s = ms / 1000;
-  return `${s < 10 ? s.toFixed(1) : Math.round(s)}s`;
+  return copy.seconds(String(s < 10 ? s.toFixed(1) : Math.round(s)));
 }
 
 // The provider the agent talks to (#95) — who pays for a run and where it goes.
@@ -925,6 +936,7 @@ function ProviderField({
   disabled: boolean;
   onPick: (id: string) => void;
 }) {
+  const c = useCopy().configuration.harness;
   const id = `harness-setting-${setting.key}`;
   const providers = setting.providers ?? [];
   const shown = providers.find((p) => p.id === value);
@@ -955,10 +967,7 @@ function ProviderField({
       {(waitingFor.length > 0 || setting.help) && (
         <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
           {waitingFor.length > 0 ? (
-            <strong className="text-nb-accent-deep">
-              Not saved yet — fill in the {waitingFor.join(" and ")} below and this pick saves
-              itself.
-            </strong>
+            <strong className="text-nb-accent-deep">{c.waitingFor(waitingFor.join(" and "))}</strong>
           ) : (
             setting.help
           )}
@@ -995,6 +1004,7 @@ function SecretField({
   // written; the error is already reported by the time it resolves false.
   onSave: (value: string) => Promise<boolean>;
 }) {
+  const c = useCopy().configuration.harness.secret;
   const [typed, setTyped] = useState("");
   // Replace was pressed on a key that is set: show the box again. A save or a
   // Cancel puts the line back.
@@ -1060,7 +1070,7 @@ function SecretField({
             className={`w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait ${typed ? "[-webkit-text-security:disc]" : ""}`}
           />
           <button type="button" disabled={disabled || !typed.trim()} onClick={() => void save()} className={QUIET_BTN}>
-            Save
+            {c.save}
           </button>
           {replacing && (
             <button
@@ -1072,7 +1082,7 @@ function SecretField({
               }}
               className={QUIET_BTN}
             >
-              Cancel
+              {c.cancel}
             </button>
           )}
         </div>
@@ -1080,14 +1090,14 @@ function SecretField({
         <div className="flex items-center justify-between gap-2 rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2">
           <span className="flex items-center gap-2 text-[13px] font-[700] text-nb-ink">
             <FiCheck className="shrink-0 text-nb-accent-deep" aria-hidden />
-            Set — it&rsquo;s in docs/kanban/.env
+            {c.set}
           </span>
           <span className="flex items-center gap-2">
             <button type="button" disabled={disabled} onClick={() => setReplacing(true)} className={QUIET_BTN}>
-              Replace
+              {c.replace}
             </button>
             <button type="button" disabled={disabled} onClick={() => void onSave("")} className={QUIET_BTN}>
-              Clear
+              {c.clear}
             </button>
           </span>
         </div>
@@ -1120,6 +1130,7 @@ function SettingField({
   onChange: (value: string) => void;
   onSave: (value: string) => void;
 }) {
+  const c = useCopy().configuration.harness;
   const id = `harness-setting-${setting.key}`;
 
   // What the list offers. A value hand-written into ui.config.json that isn't on
@@ -1128,7 +1139,7 @@ function SettingField({
   // choice would say the agent's default while the run says otherwise.
   const choices = setting.choices ?? [];
   const listed = value && !choices.some((c) => c.value === value)
-    ? [...choices, { value, label: `${value} (from your ui.config.json)` }]
+    ? [...choices, { value, label: c.fromConfig(value) }]
     : choices;
 
   // A choice can mean "nothing saved" and carry the value "" (the reasoning

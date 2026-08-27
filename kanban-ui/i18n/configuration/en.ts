@@ -1,0 +1,243 @@
+// English copy for the Configuration dialog — the source of truth a second
+// language mirrors key for key. Writing rules: `i18n/index.ts`.
+import type { ConfigurationCopy } from "./types";
+
+const en: ConfigurationCopy = {
+  open: "Configuration",
+  title: "Configuration",
+  sections: "Configuration sections",
+  section: {
+    harness: "Harness",
+    agents: "Agents",
+    delivery: "Auto-delivery",
+    rules: "Rules",
+    skill: "Setup",
+    language: "Language",
+    cloud: "Cloud",
+  },
+  harness: {
+    title: "Default harness",
+    description: "Choose the coding tool and model used for every board run.",
+    notInstalled: "not installed",
+    notHere: (binary) => `${binary} isn't on this machine`,
+    missingHint: (binary) =>
+      `\`${binary}\` isn’t on this machine, so a run would fail to start. Install it:`,
+    gaps: (harness) => `Not supported by ${harness}`,
+    override: (command) => `Runs your override: \`${command}\``,
+    saveFailed: "couldn't save the agent setting",
+    saveSettingFailed: (setting) => `couldn't save the ${setting} setting`,
+    saveSecretFailed: (setting) => `couldn't save the ${setting}`,
+    unknown: (asked, running) =>
+      `Your ui.config.json asks for the agent "${asked}", which this UI doesn't know, so ${running} is running instead.`,
+    staleCommand:
+      'Your ui.config.json still has the old top-level "command" key. Nothing reads it — the agent above is what runs. You can delete the key; it\'s your file, so nothing here touches it.',
+    waitingFor: (boxes) => `Not saved yet — fill in the ${boxes} below and this pick saves itself.`,
+    fromConfig: (value) => `${value} (from your ui.config.json)`,
+    secret: {
+      set: "Set — it’s in docs/kanban/.env",
+      save: "Save",
+      replace: "Replace",
+      clear: "Clear",
+      cancel: "Cancel",
+    },
+    test: {
+      run: "Test",
+      running: "Testing…",
+      blurb: (harness) =>
+        `Sends one tiny message through ${harness} as it is saved here. On a paid provider that costs a few tokens.`,
+      unsavedPick: "Save the provider pick above first — Test runs the setup that is saved.",
+      trying: "Running one small chat through this setup…",
+      passed: (seconds) => `Passed — the agent answered in ${seconds}.`,
+      seconds: (s) => `${s}s`,
+      failedMissing: (command) => `Failed — the ${command} command isn't on this machine.`,
+      failedTimeout: (seconds) => `Failed — no answer after ${seconds}, so the test gave up.`,
+      failed: "Failed — the agent didn't answer.",
+      install: "Install it, then test again:",
+    },
+  },
+  specAgents: {
+    title: "Spec agents",
+    blurb:
+      "Choose which specialists may add focused recommendations while a card is being planned. They never run while a card is being built.",
+    loading: "Loading spec agents…",
+    tooOld:
+      "The board's rules in this project are too old to list the spec agents. Update the command and reopen this dialog.",
+    enabled: "Enabled",
+    paused: "Paused",
+    switchOn: (agent) => `${agent} — enabled`,
+    switchOff: (agent) => `${agent} — paused`,
+    contributes: "Contributes",
+    runsWhen: "Runs when",
+    change: "Change",
+    setting: (label, value) => `${label}: **${value}**`,
+    settingWithCost: (label, value, cost) => `${label}: **${value}** — ${cost}`,
+    flipFailedOn: (agent) => `couldn't switch ${agent} on`,
+    flipFailedOff: (agent) => `couldn't switch ${agent} off`,
+    saveFailed: (agent) => `couldn't save ${agent}'s setting`,
+  },
+  delivery: {
+    title: "Auto-delivery",
+    blurb: "How the board builds a card once you press Implement.",
+    on: "On",
+    off: "Off",
+    loading: "…",
+    frozen:
+      "A change applies to deliveries started afterwards. One already in flight keeps what it started with.",
+    commits: {
+      title: "Allow automatic Git commits",
+      body: "Each delivery gets its own branch and worktree, so several run side by side and the reviewed code is what lands. Off, a delivery works in your project folder, one at a time, and you commit it after review.",
+      failedOn: "couldn't switch automatic Git commits on",
+      failedOff: "couldn't switch automatic Git commits off",
+    },
+    approval: {
+      title: "Require diff approval before landing",
+      body: "Every delivery waits after review until you approve the exact tree it would land — the Approval tab on the card. It takes no landing slot while it waits. An approval covers one base commit and one tree; either moving cancels it.",
+      moot: "Nothing to hold while automatic Git commits are off: the board never lands there, so your own commit is the approval.",
+      failedOn: "couldn't switch diff approval on",
+      failedOff: "couldn't switch diff approval off",
+    },
+    switchOn: (setting) => `${setting} — on`,
+    switchOff: (setting) => `${setting} — off`,
+  },
+  flowRules: {
+    title: "Flow rules",
+    blurb:
+      "One rule, in your own words, added to the end of a flow's instructions. Every session the board starts from that flow reads it — so a long rule makes every card slower.",
+    loading: "Loading flows…",
+    tooOld:
+      "The board's rules in this project are too old to carry flow rules. Update the command and reopen this dialog.",
+    flows: "Flows",
+    set: (inUse, total) => `${inUse} of ${total} set`,
+    saved: "Saved",
+    rule: (flow) => `Rule for the ${flow} flow`,
+    placeholder: (flow) => `No rule. Every \`${flow}\` run reads exactly what the board ships.`,
+    saveFailed: (flow) => `couldn't save the ${flow} rule`,
+  },
+  skill: {
+    title: "Setup",
+    blurb:
+      "Two things let a coding agent work on this board: the AI4Kanban skill, installed in this project, and the `akb` command.",
+    checking: "Checking this project…",
+    checkAgain: "Check again",
+    writing: "Writing…",
+    writeAgain: "Write the skill again",
+    skillRow: "AI4Kanban skill",
+    commandRow: "akb command",
+    headline: {
+      unchecked: "Couldn't check this project",
+      unfinished: "Not finished",
+      update: "Update needed",
+      ready: "Ready",
+    },
+    detail: {
+      unchecked: "Update AI4Kanban before checking this project.",
+      none: "Add the skill and a coding agent can work on this board.",
+      some: (agents) => `${agents} can use this board. Add the skill for the rest.`,
+      outdated: "The skill in this project is older than this version of AI4Kanban.",
+      commandBehind: "The skill is ready, but the akb command needs an update.",
+      ready: (agents) => `${agents} can use this board.`,
+    },
+    status: {
+      unchecked: "Couldn't check",
+      notInstalled: "Not installed",
+      partial: "In some agents only",
+      updateAvailable: "Update available",
+      ready: (version) => `Ready · ${version}`,
+    },
+    commandStatus: {
+      checking: "Checking…",
+      unchecked: "Couldn't check",
+      notFound: "Not found",
+      behind: (version) => `${version} · update available`,
+      ready: (version) => `Ready · ${version}`,
+    },
+    button: { add: "Add the skill", addRest: "Add the rest", update: "Update the skill" },
+    addFailed: "couldn't add the skill",
+    details: "Technical details",
+    writtenBy: (version) => `Skill files written by AI4Kanban ${version}`,
+    folder: {
+      absent: (agent) => `nothing here (${agent})`,
+      linked: "a link into a source checkout — left alone",
+      unknown: (agent) => `installed, though it doesn't say which version (${agent})`,
+      stale: (version, carries, agent) => `${version}, older than ${carries} (${agent})`,
+      ready: (version, agent) => `${version} (${agent})`,
+    },
+    receipt: {
+      ok: "Done — your coding agent can drive this board.",
+      nothing: "Nothing was written.",
+      wrote: (path, files) => `\`${path}/\` — wrote ${files}`,
+      refreshed: (path, files) => `\`${path}/\` — refreshed ${files}`,
+    },
+    reviewDiff: "Changes project files. Review `git diff` before committing.",
+    behind: {
+      onPath: (found, running) =>
+        `The \`akb\` on your PATH is ${found}; this board runs ${running}.`,
+      none: "There is no working `akb` on your PATH.",
+      useButton: "Use the button above to connect this app’s current command.",
+      title: "Update the akb command",
+      runThis: "Run this in a terminal to use the current AI4Kanban flows:",
+      copy: "Copy",
+    },
+  },
+  language: {
+    title: "Language",
+    blurb:
+      "The language this machine reads in. Saved outside every project, so it follows you into every board you open on this machine.",
+    group: "Language",
+    saveFailed: "couldn't save that language",
+    note: "The board still draws in English — the words are translated in a later release. What the `akb` command prints in a terminal stays English either way.",
+  },
+  cloud: {
+    title: "Cloud",
+    blurb:
+      "The account this machine signs in as. One sign-in covers every project you open and every terminal on it.",
+    checking: "Checking this machine…",
+    unreachable: (why) => `Cloud could not be reached: ${why}. Nothing on this board is affected.`,
+    signedIn: "Signed in",
+    signOut: "Sign out",
+    slackHandle: "Slack names this handle when it acts for you.",
+    admitted: "**Admitted to the preview.** Cloud takes this account’s work.",
+    renews:
+      "**Renews on its own** — a delivery already running is never interrupted, and the sign-in survives a restart.",
+    kept: (file) =>
+      `**Kept on this machine**, at \`${file}\` — never inside your repository, so \`akb\` in a terminal acts as this account too.`,
+    signOutNote:
+      "Signing out stops this machine sending to Cloud. Nothing already on the board is touched, and signing back in picks the same account up.",
+    notAdmitted: "This account is not in the preview yet.",
+    signedInAs: (handle) => `You are signed in as \`@${handle}\`.`,
+    haveCode: "Have an invitation code?",
+    codeLabel: "Invitation code",
+    codeExample: "AK4B-7QF2-M3XD",
+    redeem: "Redeem",
+    redeeming: "Redeeming…",
+    oneCode: "One code admits one account, and admits it for good.",
+    noCode: "No code yet?",
+    noCodeBody: "We read every request by hand and email a code. No date is promised.",
+    asked: (when) => `Asked ${when} — we’ll email`,
+    askedUndated: "already",
+    requestInvite: "Request an invite",
+    asking: "Asking…",
+    expired: "Your Cloud sign-in expired.",
+    expiredBody: "Nothing was lost. Sign in again and whatever was waiting to send carries on.",
+    inviteOnly: "Cloud is an invite-only preview.",
+    inviteOnlyBody:
+      "Sign in with GitHub and we will say straight away whether your account is in it.",
+    boundary:
+      "Cloud relays this board’s questions and review requests, and the decisions made on them. It never receives your repository, never runs an agent, and never reads a card the board has not published.",
+    terms: "Signing in confirms you have read the",
+    privacyLink: "Privacy Policy",
+    termsAnd: " and the ",
+    termsLink: "Terms of Service",
+    termsEnd:
+      ". GitHub is asked for your name, your handle and your verified email address, and nothing else — no repository access.",
+    signIn: "Sign in with GitHub",
+    signInAgain: "Sign in again",
+    needsApp:
+      "Signing in needs the AI4Kanban app — the consent screen comes back to it. Open this project there once, and every terminal on this machine is signed in with it.",
+    waiting: "Waiting for the consent screen in your browser…",
+    finishFailed: "that sign-in did not complete",
+    signOutFailed: "couldn't sign out",
+  },
+};
+
+export default en;

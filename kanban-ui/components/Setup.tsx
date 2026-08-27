@@ -36,6 +36,8 @@ import {
   saveGoalAction,
   saveSetupProjectAction,
 } from "@/app/actions";
+import { Rich } from "@/i18n/rich";
+import { useCopy } from "@/i18n/use-copy";
 import { cn } from "@/lib/utils";
 import { type AgentInfo, GUIDED_STEPS, type SetupDraft, type SetupState, type SetupStep } from "@/lib/types";
 import { Button } from "./button";
@@ -99,6 +101,7 @@ export function setupHasQuestionsLeft(setup: SetupState | null): boolean {
 /** Start the setup run, holding what the press is doing and what it answered. The
  *  two screens share it because they are the same press in two places. */
 function useFinishSetup(onStart: () => Promise<StartAnswer>) {
+  const c = useCopy().setup.done;
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const start = useCallback(async () => {
@@ -106,13 +109,13 @@ function useFinishSetup(onStart: () => Promise<StartAnswer>) {
     setError(null);
     try {
       const res = await onStart();
-      if (!res.ok) setError(res.error || "the setup run didn't start");
+      if (!res.ok) setError(res.error || c.startFailed);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setStarting(false);
     }
-  }, [onStart]);
+  }, [onStart, c]);
   return { start, starting, error };
 }
 
@@ -128,16 +131,17 @@ function goalMissing(setup: SetupState): boolean {
  *  would have been, so pressing again is never the way to find the log. Both
  *  screens wear the window's header, so the runs panel is always there to open. */
 function WatchingSetup({ runId }: { runId: string }) {
+  const c = useCopy().setup.run;
   return (
     <span className="flex items-center gap-2 text-[13px] text-nb-ink-soft">
       <span className="size-[8px] shrink-0 rounded-full bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]" aria-hidden />
-      Finishing setup —{" "}
+      {c.watching}{" "}
       <button
         type="button"
         className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"
         onClick={() => sessionsPanel.open(runId)}
       >
-        watch the run
+        {c.watch}
       </button>
     </span>
   );
@@ -150,20 +154,21 @@ function WatchingSetup({ runId }: { runId: string }) {
  *  beside it unchanged — pressing it again is the retry, and the run picks up
  *  from the first step still unticked. */
 function SetupRunFailed({ runId }: { runId: string }) {
+  const c = useCopy().setup.run;
   return (
     <span className="text-[13px]" style={{ color: "var(--color-nb-peach-ink)" }}>
       <span className="mr-1" aria-hidden>
         ⚠
       </span>
-      The last setup run stopped short —{" "}
+      {c.failed}{" "}
       <button
         type="button"
         className="cursor-pointer underline underline-offset-2 hover:text-nb-ink"
         onClick={() => sessionsPanel.open(runId)}
       >
-        read its log
+        {c.readLog}
       </button>{" "}
-      for why. Starting one again picks up from the first step still left.
+      {c.failedAfter}
     </span>
   );
 }
@@ -222,6 +227,7 @@ export function SetupFlow({
   /** Leave the flow for the board. The board keeps a way back in. */
   onExit: () => void;
 }) {
+  const c = useCopy().setup;
   const steps = useMemo(() => guidedSteps(setup), [setup]);
   // Where the flow opens: the first unanswered step. Held from here on, so
   // Continue and the steps down the side are what move it — a box that ticks
@@ -287,7 +293,7 @@ export function SetupFlow({
               )}
               {readError && <Failure text={readError} />}
               {!draft && !readError && (
-                <p className="text-[13px] italic text-nb-ink-soft">Reading the board…</p>
+                <p className="text-[13px] italic text-nb-ink-soft">{c.reading}</p>
               )}
 
               {draft && step?.name === "project" && (
@@ -380,16 +386,19 @@ function StepRail({
   onGo: (index: number) => void;
   onExit: () => void;
 }) {
+  const c = useCopy().setup;
   const settled = (name: string): string => {
     if (!draft) return "";
     if (name === "project") {
       return draft.project.name
-        ? `${draft.project.name} · ${draft.tracks.length} track${draft.tracks.length === 1 ? "" : "s"}`
+        ? draft.tracks.length === 1
+          ? c.rail.projectSettledOne(draft.project.name)
+          : c.rail.projectSettledMany(draft.project.name, draft.tracks.length)
         : "";
     }
     if (name === "goal") {
-      if (draft.goal.trim()) return "Written";
-      return goalSkipped ? "Left for later" : "";
+      if (draft.goal.trim()) return c.rail.goalWritten;
+      return goalSkipped ? c.rail.goalSkipped : "";
     }
     if (name === "agent") {
       return agent.options.find((o) => o.name === agent.name)?.label ?? agent.name;
@@ -400,13 +409,10 @@ function StepRail({
   return (
     <div className="flex shrink-0 flex-col p-3 sm:w-[248px]">
       <div className="px-3 pb-4 pt-1">
-        <h1 className="text-[15px] font-[800] leading-tight">Set up this board</h1>
-        <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-          Three questions only you can answer. Everything else is worked out from your repo
-          afterwards.
-        </p>
+        <h1 className="text-[15px] font-[800] leading-tight">{c.rail.title}</h1>
+        <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">{c.rail.blurb}</p>
       </div>
-      <nav aria-label="Setup steps" className="flex flex-col gap-1">
+      <nav aria-label={c.rail.steps} className="flex flex-col gap-1">
         {steps.map((step, i) => {
           const on = i === index;
           const reachable = step.done || i <= index;
@@ -437,7 +443,7 @@ function StepRail({
                 )}
               </span>
               <span className="min-w-0">
-                <span className="block text-[13px] font-[700]">{STEP_TITLES[step.name] ?? step.name}</span>
+                <span className="block text-[13px] font-[700]">{stepTitle(c, step.name)}</span>
                 {note && <span className="mt-0.5 block truncate text-[11.5px]">{note}</span>}
               </span>
             </button>
@@ -447,7 +453,7 @@ function StepRail({
       {/* Leaving is never losing (the rules above) — the board keeps a way back in. */}
       <div className="mt-auto pt-3">
         <Button variant="ghost" size="sm" className="w-full" onClick={onExit}>
-          Go to the board
+          {c.rail.exit}
         </Button>
       </div>
     </div>
@@ -455,15 +461,13 @@ function StepRail({
 }
 
 // The checklist's own wording is written for whoever runs setup from a terminal.
-// On screen each step is a question being asked, so it gets a short title of its
-// own; the names are the script's.
-const STEP_TITLES: Record<string, string> = {
-  project: "Project",
-  goal: "Goal",
-  // The checklist's own name for this step is `agent` and stays that way — the rename is
-  // what the user reads, not what the command prints (#191).
-  agent: "Harness",
-};
+// On screen each step is a question being asked, so it gets a short title of its own
+// (`i18n/setup`); the names are the script's. The checklist's own name for the last
+// step is `agent` and stays that way — the rename is what the user reads, not what the
+// command prints (#191).
+function stepTitle(c: ReturnType<typeof useCopy>["setup"], name: string): string {
+  return c.stepTitles[name as keyof typeof c.stepTitles] ?? name;
+}
 
 // ---- step 1: the project and its tracks ------------------------------------
 
@@ -476,6 +480,9 @@ function ProjectStep({
   onChange: (draft: SetupDraft) => void;
   onSaved: () => void;
 }) {
+  const t = useCopy();
+  const c = t.setup.project;
+  const shared = t.shared;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [kept, setKept] = useState<string[]>([]);
@@ -492,7 +499,7 @@ function ProjectStep({
         draft.tracks,
       );
       if (!res.ok) {
-        setError(res.error || "couldn't save the project");
+        setError(res.error || c.saveFailed);
         return;
       }
       // A track that holds cards is never deleted out from under them. Say so
@@ -510,11 +517,8 @@ function ProjectStep({
   };
 
   return (
-    <StepBody
-      title="What is this project?"
-      blurb="The name and one line about it. The agent reads this whenever it plans work, so plain words beat a pitch."
-    >
-      <Field label="Name">
+    <StepBody title={c.title} blurb={c.blurb}>
+      <Field label={c.name}>
         <input
           className={INPUT}
           value={draft.project.name}
@@ -522,11 +526,11 @@ function ProjectStep({
           onChange={(e) => onChange({ ...draft, project: { ...draft.project, name: e.target.value } })}
         />
       </Field>
-      <Field label="What it is">
+      <Field label={c.what}>
         <input
           className={INPUT}
           value={draft.project.description}
-          placeholder="A board that plans itself, in plain markdown."
+          placeholder={c.whatPlaceholder}
           onChange={(e) =>
             onChange({ ...draft, project: { ...draft.project, description: e.target.value } })
           }
@@ -534,10 +538,9 @@ function ProjectStep({
       </Field>
 
       <div className="mt-5 border-t border-nb-ink/12 pt-4">
-        <p className="text-[13px] font-[800]">The tracks work falls into</p>
+        <p className="text-[13px] font-[800]">{c.tracks}</p>
         <p className="mt-1 text-[12px] leading-relaxed text-nb-ink-soft">
-          One bucket per kind of work — every card lives in one. These are the board&rsquo;s
-          own folders, so a name here is a folder under <code>docs/kanban/todo/</code>.
+          <Rich>{c.tracksBlurb}</Rich>
         </p>
         <TrackRows tracks={draft.tracks} used={draft.usedTracks} onChange={setTracks} />
       </div>
@@ -545,11 +548,11 @@ function ProjectStep({
       {kept.length > 0 && (
         <div className="mt-4">
           <Failure
-            text={`Saved, but ${kept.join(" and ")} ${kept.length === 1 ? "holds" : "hold"} cards, so ${kept.length === 1 ? "it stays" : "they stay"} on the board. Move or archive the cards first if you really want ${kept.length === 1 ? "it" : "them"} gone.`}
+            text={(kept.length === 1 ? c.keptOne : c.keptMany)(kept.join(" and "))}
           />
           <div className="mt-3 flex justify-end">
             <Button size="sm" onClick={onSaved}>
-              Continue
+              {c.continue}
             </Button>
           </div>
         </div>
@@ -560,7 +563,7 @@ function ProjectStep({
       {kept.length === 0 && (
         <StepButtons>
           <Button size="sm" disabled={saving || !draft.project.name.trim()} onClick={save}>
-            {saving ? "Saving…" : "Continue"}
+            {saving ? shared.saving : c.continue}
           </Button>
         </StepButtons>
       )}
@@ -581,6 +584,7 @@ function TrackRows({
   used: string[];
   onChange: (tracks: SetupDraft["tracks"]) => void;
 }) {
+  const c = useCopy().setup.project;
   const patch = (i: number, next: Partial<SetupDraft["tracks"][number]>) =>
     onChange(tracks.map((t, at) => (at === i ? { ...t, ...next } : t)));
 
@@ -593,25 +597,21 @@ function TrackRows({
             <input
               className={cn(INPUT, "w-[150px] shrink-0 font-mono text-[13px]")}
               value={track.name}
-              aria-label={`Track ${i + 1} name`}
+              aria-label={c.trackName(i + 1)}
               onChange={(e) => patch(i, { name: e.target.value })}
             />
             <input
               className={cn(INPUT, "min-w-0 flex-1")}
               value={track.note}
-              aria-label={`What ${track.name || "this track"} is for`}
-              placeholder="what belongs in it"
+              aria-label={c.trackNote(track.name || c.thisTrack)}
+              placeholder={c.trackNotePlaceholder}
               onChange={(e) => patch(i, { note: e.target.value })}
             />
             <button
               type="button"
               disabled={locked || tracks.length === 1}
-              title={
-                locked
-                  ? `${track.was} holds cards — move them before dropping it`
-                  : "Drop this track"
-              }
-              aria-label={`Drop ${track.name}`}
+              title={locked ? c.trackLocked(track.was ?? "") : c.dropTrackHint}
+              aria-label={c.dropTrack(track.name)}
               onClick={() => onChange(tracks.filter((_, at) => at !== i))}
               className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-[8px] text-nb-ink-soft transition-colors hover:bg-nb-ink/8 hover:text-nb-ink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
             >
@@ -626,7 +626,7 @@ function TrackRows({
           size="sm"
           onClick={() => onChange([...tracks, { name: "", note: "" }])}
         >
-          Add a track
+          {c.addTrack}
         </Button>
       </div>
     </div>
@@ -644,6 +644,8 @@ function GoalStep({
   onSkip: () => void;
   onSaved: (text: string) => void;
 }) {
+  const t = useCopy();
+  const c = t.setup.goal;
   const [text, setText] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -654,40 +656,37 @@ function GoalStep({
     const res = await saveGoalAction(text);
     setSaving(false);
     if (!res.ok) {
-      setError(res.error || "could not save the goal");
+      setError(res.error || c.saveFailed);
       return;
     }
     onSaved(text);
   };
 
   return (
-    <StepBody
-      title="Where is this headed?"
-      blurb="Your own words: what you want, how far out, and roughly what comes next. Every proposal the agent makes is judged against this, and rough and short is fine — you can change it whenever."
-    >
+    <StepBody title={c.title} blurb={c.blurb}>
       <textarea
         className={cn(INPUT, "min-h-[220px] resize-y font-mono leading-relaxed")}
         value={text}
         autoFocus
-        placeholder="In a year I want…"
+        placeholder={c.placeholder}
         onChange={(e) => setText(e.target.value)}
       />
       <GuideDrawer
         guide="what-makes-a-good-goal"
-        title="What makes a good goal"
+        title={c.guideTitle}
         className="mt-2 text-[12px] leading-relaxed text-nb-ink-soft"
       >
-        The agent never drafts this for you.
+        {c.guideLine}
       </GuideDrawer>
 
       {error && <div className="mt-4"><Failure text={error} /></div>}
 
       <StepButtons>
         <Button variant="ghost" size="sm" disabled={saving} onClick={onSkip}>
-          Skip for now
+          {c.skip}
         </Button>
         <Button size="sm" disabled={saving || !text.trim()} onClick={save}>
-          {saving ? "Saving…" : "Continue"}
+          {saving ? t.shared.saving : t.setup.project.continue}
         </Button>
       </StepButtons>
     </StepBody>
@@ -721,6 +720,8 @@ function AgentStep({
    *  report one — the screens after this one are drawn from it. */
   onDone: (agent?: AgentInfo) => void;
 }) {
+  const t = useCopy();
+  const c = t.setup.agent;
   const [passed, setPassed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -730,7 +731,7 @@ function AgentStep({
     try {
       const res = await finishSetupAgentStepAction();
       if (!res.ok) {
-        setError(res.error || "couldn't save that answer");
+        setError(res.error || c.saveFailed);
         return;
       }
       onDone(res.agent);
@@ -740,10 +741,7 @@ function AgentStep({
   };
 
   return (
-    <StepBody
-      title="Which harness runs the work?"
-      blurb="The coding tool that runs the board's work. Every button here starts a run on it — refine a card, propose work, implement it. Pick it, then press Test: it sends one tiny message through and says what came back."
-    >
+    <StepBody title={c.title} blurb={c.blurb}>
       <HarnessPicker
         agent={agent}
         onError={setError}
@@ -754,12 +752,10 @@ function AgentStep({
 
       <StepButtons>
         <p className="mr-auto text-[12px] leading-relaxed text-nb-ink-soft">
-          {passed || answered
-            ? "That’s everything only you could answer."
-            : "Press Test above — every button on this board runs through it."}
+          {passed || answered ? c.answered : c.testFirst}
         </p>
         <Button size="sm" disabled={saving || (!passed && !answered)} onClick={finish}>
-          {saving ? "Saving…" : "Continue"}
+          {saving ? t.shared.saving : t.setup.project.continue}
         </Button>
       </StepButtons>
     </StepBody>
@@ -790,14 +786,12 @@ function DoneStep({
   onWriteGoal: () => void;
   onExit: () => void;
 }) {
+  const c = useCopy().setup.done;
   const left = setup.steps.filter((s) => !s.done);
   const { start, starting, error } = useFinishSetup(onStart);
   const noGoal = goalMissing(setup);
   return (
-    <StepBody
-      title="Answered — the board is yours"
-      blurb="What is left reads your repo and thinks: the calls a planner needs settled, the map of what the project is made of, and the first cards."
-    >
+    <StepBody title={c.title} blurb={c.blurb}>
       {left.length > 0 && (
         <ul className="flex flex-col gap-2">
           {left.map((step) => (
@@ -819,11 +813,10 @@ function DoneStep({
         ) : noGoal ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] leading-relaxed">
             <span className="min-w-0 flex-1">
-              <strong>The goal comes first.</strong> Every step left is planned from it, so
-              write it and the board can take the rest.
+              <Rich>{c.goalFirst}</Rich>
             </span>
             <Button size="sm" className="shrink-0" onClick={onWriteGoal}>
-              Write the goal
+              {c.writeGoal}
             </Button>
           </div>
         ) : (
@@ -832,15 +825,12 @@ function DoneStep({
               {failedRunId ? (
                 <SetupRunFailed runId={failedRunId} />
               ) : (
-                <>
-                  <strong>Let the board finish them.</strong> It runs the agent you picked,
-                  here, and you can watch or stop it like any other run.
-                </>
+                <Rich>{c.offer}</Rich>
               )}
             </span>
             <Button size="sm" className="shrink-0" disabled={starting} onClick={start}>
               <FiPlay className="text-[13px]" aria-hidden />
-              {starting ? "Starting…" : "Finish setup"}
+              {starting ? c.starting : c.finish}
             </Button>
           </div>
         )}
@@ -848,14 +838,12 @@ function DoneStep({
       </div>
 
       <div className="mt-5">{!skillInstalled && <AddSkillFirst />}</div>
-      <p className="text-[13px] leading-relaxed text-nb-ink-soft">
-        Or finish them in your own coding agent — paste this into it:
-      </p>
+      <p className="text-[13px] leading-relaxed text-nb-ink-soft">{c.handOver}</p>
       <CopyLine text={instruction} />
 
       <StepButtons>
         <Button size="sm" onClick={onExit}>
-          Open the board
+          {c.open}
         </Button>
       </StepButtons>
     </StepBody>
@@ -894,6 +882,9 @@ export function SetupNotice({
    *  the one question of the run that can be walked past. */
   onResume?: () => void;
 }) {
+  const t = useCopy();
+  const c = t.setup.notice;
+  const { finish: finishLabel, starting: startingLabel } = t.setup.done;
   const { start, starting, error } = useFinishSetup(onFinishSetup);
   // The offer stands only once the run's own questions are answered. While one is
   // outstanding it is the goal — nothing after it can be planned — and Continue
@@ -905,21 +896,19 @@ export function SetupNotice({
       style={{ background: "var(--color-nb-accent-soft)" }}
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Meter done={setup.done} total={setup.total} />
+        <Meter done={setup.done} total={setup.total} label={c.meter(setup.done, setup.total)} />
         <span className="min-w-0 flex-1">
-          <strong>Setting up this board.</strong>{" "}
+          <strong>{c.title}</strong>{" "}
           {setupRunId ? (
-            <span className="text-nb-ink-soft">
-              The agent is working down what is left; the steps tick off as it goes.
-            </span>
+            <span className="text-nb-ink-soft">{c.working}</span>
           ) : failedSetupRunId ? (
             <SetupRunFailed runId={failedSetupRunId} />
           ) : setup.next ? (
             <span className="text-nb-ink-soft">
-              Next: <Ticks text={setup.next.text} />
+              {c.next} <Ticks text={setup.next.text} />
             </span>
           ) : (
-            <span className="text-nb-ink-soft">Finishing the last step.</span>
+            <span className="text-nb-ink-soft">{c.lastStep}</span>
           )}
         </span>
         {/* The run in flight wins over every offer: one at a time, and the way to
@@ -930,13 +919,13 @@ export function SetupNotice({
           <>
             {onResume && (
               <Button size="sm" className="shrink-0" onClick={onResume}>
-                Continue setup
+                {c.resume}
               </Button>
             )}
             {canFinish && (
               <Button size="sm" className="shrink-0" disabled={starting} onClick={start}>
                 <FiPlay className="text-[13px]" aria-hidden />
-                {starting ? "Starting…" : "Finish setup"}
+                {starting ? startingLabel : finishLabel}
               </Button>
             )}
             {/* Handing the rest to a coding agent lives inside the run, one
@@ -949,11 +938,11 @@ export function SetupNotice({
                 size="sm"
                 variant="ghost"
                 className="shrink-0"
-                title="A board arrives without the skill — this adds it"
+                title={c.addSkillHint}
                 onClick={() => configDialog.open("skill")}
               >
                 <FiTerminal className="text-[13px]" aria-hidden />
-                Add the skill
+                {c.addSkill}
               </Button>
             )}
           </>
@@ -972,6 +961,7 @@ export function SetupNotice({
 export function GoalNotice({ onSaved }: { onSaved: () => void }) {
   // Start hidden and reveal after mount: sessionStorage doesn't exist during SSR,
   // so reading it in the first render would mismatch the server's markup.
+  const c = useCopy().setup.goalNotice;
   const [dismissed, setDismissed] = useState(true);
   const [editing, setEditing] = useState(false);
   useEffect(() => {
@@ -988,22 +978,21 @@ export function GoalNotice({ onSaved }: { onSaved: () => void }) {
         <span className="nb-tag shrink-0">
           {/* `.nb-tag` sets its own ink, so the one bit of accent goes on the icon. */}
           <FiFlag className="h-[12px] w-[12px]" style={{ color: "var(--color-nb-accent)" }} aria-hidden />
-          Project goal
+          {c.tag}
         </span>
-        <span className="min-w-0 flex-1 text-nb-ink-soft">
-          <strong className="text-nb-ink">The project goal is missing or unclear.</strong> Every
-          proposal the agent makes is judged against it — rough and short is fine.
+        <span className="min-w-0 flex-1 text-nb-ink-soft [&_strong]:text-nb-ink">
+          <Rich>{c.body}</Rich>
         </span>
         <Button size="sm" className="shrink-0" onClick={() => setEditing(true)}>
-          Write the goal
+          {c.write}
         </Button>
         <button
           onClick={() => {
             sessionStorage.setItem(GOAL_DISMISS_KEY, "1");
             setDismissed(true);
           }}
-          aria-label="Dismiss"
-          title="Hide for now"
+          aria-label={c.dismiss}
+          title={c.dismissHint}
           className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-[7px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/8 hover:text-nb-ink active:scale-90"
         >
           <FiX className="h-[14px] w-[14px]" />
@@ -1086,6 +1075,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 // row, which needs no measuring, with the content mounted throughout so there
 // is something to slide — just off the tab order until it is open.
 function Handover({ instruction, skillInstalled }: { instruction: string; skillInstalled: boolean }) {
+  const c = useCopy().setup.handover;
   const [open, setOpen] = useState(false);
   return (
     <div className="shrink-0 border-t border-nb-ink/12 bg-nb-wash">
@@ -1098,7 +1088,7 @@ function Handover({ instruction, skillInstalled }: { instruction: string; skillI
       >
         <span className="flex items-center gap-2">
           <FiTerminal className="text-[13px]" aria-hidden />
-          {open ? "Never mind — keep going here" : "Rather set this up from your coding agent?"}
+          {open ? c.close : c.open}
         </span>
         <FiChevronUp
           aria-hidden
@@ -1116,13 +1106,8 @@ function Handover({ instruction, skillInstalled }: { instruction: string; skillI
         <div id="setup-handover" inert={!open} className="min-h-0">
           <div className="h-[50vh] overflow-y-auto px-6 pb-6 pt-2 sm:px-10">
             <div className="max-w-[720px]">
-              <h3 className="text-[17px] font-[750] leading-tight">
-                Finish from your coding agent
-              </h3>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-nb-ink-soft">
-                Paste this into it. It picks up wherever setup got to, so nothing you answered
-                here is asked again.
-              </p>
+              <h3 className="text-[17px] font-[750] leading-tight">{c.title}</h3>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
               <div className="mt-4">
                 {!skillInstalled && <AddSkillFirst />}
                 <CopyLine text={instruction} />
@@ -1143,12 +1128,11 @@ function Handover({ instruction, skillInstalled }: { instruction: string; skillI
  *  itself the strip offers the button instead. `npx` rather than `akb`, since someone who
  *  never installed the command can still run it. */
 export function AddSkillFirst() {
+  const c = useCopy().setup;
   return (
     <div className="mb-3">
-      <p className="mb-1 text-[12px] leading-relaxed text-nb-ink-soft">
-        <strong className="text-nb-ink">Your coding agent can&rsquo;t see this board yet.</strong>{" "}
-        A board arrives without the skill — run this in the repo first, then paste the line
-        below. (Configuration → Setup does the same from here.)
+      <p className="mb-1 text-[12px] leading-relaxed text-nb-ink-soft [&_strong]:text-nb-ink">
+        <Rich>{c.addSkillFirst}</Rich>
       </p>
       <CopyLine text={ADD_SKILL_COMMAND} />
     </div>
@@ -1177,13 +1161,9 @@ function Ticks({ text }: { text: string }) {
 
 // How far setup got: one short segment per step, filled as far as it got, with
 // the count beside it.
-function Meter({ done, total }: { done: number; total: number }) {
+function Meter({ done, total, label }: { done: number; total: number; label: string }) {
   return (
-    <span
-      className="flex shrink-0 items-center gap-2"
-      role="img"
-      aria-label={`Setup: ${done} of ${total} steps done`}
-    >
+    <span className="flex shrink-0 items-center gap-2" role="img" aria-label={label}>
       <span className="flex items-center gap-[4px]">
         {Array.from({ length: total }, (_, i) => (
           <span
@@ -1208,6 +1188,7 @@ function Meter({ done, total }: { done: number; total: number }) {
 // A line to paste into a coding agent, shown in full — a user without a working
 // clipboard can still select it — with a copy button under it.
 function CopyLine({ text }: { text: string }) {
+  const t = useCopy();
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -1224,7 +1205,7 @@ function CopyLine({ text }: { text: string }) {
         <Button
           size="sm"
           variant="ghost"
-          title="Copy for your coding agent"
+          title={t.setup.copy.hint}
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(text);
@@ -1236,7 +1217,7 @@ function CopyLine({ text }: { text: string }) {
           }}
         >
           {copied ? <FiCheck className="h-[14px] w-[14px]" /> : <FiCopy className="h-[14px] w-[14px]" />}
-          {copied ? "Copied" : "Copy"}
+          {copied ? t.shared.copied : t.shared.copy}
         </Button>
       </div>
     </div>

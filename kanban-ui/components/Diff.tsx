@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiChevronDown, FiChevronRight, FiSidebar } from "react-icons/fi";
+import type { CardCopy } from "@/i18n/card/types";
+import { useCopy } from "@/i18n/use-copy";
 import { fileTree, parseDiff, type DiffFile, type DiffNode, type DiffRow } from "@/lib/diff";
 import type { DeliveryDiff } from "@/lib/types";
 
@@ -40,14 +42,16 @@ const TONE = {
 const RULE = "color-mix(in srgb, var(--color-nb-ink) 12%, transparent)";
 const MONO = { fontFamily: "var(--font-mono)", fontSize: 11.5, lineHeight: 1.55 } as const;
 
-/** What a file's header says about it when it is not a plain edit. */
-const STATUS: Partial<Record<DiffFile["status"], { label: string; bg: string; ink: string }>> = {
-  added: { label: "new", bg: "var(--color-nb-mint-soft)", ink: "var(--color-nb-mint-ink)" },
-  deleted: { label: "deleted", bg: "var(--color-nb-peach-soft)", ink: "var(--color-nb-peach-ink)" },
-  renamed: { label: "moved", bg: "var(--color-nb-sky-soft)", ink: "var(--color-nb-sky-ink)" },
+/** What a file's header says about it when it is not a plain edit — its colours
+ *  here, its word in `i18n/card`. */
+const STATUS: Partial<Record<DiffFile["status"], { key: "added" | "deleted" | "renamed"; bg: string; ink: string }>> = {
+  added: { key: "added", bg: "var(--color-nb-mint-soft)", ink: "var(--color-nb-mint-ink)" },
+  deleted: { key: "deleted", bg: "var(--color-nb-peach-soft)", ink: "var(--color-nb-peach-ink)" },
+  renamed: { key: "renamed", bg: "var(--color-nb-sky-soft)", ink: "var(--color-nb-sky-ink)" },
 };
 
 export function DiffPane({ diff }: { diff: DeliveryDiff }) {
+  const c = useCopy().card.diff;
   const { nodes, files } = useMemo(() => fileTree(parseDiff(diff.diff)), [diff.diff]);
   const [active, setActive] = useState(0);
   const [showTree, setShowTree] = useState(true);
@@ -114,7 +118,7 @@ export function DiffPane({ diff }: { diff: DeliveryDiff }) {
             className="nb-chip"
             style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
           >
-            uncommitted
+            {c.uncommitted}
           </span>
         )}
         <span className="font-mono text-nb-ink-soft">{diff.note || diff.stat}</span>
@@ -122,8 +126,8 @@ export function DiffPane({ diff }: { diff: DeliveryDiff }) {
             The git command that prints the rest used to sit in a foot below; the block's
             own foot already names the branch, which is what a reader needs to go look. */}
         {diff.truncated && (
-          <span className="text-nb-ink-soft" title="Too long to show in full — this is the first part">
-            · cut off
+          <span className="text-nb-ink-soft" title={c.truncatedHint}>
+            {c.truncated}
           </span>
         )}
         {files.length > 1 && (
@@ -132,8 +136,8 @@ export function DiffPane({ diff }: { diff: DeliveryDiff }) {
             onClick={() => setShowTree((on) => !on)}
             aria-pressed={showTree}
             className="nb-tip ml-auto cursor-pointer rounded-[7px] p-1 text-[14px] text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink"
-            data-tip={showTree ? "Hide the file list" : "Show the file list"}
-            aria-label={showTree ? "Hide the file list" : "Show the file list"}
+            data-tip={showTree ? c.hideTree : c.showTree}
+            aria-label={showTree ? c.hideTree : c.showTree}
           >
             <FiSidebar aria-hidden />
           </button>
@@ -164,6 +168,7 @@ export function DiffPane({ diff }: { diff: DeliveryDiff }) {
             {files.map((file, index) => (
               <FileSection
                 key={`${file.path}-${index}`}
+                copy={c}
                 file={file}
                 open={!closed.has(index)}
                 onToggle={() => toggleFile(index)}
@@ -269,11 +274,13 @@ function Counts({ file }: { file: DiffFile }) {
 // ---- one file ----------------------------------------------------------------
 
 function FileSection({
+  copy,
   file,
   open,
   onToggle,
   ref,
 }: {
+  copy: CardCopy["diff"];
   file: DiffFile;
   open: boolean;
   onToggle: () => void;
@@ -311,7 +318,7 @@ function FileSection({
         </button>
         {status && (
           <span className="nb-chip shrink-0" style={{ background: status.bg, color: status.ink }}>
-            {status.label}
+            {copy[status.key]}
           </span>
         )}
         <Counts file={file} />
@@ -319,16 +326,16 @@ function FileSection({
 
       {open &&
         (file.binary ? (
-          <p className="px-4 py-2 text-[11.5px] text-nb-ink-soft">Binary file — nothing to show in lines.</p>
+          <p className="px-4 py-2 text-[11.5px] text-nb-ink-soft">{copy.binary}</p>
         ) : file.rows.length === 0 ? (
-          <p className="px-4 py-2 text-[11.5px] text-nb-ink-soft">No lines changed.</p>
+          <p className="px-4 py-2 text-[11.5px] text-nb-ink-soft">{copy.noLines}</p>
         ) : (
           // The scroller is the file, not the pane: a long line slides under a file
           // header that stays put, and the numbers stay pinned to the left edge.
           <div className="overflow-x-auto" style={MONO}>
             <div style={{ width: "max-content", minWidth: "100%" }}>
               {file.rows.map((row, i) => (
-                <Line key={i} row={row} cell={cell} />
+                <Line key={i} copy={copy} row={row} cell={cell} />
               ))}
             </div>
           </div>
@@ -337,7 +344,7 @@ function FileSection({
   );
 }
 
-function Line({ row, cell }: { row: DiffRow; cell: string }) {
+function Line({ copy, row, cell }: { copy: CardCopy["diff"]; row: DiffRow; cell: string }) {
   if (row.kind === "hunk") {
     return (
       <div
@@ -369,7 +376,7 @@ function Line({ row, cell }: { row: DiffRow; cell: string }) {
       {/* The gutter is hidden from a reader that cannot see it — two line numbers
           per row is noise — so the sign it carries is said in a word instead. */}
       <span className="whitespace-pre pr-3 pl-2 text-nb-ink">
-        {tone && <span className="sr-only">{row.kind === "add" ? "added " : "removed "}</span>}
+        {tone && <span className="sr-only">{row.kind === "add" ? copy.lineAdded : copy.lineRemoved}</span>}
         {row.text || " "}
       </span>
     </div>

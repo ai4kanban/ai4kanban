@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { FiBox, FiCheckCircle, FiClock, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiRepeat, FiTag, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import { type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
+import type { ChipsCopy } from "@/i18n/chips/types";
+import { useCopy } from "@/i18n/use-copy";
 import type { QuestionTag } from "@/lib/questions";
 import { NO_RELEASE, type CardStatus } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -52,22 +54,30 @@ function Dot({ color }: { color: string }) {
 // cryptic "P" label.
 export function PriorityChip({ value }: { value: string }) {
   const c = LEVEL[value] || LEVEL.low;
+  const copy = useCopy().chips;
   return (
     <span className="nb-chip" style={{ background: c.soft, color: c.ink }}>
       <FiFlag aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
-      {value}
+      {levelWord(copy, value)}
     </span>
   );
+}
+
+/** A level's word, from the value the card file holds. An unknown value is drawn
+ *  as it is written — the file is a person's to edit. */
+function levelWord(copy: ChipsCopy, value: string): string {
+  return copy.level[value as keyof ChipsCopy["level"]] ?? value;
 }
 
 // ROI — secondary. Dot + muted label, no fill, so it reads one rung below the
 // priority chip instead of mirroring it as a second identical pill.
 export function RoiTag({ value }: { value: string }) {
   const c = LEVEL[value] || LEVEL.low;
+  const copy = useCopy().chips;
   return (
     <span className="inline-flex items-center gap-1.5 text-[10px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
       <Dot color={c.dot} />
-      ROI {value}
+      {copy.roi(levelWord(copy, value))}
     </span>
   );
 }
@@ -117,17 +127,13 @@ export function TodoProgress({ done, total, width = 26 }: { done: number; total:
 // PriorityChip flag), not a stray word, plus a `long` phrase for when it stands
 // alone with room to spare (the card page) vs. the terse `label` used in the
 // board's tight chip row.
-const STATUS: Record<string, { label: string; long: string; icon: IconType; soft: string; ink: string }> = {
+const STATUS: Record<string, { icon: IconType; soft: string; ink: string }> = {
   ready: {
-    label: "ready",
-    long: "Ready to implement",
     icon: FiCheckCircle,
     soft: "var(--color-nb-mint-soft)",
     ink: "var(--color-nb-mint-ink)",
   },
   implementing: {
-    label: "implementing",
-    long: "Being implemented",
     icon: FiPlayCircle,
     soft: "var(--color-nb-accent-soft)",
     ink: "var(--color-nb-accent-deep)",
@@ -144,10 +150,18 @@ const STATUS: Record<string, { label: string; long: string; icon: IconType; soft
 export const ELASTIC_CHIP = { flex: "0 1 auto" } as const;
 
 export function StatusPill({ status, detailed = false }: { status: CardStatus; detailed?: boolean }) {
+  const words = useCopy().chips.status;
   const c = STATUS[status];
   if (!c) return null; // `todo` — no pill
   const Icon = c.icon;
-  const label = detailed ? c.long : c.label;
+  const label =
+    status === "ready"
+      ? detailed
+        ? words.readyLong
+        : words.ready
+      : detailed
+        ? words.implementingLong
+        : words.implementing;
   return (
     <span className="nb-chip" title={label} style={{ ...ELASTIC_CHIP, background: c.soft, color: c.ink }}>
       <Icon aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
@@ -165,6 +179,7 @@ export function StatusPill({ status, detailed = false }: { status: CardStatus; d
 // blocked chip beside it: a pending card is a blocked card the user has already answered
 // for. The hover carries the whole of it — what will run, and what it is waiting on.
 export function PendingPill({ label, detailed = false }: { label: string; detailed?: boolean }) {
+  const copy = useCopy().chips;
   return (
     <span
       className="nb-chip nb-tip"
@@ -173,7 +188,7 @@ export function PendingPill({ label, detailed = false }: { label: string; detail
       style={{ ...ELASTIC_CHIP, background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
     >
       <FiClock aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
-      <span className="truncate">{detailed ? label : "pending"}</span>
+      <span className="truncate">{detailed ? label : copy.pending}</span>
     </span>
   );
 }
@@ -183,11 +198,12 @@ export function PendingPill({ label, detailed = false }: { label: string; detail
 // it already carries the tally (root todos), so the chip stays a pure marker and
 // names itself on hover instead of stamping a number that competes with the bar.
 export function GroupChip() {
+  const copy = useCopy().chips;
   return (
     <span
       className="nb-chip nb-tip"
       tabIndex={0}
-      data-tip="Group task — open its page for subtasks"
+      data-tip={copy.group}
       style={{ background: "var(--color-nb-lilac-soft)", color: "var(--color-nb-lilac-ink)" }}
     >
       <FiLayers aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
@@ -201,12 +217,13 @@ export function GroupChip() {
 // the board's chip row is tight, and the tooltip carries which cards are in the
 // way. A marker only — the card stays on the board and every button still works.
 export function BlockedChip({ blockers }: { blockers: { id: number; title: string }[] }) {
+  const copy = useCopy().chips;
   const ids = blockers.map((b) => `#${b.id}`).join(", ");
   return (
     <span
       className="nb-chip nb-tip"
       tabIndex={0}
-      data-tip={`Blocked — ${ids} ${blockers.length === 1 ? "is" : "are"} still open`}
+      data-tip={blockers.length === 1 ? copy.blockedOne(ids) : copy.blockedMany(ids)}
       style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
     >
       <FiLock aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
@@ -290,6 +307,7 @@ export function ReleaseSelect({
   disabled?: boolean;
   onChange: (v: string) => void;
 }) {
+  const copy = useCopy().chips;
   const planned = value !== NO_RELEASE;
   const stale = planned && !releases.includes(value);
   return (
@@ -315,7 +333,7 @@ export function ReleaseSelect({
       <SelectContent>
         {stale && (
           <SelectItem value={value} className={CHIP_ITEM}>
-            {value} — not on the list
+            {copy.releaseStale(value)}
           </SelectItem>
         )}
         {releases.map((r) => (
@@ -349,26 +367,24 @@ export function ReleaseSelect({
 // widest label's width down the whole question, squeezing multi-line questions into
 // a narrow column beside an empty gutter. Hence the trailing margin here — every
 // caller wants the same gap to the text it leads.
-const QUESTION_TAG: Record<QuestionTag, { label: string; icon: IconType; ink: string }> = {
-  user: {
-    label: "needs you",
-    icon: FiUser,
-    ink: "var(--color-nb-accent-deep)",
-  },
+const QUESTION_TAG: Record<QuestionTag, { icon: IconType; ink: string }> = {
+  user: { icon: FiUser, ink: "var(--color-nb-accent-deep)" },
 };
 
-const UNTAGGED = { label: "new", icon: FiHelpCircle, ink: "var(--color-nb-ink-soft)" };
+const UNTAGGED = { icon: FiHelpCircle, ink: "var(--color-nb-ink-soft)" };
 
 export function QuestionTagBadge({ tag }: { tag: QuestionTag | null }) {
+  const copy = useCopy().chips.question;
   const c = tag ? QUESTION_TAG[tag] : UNTAGGED;
   const Icon = c.icon;
+  const label = tag ? copy.needsYou : copy.new;
   return (
     <span
       className="mr-1.5 inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-[700] uppercase leading-[18px] tracking-[0.04em]"
       style={{ color: c.ink }}
     >
       <Icon aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
-      {c.label}
+      {label}
     </span>
   );
 }
@@ -393,14 +409,17 @@ export function QuestionTagBadge({ tag }: { tag: QuestionTag | null }) {
 // The time of day shows only for days, which is the only interval it can mean
 // anything for, and only ever a time — the date is the interval's to decide.
 const CADENCE_NONE = "none";
-const CADENCE_UNITS: { value: CadenceUnit; label: string; start: number }[] = [
-  { value: "m", label: "minutes", start: 30 },
-  { value: "h", label: "hours", start: 6 },
-  { value: "d", label: "days", start: 1 },
+const CADENCE_UNITS: { value: CadenceUnit; start: number }[] = [
+  { value: "m", start: 30 },
+  { value: "h", start: 6 },
+  { value: "d", start: 1 },
 ];
 const CADENCE_WORD = "text-[10.5px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft";
 const CADENCE_BOX =
   "nb-outline h-[21px] rounded-[6px] bg-nb-paper px-1.5 text-[11px] font-[700] tabular-nums text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:opacity-60";
+
+const UNIT_WORD = (copy: ChipsCopy["cadence"], unit: CadenceUnit) =>
+  unit === "m" ? copy.minutes : unit === "h" ? copy.hours : copy.days;
 
 export function CadenceSelect({
   value,
@@ -411,6 +430,7 @@ export function CadenceSelect({
   disabled?: boolean;
   onChange: (v: string) => void;
 }) {
+  const copy = useCopy().chips.cadence;
   const cadence = parseCadence(value);
   // The count is typed, so it needs a state of its own while it's being typed —
   // reset whenever the card says something else (another tab, the CLI, a run).
@@ -437,7 +457,7 @@ export function CadenceSelect({
     <span className="flex flex-wrap items-center gap-1.5">
       {cadence && (
         <>
-          <span className={CADENCE_WORD}>every</span>
+          <span className={CADENCE_WORD}>{copy.every}</span>
           <input
             type="number"
             min={1}
@@ -446,7 +466,7 @@ export function CadenceSelect({
             style={{ width: 46 }}
             value={count}
             disabled={disabled}
-            aria-label="How many"
+            aria-label={copy.count}
             onChange={(e) => setCount(e.target.value)}
             onBlur={commitCount}
             onKeyDown={(e) => {
@@ -479,23 +499,23 @@ export function CadenceSelect({
         <SelectContent>
           {CADENCE_UNITS.map((u) => (
             <SelectItem key={u.value} value={u.value} className={CHIP_ITEM}>
-              {u.label}
+              {UNIT_WORD(copy, u.value)}
             </SelectItem>
           ))}
           <SelectItem value={CADENCE_NONE} className={CHIP_ITEM}>
-            No cadence
+            {copy.none}
           </SelectItem>
         </SelectContent>
       </Select>
       {cadence?.unit === "d" && (
         <>
-          <span className={CADENCE_WORD}>at</span>
+          <span className={CADENCE_WORD}>{copy.at}</span>
           <input
             type="time"
             className={CADENCE_BOX}
             value={cadence.at}
             disabled={disabled}
-            aria-label="Time of day"
+            aria-label={copy.time}
             onChange={(e) => push(cadence.n, cadence.unit, e.target.value)}
           />
         </>
@@ -517,6 +537,7 @@ export function LevelSelect({
   onChange: (v: string) => void;
 }) {
   const c = LEVEL[value] || LEVEL.low;
+  const copy = useCopy().chips;
   return (
     <Select value={value} disabled={disabled} onValueChange={onChange}>
       {/* stopPropagation — see ReleaseSelect above. */}
@@ -530,7 +551,7 @@ export function LevelSelect({
       <SelectContent>
         {(["high", "med", "low"] as const).map((level) => (
           <SelectItem key={level} value={level} className={CHIP_ITEM}>
-            {level}
+            {copy.level[level]}
           </SelectItem>
         ))}
       </SelectContent>

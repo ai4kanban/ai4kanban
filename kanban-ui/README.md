@@ -1469,3 +1469,14 @@ PORT=7420 npm run start     # http://localhost:7420
 
 To reproduce the exact `npx` package (standalone server): `npm run build:standalone` then
 `node bin/kanban-ui.mjs`.
+
+### Where the words live
+
+Every word the board draws is in `kanban-ui/i18n/` — one folder per surface, one file per
+language in it, and that folder's `types.ts` beside them. A component asks for copy with
+`useCopy()`; a server component or `lib/` imports `copy` from `i18n/`. Nothing is written
+where it is drawn.
+
+New copy is written in English first, in `<surface>/en.ts`, and typed by that folder's
+`types.ts` — so a key another language hasn't translated is a `pnpm typecheck` failure
+rather than a blank on screen. `i18n/index.ts` has the rest of the rules for writing one.

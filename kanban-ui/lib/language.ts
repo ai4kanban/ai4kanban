@@ -1,3 +1,4 @@
+import { copy } from "@/i18n";
 import { boardRules } from "./cli";
 import { DEFAULT_LANGUAGE, isLanguage, type Language, type WriteResult } from "./types";
 
@@ -17,7 +18,7 @@ export async function machineLanguage(): Promise<Language> {
 export async function setMachineLanguage(value: Language): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.setLanguage) {
-    return { ok: false, error: "this board's rules are older than the language setting — run `npm install -g ai4kanban`." };
+    return { ok: false, error: copy.messages.tooOld.language };
   }
   return rules.setLanguage(value);
 }

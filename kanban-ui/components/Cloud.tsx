@@ -33,6 +33,8 @@ import {
   signOutOfCloudAction,
   startCloudSignInAction,
 } from "@/app/actions";
+import { Rich } from "@/i18n/rich";
+import { useCopy } from "@/i18n/use-copy";
 import type { CloudAccount } from "@/lib/types";
 import { Button } from "./button";
 
@@ -52,6 +54,7 @@ function bridge(): AppBridge | null {
 }
 
 export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
+  const c = useCopy().configuration.cloud;
   const [account, setAccount] = useState<CloudAccount | null>(null);
   const [busy, setBusy] = useState(false);
   // The sign-in is out in the browser and we are waiting for it to come back.
@@ -77,14 +80,14 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
         setBusy(true);
         try {
           const done = await finishCloudSignInAction(url);
-          if (!done.ok) onError?.(done.error || "that sign-in did not complete");
+          if (!done.ok) onError?.(done.error || c.finishFailed);
           await load();
         } finally {
           setBusy(false);
         }
       })();
     });
-  }, [load, onError]);
+  }, [load, onError, c]);
 
   const signIn = async () => {
     const app = bridge();
@@ -105,7 +108,7 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
     setBusy(true);
     try {
       const done = await signOutOfCloudAction();
-      if (!done.ok) onError?.(done.error || "couldn't sign out");
+      if (!done.ok) onError?.(done.error || c.signOutFailed);
       setWaiting(false);
       await load();
     } finally {
@@ -116,15 +119,12 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">Cloud</h3>
-        <p className="mt-1 max-w-[58ch] text-[13px] leading-relaxed text-nb-ink-soft">
-          The account this machine signs in as. One sign-in covers every project you open and
-          every terminal on it.
-        </p>
+        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{c.title}</h3>
+        <p className="mt-1 max-w-[58ch] text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
       </div>
 
       {!account ? (
-        <p className="text-[13px] text-nb-ink-soft">Checking this machine…</p>
+        <p className="text-[13px] text-nb-ink-soft">{c.checking}</p>
       ) : account.state === "signed-in" ? (
         <SignedIn account={account} busy={busy} onSignOut={() => void signOut()} />
       ) : account.state === "not-admitted" ? (
@@ -147,9 +147,7 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
       )}
 
       {account?.error && (
-        <Note>
-          Cloud could not be reached: {account.error}. Nothing on this board is affected.
-        </Note>
+        <Note>{c.unreachable(account.error)}</Note>
       )}
     </div>
   );
@@ -166,13 +164,14 @@ function SignedIn({
   busy: boolean;
   onSignOut: () => void;
 }) {
+  const c = useCopy().configuration.cloud;
   return (
     <>
       <div className="flex items-center gap-3.5 rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-4 py-3.5 shadow-[2px_2px_0_0_var(--color-nb-ink)]">
         <Avatar account={account} />
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-[14px] font-[800] text-nb-ink">
-            {account.name || account.handle || "Signed in"}
+            {account.name || account.handle || c.signedIn}
             <SiGithub className="shrink-0 text-nb-ink-soft" size={13} aria-label="GitHub" />
           </p>
           {account.handle && (
@@ -181,12 +180,12 @@ function SignedIn({
             </p>
           )}
           <p className="mt-[3px] text-[11.5px] leading-[16px] text-nb-ink-soft">
-            Slack names this handle when it acts for you.
+            {c.slackHandle}
           </p>
         </div>
         <Button size="sm" variant="ghost" disabled={busy} onClick={onSignOut}>
           <FiLogOut size={13} aria-hidden />
-          Sign out
+          {c.signOut}
         </Button>
       </div>
 
@@ -195,24 +194,19 @@ function SignedIn({
             refusal, but it is not a confirmation either. */}
         {!account.error && (
           <Fact icon={<FiCheck className="text-nb-mint-ink" size={14} aria-hidden />}>
-            <b className="font-[800]">Admitted to the preview.</b> Cloud takes this account’s work.
+            <Rich>{c.admitted}</Rich>
           </Fact>
         )}
         <Fact icon={<FiRefreshCw className="text-nb-ink-soft" size={14} aria-hidden />}>
-          <b className="font-[800]">Renews on its own</b> — a delivery already running is never
-          interrupted, and the sign-in survives a restart.
+          <Rich>{c.renews}</Rich>
         </Fact>
         <Fact icon={<FiHome className="text-nb-ink-soft" size={14} aria-hidden />}>
-          <b className="font-[800]">Kept on this machine</b>, at{" "}
-          <code className="font-mono text-[11.5px] font-[700]">{account.sessionFile}</code> — never
-          inside your repository, so <code className="font-mono text-[11.5px] font-[700]">akb</code>{" "}
-          in a terminal acts as this account too.
+          <Rich code="font-mono text-[11.5px] font-[700]">{c.kept(account.sessionFile)}</Rich>
         </Fact>
       </div>
 
       <p className="border-t border-nb-ink/12 pt-3.5 text-[12px] leading-relaxed text-nb-ink-soft">
-        Signing out stops this machine sending to Cloud. Nothing already on the board is touched,
-        and signing back in picks the same account up.
+        {c.signOutNote}
       </p>
     </>
   );
@@ -235,19 +229,18 @@ function SignedOut({
   onSignIn: () => void;
   onSignOut: () => void;
 }) {
+  const c = useCopy().configuration.cloud;
   const expired = account.state === "expired";
 
   return (
     <>
       {expired ? (
-        <Note title="Your Cloud sign-in expired.">
-          Nothing was lost. Sign in again and whatever was waiting to send carries on.
-        </Note>
+        <Note title={c.expired}>{c.expiredBody}</Note>
       ) : (
         <div className="rounded-[10px] bg-nb-wash px-4 py-3.5">
-          <p className="text-[13px] font-[800] text-nb-ink">Cloud is an invite-only preview.</p>
+          <p className="text-[13px] font-[800] text-nb-ink">{c.inviteOnly}</p>
           <p className="mt-1 max-w-[58ch] text-[12.5px] leading-relaxed text-nb-ink-soft">
-            Sign in with GitHub and we will say straight away whether your account is in it.
+            {c.inviteOnlyBody}
           </p>
         </div>
       )}
@@ -259,24 +252,19 @@ function SignedOut({
         {inApp ? (
           <Button size="sm" disabled={busy || !account.configured} onClick={onSignIn}>
             <SiGithub size={14} aria-hidden />
-            {expired ? "Sign in again" : "Sign in with GitHub"}
+            {expired ? c.signInAgain : c.signIn}
           </Button>
         ) : (
-          <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">
-            Signing in needs the AI4Kanban app — the consent screen comes back to it. Open this
-            project there once, and every terminal on this machine is signed in with it.
-          </p>
+          <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">{c.needsApp}</p>
         )}
         {expired && (
           <Button size="sm" variant="ghost" disabled={busy} onClick={onSignOut}>
             <FiLogOut size={13} aria-hidden />
-            Sign out
+            {c.signOut}
           </Button>
         )}
         {waiting && (
-          <span className="text-[12px] text-nb-ink-soft">
-            Waiting for the consent screen in your browser…
-          </span>
+          <span className="text-[12px] text-nb-ink-soft">{c.waiting}</span>
         )}
       </div>
 
@@ -310,6 +298,7 @@ function NotAdmitted({
   const [refusal, setRefusal] = useState<string | null>(null);
   const [working, setWorking] = useState<"redeem" | "request" | null>(null);
   const held = busy || working !== null;
+  const c = useCopy().configuration.cloud;
 
   const redeem = async () => {
     if (held || !code.trim()) return;
@@ -340,11 +329,10 @@ function NotAdmitted({
 
   return (
     <>
-      <Note title="This account is not in the preview yet.">
+      <Note title={c.notAdmitted}>
         {account.handle && (
           <>
-            You are signed in as{" "}
-            <code className="font-mono text-[11.5px] font-[700]">@{account.handle}</code>.{" "}
+            <Rich code="font-mono text-[11.5px] font-[700]">{c.signedInAs(account.handle)}</Rich>{" "}
           </>
         )}
         {account.message}
@@ -353,7 +341,7 @@ function NotAdmitted({
       <div className="rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-4 py-3.5 shadow-[2px_2px_0_0_var(--color-nb-ink)]">
         <p className="flex items-center gap-2 text-[13px] font-[800] text-nb-ink">
           <FiKey size={14} aria-hidden />
-          Have an invitation code?
+          {c.haveCode}
         </p>
         <form
           className="mt-2.5 flex items-center gap-2.5"
@@ -370,15 +358,15 @@ function NotAdmitted({
             }}
             spellCheck={false}
             autoComplete="off"
-            aria-label="Invitation code"
+            aria-label={c.codeLabel}
             aria-invalid={refusal ? true : undefined}
-            placeholder="AK4B-7QF2-M3XD"
+            placeholder={c.codeExample}
             className={`h-9 min-w-0 flex-1 rounded-[9px] border-[1.5px] bg-nb-paper px-3 font-mono text-[13px] font-[700] tracking-[0.06em] text-nb-ink outline-none placeholder:font-[500] placeholder:tracking-normal placeholder:text-nb-ink-soft/50 ${
               refusal ? "border-nb-peach-ink" : "border-nb-ink"
             }`}
           />
           <Button size="sm" type="submit" disabled={held || !code.trim()}>
-            {working === "redeem" ? "Redeeming…" : "Redeem"}
+            {working === "redeem" ? c.redeeming : c.redeem}
           </Button>
         </form>
         {refusal ? (
@@ -390,28 +378,24 @@ function NotAdmitted({
             <span className="text-[11.5px] leading-[16px] text-nb-ink">{refusal}</span>
           </div>
         ) : (
-          <p className="mt-2 text-[11.5px] leading-[16px] text-nb-ink-soft">
-            One code admits one account, and admits it for good.
-          </p>
+          <p className="mt-2 text-[11.5px] leading-[16px] text-nb-ink-soft">{c.oneCode}</p>
         )}
       </div>
 
       <div className="flex items-center gap-4 border-t border-nb-ink/12 pt-3.5">
         <div className="min-w-0 flex-1">
-          <p className="text-[12.5px] font-[800] text-nb-ink">No code yet?</p>
-          <p className="mt-[3px] text-[11.5px] leading-[16px] text-nb-ink-soft">
-            We read every request by hand and email a code. No date is promised.
-          </p>
+          <p className="text-[12.5px] font-[800] text-nb-ink">{c.noCode}</p>
+          <p className="mt-[3px] text-[11.5px] leading-[16px] text-nb-ink-soft">{c.noCodeBody}</p>
         </div>
         {account.inviteRequestedAt ? (
           <span className="flex h-[34px] shrink-0 items-center gap-2 rounded-[9px] bg-nb-mint-soft px-3 text-[12px] font-[700] text-nb-mint-ink">
             <FiCheck size={12} aria-hidden />
-            Asked {asked(account.inviteRequestedAt)} — we’ll email
+            {c.asked(asked(account.inviteRequestedAt, c.askedUndated))}
           </span>
         ) : (
           <Button size="sm" variant="ghost" disabled={held} onClick={() => void request()}>
             <FiMail size={13} aria-hidden />
-            {working === "request" ? "Asking…" : "Request an invite"}
+            {working === "request" ? c.asking : c.requestInvite}
           </Button>
         )}
       </div>
@@ -427,27 +411,25 @@ function NotAdmitted({
 }
 
 /** When the request went in, in the shortest form that still says which day. */
-function asked(at: string): string {
+function asked(at: string, undated: string): string {
   const when = new Date(at);
-  if (Number.isNaN(when.getTime())) return "already";
+  if (Number.isNaN(when.getTime())) return undated;
   return when.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 /** What Cloud is for, and what it never receives. Said here because in 0.8.0 this pane is
  *  the only place Cloud is ever offered; #317 extends it to onboarding. */
 function Boundary() {
+  const c = useCopy().configuration.cloud;
   return (
     <div className="rounded-[10px] border border-nb-ink/12 px-4 py-3.5">
-      <p className="max-w-[62ch] text-[12.5px] leading-relaxed text-nb-ink-soft">
-        Cloud relays this board’s questions and review requests, and the decisions made on them.
-        It never receives your repository, never runs an agent, and never reads a card the board
-        has not published.
-      </p>
+      <p className="max-w-[62ch] text-[12.5px] leading-relaxed text-nb-ink-soft">{c.boundary}</p>
       <p className="mt-2 text-[12px] leading-relaxed text-nb-ink-soft">
-        Signing in confirms you have read the{" "}
-        <Link href={PRIVACY_URL}>Privacy Policy</Link> and the <Link href={TERMS_URL}>Terms of
-        Service</Link>. GitHub is asked for your name, your handle and your verified email
-        address, and nothing else — no repository access.
+        {c.terms}{" "}
+        <Link href={PRIVACY_URL}>{c.privacyLink}</Link>
+        {c.termsAnd}
+        <Link href={TERMS_URL}>{c.termsLink}</Link>
+        {c.termsEnd}
       </p>
     </div>
   );
@@ -494,7 +476,7 @@ function Fact({ icon, children }: { icon: React.ReactNode; children: React.React
   return (
     <span className="flex items-start gap-2.5">
       <span className="mt-[2px] shrink-0">{icon}</span>
-      <span className="text-[12.5px] leading-[18px] text-nb-ink">{children}</span>
+      <span className="text-[12.5px] leading-[18px] text-nb-ink [&_strong]:font-[800]">{children}</span>
     </span>
   );
 }

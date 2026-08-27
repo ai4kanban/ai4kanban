@@ -10,6 +10,7 @@
 // A job that took one session is still a flow — a flow of one, drawn as the single row it
 // always was.
 
+import type { RunsCopy } from "@/i18n/runs/types";
 import type { AgentAction, SessionView } from "./types";
 
 export interface RunFlow {
@@ -53,28 +54,22 @@ export function runFlows(sessions: SessionView[]): RunFlow[] {
   return flows.sort((a, b) => b.latest.startedAt - a.latest.startedAt);
 }
 
+/** The words the two labels below are said in — `runs` out of the copy module. */
+export type RunLabels = Pick<RunsCopy, "step" | "flow">;
+
 /** The flow one session belongs to. */
 export function flowOf(flows: RunFlow[], sessionId: string | null): RunFlow | null {
   if (!sessionId) return null;
   return flows.find((f) => f.sessions.some((s) => s.sessionId === sessionId)) ?? null;
 }
 
-// The actions the board keeps under a different name from the command a person types. Only
-// the ones that differ are here; everything else reads the same either way.
-const COMMAND_NAME: Partial<Record<AgentAction, string>> = {
-  edit: "Revise",
-  clarify: "Refine",
-  writing: "Refine",
-};
-
-/** An action as a person reads it: "plan-release" → "Plan release". A session of a job is
- *  named by its action, so a step reads the same as a standalone run of it. */
-export function stepLabel(action: AgentAction): string {
-  const words = action.replace(/-/g, " ");
-  return words.charAt(0).toUpperCase() + words.slice(1);
+/** An action as a person reads it. A session of a job is named by its action, so a step
+ *  reads the same as a standalone run of it. */
+export function stepLabel(action: AgentAction, copy: RunLabels): string {
+  return copy.step[action];
 }
 
 /** The flow's own name — the command a user would have typed for it, which is the session
  *  it opened with. What came after is what the job went on to do, not what it is. */
-export const flowLabel = (flow: RunFlow): string =>
-  COMMAND_NAME[flow.root.action] ?? stepLabel(flow.root.action);
+export const flowLabel = (flow: RunFlow, copy: RunLabels): string =>
+  copy.flow[flow.root.action] ?? copy.step[flow.root.action];

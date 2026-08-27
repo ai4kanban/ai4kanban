@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { getModules } from "@/app/actions";
+import { useCopy } from "@/i18n/use-copy";
 import type { SessionView } from "@/lib/types";
 import { ActionDialog, type AgentReq } from "./agent-shared";
 import { Button } from "./button";
@@ -27,6 +28,7 @@ import { sessionsPanel, useAgentSessions } from "./sessions";
 // vanish the moment it is written. Propose is different — it offers work nobody
 // has planned — so its cards start with no release and this never reaches them.
 export function CreateTask({ release = null }: { release?: string | null }) {
+  const c = useCopy().board.create;
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,14 +73,14 @@ export function CreateTask({ release = null }: { release?: string | null }) {
       setOpen(false);
       const res = await start(req, label);
       if (!res.ok) {
-        setError(res.error || "could not start the agent");
+        setError(res.error || c.startFailed);
         return;
       }
       // Pop the sessions panel open on the new session so it's visibly working
       // from the first frame — it tails live there until the agent finishes.
       if (res.sessionId) sessionsPanel.open(res.sessionId);
     },
-    [start],
+    [start, c],
   );
 
   return (
@@ -88,7 +90,7 @@ export function CreateTask({ release = null }: { release?: string | null }) {
         // label — a plus in the same square frame, still the same target.
         size="xs"
         className="shrink-0 max-sm:w-7 max-sm:px-0"
-        aria-label="Create task"
+        aria-label={c.button}
         disabled={creating}
         onClick={() => {
           setError(null);
@@ -96,7 +98,7 @@ export function CreateTask({ release = null }: { release?: string | null }) {
         }}
       >
         <FiPlus className="text-[15px]" aria-hidden />
-        <span className="sr-only sm:not-sr-only">Create task</span>
+        <span className="sr-only sm:not-sr-only">{c.button}</span>
       </Button>
 
       {error && (

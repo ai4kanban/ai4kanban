@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { copy } from "@/i18n";
 import { repoRoot } from "./paths";
 import type {
   AgentInfo,
@@ -252,7 +253,7 @@ export class NoRulesError extends Error {
     // The rules are the installed command's own copy (#213), so the fix is putting the
     // command on the PATH — not `skill install`, which writes the agent's note and carries
     // no rules with it, and not `update`, which refreshes a board that is already here.
-    super(`${what} Run \`npm install -g ai4kanban\` to install one.`);
+    super(`${what} ${copy.messages.rules.installIt}`);
     this.name = "NoRulesError";
   }
 }
@@ -317,7 +318,9 @@ export function boardRules(): Promise<BoardRules> {
   if (!found) {
     return Promise.reject(
       new NoRulesError(
-        `This board has no copy of the board's rules to read it with — there is no \`akb\` on the PATH${looked.length ? `, and nothing at ${looked.join(", ")}` : ""}.`,
+        looked.length
+          ? copy.messages.rules.noneLookedIn(looked.join(", "))
+          : copy.messages.rules.none,
       ),
     );
   }
@@ -325,7 +328,7 @@ export function boardRules(): Promise<BoardRules> {
     (mod: Partial<BoardRules>) => {
       const missing = REQUIRED.filter((name) => typeof mod[name] !== "function");
       if (missing.length > 0) {
-        throw new NoRulesError(`The board's rules at ${found} are too old for this board.`);
+        throw new NoRulesError(copy.messages.rules.tooOld(found));
       }
       // Every command points the rules at one board before it runs; here it is one board
       // for the life of the server, so it is set once.

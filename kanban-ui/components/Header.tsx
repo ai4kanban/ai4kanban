@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { copy } from "@/i18n";
 import type { ReleasePick } from "@/lib/release-pick";
 import type { AgentInfo } from "@/lib/types";
 import { ChatButton } from "./Chat";
@@ -146,7 +147,12 @@ export function Header({
         {/* The mark is the way to the board on a window too narrow for the rail;
             where the rail is up, All cards is the row that leads here and this
             is simply which product you are in. */}
-        <Link href="/" title="All cards" aria-label="All cards" className="a4k-nodrag">
+        <Link
+          href="/"
+          title={copy.chrome.header.home}
+          aria-label={copy.chrome.header.home}
+          className="a4k-nodrag"
+        >
           <LogoMark />
         </Link>
         <ProjectPath projectRoot={projectRoot} desktop={desktop} />

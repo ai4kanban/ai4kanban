@@ -50,6 +50,8 @@
 import { useEffect, useState } from "react";
 import { FiCheckCircle, FiCompass, FiMoreHorizontal, FiTag, FiTarget, FiTrash2 } from "react-icons/fi";
 import { closePlanAction, dropPlanAction, fillPlanAction } from "@/app/actions";
+import { Rich } from "@/i18n/rich";
+import { useCopy } from "@/i18n/use-copy";
 import { NO_RELEASE, type ClosePlan, type DropPlan, type FillPlan } from "@/lib/types";
 import type { ReleasePick } from "@/lib/release-pick";
 import { Button } from "./button";
@@ -122,6 +124,7 @@ export function ReleasePicker({
   /** Change what a release is for (#164). An empty goal clears it. */
   onSetGoal: (id: string, goal: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
+  const c = useCopy().board.release;
   const [making, setMaking] = useState(false);
   // The release a confirm dialog is about — pinned when Drop or Close is picked,
   // so a board that switches under the open dialog can't move the verb onto
@@ -171,8 +174,8 @@ export function ReleasePicker({
               which release is filtering is the one thing the control has to
               say. */}
           <SelectTrigger
-            aria-label="Which release to show"
-            title="Show one release at a time, or the cards in none — blockers always stay on screen"
+            aria-label={c.which}
+            title={c.whichHint}
             className={`h-full w-auto gap-1.5 rounded-[6px] border-0 bg-transparent px-1.5 py-0 text-[12px] font-[700] leading-none text-inherit shadow-none [&>span]:max-w-[104px] sm:[&>span]:max-w-[168px] ${SEGMENT_WASH} ${
               filtering ? "" : "max-sm:[&>span]:sr-only"
             }`}
@@ -189,11 +192,11 @@ export function ReleasePicker({
               value={NONE}
               hint={
                 <span className="max-w-[240px] text-[11.5px] font-[500] leading-snug text-nb-ink-soft">
-                  Not promised to a version yet
+                  {c.noneHint}
                 </span>
               }
             >
-              No release ({counts[NO_RELEASE] ?? 0})
+              {c.none(counts[NO_RELEASE] ?? 0)}
             </SelectItem>
             {/* What the version is for, under its id — the one place the list
                 says why these releases exist. Two lines at most: the whole goal
@@ -220,7 +223,7 @@ export function ReleasePicker({
                 is the only place the feature can teach itself. The verbs that
                 end a version get no such pass — they live in the ⋯ segment. */}
             <SelectSeparator />
-            <SelectItem value={NEW}>New release…</SelectItem>
+            <SelectItem value={NEW}>{c.new}</SelectItem>
           </SelectContent>
         </Select>
         {/* The verbs that end the version on screen — only there, since they
@@ -240,8 +243,8 @@ export function ReleasePicker({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  aria-label={`What to do with ${value}`}
-                  title={`What to do with ${value}`}
+                  aria-label={c.menu(value)}
+                  title={c.menu(value)}
                   className={`inline-flex h-full cursor-pointer items-center rounded-[6px] px-1 text-inherit ${SEGMENT_WASH}`}
                 >
                   <FiMoreHorizontal aria-hidden style={{ width: 14, height: 14, flex: "0 0 auto" }} />
@@ -255,7 +258,7 @@ export function ReleasePicker({
                     version. */}
                 <DropdownMenuItem className="gap-2" onSelect={() => setGoalOf(value)}>
                   <FiCompass aria-hidden className="size-[1em] shrink-0" />
-                  What it is for
+                  {c.whatItIsFor}
                 </DropdownMenuItem>
                 {/* Filling sits right under the goal it plans against, and only
                     while there is one: a version that says nothing about itself
@@ -264,16 +267,16 @@ export function ReleasePicker({
                 {goals[value] && (
                   <DropdownMenuItem className="gap-2" onSelect={() => setPlanning(value)}>
                     <FiTarget aria-hidden className="size-[1em] shrink-0" />
-                    Fill from its goal
+                    {c.fillFromGoal}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem className="gap-2" onSelect={() => setClosing(value)}>
                   <FiCheckCircle aria-hidden className="size-[1em] shrink-0" />
-                  Close release
+                  {c.close}
                 </DropdownMenuItem>
                 <DropdownMenuItem className="gap-2" onSelect={() => setDropping(value)}>
                   <FiTrash2 aria-hidden className="size-[1em] shrink-0" />
-                  Drop release
+                  {c.drop}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -331,6 +334,8 @@ function ReleaseGoalDialog({
   onSave: (id: string, goal: string) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }) {
+  const t = useCopy();
+  const c = t.board.release.goal;
   const [text, setText] = useState(goal);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -344,21 +349,19 @@ function ReleaseGoalDialog({
       return;
     }
     setSaving(false);
-    setError(res.error || "could not save the goal");
+    setError(res.error || c.saveFailed);
   };
 
   return (
-    <Dialog title={`What ${id} is for`} width={440} onClose={onClose}>
+    <Dialog title={c.title(id)} width={440} onClose={onClose}>
       <p className="mb-3 text-[13px] leading-relaxed text-nb-ink-soft">
-        A sentence or two, in your own words — what this version is trying to ship. It sits on the
-        release&apos;s line in <code>docs/kanban/releases.md</code>, and it is what filling the
-        release plans against. Empty is fine.
+        <Rich>{c.blurb}</Rich>
       </p>
       <textarea
         value={text}
         rows={4}
         autoFocus
-        placeholder="The first version worth showing someone: a board you can run end to end."
+        placeholder={c.placeholder}
         disabled={saving}
         onChange={(e) => setText(e.target.value)}
         className={GOAL_INPUT}
@@ -373,10 +376,10 @@ function ReleaseGoalDialog({
       )}
       <div className="mt-4 flex justify-end gap-2.5">
         <Button size="sm" variant="ghost" disabled={saving} onClick={onClose}>
-          Cancel
+          {t.shared.cancel}
         </Button>
         <Button size="sm" disabled={saving} onClick={save}>
-          {saving ? "Saving…" : "Save"}
+          {saving ? t.shared.saving : t.shared.save}
         </Button>
       </div>
     </Dialog>
@@ -404,6 +407,8 @@ function PlanReleaseDialog({
   onPlan: (id: string) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }) {
+  const t = useCopy();
+  const c = t.board.release.plan;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -416,25 +421,20 @@ function PlanReleaseDialog({
       return;
     }
     setBusy(false);
-    setError(res.error || "could not start the run");
+    setError(res.error || c.startFailed);
   };
 
   return (
-    <Dialog title={`Fill ${id} from its goal`} width={440} onClose={onClose}>
+    <Dialog title={c.title(id)} width={440} onClose={onClose}>
       <p className="mb-3 text-[13px] leading-relaxed text-nb-ink-soft">
-        The agent reads what <strong>{id}</strong> is for, moves the open cards that ship it into the
-        release, and writes the cards the goal needs that the board hasn&apos;t got. It decides on
-        its own — nothing waits on you.
+        <Rich>{c.blurb(id)}</Rich>
       </p>
       {/* The goal itself, whole: it is what the run plans against, and this is
           the last moment to notice it says the wrong thing. */}
       <div className="nb-panel-sm p-2.5 text-[13px] leading-relaxed" style={{ background: "var(--color-nb-sky-soft)" }}>
         {goal}
       </div>
-      <p className="mt-3 text-[13px] leading-relaxed text-nb-ink-soft">
-        It runs in the background — watch it, and read what it moved and wrote, in the runs panel. A
-        card already in another release stays there, so filling again only ever adds.
-      </p>
+      <p className="mt-3 text-[13px] leading-relaxed text-nb-ink-soft">{c.background}</p>
       {error && (
         <div
           className="nb-panel-sm mt-3 break-words p-2.5 text-[12px] leading-relaxed"
@@ -445,10 +445,10 @@ function PlanReleaseDialog({
       )}
       <div className="mt-4 flex justify-end gap-2.5">
         <Button size="sm" variant="ghost" disabled={busy} onClick={onClose}>
-          Cancel
+          {t.shared.cancel}
         </Button>
         <Button size="sm" disabled={busy} onClick={start}>
-          {busy ? "Starting…" : "Fill release"}
+          {busy ? c.starting : c.start}
         </Button>
       </div>
     </Dialog>
@@ -473,6 +473,8 @@ function CloseReleaseDialog({
   onCloseRelease: (id: string) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }) {
+  const t = useCopy();
+  const c = t.board.release.closing;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // What the close would record and move, read from the server as it opens. Null
@@ -501,24 +503,23 @@ function CloseReleaseDialog({
       return;
     }
     setBusy(false);
-    setError(res.error || "could not close the release");
+    setError(res.error || c.failed);
   };
 
   return (
-    <Dialog title={`Close ${id}`} width={440} onClose={onClose}>
+    <Dialog title={c.title(id)} width={440} onClose={onClose}>
       <p className="mb-3 text-[13px] leading-relaxed text-nb-ink-soft">
-        <strong>{id}</strong> shipped. What it shipped is written down in its summary file, and it
-        comes off the list for good — a closed release can&apos;t be reopened.
+        <Rich>{c.blurb(id)}</Rich>
       </p>
       <div className="text-[13px] leading-relaxed">
-        {!plan && <p className="text-nb-ink-soft">Reading what this close records…</p>}
+        {!plan && <p className="text-nb-ink-soft">{c.reading}</p>}
         {plan && (
           <p>
             {plan.shipped === 0
-              ? "No card was archived under it — the summary will say nothing shipped."
+              ? c.shippedNone
               : plan.shipped === 1
-                ? "1 archived card goes down as shipped."
-                : `${plan.shipped} archived cards go down as shipped.`}
+                ? c.shippedOne
+                : c.shippedMany(plan.shipped)}
           </p>
         )}
         {/* What comes after the close, said before it (#232): an agent turns the shipped
@@ -526,9 +527,7 @@ function CloseReleaseDialog({
             nothing has nothing to write from, so it gets none and this says so. */}
         {plan && (
           <p className="mt-2 text-nb-ink-soft">
-            {plan.shipped === 0
-              ? "No changelog is written — there is nothing to write it from."
-              : "An agent then writes a short changelog at the top of the summary, saying what the version changed. It runs in the background; watch it in the runs panel."}
+            {plan.shipped === 0 ? c.changelogNone : c.changelog}
           </p>
         )}
         {/* The cards that look finished but were never archived, first and on
@@ -540,11 +539,7 @@ function CloseReleaseDialog({
             style={{ background: "var(--color-nb-peach-soft)" }}
           >
             <p>
-              {unarchived.length === 1
-                ? "This open card has every todo ticked but was never archived, so it counts as not shipped."
-                : `These ${unarchived.length} open cards have every todo ticked but were never archived, so they count as not shipped.`}{" "}
-              Cancel and archive {unarchived.length === 1 ? "it" : "them"} first if{" "}
-              {unarchived.length === 1 ? "it" : "they"} really shipped.
+              {unarchived.length === 1 ? c.unarchivedOne : c.unarchivedMany(unarchived.length)}
             </p>
             <ul className="mt-1.5 max-h-[120px] overflow-y-auto">
               {unarchived.map((c) => (
@@ -555,16 +550,11 @@ function CloseReleaseDialog({
             </ul>
           </div>
         )}
-        {plan && plan.left.length === 0 && (
-          <p className="mt-2">No open cards are in it — nothing moves.</p>
-        )}
+        {plan && plan.left.length === 0 && <p className="mt-2">{c.leftNone}</p>}
         {plan && plan.left.length > 0 && (
           <>
             <p className="mt-2">
-              {plan.left.length === 1
-                ? "This open card loses its release"
-                : `These ${plan.left.length} open cards lose their release`}{" "}
-              — still wanted, no longer promised to a version:
+              {plan.left.length === 1 ? c.leftOne : c.leftMany(plan.left.length)}
             </p>
             {/* The list scrolls in its own box rather than growing the dialog,
                 like the drop's: a release with fifty cards in it would otherwise
@@ -589,10 +579,10 @@ function CloseReleaseDialog({
       )}
       <div className="mt-4 flex justify-end gap-2.5">
         <Button size="sm" variant="ghost" disabled={busy} onClick={onClose}>
-          Cancel
+          {t.shared.cancel}
         </Button>
         <Button size="sm" disabled={busy || !plan} onClick={close}>
-          {busy ? "Closing…" : "Close release"}
+          {busy ? c.closing : c.confirm}
         </Button>
       </div>
     </Dialog>
@@ -612,6 +602,8 @@ function DropReleaseDialog({
   onDrop: (id: string) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }) {
+  const t = useCopy();
+  const c = t.board.release.dropping;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // The archived cards that stay put and the open cards the drop sends back.
@@ -638,25 +630,23 @@ function DropReleaseDialog({
       return;
     }
     setBusy(false);
-    setError(res.error || "could not drop the release");
+    setError(res.error || c.failed);
   };
 
   return (
-    <Dialog title={`Drop ${id}`} width={440} onClose={onClose}>
+    <Dialog title={c.title(id)} width={440} onClose={onClose}>
       <p className="mb-3 text-[13px] leading-relaxed text-nb-ink-soft">
-        <strong>{id}</strong> will not ship. It comes off the list with no shipped record — its
-        open cards return to no release, and no summary file is written. Cards already archived
-        under it stay archived.
+        <Rich>{c.blurb(id)}</Rich>
       </p>
       <div className="text-[13px] leading-relaxed">
-        {!plan && <p className="text-nb-ink-soft">Reading what this drop moves…</p>}
-        {plan && plan.archived.length === 0 && <p>No card was archived under it.</p>}
+        {!plan && <p className="text-nb-ink-soft">{c.reading}</p>}
+        {plan && plan.archived.length === 0 && <p>{c.archivedNone}</p>}
         {plan && plan.archived.length > 0 && (
           <>
             <p>
               {plan.archived.length === 1
-                ? "This archived card stays archived under it:"
-                : `These ${plan.archived.length} archived cards stay archived under it:`}
+                ? c.archivedOne
+                : c.archivedMany(plan.archived.length)}
             </p>
             <ul className="mt-1.5 max-h-[100px] overflow-y-auto text-nb-ink-soft">
               {plan.archived.map((c) => (
@@ -667,16 +657,11 @@ function DropReleaseDialog({
             </ul>
           </>
         )}
-        {plan && plan.left.length === 0 && (
-          <p className="mt-2">No open cards are in it — nothing returns to no release.</p>
-        )}
+        {plan && plan.left.length === 0 && <p className="mt-2">{c.leftNone}</p>}
         {plan && plan.left.length > 0 && (
           <>
             <p className="mt-2">
-              {plan.left.length === 1
-                ? "This open card loses its release"
-                : `These ${plan.left.length} open cards lose their release`}{" "}
-              — still wanted, no longer promised to a version:
+              {plan.left.length === 1 ? c.leftOne : c.leftMany(plan.left.length)}
             </p>
             {/* The list scrolls in its own box rather than growing the dialog:
                 a release with fifty cards in it would otherwise push Cancel and
@@ -702,10 +687,10 @@ function DropReleaseDialog({
       )}
       <div className="mt-4 flex justify-end gap-2.5">
         <Button size="sm" variant="ghost" disabled={busy} onClick={onClose}>
-          Cancel
+          {t.shared.cancel}
         </Button>
         <Button size="sm" disabled={busy || !plan} onClick={drop}>
-          {busy ? "Dropping…" : "Drop release"}
+          {busy ? c.dropping : c.confirm}
         </Button>
       </div>
     </Dialog>
@@ -737,12 +722,9 @@ function DropReleaseDialog({
 // that decided what it meant, so the switch and the box were one choice asked
 // twice, and a user who typed a goal and left the switch alone could not tell
 // which of the two had the last word. The tab says it once.
-const TABS = [
-  { key: "goal", label: "From a goal" },
-  { key: "plain", label: "No goal" },
-] as const;
+const TABS = ["goal", "plain"] as const;
 
-type NewReleaseMode = (typeof TABS)[number]["key"];
+type NewReleaseMode = (typeof TABS)[number];
 
 function NewReleaseDialog({
   onCreate,
@@ -754,6 +736,8 @@ function NewReleaseDialog({
   // A version made against a goal is the one worth teaching, so it is the tab
   // the dialog opens on. Nothing is lost by it: the other tab is one click away
   // and asks for less.
+  const t = useCopy();
+  const c = t.board.release.make;
   const [mode, setMode] = useState<NewReleaseMode>("goal");
   const [id, setId] = useState("");
   const [goal, setGoal] = useState("");
@@ -794,30 +778,30 @@ function NewReleaseDialog({
       return;
     }
     setSaving(false);
-    setError(res.error || "could not make the release");
+    setError(res.error || c.failed);
   };
 
   return (
-    <Dialog title="New release" width={440} onClose={onClose}>
+    <Dialog title={c.title} width={440} onClose={onClose}>
       {/* The kind strip — design.md's tab-strip pattern, the same one the Create
           task dialog wears: hairline under both tabs, bold ink on the active one
           over a short ember underline that laps the hairline. */}
       <div className="mb-4 flex gap-5 border-b border-nb-ink/12" role="tablist">
-        {TABS.map((t) => {
-          const active = mode === t.key;
+        {TABS.map((tab) => {
+          const active = mode === tab;
           return (
             <button
-              key={t.key}
+              key={tab}
               type="button"
               role="tab"
               aria-selected={active}
               disabled={saving}
-              onClick={() => setMode(t.key)}
+              onClick={() => setMode(tab)}
               className={`relative cursor-pointer pb-2 text-[13.5px] tracking-[-0.01em] transition-colors ${
                 active ? "font-[800] text-nb-ink" : "font-[600] text-nb-ink-soft hover:text-nb-ink"
               }`}
             >
-              {t.label}
+              {tab === "goal" ? c.fromGoal : c.noGoal}
               {active && (
                 <span
                   className="absolute inset-x-0 bottom-[-1px] h-[2px] rounded-full bg-nb-accent"
@@ -829,14 +813,12 @@ function NewReleaseDialog({
         })}
       </div>
       <p className="mb-3 text-[13px] leading-relaxed text-nb-ink-soft">
-        A version id, in your own words — <code>v1</code>, <code>0.5.0</code>, <code>august</code>. It
-        joins the end of the list in <code>docs/kanban/releases.md</code>, and the board switches to
-        it so what you write next lands in it.
+        <Rich>{c.blurb}</Rich>
       </p>
       <input
         type="text"
         value={id}
-        placeholder="v1"
+        placeholder={c.idPlaceholder}
         spellCheck={false}
         autoComplete="off"
         autoFocus
@@ -852,22 +834,17 @@ function NewReleaseDialog({
           where Enter still submits. */}
       {planned && (
         <>
-          <p className="mb-1.5 mt-3 text-[13px] leading-relaxed text-nb-ink-soft">
-            What is this version for? A sentence or two, in your own words — the agent plans the
-            release against them.
-          </p>
+          <p className="mb-1.5 mt-3 text-[13px] leading-relaxed text-nb-ink-soft">{c.goalAsk}</p>
           <textarea
             value={goal}
             rows={3}
-            placeholder="The first version worth showing someone: a board you can run end to end."
+            placeholder={c.goalPlaceholder}
             disabled={saving}
             onChange={(e) => setGoal(e.target.value)}
             className={GOAL_INPUT}
           />
           <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-            {ready
-              ? "The agent moves in the open cards that ship the goal and writes the ones the board hasn't got. The release is made at once; the run carries on behind it, in the runs panel."
-              : "Say what the version is for, or make it on the No goal tab — there is nothing to plan a release against until this box says something."}
+            {ready ? c.goalReady : c.goalMissing}
           </p>
         </>
       )}
@@ -882,10 +859,10 @@ function NewReleaseDialog({
       )}
       <div className="mt-4 flex justify-end gap-2.5">
         <Button size="sm" variant="ghost" disabled={saving} onClick={onClose}>
-          Cancel
+          {t.shared.cancel}
         </Button>
         <Button size="sm" disabled={saving || !ready} onClick={create}>
-          {saving ? "Making…" : "Make release"}
+          {saving ? c.making : c.confirm}
         </Button>
       </div>
     </Dialog>
@@ -917,13 +894,11 @@ function FillToggle({
   disabled: boolean;
   onFlip: () => void;
 }) {
+  const t = useCopy();
+  const c = t.board.release.autoFill;
   const movable = plan ? plan.fill.length : 0;
   const active = movable > 0;
-  const line = !plan
-    ? "Reading the unplanned high-priority cards…"
-    : active
-      ? "Put every unplanned high-priority card in"
-      : "No unplanned card is high priority — the release starts empty";
+  const line = !plan ? c.reading : active ? c.on : c.nothingToMove;
   return (
     <div className="mt-3">
       <div className="flex items-center justify-between gap-4">
@@ -953,10 +928,10 @@ function FillToggle({
           never a surprise, without naming any of them. */}
       {plan && (plan.fill.length > 0 || plan.skipped.length > 0) && (
         <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-          {plan.fill.length === 1 ? "1 card goes in" : `${plan.fill.length} cards go in`}
+          {plan.fill.length === 1 ? c.goesInOne : c.goesInMany(plan.fill.length)}
           {plan.skipped.length > 0 &&
-            ` — ${plan.skipped.length} more stay${plan.skipped.length === 1 ? "s" : ""} unplanned, blocked or a group root`}
-          .
+            (plan.skipped.length === 1 ? c.skippedOne : c.skippedMany(plan.skipped.length))}
+          {t.shared.stop}
         </p>
       )}
     </div>

@@ -12,6 +12,8 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { createPortal } from "react-dom";
 import { FiActivity, FiX } from "react-icons/fi";
 import { getSessionAction, listSessionsAction, startAgentAction } from "@/app/actions";
+import type { RunsCopy } from "@/i18n/runs/types";
+import { useCopy } from "@/i18n/use-copy";
 import { flowLabel, flowOf, runFlows, stepLabel, type RunFlow } from "@/lib/run-flows";
 import type { SessionView } from "@/lib/types";
 import { type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
@@ -262,14 +264,14 @@ function usePanelState(): PanelState {
 // A relative "2m ago" for the run list; an absolute stamp for the detail
 // header. Both read the clock at render — fine, the poll re-renders while
 // runs are live.
-function relTime(ts: number): string {
+function relTime(ts: number, c: RunsCopy["panel"]): string {
   const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
-  if (s < 45) return "just now";
+  if (s < 45) return c.justNow;
   const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return c.minutesAgo(m);
   const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.round(h / 24)}d ago`;
+  if (h < 24) return c.hoursAgo(h);
+  return c.daysAgo(Math.round(h / 24));
 }
 function fullTime(ts: number): string {
   return new Date(ts).toLocaleString(undefined, {
@@ -309,6 +311,8 @@ function SessionDot({ session }: { session: SessionView }) {
 // to hide them — the sessions are the only place to reach one, and there is nothing to save
 // by folding two or three lines away.
 function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | null }) {
+  const t = useCopy();
+  const c = t.runs.panel;
   const steps = flow.sessions.length > 1 ? flow.sessions : [];
   const holds = flow.sessions.some((s) => s.sessionId === selectedId);
   // The row stands for the job, so it selects the session the job is ON: the live one, or
@@ -328,21 +332,21 @@ function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | nul
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline gap-1.5">
             <span className={`text-[12.5px] font-[700] ${holds ? "text-nb-ink" : "text-nb-ink-soft"}`}>
-              {flowLabel(flow)}
+              {flowLabel(flow, t.runs)}
             </span>
             <span className="text-[11px] text-nb-ink-soft">
-              {flow.cardId !== null ? `#${flow.cardId}` : "—"}
+              {flow.cardId !== null ? `#${flow.cardId}` : t.shared.none}
             </span>
             {/* A cancelled delivery, said on the row itself: its run reads
                 "stopped", which describes the run and not what happened to the
                 job it was part of. */}
             {head.delivery?.status === "cancelled" && (
-              <span className="text-[10.5px] text-nb-ink-soft">cancelled</span>
+              <span className="text-[10.5px] text-nb-ink-soft">{c.cancelled}</span>
             )}
           </span>
           <span className="block truncate text-[10.5px] text-nb-ink-soft">
-            {steps.length > 0 && `${steps.length} sessions · `}
-            {relTime(flow.startedAt)}
+            {steps.length > 0 && `${c.steps(steps.length)} · `}
+            {relTime(flow.startedAt, c)}
           </span>
         </span>
       </button>
@@ -373,7 +377,7 @@ function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | nul
                   <SessionDot session={s} />
                 </span>
                 <span className={`text-[11.5px] ${active ? "font-[700] text-nb-ink" : "text-nb-ink-soft"}`}>
-                  {stepLabel(s.action)}
+                  {stepLabel(s.action, t.runs)}
                 </span>
                 {/* A job can range over several cards — a create writes three and refines
                     each. The step says which one, when it isn't the job's own. */}
@@ -410,6 +414,7 @@ function FlowEnding({ flow, selectedId }: { flow: RunFlow; selectedId: string | 
 // action, newest first — the one place to browse across runs (a per-card
 // page still shows only its own most recent run; see redesign.md).
 export function Sessions() {
+  const c = useCopy().runs.panel;
   // Poll the shared registry for the picture every tab sees. This instance never
   // starts a run, so its onFinish never fires — pass a no-op.
   const { sessions, kick } = useAgentSessions(() => {});
@@ -421,8 +426,8 @@ export function Sessions() {
       <button
         type="button"
         onClick={() => sessionsPanel.toggle()}
-        title={runningCount > 0 ? `${runningCount} running — run history` : "Run history"}
-        aria-label="Run history"
+        title={runningCount > 0 ? c.openRunning(runningCount) : c.open}
+        aria-label={c.open}
         // The middle tool in the header's cluster (components/chrome.tsx): no
         // frame of its own, a hairline on each side of it.
         className={TOOL_BTN}
@@ -467,6 +472,8 @@ function SessionsDialog({
   // the poll wakes at once and the new run joins the list without a wait.
   onStarted: () => void;
 }) {
+  const t = useCopy();
+  const c = t.runs.panel;
   const panel = usePanelState();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -508,10 +515,10 @@ function SessionsDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between border-b-[1.5px] border-nb-ink px-5 py-3">
-          <h2 className="text-[15px] font-[800] tracking-[-0.02em]">Runs</h2>
+          <h2 className="text-[15px] font-[800] tracking-[-0.02em]">{c.heading}</h2>
           <button
             onClick={() => sessionsPanel.close()}
-            aria-label="Close"
+            aria-label={t.shared.close}
             className="-mr-1 grid h-7 w-7 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90 active:bg-nb-ink/10"
           >
             <FiX className="h-[18px] w-[18px]" />
@@ -526,7 +533,7 @@ function SessionsDialog({
               rule: 1.5px ink borders stay reserved for structural frames. */}
           <div className="w-[240px] shrink-0 overflow-y-auto border-r border-nb-ink/10 bg-nb-cream/70">
             {flows.length === 0 ? (
-              <p className="p-4 text-[12.5px] text-nb-ink-soft">No runs yet.</p>
+              <p className="p-4 text-[12.5px] text-nb-ink-soft">{c.empty}</p>
             ) : (
               flows.map((f) => (
                 <FlowRow key={f.id} flow={f} selectedId={selectedId} />
@@ -543,7 +550,7 @@ function SessionsDialog({
                       says nothing about the job it is a step of. Which step you are reading
                       is the timeline's word, on the left. */}
                   <span className="text-[14px] font-[800] tracking-[-0.02em]">
-                    {flow ? flowLabel(flow) : stepLabel(selected.action)}
+                    {flow ? flowLabel(flow, t.runs) : stepLabel(selected.action, t.runs)}
                   </span>
                   {/* The card this run worked on, as a link to it — the same
                       `#id` → `/id` jump the markdown bodies make, so an id reads
@@ -569,11 +576,11 @@ function SessionsDialog({
                   </span>
                   {/* A run started by Resume says so — otherwise it reads as a
                       second identical run of the same action out of nowhere. */}
-                  {selected.resumedFrom && <span className="nb-tag">resumed</span>}
+                  {selected.resumedFrom && <span className="nb-tag">{c.resumed}</span>}
                   {/* A cancelled delivery says so rather than the run's own "stopped":
                       the run ended because the job did. The delivery's id is internal
                       and says nothing to read, so it stays out of the header. */}
-                  {selected.delivery?.status === "cancelled" && <span className="nb-tag">cancelled</span>}
+                  {selected.delivery?.status === "cancelled" && <span className="nb-tag">{c.cancelled}</span>}
                   {/* Only a run that ended before finishing — failed,
                       interrupted or stopped — offers Resume, and the freshly
                       polled `log` wins over the list entry: the poll that drew
@@ -600,14 +607,14 @@ function SessionsDialog({
                     note, rather than a "no note" placeholder on every run. */}
                 {input && (
                   <div className="mb-3">
-                    <div className="nb-tag mb-1.5">note</div>
+                    <div className="nb-tag mb-1.5">{c.note}</div>
                     <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-nb-ink">{input}</p>
                   </div>
                 )}
                 <SessionLog session={log ?? selected} flush />
               </>
             ) : (
-              <p className="text-[13px] text-nb-ink-soft">Select a run to see its input and log.</p>
+              <p className="text-[13px] text-nb-ink-soft">{c.pick}</p>
             )}
           </div>
         </div>

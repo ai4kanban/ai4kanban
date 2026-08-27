@@ -17,6 +17,7 @@
 
 import { useState } from "react";
 import { FiTag, FiX } from "react-icons/fi";
+import { useCopy } from "@/i18n/use-copy";
 import { Button } from "./button";
 import {
   DropdownMenu,
@@ -47,6 +48,7 @@ export function BulkReleaseBar({
   onMove: (release: string) => Promise<void>;
   onClear: () => void;
 }) {
+  const c = useCopy().board.bulk;
   const [busy, setBusy] = useState(false);
 
   const move = async (release: string) => {
@@ -65,13 +67,13 @@ export function BulkReleaseBar({
     >
       <div className="flex flex-wrap items-center gap-2.5">
         <strong className="mr-auto">
-          {count === 1 ? "1 card ticked" : `${count} cards ticked`}
+          {count === 1 ? c.tickedOne : c.tickedMany(count)}
         </strong>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="sm" disabled={busy || count === 0}>
               <FiTag aria-hidden style={{ width: 13, height: 13, flex: "0 0 auto" }} />
-              {busy ? "Moving…" : "Move into…"}
+              {busy ? c.moving : c.move}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -84,12 +86,12 @@ export function BulkReleaseBar({
                 still gets this row, so a card the agent put in a release that
                 has since been hand-edited away can still be sent back out. */}
             {releases.length > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuItem onSelect={() => move("")}>No release</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => move("")}>{c.noRelease}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <Button size="sm" variant="ghost" disabled={busy} onClick={onClear}>
           <FiX aria-hidden style={{ width: 13, height: 13, flex: "0 0 auto" }} />
-          Untick all
+          {c.untickAll}
         </Button>
       </div>
 
@@ -106,9 +108,7 @@ export function BulkReleaseBar({
           ) : (
             <>
               <p>
-                {failed.length === 1
-                  ? "This card did not move — the rest went through:"
-                  : `These ${failed.length} cards did not move — the rest went through:`}
+                {failed.length === 1 ? c.failedOne : c.failedMany(failed.length)}
               </p>
               <ul className="mt-1 max-h-[140px] overflow-y-auto">
                 {failed.map((f) => (
