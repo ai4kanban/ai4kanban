@@ -107,7 +107,7 @@ export function frozenRules(req: AgentRequest): Record<string, string> | undefin
 // or a new one ships.
 //
 // It goes after everything else because it is a block and the rest is prose.
-const ROSTER_FOR = new Set(['edit'])
+const ROSTER_FOR = new Set(['raise-questions', 'resolve', 'edit'])
 
 const roster = (req: AgentRequest): string =>
   ROSTER_FOR.has(req.action) && req.id !== undefined ? specAgentRoster(req.id) : ''
@@ -142,7 +142,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     // scheduling state is one crash away from freezing the card.
     //
     // And nothing here about how a run goes. The card's `## Process` is the job, and the
-    // protocol around it — questions, the resolve pass, never archiving — is the same for
+    // protocol around it — questions and never archiving — is the same for
     // every recurring card, so it belongs in the guide, not in a prompt rebuilt every run.
     case 'run':
       return [
@@ -170,6 +170,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'edit':
       return [
         `${kb}. Revise task ${req.id} ${named}: "${req.notes || ''}" ${NO_IMPLEMENT}`,
+        `Apply the requested change following \`akb guide revise\`, then validate the updated plan following \`akb guide qa-loop\`.`,
         `You can create new subtasks if it's a group task and the intent is to do so.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
@@ -228,13 +229,11 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ].join(' ')
     case 'raise-questions':
       return [
-        `${kb}. Audit task ${req.id} ${named} for unresolved planning decisions following \`akb guide raise-questions\`.`,
-        `Append the gaps untagged. Do not resolve them or decide which belong to the user.`,
+        `${kb}. Finish the planning QA loop for task ${req.id} ${named} following \`akb guide qa-loop\`.`,
         // A refine has no note box of its own, but one SCHEDULED on a blocked card
         // carries whatever was typed when it was scheduled — often the very reason the user
         // wanted it to wait — so it has to reach the run when it finally fires.
         req.notes ? `Extra notes: ${req.notes}` : '',
-        NO_IMPLEMENT,
       ]
         .filter(Boolean)
         .join(' ')
@@ -315,18 +314,18 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ].join(' ')
     case 'resolve':
       return [
-        `${kb}. Resolve the open questions on task ${req.id} ${named} following \`akb guide resolve\`.`,
-        req.andImplement
-          ? `Then, if resolving settles every question and nothing genuine is left for me to decide, go straight on to implementing the task — one continuous run. But if any real judgment call stays open, stop there and report it: don't implement on a guess.`
-          : NO_IMPLEMENT,
+        `${kb}. Apply my answers to the open questions on task ${req.id} ${named} following \`akb guide resolve\`, then validate the updated plan following \`akb guide qa-loop\`.`,
         req.notes ? `Extra notes: ${req.notes}` : '',
-        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
+        req.andImplement
+          ? `Continue into implementation only if applying the answers leaves no open question.`
+          : '',
       ]
         .filter(Boolean)
         .join(' ')
     case 'writing':
       return [
-        `${kb}. Improve the writing of task ${req.id} ${named} according to \`akb guide board\`.`,
+        `${kb}. Improve the writing of task ${req.id} ${named} following \`akb guide writing\`.`,
+        `This is already the writing session: do not start \`revise\` or \`refine\`, and do not change the card's status. The board marks it ready when this session succeeds.`,
         `Preserve the settled plan exactly. Do not research, replan, or raise questions.`,
         NO_IMPLEMENT,
         `Don't ask me questions with human-in-the-loop.`,

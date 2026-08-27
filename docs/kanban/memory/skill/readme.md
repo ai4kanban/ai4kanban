@@ -15,15 +15,15 @@ covers it, or a plain-words note.
   `docs/kanban/.archive/` where it stays in git, and the refine that follows every run —
   each as its own run, with a group's main card left alone when a subtask finishes:
   `docs/guides/daily-loop.md`.
-- Refine is a loop, never one pass — the agent checks and rewrites the card, answers the
-  safe questions it raised itself, and goes round again: `akb guide refine`.
+- Refine runs one QA session that loops over the updated card until a clean sweep finds no
+  new gap, then writes it: `akb guide qa-loop`.
 - A question for the user with choices is written as options they tick, not as prose with
-  the choices inside the line: `akb guide resolve`.
+  the choices inside the line: `akb guide qa-loop`.
 - A card reads in two halves: what a reviewer must read on top — the opening paragraph and
   `## Worth noting`, the calls a human could have made the other way — and everything a
   builder needs below a `<!-- agent -->` marker that never shows when the card is rendered.
   Refine repairs an older card into that shape without rewording it: `akb guide board` and
-  `akb guide refine`.
+  `akb guide qa-loop`.
 - A card that changes a screen carries its layouts one of two ways. A rendered screen is a
   file under `docs/kanban/.mockups/<card id>/` — a `.tsx` component styled with Tailwind or a
   plain `.html` page — that the card points at with one tag on a line of its own,
@@ -48,8 +48,8 @@ covers it, or a plain-words note.
   `akb board update-verify <id> --append ".."` and taken off with `--drop`/`--clear`. A
   verify line is a note to read: nothing waits on it, and the card still reaches `ready`,
   still resolves, and still archives with the lines travelling into the archive. A decision
-  only the user can make is still a `[user]` question, resolve moves a hand-check misfiled
-  as one across, and `akb board list` counts them beside the open questions: "What the build
+  only the user can make is still a `[user]` question, QA moves a hand-check misfiled as one
+  across, and `akb board list` counts them beside the open questions: "What the build
   leaves you to check" in `docs/guides/daily-loop.md`.
 
 ## Setup and the goal

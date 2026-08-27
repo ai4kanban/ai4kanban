@@ -85,8 +85,8 @@ export function byDispatchOrder(a: Card, b: Card): number {
  *
  * The four cases where a refine has nothing to work with:
  *   • the card is recurring — it carries a `## Process`, not a build plan with todo boxes,
- *     and it never reaches `ready` because it is never finished at all. Its questions are
- *     settled by RUNNING it instead;
+ *     and it never reaches `ready` because it is never finished at all. A run owns any new
+ *     decision and leaves only the user's questions open;
  *   • the card isn't `todo` — it's `ready` (the plan is already concrete) or being
  *     implemented, and neither is a plan waiting to be sharpened;
  *   • every todo is checked — that card is finished, not rough;

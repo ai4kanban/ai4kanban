@@ -33,7 +33,8 @@ Every flow writes a card in this order:
 - **Reserve it for review**: include only a decision a reasonable reviewer may reject
   because it materially changes observable behavior, accepted scope, user risk, data or
   privacy, compatibility, or meaningful ongoing cost.
-- **Cut low-value notes**
+- **Cut low-value notes**: remove decisions that merely repeat scope or lack a meaningful
+  tradeoff.
 - **Keep it glanceable**: merge decisions governed by one policy and remove repeats. One to
   three independent entries is normal; keep more only when each has distinct user-facing
   stakes.

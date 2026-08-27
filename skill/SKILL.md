@@ -33,9 +33,10 @@ Match the ask to one action below; when two fit, take the one that changes less.
 arguments are the same with or without `--print`.
 
 - **`implement <id> [note]`**: build the card — "do #12", "work on this", "ship it".
-- **`refine <id>`**: the card is too vague to build — "sharpen it", "make it ready". Always
-  a loop: check, rewrite, resolve what that raised, round again until it is ready.
-- **`resolve <id> [note]`**: the card has open questions — "answer these", "decide it".
+- **`refine <id>`**: the card is too vague to build — "sharpen it", "make it ready". One
+  session loops over the plan until a clean sweep leaves only decisions the user owns.
+- **`resolve <id> [note]`**: apply the user's answers, then QA the resulting plan in the
+  same session — "answer these", "decide it".
   Add `--and-implement` to carry straight on into building when nothing is left for the user.
 - **`revise <id> "<what>"`**: the user says what the card should say instead — "change it
   to…", "add a step for…", "cut that part". Rewrites the card, not the code.

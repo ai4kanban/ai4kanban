@@ -71,7 +71,7 @@ function dueRecurring(cards: Card[], runs: RunView[], busy: Set<number>): Card[]
 // words a run is started by, so it carries straight over. The notes typed when it was
 // scheduled ride along and reach the agent.
 const scheduledRequest = (card: Card): AgentRequest => ({
-  action: card.schedule!.action === 'refine' ? refinementStep(card) as 'raise-questions' | 'resolve' : 'implement',
+  action: card.schedule!.action === 'refine' ? refinementStep(card) as 'raise-questions' : 'implement',
   id: card.id,
   title: card.title,
   notes: card.schedule!.notes || undefined,

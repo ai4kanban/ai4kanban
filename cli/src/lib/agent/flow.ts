@@ -431,17 +431,20 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   correct: [],
   conflict: ['conflict'],
   run: ['board', 'recurring-task'],
-  // An audit reads its own flow and nothing else: it writes no card body, so the layout,
-  // the memory set and the tracks are a page about work it is forbidden to do — and a pass
-  // with pages to read and nothing to write finds something to write.
-  'raise-questions': ['raise-questions'],
-  resolve: ['board', 'resolve'],
+  // One guide owns the complete convergence loop; resolve is only for answers the user
+  // supplies after that loop stops.
+  'raise-questions': ['qa-loop'],
+  // Apply the user's answers first, then validate the resulting plan to convergence in the
+  // same session. The watcher may start writing afterwards, but never another QA session.
+  resolve: ['board', 'resolve', 'qa-loop'],
   // The writing pass is where every refinement ends, so it is the one flow that reads the
   // prose rules in full; the flows that reach it cite `akb guide writing` instead. It gets
   // that guide alone — it writes a body and nothing else, so the layout, the memory set and
   // the tracks are a page about work it is forbidden to do.
   writing: ['writing'],
-  edit: ['board', 'revise'],
+  // Apply the requested correction first, then validate the resulting plan to convergence
+  // in the same session. Writing may follow, but never another QA session.
+  edit: ['revise', 'qa-loop'],
   create: ['board', 'evaluate-task', 'add-task'],
   propose: ['board', 'propose', 'evaluate-task', 'add-task'],
   'plan-release': ['board', 'releases', 'plan-release', 'evaluate-task', 'add-task'],
@@ -575,9 +578,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${board} update-verify ${req.id} --append ".." — add one short note for each manual check this pass left to the user`,
         `never archive it: a recurring card has no end state`,
       )
-      next.push(
-        `${self} resolve ${req.id} --print — for any question this pass left on the card; nothing else on the board resolves a recurring card`,
-      )
       break
     }
     case 'raise-questions': {
@@ -587,17 +587,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
     case 'resolve': {
       facts.push(...questionsField(card!.meta))
-      facts.push(...verifyField(card!.meta))
       facts.push(...field('memory', memoryFiles(card!.meta.modules, 'decisions.md')))
-      close.push(
-        `${board} update-verify ${req.id} --append ".." — first, for any entry that is a hand-check and not a question; then drop it from the question list`,
-        `${board} update-questions ${req.id} --drop <n> — take each question you answered off`,
-        `${board} update-questions ${req.id} --update <n> ".." --recommended-option ".." --option ".." — for the ones only the user can settle, rewritten as choices they tick; \`${board} tag ${req.id} <n> user\` instead when the question already carries options`,
-        `write what you decided on the card, one line each — a call the user could reasonably refuse goes under "## Worth noting", the rest under "## Decided by the agent"`,
-      )
       next.push(
         req.refineRound !== undefined
-          ? refineNext(req.id!, 'continue the QA loop after this resolution')
+          ? refineNext(req.id!, 'continue the programmatic refinement flow')
           : req.andImplement
             ? `${self} implement ${req.id} --print — carry straight on, but only if nothing real is left for the user`
             : `${self} implement ${req.id} --print — once every question is settled`,
@@ -631,7 +624,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${board} update ${req.id} [--title|--priority|--roi|--release|--modules|--track|--blocked-by|--related] — the fields are the command's, never hand-written`,
         'the body is yours to write — the human half (the opening paragraph, ## Worth noting), the <!-- agent --> marker, then the agent half',
       )
-      next.push(refineNext(req.id!, 'the follow-up the board would have started'))
       break
     }
     case 'create':

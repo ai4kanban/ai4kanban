@@ -1,12 +1,11 @@
 # Revise
 
-Make the requested change and stop. A fresh refinement loop follows.
+Make the requested change, then follow `akb guide qa-loop` to validate the updated card in
+this session. Apply answers supported by the project and leave only decisions the user owns.
 
 - **Changed outcome**: If the request materially changes what the task delivers, run the
   affected checks in `akb guide evaluate-task` against the proposed revision before writing
   it. Ordinary scope and wording changes do not repeat evaluation.
-- **Spec agent sections**: If the revision invalidates one, run
-  `akb spec <agent> <id> <short note>` after the edit rather than rewriting it yourself.
 - **Superseded decisions**: An entry under `## Decided by the agent`, or a line under the
   human half's `## Worth noting`, that the revision makes invalid is a call the user
   overruled — keep it. Move the line, as it stands, under a `### Overruled by the user`

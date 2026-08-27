@@ -70,7 +70,7 @@ export const FLOWS: Flow[] = [
     command: 'resolve',
     action: 'resolve',
     usage: 'resolve <id> [note]',
-    gloss: 'answer its open questions',
+    gloss: "apply the user's answers to its open questions",
     more: ['(--and-implement carries on)'],
   },
   {

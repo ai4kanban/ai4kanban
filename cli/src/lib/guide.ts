@@ -28,8 +28,8 @@ import presetIndieHacker from '../guide/preset-indie-hacker.md'
 import presetValidateOnReddit from '../guide/preset-validate-on-reddit.md'
 import propose from '../guide/propose.md'
 import pruneMemory from '../guide/prune-memory.md'
+import qaLoop from '../guide/qa-loop.md'
 import recurringTask from '../guide/recurring-task.md'
-import raiseQuestions from '../guide/raise-questions.md'
 import reject from '../guide/reject.md'
 import review from '../guide/review.md'
 import releases from '../guide/releases.md'
@@ -59,9 +59,9 @@ export const GUIDES: Guide[] = [
   { name: 'add-task', when: 'turn one idea into a card', text: addTask },
   { name: 'propose', when: 'find the work the board is missing and write it', text: propose },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
-  { name: 'raise-questions', when: "find the decisions one task's plan still needs", text: raiseQuestions },
+  { name: 'qa-loop', when: "settle one task's planning gaps and leave only the user's", text: qaLoop },
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
-  { name: 'resolve', when: "answer a card's open questions, and hand the user's own back", text: resolve },
+  { name: 'resolve', when: "apply the user's answers to a card's open questions", text: resolve },
   { name: 'reject', when: 'drop a card, and write down why', text: reject },
   { name: 'review', when: "review and fix a delivery against the approved requirements", text: review },
   { name: 'conflict', when: "resolve the conflict in a delivery's landing rebase", text: conflict },

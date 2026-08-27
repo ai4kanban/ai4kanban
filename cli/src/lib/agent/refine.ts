@@ -2,16 +2,14 @@
 // decides which run comes next and when the loop stops.
 
 import { allCards, findCard } from '../view/read'
-import { byDispatchOrder, canRefine } from '../view/rules'
+import { byDispatchOrder, canRefine, parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
 import type { AgentAction, AgentRequest, CommandRequest, RunRecord } from './types'
 
-export type RefinementStep = 'raise-questions' | 'resolve' | 'writing' | 'done'
+export type RefinementStep = 'raise-questions' | 'writing' | 'done'
 
 export type BoardMarks = Map<number, string>
-
-const MAX_SESSIONS = 6
 
 const subtaskLinesToIds = (body: string): string => {
   const out: string[] = []
@@ -44,9 +42,8 @@ const asMoved = (body: string): string[] =>
     .filter((line) => line.trim() && !MARKER.test(line.trim()))
     .sort()
 
-// Did this run change the card? A resolver that changed nothing cannot move the QA loop,
-// while a clean question audit deliberately changes nothing and advances to writing.
-// What ENDS the loop is writing reaching `ready`, or questions only the user owns.
+// Did this run change the card? What ends refinement is writing reaching `ready`, or the
+// QA pass leaving only questions it revalidated as the user's.
 // `blocked_by` is omitted:
 // entering a blocked episode writes its own refine schedule, and leaving one consumes that
 // schedule (or honors its cancellation), so dependency movement is never inferred here.
@@ -90,7 +87,7 @@ function cardChanged(card: Card, before: BoardMarks): boolean {
 
 export function refinementStep(card: Card): RefinementStep {
   if (!canRefine(card)) return 'done'
-  return card.questions.length > 0 ? 'resolve' : 'raise-questions'
+  return 'raise-questions'
 }
 
 export function refinementRequest(req: CommandRequest): AgentRequest | { error: string } {
@@ -108,18 +105,31 @@ export function startRefinement(
   return 'error' in next ? next : startRun(next)
 }
 
-/** The next pass in this loop — or `'capped'`, which is a stop with a card still changing
- *  under it and not the same thing as a loop that settled.
- *
- *  `flowId` is the loop the finished pass belonged to; the pass that follows joins it, so
- *  every session of one refinement shares an id. */
+function afterQa(
+  card: Card | undefined,
+  round: number,
+  flowId?: string,
+): AgentRequest | 'incomplete' | null {
+  if (!card || card.openBlockers.length > 0) return null
+  if (card.questions.some((q) => parseQuestion(q.text).tag !== 'user')) return 'incomplete'
+  if (card.questions.length > 0 || refinementStep(card) === 'done') return null
+  return {
+    action: 'writing',
+    id: card.id,
+    title: card.title,
+    refineRound: round + 1,
+    ...(flowId ? { flowId } : {}),
+  }
+}
+
+/** The next pass after one exhaustive QA session. `flowId` joins the writing pass to it. */
 export function refinementAfter(
   action: AgentAction,
   cardId: number,
   round: number | undefined,
   before: BoardMarks,
   flowId?: string,
-): AgentRequest | 'capped' | null {
+): AgentRequest | 'incomplete' | null {
   if (
     round === undefined ||
     (action !== 'raise-questions' && action !== 'resolve' && action !== 'writing')
@@ -132,25 +142,31 @@ export function refinementAfter(
   // refine schedule written with that blocker, so continuing this loop would do the work
   // early and start it again when the blocker clears.
   if (card.openBlockers.length > 0) return null
-  const step = action === 'raise-questions'
-    ? card.questions.length > 0
-      ? refinementStep(card)
-      : 'writing'
-    : cardChanged(card, before)
-      ? refinementStep(card)
-      : 'done'
-  if (step === 'done') return null
-  if (step !== 'writing' && round >= MAX_SESSIONS) return 'capped'
-  return {
-    action: step,
-    id: card.id,
-    title: card.title,
-    refineRound: round + 1,
-    ...(flowId ? { flowId } : {}),
+  // Old in-flight flows may still finish with a separate resolver. Give a resolver that
+  // changed the card one exhaustive QA pass; new flows start with that pass directly.
+  if (action === 'resolve') {
+    if (!cardChanged(card, before) || refinementStep(card) === 'done') return null
+    return {
+      action: 'raise-questions',
+      id: card.id,
+      title: card.title,
+      refineRound: round + 1,
+      ...(flowId ? { flowId } : {}),
+    }
   }
+  return afterQa(card, round, flowId)
 }
 
-const NO_FOLLOW = new Set<AgentAction>(['implement', 'raise-questions', 'writing', 'setup'])
+// Resolve and revise perform QA themselves. Their follow-up is handled explicitly below so
+// a clean pass can start writing without scheduling another QA session.
+const NO_FOLLOW = new Set<AgentAction>([
+  'implement',
+  'edit',
+  'raise-questions',
+  'resolve',
+  'writing',
+  'setup',
+])
 
 /** Cards another run changed and left worth refining. A blocked card carries its own
  * one-shot refine schedule, so dependency completion is not inferred here. */
@@ -178,13 +194,13 @@ function refinesAfter(action: AgentAction, before: BoardMarks): AgentRequest[] {
 // The loop this run belonged to has ended with its card still worth refining. Nothing else
 // picks the card up, so the run itself is where the user is told — an ending nobody reports
 // reads exactly like one that settled.
-function stalledLine(cardId: number | null, next: AgentRequest | 'capped' | null): string | null {
-  if (next !== null && next !== 'capped') return null
+function stalledLine(cardId: number | null, next: AgentRequest | 'incomplete' | null): string | null {
+  if (next !== null && next !== 'incomplete') return null
   const card = cardId === null ? null : currentCard(cardId)
   if (!card || card.schedule || refinementStep(card) === 'done') return null
   const why =
-    next === 'capped'
-      ? `${MAX_SESSIONS} QA sessions ran and #${card.id} is still unsettled, so the loop stopped there. `
+    next === 'incomplete'
+      ? `QA left untagged questions on #${card.id}, so it did not finish. `
       : ''
   return `${why}#${card.id} is still at todo and nothing else will pick it up — refine it again, or mark it ready yourself.`
 }
@@ -197,17 +213,45 @@ export interface RefinementFollowUp {
   stalled?: string
 }
 
-export function refinementRunsAfter(run: RunRecord, before: BoardMarks): RefinementFollowUp {
-  const next =
-    run.cardId === null || run.refineRound === undefined
-      ? null
-      : refinementAfter(run.action, run.cardId, run.refineRound, before, run.flowId)
-  const starts = refinesAfter(run.action, before).filter(
-    (req) => run.refineRound === undefined || req.id !== run.cardId,
-  )
+function qaAfterSpec(run: RunRecord): AgentRequest | null {
+  if (run.action !== 'spec' || run.cardId === null) return null
+  const card = currentCard(run.cardId)
+  if (!card || card.openBlockers.length > 0 || card.schedule || !canRefine(card)) return null
   return {
-    runs: typeof next === 'object' && next ? [...starts, next] : starts,
-    // Only a run that WAS a refinement pass can leave a loop unfinished.
-    stalled: (run.refineRound !== undefined && stalledLine(run.cardId, next)) || undefined,
+    action: 'raise-questions',
+    id: card.id,
+    title: card.title,
+    refineRound: 1,
+    ...(run.flowId ? { flowId: run.flowId } : {}),
+  }
+}
+
+export function refinementRunsAfter(
+  run: RunRecord,
+  before: BoardMarks,
+  waitingForSpec = false,
+): RefinementFollowUp {
+  const next =
+    waitingForSpec || run.cardId === null
+      ? null
+      : (run.action === 'resolve' || run.action === 'edit') && run.refineRound === undefined
+        ? afterQa(currentCard(run.cardId), 0, run.flowId)
+        : run.refineRound === undefined
+          ? null
+          : refinementAfter(run.action, run.cardId, run.refineRound, before, run.flowId)
+  const starts = refinesAfter(run.action, before).filter(
+    (req) =>
+      req.id !== run.cardId || (run.refineRound === undefined && run.action !== 'spec'),
+  )
+  const resumedQa = qaAfterSpec(run)
+  return {
+    runs: [...starts, ...(resumedQa ? [resumedQa] : typeof next === 'object' && next ? [next] : [])],
+    // A refinement pass or an action's embedded QA can leave the loop unfinished.
+    stalled:
+      waitingForSpec
+        ? undefined
+        : ((run.refineRound !== undefined || next === 'incomplete') &&
+            stalledLine(run.cardId, next)) ||
+          undefined,
   }
 }

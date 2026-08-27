@@ -10,7 +10,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { FiActivity, FiChevronRight, FiX } from "react-icons/fi";
+import { FiActivity, FiX } from "react-icons/fi";
 import { getSessionAction, listSessionsAction, startAgentAction } from "@/app/actions";
 import { flowLabel, flowOf, runFlows, stepLabel, type RunFlow } from "@/lib/run-flows";
 import type { SessionView } from "@/lib/types";
@@ -302,79 +302,58 @@ function SessionDot({ session }: { session: SessionView }) {
   return <span className={`size-[8px] shrink-0 rounded-full ${tone}`} aria-hidden />;
 }
 
-// One row of the run list. A refinement is a loop several passes long
-// (lib/run-flows.ts), so it takes ONE row — the chevron opens it to reach a single pass.
-// Every other run is one row and no chevron, exactly as it was.
+// One row of the run list — one job, however many sessions it took (lib/run-flows.ts).
+//
+// A job of one session is that one row and nothing else: a timeline of a single step says
+// nothing the row hasn't already said. A job of several always shows them, with no control
+// to hide them — the sessions are the only place to reach one, and there is nothing to save
+// by folding two or three lines away.
 function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | null }) {
-  const passes = flow.sessions.length;
+  const steps = flow.sessions.length > 1 ? flow.sessions : [];
   const holds = flow.sessions.some((s) => s.sessionId === selectedId);
-  // Open by default: the passes are the only place to reach a single one, and a
-  // loop with them hidden looks like a run with nothing inside it.
-  const [open, setOpen] = useState(true);
-  // The row stands for the loop, so it selects the pass the loop is ON: the live one, or
+  // The row stands for the job, so it selects the session the job is ON: the live one, or
   // the one it ended with.
   const head = flow.latest;
 
   return (
     <div className="border-b border-nb-ink/8">
-      <div
-        className={`flex items-stretch transition-colors ${
+      <button
+        type="button"
+        onClick={() => sessionsPanel.select(head.sessionId)}
+        className={`flex w-full cursor-pointer items-center gap-2.5 px-3 py-2.5 text-left transition-colors ${
           holds ? "bg-nb-paper shadow-[inset_2.5px_0_0_0_var(--color-nb-accent)]" : "hover:bg-nb-wash/70"
         }`}
       >
-        <button
-          type="button"
-          onClick={() => sessionsPanel.select(head.sessionId)}
-          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 px-3 py-2.5 text-left"
-        >
-          <SessionDot session={head} />
-          <span className="min-w-0 flex-1">
-            <span className="flex items-baseline gap-1.5">
-              <span
-                className={`text-[12.5px] font-[700] ${holds ? "text-nb-ink" : "text-nb-ink-soft"}`}
-              >
-                {flowLabel(flow)}
-              </span>
-              <span className="text-[11px] text-nb-ink-soft">
-                {flow.cardId !== null ? `#${flow.cardId}` : "—"}
-              </span>
-              {/* A cancelled delivery, said on the row itself: its run reads
-                  "stopped", which describes the run and not what happened to the
-                  job it was part of. */}
-              {head.delivery?.status === "cancelled" && (
-                <span className="text-[10.5px] text-nb-ink-soft">cancelled</span>
-              )}
+        <SessionDot session={head} />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline gap-1.5">
+            <span className={`text-[12.5px] font-[700] ${holds ? "text-nb-ink" : "text-nb-ink-soft"}`}>
+              {flowLabel(flow)}
             </span>
-            <span className="block truncate text-[10.5px] text-nb-ink-soft">
-              {passes > 1 && `${passes} sessions · `}
-              {relTime(head.startedAt)}
+            <span className="text-[11px] text-nb-ink-soft">
+              {flow.cardId !== null ? `#${flow.cardId}` : "—"}
             </span>
+            {/* A cancelled delivery, said on the row itself: its run reads
+                "stopped", which describes the run and not what happened to the
+                job it was part of. */}
+            {head.delivery?.status === "cancelled" && (
+              <span className="text-[10.5px] text-nb-ink-soft">cancelled</span>
+            )}
           </span>
-        </button>
-        {passes > 1 && (
-          <button
-            type="button"
-            onClick={() => setOpen(!open)}
-            aria-label={open ? "Hide the sessions" : "Show the sessions"}
-            aria-expanded={open}
-            className="grid w-8 shrink-0 cursor-pointer place-items-center text-nb-ink-soft transition-colors hover:text-nb-ink"
-          >
-            <FiChevronRight
-              size={14}
-              className={`transition-transform duration-100 ${open ? "rotate-90" : ""}`}
-              aria-hidden
-            />
-          </button>
-        )}
-      </div>
-      {/* The passes, threaded on a rail through their own dots: the loop ran them in this
+          <span className="block truncate text-[10.5px] text-nb-ink-soft">
+            {steps.length > 0 && `${steps.length} sessions · `}
+            {relTime(flow.startedAt)}
+          </span>
+        </span>
+      </button>
+      {/* The sessions, threaded on a rail through their own dots: the job ran them in this
           order, and a timeline says so at a glance. The rail stops at the last dot rather
-          than running past it, so where the loop has got to is the line's end. */}
-      {open && (
+          than running past it, so where the job has got to is the line's end. */}
+      {steps.length > 0 && (
         <div className="pb-1">
-          {flow.sessions.map((s, i) => {
+          {steps.map((s, i) => {
             const active = s.sessionId === selectedId;
-            const last = i === flow.sessions.length - 1;
+            const last = i === steps.length - 1;
             return (
               <button
                 key={s.sessionId}
@@ -396,6 +375,11 @@ function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | nul
                 <span className={`text-[11.5px] ${active ? "font-[700] text-nb-ink" : "text-nb-ink-soft"}`}>
                   {stepLabel(s.action)}
                 </span>
+                {/* A job can range over several cards — a create writes three and refines
+                    each. The step says which one, when it isn't the job's own. */}
+                {s.cardId !== null && s.cardId !== flow.cardId && (
+                  <span className="text-[10.5px] text-nb-ink-soft">#{s.cardId}</span>
+                )}
               </button>
             );
           })}
@@ -405,10 +389,10 @@ function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | nul
   );
 }
 
-// The board's last word on a loop that ended with its card still unsettled
-// (agent/refine.ts). It rides on the final pass's record, where it reads as that one run's
-// footnote — here it is what it actually is, how the LOOP ended, and so it is shown
-// whichever step is open. The pass that carries it prints it itself, under its log.
+// The board's last word on a job that ended with its card still unsettled
+// (agent/refine.ts). It rides on the final session's record, where it reads as that one
+// run's footnote — here it is what it actually is, how the JOB ended, and so it is shown
+// whichever step is open. The session that carries it prints it itself, under its log.
 function FlowEnding({ flow, selectedId }: { flow: RunFlow; selectedId: string | null }) {
   const last = flow.latest;
   if (selectedId === last.sessionId || !last.note) return null;
@@ -555,9 +539,9 @@ function SessionsDialog({
             {selected ? (
               <>
                 <div className="mb-3 flex items-center gap-2">
-                  {/* A pass of a refinement is titled by the LOOP, not by its own action:
-                      "Resolve" alone says nothing about the job it is a step of. Which
-                      step you are reading is the strip's word, below. */}
+                  {/* A session is titled by the JOB, not by its own action: "Resolve" alone
+                      says nothing about the job it is a step of. Which step you are reading
+                      is the timeline's word, on the left. */}
                   <span className="text-[14px] font-[800] tracking-[-0.02em]">
                     {flow ? flowLabel(flow) : stepLabel(selected.action)}
                   </span>
@@ -578,10 +562,10 @@ function SessionsDialog({
                       #{selected.cardId}
                     </Link>
                   )}
-                  {/* A loop is dated by when IT started, not by the pass you happen to be
-                      reading — each pass carries its own time on its step below. */}
+                  {/* A job is dated by when IT started, not by the session you happen to be
+                      reading — each session carries its own time on its step. */}
                   <span className="text-[11px] text-nb-ink-soft">
-                    {fullTime(flow?.kind ? flow.startedAt : selected.startedAt)}
+                    {fullTime(flow?.startedAt ?? selected.startedAt)}
                   </span>
                   {/* A run started by Resume says so — otherwise it reads as a
                       second identical run of the same action out of nowhere. */}
@@ -607,8 +591,8 @@ function SessionsDialog({
                     </span>
                   )}
                 </div>
-                {/* How the loop ended — its steps are the left list's job. */}
-                {flow?.kind && <FlowEnding flow={flow} selectedId={selectedId} />}
+                {/* How the job ended — its steps are the left list's job. */}
+                {flow && flow.sessions.length > 1 && <FlowEnding flow={flow} selectedId={selectedId} />}
                 {/* The note is the optional free text the user typed when
                     starting the run (a create's description, a reject's
                     reason, else the notes field). Most runs are started

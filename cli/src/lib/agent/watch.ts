@@ -20,7 +20,7 @@ import { boardCommand } from './command'
 import { deliveryRunAfter } from './deliveries'
 import { advanceLanding } from './landing'
 import { runEnv } from './flow'
-import { specRunsAfter } from './follow'
+import { refineRunsAfter, specRunsAfter } from './follow'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter } from './stream'
 import { resumePrompt } from './prompts'
@@ -34,11 +34,13 @@ import {
 import {
   acquireIndexLock,
   claimCard,
-  clearSpecAsks,
+  clearAsks,
   closeRun,
+  finishWriting,
   needsIndexLock,
   patch,
   peekRun,
+  readRefineAsks,
   readSpec,
   readSpecAsks,
   setCardStatus,
@@ -252,6 +254,16 @@ export async function watchRun(sessionId: string): Promise<number> {
       // A run somebody ended exits non-zero — we killed it — but that is not a failure, so
       // the ask, not the code it died with, names the outcome.
       const status = asked ? 'stopped' : code === 0 ? 'done' : 'error'
+      // Writing is the last refinement session. A clean exit is its verdict; lifecycle
+      // bookkeeping belongs to the watcher, not to an agent editing prose. The board keeps
+      // the card at todo if questions appeared or refuses the transition for another reason.
+      if (status === 'done' && record.action === 'writing' && record.cardId !== null) {
+        try {
+          await finishWriting(record.cardId)
+        } catch {
+          // The refinement state below reports the card still at todo.
+        }
+      }
       // Only after a run that finished. One that failed or was ended left the board
       // half-written, and a refine of half a card is a refine you throw away — and a spec
       // agent sent at half a plan would answer the wrong plan.
@@ -280,7 +292,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       // lands here, and what it hands back is the run that landing wants — the agent that
       // resolves a conflict.
       const landing = await advanceLanding()
-      followUp(sessionId, settled?.runs ?? [], carryOn, landing)
+      followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing)
       resolve(code === 0 ? 0 : 1)
     }
 
@@ -396,36 +408,46 @@ const joinNotes = (...parts: (string | null | undefined)[]): string | undefined 
 // pass's own call on the status stands: nothing out here has read the card.
 function settleBoard(run: RunRecord, before: BoardMarks): RefinementFollowUp | null {
   try {
-    return refinementRunsAfter(run, before)
+    const waitingForSpec = readSpecAsks(run.sessionId).some((ask) => ask.cardId === run.cardId)
+    return refinementRunsAfter(run, before, waitingForSpec)
   } catch {
     // an unreadable board — the run it followed is done either way
     return null
   }
 }
 
-// What follows this run: the spec agents it asked for, and refinement on each card it wrote,
-// changed, or set free. Each one is an ordinary run of its own, so it shows in the panel
-// with its own log and can be stopped.
+// What follows this run: the spec agents and refinements it asked for by name, and
+// refinement on each card it wrote, changed, or set free. Each one is an ordinary run of its
+// own, so it shows in the panel with its own log and can be stopped.
 //
-// The spec agents go first — they were asked for by name, and a refine was not.
+// Every one joins this run's flow, so the panel shows one job with its sessions on a
+// timeline rather than a scatter of unrelated rows.
+//
+// What was asked for by name goes first — a refine nobody asked for was inferred.
 //
 // A refusal is not worth reporting: the only one that comes up is a card that already has a
 // run on it, and that run is doing more than this one would have. Nothing here can fail the
 // run that just ended — it is over.
 function followUp(
   sessionId: string,
+  flowId: string | undefined,
   runs: AgentRequest[],
   carryOn: AgentRequest | null,
   landing: AgentRequest | null = null,
 ): void {
+  // A request that already names its flow keeps it — a refinement pass carries its loop's
+  // id, and that loop is this flow anyway.
+  const join = (req: AgentRequest): AgentRequest =>
+    req.flowId || !flowId ? req : { ...req, flowId }
   try {
     // Started first, then forgotten — so a crash between the two costs a repeated agent at
     // worst, and never a section nobody ever writes.
-    for (const req of specRunsAfter(readSpecAsks(sessionId))) startRun(req)
-    clearSpecAsks(sessionId)
-    if (carryOn) startRun(carryOn)
-    if (landing) startRun(landing)
-    for (const req of runs) startRun(req)
+    const asked = [...specRunsAfter(readSpecAsks(sessionId)), ...refineRunsAfter(readRefineAsks(sessionId))]
+    for (const req of asked) startRun(join(req))
+    clearAsks(sessionId)
+    if (carryOn) startRun(join(carryOn))
+    if (landing) startRun(join(landing))
+    for (const req of runs) startRun(join(req))
   } catch {
     // a spawn that wouldn't — the run it followed is done either way
   }

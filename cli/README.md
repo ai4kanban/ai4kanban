@@ -206,7 +206,7 @@ The flows are `akb guide`:
 ```bash
 akb guide                     # every flow, one line each
 akb guide board               # how the board works: card format, layout, memory
-akb guide refine              # one card, vague to ready
+akb guide qa-loop             # settle one card's planning gaps
 akb guide plan-release        # fill a release from its goal
 ```
 

@@ -24,7 +24,8 @@ While the checklist exists, create no cards — not from propose, not from add. 
 stop to ask the user anything except the goal: the moment you hit a call you can't make
 on your own, append it to the questions card the install created —
 `akb board update-questions <id> --append "[user] .." --recommended-option ".." --option ".."`
-— following "Who owns the question" in `akb guide resolve`. `akb board setup-status` prints the card's id.
+— following "Decide what survives" in `akb guide qa-loop`. `akb board setup-status` prints
+the card's id.
 
 ## `project`
 
@@ -69,7 +70,7 @@ rewrite them. Then `setup-done config`.
 Work out the calls a planner would need that the goal leaves open — who it's for, what's
 out of scope, what done looks like, what comes first — and settle every one the repo and
 common sense can answer: one short line each in `docs/kanban/memory/decisions.md`,
-grouped by topic (line format: `akb guide resolve`, "Record lasting decisions").
+grouped by topic as `**<key>**: <call>`, without rationale.
 Don't copy in what `goal.md` already answers — planning reads the goal directly. Then
 `setup-done decisions`.
 

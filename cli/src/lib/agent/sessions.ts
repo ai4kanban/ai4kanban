@@ -41,6 +41,7 @@ import type {
   AgentAction,
   AgentRequest,
   DeliveryRecord,
+  RefineAsk,
   RunRecord,
   RunStatus,
   RunView,
@@ -207,6 +208,14 @@ export async function setCardStatus(cardId: number, status: string): Promise<voi
   } catch {
     // the board would not take the write — leave the stage as it is
   }
+}
+
+/** A successful writing session completes refinement. The watcher owns this transition;
+ *  prose agents do not have to remember lifecycle bookkeeping. */
+export async function finishWriting(cardId: number): Promise<void> {
+  const result = await setCardStatusOn(cardId, 'ready')
+  if (!result.ok) throw new Error(result.error)
+  if (result.card?.status !== 'ready') throw new Error(`#${cardId} did not reach ready`)
 }
 
 /** The card's stage and whether it has open questions, or null when there is no such card.
@@ -504,11 +513,12 @@ export function openRun(
     // Internal refinement sessions carry their position so the watcher can choose the next
     // QA or writing session. A standalone resolve starts a new chain.
     refineRound: req.refineRound ?? (REFINE_ACTIONS.has(req.action) ? 1 : undefined),
-    // And the loop they belong to. The pass that starts one is given an id here — the
-    // watcher copies it onto every pass after it — so a refinement is one thing in the
-    // record however many sessions it takes, and a second refine on the same card is never
-    // mistaken for a continuation of the first.
-    flowId: REFINE_ACTIONS.has(req.action) ? (req.flowId ?? randomUUID()) : undefined,
+    // And the flow it belongs to. A run started by a person opens one here; the watcher
+    // copies the id onto every session that run goes on to start — a refinement's passes,
+    // the spec agents it asked for, the review after a build. So one job is one thing in
+    // the record however many sessions it takes, and a second run on the same card is
+    // never mistaken for a continuation of the first.
+    flowId: req.flowId ?? randomUUID(),
   }
   const out = withStore<{ run: RunRecord } | { error: string }>((store) => {
     const locked = lockedBy(store.runs, req.action, cardId, req.release)
@@ -613,9 +623,9 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   if (record.deliveryId) syncAudit(record.deliveryId)
   // The asks the run being taken over collected come with it. It never got as far as
   // starting them — that is why it is being resumed — and the flow asked once.
-  const inherited = readSpecAsks(prev.sessionId)
-  for (const ask of inherited) askForSpec(sessionId, ask)
-  clearSpecAsks(prev.sessionId)
+  const inherited = readAsks(prev.sessionId)
+  if (inherited.asks.length || inherited.refines.length) writeAsks(sessionId, inherited)
+  clearAsks(prev.sessionId)
   try {
     fs.unlinkSync(prev.logPath)
   } catch {
@@ -637,44 +647,74 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
  *  would be the same run twice. */
 export function askForSpec(sessionId: string, ask: SpecAsk): 'queued' | 'already' | 'no-run' {
   if (!peekRun(sessionId)) return 'no-run'
-  const asks = readSpecAsks(sessionId)
-  if (asks.some((a) => a.specAgent === ask.specAgent && a.cardId === ask.cardId)) return 'already'
-  asks.push(ask)
-  fs.mkdirSync(SESSIONS_DIR, { recursive: true })
-  const tmp = `${asksPathOf(sessionId)}.tmp`
-  fs.writeFileSync(tmp, JSON.stringify({ asks }, null, 2) + '\n')
-  fs.renameSync(tmp, asksPathOf(sessionId))
+  const file = readAsks(sessionId)
+  if (file.asks.some((a) => a.specAgent === ask.specAgent && a.cardId === ask.cardId)) return 'already'
+  file.asks.push(ask)
+  writeAsks(sessionId, file)
   return 'queued'
 }
 
-/** The spec agents this run has been asked for. Empty when it was asked for none, and
- *  empty rather than thrown when the file is damaged: a run's own ending must not fail on
- *  the follow-up it was going to start. A malformed entry is dropped rather than started —
- *  an ask names an agent and a card, and half of one names neither. */
-export function readSpecAsks(sessionId: string): SpecAsk[] {
-  let data: unknown
-  try {
-    data = JSON.parse(fs.readFileSync(asksPathOf(sessionId), 'utf8'))
-  } catch {
-    return []
-  }
-  const raw = (data as { asks?: unknown })?.asks
-  if (!Array.isArray(raw)) return []
-  return raw.flatMap((entry) => {
-    const a = entry as Partial<SpecAsk>
-    if (!a || typeof a.specAgent !== 'string' || !a.specAgent || !Number.isInteger(a.cardId)) return []
-    return [{ specAgent: a.specAgent, cardId: a.cardId as number, notes: typeof a.notes === 'string' ? a.notes : undefined }]
-  })
+/** Hand a card to a refinement from inside a run (`akb refine <id>`). Written down rather
+ *  than started, exactly as a spec ask is, and started by this run's watcher at the close —
+ *  in the same flow, so it reads as the next step of the job that handed the card over.
+ *
+ *  `already` means this run has handed the same card over before. */
+export function askForRefine(sessionId: string, ask: RefineAsk): 'queued' | 'already' | 'no-run' {
+  if (!peekRun(sessionId)) return 'no-run'
+  const file = readAsks(sessionId)
+  if (file.refines.some((a) => a.cardId === ask.cardId)) return 'already'
+  file.refines.push(ask)
+  writeAsks(sessionId, file)
+  return 'queued'
 }
+
+/** The spec agents this run has been asked for. */
+export const readSpecAsks = (sessionId: string): SpecAsk[] => readAsks(sessionId).asks
+
+/** The cards this run handed to a refinement. */
+export const readRefineAsks = (sessionId: string): RefineAsk[] => readAsks(sessionId).refines
 
 /** Forget a run's asks — once they have been started, and when the run they were written
  *  for is taken over by a resume. */
-export function clearSpecAsks(sessionId: string): void {
+export function clearAsks(sessionId: string): void {
   try {
     fs.unlinkSync(asksPathOf(sessionId))
   } catch {
     // never written, or already gone
   }
+}
+
+/** Every follow-up one run wrote down. Both lists live in one file, so both are read and
+ *  written together — a spec ask must never drop a refine ask.
+ *
+ *  Empty rather than thrown when the file is damaged: a run's own ending must not fail on
+ *  the follow-up it was going to start. A malformed entry is dropped rather than started. */
+function readAsks(sessionId: string): { asks: SpecAsk[]; refines: RefineAsk[] } {
+  let data: unknown
+  try {
+    data = JSON.parse(fs.readFileSync(asksPathOf(sessionId), 'utf8'))
+  } catch {
+    return { asks: [], refines: [] }
+  }
+  const raw = (data ?? {}) as { asks?: unknown; refines?: unknown }
+  const asks = (Array.isArray(raw.asks) ? raw.asks : []).flatMap((entry) => {
+    const a = entry as Partial<SpecAsk>
+    if (!a || typeof a.specAgent !== 'string' || !a.specAgent || !Number.isInteger(a.cardId)) return []
+    return [{ specAgent: a.specAgent, cardId: a.cardId as number, notes: typeof a.notes === 'string' ? a.notes : undefined }]
+  })
+  const refines = (Array.isArray(raw.refines) ? raw.refines : []).flatMap((entry) => {
+    const a = entry as Partial<RefineAsk>
+    if (!a || !Number.isInteger(a.cardId)) return []
+    return [{ cardId: a.cardId as number, notes: typeof a.notes === 'string' ? a.notes : undefined }]
+  })
+  return { asks, refines }
+}
+
+function writeAsks(sessionId: string, file: { asks: SpecAsk[]; refines: RefineAsk[] }): void {
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+  const tmp = `${asksPathOf(sessionId)}.tmp`
+  fs.writeFileSync(tmp, JSON.stringify(file, null, 2) + '\n')
+  fs.renameSync(tmp, asksPathOf(sessionId))
 }
 
 /** Record the process now watching a run, so a stop can reach it and a reader can tell a

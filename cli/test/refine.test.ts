@@ -1,5 +1,5 @@
-// Refinement is orchestration, not one agent job: a question audit and resolver loop until
-// the plan is settled, followed by one writing session.
+// Refinement is one exhaustive QA session followed by one writing session. Applying user
+// answers performs that QA inside Resolve and may hand straight to writing.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -7,14 +7,23 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
+import { refineRunsAfter } from '../src/lib/agent/follow.ts'
 import {
   markBoard,
   refinementRequest,
   refinementRunsAfter,
   type BoardMarks,
 } from '../src/lib/agent/refine.ts'
-import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
+import {
+  askForRefine,
+  clearAsks,
+  closeRun,
+  finishWriting,
+  openRun,
+  readRefineAsks,
+} from '../src/lib/agent/sessions.ts'
 import type { AgentAction, RunRecord } from '../src/lib/agent/types.ts'
+import { setBoardProvider } from '../src/lib/board/index.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-refine-'))
@@ -24,7 +33,10 @@ const cardFile = path.join(track, '7-a-card-to-refine.md')
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
   fs.mkdirSync(track, { recursive: true })
+  fs.writeFileSync(path.join(root, 'docs', 'kanban', 'todo', 'README.md'), '# Open tasks\n')
+  fs.writeFileSync(path.join(root, 'docs', 'kanban', 'next-id'), '8\n')
   setBoardRoot(root)
+  setBoardProvider(null)
 })
 
 after(() => fs.rmSync(root, { recursive: true, force: true }))
@@ -93,15 +105,22 @@ describe('entering refinement', () => {
     })
   })
 
-  it('starts with a resolver when questions already exist', () => {
+  it('starts the same QA session when untagged questions already exist', () => {
     writeCard({ questions: ['Which boundary applies?'] })
     const request = refinementRequest({ action: 'refine', id: 7 })
     assert.ok(!('error' in request))
-    assert.equal(request.action, 'resolve')
+    assert.equal(request.action, 'raise-questions')
+  })
+
+  it('starts the same QA session with mixed tagged and untagged questions', () => {
+    writeCard({ questions: ['[user] Which layout?', 'Which boundary applies?'] })
+    const request = refinementRequest({ action: 'refine', id: 7 })
+    assert.ok(!('error' in request))
+    assert.equal(request.action, 'raise-questions')
   })
 })
 
-describe('the QA loop', () => {
+describe('the QA pass', () => {
   it('goes straight from a clean audit to writing', () => {
     writeCard()
     const { runs, stalled } = afterSession('raise-questions', 1, () => {})
@@ -109,34 +128,92 @@ describe('the QA loop', () => {
     assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['writing', 2]])
   })
 
-  it('hands questions from the audit to a resolver', () => {
-    writeCard()
-    const { runs } = afterSession('raise-questions', 1, () => {
-      writeCard({ questions: ['Which boundary applies?'] })
-    })
-    assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['resolve', 2]])
-  })
-
-  it('audits again after the resolver clears the questions', () => {
+  it('goes to writing after exhausting an existing question list', () => {
     writeCard({ questions: ['Which boundary applies?'] })
-    const { runs, stalled } = afterSession('resolve', 2, () => {
+    const { runs, stalled } = afterSession('raise-questions', 1, () => {
       writeCard({ body: 'The boundary is settled.' })
     })
     assert.equal(stalled, undefined)
-    assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['raise-questions', 3]])
+    assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['writing', 2]])
   })
 
-  it('waits when the resolver leaves only user questions', () => {
+  it('waits when QA leaves only revalidated user questions', () => {
     writeCard({ questions: ['Which boundary applies?'] })
-    const { runs, stalled } = afterSession('resolve', 2, () => {
+    const { runs, stalled } = afterSession('raise-questions', 1, () => {
       writeCard({ questions: ['[user] Which boundary applies?'] })
     })
     assert.deepEqual(runs, [])
     assert.equal(stalled, undefined)
   })
+
+  it('reports an untagged question as incomplete instead of starting another session', () => {
+    writeCard()
+    const { runs, stalled } = afterSession('raise-questions', 1, () => {
+      writeCard({ questions: ['Which boundary applies?'] })
+    })
+    assert.deepEqual(runs, [])
+    assert.match(stalled ?? '', /QA left untagged questions/)
+  })
+
+  it('waits for requested spec agents instead of starting writing', () => {
+    writeCard()
+    const before = markBoard()
+    const { runs, stalled } = refinementRunsAfter(run('raise-questions', 1), before, true)
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+})
+
+describe('applying user answers', () => {
+  const resolveRun = (flowId = 'answer-flow'): RunRecord => ({
+    ...run('resolve', 1, { flowId }),
+    refineRound: undefined,
+  })
+
+  it('hands a resolved and validated card straight to writing', () => {
+    writeCard({ questions: ['[user] Which boundary applies?'] })
+    const before = markBoard()
+    writeCard({ body: 'The selected boundary is applied.' })
+    const { runs, stalled } = refinementRunsAfter(resolveRun(), before)
+    assert.equal(stalled, undefined)
+    assert.deepEqual(
+      runs.map((r) => [r.action, r.refineRound, r.flowId]),
+      [['writing', 1, 'answer-flow']],
+    )
+  })
+
+  it('waits when post-answer QA leaves user decisions', () => {
+    writeCard({ questions: ['[user] Which boundary?', '[user] Which layout?'] })
+    const before = markBoard()
+    writeCard({ body: 'The boundary is applied.', questions: ['[user] Which layout?'] })
+    const { runs, stalled } = refinementRunsAfter(resolveRun(), before)
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+
+  it('reports post-answer QA that leaves an untagged question as incomplete', () => {
+    writeCard({ questions: ['[user] Which boundary applies?'] })
+    const before = markBoard()
+    writeCard({ questions: ['Which dependent boundary applies?'] })
+    const { runs, stalled } = refinementRunsAfter(resolveRun(), before)
+    assert.deepEqual(runs, [])
+    assert.match(stalled ?? '', /QA left untagged questions/)
+  })
 })
 
 describe('writing', () => {
+  it('marks the card ready as board-owned bookkeeping', async () => {
+    writeCard()
+    await finishWriting(7)
+    assert.match(fs.readFileSync(cardFile, 'utf8'), /^status: ready$/m)
+  })
+
+  it('cannot mark a card with open questions ready', async () => {
+    writeCard({ questions: ['[user] Which boundary applies?'] })
+    await assert.rejects(finishWriting(7), /did not reach ready/)
+    assert.match(fs.readFileSync(cardFile, 'utf8'), /^status: todo$/m)
+  })
+
   it('ends refinement when it marks the card ready', () => {
     writeCard()
     const { runs, stalled } = afterSession('writing', 2, () => {
@@ -154,9 +231,9 @@ describe('writing', () => {
   })
 })
 
-// A refinement is one job several sessions long, and the record has to say so: the runs
-// panel groups by this id, so a broken chain reads as unrelated runs on the same card.
-describe('one refinement, several sessions', () => {
+// A job is several sessions long, and the record has to say so: the runs panel groups by
+// this id, so a broken chain reads as unrelated runs on the same card.
+describe('one job, several sessions', () => {
   const openPass = (round: number, flowId?: string) => {
     const opened = openRun(
       { action: 'raise-questions', id: 7, title: 'A card to refine', refineRound: round, flowId },
@@ -172,12 +249,18 @@ describe('one refinement, several sessions', () => {
     const first = openPass(1)
     assert.ok(first.flowId)
     const before = markBoard()
-    writeCard({ questions: ['Which boundary applies?'] })
     const { runs } = refinementRunsAfter(first, before)
     assert.deepEqual(
       runs.map((r) => [r.action, r.flowId]),
-      [['resolve', first.flowId]],
+      [['writing', first.flowId]],
     )
+  })
+
+  it('gives an ordinary run a flow of its own, so the panel can hang its sessions off it', () => {
+    writeCard()
+    const opened = openRun({ action: 'edit', id: 7, title: 'A card to refine' }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    assert.ok(opened.run.flowId)
   })
 
   it('gives a second refinement on the same card an id of its own', async () => {
@@ -191,11 +274,74 @@ describe('one refinement, several sessions', () => {
   })
 })
 
+// A revise applies the requested change and validates it in the same session.
+describe('a revise', () => {
+  const reviseRun = (flowId = 'revise-flow'): RunRecord => ({
+    ...run('edit', 1, { flowId }),
+    refineRound: undefined,
+  })
+
+  it('hands a revised and validated card straight to writing', () => {
+    writeCard()
+    const before = markBoard()
+    writeCard({ body: 'The plan, revised.' })
+    const { runs, stalled } = refinementRunsAfter(reviseRun(), before)
+    assert.equal(stalled, undefined)
+    assert.deepEqual(
+      runs.map((r) => [r.action, r.refineRound, r.flowId]),
+      [['writing', 1, 'revise-flow']],
+    )
+  })
+
+  it('waits when post-revision QA leaves user decisions', () => {
+    writeCard({ questions: ['[user] Which boundary applies?'] })
+    const before = markBoard()
+    writeCard({ body: 'The plan, revised.', questions: ['[user] Which boundary applies?'] })
+    const { runs, stalled } = refinementRunsAfter(reviseRun(), before)
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
+  })
+
+  it('reports post-revision QA that leaves an untagged question as incomplete', () => {
+    writeCard()
+    const before = markBoard()
+    writeCard({ questions: ['Which boundary applies?'] })
+    const { runs, stalled } = refinementRunsAfter(reviseRun(), before)
+    assert.deepEqual(runs, [])
+    assert.match(stalled ?? '', /QA left untagged questions/)
+  })
+})
+
+describe('an explicit refine handoff', () => {
+  it('writes one ask down however many times the run asks', () => {
+    writeCard()
+    const opened = openRun({ action: 'edit', id: 7, title: 'A card to refine' }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    const { sessionId } = opened.run
+    assert.equal(askForRefine(sessionId, { cardId: 7 }), 'queued')
+    assert.equal(askForRefine(sessionId, { cardId: 7 }), 'already')
+    assert.deepEqual(readRefineAsks(sessionId), [{ cardId: 7, notes: undefined }])
+    clearAsks(sessionId)
+    assert.deepEqual(readRefineAsks(sessionId), [])
+  })
+})
+
 describe('specialized input', () => {
   it('starts a fresh audit after a spec agent writes its section', () => {
     writeCard()
     const before = markBoard()
     writeCard({ body: 'A plan with its specialized section.' })
+    const { runs, stalled } = refinementRunsAfter(
+      { ...run('spec', 1), refineRound: undefined },
+      before,
+    )
+    assert.equal(stalled, undefined)
+    assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['raise-questions', 1]])
+  })
+
+  it('resumes QA even when a spec agent could not write a section', () => {
+    writeCard()
+    const before = markBoard()
     const { runs, stalled } = refinementRunsAfter(
       { ...run('spec', 1), refineRound: undefined },
       before,

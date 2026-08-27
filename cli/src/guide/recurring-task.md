@@ -50,21 +50,19 @@ imperative sentences.
 
 - **Put the exact command in the step** when there is one — the command as typed, not
   "run the pruner".
-- **No step may wait for an answer.** If a step needs a decision, write it so the run
-  decides for itself: take the choice that is easiest to undo, then leave the call on the
-  card for the user to confirm later —
+- **No step may wait for an answer.** When an unexpected choice appears, make a safe,
+  reversible call when evidence supports one. If it genuinely needs the user, skip only
+  the dependent work and leave a `[user]` question —
 
   ```
-  akb board update-questions <id> --append ".." --recommended-option ".." --option ".."
+  akb board update-questions <id> --append "[user] .." \
+    --recommended-option ".." --option ".."
   ```
 
-  Leave it untagged: a run doesn't decide who answers. `akb guide resolve` later records
-  the answers according to `akb guide board` and hands the user only the rest. Write it as
-  one line with two or more options, answerable at a glance.
+  Apply "Decide what survives" from `akb guide qa-loop`; include two or more options and a
+  recommendation, and make it answerable at a glance.
 
 ## Run one
 
 1. Do the `## Process` steps in order.
-2. Hand the card and its untagged questions to a subagent, which resolves them with a
-   fresh context following `akb guide resolve`. Nothing else on the board resolves a
-   recurring card, so a question left here is one nobody triages.
+2. Leave any `[user]` question open for the user; `akb resolve` applies their answer later.

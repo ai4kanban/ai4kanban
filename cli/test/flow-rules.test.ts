@@ -105,6 +105,38 @@ describe('the files', () => {
 })
 
 describe('the prompt', () => {
+  it('leaves QA requirements in the guide', () => {
+    const prompt = buildPrompt({ action: 'raise-questions', id: 1, refineRound: 1 })
+    assert.match(prompt, /akb guide qa-loop/)
+    assert.doesNotMatch(prompt, /Append the gaps|Do not resolve|don't implement/)
+  })
+
+  it('runs post-answer QA in the resolver session', () => {
+    const prompt = buildPrompt({ action: 'resolve', id: 1, notes: 'Use A.' })
+    assert.match(prompt, /akb guide resolve/)
+    assert.match(prompt, /akb guide qa-loop/)
+  })
+
+  it('runs post-revision QA in the revision session', () => {
+    const prompt = buildPrompt({ action: 'edit', id: 1, notes: 'Use A.' })
+    assert.match(prompt, /akb guide revise/)
+    assert.match(prompt, /akb guide qa-loop/)
+  })
+
+  it('shows the spec-agent roster to every QA-carrying session', () => {
+    for (const action of ['raise-questions', 'resolve', 'edit'] as const) {
+      assert.match(buildPrompt({ action, id: 1 }), /<spec-agents>/)
+    }
+    assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /<spec-agents>/)
+  })
+
+  it('keeps lifecycle bookkeeping out of the writing agent', () => {
+    const prompt = buildPrompt({ action: 'writing', id: 1, refineRound: 2 })
+    assert.match(prompt, /akb guide writing/)
+    assert.match(prompt, /board marks it ready/)
+    assert.doesNotMatch(prompt, /akb guide board/)
+  })
+
   it('ends on the rule, after everything the board writes', async () => {
     setFlowRule('implement', 'Install dependencies first.')
     const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })

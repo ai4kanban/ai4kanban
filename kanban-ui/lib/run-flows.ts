@@ -1,27 +1,29 @@
-// One refinement, not six runs.
+// One job, not six runs.
 //
-// A refine is a loop (the CLI's agent/refine.ts): a question audit, a resolver, an audit
-// again, and one writing pass to close it. Each pass is an ordinary run with its own log —
-// right for the record, wrong for the panel, where six rows about one card read as six
-// unrelated jobs. The record ties them together with `flowId`; this groups by it.
+// Most things the board does take more than one session: a refine is a question audit and a
+// writing pass, a create is the cards plus a refinement of each, a revise hands its card to
+// a refinement when it is done, a build is followed by its review. Each session is an
+// ordinary run with its own log — right for the record, wrong for the panel, where six rows
+// about one job read as six unrelated jobs. The record ties them together with `flowId`;
+// this groups by it.
 //
-// Everything else is a group of one: a run carrying no flow is its own row, exactly as it
-// was.
+// A job that took one session is still a flow — a flow of one, drawn as the single row it
+// always was.
 
 import type { AgentAction, SessionView } from "./types";
 
 export interface RunFlow {
-  /** The flow's id — or the session's own, for a run that stands alone. */
+  /** The flow's id — or the session's own, for a run recorded before flows. */
   id: string;
-  /** A refinement, or one ordinary run. */
-  kind: "refine" | null;
   cardId: number | null;
-  /** Its passes, oldest first — the order the loop ran in. */
+  /** Its sessions, oldest first — the order they ran in. */
   sessions: SessionView[];
-  /** The newest pass, whose state IS the flow's: a loop is going while its current pass is,
-   *  and it ended however its last pass ended. */
+  /** The first session: the command the user typed, which is what the whole flow is. */
+  root: SessionView;
+  /** The newest session, whose state IS the flow's: a job is going while its current
+   *  session is, and it ended however its last one ended. */
   latest: SessionView;
-  /** When the loop started — its first pass, not its latest. */
+  /** When the job started — its first session, not its latest. */
   startedAt: number;
 }
 
@@ -39,9 +41,9 @@ export function runFlows(sessions: SessionView[]): RunFlow[] {
     }
     const flow: RunFlow = {
       id,
-      kind: s.flow?.kind ?? null,
       cardId: s.cardId,
       sessions: [s],
+      root: s,
       latest: s,
       startedAt: s.startedAt,
     };
@@ -57,13 +59,22 @@ export function flowOf(flows: RunFlow[], sessionId: string | null): RunFlow | nu
   return flows.find((f) => f.sessions.some((s) => s.sessionId === sessionId)) ?? null;
 }
 
-/** An action as a person reads it: "raise-questions" → "Raise questions". A pass of a loop
- *  is named by its action too, so a step reads the same as a standalone run of it. */
+// The actions the board keeps under a different name from the command a person types. Only
+// the ones that differ are here; everything else reads the same either way.
+const COMMAND_NAME: Partial<Record<AgentAction, string>> = {
+  edit: "Revise",
+  "raise-questions": "Refine",
+  writing: "Refine",
+};
+
+/** An action as a person reads it: "raise-questions" → "Raise questions". A session of a
+ *  job is named by its action, so a step reads the same as a standalone run of it. */
 export function stepLabel(action: AgentAction): string {
   const words = action.replace(/-/g, " ");
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-/** The flow's own name — the command a user would have typed for it. */
+/** The flow's own name — the command a user would have typed for it, which is the session
+ *  it opened with. What came after is what the job went on to do, not what it is. */
 export const flowLabel = (flow: RunFlow): string =>
-  flow.kind === "refine" ? "Refine" : stepLabel(flow.latest.action);
+  COMMAND_NAME[flow.root.action] ?? stepLabel(flow.root.action);

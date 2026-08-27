@@ -339,7 +339,7 @@ type CardButton = "implement" | "run" | "refine" | "edit" | "resolve" | "archive
 // So Implement becomes **Run** and Archive never shows — there is no end state to
 // archive it into. Edit, Resolve and Reject stand exactly as they are.
 function visibleActions(card: Card): Set<CardButton> {
-  const hasQuestions = card.questions.length > 0;
+  const hasUserQuestions = card.questions.some((q) => parseQuestion(q.text).tag === "user");
   const { total, done } = card.todos;
   const allDone = total > 0 && done === total; // zero-todo cards never count as done
   // A group root is implemented by finishing its subtasks, and it is done when
@@ -359,7 +359,7 @@ function visibleActions(card: Card): Set<CardButton> {
   // Refine (#99) — only when it would move the card, and not while that same action
   // is queued. Cancelling the schedule brings the button back for this blocked episode.
   if (canRefine(card) && card.schedule?.action !== "refine") buttons.add("refine");
-  if (hasQuestions) buttons.add("resolve"); // Resolve — has open questions
+  if (hasUserQuestions) buttons.add("resolve"); // Resolve — has a decision the user owns
   // Archive — every subtask resolved, or all todos checked. Never on a recurring
   // card: it has no end state, and archiving one would take a job off the board.
   if (!card.recurring && (card.isGroup ? groupDone : allDone)) buttons.add("archive");

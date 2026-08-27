@@ -1,11 +1,13 @@
-// Non-refinement runs started after another run ends. Refinement owns its state machine and
-// follow-ups in `refine.ts`; spec-agent requests remain here.
+// The runs a finished run asked for by name. Refinement owns its own state machine in
+// `refine.ts`; what lives here is the handoff — an ask written down mid-run, turned into a
+// run to start now that the run that wrote it is over.
 
 import { findSpecAgent, specAgentEnabled } from '../spec-agents'
 import { allCards } from '../view/read'
 import type { Card } from '../view/types'
+import { refinementRequest } from './refine'
 import { specAgentEntries } from './settings'
-import type { AgentRequest, SpecAsk } from './types'
+import type { AgentRequest, RefineAsk, SpecAsk } from './types'
 
 /**
  * The spec agents this run asked for while it was going, as runs to start now that it has
@@ -37,5 +39,19 @@ export function specRunsAfter(asks: SpecAsk[]): AgentRequest[] {
     const agent = findSpecAgent(ask.specAgent)
     if (!agent || !specAgentEnabled(agent.name, entries)) return []
     return [{ action: 'spec' as const, id: ask.cardId, title: card.title, specAgent: agent.name, notes: ask.notes }]
+  })
+}
+
+/**
+ * The cards a run explicitly handed to a refinement with `akb refine <id>`, as the sessions
+ * to start now that it has ended.
+ *
+ * The card is read here, as the session is about to start, so an ask for a card that has
+ * gone — or that a refinement would no longer move — is dropped rather than started.
+ */
+export function refineRunsAfter(asks: RefineAsk[]): AgentRequest[] {
+  return asks.flatMap((ask) => {
+    const next = refinementRequest({ action: 'refine', id: ask.cardId, notes: ask.notes })
+    return 'error' in next ? [] : [next]
   })
 }

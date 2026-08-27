@@ -874,6 +874,7 @@ export function ActionDialog({
     const blockers = dialog.card.blocked_by;
     const notReady = dialog.card.status !== "ready";
     const asked = dialog.card.questions.length;
+    const answerable = dialog.card.questions.some((q) => parseQuestion(q.text).tag === "user");
     const warned = blockers.length > 0 || notReady || asked > 0;
     const canSchedule = onSchedule && dialog.card.openBlockers.length > 0;
     return (
@@ -952,7 +953,7 @@ export function ActionDialog({
           disabled={(blockers.length > 0 && !ack) || (notReady && !ackRough) || (asked > 0 && !ackAsked)}
           onConfirm={() => run({ action: "implement", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Implement #${dialog.card.id}`)}
           alternate={
-            asked > 0 && onResolveFirst
+            answerable && onResolveFirst
               ? {
                   label: "Resolve & implement",
                   title: "Answer the open questions first, and build the card once nothing is left to decide",
@@ -1405,9 +1406,8 @@ function PickerSection({
 
 // Resolve is the one action with structured input: a card carries a *list* of
 // open questions, so the dialog gives each its own answer box instead of one
-// catch-all note. Answers are optional — leave a box blank and the agent
-// researches that question itself (see `akb guide resolve`). Its own component
-// so the per-question answer array is a clean, unconditional hook.
+// catch-all note. Unanswered questions stay open. Its own component keeps the
+// per-question answer array a clean, unconditional hook.
 function ResolveDialog({
   card,
   onClose,
@@ -1417,14 +1417,15 @@ function ResolveDialog({
   onClose: () => void;
   onRun: (req: AgentReq, label: string) => void;
 }) {
+  const questions = card.questions.filter((q) => parseQuestion(q.text).tag === "user");
   // Persist the per-question answers so an accidental close keeps them; reconciled
   // to the current question count on reopen. Cleared once the run starts.
-  const [answers, setAnswer, clearAnswers] = useDraftList(`resolve:${card.id}`, card.questions.length);
+  const [answers, setAnswer, clearAnswers] = useDraftList(`resolve:${card.id}`, questions.length);
   // The ticked options beside them. An untouched question opens on the agent's
   // recommendation, so a whole card of options questions is one click to confirm.
   const [picks, setPick, clearPicks] = useDraftPicks(
     `resolve-picks:${card.id}`,
-    card.questions.map((q) => (hasOptions(q) ? (q.recommend ?? []) : [])),
+    questions.map((q) => (hasOptions(q) ? (q.recommend ?? []) : [])),
   );
 
   // Typing is a choice too: "Something else" is the last row of the tick list, and
@@ -1444,11 +1445,18 @@ function ResolveDialog({
     setPick(i, next);
   };
 
+  const hasAnswer = questions.some((q, i) => {
+    if (!hasOptions(q)) return Boolean(answers[i]?.trim());
+    const selected = (picks[i] ?? []).some((n) => n <= (q.options ?? []).length);
+    const typed = (picks[i] ?? []).includes(freeTextPick(q)) && Boolean(answers[i]?.trim());
+    return selected || typed;
+  });
+
   // Both footer buttons share this — resolve alone, or resolve then keep going into
   // implement in the same session. The prompt (see buildPrompt) tells the agent to
   // only implement when nothing genuine is left for the user to decide.
   const submit = (andImplement: boolean) => {
-    const notes = composeAnswers(card.questions, answers, picks);
+    const notes = composeAnswers(questions, answers, picks);
     clearAnswers();
     clearPicks();
     onRun(
@@ -1466,12 +1474,11 @@ function ResolveDialog({
   return (
     <Dialog title={`Resolve #${card.id}`} onClose={onClose}>
       <p className={INTRO}>
-        Answer what you know; the agent researches the rest and writes it to the card. Real judgment
-        calls stay open for you. <strong>Resolve &amp; implement</strong> also builds the task, but
-        only if nothing&apos;s left for you to decide.
+        Confirm or change the answers you want to settle. Unanswered questions stay open.
+        <strong> Resolve &amp; implement</strong> also builds the task when none remain.
       </p>
       <div className="flex flex-col gap-3.5">
-        {card.questions.map((q, i) => {
+        {questions.map((q, i) => {
           const { tag, text } = parseQuestion(q.text);
           const options = hasOptions(q);
           // The box belongs to the "Something else" tick, so it only shows when that
@@ -1496,7 +1503,7 @@ function ResolveDialog({
                 placeholder={
                   options
                     ? "In your own words…"
-                    : "Your answer, or leave blank for the agent to research…"
+                    : "Your answer…"
                 }
                 value={answers[i]}
                 onChange={(e) => setAnswer(i, e.target.value)}
@@ -1508,8 +1515,8 @@ function ResolveDialog({
       </div>
       <div className="mt-4 flex flex-wrap justify-end gap-2.5">
         <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button variant="ghost" onClick={() => submit(false)}>Resolve</Button>
-        <Button onClick={() => submit(true)}>Resolve &amp; implement</Button>
+        <Button variant="ghost" disabled={!hasAnswer} onClick={() => submit(false)}>Resolve</Button>
+        <Button disabled={!hasAnswer} onClick={() => submit(true)}>Resolve &amp; implement</Button>
       </div>
     </Dialog>
   );
@@ -1579,9 +1586,7 @@ function OptionPicker({
 // agent can fold into the card. A question answered by ticking sends the option
 // lines themselves, so the agent reads a choice rather than interpreting prose.
 // Ticks and words can arrive together — "Something else" is one of the ticks.
-// Unanswered questions are dropped — those are the ones the agent researches —
-// and if nothing was answered we send no note at all, so the agent resolves every
-// question on its own just as before.
+// Unanswered questions are omitted and remain open.
 function composeAnswers(
   questions: CardQuestion[],
   answers: string[],
@@ -1611,7 +1616,7 @@ function composeAnswers(
     .filter((x): x is string => x !== null);
   if (answered.length === 0) return undefined;
   return [
-    "My answers to some of the open questions — fold these in, and research the rest:",
+    "My answers to these open questions — apply them and leave every unanswered question open:",
     ...answered,
   ].join("\n\n");
 }

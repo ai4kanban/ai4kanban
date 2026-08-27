@@ -97,8 +97,8 @@ export interface AgentRequest {
   andImplement?: boolean // resolve: keep going and implement once the questions settle
   /** Internal position in a watcher-managed refinement run chain. */
   refineRound?: number
-  /** The refinement this run continues. Absent on the first pass — the run that starts a
-   *  loop is given its id when it is written down. */
+  /** The flow this run belongs to. Absent on the run that opens one — it is given an id
+   *  when it is written down, and every session it goes on to start inherits that id. */
   flowId?: string
   /** spec: which spec agent this run is — a name from `lib/spec-agents.ts`. It decides
    *  the prompt the run is given and the section it is allowed to write. */
@@ -180,10 +180,11 @@ export interface RunRecord {
   specAgent?: string
   /** Position in a watcher-managed refinement run chain. */
   refineRound?: number
-  /** The refinement this run is one pass of — the id its whole chain shares, from the
-   *  first question audit to the writing session that ends it. A run outside a refinement
-   *  carries none. It is what lets the runs panel show one loop instead of six unrelated
-   *  rows. */
+  /** The FLOW this run is one session of — the id shared by the command a user typed and
+   *  every session it went on to start: a refinement's passes, the spec agents a create
+   *  asked for, the review that follows a build. It is what lets the runs panel show one
+   *  job instead of six unrelated rows. A run recorded before flows carries none and
+   *  stands on its own. */
   flowId?: string
   /** The delivery this run belongs to, when it belongs to one. Only an `implement` run
    *  does today; a refine, a resolve or a propose stands alone and carries none. */
@@ -439,6 +440,15 @@ export interface SpecAsk {
   cardId: number
   /** What the flow wants looked at, in a line or two. Everything else the agent is given
    *  is the card itself: the conversation that asked is deliberately not passed on. */
+  notes?: string
+}
+
+/** One ask for a refinement, written down by the run that asked for it with
+ *  `akb refine <id>`. Same handoff as `SpecAsk`, in the same file and started by the same
+ *  watcher — and in the same flow, so the refinement reads as the next step of the job
+ *  that handed the card over. */
+export interface RefineAsk {
+  cardId: number
   notes?: string
 }
 

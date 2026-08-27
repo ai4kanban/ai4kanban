@@ -189,12 +189,13 @@ export interface SessionView {
    *  terminal runs; getSession() attaches it for any run — live or done — by
    *  reading the log file, so the UI can tail a running agent. */
   tail?: string;
-  /** The refinement this session is one pass of, when it is one. A refine is a LOOP — a
-   *  question audit, a resolver, an audit again, and one writing pass to close it — and
-   *  every pass is an ordinary run with its own log. This is what ties them back together,
-   *  so the panel shows one refinement instead of six unrelated rows. `round` is this
-   *  session's place in the loop, counting from 1. */
-  flow?: { id: string; kind: "refine"; round: number };
+  /** The JOB this session is one part of. Most things the board does take more than one
+   *  session — a refine audits then writes, a create writes cards then refines each, a
+   *  revise hands its card on, a build is reviewed — and every session is an ordinary run
+   *  with its own log. This is what ties them back together, so the panel shows one job
+   *  instead of six unrelated rows. `round` is a refinement pass's place in its loop,
+   *  counting from 1. A run recorded before flows carries none and stands on its own. */
+  flow?: { id: string; round: number };
   /** The delivery this run belongs to, when it belongs to one (#301). Only an `implement`
    *  run does: everything else is a single run that stands alone. The status is the
    *  DELIVERY's, not this run's — a run the user stopped inside a cancelled delivery reads

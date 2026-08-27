@@ -5,12 +5,13 @@
 // run's id and exits — the run outlives it — so the same run can be followed, stopped or
 // continued from anywhere, by anyone, including a process that never saw it start.
 
-import { deliveryWaiting, heldByDelivery } from '../lib/agent/deliveries'
+import { activeDelivery, deliveryWaiting, heldByDelivery } from '../lib/agent/deliveries'
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { spawnWatcher } from '../lib/agent/launch'
 import { readLogTail, splitLog } from '../lib/agent/log'
 import { refinementRequest, startRefinement } from '../lib/agent/refine'
 import {
+  askForRefine,
   discardCost,
   getRun,
   listRuns,
@@ -53,6 +54,11 @@ export async function cmdStartRun(action: CommandAction, args: string[], program
   const runnable = action === 'refine' ? refinementRequest(req) : (req as AgentRequest)
   if ('error' in runnable) die(runnable.error, { kind: 'run-refused', action })
   const inside = insideRun()
+  // Refine is the one flow a run hands work to rather than does itself: a revise makes the
+  // change asked for and passes the card on. So it is written down here and started by this
+  // run's watcher at the close — in the same flow, so it reads as the next session of the
+  // job that handed the card over.
+  if (inside && action === 'refine' && !print) return queueRefine(inside, req)
   if (inside || print) {
     if (!print) say(`inside run ${short(inside!)} — a run never starts another, so here is the flow instead.`)
     return printFlow(runnable, program)
@@ -68,6 +74,35 @@ export async function cmdStartRun(action: CommandAction, args: string[], program
   say(`  stop it:   ${program} stop ${short(run.sessionId)}${DIR_FLAG}`)
   if (follow) return { sessionId: run.sessionId, ...(await followRun(run.sessionId, '', program)) }
   return { sessionId: run.sessionId, action, cardId: run.cardId }
+}
+
+// Handing a card to a refinement from inside a run. Nothing spawns here — a run never
+// starts another — and nothing of this conversation is passed on: the refinement reads the
+// card, not the run that rewrote it.
+function queueRefine(inside: string, req: CommandRequest): MoveResult {
+  // A delivery holds its card here even against its own runs, which the hold usually lets
+  // through: what is being written down is a session that starts AFTER this one, and the
+  // delivery will still be in flight — reviewing what it built — when it does.
+  const held = activeDelivery(req.id as number)
+  if (held) {
+    die(`delivery ${held.deliveryId} is in flight on #${req.id}, so it is not a card to hand over.`, {
+      kind: 'run-refused',
+      action: 'refine',
+    })
+  }
+  const queued = askForRefine(inside, { cardId: req.id as number, notes: req.notes })
+  if (queued === 'no-run') {
+    die(`run ${short(inside)} is not on this board's list, so the ask has nowhere to be written down`, {
+      kind: 'no-such-run',
+      run: inside,
+    })
+  }
+  say(
+    queued === 'already'
+      ? `#${req.id} has already been handed to a refinement — one ask is enough; it starts when this run ends.`
+      : `#${req.id} handed to a refinement. It starts when this run ends — don't wait for it, and don't refine the card yourself.`,
+  )
+  return { action: 'refine', cardId: req.id, queued: queued === 'queued', pending: true }
 }
 
 // The actions a delivery holds its card against. Each one either rewrites the sections the
