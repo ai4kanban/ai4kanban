@@ -15,11 +15,13 @@ import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, coll
 import { parseVerifyOps, parseVerifyPositions } from '../lib/verify'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
 import { CADENCE_FORMS, formatCadence, parseCadence } from '../lib/cadence'
-import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards'
+import { locate, enclosingGroupRoot, isRecurringCard, trackOf } from '../lib/cards'
 import { RECURRING } from '../lib/recurring'
 import { validRelease, setSubtreeRelease } from '../lib/releases'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
 import { scheduleRefineOnBlock, setCardSchedule } from '../lib/view/edit'
+import { findCard } from '../lib/view/read'
+import type { ScheduledAction } from '../lib/view/types'
 import { readmeHeadingFor, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme'
 import { reconcileBoard } from '../lib/reconcile'
 import type { FlagValue, Flags, Meta, MoveResult, Question } from '../lib/types'
@@ -57,7 +59,29 @@ function cadenceFlag(raw: FlagValue): string {
   return formatCadence(parsed)
 }
 
-const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'no-body', 'cadence', 'proposed']
+const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'no-body', 'cadence', 'proposed', 'schedule']
+
+// `--schedule refine` hands the new card's first run to the board (lib/view/dispatch.ts)
+// instead of starting one here: it survives this session and every other, and the board
+// starts one scheduled run per tick rather than all of them at once. Read before the id is
+// allocated, so a bad value never leaves a card behind.
+function createSchedule(raw: FlagValue, track: string, questions: Question[]): ScheduledAction {
+  const action = asScheduledAction(raw === true ? '' : raw)
+  if (!action) {
+    die(`--schedule names the action for the board to run: ${SCHEDULED_ACTIONS.join(' | ')}`)
+  }
+  // The same refusals `scheduleRefusal` makes, on the card this create is about to write —
+  // a schedule that could never fire must not cost a card its id.
+  if (track === RECURRING) die('--schedule is not for a recurring card: its cadence is its schedule.')
+  if (
+    action === 'refine' &&
+    questions.length > 0 &&
+    questions.every((q) => parseQuestion(q.text).tag === 'user')
+  ) {
+    die('a refine would not move a card whose every question is a [user] call — leave --schedule off')
+  }
+  return action
+}
 
 // Where a card came from. `--proposed` is what the flows that go looking for work pass —
 // propose, extract-ideas, plan-release; every other way of adding a card is a person
@@ -94,6 +118,8 @@ export function cmdCreate(args: string[]): MoveResult {
   }
   const questions = collectQuestions(order)
   warnBadQuestionTags(questions)
+  const wantedSchedule =
+    flags.schedule !== undefined ? createSchedule(flags.schedule, track, questions) : null
   const slug = slugify(flags.slug !== undefined ? flags.slug : title)
   const fileRel = path.join(track, `${start}-${slug}.md`)
   const file = path.join(TODO, fileRel)
@@ -107,14 +133,22 @@ export function cmdCreate(args: string[]): MoveResult {
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
   if (countsForRecord(file)) recordFact('card-created', start, originOf(flags))
   const indexed = addReadmeRef(track, start, title, fileRel)
-  const scheduled = scheduleRefineOnBlock(start, false)
+  // An asked-for schedule wins over the default one a blocked card gets — it is the same
+  // field, and the user named the action.
+  let scheduled: ScheduledAction | null = null
+  if (wantedSchedule) {
+    setCardSchedule(start, { action: wantedSchedule, notes: '' })
+    scheduled = wantedSchedule
+  } else if (scheduleRefineOnBlock(start, false)) {
+    scheduled = 'refine'
+  }
   say(start)
   say(`  wrote ${rel(file)} — frontmatter is set; fill the body with your editor, leave the frontmatter to the script`)
-  if (scheduled) say('  scheduled refine for when its blockers are done')
+  if (scheduled) say(`  ${scheduleReceipt(start, scheduled)}`)
   if (!TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
   if (indexed) say(`  indexed under "## ${readmeHeadingFor(track)}"`)
   reconcileBoard()
-  return { id: start, ids: [start], title, track, file: rel(file), indexed, schedule: scheduled ? 'refine' : null }
+  return { id: start, ids: [start], title, track, file: rel(file), indexed, schedule: scheduled }
 }
 
 const UPDATE_FLAGS = ['title', 'track', 'priority', 'roi', 'status', 'release', 'blocked-by', 'related', 'modules', 'slug', 'cadence']
@@ -189,12 +223,8 @@ export function cmdUpdate(args: string[]): MoveResult {
     changes.push('status→todo (open questions)')
   }
 
-  // A card's track is the folder its file sits in — right for a standalone card
-  // (skill/06 → skill), a group subtask (<group>/skill/21 → skill), a blocker,
-  // and a recurring card alike. A group root's own folder is the group, not a
-  // track, so its frontmatter value stands.
   const curRel = path.relative(TODO, file)
-  const curTrack = found.kind === 'group' ? meta.track : path.basename(path.dirname(file))
+  const curTrack = trackOf(curRel, meta.track)
   const isSubtask = found.kind === 'file' && enclosingGroupRoot(file) !== null
   let newTrack = curTrack
   if (flags.track !== undefined) {
@@ -253,13 +283,20 @@ export function cmdUpdate(args: string[]): MoveResult {
 
 const SCHEDULE_FLAGS = ['action', 'notes', 'clear']
 
-// Schedule an action on a card that is waiting on another card, so the board starts it by
-// itself the moment the last card in its way leaves the board — or take that schedule off
-// again with `--clear`.
+/** One line saying when the board will start what was just scheduled. */
+function scheduleReceipt(id: number, action: ScheduledAction): string {
+  const card = findCard(id)
+  return card && card.openBlockers.length > 0
+    ? `#${id} is scheduled to ${action} once the cards it waits on are done`
+    : `#${id} is queued for the board to ${action} on its own`
+}
+
+// Hand a run to the board, so it starts by itself — on its next tick, or the moment the last
+// card in this one's way leaves the board — or take that schedule off again with `--clear`.
 //
 // A card holds one schedule at a time: a second one replaces the first, and the receipt says
-// which one it replaced. Only a card that really is waiting on something can carry one, and
-// only the two actions a run can finish without anybody watching (see lib/schedule.ts).
+// which one it replaced. Only the two actions a run can finish without anybody watching can
+// be scheduled (see lib/schedule.ts).
 export function cmdSchedule(args: string[]): MoveResult {
   const { flags, positional } = parseFlags(args, SCHEDULE_FLAGS)
   const id = Number(positional[0])
@@ -285,10 +322,7 @@ export function cmdSchedule(args: string[]): MoveResult {
   }
   const notes = flags.notes !== undefined && flags.notes !== true ? String(flags.notes).trim() : ''
   const was = setCardSchedule(id, { action, notes })
-  say(
-    `#${id} is scheduled to ${action} when the cards it waits on are done` +
-      (was ? ` (replacing the ${was.action} that was scheduled)` : ''),
-  )
+  say(scheduleReceipt(id, action) + (was ? ` (replacing the ${was.action} that was scheduled)` : ''))
   return { id, schedule: action, notes, was: was?.action ?? null }
 }
 

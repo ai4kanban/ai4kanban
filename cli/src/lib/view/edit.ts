@@ -88,9 +88,9 @@ export function patchCard(id: number, patch: CardPatch): void {
  * schedule that was there before, so a caller can say which one it replaced.
  *
  * A card holds one at a time: writing a second is what replaces the first, which is why
- * there is no separate "replace" move. Putting one ON is refused when the card has nothing
- * in its way or the action wouldn't move it (`scheduleRefusal`); taking one OFF is always
- * allowed — a mark the user wants gone must never be stuck on the card.
+ * there is no separate "replace" move. Putting one ON is refused only when the action
+ * wouldn't move the card (`scheduleRefusal`); taking one OFF is always allowed — a mark the
+ * user wants gone must never be stuck on the card.
  *
  * Only the frontmatter is rewritten; the body is put back exactly as it was read.
  */
@@ -100,8 +100,8 @@ export function setCardSchedule(id: number, schedule: CardSchedule | null): Card
   if (schedule && !wanted) die('a schedule names the action to run: implement or refine', 'bad-schedule')
   const found = locate(id)
   if (!found) die(`no open card #${id}`, { kind: 'card-not-found', id })
-  // The board's own rule, read off the whole board — whether this card really is waiting on
-  // something is a fact about every other card, not about this file.
+  // The board's own rule, read off the whole board — whether the action would still move
+  // this card depends on what else is open, not on this file alone.
   if (wanted) {
     const card = findCard(id)
     if (!card) die(`no open card #${id}`, { kind: 'card-not-found', id })

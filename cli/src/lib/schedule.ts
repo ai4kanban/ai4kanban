@@ -1,8 +1,9 @@
-// ---- the action a blocked card is waiting to run ---------------------------
+// ---- the action the board will start on this card by itself ----------------
 //
-// A rough card saves a refine when it first becomes blocked; a user can replace that with
-// an implement, or cancel it for that blocked episode. The board runs the saved action the
-// moment the last card in its way leaves. It lives in the card's own frontmatter:
+// A card can hand one run to the board instead of starting it here and now. The board runs
+// it on its next tick, or on the first tick after the last card in its way leaves. A rough
+// card saves a refine when it first becomes blocked; anyone can write one directly. It lives
+// in the card's own frontmatter:
 //
 //   schedule:
 //     action: implement

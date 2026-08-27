@@ -154,13 +154,22 @@ describe('a write to a card that is not there', () => {
 
 describe('a lifecycle change the board refuses', () => {
   it("comes back as a refusal carrying the board's own line", async () => {
-    writeCard(1)
+    writeCard(1, { status: 'ready' })
     const res = await withLease({ card: 1 }, (env) =>
       board().setSchedule(1, { action: 'refine', notes: '' }, env),
     )
     assert.equal(res.kind, 'refused')
-    assert.match(res.ok === false ? res.error : '', /not waiting on anything/)
+    assert.match(res.ok === false ? res.error : '', /would not move #1/)
     assert.equal((await board().readCard(1))!.schedule, null)
+  })
+
+  it('takes the schedule on a card nothing is in the way of', async () => {
+    writeCard(1)
+    const res = await withLease({ card: 1 }, (env) =>
+      board().setSchedule(1, { action: 'refine', notes: 'queue it' }, env),
+    )
+    assert.equal(res.kind, 'ok')
+    assert.deepEqual((await board().readCard(1))!.schedule, { action: 'refine', notes: 'queue it' })
   })
 
   it('takes the schedule on a card that really is blocked', async () => {

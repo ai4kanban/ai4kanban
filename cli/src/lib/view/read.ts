@@ -18,7 +18,7 @@ import { deliveryState } from '../agent/pause'
 import { readRuns } from '../agent/sessions'
 import type { DeliveryRecord } from '../agent/types'
 import { branchExists, worktreeExists } from '../agent/worktree'
-import { subtaskLines } from '../cards'
+import { subtaskLines, trackOf } from '../cards'
 import { ARCHIVE_MD, README, TODO } from '../paths'
 import { formatStamp, nextDue } from '../cadence'
 import { parseFrontmatter } from '../frontmatter'
@@ -71,10 +71,7 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
   const text = fs.readFileSync(file, 'utf8')
   const { meta, body } = parseFrontmatter(text)
   if (!meta) return null
-  // The frontmatter `track` is authoritative — it decides which column the card shows
-  // under. A group root lives in `<id>-<slug>/root.md` (a folder that is NOT a track), so
-  // its column can only come from the frontmatter, not the path.
-  const track = meta.track || path.basename(path.dirname(relFromTodo))
+  const track = trackOf(relFromTodo, meta.track)
   const relPath = relFromTodo.split(path.sep).join('/')
   // `recurring/` is a reserved folder, not a track someone named: a card in it repeats on a
   // cadence instead of being built once. The path is what says so — the same test

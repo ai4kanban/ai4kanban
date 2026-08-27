@@ -121,6 +121,45 @@ describe('the default refine schedule', () => {
     assert.equal(scheduleOf(2)?.action, 'refine')
   })
 
+  it('is what --schedule writes on a card nothing is in the way of', () => {
+    fs.writeFileSync(path.join(kanban, 'next-id'), '1\n')
+
+    const made = cmdCreate(['--title', 'Second slice', '--track', 'features', '--schedule', 'refine'])
+
+    assert.equal(made.schedule, 'refine')
+    assert.equal(scheduleOf(1)?.action, 'refine')
+  })
+
+  it('gives way to the action --schedule names on a blocked card', () => {
+    writeCard(1)
+    fs.writeFileSync(path.join(kanban, 'next-id'), '2\n')
+
+    const made = cmdCreate([
+      '--title',
+      'Dependent',
+      '--track',
+      'features',
+      '--blocked-by',
+      '1',
+      '--schedule',
+      'implement',
+    ])
+
+    assert.equal(made.schedule, 'implement')
+    assert.equal(scheduleOf(2)?.action, 'implement')
+  })
+
+  it('refuses an unknown --schedule action before an id is spent', () => {
+    fs.writeFileSync(path.join(kanban, 'next-id'), '1\n')
+
+    assert.throws(
+      () => cmdCreate(['--title', 'Nope', '--track', 'features', '--schedule', 'review']),
+      /--schedule names the action/,
+    )
+    assert.equal(fs.readFileSync(path.join(kanban, 'next-id'), 'utf8').trim(), '1')
+    assert.deepEqual(fs.readdirSync(track), [])
+  })
+
   it('is not put on a card a refine cannot move', () => {
     writeCard(1)
     writeCard(2, { status: 'ready' })

@@ -116,6 +116,16 @@ export function subtaskLines(body: string): { total: number; resolved: number; t
   return { total, resolved, ticked }
 }
 
+// A card's track is the folder its file sits in — `skill/06-x.md` and a subtask's
+// `<group>/skill/21-x.md` both read `skill`, so a subtask names its own track and never
+// its parent's folder. A group root's folder is the group, not a track, so there the
+// frontmatter value stands. `relFromTodo` is the path relative to `todo/`.
+export function trackOf(relFromTodo: string, metaTrack: string): string {
+  const parts = relFromTodo.split(/[\\/]/)
+  if (parts[parts.length - 1] === 'root.md') return metaTrack
+  return parts[parts.length - 2] || metaTrack
+}
+
 // Where a finished card goes. It sits next to `todo/`, not inside it: everything that
 // walks the board reads every folder under `todo/` without skipping dot-names, so an
 // archive folder there would show up as a track column and finished cards would look

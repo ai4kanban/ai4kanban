@@ -15,6 +15,7 @@ import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { FLOWS } from '../src/lib/agent/flows.ts'
 import { buildPrompt } from '../src/lib/agent/prompts.ts'
 import { readFlowRules, setFlowRule } from '../src/lib/agent/rules.ts'
+import { findGuide } from '../src/lib/guide.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import { RULES, setBoardRoot } from '../src/lib/paths.ts'
@@ -128,6 +129,13 @@ describe('the prompt', () => {
       assert.match(buildPrompt({ action, id: 1 }), /<spec-agents>/)
     }
     assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /<spec-agents>/)
+  })
+
+  it('keeps the split gate and its handoff in the QA guide', () => {
+    const guide = findGuide('qa-loop')!.text
+    assert.match(guide, /200 lines or 12 todo items/)
+    assert.match(guide, /not a hard limit/)
+    assert.match(guide, /akb board create --schedule\n?refine/)
   })
 
   it('keeps lifecycle bookkeeping out of the writing agent', () => {

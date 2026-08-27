@@ -2,23 +2,27 @@
 
 Finish one task's planning QA in this session. Resolve everything the project can answer
 and leave only decisions that genuinely need the user. Do not mark the card ready, change
-project code, or touch another card.
+project code, or change an existing unrelated card. Creating cards while splitting this
+one is allowed.
 
 ## Loop until the card converges
 
 1. Read the current card and only the code, configuration, goal, project sources, and module
    memory needed to test its plan.
-2. On the first pass only, compare the card with the available spec agents.
-3. Reconsider every open question, including `[user]`. Move manual checks to `verify:`, drop
+2. Before checking details, decide whether the card is one coherent unit. Split it first
+   when it has a clear seam between independently refinable deliverables.
+3. Once any split is complete, compare the resulting current card with the available spec
+   agents. Do this once in the session.
+4. Reconsider every open question, including `[user]`. Move manual checks to `verify:`, drop
    what is answered, duplicated, or unnecessary, and apply an answer when evidence supports
    one.
-4. Audit the updated plan's behavior, constraints, contracts, complete user flow, important
+5. Audit the updated plan's behavior, constraints, contracts, complete user flow, important
    edge cases, and build steps. Keep new candidates in working notes, not on the card.
-5. Apply every supported answer, consolidate related gaps, prune decision residue, and write
+6. Apply every supported answer, consolidate related gaps, prune decision residue, and write
    only the surviving user decisions to the question list.
-6. If the card or its questions changed, restart at step 1 using the new card, but skip the
+7. If the card or its questions changed, restart at step 1 using the new card, but skip the
    spec-agent check.
-7. Finish only after a complete sweep finds no new gap and makes no change.
+8. Finish only after a complete sweep finds no new gap and makes no change.
 
 There is no pass quota: the session boundary is the cap. A completed loop gets no second QA
 session; requested specialist work suspends this loop and resumes it afterwards. Do not
@@ -30,6 +34,17 @@ valid section covering it; relevance alone is not enough. Request every needed a
 then stop without continuing QA, raising substitute questions, or starting writing. The
 board resumes QA after their work. Do not request the same agent again unless a later user
 change invalidated its section.
+
+## Split before refining details
+
+Roughly 200 lines or 12 todo items is a stop sign for a deliberate cohesion
+check, not a hard limit. Split only at an obvious seam between independently refinable
+deliverables; never split a cohesive plan to satisfy a count.
+
+Keep the current id for one slice and create the others with `akb board create --schedule
+refine`, assigning each requirement once and carrying only relevant metadata and
+dependencies. Then continue this loop on the current slice.
+Do not ask the user to approve an evident split or refine the new cards here.
 
 ## Decide what survives
 
@@ -70,8 +85,9 @@ Challenge aggressively, but delete conservatively. QA prunes only:
 - **Answer residue**: remove text, options, and unchecked todos made obsolete or
   contradictory by an answer applied in this session.
 
-Do not otherwise compress `## Today`, `## Scope`, `## Todo`, or the spec. The writing pass
-owns general cleanup; QA must preserve promised behavior and implementation requirements.
+Outside a split, do not otherwise compress `## Today`, `## Scope`, `## Todo`, or the spec.
+The writing pass owns general cleanup; QA must preserve promised behavior and implementation
+requirements.
 
 ## Write user decisions
 

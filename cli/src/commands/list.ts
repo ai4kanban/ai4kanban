@@ -12,7 +12,7 @@ import { die, rel, TODO, MODULES_MD } from '../lib/paths'
 import { say } from '../lib/io'
 import { parseFlags, moduleNames } from '../lib/validate'
 import { parseFrontmatter } from '../lib/frontmatter'
-import { walkMd, idPrefix } from '../lib/cards'
+import { walkMd, idPrefix, trackOf } from '../lib/cards'
 import type { MoveResult, Question } from '../lib/types'
 
 // One open card as the list shows it — the frontmatter fields it prints, plus where the
@@ -67,7 +67,7 @@ function openRows(): Row[] {
       file,
       isRoot,
       title: (meta && meta.title) || base.replace(/^\d+-/, '').replace(/\.md$/, ''),
-      track: (meta && meta.track) || path.relative(TODO, file).split(path.sep)[0]!,
+      track: trackOf(path.relative(TODO, file), (meta && meta.track) || ''),
       status: (meta && meta.status) || 'todo',
       priority: (meta && meta.priority) || 'med',
       roi: (meta && meta.roi) || 'med',

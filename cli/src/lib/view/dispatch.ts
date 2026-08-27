@@ -83,8 +83,11 @@ const scheduledRequest = (card: Card): AgentRequest => ({
  * settles. Null when nothing is waiting.
  *
  * A card is ready when nothing it waits on is open any more — archived and rejected count
- * the same, since either way that card is off the board and holds nothing up. At most one
- * starts per tick, in the board's own order, and the rest keep their mark for the next one:
+ * the same, since either way that card is off the board and holds nothing up. A card that
+ * was never waiting on anything is ready at once, which is what makes a schedule a way to
+ * queue a run for the board to start rather than only a dependency's follow-up.
+ *
+ * At most one starts per tick, in the board's own order, and the rest keep their mark:
  * a scheduled run does real work in the repo, and several at once is a merge nobody asked
  * for.
  *

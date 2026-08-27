@@ -137,18 +137,18 @@ export function canImplement(card: Card): boolean {
 /**
  * Why this card can't be scheduled for `action`, or null when it can.
  *
- * Scheduling is what a card waiting on another card gets INSTEAD of being started now, so
- * the one hard rule is that something must really be in the way: a card you can start today
- * has nothing to wait for, and a schedule on it would never fire. The rest is the same test
- * the button for that action is drawn by — scheduling a run the board would refuse to start
- * is a promise it can't keep.
+ * A schedule hands the run to the board: it fires on the next tick, or on the first tick
+ * after the last card in the way leaves. Being blocked is NOT required — a card queued this
+ * way outlives the session that queued it, which a run started by hand does not, and the
+ * board still starts only one scheduled run per tick.
+ *
+ * What is refused is a schedule that would fire and do nothing: the same test the button for
+ * that action is drawn by, since scheduling a run the board would refuse to start is a
+ * promise it can't keep.
  */
 export function scheduleRefusal(card: Card, action: ScheduledAction): string | null {
   if (card.recurring) {
-    return `#${card.id} is a recurring job — it repeats on its cadence and is never blocked.`
-  }
-  if (card.openBlockers.length === 0) {
-    return `#${card.id} is not waiting on anything — start it now instead of scheduling it.`
+    return `#${card.id} is a recurring job — its cadence is its schedule.`
   }
   if (action === 'refine' && !canRefine(card)) {
     return `a refine would not move #${card.id}, so there is nothing to schedule.`
@@ -172,10 +172,10 @@ export function scheduleWouldDoNothing(card: Card): boolean {
   return card.schedule.action === 'refine' ? !canRefine(card) : !canImplement(card)
 }
 
-/** What a scheduled card is waiting to do, in one line: `implement · waiting on #57`. Empty
- *  on a card with no schedule. */
+/** What a scheduled card will do, in one line: `implement · waiting on #57`, or
+ *  `refine · queued` once nothing is in its way. Empty on a card with no schedule. */
 export function scheduleLabel(card: Card): string {
   if (!card.schedule) return ''
   const waiting = card.openBlockers.map((b) => `#${b.id}`).join(', ')
-  return `${card.schedule.action} · ${waiting ? `waiting on ${waiting}` : 'nothing left in the way'}`
+  return `${card.schedule.action} · ${waiting ? `waiting on ${waiting}` : 'queued'}`
 }
