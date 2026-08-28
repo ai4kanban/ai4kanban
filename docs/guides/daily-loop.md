@@ -281,6 +281,9 @@ and names the branch the change will land on.
 - **Manual commit mode is the exception.** With **Allow automatic Git commits** off nothing
   lands: the delivery stops after review and waits for your own commit, and the card is
   archived when that commit matches what review passed.
+- **Your own commits on that branch are refused while it lands.** One moves the target under
+  the delivery, so a `pre-commit` hook installed beside the skill names the delivery and
+  stops the commit. Commit on another branch, or `git commit --no-verify` to go ahead anyway.
 
 In a terminal it is `akb implement 4`, which starts the same delivery and warns about an open
 question the same way it warns about a blocker. `kanban-ui/README.md` has the whole of it.

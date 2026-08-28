@@ -16,6 +16,11 @@
 // committed by whoever commits `.claude/`, and re-committed on every release. What reads the
 // built file is the local UI, and it asks the installed command where its own copy is
 // (`akb __rules`).
+//
+// One file goes in outside those folders: the commit guard in `.git/hooks/pre-commit`
+// (`./hook.ts`), which `installSkill` writes too. It is not part of a skill folder — it is
+// per-clone and never committed — but it is installed by the same move, because a board an
+// agent drives is exactly a board whose branches a delivery is landing on.
 
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -29,6 +34,7 @@ import note from '../../../../skill/SKILL.md'
 import { noteCommand } from '../agent/command'
 import { REPO_ROOT } from '../paths'
 import { SKILL_VERSION } from '../../version'
+import { installCommitHook } from './hook'
 import type { CommandState, SkillFolder, SkillInstall, SkillState, SkillWrite } from './types'
 
 /** The two folders agents read skills from. An install writes both, so the same board
@@ -249,10 +255,13 @@ export function installSkill(root?: string, only?: 'present', invoked?: string):
     wrote.push({ path: shown, agent: target.agent, files: CONTENTS, refreshed: state !== 'absent' })
   }
   const state = readSkillState(dir)
+  // The commit guard goes in either way, and never decides whether the install worked: it
+  // is a file in `.git/`, and a project that has no hook to write still has its skill.
+  const hook = installCommitHook(dir)
   if (!wrote.length && skipped.length) {
-    return { ok: false, error: `nothing was written — ${skipped.map((s) => `${s.path}: ${s.why}`).join('; ')}`, wrote, skipped, state }
+    return { ok: false, error: `nothing was written — ${skipped.map((s) => `${s.path}: ${s.why}`).join('; ')}`, wrote, skipped, state, hook }
   }
-  return { ok: true, wrote, skipped, state }
+  return { ok: true, wrote, skipped, state, hook }
 }
 
 /** Make both harness skill folders current without rewriting one that already is. A fresh

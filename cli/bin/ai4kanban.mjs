@@ -188,6 +188,13 @@ async function placeSkill(root, mode) {
   const result = installSkill(root, mode === 'update' ? 'present' : undefined, PROGRAM)
   for (const w of result.wrote) did.push(`${w.refreshed ? 'refreshed' : 'wrote'} ${w.path}/ — ${w.files} (${w.agent})`)
   for (const s of result.skipped) notes.push(`${s.path} — ${s.why}`)
+  // The commit guard (#324), which goes in wherever the skill does. The FIRST write says
+  // so, so a user who ran `akb update` for something else learns it is there before a
+  // commit refuses; a rewrite of the board's own copy is silent, the way a refresh is.
+  if (result.hook?.wrote && !result.hook.wrote.refreshed) {
+    did.push(`wrote ${result.hook.wrote.path} — refuses a commit on the branch a delivery is landing on (\`--no-verify\` gets past it)`)
+  }
+  if (result.hook?.note) notes.push(result.hook.note)
   // A project that has one agent's folder but not the other's. Update never writes a folder
   // that isn't there — a plugin install keeps the skill in a read-only cache, and a board
   // installed today has no folder at all until someone asks for one. Say the line that adds
@@ -370,6 +377,7 @@ async function cmdSkill(root, mode) {
     say(`ai4kanban ${VERSION} — the coding agent skill in ${root}`)
     say('')
     for (const folder of state.folders) say(`  ${folder.path}/ — ${sayFolder(folder)} (${folder.agent})`)
+    await sayHookState(root)
     say('')
     if (!state.installed) say(`Not installed. \`${PROGRAM} skill install\` writes it, and so does the board UI's button.`)
     else if (state.outdated) say(`Older than this command. \`${PROGRAM} skill install\` brings it up to date.`)
@@ -409,6 +417,16 @@ async function sayPathState() {
   say(`copy in this project, or \`npx --yes ${NAME}@${VERSION}\`. One line makes it direct:`)
   say('')
   say(`    ${GET_LINE}`)
+}
+
+// Where the commit guard stands (#324), said next to the folders an agent reads. A project
+// that is not a git repository has no hook to have, and gets no line about one.
+async function sayHookState(root) {
+  const { readCommitHook, sayCommitHook } = await rules()
+  if (typeof readCommitHook !== 'function' || typeof sayCommitHook !== 'function') return
+  const hook = readCommitHook(root)
+  if (hook.state === 'no-git') return
+  say(`  ${hook.path} — ${sayCommitHook(hook.state)}`)
 }
 
 function sayFolder(folder) {
@@ -534,7 +552,8 @@ ${INTRO}
   akb install [--tracks a,b,c]   scaffold docs/kanban/ — the board, and nothing else
   akb skill                      whether a coding agent can drive this board
   akb skill install              add the skill: SKILL.md into .claude/skills/kanban/
-                                 and .agents/skills/kanban/
+                                 and .agents/skills/kanban/, plus the commit guard in
+                                 .git/hooks/pre-commit
   akb skill refresh              rewrite a skill that is already here, and write none
                                  that isn't — how the note learns a new spelling of the
                                  command

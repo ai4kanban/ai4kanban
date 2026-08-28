@@ -46,6 +46,9 @@ export { CONFIG_TEMPLATE, missingConfigKeys } from './lib/config-template'
 // part of installing a board (#174) — `akb install` scaffolds the board and stops there,
 // and this is what the UI, `akb skill install`, and a fresh chat call.
 export { ensureSkillInstalled, installSkill, readCommandState, readSkillState, rulesPath, NEWER_COMMAND_LINE } from './lib/skill/install'
+// The commit guard that goes in beside it (#324): the `pre-commit` hook refusing a commit
+// on the branch a delivery is landing on. `akb skill` reads this to say where it stands.
+export { readCommitHook, sayCommitHook } from './lib/skill/hook'
 export type * from './lib/skill/types'
 
 // What a board UI reaches for: the same run engine `akb` drives, so a run started from a
