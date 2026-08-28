@@ -33,6 +33,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { copyBinding } from '../machine/runtimes'
 import { ENV_FILE, KANBAN_GITIGNORE, UI_CONFIG } from '../paths'
 import { harnessByName, DEFAULT_HARNESS } from './harnesses'
 
@@ -532,20 +533,43 @@ export function readRuntimes(cfg: Record<string, unknown> = safeConfig()): Board
 // Every write rewrites the whole block, because its keys are one answer: a name that goes
 // has to leave the flows pointing at it. The block is dropped entirely when it says no more
 // than a board that never had one.
-function writeRuntimes(change: (current: BoardRuntimes) => BoardRuntimes): { ok: boolean; error?: string } {
-  return writeConfig((cfg) => {
-    const next = change(readRuntimes(cfg))
-    const flows = Object.fromEntries(Object.entries(next.flows).filter(([, name]) => next.names.includes(name)))
-    const plain = next.names.length === 1 && next.names[0] === DEFAULT_RUNTIME && !Object.keys(flows).length
-    if (plain) delete cfg.runtimes
-    else {
-      cfg.runtimes = {
-        names: next.names,
-        global: next.global,
-        ...(Object.keys(flows).length ? { flows } : {}),
-      }
+function writeRuntimeBlock(cfg: Record<string, unknown>, next: BoardRuntimes): void {
+  const flows = Object.fromEntries(Object.entries(next.flows).filter(([, name]) => next.names.includes(name)))
+  const plain = next.names.length === 1 && next.names[0] === DEFAULT_RUNTIME && !Object.keys(flows).length
+  if (plain) delete cfg.runtimes
+  else {
+    cfg.runtimes = {
+      names: next.names,
+      global: next.global,
+      ...(Object.keys(flows).length ? { flows } : {}),
     }
-  })
+  }
+}
+
+function writeRuntimes(change: (current: BoardRuntimes) => BoardRuntimes): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => writeRuntimeBlock(cfg, change(readRuntimes(cfg))))
+}
+
+// Repoint every spec agent that names one runtime at another, or clear the pointer with an
+// empty `to`. The flows live in the runtime block above and move with it; a spec agent's
+// runtime is a key inside its own entry, so it has to be walked separately.
+function moveSpecAgentRuntimes(cfg: Record<string, unknown>, from: string, to: string): void {
+  const block = { ...configBlock(cfg.specAgents) }
+  let touched = false
+  for (const [name, value] of Object.entries(block)) {
+    if (parseSpecEntry(value)?.runtime !== from) continue
+    const body = { ...(value as Record<string, unknown>) }
+    if (to) body.runtime = to
+    else delete body.runtime
+    // Back to nothing saved at all when the pointer was the whole entry: only what somebody
+    // changed is written down.
+    if (Object.keys(body).length) block[name] = body
+    else delete block[name]
+    touched = true
+  }
+  if (!touched) return
+  if (Object.keys(block).length) cfg.specAgents = block
+  else delete cfg.specAgents
 }
 
 /** Add a runtime. Adding the first one to a board that named none keeps the global where it
@@ -571,11 +595,53 @@ export function removeRuntime(name: string): { ok: boolean; error?: string } {
       error: `"${name}" is the board's global runtime. Point the global at another one first: \`akb agent runtime global <name>\`.`,
     }
   }
-  return writeRuntimes((current) => ({
-    ...current,
-    names: current.names.filter((n) => n !== name),
-    flows: Object.fromEntries(Object.entries(current.flows).filter(([, on]) => on !== name)),
-  }))
+  return writeConfig((cfg) => {
+    const current = readRuntimes(cfg)
+    writeRuntimeBlock(cfg, {
+      ...current,
+      names: current.names.filter((n) => n !== name),
+      flows: Object.fromEntries(Object.entries(current.flows).filter(([, on]) => on !== name)),
+    })
+    // The spec agents that named it go back to the global one too, and their pointers are
+    // CLEARED rather than left: re-adding the name later must not quietly put them back on
+    // a runtime nobody has bound since.
+    moveSpecAgentRuntimes(cfg, name, '')
+  })
+}
+
+/** Rename a runtime, carrying what the board holds: the flows and the spec agents that
+ *  named it, and the global pointer when it was the global one.
+ *
+ *  This computer's binding is COPIED to the new name rather than moved
+ *  (`machine/runtimes.ts`), so the old name stays bound for whatever else on this machine
+ *  names it — and every other computer reads the renamed runtime as unbound and falls back
+ *  until someone binds it there. */
+export function renameRuntime(from: string, to: string): { ok: boolean; error?: string } {
+  const now = readRuntimes()
+  if (!now.named) {
+    return { ok: false, error: `this board names no runtimes yet. Add one first: \`akb agent runtime add ${to}\`.` }
+  }
+  if (!now.names.includes(from)) return { ok: false, error: unknownRuntime(from, now) }
+  if (from === to) return { ok: true }
+  const bad = runtimeNameError(to)
+  if (bad) return { ok: false, error: bad }
+  if (now.names.includes(to)) return { ok: false, error: `this board already has a runtime called "${to}".` }
+  const res = writeConfig((cfg) => {
+    const current = readRuntimes(cfg)
+    writeRuntimeBlock(cfg, {
+      ...current,
+      names: current.names.map((n) => (n === from ? to : n)),
+      global: current.global === from ? to : current.global,
+      flows: Object.fromEntries(Object.entries(current.flows).map(([command, on]) => [command, on === from ? to : on])),
+    })
+    moveSpecAgentRuntimes(cfg, from, to)
+  })
+  if (!res.ok) return res
+  // The board's half is what a rename is; the binding is one machine's and follows it here
+  // only. A copy that fails leaves the board renamed and this computer falling back, which
+  // the runtime's own pane says out loud.
+  copyBinding(from, to)
+  return { ok: true }
 }
 
 /** Make one of the runtimes the board's global one. */

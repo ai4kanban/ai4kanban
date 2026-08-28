@@ -1,7 +1,7 @@
 # What each coding agent can do
 
 The board runs your work through one coding agent — Claude Code, Codex, Cursor, OpenCode,
-DeepSeek Harness or ZCode. Pick it in **Configuration → Harness**, or with
+DeepSeek Harness or ZCode. Pick it in **Configuration → Runtimes**, or with
 `akb agent use <name>`.
 
 All six do the work. What differs is what they report back while they do it, and that

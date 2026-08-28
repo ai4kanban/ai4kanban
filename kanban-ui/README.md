@@ -935,7 +935,7 @@ struck through, so the outcome survives after the subtask files are gone.
 ## Configuration
 
 The gear in the header opens the **Configuration** dialog. A sidebar names its sections —
-**Harness**, **Agents**, **Auto-delivery**, **Rules** and **Setup**, then **Language** and **Cloud**
+**Runtimes**, **Agents**, **Auto-delivery**, **Rules** and **Setup**, then **Language** and **Cloud**
 under a rule. Settings live in `docs/kanban/ui.config.json`, next to your board, so
 `npx` always serves the latest UI and an update never touches them. Everything the dialog holds
 writes itself there, with two exceptions: a key goes to `docs/kanban/.env`, and everything below
@@ -967,10 +967,49 @@ one already in flight keeps what it started with.
 It has nothing to hold with automatic Git commits off — the board never lands there, so your own
 commit is already the approval — and the switch says so.
 
-### The harness
+### Runtimes, and the harness behind one
 
-**Harness** is the coding tool that runs the board's work — every button here starts a run on it, in
-your repo root. Six ship:
+**Runtimes** says two things and keeps them visibly apart: the runtimes **the board** names, shared
+with everyone on it, and which coding tool **this computer** runs each of them as. A board that names
+no runtimes has no list — the pane is the board's own harness and its settings, with **Add runtime**
+under them, and adding the first one is what splits the pane in two. Adding it keeps `default` beside
+the new name and stays global on it, so every flow goes on running exactly what it ran before.
+
+The list sets nothing. One row per runtime: the board's name for it on the left, what this computer
+runs it as on the right, each half labelled with who reads it. A runtime this computer hasn't bound
+says so and names what ran instead — this computer's binding for the global runtime, or the board's
+own harness where this computer has bound nothing at all. Pressing a row opens that runtime.
+
+There, the binding is the one thing that can be pressed: the square harness cards below, that
+harness's own settings, **Test** — which spawns that runtime and not the board's global one — and
+**Unbind**. Above them are the board's three moves, which change what the repository holds and
+nothing about this machine:
+
+- **Rename** carries the flows and spec agents that named it. This computer's binding is *copied* to
+  the new name, so the old name stays bound for whatever else on this machine names it, and every
+  other computer reads the renamed runtime as unbound until someone binds it there.
+- **Make global** points the board's global runtime here — what a flow that names none runs on.
+- **Remove** names the flows and spec agents it moves onto the global runtime first, and clears their
+  pointers so re-adding the name never puts them back. Removing the global runtime is refused. This
+  computer's binding for the removed name is left alone: every board on this machine shares it.
+
+Which runtime a flow or spec agent uses is **not** set here — `akb agent runtime for <what> <name>`
+is where that lives, and a removal says so.
+
+A key is the one setting on a runtime that is not this computer's own: it writes `docs/kanban/.env`
+exactly as the board's does, so two runtimes on one harness share one key, and the box says so. A
+runtime's settings are judged by the harness *it* is bound to, so a runtime on Codex offers and
+accepts Codex's settings while the board's own harness is something else.
+
+When another machine is this board's server, what **it** runs the runtime as shows read-only under
+this computer's card — its hostname, its harness and its model, from what that machine already
+publishes to Cloud. There is no such line when this machine is the server, when nobody is signed in,
+when Cloud can't be reached, or when the server reported nothing for that runtime; the view never
+waits on that read.
+
+A board whose `akb` is too old to answer draws the harness pane alone.
+
+Six harnesses ship:
 
 | Agent | It spawns | Settings | Key | Cost | Model name |
 | --- | --- | --- | --- | --- | --- |
@@ -1288,10 +1327,11 @@ installed here does **not** fall back: the run fails with the install command in
 A board written before runtimes existed has no `runtimes` key, and reads exactly as it always did:
 one runtime, every flow on it, bound to whatever `harness` and `harnessSettings` already say.
 
-It is all read and written from a terminal — `akb agent runtimes` prints the runtimes and what each
-flow and spec agent runs on, `akb agent runtime add|remove|global|for` changes the board's half, and
-`akb agent bind` / `akb agent unbind` changes this computer's. `akb agent test <runtime>` spawns what
-one runtime resolves to here.
+It is all read and written from a terminal too — `akb agent runtimes` prints the runtimes and what
+each flow and spec agent runs on, `akb agent runtime add|remove|rename|global|for` changes the
+board's half, and `akb agent bind` / `akb agent unbind` changes this computer's. `akb agent test
+<runtime>` spawns what one runtime resolves to here. Everything but `runtime for` is also in
+**Configuration → Runtimes** above.
 
 ### The spec agents
 

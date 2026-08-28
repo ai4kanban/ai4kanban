@@ -100,6 +100,17 @@ export function setBindingSetting(runtime: string, key: string, value: string): 
   return save(runtime, { ...current, settings })
 }
 
+/** Give `to` a copy of what `from` runs as here — what a rename leaves behind (#344).
+ *
+ *  A copy and not a move: this file is keyed by runtime name alone, so every board on this
+ *  machine shares an entry, and a rename on one board must not unbind a name another still
+ *  uses. Nothing bound for `from` is nothing to copy, not a failure. */
+export function copyBinding(from: string, to: string): { ok: boolean; error?: string } {
+  const binding = readBinding(from)
+  if (!binding || from === to) return { ok: true }
+  return save(to, binding)
+}
+
 /** Drop a runtime's binding here, so it runs this computer's global binding again. */
 export function unbindRuntime(runtime: string): { ok: boolean; error?: string } {
   return write((all) => {

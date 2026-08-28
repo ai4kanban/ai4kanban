@@ -657,6 +657,28 @@ export interface RuntimeFallback {
   was: 'unbound' | 'unknown-harness'
   /** The harness name the binding asked for, on `unknown-harness`. */
   bound?: string
+  /** What ran instead: this computer's binding for the GLOBAL runtime, or the board's own
+   *  `harness`, which is what a computer that has bound nothing at all lands on. */
+  ran: 'global' | 'board'
+}
+
+/** What THIS computer runs one runtime as, as its own pane draws it (#344) — the same four
+ *  answers `AgentInfo` gives for the board's own harness, for one binding. Absent from a
+ *  runtime this computer has not bound, or has bound to a harness this build doesn't ship. */
+export interface RuntimeBindingView {
+  /** The harness this computer bound it to. */
+  harness: string
+  /** The command a run would spawn: that harness's own, or the `command` override in the
+   *  binding. */
+  command: string
+  /** What that harness's settings are set to here. A `secret` is never in here. */
+  values: Record<string, string>
+  /** The keys of that harness's `secret` settings docs/kanban/.env holds right now. The
+   *  file is the BOARD's, so two runtimes on one harness share one key. */
+  secretsSet: string[]
+  /** The keys whose flag the binding's `command` override already names, so the override
+   *  wins and the setting is never appended. */
+  ignored: string[]
 }
 
 /** One runtime as a reader is told about it: the board's name for it, and what it runs as
@@ -672,6 +694,9 @@ export interface RuntimeView {
   model?: string
   /** Absent when this computer's own binding for it is what ran. */
   fallback?: RuntimeFallback
+  /** What this computer bound for it (#344). Absent is `fallback` — nothing bound here, or
+   *  bound to a harness this build doesn't ship. */
+  binding?: RuntimeBindingView
 }
 
 /** What one flow runs on: the runtime it names, and what that resolves to here. Keyed by
@@ -702,8 +727,15 @@ export interface AgentInfo {
   /** The board's runtimes, and what each one runs as here (#343). A board that names none
    *  has the one, bound to whatever `harness` and `harnessSettings` already say. */
   runtimes: RuntimeView[]
+  /** False when the board names no runtimes at all — one written before they existed. Then
+   *  `runtimes` holds the one every flow is on, which IS the harness above, and a screen
+   *  offering them says so rather than putting a name on screen the board doesn't hold. */
+  namedRuntimes: boolean
   /** The name of the runtime a flow that names none runs on. */
   globalRuntime: string
+  /** What a person recognises THIS computer by — its hostname. The bindings above are
+   *  this machine's alone, and a pane saying so names the machine it means (#344). */
+  machine: string
   /** What each flow runs on — every flow, in the order `FLOWS` lists them, so no screen
    *  keeps a list of its own. The spec agents are on the spec agent list instead. */
   flows: FlowRuntime[]

@@ -6,6 +6,7 @@
 // be split across two agents — switching the picker while an agent is working changes what
 // the NEXT run spawns, never this one.
 
+import { machineName } from '../machine/identity'
 import { readBindings, type RuntimeBinding } from '../machine/runtimes'
 import { REPO_ROOT } from '../paths'
 import { harnessGaps } from './capabilities'
@@ -30,6 +31,7 @@ import type {
   ChatAgent,
   HarnessSetting,
   Provider,
+  RuntimeBindingView,
   RuntimeFallback,
   RuntimeView,
 } from './types'
@@ -121,10 +123,10 @@ function resolveBinding(
 ): { binding?: RuntimeBinding; fallback?: RuntimeFallback } {
   const own = bindings[runtime]
   if (own && harnessByName(own.harness)) return { binding: own }
-  const fallback: RuntimeFallback = own ? { was: 'unknown-harness', bound: own.harness } : { was: 'unbound' }
+  const was = own ? { was: 'unknown-harness' as const, bound: own.harness } : { was: 'unbound' as const }
   const shared = runtime === global ? undefined : bindings[global]
-  if (shared && harnessByName(shared.harness)) return { binding: shared, fallback }
-  return { fallback }
+  if (shared && harnessByName(shared.harness)) return { binding: shared, fallback: { ...was, ran: 'global' } }
+  return { fallback: { ...was, ran: 'board' } }
 }
 
 function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
@@ -609,7 +611,11 @@ export function agentInfo(): AgentInfo {
     // on the spec agent list instead (`readSpecAgents`), which is the list they are drawn
     // from.
     runtimes: runtimeViews(runtimes),
+    namedRuntimes: runtimes.named,
     globalRuntime: runtimes.global,
+    // The bindings above are this MACHINE's, so the pane that draws them names the machine
+    // it means. The hostname alone — reading it mints no identity (machine/identity.ts).
+    machine: machineName(),
     flows: FLOWS.map((flow) => {
       // `setup` always runs the global one: it is the run that has to work on a board
       // nobody has configured yet.
@@ -634,17 +640,34 @@ function harnessLookup(): (runtime: string) => string {
   }
 }
 
-/** Every runtime the board names, and what each one resolves to on this computer. */
+/** Every runtime the board names, and what each one resolves to on this computer — down to
+ *  the binding behind it, so a pane that sets one keeps no second read of its own (#344). */
 export function runtimeViews(runtimes: BoardRuntimes = readRuntimes()): RuntimeView[] {
+  const bindings = readBindings()
   return runtimes.names.map((name) => {
     const resolved = resolveHarness({ runtime: name })
     const model = resolved.values.model ?? ''
+    // The binding goes down only when it is the one that RAN: a runtime bound to a harness
+    // this build doesn't ship resolved to something else, and handing its settings back
+    // would draw one harness's values under another's fields.
+    const bound = bindings[name]
+    const binding: RuntimeBindingView | undefined =
+      bound && bound.harness === resolved.harness.name
+        ? {
+            harness: resolved.harness.name,
+            command: resolved.command,
+            values: resolved.values,
+            secretsSet: resolved.secretsSet,
+            ignored: resolved.ignored,
+          }
+        : undefined
     return {
       name,
       global: name === runtimes.global,
       harness: resolved.harness.name,
       ...(model ? { model } : {}),
       ...(resolved.fallback ? { fallback: resolved.fallback } : {}),
+      ...(binding ? { binding } : {}),
     }
   })
 }

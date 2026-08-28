@@ -19,6 +19,7 @@ import {
   addRuntime,
   readRuntimes,
   removeRuntime,
+  renameRuntime,
   setFlowRuntime,
   setGlobalRuntime,
   setHarness,
@@ -270,12 +271,14 @@ function runtimeCommand(args: string[]): MoveResult {
       return addOne(rest[0]?.trim() ?? '')
     case 'remove':
       return removeOne(rest[0]?.trim() ?? '')
+    case 'rename':
+      return renameOne(rest[0]?.trim() ?? '', rest[1]?.trim() ?? '')
     case 'global':
       return globalOne(rest[0]?.trim() ?? '')
     case 'for':
       return runtimeFor(rest)
     default:
-      die(`unknown runtime command "${word}" — try one of add, remove, global, for`, {
+      die(`unknown runtime command "${word}" — try one of add, remove, rename, global, for`, {
         kind: 'unknown-move',
         move: word,
       })
@@ -297,6 +300,19 @@ function removeOne(name: string): MoveResult {
   if (!res.ok) die(res.error ?? 'the runtime could not be removed', { kind: 'bad-value' })
   say(`"${name}" is gone. Whatever named it runs the global runtime now.`)
   return { runtime: name, removed: true }
+}
+
+// Rename a runtime. The board's half moves whole — the flows, the spec agents and the
+// global pointer — while this computer's binding is COPIED to the new name, so the old name
+// stays bound for whatever else on this machine names it.
+function renameOne(from: string, to: string): MoveResult {
+  if (!from || !to) die('name a runtime and its new name: akb agent runtime rename cheap plan', { kind: 'needs-input' })
+  const res = renameRuntime(from, to)
+  if (!res.ok) die(res.error ?? 'the runtime could not be renamed', { kind: 'bad-value' })
+  say(`"${from}" is now "${to}". Whatever named it on this board came with it.`)
+  say(`On this computer "${to}" runs ${runtimeHarness(to).label}; "${from}" keeps its own binding, and`)
+  say(`every other computer reads "${to}" as unbound until someone binds it there.`)
+  return { runtime: to, renamedFrom: from }
 }
 
 function globalOne(name: string): MoveResult {

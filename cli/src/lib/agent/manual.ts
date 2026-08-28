@@ -182,6 +182,10 @@ A runtime, so different flows run different tools
   agent runtimes               the runtimes, and what each flow and spec agent is on
   agent runtime add <name>     name one
   agent runtime remove <name>  drop it; whatever named it runs the global one
+  agent runtime rename <old> <new>
+                               rename it, carrying the flows and spec agents that
+                               named it; this computer's binding is copied, and every
+                               other computer reads the new name as unbound
   agent runtime global <name>  the one a flow that names none runs on
   agent runtime for <what> <name>
                                point one flow or spec agent at a runtime; "-" puts it

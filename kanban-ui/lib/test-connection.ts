@@ -7,6 +7,6 @@ import type { ConnectionTest } from "./types";
 // the same one `akb agent test` runs — spawned exactly the way a run is, and touching
 // nothing: no card, no lock, no place in the run list, no log.
 
-export async function testConnection(): Promise<ConnectionTest> {
-  return (await boardRules()).testConnection();
+export async function testConnection(runtime?: string): Promise<ConnectionTest> {
+  return (await boardRules()).testConnection(runtime);
 }

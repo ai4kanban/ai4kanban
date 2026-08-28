@@ -17,6 +17,7 @@ import {
   addRuntime,
   readRuntimes,
   removeRuntime,
+  renameRuntime,
   setFlowRuntime,
   setSpecAgentRuntime,
   specAgentEntries,
@@ -347,5 +348,114 @@ describe('writing the runtime block', () => {
     const res = setFlowRuntime('implement', 'nope')
     assert.equal(res.ok, false)
     assert.match(res.error ?? '', /default, cheap/)
+  })
+
+  it('clears a removed runtime’s spec agents too, so re-adding it never puts them back', () => {
+    config({ harness: 'claude-code', specAgents: { 'ui-design': { mockupStyle: 'ascii' } } })
+    addRuntime('cheap')
+    setSpecAgentRuntime('ui-design', 'cheap')
+    assert.equal(removeRuntime('cheap').ok, true)
+    assert.equal(readSpecAgents().find((a) => a.name === 'ui-design')?.runtime, 'default')
+    addRuntime('cheap')
+    assert.equal(readSpecAgents().find((a) => a.name === 'ui-design')?.runtime, 'default')
+    assert.deepEqual(held().specAgents, { 'ui-design': { mockupStyle: 'ascii' } })
+  })
+})
+
+// A rename (#344). The board's half moves whole; this computer's binding is COPIED, because
+// `~/.ai4kanban/runtimes.json` is keyed by name alone and every board on this machine shares
+// an entry.
+describe('renaming a runtime', () => {
+  const held = (): Record<string, unknown> =>
+    JSON.parse(fs.readFileSync(path.join(root, 'docs', 'kanban', 'ui.config.json'), 'utf8'))
+  const bindings = (): Record<string, { harness: string; settings: Record<string, string> }> =>
+    JSON.parse(fs.readFileSync(path.join(home, 'runtimes.json'), 'utf8'))
+
+  beforeEach(() => {
+    config({
+      harness: 'claude-code',
+      runtimes: { names: ['default', 'cheap'], global: 'default', flows: { implement: 'cheap' } },
+      specAgents: { 'ui-design': { runtime: 'cheap', mockupStyle: 'ascii' } },
+    })
+  })
+
+  it('carries the flows and the spec agents that named it', () => {
+    assert.equal(renameRuntime('cheap', 'plan').ok, true)
+    assert.deepEqual(readRuntimes().names, ['default', 'plan'])
+    assert.equal(runtimeFor({ action: 'implement' }), 'plan')
+    assert.deepEqual(held().specAgents, { 'ui-design': { runtime: 'plan', mockupStyle: 'ascii' } })
+  })
+
+  it('follows the global pointer when the renamed one was global', () => {
+    assert.equal(renameRuntime('default', 'build').ok, true)
+    assert.equal(readRuntimes().global, 'build')
+    assert.deepEqual(readRuntimes().names, ['build', 'cheap'])
+  })
+
+  it('copies this computer’s binding rather than moving it', () => {
+    bind({ cheap: { harness: 'codex', settings: { model: 'gpt-5.1-codex' } } })
+    assert.equal(renameRuntime('cheap', 'plan').ok, true)
+    assert.equal(bindings().plan?.harness, 'codex')
+    assert.equal(bindings().plan?.settings.model, 'gpt-5.1-codex')
+    // The old name keeps its own: another board on this machine may still name it.
+    assert.equal(bindings().cheap?.harness, 'codex')
+  })
+
+  it('leaves another computer reading the new name as unbound', () => {
+    bind({ default: { harness: 'claude-code', settings: {} } })
+    assert.equal(renameRuntime('cheap', 'plan').ok, true)
+    const run = plan({ action: 'implement' })
+    assert.equal(run.runtime, 'plan')
+    assert.match(run.note ?? '', /runtime "plan" is not bound on this computer/)
+  })
+
+  it('refuses a name the board already holds, and one that isn’t a name', () => {
+    assert.equal(renameRuntime('cheap', 'default').ok, false)
+    assert.equal(renameRuntime('cheap', 'two words').ok, false)
+    assert.equal(renameRuntime('nope', 'plan').ok, false)
+    assert.deepEqual(readRuntimes().names, ['default', 'cheap'])
+  })
+
+  it('refuses one on a board that names no runtimes at all', () => {
+    config({ harness: 'claude-code' })
+    const res = renameRuntime('default', 'build')
+    assert.equal(res.ok, false)
+    assert.match(res.error ?? '', /names no runtimes/)
+  })
+})
+
+// What a screen offering the runtimes is handed (#344): the binding behind each one, this
+// computer's own name, and whether the board names any at all.
+describe('what the agent info says about a runtime', () => {
+  it('carries the binding this computer made, and what it is set to', () => {
+    config({ harness: 'claude-code', runtimes: { names: ['default', 'cheap'], global: 'default' } })
+    bind({ cheap: { harness: 'codex', settings: { model: 'gpt-5.1-codex' } } })
+    const info = agentInfo()
+    assert.equal(info.namedRuntimes, true)
+    assert.equal(typeof info.machine, 'string')
+    const cheap = info.runtimes.find((r) => r.name === 'cheap')
+    assert.equal(cheap?.binding?.harness, 'codex')
+    assert.equal(cheap?.binding?.values.model, 'gpt-5.1-codex')
+    assert.equal(cheap?.fallback, undefined)
+  })
+
+  it('carries no binding for one that fell back, and says what ran instead', () => {
+    config({ harness: 'claude-code', runtimes: { names: ['default', 'cheap'], global: 'default' } })
+    bind({ default: { harness: 'codex', settings: {} } })
+    const cheap = agentInfo().runtimes.find((r) => r.name === 'cheap')
+    assert.equal(cheap?.binding, undefined)
+    assert.equal(cheap?.fallback?.was, 'unbound')
+    assert.equal(cheap?.fallback?.ran, 'global')
+  })
+
+  it('says the board’s own harness ran when this computer has bound nothing', () => {
+    config({ harness: 'claude-code', runtimes: { names: ['default', 'cheap'], global: 'default' } })
+    const cheap = agentInfo().runtimes.find((r) => r.name === 'cheap')
+    assert.equal(cheap?.fallback?.ran, 'board')
+  })
+
+  it('says a board that names none names none', () => {
+    config({ harness: 'claude-code' })
+    assert.equal(agentInfo().namedRuntimes, false)
   })
 })

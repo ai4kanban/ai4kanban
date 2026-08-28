@@ -6,7 +6,7 @@ export type ConfigurationCopy = {
   title: string;
   sections: string;
   section: {
-    harness: string;
+    runtimes: string;
     agents: string;
     delivery: string;
     rules: string;
@@ -14,9 +14,71 @@ export type ConfigurationCopy = {
     language: string;
     cloud: string;
   };
-  harness: {
+  /** Configuration → Runtimes (#344): the runtimes the BOARD names, and what THIS COMPUTER
+   *  runs each of them as. The harness block below draws the second half — and, on a board
+   *  that names no runtimes, the board's own harness on its own. */
+  runtimes: {
     title: string;
-    description: string;
+    /** The list pane. Takes this computer's name. */
+    blurb: (machine: string) => string;
+    /** The pane on a board that names no runtimes: today's harness, said to be the board's. */
+    boardsOwn: string;
+    /** The list's two halves, each naming who reads it. */
+    boardHalf: string;
+    boardHalfNote: string;
+    computerHalf: (machine: string) => string;
+    computerHalfNote: string;
+    global: string;
+    /** One row's right-hand half: what this computer runs that runtime as. */
+    runs: (harness: string, model: string) => string;
+    /** Why a runtime isn't running its own binding: nothing bound here, or bound to a
+     *  harness this build doesn't ship. */
+    notBound: string;
+    boundUnknown: (bound: string) => string;
+    /** …and what ran instead — this computer's binding for the global runtime, or the
+     *  board's own harness where this computer has bound nothing at all. */
+    ranAsGlobal: (globalRuntime: string, harness: string) => string;
+    ranAsBoard: (harness: string) => string;
+    /** Naming a new runtime. */
+    add: string;
+    addBlurb: string;
+    namePlaceholder: string;
+    save: string;
+    cancel: string;
+    /** One runtime's view. */
+    back: string;
+    thisComputer: string;
+    bindingBlurb: (runtime: string) => string;
+    /** Nothing on the grid is pressed, because this computer isn't running its own binding.
+     *  Takes the reason and what runs meanwhile, both built from the four above. */
+    pickHarness: (why: string, instead: string) => string;
+    unbind: string;
+    rename: string;
+    renameBlurb: string;
+    makeGlobal: string;
+    isGlobal: string;
+    remove: string;
+    /** Before a removal: what it moves, and where that assignment is changed. */
+    removeBlurb: (runtime: string) => string;
+    removeMoves: (names: string, globalRuntime: string) => string;
+    removeNothing: string;
+    /** The one removal that is refused. */
+    removeGlobal: (runtime: string) => string;
+    confirmRemove: string;
+    /** Said where a key box is drawn on a runtime: the key is the board's, not this
+     *  computer's, so two runtimes on one harness share it. */
+    keyIsBoards: string;
+    /** The board's server, read-only under this computer. */
+    server: { label: string; notBound: string };
+    addFailed: string;
+    removeFailed: (runtime: string) => string;
+    renameFailed: (runtime: string) => string;
+    globalFailed: (runtime: string) => string;
+    unbindFailed: (runtime: string) => string;
+  };
+  /** The harness picker, drawn on a runtime and — on a board that names none — as the
+   *  Runtimes pane itself. Its heading is `runtimes` above. */
+  harness: {
     /** A harness whose CLI this machine doesn't have. */
     notInstalled: string;
     notHere: (binary: string) => string;

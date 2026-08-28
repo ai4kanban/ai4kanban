@@ -31,23 +31,35 @@ import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "rea
 import type { IconType } from "react-icons";
 import { FiAlertCircle, FiAlignLeft, FiBell, FiCheck, FiGitBranch, FiGlobe, FiLink, FiSettings, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
+  bindRuntimeAction,
   installedAgentsAction,
   setHarnessAction,
   setHarnessSecretAction,
   setHarnessSettingAction,
+  setRuntimeSecretAction,
+  setRuntimeSettingAction,
   testConnectionAction,
 } from "@/app/actions";
 import type { ConfigurationCopy } from "@/i18n/configuration/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import { missingRequired, pickedProvider, providerSetting, shownForProvider } from "@/lib/providers";
-import type { AgentInfo, ConnectionTest, HarnessGap, HarnessOption, HarnessSetting } from "@/lib/types";
+import type {
+  AgentInfo,
+  ConnectionTest,
+  HarnessGap,
+  HarnessOption,
+  HarnessSetting,
+  RuntimeView,
+  WriteResult,
+} from "@/lib/types";
 import { AutoDeliveryPanel } from "./AutoDelivery";
 import { TOOL_BTN } from "./chrome";
 import { CloudPanel } from "./Cloud";
 import { Dialog } from "./Dialog";
 import { FlowRulesPanel } from "./FlowRules";
 import { LanguagePanel } from "./language";
+import { RuntimesPanel } from "./Runtimes";
 import { SkillPanel } from "./Skill";
 import { SpecAgentsPanel } from "./SpecAgents";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -58,13 +70,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 // already one raised block, and a screenful of full-strength frames inside it
 // reads as a grid of boxes rather than a form. The ember focus ring is what
 // keeps the control findable by keyboard.
-const CONTROL =
+export const CONTROL =
   "w-full rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait";
 
 // The pane's small button — the key field's Save/Replace/Clear and the Test
 // button. Flat inside the dialog: the hairline frame and a wash on hover, no
 // hard shadow to press into.
-const QUIET_BTN =
+export const QUIET_BTN =
   "cursor-pointer rounded-[8px] border border-nb-ink/25 bg-nb-paper px-3 py-1.5 text-[12px] font-[700] text-nb-ink transition-[background-color,border-color,transform] duration-[120ms] hover:border-nb-ink/40 hover:bg-nb-wash active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-nb-ink/25 disabled:hover:bg-nb-paper disabled:active:scale-100";
 
 // The pane's dropdowns are ui/select.tsx — its default trigger IS the CONTROL
@@ -80,9 +92,9 @@ function AgentMark({ src, size }: { src: string; size: number }) {
 
 // The dialog's sections, in sidebar order. Adding a settings group is one entry
 // here plus its pane below — nothing else moves.
-type Section = "harness" | "agents" | "delivery" | "rules" | "skill" | "language" | "cloud";
+type Section = "runtimes" | "agents" | "delivery" | "rules" | "skill" | "language" | "cloud";
 const SECTIONS: { id: Section; icon: IconType; apart?: boolean }[] = [
-  { id: "harness", icon: FiTerminal },
+  { id: "runtimes", icon: FiTerminal },
   { id: "agents", icon: FiUsers },
   { id: "delivery", icon: FiGitBranch },
   // The tool, the agents, how a card is delivered, then the rules that delivery follows
@@ -108,7 +120,7 @@ const SECTIONS: { id: Section; icon: IconType; apart?: boolean }[] = [
 let openRequest: { at: number; section: Section } | null = null;
 const requestSubs = new Set<() => void>();
 export const configDialog = {
-  open(section: Section = "harness") {
+  open(section: Section = "runtimes") {
     // A fresh object every time, so asking for the same section twice still
     // reaches a dialog the user closed in between.
     openRequest = { at: openRequest ? openRequest.at + 1 : 1, section };
@@ -137,7 +149,7 @@ export function Configuration({
   const c = useCopy().configuration;
   const [open, setOpen] = useState(false);
   // Which pane shows. Reopening the dialog starts back on Harness.
-  const [section, setSection] = useState<Section>("harness");
+  const [section, setSection] = useState<Section>("runtimes");
   const router = useRouter();
 
   // Someone outside this tree asked for the dialog — open it on the section they
@@ -160,7 +172,7 @@ export function Configuration({
         title={c.open}
         aria-label={c.open}
         onClick={() => {
-          setSection("harness");
+          setSection("runtimes");
           setOpen(true);
         }}
       >
@@ -228,11 +240,15 @@ export function Configuration({
               moment ago. The dialog's fixed height keeps the panes steady;
               a pane taller than it scrolls here. */}
           <div className="min-h-0 flex-1 overflow-y-auto p-6 max-sm:p-4">
-            {/* The harness — pick the coding tool every card action runs on (#68),
-                and the settings it declares (#93). */}
-            <div hidden={section !== "harness"}>
-              <PaneHeading title={c.harness.title} description={c.harness.description} />
-              <HarnessPicker agent={agent} onError={onError} />
+            {/* The runtimes (#344) — the names the BOARD runs its work under, and what THIS
+                COMPUTER runs each of them as (#68, #93, #343). A board that names none gets
+                today's harness pane, which is the board's own answer.
+
+                Always mounted, unlike the panes below it: every box in here holds optimistic
+                state seeded from the server's first paint, and unmounting on a section switch
+                would throw away a value saved a moment ago. */}
+            <div hidden={section !== "runtimes"}>
+              <RuntimesPanel agent={agent} onError={onError} />
             </div>
             {/* The spec agents (#191) — what each one fills in, and whether it may run.
                 Mounted only while it is the section on screen: it asks the board for its
@@ -305,7 +321,7 @@ function Field({
   );
 }
 
-function PaneHeading({ title, description }: { title: string; description: string }) {
+export function PaneHeading({ title, description }: { title: string; description: string }) {
   return (
     <div className="mb-5">
       <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{title}</h3>
@@ -326,43 +342,94 @@ function PaneHeading({ title, description }: { title: string; description: strin
 // that asks the same questions in different words. `onTested` is how that flow
 // hears the answer — it is the one place that needs to know whether the setup on
 // screen has actually answered.
+/** What a picker in bind mode sets: one runtime, on THIS computer (#344). */
+export interface BindTarget {
+  runtime: string;
+  /** That runtime as the command reads it now — the seed every field starts from. */
+  view: RuntimeView;
+  /** Told the whole setting after each save, so the pane behind redraws its row and its
+   *  fallback line without a read of its own. */
+  onSaved: (agent: AgentInfo) => void;
+}
+
 export function HarnessPicker({
   agent,
   onError,
   onTested,
+  bind,
 }: {
   agent: AgentInfo;
   onError?: (msg: string) => void;
   /** The last test's result, or null when there is none to speak of — including
    *  the moment a setting changes and the old result stops applying. */
   onTested?: (result: ConnectionTest | null) => void;
+  /** Set one RUNTIME's binding on this computer instead of the board's own harness
+   *  (#344). Everything drawn is the same — the same grid, the same declared settings,
+   *  the same Test — and only where a save lands differs: `~/.ai4kanban/runtimes.json`
+   *  rather than `docs/kanban/ui.config.json`. A key goes to `docs/kanban/.env` either
+   *  way, because a binding is one machine's file and a key was never in one. */
+  bind?: BindTarget;
 }) {
   // The agent setting as the file now reads it. It starts as the server's first
   // paint and is replaced by what a switch writes back, so the override note and
   // the notices below always describe the agent on screen rather than the one
   // that was picked when the page loaded.
   const c = useCopy().configuration.harness;
+  const cr = useCopy().configuration.runtimes;
+  // What this picker is set to right now: the board's own answer, or one runtime's binding
+  // on this computer. Read once, here, so every piece of state below is seeded the same way
+  // whichever of the two it is.
+  const seed = (
+    info: AgentInfo,
+    view?: RuntimeView,
+  ): {
+    active: string;
+    command: string;
+    values: Record<string, string>;
+    secretsSet: string[];
+    ignored: string[];
+  } =>
+    bind
+      ? {
+          active: view?.binding?.harness ?? "",
+          command: view?.binding?.command ?? "",
+          values: view?.binding?.values ?? {},
+          secretsSet: view?.binding?.secretsSet ?? [],
+          ignored: view?.binding?.ignored ?? [],
+        }
+      : {
+          active: info.name,
+          command: info.command,
+          values: info.values,
+          secretsSet: info.secretsSet,
+          ignored: info.ignored,
+        };
+  const start = seed(agent, bind?.view);
   const [info, setInfo] = useState(agent);
+  // The runtime as the command now reads it. Never held here: every save tells the pane
+  // behind (`onSaved`), which hands it straight back down — so a board move made on that
+  // pane, `Make global`, reaches the fallback line and the Test label too.
+  const view = bind?.view;
   // The agents to offer, and which of them this machine can run (#207). Kept apart from
   // `info` because it is the one part of the setting that changes without anybody saving
   // anything: installing a CLI in a terminal makes an agent runnable, and the picker
   // re-asks each time it opens so that shows up without a reload.
   const [options, setOptions] = useState(agent.options);
-  const [active, setActive] = useState(agent.name);
+  const [active, setActive] = useState(start.active);
   const [saving, setSaving] = useState(false);
   // What the fields show, and what was last written to the file — keyed by the
   // setting's key. Two pieces of state because a field is text the user can be
   // halfway through typing, and only a save makes it the setting.
-  const [values, setValues] = useState(agent.values);
-  const [saved, setSaved] = useState(agent.values);
+  const [values, setValues] = useState(start.values);
+  const [saved, setSaved] = useState(start.values);
   // The settings the agent's `command` override already names, so those fields
   // aren't in effect. Every agent has its own override, so switching redraws
   // these from the new one's.
-  const [ignored, setIgnored] = useState(agent.ignored);
+  const [ignored, setIgnored] = useState(start.ignored);
   // Which of the agent's keys are set (#94) — set or not set, never a key. A
   // key lives in docs/kanban/.env, so nothing here ever holds one longer than
   // the moment between typing it and saving it.
-  const [secretsSet, setSecretsSet] = useState(agent.secretsSet);
+  const [secretsSet, setSecretsSet] = useState(start.secretsSet);
   // A provider picked in the list but not written to the file yet, because a box
   // it can't do without is still empty (#95) — the endpoint before its base URL
   // is typed. The fields follow the pick right away, so the box it is waiting on
@@ -390,6 +457,28 @@ export function HarnessPicker({
       live = false;
     };
   }, []);
+
+  // The whole setting as the command now reads it, after a save that changed which harness
+  // runs. A switch is also a fresh look at the PATH, so it is one more moment the picker is
+  // right about what this machine has.
+  const settle = (fresh: AgentInfo) => {
+    setInfo(fresh);
+    setOptions(fresh.options);
+    const next = bind ? fresh.runtimes.find((r) => r.name === bind.runtime) : undefined;
+    const now = seed(fresh, next);
+    setActive(now.active);
+    setValues(now.values);
+    setSaved(now.values);
+    setIgnored(now.ignored);
+    setSecretsSet(now.secretsSet);
+    bind?.onSaved(fresh);
+  };
+
+  // A save that only wrote one field: the fields on screen are already right, so nothing is
+  // reseeded — this is only what the pane BEHIND the picker needs to redraw its row.
+  const told = (fresh: AgentInfo | undefined) => {
+    if (fresh && bind) bind.onSaved(fresh);
+  };
 
   const activeOption = options.find((o) => o.name === active);
   const settings = activeOption?.settings ?? [];
@@ -439,7 +528,9 @@ export function HarnessPicker({
       setSecretsSet(prev.secretsSet);
     };
     try {
-      const res = await setHarnessAction(option.name);
+      const res = bind
+        ? await bindRuntimeAction(bind.runtime, option.name)
+        : await setHarnessAction(option.name);
       if (!res.ok || !res.agent) {
         revert();
         onError?.(res.error || c.saveFailed);
@@ -451,14 +542,7 @@ export function HarnessPicker({
       // Switching never touches that .env either: a key belongs to the variable
       // it is written under, not to whoever was picked when you typed it, so the
       // new agent's keys can already be set and this is what says which.
-      setInfo(res.agent);
-      // A switch is a fresh read of the whole setting, so it carries a fresh look at the
-      // PATH with it — one more moment the picker is right about what this machine has.
-      setOptions(res.agent.options);
-      setValues(res.agent.values);
-      setSaved(res.agent.values);
-      setIgnored(res.agent.ignored);
-      setSecretsSet(res.agent.secretsSet);
+      settle(res.agent);
     } catch (e) {
       revert();
       onError?.(e instanceof Error ? e.message : String(e));
@@ -474,11 +558,14 @@ export function HarnessPicker({
     if (saving) return false;
     setSaving(true);
     try {
-      const res = await setHarnessSecretAction(setting.key, next);
+      const res: WriteResult & { agent?: AgentInfo } = bind
+        ? await setRuntimeSecretAction(bind.runtime, setting.key, next)
+        : await setHarnessSecretAction(setting.key, next);
       if (!res.ok) {
         onError?.(res.error || c.saveSecretFailed(setting.label.toLowerCase()));
         return false;
       }
+      told(res.agent);
       setSecretsSet((all) =>
         next ? [...new Set([...all, setting.key])] : all.filter((k) => k !== setting.key),
       );
@@ -500,10 +587,13 @@ export function HarnessPicker({
     const put = (v: string) => setValues((all) => ({ ...all, [setting.key]: v }));
     setSaving(true);
     try {
-      const res = await setHarnessSettingAction(setting.key, value);
+      const res: WriteResult & { agent?: AgentInfo } = bind
+        ? await setRuntimeSettingAction(bind.runtime, setting.key, value)
+        : await setHarnessSettingAction(setting.key, value);
       if (res.ok) {
         put(value);
         setSaved((all) => ({ ...all, [setting.key]: value }));
+        told(res.agent);
         return true;
       }
       put(was);
@@ -555,9 +645,17 @@ export function HarnessPicker({
     await writeSetting(list, id);
   };
 
-  // A hand-edited the agent's `command` override is the one thing worth a note under
-  // the cards — it's what actually runs, and it's invisible otherwise.
-  const overridden = info.command !== options.find((o) => o.name === info.name)?.command;
+  // A hand-edited `command` override is the one thing worth a note under the cards — it's
+  // what actually runs, and it's invisible otherwise. The saved pick is the board's harness,
+  // or the harness this computer bound this runtime to.
+  const savedActive = bind ? (view?.binding?.harness ?? "") : info.name;
+  const savedCommand = bind ? (view?.binding?.command ?? "") : info.command;
+  const overridden = Boolean(savedCommand) && savedCommand !== options.find((o) => o.name === savedActive)?.command;
+
+  // What Test says it is about to spawn. On an unbound runtime that is the fallback the
+  // board would really run — the button tests the runtime, not the empty grid above it.
+  const spawns = active || view?.harness || "";
+  const testLabel = options.find((o) => o.name === spawns)?.label ?? spawns;
 
   return (
     <div className="flex flex-col gap-2">
@@ -649,9 +747,9 @@ export function HarnessPicker({
           Only while the active card is the saved one — mid-switch it names the
           agent that is on its way out. Each agent has an override of its own, so
           switching back brings that agent's note back with it. */}
-      {overridden && active === info.name && (
+      {overridden && active === savedActive && (
         <p className="text-[12px] leading-relaxed text-nb-ink-soft">
-          <Rich>{c.override(info.command)}</Rich>
+          <Rich>{c.override(savedCommand)}</Rich>
         </p>
       )}
 
@@ -688,6 +786,7 @@ export function HarnessPicker({
                   <SecretField
                     key={setting.key}
                     setting={setting}
+                    note={bind ? cr.keyIsBoards : undefined}
                     isSet={secretsSet.includes(setting.key)}
                     disabled={saving}
                     onSave={async (v) => {
@@ -717,8 +816,9 @@ export function HarnessPicker({
           it throws the old result away rather than leaving a "Passed" standing
           for a setup that is gone. */}
       <ConnectionTester
-        key={`${active}|${JSON.stringify(saved)}|${[...secretsSet].sort().join(",")}`}
-        agentLabel={activeOption?.label ?? active}
+        key={`${bind?.runtime ?? ""}|${active}|${JSON.stringify(saved)}|${[...secretsSet].sort().join(",")}`}
+        agentLabel={testLabel}
+        runtime={bind?.runtime}
         unsavedPick={Boolean(pending)}
         disabled={saving}
         onResult={onTested}
@@ -727,7 +827,7 @@ export function HarnessPicker({
       {/* Never move a user to another agent silently: when the config asks for a
           harness we don't ship, or still carries the pre-#68 `command` key that
           nothing reads, the dialog says which agent is actually running. */}
-      {(info.unknownName || info.staleCommand) && (
+      {!bind && (info.unknownName || info.staleCommand) && (
         <p className="flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
           <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
           <span>
@@ -800,11 +900,15 @@ function HarnessGaps({ heading, gaps }: { heading: string; gaps: HarnessGap[] })
 // nothing about the test reaches the board, the runs panel, or a card.
 function ConnectionTester({
   agentLabel,
+  runtime,
   unsavedPick,
   disabled,
   onResult,
 }: {
   agentLabel: string;
+  /** The runtime to spawn (#344). Absent tests the board's global one, which is what
+   *  setup's own step is about. */
+  runtime?: string;
   // A provider is picked but not written yet, so the saved setup isn't the one
   // on screen and a test now would answer a question nobody asked.
   unsavedPick: boolean;
@@ -833,7 +937,7 @@ function ConnectionTester({
     setRunning(true);
     setResult(null);
     try {
-      setResult(await testConnectionAction());
+      setResult(await testConnectionAction(runtime));
     } catch (e) {
       // The action doesn't throw for anything the test itself hit — this is the
       // call not getting there (the server went away mid-test). Shown the same
@@ -1022,11 +1126,15 @@ function ProviderField({
 // The typed key lives here only until the save comes back, and then it's gone.
 function SecretField({
   setting,
+  note,
   isSet,
   disabled,
   onSave,
 }: {
   setting: HarnessSetting;
+  /** One more line under the help — on a runtime, that the key is the BOARD's and shared
+   *  by every runtime on this harness (#344). */
+  note?: string;
   // Whether docs/kanban/.env holds this key right now — the whole of what the
   // server tells us about a saved one. A key written into that file by hand
   // shows up here the same as one typed in the dialog.
@@ -1057,7 +1165,16 @@ function SecretField({
   };
 
   return (
-    <Field id={id} label={setting.label} help={<p>{setting.help}</p>}>
+    <Field
+      id={id}
+      label={setting.label}
+      help={
+        <>
+          <p>{setting.help}</p>
+          {note && <p>{note}</p>}
+        </>
+      }
+    >
       {typing ? (
         <div className="flex items-center gap-2">
           <input

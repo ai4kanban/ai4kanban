@@ -144,13 +144,32 @@ export interface BoardRules {
 
   // the agent, and what it is set to
   agentInfo(): AgentInfo;
-  activeSettings(): HarnessSetting[];
-  settingSaveError(key: string, value: string): string | null;
+  /** `ask` names the harness the settings are read against (#343): the board's own by
+   *  default, or the one a runtime is bound to on this computer. A copy of the rules from
+   *  before runtimes ignores it and answers for the board's, which is what it always did. */
+  activeSettings(ask?: { runtime?: string; board?: boolean }): HarnessSetting[];
+  settingSaveError(
+    key: string,
+    value: string,
+    ask?: { runtime?: string; board?: boolean },
+  ): string | null;
   setupInstruction(): string;
   setHarness(name: string): WriteResult;
   setHarnessSetting(key: string, value: string): WriteResult;
   setSecret(name: string, value: string): WriteResult;
-  testConnection(): Promise<ConnectionTest>;
+  /** Named a runtime, the test spawns what THAT runtime resolves to here (#343). */
+  testConnection(runtime?: string): Promise<ConnectionTest>;
+
+  // the runtimes (#343, #344) — the board names them, this computer says what each one
+  // runs as. Optional: a project can be running rules older than the release that added
+  // them, and Configuration → Runtimes then draws the board's own harness alone.
+  addRuntime?(name: string): WriteResult;
+  removeRuntime?(name: string): WriteResult;
+  renameRuntime?(from: string, to: string): WriteResult;
+  setGlobalRuntime?(name: string): WriteResult;
+  bindRuntime?(runtime: string, harness: string): WriteResult;
+  setBindingSetting?(runtime: string, key: string, value: string): WriteResult;
+  unbindRuntime?(runtime: string): WriteResult;
 
   // the board, read
   readBoard(): Promise<Board>;

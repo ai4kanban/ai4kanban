@@ -24,8 +24,12 @@ export interface Machine {
 const machineFile = (): string => path.join(machineHome(), 'machine.json')
 
 /** The name to show. `os.hostname()` on its own carries the mDNS suffix on macOS, which is
- *  noise in a sentence naming the machine that holds a board. */
-function hostname(): string {
+ *  noise in a sentence naming the machine that holds a board.
+ *
+ *  Exported because a screen naming this computer — Configuration → Runtimes (#344) — wants
+ *  the name and nothing else. Reading it mints no identity: a pane that drew one would
+ *  write a file into `~/.ai4kanban` for a board that never signed in to Cloud. */
+export function machineName(): string {
   const raw = os.hostname().trim()
   return raw.replace(/\.local$/i, '') || 'this machine'
 }
@@ -41,7 +45,7 @@ export function thisMachine(): Machine | null {
   try {
     const held = JSON.parse(fs.readFileSync(machineFile(), 'utf8')) as Partial<Machine>
     if (typeof held.id === 'string' && held.id) {
-      const name = hostname()
+      const name = machineName()
       // The hostname a laptop is renamed to is the name the board should show. Rewritten
       // here rather than left to go stale, and never the id.
       if (held.name !== name) write({ id: held.id, name })
@@ -50,7 +54,7 @@ export function thisMachine(): Machine | null {
   } catch {
     // Never written, or damaged. Either way the next line writes one.
   }
-  const fresh: Machine = { id: crypto.randomUUID(), name: hostname() }
+  const fresh: Machine = { id: crypto.randomUUID(), name: machineName() }
   return write(fresh) ? fresh : null
 }
 

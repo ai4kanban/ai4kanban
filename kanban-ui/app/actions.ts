@@ -47,6 +47,15 @@ import {
 } from "@/lib/cloud";
 import { setMachineLanguage } from "@/lib/language";
 import {
+  addRuntime,
+  bindRuntime,
+  removeRuntime,
+  renameRuntime,
+  setBindingSetting,
+  setGlobalRuntime,
+  unbindRuntime,
+} from "@/lib/runtimes";
+import {
   boardNotifications,
   cancelCloudRequest,
   notificationCenter,
@@ -811,8 +820,153 @@ export async function setHarnessSecretAction(key: string, value: string): Promis
 //
 // It touches no card, holds no lock and starts no session. It never throws either: every
 // way it can go wrong is a result the panel shows.
-export async function testConnectionAction(): Promise<ConnectionTest> {
-  return testConnection();
+export async function testConnectionAction(runtime?: string): Promise<ConnectionTest> {
+  // Named a runtime, it spawns what THAT runtime resolves to here (#344) — the runtime whose
+  // pane the button is on, never the board's global one.
+  return testConnection(typeof runtime === "string" && runtime ? runtime : undefined);
+}
+
+// --- the runtimes (#344) ------------------------------------------------------
+// Configuration → Runtimes. Two halves and two files: the board names its runtimes in
+// docs/kanban/ui.config.json, and this computer says what each one runs as in
+// ~/.ai4kanban/runtimes.json. Every write here goes through the CLI, so a terminal `akb
+// agent` and this pane are one writer with one set of rules.
+//
+// Each one answers with the whole agent setting as it now reads, because a runtime move
+// changes more than the row it was made on: a removal moves the flows that named it, a
+// rename carries them, and a bind changes what the list says the runtime runs as.
+
+/** What one runtime is named by, before it is removed — the flows and spec agents that would
+ *  be moved onto the board's global one. Both lists come from the board's own answer, so the
+ *  pane keeps no list of its own. */
+export async function runtimeUsersAction(
+  name: string,
+): Promise<{ flows: string[]; specAgents: string[] }> {
+  const blank = { flows: [], specAgents: [] };
+  if (typeof name !== "string" || !name) return blank;
+  try {
+    const info = await agentInfo();
+    const agents = await specAgents().catch(() => []);
+    return {
+      flows: info.flows.filter((f) => f.runtime === name).map((f) => f.command),
+      specAgents: (agents ?? []).filter((a) => a.runtime === name).map((a) => a.name),
+    };
+  } catch {
+    // Nothing to read them with. The removal itself still says whether it worked, and a
+    // warning that can't be built is not a reason to refuse one.
+    return blank;
+  }
+}
+
+export async function addRuntimeAction(name: string): Promise<WriteResult & { agent?: AgentInfo }> {
+  return runtimeMove(() => addRuntime(String(name ?? "").trim()));
+}
+
+export async function removeRuntimeAction(
+  name: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  return runtimeMove(() => removeRuntime(String(name ?? "").trim()));
+}
+
+export async function renameRuntimeAction(
+  from: string,
+  to: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  return runtimeMove(() => renameRuntime(String(from ?? "").trim(), String(to ?? "").trim()));
+}
+
+export async function setGlobalRuntimeAction(
+  name: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  return runtimeMove(() => setGlobalRuntime(String(name ?? "").trim()));
+}
+
+/** Bind a runtime on THIS computer. The harness is checked against the ones this build
+ *  ships, so a stale client can't bind a name nothing can run. */
+export async function bindRuntimeAction(
+  runtime: string,
+  harness: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  if (typeof runtime !== "string" || typeof harness !== "string") {
+    return { ok: false, error: "a binding names a runtime and an agent" };
+  }
+  const info = await agentInfo().catch(() => null);
+  if (!info?.runtimes.some((r) => r.name === runtime)) {
+    return { ok: false, error: `no runtime called "${runtime}" on this board` };
+  }
+  // The agents this build runs are the CLI's list, not a copy kept here, so a stale client
+  // can't bind a name nothing can spawn.
+  if (!info.options.some((o) => o.name === harness)) {
+    return { ok: false, error: `unknown agent "${harness}"` };
+  }
+  return runtimeMove(() => bindRuntime(runtime, harness));
+}
+
+/** Drop this computer's binding, so the runtime falls back again. */
+export async function unbindRuntimeAction(
+  runtime: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  if (typeof runtime !== "string" || !runtime) return { ok: false, error: "that names no runtime" };
+  return runtimeMove(() => unbindRuntime(runtime));
+}
+
+/** Save one of the bound harness's settings on this computer. Judged against the harness THAT
+ *  runtime is bound to, never the board's picked one — a value Codex refuses must not be
+ *  saved against Claude Code's rules. */
+export async function setRuntimeSettingAction(
+  runtime: string,
+  key: string,
+  value: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  if (typeof runtime !== "string" || typeof key !== "string" || typeof value !== "string") {
+    return { ok: false, error: "a setting is saved as text" };
+  }
+  const setting = (await activeSettings(runtime)).find((s) => s.key === key);
+  if (!setting) return { ok: false, error: `that runtime's agent has no "${key}" setting` };
+  // A key never goes near a binding: ~/.ai4kanban/runtimes.json would be a second place for
+  // one, and the board already has exactly one (#94).
+  if (setting.kind === "secret") {
+    return { ok: false, error: `"${setting.label}" is a key — it saves to docs/kanban/.env` };
+  }
+  const next = value.trim();
+  if (setting.kind === "select" && next && !setting.choices?.some((c) => c.value === next)) {
+    return { ok: false, error: `"${next}" isn't one of the ${setting.label} choices` };
+  }
+  const wrong = await settingSaveError(key, next, runtime);
+  if (wrong) return { ok: false, error: wrong };
+  return runtimeMove(() => setBindingSetting(runtime, key, next));
+}
+
+/** Save one of the bound harness's keys. It goes to docs/kanban/.env exactly as the board's
+ *  own does, so two runtimes on one harness share one key — a binding is this machine's file
+ *  and a key was never in it. */
+export async function setRuntimeSecretAction(
+  runtime: string,
+  key: string,
+  value: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  if (typeof runtime !== "string" || typeof key !== "string" || typeof value !== "string") {
+    return { ok: false, error: "a key is saved as text" };
+  }
+  const setting = (await activeSettings(runtime)).find((s) => s.key === key);
+  if (!setting || setting.kind !== "secret" || !setting.env) {
+    return { ok: false, error: `that runtime's agent has no "${key}" key` };
+  }
+  return runtimeMove(() => setSecret(setting.env!, value));
+}
+
+// One move, and the whole setting as it now reads. A failure answers with the reason and no
+// setting, so the pane puts the row it moved back exactly as it was.
+async function runtimeMove(
+  move: () => Promise<WriteResult>,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  try {
+    const res = await move();
+    if (!res.ok) return res;
+    return { ok: true, agent: await agentInfo().catch(() => undefined) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 // --- the spec agents (#191) ---------------------------------------------------

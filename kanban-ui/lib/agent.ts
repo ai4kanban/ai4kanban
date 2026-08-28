@@ -43,20 +43,30 @@ export const NO_AGENT: AgentInfo = {
   ignored: [],
   options: [],
   runtimes: [],
+  namedRuntimes: false,
   globalRuntime: "",
+  machine: "",
   flows: [],
 };
 
-/** The settings the picked agent declares — the only keys a save is allowed to write. */
-export async function activeSettings(): Promise<HarnessSetting[]> {
+/** The settings one harness declares — the only keys a save is allowed to write. With no
+ *  runtime named it is the board's own pick; named one, the harness THAT runtime is bound
+ *  to on this computer (#344), so a runtime on Codex is judged by Codex's rules. */
+export async function activeSettings(runtime?: string): Promise<HarnessSetting[]> {
   const rules = await boardRules();
-  return rules.activeSettings() as unknown as HarnessSetting[];
+  const ask = runtime ? { runtime } : { board: true };
+  return rules.activeSettings(ask) as unknown as HarnessSetting[];
 }
 
-/** Why this setting can't be saved with this value, or null when it can. */
-export async function settingSaveError(key: string, value: string): Promise<string | null> {
+/** Why this setting can't be saved with this value, or null when it can. Judged against the
+ *  same harness `activeSettings` reads. */
+export async function settingSaveError(
+  key: string,
+  value: string,
+  runtime?: string,
+): Promise<string | null> {
   const rules = await boardRules();
-  return rules.settingSaveError(key, value);
+  return rules.settingSaveError(key, value, runtime ? { runtime } : { board: true });
 }
 
 /** What one board action says to the agent. */
