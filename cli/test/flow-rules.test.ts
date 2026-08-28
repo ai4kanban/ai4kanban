@@ -151,6 +151,21 @@ describe('the prompt', () => {
     assert.match(guide, /Never approve a deviation here/)
   })
 
+  it('keeps implementation discoveries off the board', () => {
+    const guide = findGuide('review')!.text
+    const prompt = buildPrompt({ action: 'review', id: 1, title: 'card one' })
+    assert.match(guide, /Review never creates or updates another card/)
+    assert.match(guide, /Drop unrelated implementation\s+discoveries/)
+    assert.doesNotMatch(prompt, /create or update a separate card/)
+  })
+
+  it('makes the latest target authoritative in a conflict and reviews the result', () => {
+    const guide = findGuide('conflict')!.text
+    assert.match(guide, /target branch as the authoritative current implementation/)
+    assert.match(guide, /Do not create or update cards/)
+    assert.match(guide, /Review follows the completed rebase/)
+  })
+
   it('runs post-answer QA in the resolver session', () => {
     const prompt = buildPrompt({ action: 'resolve', id: 1, notes: 'Use A.' })
     assert.match(prompt, /akb guide resolve/)

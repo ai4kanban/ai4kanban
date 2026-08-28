@@ -2,9 +2,9 @@
 //
 // Review passes and the work is still on the delivery's own branch. Landing is the last
 // step, and it is the BOARD's own work — no run does it. The branch is squashed to one
-// commit, rebased onto the target branch's tip when that has moved, and the target branch
-// is moved to it. Review happens in the worktree and nowhere else: a rebase keeps the
-// verdict that already passed, and only resolving a conflict costs an agent session.
+// commit, rebased onto the target branch's tip when that has moved, reviewed there, and the
+// target branch is moved to it. A review only authorizes the exact tree it judged: every
+// rebase, including one whose conflict an agent resolved, goes through review again.
 //
 // One card lands at a time. The slot is held on the delivery record rather than in a lock:
 // a landing can span a whole review run, and the board's own lock is held for the
@@ -82,7 +82,7 @@ function takeSlot(skip: Set<string>, held: Set<string>): DeliveryRecord | undefi
   return withStore((store) => {
     const holder = store.deliveries.find((d) => d.status === 'active' && d.landing?.status === 'landing')
     if (holder) {
-      if (skip.has(holder.deliveryId) || held.has(holder.deliveryId)) return undefined
+      if (skip.has(holder.deliveryId) || held.has(holder.deliveryId) || holder.review?.stopped) return undefined
       // Its own run is working — a re-review, or the agent resolving a conflict. The
       // landing carries on when that run ends.
       if (store.runs.some((r) => r.status === 'running' && r.deliveryId === holder.deliveryId)) return undefined
@@ -303,7 +303,7 @@ async function owedRestart(): Promise<AgentRequest | null> {
 // ---- one pass ---------------------------------------------------------------
 
 /** Move the landing queue on by one step, and hand back the run it wants started — the
- *  agent that resolves a conflict, which is the only run a landing ever needs.
+ *  conflict resolution and the review of every rebased result.
  *
  *  Called by the watcher of every run that closes, by `nextWork()` each tick so a
  *  waiter nothing handed off to is still picked up, and once as a board comes up. It never
@@ -468,9 +468,9 @@ function warnOverlap(delivery: DeliveryRecord): void {
 
 // ---- the target branch moved ------------------------------------------------
 
-// Rebase the one squash commit onto the target's new tip. No review follows it: review is
-// the worktree's job, and a replay of a reviewed patch does not reopen the verdict. Only a
-// conflict costs an agent, and that agent resolves the conflict rather than re-reviewing.
+// Rebase the one squash commit onto the target's new tip. The result always goes back
+// through review: the target is the current implementation, and a verdict on the old tree
+// cannot authorize the composition Git or a conflict agent made with it.
 async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: string): Promise<Step> {
   const spent = delivery.landing?.attempts ?? 0
   if (spent >= MAX_LAND_ATTEMPTS) {
@@ -501,9 +501,9 @@ async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: s
   return await afterRebase(delivery, target)
 }
 
-// The rebase landed. The tip it was rebased onto becomes the delivery's base — the same
-// field, so the diff the card shows is still everything this delivery changed — and the
-// landing carries straight on with the verdict it already had.
+// The rebase completed. Its target becomes the delivery's base — the same field, so review
+// sees everything this delivery changes against the current implementation. Hold the slot
+// while a fresh review judges that exact tree; opening the run clears the stop.
 async function afterRebase(delivery: DeliveryRecord, target: string): Promise<Step> {
   const at = Date.now()
   withStore((store) => {
@@ -516,10 +516,17 @@ async function afterRebase(delivery: DeliveryRecord, target: string): Promise<St
     landing.rebasedAt = at
     landing.why = undefined
     landing.at = at
+    reviewOf(live).stopped = {
+      reason: 'landing',
+      why: `${delivery.targetBranch} moved, so the rebased result must be reviewed before it lands`,
+      at,
+    }
   })
   syncAudit(delivery.deliveryId)
   const live = readStore().deliveries.find((d) => d.deliveryId === delivery.deliveryId)
-  return live && live.status === 'active' ? await landStep(live) : { done: true }
+  return live && live.status === 'active'
+    ? { start: { action: 'review', id: live.cardId, title: live.title } }
+    : { done: true }
 }
 
 // ---- a conflict is new work -------------------------------------------------
@@ -542,7 +549,7 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
   const left = conflictedPaths(dir)
   const done = left.length ? { ok: false, why: `${names(left)} ${are(left.length)} still conflicted` } : continueRebase(dir)
   if (done.ok && !rebaseInProgress(dir)) {
-    return await afterRebase(delivery, branchTip(delivery.targetBranch!) ?? delivery.base!)
+    return await afterRebase(delivery, delivery.landing?.onto ?? delivery.base!)
   }
   abortRebase(dir)
   const why =

@@ -94,12 +94,7 @@ async function end(sessionId: string, status: 'done' | 'error' = 'done'): Promis
   await closeRun(sessionId, { status, ok: status === 'done', code: 0 })
 }
 
-// Build a card and pass its review: everything that happens before a landing.
-async function reviewed(id: number, title: string, text: string): Promise<DeliveryRecord> {
-  const built = run('implement', id, title)
-  const delivery = activeDelivery(id)!
-  fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), text)
-  await end(built)
+async function passReview(id: number, title: string): Promise<void> {
   const review = run('review', id, title)
   process.env[RUN_ENV] = review
   try {
@@ -108,6 +103,15 @@ async function reviewed(id: number, title: string, text: string): Promise<Delive
     delete process.env[RUN_ENV]
   }
   await end(review)
+}
+
+// Build a card and pass its review: everything that happens before a landing.
+async function reviewed(id: number, title: string, text: string): Promise<DeliveryRecord> {
+  const built = run('implement', id, title)
+  const delivery = activeDelivery(id)!
+  fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), text)
+  await end(built)
+  await passReview(id, title)
   return delivery
 }
 
@@ -221,7 +225,7 @@ describe('what cancels an approval', () => {
     assert.match(live(delivery.deliveryId).landing?.why ?? '', /held on your approval/)
   })
 
-  it('the base moving cancels approval even though the rebase keeps its review', async () => {
+  it('the base moving requires a new review and cancels approval', async () => {
     const delivery = await reviewed(1, 'card one', 'one\n')
     await advanceLanding()
     approveDelivery(delivery.deliveryId, 'test')
@@ -232,9 +236,13 @@ describe('what cancels an approval', () => {
     git(['add', '-A'])
     git(['commit', '--quiet', '-m', 'someone else'])
 
-    // The rebase keeps its passed review, but not an approval of the old base.
+    // The rebase invalidates both judgments of the old tree: review runs again first,
+    // then the old-base approval is cancelled.
     const asked = await advanceLanding()
-    assert.equal(asked, null)
+    assert.equal(asked?.action, 'review')
+    assert.equal(asked?.id, 1)
+    await passReview(1, 'card one')
+    assert.equal(await advanceLanding(), null)
 
     // Nothing landed: the approval went with the base.
     assert.deepEqual(log(), ['someone else', 'start'])

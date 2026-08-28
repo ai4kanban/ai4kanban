@@ -530,7 +530,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         `${board} review-verdict ${req.id} --verdict pass|ask [--file <findings>] — the ONE way a review is recorded. Without it the delivery stops and asks the user, whatever you wrote in your last message`,
         'write each finding as `- **<short title>**: <the approved requirement or the changed code it concerns, and the evidence to act on it>` — the title is its identity, so the same mistake keeps the same one',
-        'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself and create or update a separate card for follow-up work',
+        'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself, drop unrelated implementation discoveries after noting them in the run log, and never create or update another card from review',
         `leave the card on the board — a pass is not the end of the delivery, and the board archives the card itself once the work has landed`,
       )
       break
@@ -551,17 +551,17 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       next.push(`${self} review ${req.id} --print — review and fix the resulting delivery`)
       break
     }
-    // Resolving the conflict a landing's rebase stopped on (#304). It is the only run
-    // that reads TWO cards: this one, and whatever is on the target branch it clashed with.
+    // Resolving the conflict a landing's rebase stopped on (#304). It reads this card's
+    // approved outcome and the newer target implementation it has to fit.
     case 'conflict': {
       facts.push(...approvedField(req.id!))
       facts.push(...workspaceField(req.id!))
       facts.push(...conflictField(req.id!))
       facts.push(...candidateField(req.id!))
       close.push(
-        'resolve every conflicted file so both sides survive — the other side is already on the target branch, and this card is what the approved copy above asks for',
-        '`git add` each file you resolved, and leave the rebase alone: the board runs `git rebase --continue` after this run and lands it — no review follows, so this run is the last look at the resolution',
-        'change nothing the conflict does not name, and change nothing on the card',
+        'treat the target branch as the current implementation; preserve it and replay only what the approved copy above requires',
+        '`git add` each file you resolved, and leave the rebase alone: the board runs `git rebase --continue`, then reviews the composed result before it lands',
+        'change nothing the conflict does not name, change nothing on the card, and create no cards or follow-up tasks',
       )
       break
     }

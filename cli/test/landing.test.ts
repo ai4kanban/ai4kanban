@@ -95,12 +95,7 @@ async function end(sessionId: string, status: 'done' | 'error' = 'done'): Promis
   await closeRun(sessionId, { status, ok: status === 'done', code: 0 })
 }
 
-// Build a card and pass its review: everything that happens before a landing.
-async function reviewed(id: number, title: string, text: string, file = 'shared.txt'): Promise<DeliveryRecord> {
-  const built = run('implement', id, title)
-  const delivery = activeDelivery(id)!
-  fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), file), text)
-  await end(built)
+async function passReview(id: number, title: string): Promise<string> {
   const review = run('review', id, title)
   process.env[RUN_ENV] = review
   try {
@@ -109,6 +104,16 @@ async function reviewed(id: number, title: string, text: string, file = 'shared.
     delete process.env[RUN_ENV]
   }
   await end(review)
+  return review
+}
+
+// Build a card and pass its review: everything that happens before a landing.
+async function reviewed(id: number, title: string, text: string, file = 'shared.txt'): Promise<DeliveryRecord> {
+  const built = run('implement', id, title)
+  const delivery = activeDelivery(id)!
+  fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), file), text)
+  await end(built)
+  await passReview(id, title)
   return delivery
 }
 
@@ -221,7 +226,7 @@ describe('a target branch that moved', () => {
     assert.equal(wants?.id, 2)
   })
 
-  it('keeps the passed review when a clean rebase touches different files', async () => {
+  it('reviews again when a clean rebase touches different files', async () => {
     const first = await reviewed(1, 'card one', 'one\n')
     // A second card that touches a different file rebases cleanly.
     const built = run('implement', 2, 'card two')
@@ -236,15 +241,22 @@ describe('a target branch that moved', () => {
 
     const wants = await advanceLanding()
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
-    assert.equal(wants, null)
+    assert.equal(wants?.action, 'review')
+    assert.equal(wants?.id, 2)
+    // If the caller dies before starting that review, another landing tick cannot reuse
+    // the verdict from before the rebase.
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(second.deliveryId)?.status, 'landing')
+    await passReview(2, 'card two')
+    assert.equal(await advanceLanding(), null)
     const landing = landingOf(second.deliveryId)!
     assert.equal(landing.status, 'landed')
     assert.equal(landing.attempts, 1)
     assert.deepEqual(log(), ['card two (#2)', 'card one (#1)', 'start'])
-    assert.equal(landing.checks?.length, 1)
+    assert.equal(landing.checks?.length, 2)
   })
 
-  it('asks for no review when a clean rebase touches the same file', async () => {
+  it('reviews again when a clean rebase touches the same file', async () => {
     const base = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`)
     const firstText = [...base]
     firstText[1] = 'first changed this'
@@ -253,14 +265,17 @@ describe('a target branch that moved', () => {
     await reviewed(1, 'card one', `${firstText.join('\n')}\n`, 'mergeable.txt')
     const second = await reviewed(2, 'card two', `${secondText.join('\n')}\n`, 'mergeable.txt')
 
-    // The rebase merges both edits and the landing carries straight on: review happened in
-    // the worktree, and nothing after the rebase reopens it.
+    // Git composes both edits, then review judges the composed tree before it lands.
+    const wants = await advanceLanding()
+    assert.equal(wants?.action, 'review')
+    assert.equal(wants?.id, 2)
+    await passReview(2, 'card two')
     assert.equal(await advanceLanding(), null)
     const landing = landingOf(second.deliveryId)!
     assert.equal(landing.status, 'landed')
     assert.equal(landing.attempts, 1)
     assert.deepEqual(log(), ['card two (#2)', 'card one (#1)', 'start'])
-    assert.equal(landing.checks?.length, 1)
+    assert.equal(landing.checks?.length, 2)
   })
 
   it('hands over rather than looping when the target keeps moving', async () => {
@@ -283,7 +298,7 @@ describe('a target branch that moved', () => {
 })
 
 describe('a conflict', () => {
-  it('is resolved by a session, finished by the board, and landed with no review after it', async () => {
+  it('is resolved by a session and reviewed again before landing', async () => {
     const first = await reviewed(1, 'card one', 'one\n')
     const second = await reviewed(2, 'card two', 'two\n')
     assert.equal((await advanceLanding())?.action, 'conflict')
@@ -294,9 +309,13 @@ describe('a conflict', () => {
     git(['add', 'shared.txt'], dir)
     await end(session)
 
-    // The board finishes the rebase and lands it in the same pass.
-    assert.equal(await advanceLanding(), null)
+    // The board finishes the rebase, then reviews the composed tree before landing it.
+    const wants = await advanceLanding()
+    assert.equal(wants?.action, 'review')
+    assert.equal(wants?.id, 2)
     assert.equal(rebaseInProgress(dir), false)
+    await passReview(2, 'card two')
+    assert.equal(await advanceLanding(), null)
 
 
     assert.deepEqual(log(), ['card two (#2)', 'card one (#1)', 'start'])

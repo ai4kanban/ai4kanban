@@ -107,13 +107,7 @@ async function end(sessionId: string, status: 'done' | 'error' = 'done'): Promis
   await closeRun(sessionId, { status, ok: status === 'done', code: 0 })
 }
 
-// Build a card and pass its review — everything one click does before landing.
-async function reviewed(id: number, title: string, text: string, file = 'shared.txt'): Promise<DeliveryRecord> {
-  const built = run('implement', id, title)
-  const delivery = activeDelivery(id)!
-  // Auto mode builds in a worktree of its own; manual mode is the user's own checkout.
-  fs.writeFileSync(path.join(delivery.worktree ? worktreeDir(delivery.worktree) : root, file), text)
-  await end(built)
+async function passReview(id: number, title: string): Promise<void> {
   const review = run('review', id, title)
   process.env[RUN_ENV] = review
   try {
@@ -122,6 +116,16 @@ async function reviewed(id: number, title: string, text: string, file = 'shared.
     delete process.env[RUN_ENV]
   }
   await end(review)
+}
+
+// Build a card and pass its review — everything one click does before landing.
+async function reviewed(id: number, title: string, text: string, file = 'shared.txt'): Promise<DeliveryRecord> {
+  const built = run('implement', id, title)
+  const delivery = activeDelivery(id)!
+  // Auto mode builds in a worktree of its own; manual mode is the user's own checkout.
+  fs.writeFileSync(path.join(delivery.worktree ? worktreeDir(delivery.worktree) : root, file), text)
+  await end(built)
+  await passReview(id, title)
   return delivery
 }
 
@@ -193,7 +197,10 @@ describe('a card with an open question', () => {
     // Answered — the same delivery carries on, with no second click.
     fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
     assert.equal(openQuestions(1), 0)
-    // No review follows a landing rebase, so the pass lands it on its own.
+    const wants = await advanceLanding()
+    assert.equal(wants?.action, 'review')
+    assert.equal(wants?.id, 1)
+    await passReview(1, 'card one')
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(held.deliveryId)?.status, 'landed')
     assert.equal(archived(1), true)

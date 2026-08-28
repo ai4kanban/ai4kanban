@@ -299,8 +299,8 @@ export async function watchRun(sessionId: string): Promise<number> {
       // read from the record the close just wrote, so it is taken once and started once.
       const carryOn = deliveryRunAfter(record)
       // Then the landing queue (#304): a delivery review has just passed takes the slot and
-      // lands here, and what it hands back is the run that landing wants — the agent that
-      // resolves a conflict.
+      // lands here, and what it hands back is the run that landing wants — conflict
+      // resolution or review of a rebased result.
       const landing = await advanceLanding()
       followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing)
       resolve(status === 'done' ? 0 : 1)
