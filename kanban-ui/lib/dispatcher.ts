@@ -34,8 +34,20 @@ async function tick(): Promise<void> {
     const rules = await boardRules();
     for (const req of await rules.nextWork()) {
       // Each start is independently refused-or-not by the run record's own rules; a refusal
-      // on one card is not a reason to skip the rest.
-      await startSession(req, rules.buildPrompt(req));
+      // on one card is not a reason to skip the rest — nor to fail the whole tick, which is
+      // what an unprompted `buildPrompt` throw would otherwise do to the requests after it.
+      //
+      // A refusal is SAID. Nobody asked for these runs, so nobody is watching for one to be
+      // turned down: work the board decided to start and could not would otherwise vanish
+      // without a line anywhere (#307).
+      try {
+        const started = await startSession(req, rules.buildPrompt(req));
+        if (!started.ok) {
+          console.warn(`ai4kanban: the board could not start ${req.action} on #${req.id}: ${started.error}`);
+        }
+      } catch (e) {
+        console.warn(`ai4kanban: the board could not start ${req.action} on #${req.id}: ${String(e)}`);
+      }
     }
   } catch {
     // swallow — keep the timer alive for the next tick

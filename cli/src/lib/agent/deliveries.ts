@@ -202,8 +202,8 @@ function cardMeta(cardId: number): ReturnType<typeof parseFrontmatter>['meta'] |
   }
 }
 
-// The card's stage as it stands, or `todo` when there is no reading it.
-const cardStatus = (cardId: number): string => cardMeta(cardId)?.status || 'todo'
+/** The card's stage as it stands, or `todo` when there is no reading it. */
+export const cardStatus = (cardId: number): string => cardMeta(cardId)?.status || 'todo'
 
 /** How many questions this card still has open — the count landing holds on (#307), and the
  *  one the Implement dialog and `akb implement` warn about. A card nobody can read has

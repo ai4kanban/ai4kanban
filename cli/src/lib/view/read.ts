@@ -295,14 +295,13 @@ function cardApproval(live: DeliveryRecord): CardApproval | undefined {
 
 // The delivery this one replaced (#307): the newest ended delivery on this card that the
 // landing queue superseded, when it ended before this one started. Read from the steps
-// rather than from a field of its own — a delivery the user cancelled ends without that
-// step, and reads as what it was.
+// rather than from a field of its own — a delivery the user cancelled carries no such step,
+// and reads as what it was.
 function supersededBy(cardId: number, live: DeliveryRecord): string | undefined {
   const before = listDeliveries()
     .filter((d) => d.cardId === cardId && d.status !== 'active' && (d.endedAt ?? 0) <= live.startedAt)
     .pop()
-  const last = before?.steps[before.steps.length - 1]
-  return last?.step === 'superseded' ? before!.deliveryId : undefined
+  return before?.steps.some((s) => s.step === 'superseded') ? before.deliveryId : undefined
 }
 
 // The delivery that landed and left the card behind (#307). Normally there is nothing to

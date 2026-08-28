@@ -22,7 +22,7 @@ import { activeDelivery, listDeliveries, openQuestions } from '../src/lib/agent/
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { advanceLanding } from '../src/lib/agent/landing.ts'
 import { deliveryState } from '../src/lib/agent/pause.ts'
-import { claimCard, closeRun, openRun, peekRun, stopRun } from '../src/lib/agent/sessions.ts'
+import { claimCard, closeRun, discardDelivery, openRun, peekRun, stopRun } from '../src/lib/agent/sessions.ts'
 import { setAutoCommit } from '../src/lib/agent/settings.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { AgentAction, DeliveryRecord } from '../src/lib/agent/types.ts'
@@ -34,14 +34,20 @@ import { findCard } from '../src/lib/view/read.ts'
 
 let root = ''
 
-const cardText = (id: number, title: string, questions: string[] = [], scope = 'a requirement'): string =>
+const cardText = (
+  id: number,
+  title: string,
+  questions: string[] = [],
+  scope = 'a requirement',
+  status = 'ready',
+): string =>
   [
     '---',
     `title: ${title}`,
     'track: features',
     'priority: med',
     'roi: med',
-    'status: ready',
+    `status: ${status}`,
     'release: ""',
     'blocked_by: []',
     'related: []',
@@ -126,6 +132,13 @@ const log = (ref = 'main'): string[] => git(['log', '--format=%s', ref]).split('
 
 const archived = (id: number): boolean =>
   fs.existsSync(path.join(root, 'docs', 'kanban', '.archive', `${id}-card.md`))
+
+const setStatus = (id: number, status: string): void =>
+  fs.writeFileSync(cardPath(id), fs.readFileSync(cardPath(id), 'utf8').replace(/^status: .*$/m, `status: ${status}`))
+
+// The card as it reads once the question has been answered and the answer moved the plan.
+const answered = (id: number, scope: string, status = 'ready'): void =>
+  fs.writeFileSync(cardPath(id), cardText(id, 'card one', [], scope, status))
 
 describe('completion is the last step', () => {
   it('leaves the card on the board while review passes, and archives it once it has landed', async () => {
@@ -214,6 +227,59 @@ describe('an answer that changed the plan', () => {
     // Nothing landed, and the card is still on the board for the fresh delivery to build.
     assert.deepEqual(log(), ['start'])
     assert.equal(fs.existsSync(cardPath(1)), true)
+  })
+
+  it('hands the card back to the stage it had, so nothing rests at implementing', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+
+    // The delivery put `implementing` on the card, the way its first run does.
+    setStatus(1, 'implementing')
+    answered(1, 'a different requirement', 'implementing')
+    await advanceLanding()
+
+    // Back to `ready` — the stage the delivery found. A card left at `implementing` with no
+    // delivery on it is one nothing on the board would ever pick up.
+    assert.match(fs.readFileSync(cardPath(1), 'utf8'), /^status: ready$/m)
+
+    // And a card a supersede written down before the hand-back existed left stuck there is
+    // put back too, rather than needing a board command by hand.
+    setStatus(1, 'implementing')
+    await advanceLanding()
+    assert.match(fs.readFileSync(cardPath(1), 'utf8'), /^status: ready$/m)
+  })
+
+  it('offers the fresh delivery again until one actually starts', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+    answered(1, 'a different requirement')
+
+    const wants = { action: 'implement', id: 1, title: 'card one' }
+    assert.deepEqual(await advanceLanding(), wants)
+    // Nobody started it — a dirty checkout, a board that was closed, a refusal nobody read.
+    // The next pass asks again rather than losing the card.
+    assert.deepEqual(await advanceLanding(), wants)
+    assert.deepEqual(await advanceLanding(), wants)
+
+    // And stops the moment a delivery does open on the card.
+    const built = run('implement', 1, 'card one')
+    assert.equal(await advanceLanding(), null)
+    await end(built)
+    assert.equal(await advanceLanding(), null)
+  })
+
+  it('drops the fresh delivery when the user discards the superseded one instead', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    const first = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+    answered(1, 'a different requirement')
+    assert.deepEqual(await advanceLanding(), { action: 'implement', id: 1, title: 'card one' })
+
+    // Discard is the user asking for the card back — the board must not build it anyway.
+    assert.equal((await discardDelivery(first.deliveryId)).ok, true)
+    assert.equal(await advanceLanding(), null)
   })
 
   it('carries the same delivery on when the answer left the plan alone', async () => {

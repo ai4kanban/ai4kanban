@@ -14,6 +14,7 @@
 // squash is made in the delivery's own worktree, and the target branch is fast-forwarded
 // under them so their index and working tree follow it the way a `git pull` would.
 
+import { setCardStatusOn } from '../board'
 import { say } from '../io'
 import { REPO_ROOT } from '../paths'
 import { approvalStands, cancelApproval } from './approval'
@@ -21,6 +22,7 @@ import { boardCommand } from './command'
 import { completeCard } from './complete'
 import {
   approvedRequirements,
+  cardStatus,
   endDelivery,
   listDeliveries,
   openQuestions,
@@ -212,6 +214,9 @@ function holdForApproval(already: Set<string>): Set<string> {
 
 // ---- an answer that changed the plan (#307) ---------------------------------
 
+const hasStep = (delivery: DeliveryRecord, step: string): boolean =>
+  delivery.steps.some((s) => s.step === step)
+
 /** A delivery whose hold has just been answered, but whose card no longer says what it was
  *  approved to build. It ends here and a fresh delivery starts on the card as it now
  *  reads; the request is handed back for the caller to start.
@@ -219,8 +224,12 @@ function holdForApproval(already: Set<string>): Set<string> {
  *  Only ever asked of a delivery that was HELD on its card's questions and is not any more:
  *  answering is the one thing that rewrites a card under a delivery, so it is the one
  *  moment the copy can have moved. A card edited in the user's own editor while its code is
- *  being written still changes nothing — the delivery builds from its copy. */
-function supersededDelivery(held: Set<string>): AgentRequest | null {
+ *  being written still changes nothing — the delivery builds from its copy.
+ *
+ *  The card is handed back as it goes. The delivery put `implementing` there and nothing
+ *  else takes it off, so a card whose replacement does not start would otherwise rest at a
+ *  stage no run is working on. */
+async function supersededDelivery(held: Set<string>): Promise<AgentRequest | null> {
   for (const delivery of readStore().deliveries) {
     if (delivery.status !== 'active' || !wantsLanding(delivery)) continue
     if (!delivery.landing || delivery.landing.status === 'landed') continue
@@ -233,10 +242,59 @@ function supersededDelivery(held: Set<string>): AgentRequest | null {
       if (live) live.steps.push({ step: 'superseded', at: Date.now() })
     })
     endDelivery(delivery.deliveryId, 'cancelled')
+    await handBackCard(delivery)
     say(
       `delivery ${delivery.deliveryId} was approved to build a #${delivery.cardId} that has since changed — ` +
         `it ends here, and a fresh delivery starts on the card as it now reads.`,
     )
+    return { action: 'implement', id: delivery.cardId, title: delivery.title }
+  }
+  return null
+}
+
+// The stage the card had before this delivery took it, put back now that nothing is
+// building it. Best-effort, like every other card write a delivery's ending makes: the
+// delivery has ended either way, and a stage that would not take the write is one board
+// command away.
+async function handBackCard(delivery: DeliveryRecord): Promise<void> {
+  try {
+    await setCardStatusOn(delivery.cardId, delivery.priorStatus ?? 'todo')
+  } catch {
+    // the board would not take the write — leave the stage as it is
+  }
+}
+
+/** The card a superseded delivery still owes a fresh one to.
+ *
+ *  Superseding is two moves — end the old delivery, start a new one — and only the first is
+ *  the board's own. The second is a request handed to a caller, and every way that start can
+ *  be refused is a way the card is left at `ready` with nothing coming for it. So the debt
+ *  is DERIVED here rather than handed over once: every pass asks again until a delivery
+ *  actually opens, which makes a refused start cost a minute instead of the card.
+ *
+ *  It is paid by the next delivery on the card, whenever one starts, and written off when
+ *  the user discards the superseded delivery instead — that is them asking for the card
+ *  back, and the board must not quietly build it anyway.
+ *
+ *  The debt is the ended row, so it lives as long as that row does (KEEP_DELIVERIES). Every
+ *  pass retries, so it is normally paid in a minute; thirty deliveries ending inside that
+ *  minute would lose it. */
+async function owedRestart(): Promise<AgentRequest | null> {
+  const store = readStore()
+  for (const delivery of store.deliveries) {
+    if (!hasStep(delivery, 'superseded') || hasStep(delivery, 'dropped')) continue
+    // Paid: some delivery opened on this card after this one ended.
+    const paid = store.deliveries.some(
+      (d) => d.cardId === delivery.cardId && d.startedAt >= (delivery.endedAt ?? 0) && d.deliveryId !== delivery.deliveryId,
+    )
+    if (paid) continue
+    // A run is already working the card; a second one would be refused anyway.
+    if (store.runs.some((r) => r.status === 'running' && r.cardId === delivery.cardId)) continue
+    // And the card is still here to build — archived or rejected, the debt goes with it.
+    if (!approvedRequirements(delivery.cardId)) continue
+    // A card left at `implementing` by a supersede written down before the hand-back
+    // existed. Nothing else takes that stage off, so it is put back here.
+    if (cardStatus(delivery.cardId) === 'implementing') await handBackCard(delivery)
     return { action: 'implement', id: delivery.cardId, title: delivery.title }
   }
   return null
@@ -252,11 +310,16 @@ function supersededDelivery(held: Set<string>): AgentRequest | null {
  *  throws: a caller on a timer must survive an unreadable repository and try again. */
 export async function advanceLanding(): Promise<AgentRequest | null> {
   try {
-    // First the cards whose questions are still open, and the ones whose answers changed
+    // A supersede an earlier pass made and nothing ever started, before anything else: it
+    // is a card with no delivery and nobody coming for it, which is the worst state the
+    // queue can leave one in.
+    const owed = await owedRestart()
+    if (owed) return owed
+    // Then the cards whose questions are still open, and the ones whose answers changed
     // the plan (#307). Both are read from the card files, so both are settled once, before
     // the queue is touched.
     const held = holdForQuestions()
-    const fresh = supersededDelivery(held)
+    const fresh = await supersededDelivery(held)
     if (fresh) return fresh
     // Then the approval each delivery still owes (#308). After the superseded check, which
     // reads the `why` a question hold left behind.

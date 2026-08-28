@@ -869,6 +869,13 @@ export async function discardDelivery(id: string): Promise<{ ok: boolean; delive
     if (!live) return
     live.worktree = undefined
     live.branch = undefined
+    // A superseded delivery is owed a fresh one until one actually starts (#307). Discarding
+    // is the user asking for the card back, so the debt goes with the work rather than
+    // rebuilding a card they just took off the board.
+    const steps = live.steps.map((s) => s.step)
+    if (steps.includes('superseded') && !steps.includes('dropped')) {
+      live.steps.push({ step: 'dropped', at: Date.now() })
+    }
   })
   syncAudit(delivery.deliveryId)
   return { ok: true, deliveryId: delivery.deliveryId }
