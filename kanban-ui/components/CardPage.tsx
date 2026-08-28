@@ -1355,11 +1355,14 @@ export function CardPage({
   );
 
   // Start a non-blocking session. The per-card lock refusal comes back as an error.
+  // A start that works clears whatever the last one said — a refusal the user has since
+  // dealt with (committed the dirty files, waited out the lock) must not stay on screen
+  // over the run it was about.
   const runAgent = async (req: AgentReq, label: string) => {
     setDialog(null);
     const removes = req.action === "reject" || req.action === "archive";
     const res = await start(req, label, removes);
-    if (!res.ok) setError(res.error || c.toolbar.startFailed);
+    setError(res.ok ? null : res.error || c.toolbar.startFailed);
   };
 
   // Queue an action on this card instead of starting it (#140). The card keeps its stage and
@@ -1369,14 +1372,14 @@ export function CardPage({
   const scheduleAgent = async (action: ScheduledAction, notes: string) => {
     setDialog(null);
     const res = await scheduleCardAction(card.id, action, notes);
-    if (!res.ok) setError(res.error || c.toolbar.scheduleFailed);
-    else router.refresh();
+    setError(res.ok ? null : res.error || c.toolbar.scheduleFailed);
+    if (res.ok) router.refresh();
   };
 
   const unschedule = async () => {
     const res = await unscheduleCardAction(card.id);
-    if (!res.ok) setError(res.error || c.toolbar.unscheduleFailed);
-    else router.refresh();
+    setError(res.ok ? null : res.error || c.toolbar.unscheduleFailed);
+    if (res.ok) router.refresh();
   };
 
   const patchCard = async (id: number, patch: CardPatch) => {
@@ -1390,6 +1393,7 @@ export function CardPage({
       setError(e instanceof Error ? e.message : String(e));
       return false;
     }
+    setError(null);
     router.refresh();
     return true;
   };

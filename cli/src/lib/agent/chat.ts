@@ -24,6 +24,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type { Readable, Writable } from 'node:stream'
 
+import { locate } from '../cards'
+import { parseFrontmatter } from '../frontmatter'
 import { pidAlive } from '../lock'
 import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { ensureSkillInstalled } from '../skill/install'
@@ -201,12 +203,52 @@ function startAnswering(cardId: number | null): (() => void) | null {
 // ---- sending one message ---------------------------------------------------
 
 export interface SendOptions {
+  /** The card's title as the caller already has it, so the opening names the card rather
+   *  than only numbering it. Looked up here when it isn't given. */
+  title?: string
   /** The reply as it is written — this is what makes it arrive a piece at a time rather
    *  than all at once at the end. */
   onText?(chunk: string): void
   /** Handed a way to end the reply early, once the agent is running. What arrives before
    *  it is called is kept, the same as a reply that dies on its own. */
   onOpen?(stop: () => void): void
+}
+
+/** What one turn sends.
+ *
+ *  A fresh conversation opens with the skill call and what the conversation is about, then
+ *  the user's words. The subject is not optional: the skill call alone leaves "what is this
+ *  about?" reading as a question about the skill, and it gets answered as one.
+ *
+ *  Every turn after the first is the user's words alone — the skill, the subject and the
+ *  exchange are already in that agent's session. */
+export function chatPrompt(
+  cardId: number | null,
+  message: string,
+  opts: { resuming?: boolean; title?: string } = {},
+): string {
+  if (opts.resuming) return message
+  const title = opts.title ?? (cardId === null ? undefined : cardTitle(cardId))
+  const subject =
+    cardId === null
+      ? `This is a chat about this project's board.`
+      : `This is a chat about task #${cardId}${title ? ` ("${title}")` : ''} on this project's board. ` +
+        `Read the card before you answer, and take "it", "this" and "this task" to mean that card ` +
+        `unless I name another.`
+  return skillPrompt(`${subject}\n\n${message}`)
+}
+
+// The card's title, off its own file. Read here rather than through `titleOf` in
+// agent/sessions: that module reaches the board's writes, and `akb init` imports this one.
+function cardTitle(cardId: number): string | undefined {
+  try {
+    const found = locate(cardId)
+    if (!found) return undefined
+    const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+    return parseFrontmatter(fs.readFileSync(file, 'utf8')).meta?.title
+  } catch {
+    return undefined
+  }
 }
 
 /** Send one message and answer with the reply. Never throws: everything that can go wrong
@@ -244,14 +286,12 @@ export async function sendChatMessage(
     held.updatedAt = now
     writeChat(held)
 
-    // A fresh session is the configured harness's direct skill call and the user's words,
-    // nothing else. Every later turn is only the user's words; the skill and the exchange
-    // are already in that agent's session.
+    // A fresh session, or one more turn into the session the last message left open.
     const plan = held.resumeId ? planResume(held.harness, held.resumeId) : planRun(randomUUID())
     if (!plan) {
       return { error: `${agent.label} can't carry on a ${harnessLabel(held.harness)} conversation. Clear it to start fresh.` }
     }
-    const prompt = held.resumeId ? text : skillPrompt(text)
+    const prompt = chatPrompt(cardId, text, { resuming: Boolean(held.resumeId), title: options.title })
 
     const spoken = await speak({
       plan,
