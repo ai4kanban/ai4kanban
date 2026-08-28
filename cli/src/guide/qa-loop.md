@@ -16,8 +16,9 @@ one is allowed.
 4. Reconsider every open question, including `[user]`. Move manual checks to `verify:`, drop
    what is answered, duplicated, or unnecessary, and apply an answer when evidence supports
    one.
-5. Audit the updated plan's behavior, constraints, contracts, complete user flow, important
-   edge cases, and build steps. Keep new candidates in working notes, not on the card.
+5. Reconstruct the promised outcome from scratch. Test the updated plan with concrete
+   scenarios from each affected perspective, walking each from trigger to observable result.
+   Challenge every unstated assumption. Keep new candidates in working notes, not on the card.
 6. Apply every supported answer, consolidate related gaps, prune decision residue, and write
    only the surviving user decisions to the question list.
 7. If the card or its questions changed, restart at step 1 using the new card, but skip the
