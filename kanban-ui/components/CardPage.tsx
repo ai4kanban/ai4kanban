@@ -1896,7 +1896,6 @@ export function CardPage({
             {card.subtasks && card.subtasks.length > 0 && (
               <div className="nb-section bg-nb-sheet p-3.5">
                 <div className="nb-tag mb-2 w-full">
-                  <span style={{ color: "var(--color-nb-accent)" }}>●</span>
                   {c.subtasks.heading}
                   {/* What the chip under the cursor is. It replaces nothing and moves
                       nothing: the heading is one line whether it is here or not. */}
