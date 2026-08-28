@@ -20,7 +20,7 @@ import { advanceLanding } from '../agent/landing'
 import { refinementStep } from '../agent/refine'
 import { listRuns } from '../agent/sessions'
 import type { AgentRequest, RunView } from '../agent/types'
-import { readBoard } from './read'
+import { allCards } from './read'
 import { byDispatchOrder, scheduleWouldDoNothing } from './rules'
 import type { Card } from './types'
 
@@ -132,7 +132,9 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   let cards: Card[]
   try {
     runs = await listRuns()
-    cards = readBoard().columns.flatMap((c) => c.cards)
+    // Every card, subtasks included. The columns show a group as its root alone, so reading
+    // them would leave a scheduled subtask queued for good — nothing else ever starts one.
+    cards = allCards()
   } catch {
     return []
   }

@@ -21,6 +21,7 @@ import path from 'node:path'
 
 import { machineHome } from '../machine/home'
 import { notificationsSilenced } from '../machine/settings'
+import { REPO_ROOT } from '../paths'
 import { cloudBoardById, cloudBoardFor, namesBoards } from './boards'
 import { listEvents, readEvent } from './client'
 import { eventLabel, isOutcome, type CloudEvent, type CloudEventState } from './events'
@@ -227,10 +228,10 @@ const alert = (event: CloudEvent, kind: NotificationAlert['kind'], body: string)
 
 /** The rail's rows, newest change first, and the alerts waiting to be raised. Reading takes
  *  the alerts away: they are raised once or not at all. */
-export function readCloudCenter(root: string): NotificationCenter {
+export function readCloudCenter(): NotificationCenter {
   const held = state()
   const marks = reads()
-  const enabled = cloudBoardFor(root)
+  const enabled = cloudBoardFor(REPO_ROOT)
   const rows: NotificationRow[] = [...held.events.values()]
     .map((event) => {
       const board = cloudBoardById(event.boardId)
