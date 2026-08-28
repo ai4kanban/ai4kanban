@@ -17,6 +17,7 @@ const ja: SharedCopy = {
     recipes: "Recipes",
     blog: "Blog",
     comparisons: "Comparisons",
+    cloud: "Cloud",
     privacy: "Privacy",
     terms: "Terms",
     license: "Apache License 2.0",

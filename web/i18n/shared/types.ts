@@ -19,6 +19,8 @@ export type SharedCopy = {
     recipes: string;
     blog: string;
     comparisons: string;
+    /** The Cloud page. English-only, like the blog. */
+    cloud: string;
     /** The privacy page. English-only, like the blog. */
     privacy: string;
     /** The terms page. English-only, like the blog. */

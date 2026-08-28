@@ -83,6 +83,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
 
+  // The Cloud page, English-only and a route of its own — one page, so it is
+  // pushed here by hand rather than derived from a list.
+  entries.push({
+    url: `${BASE_URL}/cloud`,
+    lastModified: gitLastModified(...routeSources("/cloud", "en")),
+  });
+
   // The recipes, which are English-only. A recipe page comes out of the catalog
   // and its art.
   for (const route of recipeRoutes()) {

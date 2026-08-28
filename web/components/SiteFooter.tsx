@@ -19,8 +19,8 @@ export function SiteFooter({
 }) {
   const t = c.shared.footer;
 
-  // Recipes, the blog and the two legal pages are English-only, so those links
-  // keep their bare paths. The comparison pages do exist in every language —
+  // Recipes, the blog, the Cloud page and the two legal pages are English-only,
+  // so those links keep their bare paths. The comparison pages do exist in every language —
   // point at one of them rather than an index that isn't a route.
   const links = [
     { href: GITHUB_URL, label: t.github, external: true },
@@ -32,6 +32,7 @@ export function SiteFooter({
       label: t.comparisons,
       external: false,
     },
+    { href: "/cloud", label: t.cloud, external: false },
     { href: "/privacy", label: t.privacy, external: false },
     { href: "/terms", label: t.terms, external: false },
   ];
