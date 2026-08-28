@@ -26,7 +26,9 @@ All reusable colors are tokens in the `@theme` block of `app/globals.css`.
 | Token | Value | Role |
 | --- | --- | --- |
 | `--color-nb-cream` | `#f7f7f4` | page ground |
+| `--color-nb-canvas` | `#efeeeb` | the ground under a board of cards |
 | `--color-nb-paper` | `#ffffff` | cards, dialogs, and controls |
+| `--color-nb-sheet` | `#fbfaf7` | a card page's sections — cream's family, a rung lighter |
 | `--color-nb-wash` | `#f4f3ef` | headers, insets, and quiet regions |
 | `--color-nb-ink` | `#24231f` | text, outlines, and shadows |
 | `--color-nb-ink-soft` | `#565550` | metadata, captions, and resting icons |
@@ -37,6 +39,8 @@ All reusable colors are tokens in the `@theme` block of `app/globals.css`.
 | `--color-nb-sky` / `-soft` / `-ink` | `#7fb4e0` / `#e6f1fb` / `#2c5c86` | neutral facts |
 | `--color-nb-lilac` / `-soft` / `-ink` | `#b199e0` / `#efe9fb` / `#5a3f92` | grouping or schedules |
 | `--color-nb-peach` / `-soft` / `-ink` | `#ec9a72` / `#fbe9dd` / `#8a4a28` | blockers, warnings, or risk |
+| `--color-nb-accent-wash` | `#fbf0e9` | section ground: something to decide |
+| `--color-nb-mint-wash` | `#eff8f2` | section ground: work already done |
 
 - **Ration ember**: it marks the action to press or the activity happening now. It is
   not general decoration.
@@ -44,6 +48,12 @@ All reusable colors are tokens in the `@theme` block of `app/globals.css`.
   the board. Never choose one merely because it looks pleasing nearby.
 - **Pair every signal**: use the soft value as a fill and its matching ink for readable
   text. Use the saturated value for small non-text shapes and progress marks.
+- **Two fill strengths, one meaning**: `-soft` fills a chip or an alert — something you
+  read off it. `-wash` is a whole section's ground, quiet enough to carry body text.
+  Never use `-wash` for a chip or `-soft` for a section.
+- **A neutral fill is a step of ink, not a colour**: a chip that means nothing in
+  particular (`low`, no release, no cadence) fills with `ink 7%` over whatever is under
+  it. An opaque near-wash fill vanishes on every ground but paper.
 - **Prefer the neutral ramp**: cream, paper, and wash should carry ordinary hierarchy
   before color is introduced.
 - **Do not rely on color alone**: pair state colors with text, an icon, a count, or
@@ -67,6 +77,30 @@ shadow. Shadows never blur or change direction.
 - **Two hairline weights, both 1px**: ink at 12% for rules, dividers, and the frame of a
   quiet inset; ink at 25% for the frame of something you type in or press. A full-strength
   ink outline belongs to a raised block and nothing else.
+- **A reading page is sections, not blocks**: on a long page you scroll and read — the
+  card page — use `.nb-section`: 14px radius, no frame, no shadow, and a ground a clear
+  step of ink off the page's. A stack of framed blocks reads as a stack of boxes, not as
+  one page.
+- **A reading page is white, and its sections lift off it**: the page sets `nb-paper` and
+  every section is a light fill above it. Nothing is framed, so the ground is the whole of
+  the hierarchy.
+- **One ground, and colour only where a section MEANS something**: every section takes
+  `nb-sheet` — the run log, the meta box, the subtasks, the delivery block, the body. The
+  exceptions are `nb-mint-wash` for checks already done and `nb-accent-wash` for the one
+  section holding a decision; peach `-soft` is an alert, a rung louder than either. A page
+  that gives every block its own tint is a swatch sheet — the colours stop meaning anything.
+- **Prose never sits on a signal**: a body ground is read through every line of it, so it
+  stays in the warm neutral family. Signals are for the sections you glance at, not read.
+- **The body is one section, both halves of it**: the longest prose on the page must not
+  change ground halfway down. What parts a fold from what precedes it is its heading.
+- **A well is a rung below its own chrome**: a log body under its title bar goes one step
+  darker, never lighter and never paper — that step is what makes it read as recessed and
+  what gives the block a bottom edge on the page.
+- **Bands stacked together share their padding**: two sections one above the other are read
+  as a run, so their kickers start on the same line.
+- **Nothing inside a section draws ink**: rules between a section's chrome and its
+  content are hairlines, and a row inside one lifts by lightening to paper rather than by
+  throwing a hard shadow.
 
 ## Component styling
 

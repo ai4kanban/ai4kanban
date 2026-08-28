@@ -206,7 +206,7 @@ AI4Kanban Cloud — the account this MACHINE acts as
   cloud sign-out               forget it. This machine stops reaching Cloud, and
                                nothing on any board changes
 
-  A sign-in is started in the AI4Kanban app, under Configuration → Cloud, and nowhere
+  A sign-in is started in the AI4Kanban app, under Configuration → Notifications, and nowhere
   else: the consent screen opens in your own browser and comes back to the app. Once
   per machine — every \`${program}\` on it then acts as that account, because they read
   the one session the app wrote, outside every repository.

@@ -29,7 +29,7 @@
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiAlignLeft, FiCheck, FiCloud, FiGitBranch, FiGlobe, FiLink, FiSettings, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiAlignLeft, FiBell, FiCheck, FiGitBranch, FiGlobe, FiLink, FiSettings, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
   installedAgentsAction,
   setHarnessAction,
@@ -91,10 +91,11 @@ const SECTIONS: { id: Section; icon: IconType; apart?: boolean }[] = [
   { id: "rules", icon: FiAlignLeft },
   { id: "skill", icon: FiLink },
   // Below the rule, everything settles this MACHINE rather than this board (#326, #334):
-  // the language its reader reads in, and the person it signs in as. Both follow the person
-  // into every project the app has open, and neither is cloned with the repository.
+  // the language its reader reads in, and how work reaches the person it signs in as. Both
+  // follow the person into every project the app has open, and neither is cloned with the
+  // repository. **Notifications** is named for the job — Cloud is what carries it.
   { id: "language", icon: FiGlobe, apart: true },
-  { id: "cloud", icon: FiCloud },
+  { id: "cloud", icon: FiBell },
 ];
 
 // --- opening the dialog from elsewhere (#174) --------------------------------

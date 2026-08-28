@@ -135,7 +135,7 @@ export const renewClaim = (requestId: string, serverId: string): Promise<CloudCa
   send('POST', `/v1/requests/${encodeURIComponent(requestId)}/renew`, { serverId })
 
 // ---- the account's Slack destination (#320) ---------------------------------
-// One connection per account, made in Configuration → Cloud. Every call here is the signed-
+// One connection per account, made in Configuration → Notifications. Every call here is the signed-
 // in machine talking about its own account; the presses that come back the other way are
 // Slack's own request to the service and never touch this board.
 

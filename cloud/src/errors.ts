@@ -142,7 +142,7 @@ export const slackNotConnected = () =>
   new Refusal(
     'slack_not_connected',
     404,
-    'This account has no Slack connection. Connect one in Configuration → Cloud.',
+    'This account has no Slack connection. Connect one in Configuration → Notifications.',
   )
 
 export const notFound = () => new Refusal('not_found', 404, 'No such endpoint.')

@@ -405,14 +405,17 @@ export function SessionLog({
     </>
   );
 
-  // The title bar — the "run log" kicker + the live/done indicator. Paper over
-  // the wash well below it, parted by a hairline: the same shape as a dialog's
-  // own title bar, since this window is most often inside one. Shared by both
-  // forms; only the card-page form passes onToggle, which also makes it the
-  // expand/collapse control.
+  // The title bar — the "run log" kicker + the live/done indicator. Chrome over the
+  // well below it, parted by a hairline: the same shape as a dialog's own title bar,
+  // since this window is most often inside one. Shared by both forms; only the
+  // card-page form passes onToggle, which also makes it the expand/collapse control.
   const titleBar = (
     <div
-      className={`flex items-center gap-2.5 px-3 py-1.5${bare ? "" : " rounded-t-[13px]"}${collapsed && !bare ? " rounded-b-[13px]" : " border-b border-nb-ink/12"}${onToggle ? " cursor-pointer select-none" : ""}`}
+      // Off `bare` this bar IS a band on the card page, so it takes the meta box's own
+      // ground and padding: the two sit one above the other, so their kickers have to start
+      // on the same line. Inside the delivery block it is a strip on someone else's block,
+      // and keeps the tighter chrome padding.
+      className={`flex items-center gap-2.5 ${bare ? "px-3 py-1.5" : "px-4 py-2.5"}${bare ? "" : " rounded-t-[14px]"}${collapsed && !bare ? " rounded-b-[14px]" : " border-b border-nb-ink/12"}${onToggle ? " cursor-pointer select-none" : ""}`}
       role={onToggle ? "button" : undefined}
       aria-expanded={onToggle ? !collapsed : undefined}
       aria-label={onToggle ? (collapsed ? c.expand : c.collapse) : undefined}
@@ -449,8 +452,11 @@ export function SessionLog({
     </div>
   );
 
-  // The scrolling body well — wash fill, inset shadow, capped height. Used by the
-  // bordered card-page form; the flush form drops the cap and lets its panel scroll.
+  // The scrolling body well — inset shadow, capped height, and always one rung DOWN from
+  // the chrome above it, which is what makes it read as recessed and gives the block a
+  // bottom edge. On a card page that is canvas under a wash bar; in a dialog it is wash
+  // under a paper one. A white well on a white page had no edge at all.
+  // The flush form drops the cap and lets its panel scroll.
   const bodyWell = (
     <div
       ref={ref}
@@ -458,7 +464,7 @@ export function SessionLog({
         const el = e.currentTarget;
         pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
       }}
-      className={`max-h-[50vh] overflow-auto px-4 py-3 bg-nb-wash shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]${bare ? " border-t border-nb-ink/12" : " rounded-b-[13px]"}`}
+      className={`max-h-[50vh] overflow-auto px-4 py-3 ${flush ? "bg-nb-wash" : "bg-nb-canvas"} shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]${bare ? " border-t border-nb-ink/12" : " rounded-b-[14px]"}`}
     >
       {body}
     </div>
@@ -481,7 +487,7 @@ export function SessionLog({
         {titleBar}
         <div
           ref={ref}
-          className="rounded-b-[13px] bg-nb-wash px-4 py-3 shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
+          className="rounded-b-[14px] bg-nb-wash px-4 py-3 shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
         >
           {body}
         </div>
@@ -489,8 +495,10 @@ export function SessionLog({
     );
   }
 
+  // The card page's own form. No frame: it is one of the page's bands, on the page's one
+  // ground, with the log in a well a step below it.
   return (
-    <div className="rounded-[14px] border border-nb-ink/12 bg-nb-paper">
+    <div className="nb-section bg-nb-sheet">
       {titleBar}
       {!collapsed && bodyWell}
     </div>

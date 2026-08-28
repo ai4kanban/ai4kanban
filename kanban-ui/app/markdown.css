@@ -88,10 +88,12 @@
   margin: 24px auto;
 }
 
+/* A step of ink rather than an opaque near-white: a name in the body has to read on
+   whatever ground the section it sits in sets, and a wash fill vanishes on all but paper. */
 .nb-md code {
   font-family: var(--font-mono);
   font-size: 0.9em;
-  background: var(--color-nb-wash);
+  background: color-mix(in srgb, var(--color-nb-ink) 5%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-nb-ink) 16%, transparent);
   border-radius: 5px;
   padding: 1px 6px;

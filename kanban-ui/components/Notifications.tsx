@@ -94,7 +94,7 @@ export function BellPane({ rail }: { rail: BellRail }) {
           icon={<FiBellOff size={20} aria-hidden />}
           title="Not signed in to Cloud"
           body="Sign in and this board's cards start filling the bell. Nothing leaves this machine until you do."
-          hint="Configuration → Cloud"
+          hint="Configuration → Notifications"
         />
       ) : !center.enabled && rows.length === 0 ? (
         <Empty

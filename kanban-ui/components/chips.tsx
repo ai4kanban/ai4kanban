@@ -20,6 +20,12 @@ const CHIP_TRIGGER =
   "h-auto w-auto gap-1 rounded-[6px] border-0 px-[6px] py-[2.5px] text-[10px] font-[700] uppercase tracking-[0.04em] leading-none";
 const CHIP_ITEM = "py-1.5 pr-7 text-[10px] font-[700] uppercase tracking-[0.04em]";
 
+/** The fill of a chip that means nothing in particular — low, no release, no cadence.
+ *  A step of ink INTO whatever is under it rather than the wash colour, because these
+ *  chips are dropped on paper cards, on cream, and on the card page's tinted sections,
+ *  and an opaque near-wash fill disappears on all but the first. */
+const NEUTRAL_FILL = "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)";
+
 // One high/med/low scale shared by priority and roi. `dot` is the solid signal
 // colour; `soft`/`ink` are the filled-chip pair.
 const LEVEL: Record<string, { soft: string; ink: string; dot: string }> = {
@@ -34,7 +40,7 @@ const LEVEL: Record<string, { soft: string; ink: string; dot: string }> = {
     dot: "var(--color-nb-sky)",
   },
   low: {
-    soft: "var(--color-nb-wash)",
+    soft: NEUTRAL_FILL,
     ink: "var(--color-nb-ink-soft)",
     dot: "color-mix(in srgb, var(--color-nb-ink) 28%, transparent)",
   },
@@ -323,7 +329,7 @@ export function ReleaseSelect({
         onClick={(e) => e.stopPropagation()}
         className={CHIP_TRIGGER}
         style={{
-          background: planned ? "var(--color-nb-sky-soft)" : "var(--color-nb-wash)",
+          background: planned ? "var(--color-nb-sky-soft)" : NEUTRAL_FILL,
           color: planned ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
         }}
       >
@@ -489,7 +495,7 @@ export function CadenceSelect({
           onClick={(e) => e.stopPropagation()}
           className={CHIP_TRIGGER}
           style={{
-            background: cadence ? "var(--color-nb-sky-soft)" : "var(--color-nb-wash)",
+            background: cadence ? "var(--color-nb-sky-soft)" : NEUTRAL_FILL,
             color: cadence ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",
           }}
         >

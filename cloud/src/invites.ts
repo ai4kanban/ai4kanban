@@ -144,7 +144,7 @@ function invitation(record: Queued) {
       '',
       `    ${code}`,
       '',
-      'Open AI4Kanban, go to Configuration → Cloud, sign in with GitHub, and paste the code',
+      'Open AI4Kanban, go to Configuration → Notifications, sign in with GitHub, and paste the code',
       'there. It admits one account — whichever signs in and redeems it first — and admits it',
       'for good.',
       '',

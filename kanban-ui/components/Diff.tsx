@@ -108,7 +108,9 @@ export function DiffPane({ diff }: { diff: DeliveryDiff }) {
     });
 
   return (
-    <div className="border-t-[1.5px] border-nb-ink bg-nb-paper">
+    // Paper over the delivery section's tint, parted from the tab strip by a hairline —
+    // an ink rule here would be the only border left on the card page.
+    <div className="bg-nb-paper" style={{ borderTop: `1px solid ${RULE}` }}>
       <div
         className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-4 py-2.5 text-[12px]"
         style={{ borderBottom: `1px solid ${RULE}` }}

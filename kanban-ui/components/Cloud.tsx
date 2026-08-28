@@ -1,10 +1,12 @@
 "use client";
 
-// AI4Kanban Cloud — the account this MACHINE signs in as (#326).
+// Notifications — where a card that needs you reaches you, and the account it reaches you
+// through (#326). Named for the job in the nav; Cloud is the plumbing, and is said in the
+// sentences rather than on the tab.
 //
 // It sits below the sections that settle this board, separated from them by a rule, because
-// it is not a board setting: one sign-in covers every project the app has open and every
-// terminal on the machine, and it is held outside every repository.
+// the sign-in is not a board setting: one sign-in covers every project the app has open and
+// every terminal on the machine, and it is held outside every repository.
 //
 // The sign-in happens in three places and no fewer. This pane asks the board server for the
 // consent URL — the secret half of it never leaves the machine — the app opens that URL in
@@ -22,12 +24,10 @@
 // last. Whoever was handed a code meets the box immediately; whoever has none pays one short
 // line of reading before the button.
 //
-// Two more things live under the admitted state (#319), and the line between them is the
-// line this section already draws. **Notifications for this board** belongs to the board:
-// signing in turns them on — they are not a setting — so what is shown is what they do and
-// how wide they watch: every release, or one. The **silencing** switch belongs to the MACHINE and sits
-// with the sign-in, because the interruptions it stops arrive from every board — a per-board
-// switch would be reachable only by opening that project first.
+// The admitted state is one column in two tiers, and no prose explaining what a notification
+// is — the tab already said it. Above: what holds for the account and the machine — who you
+// are, the silencing switch, and Slack. Below a **This board** caption: what only this board
+// settles — the release it watches and the machine that runs its work.
 
 import { useCallback, useEffect, useState } from "react";
 import { FiAlertCircle, FiBell, FiBellOff, FiCheck, FiKey, FiLogOut, FiMail } from "react-icons/fi";
@@ -241,17 +241,13 @@ function SignedIn({
       <Slack inApp={inApp} reload={slackTick} onError={onError} />
 
       <Notifications />
-
-      <p className="border-t border-nb-ink/12 pt-3.5 text-[12px] leading-relaxed text-nb-ink-soft">
-        {c.signOutNote}
-      </p>
     </>
   );
 }
 
 // --- the machine's one silencing switch (#319) --------------------------------
-// It sits with the sign-in rather than with the board's own settings below: what it stops
-// arrives from every board Cloud is on for, and the bell keeps filling either way.
+// Above the board's tier: what it stops arrives from every board, and the bell keeps filling
+// either way.
 
 function Silencer() {
   const c = useCopy().configuration.cloud;
@@ -293,10 +289,8 @@ function Silencer() {
 }
 
 // --- the account's one Slack destination (#320) -------------------------------
-// Where a task waiting on a decision arrives, and where that decision is made. It sits with
-// the sign-in and the silencing switch rather than with the board's own settings below,
-// because it is the same kind of fact: one destination for the ACCOUNT, and every board
-// Cloud is on for posts to it with its own name on each message.
+// One destination for the ACCOUNT, so it sits in the tier above the board's: every board
+// posts to it with its own name on each message.
 //
 // Two states and one band. Before connecting it is one line and a button, because there is
 // nothing yet to describe. Connected, it is the workspace, the conversation it posts to and
@@ -391,14 +385,11 @@ function Slack({
 
   return (
     <div className="rounded-[10px] border border-nb-ink/12 px-4 py-3.5">
-      <div className="flex items-start gap-4">
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 text-[12.5px] font-[800] text-nb-ink">
-            <FaSlack className="shrink-0 text-nb-ink-soft" size={13} aria-hidden />
-            {connection.teamName || c.title}
-          </p>
-          <p className="mt-[3px] text-[11.5px] leading-[16px] text-nb-ink-soft">{c.actingAs}</p>
-        </div>
+      <div className="flex items-center gap-4">
+        <p className="flex min-w-0 flex-1 items-center gap-2 text-[12.5px] font-[800] text-nb-ink">
+          <FaSlack className="shrink-0 text-nb-ink-soft" size={13} aria-hidden />
+          {connection.teamName || c.title}
+        </p>
         <Button
           size="sm"
           variant="ghost"
@@ -508,10 +499,13 @@ function Destination({
   );
 }
 
-// --- this board's own notifications (#319) ------------------------------------
-// Signed in means on: a board raises its events the moment this machine has an account,
-// so there is nothing to switch here — only which open release it watches, since a `ready`
-// task in another release, or promised to none, is not what the user asked to be told about.
+// --- this board's own tier (#319) ---------------------------------------------
+// Signed in means on: a board raises its events the moment this machine has an account, so
+// there is nothing to switch here — only which open release it watches, since a `ready` task
+// in another release, or promised to none, is not what the user asked to be told about.
+//
+// A caption carries the scope that a paragraph used to. Rules too old to answer draw no
+// caption either: an empty heading reads worse than nothing.
 
 function Notifications() {
   const c = useCopy().configuration.cloud.notifications;
@@ -537,22 +531,19 @@ function Notifications() {
     }
   };
 
-  if (!state) return null;
+  if (!state?.enabled) return null;
 
   return (
-    <div className="rounded-[10px] border border-nb-ink/12 px-4 py-3.5">
-      <div className="min-w-0">
-        <p className="text-[12.5px] font-[800] text-nb-ink">{c.title}</p>
-        <p className="mt-[3px] max-w-[52ch] text-[11.5px] leading-[16px] text-nb-ink-soft">
-          <Rich>{c.blurb}</Rich>
-        </p>
-      </div>
+    <div>
+      <p className="text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">
+        {c.title}
+      </p>
 
-      {/* How wide this board watches. `All` is always there — it needs no release to exist —
-          so the only empty answer left is a board resting on a release that closed, which
-          shows the placeholder and the same prompt the rail gives where the filling stopped. */}
-      {state.enabled && (
-        <div className="mt-3 flex items-center gap-2.5 border-t border-nb-ink/12 pt-3">
+      <div className="mt-2 rounded-[10px] border border-nb-ink/12 px-4 py-3.5">
+        {/* How wide this board watches. `All` is always there — it needs no release to exist —
+            so the only empty answer left is a board resting on a release that closed, which
+            shows the placeholder and the same prompt the rail gives where the filling stopped. */}
+        <div className="flex items-center gap-2.5">
           <span className="text-[12px] font-[700] text-nb-ink">{c.watching}</span>
           <Select
             value={state.release || undefined}
@@ -584,17 +575,16 @@ function Notifications() {
                 : c.releaseClosed}
           </span>
         </div>
-      )}
 
-      {/* Which machine runs this board's work (#318). Only once the board is raising events:
-          a board that raises none has no approvals to run. */}
-      {state.enabled && <ServerRow state={state} busy={busy} onMove={move} />}
+        {/* Which machine runs this board's work (#318). */}
+        <ServerRow state={state} busy={busy} onMove={move} />
 
-      {error && (
-        <p className="mt-2 text-[11.5px] leading-[16px] text-nb-peach-ink" role="status">
-          {error}
-        </p>
-      )}
+        {error && (
+          <p className="mt-2 text-[11.5px] leading-[16px] text-nb-peach-ink" role="status">
+            {error}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

@@ -48,8 +48,10 @@ import type { Card, DeliveryDiff, SessionView } from "@/lib/types";
 const INK = "#24231f";
 const INK_SOFT = "#565550";
 const CREAM = "#f7f7f4";
+const CANVAS = "#efeeeb";
 const PAPER = "#ffffff";
 const WASH = "#f4f3ef";
+const SHEET = "#fbfaf7";
 const ACCENT = "#dd4f1e";
 const ACCENT_DEEP = "#b83a12";
 const ACCENT_SOFT = "#f7ddce";
@@ -66,6 +68,11 @@ const PEACH = "#ec9a72";
 const PEACH_SOFT = "#fbe9dd";
 const PEACH_INK = "#8a4a28";
 
+// The two section grounds that are a colour — a signal thinned until a whole block of one
+// can carry body text. Every other section on a card page takes the plain SHEET.
+const ACCENT_WASH = "#fbf0e9";
+const MINT_WASH = "#eff8f2";
+
 // Two surfaces the board mixes rather than names, so the table below can measure
 // what a reader actually sees: the progress bar's track, and the hairline under
 // the sticky header.
@@ -81,10 +88,12 @@ const DEL_GUTTER = flatten(PEACH, PEACH_SOFT, 0.26);
 const GROUPS: { title: string; note: string; tokens: { name: string; hex: string; use: string }[] }[] = [
   {
     title: "The ground",
-    note: "Warm, not neutral, and never pure black or pure white as text — a cream page, white paper on it, a faint wash between them, charcoal ink over all three.",
+    note: "Warm, not neutral, and never pure black or pure white as text — a cream page, white paper on it, a faint wash between them, charcoal ink over all three. A page built out of sections rather than blocks is white, and every section on it is a light fill lifting off that white.",
     tokens: [
       { name: "nb-cream", hex: CREAM, use: "the page" },
-      { name: "nb-paper", hex: PAPER, use: "a card, a dialog, a control" },
+      { name: "nb-canvas", hex: CANVAS, use: "the ground under a board of cards" },
+      { name: "nb-paper", hex: PAPER, use: "a card, a dialog, a control, a card page" },
+      { name: "nb-sheet", hex: SHEET, use: "a card page's sections — cream's family, a rung lighter" },
       { name: "nb-wash", hex: WASH, use: "a column header, a log body, an inset" },
       { name: "nb-ink", hex: INK, use: "every outline, every shadow, body text" },
       { name: "nb-ink-soft", hex: INK_SOFT, use: "meta, captions, a resting icon" },
@@ -117,6 +126,14 @@ const GROUPS: { title: string; note: string; tokens: { name: string; hex: string
       { name: "nb-peach-ink", hex: PEACH_INK, use: "the text on those, and an error line" },
     ],
   },
+  {
+    title: "The section grounds",
+    note: "Two, and only two. A card page puts every section on the plain nb-sheet and spends colour on the sections that MEAN something: mint where the work is already done, ember where an answer is wanted. The body is never one of them — prose is read through its ground, and a tint under it colours every line.",
+    tokens: [
+      { name: "nb-mint-wash", hex: MINT_WASH, use: "the hand-checks" },
+      { name: "nb-accent-wash", hex: ACCENT_WASH, use: "the open questions" },
+    ],
+  },
 ];
 
 // Every pair the board puts in front of a reader. `size` is the bar it has to
@@ -132,10 +149,14 @@ const PAIRS: {
 }[] = [
   { fg: INK, bg: CREAM, label: "ink on cream", where: "body text on the page" },
   { fg: INK_SOFT, bg: CREAM, label: "ink-soft on cream", where: "meta and captions on the page" },
+  { fg: INK, bg: CANVAS, label: "ink on canvas", where: "the run log's own text, in the well under its bar" },
+  { fg: INK_SOFT, bg: CANVAS, label: "ink-soft on canvas", where: "that log's mono tail and timestamps" },
+  { fg: INK, bg: SHEET, label: "ink on sheet", where: "the card body — the longest prose the board sets" },
+  { fg: INK_SOFT, bg: SHEET, label: "ink-soft on sheet", where: "the agent half's heading, a blockquote in the body" },
   { fg: INK, bg: PAPER, label: "ink on paper", where: "a card title, a dialog" },
   { fg: INK_SOFT, bg: PAPER, label: "ink-soft on paper", where: "a card's meta row, a blurb under a label" },
-  { fg: INK, bg: WASH, label: "ink on wash", where: "a column header, a log body" },
-  { fg: INK_SOFT, bg: WASH, label: "ink-soft on wash", where: "the run log's mono tail" },
+  { fg: INK, bg: WASH, label: "ink on wash", where: "a column header, a dialog log's body" },
+  { fg: INK_SOFT, bg: WASH, label: "ink-soft on wash", where: "that log's mono tail" },
   {
     fg: PAPER,
     bg: ACCENT,
@@ -165,6 +186,10 @@ const PAIRS: {
   { fg: LILAC_INK, bg: LILAC_SOFT, label: "lilac-ink on lilac-soft", where: "the group marker, a track chip" },
   { fg: PEACH_INK, bg: PEACH_SOFT, label: "peach-ink on peach-soft", where: "the blocked marker, a warning box" },
   { fg: PEACH_INK, bg: PAPER, label: "peach-ink on paper", where: "an error line beside a control" },
+  { fg: INK, bg: ACCENT_WASH, label: "ink on accent-wash", where: "an open question on the card page" },
+  { fg: INK_SOFT, bg: ACCENT_WASH, label: "ink-soft on accent-wash", where: "that section's kicker" },
+  { fg: INK, bg: MINT_WASH, label: "ink on mint-wash", where: "a hand-check line" },
+  { fg: INK_SOFT, bg: MINT_WASH, label: "ink-soft on mint-wash", where: "its cross-off control" },
   { fg: CREAM, bg: INK, label: "cream on ink", where: "the hover tooltip" },
   { fg: INK, bg: MINT_SOFT, label: "ink on mint-soft", where: "the code on an added line in the Diff tab" },
   { fg: INK, bg: PEACH_SOFT, label: "ink on peach-soft", where: "the code on a removed line" },
@@ -367,7 +392,7 @@ export function DesignSystem() {
       <Section
         id="palette"
         title="Palette"
-        note="Seventeen values in three families — a warm ground, one ember in three strengths, and four meaning pastels. The ground is the whole page; the ember is rationed; a pastel only ever appears where it means the thing it means."
+        note="A warm ground, one ember in three strengths, four meaning pastels, and one section ground. The ground is the whole page; the ember is rationed; a pastel only ever appears where it means the thing it means."
       >
         <div className="flex flex-col gap-6">
           {GROUPS.map((g) => (
@@ -538,7 +563,7 @@ export function DesignSystem() {
       <Section
         id="surfaces"
         title="Surfaces"
-        note="app/globals.css. A block is a 1.5px ink outline, a radius, and a 3px hard offset shadow — no blur, no grey, one direction. There is no second elevation: a thing either is a block or it is a fill on the ground. nb-outline is the frame without the shadow, for something inside a block that would otherwise be a block on a block; nb-inset drops the frame to a hairline, for a band that annotates the work rather than being it."
+        note="app/globals.css. A block is a 1.5px ink outline, a radius, and a 3px hard offset shadow — no blur, no grey, one direction. There is no second elevation: a thing either is a block or it is a fill on the ground. nb-outline is the frame without the shadow, for something inside a block that would otherwise be a block on a block; nb-inset drops the frame to a hairline, for a band that annotates the work rather than being it. nb-section drops the frame altogether — a long reading page is a run of sections told apart by the colour under them, and a stack of eight framed blocks reads as eight boxes rather than one page."
       >
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="nb-panel p-4">
@@ -564,9 +589,36 @@ export function DesignSystem() {
           <div className="nb-inset bg-nb-paper p-4">
             <p className="font-mono text-[12.5px] font-[700]">.nb-inset</p>
             <p className="mt-2 text-[12.5px] leading-relaxed text-nb-ink-soft">
-              The same 14px frame at hairline weight. A band that annotates the
-              work — a card&apos;s meta row, its hand-checks.
+              The same 14px frame at hairline weight. A band inside a block that
+              annotates rather than acts.
             </p>
+          </div>
+          <div className="nb-section bg-nb-sheet p-4">
+            <p className="font-mono text-[12.5px] font-[700]">.nb-section</p>
+            <p className="mt-2 text-[12.5px] leading-relaxed text-nb-ink-soft">
+              14px, no frame, no shadow. The whole card page: a light band on white
+              paper, its ground picked by what it is for.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-7">
+          <Label>the section grounds, on the white paper the card page puts them on</Label>
+          {/* Shown on the real page's ground, not on this page's cream, where canvas
+              would read a shade louder than it does in the app. */}
+          <div className="nb-inset flex flex-col gap-4 rounded-[16px] bg-nb-paper p-4">
+            {[
+              { bg: "bg-nb-canvas", name: "nb-canvas", what: "the well a log scrolls in — depth inside a section is a step DOWN from its chrome, which is also what gives the block a bottom edge" },
+              { bg: "bg-nb-sheet", name: "nb-sheet", what: "every section that means nothing in particular — the run log, the meta box, the subtasks, the delivery block, and the body itself, both halves of it. A tint under prose is read through every line, so the body is never a signal" },
+              { bg: "bg-nb-mint-wash", name: "nb-mint-wash", what: "the hand-checks — notes on work already done" },
+              { bg: "bg-nb-accent-wash", name: "nb-accent-wash", what: "the open questions — the one section with something to decide" },
+              { bg: "bg-nb-peach-soft", name: "nb-peach-soft", what: "an error, and anything the delivery is waiting on you for. An alert sits a rung louder than a section, on the -soft fill" },
+            ].map((s) => (
+              <div key={s.name} className={`nb-section ${s.bg} px-4 py-3.5`}>
+                <p className="font-mono text-[12.5px] font-[700]">{s.name}</p>
+                <p className="mt-1.5 max-w-3xl text-[12.5px] leading-relaxed text-nb-ink-soft">{s.what}</p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -628,7 +680,7 @@ export function DesignSystem() {
           <div className="nb-outline overflow-hidden bg-nb-paper">
             {[
               { r: "16px", what: ".nb-panel — a dialog, a run panel" },
-              { r: "14px", what: ".nb-outline — the log window, an option row" },
+              { r: "14px", what: ".nb-outline / .nb-section — the log window, every card-page section" },
               { r: "13px", what: ".nb-panel-sm — a card" },
               { r: "11px / 9px", what: "a button, md and sm" },
               { r: "10px", what: "a text input, a select trigger, an open list" },

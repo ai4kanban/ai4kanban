@@ -77,7 +77,7 @@ import {
   TodoProgress,
   TrackChip,
 } from "./chips";
-import { PULSE_DOT } from "./chrome";
+import { HAIRLINE, PULSE_DOT } from "./chrome";
 import type { MockupSet } from "@/lib/mockup-tag";
 import { FREE_TEXT_CHOICE, hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
 import { bandLabel, CARD_BAND_STATES, type CloudEventState } from "@/lib/types";
@@ -86,12 +86,18 @@ import type { BoardChange } from "@/lib/chat-rail";
 import { canImplement, canRefine } from "@/lib/refine";
 import { scheduleLabel } from "@/lib/schedule";
 import { CardBody } from "./CardBody";
+import { Fold } from "./fold";
 import { OpenIdsProvider } from "./open-ids";
 import { SubtaskMap } from "./SubtaskMap";
 import { Window } from "./Window";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
+
+// The rule between a section's chrome and what it holds. Nothing on this page draws a
+// border any more, so the one line still worth having is drawn at the quietest weight
+// there is — enough to part a tab strip from its pane, never enough to box anything in.
+const PART = { borderTop: `1px solid ${HAIRLINE}` } as const;
 
 // How long a cross-off waits for its second click before going back to being an ✕. The
 // same window the rail's Clear gives the conversation it is about to throw away.
@@ -181,9 +187,10 @@ function ConfirmationPopover({
 
 // ---- what the build left for you to check by hand (#231, #276) ---------------
 //
-// Its own panel, last on the page and never inside the questions: an open question waits on
+// Its own section, last on the page and never inside the questions: an open question waits on
 // an answer and holds the card back, while every line here is a note on work that is already
-// done. Sky rather than the accent, and a hairline frame rather than ink, for the same reason.
+// done. Mint, for the same reason the ✓ in its heading is: this is the one section on the
+// page about work that is finished.
 //
 // A line you have checked is crossed off, which takes it off the card — there is no ticked
 // state to keep, because the card already keeps its record in the archive. It cannot be
@@ -194,6 +201,10 @@ function ConfirmationPopover({
 // hand-checks while this page sits open, and by then the third line is a different line. A
 // line a run has already taken off says so here, and the panel redraws to what the card
 // holds now.
+//
+// It opens on its heading, the same fold the agent half wears and the same component: both
+// are notes on work already done, at the foot of a page whose top is what you decide on. How
+// many are left is in the heading, so a shut panel still says there is something to check.
 function HandChecks({
   cardId,
   verify,
@@ -209,6 +220,7 @@ function HandChecks({
   const [confirming, setConfirming] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [open, setOpen] = useState(false);
 
   // The card is the record: a run that rewrote the hand-checks while this page sat open
   // wins over whatever the panel was showing.
@@ -247,10 +259,19 @@ function HandChecks({
   if (lines.length === 0 && !note) return null;
 
   return (
-    <div className="nb-inset p-3" style={{ background: "var(--color-nb-sky-soft)" }}>
-      <div className="nb-tag mb-2">
-        <span style={{ color: "var(--color-nb-sky-ink)" }}>✓</span> {c.heading}
-      </div>
+    <Fold
+      className="nb-section bg-nb-mint-wash"
+      open={open}
+      onToggle={setOpen}
+      label={
+        <>
+          <span style={{ color: "var(--color-nb-mint-ink)" }}>✓</span>
+          <span>{c.heading}</span>
+          {/* How many are left, so a shut panel still says there is something to do. */}
+          {lines.length > 0 && <span className="tabular-nums">{lines.length}</span>}
+        </>
+      }
+    >
       {lines.length > 0 && (
         <ul className="flex flex-col gap-1 text-[13px] leading-[19px]">
           {lines.map((line) => (
@@ -289,7 +310,7 @@ function HandChecks({
           {note}
         </p>
       )}
-    </div>
+    </Fold>
   );
 }
 
@@ -670,7 +691,7 @@ function DeliveryNote({
   }
   const skin = PILL_SKIN[tone]!;
   return (
-    <div className="nb-outline px-3 py-2.5" style={{ background: skin.bg }}>
+    <div className="nb-section px-3.5 py-3" style={{ background: skin.bg }}>
       <div className="nb-tag mb-1.5" style={{ color: skin.ink }}>
         <FiAlertCircle className="text-[13px]" aria-hidden />
         {c.waitingOnYou}
@@ -714,7 +735,7 @@ function InterruptedRequest({
   };
 
   return (
-    <div className="nb-outline px-3 py-2.5" style={{ background: PILL_SKIN.warn!.bg }}>
+    <div className="nb-section px-3.5 py-3" style={{ background: PILL_SKIN.warn!.bg }}>
       <div className="nb-tag mb-1.5" style={{ color: PILL_SKIN.warn!.ink }}>
         <FiAlertCircle className="text-[13px]" aria-hidden />
         {card.waitingOnYou}
@@ -824,7 +845,9 @@ function TabStrip({
       aria-expanded={open}
       aria-label={open ? c.fold : c.unfold}
       onClick={onToggle}
-      className={`flex cursor-pointer select-none items-center gap-1 rounded-t-[12.5px] bg-nb-paper py-1.5 pl-1.5 pr-3.5 transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_4%,var(--color-nb-paper))] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,var(--color-nb-paper))]${open ? "" : " rounded-b-[12.5px]"}`}
+      // Hovers darken whatever is under them rather than mixing towards paper: the strip
+      // has no fill of its own now, and sits on the block's tinted ground.
+      className={`flex cursor-pointer select-none items-center gap-1 rounded-t-[14px] py-1.5 pl-1.5 pr-3.5 transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_4%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,transparent)]${open ? "" : " rounded-b-[14px]"}`}
     >
       {tabs.map((tab) => {
         const on = tab.key === current && open;
@@ -840,13 +863,13 @@ function TabStrip({
             }}
             // The open tab is a filled chip, not an underlined one: the pane below already
             // draws a rule under this strip, and an underline four pixels above it read as
-            // two lines doing one job. The fill is a neutral grey step off the paper strip,
-            // never the accent — that ember is the diff's deletion tint a few pixels below,
-            // and a chip wearing it reads as "something is wrong with this tab".
-            className={`flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[12px] font-[700] transition-colors${on ? "" : " hover:bg-nb-wash"}`}
+            // two lines doing one job. The fill is a step of ink INTO the block's own
+            // ground, never the accent — that ember is the diff's deletion tint a few
+            // pixels below, and a chip wearing it reads as "something is wrong here".
+            className={`flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[12px] font-[700] transition-colors${on ? "" : " hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_5%,transparent)]"}`}
             style={
               on
-                ? { background: "color-mix(in srgb, var(--color-nb-ink) 9%, var(--color-nb-paper))" }
+                ? { background: "color-mix(in srgb, var(--color-nb-ink) 9%, transparent)" }
                 : { color: "var(--color-nb-ink-soft)" }
             }
           >
@@ -895,7 +918,7 @@ function ApprovalPane({
   };
 
   return (
-    <div className="border-t-[1.5px] border-nb-ink bg-nb-paper px-4 py-3.5">
+    <div className="bg-nb-paper px-4 py-3.5" style={PART}>
       {approval.approved ? (
         <>
           <p className="flex items-center gap-1.5 text-[13px] font-[700] text-nb-ink">
@@ -930,8 +953,8 @@ const upperFirst = (text: string): string => (text ? text[0]!.toUpperCase() + te
 function DeliveryFoot({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 rounded-b-[12.5px] bg-nb-paper px-3.5 py-2.5 text-[11.5px] text-nb-ink-soft"
-      style={{ borderTop: "1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent)" }}
+      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 rounded-b-[14px] px-3.5 py-2.5 text-[11.5px] text-nb-ink-soft"
+      style={PART}
     >
       {children}
     </div>
@@ -994,10 +1017,15 @@ function DeliveryBlock({
   // A tab that has gone — the diff a re-read no longer has — falls back to the first one
   // rather than leaving the strip pointing at nothing.
   const current = tabs.some((t) => t.key === tab) ? tab : tabs[0]!.key;
-  // No `overflow-hidden` on the frame: the strip and the foot round their own outer
+  // No `overflow-hidden` on the block: the strip and the foot round their own outer
   // corners, so a confirmation hanging off a control in the strip is not clipped.
+  //
+  // The page's ground, like the run log and the meta box — what a delivery is doing is said
+  // in the pill and the strip, in ink, not by tinting a whole block. The panes inside stay
+  // paper: chrome on the section's ground, the thing you read on paper, which is the same
+  // inner-window shape a log wears anywhere else on the board.
   return (
-    <div className="nb-outline bg-nb-paper">
+    <div className="nb-section bg-nb-sheet">
       <TabStrip
         tabs={tabs}
         current={current}
@@ -1044,7 +1072,7 @@ function DeliveryBlock({
         ) : session ? (
           <SessionLog session={session} bare warnUnfinished />
         ) : (
-          <p className="border-t-[1.5px] border-nb-ink bg-nb-wash px-4 py-3 text-[12.5px] text-nb-ink-soft">
+          <p className="px-4 py-3 text-[12.5px] text-nb-ink-soft" style={PART}>
             {c.noLog}
           </p>
         ))}
@@ -1102,10 +1130,11 @@ function FinishedBlock({
     ...(session ? [{ key: "log" as const, label: c.tabLog }] : []),
   ];
   const current = tabs.some((t) => t.key === tab) ? tab : "diff";
-  // No `overflow-hidden` on the frame: the strip and the foot round their own outer
-  // corners, so a confirmation hanging off a control in the strip is not clipped.
+  // Same ground as the delivery it is the end of, and no `overflow-hidden`: the strip and
+  // the foot round their own outer corners, so a confirmation hanging off a control in the
+  // strip is not clipped.
   return (
-    <div className="nb-outline bg-nb-paper">
+    <div className="nb-section bg-nb-sheet">
       <TabStrip
         tabs={tabs}
         current={current}
@@ -1423,7 +1452,12 @@ export function CardPage({
           />
         }
       >
-        <div className="h-full overflow-y-auto">
+        {/* The card page is white paper, and every section on it is one warm sheet lifting
+            off it — the bands that annotate the card and the card's own body alike. What is
+            left of colour is spent on the two sections that mean something: mint where the
+            work is already done, ember where an answer is wanted. An alert is a rung louder
+            than either. Depth inside a section is a step DOWN — the run log's well. */}
+        <div className="h-full overflow-y-auto bg-nb-paper">
           {/* Same line as the board's (#175) — a newer app in the app, a pointer
               to the app in a browser. */}
           <RunningNotice desktop={desktop} />
@@ -1432,8 +1466,11 @@ export function CardPage({
               so no two blocks can drift apart. Two stacks: the title, and everything under
               it evenly spaced. The one wider step (gap-8) is the title's, set once. */}
           <main className="mx-auto flex w-full max-w-[840px] flex-col gap-8 px-6 py-6">
+            {/* An alert is the one thing here louder than a section: peach at `-soft`
+                rather than at the `-wash` rung the sections sit on, so it reads as
+                something that happened and not as another band of the page. */}
             {error && (
-              <div className="nb-panel-sm p-3 text-[13px]" style={{ background: "var(--color-nb-peach-soft)" }}>
+              <div className="nb-section bg-nb-peach-soft p-3.5 text-[13px] text-nb-peach-ink">
                 {error}
               </div>
             )}
@@ -1709,9 +1746,8 @@ export function CardPage({
               )
             )}
 
-            {/* meta box — stacked label/value columns in a hairline band. It annotates the
-                card rather than being it, so it wears the quiet frame, not the block's ink. */}
-            <div className="nb-inset flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-paper px-4 py-3">
+            {/* meta box — stacked label/value columns, on the page's one ground. */}
+            <div className="nb-section flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-sheet px-4 py-3.5">
               <MetaItem label={c.meta.track}>
                 <TrackChip track={card.track} />
               </MetaItem>
@@ -1842,7 +1878,10 @@ export function CardPage({
                       key={n}
                       href={`/${n}`}
                       className="nb-chip"
-                      style={{ background: "var(--color-nb-wash)", color: "var(--color-nb-ink-soft)" }}
+                      style={{
+                        background: "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)",
+                        color: "var(--color-nb-ink-soft)",
+                      }}
                     >
                       #{n}
                     </Link>
@@ -1851,11 +1890,11 @@ export function CardPage({
               )}
             </div>
 
-            {/* The group, in one panel (#333): its build order drawn at the head, and the
+            {/* The group, in one section (#333): its build order drawn at the head, and the
                 rows the drawing's ids stand for right under it. One heading covers both —
                 the map has no words of its own, and the list is what reads them out. */}
             {card.subtasks && card.subtasks.length > 0 && (
-              <div className="nb-outline bg-nb-paper p-3">
+              <div className="nb-section bg-nb-sheet p-3.5">
                 <div className="nb-tag mb-2 w-full">
                   <span style={{ color: "var(--color-nb-accent)" }}>●</span>
                   {c.subtasks.heading}
@@ -1873,7 +1912,11 @@ export function CardPage({
                     <li key={s.id}>
                       <Link
                         href={`/${s.id}`}
-                        className="nb-press flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 hover:bg-nb-wash"
+                        // A row darkens by a step of ink, the same hover every other
+                        // pressable band on this page takes. Lightening it to paper was
+                        // four units off the sheet under it — a change you had to look
+                        // for — and it went cold against a warm ground while it was at it.
+                        className="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_11%,transparent)]"
                       >
                         <span className="shrink-0 text-[12px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
                           #{s.id}
@@ -1899,8 +1942,11 @@ export function CardPage({
               </div>
             )}
 
+            {/* The one section with something to decide in it, so it takes the ember —
+                thinned to a section ground, because a full `-soft` band this tall shouts
+                over the Resolve button that actually answers it. */}
             {card.questions.length > 0 && (
-              <div className="nb-outline p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
+              <div className="nb-section bg-nb-accent-wash p-3.5">
                 <div className="nb-tag mb-2">
                   <span style={{ color: "var(--color-nb-accent)" }}>?</span> {c.questions.heading}
                 </div>

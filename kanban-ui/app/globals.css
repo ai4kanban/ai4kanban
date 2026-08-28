@@ -10,7 +10,9 @@
   --color-nb-ink: #24231f; /* charcoal — borders + body text */
   --color-nb-ink-soft: #565550; /* muted ink for captions/meta */
   --color-nb-cream: #f7f7f4; /* page canvas */
+  --color-nb-canvas: #efeeeb; /* the ground under a board of cards */
   --color-nb-paper: #ffffff; /* card surface */
+  --color-nb-sheet: #fbfaf7; /* a card page's sections — the cream family, a rung lighter */
   --color-nb-wash: #f4f3ef; /* faint neutral fill (headers, media, insets) */
 
   --color-nb-accent: #dd4f1e; /* ember — primary accent */
@@ -25,6 +27,15 @@
   --color-nb-lilac-soft: #efe9fb;
   --color-nb-peach: #ec9a72; /* attention / blocker */
   --color-nb-peach-soft: #fbe9dd;
+
+  /* Section grounds — a signal thinned until a whole block of one can carry body
+     text, a rung below `-soft` so a tall band never shouts over the control that
+     answers it. A card page spends colour on two sections and no more: mint where
+     the work is already done, ember where an answer is wanted. Everything else on
+     it, the body included, is `--color-nb-sheet` — prose is read THROUGH its
+     ground, and a tint under it colours every line. */
+  --color-nb-accent-wash: #fbf0e9;
+  --color-nb-mint-wash: #eff8f2;
 
   --color-nb-mint-ink: #2f6b46;
   --color-nb-sky-ink: #2c5c86;
@@ -66,6 +77,14 @@ body {
    annotates the work rather than being it. */
 .nb-inset {
   border: 1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent);
+  border-radius: 14px;
+}
+
+/* Section — a block on a reading page: no frame, no shadow. What tells one from the
+   page is its ground, and that ground is `nb-sheet` unless the section MEANS something:
+   mint for checks already done, ember for a decision. Radius only here, so the fill
+   stays in the markup beside the section it means. */
+.nb-section {
   border-radius: 14px;
 }
 

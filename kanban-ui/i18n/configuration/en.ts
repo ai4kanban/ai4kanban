@@ -13,7 +13,7 @@ const en: ConfigurationCopy = {
     rules: "Rules",
     skill: "Setup",
     language: "Language",
-    cloud: "Cloud",
+    cloud: "Notifications",
   },
   harness: {
     title: "Default harness",
@@ -188,15 +188,13 @@ const en: ConfigurationCopy = {
     note: "The board still draws in English — the words are translated in a later release. What the `akb` command prints in a terminal stays English either way.",
   },
   cloud: {
-    title: "Cloud",
+    title: "Notifications",
     blurb:
-      "The account this machine signs in as. One sign-in covers every project you open and every terminal on it.",
+      "Where a card that needs you reaches you. One sign-in covers every project on this machine.",
     checking: "Checking this machine…",
     unreachable: (why) => `Cloud could not be reached: ${why}. Nothing on this board is affected.`,
     signedIn: "Signed in",
     signOut: "Sign out",
-    signOutNote:
-      "Signing out stops this machine sending to Cloud. Nothing already on the board is touched, and signing back in picks the same account up.",
     notAdmitted: "This account is not in the preview yet.",
     signedInAs: (handle) => `You are signed in as \`@${handle}\`.`,
     haveCode: "Have an invitation code?",
@@ -232,8 +230,8 @@ const en: ConfigurationCopy = {
     finishFailed: "that sign-in did not complete",
     signOutFailed: "couldn't sign out",
     silence: {
-      title: "Silence system notifications",
-      blurb: "Stops every board on this machine interrupting you. The bell keeps filling.",
+      title: "Silence this machine",
+      blurb: "Every board stops interrupting you. The bell keeps filling.",
     },
     slack: {
       title: "Slack",
@@ -244,8 +242,7 @@ const en: ConfigurationCopy = {
       waiting: "Waiting for the consent screen in your browser…",
       disconnect: "Disconnect",
       disconnecting: "Disconnecting…",
-      actingAs: "Your presses there are recorded as this account.",
-      everyBoard: "Every board you turn Cloud on for posts here, named on each message.",
+      everyBoard: "Every board posts here, named on each message.",
       postsTo: "Posts to",
       pickChannel: "— pick a conversation —",
       loadingChannels: "Reading Slack…",
@@ -261,8 +258,7 @@ const en: ConfigurationCopy = {
     },
     server: {
       title: "Run this board's work here",
-      blurb:
-        "An approval you press anywhere — the bell, another machine, Slack — runs on this machine. A board runs on one machine only.",
+      blurb: "An approval pressed anywhere runs on this machine. A board runs on one machine only.",
       heldBy: (machine) =>
         `This board runs its work on **${machine}**, so an approval waits for that machine. Move it here if that machine has gone.`,
       moveHere: "Move it here",
@@ -273,9 +269,7 @@ const en: ConfigurationCopy = {
       notBound: "not bound",
     },
     notifications: {
-      title: "Notifications for this board",
-      blurb:
-        "A card that reaches **ready**, or that raises a question only you can answer, fills the bell — and reaches you when the app is not in front of you.",
+      title: "This board",
       watching: "Watching",
       allReleases: "All",
       pickRelease: "— pick a release —",

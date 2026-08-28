@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { FiChevronRight } from "react-icons/fi";
 import type { MockupSet } from "@/lib/mockup-tag";
 import { useCopy } from "@/i18n/use-copy";
 import { splitCardBody, useAgentHalf } from "@/lib/agent-half";
-import { HAIRLINE } from "./chrome";
+import { Fold } from "./fold";
 import { Markdown } from "./Markdown";
 
 /** A card's body, in its two halves (#262).
@@ -35,32 +34,17 @@ export function CardBody({
 
   return (
     <>
-      <div className="nb-panel-sm p-5">
+      {/* One ground for both halves, and it is the page's — the warm sheet the bands above
+          are on too. This is the longest prose the board sets, so it is read THROUGH whatever
+          is under it: a signal wash here tints every line. Giving the second half a ground of
+          its own made the prose change colour halfway down; what parts them is the heading. */}
+      <div className="nb-section bg-nb-sheet p-5">
         <Markdown body={halves.human} mockups={mockups} />
       </div>
       {halves.agent && (
-        // A native <details> rather than a div we hide ourselves: the window's own Find
-        // reaches into a closed one and opens it at the word, in the browsers that can do
-        // that, and the `toggle` it fires is how the control above catches up.
-        <details
-          className="nb-panel-sm nb-fold overflow-hidden"
-          open={open}
-          onToggle={(e) => onToggle(e.currentTarget.open)}
-        >
-          {/* w-full because .nb-tag is inline-flex, which otherwise shrinks the row — and
-              the tint has to cover the whole strip for it to read as one control. */}
-          <summary className="nb-tag w-full cursor-pointer list-none items-center gap-2 px-5 py-3.5 text-nb-ink-soft transition-colors hover:bg-nb-wash hover:text-nb-ink">
-            <FiChevronRight
-              size={13}
-              aria-hidden
-              className={`shrink-0 transition-transform duration-150 ease-out ${open ? "rotate-90" : ""}`}
-            />
-            <span>{c.agentHalf}</span>
-          </summary>
-          <div className="px-5 pb-5 pt-4" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
-            <Markdown body={halves.agent} mockups={mockups} className="nb-md-soft" />
-          </div>
-        </details>
+        <Fold className="nb-section bg-nb-sheet" label={<span>{c.agentHalf}</span>} open={open} onToggle={onToggle}>
+          <Markdown body={halves.agent} mockups={mockups} className="nb-md-soft" />
+        </Fold>
       )}
     </>
   );

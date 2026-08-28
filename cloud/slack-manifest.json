@@ -1,0 +1,29 @@
+{
+  "display_information": {
+    "name": "AI4Kanban",
+    "description": "Review a waiting task and decide it without leaving Slack.",
+    "background_color": "#1d2026",
+    "long_description": "AI4Kanban is a file-based task board your coding agent works from. When a task is ready for review or is waiting on a decision only you can make, the board's Cloud service posts it here — the card's summary, its review notes, and the decision itself as buttons. Pressing Implement records the decision in Cloud straight away and your board's machine runs it the next time that machine is reachable, so a task is settled from a phone with nothing in front of you. The app never reads a message, including its own."
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "AI4Kanban",
+      "always_online": false
+    }
+  },
+  "oauth_config": {
+    "redirect_urls": ["https://api.ai4kanban.dev/v1/slack/installed"],
+    "scopes": {
+      "bot": ["chat:write", "chat:write.public", "im:write", "channels:read", "groups:read"]
+    }
+  },
+  "settings": {
+    "interactivity": {
+      "is_enabled": true,
+      "request_url": "https://api.ai4kanban.dev/v1/slack/actions"
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}

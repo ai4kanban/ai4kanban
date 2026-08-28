@@ -178,7 +178,6 @@ export type ConfigurationCopy = {
     unreachable: (why: string) => string;
     signedIn: string;
     signOut: string;
-    signOutNote: string;
     notAdmitted: string;
     signedInAs: (handle: string) => string;
     haveCode: string;
@@ -230,8 +229,6 @@ export type ConfigurationCopy = {
       waiting: string;
       disconnect: string;
       disconnecting: string;
-      /** Under the workspace: whose presses these are. */
-      actingAs: string;
       /** Every enabled board posts here, named on each message. */
       everyBoard: string;
       /** The destination picker. */
@@ -266,11 +263,11 @@ export type ConfigurationCopy = {
       /** Beside a runtime that machine bound nothing for, so it falls back. */
       notBound: string;
     };
-    /** This board's own notifications — on as soon as this machine is signed
-     *  in — and the one open release they watch. */
+    /** This board's own settings — the one open release it watches, and the machine
+     *  that runs its work. On as soon as this machine is signed in. */
     notifications: {
+      /** The caption over the board's rows. */
       title: string;
-      blurb: string;
       watching: string;
       /** The picker's widest entry — every card, whatever release. */
       allReleases: string;

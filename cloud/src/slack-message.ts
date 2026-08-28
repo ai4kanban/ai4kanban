@@ -75,7 +75,7 @@ function stateNote(event: EventRow): string {
     case 'waiting_for_server':
       return event.serverName
         ? `Waiting for ${event.serverName}. It runs as soon as that machine is reachable.`
-        : 'This board has no machine attached to run it. Attach one in Configuration → Cloud.'
+        : 'This board has no machine attached to run it. Attach one in Configuration → Notifications.'
     case 'running':
       return event.serverName ? `Running on ${event.serverName}.` : 'Running.'
     case 'completed':
