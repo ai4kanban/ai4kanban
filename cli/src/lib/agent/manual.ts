@@ -174,8 +174,27 @@ The agent that runs them
   agent use <name>             pick one
   agent set <key> [value]      a setting or a key; no value clears it. \`agent\` lists
                                the keys the picked agent takes — model, reasoning
-                               effort, provider, endpoint, and its API key
-  agent test                   one small chat, to see the setup works
+                               effort, provider, endpoint, extra arguments, and its
+                               API key
+  agent test [runtime]         one small chat, to see the setup works
+
+A runtime, so different flows run different tools
+  agent runtimes               the runtimes, and what each flow and spec agent is on
+  agent runtime add <name>     name one
+  agent runtime remove <name>  drop it; whatever named it runs the global one
+  agent runtime global <name>  the one a flow that names none runs on
+  agent runtime for <what> <name>
+                               point one flow or spec agent at a runtime; "-" puts it
+                               back on the global one
+  agent bind <name> <agent>    what that runtime runs as on THIS computer
+  agent bind <name> set <key> <value>
+                               one of that agent's settings, here
+  agent unbind <name>          back to this computer's global binding
+
+  The names live with the board and the bindings live with the computer, in
+  \`~/.ai4kanban/runtimes.json\`. A runtime nobody bound here runs this computer's
+  global binding, and a computer that has bound nothing runs \`agent use\`'s pick — so
+  a fresh clone works with no local setup at all.
 
   A key is the one thing to hand back rather than run. Give the user the line —
   \`${program} agent set apiKey <their-key>\` — and let them type it: a key an agent types

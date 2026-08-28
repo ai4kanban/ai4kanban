@@ -143,6 +143,9 @@ export interface SessionView {
    *  with the run, so the resume handoff is built from the harness the run actually
    *  used — not whatever the setting says today. */
   harness?: string;
+  /** The runtime it was resolved through (#343), saved beside the harness for the same
+   *  reason. Absent on a run started before runtimes existed. */
+  runtime?: string;
   /** The card this run touches, or null for a run that names none (create, propose,
    *  plan-release). */
   cardId: number | null;

@@ -1171,11 +1171,20 @@ in the file, so switching agents or providers never touches any of them.
     "claude-code": {
       "provider": "subscription",
       "model": "claude-opus-5",
-      "reasoning": "high"
+      "reasoning": "high",
+      "args": "--dangerously-skip-permissions"
     },
     "codex": {
       "model": "gpt-5.1-codex"
     }
+  },
+  "runtimes": {
+    "names": ["default", "cheap"],
+    "global": "default",
+    "flows": { "implement": "cheap" }
+  },
+  "specAgents": {
+    "ui-design": { "runtime": "cheap", "mockupStyle": "ascii" }
   }
 }
 ```
@@ -1226,9 +1235,63 @@ one; another agent's binary would reject the flags the harness adds on top. If t
 names a setting's flag — a `--model`, say — it wins, that setting is not added on top, and the dialog
 says the field isn't in effect.
 
+`args` is every agent's last setting: whatever that CLI takes and the board has no box for, appended
+as written. It sits **after** the settings' flags and **before** the agent's own, so a connector whose
+own arguments open a subcommand still takes everything after it. Unlike `model` and `reasoning`, a
+`command` override never turns it off — the override replaces the command, and this is added on top
+of whatever the command is.
+
 Each run reads the settings once, when it starts, so flipping the picker while an agent is working
 changes what the next run spawns. Each run also records the agent it ran under, so **Resume** only
 ever offers to continue a run the agent you have picked can actually reach.
+
+### A runtime, so different flows run different tools
+
+`harness` above pins the whole team to one coding tool. A **runtime** puts a name in front of it, and
+splits the answer in two: the board says which runtimes there are and which one each flow and spec
+agent runs on, and **each computer says what those names run as there**.
+
+`runtimes` is the board's half, and it travels with the repository:
+
+- `names` — every runtime, each a short word a person recognises.
+- `global` — the one a flow that names none runs on.
+- `flows` — the runtime a flow names, keyed by the command you type: `revise`, not the `edit` the
+  board keeps that action under. A spec agent names its own the same way, as a `runtime` key inside
+  its `specAgents` entry — a reserved key, never one of that agent's settings.
+
+`setup` always runs the global one: it is the run that has to work on a board nobody has configured
+yet. A pass a flow spawns runs that flow's runtime — a refine's clarify, resolve and writing passes
+take refine's, while an `akb resolve` you type keeps the `resolve` flow's — and only a flow is named,
+never a pass.
+
+**`~/.ai4kanban/runtimes.json` is the computer's half**, beside the Cloud sign-in and outside every
+project:
+
+```json
+{
+  "default": { "harness": "claude-code", "settings": { "model": "claude-opus-5" } },
+  "cheap": { "harness": "codex", "settings": { "model": "gpt-5.1-codex" } }
+}
+```
+
+Keyed by runtime name and not by board, so two checkouts of one board share a binding — and two
+different boards have to agree on names to share a machine. API keys are never in here: they stay in
+`docs/kanban/.env`, under the variable each agent declares.
+
+What a run ends up on, in order: this computer's binding for its runtime; this computer's binding for
+the **global** runtime, when the first is missing or names an agent this build doesn't ship; and
+finally `harness` and `harnessSettings` above, which is what a computer that has bound nothing runs —
+so a fresh clone works with no local setup at all. Whenever it isn't the runtime's own binding, the
+run's log says which runtime was asked for and what it ran as. A bound agent whose CLI simply isn't
+installed here does **not** fall back: the run fails with the install command in its log.
+
+A board written before runtimes existed has no `runtimes` key, and reads exactly as it always did:
+one runtime, every flow on it, bound to whatever `harness` and `harnessSettings` already say.
+
+It is all read and written from a terminal — `akb agent runtimes` prints the runtimes and what each
+flow and spec agent runs on, `akb agent runtime add|remove|global|for` changes the board's half, and
+`akb agent bind` / `akb agent unbind` changes this computer's. `akb agent test <runtime>` spawns what
+one runtime resolves to here.
 
 ### The spec agents
 
@@ -1244,7 +1307,7 @@ repeated in the UI. Both descriptions come from the command, so this section and
 never say different things. There is no way to put an agent on a card by hand: that is what the
 board does for you.
 
-Each agent has one switch, on until you turn it off:
+Each agent has a switch, on until you turn it off:
 
 - A switched-off agent is greyed and reads **Paused** beside its switch. The switch still works — that
   is how it goes back on.

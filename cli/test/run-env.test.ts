@@ -56,9 +56,10 @@ describe("ZCode's key", () => {
     board('')
     const zcode = agentInfo().options.find((o) => o.name === 'zcode')
     assert.ok(zcode)
+    // `args` is every harness's, added to the list in agent/harnesses/index.ts (#343).
     assert.deepEqual(
       zcode.settings.map((s) => s.key),
-      ['model', 'apiKey'],
+      ['model', 'apiKey', 'args'],
     )
   })
 })

@@ -40,6 +40,7 @@ function toView(run: RunView, deliveries?: Map<string, DeliveryRecord>): Session
     model: run.model,
     input: run.input,
     harness: run.harness,
+    runtime: run.runtime,
     canResume: run.canResume,
     resumedFrom: run.resumedFrom,
     ok: run.ok,

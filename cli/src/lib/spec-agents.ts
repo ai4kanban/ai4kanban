@@ -18,16 +18,17 @@
 // Prompt sources are markdown, inlined into the built file like the flows
 // (`loader: {'.md': 'text'}` in cli/scripts/build.mjs).
 
+import { runtimeFor } from './agent/runtime'
+import { runtimeHarness } from './agent/resolve'
 import { specAgentEntries, setSpecAgentSwitch, setSpecAgentValue } from './agent/settings'
 import type { SpecAgentEntry } from './agent/settings'
 import type { SpecAgentSetting, SpecAgentView } from './agent/types'
+import { canonicalSpecAgent, specAgentNames } from './spec-agent-names'
 import technologySelection from '../spec/technology-selection.md'
 import uiDesign from '../spec/ui-design.md'
 import uiDesignGuide from '../guide/ui-design.md'
 
-const LEGACY_SPEC_AGENT_NAMES: Record<string, string> = {
-  'recommend-tech-stack': 'technology-selection',
-}
+export { specAgentNames } from './spec-agent-names'
 
 /** One spec agent: the name it is run by, the part of a spec it owns, and its prompt. */
 export interface SpecAgent {
@@ -93,22 +94,8 @@ export const SPEC_AGENTS: SpecAgent[] = [
 
 export const SPEC_AGENT_NAMES = SPEC_AGENTS.map((a) => a.name)
 
-export const findSpecAgent = (name: string): SpecAgent | null => {
-  const asked = name.trim()
-  const canonical = LEGACY_SPEC_AGENT_NAMES[asked] ?? asked
-  return SPEC_AGENTS.find((a) => a.name === canonical) ?? null
-}
-
-/** The current name first, followed by names accepted for backward compatibility. */
-export const specAgentNames = (name: string): string[] => {
-  const canonical = findSpecAgent(name)?.name ?? name.trim()
-  return [
-    canonical,
-    ...Object.entries(LEGACY_SPEC_AGENT_NAMES)
-      .filter(([, current]) => current === canonical)
-      .map(([legacy]) => legacy),
-  ]
-}
+export const findSpecAgent = (name: string): SpecAgent | null =>
+  SPEC_AGENTS.find((a) => a.name === canonicalSpecAgent(name)) ?? null
 
 /** The heading a spec agent's section carries on a card. Its name is in it, so a reader
  *  can see who is answerable for that part of the spec and a rerun knows what to replace. */
@@ -221,6 +208,9 @@ export function readSpecAgents(): SpecAgentView[] {
     owns: a.owns,
     calledOn: a.calledOn,
     enabled: specAgentEnabled(a.name, entries),
+    // Which runtime this agent runs on, and what that is here (#343) — so the list a screen
+    // draws is the same answer a run would get, and no UI works one out.
+    ...specAgentRun(a.name, entries),
     settings: a.settings.map((setting) => ({
       key: setting.key,
       label: setting.label,
@@ -230,6 +220,16 @@ export function readSpecAgents(): SpecAgentView[] {
     })),
     values: specAgentSettings(a, entries).values,
   }))
+}
+
+/** What one spec agent runs on: the runtime it names — the board's global one when it names
+ *  none — and what that runtime resolves to on this computer. */
+export function specAgentRun(
+  name: string,
+  entries = specAgentEntries(),
+): { runtime: string; harness: string } {
+  const runtime = runtimeFor({ action: 'spec', specAgent: name }, undefined, entries)
+  return { runtime, harness: runtimeHarness(runtime).name }
 }
 
 /** Switch one agent on or off. The name is checked against the agents this board ships,
@@ -293,7 +293,14 @@ export function specAgentList(program: string, forPerson = false): string {
     '',
     'Agents',
     ...(on.length
-      ? on.flatMap((a) => ['', `  ${a.name}`, `    ${a.owns}`, `    ${a.calledOn}`, ...settingLines(a, entries)])
+      ? on.flatMap((a) => [
+          '',
+          `  ${a.name}`,
+          `    ${a.owns}`,
+          `    ${a.calledOn}`,
+          ...runtimeLine(a, entries, forPerson),
+          ...settingLines(a, entries),
+        ])
       : ['', '  Every spec agent on this board is switched off. Ask for none.']),
     '',
     `The flow one follows is \`${program} guide spec-agent\`.`,
@@ -314,6 +321,17 @@ export function specAgentList(program: string, forPerson = false): string {
 // The choices not in effect are left out on purpose: a setting is picked in the board UI,
 // never here, so a terminal listing that spelled out every option would be a menu with
 // nothing to press.
+// Which runtime this agent runs on, and what that is here (#343) — the same answer the
+// board UI's Agents section draws, so a terminal never says something else.
+//
+// Only for a person. A run reading this list is picking which agents a card needs, and what
+// tool each one spawns as is nothing it can act on.
+function runtimeLine(agent: SpecAgent, entries: Record<string, SpecAgentEntry>, forPerson: boolean): string[] {
+  if (!forPerson) return []
+  const { runtime, harness } = specAgentRun(agent.name, entries)
+  return [`    Runtime: ${runtime} — ${harness} here`]
+}
+
 function settingLines(agent: SpecAgent, entries: Record<string, SpecAgentEntry>): string[] {
   if (!agent.settings.length) return []
   const { values } = specAgentSettings(agent, entries)

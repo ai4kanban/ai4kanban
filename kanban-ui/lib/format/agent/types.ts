@@ -172,6 +172,9 @@ export interface RunRecord {
   /** The harness this run ran under, recorded when it starts, so a finished run keeps
    *  showing the agent that ran IT — changing the setting later can't rewrite history. */
   harness: string
+  /** The runtime it was resolved through (#343), recorded for the same reason. Absent on a
+   *  run written before runtimes existed. */
+  runtime?: string
   /** The run's SECOND id: the one that harness's own CLI resumes by. Set only when it
    *  isn't ours to know — the harness minted its own mid-run, or this run continues an
    *  earlier conversation and inherited that one's id. */
@@ -650,6 +653,35 @@ export interface HarnessOption {
   gaps: HarnessGap[]
 }
 
+/** Why a runtime is not running what this computer bound it to (#343): nothing was bound
+ *  for it here, or what was bound names a harness this build doesn't ship. Either way it
+ *  falls back to this computer's global binding, and then to what the board holds. */
+export interface RuntimeFallback {
+  was: 'unbound' | 'unknown-harness'
+  /** The harness name the binding asked for, on `unknown-harness`. */
+  bound?: string
+}
+
+/** One runtime as a reader is told about it: the board's name for it, and what it runs as
+ *  on THIS computer. The board never holds the second half. */
+export interface RuntimeView {
+  name: string
+  /** True for the one a flow that names none runs on. */
+  global: boolean
+  /** The harness it actually resolves to here, after every fallback. */
+  harness: string
+  /** Absent when this computer's own binding for it is what ran. */
+  fallback?: RuntimeFallback
+}
+
+/** What one flow runs on: the runtime it names, and what that resolves to here. Keyed by
+ *  the command a user types, which is the same key a flow's rule file uses. */
+export interface FlowRuntime {
+  command: string
+  runtime: string
+  harness: string
+}
+
 /** Which agent runs the board, what it is set to, and what it could be switched to. */
 export interface AgentInfo {
   name: string
@@ -667,6 +699,14 @@ export interface AgentInfo {
   ignored: string[]
   /** Every agent the board can run, with the settings each one takes. */
   options: HarnessOption[]
+  /** The board's runtimes, and what each one runs as here (#343). A board that names none
+   *  has the one, bound to whatever `harness` and `harnessSettings` already say. */
+  runtimes: RuntimeView[]
+  /** The name of the runtime a flow that names none runs on. */
+  globalRuntime: string
+  /** What each flow runs on — every flow, in the order `FLOWS` lists them, so no screen
+   *  keeps a list of its own. The spec agents are on the spec agent list instead. */
+  flows: FlowRuntime[]
   /** The agent name the config asked for, when we don't ship it. We run the default and
    *  say so — never move the user to another agent silently. */
   unknownName?: string
@@ -730,6 +770,10 @@ export interface SpecAgentView {
   /** What each of those settings is set to right now, by key. Every setting is in here — one
    *  nobody picked carries its own default, so a screen never has to work one out. */
   values: Record<string, string>
+  /** The runtime this agent runs on (#343) — the board's global one when it names none. */
+  runtime: string
+  /** What that runtime resolves to on this computer. */
+  harness: string
 }
 
 /** What one connection test found out. */

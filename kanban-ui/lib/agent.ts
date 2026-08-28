@@ -42,6 +42,9 @@ export const NO_AGENT: AgentInfo = {
   secretsSet: [],
   ignored: [],
   options: [],
+  runtimes: [],
+  globalRuntime: "",
+  flows: [],
 };
 
 /** The settings the picked agent declares — the only keys a save is allowed to write. */

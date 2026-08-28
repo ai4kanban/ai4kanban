@@ -9,6 +9,7 @@ import { boardCommand, boardCommandFor, commandNote } from './command'
 import { activeDelivery } from './deliveries'
 import { DELIVERY_FLOWS } from './flows'
 import { skillCall } from './resolve'
+import { runtimeFor } from './runtime'
 import { ruleBlock } from './rules'
 import { PROPOSE_DEFAULT, PROPOSE_MAX, type AgentRequest, type Boldness } from './types'
 
@@ -119,8 +120,10 @@ export function buildRun(req: AgentRequest): { prompt: string; notes: string[] }
 }
 
 function actionPrompt(req: AgentRequest, command: string, notes: string[]): string {
-  // How this agent calls the skill — the only part of a prompt that follows the agent.
-  const kb = skillCall()
+  // How this agent calls the skill — the only part of a prompt that follows the agent. It
+  // is the agent THIS run's runtime resolves to here (#343), not the board's global one: a
+  // `/kanban` sent to Codex is plain chat text and the skill never loads.
+  const kb = skillCall(runtimeFor(req))
   const tag = req.id ? `#${req.id}` : ''
   const named = req.title ? `${tag} ("${req.title}")` : tag
   switch (req.action) {

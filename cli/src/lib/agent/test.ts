@@ -70,10 +70,12 @@ function said(events: string, result: string | undefined, stderr: string): strin
 
 /** Send one small chat through the saved setup and say whether it worked. Never rejects:
  *  every way this can go wrong is a result worth showing. */
-export function testConnection(): Promise<ConnectionTest> {
+export function testConnection(runtime?: string): Promise<ConnectionTest> {
   // The same single read a run does, so the test can't be testing one setup while the next
-  // run uses another. The id is thrown away with the run — nothing tracks this.
-  const run = openPlan(planRun(randomUUID()))
+  // run uses another. The id is thrown away with the run — nothing tracks this. `runtime`
+  // points it at one runtime (#343); with none named it is the board's global one, which is
+  // what setup's own step tests.
+  const run = openPlan(planRun(randomUUID(), REPO_ROOT, runtime))
   const startedAt = Date.now()
   const [cmd, ...args] = run.argv
   // The same two shapes a run has (agent/watch.ts): a command that prints is handed the

@@ -8,16 +8,24 @@ import { CODEX } from './codex'
 import { CURSOR } from './cursor'
 import { DSH } from './dsh'
 import { OPENCODE } from './opencode'
-import type { Harness } from './types'
+import { RAW_ARGS, type Harness } from './types'
 import { ZCODE } from './zcode'
 
-export { SKILL_SENTENCE, namesFlag, type Harness } from './types'
+export { SKILL_SENTENCE, RAW_ARGS_KEY, namesFlag, type Harness } from './types'
+
+// The raw arguments are every harness's, added here rather than written into each file: it
+// is the same setting on all of them, and one that only some carried would be a gap nobody
+// could explain. It goes last, under the settings the connector has words for.
+const withRawArgs = (harness: Harness): Harness => ({
+  ...harness,
+  settings: [...harness.settings, RAW_ARGS],
+})
 
 /** Every agent the board can run, in the order they are listed. */
-export const HARNESSES: Harness[] = [CLAUDE_CODE, CODEX, CURSOR, OPENCODE, DSH, ZCODE]
+export const HARNESSES: Harness[] = [CLAUDE_CODE, CODEX, CURSOR, OPENCODE, DSH, ZCODE].map(withRawArgs)
 
 /** What runs when the config names no agent, or names one we don't know. */
-export const DEFAULT_HARNESS = CLAUDE_CODE
+export const DEFAULT_HARNESS = HARNESSES[0]!
 
 export function harnessByName(name: string | undefined): Harness | undefined {
   return HARNESSES.find((h) => h.name === name)

@@ -394,7 +394,27 @@ on gets the same answer, and a run started from a terminal reads it too. A switc
 keeps its settings on screen and still changeable, and an agent with no settings shows none.
 
 `akb spec` prints what each agent is set to under its two lines, so a terminal says the same
-thing the pane does. It is a listing, not a menu: settings are picked in the board app.
+thing the pane does, and names the runtime it runs on beside them. It is a listing, not a
+menu: settings are picked in the board app.
+
+### Which tool each flow runs on
+
+A **runtime** is a name the board holds — `default`, `cheap` — and every flow and spec agent
+runs on one: the global one unless it names another. What a runtime actually spawns is each
+computer's own answer, kept in `~/.ai4kanban/runtimes.json` and never written into the
+board, so one member runs `cheap` on Codex and another on something else.
+
+```bash
+akb agent runtimes                     # the runtimes, and what each flow and agent is on
+akb agent runtime add cheap            # name one
+akb agent runtime for implement cheap  # point a flow — or a spec agent — at it
+akb agent bind cheap codex             # what it runs as on THIS computer
+akb agent bind cheap set model gpt-5.1-codex
+```
+
+A runtime nobody bound here runs this computer's global binding, and a computer that has
+bound nothing runs `akb agent use`'s pick — so a fresh clone works with no local setup. The
+run's log says which runtime it was asked for and what it ran as.
 
 ## Queue a card that is waiting on another
 
@@ -500,8 +520,9 @@ just as plainly, and your agent runs the matching command:
 | "stop it" | `akb stop <run>` |
 | "that run died — carry on" | `akb resume <run>` |
 | "use Codex instead" | `akb agent use codex` |
-| "switch to Opus" / "make it think harder" | `akb agent set model …`, `akb agent set reasoning high` |
-| "check my setup works" | `akb agent test` |
+| "switch to Opus" / "make it think harder" | `akb agent set model …`, `akb agent set reasoning high`, `akb agent set args …` for a flag it has no box for |
+| "run implements on Codex" | `akb agent runtime add cheap`, `akb agent runtime for implement cheap`, then `akb agent bind cheap codex` on each machine |
+| "check my setup works" | `akb agent test`, or `akb agent test cheap` for one runtime |
 | "save my API key" | it hands **you** `akb agent set apiKey <key>` to type yourself |
 
 A key is the one thing your agent hands back instead of running: a key it types lands in

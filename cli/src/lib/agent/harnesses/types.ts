@@ -126,3 +126,24 @@ export const SKILL_SENTENCE = 'Use the kanban skill'
 export function namesFlag(argv: string[], flags: string[]): boolean {
   return argv.some((tok) => flags.some((flag) => tok === flag || tok.startsWith(`${flag}=`)))
 }
+
+// ---- the raw arguments every harness takes ---------------------------------
+//
+// A setting covers what the board has words for — a model, an effort level. This one covers
+// the rest: whatever that CLI takes and this build has never heard of. Every harness gets
+// it (harnesses/index.ts), so a new flag on any of them is reachable the day it ships.
+//
+// It is NOT a `command` override. The override replaces the command and its flags, and a
+// setting whose flag it names stops being added; this is appended on top of whatever the
+// command already is, and nothing turns it off.
+
+/** The key the raw arguments save under, in the harness's own block. */
+export const RAW_ARGS_KEY = 'args'
+
+export const RAW_ARGS: HarnessSetting = {
+  key: RAW_ARGS_KEY,
+  label: 'Extra arguments',
+  kind: 'text',
+  placeholder: '--dangerously-skip-permissions',
+  help: "Appended to the command as written, for whatever the settings above don't cover. Split on spaces; a bad one fails the run and the log says why.",
+}

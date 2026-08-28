@@ -53,6 +53,18 @@ export function readConfigRaw(): Record<string, unknown> {
   return JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8'))
 }
 
+/** The config as a reader takes it: an unreadable or malformed file holds nothing, so a
+ *  hand-edit that broke the JSON runs the defaults rather than stopping the board. Writers
+ *  use `readConfigRaw` instead — a save that overwrote a file it couldn't read would lose
+ *  the user's settings. */
+export function safeConfig(): Record<string, unknown> {
+  try {
+    return readConfigRaw()
+  } catch {
+    return {}
+  }
+}
+
 /** The name of the agent that runs for a config file's `harness` value: the one it names,
  *  when we ship it, and the default otherwise. Its block in `harnessSettings` is the
  *  picked agent's settings — so the writer and the reader always mean the same block. */
@@ -185,19 +197,25 @@ export interface SpecAgentEntry {
    *  in from the agent's own defaults is `lib/spec-agents.ts`'s, which is the only side
    *  that knows what an agent offers. */
   values: Record<string, string>
+  /** The runtime this agent runs on (#343). A reserved key in the entry, never one of the
+   *  values above — an agent that declared a `runtime` setting would otherwise fight it. */
+  runtime?: string
 }
 
 // One entry as the file holds it. Null for a shape we can't read, which the callers take as
 // "nothing saved for this agent".
+const RESERVED_SPEC_KEYS = ['enabled', 'runtime']
+
 function parseSpecEntry(value: unknown): SpecAgentEntry | null {
   if (typeof value === 'boolean') return { enabled: value, values: {} }
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const raw = value as Record<string, unknown>
   const values: Record<string, string> = {}
   for (const [key, v] of Object.entries(raw)) {
-    if (key !== 'enabled' && typeof v === 'string') values[key] = v
+    if (!RESERVED_SPEC_KEYS.includes(key) && typeof v === 'string') values[key] = v
   }
-  return { enabled: raw.enabled !== false, values }
+  const runtime = typeof raw.runtime === 'string' ? raw.runtime.trim() : ''
+  return { enabled: raw.enabled !== false, values, ...(runtime ? { runtime } : {}) }
 }
 
 // One agent's entry under its current name or a name it used to have. The first name that
@@ -273,11 +291,13 @@ function writeSpecAgentEntry(
     const entry = change(entryOf(block, [name, ...legacyNames]) ?? { enabled: true, values: {} })
     for (const legacy of legacyNames) delete block[legacy]
     delete block[name]
-    if (Object.keys(entry.values).length) {
-      block[name] = entry.enabled ? { ...entry.values } : { enabled: false, ...entry.values }
-    } else if (!entry.enabled) {
-      block[name] = false
+    const body = {
+      ...(entry.enabled ? {} : { enabled: false }),
+      ...(entry.runtime ? { runtime: entry.runtime } : {}),
+      ...entry.values,
     }
+    if (Object.keys(body).length > (entry.enabled ? 0 : 1)) block[name] = body
+    else if (!entry.enabled) block[name] = false
     if (Object.keys(block).length) cfg.specAgents = block
     else delete cfg.specAgents
   })
@@ -431,3 +451,170 @@ export function setSecret(name: string, value: string): { ok: boolean; error?: s
     return { ok: false, error: `couldn't write ${ENV_FILE}: ${why}` }
   }
 }
+
+// ---- the runtimes, and what each flow runs on (#343) ------------------------
+//
+//   "runtimes": {
+//     "names": ["default", "cheap"],
+//     "global": "default",
+//     "flows": { "implement": "cheap" }
+//   },
+//   "specAgents": { "ui-design": { "runtime": "cheap", "mockupStyle": "ascii" } }
+//
+// A runtime is a name and nothing else. The board says which ones there are, which one is
+// global, and which one each flow and spec agent runs on; what a runtime RUNS as is the
+// computer's answer, in `~/.ai4kanban/runtimes.json` (lib/machine/runtimes.ts). So the
+// names travel with the repository and the tools do not.
+//
+// `flows` is keyed by the command a user types — `revise`, not the `edit` the board keeps
+// that action under — which is the same key a flow's rule file uses.
+//
+// A board written before this names none. Then there is one runtime, DEFAULT_RUNTIME, every
+// flow is on it, and it is bound to whatever `harness` and `harnessSettings` already say —
+// so nothing about such a board reads differently.
+
+/** The one runtime a board that names none has. */
+export const DEFAULT_RUNTIME = 'default'
+
+// What a name has to look like: a short word a person recognises, with no space in it — it
+// is typed as one argument and printed in a column.
+const RUNTIME_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/
+
+export const runtimeNameError = (name: string): string | null =>
+  RUNTIME_NAME.test(name)
+    ? null
+    : `"${name}" can't be a runtime name — up to 32 letters, digits, ".", "-" or "_", starting with a letter or digit.`
+
+/** The runtimes a board names, and what runs on which. */
+export interface BoardRuntimes {
+  /** Every runtime, in the order the board holds them. Never empty: a board that names
+   *  none reads as the one `DEFAULT_RUNTIME`. */
+  names: string[]
+  /** The one a flow that names none runs on. Always one of `names`. */
+  global: string
+  /** The runtime each flow names, keyed by `FLOWS[].command` — only the flows that name
+   *  one. */
+  flows: Record<string, string>
+  /** False when the board names no runtimes at all — a board written before they existed. */
+  named: boolean
+}
+
+// One list of names out of the file, deduplicated and in order. Anything that isn't a
+// readable name is dropped rather than refused: this file is hand-editable, and one bad line
+// is not a reason to run the whole board on nothing.
+function nameList(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  const out: string[] = []
+  for (const item of value) {
+    const name = typeof item === 'string' ? item.trim() : ''
+    if (name && !runtimeNameError(name) && !out.includes(name)) out.push(name)
+  }
+  return out
+}
+
+/** The runtime block, read. A malformed entry, or one naming a runtime the board doesn't
+ *  hold, reads as the global runtime — the same answer a missing entry gives, so a
+ *  misspelled name costs a pick and never a run. */
+export function readRuntimes(cfg: Record<string, unknown> = safeConfig()): BoardRuntimes {
+  const block = configBlock(cfg.runtimes)
+  const names = nameList(block.names)
+  if (!names.length) return { names: [DEFAULT_RUNTIME], global: DEFAULT_RUNTIME, flows: {}, named: false }
+  const asked = typeof block.global === 'string' ? block.global.trim() : ''
+  const global = names.includes(asked) ? asked : names[0]!
+  const flows: Record<string, string> = {}
+  for (const [command, value] of Object.entries(configBlock(block.flows))) {
+    const name = typeof value === 'string' ? value.trim() : ''
+    if (names.includes(name)) flows[command] = name
+  }
+  return { names, global, flows, named: true }
+}
+
+// Every write rewrites the whole block, because its keys are one answer: a name that goes
+// has to leave the flows pointing at it. The block is dropped entirely when it says no more
+// than a board that never had one.
+function writeRuntimes(change: (current: BoardRuntimes) => BoardRuntimes): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => {
+    const next = change(readRuntimes(cfg))
+    const flows = Object.fromEntries(Object.entries(next.flows).filter(([, name]) => next.names.includes(name)))
+    const plain = next.names.length === 1 && next.names[0] === DEFAULT_RUNTIME && !Object.keys(flows).length
+    if (plain) delete cfg.runtimes
+    else {
+      cfg.runtimes = {
+        names: next.names,
+        global: next.global,
+        ...(Object.keys(flows).length ? { flows } : {}),
+      }
+    }
+  })
+}
+
+/** Add a runtime. Adding the first one to a board that named none keeps the global where it
+ *  was, so every flow goes on running what it ran before. */
+export function addRuntime(name: string): { ok: boolean; error?: string } {
+  const bad = runtimeNameError(name)
+  if (bad) return { ok: false, error: bad }
+  return writeRuntimes((now) => ({
+    ...now,
+    names: now.names.includes(name) ? now.names : [...now.names, name],
+  }))
+}
+
+/** Drop a runtime. Every flow and spec agent that named it falls back to the global one
+ *  rather than the removal being refused. The global runtime itself is refused — point the
+ *  global at another one first, so a board is never left with nothing global on it. */
+export function removeRuntime(name: string): { ok: boolean; error?: string } {
+  const now = readRuntimes()
+  if (!now.names.includes(name)) return { ok: false, error: unknownRuntime(name, now) }
+  if (name === now.global) {
+    return {
+      ok: false,
+      error: `"${name}" is the board's global runtime. Point the global at another one first: \`akb agent runtime global <name>\`.`,
+    }
+  }
+  return writeRuntimes((current) => ({
+    ...current,
+    names: current.names.filter((n) => n !== name),
+    flows: Object.fromEntries(Object.entries(current.flows).filter(([, on]) => on !== name)),
+  }))
+}
+
+/** Make one of the runtimes the board's global one. */
+export function setGlobalRuntime(name: string): { ok: boolean; error?: string } {
+  const now = readRuntimes()
+  if (!now.names.includes(name)) return { ok: false, error: unknownRuntime(name, now) }
+  return writeRuntimes((current) => ({ ...current, global: name }))
+}
+
+/** Point one flow at a runtime, or back at the global one with an empty name. That the
+ *  command names a flow is the caller's to check (`commands/agent.ts`), which is the side
+ *  holding `FLOWS`. */
+export function setFlowRuntime(command: string, name: string): { ok: boolean; error?: string } {
+  const now = readRuntimes()
+  if (name && !now.names.includes(name)) return { ok: false, error: unknownRuntime(name, now) }
+  return writeRuntimes((current) => {
+    const flows = { ...current.flows }
+    if (name) flows[command] = name
+    else delete flows[command]
+    return { ...current, flows }
+  })
+}
+
+/** Point one spec agent at a runtime, or back at the global one with an empty name. Its
+ *  switch and its settings are left exactly as they were. */
+export function setSpecAgentRuntime(
+  name: string,
+  runtime: string,
+  legacyNames: string[] = [],
+): { ok: boolean; error?: string } {
+  const now = readRuntimes()
+  if (runtime && !now.names.includes(runtime)) return { ok: false, error: unknownRuntime(runtime, now) }
+  return writeSpecAgentEntry(name, legacyNames, (entry) => {
+    const next = { ...entry }
+    if (runtime) next.runtime = runtime
+    else delete next.runtime
+    return next
+  })
+}
+
+export const unknownRuntime = (name: string, runtimes = readRuntimes()): string =>
+  `no runtime called "${name}" on this board. It has: ${runtimes.names.join(', ')}.`
