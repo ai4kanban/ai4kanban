@@ -258,12 +258,15 @@ function Silencer() {
     void notificationCenterAction().then((center) => setOn(center.silenced));
   }, []);
 
+  // Flipped on screen before it is written, and put back only if the write refused: the
+  // switch is the whole of the feedback, so one that waits reads as one that missed the press.
   const flip = async () => {
     if (busy || on === null) return;
     setBusy(true);
+    setOn(!on);
     try {
       const done = await setSilencedAction(!on);
-      if (done.ok) setOn(!on);
+      if (!done.ok) setOn(on);
     } finally {
       setBusy(false);
     }
@@ -307,9 +310,13 @@ function Slack({
   onError?: (msg: string) => void;
 }) {
   const c = useCopy().configuration.cloud.slack;
+  const saving = useCopy().configuration.cloud.saving;
   const [state, setState] = useState<SlackState | null>(null);
   const [working, setWorking] = useState<"connect" | "save" | "disconnect" | null>(null);
   const [waiting, setWaiting] = useState(false);
+  // The conversation just picked, drawn until Cloud has answered — the save is a round trip
+  // to the service, and a picker that keeps showing the old room reads as one that refused.
+  const [picked, setPicked] = useState<SlackConversation | null>(null);
 
   const load = useCallback(async () => setState(await slackStateAction()), []);
   useEffect(() => {
@@ -342,6 +349,7 @@ function Slack({
       if (!done.ok) onError?.(done.error || (what === "save" ? c.saveFailed : c.disconnectFailed));
       await load();
     } finally {
+      setPicked(null);
       setWorking(null);
     }
   };
@@ -404,13 +412,15 @@ function Slack({
         <span className="text-[12px] font-[700] text-nb-ink">{c.postsTo}</span>
         <Destination
           connection={connection}
+          picked={picked}
           busy={busy}
-          onPick={(conversation) =>
-            void move("save", () => setSlackChannelAction(conversation.id, conversation.name))
-          }
+          onPick={(conversation) => {
+            setPicked(conversation);
+            void move("save", () => setSlackChannelAction(conversation.id, conversation.name));
+          }}
         />
         <span className="min-w-0 flex-1 text-[11.5px] leading-[16px] text-nb-ink-soft">
-          {c.everyBoard}
+          {working === "save" ? saving : c.everyBoard}
         </span>
       </div>
 
@@ -428,10 +438,13 @@ function Slack({
  *  who came to read the sign-in. */
 function Destination({
   connection,
+  picked,
   busy,
   onPick,
 }: {
   connection: NonNullable<SlackState["connection"]>;
+  /** Just picked and not yet written. Drawn over the connection's own answer. */
+  picked: SlackConversation | null;
   busy: boolean;
   onPick: (conversation: SlackConversation) => void;
 }) {
@@ -450,24 +463,23 @@ function Destination({
     }
   };
 
+  const shownId = picked?.id ?? connection.channelId;
+  const shownName = picked?.name ?? connection.channelName;
+
   // The one it already posts to is always in the list, whether or not Slack answered: the
   // picker must show where messages go even when the workspace cannot be read this second.
   const offered = conversations ?? [];
-  const known = connection.channelId
-    ? offered.some((conversation) => conversation.id === connection.channelId)
-    : true;
-  const list = known
-    ? offered
-    : [{ id: connection.channelId, name: connection.channelName, direct: false }, ...offered];
+  const known = shownId ? offered.some((conversation) => conversation.id === shownId) : true;
+  const list = known ? offered : [{ id: shownId, name: shownName, direct: false }, ...offered];
 
   return (
     <Select
-      value={connection.channelId || undefined}
+      value={shownId || undefined}
       disabled={busy}
       onOpenChange={(open) => open && void read()}
       onValueChange={(id) => {
-        const picked = list.find((conversation) => conversation.id === id);
-        if (picked) onPick(picked);
+        const conversation = list.find((one) => one.id === id);
+        if (conversation) onPick(conversation);
       }}
     >
       {/* The name is drawn here rather than by `SelectValue`, which reads it off the item
@@ -477,10 +489,10 @@ function Destination({
       <SelectTrigger
         aria-label={c.postsTo}
         className={`h-8 w-auto max-w-[24ch] rounded-[8px] py-0 text-[12px] font-[700] ${
-          connection.channelName ? "" : "text-nb-ink-soft/60"
+          shownName ? "" : "text-nb-ink-soft/60"
         }`}
       >
-        <span className="truncate">{connection.channelName || c.pickChannel}</span>
+        <span className="truncate">{shownName || c.pickChannel}</span>
       </SelectTrigger>
       <SelectContent>
         {list.length === 0 ? (
@@ -509,29 +521,40 @@ function Destination({
 
 function Notifications() {
   const c = useCopy().configuration.cloud.notifications;
+  const saving = useCopy().configuration.cloud.saving;
   const [state, setState] = useState<BoardNotifications | null>(null);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // What was just picked, drawn before the board has answered. A write here reaches a file
+  // and then Cloud, which is long enough that a control redrawn only on the answer reads as
+  // a control that did not take the press. Cleared once the board has been re-read, so what
+  // is on screen after a refusal is what the board actually holds.
+  const [pending, setPending] = useState<Partial<Pick<BoardNotifications, "release">> & { here?: boolean }>({});
+  const busy = Object.keys(pending).length > 0;
 
   const load = useCallback(async () => setState(await boardNotificationsAction()), []);
   useEffect(() => {
     void load();
   }, [load]);
 
-  const move = async (run: () => Promise<{ ok: boolean; error?: string }>) => {
+  const move = async (
+    shown: { release: string } | { here: boolean },
+    run: () => Promise<{ ok: boolean; error?: string }>,
+  ) => {
     if (busy) return;
-    setBusy(true);
+    setPending(shown);
     setError(null);
     try {
       const done = await run();
       if (!done.ok) setError(done.error ?? c.saveFailed);
       await load();
     } finally {
-      setBusy(false);
+      setPending({});
     }
   };
 
   if (!state?.enabled) return null;
+
+  const release = pending.release ?? state.release;
 
   return (
     <div>
@@ -546,9 +569,9 @@ function Notifications() {
         <div className="flex items-center gap-2.5">
           <span className="text-[12px] font-[700] text-nb-ink">{c.watching}</span>
           <Select
-            value={state.release || undefined}
+            value={release || undefined}
             disabled={busy}
-            onValueChange={(release) => void move(() => watchReleaseAction(release))}
+            onValueChange={(picked) => void move({ release: picked }, () => watchReleaseAction(picked))}
           >
             <SelectTrigger
               aria-label={c.watching}
@@ -560,24 +583,26 @@ function Notifications() {
               <SelectItem value={ALL_RELEASES} className="font-mono text-[12px]">
                 {c.allReleases}
               </SelectItem>
-              {state.releases.map((release) => (
-                <SelectItem key={release} value={release} className="font-mono text-[12px]">
-                  {release}
+              {state.releases.map((option) => (
+                <SelectItem key={option} value={option} className="font-mono text-[12px]">
+                  {option}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <span className="min-w-0 flex-1 text-[11.5px] leading-[16px] text-nb-ink-soft">
-            {state.release === ALL_RELEASES
-              ? c.anyRelease
-              : state.release
-                ? c.onlyThisRelease
-                : c.releaseClosed}
+            {pending.release !== undefined
+              ? saving
+              : release === ALL_RELEASES
+                ? c.anyRelease
+                : release
+                  ? c.onlyThisRelease
+                  : c.releaseClosed}
           </span>
         </div>
 
         {/* Which machine runs this board's work (#318). */}
-        <ServerRow state={state} busy={busy} onMove={move} />
+        <ServerRow state={state} here={pending.here ?? state.server.here} busy={busy} onMove={move} />
 
         {error && (
           <p className="mt-2 text-[11.5px] leading-[16px] text-nb-peach-ink" role="status">
@@ -597,15 +622,24 @@ function Notifications() {
 
 function ServerRow({
   state,
+  here,
   busy,
   onMove,
 }: {
   state: BoardNotifications;
+  /** The switch's position — what was just pressed until the board answers. */
+  here: boolean;
   busy: boolean;
-  onMove: (run: () => Promise<{ ok: boolean; error?: string }>) => Promise<void>;
+  onMove: (
+    shown: { release: string } | { here: boolean },
+    run: () => Promise<{ ok: boolean; error?: string }>,
+  ) => Promise<void>;
 }) {
   const c = useCopy().configuration.cloud.server;
   const { server } = state;
+  // Read off the board's own answer rather than the optimistic one: switching this board off
+  // would otherwise read for a moment as a board another machine holds, and swap the switch
+  // for **Move it here** while the detach was still in flight.
   const elsewhere = server.attached && !server.here;
 
   return (
@@ -618,15 +652,20 @@ function ServerRow({
           </p>
         </div>
         {elsewhere ? (
-          <Button size="sm" variant="ghost" disabled={busy} onClick={() => void onMove(() => setBoardServerAction(true, true))}>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => void onMove({ here: true }, () => setBoardServerAction(true, true))}
+          >
             {busy ? c.moving : c.moveHere}
           </Button>
         ) : (
           <Switch
-            on={server.here}
+            on={here}
             busy={busy}
-            onFlip={() => void onMove(() => setBoardServerAction(!server.here))}
-            label={server.here ? c.switchOn : c.switchOff}
+            onFlip={() => void onMove({ here: !here }, () => setBoardServerAction(!here))}
+            label={here ? c.switchOn : c.switchOff}
           />
         )}
       </div>

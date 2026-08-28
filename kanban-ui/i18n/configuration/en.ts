@@ -192,6 +192,7 @@ const en: ConfigurationCopy = {
     blurb:
       "Where a card that needs you reaches you. One sign-in covers every project on this machine.",
     checking: "Checking this machine…",
+    saving: "Saving…",
     unreachable: (why) => `Cloud could not be reached: ${why}. Nothing on this board is affected.`,
     signedIn: "Signed in",
     signOut: "Sign out",

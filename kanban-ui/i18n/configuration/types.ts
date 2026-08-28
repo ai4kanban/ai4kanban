@@ -175,6 +175,8 @@ export type ConfigurationCopy = {
     title: string;
     blurb: string;
     checking: string;
+    /** Beside a control whose new value is already drawn but not yet written. */
+    saving: string;
     unreachable: (why: string) => string;
     signedIn: string;
     signOut: string;
