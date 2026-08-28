@@ -39,7 +39,6 @@ import { durationLine, KEEP_LOGS, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumableHarness, resumableLookup, type RunPlan } from './resolve'
 import { runtimeFor } from './runtime'
 import { logPathOf, readRuns, readStore, withRuns, withStore } from './store'
-import { REFINE_ACTIONS } from './types'
 import type {
   AgentAction,
   AgentRequest,
@@ -535,9 +534,9 @@ export function openRun(
     // Which spec agent this is, on the one action that has one — so the run list can name
     // it, and so a resume starts the same agent rather than a different one.
     specAgent: req.action === 'spec' ? req.specAgent : undefined,
-    // Internal refinement sessions carry their position so the watcher can choose the next
-    // QA or writing session. A standalone resolve starts a new chain.
-    refineRound: req.refineRound ?? (REFINE_ACTIONS.has(req.action) ? 1 : undefined),
+    // Internal refinement sessions name their position in the request. A standalone
+    // resolve carries no round: it already applies the answers and runs QA in this session.
+    refineRound: req.refineRound,
     // And the flow it belongs to. A run started by a person opens one here; the watcher
     // copies the id onto every session that run goes on to start — a refinement's passes,
     // the spec agents it asked for, the review after a build. So one job is one thing in

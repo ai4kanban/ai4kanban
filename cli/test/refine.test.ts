@@ -208,6 +208,13 @@ describe('applying user answers', () => {
     refineRound: undefined,
   })
 
+  it('records a standalone resolve outside the refinement pass chain', () => {
+    writeCard({ questions: ['[user] Which boundary applies?'] })
+    const opened = openRun({ action: 'resolve', id: 7, title: 'A card to refine' }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    assert.equal(opened.run.refineRound, undefined)
+  })
+
   it('hands a resolved and validated card straight to writing', () => {
     writeCard({ questions: ['[user] Which boundary applies?'] })
     const before = markBoard()
