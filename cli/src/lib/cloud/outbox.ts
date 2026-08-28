@@ -155,12 +155,45 @@ export function livePublications(): Array<{ taskId: number; event: PublishedEven
 export const isEnded = (state: CloudEventState): boolean =>
   state === 'completed' || state === 'failed' || state === 'cancelled' || state === 'interrupted'
 
-/** Queue one thing, in the same edit that records what it is about. Idempotent on `opId`:
- *  the same attempt is never queued twice. */
+/** What a queued item is ABOUT, as against which attempt at it this is. One task means one
+ *  row on Cloud, so it means one pending publication here too: the record that would stop a
+ *  second being queued is only written once a send succeeds, and until then every board
+ *  write would queue the same card again. An outcome carries its state, because `running`
+ *  and how it ended are two things to report rather than two tries at one. */
+const subject = (p: Pending): string => {
+  switch (p.kind) {
+    case 'publish':
+      return `publish:${p.snapshot.taskId}`
+    case 'retire':
+      return `retire:${p.eventId}`
+    case 'action':
+      return `action:${p.eventId}`
+    default:
+      return `outcome:${p.eventId}:${p.outcome}`
+  }
+}
+
+/** Whether a queued item and a new one about the same subject would send the same thing. A
+ *  publication is its fingerprint; nothing else carries a payload that can move. */
+const unchanged = (queued: Pending, next: Pending): boolean =>
+  queued.kind === 'publish' && next.kind === 'publish'
+    ? queued.snapshot.fingerprint === next.snapshot.fingerprint
+    : true
+
+/**
+ * Queue one thing, in the same edit that records what it is about.
+ *
+ * At most one item per subject. An identical one already queued is kept as it stands, with
+ * the attempts it has spent — replacing it would reset them on every board write and defeat
+ * MAX_ATTEMPTS. A card that has MOVED supersedes it instead: what waits to be sent is what
+ * the card says now, sent once, rather than every version it passed through.
+ */
 export function queue(pending: Pending): void {
   editOutbox((outbox) => {
     if (outbox.pending.some((p) => p.opId === pending.opId)) return
-    outbox.pending.push(pending)
+    const at = outbox.pending.findIndex((p) => subject(p) === subject(pending))
+    if (at === -1) outbox.pending.push(pending)
+    else if (!unchanged(outbox.pending[at] as Pending, pending)) outbox.pending[at] = pending
   })
 }
 

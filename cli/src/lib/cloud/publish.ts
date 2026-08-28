@@ -52,8 +52,10 @@ import { attachBoardServer } from './servers'
 import { readSession } from './session'
 import { snapshotFor } from './snapshot'
 
-/** How many times a queued item is tried before it is left alone. Past this it keeps its
- *  last error and stops being sent on every board write forever. */
+/** How many times a queued item is tried before it is dropped. Dropping is what makes it
+ *  retryable: nothing is recorded for its task, so the next board write queues it again with
+ *  fresh attempts. Left in the queue instead, it would be skipped forever — a card that went
+ *  through one outage would never reach Cloud again. */
 const MAX_ATTEMPTS = 8
 
 /** How long a command waits for the outbox to empty before it ends anyway. Long enough for
@@ -94,8 +96,17 @@ async function pauseIfReleaseClosed(enabled: CloudBoard): Promise<CloudBoard> {
  * `reconcile` is the start-up and first-enable pass: it also asks Cloud what it believes is
  * live, so an event whose task was edited by hand outside `akb` — which runs no publisher
  * at all — is refreshed or retired rather than left asking about a card that has moved.
+ *
+ * The board's NAME is registered on that same pass. Publishing an event registers the board
+ * it names, but under no name — so a board whose first `startPublishing` could not reach
+ * Cloud would carry an unnamed row for good, and the bell would draw a row it cannot say
+ * which board is asking. The call is idempotent and costs no write once the name matches.
  */
 export async function publishBoardEvents({ reconcile = false } = {}): Promise<void> {
+  if (reconcile) {
+    const enabled = publishing()
+    if (enabled) await registerBoard(enabled.id, enabled.name)
+  }
   await recordBoardEvents({ reconcile })
   await flushCloudOutbox()
 }
@@ -339,7 +350,12 @@ export function flushCloudOutbox(): Promise<void> {
 async function run(): Promise<void> {
   if (!readSession()) return
   for (const item of takePending()) {
-    if (item.attempts >= MAX_ATTEMPTS) continue
+    // Spent before this build, which stopped sending an exhausted item but never took it
+    // off. Dropping it is what lets the next board write raise its task again.
+    if (item.attempts >= MAX_ATTEMPTS) {
+      settle(item.opId)
+      continue
+    }
     const done = await sendOne(item)
     if (done.ok) continue
     // A refusal re-reading changes nothing about is not worth retrying forever: it is taken
@@ -348,7 +364,8 @@ async function run(): Promise<void> {
       settle(item.opId)
       continue
     }
-    failed(item.opId, done.error)
+    if (item.attempts + 1 >= MAX_ATTEMPTS) settle(item.opId)
+    else failed(item.opId, done.error)
     // Cloud is not answering. Stop here rather than spending the whole queue on it.
     return
   }
