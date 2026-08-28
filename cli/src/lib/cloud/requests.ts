@@ -24,7 +24,7 @@ import { peekRun } from '../agent/sessions'
 import { startRun } from '../agent/start'
 import { REPO_ROOT } from '../paths'
 import { findCard } from '../view/read'
-import type { WriteResult } from '../view/types'
+import type { Card, WriteResult } from '../view/types'
 import { claimRequest, listRequests, renewClaim } from './client'
 import { answeredFromEvent, answerNotes, type CloudEventAnswer, type CloudEventQuestion } from './events'
 import { claimForTask, dropClaim, heldClaims, holdClaim, notePublication, publishedFor } from './outbox'
@@ -161,34 +161,46 @@ function carrying(taskId: number, decision: 'implement' | 'answer', sessionId?: 
 // ---- starting the local flow -------------------------------------------------
 
 /**
- * Re-read the card and run the flow the approval asked for.
+ * Why the local board will not run this approval, or null when it will.
  *
  * The approved revision is binding: a card edited after the message was created is refused
  * rather than built to a specification the user did not approve. That check is the final one
- * — Cloud may reject a revision it already knows is stale, but the board is what decides.
+ * — Cloud may reject a revision it already knows is stale, but the board is what decides,
+ * and a card that left its actionable state between the press and the claim is refused here
+ * and nowhere else.
  */
+export function refuseStart(
+  card: Card | null,
+  request: Pick<CloudRequest, 'taskId' | 'revision' | 'decision' | 'questions'>,
+): string | null {
+  if (!card) return `#${request.taskId} is no longer on this board.`
+  if (card.revision !== request.revision) return `#${request.taskId} has changed since this was approved.`
+  if (request.decision === 'implement') {
+    return card.status === 'ready' ? null : `#${request.taskId} is no longer ready to build.`
+  }
+  // An answer: the questions it answers must still be the card's, because the entries are
+  // one per question in the order the event carried them.
+  if (!sameQuestions(userQuestions(card), request.questions)) {
+    return `The open questions on #${request.taskId} have changed since this was answered.`
+  }
+  return null
+}
+
+/** Re-read the card and run the flow the approval asked for, or say why not. */
 function start(request: CloudRequest): Started | Refusal {
   const card = findCard(request.taskId)
-  if (!card) return { started: false, reason: `#${request.taskId} is no longer on this board.` }
-  if (card.revision !== request.revision) {
-    return { started: false, reason: `#${request.taskId} has changed since this was approved.` }
-  }
+  const refused = refuseStart(card ?? null, request)
+  // `!card` is what `refused` already answered for; naming it again here is what leaves
+  // `card` a card below rather than a cast.
+  if (refused || !card) return { started: false, reason: refused ?? `#${request.taskId} is no longer here.` }
 
   if (request.decision === 'implement') {
-    if (card.status !== 'ready') {
-      return { started: false, reason: `#${request.taskId} is no longer ready to build.` }
-    }
     const run = startRun({ action: 'implement', id: card.id, title: card.title })
     if ('error' in run) return { started: false, reason: run.error }
     if (!run.spawned) return { started: false, reason: 'This machine could not start a process for that run.' }
     return { started: true }
   }
 
-  // An answer: the questions it answers must still be the card's, because the entries are
-  // one per question in the order the event carried them.
-  if (!sameQuestions(userQuestions(card), request.questions)) {
-    return { started: false, reason: `The open questions on #${request.taskId} have changed since this was answered.` }
-  }
   const notes = answerNotes(answeredFromEvent(request.questions, request.answers))
   const run = startRun({ action: 'resolve', id: card.id, title: card.title, notes })
   if ('error' in run) return { started: false, reason: run.error }
@@ -260,8 +272,15 @@ const sleep = (ms: number) =>
 
 // ---- the two moves a card page offers an interrupted request -----------------
 
-/** Take an interrupted request up again and run its flow from the start. The claim is
- *  Cloud's to give: a machine that no longer holds the board is refused here, not on screen. */
+/**
+ * Take an interrupted request up again and run its flow from the start.
+ *
+ * The claim is Cloud's to give: a machine that no longer holds the board is refused here,
+ * not on screen. And a request whose delivery is STILL RUNNING here is taken back up without
+ * being started again (#329): a machine asleep longer than the lease comes back to a request
+ * Cloud already calls interrupted while its build never stopped, and a second run over a
+ * worktree the first is writing to is the one thing a resume must never do.
+ */
 export async function resumeCloudRequest(eventId: string, root = REPO_ROOT): Promise<WriteResult> {
   const here = serverForBoard(root)
   if (!here) return { ok: false, error: 'This machine does not run this board’s work.' }
@@ -277,6 +296,16 @@ export async function resumeCloudRequest(eventId: string, root = REPO_ROOT): Pro
   if (!claimed.value.claimed) return { ok: false, error: claimed.value.reason ?? 'That request could not be taken up.' }
 
   notePublication(request.taskId, request.eventId, 'accepted')
+  const held = claimForTask(request.taskId)
+  const sessionId = held?.requestId === request.id ? held.sessionId : undefined
+  // Still going here. The claim is renewed by taking it, and reporting `running` is what
+  // puts the row back in step — there is nothing to start.
+  if (carrying(request.taskId, request.decision, sessionId)) {
+    holdClaim(claimOf(request, sessionId))
+    recordCloudDeliveryState(request.taskId, 'running')
+    return { ok: true }
+  }
+
   holdClaim(claimOf(request))
   const started = start(request)
   if (started.started) return { ok: true }

@@ -374,6 +374,27 @@ describe('slackCallback', () => {
     assert.match(calls.find((c) => c.ephemeral)?.ephemeral ?? '', /already answered/)
   })
 
+  it('recognises a replayed callback rather than acting on it twice', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      slack_actor: { ownerId: OWNER, botToken: 'xoxb', channelId: 'C1', revoked: false },
+      read_event: anEvent(),
+      record_event_action: anEvent({ state: 'waiting_for_server', acted: true }),
+      slack_jobs: [],
+    })
+    const body = press()
+
+    // The very same signed body, posted twice inside the five minutes it is good for.
+    await slackCallback(ENV, await signedRequest(body), ctx())
+    await slackCallback(ENV, await signedRequest(body), ctx())
+
+    const recorded = calls.filter((c) => c.fn === 'record_event_action')
+    assert.equal(recorded.length, 2)
+    // One attempt id, so the second call is the first one's retry rather than a second
+    // action: the database answers it with the event as it stands (0004's op_id is unique).
+    assert.equal(recorded[0].args.p_op_id, recorded[1].args.p_op_id)
+  })
+
   it('does nothing at all when the card link is what was pressed', async (t) => {
     t.after(() => mock.restoreAll())
     const calls = fakeDatabase({})
@@ -502,6 +523,40 @@ describe('deliverSlack', () => {
     // Messages failing into silence read to the user as no work waiting, so the connection
     // says so where it was made.
     assert.equal(calls.find((c) => c.fn === 'slack_refused')?.args.p_owner, OWNER)
+  })
+
+  it('leaves a failure the user cannot fix to the next run, and the connection alone', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = []
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      const at = String(url)
+      // Slack having a bad minute — not a connection anybody has to mend.
+      if (at.startsWith('https://slack.com/')) {
+        return new Response(JSON.stringify({ ok: false, error: 'ratelimited' }), { status: 200 })
+      }
+      const fn = at.split('/rpc/')[1]
+      calls.push({ fn, args: JSON.parse(init.body) })
+      const answers = {
+        slack_jobs: [
+          { ownerId: OWNER, eventId: EVENT, changedAt: '2026-08-01T10:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: null, attempts: 2, event: anEvent() },
+        ],
+      }
+      return new Response(JSON.stringify(answers[fn] ?? { ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    })
+
+    const run = await deliverSlack(ENV)
+
+    assert.deepEqual(run, { due: 1, sent: 0, failed: 1 })
+    const failed = calls.find((c) => c.fn === 'record_event_delivery')
+    assert.equal(failed.args.p_state, 'failed')
+    assert.equal(failed.args.p_last_error, 'ratelimited')
+    // The delivery record counts the attempt and nothing else moves: `api.slack_jobs` hands
+    // this event back to the next hourly run until SLACK_MAX_ATTEMPTS.
+    assert.equal(failed.args.p_rendered_at, '2026-08-01T10:00:00Z')
+    assert.equal(calls.find((c) => c.fn === 'slack_refused'), undefined)
   })
 
   it('costs nothing when nothing is owed', async (t) => {

@@ -127,6 +127,15 @@ export function BellPane({ rail }: { rail: BellRail }) {
               Cloud could not be reached: {center.error}. These are the rows we last knew about.
             </p>
           )}
+          {/* Changes this machine gave up on sending (#329). Said here because this is where
+              Cloud's state is already reported, and said plainly: the rows above may be
+              behind the board, and the board is the one that is right. */}
+          {!!center.unsent && (
+            <p className="px-2 pt-2 text-[11.5px] leading-[16px] text-nb-peach-ink">
+              Cloud is out of step: {center.unsent} {center.unsent === 1 ? "change" : "changes"} never
+              reached it. This board is the one that is right.
+            </p>
+          )}
         </>
       )}
     </div>

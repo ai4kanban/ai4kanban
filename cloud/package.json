@@ -15,7 +15,8 @@
     "tail": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler tail",
     "typecheck": "tsc --noEmit",
     "lint": "npm run typecheck",
-    "test": "node --test"
+    "test": "node --test && node scripts/check-sql.mjs",
+    "test:sql": "node scripts/check-sql.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

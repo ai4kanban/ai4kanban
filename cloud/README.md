@@ -8,8 +8,9 @@ here — they are #314's, written against what this stands up.
 cloud/
 ├── src/            the Worker — `owner.ts` is the check every route applies
 ├── migrations/     the schema, one numbered file per change, applied forward only
-├── scripts/        migrate and the closed-database check
-├── test/           the Worker's own checks, run by `npm test`
+├── scripts/        migrate, the closed-database check, and the schema checks
+├── test/           the Worker's own checks; test/sql/ is the schema's, run against a real
+│                   PostgreSQL rather than a fake — both run by `npm test`
 └── wrangler.jsonc  the route, the schedule, and nothing secret
 ```
 
@@ -50,6 +51,12 @@ cloud/
   event that has one is edited in place. `api.slack_jobs` decides what is owed by comparing
   when the event last changed against the version its message is showing, so keeping a
   message in step with a card needs no flag anybody has to set.
+- **A private topic names the account, and the policy checks nothing else**: `account:<id>`
+  and `server:<id>:<server>` are guarded by RLS policies on `realtime.messages`, which
+  Realtime evaluates as `authenticated` — a role this project deliberately gives no access to
+  the `cloud` schema. A policy that reads a table therefore does not answer false, it raises,
+  and one raising policy refuses every read of that table. So a policy here may use
+  `auth.uid()` and the topic string and nothing more (`migrations/0007`).
 - **Mail goes out at once, and the run is the retry**: `/v1/invite-request` sends its own
   notice through `waitUntil`, so nobody waits on the top of the hour and the response still
   never waits on Resend. The hourly run picks up what is left — a send the provider refused,
@@ -111,7 +118,8 @@ Run these from `cloud/`.
 | `npm run rollback` | Return the Worker to an earlier version. |
 | `npm run migrate` | Apply every migration not yet applied. `-- --dry-run` prints the plan. |
 | `npm run check:closed` | Check the project answers nobody but the Worker. |
-| `npm test` / `npm run typecheck` | The Worker's own checks. |
+| `npm test` / `npm run typecheck` | The Worker's own checks, then the schema's. |
+| `npm run test:sql` | The schema's checks alone, against a throwaway PostgreSQL this makes and removes. Add `-- --project` to run them against the project `SUPABASE_PROJECT_REF` names — a **throwaway** one; never the project a workspace is using. |
 | `npm run dev` / `npm run tail` | Run locally against `.dev.vars`; follow the deployed logs. |
 
 ## Deploy
@@ -261,8 +269,67 @@ service refusing requests over a secret only the schedule needs.
 - **A send is given up on after five attempts** — `MAIL_MAX_ATTEMPTS` in `src/config.ts`. Past
   that the record keeps its last error and stops being mailed every hour forever, so a dead
   address is something the queries above can see.
+- **A machine that gives up on sending says so and stops** — a board retries a failed send
+  eight times over just under four hours (`MAX_ATTEMPTS` in `cli/src/lib/cloud/publish.ts`). Past
+  that a publication is raised again by the next board write, but an **action or an outcome
+  is queued once and by nobody else**, so it is not re-sent: the bell says "Cloud is out of
+  step" and the row on Cloud stays where it was. The board on that machine is the one that is
+  right, and a person is what reconciles them.
+- **The schema's checks stand up a Supabase surface rather than using one** —
+  `npm run test:sql` gives the migrations the `auth` and `realtime` pieces they lean on
+  (`test/sql/supabase.sql`) and runs everything else for real. What it cannot answer is
+  whether Realtime itself, Auth itself and PostgREST behave as those stand-ins do; that is
+  what `-- --project` against a throwaway project is for, and what the hand-pass over a live
+  project covers.
 - **No backups** — Supabase Free keeps none. A workspace export is the only copy anyone can
   restore from.
+
+### How many accounts that carries
+
+Arithmetic from what one account's flow costs, not a measurement — the traffic to measure
+only exists once the preview has people in it. Recount it when any of the numbers below
+moves.
+
+**What one card costs, from the board to a finished delivery.** Every budgeted write is a
+`cloud.count_write` in `migrations/`; the Slack line is one delivery record per event change,
+because a message is rewritten whenever the event moves.
+
+| Step | Writes |
+| --- | --- |
+| Published, and its Slack message | 1 + 1 |
+| Each revision before anyone looks | 1 + 1 |
+| Decided in the app | 2 + 1 |
+| Decided in Slack — the extra one raises the request | 3 + 1 |
+| Claimed by the board's server | 1 |
+| `running`, and the outcome | (2 + 1) × 2 |
+| Each five minutes the delivery runs | 1 |
+| Retired as `stale` instead | 1 + 1 |
+
+So a card decided in Slack, revised twice, with a half-hour delivery, is about **23 writes**.
+A card nobody acts on is **4**.
+
+**A day, and a year of them.** Ten cards through and five retired is about **250 writes a
+day** for one busy account. Against `DAILY_WRITE_BUDGET`:
+
+- **20,000 ÷ 250 ≈ 80 accounts**, if every one of them is busy every day.
+- The largest burst is the **first fill** — turning Cloud on for a board that already holds
+  actionable cards costs 2 writes each, so a 200-card board is 400. The publisher sends at
+  most 20 items a pass (`SEND_PER_PASS` in `cli/src/lib/cloud/publish.ts`), so it spreads over
+  minutes rather than arriving at once, but the day's total is unchanged: **invite in batches
+  of a few, not twenty at a time**, or one afternoon of first fills spends the day's budget.
+
+**Storage.** An event carries a bounded snapshot — 4,000 characters of summary and 4,000 of
+notes at most, plus the questions — so a row and everything hanging off it is about **3 KB
+typically and 15 KB at the ceiling**. Events are kept 30 days past their outcome, so a busy
+account holds ~450 of them: **1.4 MB typically, 6.8 MB at the ceiling**. Leaving half of
+Supabase Free's 500 MB for indexes, WAL and the `auth` schema:
+
+- **250 MB ÷ 1.4 MB ≈ 180 accounts** typically, **÷ 6.8 MB ≈ 37** if every card is a long one.
+
+**The ceiling to invite up to: about 30 accounts.** Writes give out around 80 and storage
+around 37 in the worst case, and neither number has any real traffic behind it — 30 leaves
+room for both to be wrong. Past it, read `select writes from cloud.daily_writes order by day
+desc limit 7` and the project's database size before inviting anybody else.
 
 ## Standing up a new project
 

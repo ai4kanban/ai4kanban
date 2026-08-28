@@ -35,8 +35,11 @@ import {
   claimForTask,
   clearPublications,
   dropClaim,
+  duePending,
   editOutbox,
+  failed,
   forgetPublication,
+  giveUp,
   heldClaims,
   isEnded,
   livePublications,
@@ -44,19 +47,33 @@ import {
   publishedFor,
   queue,
   settle,
-  takePending,
-  failed,
   type Pending,
 } from './outbox'
 import { attachBoardServer } from './servers'
 import { readSession } from './session'
 import { snapshotFor } from './snapshot'
 
-/** How many times a queued item is tried before it is dropped. Dropping is what makes it
- *  retryable: nothing is recorded for its task, so the next board write queues it again with
- *  fresh attempts. Left in the queue instead, it would be skipped forever — a card that went
- *  through one outage would never reach Cloud again. */
+/** How many times a queued item is tried before this board gives up on it. Spread over the
+ *  backoff below, so it is most of an afternoon of Cloud being unreachable rather than eight
+ *  tries in eight minutes. Past it the item is written down as unsent (#329): a publication
+ *  is queued again by the next board write, and an action or an outcome is queued once and
+ *  by nobody else, so dropping one in silence loses it. */
 const MAX_ATTEMPTS = 8
+
+/** How long a failed item waits before it is tried again, by attempt. Eight attempts spend
+ *  seven of these, which is just under four hours — long enough to carry a lost network and
+ *  a Cloud having a bad afternoon. A closed laptop costs no attempt at all: nothing ticks
+ *  while it is shut, so what it comes back to is the wait it went to sleep in. */
+const BACKOFF_MS = [60_000, 2 * 60_000, 5 * 60_000, 15 * 60_000, 30 * 60_000, 60 * 60_000, 2 * 60 * 60_000]
+
+/** How many items one pass sends before it stops and leaves the rest for the next.
+ *
+ *  A click queues one or two, so this is invisible in ordinary use. What it bounds is the
+ *  first fill of a board that already holds many actionable cards: every one of them is a
+ *  write against the service's one daily budget and a message in the connected destination,
+ *  and a board turned on at lunchtime must fill over the afternoon rather than arrive at
+ *  once. Nothing is dropped — what is not sent this pass is sent on the next. */
+const SEND_PER_PASS = 20
 
 /** How long a command waits for the outbox to empty before it ends anyway. Long enough for
  *  a healthy round trip, short enough that a terminal never feels held up by Cloud. */
@@ -158,7 +175,7 @@ export async function afterBoardWrite(): Promise<void> {
  * network the board never waited for: what does not get out stays queued and is retried.
  */
 export async function flushOnExit(timeoutMs = FLUSH_ON_EXIT_MS): Promise<void> {
-  if (!publishing() || takePending().length === 0) return
+  if (!publishing() || duePending().length === 0) return
   await Promise.race([flushCloudOutbox(), sleep(timeoutMs)])
 }
 
@@ -349,14 +366,16 @@ export function flushCloudOutbox(): Promise<void> {
 
 async function run(): Promise<void> {
   if (!readSession()) return
-  for (const item of takePending()) {
-    // Spent before this build, which stopped sending an exhausted item but never took it
-    // off. Dropping it is what lets the next board write raise its task again.
+  let sent = 0
+  for (const item of duePending()) {
     if (item.attempts >= MAX_ATTEMPTS) {
-      settle(item.opId)
+      giveUp(item.opId, item.lastError ?? 'Cloud did not answer.')
       continue
     }
+    // The rest of the queue is the next pass's. See SEND_PER_PASS.
+    if (sent >= SEND_PER_PASS) return
     const done = await sendOne(item)
+    sent += 1
     if (done.ok) continue
     // A refusal re-reading changes nothing about is not worth retrying forever: it is taken
     // off with what it left behind recorded, so the next pass writes the truth instead.
@@ -364,12 +383,14 @@ async function run(): Promise<void> {
       settle(item.opId)
       continue
     }
-    if (item.attempts + 1 >= MAX_ATTEMPTS) settle(item.opId)
-    else failed(item.opId, done.error)
+    if (item.attempts + 1 >= MAX_ATTEMPTS) giveUp(item.opId, done.error)
+    else failed(item.opId, done.error, Date.now() + backoff(item.attempts))
     // Cloud is not answering. Stop here rather than spending the whole queue on it.
     return
   }
 }
+
+const backoff = (attempts: number): number => BACKOFF_MS[Math.min(attempts, BACKOFF_MS.length - 1)]!
 
 async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error: string; code?: string }> {
   if (item.kind === 'publish') {

@@ -14,8 +14,10 @@
 
 import { REPO_ROOT } from '../paths'
 import { connectCloudLive, type LiveConnection } from './live'
+import { flushCloudOutbox } from './publish'
 import { catchUpCloudRequests, renewCloudClaims, RENEW_MS, takeCloudRequest } from './requests'
 import { attachBoardServer, readBoardServer, serverForBoard, wantsServerHere } from './servers'
+import { readSession } from './session'
 
 interface Held {
   live: LiveConnection | null
@@ -43,6 +45,11 @@ function state(): Held {
  */
 export function startCloudServer(root = REPO_ROOT): void {
   const held = state()
+  // The outbox's own heartbeat (#329), ahead of every guard below because it belongs to the
+  // board rather than to its server: a failed send is otherwise retried only by new activity,
+  // and a board whose last write is the one that failed would hold it for good. This tick is
+  // the one thing that runs on a board nobody is touching.
+  void flushCloudOutbox()
   const here = serverForBoard(root)
   if (!here) {
     if (held.live || held.timer) stopCloudServer()
@@ -60,8 +67,9 @@ export function startCloudServer(root = REPO_ROOT): void {
   held.serverId = here.serverId
   held.timer = setInterval(() => {
     void renewCloudClaims(root).catch(() => {})
-    // A runtime with no socket has no hints, so the same timer is its catch-up.
-    if (!state().live) void catchUpCloudRequests(root).catch(() => {})
+    // A runtime with no socket has no hints, and neither does one whose join was refused —
+    // so the same timer is the catch-up for both (#329).
+    if (!state().live?.joined()) void catchUpCloudRequests(root).catch(() => {})
     // And the same tick reports what this computer now runs the board's runtimes as (#345):
     // the read sends only where the answer changed, so a machine nobody rebinds writes
     // nothing. A board with no window open reaches Cloud through this and nothing else.
@@ -71,8 +79,12 @@ export function startCloudServer(root = REPO_ROOT): void {
 
   held.starting = (async () => {
     await catchUpCloudRequests(root)
+    // `server:<account>:<server id>` (#329). The account is what the RLS policy guarding the
+    // topic is decided on — a policy that had to read the server row could not be evaluated
+    // by the signed-in role at all, so the join was refused and no hint ever arrived.
+    const subject = readSession()?.subject ?? ''
     held.live = connectCloudLive({
-      topic: `server:${here.serverId}`,
+      topic: subject ? `server:${subject}:${here.serverId}` : '',
       // Every reconnect catches up first, so a hint missed while the socket was down costs
       // nothing.
       onReady: () => void catchUpCloudRequests(root).catch(() => {}),

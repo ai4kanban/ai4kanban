@@ -28,32 +28,54 @@ export interface PublishedEvent {
   state: CloudEventState
 }
 
+/** What every queued item carries, whatever it is about.
+ *
+ *  `nextAt` is the backoff: a send that failed is not tried again until then, so an hour
+ *  offline costs an item a handful of attempts rather than all of them. Absent on one that
+ *  has never been tried, which is due at once. */
+interface Queued {
+  opId: string
+  attempts: number
+  lastError?: string
+  nextAt?: number
+}
+
 /** One thing waiting to reach the Worker. Each is retried on its own: a publication that
  *  cannot get out must not hold an action back, and the other way round. */
 export type Pending =
-  | { opId: string; kind: 'publish'; attempts: number; lastError?: string; snapshot: EventSnapshot }
-  | { opId: string; kind: 'retire'; attempts: number; lastError?: string; eventId: string; state: CloudEventState }
-  | {
-      opId: string
+  | (Queued & { kind: 'publish'; snapshot: EventSnapshot })
+  | (Queued & { kind: 'retire'; eventId: string; state: CloudEventState })
+  | (Queued & {
       kind: 'action'
-      attempts: number
-      lastError?: string
       eventId: string
       decision: 'implement' | 'answer'
       revision: string
       answers: CloudEventAnswer[]
-    }
-  | {
-      opId: string
+    })
+  | (Queued & {
       kind: 'outcome'
-      attempts: number
-      lastError?: string
       eventId: string
       outcome: CloudEventState
       /** Why it ended badly, when it did — what a refused request carries onto its `failed`
        *  so a refused approval and a broken build never read as one outcome (#318). */
       reason?: string
-    }
+    })
+
+/** One thing this board gave up on sending (#329).
+ *
+ *  An action and an outcome are queued once and nothing re-queues them, so an item that runs
+ *  out of attempts is a change Cloud will never hear about. It is written down here rather
+ *  than dropped in silence, and the bell says the board is out of step with Cloud until a
+ *  later send about the same thing gets through. */
+export interface Unsent {
+  /** What it was about, so a later send about the same thing clears it. */
+  subject: string
+  kind: Pending['kind']
+  /** The card it concerned, or 0 when this board no longer has a record of one. */
+  taskId: number
+  /** The last thing Cloud said, as it stands. */
+  error: string
+}
 
 /** One execution request this board's server has claimed and not yet finished (#318).
  *
@@ -77,9 +99,11 @@ interface Outbox {
   pending: Pending[]
   /** request id → the claim this board holds on it. */
   claims: Record<string, HeldClaim>
+  /** What this board gave up on sending. */
+  unsent: Unsent[]
 }
 
-const EMPTY: Outbox = { version: 1, published: {}, pending: [], claims: {} }
+const EMPTY: Outbox = { version: 1, published: {}, pending: [], claims: {}, unsent: [] }
 
 const outboxFile = (): string => path.join(AKB_DIR, 'cloud-outbox.json')
 const outboxLock = (): string => path.join(AKB_DIR, 'cloud-outbox.lock')
@@ -92,9 +116,10 @@ function read(): Outbox {
       published: parsed.published && typeof parsed.published === 'object' ? parsed.published : {},
       pending: Array.isArray(parsed.pending) ? parsed.pending : [],
       claims: parsed.claims && typeof parsed.claims === 'object' ? parsed.claims : {},
+      unsent: Array.isArray(parsed.unsent) ? parsed.unsent : [],
     }
   } catch {
-    return { ...EMPTY, published: {}, pending: [], claims: {} }
+    return { ...EMPTY, published: {}, pending: [], claims: {}, unsent: [] }
   }
 }
 
@@ -197,27 +222,75 @@ export function queue(pending: Pending): void {
   })
 }
 
-/** Take the queue as it stands, to try sending. Nothing is removed here — a send that
- *  fails stays queued, and `settle` is what takes a successful one off. */
-export const takePending = (): Pending[] => read().pending
+/** What is due to be tried right now. Nothing is removed here — a send that fails stays
+ *  queued, and `settle` is what takes a successful one off.
+ *
+ *  An item inside its backoff is not due: a machine that has been offline an hour must come
+ *  back with its publication still queued rather than with its attempts spent on a network
+ *  nobody was waiting for. */
+export const duePending = (now = Date.now()): Pending[] =>
+  read().pending.filter((p) => !p.nextAt || p.nextAt <= now)
 
 /** One queued item reached the Worker. `published` records what it left on Cloud. */
 export function settle(opId: string, published?: { taskId: number; event: PublishedEvent }): void {
   editOutbox((outbox) => {
+    const item = outbox.pending.find((p) => p.opId === opId)
     outbox.pending = outbox.pending.filter((p) => p.opId !== opId)
+    // A send about the same thing got through, so the board is no longer out of step over it.
+    // An outcome clears every earlier outcome of its event too: `running` and how it ended
+    // are two subjects, and the one that lands last is where the row on Cloud now stands.
+    if (item) {
+      const sent = subject(item)
+      const earlier = item.kind === 'outcome' ? `outcome:${item.eventId}:` : null
+      outbox.unsent = outbox.unsent.filter(
+        (u) => u.subject !== sent && !(earlier && u.subject.startsWith(earlier)),
+      )
+    }
     if (published) outbox.published[String(published.taskId)] = published.event
   })
 }
 
-/** One queued item did not. It stays queued and carries why, so a retry is what happens
- *  next rather than a screen the user has to look at. */
-export function failed(opId: string, error: string): void {
+/** One queued item did not. It stays queued and carries why and when to try again, so a
+ *  retry is what happens next rather than a screen the user has to look at. */
+export function failed(opId: string, error: string, nextAt?: number): void {
   editOutbox((outbox) => {
     const item = outbox.pending.find((p) => p.opId === opId)
     if (!item) return
     item.attempts += 1
     item.lastError = error
+    if (nextAt) item.nextAt = nextAt
   })
+}
+
+/** One queued item has run out of attempts. It leaves the queue and is written down, so a
+ *  change Cloud never heard about is something a surface can say rather than nothing (#329). */
+export function giveUp(opId: string, error: string): void {
+  editOutbox((outbox) => {
+    const item = outbox.pending.find((p) => p.opId === opId)
+    if (!item) return
+    outbox.pending = outbox.pending.filter((p) => p.opId !== opId)
+    const note: Unsent = {
+      subject: subject(item),
+      kind: item.kind,
+      taskId: item.kind === 'publish' ? item.snapshot.taskId : taskHolding(outbox, item.eventId),
+      error,
+    }
+    const at = outbox.unsent.findIndex((u) => u.subject === note.subject)
+    if (at === -1) outbox.unsent.push(note)
+    else outbox.unsent[at] = note
+  })
+}
+
+/** Everything this board gave up on sending. What the bell says it is out of step over. */
+export const unsentToCloud = (): Unsent[] => read().unsent
+
+/** Which task holds an event, as this board last knew. 0 when it holds none — the record can
+ *  be dropped before the item that named it is given up on. */
+function taskHolding(outbox: Outbox, eventId: string): number {
+  for (const [id, held] of Object.entries(outbox.published)) {
+    if (held.eventId === eventId) return Number(id)
+  }
+  return 0
 }
 
 /** Take over the record for one task from a claim (#318): an approval acted on somewhere
@@ -269,5 +342,6 @@ export function clearPublications(): void {
   editOutbox((outbox) => {
     outbox.published = {}
     outbox.claims = {}
+    outbox.unsent = []
   })
 }

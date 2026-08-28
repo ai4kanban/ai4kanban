@@ -10,10 +10,12 @@
 //
 //   • `account:<subject>` — every event of this account (#319). One listener, in the board
 //     server the window is showing, because a second would raise one notification twice.
-//   • `server:<server id>` — the requests one board's server has to run (#318). One listener
-//     per enabled board, backgrounded ones included: a request is addressed to one server,
-//     so a second listener cannot duplicate anything, and the board a user has switched away
-//     from is exactly the one whose approval would otherwise never run.
+//   • `server:<subject>:<server id>` — the requests one board's server has to run (#318). One
+//     listener per enabled board, backgrounded ones included: a request is addressed to one
+//     server, so a second listener cannot duplicate anything, and the board a user has
+//     switched away from is exactly the one whose approval would otherwise never run. Both
+//     topics name the account, because that is the one thing a policy on `realtime.messages`
+//     can decide on its own — see cloud/migrations/0007.
 //
 // It is written against the published Realtime protocol rather than pulling in a client,
 // which keeps `cli/dist/kanban.mjs` a file of ours alone and keeps a terminal `akb` on
@@ -58,6 +60,9 @@ export interface LiveHandlers {
 
 export interface LiveConnection {
   close(): void
+  /** Whether the topic is really joined. A socket that is open and whose join was refused is
+   *  not, and it receives nothing — so whoever opened it has to keep reading (#329). */
+  joined(): boolean
 }
 
 /**
@@ -207,6 +212,7 @@ export function connectCloudLive(handlers: LiveHandlers): LiveConnection | null 
   void open()
 
   return {
+    joined: () => joined,
     close() {
       closed = true
       if (retry) clearTimeout(retry)

@@ -55,6 +55,9 @@ export interface NotificationCenter {
   unread: number;
   alerts: NotificationAlert[];
   error?: string;
+  /** How many changes this board gave up on sending to Cloud (#329). Absent from rules that
+   *  predate it, which is not the same answer as none. */
+  unsent?: number;
   /** This board has no copy of the rules that can draw a bell. */
   unavailable?: string;
 }

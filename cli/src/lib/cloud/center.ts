@@ -27,7 +27,8 @@ import { listEvents, readEvent } from './client'
 import { eventLabel, isOutcome, type CloudEvent, type CloudEventState } from './events'
 import { connectCloudLive, type LiveConnection } from './live'
 import { ensureBoardNotifications } from './notifications'
-import { publishBoardEvents } from './publish'
+import { unsentToCloud } from './outbox'
+import { flushCloudOutbox, publishBoardEvents } from './publish'
 import { readSession } from './session'
 
 /** One row of the rail. The card's number and title, the event's name under it, and nothing
@@ -83,6 +84,9 @@ export interface NotificationCenter {
   alerts: NotificationAlert[]
   /** Cloud could not be reached. The rows are what was last known. */
   error?: string
+  /** How many changes this board gave up on sending (#329). Non-zero means Cloud is out of
+   *  step with the board here, and only a person can tell which way. */
+  unsent: number
 }
 
 // ---- what this machine has looked at ----------------------------------------
@@ -114,12 +118,19 @@ function writeReads(read: Record<string, string>): void {
 
 // ---- the held connection ----------------------------------------------------
 
+/** How long the bell goes without a durable read while its socket is not carrying it. A
+ *  socket that never joined receives nothing and says nothing, so without this the rail would
+ *  sit on whatever the start read and never move again (#329). */
+const CATCH_UP_MS = 5 * 60_000
+
 interface Held {
   live: LiveConnection | null
   events: Map<string, CloudEvent>
   alerts: NotificationAlert[]
   error?: string
   starting?: Promise<void>
+  /** When the last durable read began. */
+  readAt?: number
 }
 
 function state(): Held {
@@ -142,7 +153,15 @@ export function startCloudCenter(focused: boolean): void {
   // to open Configuration. Ahead of the guards below: this runs on every poll, and the pass
   // that enables the board is usually not the one that opens the socket.
   void ensureBoardNotifications().catch(() => {})
-  if (held.live || held.starting) return
+  if (held.live || held.starting) {
+    // The socket is what keeps the rail moving, so long as it really joined. One that did
+    // not receives nothing and reports nothing — a refused topic, or a Realtime having a bad
+    // afternoon — and the durable read is the floor under it.
+    if (!held.live?.joined() && Date.now() - (held.readAt ?? 0) > CATCH_UP_MS) {
+      void catchUp(false).catch(() => {})
+    }
+    return
+  }
   held.starting = (async () => {
     // The reconciliation this board owes Cloud, before anything is listened for.
     await publishBoardEvents({ reconcile: true }).catch(() => {})
@@ -173,11 +192,18 @@ export function stopCloudCenter(): void {
   held.live = null
   held.events.clear()
   held.alerts = []
+  held.readAt = undefined
 }
 
-/** The durable read every start and reconnect does before listening for hints. */
+/** The durable read every start and reconnect does before listening for hints.
+ *
+ *  It sends as well as reads: a reconnect is the first moment a machine that was asleep or
+ *  offline knows Cloud is reachable, and the outbox it filled while it was not is what
+ *  reaching Cloud again is for (#329). */
 async function catchUp(firstTime: boolean): Promise<void> {
   const held = state()
+  held.readAt = Date.now()
+  void flushCloudOutbox()
   const answer = await listEvents()
   if (!answer.ok) {
     held.error = answer.error
@@ -204,20 +230,35 @@ function merge(event: CloudEvent, { silent }: { silent: boolean }): void {
   const held = state()
   const before = held.events.get(event.id)
   held.events.set(event.id, event)
-  if (silent) return
-  if (before && before.state === event.state && before.changedAt === event.changedAt) return
+  const raise = alertFor(before, event, silent)
+  if (raise) held.alerts.push(raise)
+}
+
+/**
+ * Whether one event, as Cloud now holds it, interrupts anybody — and with what.
+ *
+ * Read against what this machine held BEFORE, which is what makes a broadcast delivered
+ * twice cost nothing: the second carries the same state and the same `changedAt`, so there
+ * is nothing new to say. Missing a broadcast costs nothing either — the catch-up read hands
+ * the event through here exactly the same way (#329).
+ */
+export function alertFor(
+  before: CloudEvent | undefined,
+  event: CloudEvent,
+  silent: boolean,
+): NotificationAlert | null {
+  if (silent) return null
+  if (before && before.state === event.state && before.changedAt === event.changedAt) return null
 
   // A new actionable event. A refresh in place — same event, still actionable — is the same
   // piece of work the user was already told about, so it says nothing.
-  if (event.state === 'actionable' && !before) {
-    held.alerts.push(alert(event, 'actionable', eventLabel(event)))
-    return
-  }
+  if (event.state === 'actionable' && !before) return alert(event, 'actionable', eventLabel(event))
   // The delivery this event's action started has ended. Only an event with an action on
   // record has anything to report, and a cancellation is the user's own doing.
   if (isOutcome(event.state) && event.acted && before?.state !== event.state) {
-    held.alerts.push(alert(event, 'outcome', eventLabel(event)))
+    return alert(event, 'outcome', eventLabel(event))
   }
+  return null
 }
 
 const alert = (event: CloudEvent, kind: NotificationAlert['kind'], body: string): NotificationAlert => ({
@@ -270,6 +311,7 @@ export function readCloudCenter(): NotificationCenter {
     unread: rows.filter((r) => r.unread).length,
     alerts,
     error: held.error,
+    unsent: unsentToCloud().length,
   }
 }
 
