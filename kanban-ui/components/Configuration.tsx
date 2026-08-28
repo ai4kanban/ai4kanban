@@ -176,15 +176,17 @@ export function Configuration({
             // would re-read the whole board for nobody.
             router.refresh();
           }}
-          width={760}
-          height="min(600px, calc(100dvh - 2rem))"
+          // Wide enough to put a field's help beside its control rather than under
+          // it (see Field below), which is what kept the harness pane scrolling.
+          width={1040}
+          height="min(760px, calc(100dvh - 2rem))"
           flush
         >
           {/* The section list. A quiet vertical nav on the wash, the active entry
               in the ember tint — the same active language as the harness rows. */}
           <nav
             aria-label={c.sections}
-            className="flex w-[168px] shrink-0 flex-col gap-1 border-r border-nb-ink/12 bg-nb-wash p-3 max-sm:w-full max-sm:flex-row max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
+            className="flex w-[200px] shrink-0 flex-col gap-1 border-r border-nb-ink/12 bg-nb-wash p-3 max-sm:w-full max-sm:flex-row max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
           >
             {SECTIONS.map(({ id, icon: Icon, apart }) => {
               const on = id === section;
@@ -262,6 +264,39 @@ export function Configuration({
         </Dialog>
       )}
     </>
+  );
+}
+
+// One setting's frame: its label and control on the left, its plain lines of
+// help beside them rather than under. A hint stacked under every field is what
+// used to push the last setting off the bottom of the pane; the pane is wide
+// enough to read both at once. Narrow, they stack again in the old order.
+function Field({
+  id,
+  label,
+  help,
+  children,
+}: {
+  id: string;
+  label: string;
+  // Lines, not a line: the provider list says what the picked entry is as well
+  // as what the field is for.
+  help: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,17rem)] gap-x-5 max-sm:grid-cols-1">
+      <label
+        className="col-start-1 row-start-1 mb-1.5 block text-[11px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft"
+        htmlFor={id}
+      >
+        {label}
+      </label>
+      <div className="col-start-1 row-start-2">{children}</div>
+      <div className="col-start-2 row-start-2 flex flex-col justify-center gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft max-sm:col-start-1 max-sm:row-start-3 max-sm:mt-1.5">
+        {help}
+      </div>
+    </div>
   );
 }
 
@@ -525,11 +560,11 @@ export function HarnessPicker({
           the mark say what each is, no note needed. The ember frame alone marks
           the active one.
 
-          A fixed four-column grid rather than a wrapping row: the cards then sit
-          on the same four columns whatever the count, instead of the last row's
+          A fixed six-column grid rather than a wrapping row: the cards then sit
+          on the same six columns whatever the count, instead of the last row's
           width drifting with however many agents we ship. The dialog is sized
-          for four, so a fifth starts a second row under the first. */}
-      <div className="grid grid-cols-4 gap-2">
+          for six, so a seventh starts a second row under the first. */}
+      <div className="grid grid-cols-6 gap-2">
         {options.map((option) => {
           const on = option.name === active;
           // This machine doesn't have that agent's CLI (#207), so a run under it would die
@@ -631,7 +666,7 @@ export function HarnessPicker({
           what you see here is what the agent is given. */}
       {activeOption && activeOption.settings.length > 0 && (
         <div className="mt-2 border-t border-nb-ink/12 pt-4">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-5">
             {activeOption.settings
               .filter((setting) => shownForProvider(activeOption.settings, setting.key, picked))
               .map((setting) =>
@@ -942,13 +977,22 @@ function ProviderField({
   const shown = providers.find((p) => p.id === value);
 
   return (
-    <div>
-      <label
-        className="mb-1.5 block text-[11px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft"
-        htmlFor={id}
-      >
-        {setting.label}
-      </label>
+    <Field
+      id={id}
+      label={setting.label}
+      help={
+        <>
+          {shown && <p>{shown.blurb}</p>}
+          {waitingFor.length > 0 ? (
+            <p>
+              <strong className="text-nb-accent-deep">{c.waitingFor(waitingFor.join(" and "))}</strong>
+            </p>
+          ) : (
+            setting.help && <p>{setting.help}</p>
+          )}
+        </>
+      }
+    >
       <Select value={value || undefined} disabled={disabled} onValueChange={onPick}>
         <SelectTrigger id={id} className="disabled:cursor-wait">
           <SelectValue />
@@ -961,19 +1005,7 @@ function ProviderField({
           ))}
         </SelectContent>
       </Select>
-      {shown && (
-        <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">{shown.blurb}</p>
-      )}
-      {(waitingFor.length > 0 || setting.help) && (
-        <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-          {waitingFor.length > 0 ? (
-            <strong className="text-nb-accent-deep">{c.waitingFor(waitingFor.join(" and "))}</strong>
-          ) : (
-            setting.help
-          )}
-        </p>
-      )}
-    </div>
+    </Field>
   );
 }
 
@@ -1025,13 +1057,7 @@ function SecretField({
   };
 
   return (
-    <div>
-      <label
-        className="mb-1.5 block text-[11px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft"
-        htmlFor={id}
-      >
-        {setting.label}
-      </label>
+    <Field id={id} label={setting.label} help={<p>{setting.help}</p>}>
       {typing ? (
         <div className="flex items-center gap-2">
           <input
@@ -1102,8 +1128,7 @@ function SecretField({
           </span>
         </div>
       )}
-      <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">{setting.help}</p>
-    </div>
+    </Field>
   );
 }
 
@@ -1151,13 +1176,11 @@ function SettingField({
   const toItem = (v: string) => v || EMPTY;
 
   return (
-    <div>
-      <label
-        className="mb-1.5 block text-[11px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft"
-        htmlFor={id}
-      >
-        {setting.label}
-      </label>
+    <Field
+      id={id}
+      label={setting.label}
+      help={<p>{ignored && setting.overriddenHelp ? setting.overriddenHelp : setting.help}</p>}
+    >
       {setting.kind === "select" ? (
         <Select
           value={toItem(value)}
@@ -1196,9 +1219,6 @@ function SettingField({
           className={CONTROL}
         />
       )}
-      <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-        {ignored && setting.overriddenHelp ? setting.overriddenHelp : setting.help}
-      </p>
-    </div>
+    </Field>
   );
 }

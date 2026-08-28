@@ -254,10 +254,8 @@ function HandChecks({
       {lines.length > 0 && (
         <ul className="flex flex-col gap-1 text-[13px] leading-[19px]">
           {lines.map((line) => (
-            <li key={line} className="flex items-start gap-1.5">
-              <span className="relative top-[7px] shrink-0 text-[5px]" aria-hidden>
-                ●
-              </span>
+            <li key={line} className="flex items-start gap-2">
+              <span className="mt-[7px] size-[5px] shrink-0 rounded-full bg-current" aria-hidden />
               <span className="min-w-0 flex-1">{line}</span>
               {!busy &&
                 (confirming === line ? (
@@ -265,7 +263,7 @@ function HandChecks({
                     type="button"
                     disabled={saving}
                     onClick={() => void crossOff(line)}
-                    className="shrink-0 cursor-pointer rounded-[6px] px-1.5 py-0.5 text-[11px] font-[700] uppercase tracking-[0.04em]"
+                    className="flex h-[19px] shrink-0 cursor-pointer items-center rounded-[6px] px-1.5 text-[11px] font-[700] uppercase tracking-[0.04em]"
                     style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
                   >
                     {c.crossOff}
@@ -277,7 +275,7 @@ function HandChecks({
                     title={c.crossOffHint}
                     disabled={saving}
                     onClick={() => setConfirming(line)}
-                    className="nb-press shrink-0 rounded-[6px] px-1 py-0.5 text-nb-ink-soft hover:text-nb-peach-ink disabled:cursor-not-allowed disabled:opacity-45"
+                    className="nb-press flex h-[19px] shrink-0 items-center rounded-[6px] px-1 text-nb-ink-soft hover:text-nb-peach-ink disabled:cursor-not-allowed disabled:opacity-45"
                   >
                     <FiX className="text-[13px]" aria-hidden />
                   </button>

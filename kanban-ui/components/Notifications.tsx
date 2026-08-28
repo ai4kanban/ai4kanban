@@ -84,14 +84,14 @@ export function BellPane({ rail }: { rail: BellRail }) {
         <Empty
           icon={<FiBellOff size={20} aria-hidden />}
           title="Not signed in to Cloud"
-          body="Sign in under Configuration → Cloud, then turn notifications on for this board."
+          body="Sign in and this board's cards start filling the bell. Nothing leaves this machine until you do."
+          hint="Configuration → Cloud"
         />
       ) : !center.enabled && center.rows.length === 0 ? (
         <Empty
           icon={<FiBellOff size={20} aria-hidden />}
-          title="Notifications are off here"
-          body="Nothing about this board leaves this machine until you turn them on."
-          hint="Configuration → Cloud"
+          title="No open release"
+          body="The bell watches one open release. Start one from the version picker in the header."
         />
       ) : (
         <>

@@ -179,10 +179,6 @@ export type ConfigurationCopy = {
     signedIn: string;
     signOut: string;
     slackHandle: string;
-    admitted: string;
-    renews: string;
-    /** Where the sign-in is kept. Takes the file it is kept in. */
-    kept: (file: string) => string;
     signOutNote: string;
     notAdmitted: string;
     signedInAs: (handle: string) => string;
@@ -233,11 +229,12 @@ export type ConfigurationCopy = {
       switchOn: string;
       switchOff: string;
     };
-    /** This board's own notifications, and the one open release they watch. */
+    /** This board's own notifications — on as soon as this machine is signed
+     *  in — and the one open release they watch. */
     notifications: {
       title: string;
       blurb: string;
-      /** No open release to watch, so the switch says so rather than filling
+      /** No open release to watch, so the section says so rather than filling
        *  nothing. */
       noReleases: string;
       watching: string;

@@ -43,8 +43,6 @@ import { setMachineLanguage } from "@/lib/language";
 import {
   boardNotifications,
   cancelCloudRequest,
-  disableNotifications,
-  enableNotifications,
   notificationCenter,
   openNotification,
   recordCloudAction,
@@ -1038,30 +1036,11 @@ export async function boardNotificationsAction(): Promise<BoardNotifications> {
   }
 }
 
-/** Turn them on, watching one open release. Answers once the first fill is on its way, so
- *  the pane redraws from what was actually saved. */
-export async function enableNotificationsAction(release: string): Promise<WriteResult> {
-  if (typeof release !== "string") return { ok: false, error: "that is not a release" };
-  try {
-    return await enableNotifications(release.trim());
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
 /** Watch a different release — the rail's own prompt when the last one closed. */
 export async function watchReleaseAction(release: string): Promise<WriteResult> {
   if (typeof release !== "string") return { ok: false, error: "that is not a release" };
   try {
     return await watchRelease(release.trim());
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-export async function disableNotificationsAction(): Promise<WriteResult> {
-  try {
-    return await disableNotifications();
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

@@ -3,7 +3,8 @@ import { autoWorkAllowed } from "./desktop";
 import type { CloudEventAnswer } from "./types";
 
 // --- the notification center (#319) ------------------------------------------
-// The bell, and the per-board switch that fills it.
+// The bell, and what each board fills it with. Signing in is what turns a board on — the
+// rules register it themselves — so nothing here turns one on or off.
 //
 // Nothing here knows what a Cloud event is made of, where it is stored, or how it reaches
 // this machine. That is the board's own rules, so the flow can change with nothing in this
@@ -131,26 +132,11 @@ export async function boardNotifications(): Promise<BoardNotifications> {
   return { ...state, server: state.server ?? NO_SERVER };
 }
 
-/** Turn them on, watching one open release. The bell fills with what this board is already
- *  holding actionable, and nothing is raised for any of it. */
-export async function enableNotifications(release: string): Promise<{ ok: boolean; error?: string }> {
-  const rules = await boardRules();
-  if (!rules.enableBoardNotifications) return { ok: false, error: TOO_OLD };
-  return rules.enableBoardNotifications(release);
-}
-
 /** Watch a different release — what the rail asks for when the last one closed. */
 export async function watchRelease(release: string): Promise<{ ok: boolean; error?: string }> {
   const rules = await boardRules();
   if (!rules.watchRelease) return { ok: false, error: TOO_OLD };
   return rules.watchRelease(release);
-}
-
-/** Turn them off. This board's live events are retired first. */
-export async function disableNotifications(): Promise<{ ok: boolean; error?: string }> {
-  const rules = await boardRules();
-  if (!rules.disableBoardNotifications) return { ok: false, error: TOO_OLD };
-  return rules.disableBoardNotifications();
 }
 
 // --- this board's server (#318) -----------------------------------------------

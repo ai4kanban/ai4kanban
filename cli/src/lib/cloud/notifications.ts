@@ -1,9 +1,13 @@
-// Turning a board's notifications on and off (#319).
+// A board's notifications (#319).
 //
-// The three moves the Cloud section of Configuration and the rail's own prompt make, each
-// one whole: enabling registers the board and fills the bell with what it is already
-// holding, swapping the release republishes against the new one, and turning them off
-// retires this board's live events before the record of them is dropped.
+// Signed in means on. Notifications are not a setting the user carries: a machine signed in
+// to Cloud raises this board's actionable cards, so `ensureBoardNotifications` registers the
+// board rather than a switch somebody has to find. What is left to choose is which open
+// release it watches, and which machine runs its approvals.
+//
+// Each move here is whole: enabling registers the board and fills the bell with what it is
+// already holding, swapping the release republishes against the new one, and turning them
+// off retires this board's live events before the record of them is dropped.
 
 import { board } from '../board'
 import { REPO_ROOT } from '../paths'
@@ -20,22 +24,44 @@ export interface BoardNotifications {
   /** The release it watches. Empty on an enabled board whose release has closed. */
   release: string
   /** The open releases it could watch. Empty is a board with no open release — the section
-   *  says so rather than offering a switch that watches nothing. */
+   *  says so rather than picking one that watches nothing. */
   releases: string[]
-  /** Nobody is signed in on this machine, so there is nothing to turn on. */
+  /** Nobody is signed in on this machine, so this board raises nothing. */
   signedIn: boolean
   /** Which machine runs this board's work (#318) — an approval taken anywhere else runs
    *  there and nowhere else. */
   server: BoardServer
 }
 
+/**
+ * Turn this board's notifications on because the machine is signed in.
+ *
+ * Idempotent, and cheap enough for every poll: a board already on reads one small file and
+ * returns. A board with no open release watches nothing and is left alone — the section says
+ * so. The first fill runs in the background: nothing on screen waits for Cloud.
+ */
+export async function ensureBoardNotifications(): Promise<void> {
+  if (!readSession() || cloudBoardFor(REPO_ROOT)) return
+  let open: string[] = []
+  try {
+    open = await board().readReleases()
+  } catch {
+    // A board we cannot read this second is one the next poll reads again.
+    return
+  }
+  if (!open[0]) return
+  enableCloudBoard(REPO_ROOT, open[0])
+  void startPublishing().catch(() => {})
+}
+
 export async function readBoardNotifications(): Promise<BoardNotifications> {
+  await ensureBoardNotifications()
   const held = cloudBoardFor(REPO_ROOT)
   let releases: string[] = []
   try {
     releases = await board().readReleases()
   } catch {
-    // A board we cannot read this second offers no releases; the switch says so.
+    // A board we cannot read this second offers no releases; the section says so.
   }
   return {
     enabled: !!held,

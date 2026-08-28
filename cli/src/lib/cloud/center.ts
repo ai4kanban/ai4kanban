@@ -26,6 +26,7 @@ import { cloudBoardById, cloudBoardFor, namesBoards } from './boards'
 import { listEvents, readEvent } from './client'
 import { eventLabel, isOutcome, type CloudEvent, type CloudEventState } from './events'
 import { connectCloudLive, type LiveConnection } from './live'
+import { ensureBoardNotifications } from './notifications'
 import { publishBoardEvents } from './publish'
 import { readSession } from './session'
 
@@ -136,8 +137,12 @@ function state(): Held {
  */
 export function startCloudCenter(focused: boolean): void {
   const held = state()
-  if (!focused || held.live || held.starting) return
-  if (!readSession()) return
+  if (!focused || !readSession()) return
+  // Signed in means on, so the board registers itself here rather than waiting for somebody
+  // to open Configuration. Ahead of the guards below: this runs on every poll, and the pass
+  // that enables the board is usually not the one that opens the socket.
+  void ensureBoardNotifications().catch(() => {})
+  if (held.live || held.starting) return
   held.starting = (async () => {
     // The reconciliation this board owes Cloud, before anything is listened for.
     await publishBoardEvents({ reconcile: true }).catch(() => {})

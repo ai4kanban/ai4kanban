@@ -118,8 +118,9 @@ export type { CloudSession, TokenResult as CloudTokenResult } from './lib/cloud/
 export { keepAuthorized as keepCloudRealtimeAuthorized } from './lib/cloud/realtime'
 export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME as CLOUD_URL_SCHEME } from './lib/cloud/config'
 
-// The Cloud notification center (#319): the events this machine's boards raise, the bell
-// that carries every one of them, and the per-board switch that turns them on.
+// The Cloud notification center (#319): the events this machine's boards raise, and the bell
+// that carries every one of them. A board turns itself on as soon as this machine is signed
+// in — notifications are not a setting — so what is left to choose is the release it watches.
 //
 // The board server the window is showing calls `startCloudCenter(true)` and draws from
 // `readCloudCenter`; a backgrounded one calls neither and keeps publishing over `fetch`,
@@ -133,6 +134,9 @@ export {
   stopCloudCenter,
 } from './lib/cloud/center'
 export type { NotificationAlert, NotificationCenter, NotificationRow } from './lib/cloud/center'
+// `enableBoardNotifications` and `disableBoardNotifications` are no surface's to call any
+// more — `readBoardNotifications` registers the board itself — and stay exported so a UI
+// build that predates that still works against these rules.
 export {
   disableBoardNotifications,
   enableBoardNotifications,

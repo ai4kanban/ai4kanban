@@ -24,29 +24,17 @@
 //
 // Two more things live under the admitted state (#319), and the line between them is the
 // line this section already draws. **Notifications for this board** belongs to the board:
-// the switch that turns them on, and the one open release they watch. The **silencing**
-// switch belongs to the MACHINE and sits with the sign-in, because the interruptions it
-// stops arrive from every enabled board — a per-board switch would be reachable only by
-// opening that project first.
+// signing in turns them on — they are not a setting — so what is shown is what they do and
+// the one open release they watch. The **silencing** switch belongs to the MACHINE and sits
+// with the sign-in, because the interruptions it stops arrive from every board — a per-board
+// switch would be reachable only by opening that project first.
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  FiAlertCircle,
-  FiBell,
-  FiBellOff,
-  FiCheck,
-  FiHome,
-  FiKey,
-  FiLogOut,
-  FiMail,
-  FiRefreshCw,
-} from "react-icons/fi";
+import { FiAlertCircle, FiBell, FiBellOff, FiCheck, FiKey, FiLogOut, FiMail } from "react-icons/fi";
 import { SiGithub } from "react-icons/si";
 import {
   boardNotificationsAction,
   cloudAccountAction,
-  disableNotificationsAction,
-  enableNotificationsAction,
   setBoardServerAction,
   finishCloudSignInAction,
   notificationCenterAction,
@@ -214,22 +202,6 @@ function SignedIn({
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-[10px] bg-nb-wash px-4 py-3.5">
-        {/* Only when Cloud actually said so this minute — an unreachable service is not a
-            refusal, but it is not a confirmation either. */}
-        {!account.error && (
-          <Fact icon={<FiCheck className="text-nb-mint-ink" size={14} aria-hidden />}>
-            <Rich>{c.admitted}</Rich>
-          </Fact>
-        )}
-        <Fact icon={<FiRefreshCw className="text-nb-ink-soft" size={14} aria-hidden />}>
-          <Rich>{c.renews}</Rich>
-        </Fact>
-        <Fact icon={<FiHome className="text-nb-ink-soft" size={14} aria-hidden />}>
-          <Rich code="font-mono text-[11.5px] font-[700]">{c.kept(account.sessionFile)}</Rich>
-        </Fact>
-      </div>
-
       <Silencer />
 
       <Notifications />
@@ -285,9 +257,9 @@ function Silencer() {
 }
 
 // --- this board's own notifications (#319) ------------------------------------
-// A board raises events only while its notifications are on AND it is watching one open
-// release: a `ready` task in another release, or promised to none, is not what the user
-// asked to be told about.
+// Signed in means on: a board raises its events the moment this machine has an account,
+// so there is nothing to switch here — only which open release it watches, since a `ready`
+// task in another release, or promised to none, is not what the user asked to be told about.
 
 function Notifications() {
   const c = useCopy().configuration.cloud.notifications;
@@ -318,29 +290,15 @@ function Notifications() {
 
   return (
     <div className="rounded-[10px] border border-nb-ink/12 px-4 py-3.5">
-      <div className="flex items-center gap-4">
-        <div className="min-w-0 flex-1">
-          <p className="text-[12.5px] font-[800] text-nb-ink">{c.title}</p>
-          <p className="mt-[3px] max-w-[52ch] text-[11.5px] leading-[16px] text-nb-ink-soft">
-            <Rich>{c.blurb}</Rich>
-          </p>
-        </div>
-        <Switch
-          on={state.enabled}
-          busy={busy || (!state.enabled && noReleases)}
-          onFlip={() =>
-            void move(() =>
-              state.enabled
-                ? disableNotificationsAction()
-                : enableNotificationsAction(state.releases[0] ?? ""),
-            )
-          }
-          label={c.title}
-        />
+      <div className="min-w-0">
+        <p className="text-[12.5px] font-[800] text-nb-ink">{c.title}</p>
+        <p className="mt-[3px] max-w-[52ch] text-[11.5px] leading-[16px] text-nb-ink-soft">
+          <Rich>{c.blurb}</Rich>
+        </p>
       </div>
 
-      {/* A board with no open release has nothing to watch, so the switch says so rather
-          than turning on and filling nothing. */}
+      {/* A board with no open release has nothing to watch, so the section says so rather
+          than filling nothing. */}
       {noReleases ? (
         <p className="mt-2.5 text-[11.5px] leading-[16px] text-nb-ink-soft">{c.noReleases}</p>
       ) : state.enabled ? (
@@ -367,8 +325,8 @@ function Notifications() {
         </label>
       ) : null}
 
-      {/* Which machine runs this board's work (#318). Only once notifications are on:
-          a board that raises no events has no approvals to run. */}
+      {/* Which machine runs this board's work (#318). Only once the board is raising events:
+          a board that raises none has no approvals to run. */}
       {state.enabled && <ServerRow state={state} busy={busy} onMove={move} />}
 
       {error && (
@@ -425,8 +383,8 @@ function ServerRow({
   );
 }
 
-/** The section's one switch shape, so the board's and the machine's read as one control
- *  used twice rather than two that happen to look alike. */
+/** The section's one switch shape, so the machine's silencing and the board's server read as
+ *  one control used twice rather than two that happen to look alike. */
 function Switch({
   on,
   busy,
@@ -704,6 +662,9 @@ function Link({ href, children }: { href: string; children: React.ReactNode }) {
   );
 }
 
+/** The account's own picture, drawn from the bytes this machine holds (the board's rules
+ *  fetch it once) — with the initials underneath, so a machine that never got one shows a
+ *  name rather than a hole. */
 function Avatar({ account }: { account: CloudAccount }) {
   const initials = (account.name || account.handle || "?")
     .split(/[\s-]+/)
@@ -712,19 +673,14 @@ function Avatar({ account }: { account: CloudAccount }) {
     .join("");
   return (
     <span
-      className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-[10px] border-[1.5px] border-nb-ink bg-nb-wash text-[14px] font-[800] text-nb-ink"
+      className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-[10px] border-[1.5px] border-nb-ink bg-nb-wash text-[14px] font-[800] text-nb-ink"
       aria-hidden
     >
       {initials || "?"}
-    </span>
-  );
-}
-
-function Fact({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <span className="flex items-start gap-2.5">
-      <span className="mt-[2px] shrink-0">{icon}</span>
-      <span className="text-[12.5px] leading-[18px] text-nb-ink [&_strong]:font-[800]">{children}</span>
+      {account.avatarData && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={account.avatarData} alt="" className="absolute inset-0 size-full object-cover" />
+      )}
     </span>
   );
 }

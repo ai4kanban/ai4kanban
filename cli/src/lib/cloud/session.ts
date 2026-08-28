@@ -35,6 +35,9 @@ export interface CloudSession {
   handle?: string
   name?: string
   avatarUrl?: string
+  /** The picture itself, as a `data:` URL, keyed on the address it came from (avatar.ts).
+   *  Kept so no screen fetches from the provider to draw the account. */
+  avatar?: { url: string; data: string }
 }
 
 /** Refresh this long before the token actually runs out, so a request never carries one
@@ -184,6 +187,7 @@ export function sessionFrom(body: unknown, previous?: CloudSession | null): Clou
     handle: previous?.handle,
     name: previous?.name,
     avatarUrl: previous?.avatarUrl,
+    avatar: previous?.avatar,
   }
 }
 

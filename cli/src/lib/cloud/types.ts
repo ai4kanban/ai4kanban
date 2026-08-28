@@ -21,6 +21,9 @@ export interface CloudAccount {
   handle: string | null
   name: string | null
   avatarUrl: string | null
+  /** The picture itself, as a `data:` URL this machine already holds, so a screen draws the
+   *  account without reaching the provider. Null when there is none to draw. */
+  avatarData: string | null
   email: string | null
   /** The service's own words for a refusal, shown as they stand. Null when there is none. */
   message: string | null

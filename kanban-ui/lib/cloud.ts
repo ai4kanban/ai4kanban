@@ -20,6 +20,7 @@ const UNKNOWN: CloudAccount = {
   handle: null,
   name: null,
   avatarUrl: null,
+  avatarData: null,
   email: null,
   message: TOO_OLD,
   inviteRequestedAt: null,

@@ -242,9 +242,10 @@ export interface BoardRules {
   redeemCloudInvitation?(code: string): Promise<CloudMove>;
 
   // the Cloud notification center (#319) — the events this machine's boards raise, and the
-  // per-board switch that fills the bell. Optional like every Cloud move above: a project
-  // running rules that sign in but predate the center draws no bell rather than a count
-  // nothing can fill.
+  // bell that carries them. A board turns itself on inside the rules as soon as this machine
+  // is signed in, so nothing here turns one on. Optional like every Cloud move above: a
+  // project running rules that sign in but predate the center draws no bell rather than a
+  // count nothing can fill.
   //
   // `startCloudCenter` is idempotent and takes whether this board server is the one the
   // window is showing: one connection however many boards are enabled.
@@ -253,9 +254,7 @@ export interface BoardRules {
   openNotification?(eventId: string): { boardPath: string | null; taskId: number } | null;
   setNotificationsSilenced?(on: boolean): WriteResult;
   readBoardNotifications?(): Promise<BoardNotifications>;
-  enableBoardNotifications?(release: string): Promise<WriteResult>;
   watchRelease?(release: string): Promise<WriteResult>;
-  disableBoardNotifications?(): Promise<WriteResult>;
   /** The one durable action a live event carries, recorded from a click on this machine.
    *  Never waits on the network: the board's own outbox retries it. */
   recordCloudActionFor?(

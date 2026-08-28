@@ -5,6 +5,7 @@
 // never decided here: the service is asked every time, and its refusal is carried through
 // word for word so a client shows it as it stands.
 
+import { heldAvatar } from './avatar'
 import { cloudConfigured, cloudEndpoints, NOT_CONFIGURED } from './config'
 import { accessToken, clearSession, readSession, sessionFile } from './session'
 import type { CloudAccount, CloudMove } from './types'
@@ -32,6 +33,7 @@ export async function readCloudAccount(): Promise<CloudAccount> {
     handle: null,
     name: null,
     avatarUrl: null,
+    avatarData: null,
     email: null,
     message: null,
     inviteRequestedAt: null,
@@ -83,10 +85,14 @@ export async function readCloudAccount(): Promise<CloudAccount> {
   }
 
   const session = body.session ?? {}
+  const avatarUrl = session.avatar_url ?? session.avatarUrl ?? null
   const attested = {
     handle: session.handle ?? null,
     name: session.name ?? null,
-    avatarUrl: session.avatar_url ?? session.avatarUrl ?? null,
+    avatarUrl,
+    // Costs a fetch the first time this address is seen and a file read every time after,
+    // so the picture is on the machine before any screen asks to draw it.
+    avatarData: await heldAvatar(avatarUrl),
     email: session.email ?? null,
     inviteRequestedAt: session.inviteRequestedAt ?? null,
   }
@@ -155,13 +161,15 @@ export function signOutOfCloud(): { ok: true } {
   return { ok: true }
 }
 
-/** What this machine last knew about the account, for the answers the service can't give. */
-function held(): Pick<CloudAccount, 'handle' | 'name' | 'avatarUrl' | 'email'> {
+/** What this machine last knew about the account, for the answers the service can't give.
+ *  Never fetches: these are the answers a machine off the network reaches. */
+function held(): Pick<CloudAccount, 'handle' | 'name' | 'avatarUrl' | 'avatarData' | 'email'> {
   const session = readSession()
   return {
     handle: session?.handle ?? null,
     name: session?.name ?? null,
     avatarUrl: session?.avatarUrl ?? null,
+    avatarData: session?.avatar?.data ?? null,
     email: session?.email ?? null,
   }
 }

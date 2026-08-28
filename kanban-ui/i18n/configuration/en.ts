@@ -196,11 +196,6 @@ const en: ConfigurationCopy = {
     signedIn: "Signed in",
     signOut: "Sign out",
     slackHandle: "Slack names this handle when it acts for you.",
-    admitted: "**Admitted to the preview.** Cloud takes this account’s work.",
-    renews:
-      "**Renews on its own** — a delivery already running is never interrupted, and the sign-in survives a restart.",
-    kept: (file) =>
-      `**Kept on this machine**, at \`${file}\` — never inside your repository, so \`akb\` in a terminal acts as this account too.`,
     signOutNote:
       "Signing out stops this machine sending to Cloud. Nothing already on the board is touched, and signing back in picks the same account up.",
     notAdmitted: "This account is not in the preview yet.",
@@ -257,7 +252,7 @@ const en: ConfigurationCopy = {
       blurb:
         "A card that reaches **ready**, or that raises a question only you can answer, fills the bell — and reaches you when the app is not in front of you.",
       noReleases:
-        "This board has no open release. Start one from the version picker in the header, then come back — notifications watch one release at a time.",
+        "This board has no open release, so nothing fills the bell yet. Start one from the version picker in the header — notifications watch one release at a time.",
       watching: "Watching",
       pickRelease: "— pick a release —",
       onlyThisRelease: "Cards in any other release raise nothing.",
