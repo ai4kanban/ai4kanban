@@ -110,7 +110,14 @@ export type {
   SkillWrite,
 } from "./format/skill/types";
 
-export type { CloudAccount, CloudMove, CloudState } from "./format/cloud/types";
+export type {
+  CloudAccount,
+  CloudMove,
+  CloudState,
+  SlackConnection,
+  SlackConversation,
+  SlackState,
+} from "./format/cloud/types";
 
 export type {
   CloudEvent,

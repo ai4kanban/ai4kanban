@@ -10,7 +10,21 @@ export interface Env {
    * than the whole service refusing requests over a secret only the schedule needs.
    */
   RESEND_API_KEY?: string
+  /**
+   * The Slack app this service installs into a workspace (#320). Deliberately not required,
+   * for the same reason the mail key is not: a Worker with no Slack app answers every other
+   * route, and the Slack routes say plainly that this build carries none.
+   */
+  SLACK_CLIENT_ID?: string
+  SLACK_CLIENT_SECRET?: string
+  /** What Slack signs every callback with. Without it no callback is trusted, so a build
+   *  missing it accepts none rather than accepting them unchecked. */
+  SLACK_SIGNING_SECRET?: string
 }
+
+/** Whether this build can install into a workspace at all. */
+export const slackConfigured = (env: Env): boolean =>
+  !!env.SLACK_CLIENT_ID && !!env.SLACK_CLIENT_SECRET && !!env.SLACK_SIGNING_SECRET
 
 export function requireEnv(env: Env): void {
   for (const name of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const) {

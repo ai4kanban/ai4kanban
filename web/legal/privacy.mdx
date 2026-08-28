@@ -10,7 +10,7 @@ effective: 2026-08-26
 - **This site collects nothing.** No analytics, no cookies, no accounts. It is static files served by Cloudflare.
 - **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. The app asks GitHub once whether a newer release is out, and sends nothing else.
 - **AI4Kanban Cloud is an invite-only preview** that stores a team's board — cards, memory, releases, history — on servers we run in Frankfurt. Only that workspace's members can read it.
-- **A notification carries a task's number, title, release, revision, and its open questions** — no other part of the card — and is deleted 30 days after the work it is about finishes.
+- **A notification carries a task's number, title, release, revision, its open questions, its opening paragraph and its review notes** — no other part of the card — and is deleted 30 days after the work it is about finishes.
 - **Your code never reaches Cloud.** No repository, no worktree, no commit, no credential and no model key is sent to it, and no AI model is ever run over your board content.
 - **The only email we send is your invitation code**, and the notice to ourselves that you asked for one. There is no mailing list.
 - **We do not sell your personal information**, and we do not share it for cross-context behavioral advertising.
@@ -71,7 +71,9 @@ Whatever you type into a card, a memory file, or a release note is stored as you
 
 ### What an event holds
 
-Turning notifications on for a board sends Cloud one **event** per task that needs a person: a task that reaches `ready`, or one that raises a question only you can answer. An event holds that task's **number, title, release, and current revision**, the decision it asks for, and — when it is a question — **each question with its options and the board's recommendation**. It carries **no other part of the card**: not the body, not the plan, not the todo list, and never the folder the board is in. Your board is registered under an identifier that means nothing outside Cloud, and where that board sits on your machine is held on that machine alone.
+Turning notifications on for a board sends Cloud one **event** per task that needs a person: a task that reaches `ready`, or one that raises a question only you can answer. An event holds that task's **number, title, release, and current revision**, the decision it asks for, and — when it is a question — **each question with its options and the board's recommendation**.
+
+It also holds enough of the card to review it away from your machine: the card's **opening paragraph** and its **review notes** — the sections a card writes under *Worth noting* — shortened before they are sent. Approving a build off a title alone is not a review, and the machine that raised the event may be switched off when you read it. Everything else stays behind: not the plan, not the todo list, not the rest of the body, and never the folder the board is in. Your board is registered under an identifier that means nothing outside Cloud, and where that board sits on your machine is held on that machine alone.
 
 Once you act on an event, Cloud also holds **the decision you made and the answers you gave**, and **how the run it started ended**.
 
@@ -136,9 +138,11 @@ Each processes data on our behalf under its published data processing agreement.
 
 ### Slack, and anywhere else you choose to send board content
 
-A workspace can connect a Slack destination so that a question or a review request is posted into a channel your team already reads. When you do that, the content of that message — a card's title, the question being asked, and a link back into the app — leaves Cloud and goes to Slack **on your team's own instruction**.
+You can connect a Slack destination so that a question or a review request is posted into a channel — or a direct message — you already read, and decided from there. When you do that, the content of that message — the card's title, its opening paragraph, its review notes, the question being asked, and a link back into the app — leaves Cloud and goes to Slack **on your own instruction**. Anyone who can see that conversation can read it.
 
-We do not present Slack as infrastructure AI4Kanban runs on: an owner pastes their own incoming webhook, chooses the channel, and can remove it at any time. Once a message is in Slack, it is governed by your Slack workspace's own settings and retention policy, not by ours. The same is true of anything else your team chooses to point a workspace at.
+We do not present Slack as infrastructure AI4Kanban runs on: you install our Slack app into your own workspace, choose the one conversation it posts to, and can disconnect it at any time, which removes the connection and the token it was posting with. Once a message is in Slack, it is governed by your Slack workspace's own settings and retention policy, not by ours. The same is true of anything else you choose to point a workspace at.
+
+What we hold for a connection is the workspace, the conversation you picked, the Slack account you connected as — which is what makes a decision you press there yours — and the token Slack issued us for posting. We never read a Slack message, including our own, and we ask for no scope that would let us.
 
 ### Deleting a workspace
 

@@ -36,6 +36,7 @@ const CHANNELS: typeof Channels = {
   fullscreen: "a4k:fullscreen",
   navigated: "a4k:navigated",
   cloudCallback: "a4k:cloud-callback",
+  cardLink: "a4k:card-link",
   languageChanged: "a4k:language-changed",
   setLanguage: "a4k:set-language",
   notify: "a4k:notify",
@@ -83,6 +84,17 @@ const bridge: Ai4kanbanBridge = {
     }
     return () => cloudWatchers.delete(fn);
   },
+  onCardLink: (fn) => {
+    cardWatchers.add(fn);
+    // Held the same way, and for a stronger reason: a card link is often what STARTED the
+    // app, so the window that opens the card is always drawing after the link arrived.
+    if (pendingCardLink) {
+      const url = pendingCardLink;
+      pendingCardLink = null;
+      queueMicrotask(() => fn(url));
+    }
+    return () => cardWatchers.delete(fn);
+  },
 };
 
 // A finished Cloud sign-in, on its way to the Configuration dialog (#326). Kept when it
@@ -111,6 +123,20 @@ ipcRenderer.on(CHANNELS.openNotification, (_e, eventId: string) => {
     return;
   }
   notificationWatchers.forEach((fn) => fn(eventId));
+});
+
+// The card link a Slack message carries (#320), on its way to the window. Its own set, not
+// the sign-in's: the two are answered in different places, and one shared set would let
+// whichever listener happened to be there first take the other's answer.
+const cardWatchers = new Set<(url: string) => void>();
+let pendingCardLink: string | null = null;
+ipcRenderer.on(CHANNELS.cardLink, (_e, url: string) => {
+  if (typeof url !== "string" || !url) return;
+  if (cardWatchers.size === 0) {
+    pendingCardLink = url;
+    return;
+  }
+  cardWatchers.forEach((fn) => fn(url));
 });
 
 // Whoever is drawing the mark on the edge. Two things feed it: a swipe, read

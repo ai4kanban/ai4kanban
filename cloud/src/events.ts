@@ -28,6 +28,14 @@ export interface EventRow {
   decision: 'implement' | 'answer'
   state: string
   questions: unknown[]
+  /** The card's opening paragraph, as the publisher bounded it (#320). Empty on an event
+   *  published before this release, and on a card that opens with nothing. */
+  summary: string
+  /** The card's `## Worth noting` and `## Worth noting after implementation`, likewise. */
+  notes: string
+  /** The machine that runs this board's work, so a surface can name what a decision is
+   *  waiting for. Empty when the board has no server attached. */
+  serverName: string
   createdAt: string
   changedAt: string
   acted: boolean
@@ -69,6 +77,10 @@ export async function publishEvent(env: Env, owner: Owner, body: unknown): Promi
     p_kind: kind,
     p_decision: decision,
     p_questions: questions(input.questions),
+    // The card's own words, bounded by the publisher and bounded again here. Cloud stores
+    // what a message is reviewed from and no other part of the card (#320).
+    p_summary: bounded(input.summary, 4000),
+    p_notes: bounded(input.notes, 4000),
     p_fingerprint: text(input.fingerprint, 'fingerprint', 200),
   })
   return { event }
@@ -172,6 +184,11 @@ function text(value: unknown, what: string, max: number): string {
   if (!held) throw badRequest(`That request carries no ${what}.`)
   return held.slice(0, max)
 }
+
+/** Optional text, cut to a ceiling. An event that carries none is not a bad request — a
+ *  card can open with nothing to say and note nothing worth noting. */
+const bounded = (value: unknown, max: number): string =>
+  typeof value === 'string' ? value.trim().slice(0, max) : ''
 
 /** Every user-owned question with its options and recommendation, and nothing else — the
  *  event's whole payload, trimmed to what the contract says it holds. */

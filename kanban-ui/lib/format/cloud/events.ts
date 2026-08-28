@@ -161,6 +161,15 @@ export interface CloudEvent {
   /** The questions the event carries. Empty on a ready-for-review event, which asks for the
    *  revision itself and carries no other part of the card. */
   questions: CloudEventQuestion[]
+  /** The card's opening paragraph, as the publisher bounded it (#320). A surface away from
+   *  the board — a Slack message — is reviewed from this; the bell has the card itself one
+   *  click away and shows neither. Empty on an event raised before this release. */
+  summary: string
+  /** The card's `## Worth noting` and `## Worth noting after implementation`, likewise. */
+  notes: string
+  /** The machine that runs this board's work, so a surface can name what a decision is
+   *  waiting for. Empty when the board has no server attached. */
+  serverName: string
   createdAt: string
   /** The event's newest change, which is what the rail orders rows by. */
   changedAt: string

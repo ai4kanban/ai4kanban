@@ -139,6 +139,12 @@ export const CHANNELS = {
    *  the page (#326). The app carries it no further: the board server is what
    *  holds the session, so the Configuration dialog is what exchanges it. */
   cloudCallback: "a4k:cloud-callback",
+  /** The card link a Slack message carries (#320), on the same URL scheme. It is a channel
+   *  of its own because it is answered somewhere else: the window opens the card, wherever
+   *  the user is, while the sign-in answers above are the Configuration dialog's and reach
+   *  it only while that dialog is open. One channel would let whichever listener happened to
+   *  be there first eat the other's answer. */
+  cardLink: "a4k:card-link",
   /** The board is now drawing in another language (#334), so the menu — which lives
    *  outside the page — follows. The setting itself is already saved by the time this
    *  arrives; the app reads it for itself at startup. */
@@ -213,4 +219,8 @@ export interface Ai4kanbanBridge {
    *  The page opens that event exactly as clicking its row does — switching the app to that
    *  board first when the event belongs to another one. Returns the way to stop being told. */
   onOpenNotification(fn: (eventId: string) => void): () => void;
+  /** Be told when the app was opened with a card link (#320) — `ai4kanban://card/<board>/<task>`,
+   *  which a Slack message carries. The window opens that board's card, switching project
+   *  first when it is not the one on screen. Returns the way to stop being told. */
+  onCardLink(fn: (url: string) => void): () => void;
 }

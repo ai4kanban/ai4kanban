@@ -15,6 +15,16 @@ import { json, refusalResponse } from './http.ts'
 import { redeemInvitation, requestInvite, sendPendingMail } from './invites.ts'
 import { readSession, requireOwner } from './owner.ts'
 import { runScheduled } from './scheduled.ts'
+import { slackCallback } from './slack-actions.ts'
+import { deliverSlack } from './slack-deliver.ts'
+import {
+  beginSlackInstall,
+  disconnectSlack,
+  finishSlackInstall,
+  listSlackConversations,
+  readSlackConnection,
+  setSlackDestination,
+} from './slack.ts'
 import {
   attachServer,
   claimRequest,
@@ -143,7 +153,9 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     if (request.method === 'GET') return json(await listEvents(env, await requireOwner(request, env)))
     requireMethod(request, 'POST')
     const owner = await requireOwner(request, env)
-    return json(await publishEvent(env, owner, await bodyOf(request)))
+    const published = await publishEvent(env, owner, await bodyOf(request))
+    deliverToSlack(env, ctx, published.event.id)
+    return json(published)
   }
 
   const event = /^\/v1\/events\/([^/]+)(?:\/(retire|action|outcome))?$/.exec(pathname)
@@ -155,10 +167,74 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
       return json(await readOneEvent(env, owner, id))
     }
     requireMethod(request, 'POST')
-    if (move === 'retire') return json(await retireEvent(env, owner, id))
+    // Every write to an event is a message Slack may owe a rewrite of, so each one hands
+    // the delivery to `waitUntil`: the caller waits for the durable write and nothing else,
+    // and the hourly run is the retry behind whatever this attempt does not get out.
+    if (move === 'retire') {
+      const retired = await retireEvent(env, owner, id)
+      deliverToSlack(env, ctx, id)
+      return json(retired)
+    }
     const body = await bodyOf(request)
-    if (move === 'action') return json(await recordAction(env, owner, id, body))
-    return json(await recordOutcome(env, owner, id, body))
+    const moved =
+      move === 'action'
+        ? await recordAction(env, owner, id, body)
+        : await recordOutcome(env, owner, id, body)
+    deliverToSlack(env, ctx, id)
+    return json(moved)
+  }
+
+  // Slack (#320). Five routes the signed-in app calls, one Slack itself redirects to, and
+  // one Slack posts a press to — the last two carry no sign-in, so each carries its own
+  // proof: a nonce this account minted, and Slack's signature over the body.
+  if (pathname === '/v1/slack/install') {
+    requireMethod(request, 'POST')
+    const owner = await requireOwner(request, env)
+    return json(await beginSlackInstall(env, owner, new URL(request.url).origin))
+  }
+
+  if (pathname === '/v1/slack/installed') {
+    requireMethod(request, 'GET')
+    return finishSlackInstall(env, request)
+  }
+
+  if (pathname === '/v1/slack/connection') {
+    requireMethod(request, 'GET')
+    return json(await readSlackConnection(env, await requireOwner(request, env)))
+  }
+
+  if (pathname === '/v1/slack/conversations') {
+    requireMethod(request, 'GET')
+    return json(await listSlackConversations(env, await requireOwner(request, env)))
+  }
+
+  if (pathname === '/v1/slack/destination') {
+    requireMethod(request, 'POST')
+    const owner = await requireOwner(request, env)
+    return json(await setSlackDestination(env, owner, await bodyOf(request)))
+  }
+
+  if (pathname === '/v1/slack/disconnect') {
+    requireMethod(request, 'POST')
+    return json(await disconnectSlack(env, await requireOwner(request, env)))
+  }
+
+  if (pathname === '/v1/slack/actions') {
+    requireMethod(request, 'POST')
+    return slackCallback(env, request, ctx)
+  }
+
+  // The card link a Slack message carries. Slack takes an http address and nothing else, so
+  // this is the http half of `ai4kanban://card/…` — one redirect, no lookup, and nothing
+  // about the board is learnt by answering it.
+  const card = /^\/card\/([^/]+)\/(\d+)$/.exec(pathname)
+  if (card) {
+    requireMethod(request, 'GET')
+    const [, board = '', task = ''] = card
+    return new Response(null, {
+      status: 302,
+      headers: { location: `ai4kanban://card/${encodeURIComponent(board)}/${task}` },
+    })
   }
 
   // The post-deploy check: one budgeted write through the same path every mutation uses,
@@ -171,6 +247,15 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   }
 
   throw notFound()
+}
+
+/** Bring this event's Slack message up to date, off the response. The durable write is
+ *  what the caller waited for; the message is a second round trip, and the hourly run is
+ *  the retry behind it. */
+function deliverToSlack(env: Env, ctx: ExecutionContext, eventId: string): void {
+  ctx.waitUntil(
+    deliverSlack(env, eventId).catch((e) => console.error('cloud: slack delivery failed', e)),
+  )
 }
 
 function requireMethod(request: Request, method: string): void {

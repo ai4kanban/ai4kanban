@@ -31,30 +31,41 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { FiAlertCircle, FiBell, FiBellOff, FiCheck, FiKey, FiLogOut, FiMail } from "react-icons/fi";
+import { FaSlack } from "react-icons/fa";
 import { SiGithub } from "react-icons/si";
 import {
   boardNotificationsAction,
   cloudAccountAction,
+  disconnectSlackAction,
   setBoardServerAction,
   finishCloudSignInAction,
   notificationCenterAction,
   redeemCloudInvitationAction,
   requestCloudInviteAction,
   setSilencedAction,
+  setSlackChannelAction,
   signOutOfCloudAction,
+  slackConversationsAction,
+  slackStateAction,
   startCloudSignInAction,
+  startSlackConnectAction,
   watchReleaseAction,
 } from "@/app/actions";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import type { BoardNotifications } from "@/lib/notifications";
-import { ALL_RELEASES, type CloudAccount } from "@/lib/types";
+import { ALL_RELEASES, type CloudAccount, type SlackConversation, type SlackState } from "@/lib/types";
 import { Button } from "./button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 /** The published pages the terms say signing in confirms you have read. */
 const PRIVACY_URL = "https://ai4kanban.dev/privacy";
 const TERMS_URL = "https://ai4kanban.dev/terms";
+
+/** The two answers this pane takes off the app's URL scheme: a finished sign-in, and a
+ *  finished Slack connection. The card link is the window's and arrives elsewhere (#320). */
+const SIGNED_IN = "ai4kanban://cloud/signed-in";
+const SLACK_CONNECTED = "ai4kanban://cloud/slack-connected";
 
 interface AppBridge {
   openExternal(url: string): Promise<void>;
@@ -73,6 +84,9 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
   const [busy, setBusy] = useState(false);
   // The sign-in is out in the browser and we are waiting for it to come back.
   const [waiting, setWaiting] = useState(false);
+  // Bumped when a finished Slack connection comes back on the scheme, so the Slack row
+  // re-reads what the service now holds.
+  const [slackTick, setSlackTick] = useState(0);
   const inApp = typeof window !== "undefined" && !!bridge();
 
   const load = useCallback(async () => {
@@ -83,12 +97,18 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
     void load();
   }, [load]);
 
-  // The answer the app caught on its URL scheme. Exchanged here, on the server that holds
-  // the session — the app never sees a token.
+  // The two answers the app caught on its URL scheme, told apart by what each one says: a
+  // finished sign-in is exchanged here, on the server that holds the session — the app never
+  // sees a token — and a finished Slack connection is only a signal to look again (#320).
   useEffect(() => {
     const app = bridge();
     if (!app) return;
     return app.onCloudCallback((url) => {
+      if (url.startsWith(SLACK_CONNECTED)) {
+        setSlackTick((n) => n + 1);
+        return;
+      }
+      if (!url.startsWith(SIGNED_IN)) return;
       void (async () => {
         setWaiting(false);
         setBusy(true);
@@ -140,7 +160,14 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
       {!account ? (
         <p className="text-[13px] text-nb-ink-soft">{c.checking}</p>
       ) : account.state === "signed-in" ? (
-        <SignedIn account={account} busy={busy} onSignOut={() => void signOut()} />
+        <SignedIn
+          account={account}
+          busy={busy}
+          inApp={inApp}
+          slackTick={slackTick}
+          onError={onError}
+          onSignOut={() => void signOut()}
+        />
       ) : account.state === "not-admitted" ? (
         <NotAdmitted
           account={account}
@@ -172,10 +199,19 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
 function SignedIn({
   account,
   busy,
+  inApp,
+  slackTick,
+  onError,
   onSignOut,
 }: {
   account: CloudAccount;
   busy: boolean;
+  /** Connecting Slack needs the app for the same reason signing in does: the consent
+   *  screen comes back on a URL scheme only the app answers. */
+  inApp: boolean;
+  /** Bumped when a finished connection came back on that scheme. */
+  slackTick: number;
+  onError?: (msg: string) => void;
   onSignOut: () => void;
 }) {
   const c = useCopy().configuration.cloud;
@@ -201,6 +237,8 @@ function SignedIn({
       </div>
 
       <Silencer />
+
+      <Slack inApp={inApp} reload={slackTick} onError={onError} />
 
       <Notifications />
 
@@ -251,6 +289,222 @@ function Silencer() {
         label={c.silence.title}
       />
     </div>
+  );
+}
+
+// --- the account's one Slack destination (#320) -------------------------------
+// Where a task waiting on a decision arrives, and where that decision is made. It sits with
+// the sign-in and the silencing switch rather than with the board's own settings below,
+// because it is the same kind of fact: one destination for the ACCOUNT, and every board
+// Cloud is on for posts to it with its own name on each message.
+//
+// Two states and one band. Before connecting it is one line and a button, because there is
+// nothing yet to describe. Connected, it is the workspace, the conversation it posts to and
+// the way out — and when Slack has refused us, the band says so here, where the connection
+// was made, since messages failing into silence read as no work waiting.
+
+function Slack({
+  inApp,
+  reload,
+  onError,
+}: {
+  inApp: boolean;
+  reload: number;
+  onError?: (msg: string) => void;
+}) {
+  const c = useCopy().configuration.cloud.slack;
+  const [state, setState] = useState<SlackState | null>(null);
+  const [working, setWorking] = useState<"connect" | "save" | "disconnect" | null>(null);
+  const [waiting, setWaiting] = useState(false);
+
+  const load = useCallback(async () => setState(await slackStateAction()), []);
+  useEffect(() => {
+    void load();
+  }, [load, reload]);
+  // A connection that came back on the scheme is one this pane was waiting for.
+  useEffect(() => {
+    if (reload > 0) setWaiting(false);
+  }, [reload]);
+
+  const connect = async () => {
+    const app = bridge();
+    if (!app || working) return;
+    setWorking("connect");
+    try {
+      const start = await startSlackConnectAction();
+      if (!start.ok) return onError?.(start.error || c.connectFailed);
+      await app.openExternal(start.url);
+      setWaiting(true);
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  const move = async (what: "save" | "disconnect", run: () => Promise<{ ok: boolean; error?: string }>) => {
+    if (working) return;
+    setWorking(what);
+    try {
+      const done = await run();
+      if (!done.ok) onError?.(done.error || (what === "save" ? c.saveFailed : c.disconnectFailed));
+      await load();
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  if (!state) {
+    return <p className="text-[12px] text-nb-ink-soft">{c.checking}</p>;
+  }
+
+  const { connection } = state;
+  const busy = working !== null;
+
+  if (!connection) {
+    return (
+      <div className="flex items-center gap-3.5 rounded-[10px] bg-nb-wash px-4 py-3.5">
+        <FaSlack className="shrink-0 text-nb-ink-soft" size={15} aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="text-[12.5px] font-[800] text-nb-ink">{c.title}</p>
+          {/* Cloud's own words first. A service that could not be reached answers no
+              connection and no app either, and reading that as "this service carries no
+              Slack app" would tell the user to change something that is not wrong. */}
+          <p className="mt-[3px] max-w-[52ch] text-[11.5px] leading-[16px] text-nb-ink-soft">
+            {state.error
+              ? state.error
+              : !state.configured
+                ? c.unavailable
+                : !inApp
+                  ? c.needsApp
+                  : waiting
+                    ? c.waiting
+                    : c.blurb}
+          </p>
+        </div>
+        {state.configured && inApp && (
+          <Button size="sm" disabled={busy} onClick={() => void connect()}>
+            {working === "connect" ? c.connecting : c.connect}
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[10px] border border-nb-ink/12 px-4 py-3.5">
+      <div className="flex items-start gap-4">
+        <div className="min-w-0 flex-1">
+          <p className="flex items-center gap-2 text-[12.5px] font-[800] text-nb-ink">
+            <FaSlack className="shrink-0 text-nb-ink-soft" size={13} aria-hidden />
+            {connection.teamName || c.title}
+          </p>
+          <p className="mt-[3px] text-[11.5px] leading-[16px] text-nb-ink-soft">{c.actingAs}</p>
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => void move("disconnect", disconnectSlackAction)}
+        >
+          {working === "disconnect" ? c.disconnecting : c.disconnect}
+        </Button>
+      </div>
+
+      <div className="mt-3 flex items-center gap-2.5 border-t border-nb-ink/12 pt-3">
+        <span className="text-[12px] font-[700] text-nb-ink">{c.postsTo}</span>
+        <Destination
+          connection={connection}
+          busy={busy}
+          onPick={(conversation) =>
+            void move("save", () => setSlackChannelAction(conversation.id, conversation.name))
+          }
+        />
+        <span className="min-w-0 flex-1 text-[11.5px] leading-[16px] text-nb-ink-soft">
+          {c.everyBoard}
+        </span>
+      </div>
+
+      {connection.revoked && (
+        <div className="mt-3">
+          <Note title={c.refused}>{connection.lastError}</Note>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The conversation picker. Slack is asked only when the list is opened: a pane that read
+ *  the workspace's channels every time it was drawn would spend a Slack call on somebody
+ *  who came to read the sign-in. */
+function Destination({
+  connection,
+  busy,
+  onPick,
+}: {
+  connection: NonNullable<SlackState["connection"]>;
+  busy: boolean;
+  onPick: (conversation: SlackConversation) => void;
+}) {
+  const c = useCopy().configuration.cloud.slack;
+  const [conversations, setConversations] = useState<SlackConversation[] | null>(null);
+  const [reading, setReading] = useState(false);
+
+  const read = async () => {
+    if (conversations || reading) return;
+    setReading(true);
+    try {
+      const answer = await slackConversationsAction();
+      setConversations(answer.ok ? answer.conversations : []);
+    } finally {
+      setReading(false);
+    }
+  };
+
+  // The one it already posts to is always in the list, whether or not Slack answered: the
+  // picker must show where messages go even when the workspace cannot be read this second.
+  const offered = conversations ?? [];
+  const known = connection.channelId
+    ? offered.some((conversation) => conversation.id === connection.channelId)
+    : true;
+  const list = known
+    ? offered
+    : [{ id: connection.channelId, name: connection.channelName, direct: false }, ...offered];
+
+  return (
+    <Select
+      value={connection.channelId || undefined}
+      disabled={busy}
+      onOpenChange={(open) => open && void read()}
+      onValueChange={(id) => {
+        const picked = list.find((conversation) => conversation.id === id);
+        if (picked) onPick(picked);
+      }}
+    >
+      {/* The name is drawn here rather than by `SelectValue`, which reads it off the item
+          that is selected: the list is only fetched when the picker is opened, so until then
+          there is no item to read and the trigger would say "pick one" over a destination
+          that is already set. */}
+      <SelectTrigger
+        aria-label={c.postsTo}
+        className={`h-8 w-auto max-w-[24ch] rounded-[8px] py-0 text-[12px] font-[700] ${
+          connection.channelName ? "" : "text-nb-ink-soft/60"
+        }`}
+      >
+        <span className="truncate">{connection.channelName || c.pickChannel}</span>
+      </SelectTrigger>
+      <SelectContent>
+        {list.length === 0 ? (
+          <p className="px-2 py-1.5 text-[11.5px] leading-[16px] text-nb-ink-soft">
+            {reading ? c.loadingChannels : c.noChannels}
+          </p>
+        ) : (
+          list.map((conversation) => (
+            <SelectItem key={conversation.id} value={conversation.id} className="text-[12px]">
+              {conversation.name}
+            </SelectItem>
+          ))
+        )}
+      </SelectContent>
+    </Select>
   );
 }
 

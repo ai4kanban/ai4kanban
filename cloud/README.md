@@ -41,6 +41,15 @@ cloud/
 - **One schedule serves the whole service**: an hourly run touches the database, which is
   what keeps a free Supabase project from pausing after a quiet week. It also sweeps finished
   events, and retries mail.
+- **Slack is a connected app, and every message is written from here**: a workspace grants
+  the Worker a bot token, which never leaves it, so no Slack credential reaches a checkout
+  and a message keeps moving while the board's machine is off. A press comes back signed by
+  Slack; the workspace and the Slack user together say whose account it is, and the press is
+  recorded through the same `record_event_action` a click in the app calls.
+- **One event, one message**: the delivery record holds the `ts` Slack answered with, and an
+  event that has one is edited in place. `api.slack_jobs` decides what is owed by comparing
+  when the event last changed against the version its message is showing, so keeping a
+  message in step with a card needs no flag anybody has to set.
 - **Mail goes out at once, and the run is the retry**: `/v1/invite-request` sends its own
   notice through `waitUntil`, so nobody waits on the top of the hour and the response still
   never waits on Resend. The hourly run picks up what is left — a send the provider refused,
@@ -59,6 +68,24 @@ cloud/
 - `POST /v1/self-check` — one budgeted write through the path every mutation uses. Needs the
   same bearer token **and an admitted account**; run it after a deploy.
 
+Slack (#320), all but the last two behind the same bearer token:
+
+- `POST /v1/slack/install` — the consent screen to open, with the nonce that makes the
+  redirect this account's.
+- `GET /v1/slack/connection` — what the Configuration pane draws. Never the bot token.
+- `GET /v1/slack/conversations` — the channels the app can reach, and the direct message with
+  whoever connected.
+- `POST /v1/slack/destination` — `{ "channelId": "…", "channelName": "…" }`.
+- `POST /v1/slack/disconnect` — end it, and hand the token back to Slack.
+- `GET /v1/slack/installed` — **Slack's** redirect. Carries no sign-in; the nonce is what
+  says whose install it is. Ends by sending the browser to `ai4kanban://cloud/slack-connected`.
+- `POST /v1/slack/actions` — **Slack's** interactivity callback. Carries no sign-in; Slack's
+  signature over the raw body and a timestamp inside five minutes are what it is trusted on.
+  It answers `200` for everything Slack itself did right — a refused press is said to the
+  person ephemerally, because a non-200 tells them the app is broken.
+- `GET /card/<board>/<task>` — the http half of `ai4kanban://card/…`, which is all a Slack
+  link button will take. One redirect, no lookup.
+
 A refusal is always `{ "error": { "code": ..., "message": ... } }`, and `message` is written
 to be shown to a user as it stands. The two a client must tell apart:
 
@@ -67,6 +94,7 @@ to be shown to a user as it stands. The two a client must tell apart:
 | `unauthenticated` | No sign-in, or one that is expired or unreadable. Signing in again fixes it. |
 | `not_admitted` | A good sign-in from an account we have not admitted. Signing in again lands on the same refusal, so a client must never answer it with "sign in again". |
 | `not_yours` | The request named a row belonging to another account. |
+| `slack_unavailable` / `slack_not_connected` | This service carries no Slack app, or this account has connected none. |
 | `invitation_unknown` / `invitation_redeemed` / `invitation_withdrawn` | The three ways a code can fail. Each asks the reader for something different, so each has its own code. A refused code writes nothing at all. |
 
 `GET /v1/session` answers `200` either way and carries `session.admitted`. When that is
@@ -264,8 +292,8 @@ Only needed once, and again if the project is ever recreated.
    `AI4KANBAN_SUPABASE_ANON_KEY` and `AI4KANBAN_CLOUD_URL` override all three, so a checkout
    can be pointed at a throwaway project without a build.
 6. **Worker secrets** — `npx wrangler secret put SUPABASE_URL`,
-   `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` and
-   `npx wrangler secret put RESEND_API_KEY`.
+   `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY`, `npx wrangler secret put
+   RESEND_API_KEY`, and the Slack app's three from step 11.
 7. **Exposed schemas** — in the project's API settings, set the exposed schema list to
    `api` alone. Dropping `public` and `graphql_public` is what closes PostgREST and the
    GraphQL endpoint to everyone but the Worker.
@@ -282,5 +310,20 @@ Only needed once, and again if the project is ever recreated.
     (`src/config.ts`). Resend's free tier is 3,000 emails a month and 100 a day from one
     verified domain, which is far more than an invite-only preview issues.
 
-Nothing else is registered against this service: Slack destinations are webhook URLs an owner
-pastes, and GitHub is reached from a member's own machine with its own grant.
+11. **Slack app** (#320) — one app at [api.slack.com/apps](https://api.slack.com/apps),
+    installed into a workspace by each account rather than by us.
+    - **Bot token scopes**: `chat:write`, `chat:write.public`, `im:write`, `channels:read`,
+      `groups:read` — the list in `SLACK_SCOPES` (`src/config.ts`). No history scope: the app
+      never reads a message, including its own.
+    - **Redirect URL**: `https://api.ai4kanban.dev/v1/slack/installed`.
+    - **Interactivity request URL**: `https://api.ai4kanban.dev/v1/slack/actions`. Turn
+      interactivity on — without it a button carries nothing back, which is the whole point
+      of a connected app over a pasted webhook.
+    - **Secrets**: `npx wrangler secret put SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET` and
+      `SLACK_SIGNING_SECRET`. All three are deliberately not required at startup, like the
+      mail key: a Worker with no Slack app answers every other route and says plainly that it
+      carries none. Without the signing secret **no callback is trusted** — a build that
+      cannot verify refuses rather than accepting unchecked.
+
+GitHub is the only other service registered here, and it is reached from a member's own
+machine with its own grant.

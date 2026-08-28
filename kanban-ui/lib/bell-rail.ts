@@ -199,11 +199,14 @@ function bridge(): AppBridge | null {
 
 /** Two paths naming one folder. A board's path is written down as the machine resolved it,
  *  so this is a comparison rather than a resolution. */
-const samePath = (a: string, b: string) => a.replace(/\/+$/, "") === b.replace(/\/+$/, "");
+export const samePath = (a: string, b: string) => a.replace(/\/+$/, "") === b.replace(/\/+$/, "");
 
 /** Open another project and land on the card. The card to open travels in the address the
- *  new server is asked for, because the window is about to be pointed at a different one. */
-async function switchProject(boardPath: string, taskId: number): Promise<void> {
+ *  new server is asked for, because the window is about to be pointed at a different one.
+ *
+ *  Exported because the card link a Slack message carries lands in exactly the same place
+ *  as a bell row that names another board (#320) — one move, not two that look alike. */
+export async function switchProject(boardPath: string, taskId: number): Promise<void> {
   const app = bridge();
   if (!app) return;
   const url = await app.openProject(boardPath);

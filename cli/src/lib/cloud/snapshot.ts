@@ -18,6 +18,14 @@ import type { Card } from '../view/types'
 import { ALL_RELEASES, type CloudBoard } from './boards'
 import { decisionFor, type CloudEventKind, type CloudEventQuestion } from './events'
 
+/** How much of the card's own words an event carries.
+ *
+ *  Bounded rather than whole: a message is reviewed from this, not from the card, and a
+ *  long card must cost one stored snapshot rather than its whole body. The reader is one
+ *  screen away from all of it through the card link. */
+const SUMMARY_LIMIT = 1500
+const NOTES_LIMIT = 2500
+
 /** The event one card would raise, as it goes to the Worker. `boardId` names the board;
  *  nothing here says where that board is. */
 export interface EventSnapshot {
@@ -30,6 +38,12 @@ export interface EventSnapshot {
   kind: CloudEventKind
   decision: 'implement' | 'answer'
   questions: CloudEventQuestion[]
+  /** The card's opening paragraph (#320), so a message can be reviewed while the machine
+   *  that raised it is off. Empty on a card that opens with nothing. */
+  summary: string
+  /** The card's `## Worth noting` and `## Worth noting after implementation` — the review
+   *  notes, which is what approving a build off a title alone is missing. */
+  notes: string
   /** What makes two snapshots of one task the same piece of work: the revision it binds and
    *  the questions it carries. A snapshot whose fingerprint has not moved needs no write. */
   fingerprint: string
@@ -75,6 +89,8 @@ export function snapshotFor(card: Card, board: CloudBoard): EventSnapshot | null
     kind,
     decision: decisionFor(kind),
     questions,
+    summary: bound(openingParagraph(card.body), SUMMARY_LIMIT),
+    notes: bound(reviewNotes(card.body), NOTES_LIMIT),
   }
   return { ...snapshot, fingerprint: fingerprint(snapshot) }
 }
@@ -91,8 +107,56 @@ function fingerprint(snapshot: Omit<EventSnapshot, 'fingerprint'>): string {
         snapshot.taskTitle,
         snapshot.release,
         snapshot.questions,
+        snapshot.summary,
+        snapshot.notes,
       ]),
     )
     .digest('hex')
     .slice(0, 16)
+}
+
+// ---- the card's own words ----------------------------------------------------
+// The two parts of a card a reviewer needs and a title cannot give: what it is for, and
+// what was flagged about building it. Read off the body rather than from anything stored
+// apart from it, so a card rewritten by hand reads the same way every other reader reads it.
+
+/** Everything above the first `##` heading. The `<!-- agent -->` boundary is a marker
+ *  rather than content, so it never travels. */
+export function openingParagraph(body: string): string {
+  const out: string[] = []
+  for (const line of (body ?? '').split('\n')) {
+    if (/^##(?!#)\s/.test(line)) break
+    if (line.trim().startsWith('<!--')) continue
+    out.push(line)
+  }
+  return out.join('\n').trim()
+}
+
+const NOTE_HEADINGS = [/^##\s+Worth noting\s*$/i, /^##\s+Worth noting after implementation\s*$/i]
+
+/** `## Worth noting` and `## Worth noting after implementation`, headings kept, in the order
+ *  the card writes them — a reader has to know which of the two they are reading. */
+export function reviewNotes(body: string): string {
+  const sections: string[][] = []
+  let keeping: string[] | null = null
+  for (const line of (body ?? '').split('\n')) {
+    if (/^##(?!#)\s/.test(line)) {
+      keeping = NOTE_HEADINGS.some((re) => re.test(line)) ? [line] : null
+      if (keeping) sections.push(keeping)
+      continue
+    }
+    // The `<!-- agent -->` boundary is a marker rather than content, and it sits inside
+    // whichever section it happens to fall in.
+    if (keeping && !line.trim().startsWith('<!--')) keeping.push(line)
+  }
+  return sections.map((section) => section.join('\n').trim()).join('\n\n')
+}
+
+/** Cut at the last boundary a reader would recognise — a blank line, or the line before a
+ *  bullet — so what is carried ends where a person would have stopped. */
+export function bound(text: string, limit: number): string {
+  if (text.length <= limit) return text
+  const head = text.slice(0, limit)
+  const at = Math.max(head.lastIndexOf('\n\n'), head.lastIndexOf('\n- '), head.lastIndexOf('\n* '))
+  return (at > limit / 3 ? head.slice(0, at) : head).trimEnd()
 }

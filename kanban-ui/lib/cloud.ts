@@ -1,6 +1,6 @@
 import { copy } from "@/i18n";
 import { boardRules } from "./cli";
-import type { CloudAccount, CloudMove } from "./types";
+import type { CloudAccount, CloudMove, SlackConversation, SlackState } from "./types";
 
 // --- the Cloud sign-in (#326) ------------------------------------------------
 // Which account this MACHINE acts as. Not a board setting: one sign-in covers every project
@@ -70,4 +70,60 @@ export async function redeemCloudInvitation(code: string): Promise<CloudMove> {
   const rules = await boardRules();
   if (!rules.redeemCloudInvitation) return { ok: false, error: TOO_OLD };
   return rules.redeemCloudInvitation(code);
+}
+
+// --- the account's Slack destination (#320) ----------------------------------
+// Where a task waiting on a decision arrives, and where that decision is made. One
+// destination for the account, shared by every board Cloud is on for, with the board named
+// on each message — so this sits with the sign-in above rather than with the board's own
+// settings, for exactly the reason the silencing switch does.
+//
+// Nothing here holds a Slack credential. The token Cloud posts with is minted by Slack and
+// handed straight to the service, which is the whole reason a connection is made through
+// the browser rather than by pasting something into a box.
+
+const NO_SLACK: SlackState = { connection: null, configured: false, error: TOO_OLD };
+
+/** The connection this account holds, or the absence of one. */
+export async function slackState(): Promise<SlackState> {
+  const rules = await boardRules();
+  return rules.readSlackState ? rules.readSlackState() : NO_SLACK;
+}
+
+/** The consent screen to open in the user's own browser. Slack answers the service, which
+ *  hands the browser back to the app on its URL scheme. */
+export async function startSlackConnect(): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const rules = await boardRules();
+  if (!rules.startSlackConnect) return { ok: false, error: TOO_OLD };
+  return rules.startSlackConnect();
+}
+
+/** The conversations a destination can be pointed at. */
+export async function slackConversations(): Promise<
+  { ok: true; conversations: SlackConversation[] } | { ok: false; error: string }
+> {
+  const rules = await boardRules();
+  if (!rules.readSlackConversations) return { ok: false, error: TOO_OLD };
+  return rules.readSlackConversations();
+}
+
+/** Point it at one. Picking again is also how a refusal Slack raised is cleared. */
+export async function setSlackChannel(channelId: string, channelName: string): Promise<CloudMove> {
+  const rules = await boardRules();
+  if (!rules.setSlackChannel) return { ok: false, error: TOO_OLD };
+  return rules.setSlackChannel(channelId, channelName);
+}
+
+/** Stop posting. No board is touched and every event goes on exactly as it was. */
+export async function disconnectSlack(): Promise<CloudMove> {
+  const rules = await boardRules();
+  if (!rules.disconnectSlack) return { ok: false, error: TOO_OLD };
+  return rules.disconnectSlack();
+}
+
+/** Where the card link in a Slack message leads. Null when the URL names no card, so the
+ *  window can hand every one of the app's URLs through it. */
+export async function cloudCardLink(url: string) {
+  const rules = await boardRules();
+  return rules.readCloudCardLink ? rules.readCloudCardLink(url) : null;
 }

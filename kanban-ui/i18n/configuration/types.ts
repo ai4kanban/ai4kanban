@@ -216,6 +216,40 @@ export type ConfigurationCopy = {
       title: string;
       blurb: string;
     };
+    /** The account's one Slack destination (#320) — where a task waiting on a decision
+     *  arrives, and where that decision is made. It sits with the sign-in because every
+     *  board Cloud is on for posts to it. */
+    slack: {
+      title: string;
+      /** What Slack is for, before there is a connection to describe. */
+      blurb: string;
+      checking: string;
+      connect: string;
+      connecting: string;
+      /** The consent screen is out in the browser. */
+      waiting: string;
+      disconnect: string;
+      disconnecting: string;
+      /** Under the workspace: whose presses these are. */
+      actingAs: string;
+      /** Every enabled board posts here, named on each message. */
+      everyBoard: string;
+      /** The destination picker. */
+      postsTo: string;
+      pickChannel: string;
+      loadingChannels: string;
+      /** The app is in no channel and the direct message could not be opened. */
+      noChannels: string;
+      /** Slack refused us — the app was removed, the token revoked, the destination gone. */
+      refused: string;
+      /** Connecting needs the app: the consent screen comes back to it. */
+      needsApp: string;
+      /** This Cloud service carries no Slack app. */
+      unavailable: string;
+      connectFailed: string;
+      saveFailed: string;
+      disconnectFailed: string;
+    };
     /** Which machine runs this board's approvals (#318). A board attaches exactly one. */
     server: {
       title: string;

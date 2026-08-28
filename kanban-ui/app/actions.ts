@@ -33,11 +33,17 @@ import {
 import { type ChatRead, clearChat, readChat, sendChat } from "@/lib/chat";
 import {
   cloudAccount,
+  cloudCardLink,
+  disconnectSlack,
   finishCloudSignIn,
   redeemCloudInvitation,
   requestCloudInvite,
+  setSlackChannel,
   signOutOfCloud,
+  slackConversations,
+  slackState,
   startCloudSignIn,
+  startSlackConnect,
 } from "@/lib/cloud";
 import { setMachineLanguage } from "@/lib/language";
 import {
@@ -121,6 +127,8 @@ import type {
   SetupDraft,
   SkillInstall,
   SkillState,
+  SlackConversation,
+  SlackState,
   SpecAgentView,
   TrackDraft,
   VerifyResult,
@@ -952,6 +960,77 @@ export async function redeemCloudInvitationAction(code: string): Promise<CloudMo
     return await redeemCloudInvitation(code);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- the account's Slack destination (#320) ----------------------------------
+// Where a task waiting on a decision arrives, and where that decision is made. Asked when
+// the Cloud section opens and after every press in it, never on the board's poll: like the
+// account above, every one of these reaches the service over the network.
+//
+// The connection is made the same way the sign-in is — this server asks for the consent
+// URL, the app opens the user's own browser, and the answer comes back to the app on its
+// URL scheme, which brings the pane back to re-read what the service now holds.
+
+export async function slackStateAction(): Promise<SlackState> {
+  try {
+    return await slackState();
+  } catch (e) {
+    return { connection: null, configured: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** The consent screen to open in the user's own browser. */
+export async function startSlackConnectAction(): Promise<
+  { ok: true; url: string } | { ok: false; error: string }
+> {
+  try {
+    return await startSlackConnect();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** The conversations a destination can be pointed at — the channels the app can reach, and
+ *  the direct message with whoever connected. */
+export async function slackConversationsAction(): Promise<
+  { ok: true; conversations: SlackConversation[] } | { ok: false; error: string }
+> {
+  try {
+    return await slackConversations();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Point it at one. Picking again is also how a refusal Slack raised is cleared. */
+export async function setSlackChannelAction(channelId: string, channelName: string): Promise<CloudMove> {
+  if (typeof channelId !== "string" || !channelId) return { ok: false, error: "that is not a conversation" };
+  try {
+    return await setSlackChannel(channelId, typeof channelName === "string" ? channelName : "");
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Stop posting. No board is touched and every event goes on exactly as it was. */
+export async function disconnectSlackAction(): Promise<CloudMove> {
+  try {
+    return await disconnectSlack();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Where the card link in a Slack message leads — the board's own path on this machine, and
+ *  the card to open in it. Null when the URL names no card, so the window can hand every
+ *  one of the app's URLs through it. */
+export async function cloudCardLinkAction(url: string) {
+  if (typeof url !== "string" || !url.startsWith("ai4kanban://")) return null;
+  try {
+    return await cloudCardLink(url);
+  } catch {
+    return null;
   }
 }
 

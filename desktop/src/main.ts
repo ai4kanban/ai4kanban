@@ -122,7 +122,11 @@ function schemeUrl(argv: string[]): string | null {
 }
 
 /** Hand it to the page. The app carries it no further — the board server is what holds the
- *  Cloud session, so the open Configuration dialog is what exchanges the answer. */
+ *  Cloud session, so the open Configuration dialog is what exchanges a sign-in answer.
+ *
+ *  Two channels, because the two are answered in different places: a card link (#320) is
+ *  the window's, wherever the user is, and the sign-in answers are the Configuration
+ *  dialog's and reach it only while that dialog is open. */
 function handleSchemeUrl(url: string): void {
   if (!url.startsWith(`${URL_SCHEME}://`)) return;
   if (!win || win.webContents.isLoading()) {
@@ -131,8 +135,13 @@ function handleSchemeUrl(url: string): void {
   }
   if (win.isMinimized()) win.restore();
   win.focus();
-  win.webContents.send(CHANNELS.cloudCallback, url);
+  win.webContents.send(channelFor(url), url);
 }
+
+/** Which of the two a URL is for. One place, because a URL held until the page was ready
+ *  goes out through `flushPendingUrl` rather than through the function above. */
+const channelFor = (url: string): string =>
+  url.startsWith(`${URL_SCHEME}://card/`) ? CHANNELS.cardLink : CHANNELS.cloudCallback;
 
 app.on("open-url", (e, url) => {
   e.preventDefault();
@@ -492,7 +501,7 @@ function flushPendingUrl(): void {
   const url = pendingUrl;
   if (!url || !win) return;
   pendingUrl = null;
-  win.webContents.send(CHANNELS.cloudCallback, url);
+  win.webContents.send(channelFor(url), url);
 }
 
 function refreshMenu(): void {

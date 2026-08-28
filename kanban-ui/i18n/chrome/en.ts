@@ -9,6 +9,9 @@ const en: ChromeCopy = {
   },
   header: { home: "All cards" },
   resize: { rail: "Resize the rail", chat: "Resize the chat", bell: "Resize notifications" },
+  cardLink: {
+    notHere: "That card's board is not on this machine. Open it there, or open that folder here.",
+  },
   projects: {
     heading: "Projects",
     reading: "Reading your projects…",

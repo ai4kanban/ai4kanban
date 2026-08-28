@@ -10,6 +10,9 @@ export type ChromeCopy = {
   };
   /** Only read out loud: the drag handles that widen a pane. */
   resize: { rail: string; chat: string; bell: string };
+  /** The card link a Slack message carries (#320), when it leads nowhere: the board it
+   *  names has been moved off this machine. */
+  cardLink: { notHere: string };
   projects: {
     heading: string;
     reading: string;

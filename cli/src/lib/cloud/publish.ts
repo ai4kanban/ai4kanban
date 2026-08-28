@@ -368,6 +368,8 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
       kind: snapshot.kind,
       decision: snapshot.decision,
       questions: snapshot.questions,
+      summary: snapshot.summary,
+      notes: snapshot.notes,
       fingerprint: snapshot.fingerprint,
     })
     if (!answer.ok) return answer

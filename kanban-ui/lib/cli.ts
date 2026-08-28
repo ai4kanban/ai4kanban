@@ -19,7 +19,12 @@ import type {
   SpecAgentView,
 } from "./format/agent/types";
 import type { CloudEventAnswer } from "./format/cloud/events";
-import type { CloudAccount, CloudMove } from "./format/cloud/types";
+import type {
+  CloudAccount,
+  CloudMove,
+  SlackConversation,
+  SlackState,
+} from "./format/cloud/types";
 import type { BoardNotifications, NotificationCenter } from "./notifications";
 import type { Language } from "./format/machine/types";
 import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
@@ -276,6 +281,25 @@ export interface BoardRules {
    *  machine, or end it. */
   resumeCloudRequest?(eventId: string): Promise<WriteResult>;
   cancelCloudRequest?(taskId: number, eventId: string): WriteResult;
+
+  // the account's one Slack destination (#320) — where a task waiting on a decision arrives,
+  // and where that decision is made. A fact about the ACCOUNT like the sign-in: every board
+  // Cloud is on for posts to it, with the board named on each message. Optional like every
+  // Cloud move above, so a project running older rules offers no Slack rather than a button
+  // nothing can answer.
+  readSlackState?(): Promise<SlackState>;
+  startSlackConnect?(): Promise<{ ok: true; url: string } | { ok: false; error: string }>;
+  readSlackConversations?(): Promise<
+    { ok: true; conversations: SlackConversation[] } | { ok: false; error: string }
+  >;
+  setSlackChannel?(channelId: string, channelName: string): Promise<CloudMove>;
+  disconnectSlack?(): Promise<CloudMove>;
+
+  /** Where the card link in a Slack message leads — the board's own path on this machine,
+   *  and the card to open in it. Null when the URL names no card. */
+  readCloudCardLink?(
+    url: string,
+  ): { ok: true; boardPath: string; taskId: number } | { ok: false; reason: "not-here" } | null;
 
   // what the board would start on its own, this minute
   nextWork(): Promise<AgentRequest[]>;

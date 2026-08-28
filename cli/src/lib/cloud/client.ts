@@ -13,6 +13,7 @@ import type { CloudEvent, CloudEventAnswer, CloudEventState } from './events'
 import type { CloudRequest } from './requests'
 import type { CloudServer } from './servers'
 import { accessToken } from './session'
+import type { SlackConnection, SlackConversation } from './types'
 
 export type CloudCall<T> = { ok: true; value: T } | { ok: false; error: string; code?: string }
 
@@ -51,6 +52,10 @@ export interface PublishBody {
   kind: 'ready_for_review' | 'question'
   decision: 'implement' | 'answer'
   questions: CloudEvent['questions']
+  /** The card's opening paragraph and its review notes, bounded by the publisher (#320) —
+   *  what a Slack message is reviewed from while this machine is off. */
+  summary: string
+  notes: string
   fingerprint: string
 }
 
@@ -127,6 +132,37 @@ export const claimRequest = (
 /** Hold the claim while the delivery is live on this machine. */
 export const renewClaim = (requestId: string, serverId: string): Promise<CloudCall<{ renewed: boolean }>> =>
   send('POST', `/v1/requests/${encodeURIComponent(requestId)}/renew`, { serverId })
+
+// ---- the account's Slack destination (#320) ---------------------------------
+// One connection per account, made in Configuration → Cloud. Every call here is the signed-
+// in machine talking about its own account; the presses that come back the other way are
+// Slack's own request to the service and never touch this board.
+
+/** The consent screen to open in the user's own browser. Slack answers the service, which
+ *  hands the browser back to the app on its URL scheme. */
+export const startSlackInstall = (): Promise<CloudCall<{ url: string }>> =>
+  send('POST', '/v1/slack/install')
+
+/** The connection this account holds, and whether the service carries a Slack app at all. */
+export const readSlackConnection = (): Promise<
+  CloudCall<{ connection: SlackConnection | null; configured: boolean }>
+> => send('GET', '/v1/slack/connection')
+
+/** The conversations a destination can be pointed at — the channels the app can reach, and
+ *  the direct message with whoever connected. */
+export const listSlackConversations = (): Promise<CloudCall<{ conversations: SlackConversation[] }>> =>
+  send('GET', '/v1/slack/conversations')
+
+/** Point it somewhere. Picking again is also how a refusal is cleared. */
+export const setSlackDestination = (
+  channelId: string,
+  channelName: string,
+): Promise<CloudCall<{ connection: SlackConnection }>> =>
+  send('POST', '/v1/slack/destination', { channelId, channelName })
+
+/** End it. No board is touched and every event goes on exactly as it was. */
+export const disconnectSlack = (): Promise<CloudCall<{ disconnected: true }>> =>
+  send('POST', '/v1/slack/disconnect')
 
 async function send<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<CloudCall<T>> {
   if (!cloudConfigured()) return { ok: false, error: NOT_CONFIGURED, code: 'bad_request' }

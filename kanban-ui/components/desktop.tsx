@@ -70,6 +70,17 @@ export function useOpenNotificationFromApp(open: (eventId: string) => void): voi
   }, [open]);
 }
 
+/** Open the card a Slack message linked to. The window listens for it wherever the user is,
+ *  which is why it is not the Configuration dialog's channel: that one is only listened to
+ *  while the dialog is open. */
+export function useCardLinkFromApp(open: (url: string) => void): void {
+  useEffect(() => {
+    const app = bridge();
+    if (!app?.onCardLink) return;
+    return app.onCardLink(open);
+  }, [open]);
+}
+
 /** Which way the window moved, and so which edge it went out of. */
 export type NavSide = "back" | "forward";
 
@@ -140,6 +151,12 @@ interface AppBridge {
    *  opens it exactly as clicking its row does. Returns the way to stop being told.
    *  Optional for the same reason. */
   onOpenNotification?(fn: (eventId: string) => void): () => void;
+  /** The app was opened with a card link (#320) — `ai4kanban://card/…`, which a Slack
+   *  message carries. Its own channel rather than the sign-in's: the two are answered in
+   *  different places, and one shared channel would let whichever listener happened to be
+   *  there first take the other's answer. Optional — an app older than the link hands one
+   *  to nobody, and the message's button still opens the app. */
+  onCardLink?(fn: (url: string) => void): () => void;
 }
 
 declare global {

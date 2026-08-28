@@ -150,6 +150,11 @@ export {
   stopCloudCenter,
 } from './lib/cloud/center'
 export type { NotificationAlert, NotificationCenter, NotificationRow } from './lib/cloud/center'
+// The card link a Slack message carries (#320). The app catches `ai4kanban://card/…` on the
+// scheme #326 registered and asks here where it leads — the board's own path on this
+// machine, or that the board has been moved away.
+export { readCloudCardLink } from './lib/cloud/center'
+export type { CloudCardLink } from './lib/cloud/center'
 // `enableBoardNotifications` and `disableBoardNotifications` are no surface's to call any
 // more — `readBoardNotifications` registers the board itself — and stay exported so a UI
 // build that predates that still works against these rules.
@@ -179,6 +184,17 @@ export type { CloudBoard } from './lib/cloud/boards'
 // What a click on this machine records against a live event, so the same durable action is
 // on Cloud whichever surface took it.
 export { recordCloudActionFor } from './lib/cloud/publish'
+// The account's one Slack destination (#320): connect it, point it somewhere, end it. A fact
+// about the ACCOUNT like the sign-in, so every board Cloud is on for posts to it with the
+// board named on each message. Optional to the UI like every Cloud move above.
+export {
+  disconnectSlack,
+  readSlackConversations,
+  readSlackState,
+  setSlackChannel,
+  startSlackConnect,
+} from './lib/cloud/slack'
+export type { SlackConnection, SlackConversation, SlackState } from './lib/cloud/slack'
 export type * from './lib/cloud/events'
 
 // The language the app and the agent work in (#334): one answer for this MACHINE, held in

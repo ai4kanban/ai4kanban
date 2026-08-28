@@ -5,3 +5,8 @@ SUPABASE_SERVICE_ROLE_KEY="<the project's service role key>"
 # The invitation mail (#327). Optional: without it every route still answers and the hourly
 # run logs that it sent nothing.
 RESEND_API_KEY="<a Resend API key for send.ai4kanban.dev>"
+# The Slack app (#320). Optional as a set: without them the Slack routes say this build
+# carries no app, and — with no signing secret — no callback is trusted at all.
+SLACK_CLIENT_ID="<the Slack app's client id>"
+SLACK_CLIENT_SECRET="<the Slack app's client secret>"
+SLACK_SIGNING_SECRET="<the Slack app's signing secret>"

@@ -3,6 +3,8 @@ import { call } from './db.ts'
 import type { Env } from './env.ts'
 import { sendPendingMail } from './invites.ts'
 import type { MailRun } from './invites.ts'
+import { deliverSlack } from './slack-deliver.ts'
+import type { SlackRun } from './slack-deliver.ts'
 
 /** What one pass of the 30-day sweep freed (#319). */
 export interface Sweep {
@@ -29,7 +31,9 @@ export interface Heartbeat {
  * notice through `waitUntil`. What is left for this run is a send the provider refused, and a
  * code approved in the SQL editor, where no Worker was in flight to send it.
  */
-export async function runScheduled(env: Env): Promise<{ heartbeat: Heartbeat; mail: MailRun; sweep: Sweep }> {
+export async function runScheduled(
+  env: Env,
+): Promise<{ heartbeat: Heartbeat; mail: MailRun; slack: SlackRun; sweep: Sweep }> {
   const heartbeat = await call<Heartbeat>(env, 'service_heartbeat')
   console.log('cloud: heartbeat', { ...heartbeat, daily_write_budget: DAILY_WRITE_BUDGET })
 
@@ -43,6 +47,19 @@ export async function runScheduled(env: Env): Promise<{ heartbeat: Heartbeat; ma
   }
   if (mail.queued > 0) console.log('cloud: invitation mail', mail)
 
+  // Slack's retry (#320). Like the mail above, this is not the first attempt: every route
+  // that writes an event hands its own delivery to `waitUntil`. What is left for this run is
+  // a message Slack refused, and one whose Worker went away mid-send. Outside the daily
+  // write budget for the same reason as the rest of this run — a busy day must not leave a
+  // channel with a message that stopped following its card.
+  let slack: SlackRun = { due: 0, sent: 0, failed: 0 }
+  try {
+    slack = await deliverSlack(env)
+  } catch (error) {
+    console.error('cloud: slack delivery failed', error)
+  }
+  if (slack.due > 0) console.log('cloud: slack messages', slack)
+
   // An event is kept while it is unresolved, and 30 days after it reaches a final outcome
   // (#319). Outside the daily write budget like the heartbeat: a busy day must not switch
   // off the sweep that frees space, and a failed sweep is one the next hour makes up for.
@@ -54,5 +71,5 @@ export async function runScheduled(env: Env): Promise<{ heartbeat: Heartbeat; ma
   }
   if (sweep.deleted > 0) console.log('cloud: swept finished events', sweep)
 
-  return { heartbeat, mail, sweep }
+  return { heartbeat, mail, slack, sweep }
 }

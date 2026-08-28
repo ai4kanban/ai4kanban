@@ -18,14 +18,16 @@
 
 import { useCopy } from "@/i18n/use-copy";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect } from "react";
-import { BELL_MAX, BELL_MIN, BELL_W, useBellRail } from "@/lib/bell-rail";
+import { useCallback, useEffect, useState } from "react";
+import { cloudCardLinkAction } from "@/app/actions";
+import { FiAlertCircle, FiX } from "react-icons/fi";
+import { BELL_MAX, BELL_MIN, BELL_W, samePath, switchProject, useBellRail } from "@/lib/bell-rail";
 import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail, type BoardChange } from "@/lib/chat-rail";
 import { useOpenCards } from "@/lib/open-cards";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
 import type { MemoryModule } from "@/lib/types";
 import { ChatPane, ChatProvider } from "./Chat";
-import { raiseNotifications, useOpenNotificationFromApp } from "./desktop";
+import { raiseNotifications, useCardLinkFromApp, useOpenNotificationFromApp } from "./desktop";
 import { BellPane, BellProvider } from "./Notifications";
 import { Rail } from "./Rail";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
@@ -33,6 +35,25 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resiz
 /** Stood in for a caller that doesn't watch sessions. One instance, so a page
  *  without it doesn't hand the rail a fresh empty set on every render. */
 const EMPTY: Set<number> = new Set();
+
+/** The one thing this window says on its own: a card link that leads nowhere. It sits over
+ *  the top of the body, says the one sentence, and goes when it is dismissed — there is
+ *  nothing to do about it here, and the checkout can come back. */
+function LinkNotice({ words, onClose }: { words: string; onClose: () => void }) {
+  return (
+    <div className="px-4 pb-1 md:px-1">
+      <button
+        type="button"
+        onClick={onClose}
+        className="flex w-full items-center gap-2 rounded-[9px] bg-nb-peach-soft px-3.5 py-2 text-left"
+      >
+        <FiAlertCircle className="shrink-0 text-nb-peach-ink" size={13} aria-hidden />
+        <span className="min-w-0 flex-1 text-[12px] leading-[16px] text-nb-ink">{words}</span>
+        <FiX className="shrink-0 text-nb-ink-soft" size={13} aria-hidden />
+      </button>
+    </div>
+  );
+}
 
 export function Window({
   /** The top row — <Header>, built by the page so it can hand it the board-only
@@ -96,6 +117,26 @@ export function Window({
   // A notification clicked outside the window opens its own row: the same read mark, and
   // the same switch to that row's board when it is not the one on screen.
   useOpenNotificationFromApp(bell.openRow);
+  // The card link a Slack message carries (#320). It names the board as well as the card,
+  // so it lands on the right one while another project is open — and says so plainly when
+  // that board has been moved off this machine, rather than opening whatever card wears
+  // that number on the board in front of the user.
+  const [linkNotice, setLinkNotice] = useState<string | null>(null);
+  const openCardLink = useCallback(
+    (url: string) => {
+      void (async () => {
+        const where = await cloudCardLinkAction(url);
+        // Not a card link at all — an older app handing every scheme URL over, say.
+        if (!where) return;
+        if (!where.ok) return setLinkNotice(c.cardLink.notHere);
+        setLinkNotice(null);
+        if (samePath(where.boardPath, projectRoot)) return goToCard(where.taskId);
+        await switchProject(where.boardPath, where.taskId);
+      })();
+    },
+    [c, goToCard, projectRoot],
+  );
+  useCardLinkFromApp(openCardLink);
 
   // One rail at a time. Each effect fires only on the move INTO open, and folding the other
   // sets it closed — so opening one folds the other and neither can chase the other back.
@@ -118,6 +159,7 @@ export function Window({
     <ChatProvider rail={chat}>
     <div className="flex h-screen flex-col overflow-hidden bg-nb-cream">
       {header}
+      {linkNotice && <LinkNotice words={linkNotice} onClose={() => setLinkNotice(null)} />}
       {/* The rail and the body are a panel group so the rail can be dragged
           wider — a title is the only thing a row has to say, and how much of one
           fits is a judgement about the cards you happen to have open, not one we

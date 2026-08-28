@@ -235,6 +235,30 @@ const en: ConfigurationCopy = {
       title: "Silence system notifications",
       blurb: "Stops every board on this machine interrupting you. The bell keeps filling.",
     },
+    slack: {
+      title: "Slack",
+      blurb: "Decide from a message instead of the app.",
+      checking: "Checking…",
+      connect: "Connect",
+      connecting: "Connecting…",
+      waiting: "Waiting for the consent screen in your browser…",
+      disconnect: "Disconnect",
+      disconnecting: "Disconnecting…",
+      actingAs: "Your presses there are recorded as this account.",
+      everyBoard: "Every board you turn Cloud on for posts here, named on each message.",
+      postsTo: "Posts to",
+      pickChannel: "— pick a conversation —",
+      loadingChannels: "Reading Slack…",
+      noChannels:
+        "Nothing to post to yet. Invite AI4Kanban to a channel in Slack, then pick it here.",
+      refused: "Slack refused the last message",
+      needsApp:
+        "Connecting Slack needs the AI4Kanban app — the consent screen comes back to it.",
+      unavailable: "This Cloud service carries no Slack app to connect to.",
+      connectFailed: "that connection could not be started",
+      saveFailed: "that destination could not be saved",
+      disconnectFailed: "that could not be disconnected",
+    },
     server: {
       title: "Run this board's work here",
       blurb:

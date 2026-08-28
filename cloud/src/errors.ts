@@ -14,6 +14,8 @@ export type RefusalCode =
   | 'stale_revision'
   | 'already_acted'
   | 'server_elsewhere'
+  | 'slack_unavailable'
+  | 'slack_not_connected'
   | 'not_found'
   | 'method_not_allowed'
   | 'daily_write_budget_reached'
@@ -123,6 +125,24 @@ export const serverElsewhere = (message?: string) =>
     'server_elsewhere',
     409,
     message || 'This board already runs its work on another machine.',
+  )
+
+/**
+ * The two Slack refusals a pane acts on (#320), each with its own code because they ask the
+ * reader for different things: use a build that carries the app, or connect one.
+ */
+export const slackUnavailable = () =>
+  new Refusal(
+    'slack_unavailable',
+    503,
+    'This AI4Kanban Cloud service carries no Slack app to connect to.',
+  )
+
+export const slackNotConnected = () =>
+  new Refusal(
+    'slack_not_connected',
+    404,
+    'This account has no Slack connection. Connect one in Configuration → Cloud.',
   )
 
 export const notFound = () => new Refusal('not_found', 404, 'No such endpoint.')

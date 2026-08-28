@@ -45,3 +45,41 @@ export const MAIL_BATCH = 20
 /** Attempts before a record is left alone. Past this it keeps its last error and stops being
  *  mailed every hour forever. */
 export const MAIL_MAX_ATTEMPTS = 5
+
+// --- Slack (#320) -------------------------------------------------------------
+// One connected app per account: a bot token to post with, a signing secret to check a
+// callback against, and no dependency — `fetch` for the Web API call and `crypto.subtle`
+// for the HMAC are both already here.
+
+/** What the app asks a workspace for, and nothing more.
+ *
+ *  `chat:write` posts and edits the message; `chat:write.public` reaches a public channel
+ *  the app was not invited to; `im:write` opens the direct message a destination may be;
+ *  the two `:read` scopes are what the destination picker lists. No history scope: the app
+ *  never reads a message, including its own. */
+export const SLACK_SCOPES = 'chat:write,chat:write.public,im:write,channels:read,groups:read'
+
+/** Where a finished install comes back to. The Worker answers Slack's redirect and sends
+ *  the browser here, which is the app — the same scheme the sign-in comes back on. */
+export const SLACK_INSTALLED_REDIRECT = 'ai4kanban://cloud/slack-connected'
+
+/** How many messages one scheduled run writes. Far above what a preview owes in an hour. */
+export const SLACK_BATCH = 25
+
+/** Attempts against one event's delivery record before it is left alone. A message that
+ *  gets through resets the count, so this bounds a failing message rather than a busy one. */
+export const SLACK_MAX_ATTEMPTS = 5
+
+/** How old a callback may be. Slack's own recommendation, and what makes a captured
+ *  request useless minutes later. */
+export const SLACK_CALLBACK_MAX_AGE_SECONDS = 5 * 60
+
+/** Slack's own limits on one message. Text past the first is cut at a bullet or paragraph
+ *  boundary and the rest is left behind the card link. */
+export const SLACK_SECTION_LIMIT = 3000
+export const SLACK_BLOCK_LIMIT = 50
+
+/** Where the app's own address is written down, for the card link a Slack message carries.
+ *  A message is written from the scheduled run as often as from a request, so it cannot be
+ *  read off a request's origin. */
+export const API_ORIGIN = 'https://api.ai4kanban.dev'

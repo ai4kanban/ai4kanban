@@ -28,6 +28,7 @@ import {
 import { CLOUD_EVENT_STATES, eventLabel, isFinalEventState } from '../src/lib/cloud/events.ts'
 import { readOutbox } from '../src/lib/cloud/outbox.ts'
 import { recordCloudActionFor, recordCloudDeliveryState } from '../src/lib/cloud/publish.ts'
+import { readCloudCardLink } from '../src/lib/cloud/center.ts'
 import { actionableKind, snapshotFor, userQuestions } from '../src/lib/cloud/snapshot.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import type { Card, Question } from '../src/lib/view/types.ts'
@@ -65,7 +66,7 @@ function card(over: Partial<Card> = {}): Card {
     last_run: '',
     cadence: '',
     schedule: null,
-    body: 'the whole plan, which never leaves this machine',
+    body: BODY,
     todos: { total: 0, done: 0 },
     isGroup: false,
     recurring: false,
@@ -74,6 +75,23 @@ function card(over: Partial<Card> = {}): Card {
     ...over,
   } as Card
 }
+
+/** A card body shaped like a real one: the opening paragraph and the review notes a
+ *  reviewer needs, and below the marker the plan, which never leaves this machine. */
+const BODY = [
+  'A task waiting on a decision arrives carrying enough of the card to review.',
+  '',
+  '## Worth noting',
+  '- **A button decides**: it does not open the app.',
+  '',
+  '<!-- agent -->',
+  '',
+  '## Scope',
+  '- the whole plan, which never leaves this machine',
+  '',
+  '## Worth noting after implementation',
+  '- **What changed**: the delivery left this note.',
+].join('\n')
 
 const asked = (text: string, over: Partial<Question> = {}): Question => ({ text, ...over })
 
@@ -148,8 +166,49 @@ describe('what one event carries', () => {
     assert.equal(snapshot.taskTitle, 'A task')
     assert.equal(snapshot.release, '0.8.0')
     assert.equal(snapshot.revision, 'r1')
-    assert.ok(!carried.includes('never leaves this machine'), 'the card body must not travel')
+    assert.ok(!carried.includes('never leaves this machine'), 'the plan must not travel')
+    assert.ok(!carried.includes('## Scope'), 'the agent half must not travel')
     assert.ok(!carried.includes('features/12-a.md'), 'the card’s path must not travel')
+  })
+
+  it('carries the opening paragraph and the review notes, and nothing else of the body', () => {
+    // What a message away from this machine is reviewed from (#320): approving a build off
+    // a title alone is not a review.
+    const snapshot = snapshotFor(card({ status: 'ready' }), BOARD)!
+
+    assert.equal(snapshot.summary, 'A task waiting on a decision arrives carrying enough of the card to review.')
+    assert.equal(
+      snapshot.notes,
+      [
+        '## Worth noting',
+        '- **A button decides**: it does not open the app.',
+        '',
+        '## Worth noting after implementation',
+        '- **What changed**: the delivery left this note.',
+      ].join('\n'),
+    )
+  })
+
+  it('carries that text bounded, cut where a person would have stopped', () => {
+    const long = Array.from({ length: 400 }, (_, at) => `- the ${at}th thing worth noting`)
+    const snapshot = snapshotFor(
+      card({ status: 'ready', body: ['## Worth noting', ...long].join('\n') }),
+      BOARD,
+    )!
+
+    assert.ok(snapshot.notes.length < 3000, 'a long card costs one snapshot, not its whole body')
+    assert.ok(snapshot.notes.endsWith('worth noting'), 'cut at a bullet rather than mid-line')
+  })
+
+  it('is news when the review notes move and nothing else does', () => {
+    // The fingerprint is what decides whether a refresh interrupts anybody, so text a
+    // reviewer reads has to be in it.
+    const before = snapshotFor(card({ status: 'ready' }), BOARD)!
+    const after = snapshotFor(
+      card({ status: 'ready', body: `${BODY}\n- **And another**: worth knowing.` }),
+      BOARD,
+    )!
+    assert.notEqual(before.fingerprint, after.fingerprint)
   })
 
   it('names the board on the event, and says nothing about where it is', () => {
@@ -333,5 +392,33 @@ describe('a delivery that starts before its click is recorded', () => {
 
     assert.deepEqual(pending(), ['action'])
     assert.equal(stateNow(), 'accepted')
+  })
+})
+
+// --- the card link a Slack message carries (#320) ----------------------------
+// It names the board as well as the card, so it lands on the right one while another
+// project is open — and says plainly when that board is not on this machine, rather than
+// opening whatever card wears that number on the board in front of the user.
+
+describe('the card link in a message', () => {
+  it('leads to the board it names, on this machine', () => {
+    const board = enableCloudBoard('/tmp/project-a', ALL_RELEASES)
+
+    assert.deepEqual(readCloudCardLink(`ai4kanban://card/${board.id}/12`), {
+      ok: true,
+      boardPath: board.path,
+      taskId: 12,
+    })
+  })
+
+  it('says so when that board has been moved off this machine', () => {
+    assert.deepEqual(readCloudCardLink('ai4kanban://card/b-gone/12'), { ok: false, reason: 'not-here' })
+  })
+
+  it('answers nothing for a URL that names no card, so other answers pass through', () => {
+    assert.equal(readCloudCardLink('ai4kanban://cloud/signed-in?code=x'), null)
+    assert.equal(readCloudCardLink('ai4kanban://cloud/slack-connected'), null)
+    assert.equal(readCloudCardLink('https://example.com/card/b-1/12'), null)
+    assert.equal(readCloudCardLink('ai4kanban://card/b-1/not-a-number'), null)
   })
 })

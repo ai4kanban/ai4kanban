@@ -284,3 +284,35 @@ export function openNotification(eventId: string): { boardPath: string | null; t
   writeReads(marks)
   return { boardPath: cloudBoardById(event.boardId)?.path ?? null, taskId: event.taskId }
 }
+
+// ---- the card link a message carries (#320) ----------------------------------
+// `ai4kanban://card/<board>/<task>`, which the app registers (#326) and hands here. It is
+// for READING the whole card: a decision is made in the message it came from, and this link
+// is never how one is made.
+//
+// The board is named as well as the card, so a link works while another project is open —
+// and a board that is no longer on this machine is said plainly rather than opening whatever
+// card wears that number on the board in front of the user. The checkout can come back.
+
+/** Where a card link leads, or why it leads nowhere. Null when the URL is not a card link
+ *  at all, so a caller can hand every one of the app's URLs through this. */
+export type CloudCardLink =
+  | { ok: true; boardPath: string; taskId: number }
+  | { ok: false; reason: 'not-here' }
+
+export function readCloudCardLink(url: string): CloudCardLink | null {
+  const named = cardInUrl(url)
+  if (!named) return null
+  const board = cloudBoardById(named.boardId)
+  return board ? { ok: true, boardPath: board.path, taskId: named.taskId } : { ok: false, reason: 'not-here' }
+}
+
+/** The board and card a URL names. Read off the whole address rather than off `URL`'s parts,
+ *  because a custom scheme's authority is not parsed the same way everywhere. */
+function cardInUrl(url: string): { boardId: string; taskId: number } | null {
+  const match = /^ai4kanban:\/\/card\/([^/?#]+)\/(\d+)(?:[/?#]|$)/i.exec((url ?? '').trim())
+  if (!match) return null
+  const taskId = Number(match[2])
+  if (!Number.isInteger(taskId)) return null
+  return { boardId: decodeURIComponent(match[1] ?? ''), taskId }
+}

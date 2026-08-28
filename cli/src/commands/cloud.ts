@@ -11,6 +11,7 @@
 import { readCloudAccount, signOutOfCloud } from '../lib/cloud/account'
 import { readCloudBoards } from '../lib/cloud/boards'
 import { listServers } from '../lib/cloud/client'
+import { readSlackState } from '../lib/cloud/slack'
 import { thisMachine } from '../lib/machine/identity'
 import { die } from '../lib/paths'
 import { say } from '../lib/io'
@@ -31,6 +32,11 @@ export async function cmdCloud(args: string[], program: string): Promise<MoveRes
 
   const account = await readCloudAccount()
   for (const line of report(account, program)) say(line)
+  // Where this account's tasks arrive away from the app (#320). Reported for the same
+  // reason as the boards below: a terminal is where somebody wonders why nothing is
+  // reaching Slack, and the answer is usually a destination Slack has refused. Connecting
+  // one is the app's, under Configuration → Cloud.
+  if (account.state === 'signed-in') for (const line of await slackLines()) say(line)
   // Which boards this machine publishes events for (#319). Reported here because it is a
   // fact about the machine, like the sign-in above, and because a terminal is where
   // somebody wonders why a board is or is not filling the bell. Turning one on is the
@@ -52,6 +58,19 @@ export async function cmdCloud(args: string[], program: string): Promise<MoveRes
     }
   }
   return { cloud: account, boards }
+}
+
+/** Where this account's messages go, and what Slack last said about it. Silent when there
+ *  is no connection: an account that has never connected one is not missing anything. */
+async function slackLines(): Promise<string[]> {
+  const slack = await readSlackState()
+  const held = slack.connection
+  if (!held) return []
+  const where = held.channelName || 'nowhere yet — pick a conversation in the app'
+  return held.revoked
+    ? ['', `Slack (${held.teamName}) refused the last message: ${held.lastError}`,
+       'Connect again in the AI4Kanban app, under Configuration → Cloud.']
+    : ['', `Slack posts to ${where}${held.teamName ? ` in ${held.teamName}` : ''}.`]
 }
 
 /** Which machine holds each board, by board id. Empty when Cloud cannot be reached — the
