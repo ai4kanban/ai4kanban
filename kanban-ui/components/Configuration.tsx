@@ -54,14 +54,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 
 // The look of every box and list in this pane. One string, because the provider
 // list, the model box and the reasoning list are the same control with different
-// contents.
+// contents. A 1px hairline frame, not the board's ink outline: the dialog is
+// already one raised block, and a screenful of full-strength frames inside it
+// reads as a grid of boxes rather than a form. The ember focus ring is what
+// keeps the control findable by keyboard.
 const CONTROL =
-  "w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait";
+  "w-full rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait";
 
-// The pane's small sticker button — the key field's Save/Replace/Clear and the
-// Test button. Same press-down as the header's ghost buttons, one size down.
+// The pane's small button — the key field's Save/Replace/Clear and the Test
+// button. Flat inside the dialog: the hairline frame and a wash on hover, no
+// hard shadow to press into.
 const QUIET_BTN =
-  "cursor-pointer rounded-[8px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-1.5 text-[12px] font-[700] text-nb-ink transition-[transform,box-shadow] duration-[120ms] hover:-translate-x-px hover:-translate-y-px hover:shadow-[2px_2px_0_0_var(--color-nb-ink)] active:translate-x-px active:translate-y-px active:shadow-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-none";
+  "cursor-pointer rounded-[8px] border border-nb-ink/25 bg-nb-paper px-3 py-1.5 text-[12px] font-[700] text-nb-ink transition-[background-color,border-color,transform] duration-[120ms] hover:border-nb-ink/40 hover:bg-nb-wash active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-nb-ink/25 disabled:hover:bg-nb-paper disabled:active:scale-100";
 
 // The pane's dropdowns are ui/select.tsx — its default trigger IS the CONTROL
 // frame, so a list and a text box read as the same control. `disabled` here is
@@ -186,7 +190,7 @@ export function Configuration({
               in the ember tint — the same active language as the harness rows. */}
           <nav
             aria-label={c.sections}
-            className="flex w-[200px] shrink-0 flex-col gap-1 border-r border-nb-ink/12 bg-nb-wash p-3 max-sm:w-full max-sm:flex-row max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
+            className="flex w-[200px] shrink-0 flex-col gap-1 border-r border-nb-ink/10 bg-nb-cream p-3 max-sm:w-full max-sm:flex-row max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
           >
             {SECTIONS.map(({ id, icon: Icon, apart }) => {
               const on = id === section;
@@ -196,7 +200,7 @@ export function Configuration({
                   {apart && (
                     <span
                       aria-hidden
-                      className="my-2 block h-px bg-nb-ink/12 max-sm:my-0 max-sm:h-auto max-sm:w-px max-sm:self-stretch"
+                      className="my-2 block h-px bg-nb-ink/10 max-sm:my-0 max-sm:h-auto max-sm:w-px max-sm:self-stretch"
                     />
                   )}
                 <button
@@ -586,23 +590,19 @@ export function HarnessPicker({
               disabled={saving}
               onClick={() => pick(option)}
               title={missing ? c.notHere(option.binary) : undefined}
-              className="nb-outline flex cursor-pointer flex-col items-center gap-2 bg-nb-paper px-2 pb-2.5 pt-4 disabled:cursor-wait"
-              style={{
-                borderColor: on
-                  ? "var(--color-nb-accent-deep)"
-                  : "color-mix(in srgb, var(--color-nb-ink) 22%, transparent)",
-              }}
+              // One frame per card and nothing else: a 1px hairline, ember when
+              // it is the picked one. The mark sits straight on the paper — a
+              // tinted plate behind it was a second surface saying what the
+              // frame already says.
+              className={`flex cursor-pointer flex-col items-center gap-2 rounded-[12px] border bg-nb-paper px-2 pb-2.5 pt-4 transition-colors duration-100 disabled:cursor-wait ${
+                on ? "border-nb-accent" : "border-nb-ink/15 hover:border-nb-ink/30"
+              }`}
             >
               <span
-                className="flex items-center justify-center rounded-[9px]"
-                style={{
-                  width: 38,
-                  height: 38,
-                  background: on ? "var(--color-nb-accent-soft)" : "var(--color-nb-wash)",
-                  opacity: missing ? 0.45 : 1,
-                }}
+                className="flex h-[30px] items-center justify-center"
+                style={{ opacity: missing ? 0.45 : 1 }}
               >
-                <AgentMark src={option.icon} size={22} />
+                <AgentMark src={option.icon} size={26} />
               </span>
               <span className={`text-[12px] font-[800] ${missing ? "text-nb-ink-soft" : ""}`}>
                 {option.label}
@@ -657,15 +657,14 @@ export function HarnessPicker({
       {/* The settings the picked agent declares (#93), in its own order — for
           Claude Code, the provider it talks to (#95), the model it runs with
           (#71) and how hard that model thinks (#97). Nothing here knows an
-          agent's name: another agent draws its own list in this same place. One
-          group under the divider, so the list reads as the agent's own.
+          agent's name: another agent draws its own list in this same place.
 
           Only the fields the picked provider needs are drawn: the base URL for
           an endpoint, the key for a provider that takes one, neither for the
           subscription. A field that isn't drawn doesn't reach a run either, so
           what you see here is what the agent is given. */}
       {activeOption && activeOption.settings.length > 0 && (
-        <div className="mt-2 border-t border-nb-ink/12 pt-4">
+        <div className="mt-1">
           <div className="flex flex-col gap-5">
             {activeOption.settings
               .filter((setting) => shownForProvider(activeOption.settings, setting.key, picked))
@@ -845,7 +844,7 @@ function ConnectionTester({
   };
 
   return (
-    <div className="mt-4 border-t border-nb-ink/12 pt-4">
+    <div className="mt-3">
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -891,7 +890,7 @@ function TestResult({
   return (
     <div
       aria-live="polite"
-      className="mt-3 rounded-[10px] border-[1.5px] border-nb-ink px-3 py-2.5"
+      className="mt-3 rounded-[10px] border border-nb-ink/12 px-3 py-2.5"
       style={{ background: tone.bg }}
     >
       <p className="flex items-start gap-2 text-[13px] font-[700]" style={{ color: tone.ink }}>
@@ -1093,7 +1092,7 @@ function SecretField({
             // The dots. Only while there's something to hide — the property
             // masks the placeholder too, and a placeholder that says what shape
             // of key to paste is worth reading.
-            className={`w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait ${typed ? "[-webkit-text-security:disc]" : ""}`}
+            className={`${CONTROL} ${typed ? "[-webkit-text-security:disc]" : ""}`}
           />
           <button type="button" disabled={disabled || !typed.trim()} onClick={() => void save()} className={QUIET_BTN}>
             {c.save}
@@ -1113,7 +1112,7 @@ function SecretField({
           )}
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-2 rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2">
+        <div className="flex items-center justify-between gap-2 rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2">
           <span className="flex items-center gap-2 text-[13px] font-[700] text-nb-ink">
             <FiCheck className="shrink-0 text-nb-accent-deep" aria-hidden />
             {c.set}

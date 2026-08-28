@@ -538,7 +538,7 @@ export function DesignSystem() {
       <Section
         id="surfaces"
         title="Surfaces"
-        note="app/globals.css. A block is a 1.5px ink outline, a radius, and a 3px hard offset shadow — no blur, no grey, one direction. There is no second elevation: a thing either is a block or it is a fill on the ground. nb-outline is the frame without the shadow, for something inside a block that would otherwise be a block on a block."
+        note="app/globals.css. A block is a 1.5px ink outline, a radius, and a 3px hard offset shadow — no blur, no grey, one direction. There is no second elevation: a thing either is a block or it is a fill on the ground. nb-outline is the frame without the shadow, for something inside a block that would otherwise be a block on a block; nb-inset drops the frame to a hairline, for a band that annotates the work rather than being it."
       >
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="nb-panel p-4">
@@ -559,6 +559,13 @@ export function DesignSystem() {
             <p className="mt-2 text-[12.5px] leading-relaxed text-nb-ink-soft">
               14px radius, framed, flat. The run log window, an option row, a
               cadence box.
+            </p>
+          </div>
+          <div className="nb-inset bg-nb-paper p-4">
+            <p className="font-mono text-[12.5px] font-[700]">.nb-inset</p>
+            <p className="mt-2 text-[12.5px] leading-relaxed text-nb-ink-soft">
+              The same 14px frame at hairline weight. A band that annotates the
+              work — a card&apos;s meta row, its hand-checks.
             </p>
           </div>
         </div>
@@ -652,9 +659,11 @@ export function DesignSystem() {
             </Button>
           </Row>
           <p className="mt-2.5 max-w-3xl text-[12.5px] leading-relaxed text-nb-ink-soft">
-            Ink at 42% over the page. The panel is a plain nb-panel with a 1.5px
-            ink rule under its title; Escape and a click on the scrim close it, a
-            click on the panel does not. It renders at the document root because
+            Ink at 42% over the page. The panel is a plain nb-panel with a
+            hairline under its title — the frame already says where the dialog
+            is, so nothing inside it draws a second ink rule; Escape and a click
+            on the scrim close it, a click on the panel does not. It renders at
+            the document root because
             the sticky header&apos;s backdrop-filter would otherwise become the
             containing block for a fixed scrim and trap it inside the header.
           </p>
@@ -665,7 +674,7 @@ export function DesignSystem() {
                 13px, under the bold ink title. Then the input, then the buttons.
               </p>
               <textarea
-                className="w-full resize-y rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2.5 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
+                className="w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
                 rows={3}
                 placeholder="What do you want to happen?"
               />

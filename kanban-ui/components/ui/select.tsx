@@ -7,9 +7,11 @@
 // deliberately avoid lucide).
 //
 // The default trigger is the settings-pane box (the CONTROL frame in
-// Configuration.tsx). A caller with its own frame — the header's release
-// sticker, a card's level chip — restyles it through className; `cn` lets those
-// overrides win. The chevron and check are sized `1em`, so they follow the
+// Configuration.tsx) — a 1px hairline, since every place that draws it is
+// inside a dialog. A caller with its own frame — the header's release sticker, a
+// card's level chip — restyles it through className; `cn` lets those overrides
+// win. The open list keeps the ink frame and the hard shadow: it floats over
+// everything, so it is a raised block of its own. The chevron and check are sized `1em`, so they follow the
 // trigger's/item's own font size instead of needing an override of their own.
 
 import * as SelectPrimitive from "@radix-ui/react-select";
@@ -29,7 +31,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2 text-left text-[14px] text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-60 data-[placeholder]:text-nb-ink-soft/60 [&>span]:min-w-0 [&>span]:truncate",
+      "flex w-full cursor-pointer items-center justify-between gap-2 rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2 text-left text-[14px] text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-60 data-[placeholder]:text-nb-ink-soft/60 [&>span]:min-w-0 [&>span]:truncate",
       className,
     )}
     {...props}

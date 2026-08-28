@@ -18,7 +18,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { withLock } from '../lock'
+import { pidAlive, withLock } from '../lock'
 import { SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { asUsage } from './log'
 import type {
@@ -145,6 +145,41 @@ function readMarks(raw: unknown): Record<string, string> {
 
 /** Every run the record holds, newest last. */
 export const readRuns = (): RunRecord[] => readStore().runs
+
+/** A run that has been written down but whose watcher hasn't reported its pid yet. Anything
+ *  older than this with no pid was never really started — the command died between writing
+ *  the record and spawning — so it stops counting as live. */
+export const PENDING_MS = 30_000
+
+/** Is this run working right now? `reap`'s own test (agent/sessions.ts) without the write,
+ *  so a reader and a reaper never disagree about which runs are live. */
+export const runIsLive = (run: RunRecord): boolean =>
+  run.status === 'running' &&
+  (run.pid ? pidAlive(run.pid) : Date.now() - run.startedAt < PENDING_MS)
+
+/**
+ * Every card the board is working on this second.
+ *
+ * A live run holds the card it names, and so does a delivery between its runs — a card being
+ * rewritten is not one waiting for a person, whatever it happens to say mid-run. One answer
+ * off one record, so the rule that decides what Cloud raises (../cloud/snapshot.ts) is the
+ * same rule that decides what may start.
+ *
+ * A spec run holds nothing: it fills one section of the card and never the plan, which is
+ * what `lockedBy` already says.
+ */
+export function cardsAtWork(): Set<number> {
+  const store = readStore()
+  const held = new Set<number>()
+  for (const run of store.runs) {
+    if (run.cardId === null || run.action === 'spec') continue
+    if (runIsLive(run)) held.add(run.cardId)
+  }
+  for (const delivery of store.deliveries) {
+    if (delivery.status === 'active') held.add(delivery.cardId)
+  }
+  return held
+}
 
 /** Attach the one interruption a person must clear before this implementation resumes. */
 export function recordRunBlocker(

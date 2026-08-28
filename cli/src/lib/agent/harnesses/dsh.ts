@@ -77,7 +77,9 @@ function dshExtraArgs(argv: string[]): string[] {
 // already has.
 export const DSH: Harness = {
   name: 'dsh',
-  label: 'DeepSeek Harness',
+  // What the command is called. The full name wrapped to two lines in the harness
+  // grid, making one card taller than the five beside it.
+  label: 'DSH',
   icon: '/agents/dsh.svg',
   command: 'dsh-acp --permission-mode workspace-write',
 

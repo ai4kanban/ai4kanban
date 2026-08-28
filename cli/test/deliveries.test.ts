@@ -19,7 +19,7 @@ import {
 } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { cancelDelivery } from '../src/lib/agent/sessions.ts'
-import { readStore, withStore } from '../src/lib/agent/store.ts'
+import { cardsAtWork, readStore, withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
 import { DELIVERIES, setBoardRoot } from '../src/lib/paths.ts'
 
@@ -255,6 +255,50 @@ describe('the hold on the card', () => {
     process.env[RUN_ENV] = 'some-other-session'
     assert.equal(insideDelivery(5), false)
     assert.ok(heldByDelivery(5))
+  })
+})
+
+// What Cloud reads to decide whether a card is anybody's decision yet (#319): a card the
+// board is working on is not one waiting for a person, whatever it happens to say mid-run.
+describe('the cards the board is working on', () => {
+  const live = (over: Partial<RunRecord> = {}): RunRecord =>
+    session({ startedAt: Date.now(), pid: process.pid, ...over })
+
+  it('holds the card a live run names', () => {
+    withStore((store) => store.runs.push(live({ cardId: 7, action: 'resolve' })))
+    assert.deepEqual([...cardsAtWork()], [7])
+  })
+
+  it('lets go the moment that run is no longer running', () => {
+    const run = live({ cardId: 7, action: 'resolve' })
+    withStore((store) => store.runs.push(run))
+    withStore((store) => {
+      const held = store.runs.find((r) => r.sessionId === run.sessionId)!
+      held.status = 'done'
+    })
+    assert.deepEqual([...cardsAtWork()], [])
+  })
+
+  it('lets go of a run whose process is gone, without waiting to be reaped', () => {
+    // A pid nothing answers to. The rule is `reap`'s own, so a reader and a reaper never
+    // disagree about which runs are live.
+    withStore((store) => store.runs.push(live({ cardId: 7, action: 'resolve', pid: 2 ** 30 })))
+    assert.deepEqual([...cardsAtWork()], [])
+  })
+
+  it('holds a card its delivery still has, between the delivery’s runs', () => {
+    const id = start(session({ cardId: 5 }))
+    withStore((store) => {
+      for (const r of store.runs) r.status = 'done'
+    })
+    assert.deepEqual([...cardsAtWork()], [5], 'the delivery holds it with no run going')
+    endDelivery(id, 'finished')
+    assert.deepEqual([...cardsAtWork()], [])
+  })
+
+  it('is held by no spec run — it fills one section and never the plan', () => {
+    withStore((store) => store.runs.push(live({ cardId: 7, action: 'spec' })))
+    assert.deepEqual([...cardsAtWork()], [])
   })
 })
 

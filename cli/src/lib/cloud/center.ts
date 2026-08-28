@@ -9,10 +9,11 @@
 // catch-up read on every connect and reconnect is what makes a missed hint cost nothing.
 //
 // Two interruptions and no more, both decided here and raised by the app:
-//   • a new actionable event, unless the app's window is focused — and nothing later to
-//     make up for it;
-//   • the outcome of a delivery with a Cloud action recorded against it, focused window
-//     included, because the user may have walked away from a run they approved.
+//   • a card that is waiting for a person and has nothing working on it — the board has
+//     finished its runs and left something to decide — unless the app's window is focused,
+//     and nothing later to make up for it;
+//   • the outcome of a DELIVERY with a Cloud action recorded against it, focused window
+//     included, because the user may have walked away from a build they approved.
 // A start's catch-up raises neither: the person launching the app is in front of it. A
 // reconnect's raises both, because the window may have been sitting unwatched.
 
@@ -250,12 +251,20 @@ export function alertFor(
   if (silent) return null
   if (before && before.state === event.state && before.changedAt === event.changedAt) return null
 
-  // A new actionable event. A refresh in place — same event, still actionable — is the same
-  // piece of work the user was already told about, so it says nothing.
-  if (event.state === 'actionable' && !before) return alert(event, 'actionable', eventLabel(event))
-  // The delivery this event's action started has ended. Only an event with an action on
-  // record has anything to report, and a cancellation is the user's own doing.
-  if (isOutcome(event.state) && event.acted && before?.state !== event.state) {
+  // The board has stopped working on this card and it is waiting for a person. What makes it
+  // an interruption is that nothing is working on it NOW — not whether this machine has seen
+  // the row before: a card is put down while a run rewrites it (./snapshot.ts) and picked up
+  // again when the run ends, so the same card raises the user each time the board finishes
+  // with it and leaves it needing one. A refresh in place — actionable, still actionable —
+  // is the same piece of work the user was already told about, so it still says nothing.
+  if (event.state === 'actionable' && before?.state !== 'actionable') {
+    return alert(event, 'actionable', eventLabel(event))
+  }
+  // The delivery this event's action started has ended. Only an Implement has a delivery to
+  // report on: an approved ANSWER ends by leaving its card waiting for a person again, which
+  // the branch above already says, and saying it twice is two interruptions for one thing.
+  // A cancellation is the user's own doing and reports nothing either way.
+  if (isOutcome(event.state) && event.acted && event.decision === 'implement' && before?.state !== event.state) {
     return alert(event, 'outcome', eventLabel(event))
   }
   return null

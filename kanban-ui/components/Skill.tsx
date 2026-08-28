@@ -306,7 +306,7 @@ function Receipt({ result, copy }: { result: SkillInstall; copy: SkillCopy }) {
   const ok = result.ok;
   return (
     <div
-      className="rounded-[10px] border-[1.5px] border-nb-ink px-3 py-2.5"
+      className="rounded-[10px] border border-nb-ink/12 px-3 py-2.5"
       aria-live="polite"
       style={{ background: ok ? "var(--color-nb-mint-soft)" : "var(--color-nb-peach-soft)" }}
     >

@@ -217,7 +217,7 @@ function SignedIn({
   const c = useCopy().configuration.cloud;
   return (
     <>
-      <div className="flex items-center gap-3.5 rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-4 py-3.5 shadow-[2px_2px_0_0_var(--color-nb-ink)]">
+      <div className="flex items-center gap-3.5 rounded-[10px] border border-nb-ink/12 bg-nb-paper px-4 py-3.5">
         <Avatar account={account} />
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-[14px] font-[800] text-nb-ink">
@@ -827,7 +827,7 @@ function NotAdmitted({
         {account.message}
       </Note>
 
-      <div className="rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-4 py-3.5 shadow-[2px_2px_0_0_var(--color-nb-ink)]">
+      <div className="rounded-[10px] border border-nb-ink/12 bg-nb-paper px-4 py-3.5">
         <p className="flex items-center gap-2 text-[13px] font-[800] text-nb-ink">
           <FiKey size={14} aria-hidden />
           {c.haveCode}
@@ -850,8 +850,8 @@ function NotAdmitted({
             aria-label={c.codeLabel}
             aria-invalid={refusal ? true : undefined}
             placeholder={c.codeExample}
-            className={`h-9 min-w-0 flex-1 rounded-[9px] border-[1.5px] bg-nb-paper px-3 font-mono text-[13px] font-[700] tracking-[0.06em] text-nb-ink outline-none placeholder:font-[500] placeholder:tracking-normal placeholder:text-nb-ink-soft/50 ${
-              refusal ? "border-nb-peach-ink" : "border-nb-ink"
+            className={`h-9 min-w-0 flex-1 rounded-[9px] border bg-nb-paper px-3 font-mono text-[13px] font-[700] tracking-[0.06em] text-nb-ink outline-none placeholder:font-[500] placeholder:tracking-normal placeholder:text-nb-ink-soft/50 ${
+              refusal ? "border-nb-peach-ink" : "border-nb-ink/25"
             }`}
           />
           <Button size="sm" type="submit" disabled={held || !code.trim()}>

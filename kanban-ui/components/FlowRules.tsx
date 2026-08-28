@@ -184,7 +184,7 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
               spellCheck={false}
               aria-label={c.rule(flow.command)}
               placeholder={c.placeholder(flow.command)}
-              className="min-h-0 flex-1 resize-none rounded-[12px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2.5 text-[12.5px] leading-[20px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
+              className="min-h-0 flex-1 resize-none rounded-[12px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 text-[12.5px] leading-[20px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
             />
 
             {/* What this flow's rule is for, or what it can cost — read beside the flow it

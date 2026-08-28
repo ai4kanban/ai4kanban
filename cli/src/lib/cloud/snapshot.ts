@@ -1,15 +1,23 @@
 // Which tasks a board raises an event about, and what that event carries (#319).
 //
-// Two rules and one filter, in one place, so the publisher, the reconciliation at start and
-// the retirement test are the same judgment rather than three that agree until they don't:
+// Three rules and one filter, in one place, so the publisher, the reconciliation at start
+// and the retirement test are the same judgment rather than three that agree until they
+// don't:
 //
 //   • a task the board's watch covers — every card, or one release's, and
-//   • either at `ready`, or carrying questions only the user can answer.
+//   • either at `ready`, or carrying questions only the user can answer, and
+//   • nothing in its way: no run working it, and no open card it waits on.
 //
 // Narrowed to one release, a task in another — or promised to none — is not what the user
 // asked to be told about. A task that is BOTH `ready` and asking raises the question:
 // answering it rewrites the card and moves its revision, so an approval granted first would
 // bind a revision about to change.
+//
+// The last rule is what makes a raised card mean something. An agent rewrites a card over
+// several board writes, so a card mid-run says `ready` in moments it is not done being
+// worked on; and a card behind an open blocker cannot be built whatever the user decides.
+// A card goes quiet while something is in its way and comes back when nothing is — which is
+// the whole of what an interruption is for.
 
 import crypto from 'node:crypto'
 
@@ -65,18 +73,29 @@ export function userQuestions(card: Card): CloudEventQuestion[] {
   return out
 }
 
-/** Is this a card the board raises an event about right now? */
-export function actionableKind(card: Card, board: CloudBoard): CloudEventKind | null {
+/** Is this a card the board raises an event about right now? `atWork` is what the board is
+ *  working on (agent/store.ts) — a card in it is nobody's decision yet. */
+export function actionableKind(
+  card: Card,
+  board: CloudBoard,
+  atWork?: ReadonlySet<number>,
+): CloudEventKind | null {
   if (!board.release) return null
   if (board.release !== ALL_RELEASES && card.release !== board.release) return null
   if (card.recurring) return null
+  if (atWork?.has(card.id)) return null
+  if (card.openBlockers?.length) return null
   if (userQuestions(card).length > 0) return 'question'
   return card.status === 'ready' ? 'ready_for_review' : null
 }
 
 /** The snapshot for a card the board raises an event about, or null when it raises none. */
-export function snapshotFor(card: Card, board: CloudBoard): EventSnapshot | null {
-  const kind = actionableKind(card, board)
+export function snapshotFor(
+  card: Card,
+  board: CloudBoard,
+  atWork?: ReadonlySet<number>,
+): EventSnapshot | null {
+  const kind = actionableKind(card, board, atWork)
   if (!kind) return null
   const questions = kind === 'question' ? userQuestions(card) : []
   const snapshot: Omit<EventSnapshot, 'fingerprint'> = {

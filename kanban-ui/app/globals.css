@@ -62,6 +62,12 @@ body {
   border: 1.5px solid var(--color-nb-ink);
   border-radius: 14px;
 }
+/* Quiet inset — the same frame at hairline weight, for a supporting band that
+   annotates the work rather than being it. */
+.nb-inset {
+  border: 1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent);
+  border-radius: 14px;
+}
 
 /* Section kicker — clean borderless label */
 .nb-tag {

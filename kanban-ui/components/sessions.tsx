@@ -514,7 +514,7 @@ function SessionsDialog({
         style={{ width: 880, maxWidth: "100%", height: "min(640px, calc(100vh - 5rem))" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between border-b-[1.5px] border-nb-ink px-5 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-nb-ink/12 px-5 py-3">
           <h2 className="text-[15px] font-[800] tracking-[-0.02em]">{c.heading}</h2>
           <button
             onClick={() => sessionsPanel.close()}

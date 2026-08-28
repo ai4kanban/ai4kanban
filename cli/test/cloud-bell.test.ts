@@ -5,6 +5,11 @@
 // that the rule is the one thing deciding, and that it is right for all three: a broadcast
 // delivered twice interrupts nobody, a broadcast never delivered costs nothing because the
 // catch-up carries it, and a restart that finds a week of changes says nothing at all.
+//
+// And what the actionable interruption MEANS: a card the board has stopped working on and
+// left needing a person, rather than a row this machine has not seen before. A card is put
+// down while a run rewrites it and picked up when the run ends, so the same card raises the
+// user each time the board finishes with it.
 
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
@@ -80,6 +85,34 @@ describe('a refresh in place', () => {
     const before = event()
     const moved = event({ revision: 'r2', changedAt: '2026-08-01T02:00:00Z' })
     assert.equal(alertFor(before, moved, false), null)
+  })
+})
+
+describe('a card the board has finished working on', () => {
+  it('raises it however it was left before — the news is that nothing is working on it', () => {
+    // Put down while a run rewrote it, picked up again when that run ended. The row this
+    // machine holds is the same one; what changed is that it is waiting for a person.
+    const down = event({ state: 'stale' })
+    const up = event({ changedAt: '2026-08-01T01:00:00Z' })
+    assert.equal(alertFor(down, up, false)?.kind, 'actionable')
+  })
+
+  it('raises it again the next time, so a card worked on twice asks twice', () => {
+    const first = event({ changedAt: '2026-08-01T01:00:00Z' })
+    const down = event({ state: 'stale', changedAt: '2026-08-01T02:00:00Z' })
+    const second = event({ changedAt: '2026-08-01T03:00:00Z' })
+    assert.equal(alertFor(event({ state: 'stale' }), first, false)?.kind, 'actionable')
+    assert.equal(alertFor(first, down, false), null, 'being put down interrupts nobody')
+    assert.equal(alertFor(down, second, false)?.kind, 'actionable')
+  })
+})
+
+describe('an approved answer that has run', () => {
+  it('says nothing about its own ending — the card coming back is what says it', () => {
+    const answering = { kind: 'question', decision: 'answer', acted: true } as Partial<CloudEvent>
+    const before = event({ ...answering, state: 'accepted' })
+    const done = event({ ...answering, state: 'completed', changedAt: '2026-08-01T01:00:00Z' })
+    assert.equal(alertFor(before, done, false), null)
   })
 })
 

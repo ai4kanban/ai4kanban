@@ -141,6 +141,31 @@ describe('which tasks a board raises an event about', () => {
   it('raises nothing for a plain todo', () => {
     assert.equal(actionableKind(card(), BOARD), null)
   })
+
+  it('raises nothing while the board is working on the card', () => {
+    // An agent rewrites a card over several board writes, so mid-run it says `ready` in
+    // moments it is not done being worked on. It comes back when the run ends.
+    const ready = card({ status: 'ready' })
+    assert.equal(actionableKind(ready, BOARD, new Set([12])), null)
+    assert.equal(snapshotFor(ready, BOARD, new Set([12])), null)
+    assert.equal(actionableKind(ready, BOARD, new Set([13])), 'ready_for_review')
+    assert.equal(actionableKind(ready, BOARD, new Set()), 'ready_for_review')
+  })
+
+  it('holds a question back too, since a run can still answer it itself', () => {
+    const asking = card({ questions: [asked('[user] Which way?')] })
+    assert.equal(actionableKind(asking, BOARD, new Set([12])), null)
+    assert.equal(actionableKind(asking, BOARD, new Set()), 'question')
+  })
+
+  it('raises nothing for a card waiting on an open one — it cannot be built either way', () => {
+    const blocked = { id: 9, title: 'The one it waits on' }
+    assert.equal(actionableKind(card({ status: 'ready', openBlockers: [blocked] }), BOARD), null)
+    assert.equal(actionableKind(card({ questions: [asked('[user] Which way?')], openBlockers: [blocked] }), BOARD), null)
+    // `blocked_by` naming a card that is archived, rejected or recurring blocks nothing —
+    // which is exactly what `openBlockers` being empty already says.
+    assert.equal(actionableKind(card({ status: 'ready', blocked_by: [9] }), BOARD), 'ready_for_review')
+  })
 })
 
 describe('what one event carries', () => {

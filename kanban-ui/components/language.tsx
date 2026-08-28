@@ -109,10 +109,10 @@ export function LanguagePanel({ onError }: { onError?: (msg: string) => void }) 
               disabled={saving}
               onClick={() => void pick(code)}
               lang={LANGUAGE_TAGS[code]}
-              className={`flex cursor-pointer items-center justify-between gap-3 rounded-[10px] border-[1.5px] px-3 py-2.5 text-left text-[14px] font-[700] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait ${
+              className={`flex cursor-pointer items-center justify-between gap-3 rounded-[10px] border px-3 py-2.5 text-left text-[14px] font-[700] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait ${
                 on
-                  ? "border-nb-ink bg-nb-accent-soft text-nb-accent-deep"
-                  : "border-nb-ink/20 bg-nb-paper text-nb-ink hover:border-nb-ink hover:bg-nb-ink/5"
+                  ? "border-nb-accent bg-nb-accent-soft text-nb-accent-deep"
+                  : "border-nb-ink/15 bg-nb-paper text-nb-ink hover:border-nb-ink/30 hover:bg-nb-wash"
               }`}
             >
               {LANGUAGE_NAMES[code]}

@@ -68,10 +68,10 @@ const NONE = "—none—";
 const NEW = "—new—";
 
 // The goal box, in both dialogs that hold one (#164) — design.md's input rules:
-// paper fill inside a 1.5px ink border, ember focus ring. Prose, not a version
-// id, so it is the dialogs' text size rather than the id box's mono.
+// paper fill inside a hairline, ember focus ring. Prose, not a version id, so it
+// is the dialogs' text size rather than the id box's mono.
 const GOAL_INPUT =
-  "w-full resize-y rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2.5 text-[13px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait";
+  "w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 text-[13px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait";
 
 // What both halves of the chip do under the pointer, under the keyboard, and
 // while their menu is open: a wash of the chip's own ink (`currentColor`), so a
@@ -368,7 +368,7 @@ function ReleaseGoalDialog({
       />
       {error && (
         <div
-          className="nb-panel-sm mt-3 break-words p-2.5 text-[12px] leading-relaxed"
+          className="mt-3 rounded-[12px] border border-nb-ink/12 break-words p-2.5 text-[12px] leading-relaxed"
           style={{ background: "var(--color-nb-peach-soft)" }}
         >
           {error}
@@ -431,13 +431,13 @@ function PlanReleaseDialog({
       </p>
       {/* The goal itself, whole: it is what the run plans against, and this is
           the last moment to notice it says the wrong thing. */}
-      <div className="nb-panel-sm p-2.5 text-[13px] leading-relaxed" style={{ background: "var(--color-nb-sky-soft)" }}>
+      <div className="rounded-[12px] border border-nb-ink/12 p-2.5 text-[13px] leading-relaxed" style={{ background: "var(--color-nb-sky-soft)" }}>
         {goal}
       </div>
       <p className="mt-3 text-[13px] leading-relaxed text-nb-ink-soft">{c.background}</p>
       {error && (
         <div
-          className="nb-panel-sm mt-3 break-words p-2.5 text-[12px] leading-relaxed"
+          className="mt-3 rounded-[12px] border border-nb-ink/12 break-words p-2.5 text-[12px] leading-relaxed"
           style={{ background: "var(--color-nb-peach-soft)" }}
         >
           {error}
@@ -535,7 +535,7 @@ function CloseReleaseDialog({
             last moment they can be archived instead. */}
         {unarchived.length > 0 && (
           <div
-            className="nb-panel-sm mt-3 p-2.5"
+            className="mt-3 rounded-[12px] border border-nb-ink/12 p-2.5"
             style={{ background: "var(--color-nb-peach-soft)" }}
           >
             <p>
@@ -571,7 +571,7 @@ function CloseReleaseDialog({
       </div>
       {error && (
         <div
-          className="nb-panel-sm mt-3 break-words p-2.5 text-[12px] leading-relaxed"
+          className="mt-3 rounded-[12px] border border-nb-ink/12 break-words p-2.5 text-[12px] leading-relaxed"
           style={{ background: "var(--color-nb-peach-soft)" }}
         >
           {error}
@@ -679,7 +679,7 @@ function DropReleaseDialog({
       </div>
       {error && (
         <div
-          className="nb-panel-sm mt-3 break-words p-2.5 text-[12px] leading-relaxed"
+          className="mt-3 rounded-[12px] border border-nb-ink/12 break-words p-2.5 text-[12px] leading-relaxed"
           style={{ background: "var(--color-nb-peach-soft)" }}
         >
           {error}
@@ -827,7 +827,7 @@ function NewReleaseDialog({
         onKeyDown={(e) => {
           if (e.key === "Enter" && !saving) create();
         }}
-        className="w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2 font-mono text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait"
+        className="w-full rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2 font-mono text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait"
       />
       {/* What the version is for, on the tab that is about it. Enter makes a
           newline here, not the release — this is prose, and the id box above is
@@ -851,7 +851,7 @@ function NewReleaseDialog({
       {!planned && <FillToggle plan={plan} on={fill} disabled={saving} onFlip={() => setFill((v) => !v)} />}
       {error && (
         <div
-          className="nb-panel-sm mt-3 break-words p-2.5 text-[12px] leading-relaxed"
+          className="mt-3 rounded-[12px] border border-nb-ink/12 break-words p-2.5 text-[12px] leading-relaxed"
           style={{ background: "var(--color-nb-peach-soft)" }}
         >
           {error}

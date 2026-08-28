@@ -54,10 +54,10 @@ export function Dialog({
         style={{ width, maxWidth: "100%", height, maxHeight: "calc(100vh - 2rem)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className="flex shrink-0 items-center justify-between px-5 py-3"
-          style={{ borderBottom: "1.5px solid var(--color-nb-ink)" }}
-        >
+        {/* A hairline, not an ink rule: the panel's own frame already says where
+            the dialog is, and a second full-strength line under the title reads
+            as a second block. Every dialog's title bar is this one. */}
+        <div className="flex shrink-0 items-center justify-between border-b border-nb-ink/12 px-5 py-3">
           <h2 className="text-[15px] font-[800] tracking-[-0.02em]">{title}</h2>
           <button
             onClick={onClose}

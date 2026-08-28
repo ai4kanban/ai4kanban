@@ -50,7 +50,7 @@ import { Markdown } from "./Markdown";
 // 1.5px ink border (borders are reserved for structural elements), ember focus
 // ring as the single accent.
 const INPUT =
-  "w-full resize-y rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2.5 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent";
+  "w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent";
 
 // Shared rhythm for the one-liner that explains what the agent will do — quiet
 // ink-soft meta text under the bold ink title.
@@ -405,12 +405,14 @@ export function SessionLog({
     </>
   );
 
-  // The title bar — the "run log" kicker + the live/done indicator on a
-  // gradient strip. Shared by both forms; only the card-page form passes
-  // onToggle, which also makes it the expand/collapse control.
+  // The title bar — the "run log" kicker + the live/done indicator. Paper over
+  // the wash well below it, parted by a hairline: the same shape as a dialog's
+  // own title bar, since this window is most often inside one. Shared by both
+  // forms; only the card-page form passes onToggle, which also makes it the
+  // expand/collapse control.
   const titleBar = (
     <div
-      className={`flex items-center gap-2.5 px-3 py-1 bg-[linear-gradient(var(--color-nb-cream),color-mix(in_srgb,var(--color-nb-ink)_9%,var(--color-nb-cream)))]${bare ? "" : " rounded-t-[12.5px]"}${collapsed && !bare ? " rounded-b-[12.5px]" : " border-b-[1.5px] border-nb-ink"}${onToggle ? " cursor-pointer select-none" : ""}`}
+      className={`flex items-center gap-2.5 px-3 py-1.5${bare ? "" : " rounded-t-[13px]"}${collapsed && !bare ? " rounded-b-[13px]" : " border-b border-nb-ink/12"}${onToggle ? " cursor-pointer select-none" : ""}`}
       role={onToggle ? "button" : undefined}
       aria-expanded={onToggle ? !collapsed : undefined}
       aria-label={onToggle ? (collapsed ? c.expand : c.collapse) : undefined}
@@ -456,7 +458,7 @@ export function SessionLog({
         const el = e.currentTarget;
         pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
       }}
-      className={`max-h-[50vh] overflow-auto px-4 py-3 bg-nb-wash shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]${bare ? " border-t-[1.5px] border-nb-ink" : " rounded-b-[12.5px]"}`}
+      className={`max-h-[50vh] overflow-auto px-4 py-3 bg-nb-wash shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]${bare ? " border-t border-nb-ink/12" : " rounded-b-[13px]"}`}
     >
       {body}
     </div>
@@ -467,7 +469,7 @@ export function SessionLog({
     return bodyWell;
   }
 
-  // Flush: the same ink-framed window, minus the collapse toggle and the body's
+  // Flush: the same framed window, minus the collapse toggle and the body's
   // height cap — the panel it's dropped into (the runs dialog / board
   // overlay) owns the scrolling, so the log flows at full length inside the frame.
   if (flush) {
@@ -475,11 +477,11 @@ export function SessionLog({
       // No `overflow-hidden` on the frame: the two children round their own outer
       // corners instead, so the Stop popover can hang below the title bar over a
       // log body too short to hold it.
-      <div className="nb-outline bg-nb-paper">
+      <div className="rounded-[14px] border border-nb-ink/12 bg-nb-paper">
         {titleBar}
         <div
           ref={ref}
-          className="rounded-b-[12.5px] bg-nb-wash px-4 py-3 shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
+          className="rounded-b-[13px] bg-nb-wash px-4 py-3 shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
         >
           {body}
         </div>
@@ -488,7 +490,7 @@ export function SessionLog({
   }
 
   return (
-    <div className="nb-outline bg-nb-paper">
+    <div className="rounded-[14px] border border-nb-ink/12 bg-nb-paper">
       {titleBar}
       {!collapsed && bodyWell}
     </div>
@@ -739,7 +741,7 @@ export function SessionLogOverlay({
         style={{ width: 620, maxWidth: "100%", maxHeight: "calc(100vh - 2rem)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between px-5 py-3" style={{ borderBottom: "1.5px solid var(--color-nb-ink)" }}>
+        <div className="flex shrink-0 items-center justify-between border-b border-nb-ink/12 px-5 py-3">
           <h2 className="text-[15px] font-[800]">{title}</h2>
           <div className="flex items-center gap-3">
             {session?.canResume && (

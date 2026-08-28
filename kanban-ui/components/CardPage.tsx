@@ -181,9 +181,9 @@ function ConfirmationPopover({
 
 // ---- what the build left for you to check by hand (#231, #276) ---------------
 //
-// Its own panel, below the questions and never inside them: an open question waits on an
-// answer and holds the card back, while every line here is a note on work that is already
-// done. Sky rather than the accent for the same reason.
+// Its own panel, last on the page and never inside the questions: an open question waits on
+// an answer and holds the card back, while every line here is a note on work that is already
+// done. Sky rather than the accent, and a hairline frame rather than ink, for the same reason.
 //
 // A line you have checked is crossed off, which takes it off the card — there is no ticked
 // state to keep, because the card already keeps its record in the archive. It cannot be
@@ -247,7 +247,7 @@ function HandChecks({
   if (lines.length === 0 && !note) return null;
 
   return (
-    <div className="nb-outline p-3" style={{ background: "var(--color-nb-sky-soft)" }}>
+    <div className="nb-inset p-3" style={{ background: "var(--color-nb-sky-soft)" }}>
       <div className="nb-tag mb-2">
         <span style={{ color: "var(--color-nb-sky-ink)" }}>✓</span> {c.heading}
       </div>
@@ -1709,9 +1709,9 @@ export function CardPage({
               )
             )}
 
-            {/* meta box — stacked label/value columns in a flat outlined band; no
-                shadow, so it reads subordinate to the content panel below */}
-            <div className="nb-outline flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-paper px-4 py-3">
+            {/* meta box — stacked label/value columns in a hairline band. It annotates the
+                card rather than being it, so it wears the quiet frame, not the block's ink. */}
+            <div className="nb-inset flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-paper px-4 py-3">
               <MetaItem label={c.meta.track}>
                 <TrackChip track={card.track} />
               </MetaItem>
@@ -1923,14 +1923,16 @@ export function CardPage({
               </div>
             )}
 
-              <HandChecks cardId={card.id} verify={card.verify} busy={busy} />
-
               <CardBody
                 body={card.body}
                 title={card.title}
                 cardId={card.id}
                 mockups={mockups}
               />
+
+              {/* Last on the page, under the body and its agent half: every line here is a
+                  note on work already done, so it comes after what the card is. */}
+              <HandChecks cardId={card.id} verify={card.verify} busy={busy} />
             </div>
           </main>
 

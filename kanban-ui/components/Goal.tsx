@@ -30,7 +30,7 @@ import { Markdown } from "./Markdown";
 // Same input rules as the agent dialogs' textarea, taller: the goal is a few
 // paragraphs and a roadmap, not a note.
 const INPUT =
-  "min-h-[260px] w-full resize-y rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3 py-2.5 font-mono text-[13px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent";
+  "min-h-[260px] w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 font-mono text-[13px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent";
 
 export function Goal({ written }: { written: boolean }) {
   const c = useCopy().rail.goal;
@@ -161,7 +161,7 @@ function GoalForm({
 function Failure({ text }: { text: string }) {
   return (
     <div
-      className="nb-panel-sm break-words p-2.5 text-[12px] leading-relaxed"
+      className="break-words rounded-[12px] border border-nb-ink/12 p-2.5 text-[12px] leading-relaxed"
       style={{ background: "var(--color-nb-peach-soft)" }}
     >
       {text}

@@ -38,7 +38,7 @@ import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } f
 import { durationLine, KEEP_LOGS, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumableHarness, resumableLookup, type RunPlan } from './resolve'
 import { runtimeFor } from './runtime'
-import { logPathOf, readRuns, readStore, withRuns, withStore } from './store'
+import { logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import type {
   AgentAction,
   AgentRequest,
@@ -51,11 +51,6 @@ import type {
 } from './types'
 
 export { logPathOf, readAction, readRuns, withRuns } from './store'
-
-// A run that has been written down but whose watcher hasn't reported its pid yet. Anything
-// older than this with no pid was never really started — the command died between writing
-// the record and spawning — so it stops counting as live.
-const PENDING_MS = 30_000
 
 // create / propose / archive / reject all rewrite the board's shared files (next-id, the
 // README index, metrics.csv). Two at once corrupt each other even on different cards, so
@@ -171,14 +166,9 @@ function reap(runs: RunRecord[], reaped: RunRecord[] = [], restore: RunRecord[] 
   let changed = false
   const now = Date.now()
   for (const r of runs) {
-    if (r.status !== 'running') continue
-    // No pid yet: the command that started it hasn't spawned the watcher. Give it a moment
-    // before calling it gone — after that, nothing is ever going to report on it.
-    if (!r.pid) {
-      if (now - r.startedAt < PENDING_MS) continue
-    } else if (pidAlive(r.pid)) {
-      continue
-    }
+    // `runIsLive` gives a run with no pid yet its PENDING_MS — the command that started it
+    // hasn't spawned the watcher. Past that, nothing is ever going to report on it.
+    if (r.status !== 'running' || runIsLive(r)) continue
     r.status = r.stopping ? 'stopped' : 'interrupted'
     r.code = null // we saw no exit
     // We only know it ended by the time we noticed, so this duration is an upper bound.
@@ -803,10 +793,10 @@ export async function closeRun(
   await settleDelivery(closed)
   await restoreCardStatus(closed)
   await recordRecurringRun(closed)
-  // How a run started from an approved ANSWER ended (#318). An implement's states are its
-  // delivery's to report, which `settleDelivery` above has already done; a resolve has no
-  // delivery, so its own ending is what closes the request out.
-  reportCloudRunEnd(sessionId, RUN_OUTCOME[closed.status] ?? 'failed')
+  // Last, because it is the only step that reads what the four above left behind: a card is
+  // raised on Cloud once nothing is working on it (#319), and this run stops holding its
+  // card here. Whatever it decides is best effort — a run never fails over Cloud.
+  await reportCloudRunEnd(sessionId, closed.cardId, RUN_OUTCOME[closed.status] ?? 'failed')
   dropSpec(sessionId)
   pruneLogs()
 }

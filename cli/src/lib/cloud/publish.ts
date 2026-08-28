@@ -1,23 +1,28 @@
 // The shared local publisher (#319).
 //
-// One pass over the board, after every successful desktop, CLI or agent board write. It
-// compares what the board is holding actionable against what this board already has on
-// Cloud, and writes the difference into the outbox before anything is sent:
+// One pass over the board, after every successful desktop, CLI or agent board write, and
+// after every run that ends. It compares what the board is holding actionable against what
+// this board already has on Cloud, and writes the difference into the outbox before anything
+// is sent:
 //
 //   • actionable, nothing on record        → publish
 //   • actionable, on record, moved under it → refresh that same event in place
 //   • on record, no longer actionable      → retire it as `stale`
 //
+// Actionable means waiting for a person with NOTHING WORKING ON IT (./snapshot.ts). A run
+// picking a card up puts its row down, and the run ending picks it back up — which is the
+// one thing the bell interrupts anybody over, because it is the one moment the board has
+// finished and the user has not.
+//
 // One task means one row. A card revised twice before anyone looks must not leave three
 // rows asking about revisions two of them no longer bind, and answering the last question
-// on a `ready` card turns that event into the approval rather than raising another. Nothing
-// here interrupts anybody: what a refresh changes is the same piece of work the user was
-// already told about, and `stale` retires an event nobody was waiting on.
+// on a `ready` card turns that event into the approval rather than raising another.
 //
 // Everything is best effort. A board write never fails because Cloud was unreachable.
 
 import crypto from 'node:crypto'
 
+import { cardsAtWork } from '../agent/store'
 import { board } from '../board'
 import { REPO_ROOT } from '../paths'
 import { ALL_RELEASES, cloudBoardFor, setCloudBoardRelease, type CloudBoard } from './boards'
@@ -187,10 +192,13 @@ const sleep = (ms: number) =>
 
 async function queueDifference(enabled: CloudBoard, reconcile: boolean): Promise<void> {
   const cards = await board().readCards()
+  // Read once for the whole pass: a card the board is working on raises nothing, and asking
+  // per card would read the same record as many times as the board has cards.
+  const atWork = cardsAtWork()
   const seen = new Set<number>()
 
   for (const card of cards) {
-    const snapshot = snapshotFor(card, enabled)
+    const snapshot = snapshotFor(card, enabled, atWork)
     if (!snapshot) continue
     seen.add(card.id)
     const held = publishedFor(card.id)
@@ -210,11 +218,13 @@ async function queueDifference(enabled: CloudBoard, reconcile: boolean): Promise
   }
 
   // Everything on record whose task stopped being one this board raises events for — it
-  // left `ready`, lost its user-owned questions, or left the watched release. One test, not
-  // three, and the same one a closed release or a swapped one comes down to.
+  // left `ready`, lost its user-owned questions, left the watched release, or a run picked
+  // it up. One test, not four, and the same one a closed release or a swapped one comes
+  // down to. A card put down for the last of those is picked up again when the run ends,
+  // and that is the interruption the bell is for.
   retireLive(seen)
 
-  if (reconcile) await reconcileAgainstCloud(enabled, seen)
+  if (reconcile) await reconcileAgainstCloud(enabled, seen, atWork)
 }
 
 /** Queue a retirement for every live event whose task is not in `keep`. With no `keep` it
@@ -227,19 +237,66 @@ function retireLive(keep?: Set<number>): void {
   }
 }
 
+/** How long an action taken on this machine may sit with nothing carrying it before the
+ *  board writes it off. Long enough to cover the moment between a click and the run it
+ *  starts; short enough that a machine killed mid-run has its card back next time it opens. */
+const ABANDONED_ACTION_MS = 10 * 60_000
+
 /** What Cloud believes is live for this board, checked against what the board actually
- *  holds. Closes the gap a crash between a board write and its outbox row leaves, and the
- *  one a card edited outside `akb` leaves. */
-async function reconcileAgainstCloud(enabled: CloudBoard, actionable: Set<number>): Promise<void> {
+ *  holds. Closes the gap a crash between a board write and its outbox row leaves, the one a
+ *  card edited outside `akb` leaves, and the one a machine that died mid-delivery leaves. */
+async function reconcileAgainstCloud(
+  enabled: CloudBoard,
+  actionable: Set<number>,
+  atWork: ReadonlySet<number>,
+): Promise<void> {
   const answer = await listEvents()
   if (!answer.ok) return
   for (const event of answer.value.events) {
     if (event.boardId !== enabled.id) continue
+    if (event.state === 'accepted') {
+      writeOffAbandoned(event, atWork)
+      continue
+    }
     if (event.state !== 'actionable') continue
     if (actionable.has(event.taskId)) continue
     if (event.acted) continue
     queue({ opId: newOpId(), kind: 'retire', attempts: 0, eventId: event.id, state: 'stale' })
   }
+}
+
+/**
+ * An action this machine accepted that nothing is carrying any more.
+ *
+ * `accepted` means a person acted here and the work follows. If no run and no delivery hold
+ * the card, that work is over or never began — the process was killed between the click and
+ * the run, or ended before it could report. Left alone the event sits there for good: Cloud
+ * refuses to retire an event somebody acted on, and the publisher may not refresh one, so
+ * the card could never be raised again.
+ *
+ * `waiting_for_server` is deliberately not written off. That one is waiting for a machine to
+ * pick it up, which is exactly what it says, and no amount of time makes it abandoned.
+ *
+ * Only an action THIS machine holds on record is written off. A board checked out twice has
+ * two publishers reading one event, and the other machine's click is its own to finish.
+ */
+function writeOffAbandoned(
+  event: { id: string; taskId: number; changedAt: string },
+  atWork: ReadonlySet<number>,
+): void {
+  if (publishedFor(event.taskId)?.eventId !== event.id) return
+  if (atWork.has(event.taskId)) return
+  const since = Date.parse(event.changedAt)
+  if (!Number.isFinite(since) || Date.now() - since < ABANDONED_ACTION_MS) return
+  queue({
+    opId: newOpId(),
+    kind: 'outcome',
+    attempts: 0,
+    eventId: event.id,
+    outcome: 'interrupted',
+    reason: 'Nothing on this board is carrying it.',
+  })
+  noteState(event.taskId, 'interrupted')
 }
 
 // ---- turning a board on and off ---------------------------------------------
@@ -334,16 +391,46 @@ export function recordCloudDeliveryState(taskId: number, outcome: CloudEventStat
 }
 
 /**
- * How a run started from an approved answer ended (#318).
+ * A run has ended (#318, #319) — the moment the board may be waiting for a person again.
  *
- * An Implement's states are its DELIVERY's to report; a Resolve has no delivery, so the run
- * itself is what says the request is over. Called from `closeRun`, which is the one place a
- * run ends, and a no-op for every run no claim ever started — which is nearly all of them.
+ * Two things close here. A request this board's server claimed reports its outcome, which is
+ * what finishes it: an Implement's states are its DELIVERY's to report, and a Resolve has no
+ * delivery, so the run itself is what says the request is over. And an action taken on THIS
+ * machine lets go of its event, so the card it was granted against can be raised afresh.
+ *
+ * The pass at the end is not optional. A card goes quiet while the board works it, so the
+ * write that left it `ready` raised nothing — this is where it is raised. Called from
+ * `closeRun`, which is the one place a run ends.
  */
-export function reportCloudRunEnd(sessionId: string, outcome: CloudEventState): void {
-  const claim = heldClaims().find((c) => c.sessionId === sessionId)
-  if (!claim) return
-  recordCloudDeliveryState(claim.taskId, outcome)
+export async function reportCloudRunEnd(
+  sessionId: string,
+  cardId: number | null,
+  outcome: CloudEventState,
+): Promise<void> {
+  try {
+    const claim = heldClaims().find((c) => c.sessionId === sessionId)
+    if (claim) recordCloudDeliveryState(claim.taskId, outcome)
+    else if (cardId !== null) releaseLocalAction(cardId, outcome)
+  } catch {
+    // A run never fails over Cloud. The reconciliation at start closes what this missed.
+  }
+  await afterBoardWrite()
+}
+
+/**
+ * Finish an action taken on this machine, now that nothing is working on its card.
+ *
+ * The outcome is recorded rather than the record dropped: Cloud refuses to retire an event
+ * somebody acted on, so an outcome is the only thing that ends one — and an event left
+ * `accepted` is one the publisher may never refresh, which is a card that can never be
+ * raised again. What the user hears about is the card coming back, not this.
+ */
+function releaseLocalAction(taskId: number, outcome: CloudEventState): void {
+  if (publishedFor(taskId)?.state !== 'accepted') return
+  // Another run of the same click is still going, or a delivery is between its runs. The
+  // action is not over until they are.
+  if (cardsAtWork().has(taskId)) return
+  recordCloudDeliveryState(taskId, outcome)
 }
 
 // ---- sending ----------------------------------------------------------------
