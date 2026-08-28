@@ -285,10 +285,14 @@ async function restoreCardStatus(run: RunRecord): Promise<void> {
 }
 
 // The card's stage when nothing is working on it any more, for the one path that has no
-// run to read a prior stage from: a delivery cancelled between its runs. Questions
-// or not, a card nobody is building rests at `todo`.
-async function releaseCard(cardId: number): Promise<void> {
-  if (cardNow(cardId)?.status === 'implementing') await setCardStatus(cardId, 'todo')
+// run to read a prior stage from: a delivery cancelled or discarded between its runs. It
+// goes back to the stage the delivery took it from — `ready`, normally — because throwing
+// the work away is not the same as unsettling the plan. Questions still win: a card with
+// something to answer rests at `todo`.
+async function releaseCard(delivery: DeliveryRecord): Promise<void> {
+  const card = cardNow(delivery.cardId)
+  if (card?.status !== 'implementing') return
+  await setCardStatus(delivery.cardId, card.questions > 0 ? 'todo' : delivery.priorStatus ?? 'ready')
 }
 
 // Recording a recurring run is the board's own bookkeeping, not part of the job the card
@@ -848,7 +852,7 @@ export async function cancelDelivery(id: string): Promise<{ ok: boolean; deliver
   const live = readRuns().find((r) => r.status === 'running' && r.deliveryId === delivery.deliveryId)
   if (live) await stopRun(live.sessionId)
   // Whether or not there was one to stop: nothing is building this card now.
-  await releaseCard(delivery.cardId)
+  await releaseCard(delivery)
   // Last, so the permanent record carries how that run actually ended rather than the
   // state it was in when the cancel arrived.
   syncAudit(delivery.deliveryId)

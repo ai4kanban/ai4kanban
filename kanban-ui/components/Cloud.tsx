@@ -47,8 +47,8 @@ import {
 } from "@/app/actions";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
-import { ALL_RELEASES, type BoardNotifications } from "@/lib/notifications";
-import type { CloudAccount } from "@/lib/types";
+import type { BoardNotifications } from "@/lib/notifications";
+import { ALL_RELEASES, type CloudAccount } from "@/lib/types";
 import { Button } from "./button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 

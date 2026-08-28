@@ -19,7 +19,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { FiBell, FiBellOff, FiChevronRight, FiSlash, FiX } from "react-icons/fi";
 import { boardNotificationsAction, watchReleaseAction } from "@/app/actions";
 import type { BellRail } from "@/lib/bell-rail";
-import { ALL_RELEASES, type NotificationRow } from "@/lib/notifications";
+import type { NotificationRow } from "@/lib/notifications";
+import { ALL_RELEASES } from "@/lib/types";
 import { Button } from "./button";
 import { HAIRLINE, TOOL_BTN } from "./chrome";
 

@@ -296,6 +296,28 @@ describe('an answer that changed the plan', () => {
   })
 })
 
+describe('discarding a build', () => {
+  it('puts the card back at the stage the delivery took it from, not at todo', async () => {
+    const built = run('implement', 1, 'card one')
+    setStatus(1, 'implementing') // what the run's claim writes
+    await end(built, 'error')
+
+    assert.equal((await discardDelivery(activeDelivery(1)!.deliveryId)).ok, true)
+    // `ready`: throwing the work away is not the same as unsettling the plan.
+    assert.match(fs.readFileSync(cardPath(1), 'utf8'), /^status: ready$/m)
+  })
+
+  it('rests the card at todo when a question is waiting on the user', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    const built = run('implement', 1, 'card one')
+    setStatus(1, 'implementing')
+    await end(built, 'error')
+
+    await discardDelivery(activeDelivery(1)!.deliveryId)
+    assert.match(fs.readFileSync(cardPath(1), 'utf8'), /^status: todo$/m)
+  })
+})
+
 describe('where a delivery stands', () => {
   it('reads its stage off what is already recorded', async () => {
     const base: DeliveryRecord = {

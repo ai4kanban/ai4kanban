@@ -122,6 +122,12 @@ export type {
 } from "./format/cloud/events";
 export { answerNotes, bandLabel, CARD_BAND_STATES, eventLabel, isFinalEventState } from "./format/cloud/events";
 
+/** Watch every card, whatever release it is promised to — mirrored from the rules' own
+ *  `ALL_RELEASES`, since the release picker has to name it before any rules are loaded.
+ *  It lives here, not in lib/notifications.ts, because that module reaches the CLI: a
+ *  browser importing a constant out of it would drag `node:fs` into the client bundle. */
+export const ALL_RELEASES = "*";
+
 export type { Language } from "./format/machine/types";
 export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from "./format/machine/types";
 
