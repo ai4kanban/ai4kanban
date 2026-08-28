@@ -78,6 +78,8 @@ import {
 import { PULSE_DOT } from "./chrome";
 import type { MockupSet } from "@/lib/mockup-tag";
 import { FREE_TEXT_CHOICE, hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
+import { bandLabel, CARD_BAND_STATES, type CloudEventState } from "@/lib/types";
+import { useCardEvent } from "./Notifications";
 import type { BoardChange } from "@/lib/chat-rail";
 import { canImplement, canRefine } from "@/lib/refine";
 import { scheduleLabel } from "@/lib/schedule";
@@ -1259,6 +1261,16 @@ export function CardPage({
   // unconditional); a held one only when the delivery leaves it something to click.
   const toolbar = !delivery || (actions.has("resolve") && answerable) || !!carryOn;
 
+  // This card's live Cloud event (#319). Two things read it: the title band's one mark, for
+  // the four states no local mark has words for, and the Implement and Resolve clicks —
+  // which act on the spot exactly as they always have and record the same durable action
+  // against it, so every other surface showing that event stops offering it.
+  const cloudEvent = useCardEvent(card.id);
+  const cloudBand =
+    cloudEvent && (CARD_BAND_STATES as string[]).includes(cloudEvent.state)
+      ? bandLabel(cloudEvent.state as CloudEventState)
+      : "";
+
   // Tail the newest session on this card: live while it runs, and re-openable once
   // it's done so the user can read back what the agent did (task #14).
   const latestSession = latestSessionForCard(sessions, card.id);
@@ -1422,6 +1434,12 @@ export function CardPage({
                   // Waiting on its blockers, with a run already queued (#140) — the mark
                   // stands in for the stage, and says what will run and what it waits for.
                   <PendingPill label={scheduleLabel(card)} detailed />
+                ) : cloudBand ? (
+                  // The card's live Cloud event (#319), last in this band's order and only
+                  // where no local mark already holds the slot: once a delivery is running
+                  // its pill is already the local truth about the same work, and a second
+                  // pill beside it would state that truth twice in two vocabularies.
+                  <DeliveryPill label={cloudBand} tone="live" />
                 ) : (
                   card.status !== "todo" && <StatusPill status={card.status} detailed />
                 )}

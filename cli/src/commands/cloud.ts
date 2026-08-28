@@ -9,6 +9,7 @@
 // It needs no board: the sign-in belongs to the machine, not to any one project.
 
 import { readCloudAccount, signOutOfCloud } from '../lib/cloud/account'
+import { readCloudBoards } from '../lib/cloud/boards'
 import { die } from '../lib/paths'
 import { say } from '../lib/io'
 import type { MoveResult } from '../lib/types'
@@ -28,7 +29,21 @@ export async function cmdCloud(args: string[], program: string): Promise<MoveRes
 
   const account = await readCloudAccount()
   for (const line of report(account, program)) say(line)
-  return { cloud: account }
+  // Which boards this machine publishes events for (#319). Reported here because it is a
+  // fact about the machine, like the sign-in above, and because a terminal is where
+  // somebody wonders why a board is or is not filling the bell. Turning one on is the
+  // app's, under Configuration → Cloud.
+  const boards = account.state === 'signed-in' ? readCloudBoards() : []
+  if (boards.length > 0) {
+    say('')
+    say(`Notifications are on for ${boards.length === 1 ? 'one board' : `${boards.length} boards`}:`)
+    for (const board of boards) {
+      const watching = board.release ? `watching ${board.release}` : 'no release picked, so nothing is raised'
+      say(`  ${board.name} — ${watching}`)
+      say(`    ${board.path}`)
+    }
+  }
+  return { cloud: account, boards }
 }
 
 function report(account: Awaited<ReturnType<typeof readCloudAccount>>, program: string): string[] {

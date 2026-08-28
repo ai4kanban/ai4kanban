@@ -30,6 +30,7 @@ import { FiAlertTriangle, FiCheck, FiDownload, FiFolder, FiFolderPlus, FiTermina
 import type { ChromeCopy } from "@/i18n/chrome/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
+import type { NotificationAlert } from "@/lib/notifications";
 import { Button } from "./button";
 import {
   DropdownMenu,
@@ -42,6 +43,32 @@ import {
 
 /** Where a person gets the app. One place, named here, used by both notices. */
 export const DOWNLOAD_URL = "https://ai4kanban.dev/download";
+
+// --- system notifications (#319) ---------------------------------------------
+// The bell decides WHAT to say; the app decides whether it interrupts. Focus is the app's
+// own answer and nothing in a page can give it, so the alert is handed over whole and the
+// app drops the ones it should. In a browser there is nothing to raise, and the bell keeps
+// filling exactly the same.
+
+/** Hand the app the alerts the server just handed out. Safe everywhere: a browser has no
+ *  bridge, and an app older than the bell has no `notify`. */
+export function raiseNotifications(alerts: NotificationAlert[]): void {
+  const app = bridge();
+  if (!app?.notify || alerts.length === 0) return;
+  void app.notify(alerts).catch(() => {
+    // A notification the system refused is one the bell already shows. Nothing to say.
+  });
+}
+
+/** Open the event a clicked notification names — the same thing clicking its row does, so
+ *  a notification raised by another board switches the app to that board first. */
+export function useOpenNotificationFromApp(open: (eventId: string) => void): void {
+  useEffect(() => {
+    const app = bridge();
+    if (!app?.onOpenNotification) return;
+    return app.onOpenNotification(open);
+  }, [open]);
+}
 
 /** Which way the window moved, and so which edge it went out of. */
 export type NavSide = "back" | "forward";
@@ -104,6 +131,15 @@ interface AppBridge {
    *  lives outside the page — follows. Optional: an app older than the setting has no ear
    *  for it, and its menu simply stays as it was. */
   languageChanged?(language: string): Promise<void>;
+  /** Raise a system notification for each of these (#319). The app decides what actually
+   *  interrupts: an `actionable` alert is dropped while this window is focused, an
+   *  `outcome` one is raised either way. Optional — an app older than the bell raises
+   *  nothing, and the bell still fills. */
+  notify?(alerts: NotificationAlert[]): Promise<void>;
+  /** Be told when a notification was clicked, by the id of the event it names, so the page
+   *  opens it exactly as clicking its row does. Returns the way to stop being told.
+   *  Optional for the same reason. */
+  onOpenNotification?(fn: (eventId: string) => void): () => void;
 }
 
 declare global {

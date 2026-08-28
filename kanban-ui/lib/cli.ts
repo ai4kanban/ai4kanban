@@ -18,7 +18,9 @@ import type {
   RunView,
   SpecAgentView,
 } from "./format/agent/types";
+import type { CloudEventAnswer } from "./format/cloud/events";
 import type { CloudAccount, CloudMove } from "./format/cloud/types";
+import type { BoardNotifications, NotificationCenter } from "./notifications";
 import type { Language } from "./format/machine/types";
 import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
 import type {
@@ -238,6 +240,30 @@ export interface BoardRules {
   // button nothing can answer.
   requestCloudInvite?(): Promise<CloudMove>;
   redeemCloudInvitation?(code: string): Promise<CloudMove>;
+
+  // the Cloud notification center (#319) — the events this machine's boards raise, and the
+  // per-board switch that fills the bell. Optional like every Cloud move above: a project
+  // running rules that sign in but predate the center draws no bell rather than a count
+  // nothing can fill.
+  //
+  // `startCloudCenter` is idempotent and takes whether this board server is the one the
+  // window is showing: one connection however many boards are enabled.
+  startCloudCenter?(focused: boolean): void;
+  readCloudCenter?(): NotificationCenter;
+  openNotification?(eventId: string): { boardPath: string | null; taskId: number } | null;
+  setNotificationsSilenced?(on: boolean): WriteResult;
+  readBoardNotifications?(): Promise<BoardNotifications>;
+  enableBoardNotifications?(release: string): Promise<WriteResult>;
+  watchRelease?(release: string): Promise<WriteResult>;
+  disableBoardNotifications?(): Promise<WriteResult>;
+  /** The one durable action a live event carries, recorded from a click on this machine.
+   *  Never waits on the network: the board's own outbox retries it. */
+  recordCloudActionFor?(
+    taskId: number,
+    decision: "implement" | "answer",
+    revision: string,
+    answers: CloudEventAnswer[],
+  ): void;
 
   // what the board would start on its own, this minute
   nextWork(): Promise<AgentRequest[]>;

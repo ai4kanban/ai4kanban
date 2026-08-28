@@ -118,6 +118,36 @@ export type { CloudSession, TokenResult as CloudTokenResult } from './lib/cloud/
 export { keepAuthorized as keepCloudRealtimeAuthorized } from './lib/cloud/realtime'
 export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME as CLOUD_URL_SCHEME } from './lib/cloud/config'
 
+// The Cloud notification center (#319): the events this machine's boards raise, the bell
+// that carries every one of them, and the per-board switch that turns them on.
+//
+// The board server the window is showing calls `startCloudCenter(true)` and draws from
+// `readCloudCenter`; a backgrounded one calls neither and keeps publishing over `fetch`,
+// because one subscription per server would raise one event's notification several times
+// over. Optional to the UI like every Cloud move above: a project running older rules draws
+// no bell rather than failing to draw the header.
+export {
+  openNotification,
+  readCloudCenter,
+  startCloudCenter,
+  stopCloudCenter,
+} from './lib/cloud/center'
+export type { NotificationAlert, NotificationCenter, NotificationRow } from './lib/cloud/center'
+export {
+  disableBoardNotifications,
+  enableBoardNotifications,
+  readBoardNotifications,
+  watchRelease,
+} from './lib/cloud/notifications'
+export type { BoardNotifications } from './lib/cloud/notifications'
+export { notificationsSilenced, setNotificationsSilenced } from './lib/machine/settings'
+export { readCloudBoards } from './lib/cloud/boards'
+export type { CloudBoard } from './lib/cloud/boards'
+// What a click on this machine records against a live event, so the same durable action is
+// on Cloud whichever surface took it.
+export { recordCloudActionFor } from './lib/cloud/publish'
+export type * from './lib/cloud/events'
+
 // The language the app and the agent work in (#334): one answer for this MACHINE, held in
 // `~/.ai4kanban/settings.json` beside the Cloud sign-in. The Language section of the
 // Configuration dialog reads and writes it through these, and the desktop app reads it at

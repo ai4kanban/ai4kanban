@@ -35,6 +35,7 @@ import { cmdReviewVerdict } from '../../commands/review-verdict'
 import { cmdRunBlocker } from '../../commands/run-blocker'
 import { cmdSetupDone, cmdSetupStatus } from '../../commands/setup'
 import { cmdSpecWrite } from '../../commands/spec-write'
+import { afterBoardWrite } from '../cloud/publish'
 import { quietly, say } from '../io'
 import { withBoardLock } from '../lock'
 import { METRICS, readNextId } from '../paths'
@@ -180,14 +181,17 @@ export function localBoard(): BoardProvider {
    */
   function mutate<T extends object>(target: LeaseTarget, env: OpEnvelope, fn: () => T): Promise<OpResult<T>> {
     try {
-      return Promise.resolve(
-        withBoardLock(() => {
-          const no = checkWrite(target, env, revisionAt(target))
-          if (no) return no
-          const extra = quietly(fn)
-          return opOk(revisionAt(target), extra)
-        }),
-      )
+      const result = withBoardLock(() => {
+        const no = checkWrite(target, env, revisionAt(target))
+        if (no) return no
+        const extra = quietly(fn)
+        return opOk(revisionAt(target), extra)
+      })
+      // The board is on disk by the time the lock is let go; the publisher's outbox row is
+      // written before this promise resolves (#319). Only the SEND is left running — nothing
+      // on the board ever waits for the network.
+      if (!result.ok) return Promise.resolve(result)
+      return afterBoardWrite().then(() => result)
     } catch (e) {
       return Promise.resolve(opRefused(e))
     }
@@ -467,14 +471,14 @@ export function localBoard(): BoardProvider {
       // where it lands — a terminal, or the `output` field of a --json answer.
       const target = moveTarget(move, args)
       try {
-        return Promise.resolve(
-          withBoardLock(() => {
-            const no = checkWrite(target, env, revisionAt(target))
-            if (no) return no
-            const data = run(args) || {}
-            return opOk(revisionAt(target), { data })
-          }),
-        )
+        const result = withBoardLock(() => {
+          const no = checkWrite(target, env, revisionAt(target))
+          if (no) return no
+          const data = run(args) || {}
+          return opOk(revisionAt(target), { data })
+        })
+        if (!result.ok) return Promise.resolve(result)
+        return afterBoardWrite().then(() => result)
       } catch (e) {
         return Promise.reject(e)
       }

@@ -47,11 +47,28 @@ export function languageChosen(): boolean {
  *  whatever else the file holds — a setting a later release added is not this one's to drop. */
 export function setLanguage(value: Language): WriteResult {
   if (!isLanguage(value)) return { ok: false, error: `${String(value)} is not a language this build knows` }
+  return save({ language: value })
+}
+
+/** Whether this machine's system notifications are silenced (#319).
+ *
+ *  One switch, beside the sign-in rather than on a board: the interruptions it stops arrive
+ *  from every enabled board, and a per-board switch would be reachable only by opening that
+ *  project first. The bell keeps filling either way — this stops the alert, not the news. */
+export function notificationsSilenced(): boolean {
+  return held().notificationsSilenced === true
+}
+
+export function setNotificationsSilenced(on: boolean): WriteResult {
+  return save({ notificationsSilenced: !!on })
+}
+
+function save(patch: Record<string, unknown>): WriteResult {
   try {
     fs.mkdirSync(machineHome(), { recursive: true, mode: 0o700 })
     const file = settingsFile()
     const tmp = `${file}.${process.pid}.tmp`
-    fs.writeFileSync(tmp, `${JSON.stringify({ ...held(), language: value }, null, 2)}\n`)
+    fs.writeFileSync(tmp, `${JSON.stringify({ ...held(), ...patch }, null, 2)}\n`)
     fs.renameSync(tmp, file)
     return { ok: true }
   } catch (err) {

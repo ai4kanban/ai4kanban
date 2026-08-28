@@ -41,6 +41,18 @@ import {
 } from "@/lib/cloud";
 import { setMachineLanguage } from "@/lib/language";
 import {
+  boardNotifications,
+  disableNotifications,
+  enableNotifications,
+  notificationCenter,
+  openNotification,
+  recordCloudAction,
+  setSilenced,
+  watchRelease,
+  type BoardNotifications,
+  type NotificationCenter,
+} from "@/lib/notifications";
+import {
   autoCommitAllowed,
   diffApprovalRequired,
   setAutoCommit,
@@ -91,6 +103,7 @@ import type {
   CardPatch,
   CardRef,
   CloudAccount,
+  CloudEventAnswer,
   CloudMove,
   ClosePlan,
   CommandState,
@@ -196,7 +209,7 @@ const CARDLESS = new Set(["create", "propose", "plan-release", "changelog", "set
 // Start an agent and return immediately with a sessionId (or a lock message). The request
 // never waits for the child — the client polls listSessionsAction() to see the session's
 // progress and outcome.
-export async function startAgentAction(req: CommandRequest): Promise<StartResult> {
+export async function startAgentAction(req: CommandRequest & CloudDecision): Promise<StartResult> {
   // A tab left open across the upgrade that made refine the loop still posts the old name.
   if (req && (req.action as string) === "auto-refine") req = { ...req, action: "refine" };
   if (!req || !ACTIONS.has(req.action)) throw new Error("unknown action");
@@ -209,8 +222,28 @@ export async function startAgentAction(req: CommandRequest): Promise<StartResult
   if (req.action === "changelog" && !req.release?.trim()) {
     throw new Error("a changelog needs a version id");
   }
-  const runnable = await prepareAgentRequest(req);
-  return startSession(runnable, await buildPrompt(runnable));
+  const { cloudRevision, cloudAnswers, ...request } = req;
+  const runnable = await prepareAgentRequest(request);
+  const started = await startSession(runnable, await buildPrompt(runnable));
+  // The card page acts on the spot, exactly as it always has, and the same durable action
+  // is recorded against this card's live Cloud event (#319) — so every other surface
+  // showing that event stops offering it. It never waits: the board's outbox retries it,
+  // and a Cloud that cannot be reached changes nothing here.
+  if (started.ok && cloudRevision && Number.isInteger(req.id)) {
+    const decision = req.action === "resolve" ? "answer" : "implement";
+    if (req.action === "resolve" || req.action === "implement" || req.action === "run") {
+      await recordCloudAction(req.id as number, decision, cloudRevision, cloudAnswers ?? []);
+    }
+  }
+  return started;
+}
+
+/** What a card page adds to a start so the same decision reaches Cloud: the revision the
+ *  user was looking at, and — on a Resolve — one answer per question the event holds, blanks
+ *  included. Absent on a card with no live event, which is most of them. */
+export interface CloudDecision {
+  cloudRevision?: string;
+  cloudAnswers?: CloudEventAnswer[];
 }
 
 // Fill a release from its goal (#165): a normal board run — it shows in the runs panel, can
@@ -929,6 +962,97 @@ export async function setLanguageAction(value: Language): Promise<WriteResult> {
   if (!isLanguage(value)) return { ok: false, error: "that is not a language this app knows" };
   try {
     return await setMachineLanguage(value);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- the notification center (#319) ------------------------------------------
+// The bell polls `notificationCenterAction` like every other panel polls its own read. It
+// is the only place the account's Realtime connection is opened, because it is the read
+// every screen makes: the board server the window is showing subscribes, and a
+// backgrounded one keeps publishing without subscribing or interrupting anyone.
+//
+// Reading takes the alerts away. An alert is raised once or not at all — nothing is raised
+// later to make up for a window that happened to be focused when one arrived.
+
+export async function notificationCenterAction(): Promise<NotificationCenter> {
+  try {
+    return await notificationCenter();
+  } catch (e) {
+    return {
+      signedIn: false,
+      enabled: false,
+      boardId: "",
+      release: "",
+      silenced: false,
+      namesBoards: false,
+      rows: [],
+      unread: 0,
+      alerts: [],
+      unavailable: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+/** Opening a row marks it read and says where to go: the board's own path on this machine,
+ *  and the card to open in it. A board no longer here answers with a null path, and the
+ *  rail says so rather than switching to it. */
+export async function openNotificationAction(
+  eventId: string,
+): Promise<{ boardPath: string | null; taskId: number } | null> {
+  if (typeof eventId !== "string" || !eventId) return null;
+  try {
+    return await openNotification(eventId);
+  } catch {
+    return null;
+  }
+}
+
+/** The one switch that stops every board's system notifications while the bell keeps
+ *  filling. A fact about this machine, like the sign-in it sits beside. */
+export async function setSilencedAction(on: boolean): Promise<WriteResult> {
+  try {
+    return await setSilenced(!!on);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- this board's own notification settings ----------------------------------
+
+export async function boardNotificationsAction(): Promise<BoardNotifications> {
+  try {
+    return await boardNotifications();
+  } catch {
+    return { enabled: false, release: "", releases: [], signedIn: false };
+  }
+}
+
+/** Turn them on, watching one open release. Answers once the first fill is on its way, so
+ *  the pane redraws from what was actually saved. */
+export async function enableNotificationsAction(release: string): Promise<WriteResult> {
+  if (typeof release !== "string") return { ok: false, error: "that is not a release" };
+  try {
+    return await enableNotifications(release.trim());
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Watch a different release — the rail's own prompt when the last one closed. */
+export async function watchReleaseAction(release: string): Promise<WriteResult> {
+  if (typeof release !== "string") return { ok: false, error: "that is not a release" };
+  try {
+    return await watchRelease(release.trim());
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function disableNotificationsAction(): Promise<WriteResult> {
+  try {
+    return await disableNotifications();
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

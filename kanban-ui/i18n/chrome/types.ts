@@ -8,8 +8,8 @@ export type ChromeCopy = {
     /** The mark that leads home — its tooltip and what a screen reader reads. */
     home: string;
   };
-  /** Only read out loud: the two drag handles that widen a pane. */
-  resize: { rail: string; chat: string };
+  /** Only read out loud: the drag handles that widen a pane. */
+  resize: { rail: string; chat: string; bell: string };
   projects: {
     heading: string;
     reading: string;

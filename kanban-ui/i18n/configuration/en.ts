@@ -237,6 +237,23 @@ const en: ConfigurationCopy = {
     waiting: "Waiting for the consent screen in your browser…",
     finishFailed: "that sign-in did not complete",
     signOutFailed: "couldn't sign out",
+    silence: {
+      title: "Silence system notifications",
+      blurb: "Stops every board on this machine interrupting you. The bell keeps filling.",
+    },
+    notifications: {
+      title: "Notifications for this board",
+      blurb:
+        "A card that reaches **ready**, or that raises a question only you can answer, fills the bell — and reaches you when the app is not in front of you.",
+      noReleases:
+        "This board has no open release. Start one from the version picker in the header, then come back — notifications watch one release at a time.",
+      watching: "Watching",
+      pickRelease: "— pick a release —",
+      onlyThisRelease: "Cards in any other release raise nothing.",
+      releaseClosed:
+        "The release you were watching closed. Nothing fills the bell until you pick another.",
+      saveFailed: "that could not be saved",
+    },
   },
 };
 

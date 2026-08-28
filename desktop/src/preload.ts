@@ -38,6 +38,8 @@ const CHANNELS: typeof Channels = {
   cloudCallback: "a4k:cloud-callback",
   languageChanged: "a4k:language-changed",
   setLanguage: "a4k:set-language",
+  notify: "a4k:notify",
+  openNotification: "a4k:open-notification",
 };
 
 const bridge: Ai4kanbanBridge = {
@@ -54,6 +56,18 @@ const bridge: Ai4kanbanBridge = {
   openExternal: (url) => ipcRenderer.invoke(CHANNELS.openExternal, url),
   languageChanged: (language) => ipcRenderer.invoke(CHANNELS.languageChanged, language),
   setLanguage: (language) => ipcRenderer.invoke(CHANNELS.setLanguage, language),
+  notify: (alerts) => ipcRenderer.invoke(CHANNELS.notify, alerts),
+  onOpenNotification: (fn) => {
+    notificationWatchers.add(fn);
+    // A notification clicked while the window was still drawing must not be lost: the
+    // click is the whole of what the user asked for.
+    if (pendingNotification !== null) {
+      const eventId = pendingNotification;
+      pendingNotification = null;
+      queueMicrotask(() => fn(eventId));
+    }
+    return () => notificationWatchers.delete(fn);
+  },
   onNavigated: (fn) => {
     navWatchers.add(fn);
     return () => navWatchers.delete(fn);
@@ -83,6 +97,20 @@ ipcRenderer.on(CHANNELS.cloudCallback, (_e, url: string) => {
     return;
   }
   cloudWatchers.forEach((fn) => fn(url));
+});
+
+// The event a clicked notification names (#319), on its way to the page. Kept when it beats
+// its listener, for the same reason a sign-in answer is: the app raised this window from
+// outside, and the page that opens the card may only just be drawing.
+const notificationWatchers = new Set<(eventId: string) => void>();
+let pendingNotification: string | null = null;
+ipcRenderer.on(CHANNELS.openNotification, (_e, eventId: string) => {
+  if (typeof eventId !== "string" || !eventId) return;
+  if (notificationWatchers.size === 0) {
+    pendingNotification = eventId;
+    return;
+  }
+  notificationWatchers.forEach((fn) => fn(eventId));
 });
 
 // Whoever is drawing the mark on the edge. Two things feed it: a swipe, read

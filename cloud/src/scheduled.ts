@@ -4,6 +4,11 @@ import type { Env } from './env.ts'
 import { sendPendingMail } from './invites.ts'
 import type { MailRun } from './invites.ts'
 
+/** What one pass of the 30-day sweep freed (#319). */
+export interface Sweep {
+  deleted: number
+}
+
 export interface Heartbeat {
   last_run_at: string
   runs: number
@@ -20,7 +25,7 @@ export interface Heartbeat {
  * run sends (#327) is outside it for the same reason — a handful of rows an hour, and a busy
  * day must not hold an invitation back.
  */
-export async function runScheduled(env: Env): Promise<{ heartbeat: Heartbeat; mail: MailRun }> {
+export async function runScheduled(env: Env): Promise<{ heartbeat: Heartbeat; mail: MailRun; sweep: Sweep }> {
   const heartbeat = await call<Heartbeat>(env, 'service_heartbeat')
   console.log('cloud: heartbeat', { ...heartbeat, daily_write_budget: DAILY_WRITE_BUDGET })
 
@@ -34,5 +39,16 @@ export async function runScheduled(env: Env): Promise<{ heartbeat: Heartbeat; ma
   }
   if (mail.queued > 0) console.log('cloud: invitation mail', mail)
 
-  return { heartbeat, mail }
+  // An event is kept while it is unresolved, and 30 days after it reaches a final outcome
+  // (#319). Outside the daily write budget like the heartbeat: a busy day must not switch
+  // off the sweep that frees space, and a failed sweep is one the next hour makes up for.
+  let sweep: Sweep = { deleted: 0 }
+  try {
+    sweep = await call<Sweep>(env, 'sweep_events')
+  } catch (error) {
+    console.error('cloud: event sweep failed', error)
+  }
+  if (sweep.deleted > 0) console.log('cloud: swept finished events', sweep)
+
+  return { heartbeat, mail, sweep }
 }

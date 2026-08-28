@@ -215,5 +215,27 @@ export type ConfigurationCopy = {
     waiting: string;
     finishFailed: string;
     signOutFailed: string;
+    /** The machine's one silencing switch (#319). It sits with the sign-in because
+     *  what it stops arrives from every board Cloud is on for. */
+    silence: {
+      title: string;
+      blurb: string;
+    };
+    /** This board's own notifications, and the one open release they watch. */
+    notifications: {
+      title: string;
+      blurb: string;
+      /** No open release to watch, so the switch says so rather than filling
+       *  nothing. */
+      noReleases: string;
+      watching: string;
+      /** The picker's own entry while the watched release has closed. */
+      pickRelease: string;
+      /** Beside the picker: what a watched release means, and what a closed one
+       *  leaves. */
+      onlyThisRelease: string;
+      releaseClosed: string;
+      saveFailed: string;
+    };
   };
 };

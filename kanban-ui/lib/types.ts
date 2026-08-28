@@ -10,6 +10,8 @@
 //   format/skill/types  the coding agent skill: whether this project has one, and what
 //                       adding it wrote
 //   format/cloud/types  the Cloud sign-in: which account this machine acts as
+//   format/cloud/events what a Cloud event is (#319): the nine state names, and the one
+//                       wording every surface — bell, card band, notification — says
 //   format/machine/types  the languages the app works in: each one's own name, and the
 //                       `<html lang>` tag the layout wears
 //
@@ -109,6 +111,16 @@ export type {
 } from "./format/skill/types";
 
 export type { CloudAccount, CloudMove, CloudState } from "./format/cloud/types";
+
+export type {
+  CloudEvent,
+  CloudEventAnswer,
+  CloudEventDecision,
+  CloudEventKind,
+  CloudEventQuestion,
+  CloudEventState,
+} from "./format/cloud/events";
+export { bandLabel, CARD_BAND_STATES, eventLabel, isFinalEventState } from "./format/cloud/events";
 
 export type { Language } from "./format/machine/types";
 export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from "./format/machine/types";

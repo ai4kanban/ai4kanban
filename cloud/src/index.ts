@@ -2,6 +2,15 @@ import { mutate } from './db.ts'
 import { requireEnv } from './env.ts'
 import type { Env } from './env.ts'
 import { Refusal, badRequest, methodNotAllowed, notAdmitted, notFound } from './errors.ts'
+import {
+  listEvents,
+  publishEvent,
+  readOneEvent,
+  recordAction,
+  recordOutcome,
+  registerBoard,
+  retireEvent,
+} from './events.ts'
 import { json, refusalResponse } from './http.ts'
 import { redeemInvitation, requestInvite } from './invites.ts'
 import { readSession, requireOwner } from './owner.ts'
@@ -70,6 +79,36 @@ async function route(request: Request, env: Env): Promise<Response> {
     return json({ admitted: true })
   }
 
+  // The events a board publishes, and the one action each may carry (#319). All behind the
+  // owner check: a board, an event and an action are an admitted account's rows.
+  if (pathname === '/v1/boards') {
+    requireMethod(request, 'POST')
+    const owner = await requireOwner(request, env)
+    return json(await registerBoard(env, owner, await bodyOf(request)))
+  }
+
+  if (pathname === '/v1/events') {
+    if (request.method === 'GET') return json(await listEvents(env, await requireOwner(request, env)))
+    requireMethod(request, 'POST')
+    const owner = await requireOwner(request, env)
+    return json(await publishEvent(env, owner, await bodyOf(request)))
+  }
+
+  const event = /^\/v1\/events\/([^/]+)(?:\/(retire|action|outcome))?$/.exec(pathname)
+  if (event) {
+    const [, id = '', move] = event
+    const owner = await requireOwner(request, env)
+    if (!move) {
+      requireMethod(request, 'GET')
+      return json(await readOneEvent(env, owner, id))
+    }
+    requireMethod(request, 'POST')
+    if (move === 'retire') return json(await retireEvent(env, owner, id))
+    const body = await bodyOf(request)
+    if (move === 'action') return json(await recordAction(env, owner, id, body))
+    return json(await recordOutcome(env, owner, id, body))
+  }
+
   // The post-deploy check: one budgeted write through the same path every mutation uses,
   // so a deploy shows the write budget and the read-only refusal working before a client
   // meets them. Behind the owner check like every route that is not the session.
@@ -84,6 +123,12 @@ async function route(request: Request, env: Env): Promise<Response> {
 
 function requireMethod(request: Request, method: string): void {
   if (request.method !== method) throw methodNotAllowed()
+}
+
+/** A JSON body, or nothing. A request that carries something other than JSON is a bad
+ *  request; each route says which field it was missing. */
+async function bodyOf(request: Request): Promise<unknown> {
+  return (await request.json().catch(() => null)) as unknown
 }
 
 /** The one thing a redeem carries. A body that is not a code is a bad request, not a code we

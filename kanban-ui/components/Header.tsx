@@ -10,6 +10,7 @@ import { ProjectPath } from "./desktop";
 import { Goal } from "./Goal";
 import { Insights } from "./Insights";
 import { LogoMark } from "./Logo";
+import { BellButton } from "./Notifications";
 import { ReleasePicker } from "./ReleasePicker";
 import { Sessions } from "./sessions";
 
@@ -26,6 +27,11 @@ import { Sessions } from "./sessions";
 // There was a view switch here (#70) — kanban columns or the queue. It is gone:
 // the board draws one layout now, so there is nothing to switch between and a
 // control offering the choice would be offering a board that no longer exists.
+//
+// The bell (#319) is the tool cluster's first segment. It opens the notification rail in
+// the chat rail's own place — the right side holds one at a time — and wears its unread
+// count inside the segment rather than as a badge on the frame, which the cluster would
+// clip.
 //
 // The Chat button (#242) sits beside Create task and folds the chat rail down the right of
 // the window. It draws nothing of its own — the rail's state lives in the window
@@ -177,6 +183,10 @@ export function Header({
           />
         )}
         <ToolCluster>
+          {/* The bell leads the cluster (#319): it is the one control in it that changes on
+              its own, and its count rides inside the segment because the cluster clips to
+              its own frame. */}
+          <BellButton />
           <Insights />
           <Sessions />
           <Configuration agent={agent} onError={onError} />

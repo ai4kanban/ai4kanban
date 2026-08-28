@@ -55,6 +55,9 @@ const TO = path.join(ROOT, "kanban-ui", "lib", "format");
 //                            draws that answer.
 //   cloud/types              which account this MACHINE is signed in to Cloud as (#326).
 //                            The Cloud section of the same dialog draws its four states.
+//   cloud/events             what a Cloud event IS (#319) — the nine state names, the two
+//                            kinds, and the one wording every surface says. The bell draws
+//                            rows from it and the publisher writes them.
 //   board/contract           the operations every part of AI4Kanban reads and writes a
 //                            board through (#312), the envelope each write carries and the
 //                            conflict it can answer with. The server calls them and the
@@ -70,6 +73,7 @@ const SHARED = [
   "machine/types.ts",
   "skill/types.ts",
   "cloud/types.ts",
+  "cloud/events.ts",
   "view/types.ts",
   "view/rules.ts",
   "board/contract.ts",

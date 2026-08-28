@@ -16,6 +16,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { locate } from '../cards'
+import type { CloudEventState } from '../cloud/events'
+import { recordCloudDeliveryState } from '../cloud/publish'
 import { parseFrontmatter } from '../frontmatter'
 import { DELIVERIES, rel } from '../paths'
 import { candidateBase } from './candidate'
@@ -305,6 +307,8 @@ export function joinDelivery(
   // The permanent record exists from the delivery's first moment, not from its first
   // ending: a delivery whose machine died in its first minute still left one behind.
   writeAudit(delivery, store.runs)
+  // The action a Cloud event carries is followed by its delivery's own states (#319).
+  recordCloudDeliveryState(cardId, 'running')
   return delivery
 }
 
@@ -339,8 +343,20 @@ export function endDelivery(deliveryId: string, status: Exclude<DeliveryStatus, 
     delivery.endedAt = Date.now()
     return { ...delivery }
   })
-  if (ended) syncAudit(deliveryId)
+  if (ended) {
+    syncAudit(deliveryId)
+    // How it ended, against the Cloud event whose action started it (#319). A card with no
+    // action on record has nothing to report, so this is a no-op on most deliveries.
+    recordCloudDeliveryState(ended.cardId, DELIVERY_OUTCOME[status])
+  }
   return ended
+}
+
+/** How a delivery's own ending reads as one of the nine event states (#319). */
+const DELIVERY_OUTCOME: Record<Exclude<DeliveryStatus, 'active'>, CloudEventState> = {
+  finished: 'completed',
+  failed: 'failed',
+  cancelled: 'cancelled',
 }
 
 // ---- review, across a delivery's runs (#302) --------------------------------

@@ -40,6 +40,29 @@ export interface UpdateInfo {
 
 export type CreateBoardResult = { ok: true } | { ok: false; error: string };
 
+/**
+ * One interruption the board is asking the app to raise (#319).
+ *
+ * The page decides WHAT it says — one wording per event, because a second is a second thing
+ * to keep true — and the app decides WHETHER it interrupts:
+ *
+ *   • `actionable` is not raised at all while the window is focused, and nothing is raised
+ *     later to make up for it. The bell moved, and the person is looking at it.
+ *   • `outcome` is raised either way: a run the user approved and walked away from can
+ *     still reach them, and the app cannot tell someone who walked away from someone who
+ *     is watching.
+ */
+export interface NotificationAlert {
+  eventId: string;
+  boardId: string;
+  taskId: number;
+  /** The row's words: `#319 Sync actionable events…`. */
+  title: string;
+  /** The event's name, or the outcome for the second notification. */
+  body: string;
+  kind: "actionable" | "outcome";
+}
+
 /** How this system puts `akb` on the PATH: one symlink (macOS), a PATH entry holding the
  *  app's own `bin` folder (Windows), or no way at all (Linux, where the AppImage unpacks
  *  itself somewhere new every run). */
@@ -123,6 +146,12 @@ export const CHANNELS = {
   /** Save the language this machine reads in (#339) — the launcher's own switcher, which
    *  has no board server behind it to save through. */
   setLanguage: "a4k:set-language",
+  /** Raise a system notification for each of these (#319). The page decides what to say;
+   *  the app decides what actually interrupts, because focus is the app's own answer. */
+  notify: "a4k:notify",
+  /** A notification was clicked — the other way, like `cloudCallback`. The page opens the
+   *  event it names, switching boards first when the event belongs to another one. */
+  openNotification: "a4k:open-notification",
 } as const;
 
 /**
@@ -176,4 +205,12 @@ export interface Ai4kanbanBridge {
    *  it: the launcher. The app saves it, then draws that page and the menu again in whatever
    *  was saved, so a save that failed leaves the page where it was. */
   setLanguage(language: string): Promise<null>;
+  /** Raise a system notification for each of these (#319). The app drops the ones a focused
+   *  window should not be interrupted by, and asks the operating system for permission the
+   *  first time one is raised — refused, the bell and every action keep working. */
+  notify(alerts: NotificationAlert[]): Promise<null>;
+  /** Be told when a notification was clicked, by the id of the event it was raised for.
+   *  The page opens that event exactly as clicking its row does — switching the app to that
+   *  board first when the event belongs to another one. Returns the way to stop being told. */
+  onOpenNotification(fn: (eventId: string) => void): () => void;
 }

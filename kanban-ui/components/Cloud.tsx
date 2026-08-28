@@ -21,20 +21,44 @@
 // column: the refusal, the code box, **Request an invite** under a hairline, and Sign out
 // last. Whoever was handed a code meets the box immediately; whoever has none pays one short
 // line of reading before the button.
+//
+// Two more things live under the admitted state (#319), and the line between them is the
+// line this section already draws. **Notifications for this board** belongs to the board:
+// the switch that turns them on, and the one open release they watch. The **silencing**
+// switch belongs to the MACHINE and sits with the sign-in, because the interruptions it
+// stops arrive from every enabled board — a per-board switch would be reachable only by
+// opening that project first.
 
 import { useCallback, useEffect, useState } from "react";
-import { FiAlertCircle, FiCheck, FiHome, FiKey, FiLogOut, FiMail, FiRefreshCw } from "react-icons/fi";
+import {
+  FiAlertCircle,
+  FiBell,
+  FiBellOff,
+  FiCheck,
+  FiHome,
+  FiKey,
+  FiLogOut,
+  FiMail,
+  FiRefreshCw,
+} from "react-icons/fi";
 import { SiGithub } from "react-icons/si";
 import {
+  boardNotificationsAction,
   cloudAccountAction,
+  disableNotificationsAction,
+  enableNotificationsAction,
   finishCloudSignInAction,
+  notificationCenterAction,
   redeemCloudInvitationAction,
   requestCloudInviteAction,
+  setSilencedAction,
   signOutOfCloudAction,
   startCloudSignInAction,
+  watchReleaseAction,
 } from "@/app/actions";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
+import type { BoardNotifications } from "@/lib/notifications";
 import type { CloudAccount } from "@/lib/types";
 import { Button } from "./button";
 
@@ -205,10 +229,184 @@ function SignedIn({
         </Fact>
       </div>
 
+      <Silencer />
+
+      <Notifications />
+
       <p className="border-t border-nb-ink/12 pt-3.5 text-[12px] leading-relaxed text-nb-ink-soft">
         {c.signOutNote}
       </p>
     </>
+  );
+}
+
+// --- the machine's one silencing switch (#319) --------------------------------
+// It sits with the sign-in rather than with the board's own settings below: what it stops
+// arrives from every board Cloud is on for, and the bell keeps filling either way.
+
+function Silencer() {
+  const c = useCopy().configuration.cloud;
+  const [on, setOn] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    void notificationCenterAction().then((center) => setOn(center.silenced));
+  }, []);
+
+  const flip = async () => {
+    if (busy || on === null) return;
+    setBusy(true);
+    try {
+      const done = await setSilencedAction(!on);
+      if (done.ok) setOn(!on);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-4 rounded-[10px] bg-nb-wash px-4 py-3.5">
+      <span className="mt-[1px] shrink-0 text-nb-ink-soft">
+        {on ? <FiBellOff size={15} aria-hidden /> : <FiBell size={15} aria-hidden />}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[12.5px] font-[800] text-nb-ink">{c.silence.title}</p>
+        <p className="mt-[3px] text-[11.5px] leading-[16px] text-nb-ink-soft">{c.silence.blurb}</p>
+      </div>
+      <Switch
+        on={on === true}
+        busy={busy || on === null}
+        onFlip={() => void flip()}
+        label={c.silence.title}
+      />
+    </div>
+  );
+}
+
+// --- this board's own notifications (#319) ------------------------------------
+// A board raises events only while its notifications are on AND it is watching one open
+// release: a `ready` task in another release, or promised to none, is not what the user
+// asked to be told about.
+
+function Notifications() {
+  const c = useCopy().configuration.cloud.notifications;
+  const [state, setState] = useState<BoardNotifications | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => setState(await boardNotificationsAction()), []);
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const move = async (run: () => Promise<{ ok: boolean; error?: string }>) => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const done = await run();
+      if (!done.ok) setError(done.error ?? c.saveFailed);
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!state) return null;
+  const noReleases = state.releases.length === 0;
+
+  return (
+    <div className="rounded-[10px] border border-nb-ink/12 px-4 py-3.5">
+      <div className="flex items-center gap-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-[12.5px] font-[800] text-nb-ink">{c.title}</p>
+          <p className="mt-[3px] max-w-[52ch] text-[11.5px] leading-[16px] text-nb-ink-soft">
+            <Rich>{c.blurb}</Rich>
+          </p>
+        </div>
+        <Switch
+          on={state.enabled}
+          busy={busy || (!state.enabled && noReleases)}
+          onFlip={() =>
+            void move(() =>
+              state.enabled
+                ? disableNotificationsAction()
+                : enableNotificationsAction(state.releases[0] ?? ""),
+            )
+          }
+          label={c.title}
+        />
+      </div>
+
+      {/* A board with no open release has nothing to watch, so the switch says so rather
+          than turning on and filling nothing. */}
+      {noReleases ? (
+        <p className="mt-2.5 text-[11.5px] leading-[16px] text-nb-ink-soft">{c.noReleases}</p>
+      ) : state.enabled ? (
+        <label className="mt-3 flex items-center gap-2.5 border-t border-nb-ink/12 pt-3">
+          <span className="text-[12px] font-[700] text-nb-ink">{c.watching}</span>
+          <select
+            value={state.release}
+            disabled={busy}
+            onChange={(e) => void move(() => watchReleaseAction(e.target.value))}
+            className="h-8 cursor-pointer rounded-[8px] border-[1.5px] border-nb-ink bg-nb-paper px-2 font-mono text-[12px] font-[700] text-nb-ink outline-none"
+          >
+            {/* An enabled board whose release has closed rests here until another is picked
+                — the same prompt the rail shows where the filling stopped. */}
+            {!state.release && <option value="">{c.pickRelease}</option>}
+            {state.releases.map((release) => (
+              <option key={release} value={release}>
+                {release}
+              </option>
+            ))}
+          </select>
+          <span className="min-w-0 flex-1 text-[11.5px] leading-[16px] text-nb-ink-soft">
+            {state.release ? c.onlyThisRelease : c.releaseClosed}
+          </span>
+        </label>
+      ) : null}
+
+      {error && (
+        <p className="mt-2 text-[11.5px] leading-[16px] text-nb-peach-ink" role="status">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The section's one switch shape, so the board's and the machine's read as one control
+ *  used twice rather than two that happen to look alike. */
+function Switch({
+  on,
+  busy,
+  onFlip,
+  label,
+}: {
+  on: boolean;
+  busy: boolean;
+  onFlip: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={busy}
+      onClick={onFlip}
+      className={`relative inline-flex h-[22px] w-[38px] shrink-0 rounded-full border-[1.5px] border-nb-ink transition-colors disabled:opacity-50 ${
+        busy ? "cursor-default" : "cursor-pointer"
+      }`}
+      style={{ background: on ? "var(--color-nb-accent)" : "var(--color-nb-paper)" }}
+    >
+      <span
+        aria-hidden
+        className="absolute top-[2px] size-[15px] rounded-full border-[1.5px] border-nb-ink transition-[left]"
+        style={{ left: on ? 18 : 2, background: "var(--color-nb-paper)" }}
+      />
+    </button>
   );
 }
 

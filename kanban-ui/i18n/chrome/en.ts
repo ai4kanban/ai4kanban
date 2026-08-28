@@ -8,7 +8,7 @@ const en: ChromeCopy = {
     description: "Local kanban board — spawn agents to do the work.",
   },
   header: { home: "All cards" },
-  resize: { rail: "Resize the rail", chat: "Resize the chat" },
+  resize: { rail: "Resize the rail", chat: "Resize the chat", bell: "Resize notifications" },
   projects: {
     heading: "Projects",
     reading: "Reading your projects…",

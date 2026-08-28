@@ -20,6 +20,7 @@ import {
   BrowserWindow,
   dialog,
   ipcMain,
+  Notification,
   shell,
   type MessageBoxOptions,
   type OpenDialogOptions,
@@ -50,6 +51,7 @@ import {
   type CommandInstall,
   type CommandInstallResult,
   type CreateBoardResult,
+  type NotificationAlert,
   type ProjectInfo,
   type UpdateInfo,
 } from "./shared/bridge";
@@ -603,6 +605,56 @@ ipcMain.handle(CHANNELS.setLanguage, async (_e, next: unknown) => {
   if (!servers?.boardDir) void showLauncher();
   return null;
 });
+
+// --- system notifications (#319) --------------------------------------------
+//
+// The page decides what an alert SAYS — one wording per event, because a second is a second
+// thing to keep true — and the app decides whether it interrupts, because focus is the
+// app's own answer and nothing in a page can give it.
+//
+//   • `actionable` is dropped while the window is focused, and nothing is raised later to
+//     make up for it: the bell moved, in front of the person watching it.
+//   • `outcome` is raised either way. A run the user approved and walked away from can
+//     still reach them, and the app cannot tell that person from one who is watching.
+//
+// Clicking one raises the window and hands the page the EVENT it was raised for, so it
+// opens exactly what clicking that row opens — switching the app to the event's own board
+// when the bell is carrying more than one. A machine that cannot show notifications at all
+// — the permission refused, the platform without them — changes nothing else: the bell, the
+// rail and every action keep working.
+
+ipcMain.handle(CHANNELS.notify, (_e, raw: unknown) => {
+  if (!Array.isArray(raw) || !Notification.isSupported()) return null;
+  const focused = win?.isFocused() ?? false;
+  for (const item of raw) {
+    const alert = item as Partial<NotificationAlert>;
+    if (typeof alert?.title !== "string" || typeof alert.body !== "string") continue;
+    if (alert.kind === "actionable" && focused) continue;
+    raiseNotification(alert.title, alert.body, alert.eventId);
+  }
+  return null;
+});
+
+function raiseNotification(title: string, body: string, eventId: unknown): void {
+  try {
+    const note = new Notification({ title, body });
+    note.on("click", () => {
+      if (!win) return;
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+      // The event's own id, not a card number: the bell carries every board Cloud is on
+      // for, and two boards can each hold a card #12. The page resolves it to the board it
+      // belongs to and lands on that card's page — there is no second view of an event.
+      if (typeof eventId === "string" && eventId) {
+        win.webContents.send(CHANNELS.openNotification, eventId);
+      }
+    });
+    note.show();
+  } catch {
+    // The system refused it. The bell already holds the row, so there is nothing to say.
+  }
+}
 
 // The board changed language (#334). The setting is already saved by the time this
 // arrives — the page is only telling the menu, which lives outside it.

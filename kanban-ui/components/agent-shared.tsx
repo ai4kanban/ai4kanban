@@ -22,6 +22,7 @@ import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import { useDraft, useDraftList, useDraftPicks } from "@/lib/draft";
 import { FREE_TEXT_CHOICE, freeTextPick, hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
+import type { CloudEventAnswer } from "@/lib/types";
 import {
   PROPOSE_DEFAULT,
   PROPOSE_MAX,
@@ -80,6 +81,13 @@ export interface AgentReq {
   title?: string;
   andImplement?: boolean;
   release?: string; // create: the version the new card ships in
+  /** The revision the user was looking at, so the same decision can be recorded against
+   *  this card's live Cloud event (#319). Sent on every Implement and Resolve; the board's
+   *  rules drop it on a card with no live event, which is most of them. */
+  cloudRevision?: string;
+  /** One answer per user-owned question, in the card's own order, blanks included — a
+   *  ticked option or the user's own words, never both. Resolve only. */
+  cloudAnswers?: CloudEventAnswer[];
 }
 
 export type DialogState =
@@ -931,7 +939,21 @@ export function ActionDialog({
           confirmLabel={warned ? c.confirmAnyway : c.confirm}
           risky={warned}
           disabled={(blockers.length > 0 && !ack) || (notReady && !ackRough) || (asked > 0 && !ackAsked)}
-          onConfirm={() => run({ action: "implement", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Implement #${dialog.card.id}`)}
+          onConfirm={() =>
+            run(
+              {
+                action: "implement",
+                id: dialog.card.id,
+                title: dialog.card.title,
+                notes: text.trim() || undefined,
+                // The revision the user approved. It records the same durable action
+                // against this card's live Cloud event (#319), and is dropped on a card
+                // that has none — which is most of them.
+                cloudRevision: dialog.card.revision,
+              },
+              `Implement #${dialog.card.id}`,
+            )
+          }
           alternate={
             answerable && onResolveFirst
               ? {
@@ -1409,6 +1431,7 @@ function ResolveDialog({
   // only implement when nothing genuine is left for the user to decide.
   const submit = (andImplement: boolean) => {
     const notes = composeAnswers(questions, answers, picks);
+    const cloudAnswers = composeCloudAnswers(questions, answers, picks);
     clearAnswers();
     clearPicks();
     onRun(
@@ -1418,6 +1441,8 @@ function ResolveDialog({
         title: card.title,
         notes,
         andImplement: andImplement || undefined,
+        cloudRevision: card.revision,
+        cloudAnswers,
       },
       `${andImplement ? "Resolve & implement" : "Resolve"} #${card.id}`,
     );
@@ -1567,6 +1592,32 @@ function composeAnswers(
     "My answers to these open questions — apply them and leave every unanswered question open:",
     ...answered,
   ].join("\n\n");
+}
+
+/**
+ * The same answers again, as the shape a Cloud event carries (#319) — one entry per
+ * question, in the card's own order, blanks included.
+ *
+ * The board's own rule holds here too: a ticked option OR the user's own words, never both.
+ * A real tick wins, because "Something else" is itself a tick and the box behind it is only
+ * an answer when that tick is on.
+ */
+function composeCloudAnswers(
+  questions: CardQuestion[],
+  answers: string[],
+  picks: number[][],
+): CloudEventAnswer[] {
+  return questions.map((q, i) => {
+    const options = hasOptions(q);
+    const real = options
+      ? (picks[i] ?? []).filter((n) => n <= (q.options ?? []).length)
+      : [];
+    if (real.length > 0) return { picked: real, text: "" };
+    const typed = (!options || (picks[i] ?? []).includes(freeTextPick(q)))
+      ? (answers[i]?.trim() ?? "")
+      : "";
+    return { picked: [], text: typed };
+  });
 }
 
 export function DialogButtons({

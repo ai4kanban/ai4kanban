@@ -11,6 +11,8 @@ export type RefusalCode =
   | 'invitation_withdrawn'
   | 'no_verified_address'
   | 'not_yours'
+  | 'stale_revision'
+  | 'already_acted'
   | 'not_found'
   | 'method_not_allowed'
   | 'daily_write_budget_reached'
@@ -89,6 +91,24 @@ export const noVerifiedAddress = () =>
 /** The request named a row belonging to another account. Whatever the row is. */
 export const notYours = () =>
   new Refusal('not_yours', 403, 'That belongs to another account.')
+
+/**
+ * The two an action on a Cloud event can be refused with (#319), each with its own code
+ * because they ask the reader for different things: look again, or stop pressing.
+ *
+ * Cloud may reject a revision it already knows is stale; the local check is still the final
+ * one, so this is an optimisation rather than the guarantee.
+ */
+export const staleRevision = () =>
+  new Refusal(
+    'stale_revision',
+    409,
+    'That task has changed since this was asked. Open the card and look again.',
+  )
+
+/** Exactly one durable action per event, whichever surface took it. */
+export const alreadyActed = () =>
+  new Refusal('already_acted', 409, 'That event has already been answered.')
 
 export const notFound = () => new Refusal('not_found', 404, 'No such endpoint.')
 

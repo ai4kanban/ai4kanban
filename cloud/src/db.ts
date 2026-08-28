@@ -8,9 +8,11 @@ import { DAILY_WRITE_BUDGET } from './config.ts'
 import type { Env } from './env.ts'
 import {
   Refusal,
+  alreadyActed,
   dailyWriteBudgetReached,
   notYours,
   serviceUnavailable,
+  staleRevision,
   storageLimitReached,
 } from './errors.ts'
 
@@ -19,6 +21,12 @@ export const PG_WRITE_BUDGET_EXCEEDED = 'AKB01'
 
 /** SQLSTATE `cloud.require_owner` raises when a row belongs to another account. */
 export const PG_NOT_YOURS = 'AKB02'
+
+/** SQLSTATE an action against a revision that has moved raises (#319). */
+export const PG_STALE_REVISION = 'AKB03'
+
+/** SQLSTATE a second action on one event raises. Exactly one, whichever surface took it. */
+export const PG_ALREADY_ACTED = 'AKB04'
 
 /** Postgres' own codes for a database that has stopped taking writes. */
 const PG_READ_ONLY = ['25006', '53100']
@@ -76,6 +84,8 @@ async function rpc<T>(env: Env, fn: string, args: Record<string, unknown>): Prom
 export function refusalFor(error: PostgrestError, status: number): Refusal {
   if (error.code === PG_WRITE_BUDGET_EXCEEDED) return dailyWriteBudgetReached()
   if (error.code === PG_NOT_YOURS) return notYours()
+  if (error.code === PG_STALE_REVISION) return staleRevision()
+  if (error.code === PG_ALREADY_ACTED) return alreadyActed()
   if (error.code && PG_READ_ONLY.includes(error.code)) return storageLimitReached()
   console.error('cloud: database refused a call', {
     status,

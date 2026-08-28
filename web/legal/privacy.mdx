@@ -10,6 +10,7 @@ effective: 2026-08-26
 - **This site collects nothing.** No analytics, no cookies, no accounts. It is static files served by Cloudflare.
 - **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. The app asks GitHub once whether a newer release is out, and sends nothing else.
 - **AI4Kanban Cloud is an invite-only preview** that stores a team's board — cards, memory, releases, history — on servers we run in Frankfurt. Only that workspace's members can read it.
+- **A notification carries a task's number, title, release, revision, and its open questions** — no other part of the card — and is deleted 30 days after the work it is about finishes.
 - **Your code never reaches Cloud.** No repository, no worktree, no commit, no credential and no model key is sent to it, and no AI model is ever run over your board content.
 - **The only email we send is your invitation code**, and the notice to ourselves that you asked for one. There is no mailing list.
 - **We do not sell your personal information**, and we do not share it for cross-context behavioral advertising.
@@ -67,6 +68,14 @@ A Cloud workspace holds the board and only the board:
 - **Events and actions** — the questions, review requests, and approvals a member is asked to act on, and their outcomes.
 
 Whatever you type into a card, a memory file, or a release note is stored as you wrote it. Treat a shared board the way you would treat any shared document: if a card body would be sensitive in a wiki, it is sensitive here too.
+
+### What an event holds
+
+Turning notifications on for a board sends Cloud one **event** per task that needs a person: a task that reaches `ready`, or one that raises a question only you can answer. An event holds that task's **number, title, release, and current revision**, the decision it asks for, and — when it is a question — **each question with its options and the board's recommendation**. It carries **no other part of the card**: not the body, not the plan, not the todo list, and never the folder the board is in. Your board is registered under an identifier that means nothing outside Cloud, and where that board sits on your machine is held on that machine alone.
+
+Once you act on an event, Cloud also holds **the decision you made and the answers you gave**, and **how the run it started ended**.
+
+An event is kept while it is unresolved, and **deleted 30 days after it reaches a final outcome** — completed, failed, cancelled, interrupted, or retired because the task stopped needing you. Deleting it takes its answers, its outcome, and any message it was delivered as with it.
 
 ### What never reaches Cloud
 
@@ -188,6 +197,7 @@ We keep personal information only as long as we need it for the purposes describ
 - **Workspace content** — kept for as long as the workspace exists. Deleting the workspace removes it at once, and no backup of it survives (see above). A workspace whose preview access ends is closed under the [Terms](/terms).
 - **Your account record** — kept while your account can sign in. Ask us at [support@ai4kanban.dev](mailto:support@ai4kanban.dev) and we will delete it.
 - **Your invite request and your invitation** — kept for as long as the account is admitted, because the invitation is what ties an admission back to the code that made it. Removing an account takes its request and its invitation with it. Resend's own sending logs are kept for 30 days under Resend's policy.
+- **Events and actions** — kept while the event is unresolved, then deleted 30 days after it reaches a final outcome, together with the decision recorded against it, its outcome, and any message it was delivered as.
 - **The audit trail** — an attributed record of who changed what lives inside the workspace and goes with it when the workspace is deleted.
 - **Email correspondence** — kept for as long as needed to handle the conversation and any follow-up, then deleted.
 

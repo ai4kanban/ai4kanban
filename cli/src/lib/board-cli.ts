@@ -23,6 +23,7 @@ import { die, setBoardRoot, KANBAN } from './paths'
 import { BoardError, say, startCollecting, stopCollecting, warn, type Sink } from './io'
 import { board, moveTarget, withLease } from './board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from './board/local'
+import { flushOnExit } from './cloud/publish'
 import { boardHelp, findMove, legacyHelp, moveHelp, MOVE_NAMES } from './help'
 import type { MoveOutput, OpResult } from './board'
 
@@ -222,6 +223,10 @@ export async function runBoard(argv: string[], options: RunBoardOptions = {}): P
     if (output) say(output)
     for (const line of (warnings as string[] | undefined) ?? []) warn(line)
     if (json) answer({ ok: true, board: KANBAN, ...fields, ...prose(box) })
+    // A terminal command is over the moment it returns, so this is the outbox's one chance
+    // to reach Cloud before the process ends (#319). Bounded, and silent either way: what
+    // does not get out stays queued and is retried on the next write.
+    await flushOnExit()
     return 0
   } catch (err) {
     return report(err, { program, json, box, move: withMove ? move : null })

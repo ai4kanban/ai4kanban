@@ -17,11 +17,16 @@
 // See app/design/layouts for the mockup this is drawn from.
 
 import { useCopy } from "@/i18n/use-copy";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect } from "react";
+import { BELL_MAX, BELL_MIN, BELL_W, useBellRail } from "@/lib/bell-rail";
 import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail, type BoardChange } from "@/lib/chat-rail";
 import { useOpenCards } from "@/lib/open-cards";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
 import type { MemoryModule } from "@/lib/types";
 import { ChatPane, ChatProvider } from "./Chat";
+import { raiseNotifications, useOpenNotificationFromApp } from "./desktop";
+import { BellPane, BellProvider } from "./Notifications";
 import { Rail } from "./Rail";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 
@@ -82,10 +87,34 @@ export function Window({
     cardTitle: currentTitle,
     onBoardChanged,
   });
+  // The bell (#319) shares the right side with the chat: one rail at a time, so opening
+  // either folds the other. It carries every board Cloud is on for, not only this one, so
+  // a row can lead out of this project — which is why it needs the router.
+  const router = useRouter();
+  const goToCard = useCallback((taskId: number) => router.push(`/${taskId}`), [router]);
+  const bell = useBellRail({ projectRoot, onAlerts: raiseNotifications, onOpenCard: goToCard });
+  // A notification clicked outside the window opens its own row: the same read mark, and
+  // the same switch to that row's board when it is not the one on screen.
+  useOpenNotificationFromApp(bell.openRow);
+
+  // One rail at a time. Each effect fires only on the move INTO open, and folding the other
+  // sets it closed — so opening one folds the other and neither can chase the other back.
+  const foldChat = chat.fold;
+  const foldBell = bell.fold;
+  useEffect(() => {
+    if (bell.open) foldChat();
+  }, [bell.open, foldChat]);
+  useEffect(() => {
+    if (chat.open) foldBell();
+  }, [chat.open, foldBell]);
+
   // Beside the body on a wide window, over it on a narrow one — the same rail either way,
   // so what has been typed survives the window being dragged across that line.
-  const beside = chat.open && !chat.overlay;
+  const chatBeside = chat.open && !chat.overlay && !bell.open;
+  const bellBeside = bell.open && !bell.overlay;
+  const beside = chatBeside || bellBeside;
   return (
+    <BellProvider rail={bell}>
     <ChatProvider rail={chat}>
     <div className="flex h-screen flex-col overflow-hidden bg-nb-cream">
       {header}
@@ -141,7 +170,23 @@ export function Window({
               {children}
             </div>
           </ResizablePanel>
-          {beside && (
+          {/* The right side holds ONE rail. The bell wins when both are up, because
+              opening it is what folded the chat. */}
+          {bellBeside ? (
+            <>
+              <ResizableHandle aria-label={c.resize.bell} onDoubleClick={bell.onDoubleClick} />
+              <ResizablePanel
+                id="bell"
+                panelRef={bell.panel}
+                defaultSize={BELL_W}
+                minSize={BELL_MIN}
+                maxSize={BELL_MAX}
+                groupResizeBehavior="preserve-pixel-size"
+              >
+                <BellPane rail={bell} />
+              </ResizablePanel>
+            </>
+          ) : chatBeside ? (
             <>
               <ResizableHandle aria-label={c.resize.chat} onDoubleClick={chat.onDoubleClick} />
               <ResizablePanel
@@ -155,21 +200,32 @@ export function Window({
                 <ChatPane rail={chat} />
               </ResizablePanel>
             </>
-          )}
+          ) : null}
         </ResizablePanelGroup>
       </div>
       {/* Too narrow to stand beside the board, so it covers it. It is given the paper's own
           ground and an ink edge, since here it is a thing laid over the window rather than
           a part of its frame. */}
-      {chat.open && chat.overlay && (
+      {bell.open && bell.overlay ? (
         <div
           className="fixed bottom-0 right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream"
           style={{ borderLeft: "1.5px solid var(--color-nb-ink)" }}
         >
-          <ChatPane rail={chat} />
+          <BellPane rail={bell} />
         </div>
+      ) : (
+        chat.open &&
+        chat.overlay && (
+          <div
+            className="fixed bottom-0 right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream"
+            style={{ borderLeft: "1.5px solid var(--color-nb-ink)" }}
+          >
+            <ChatPane rail={chat} />
+          </div>
+        )
       )}
     </div>
     </ChatProvider>
+    </BellProvider>
   );
 }
