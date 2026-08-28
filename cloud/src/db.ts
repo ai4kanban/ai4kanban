@@ -11,6 +11,7 @@ import {
   alreadyActed,
   dailyWriteBudgetReached,
   notYours,
+  serverElsewhere,
   serviceUnavailable,
   staleRevision,
   storageLimitReached,
@@ -27,6 +28,9 @@ export const PG_STALE_REVISION = 'AKB03'
 
 /** SQLSTATE a second action on one event raises. Exactly one, whichever surface took it. */
 export const PG_ALREADY_ACTED = 'AKB04'
+
+/** SQLSTATE attaching a second machine to one board raises (#318). */
+export const PG_SERVER_ELSEWHERE = 'AKB05'
 
 /** Postgres' own codes for a database that has stopped taking writes. */
 const PG_READ_ONLY = ['25006', '53100']
@@ -86,6 +90,7 @@ export function refusalFor(error: PostgrestError, status: number): Refusal {
   if (error.code === PG_NOT_YOURS) return notYours()
   if (error.code === PG_STALE_REVISION) return staleRevision()
   if (error.code === PG_ALREADY_ACTED) return alreadyActed()
+  if (error.code === PG_SERVER_ELSEWHERE) return serverElsewhere(error.message)
   if (error.code && PG_READ_ONLY.includes(error.code)) return storageLimitReached()
   console.error('cloud: database refused a call', {
     status,

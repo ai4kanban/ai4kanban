@@ -8,6 +8,7 @@
  * the owner check, which the database applies again inside the same transaction.
  */
 
+import { CLAIM_LEASE_SECONDS } from './config.ts'
 import { call, mutate } from './db.ts'
 import type { Env } from './env.ts'
 import { badRequest, notFound } from './errors.ts'
@@ -124,7 +125,14 @@ export async function recordAction(
   return { event }
 }
 
-/** Where the delivery that action started has got to. */
+/**
+ * Where the delivery that action started has got to.
+ *
+ * It ends the execution request in the same transaction (#318): the delivery's state and the
+ * job's are one fact, and reporting them apart would leave a finished delivery holding a
+ * claim nobody would ever release. `reason` is what a refused request carries onto its
+ * `failed`, so a refused approval and a broken build never read as the same outcome.
+ */
 export async function recordOutcome(
   env: Env,
   owner: Owner,
@@ -140,6 +148,8 @@ export async function recordOutcome(
     p_op_id: text(input.opId, 'attempt id', 200),
     p_event: uuid(eventId, 'event'),
     p_outcome: outcome,
+    p_reason: typeof input.reason === 'string' ? input.reason.slice(0, 500) : '',
+    p_lease_seconds: CLAIM_LEASE_SECONDS,
   })
   if (!event) throw notFound()
   return { event }

@@ -1,14 +1,19 @@
-// The account's private Realtime topic, kept open (#319).
+// One private Realtime topic, kept open (#319).
 //
 // Realtime carries HINTS and nothing else: the identifier of something the Worker already
 // stored. Every durable read and write goes over `fetch` (./client.ts), so a missed or
 // reordered broadcast loses nothing — the catch-up read on every connect and reconnect is
 // what makes that true.
 //
-// The topic is `account:<subject>`, private, authorized by an RLS policy on
-// `realtime.messages` that matches the subscriber's own Auth subject (see
-// cloud/migrations/0004). #318 adds the server's own topic with the server row it needs to
-// scope a policy to.
+// Two topics are opened through here, both private and both authorized by an RLS policy on
+// `realtime.messages`:
+//
+//   • `account:<subject>` — every event of this account (#319). One listener, in the board
+//     server the window is showing, because a second would raise one notification twice.
+//   • `server:<server id>` — the requests one board's server has to run (#318). One listener
+//     per enabled board, backgrounded ones included: a request is addressed to one server,
+//     so a second listener cannot duplicate anything, and the board a user has switched away
+//     from is exactly the one whose approval would otherwise never run.
 //
 // It is written against the published Realtime protocol rather than pulling in a client,
 // which keeps `cli/dist/kanban.mjs` a file of ours alone and keeps a terminal `akb` on
@@ -40,8 +45,11 @@ interface Frame {
 
 /** What the connection tells whoever opened it. */
 export interface LiveHandlers {
-  /** One event moved, and its id is all the hint carries. Read it through the Worker. */
-  onHint(eventId: string): void
+  /** Which private topic to join, without the `realtime:` prefix. */
+  topic: string
+  /** One hint, as it was broadcast — an id and nothing else. Read what it names through the
+   *  Worker: Postgres is the authority for what it now says. */
+  onHint(payload: Record<string, unknown>): void
   /** The socket is up and joined. `firstTime` is false on a RECONNECT — which is the case
    *  the second notification exists for, because the window may have been sitting unwatched
    *  the whole time the connection was down. */
@@ -53,19 +61,20 @@ export interface LiveConnection {
 }
 
 /**
- * Open the account's topic and keep it open. Returns the way to close it, or null when this
+ * Open one private topic and keep it open. Returns the way to close it, or null when this
  * machine cannot hold one: no Cloud project in the build, nobody signed in, or a runtime
- * with no `WebSocket`.
+ * with no `WebSocket` — which is what keeps a terminal `akb` on Node 18, where the catch-up
+ * read through the Worker is the whole of the flow.
  */
 export function connectCloudLive(handlers: LiveHandlers): LiveConnection | null {
   const session = readSession()
-  if (!cloudConfigured() || !session) return null
+  if (!cloudConfigured() || !session || !handlers.topic) return null
   const Socket = (globalThis as { WebSocket?: typeof WebSocket }).WebSocket
   if (!Socket) return null
 
   const { supabaseUrl, anonKey } = cloudEndpoints()
   const url = `${supabaseUrl.replace(/^http/, 'ws')}/realtime/v1/websocket?apikey=${encodeURIComponent(anonKey)}&vsn=${VSN}`
-  const topic = `realtime:account:${session.subject}`
+  const topic = `realtime:${handlers.topic}`
 
   let socket: WebSocket | null = null
   let heartbeat: ReturnType<typeof setInterval> | null = null
@@ -135,7 +144,7 @@ export function connectCloudLive(handlers: LiveHandlers): LiveConnection | null 
         event: 'phx_join',
         payload: {
           // A private channel is what the RLS policy on `realtime.messages` is checked
-          // against, so nobody else's socket can join this account's topic.
+          // against, so nobody else's socket can join this one.
           config: { private: true, broadcast: { self: false }, presence: { key: '' } },
           access_token: token.token,
         },
@@ -182,9 +191,8 @@ export function connectCloudLive(handlers: LiveHandlers): LiveConnection | null 
         return
       }
       if (frame.event === 'broadcast') {
-        const body = frame.payload as { payload?: { eventId?: unknown } }
-        const id = body.payload?.eventId
-        if (typeof id === 'string' && id) handlers.onHint(id)
+        const body = frame.payload as { payload?: Record<string, unknown> }
+        if (body.payload) handlers.onHint(body.payload)
       }
     }
 

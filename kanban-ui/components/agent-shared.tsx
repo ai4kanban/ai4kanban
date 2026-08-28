@@ -24,6 +24,7 @@ import { useDraft, useDraftList, useDraftPicks } from "@/lib/draft";
 import { FREE_TEXT_CHOICE, freeTextPick, hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
 import type { CloudEventAnswer } from "@/lib/types";
 import {
+  answerNotes,
   PROPOSE_DEFAULT,
   PROPOSE_MAX,
   type Boldness,
@@ -1565,38 +1566,27 @@ function composeAnswers(
   answers: string[],
   picks: number[][],
 ): string | undefined {
-  const answered = questions
-    .map((q, i) => {
-      const asked = parseQuestion(q.text).text;
+  return answerNotes(
+    questions.map((q, i) => {
       const options = hasOptions(q);
-      const chosen = options
-        ? (picks[i] ?? []).map((n) => (q.options ?? [])[n - 1]).filter(Boolean)
-        : [];
       // Words count only when the box was open: an unticked "Something else" leaves
       // its draft behind, and that draft is not an answer the user gave.
-      const typed = (!options || (picks[i] ?? []).includes(freeTextPick(q)))
-        ? answers[i]?.trim()
-        : "";
-      if (chosen.length === 0 && !typed) return null;
-      return [
-        `Q: ${asked}`,
-        chosen.length > 0 ? `Picked:\n${chosen.map((o) => `- ${o}`).join("\n")}` : null,
-        typed ? `A: ${typed}` : null,
-      ]
-        .filter(Boolean)
-        .join("\n");
-    })
-    .filter((x): x is string => x !== null);
-  if (answered.length === 0) return undefined;
-  return [
-    "My answers to these open questions — apply them and leave every unanswered question open:",
-    ...answered,
-  ].join("\n\n");
+      const typing = !options || (picks[i] ?? []).includes(freeTextPick(q));
+      return {
+        question: parseQuestion(q.text).text,
+        picked: options
+          ? (picks[i] ?? []).map((n) => (q.options ?? [])[n - 1]).filter((o): o is string => !!o)
+          : [],
+        typed: typing ? (answers[i]?.trim() ?? "") : "",
+      };
+    }),
+  );
 }
 
 /**
  * The same answers again, as the shape a Cloud event carries (#319) — one entry per
- * question, in the card's own order, blanks included.
+ * question, in the card's own order, blanks included. What #318's server reads them back
+ * through is `answeredFromEvent`, and both ends compose their sentence with `answerNotes`.
  *
  * The board's own rule holds here too: a ticked option OR the user's own words, never both.
  * A real tick wins, because "Something else" is itself a tick and the box behind it is only

@@ -47,6 +47,7 @@ import {
   cloudAccountAction,
   disableNotificationsAction,
   enableNotificationsAction,
+  setBoardServerAction,
   finishCloudSignInAction,
   notificationCenterAction,
   redeemCloudInvitationAction,
@@ -366,11 +367,60 @@ function Notifications() {
         </label>
       ) : null}
 
+      {/* Which machine runs this board's work (#318). Only once notifications are on:
+          a board that raises no events has no approvals to run. */}
+      {state.enabled && <ServerRow state={state} busy={busy} onMove={move} />}
+
       {error && (
         <p className="mt-2 text-[11.5px] leading-[16px] text-nb-peach-ink" role="status">
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+// --- which machine runs this board's work (#318) ------------------------------
+// A board attaches exactly one server, so this is a switch and — where another machine holds
+// the board — the one move that takes it over. The refusal is never shown on its own: the
+// case that reaches it is a home directory restored onto a new machine, where the machine
+// holding the board is exactly the one that has gone.
+
+function ServerRow({
+  state,
+  busy,
+  onMove,
+}: {
+  state: BoardNotifications;
+  busy: boolean;
+  onMove: (run: () => Promise<{ ok: boolean; error?: string }>) => Promise<void>;
+}) {
+  const c = useCopy().configuration.cloud.server;
+  const { server } = state;
+  const elsewhere = server.attached && !server.here;
+
+  return (
+    <div className="mt-3 border-t border-nb-ink/12 pt-3">
+      <div className="flex items-center gap-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-[12.5px] font-[800] text-nb-ink">{c.title}</p>
+          <p className="mt-[3px] max-w-[52ch] text-[11.5px] leading-[16px] text-nb-ink-soft">
+            {elsewhere ? <Rich>{c.heldBy(server.machineName)}</Rich> : c.blurb}
+          </p>
+        </div>
+        {elsewhere ? (
+          <Button size="sm" variant="ghost" disabled={busy} onClick={() => void onMove(() => setBoardServerAction(true, true))}>
+            {busy ? c.moving : c.moveHere}
+          </Button>
+        ) : (
+          <Switch
+            on={server.here}
+            busy={busy}
+            onFlip={() => void onMove(() => setBoardServerAction(!server.here))}
+            label={server.here ? c.switchOn : c.switchOff}
+          />
+        )}
+      </div>
     </div>
   );
 }

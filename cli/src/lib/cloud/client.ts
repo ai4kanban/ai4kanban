@@ -10,6 +10,8 @@
 
 import { cloudConfigured, cloudEndpoints, NOT_CONFIGURED } from './config'
 import type { CloudEvent, CloudEventAnswer, CloudEventState } from './events'
+import type { CloudRequest } from './requests'
+import type { CloudServer } from './servers'
 import { accessToken } from './session'
 
 export type CloudCall<T> = { ok: true; value: T } | { ok: false; error: string; code?: string }
@@ -22,6 +24,9 @@ export const TERMINAL_CODES = [
   'not_found',
   'stale_revision',
   'already_acted',
+  // A board attaches exactly one server (#318). Retrying cannot change whose it is; the
+  // user moves it or leaves it where it is.
+  'server_elsewhere',
 ]
 
 export const isTerminal = (code?: string): boolean => !!code && TERMINAL_CODES.includes(code)
@@ -76,13 +81,52 @@ export const recordAction = (body: {
 }): Promise<CloudCall<{ event: CloudEvent }>> =>
   send('POST', `/v1/events/${encodeURIComponent(body.eventId)}/action`, body)
 
-/** How the delivery an action started ended. */
+/** How the delivery an action started ended. `reason` is what a refused request carries onto
+ *  its `failed`, so a refused approval and a broken build never read as one outcome (#318). */
 export const recordOutcome = (
   opId: string,
   eventId: string,
   outcome: CloudEventState,
+  reason = '',
 ): Promise<CloudCall<{ event: CloudEvent }>> =>
-  send('POST', `/v1/events/${encodeURIComponent(eventId)}/outcome`, { opId, outcome })
+  send('POST', `/v1/events/${encodeURIComponent(eventId)}/outcome`, { opId, outcome, reason })
+
+// ---- the board's server, and the requests it claims (#318) ------------------
+
+/** Register this machine as the board's one server. `takeOver` is the user moving the board
+ *  to the machine in front of them; without it a second machine is refused and told which
+ *  one holds it. */
+export const attachServer = (
+  boardId: string,
+  machineId: string,
+  machineName: string,
+  takeOver = false,
+): Promise<CloudCall<{ server: CloudServer }>> =>
+  send('POST', `/v1/boards/${encodeURIComponent(boardId)}/server`, { machineId, machineName, takeOver })
+
+/** Stop this machine running that board's work. Nothing local is touched. */
+export const detachServer = (boardId: string, machineId: string): Promise<CloudCall<{ server: CloudServer | null }>> =>
+  send('POST', `/v1/boards/${encodeURIComponent(boardId)}/server/detach`, { machineId })
+
+/** Which machine runs each of this account's boards. */
+export const listServers = (): Promise<CloudCall<{ servers: CloudServer[] }>> =>
+  send('GET', '/v1/servers')
+
+/** What this server has to do — the durable catch-up read every start and reconnect makes. */
+export const listRequests = (serverId: string): Promise<CloudCall<{ requests: CloudRequest[] }>> =>
+  send('GET', `/v1/servers/${encodeURIComponent(serverId)}/requests`)
+
+/** Take one request, or be told why not. A refusal is an answer: its words go onto the
+ *  event's `failed`. */
+export const claimRequest = (
+  requestId: string,
+  serverId: string,
+): Promise<CloudCall<{ claimed: boolean; reason?: string; request?: CloudRequest }>> =>
+  send('POST', `/v1/requests/${encodeURIComponent(requestId)}/claim`, { serverId })
+
+/** Hold the claim while the delivery is live on this machine. */
+export const renewClaim = (requestId: string, serverId: string): Promise<CloudCall<{ renewed: boolean }>> =>
+  send('POST', `/v1/requests/${encodeURIComponent(requestId)}/renew`, { serverId })
 
 async function send<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<CloudCall<T>> {
   if (!cloudConfigured()) return { ok: false, error: NOT_CONFIGURED, code: 'bad_request' }

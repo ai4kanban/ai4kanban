@@ -26,6 +26,15 @@ export interface CloudBoard {
    *  none, raises nothing. Empty when the watched release has closed and the user has not
    *  picked another: the filling stops and the rail asks. */
   release: string
+  /** This machine's server row for this board, as Cloud minted it (#318). It is what an
+   *  approval taken elsewhere is claimed under, and what names this board's private Realtime
+   *  topic. Empty when this machine does not run this board's work — nothing is claimed then,
+   *  and the board still publishes its events. */
+  serverId?: string
+  /** The user turned this machine's server off here, so nothing re-registers it on the next
+   *  tick. Absent on a board that simply has not been registered yet — the two look the same
+   *  from `serverId` alone, and only one of them is an answer the user gave. */
+  serverOff?: boolean
 }
 
 interface Held {
@@ -49,6 +58,8 @@ function held(): Held {
           path: b.path,
           name: typeof b.name === 'string' && b.name ? b.name : path.basename(b.path),
           release: typeof b.release === 'string' ? b.release : '',
+          serverId: typeof b.serverId === 'string' ? b.serverId : undefined,
+          serverOff: b.serverOff === true ? true : undefined,
         })),
     }
   } catch {
@@ -118,6 +129,38 @@ export function enableCloudBoard(root: string, release: string): CloudBoard {
     release,
   }
   state.boards.push(board)
+  write(state)
+  return board
+}
+
+/** Remember — or forget — the server row Cloud minted for this machine on this board (#318).
+ *  Empty is Cloud saying this machine does not hold the board, which is a fact rather than a
+ *  choice: `stopCloudBoardServer` below is the choice. */
+export function setCloudBoardServer(root: string, serverId: string): CloudBoard | null {
+  const resolved = canonical(root)
+  const state = held()
+  const board = state.boards.find((b) => canonical(b.path) === resolved)
+  if (!board) return null
+  if (serverId) {
+    board.serverId = serverId
+    delete board.serverOff
+  } else {
+    delete board.serverId
+  }
+  write(state)
+  return board
+}
+
+/** The user turned this machine's server off for this board. Written down so nothing
+ *  registers it again on the next tick — a board never registered and one deliberately
+ *  turned off look the same from `serverId` alone, and only one of them is an answer. */
+export function stopCloudBoardServer(root: string): CloudBoard | null {
+  const resolved = canonical(root)
+  const state = held()
+  const board = state.boards.find((b) => canonical(b.path) === resolved)
+  if (!board) return null
+  delete board.serverId
+  board.serverOff = true
   write(state)
   return board
 }

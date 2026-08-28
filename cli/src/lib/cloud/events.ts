@@ -80,6 +80,64 @@ export interface CloudEventAnswer {
   text: string
 }
 
+/** One question and what the user said to it, as the answer text is written from.
+ *
+ *  `picked` is the option TEXT rather than its position: the two sides that compose an
+ *  answer read their options from different places — the card, and the event the action was
+ *  granted against — and a position means nothing without the list it indexes. */
+export interface AnsweredQuestion {
+  question: string
+  picked: string[]
+  typed: string
+}
+
+/**
+ * The answer text a resolve run is given, from whatever the user said (#318).
+ *
+ * One composition, used twice: the board's own Resolve dialog writes it from the boxes and
+ * ticks on screen, and the board's server writes it from the entries a remote action stored.
+ * Two spellings of one answer would hand the resolve run two different sentences for the
+ * same decision.
+ *
+ * Undefined when nothing was answered — an unanswered question stays open, which is the
+ * board's own rule for a blank.
+ */
+export function answerNotes(entries: AnsweredQuestion[]): string | undefined {
+  const answered = entries
+    .map((entry) => {
+      if (entry.picked.length === 0 && !entry.typed) return null
+      return [
+        `Q: ${entry.question}`,
+        entry.picked.length > 0 ? `Picked:\n${entry.picked.map((o) => `- ${o}`).join('\n')}` : null,
+        entry.typed ? `A: ${entry.typed}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n')
+    })
+    .filter((x): x is string => x !== null)
+  if (answered.length === 0) return undefined
+  return [
+    'My answers to these open questions — apply them and leave every unanswered question open:',
+    ...answered,
+  ].join('\n\n')
+}
+
+/** One remote answer, read back against the questions its event carried. A position outside
+ *  that list is dropped rather than guessed at. */
+export function answeredFromEvent(
+  questions: CloudEventQuestion[],
+  answers: CloudEventAnswer[],
+): AnsweredQuestion[] {
+  return questions.map((q, i) => {
+    const answer = answers[i]
+    const options = q.options ?? []
+    const picked = (answer?.picked ?? [])
+      .filter((n) => Number.isInteger(n) && n >= 1 && n <= options.length)
+      .map((n) => options[n - 1] as string)
+    return { question: q.text, picked, typed: picked.length > 0 ? '' : (answer?.text ?? '').trim() }
+  })
+}
+
 /** An event as any surface draws it. Everything here came off the card; nothing else did. */
 export interface CloudEvent {
   id: string

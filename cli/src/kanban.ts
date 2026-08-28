@@ -137,9 +137,22 @@ export {
   disableBoardNotifications,
   enableBoardNotifications,
   readBoardNotifications,
+  setBoardServer,
   watchRelease,
 } from './lib/cloud/notifications'
 export type { BoardNotifications } from './lib/cloud/notifications'
+
+// The board's server (#318): the machine that runs an approval taken anywhere else. A board
+// attaches exactly one, and it is registered when its notifications are turned on.
+//
+// `startCloudServer` is the opposite of `startCloudCenter` above: EVERY enabled board's
+// server calls it, backgrounded ones included, because a request is addressed to one board's
+// server and the board a user has switched away from is exactly the one whose approval would
+// otherwise never run. Idempotent, like the bell's.
+export { startCloudServer, stopCloudServer } from './lib/cloud/board-server'
+export type { BoardServer } from './lib/cloud/servers'
+// The two moves a card page offers a delivery whose server was killed under it.
+export { cancelCloudRequest, resumeCloudRequest } from './lib/cloud/requests'
 export { notificationsSilenced, setNotificationsSilenced } from './lib/machine/settings'
 export { readCloudBoards } from './lib/cloud/boards'
 export type { CloudBoard } from './lib/cloud/boards'

@@ -31,6 +31,7 @@ import {
 } from '../lib/agent/types'
 import { say } from '../lib/io'
 import { die, DIR_FLAG } from '../lib/paths'
+import { holdCloudClaims } from '../lib/cloud/requests'
 import { changelogRefusal } from '../lib/releases'
 import { findCard } from '../lib/view/read'
 import type { MoveResult } from '../lib/types'
@@ -505,5 +506,13 @@ export async function cmdWatch(args: string[]): Promise<number> {
   const sessionId = args[0]
   if (!sessionId) return 1
   const { watchRun } = await import('../lib/agent/watch')
-  return watchRun(sessionId)
+  // The one process alive for the whole of a run, so it is what holds the lease on a claim
+  // an approval taken elsewhere left here (#318). A delivery started from a terminal has no
+  // board server behind it, and a lease nobody renews reads as an interrupted delivery.
+  const letGo = holdCloudClaims()
+  try {
+    return await watchRun(sessionId)
+  } finally {
+    letGo()
+  }
 }

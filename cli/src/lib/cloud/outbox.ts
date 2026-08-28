@@ -50,16 +50,36 @@ export type Pending =
       lastError?: string
       eventId: string
       outcome: CloudEventState
+      /** Why it ended badly, when it did — what a refused request carries onto its `failed`
+       *  so a refused approval and a broken build never read as one outcome (#318). */
+      reason?: string
     }
+
+/** One execution request this board's server has claimed and not yet finished (#318).
+ *
+ *  Held on the board rather than only in Cloud, because more than one local process has to
+ *  find it: whichever one is carrying the delivery renews its lease, the run that ends is
+ *  what reports an answer's outcome, and the card page's Resume and Cancel act on it. */
+export interface HeldClaim {
+  requestId: string
+  eventId: string
+  taskId: number
+  decision: 'implement' | 'answer'
+  /** The run an approved ANSWER started. An implement's states are reported by its delivery;
+   *  a resolve has no delivery, so this is what says whose ending is the request's outcome. */
+  sessionId?: string
+}
 
 interface Outbox {
   version: 1
   /** task id → what is on record for it. */
   published: Record<string, PublishedEvent>
   pending: Pending[]
+  /** request id → the claim this board holds on it. */
+  claims: Record<string, HeldClaim>
 }
 
-const EMPTY: Outbox = { version: 1, published: {}, pending: [] }
+const EMPTY: Outbox = { version: 1, published: {}, pending: [], claims: {} }
 
 const outboxFile = (): string => path.join(AKB_DIR, 'cloud-outbox.json')
 const outboxLock = (): string => path.join(AKB_DIR, 'cloud-outbox.lock')
@@ -71,9 +91,10 @@ function read(): Outbox {
       version: 1,
       published: parsed.published && typeof parsed.published === 'object' ? parsed.published : {},
       pending: Array.isArray(parsed.pending) ? parsed.pending : [],
+      claims: parsed.claims && typeof parsed.claims === 'object' ? parsed.claims : {},
     }
   } catch {
-    return { ...EMPTY, published: {}, pending: [] }
+    return { ...EMPTY, published: {}, pending: [], claims: {} }
   }
 }
 
@@ -166,6 +187,16 @@ export function failed(opId: string, error: string): void {
   })
 }
 
+/** Take over the record for one task from a claim (#318): an approval acted on somewhere
+ *  else never touched this board's outbox, so the delivery reporting #319 already wired has
+ *  nothing to report against until this is written. */
+export function notePublication(taskId: number, eventId: string, state: CloudEventState): void {
+  editOutbox((outbox) => {
+    const held = outbox.published[String(taskId)]
+    outbox.published[String(taskId)] = { eventId, fingerprint: held?.fingerprint ?? '', state }
+  })
+}
+
 /** Record a state a surface already knows about — an action taken here, a delivery that
  *  ended — without waiting for the round trip that carries it. */
 export function noteState(taskId: number, state: CloudEventState): void {
@@ -175,10 +206,35 @@ export function noteState(taskId: number, state: CloudEventState): void {
   })
 }
 
+// ---- the claims this board's server holds (#318) -----------------------------
+
+/** Every request this board has claimed and not finished. */
+export const heldClaims = (): HeldClaim[] => Object.values(read().claims)
+
+/** The claim on one task, or undefined. */
+export const claimForTask = (taskId: number): HeldClaim | undefined =>
+  heldClaims().find((c) => c.taskId === taskId)
+
+/** Write one down. Claimed and started are one edit: a claim recorded without the run it
+ *  started would be renewed forever by a board building nothing. */
+export function holdClaim(claim: HeldClaim): void {
+  editOutbox((outbox) => {
+    outbox.claims[claim.requestId] = claim
+  })
+}
+
+/** Let one go — the request is over, however it ended. */
+export function dropClaim(requestId: string): void {
+  editOutbox((outbox) => {
+    delete outbox.claims[requestId]
+  })
+}
+
 /** Forget everything this board has on Cloud. What turning a board's notifications off
  *  leaves behind, once its live events have been queued for retirement. */
 export function clearPublications(): void {
   editOutbox((outbox) => {
     outbox.published = {}
+    outbox.claims = {}
   })
 }

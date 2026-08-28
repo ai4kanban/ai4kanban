@@ -13,6 +13,7 @@ export type RefusalCode =
   | 'not_yours'
   | 'stale_revision'
   | 'already_acted'
+  | 'server_elsewhere'
   | 'not_found'
   | 'method_not_allowed'
   | 'daily_write_budget_reached'
@@ -109,6 +110,20 @@ export const staleRevision = () =>
 /** Exactly one durable action per event, whichever surface took it. */
 export const alreadyActed = () =>
   new Refusal('already_acted', 409, 'That event has already been answered.')
+
+/**
+ * A board attaches exactly one server (#318), and another machine already holds this one.
+ *
+ * The database's own sentence is carried through rather than replaced, because it names the
+ * machine — a refusal that said only "another machine" would leave the user with nothing to
+ * act on, and the move that takes the board over is the whole point of naming it.
+ */
+export const serverElsewhere = (message?: string) =>
+  new Refusal(
+    'server_elsewhere',
+    409,
+    message || 'This board already runs its work on another machine.',
+  )
 
 export const notFound = () => new Refusal('not_found', 404, 'No such endpoint.')
 

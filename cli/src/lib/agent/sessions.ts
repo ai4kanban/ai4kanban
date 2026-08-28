@@ -13,6 +13,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { locate } from '../cards'
+import type { CloudEventState } from '../cloud/events'
+import { reportCloudRunEnd } from '../cloud/publish'
 import { parseFrontmatter } from '../frontmatter'
 import { recordCardRun, setCardStatusOn } from '../board'
 // pidAlive lives with the lock, which needs the same question answered about whoever holds it.
@@ -139,6 +141,16 @@ export const RUN_IGNORE_LINES = [
   { line: '.sessions.lock/', comment: '# The lock that record is written under.' },
   { line: '.index.lock/', comment: '# Held by the one run at a time that may rewrite the board index.' },
 ]
+
+/** How a run's own ending reads as one of #319's nine event states. A run the user stopped
+ *  is `cancelled` rather than `failed`: only the user can cancel one, and a build that broke
+ *  and a decision the user took back must never read the same. */
+const RUN_OUTCOME: Partial<Record<RunStatus, CloudEventState>> = {
+  done: 'completed',
+  stopped: 'cancelled',
+  error: 'failed',
+  interrupted: 'interrupted',
+}
 
 // ---- the run's own files ---------------------------------------------------
 
@@ -772,6 +784,10 @@ export async function closeRun(
   await settleDelivery(closed)
   await restoreCardStatus(closed)
   await recordRecurringRun(closed)
+  // How a run started from an approved ANSWER ended (#318). An implement's states are its
+  // delivery's to report, which `settleDelivery` above has already done; a resolve has no
+  // delivery, so its own ending is what closes the request out.
+  reportCloudRunEnd(sessionId, RUN_OUTCOME[closed.status] ?? 'failed')
   dropSpec(sessionId)
   pruneLogs()
 }

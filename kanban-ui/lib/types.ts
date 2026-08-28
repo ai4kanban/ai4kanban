@@ -120,7 +120,7 @@ export type {
   CloudEventQuestion,
   CloudEventState,
 } from "./format/cloud/events";
-export { bandLabel, CARD_BAND_STATES, eventLabel, isFinalEventState } from "./format/cloud/events";
+export { answerNotes, bandLabel, CARD_BAND_STATES, eventLabel, isFinalEventState } from "./format/cloud/events";
 
 export type { Language } from "./format/machine/types";
 export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from "./format/machine/types";

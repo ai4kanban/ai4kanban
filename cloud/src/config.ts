@@ -7,6 +7,17 @@
  */
 export const DAILY_WRITE_BUDGET = 20_000
 
+/**
+ * How long a server's claim on a request holds without being renewed (#318).
+ *
+ * Past it the claim reads as interrupted wherever it is read, because a killed server
+ * reports nothing and Cloud runs no sweep. Minutes rather than seconds, and set here rather
+ * than by the client: a renewal is a write against the one daily budget above, so a delivery
+ * running for hours must cost tens of them rather than thousands. The client renews well
+ * inside this — see RENEW_MS in cli/src/lib/cloud/requests.ts.
+ */
+export const CLAIM_LEASE_SECONDS = 15 * 60
+
 /** How long a fetched JWKS is reused before it is fetched again. */
 export const JWKS_TTL_MS = 10 * 60 * 1000
 

@@ -20,6 +20,8 @@ import {
   resolveBoard,
   splitShared,
 } from './board-cli'
+import { flushOnExit } from './cloud/publish'
+import { catchUpOnExit } from './cloud/requests'
 import { KANBAN, setBoardRoot } from './paths'
 import { cmdAgent } from '../commands/agent'
 import { cmdChat } from '../commands/chat'
@@ -148,6 +150,11 @@ export async function runAgent(argv: string[], options: RunAgentOptions = {}): P
   try {
     const data = action ? await cmdStartRun(action, args, program) : await other!(args, program)
     if (json) answer({ ok: true, board: KANBAN, ...data, ...prose(box) })
+    // This command is over the moment it returns, so this is the outbox's one chance to
+    // reach Cloud (#319) and the board's one chance to claim an approval taken somewhere
+    // else (#318). Both bounded, and silent either way.
+    await flushOnExit()
+    await catchUpOnExit()
     return 0
   } catch (err) {
     return report(err, { program, json, box: box as Sink | null, move: raw })

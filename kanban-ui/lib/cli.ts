@@ -265,6 +265,19 @@ export interface BoardRules {
     answers: CloudEventAnswer[],
   ): void;
 
+  // this board's server (#318) — the machine that runs an approval taken anywhere else.
+  //
+  // `startCloudServer` is the opposite of `startCloudCenter` above: every enabled board's
+  // server calls it, backgrounded ones included, because a request is addressed to one
+  // board's server and the board a user has switched away from is exactly the one whose
+  // approval would otherwise never run. Idempotent, and called from the dispatcher's tick.
+  startCloudServer?(): void;
+  setBoardServer?(on: boolean, takeOver?: boolean): Promise<WriteResult>;
+  /** The two moves an interrupted request offers on the card page: take it up again on this
+   *  machine, or end it. */
+  resumeCloudRequest?(eventId: string): Promise<WriteResult>;
+  cancelCloudRequest?(taskId: number, eventId: string): WriteResult;
+
   // what the board would start on its own, this minute
   nextWork(): Promise<AgentRequest[]>;
 }

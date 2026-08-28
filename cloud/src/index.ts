@@ -15,6 +15,14 @@ import { json, refusalResponse } from './http.ts'
 import { redeemInvitation, requestInvite } from './invites.ts'
 import { readSession, requireOwner } from './owner.ts'
 import { runScheduled } from './scheduled.ts'
+import {
+  attachServer,
+  claimRequest,
+  detachServer,
+  listRequests,
+  listServers,
+  renewClaim,
+} from './servers.ts'
 
 interface SelfCheck {
   writes_today: number
@@ -85,6 +93,45 @@ async function route(request: Request, env: Env): Promise<Response> {
     requireMethod(request, 'POST')
     const owner = await requireOwner(request, env)
     return json(await registerBoard(env, owner, await bodyOf(request)))
+  }
+
+  // Which machine runs a board's work, and the requests it claims (#318). A board attaches
+  // exactly one server; a second is refused and told which machine holds it.
+  const boardServer = /^\/v1\/boards\/([^/]+)\/server(?:\/(detach))?$/.exec(pathname)
+  if (boardServer) {
+    requireMethod(request, 'POST')
+    const [, board = '', move] = boardServer
+    const owner = await requireOwner(request, env)
+    const body = await bodyOf(request)
+    return json(
+      move === 'detach'
+        ? await detachServer(env, owner, board, body)
+        : await attachServer(env, owner, board, body),
+    )
+  }
+
+  if (pathname === '/v1/servers') {
+    requireMethod(request, 'GET')
+    return json(await listServers(env, await requireOwner(request, env)))
+  }
+
+  const serverRequests = /^\/v1\/servers\/([^/]+)\/requests$/.exec(pathname)
+  if (serverRequests) {
+    requireMethod(request, 'GET')
+    return json(await listRequests(env, await requireOwner(request, env), serverRequests[1] ?? ''))
+  }
+
+  const requestMove = /^\/v1\/requests\/([^/]+)\/(claim|renew)$/.exec(pathname)
+  if (requestMove) {
+    requireMethod(request, 'POST')
+    const [, id = '', move] = requestMove
+    const owner = await requireOwner(request, env)
+    const body = await bodyOf(request)
+    return json(
+      move === 'claim'
+        ? await claimRequest(env, owner, id, body)
+        : await renewClaim(env, owner, id, body),
+    )
   }
 
   if (pathname === '/v1/events') {

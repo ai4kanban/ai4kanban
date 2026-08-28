@@ -32,9 +32,12 @@ import {
 } from './client'
 import type { CloudEventAnswer, CloudEventState } from './events'
 import {
+  claimForTask,
   clearPublications,
+  dropClaim,
   editOutbox,
   forgetPublication,
+  heldClaims,
   isEnded,
   livePublications,
   noteState,
@@ -45,6 +48,7 @@ import {
   failed,
   type Pending,
 } from './outbox'
+import { attachBoardServer } from './servers'
 import { readSession } from './session'
 import { snapshotFor } from './snapshot'
 
@@ -212,12 +216,17 @@ async function reconcileAgainstCloud(enabled: CloudBoard, actionable: Set<number
 
 // ---- turning a board on and off ---------------------------------------------
 
-/** The first fill of a board that has just been enabled: register it, then publish
- *  everything it is already holding actionable. Nothing is raised for any of it. */
+/** The first fill of a board that has just been enabled: register it, register this machine
+ *  as its server, then publish everything it is already holding actionable. Nothing is raised
+ *  for any of it.
+ *
+ *  A board already held by another machine keeps publishing and runs nothing (#318): the two
+ *  are separate, and the Cloud section is where the user moves the server here. */
 export async function startPublishing(): Promise<void> {
   const enabled = publishing()
   if (!enabled) return
   await registerBoard(enabled.id, enabled.name)
+  await attachBoardServer()
   await publishBoardEvents({ reconcile: true })
 }
 
@@ -276,7 +285,7 @@ const startedBeforeAction = new Map<number, { eventId: string; state: CloudEvent
  * against. Recorded independently of the action itself, so either can retry without
  * duplicating the other.
  */
-export function recordCloudDeliveryState(taskId: number, outcome: CloudEventState): void {
+export function recordCloudDeliveryState(taskId: number, outcome: CloudEventState, reason = ''): void {
   const held = publishedFor(taskId)
   if (!held || held.state === outcome) return
   if (held.state === 'actionable') {
@@ -285,9 +294,28 @@ export function recordCloudDeliveryState(taskId: number, outcome: CloudEventStat
     startedBeforeAction.set(taskId, { eventId: held.eventId, state: outcome })
     return
   }
-  queue({ opId: newOpId(), kind: 'outcome', attempts: 0, eventId: held.eventId, outcome })
+  queue({ opId: newOpId(), kind: 'outcome', attempts: 0, eventId: held.eventId, outcome, reason })
   noteState(taskId, outcome)
+  // An outcome that is not `running` ends the execution request too (#318) — Cloud finishes
+  // it in the same transaction — so the claim this board was renewing goes with it.
+  if (outcome !== 'running') {
+    const claim = claimForTask(taskId)
+    if (claim) dropClaim(claim.requestId)
+  }
   void flushCloudOutbox()
+}
+
+/**
+ * How a run started from an approved answer ended (#318).
+ *
+ * An Implement's states are its DELIVERY's to report; a Resolve has no delivery, so the run
+ * itself is what says the request is over. Called from `closeRun`, which is the one place a
+ * run ends, and a no-op for every run no claim ever started — which is nearly all of them.
+ */
+export function reportCloudRunEnd(sessionId: string, outcome: CloudEventState): void {
+  const claim = heldClaims().find((c) => c.sessionId === sessionId)
+  if (!claim) return
+  recordCloudDeliveryState(claim.taskId, outcome)
 }
 
 // ---- sending ----------------------------------------------------------------
@@ -377,7 +405,7 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
     return { ok: true }
   }
 
-  const answer = await recordOutcome(item.opId, item.eventId, item.outcome)
+  const answer = await recordOutcome(item.opId, item.eventId, item.outcome, item.reason ?? '')
   if (!answer.ok) return answer
   forget(item.eventId, answer.value.event.state)
   settle(item.opId)

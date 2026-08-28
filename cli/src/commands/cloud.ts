@@ -10,6 +10,8 @@
 
 import { readCloudAccount, signOutOfCloud } from '../lib/cloud/account'
 import { readCloudBoards } from '../lib/cloud/boards'
+import { listServers } from '../lib/cloud/client'
+import { thisMachine } from '../lib/machine/identity'
 import { die } from '../lib/paths'
 import { say } from '../lib/io'
 import type { MoveResult } from '../lib/types'
@@ -34,16 +36,39 @@ export async function cmdCloud(args: string[], program: string): Promise<MoveRes
   // somebody wonders why a board is or is not filling the bell. Turning one on is the
   // app's, under Configuration → Cloud.
   const boards = account.state === 'signed-in' ? readCloudBoards() : []
+  // And which machine runs each board's work (#318). A board attaches exactly one server,
+  // and an approval taken anywhere runs there and nowhere else — so a terminal wondering why
+  // an approval has not started is told which machine it is waiting for.
+  const servers = boards.length > 0 ? await serverNames(boards.map((b) => b.id)) : new Map<string, string>()
   if (boards.length > 0) {
+    const machine = thisMachine()
     say('')
     say(`Notifications are on for ${boards.length === 1 ? 'one board' : `${boards.length} boards`}:`)
     for (const board of boards) {
       const watching = board.release ? `watching ${board.release}` : 'no release picked, so nothing is raised'
       say(`  ${board.name} — ${watching}`)
       say(`    ${board.path}`)
+      say(`    ${serverLine(servers.get(board.id), machine?.name ?? '')}`)
     }
   }
   return { cloud: account, boards }
+}
+
+/** Which machine holds each board, by board id. Empty when Cloud cannot be reached — the
+ *  line then says so rather than naming the wrong machine. */
+async function serverNames(boardIds: string[]): Promise<Map<string, string>> {
+  const answer = await listServers()
+  if (!answer.ok) return new Map()
+  const held = new Map<string, string>()
+  for (const server of answer.value.servers) {
+    if (boardIds.includes(server.boardId)) held.set(server.boardId, server.machineName || 'an unnamed machine')
+  }
+  return held
+}
+
+function serverLine(holder: string | undefined, here: string): string {
+  if (!holder) return 'no machine runs its approvals, so an approval taken elsewhere waits'
+  return holder === here ? 'approvals run on this machine' : `approvals run on ${holder}`
 }
 
 function report(account: Awaited<ReturnType<typeof readCloudAccount>>, program: string): string[] {

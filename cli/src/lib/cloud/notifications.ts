@@ -10,6 +10,7 @@ import { REPO_ROOT } from '../paths'
 import type { WriteResult } from '../view/types'
 import { cloudBoardFor, disableCloudBoard, enableCloudBoard, setCloudBoardRelease } from './boards'
 import { publishBoardEvents, retireBoardEvents, startPublishing } from './publish'
+import { attachBoardServer, detachBoardServer, readBoardServer, type BoardServer } from './servers'
 import { readSession } from './session'
 
 /** What this board's Cloud notifications are set to, and what it can watch. */
@@ -23,6 +24,9 @@ export interface BoardNotifications {
   releases: string[]
   /** Nobody is signed in on this machine, so there is nothing to turn on. */
   signedIn: boolean
+  /** Which machine runs this board's work (#318) — an approval taken anywhere else runs
+   *  there and nowhere else. */
+  server: BoardServer
 }
 
 export async function readBoardNotifications(): Promise<BoardNotifications> {
@@ -38,7 +42,21 @@ export async function readBoardNotifications(): Promise<BoardNotifications> {
     release: held?.release ?? '',
     releases,
     signedIn: !!readSession(),
+    server: await readBoardServer(),
   }
+}
+
+/**
+ * Run this board's approvals on this machine, or stop.
+ *
+ * `takeOver` is the user moving the board to the machine in front of them: without it a
+ * board another machine already holds is refused and told which one. The refusal is offered
+ * with the move rather than on its own, because the case that reaches it is a home directory
+ * restored onto a new machine — where the machine holding the board is the one that is gone.
+ */
+export async function setBoardServer(on: boolean, takeOver = false): Promise<WriteResult> {
+  if (!cloudBoardFor(REPO_ROOT)) return { ok: false, error: 'Notifications are off for this board.' }
+  return on ? attachBoardServer(takeOver) : detachBoardServer()
 }
 
 /** Turn them on, watching one open release. The bell fills with whatever this board is
@@ -71,6 +89,9 @@ export async function watchRelease(release: string): Promise<WriteResult> {
 export async function disableBoardNotifications(): Promise<WriteResult> {
   if (!cloudBoardFor(REPO_ROOT)) return { ok: true }
   await retireBoardEvents()
+  // A board that raises no events has no approvals to run either, so this machine stops
+  // being its server (#318). Whatever is already building here finishes where it is.
+  await detachBoardServer()
   disableCloudBoard(REPO_ROOT)
   return { ok: true }
 }

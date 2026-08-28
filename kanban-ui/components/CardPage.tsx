@@ -24,10 +24,12 @@ import {
 import { FaPauseCircle } from "react-icons/fa";
 import {
   approveDeliveryAction,
+  cancelCloudRequestAction,
   cardOnBoardAction,
   discardDeliveryAction,
   dropVerifyAction,
   patchCardAction,
+  resumeCloudRequestAction,
   resumeSessionAction,
   scheduleCardAction,
   stopSessionAction,
@@ -676,6 +678,58 @@ function DeliveryNote({
         {c.waitingOnYou}
       </div>
       <p className="text-[13px] leading-[19px] text-nb-ink">{children}</p>
+    </div>
+  );
+}
+
+/** The two ways out of an interrupted request: take it up again on this machine, or end it.
+ *  Both act on the card, never on a delivery id — the delivery may be gone, which is exactly
+ *  the case this block exists for. */
+function InterruptedRequest({
+  taskId,
+  eventId,
+  onError,
+  onDone,
+}: {
+  taskId: number;
+  eventId: string;
+  onError: (message: string) => void;
+  onDone: () => void;
+}) {
+  const card = useCopy().card;
+  const c = card.interrupted;
+  const [busy, setBusy] = useState<"resume" | "cancel" | null>(null);
+
+  const move = async (which: "resume" | "cancel") => {
+    if (busy) return;
+    setBusy(which);
+    try {
+      const done =
+        which === "resume"
+          ? await resumeCloudRequestAction(eventId)
+          : await cancelCloudRequestAction(taskId, eventId);
+      if (!done.ok) onError(done.error || (which === "resume" ? c.resumeFailed : c.cancelFailed));
+      onDone();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="nb-outline px-3 py-2.5" style={{ background: PILL_SKIN.warn!.bg }}>
+      <div className="nb-tag mb-1.5" style={{ color: PILL_SKIN.warn!.ink }}>
+        <FiAlertCircle className="text-[13px]" aria-hidden />
+        {card.waitingOnYou}
+      </div>
+      <p className="text-[13px] leading-[19px] text-nb-ink">{c.line}</p>
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        <Button size="sm" disabled={!!busy} onClick={() => void move("resume")}>
+          {busy === "resume" ? c.resuming : c.resume}
+        </Button>
+        <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => void move("cancel")}>
+          {busy === "cancel" ? c.cancelling : c.cancel}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -1456,6 +1510,22 @@ export function CardPage({
                   reader has to act on — and everything else stays a line. A delivery just
                   building says nothing: the IN PROGRESS pill above already does, and
                   restating it in a sentence buys the reader nothing. */}
+              {/* An approval taken somewhere else whose machine stopped before it finished
+                  (#318). It is the one Cloud state with something to press, and it is pressed
+                  here — beside the delivery it belongs to — because a rail row opens this
+                  page and draws no view of its own. */}
+              {cloudEvent?.state === "interrupted" && (
+                <InterruptedRequest
+                  taskId={card.id}
+                  eventId={cloudEvent.eventId}
+                  onError={setError}
+                  onDone={() => {
+                    router.refresh();
+                    kick();
+                  }}
+                />
+              )}
+
               {deliveryLine && delivery && (
                 <DeliveryNote tone={PILL_TONE[delivery.state.stage]} paused={delivery.state.paused}>
                   {!justBuilding && marked(delivery.state.line)}

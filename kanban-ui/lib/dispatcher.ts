@@ -30,8 +30,13 @@ const TICK_MS = 60_000;
 // must not kill the timer, so the next minute still tries.
 async function tick(): Promise<void> {
   try {
-    if (!autoWorkAllowed()) return;
     const rules = await boardRules();
+    // Before the switched-away guard below, on purpose (#318): this board's own server runs
+    // an approval taken somewhere else whether or not its window is on screen, and the board
+    // a user has switched away from is exactly the one whose approval would otherwise never
+    // run. Idempotent, so every tick is either a no-op or the moment it comes back up.
+    rules.startCloudServer?.();
+    if (!autoWorkAllowed()) return;
     for (const req of await rules.nextWork()) {
       // Each start is independently refused-or-not by the run record's own rules; a refusal
       // on one card is not a reason to skip the rest — nor to fail the whole tick, which is
@@ -71,4 +76,11 @@ export function ensureDispatcher(): void {
   void repairDeliveries().then((lost) => {
     for (const line of lost) console.warn(`ai4kanban: ${line}`);
   });
+  // And this board's server once immediately, so an approval taken elsewhere while this
+  // machine was off is claimed as the server comes up rather than a minute later (#318).
+  // Only the server: unprompted board work still waits for the first tick, so it never
+  // races the repair above.
+  void boardRules()
+    .then((rules) => rules.startCloudServer?.())
+    .catch(() => {});
 }

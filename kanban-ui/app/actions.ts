@@ -42,11 +42,14 @@ import {
 import { setMachineLanguage } from "@/lib/language";
 import {
   boardNotifications,
+  cancelCloudRequest,
   disableNotifications,
   enableNotifications,
   notificationCenter,
   openNotification,
   recordCloudAction,
+  resumeCloudRequest,
+  setBoardServer,
   setSilenced,
   watchRelease,
   type BoardNotifications,
@@ -1025,7 +1028,13 @@ export async function boardNotificationsAction(): Promise<BoardNotifications> {
   try {
     return await boardNotifications();
   } catch {
-    return { enabled: false, release: "", releases: [], signedIn: false };
+    return {
+      enabled: false,
+      release: "",
+      releases: [],
+      signedIn: false,
+      server: { attached: false, here: false, machineName: "", thisMachine: "" },
+    };
   }
 }
 
@@ -1053,6 +1062,41 @@ export async function watchReleaseAction(release: string): Promise<WriteResult> 
 export async function disableNotificationsAction(): Promise<WriteResult> {
   try {
     return await disableNotifications();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- this board's server (#318) ----------------------------------------------
+// Which machine runs an approval taken anywhere else. A board attaches exactly one, so
+// turning this on for a board another machine holds is refused and told which one; `takeOver`
+// is the user moving the board to the machine in front of them, on purpose.
+
+export async function setBoardServerAction(on: boolean, takeOver = false): Promise<WriteResult> {
+  try {
+    return await setBoardServer(!!on, !!takeOver);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Take an interrupted delivery up again on the machine that claimed it. */
+export async function resumeCloudRequestAction(eventId: string): Promise<WriteResult> {
+  if (typeof eventId !== "string" || !eventId) return { ok: false, error: "that names no event" };
+  try {
+    return await resumeCloudRequest(eventId);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** End it. Whatever it left on the machine that started it stays exactly where it is — which
+ *  is why this needs no claim: that machine may be the one that has gone. */
+export async function cancelCloudRequestAction(taskId: number, eventId: string): Promise<WriteResult> {
+  if (!Number.isInteger(taskId)) return { ok: false, error: "that is not a card" };
+  if (typeof eventId !== "string" || !eventId) return { ok: false, error: "that names no event" };
+  try {
+    return await cancelCloudRequest(taskId, eventId);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

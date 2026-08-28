@@ -221,6 +221,18 @@ export type ConfigurationCopy = {
       title: string;
       blurb: string;
     };
+    /** Which machine runs this board's approvals (#318). A board attaches exactly one. */
+    server: {
+      title: string;
+      blurb: string;
+      /** Another machine holds this board. Takes its name. */
+      heldBy: (machine: string) => string;
+      moveHere: string;
+      moving: string;
+      /** Only read out loud: the switch. */
+      switchOn: string;
+      switchOff: string;
+    };
     /** This board's own notifications, and the one open release they watch. */
     notifications: {
       title: string;

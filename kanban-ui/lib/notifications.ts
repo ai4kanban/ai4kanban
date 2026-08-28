@@ -58,13 +58,23 @@ export interface NotificationCenter {
   unavailable?: string;
 }
 
+/** Which machine runs a board's work (#318). A board attaches exactly one server, and an
+ *  approval taken anywhere else runs there and nowhere else. */
+export interface BoardServer {
+  attached: boolean;
+  here: boolean;
+  machineName: string;
+  thisMachine: string;
+}
+
 /** What this board's Cloud section shows: whether notifications are on, which release they
- *  watch, and which ones they could. */
+ *  watch, which ones they could, and which machine runs their approvals. */
 export interface BoardNotifications {
   enabled: boolean;
   release: string;
   releases: string[];
   signedIn: boolean;
+  server: BoardServer;
 }
 
 const OFF: NotificationCenter = {
@@ -113,9 +123,12 @@ export async function setSilenced(on: boolean): Promise<{ ok: boolean; error?: s
 export async function boardNotifications(): Promise<BoardNotifications> {
   const rules = await boardRules();
   if (!rules.readBoardNotifications) {
-    return { enabled: false, release: "", releases: [], signedIn: false };
+    return { enabled: false, release: "", releases: [], signedIn: false, server: NO_SERVER };
   }
-  return rules.readBoardNotifications();
+  const state = await rules.readBoardNotifications();
+  // Rules that predate the board's server say nothing about one, and the row draws as
+  // "no machine runs this" rather than failing to draw the section.
+  return { ...state, server: state.server ?? NO_SERVER };
 }
 
 /** Turn them on, watching one open release. The bell fills with what this board is already
@@ -138,6 +151,36 @@ export async function disableNotifications(): Promise<{ ok: boolean; error?: str
   const rules = await boardRules();
   if (!rules.disableBoardNotifications) return { ok: false, error: TOO_OLD };
   return rules.disableBoardNotifications();
+}
+
+// --- this board's server (#318) -----------------------------------------------
+
+const NO_SERVER: BoardServer = { attached: false, here: false, machineName: "", thisMachine: "" };
+
+/** Run this board's approvals on this machine, or stop. `takeOver` is the user moving the
+ *  board to the machine in front of them — without it a board another machine holds is
+ *  refused and told which one. */
+export async function setBoardServer(on: boolean, takeOver = false): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  if (!rules.setBoardServer) return { ok: false, error: TOO_OLD };
+  return rules.setBoardServer(on, takeOver);
+}
+
+/** Take up a delivery whose server was killed under it, on the machine that claimed it. */
+export async function resumeCloudRequest(eventId: string): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  if (!rules.resumeCloudRequest) return { ok: false, error: TOO_OLD };
+  return rules.resumeCloudRequest(eventId);
+}
+
+/** End it instead. Whatever it left on this machine stays exactly where it is. */
+export async function cancelCloudRequest(
+  taskId: number,
+  eventId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  if (!rules.cancelCloudRequest) return { ok: false, error: TOO_OLD };
+  return rules.cancelCloudRequest(taskId, eventId);
 }
 
 /** Record the one durable action a live event carries, from a click on this machine. It

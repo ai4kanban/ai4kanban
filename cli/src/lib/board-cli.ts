@@ -24,6 +24,7 @@ import { BoardError, say, startCollecting, stopCollecting, warn, type Sink } fro
 import { board, moveTarget, withLease } from './board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from './board/local'
 import { flushOnExit } from './cloud/publish'
+import { catchUpOnExit } from './cloud/requests'
 import { boardHelp, findMove, legacyHelp, moveHelp, MOVE_NAMES } from './help'
 import type { MoveOutput, OpResult } from './board'
 
@@ -227,6 +228,9 @@ export async function runBoard(argv: string[], options: RunBoardOptions = {}): P
     // to reach Cloud before the process ends (#319). Bounded, and silent either way: what
     // does not get out stays queued and is retried on the next write.
     await flushOnExit()
+    // …and its one chance to claim an approval taken somewhere else (#318). A board whose
+    // machine has no window open still runs its work the moment any command is run there.
+    await catchUpOnExit()
     return 0
   } catch (err) {
     return report(err, { program, json, box, move: withMove ? move : null })

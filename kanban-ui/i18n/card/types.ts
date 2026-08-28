@@ -15,6 +15,17 @@ export type CardCopy = {
   supersedes: string;
   /** The heading over a delivery note that is waiting on the reader. */
   waitingOnYou: string;
+  /** An approval taken elsewhere whose machine stopped before it finished (#318). Nothing
+   *  picks it up on its own, so the two ways out are here beside the delivery. */
+  interrupted: {
+    line: string;
+    resume: string;
+    resuming: string;
+    cancel: string;
+    cancelling: string;
+    resumeFailed: string;
+    cancelFailed: string;
+  };
   /** Why the card's own controls are off while a delivery holds it. Follows the
    *  delivery's own line, which is the board's words rather than the UI's. */
   heldPaused: string;

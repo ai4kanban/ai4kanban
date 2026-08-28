@@ -12,6 +12,15 @@ const en: CardCopy = {
   supersedes:
     "Earlier approved work no longer matched this card, so this run started fresh from the current version.",
   waitingOnYou: "waiting on you",
+  interrupted: {
+    line: "The machine building this stopped before it finished. Nothing picks it up on its own.",
+    resume: "Resume it here",
+    resuming: "Resuming…",
+    cancel: "Cancel it",
+    cancelling: "Cancelling…",
+    resumeFailed: "couldn't take this up again",
+    cancelFailed: "couldn't cancel it",
+  },
   heldPaused: "Discard ends the delivery and takes the card back.",
   heldRunning: "Stop the run, then Discard takes the card back.",
   toolbar: {

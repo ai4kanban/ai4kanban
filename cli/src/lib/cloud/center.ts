@@ -140,9 +140,14 @@ export function startCloudCenter(focused: boolean): void {
   held.starting = (async () => {
     // The reconciliation this board owes Cloud, before anything is listened for.
     await publishBoardEvents({ reconcile: true }).catch(() => {})
+    const session = readSession()
     held.live = connectCloudLive({
+      topic: `account:${session?.subject ?? ''}`,
       onReady: (firstTime) => void catchUp(firstTime),
-      onHint: (eventId) => void hint(eventId),
+      onHint: (payload) => {
+        const id = payload.eventId
+        if (typeof id === 'string' && id) void hint(id)
+      },
     })
     // No socket on this runtime — the bell still fills from the catch-up read.
     if (!held.live) await catchUp(true)

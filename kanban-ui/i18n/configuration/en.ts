@@ -241,6 +241,17 @@ const en: ConfigurationCopy = {
       title: "Silence system notifications",
       blurb: "Stops every board on this machine interrupting you. The bell keeps filling.",
     },
+    server: {
+      title: "Run this board's work here",
+      blurb:
+        "An approval you press anywhere — the bell, another machine, Slack — runs on this machine. A board runs on one machine only.",
+      heldBy: (machine) =>
+        `This board runs its work on **${machine}**, so an approval waits for that machine. Move it here if that machine has gone.`,
+      moveHere: "Move it here",
+      moving: "Moving…",
+      switchOn: "Run this board's work here — on",
+      switchOff: "Run this board's work here — off",
+    },
     notifications: {
       title: "Notifications for this board",
       blurb:
