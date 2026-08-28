@@ -91,7 +91,7 @@ const closing = (
   before: BoardMarks,
   waitingForSpec = false,
 ): ReturnType<typeof refinementRunsAfter> =>
-  refinementRunsAfter(record, claimChanges(before, record.sessionId), waitingForSpec)
+  refinementRunsAfter(record, claimChanges(before, record.sessionId), before, waitingForSpec)
 
 function afterSession(
   action: AgentAction,
@@ -101,6 +101,34 @@ function afterSession(
   const before: BoardMarks = markBoard()
   wrote()
   return closing(run(action, round), before)
+}
+
+// A second card in the same track — the piece a run splits off, or one it only edits.
+function writePiece(id: number, opts: { body?: string; blockedBy?: number[] } = {}): void {
+  fs.writeFileSync(
+    path.join(track, `${id}-a-piece.md`),
+    [
+      '---',
+      `title: Piece ${id}`,
+      'track: skill',
+      'priority: med',
+      'roi: med',
+      'status: todo',
+      'release: ""',
+      `blocked_by: [${(opts.blockedBy ?? []).join(', ')}]`,
+      'related: []',
+      'modules: []',
+      'questions: []',
+      '---',
+      '',
+      opts.body ?? 'Enough to name the piece.',
+      '',
+      '## Todo',
+      '',
+      '- [ ] build it',
+      '',
+    ].join('\n'),
+  )
 }
 
 describe('entering refinement', () => {
@@ -379,6 +407,83 @@ describe('two runs at once', () => {
     const wide = markBoard()
     writeCard({ body: 'What the live pass on #7 is writing.' })
     assert.deepEqual(closing(other(), wide).runs, [])
+  })
+})
+
+// A subtask is born rough and nothing else comes for it, so the run that wrote it leaves a
+// refine behind — even when that run's own action performs its own judgment on its own card.
+describe('the refine a created card gets', () => {
+  it('follows the subtasks a refine pass split off, not the card it only edited', () => {
+    writeCard()
+    writePiece(9)
+    const before = markBoard()
+    writePiece(9, { body: 'Edited in passing.' })
+    writePiece(10)
+    writePiece(11)
+    const { runs } = closing(run('clarify', 1), before)
+    assert.deepEqual(
+      runs.map((r) => [r.action, r.id]),
+      [
+        ['clarify', 10],
+        ['clarify', 11],
+        ['writing', 7],
+      ],
+    )
+  })
+
+  it('leaves a blocked subtask to the one-shot schedule its creation gave it', () => {
+    writeCard()
+    const before = markBoard()
+    writePiece(10)
+    writePiece(11, { blockedBy: [10] })
+    const { runs } = closing(run('clarify', 1), before)
+    assert.deepEqual(
+      runs.map((r) => [r.action, r.id]),
+      [
+        ['clarify', 10],
+        ['writing', 7],
+      ],
+    )
+  })
+
+  it('gives a finished setup a refine on every card the board holds', () => {
+    writeCard()
+    writePiece(10)
+    const before = markBoard()
+    writePiece(11)
+    const setup: RunRecord = {
+      ...run('setup', 1, { sessionId: 'setup', cardId: null }),
+      refineRound: undefined,
+    }
+    const { runs } = closing(setup, before)
+    assert.deepEqual(
+      runs.map((r) => [r.action, r.id]),
+      [
+        ['clarify', 7],
+        ['clarify', 10],
+        ['clarify', 11],
+      ],
+    )
+  })
+
+  it('still follows every card an action outside that list changed', () => {
+    writeCard()
+    writePiece(10)
+    const before = markBoard()
+    writePiece(10, { body: 'Edited by the review.' })
+    writePiece(11)
+    const review: RunRecord = {
+      ...run('review', 1, { sessionId: 'review-9', cardId: 9 }),
+      refineRound: undefined,
+    }
+    const { runs } = closing(review, before)
+    assert.deepEqual(
+      runs.map((r) => [r.action, r.id]),
+      [
+        ['clarify', 10],
+        ['clarify', 11],
+      ],
+    )
   })
 })
 

@@ -245,8 +245,10 @@ judgment calls, and clears the list.
 
 You rarely have to ask. Any run that writes or changes a card is followed by a refine of
 that card, started on its own once the run ends — so a card you add, revise or resolve comes
-back refined without a second instruction. A rough card that becomes blocked saves its own
-one-shot refine instead; archiving or rejecting its last blocker makes that schedule eligible.
+back refined without a second instruction. A card a run splits off comes back refined too,
+whichever run created it, and finishing setup refines each of the first cards it writes. A
+rough card that becomes blocked saves its own one-shot refine instead; archiving or
+rejecting its last blocker makes that schedule eligible.
 Each one is an ordinary run: you can watch its log and stop it. What has nothing to refine is
 skipped — a card still blocked,
 one already ready, a

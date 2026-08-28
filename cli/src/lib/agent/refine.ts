@@ -217,29 +217,43 @@ export function refinementAfter(
   return afterQa(card, round, flowId)
 }
 
-// Resolve and revise perform QA themselves. Their follow-up is handled explicitly below so
-// a clean pass can start writing without scheduling another QA session.
-const NO_FOLLOW = new Set<AgentAction>([
+// Actions that follow only the cards they CREATED. Each of them just exercised its own
+// judgment on the card it names — a refine pass, a build, a revise, a resolve, a spec agent —
+// so a refine of a card one of them merely edited spends a run re-doing what has just
+// closed. A card one of them split off is another matter: it is as rough as any other
+// newborn card, and nothing else comes for it.
+const FOLLOWS_CREATED = new Set<AgentAction>([
   'implement',
   'edit',
   'clarify',
   'resolve',
   'writing',
-  'setup',
+  'spec',
 ])
 
-/** Cards this run changed and left worth refining — its own claims and no one else's. A
- * blocked card carries its own one-shot refine schedule, so dependency completion is not
- * inferred here. */
-function refinesAfter(action: AgentAction, changed: readonly number[]): AgentRequest[] {
-  if (NO_FOLLOW.has(action)) return []
+/** Cards this run left worth refining — its own claims and no one else's. `before` is the
+ * board as the run found it, so a claim it doesn't name is a card the run created. A blocked
+ * card carries its own one-shot refine schedule, so dependency completion is not inferred
+ * here. */
+function refinesAfter(
+  action: AgentAction,
+  changed: readonly number[],
+  before: BoardMarks,
+): AgentRequest[] {
   let cards: Card[]
   try {
     cards = allCards()
   } catch {
     return []
   }
-  const mine = new Set(changed)
+  // Setup follows the whole board rather than its own claims: the mark is taken per run and
+  // only a finished run follows anything, so a setup that failed part-way and was started
+  // again would leave the first attempt's cards unrefined. The setup gate means no card but
+  // setup's own can be there to catch.
+  const mine =
+    action === 'setup'
+      ? new Set(cards.map((card) => card.id))
+      : new Set(FOLLOWS_CREATED.has(action) ? changed.filter((id) => !before.has(id)) : changed)
   return cards
     .filter((card) => mine.has(card.id))
     .filter((card) => card.openBlockers.length === 0 && !card.schedule && canRefine(card))
@@ -290,6 +304,7 @@ function qaAfterSpec(run: RunRecord): AgentRequest | null {
 export function refinementRunsAfter(
   run: RunRecord,
   changed: readonly number[],
+  before: BoardMarks,
   waitingForSpec = false,
 ): RefinementFollowUp {
   const next =
@@ -300,7 +315,7 @@ export function refinementRunsAfter(
         : run.refineRound === undefined
           ? null
           : refinementAfter(run.action, run.cardId, run.refineRound, changed, run.flowId)
-  const starts = refinesAfter(run.action, changed).filter(
+  const starts = refinesAfter(run.action, changed, before).filter(
     (req) =>
       req.id !== run.cardId || (run.refineRound === undefined && run.action !== 'spec'),
   )

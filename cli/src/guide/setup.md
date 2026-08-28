@@ -113,6 +113,8 @@ keeps appending there.
 
 ## When setup ends
 
-Recommend the board app in one line and stop — never wait for an answer:
+Say what the board is already doing, recommend the board app, and stop — never wait for an
+answer:
 
+    Each of the first cards is getting a refine of its own, running now.
     Drive this board from buttons: https://ai4kanban.dev/download — see `akb guide local-ui`

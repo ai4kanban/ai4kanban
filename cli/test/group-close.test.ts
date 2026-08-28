@@ -206,7 +206,7 @@ describe('the refine a finished run starts on its own', () => {
       harness: 'test',
       logPath: '/dev/null',
     }
-    const { runs } = refinementRunsAfter(run, claimChanges(before, run.sessionId))
+    const { runs } = refinementRunsAfter(run, claimChanges(before, run.sessionId), before)
     assert.deepEqual(runs.map((r) => r.id), [])
   })
 })

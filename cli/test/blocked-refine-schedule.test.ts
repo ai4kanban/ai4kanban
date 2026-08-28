@@ -190,7 +190,7 @@ describe('the default refine schedule', () => {
       refineRound: 1,
     }
 
-    assert.deepEqual(refinementRunsAfter(run, claimChanges(before, run.sessionId)), {
+    assert.deepEqual(refinementRunsAfter(run, claimChanges(before, run.sessionId), before), {
       runs: [],
       stalled: undefined,
     })
@@ -214,6 +214,6 @@ describe('removing a blocker', () => {
       logPath: '/dev/null',
     }
 
-    assert.deepEqual(refinementRunsAfter(run, claimChanges(before, run.sessionId)).runs, [])
+    assert.deepEqual(refinementRunsAfter(run, claimChanges(before, run.sessionId), before).runs, [])
   })
 })

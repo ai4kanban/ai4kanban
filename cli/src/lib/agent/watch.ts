@@ -29,6 +29,7 @@ import {
   claimChanges,
   markBoard,
   refinementRunsAfter,
+  type BoardMarks,
   type RefinementFollowUp,
 } from './refine'
 import {
@@ -279,7 +280,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       //
       // Worked out BEFORE the record closes, so anything watching for the run to end sees
       // the note it ended with rather than catching the record a beat too early.
-      const settled = status === 'done' ? settleBoard(record, changed) : null
+      const settled = status === 'done' ? settleBoard(record, changed, before) : null
       const note = status === 'done' ? joinNotes(settled?.stalled, brokeBoard(wasBroken)) : undefined
       await closeRun(sessionId, {
         status,
@@ -415,10 +416,14 @@ const joinNotes = (...parts: (string | null | undefined)[]): string | undefined 
 // The refinement sessions this run leaves behind, worked out but not started, plus
 // `stalled` — a refinement loop that ended with its card unsettled (agent/refine.ts). The
 // pass's own call on the status stands: nothing out here has read the card.
-function settleBoard(run: RunRecord, changed: readonly number[]): RefinementFollowUp | null {
+function settleBoard(
+  run: RunRecord,
+  changed: readonly number[],
+  before: BoardMarks,
+): RefinementFollowUp | null {
   try {
     const waitingForSpec = readSpecAsks(run.sessionId).some((ask) => ask.cardId === run.cardId)
-    return refinementRunsAfter(run, changed, waitingForSpec)
+    return refinementRunsAfter(run, changed, before, waitingForSpec)
   } catch {
     // an unreadable board — the run it followed is done either way
     return null
