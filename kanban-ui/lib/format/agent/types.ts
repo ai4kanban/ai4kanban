@@ -670,6 +670,9 @@ export interface RuntimeView {
   global: boolean
   /** The harness it actually resolves to here, after every fallback. */
   harness: string
+  /** The model that harness is set to here. Absent where nothing set one, so the harness
+   *  runs its own default — there is no name for that default to give. */
+  model?: string
   /** Absent when this computer's own binding for it is what ran. */
   fallback?: RuntimeFallback
 }

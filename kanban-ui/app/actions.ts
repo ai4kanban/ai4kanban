@@ -1110,7 +1110,7 @@ export async function boardNotificationsAction(): Promise<BoardNotifications> {
       release: "",
       releases: [],
       signedIn: false,
-      server: { attached: false, here: false, machineName: "", thisMachine: "" },
+      server: { attached: false, here: false, machineName: "", thisMachine: "", runtimes: [] },
     };
   }
 }

@@ -59,6 +59,17 @@ export interface NotificationCenter {
   unavailable?: string;
 }
 
+/** One of the board's runtimes, and what the machine holding the board runs it as (#345).
+ *  Names only — never a key, an argument string or a path. */
+export interface ServerRuntime {
+  name: string;
+  harness: string;
+  /** Absent where that machine set no model, so the harness runs its own default. */
+  model?: string;
+  /** That machine bound nothing for this runtime, so it fell back. */
+  fallback?: boolean;
+}
+
 /** Which machine runs a board's work (#318). A board attaches exactly one server, and an
  *  approval taken anywhere else runs there and nowhere else. */
 export interface BoardServer {
@@ -66,6 +77,9 @@ export interface BoardServer {
   here: boolean;
   machineName: string;
   thisMachine: string;
+  /** What that machine runs the board's runtimes as. Empty on a board that names none, and
+   *  on a Cloud that could not be reached or is too old to hold them. */
+  runtimes: ServerRuntime[];
 }
 
 /** What this board's Cloud section shows: whether notifications are on, how wide they watch,
@@ -128,8 +142,10 @@ export async function boardNotifications(): Promise<BoardNotifications> {
   }
   const state = await rules.readBoardNotifications();
   // Rules that predate the board's server say nothing about one, and the row draws as
-  // "no machine runs this" rather than failing to draw the section.
-  return { ...state, server: state.server ?? NO_SERVER };
+  // "no machine runs this" rather than failing to draw the section. Rules that predate its
+  // runtimes (#345) draw the row with no runtime lines under it.
+  const server = state.server ?? NO_SERVER;
+  return { ...state, server: { ...server, runtimes: server.runtimes ?? [] } };
 }
 
 /** Watch a different release — what the rail asks for when the last one closed. */
@@ -141,7 +157,7 @@ export async function watchRelease(release: string): Promise<{ ok: boolean; erro
 
 // --- this board's server (#318) -----------------------------------------------
 
-const NO_SERVER: BoardServer = { attached: false, here: false, machineName: "", thisMachine: "" };
+const NO_SERVER: BoardServer = { attached: false, here: false, machineName: "", thisMachine: "", runtimes: [] };
 
 /** Run this board's approvals on this machine, or stop. `takeOver` is the user moving the
  *  board to the machine in front of them — without it a board another machine holds is

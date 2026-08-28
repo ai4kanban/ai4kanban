@@ -66,6 +66,7 @@ A Cloud workspace holds the board and only the board:
 - **History** — the board's counts and records, the delivery record of what each run built, and an audit trail attributing every change to the member who made it.
 - **Membership** — who is in the workspace and what role each member holds.
 - **Events and actions** — the questions, review requests, and approvals a member is asked to act on, and their outcomes.
+- **A board's machine record** — which computer runs the board's work, and what that computer runs the board's runtimes as. Described in full below.
 
 Whatever you type into a card, a memory file, or a release note is stored as you wrote it. Treat a shared board the way you would treat any shared document: if a card body would be sensitive in a wiki, it is sensitive here too.
 
@@ -79,13 +80,23 @@ Once you act on an event, Cloud also holds **the decision you made and the answe
 
 An event is kept while it is unresolved, and **deleted 30 days after it reaches a final outcome** — completed, failed, cancelled, interrupted, or retired because the task stopped needing you. Deleting it takes its answers, its outcome, and any message it was delivered as with it.
 
+### What a board's machine record holds
+
+A board runs its work on one computer, so that computer registers itself with Cloud — otherwise an approval you press in Slack has nowhere to run. The record holds three things and no more:
+
+- **A machine identifier** the computer generated for itself. It is tied to no account and to nothing about your hardware, and it means nothing outside Cloud.
+- **The name that computer calls itself** — its hostname, so you can tell one of your machines from another. Never an address.
+- **What it runs the board's runtimes as** — for each runtime your board names, the **name of the coding agent** that computer runs it with, and the **name of the model** you set for it where you set one. Names only: never a key, never the arguments or the path a command runs under, and never the folder your board is in.
+
+The record is kept for as long as the board is on Cloud, and goes when the board or the workspace goes. Moving the board to another machine retires the old computer's record rather than deleting it, so a job that machine started and never finished can still be accounted for.
+
 ### What never reaches Cloud
 
 Cloud coordinates a board. It does not run your project, and the following never leave your machine:
 
 - **Your source code**, your repository, your working tree, your branches, your commits, and your merges.
 - **Your credentials** — Git remotes, SSH keys, tokens, and anything in your environment.
-- **Your model provider keys and accounts.** Your coding agent runs locally, under your own account with your own provider.
+- **Your model provider keys and accounts.** Your coding agent runs locally, under your own account with your own provider. The board's machine record names which agent and model a computer runs — the names alone, never anything you sign in with.
 - **Agent transcripts and prompts.** A run happens on your machine; Cloud sees the card it produced, not the conversation that produced it.
 
 **No AI model is ever run over your board content.** We do not send cards, memory files, or any other workspace content to an AI provider, and we do not use your board content to train any model, ours or anyone else's.
@@ -202,6 +213,7 @@ We keep personal information only as long as we need it for the purposes describ
 - **Your account record** — kept while your account can sign in. Ask us at [support@ai4kanban.dev](mailto:support@ai4kanban.dev) and we will delete it.
 - **Your invite request and your invitation** — kept for as long as the account is admitted, because the invitation is what ties an admission back to the code that made it. Removing an account takes its request and its invitation with it. Resend's own sending logs are kept for 30 days under Resend's policy.
 - **Events and actions** — kept while the event is unresolved, then deleted 30 days after it reaches a final outcome, together with the decision recorded against it, its outcome, and any message it was delivered as.
+- **A board's machine record** — the machine identifier, the hostname, and the runtimes described above, kept while the board is on Cloud and deleted with the board or the workspace. A computer the board has moved away from keeps a retired record until then.
 - **The audit trail** — an attributed record of who changed what lives inside the workspace and goes with it when the workspace is deleted.
 - **Email correspondence** — kept for as long as needed to handle the conversation and any follow-up, then deleted.
 

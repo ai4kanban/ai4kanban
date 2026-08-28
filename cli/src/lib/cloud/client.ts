@@ -11,7 +11,7 @@
 import { cloudConfigured, cloudEndpoints, NOT_CONFIGURED } from './config'
 import type { CloudEvent, CloudEventAnswer, CloudEventState } from './events'
 import type { CloudRequest } from './requests'
-import type { CloudServer } from './servers'
+import type { CloudServer, ServerRuntime } from './servers'
 import { accessToken } from './session'
 import type { SlackConnection, SlackConversation } from './types'
 
@@ -98,16 +98,17 @@ export const recordOutcome = (
 
 // ---- the board's server, and the requests it claims (#318) ------------------
 
-/** Register this machine as the board's one server. `takeOver` is the user moving the board
- *  to the machine in front of them; without it a second machine is refused and told which
- *  one holds it. */
+/** Register this machine as the board's one server, and say what it runs the board's
+ *  runtimes as (#345). `takeOver` is the user moving the board to the machine in front of
+ *  them; without it a second machine is refused and told which one holds it. */
 export const attachServer = (
   boardId: string,
   machineId: string,
   machineName: string,
   takeOver = false,
+  runtimes: ServerRuntime[] = [],
 ): Promise<CloudCall<{ server: CloudServer }>> =>
-  send('POST', `/v1/boards/${encodeURIComponent(boardId)}/server`, { machineId, machineName, takeOver })
+  send('POST', `/v1/boards/${encodeURIComponent(boardId)}/server`, { machineId, machineName, takeOver, runtimes })
 
 /** Stop this machine running that board's work. Nothing local is touched. */
 export const detachServer = (boardId: string, machineId: string): Promise<CloudCall<{ server: CloudServer | null }>> =>

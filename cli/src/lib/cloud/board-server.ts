@@ -62,6 +62,10 @@ export function startCloudServer(root = REPO_ROOT): void {
     void renewCloudClaims(root).catch(() => {})
     // A runtime with no socket has no hints, so the same timer is its catch-up.
     if (!state().live) void catchUpCloudRequests(root).catch(() => {})
+    // And the same tick reports what this computer now runs the board's runtimes as (#345):
+    // the read sends only where the answer changed, so a machine nobody rebinds writes
+    // nothing. A board with no window open reaches Cloud through this and nothing else.
+    void readBoardServer(root).catch(() => {})
   }, RENEW_MS)
   held.timer.unref?.()
 

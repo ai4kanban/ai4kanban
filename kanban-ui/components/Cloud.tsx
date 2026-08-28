@@ -640,6 +640,28 @@ function ServerRow({
           />
         )}
       </div>
+
+      {/* What that machine runs the board's runtimes as (#345). A board that names no
+          runtimes reports none, and this whole block is then absent. */}
+      {server.runtimes.length > 0 && (
+        <div className="mt-2.5">
+          <p className="text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">{c.runsAs}</p>
+          <ul className="mt-1 space-y-[2px]">
+            {server.runtimes.map((runtime) => (
+              <li
+                key={runtime.name}
+                className="flex items-baseline gap-2 font-mono text-[11.5px] leading-[17px]"
+              >
+                <span className="w-[104px] shrink-0 truncate font-[700] text-nb-ink">{runtime.name}</span>
+                <span className="min-w-0 flex-1 truncate text-nb-ink-soft">
+                  {runtime.model ? `${runtime.harness}, ${runtime.model}` : runtime.harness}
+                </span>
+                {runtime.fallback && <span className="shrink-0 text-nb-ink-soft">{c.notBound}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

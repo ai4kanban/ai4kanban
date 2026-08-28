@@ -261,6 +261,10 @@ export type ConfigurationCopy = {
       /** Only read out loud: the switch. */
       switchOn: string;
       switchOff: string;
+      /** Above what that machine runs the board's runtimes as (#345). */
+      runsAs: string;
+      /** Beside a runtime that machine bound nothing for, so it falls back. */
+      notBound: string;
     };
     /** This board's own notifications — on as soon as this machine is signed
      *  in — and the one open release they watch. */

@@ -10,13 +10,32 @@
 // the user's, on purpose — a refusal on its own is a trap, because the case that reaches it
 // is a home directory restored onto a new machine, where the machine holding the board is
 // exactly the one that has gone.
+//
+// The registration also carries what THIS computer runs the board's runtimes as (#345) —
+// the board names them, this computer binds them, and Cloud holds neither answer on its own.
+// It is names and nothing else, and it is sent again whenever what this computer resolves
+// stops matching what Cloud holds.
 
+import { runtimeViews } from '../agent/resolve'
+import { readRuntimes } from '../agent/settings'
 import { thisMachine } from '../machine/identity'
 import { REPO_ROOT } from '../paths'
 import type { WriteResult } from '../view/types'
 import { cloudBoardFor, setCloudBoardServer, stopCloudBoardServer, type CloudBoard } from './boards'
 import { attachServer, detachServer, listServers } from './client'
 import { readSession } from './session'
+
+/** One of the board's runtimes, and what the board's server runs it as (#345). Names only:
+ *  never a key, an argument string or a path. */
+export interface ServerRuntime {
+  name: string
+  harness: string
+  /** Absent where that computer set no model, so the harness runs its own default — there
+   *  is no name for that default to send. */
+  model?: string
+  /** That computer bound nothing for this runtime, so it fell back. */
+  fallback?: boolean
+}
 
 /** A machine registered against one board, as Cloud holds it. */
 export interface CloudServer {
@@ -25,6 +44,22 @@ export interface CloudServer {
   machineId: string
   machineName: string
   enabled: boolean
+  /** Absent from a Cloud that predates #345 — which is not the same answer as a board that
+   *  names no runtimes, and is why nothing is reported back to such a Cloud. */
+  runtimes?: ServerRuntime[]
+}
+
+/** What this computer runs the board's runtimes as. A board that names none reports none:
+ *  its one runtime is the board's own setting, which Cloud already has no business holding. */
+export function runtimesHere(): ServerRuntime[] {
+  const runtimes = readRuntimes()
+  if (!runtimes.named) return []
+  return runtimeViews(runtimes).map((view) => ({
+    name: view.name,
+    harness: view.harness,
+    ...(view.model ? { model: view.model } : {}),
+    ...(view.fallback ? { fallback: true } : {}),
+  }))
 }
 
 /** What a screen and `akb cloud` say about one board's server. */
@@ -37,6 +72,9 @@ export interface BoardServer {
   machineName: string
   /** This machine's own name, for the sentence that offers to move the board here. */
   thisMachine: string
+  /** What the machine holding it runs the board's runtimes as (#345). Empty on a board that
+   *  names none, on a Cloud that could not be reached, and on one too old to hold them. */
+  runtimes: ServerRuntime[]
 }
 
 /** This board's server, when it is this machine: the board record and the server row Cloud
@@ -62,7 +100,7 @@ export async function attachBoardServer(takeOver = false, root = REPO_ROOT): Pro
   const machine = thisMachine()
   if (!machine) return { ok: false, error: 'This machine has nowhere to keep its identity, so it cannot run a board’s work.' }
 
-  const answer = await attachServer(board.id, machine.id, machine.name, takeOver)
+  const answer = await attachServer(board.id, machine.id, machine.name, takeOver, runtimesHere())
   if (!answer.ok) return { ok: false, error: answer.error }
   setCloudBoardServer(root, answer.value.server.id)
   return { ok: true }
@@ -89,6 +127,7 @@ export async function readBoardServer(root = REPO_ROOT): Promise<BoardServer> {
     here: false,
     machineName: '',
     thisMachine: machine?.name ?? '',
+    runtimes: [],
   }
   const board = cloudBoardFor(root)
   if (!board || !readSession()) return blank
@@ -109,7 +148,33 @@ export async function readBoardServer(root = REPO_ROOT): Promise<BoardServer> {
   // somewhere else stops claiming as soon as it next looks.
   if (here && board.serverId !== held.id) setCloudBoardServer(root, held.id)
   if (!here && board.serverId) setCloudBoardServer(root, '')
-  return { attached: true, here, machineName: held.machineName, thisMachine: machine?.name ?? '' }
+  const runtimes = here && machine ? await reported(board.id, machine, held) : (held.runtimes ?? [])
+  return { attached: true, here, machineName: held.machineName, thisMachine: machine?.name ?? '', runtimes }
+}
+
+// Two reports are the same report. Compared field by field rather than as JSON, because the
+// list comes back out of a jsonb column with its keys in the database's own order.
+const sameRuntimes = (a: ServerRuntime[], b: ServerRuntime[]): boolean =>
+  a.length === b.length &&
+  a.every((x, i) => {
+    const y = b[i]!
+    return x.name === y.name && x.harness === y.harness && (x.model ?? '') === (y.model ?? '') && !!x.fallback === !!y.fallback
+  })
+
+/** What Cloud holds for THIS machine, having first sent it whatever it now resolves. The
+ *  attach is skipped where nothing changed, so a machine nobody rebinds writes nothing; a
+ *  Cloud too old to hold runtimes is left alone, and reads as it does today. */
+async function reported(
+  boardId: string,
+  machine: { id: string; name: string },
+  held: CloudServer,
+): Promise<ServerRuntime[]> {
+  const holds = held.runtimes
+  if (!holds) return []
+  const mine = runtimesHere()
+  if (sameRuntimes(holds, mine)) return holds
+  const sent = await attachServer(boardId, machine.id, machine.name, false, mine)
+  return sent.ok ? (sent.value.server.runtimes ?? mine) : holds
 }
 
 /** Whether this machine should register itself as this board's server without being asked —

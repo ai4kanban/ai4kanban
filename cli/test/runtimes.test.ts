@@ -21,6 +21,7 @@ import {
   setSpecAgentRuntime,
   specAgentEntries,
 } from '../src/lib/agent/settings.ts'
+import { runtimesHere } from '../src/lib/cloud/servers.ts'
 import { readSpecAgents } from '../src/lib/spec-agents.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
@@ -168,6 +169,35 @@ describe('a flow on its own runtime', () => {
         ['cheap', 'codex', false],
       ],
     )
+  })
+})
+
+// What this computer tells Cloud it runs the board's runtimes as (#345). The Worker caps and
+// shapes what it is sent; this is the side that decides what leaves the machine at all.
+describe('what a registration reports the runtimes as', () => {
+  it('sends the name, the harness, the model and the fallback mark — and nothing else', () => {
+    config({
+      harness: 'claude-code',
+      harnessSettings: { 'claude-code': { model: 'claude-opus-5', args: '--foo /Users/me/board' } },
+      runtimes: { names: ['default', 'cheap'], global: 'default' },
+    })
+    bind({ default: { harness: 'claude-code', settings: { model: 'claude-opus-5', apiKey: 'sk-ant-secret' } } })
+    assert.deepEqual(runtimesHere(), [
+      { name: 'default', harness: 'claude-code', model: 'claude-opus-5' },
+      // Nothing bound `cheap` here, so it falls back and says so.
+      { name: 'cheap', harness: 'claude-code', model: 'claude-opus-5', fallback: true },
+    ])
+  })
+
+  it('names no model where this computer set none', () => {
+    config({ harness: 'claude-code', runtimes: { names: ['default'], global: 'default' } })
+    bind({ default: { harness: 'codex', settings: {} } })
+    assert.deepEqual(runtimesHere(), [{ name: 'default', harness: 'codex' }])
+  })
+
+  it('reports none on a board that names none', () => {
+    config({ harness: 'codex', harnessSettings: { codex: { model: 'gpt-5.1-codex' } } })
+    assert.deepEqual(runtimesHere(), [])
   })
 })
 

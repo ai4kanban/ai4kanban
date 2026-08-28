@@ -269,6 +269,8 @@ const en: ConfigurationCopy = {
       moving: "Moving…",
       switchOn: "Run this board's work here — on",
       switchOff: "Run this board's work here — off",
+      runsAs: "Runs as",
+      notBound: "not bound",
     },
     notifications: {
       title: "Notifications for this board",

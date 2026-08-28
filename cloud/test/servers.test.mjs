@@ -43,6 +43,7 @@ const aServer = (over = {}) => ({
   machineId: MACHINE,
   machineName: 'studio',
   enabled: true,
+  runtimes: [],
   ...over,
 })
 
@@ -68,6 +69,54 @@ describe('attachServer', () => {
       (e) => e.code === 'bad_request',
     )
     assert.equal(calls.length, 0)
+  })
+})
+
+// What this machine runs the board's runtimes as (#345). The Worker's job is the shape:
+// names only, bounded, and an entry it cannot read dropped rather than refused — a report is
+// best-effort, and one bad line must never stop a machine registering.
+describe('the runtimes a registration carries', () => {
+  const attach = async (runtimes) => {
+    const calls = fakeDatabase(aServer())
+    await attachServer(ENV, OWNER, BOARD, { machineId: MACHINE, machineName: 'studio', runtimes })
+    return calls[0].args.p_runtimes
+  }
+
+  it('carries the name, the harness, the model and the fallback mark', async () => {
+    assert.deepEqual(
+      await attach([
+        { name: 'fast', harness: 'claude-code', model: 'claude-opus-5' },
+        { name: 'docs', harness: 'codex', fallback: true },
+      ]),
+      [
+        { name: 'fast', harness: 'claude-code', model: 'claude-opus-5' },
+        { name: 'docs', harness: 'codex', fallback: true },
+      ],
+    )
+  })
+
+  it('takes names and nothing else', async () => {
+    assert.deepEqual(
+      await attach([
+        { name: 'fast', harness: 'claude-code', apiKey: 'sk-ant-secret', command: '/usr/bin/claude --model x', path: '/Users/me/board' },
+      ]),
+      [{ name: 'fast', harness: 'claude-code' }],
+    )
+  })
+
+  it('caps the count and each name, and drops an entry it cannot read', async () => {
+    const many = Array.from({ length: 40 }, (_, i) => ({ name: `r${i}`, harness: 'codex' }))
+    assert.equal((await attach(many)).length, 32)
+
+    assert.deepEqual(await attach([{ name: 'fast', harness: 'x'.repeat(500) }]), [
+      { name: 'fast', harness: 'x'.repeat(200) },
+    ])
+    assert.deepEqual(await attach([{ harness: 'codex' }, { name: 'fast' }, null, 'nonsense']), [])
+  })
+
+  it('reports none when the board names none, and when nothing was sent at all', async () => {
+    assert.deepEqual(await attach([]), [])
+    assert.deepEqual(await attach(undefined), [])
   })
 })
 

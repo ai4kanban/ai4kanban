@@ -11,6 +11,7 @@
 import { readCloudAccount, signOutOfCloud } from '../lib/cloud/account'
 import { readCloudBoards } from '../lib/cloud/boards'
 import { listServers } from '../lib/cloud/client'
+import type { CloudServer } from '../lib/cloud/servers'
 import { readSlackState } from '../lib/cloud/slack'
 import { thisMachine } from '../lib/machine/identity'
 import { die } from '../lib/paths'
@@ -45,16 +46,20 @@ export async function cmdCloud(args: string[], program: string): Promise<MoveRes
   // And which machine runs each board's work (#318). A board attaches exactly one server,
   // and an approval taken anywhere runs there and nowhere else — so a terminal wondering why
   // an approval has not started is told which machine it is waiting for.
-  const servers = boards.length > 0 ? await serverNames(boards.map((b) => b.id)) : new Map<string, string>()
+  const servers = boards.length > 0 ? await serversByBoard(boards.map((b) => b.id)) : new Map<string, CloudServer>()
   if (boards.length > 0) {
     const machine = thisMachine()
     say('')
     say(`Notifications are on for ${boards.length === 1 ? 'one board' : `${boards.length} boards`}:`)
     for (const board of boards) {
       const watching = board.release ? `watching ${board.release}` : 'no release picked, so nothing is raised'
+      const server = servers.get(board.id)
       say(`  ${board.name} — ${watching}`)
       say(`    ${board.path}`)
-      say(`    ${serverLine(servers.get(board.id), machine?.name ?? '')}`)
+      say(`    ${serverLine(server, machine?.name ?? '')}`)
+      // And what that machine runs the board's runtimes as (#345). A board that names none
+      // reports none, and so does a Cloud too old to hold them: both print nothing extra.
+      for (const line of runtimeLines(server)) say(`      ${line}`)
     }
   }
   return { cloud: account, boards }
@@ -75,19 +80,29 @@ async function slackLines(): Promise<string[]> {
 
 /** Which machine holds each board, by board id. Empty when Cloud cannot be reached — the
  *  line then says so rather than naming the wrong machine. */
-async function serverNames(boardIds: string[]): Promise<Map<string, string>> {
+async function serversByBoard(boardIds: string[]): Promise<Map<string, CloudServer>> {
   const answer = await listServers()
   if (!answer.ok) return new Map()
-  const held = new Map<string, string>()
+  const held = new Map<string, CloudServer>()
   for (const server of answer.value.servers) {
-    if (boardIds.includes(server.boardId)) held.set(server.boardId, server.machineName || 'an unnamed machine')
+    if (boardIds.includes(server.boardId)) held.set(server.boardId, server)
   }
   return held
 }
 
-function serverLine(holder: string | undefined, here: string): string {
-  if (!holder) return 'no machine runs its approvals, so an approval taken elsewhere waits'
+function serverLine(server: CloudServer | undefined, here: string): string {
+  if (!server) return 'no machine runs its approvals, so an approval taken elsewhere waits'
+  const holder = server.machineName || 'an unnamed machine'
   return holder === here ? 'approvals run on this machine' : `approvals run on ${holder}`
+}
+
+/** One line per runtime the board names: what that machine runs it as. A model is named only
+ *  where that machine set one — a runtime on the agent's own default has no name to print. */
+function runtimeLines(server: CloudServer | undefined): string[] {
+  return (server?.runtimes ?? []).map((runtime) => {
+    const what = runtime.model ? `${runtime.harness}, ${runtime.model}` : runtime.harness
+    return `${runtime.name.padEnd(12)} ${what}${runtime.fallback ? ' (not bound)' : ''}`
+  })
 }
 
 function report(account: Awaited<ReturnType<typeof readCloudAccount>>, program: string): string[] {

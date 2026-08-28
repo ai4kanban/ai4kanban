@@ -638,10 +638,12 @@ function harnessLookup(): (runtime: string) => string {
 export function runtimeViews(runtimes: BoardRuntimes = readRuntimes()): RuntimeView[] {
   return runtimes.names.map((name) => {
     const resolved = resolveHarness({ runtime: name })
+    const model = resolved.values.model ?? ''
     return {
       name,
       global: name === runtimes.global,
       harness: resolved.harness.name,
+      ...(model ? { model } : {}),
       ...(resolved.fallback ? { fallback: resolved.fallback } : {}),
     }
   })
