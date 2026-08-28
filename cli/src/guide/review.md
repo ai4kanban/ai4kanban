@@ -31,7 +31,7 @@ The findings file is the delivery's record, not the question — one bullet per 
 decision.
 
 Put an answered material decision surfaced by the build under `## Worth noting after
-implementation`, using `- **<question>**: <answer>`, only when the user could reasonably
-reverse it. Do not put diagnostics, run history, check results, suggestions, or unresolved
-questions there. Create or update a separate card for a separate problem that does not block
-this delivery.
+implementation` only when the user could reasonably reverse it, using the compact format in
+`akb guide writing`. Never use the section to accept work that contradicts the approved
+requirements; fix that work or record an `ask` verdict. Create or update a separate card for
+a separate problem that does not block this delivery.

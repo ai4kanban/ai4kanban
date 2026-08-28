@@ -15,6 +15,7 @@
 //
 //   init | memory-init | setup-done | setup-status     the board itself
 //   create | update | update-questions | tag | list    a card's fields
+//   run-blocker                                        pause an implementation cleanly
 //   schedule                                           what a blocked card runs when freed
 //   release new | goal | list | close | drop           the versions being planned
 //   archive | reject | run | migrate | peek | metrics  taking a card off, and the rest

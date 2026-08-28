@@ -82,6 +82,7 @@ const en: RunsCopy = {
     interrupted: "interrupted",
     done: "done",
     exited: (code) => `exited ${code}`,
+    blocked: "blocked",
     running: "running",
     seconds: (s) => `${s}s`,
     minutes: (m, s) => `${m}m ${s}s`,
@@ -98,6 +99,12 @@ const en: RunsCopy = {
     stoppedShort:
       "This run stopped short, so the card may be part-built — whatever it wrote is sitting in your working tree.",
     stoppedShortResume: " Resume carries it on from where it stopped.",
+    blocker: {
+      heading: "implementation blocked",
+      step: "Step",
+      cause: "Cause",
+      unblock: "To continue",
+    },
   },
   stop: {
     label: "Stop run",

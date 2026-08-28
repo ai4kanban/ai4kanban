@@ -423,28 +423,24 @@ interface Flow {
  *
  *  Order matters: the general rules first, then the flow for this one job. */
 const GUIDES_FOR: Record<AgentAction, string[]> = {
-  implement: ['board', 'document-feature'],
-  // Review writes on the card — a post-implementation note, a follow-up card, an open
-  // question — so it needs the card format as much as the review flow itself.
-  review: ['board', 'review'],
+  implement: ['board', 'implement', 'document-feature'],
+  // Review owns post-implementation decision notes, so it receives their writing contract
+  // rather than trying to reconstruct it from the review flow.
+  review: ['board', 'writing', 'review'],
   // Kept only for a correction run resumed from an older delivery.
   correct: [],
   conflict: ['conflict'],
   run: ['board', 'recurring-task'],
-  // One guide owns the complete convergence loop; resolve is only for answers the user
-  // supplies after that loop stops.
-  clarify: ['qa-loop'],
+  // QA edits decision prose as it settles and prunes the plan.
+  clarify: ['writing', 'qa-loop'],
   // Apply the user's answers first, then validate the resulting plan to convergence in the
   // same session. The watcher may start writing afterwards, but never another QA session.
-  resolve: ['board', 'resolve', 'qa-loop'],
-  // The writing pass is where every refinement ends, so it is the one flow that reads the
-  // prose rules in full; the flows that reach it cite `akb guide writing` instead. It gets
-  // that guide alone — it writes a body and nothing else, so the layout, the memory set and
-  // the tracks are a page about work it is forbidden to do.
+  resolve: ['board', 'writing', 'resolve', 'qa-loop'],
+  // The dedicated writing pass gets that guide alone: it writes a body and nothing else.
   writing: ['writing'],
   // Apply the requested correction first, then validate the resulting plan to convergence
   // in the same session. Writing may follow, but never another QA session.
-  edit: ['revise', 'qa-loop'],
+  edit: ['writing', 'revise', 'qa-loop'],
   create: ['board', 'evaluate-task', 'add-task'],
   propose: ['board', 'propose', 'evaluate-task', 'add-task'],
   'plan-release': ['board', 'releases', 'plan-release', 'evaluate-task', 'add-task'],
@@ -501,7 +497,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         ...committingClose(req.id!),
         'tick each box in ## Todo as you finish it — they are the record of what was built',
-        `${board} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user; a decision that needs an answer goes to \`update-questions\` instead`,
+        `${board} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
         reviewed
           ? `leave the card on the board — review comes next in this delivery, and the board archives the card itself once the delivery has landed`

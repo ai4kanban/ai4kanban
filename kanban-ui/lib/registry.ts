@@ -45,6 +45,7 @@ function toView(run: RunView, deliveries?: Map<string, DeliveryRecord>): Session
     ok: run.ok,
     code: run.code,
     error: run.error,
+    blocker: run.blocker,
     result: run.status !== "running" ? run.result : undefined,
     note: run.status !== "running" ? run.note : undefined,
     tail: run.tail,

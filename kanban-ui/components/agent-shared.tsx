@@ -211,6 +211,7 @@ export function SessionLog({
   const tail = (session?.tail || "").trim();
   const result = (session?.result || "").trim();
   const note = (session?.note || "").trim();
+  const blocker = session?.blocker;
 
   useEffect(() => {
     const el = ref.current;
@@ -241,6 +242,8 @@ export function SessionLog({
     ? ""
     : stopped
       ? c.stopped
+      : blocker
+        ? c.blocked
       : interrupted
         ? c.interrupted
         : session.ok
@@ -353,7 +356,7 @@ export function SessionLog({
   // thing to know before reading anything the agent managed to write. It lives in
   // the run's own window rather than on the card: it is one run's outcome, and it
   // goes when a newer run replaces it.
-  const unfinishedLine = warnUnfinished && unfinished && (
+  const unfinishedLine = warnUnfinished && unfinished && !blocker && (
     <p className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
       <span className="mr-1" aria-hidden>
         ⚠
@@ -363,11 +366,26 @@ export function SessionLog({
     </p>
   );
 
+  const blockerPanel = blocker && (
+    <div role="alert" className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2.5 text-nb-peach-ink">
+      <p className="mb-2 text-[11px] font-[800] uppercase tracking-[0.08em]">{c.blocker.heading}</p>
+      <dl className="grid grid-cols-[max-content_1fr] gap-x-2 gap-y-1 text-[12.5px] leading-relaxed">
+        <dt className="font-[700]">{c.blocker.step}</dt>
+        <dd className="text-nb-ink">{blocker.step}</dd>
+        <dt className="font-[700]">{c.blocker.cause}</dt>
+        <dd className="text-nb-ink">{blocker.cause}</dd>
+        <dt className="font-[700]">{c.blocker.unblock}</dt>
+        <dd className="font-[700] text-nb-ink">{blocker.unblock}</dd>
+      </dl>
+    </div>
+  );
+
   // The board's own line about how the run ended, under the agent's message and plainly
   // not part of it. The one thing a finished run can't say for itself is that nothing is
   // coming after it.
   const body = (
     <>
+      {blockerPanel}
       {unfinishedLine}
       {message}
       {note && (

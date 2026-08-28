@@ -123,6 +123,14 @@ export interface CommandRequest extends Omit<AgentRequest, 'action'> {
  *  failure, and it offers no Resume: a run you ended is over. */
 export type RunStatus = 'running' | 'done' | 'error' | 'interrupted' | 'stopped'
 
+/** One reason an implementation cannot safely continue, written for the person who can
+ *  unblock it. It belongs to the run, not to the card's planning questions. */
+export interface ExecutionBlocker {
+  step: string
+  cause: string
+  unblock: string
+}
+
 /** One run, as the shared record holds it. Every process reads and writes this same
  *  shape — the record is the only thing that knows what is running. */
 export interface RunRecord {
@@ -143,6 +151,8 @@ export interface RunRecord {
   ok?: boolean
   code?: number | null
   error?: string
+  /** A concrete interruption that needs one action from the user before Resume. */
+  blocker?: ExecutionBlocker
   /** What this run cost in US dollars, as its own output reported it at close. An
    *  estimate the agent worked out from tokens at list prices — not a bill. */
   costUsd?: number

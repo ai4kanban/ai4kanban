@@ -35,17 +35,21 @@ Every flow writes a card in this order:
   privacy, compatibility, or meaningful ongoing cost.
 - **Cut low-value notes**: remove decisions that merely repeat scope or lack a meaningful
   tradeoff.
-- **Keep it glanceable**: merge decisions governed by one policy and remove repeats. One to
-  three independent entries is normal; keep more only when each has distinct user-facing
-  stakes.
-- **Name the tradeoff**: each surviving entry says the cost, tradeoff, or option it beat.
+- **Keep it glanceable**: one entry is one reviewer decision, written as one sentence that
+  states the chosen behavior and its main cost. Merge entries governed by one policy. One
+  to three independent entries is normal.
+- **Cut the story**: omit chronology, evidence trails, exhaustive consequences, and the
+  rejected option unless it is necessary to understand the main cost.
 
 ## `Worth noting after implementation`
 
 - **Keep it non-blocking**: this section never changes or blocks a delivery already in
   flight.
+- **Use the same compact format**: one reviewer decision and its main cost in one sentence.
 - **Exclude work logs**: never put diagnostics, run history, check results, suggestions,
   or unresolved questions here.
+- **Never approve a deviation here**: work that contradicts the approved requirements must
+  be fixed or sent to the user by review.
 
 ## `Today`
 

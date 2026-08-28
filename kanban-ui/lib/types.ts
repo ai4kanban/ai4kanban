@@ -18,7 +18,7 @@
 // no use for and holds its log under another name; lib/registry.ts is where one becomes the
 // other.
 
-import type { AgentAction, DeliveryStatus, TokenUsage } from "./format/agent/types";
+import type { AgentAction, DeliveryStatus, ExecutionBlocker, TokenUsage } from "./format/agent/types";
 
 export type {
   AgentAction,
@@ -168,6 +168,8 @@ export interface SessionView {
   code?: number | null;
   /** Spawn/child error message, if any. */
   error?: string;
+  /** The one concrete interruption to clear before this implementation resumes. */
+  blocker?: ExecutionBlocker;
   /** The agent's final message, parsed from its event stream. Terminal runs only. When
    *  present the UI leads with it and folds the event tail away; absent, the tail is all
    *  there is. */

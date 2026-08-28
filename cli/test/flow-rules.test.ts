@@ -13,9 +13,11 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { activeDelivery } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { FLOWS } from '../src/lib/agent/flows.ts'
+import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildPrompt } from '../src/lib/agent/prompts.ts'
 import { readFlowRules, setFlowRule } from '../src/lib/agent/rules.ts'
 import { findGuide } from '../src/lib/guide.ts'
+import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import { RULES, setBoardRoot } from '../src/lib/paths.ts'
@@ -110,6 +112,43 @@ describe('the prompt', () => {
     const prompt = buildPrompt({ action: 'clarify', id: 1, refineRound: 1 })
     assert.match(prompt, /akb guide qa-loop/)
     assert.doesNotMatch(prompt, /Append the gaps|Do not resolve|don't implement/)
+  })
+
+  it('keeps implementation blockers out of card questions', () => {
+    const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })
+    const guide = findGuide('implement')!.text
+    assert.match(prompt, /akb guide implement/)
+    assert.doesNotMatch(prompt, /Leave any questions as open questions/)
+    assert.doesNotMatch(prompt, /update-questions/)
+    assert.match(guide, /run-blocker/)
+    assert.match(guide, /Do not add, rewrite, or tag questions/)
+    assert.doesNotMatch(guide, /Worth noting after implementation/)
+  })
+
+  it('loads the writing contract wherever a flow edits decision prose', () => {
+    for (const action of ['clarify', 'resolve', 'edit', 'review'] as const) {
+      startCollecting()
+      try {
+        const flow = printFlow({ action, id: 1, title: 'card one' })
+        assert.ok((flow.guides as string[]).includes('writing'), action)
+      } finally {
+        stopCollecting()
+      }
+    }
+    startCollecting()
+    try {
+      const flow = printFlow({ action: 'implement', id: 1, title: 'card one' })
+      assert.equal((flow.guides as string[]).includes('writing'), false)
+    } finally {
+      stopCollecting()
+    }
+  })
+
+  it('keeps each worth-noting entry to one reviewer decision and one sentence', () => {
+    const guide = findGuide('writing')!.text
+    assert.match(guide, /one entry is one reviewer decision, written as one sentence/)
+    assert.match(guide, /omit chronology, evidence trails, exhaustive consequences/)
+    assert.match(guide, /Never approve a deviation here/)
   })
 
   it('runs post-answer QA in the resolver session', () => {

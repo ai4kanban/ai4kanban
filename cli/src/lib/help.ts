@@ -273,6 +273,26 @@ export const MOVES: Move[] = [
     ],
   },
   {
+    name: 'run-blocker',
+    group: 'Cards',
+    brief: [
+      [
+        'run-blocker <id>',
+        'pause an implementation on one actionable blocker:\n--step ".." --cause ".." --unblock ".."',
+      ],
+    ],
+    legacy: [
+      [
+        'run-blocker <id> --step ".." --cause ".." --unblock ".."',
+        [
+          'record why the current implementation cannot safely continue and',
+          'the one action that lets Resume carry it on. Each field is one short',
+          'sentence. This belongs to the run, never to the card questions.',
+        ],
+      ],
+    ],
+  },
+  {
     name: 'review-verdict',
     group: 'Cards',
     brief: [

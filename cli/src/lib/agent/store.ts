@@ -29,6 +29,7 @@ import type {
   DeliveryReview,
   DeliveryStatus,
   DeliveryStep,
+  ExecutionBlocker,
   LandingStatus,
   ReviewStopReason,
   ReviewVerdict,
@@ -101,6 +102,7 @@ export function readStore(): Store {
       ok: typeof entry.ok === 'boolean' ? entry.ok : undefined,
       code: entry.code ?? null,
       error: typeof entry.error === 'string' ? entry.error : undefined,
+      blocker: readBlocker(entry.blocker),
       // A run that never reported a cost shows none, rather than a zero it didn't earn.
       costUsd: typeof entry.costUsd === 'number' && entry.costUsd > 0 ? entry.costUsd : undefined,
       usage: asUsage(entry.usage),
@@ -143,6 +145,22 @@ function readMarks(raw: unknown): Record<string, string> {
 
 /** Every run the record holds, newest last. */
 export const readRuns = (): RunRecord[] => readStore().runs
+
+/** Attach the one interruption a person must clear before this implementation resumes. */
+export function recordRunBlocker(
+  cardId: number,
+  sessionId: string,
+  blocker: ExecutionBlocker,
+): { ok: true; run: RunRecord } | { ok: false; error: string } {
+  return withRuns((runs) => {
+    const run = runs.find((r) => r.sessionId === sessionId)
+    if (!run || run.status !== 'running') return { ok: false, error: 'no active run can record this blocker' }
+    if (run.action !== 'implement') return { ok: false, error: 'only an implementation run can record a blocker' }
+    if (run.cardId !== cardId) return { ok: false, error: `this run is implementing #${run.cardId}, not #${cardId}` }
+    run.blocker = blocker
+    return { ok: true, run: { ...run } }
+  })
+}
 
 function readDeliveryRows(raw: unknown): DeliveryRecord[] {
   if (!Array.isArray(raw)) return []
@@ -189,6 +207,15 @@ function readDeliveryRows(raw: unknown): DeliveryRecord[] {
 
 const text = (value: unknown): string | undefined =>
   typeof value === 'string' && value ? value : undefined
+
+function readBlocker(raw: unknown): RunRecord['blocker'] {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const box = raw as Record<string, unknown>
+  const step = text(box.step)
+  const cause = text(box.cause)
+  const unblock = text(box.unblock)
+  return step && cause && unblock ? { step, cause, unblock } : undefined
+}
 
 // The rules a delivery froze, keyed by the command that starts the flow. An empty object is
 // kept and undefined is not: `{}` means this delivery froze rules and none were set, while

@@ -254,7 +254,11 @@ export async function watchRun(sessionId: string): Promise<number> {
       })
       // A run somebody ended exits non-zero — we killed it — but that is not a failure, so
       // the ask, not the code it died with, names the outcome.
-      const status = asked ? 'stopped' : code === 0 ? 'done' : 'error'
+      // An implementation may exit cleanly after recording that it cannot continue. The
+      // blocker, not its shell code, makes that run unfinished and keeps the delivery ready
+      // for Resume rather than sending incomplete work to review.
+      const blocker = peekRun(sessionId)?.blocker
+      const status = asked ? 'stopped' : blocker ? 'error' : code === 0 ? 'done' : 'error'
       // Writing is the last refinement session. A clean exit is its verdict; lifecycle
       // bookkeeping belongs to the watcher, not to an agent editing prose. The board keeps
       // the card at todo if questions appeared or refuses the transition for another reason.
@@ -281,7 +285,7 @@ export async function watchRun(sessionId: string): Promise<number> {
         status,
         // `ok` stays unset on a stopped run, as it does on one that was cut off: it
         // neither passed nor failed, it was ended.
-        ok: asked ? undefined : code === 0,
+        ok: asked ? undefined : !blocker && code === 0,
         code: asked ? null : code,
         // What went wrong, in whoever's words know: ours when the command wouldn't start,
         // the agent's own when the conversation ended badly.
@@ -298,7 +302,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       // resolves a conflict.
       const landing = await advanceLanding()
       followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing)
-      resolve(code === 0 ? 0 : 1)
+      resolve(status === 'done' ? 0 : 1)
     }
 
     // A stop signals THIS process; pass it on and give the agent a moment to end on its

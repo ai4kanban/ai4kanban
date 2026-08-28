@@ -1,0 +1,38 @@
+// ---- run-blocker -----------------------------------------------------------
+
+import { insideRun } from '../lib/agent/env'
+import { recordRunBlocker } from '../lib/agent/store'
+import type { ExecutionBlocker } from '../lib/agent/types'
+import { say } from '../lib/io'
+import { die } from '../lib/paths'
+import type { MoveResult } from '../lib/types'
+import { parseFlags } from '../lib/validate'
+
+const MAX_FIELD = 240
+
+export function cmdRunBlocker(args: string[]): MoveResult {
+  const { flags, positional } = parseFlags(args, ['step', 'cause', 'unblock'])
+  const id = Number(positional[0])
+  if (!Number.isInteger(id)) {
+    die('need a numeric task id: run-blocker <id> --step ".." --cause ".." --unblock ".."')
+  }
+  const sessionId = insideRun()
+  if (!sessionId) die('run-blocker is only for the implementation run currently doing the work')
+
+  const blocker: ExecutionBlocker = {
+    step: field(flags.step, '--step'),
+    cause: field(flags.cause, '--cause'),
+    unblock: field(flags.unblock, '--unblock'),
+  }
+  const out = recordRunBlocker(id, sessionId, blocker)
+  if (!out.ok) die(out.error)
+  say(`#${id}: implementation blocker recorded; stop this run and resume it after the unblock action`)
+  return { id, blocker }
+}
+
+function field(raw: unknown, name: string): string {
+  if (raw === undefined || raw === true || Array.isArray(raw)) die(`${name} needs one short sentence`)
+  const value = String(raw).trim()
+  if (!value || value.includes('\n') || value.length > MAX_FIELD) die(`${name} needs one short sentence`)
+  return value
+}

@@ -17,6 +17,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { cmdReviewVerdict } from '../src/commands/review-verdict.ts'
+import { cmdRunBlocker } from '../src/commands/run-blocker.ts'
 import { activeDelivery, listDeliveries, openQuestions } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { advanceLanding } from '../src/lib/agent/landing.ts'
@@ -361,5 +362,50 @@ describe('a run that ends before it spawns', () => {
     const started = run('implement', 1, 'card one')
     await end(started, 'error')
     assert.equal(peekRun(started)?.status, 'error')
+  })
+})
+
+describe('implementation blockers', () => {
+  it('records three actionable lines on the current implementation run', () => {
+    const sessionId = run('implement', 1, 'card one')
+    process.env[RUN_ENV] = sessionId
+    cmdRunBlocker([
+      '1',
+      '--step',
+      'Install `@supabase/realtime-js`',
+      '--cause',
+      'Package installation is unavailable in this run',
+      '--unblock',
+      'Allow the installation, then resume',
+    ])
+
+    assert.deepEqual(peekRun(sessionId)?.blocker, {
+      step: 'Install `@supabase/realtime-js`',
+      cause: 'Package installation is unavailable in this run',
+      unblock: 'Allow the installation, then resume',
+    })
+  })
+
+  it('refuses a blocker outside the implementation doing that card', () => {
+    assert.throws(
+      () => cmdRunBlocker(['1', '--step', 'Do it', '--cause', 'Cannot', '--unblock', 'Allow it']),
+      /only for the implementation run/,
+    )
+
+    const sessionId = run('edit', 1, 'card one')
+    process.env[RUN_ENV] = sessionId
+    assert.throws(
+      () => cmdRunBlocker(['1', '--step', 'Do it', '--cause', 'Cannot', '--unblock', 'Allow it']),
+      /only an implementation run/,
+    )
+  })
+
+  it('keeps every field to one short line', () => {
+    const sessionId = run('implement', 1, 'card one')
+    process.env[RUN_ENV] = sessionId
+    assert.throws(
+      () => cmdRunBlocker(['1', '--step', 'One\nTwo', '--cause', 'Cannot', '--unblock', 'Allow it']),
+      /--step needs one short sentence/,
+    )
   })
 })

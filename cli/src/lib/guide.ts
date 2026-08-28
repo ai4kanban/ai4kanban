@@ -21,6 +21,7 @@ import conflict from '../guide/conflict.md'
 import documentFeature from '../guide/document-feature.md'
 import evaluateTask from '../guide/evaluate-task.md'
 import extractIdeas from '../guide/extract-ideas.md'
+import implement from '../guide/implement.md'
 import localUi from '../guide/local-ui.md'
 import moduleMap from '../guide/module-map.md'
 import planRelease from '../guide/plan-release.md'
@@ -57,6 +58,7 @@ export const GUIDES: Guide[] = [
   { name: 'writing', when: "write a card body — its format, and the rules every card is held to", text: writing },
   { name: 'evaluate-task', when: 'check one task idea before it becomes a card', text: evaluateTask },
   { name: 'add-task', when: 'turn one idea into a card', text: addTask },
+  { name: 'implement', when: 'build a settled card and stop cleanly on an execution blocker', text: implement },
   { name: 'propose', when: 'find the work the board is missing and write it', text: propose },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
   { name: 'qa-loop', when: "settle one task's planning gaps and leave only the user's", text: qaLoop },

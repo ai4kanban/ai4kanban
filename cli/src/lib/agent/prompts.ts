@@ -18,7 +18,6 @@ import { PROPOSE_DEFAULT, PROPOSE_MAX, type AgentRequest, type Boldness } from '
 export const RESUME_PROMPT = [
   `Continue. The previous run ended before it finished the task.`,
   `Pick up where you left off and carry it through.`,
-  `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
 ].join(' ')
 
 // And what one resumed INSIDE a delivery says. A delivery is not picked up where the last
@@ -30,7 +29,6 @@ const DELIVERY_RESUME = [
   `Continue delivery %s. The previous run ended before the delivery finished.`,
   `Re-enter the flow from the top and check each step's precondition before you do it — work that is already done is done, so do not repeat it.`,
   `Build the card as the delivery holds it, not as the file reads now: \`%c\` prints the approved copy.`,
-  `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
 ].join(' ')
 
 /** What a resumed run is told: the plain "carry on", or — inside a delivery — the one that
@@ -128,9 +126,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
   switch (req.action) {
     case 'implement':
       return [
-        `${kb}. Implement task ${req.id} ${named}.`,
+        `${kb}. Implement task ${req.id} ${named} following \`akb guide implement\`.`,
         req.notes ? `Extra notes: ${req.notes}` : '',
-        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ]
         .filter(Boolean)
         .join(' ')

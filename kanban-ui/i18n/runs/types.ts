@@ -32,6 +32,7 @@ export type RunsCopy = {
     interrupted: string;
     done: string;
     exited: (code: string) => string;
+    blocked: string;
     running: string;
     seconds: (s: number) => string;
     minutes: (m: number, s: number) => string;
@@ -46,6 +47,12 @@ export type RunsCopy = {
     /** A run that ended without finishing, and the half-sentence Resume adds. */
     stoppedShort: string;
     stoppedShortResume: string;
+    blocker: {
+      heading: string;
+      step: string;
+      cause: string;
+      unblock: string;
+    };
   };
   stop: {
     label: string;
