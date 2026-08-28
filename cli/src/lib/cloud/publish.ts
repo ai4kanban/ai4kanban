@@ -20,7 +20,7 @@ import crypto from 'node:crypto'
 
 import { board } from '../board'
 import { REPO_ROOT } from '../paths'
-import { cloudBoardFor, setCloudBoardRelease, type CloudBoard } from './boards'
+import { ALL_RELEASES, cloudBoardFor, setCloudBoardRelease, type CloudBoard } from './boards'
 import {
   isTerminal,
   listEvents,
@@ -76,10 +76,10 @@ function publishing(): CloudBoard | null {
  * The board is left enabled with no release: the rail is where the user picks another,
  * because the rail is where the filling stopped. Its live events are not retired here —
  * closing a release clears its open cards' release, so the ordinary retirement test finds
- * them on the very next pass.
+ * them on the very next pass. A board watching every release has none to close.
  */
 async function pauseIfReleaseClosed(enabled: CloudBoard): Promise<CloudBoard> {
-  if (!enabled.release) return enabled
+  if (!enabled.release || enabled.release === ALL_RELEASES) return enabled
   const open = await board().readReleases()
   if (open.includes(enabled.release)) return enabled
   setCloudBoardRelease(REPO_ROOT, '')

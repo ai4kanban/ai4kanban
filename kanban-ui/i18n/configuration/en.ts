@@ -195,7 +195,6 @@ const en: ConfigurationCopy = {
     unreachable: (why) => `Cloud could not be reached: ${why}. Nothing on this board is affected.`,
     signedIn: "Signed in",
     signOut: "Sign out",
-    slackHandle: "Slack names this handle when it acts for you.",
     signOutNote:
       "Signing out stops this machine sending to Cloud. Nothing already on the board is touched, and signing back in picks the same account up.",
     notAdmitted: "This account is not in the preview yet.",
@@ -251,10 +250,10 @@ const en: ConfigurationCopy = {
       title: "Notifications for this board",
       blurb:
         "A card that reaches **ready**, or that raises a question only you can answer, fills the bell — and reaches you when the app is not in front of you.",
-      noReleases:
-        "This board has no open release, so nothing fills the bell yet. Start one from the version picker in the header — notifications watch one release at a time.",
       watching: "Watching",
+      allReleases: "All",
       pickRelease: "— pick a release —",
+      anyRelease: "Every card raises, whatever release it is promised to.",
       onlyThisRelease: "Cards in any other release raise nothing.",
       releaseClosed:
         "The release you were watching closed. Nothing fills the bell until you pick another.",

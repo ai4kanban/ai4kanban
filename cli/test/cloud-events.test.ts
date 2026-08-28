@@ -16,6 +16,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import {
+  ALL_RELEASES,
   cloudBoardById,
   cloudBoardFor,
   disableCloudBoard,
@@ -101,6 +102,14 @@ describe('which tasks a board raises an event about', () => {
   it('raises nothing for a task in another release, or promised to none', () => {
     assert.equal(actionableKind(card({ status: 'ready', release: '0.9.0' }), BOARD), null)
     assert.equal(actionableKind(card({ status: 'ready', release: '' }), BOARD), null)
+  })
+
+  it('raises for every release once the board watches all of them', () => {
+    const all = { ...BOARD, release: ALL_RELEASES }
+    assert.equal(actionableKind(card({ status: 'ready', release: '0.9.0' }), all), 'ready_for_review')
+    assert.equal(actionableKind(card({ status: 'ready', release: '' }), all), 'ready_for_review')
+    // The width is the board's; the event still carries the card's own release.
+    assert.equal(snapshotFor(card({ status: 'ready', release: '0.9.0' }), all)?.release, '0.9.0')
   })
 
   it('raises nothing at all while the board is watching no release', () => {

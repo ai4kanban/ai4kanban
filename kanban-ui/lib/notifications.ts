@@ -68,8 +68,12 @@ export interface BoardServer {
   thisMachine: string;
 }
 
-/** What this board's Cloud section shows: whether notifications are on, which release they
- *  watch, which ones they could, and which machine runs their approvals. */
+/** Watch every card, whatever release it is promised to — mirrored from the rules' own
+ *  `ALL_RELEASES`, since the picker has to name it before any rules are loaded. */
+export const ALL_RELEASES = "*";
+
+/** What this board's Cloud section shows: whether notifications are on, how wide they watch,
+ *  which releases they could narrow to, and which machine runs their approvals. */
 export interface BoardNotifications {
   enabled: boolean;
   release: string;

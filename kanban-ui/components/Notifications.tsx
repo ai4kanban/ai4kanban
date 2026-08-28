@@ -19,7 +19,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { FiBell, FiBellOff, FiChevronRight, FiSlash, FiX } from "react-icons/fi";
 import { boardNotificationsAction, watchReleaseAction } from "@/app/actions";
 import type { BellRail } from "@/lib/bell-rail";
-import type { NotificationRow } from "@/lib/notifications";
+import { ALL_RELEASES, type NotificationRow } from "@/lib/notifications";
 import { Button } from "./button";
 import { HAIRLINE, TOOL_BTN } from "./chrome";
 
@@ -237,9 +237,9 @@ function Row({
   );
 }
 
-/** The watched release closed. One line and the board's own open releases to pick from,
- *  where the filling stopped — the same choice Configuration offers, so nobody has to
- *  remember a version id to type. */
+/** The watched release closed. One line and what to watch instead, where the filling stopped
+ *  — the same choice Configuration offers, so nobody has to remember a version id to type.
+ *  **All** leads, and is the one answer a board with no open release left still has. */
 function PickRelease({ onPicked }: { onPicked: () => void }) {
   const [releases, setReleases] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -266,12 +266,13 @@ function PickRelease({ onPicked }: { onPicked: () => void }) {
     <div className="mx-1 mb-2 rounded-[9px] bg-nb-peach-soft px-3 py-2.5">
       <p className="text-[12px] font-[800] text-nb-peach-ink">The release you were watching closed.</p>
       <p className="mt-1 text-[11.5px] leading-[16px] text-nb-ink">
-        {releases && releases.length === 0
-          ? "Nothing new fills the bell until this board has an open release to watch."
-          : "Nothing new fills the bell until you pick another."}
+        Nothing new fills the bell until you pick what to watch.
       </p>
-      {releases && releases.length > 0 && (
+      {releases && (
         <div className="mt-2 flex flex-wrap gap-1.5">
+          <Button size="sm" disabled={busy} onClick={() => void watch(ALL_RELEASES)}>
+            All releases
+          </Button>
           {releases.map((release) => (
             <Button key={release} size="sm" disabled={busy} onClick={() => void watch(release)}>
               {release}

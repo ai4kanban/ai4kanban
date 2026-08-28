@@ -3,18 +3,19 @@
 // Two rules and one filter, in one place, so the publisher, the reconciliation at start and
 // the retirement test are the same judgment rather than three that agree until they don't:
 //
-//   • a task in the release this board watches, and
+//   • a task the board's watch covers — every card, or one release's, and
 //   • either at `ready`, or carrying questions only the user can answer.
 //
-// A task in another release, or promised to none, is not what the user asked to be told
-// about. A task that is BOTH raises the question: answering it rewrites the card and moves
-// its revision, so an approval granted first would bind a revision about to change.
+// Narrowed to one release, a task in another — or promised to none — is not what the user
+// asked to be told about. A task that is BOTH `ready` and asking raises the question:
+// answering it rewrites the card and moves its revision, so an approval granted first would
+// bind a revision about to change.
 
 import crypto from 'node:crypto'
 
 import { parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
-import type { CloudBoard } from './boards'
+import { ALL_RELEASES, type CloudBoard } from './boards'
 import { decisionFor, type CloudEventKind, type CloudEventQuestion } from './events'
 
 /** The event one card would raise, as it goes to the Worker. `boardId` names the board;
@@ -53,7 +54,7 @@ export function userQuestions(card: Card): CloudEventQuestion[] {
 /** Is this a card the board raises an event about right now? */
 export function actionableKind(card: Card, board: CloudBoard): CloudEventKind | null {
   if (!board.release) return null
-  if (card.release !== board.release) return null
+  if (board.release !== ALL_RELEASES && card.release !== board.release) return null
   if (card.recurring) return null
   if (userQuestions(card).length > 0) return 'question'
   return card.status === 'ready' ? 'ready_for_review' : null

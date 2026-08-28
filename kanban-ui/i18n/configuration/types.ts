@@ -178,7 +178,6 @@ export type ConfigurationCopy = {
     unreachable: (why: string) => string;
     signedIn: string;
     signOut: string;
-    slackHandle: string;
     signOutNote: string;
     notAdmitted: string;
     signedInAs: (handle: string) => string;
@@ -234,14 +233,14 @@ export type ConfigurationCopy = {
     notifications: {
       title: string;
       blurb: string;
-      /** No open release to watch, so the section says so rather than filling
-       *  nothing. */
-      noReleases: string;
       watching: string;
+      /** The picker's widest entry — every card, whatever release. */
+      allReleases: string;
       /** The picker's own entry while the watched release has closed. */
       pickRelease: string;
-      /** Beside the picker: what a watched release means, and what a closed one
+      /** Beside the picker: what each width means, and what a closed release
        *  leaves. */
+      anyRelease: string;
       onlyThisRelease: string;
       releaseClosed: string;
       saveFailed: string;

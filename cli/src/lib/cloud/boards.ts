@@ -14,6 +14,10 @@ import path from 'node:path'
 
 import { machineHome } from '../machine/home'
 
+/** Watch every card, whatever release it is promised to — the default a board starts on. Not
+ *  a release name: `*` cannot be one, so it never collides with a board's own versions. */
+export const ALL_RELEASES = '*'
+
 /** One board Cloud is on for. */
 export interface CloudBoard {
   /** The opaque id Cloud knows this board by. */
@@ -22,9 +26,9 @@ export interface CloudBoard {
   path: string
   /** What to call it in the bell — the project folder's own name. */
   name: string
-  /** The one open release this board raises events for. A task in any other release, or in
-   *  none, raises nothing. Empty when the watched release has closed and the user has not
-   *  picked another: the filling stops and the rail asks. */
+  /** What this board raises events for: `ALL_RELEASES`, or one open release, where a task in
+   *  any other release — or in none — raises nothing. Empty when a watched release closed and
+   *  the user has not picked another: the filling stops and the rail asks. */
   release: string
   /** This machine's server row for this board, as Cloud minted it (#318). It is what an
    *  approval taken elsewhere is claimed under, and what names this board's private Realtime

@@ -25,7 +25,7 @@
 // Two more things live under the admitted state (#319), and the line between them is the
 // line this section already draws. **Notifications for this board** belongs to the board:
 // signing in turns them on — they are not a setting — so what is shown is what they do and
-// the one open release they watch. The **silencing** switch belongs to the MACHINE and sits
+// how wide they watch: every release, or one. The **silencing** switch belongs to the MACHINE and sits
 // with the sign-in, because the interruptions it stops arrive from every board — a per-board
 // switch would be reachable only by opening that project first.
 
@@ -47,9 +47,10 @@ import {
 } from "@/app/actions";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
-import type { BoardNotifications } from "@/lib/notifications";
+import { ALL_RELEASES, type BoardNotifications } from "@/lib/notifications";
 import type { CloudAccount } from "@/lib/types";
 import { Button } from "./button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 /** The published pages the terms say signing in confirms you have read. */
 const PRIVACY_URL = "https://ai4kanban.dev/privacy";
@@ -192,9 +193,6 @@ function SignedIn({
               @{account.handle}
             </p>
           )}
-          <p className="mt-[3px] text-[11.5px] leading-[16px] text-nb-ink-soft">
-            {c.slackHandle}
-          </p>
         </div>
         <Button size="sm" variant="ghost" disabled={busy} onClick={onSignOut}>
           <FiLogOut size={13} aria-hidden />
@@ -286,7 +284,6 @@ function Notifications() {
   };
 
   if (!state) return null;
-  const noReleases = state.releases.length === 0;
 
   return (
     <div className="rounded-[10px] border border-nb-ink/12 px-4 py-3.5">
@@ -297,33 +294,43 @@ function Notifications() {
         </p>
       </div>
 
-      {/* A board with no open release has nothing to watch, so the section says so rather
-          than filling nothing. */}
-      {noReleases ? (
-        <p className="mt-2.5 text-[11.5px] leading-[16px] text-nb-ink-soft">{c.noReleases}</p>
-      ) : state.enabled ? (
-        <label className="mt-3 flex items-center gap-2.5 border-t border-nb-ink/12 pt-3">
+      {/* How wide this board watches. `All` is always there — it needs no release to exist —
+          so the only empty answer left is a board resting on a release that closed, which
+          shows the placeholder and the same prompt the rail gives where the filling stopped. */}
+      {state.enabled && (
+        <div className="mt-3 flex items-center gap-2.5 border-t border-nb-ink/12 pt-3">
           <span className="text-[12px] font-[700] text-nb-ink">{c.watching}</span>
-          <select
-            value={state.release}
+          <Select
+            value={state.release || undefined}
             disabled={busy}
-            onChange={(e) => void move(() => watchReleaseAction(e.target.value))}
-            className="h-8 cursor-pointer rounded-[8px] border-[1.5px] border-nb-ink bg-nb-paper px-2 font-mono text-[12px] font-[700] text-nb-ink outline-none"
+            onValueChange={(release) => void move(() => watchReleaseAction(release))}
           >
-            {/* An enabled board whose release has closed rests here until another is picked
-                — the same prompt the rail shows where the filling stopped. */}
-            {!state.release && <option value="">{c.pickRelease}</option>}
-            {state.releases.map((release) => (
-              <option key={release} value={release}>
-                {release}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              aria-label={c.watching}
+              className="h-8 w-auto rounded-[8px] py-0 font-mono text-[12px] font-[700]"
+            >
+              <SelectValue placeholder={c.pickRelease} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_RELEASES} className="font-mono text-[12px]">
+                {c.allReleases}
+              </SelectItem>
+              {state.releases.map((release) => (
+                <SelectItem key={release} value={release} className="font-mono text-[12px]">
+                  {release}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <span className="min-w-0 flex-1 text-[11.5px] leading-[16px] text-nb-ink-soft">
-            {state.release ? c.onlyThisRelease : c.releaseClosed}
+            {state.release === ALL_RELEASES
+              ? c.anyRelease
+              : state.release
+                ? c.onlyThisRelease
+                : c.releaseClosed}
           </span>
-        </label>
-      ) : null}
+        </div>
+      )}
 
       {/* Which machine runs this board's work (#318). Only once the board is raising events:
           a board that raises none has no approvals to run. */}
@@ -673,7 +680,7 @@ function Avatar({ account }: { account: CloudAccount }) {
     .join("");
   return (
     <span
-      className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-[10px] border-[1.5px] border-nb-ink bg-nb-wash text-[14px] font-[800] text-nb-ink"
+      className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-[10px] bg-nb-wash text-[14px] font-[800] text-nb-ink"
       aria-hidden
     >
       {initials || "?"}
