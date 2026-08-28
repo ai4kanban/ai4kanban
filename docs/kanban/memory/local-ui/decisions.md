@@ -283,6 +283,13 @@ re-ask a settled call.
 - **How does chat choose between doing work here and starting a run?**: it adds no rule of
   its own. The rail is an ordinary kanban-skill session: `--print` does a flow there, no
   flag starts a run, and users may run any `akb` command they want.
+- **What does the chat box show after a stopped reply?**: the plain composer, empty, with
+  whatever the reply managed to write kept above it. The message that was sent is not put
+  back to be reworded, so asking the same thing again means typing it out.
+- **What happens to a message typed while a reply is coming?**: it stays in the box and
+  sending stays off — button and Enter both — until the reply lands, then the user sends it
+  themselves. Nothing is ever sent on the user's behalf, so there is no queue and nothing to
+  cancel.
 
 ## Moving around the app
 
@@ -361,3 +368,8 @@ re-ask a settled call.
   nothing — what is on disk stays as written, and only new writing follows the setting. No
   one-off pass rewrites existing cards or memory into the new language, so a board that
   switches holds both languages at once.
+- **Does the menu bar's system-standard wording follow the setting?**: yes — Quit, Services,
+  Undo, Cut, Paste, Reload, Zoom and Minimize carry the app's own labels, so the whole menu
+  bar reads in the picked language on every platform rather than in the operating system's.
+  What the system fills in itself — the macOS Services submenu, the items macOS adds to
+  Window and Help, and the About panel — stays in the machine's language.

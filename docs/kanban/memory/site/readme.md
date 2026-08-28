@@ -61,3 +61,10 @@ covers it, or a plain-words note.
   linked from the site footer in all five languages. Both name NULLREACH LTD as the operator and
   `support@ai4kanban.dev` as the address for support and data requests. The bodies are MDX
   in `web/legal/`, and the effective date on each page is also its sitemap `lastmod`.
+
+- **The privacy page says what a Cloud notification holds and how long it is kept.** A new
+  "What an event holds" section under *Using AI4Kanban Cloud* names the task's number,
+  title, release, revision and open questions — and says the card body, the plan and the
+  board's folder are not among them — and both it and the retention list state that an
+  event is deleted 30 days after it reaches a final outcome. The summary at the top of the
+  page carries the same line in one sentence.

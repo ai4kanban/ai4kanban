@@ -59,3 +59,13 @@ covers it, or a plain-words note.
   subprocessor, and says both records are kept as long as the account is admitted; the terms
   page no longer claims the preview sends no email at all, only that it sends none as a
   notice.
+
+- **A board can send Cloud the tasks that need a person, and Cloud tells the app.** Turn
+  notifications on for a board under **Configuration → Cloud** and pick one open release:
+  a task that reaches `ready`, or that raises a question only you can answer, becomes a
+  durable Cloud event. An event carries the task's number, title, release and revision and
+  its user-owned questions with their options, and no other part of the card; the board is
+  named by an id that means nothing outside Cloud, so where it sits on your machine never
+  leaves it. Cloud records the one decision you make on it and how the run it started
+  ended, and deletes the lot 30 days after that. [/privacy](https://ai4kanban.dev/privacy)
+  says both.

@@ -60,6 +60,9 @@ re-ask a settled call.
 - One session drives one card the whole way. It never pauses to ask the user: it answers
   what it's sure of and ends either `ready` or holding only the questions a human must
   answer.
+- **A card is refined as soon as a run creates it**: every action that used to follow
+  nothing — refine, implement, revise, resolve, setup, spec — starts a refine on the cards
+  it created, and none on the cards it merely edited.
 
 ## Recurring tasks
 
@@ -216,3 +219,10 @@ re-ask a settled call.
 - **What marks where a card's agent half starts?**: an HTML comment, `<!-- agent -->`, on a
   line of its own above the first agent half section. It does not show when the card is
   rendered.
+
+## The board's language
+
+- **On a card already written in English, what language does an agent's open question or
+  verify line come in?**: the reader's. The two things written to be read by the user
+  personally follow the language setting on every card, including cards that existed before
+  the setting; the body of the card around them still follows the file.

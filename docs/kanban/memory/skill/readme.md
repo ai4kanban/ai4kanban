@@ -13,8 +13,8 @@ covers it, or a plain-words note.
   one line that fixes an ask that can't run: `akb help runs`.
 - The daily loop as users drive it, including archiving a finished card into
   `docs/kanban/.archive/` where it stays in git, and the refine that follows every run —
-  each as its own run, with a group's main card left alone when a subtask finishes:
-  `docs/guides/daily-loop.md`.
+  each as its own run, on every card the run created as well as the ones it changed, with a
+  group's main card left alone when a subtask finishes: `docs/guides/daily-loop.md`.
 - Refine runs one QA session that loops over the updated card until a clean sweep finds no
   new gap, then writes it: `akb guide qa-loop`.
 - A question for the user with choices is written as options they tick, not as prose with
@@ -178,6 +178,9 @@ covers it, or a plain-words note.
   <id> --action implement|refine` replaces that one-shot action, and `--clear` cancels it
   for the current blocked episode: "Queue a card that is waiting on another" in
   `docs/guides/daily-loop.md`.
+- A card is refined as soon as a run creates it, whichever run that was — the subtasks a
+  refine pass splits off, and the first cards finishing setup writes: "Push a card forward"
+  in `docs/guides/daily-loop.md`.
 
 ## Installing and updating
 
@@ -343,3 +346,18 @@ covers it, or a plain-words note.
   terminal stays English either way. `akb` does own the answer to "which language is this system
   tag?": the app hands over the machine's preferred languages and the rules decide, so any `zh-*` is
   Simplified Chinese and a tag no copy exists for is no answer rather than English.
+
+- **`akb` publishes a board's actionable tasks to Cloud after every write, over plain
+  `fetch`.** Turning notifications on is the app's — `akb cloud` prints which boards are on
+  and which release each watches. Every publication is written into the board's own
+  `.akb/cloud-outbox.json` before it is sent and retried from there, so a board write never
+  waits for the network and an unreachable Cloud loses nothing; a start reconciles the
+  board against Cloud to catch what a crash between the two missed. `akb` still runs on
+  Node 18 with no dependencies: only the app opens the live connection.
+
+- **Refining a card checks its size before it checks its details.** Roughly 200 lines or 12
+  todos is the stop sign for a cohesion check, not a hard limit: the card is split only at an
+  obvious seam between independently refinable deliverables, one slice keeps the id and the
+  rest are created and scheduled for refine. A user watching a refine can see one card become
+  several, and is never asked to approve an evident split: "Split before refining details" in
+  `akb guide qa-loop`.

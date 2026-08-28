@@ -68,6 +68,11 @@ Internal detail stays on the card.
   earlier "no scopes at all" promise goes with the change, because an invitation code needs a
   verified address to reach (#327).
 
+- **How does the app hold Cloud's live connection?**: on our own `WebSocket` against the
+  published Realtime protocol, not `@supabase/realtime-js`. The CLI bundle stays free of
+  bundled dependencies, and the client stays one file away behind the board's `Authorizable`
+  seam.
+
 ## What we publish about a team's data
 
 - **What does the invite-only preview tell people about their data?**: a privacy page and a
@@ -125,6 +130,13 @@ Internal detail stays on the card.
   it does not need the machine to be awake — the board's server picks the decision up and runs
   it when it is next reachable. Slack's link into the app is for reading the whole card, not
   for deciding.
+- **What does a Slack message show about a task?**: enough to review it — the card's summary,
+  its Worth noting, and its Worth noting after implementation, not just its title and the ask.
+  Cloud therefore holds that text alongside the event, and everyone in the destination channel
+  reads it.
+- **Can a card be revised or talked through from Slack?**: not in 0.8.0 — the message carries
+  **Implement** and the answer controls, and its card link opens the app for anything else.
+  Replying in the thread to chat with the card's agent is wanted after it.
 - **Does a save finish before the command returns?**: yes, on every board. There is no write
   queue and no background flush: a Cloud save takes as long as the network does and `akb`
   waits for it. That is the price of two teammates never overwriting each other silently.
@@ -149,6 +161,10 @@ Internal detail stays on the card.
   page starts the delivery or writes the answer at once and records the Cloud action afterwards,
   so a click in front of the user never waits for a round trip. `waiting for server` is for an
   action taken somewhere else, which the board's server picks up.
+- **What does Cloud tell a teammate about a board's server?**: its whole runtime binding — each
+  runtime the board names, and the harness and model that machine runs it as. Names only: never a
+  key, an argument string or a path.
+
 - **How many actions may one event take?**: exactly one, from whichever surface acts first. Cloud
   refuses a second and tells every other surface showing that event, so a Slack message for an
   event already handled in the app is redrawn as answered rather than left pressable.

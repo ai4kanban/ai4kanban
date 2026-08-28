@@ -16,6 +16,12 @@ before proposing so you don't re-suggest them.
   and lets the user configure the details — the common arguments are offered, custom arguments
   are typed in — so the model stays a box you fill in.
 
+- **A harness named per action and per spec agent** — the pick went straight from the
+  board's one harness onto every action and every spec agent, so what git shared was still a
+  coding tool each member had to install. #342's group puts a runtime between them: the board
+  names the runtime, each computer binds it to a harness. The per-action and per-spec-agent
+  slot survives as a runtime slot, built once instead of twice over the same files.
+
 - **Calling spec agents when a card is written** — the add-task flow would run `akb spec`
   and put agents on the card as it is created. Spec agents belong to refine alone: a card
   written from a one-line ask has no spec to fill in yet, and a second place to call them

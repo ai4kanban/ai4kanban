@@ -133,7 +133,9 @@ except where another doc is named.
 ## Refining
 
 - A run that writes or changes a card is followed by a refine of that card, as its own run
-  in the panel. A rough card automatically saves a one-shot refine when it first becomes
+  in the panel. A card is refined as soon as a run creates it, whichever run that was — the
+  subtasks a refine splits off, and the first cards finishing setup writes. A rough card
+  automatically saves a one-shot refine when it first becomes
   blocked; finishing or rejecting its last blocker makes that schedule eligible. Cancelling
   lasts for that blocked episode. A group's main card is left alone when a subtask finishes:
   "The refine that follows a run".
@@ -396,3 +398,13 @@ except where another doc is named.
   first. A refused code answers in the service's own words under the box, a redeemed one
   moves the pane to the admitted state without signing in again, and once an invite has been
   asked for the button becomes the day it was asked.
+
+- **A bell in the top row carries every board Cloud is on for.** It leads the tool cluster
+  with its unread count inside the segment, and opens a rail down the right in the chat
+  rail's place — the right side holds one rail at a time, so opening either folds the
+  other. One row per event, newest change first: the card's number and title with the
+  event's name under it, an accent dot while unread, and nothing else. Opening a row opens
+  that card's own page, switching the app to that board first when the row belongs to
+  another one, and says so plainly when that board is no longer on this machine. The card
+  page's **Implement** and **Resolve** still act on the spot and record the same decision
+  in Cloud, so every other surface showing that event stops offering it.

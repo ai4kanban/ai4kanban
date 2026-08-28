@@ -108,6 +108,11 @@ before proposing so you don't re-suggest them.
   run. We still said no: pi never asks permission and nothing holds a run to the project,
   so picking it in the agent dialog would hand a run the whole machine. The other four
   agents stay in the repo, and no wording in the dialog makes that safe.
+- **A harness picker per action row and per spec agent row** — Configuration → Harness and
+  Configuration → Agents were each growing a harness-and-model control per row, against a pick
+  that pins the whole team to one coding tool. #342's group draws those rows against runtimes
+  and adds the per-computer binding beside them, so the panes are rebuilt once.
+
 - **Offering a list of model ids in the Harness pane's Model field** — neither source of ids
   was worth the field it would change. A list we keep per harness goes stale and is the same
   maintenance that sank asking each harness for its own list; offering only the ids already
