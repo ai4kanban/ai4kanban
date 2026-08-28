@@ -62,6 +62,33 @@ the metadata: title, track, priority, roi, status, release, blocked_by, related,
 questions, verify, and schedule. Edit only the card's **body** by hand. `akb board help`
 lists all operations; `akb board help <move>` explains one operation.
 
+## The board's language
+
+A run is told which language to write the board's prose in when the user reads the board in
+something other than English. Told nothing, everything below is English.
+
+- **Follows the language**: card titles and bodies, open questions and their options,
+  `verify:` lines, memory notes, changelogs, and what the agent says back to the user.
+- **Stays English whatever the setting**: frontmatter keys and their fixed values, `##` and
+  `###` section headings, the `<!-- agent -->` boundary, todo checkboxes, the `[user]` tag,
+  track names, module names, and card filenames. The board matches all of these by literal
+  English text, so a translated one is a card it can no longer read.
+- **Prose in frontmatter is still prose**: a title, a question, an option and a `verify:`
+  line follow the language even though they sit in a field.
+- **A title that is not English needs an English slug**: filenames are ASCII, so pass
+  `akb board create --slug <short-english-slug>`, and name a group's own folder with one too.
+- **An edit follows the file, not the setting**: rewriting a card or a memory file that
+  already exists keeps the language that file is already in. A changelog is the exception:
+  the command replaces the whole block, so it follows the setting on a rewrite too
+  (`akb guide changelog`).
+- **Except what the user reads to decide**: an open question, its options and a `verify:`
+  line follow the setting on every card — including one written in English — whether a pass
+  appends them or rewrites ones already there. The body around them does not.
+- **A memory file holding only its seeded header is empty**: the header is `akb`'s own text
+  and stays English, so the first note a run adds follows the setting.
+- **Not the code, and not the repository's own documents**: code, comments, commit messages
+  and the files under `docs/` a card asks for follow the repository, not the reader.
+
 ## Group task
 
 A **group task** is broad enough that even its subtasks may need further splitting. It
@@ -81,7 +108,8 @@ then move the files into the group's folder:
 2. **Write each subtask**: `akb board create --title "<one piece>" --track <track>
    --related <id>`, adding `--blocked-by <subid>` where execution order matters.
 3. **Move the files**: the root becomes `todo/<id>-<short-slug>/root.md`, and each subtask
-   goes under `todo/<id>-<short-slug>/<track>/` with its filename unchanged.
+   goes under `todo/<id>-<short-slug>/<track>/` with its filename unchanged. The folder's
+   slug is short English ASCII whatever language the root's title is in.
 4. **Point the root at its pieces**: `akb board update <id> --related <subid,subid,...>`.
    At create time `--related` can only name ids that already exist, so the root's list is
    filled in here.

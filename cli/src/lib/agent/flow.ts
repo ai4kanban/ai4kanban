@@ -42,6 +42,7 @@ import { boardCommandFor } from './command'
 import { activeDelivery } from './deliveries'
 import { lastRound, openFindings } from './review'
 import { field, metaLine, numbered, trackNames } from './facts'
+import { translating } from './language'
 import { buildAsk, frozenRules } from './prompts'
 import { flowByAction } from './flows'
 import { ruleFor } from './rules'
@@ -638,7 +639,9 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       }
       if (req.action === 'propose') facts.push(...field('goal', rel(GOAL)), ...field('memory', rel(MEMORY)))
       close.push(
-        `${board} create --title ".." --track <track>${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
+        // `--slug` only on a board that isn't English (#337): a non-English title slugifies
+        // to nothing, and every card would be named `<id>-task.md`.
+        `${board} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''} --track <track>${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
         'then write only the body: the human half (the opening paragraph, ## Worth noting), the <!-- agent --> marker, then the agent half — ## Scope, ## Todo',
       )
       next.push(refineNext('<id>', 'for each new card'))

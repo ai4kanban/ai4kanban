@@ -22,6 +22,7 @@ import {
 } from './harnesses'
 import { FLOWS } from './flows'
 import { commandBinary, pathLookup } from './installed'
+import { languageNote } from './language'
 import { missingRequired, pickedProvider, providerSetting, shownForProvider } from './providers'
 import { runtimeOfFlow } from './runtime'
 import { configBlock, readEnvFile, readRuntimes, safeConfig, type BoardRuntimes } from './settings'
@@ -548,9 +549,14 @@ export function skillPrompt(message: string): string {
  *  only the way the skill is called follows the pick.
  *
  *  It is one line rather than one per step: setup picks up at the first unticked box, so
- *  the same paste restarts it wherever it stopped. */
+ *  the same paste restarts it wherever it stopped.
+ *
+ *  It carries the board's language itself (#337): a pasted line never goes through the ask,
+ *  and setup is where a board's first cards and memory notes are written. */
 export function setupInstruction(): string {
-  return `${skillCall()}. Set up this board — follow docs/kanban/setup-checklist.md.`
+  return [`${skillCall()}. Set up this board — follow docs/kanban/setup-checklist.md.`, languageNote()]
+    .filter(Boolean)
+    .join(' ')
 }
 
 /** Which agent runs the board, what it is set to, and everything a front end needs to

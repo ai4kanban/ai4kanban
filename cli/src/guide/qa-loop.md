@@ -44,7 +44,8 @@ deliverables; never split a cohesive plan to satisfy a count.
 
 Keep the current id for one slice and create the others with `akb board create --schedule
 refine`, assigning each requirement once and carrying only relevant metadata and
-dependencies. Then continue this loop on the current slice.
+dependencies. Give each title that is not in English a `--slug <short-english-slug>` —
+filenames are ASCII. Then continue this loop on the current slice.
 Do not ask the user to approve an evident split or refine the new cards here.
 
 ## Decide what survives

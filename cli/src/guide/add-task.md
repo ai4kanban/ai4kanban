@@ -40,7 +40,9 @@ Cards that stand on their own stay loose.
 Every meta field comes from a `create` flag. The frontmatter is not hand-editable — pass
 the fields to `akb board create`:
 
-`--blocked-by` and `--related` are optional, based on the task dependencies.
+`--blocked-by` and `--related` are optional, based on the task dependencies. A title that is
+not in English also needs `--slug <short-english-slug>` — filenames are ASCII, and without
+one every such card is named `<id>-task.md`.
 
 ```
 akb board create --title "Continue a run's conversation instead of copying its id" \

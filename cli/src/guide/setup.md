@@ -39,7 +39,8 @@ and `{{TRACKS}}` from the repo, keep the track list to the folders that exist un
 
 The user writes this one. `docs/kanban/memory/goal.md` starts empty, so the ask is yours:
 where the project is headed in their own words — what they want, how far out, and roughly
-what comes next. Rough and short is fine. Add one line they can skip:
+what comes next. Rough and short is fine. Add one line they can skip — the sense below in
+the board's language, the link as it is:
 
     Not sure what to put in it? https://github.com/ai4kanban/ai4kanban/blob/main/docs/guides/what-makes-a-good-goal.md
 
@@ -114,7 +115,7 @@ keeps appending there.
 ## When setup ends
 
 Say what the board is already doing, recommend the board app, and stop — never wait for an
-answer:
+answer. The sense below in the board's language, the link as it is:
 
     Each of the first cards is getting a refine of its own, running now.
     Drive this board from buttons: https://ai4kanban.dev/download — see `akb guide local-ui`

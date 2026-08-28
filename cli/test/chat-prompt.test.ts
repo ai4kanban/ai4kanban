@@ -5,9 +5,26 @@
 // and gets answered as one — which is what this asks about.
 
 import assert from 'node:assert/strict'
-import { describe, it } from 'node:test'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { chatPrompt } from '../src/lib/agent/chat.ts'
+
+// A conversation carries the board's language on every turn (#337), so the machine is
+// pinned here — the developer's own pick must not change what these prompts say.
+let home = ''
+
+beforeEach(() => {
+  home = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-chat-home-'))
+  process.env.AI4KANBAN_HOME = home
+})
+
+afterEach(() => {
+  delete process.env.AI4KANBAN_HOME
+  fs.rmSync(home, { recursive: true, force: true })
+})
 
 describe("a card conversation's first message", () => {
   it('names the card the conversation is about, and the card comes before the words', () => {

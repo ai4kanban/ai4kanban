@@ -8,6 +8,7 @@ import { findSpecAgent, specAgentPrompt, specAgentRoster, specHeading } from '..
 import { boardCommand, boardCommandFor, commandNote } from './command'
 import { activeDelivery } from './deliveries'
 import { DELIVERY_FLOWS } from './flows'
+import { languageNote } from './language'
 import { skillCall } from './resolve'
 import { runtimeFor } from './runtime'
 import { ruleBlock } from './rules'
@@ -75,14 +76,18 @@ const NO_IMPLEMENT = `(Unless the request explicitly asks for implementation, do
  *  it copies out of a flow is a poor place to find that out.
  *
  *  Split out from `buildPrompt` for the one caller that needs the ask alone: a printed flow
- *  puts the rule at the very end, after the flows themselves (`flow.ts`). */
+ *  puts the rule at the very end, after the flows themselves (`flow.ts`).
+ *
+ *  The language the board is read in rides here rather than in `buildPrompt` (#337): a
+ *  printed flow is built from the ask alone, and `--print` is how the work is done in the
+ *  user's own session. */
 export function buildAsk(req: AgentRequest, notes: string[] = []): string {
   // A delivery's runs work in that delivery's own worktree, so their board commands
   // name the project's own copy outright (#303). Everything else runs in the project and
   // spells the command the ordinary way.
   const command = DELIVERY_FLOWS.has(req.action) ? boardCommandFor(req.id) : boardCommand()
   const ask = [actionPrompt(req, command, notes), commandNote(command)].filter(Boolean).join(' ')
-  return [ask, roster(req)].filter(Boolean).join('\n\n')
+  return [ask, languageNote(), roster(req)].filter(Boolean).join('\n\n')
 }
 
 /** The words one run is given, this board's own rule for the flow last (#306). It goes

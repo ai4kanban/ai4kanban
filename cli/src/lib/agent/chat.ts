@@ -29,6 +29,7 @@ import { parseFrontmatter } from '../frontmatter'
 import { pidAlive } from '../lock'
 import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { ensureSkillInstalled } from '../skill/install'
+import { languageNote } from './language'
 import { chatAgent, harnessLabel, openPlan, planResume, planRun, skillPrompt, type RunPlan } from './resolve'
 import { createStderrFilter } from './stream'
 import type { Chat, ChatMessage, ChatReply, ChatView } from './types'
@@ -221,13 +222,18 @@ export interface SendOptions {
  *  about?" reading as a question about the skill, and it gets answered as one.
  *
  *  Every turn after the first is the user's words alone — the skill, the subject and the
- *  exchange are already in that agent's session. */
+ *  exchange are already in that agent's session.
+ *
+ *  Except the language the board is read in (#337), which every turn carries: a session told
+ *  once at the top drifts back to English as it grows, and a language switched mid-
+ *  conversation would never reach it at all. An English board carries nothing. */
 export function chatPrompt(
   cardId: number | null,
   message: string,
   opts: { resuming?: boolean; title?: string } = {},
 ): string {
-  if (opts.resuming) return message
+  const language = languageNote()
+  if (opts.resuming) return [language, message].filter(Boolean).join('\n\n')
   const title = opts.title ?? (cardId === null ? undefined : cardTitle(cardId))
   const subject =
     cardId === null
@@ -235,7 +241,7 @@ export function chatPrompt(
       : `This is a chat about task #${cardId}${title ? ` ("${title}")` : ''} on this project's board. ` +
         `Read the card before you answer, and take "it", "this" and "this task" to mean that card ` +
         `unless I name another.`
-  return skillPrompt(`${subject}\n\n${message}`)
+  return skillPrompt([subject, language, message].filter(Boolean).join('\n\n'))
 }
 
 // The card's title, off its own file. Read here rather than through `titleOf` in
