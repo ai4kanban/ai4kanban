@@ -2,9 +2,10 @@
  * The invitation loop's two moving parts on the Worker's side (#327): the routes a
  * not-yet-admitted sign-in may call, and the hourly run's outbox.
  *
- * Nothing about asking for an invite waits on mail. The route records the request and
- * returns; the run that follows is what tells us somebody asked, and what carries the code
- * we answer with. So a mail provider having a bad hour costs a retry, never a request.
+ * Nothing about asking for an invite waits on mail: the route records the request, hands the
+ * send to `waitUntil` and returns. The hourly run is the retry behind that — for a send the
+ * provider refused, and for a code approved in the SQL editor, where no Worker is in flight
+ * to send it. So a mail provider having a bad hour costs a retry, never a request.
  */
 
 import { MAIL_BATCH, MAIL_MAX_ATTEMPTS, SUPPORT_EMAIL } from './config.ts'
@@ -30,7 +31,7 @@ interface Outcome {
 
 /**
  * Record that this account asked for an invite. Pressing again returns the request already
- * open — no second row, and no second notice queued.
+ * open — no second row, and a notice already sent is never picked up again.
  */
 export async function requestInvite(env: Env, subject: string): Promise<string> {
   const outcome = await mutate<Outcome>(env, 'request_invite', { p_subject: subject })
@@ -86,6 +87,9 @@ export interface MailRun {
 
 /**
  * Send everything queued: the notices that somebody asked, and the codes that answer them.
+ *
+ * Called twice over: from the route that wrote the row, through `waitUntil`, and from the
+ * hourly run, which retries whatever that first attempt did not get out.
  *
  * Each record is marked sent the moment the provider accepts it, and one already marked is
  * never picked up. A crash between the send and the mark can repeat one message, which

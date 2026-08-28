@@ -6,3 +6,9 @@ declare interface ScheduledController {
   readonly cron: string
   noRetry(): void
 }
+
+declare interface ExecutionContext {
+  /** Keep the isolate alive for work the response does not wait on — the invitation mail. */
+  waitUntil(promise: Promise<unknown>): void
+  passThroughOnException(): void
+}

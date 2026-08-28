@@ -24,13 +24,17 @@ export interface Heartbeat {
  * day, and a busy day must not switch off the thing keeping the project awake. The mail the
  * run sends (#327) is outside it for the same reason — a handful of rows an hour, and a busy
  * day must not hold an invitation back.
+ *
+ * The mail step is the retry, not the first attempt: `/v1/invite-request` sends its own
+ * notice through `waitUntil`. What is left for this run is a send the provider refused, and a
+ * code approved in the SQL editor, where no Worker was in flight to send it.
  */
 export async function runScheduled(env: Env): Promise<{ heartbeat: Heartbeat; mail: MailRun; sweep: Sweep }> {
   const heartbeat = await call<Heartbeat>(env, 'service_heartbeat')
   console.log('cloud: heartbeat', { ...heartbeat, daily_write_budget: DAILY_WRITE_BUDGET })
 
   // Never let a mail failure take the heartbeat's run down with it: the project staying awake
-  // matters more than this hour's send, which is retried on the next one anyway.
+  // matters more than this hour's retry, which the next hour makes again anyway.
   let mail: MailRun = { queued: 0, sent: 0, failed: 0 }
   try {
     mail = await sendPendingMail(env)

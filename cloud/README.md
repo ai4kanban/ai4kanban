@@ -39,9 +39,13 @@ cloud/
   redeemed. A redemption is keyed on the sign-in subject rather than the handle, because
   GitHub lets a handle be given up and taken by somebody else.
 - **One schedule serves the whole service**: an hourly run touches the database, which is
-  what keeps a free Supabase project from pausing after a quiet week. It is also the one
-  thing that sends email — every request notice and every issued invitation — so the mail
-  key never leaves the Worker and a failed send is retried rather than lost.
+  what keeps a free Supabase project from pausing after a quiet week. It also sweeps finished
+  events, and retries mail.
+- **Mail goes out at once, and the run is the retry**: `/v1/invite-request` sends its own
+  notice through `waitUntil`, so nobody waits on the top of the hour and the response still
+  never waits on Resend. The hourly run picks up what is left — a send the provider refused,
+  and a code approved in the SQL editor, where no Worker was in flight to send it. Either way
+  the mail key never leaves the Worker and a failed send is retried rather than lost.
 
 ## Endpoints
 
@@ -129,13 +133,15 @@ invitation code (below) is the one everybody else comes in by.
 
 ## Answer an invite request
 
-A refused person presses **Request an invite** in the app, which records a row and nothing
-else. The next hourly run mails the notice to `support@ai4kanban.dev` with the requester as
-the reply address; the **record**, not the mail, is what an answer is written from.
+A refused person presses **Request an invite** in the app, which records a row and then mails
+the notice to `support@ai4kanban.dev` with the requester as the reply address — within
+seconds, not at the top of the hour. The **record**, not the mail, is what an answer is
+written from, so a notice Resend refused is one the next hourly run sends again.
 
 Approving is one statement. It issues the code, points it at the address the sign-in
 attested, and leaves it for the next hourly run to send — nobody types a code, and no mail
-credential reaches whoever approves.
+credential reaches whoever approves. It is SQL rather than a route, so this one really does
+wait for the hour.
 
 ```sql
 -- who is waiting

@@ -12,7 +12,7 @@ import {
   retireEvent,
 } from './events.ts'
 import { json, refusalResponse } from './http.ts'
-import { redeemInvitation, requestInvite } from './invites.ts'
+import { redeemInvitation, requestInvite, sendPendingMail } from './invites.ts'
 import { readSession, requireOwner } from './owner.ts'
 import { runScheduled } from './scheduled.ts'
 import {
@@ -30,10 +30,10 @@ interface SelfCheck {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     try {
       requireEnv(env)
-      return await route(request, env)
+      return await route(request, env, ctx)
     } catch (error) {
       if (!(error instanceof Refusal)) console.error('cloud: request failed', error)
       return refusalResponse(error)
@@ -46,7 +46,7 @@ export default {
   },
 }
 
-async function route(request: Request, env: Env): Promise<Response> {
+async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const { pathname } = new URL(request.url)
 
   // Liveness. It reaches nothing, so it stays honest while the database is read-only.
@@ -76,7 +76,12 @@ async function route(request: Request, env: Env): Promise<Response> {
     requireMethod(request, 'POST')
     const session = await readSession(request, env)
     if (session.admitted) throw badRequest('This account is already in the preview.')
-    return json({ requestedAt: await requestInvite(env, session.subject) })
+    const requestedAt = await requestInvite(env, session.subject)
+    // The row is written, and a Worker is standing right here — so send it now rather than
+    // leaving a person waiting on the top of the hour. `waitUntil` keeps the response off
+    // Resend's latency, and a send that fails is what the hourly run retries.
+    ctx.waitUntil(sendPendingMail(env).catch((e) => console.error('cloud: mail failed', e)))
+    return json({ requestedAt })
   }
 
   if (pathname === '/v1/invitations/redeem') {
