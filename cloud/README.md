@@ -143,6 +143,17 @@ attested, and leaves it for the next hourly run to send — nobody types a code,
 credential reaches whoever approves. It is SQL rather than a route, so this one really does
 wait for the hour.
 
+`npm run invite` runs the common three from a shell, against the project named by
+`SUPABASE_PROJECT_REF` and `SUPABASE_ACCESS_TOKEN`:
+
+```sh
+npm run invite                       # who is waiting
+npm run invite approve neverchanje   # issue the code; the next hourly run mails it
+npm run invite codes                 # every code, and what became of it
+```
+
+The rest, and the same statements by hand:
+
 ```sql
 -- who is waiting
 select handle, email, requested_at, notified_at, notify_attempts, notify_error
