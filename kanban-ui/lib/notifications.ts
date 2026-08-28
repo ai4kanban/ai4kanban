@@ -29,6 +29,9 @@ export interface NotificationRow {
   taskTitle: string;
   label: string;
   state: string;
+  /** The rail draws this one. Absent from rules that predate the filter, where every row was
+   *  drawn — the rail treats that as true rather than emptying itself. */
+  onRail?: boolean;
   unread: boolean;
   changedAt: string;
 }

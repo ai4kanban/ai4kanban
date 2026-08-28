@@ -12,6 +12,11 @@
 // nothing else: opening it opens that card's own page, because a second page drawn for an
 // event would only duplicate the card's.
 //
+// What gets a row is what is waiting for a person — a card to decide, and how a delivery
+// that person approved ended. A delivery going, an approval this machine just took and a
+// card that stopped asking take none: the rules decide it (`onRail`), so the rail and the
+// system notifications can never disagree about what an interruption is.
+//
 // It draws two ends as carefully as the list: nothing waiting, and notifications off for
 // this board. Both say what would fill it, and the off state names where to turn it on.
 
@@ -72,6 +77,9 @@ export function BellButton() {
  *  or a cover over it — with the same contents either way. */
 export function BellPane({ rail }: { rail: BellRail }) {
   const { center } = rail;
+  // The rail draws what is waiting for a person. `center.rows` carries every live event
+  // because the card page reads its own out of the same list.
+  const rows = center.rows.filter((row) => row.onRail !== false);
   return (
     <div className="flex h-full flex-col overflow-hidden py-2 pl-1 pr-3">
       <Head unread={center.unread} silenced={center.silenced} onFold={rail.fold} />
@@ -88,7 +96,7 @@ export function BellPane({ rail }: { rail: BellRail }) {
           body="Sign in and this board's cards start filling the bell. Nothing leaves this machine until you do."
           hint="Configuration → Cloud"
         />
-      ) : !center.enabled && center.rows.length === 0 ? (
+      ) : !center.enabled && rows.length === 0 ? (
         <Empty
           icon={<FiBellOff size={20} aria-hidden />}
           title="No open release"
@@ -99,7 +107,7 @@ export function BellPane({ rail }: { rail: BellRail }) {
           {/* The watched release closed, so the filling stopped. The prompt is here rather
               than only in Configuration, because here is where it stopped. */}
           {center.enabled && !center.release && <PickRelease onPicked={rail.refresh} />}
-          {center.rows.length === 0 ? (
+          {rows.length === 0 ? (
             <Empty
               icon={<FiBell size={20} aria-hidden />}
               title="Nothing waiting"
@@ -111,7 +119,7 @@ export function BellPane({ rail }: { rail: BellRail }) {
                 Newest change first
               </p>
               <div className="min-h-0 flex-1 overflow-y-auto">
-                {center.rows.map((row) => (
+                {rows.map((row) => (
                   <Row
                     key={row.eventId}
                     row={row}

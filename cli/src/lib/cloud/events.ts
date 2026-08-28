@@ -235,3 +235,32 @@ export const OUTCOME_STATES: CloudOutcome[] = ['completed', 'failed', 'interrupt
 export function isOutcome(state: CloudEventState): state is CloudOutcome {
   return (OUTCOME_STATES as CloudEventState[]).includes(state)
 }
+
+/**
+ * Whether an event is waiting for a PERSON — what the bell counts, and the one thing it
+ * interrupts anybody over.
+ *
+ * Two states qualify: a card asking for a decision, and how a delivery that person approved
+ * ended. Everything else is the machine getting on with it (`accepted`, `running`), what the
+ * user just did themselves (`cancelled`), or a card that stopped asking (`stale`). A count
+ * that grew for any of those would count activity rather than things to do.
+ *
+ * Only an Implement has a delivery worth reporting: an approved ANSWER ends by leaving its
+ * card waiting for a person again, which the first clause already says, and saying it twice
+ * is two rows for one thing.
+ */
+export function needsPerson(event: Pick<CloudEvent, 'state' | 'acted' | 'decision'>): boolean {
+  if (event.state === 'actionable') return true
+  return isOutcome(event.state) && event.acted && event.decision === 'implement'
+}
+
+/**
+ * Whether the rail draws a row for it: the above, and one state more.
+ *
+ * `waiting_for_server` is a decision taken elsewhere that no machine has claimed yet. Nobody
+ * has to act on it, so it never counts as unread — but the row is the only place a decision
+ * stuck there shows at all, and the alternative is an approval that silently never runs.
+ */
+export function onTheRail(event: Pick<CloudEvent, 'state' | 'acted' | 'decision'>): boolean {
+  return needsPerson(event) || event.state === 'waiting_for_server'
+}

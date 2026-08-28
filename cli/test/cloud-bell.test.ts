@@ -15,6 +15,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { alertFor } from '../src/lib/cloud/center.ts'
+import { needsPerson, onTheRail } from '../src/lib/cloud/events.ts'
 import type { CloudEvent, CloudEventState } from '../src/lib/cloud/events.ts'
 
 const event = (over: Partial<CloudEvent> = {}): CloudEvent =>
@@ -133,5 +134,48 @@ describe('a cancellation', () => {
     const before = event({ state: 'running', acted: true })
     const gone = event({ state: 'cancelled', acted: true, changedAt: '2026-08-01T01:00:00Z' })
     assert.equal(alertFor(before, gone, false), null)
+  })
+})
+
+describe('which states are waiting for a person', () => {
+  it('counts a card asking, and how an approved delivery ended', () => {
+    assert.ok(needsPerson(event()))
+    for (const state of ['completed', 'failed', 'interrupted'] as CloudEventState[]) {
+      assert.ok(needsPerson(event({ state, acted: true })), state)
+    }
+  })
+
+  it('counts none of the states that are the board or the click coming back', () => {
+    for (const state of ['accepted', 'running', 'cancelled', 'stale'] as CloudEventState[]) {
+      assert.equal(needsPerson(event({ state, acted: true })), false, state)
+    }
+  })
+
+  it('counts no outcome nobody acted on, and none of an approved answer', () => {
+    assert.equal(needsPerson(event({ state: 'completed', acted: false })), false)
+    assert.equal(
+      needsPerson(event({ state: 'completed', acted: true, kind: 'question', decision: 'answer' })),
+      false,
+    )
+  })
+})
+
+describe('what the rail draws', () => {
+  it('draws everything waiting for a person', () => {
+    assert.ok(onTheRail(event()))
+    assert.ok(onTheRail(event({ state: 'failed', acted: true })))
+  })
+
+  it('draws a decision no machine has claimed, which nothing else on screen shows', () => {
+    assert.ok(onTheRail(event({ state: 'waiting_for_server', acted: true })))
+    // It is not an interruption, though: nobody has to do anything about it yet.
+    assert.equal(needsPerson(event({ state: 'waiting_for_server', acted: true })), false)
+  })
+
+  it('draws no row for a delivery going, or for one the user cancelled', () => {
+    assert.equal(onTheRail(event({ state: 'running', acted: true })), false)
+    assert.equal(onTheRail(event({ state: 'accepted', acted: true })), false)
+    assert.equal(onTheRail(event({ state: 'cancelled', acted: true })), false)
+    assert.equal(onTheRail(event({ state: 'stale' })), false)
   })
 })

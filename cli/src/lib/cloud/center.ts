@@ -16,6 +16,12 @@
 //     included, because the user may have walked away from a build they approved.
 // A start's catch-up raises neither: the person launching the app is in front of it. A
 // reconnect's raises both, because the window may have been sitting unwatched.
+//
+// The rail draws the same two (./events.ts `needsPerson`), so the bell's count is things to
+// do rather than a log of state changes: a delivery going, an approval this machine just
+// took, a cancellation and a card that stopped asking are all the board or the user's own
+// click coming back, and none of them takes a row. The card page reads `rows` for its own
+// title band, so every event stays in there and `onRail` is what says which are drawn.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -25,7 +31,7 @@ import { notificationsSilenced } from '../machine/settings'
 import { REPO_ROOT } from '../paths'
 import { cloudBoardById, cloudBoardFor, namesBoards } from './boards'
 import { listEvents, readEvent } from './client'
-import { eventLabel, isOutcome, type CloudEvent, type CloudEventState } from './events'
+import { eventLabel, needsPerson, onTheRail, type CloudEvent, type CloudEventState } from './events'
 import { connectCloudLive, type LiveConnection } from './live'
 import { ensureBoardNotifications } from './notifications'
 import { unsentToCloud } from './outbox'
@@ -47,6 +53,9 @@ export interface NotificationRow {
   /** The event's name — what the row's second line and a notification both say. */
   label: string
   state: CloudEventState
+  /** The rail draws this one. False on the states nobody has to act on — the card page still
+   *  reads them here for its title band. */
+  onRail: boolean
   unread: boolean
   changedAt: string
 }
@@ -79,7 +88,10 @@ export interface NotificationCenter {
   silenced: boolean
   /** Whether a row has to name its board. */
   namesBoards: boolean
+  /** Every live event, newest change first. The rail draws the ones marked `onRail`; the
+   *  card page reads the rest for its own title band. */
   rows: NotificationRow[]
+  /** How many rows are waiting for a person and have not been opened — the bell's count. */
   unread: number
   /** Alerts to raise now, handed out once. */
   alerts: NotificationAlert[]
@@ -92,7 +104,8 @@ export interface NotificationCenter {
 
 // ---- what this machine has looked at ----------------------------------------
 // A row is unread until it is opened, and unread AGAIN when its delivery ends: the mark is
-// the event's newest change, so a change nobody has opened since counts.
+// the event's newest change, so a change nobody has opened since counts — as long as the
+// state it changed to is one waiting for a person.
 
 const readsFile = (): string => path.join(machineHome(), 'notifications.json')
 
@@ -249,25 +262,18 @@ export function alertFor(
   silent: boolean,
 ): NotificationAlert | null {
   if (silent) return null
-  if (before && before.state === event.state && before.changedAt === event.changedAt) return null
-
-  // The board has stopped working on this card and it is waiting for a person. What makes it
-  // an interruption is that nothing is working on it NOW — not whether this machine has seen
-  // the row before: a card is put down while a run rewrites it (./snapshot.ts) and picked up
-  // again when the run ends, so the same card raises the user each time the board finishes
-  // with it and leaves it needing one. A refresh in place — actionable, still actionable —
-  // is the same piece of work the user was already told about, so it still says nothing.
-  if (event.state === 'actionable' && before?.state !== 'actionable') {
-    return alert(event, 'actionable', eventLabel(event))
-  }
-  // The delivery this event's action started has ended. Only an Implement has a delivery to
-  // report on: an approved ANSWER ends by leaving its card waiting for a person again, which
-  // the branch above already says, and saying it twice is two interruptions for one thing.
-  // A cancellation is the user's own doing and reports nothing either way.
-  if (isOutcome(event.state) && event.acted && event.decision === 'implement' && before?.state !== event.state) {
-    return alert(event, 'outcome', eventLabel(event))
-  }
-  return null
+  // Nothing is waiting for anybody. `needsPerson` is the whole of that judgment, and the rail
+  // draws from the same one, so an interruption and a row can never disagree.
+  if (!needsPerson(event)) return null
+  // The same state again is the same piece of work the user was already told about: a
+  // broadcast delivered twice, or a card refreshed in place under a question still open.
+  //
+  // What makes an actionable event an interruption is that nothing is working on it NOW —
+  // not whether this machine has seen the row before. A card is put down while a run rewrites
+  // it (./snapshot.ts) and picked up again when the run ends, so the same card raises the
+  // user each time the board finishes with it and leaves it needing one.
+  if (before?.state === event.state) return null
+  return alert(event, event.state === 'actionable' ? 'actionable' : 'outcome', eventLabel(event))
 }
 
 const alert = (event: CloudEvent, kind: NotificationAlert['kind'], body: string): NotificationAlert => ({
@@ -281,7 +287,7 @@ const alert = (event: CloudEvent, kind: NotificationAlert['kind'], body: string)
 
 // ---- what the bell draws ----------------------------------------------------
 
-/** The rail's rows, newest change first, and the alerts waiting to be raised. Reading takes
+/** Every live event, newest change first, and the alerts waiting to be raised. Reading takes
  *  the alerts away: they are raised once or not at all. */
 export function readCloudCenter(): NotificationCenter {
   const held = state()
@@ -299,8 +305,10 @@ export function readCloudCenter(): NotificationCenter {
         taskTitle: event.taskTitle,
         label: eventLabel(event),
         state: event.state,
-        // A retired event stops counting without ever being opened.
-        unread: event.state !== 'stale' && marks[event.id] !== event.changedAt,
+        onRail: onTheRail(event),
+        // Only a state waiting for a person counts, so a delivery starting under a row the
+        // user has already read leaves it read.
+        unread: needsPerson(event) && marks[event.id] !== event.changedAt,
         changedAt: event.changedAt,
       }
     })

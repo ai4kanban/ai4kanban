@@ -71,8 +71,8 @@ export type AgentAction =
    *  rebase after it. Its result is reviewed from scratch. */
   | 'conflict'
 
-/** The passes a refinement is made of (`agent/refine.ts`). None of them is a flow a user
- *  types: each one belongs to a refine loop, and carries that loop's id and its round. */
+/** The action names used by refinement passes (`agent/refine.ts`). A pass carries its
+ *  refine round; `resolve` without one is the standalone flow a user typed. */
 export const REFINE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'clarify',
   'resolve',
