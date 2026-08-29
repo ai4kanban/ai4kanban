@@ -5,7 +5,8 @@
  * and the Lark user together say whose account the press is. Both halves have to hold, so:
  *
  *   • every callback is decrypted and checked against Lark's signature, and refused when it
- *     is unencrypted, wrongly signed, or old enough to be a replay;
+ *     is unencrypted, wrongly signed, or old enough to be a replay — bar the address
+ *     confirmation, which Lark sends unsigned and which knowing the Encrypt Key proves;
  *   • an actor we have no account for is refused with its own words rather than acted on.
  *
  * The route says which cloud it belongs to before the body is read, because an encrypted
@@ -53,12 +54,16 @@ export async function larkCallback(
   if (!app) throw unauthenticated(`This service cannot verify ${cloud} callbacks.`)
 
   const raw = await request.text()
-  await verifySignature(request, raw, app.encryptKey)
+  const signed = request.headers.has('x-lark-signature')
+  if (signed) await verifySignature(request, raw, app.encryptKey)
   const payload = await decrypt(raw, app.encryptKey)
 
   // The one exchange that happens before anything else: Lark confirms the address once
-  // before it sends a callback to it, and expects its own challenge back.
+  // before it sends a callback to it, and expects its own challenge back. It is the one
+  // callback Lark sends UNSIGNED, so decrypting it is what proves the sender — it echoes a
+  // value the caller supplied and touches nothing. Everything else is signed or refused.
   if (typeof payload.challenge === 'string') return json({ challenge: payload.challenge })
+  if (!signed) throw unauthenticated('That callback is not signed.')
 
   const header = (payload.header ?? {}) as Record<string, unknown>
   const event = (payload.event ?? {}) as Record<string, unknown>

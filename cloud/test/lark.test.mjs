@@ -361,6 +361,41 @@ describe('larkCallback', () => {
     assert.deepEqual(calls, [], 'confirming an address touches nothing')
   })
 
+  it('answers the challenge Lark sends unsigned, and nothing else unsigned', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({})
+
+    // Lark confirms an address without signing it, whatever the Encrypt Key is set to.
+    const answer = await larkCallback(
+      ENV,
+      'feishu',
+      await sealed({ type: 'url_verification', challenge: 'c-2', token: 'v' }, { sign: false }),
+      ctx(),
+    )
+    assert.deepEqual(await answer.json(), { challenge: 'c-2' })
+
+    // Everything past the confirmation still has to be signed, and a body encrypted under
+    // somebody else's key is not readable in the first place.
+    await assert.rejects(
+      async () => larkCallback(ENV, 'feishu', await sealed(press(), { sign: false }), ctx()),
+      /not signed/,
+    )
+    await assert.rejects(
+      async () =>
+        larkCallback(
+          ENV,
+          'feishu',
+          await sealed({ type: 'url_verification', challenge: 'c-3' }, {
+            key: 'somebody else’s key',
+            sign: false,
+          }),
+          ctx(),
+        ),
+      /could not be decrypted|no readable payload/,
+    )
+    assert.deepEqual(calls, [], 'none of that touches the database')
+  })
+
   it('holds the app ticket the platform pushes', async (t) => {
     t.after(() => mock.restoreAll())
     const calls = fakeDatabase({})
