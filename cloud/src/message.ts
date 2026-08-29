@@ -6,12 +6,9 @@
  * the budgets a card's own words are cut to all live here, and each connector adds only what
  * its own markup and its own controls need.
  *
- * Two rules shape the cutting, whichever surface reads it:
- *
- *   • a chat is read at a glance — a reviewer decides from what a note LEADS with, and the
- *     reasoning behind it stays on the card;
- *   • what does not fit is left behind the card link, cut at a bullet or paragraph boundary.
- *     The link is on every message, so no message says it was trimmed.
+ * One rule shapes the cutting, whichever surface reads it: what does not fit is left behind
+ * the card link, cut at a bullet or paragraph boundary. The link is on every message, so no
+ * message says it was trimmed.
  */
 
 import { API_ORIGIN } from './config.ts'
@@ -23,16 +20,21 @@ import type { EventRow } from './events.ts'
  * They are `cli/src/lib/cloud/events.ts`'s contract, said again here because the Worker
  * cannot import the board's rules. A name invented in one surface would show the user two
  * words for one outcome, so this list is edited only when that one is.
+ *
+ * Said as what HAPPENED to the card, never as what the machinery calls it. A delivery is
+ * this codebase's word for the run behind an **Implement**, and a channel is read by people
+ * who never asked for one: what they pressed is a card, and what they get back is that it
+ * landed, or did not.
  */
 const STATES: Record<string, string> = {
   actionable: 'Actionable',
-  accepted: 'Accepted',
-  waiting_for_server: 'Waiting for server',
-  running: 'Delivery running',
-  completed: 'Delivery completed',
-  failed: 'Delivery failed',
-  cancelled: 'Delivery cancelled',
-  interrupted: 'Delivery interrupted',
+  accepted: 'Starting',
+  waiting_for_server: 'Waiting for a machine',
+  running: 'Working on it',
+  completed: 'Landed',
+  failed: 'Did not land',
+  cancelled: 'Stopped',
+  interrupted: 'Interrupted',
   stale: 'No longer waiting',
 }
 
@@ -81,10 +83,10 @@ export function stateNote(event: EventRow): string {
   switch (event.state) {
     case 'waiting_for_server':
       return event.serverName
-        ? `Waiting for ${event.serverName}. It runs as soon as that machine is reachable.`
+        ? `On ${event.serverName}, as soon as that machine is reachable.`
         : 'This board has no machine attached to run it. Attach one in Configuration → Notifications.'
     case 'running':
-      return event.serverName ? `Running on ${event.serverName}.` : ''
+      return event.serverName ? `On ${event.serverName}.` : ''
     // What the state name cannot carry: a refused approval and a broken build both read
     // `failed`, and only one of them is fixed by a `git stash`.
     case 'failed':
@@ -150,10 +152,11 @@ export interface Answer {
 /** What a message spends on the card's own words. A person scrolling a chat reads a few
  *  lines, and the card is one press away. */
 const SUMMARY_BUDGET = 700
-const NOTES_BUDGET = 700
 const SETTLED_BUDGET = 400
-/** One note, as a message shows it: its lead, and no more of the paragraph than a line. */
-const NOTE_LEAD = 160
+/** The review notes get the whole of what a surface holds. A reviewer decides on what was
+ *  flagged, and a note cut to its first sentence loses the half that says why. Both surfaces
+ *  cap one block at 3000 characters, so this is the ceiling rather than a taste. */
+const NOTES_BUDGET = 3000
 
 /** The board's Markdown as one surface's own markup. */
 export type Render = (markdown: string) => string
@@ -161,8 +164,8 @@ export type Render = (markdown: string) => string
 /**
  * The card's opening paragraph and its review notes, as one part per section.
  *
- * An open decision gets both — the paragraph says what the work is, the notes' leads say
- * what was flagged about doing it. A settled one gets the paragraph alone: by then the
+ * An open decision gets both — the paragraph says what the work is, the notes say what was
+ * flagged about doing it. A settled one gets the paragraph alone: by then the
  * message is a record of what happened, its own line says where to read the rest, and nobody
  * re-reads seven review notes to learn that a delivery landed.
  *
@@ -178,28 +181,27 @@ export function cardWords(event: EventRow, open: boolean, render: Render): strin
   const notes = (event.notes ?? '').trim()
   if (!notes) return parts
 
-  const leads = noteLeads(notes, render)
-  if (leads) parts.push(leads)
+  const bullets = noteBullets(notes, render)
+  if (bullets) parts.push(bullets)
   return parts
 }
 
 /**
- * The review notes as one line each.
+ * The review notes as one bullet each, whole.
  *
- * A card writes a note as `- **what**: why`, wrapped over several lines, so seven of them
- * arrive as forty lines of prose nobody reads in a chat. The lead is the finding and the
- * rest is the argument for it: a reviewer decides on the first and reads the second on the
- * card.
+ * A card writes a note as `- **what**: why`, wrapped over several lines, so the wrapping is
+ * what gets taken out — seven notes should arrive as seven lines rather than forty. The words
+ * themselves are not cut: the finding and the argument for it are one thought, and a reviewer
+ * deciding off the finding alone is deciding off half of it.
  */
-export function noteLeads(notes: string, render: Render): string {
+export function noteBullets(notes: string, render: Render): string {
   const lines: string[] = []
   let held: string[] | null = null
 
   const close = () => {
     if (!held) return
     const whole = held.join(' ').replace(/\s+/g, ' ').trim()
-    const lead = firstSentence(whole, NOTE_LEAD)
-    if (lead) lines.push(`• ${render(lead)}`)
+    if (whole) lines.push(`• ${render(whole)}`)
     held = null
   }
 
@@ -227,15 +229,6 @@ export function noteLeads(notes: string, render: Render): string {
   close()
 
   return bound(lines.join('\n'), NOTES_BUDGET).text
-}
-
-/** A note's lead: its first sentence, or as much of one as a line holds. Emphasis the cut
- *  ran through is closed, because a stray `**` on the page reads as a bug. */
-function firstSentence(text: string, limit: number): string {
-  const stop = text.search(/[.!?](\s|$)/)
-  if (stop >= 0 && stop + 1 <= limit) return text.slice(0, stop + 1)
-  const kept = clip(text, limit)
-  return (kept.match(/\*\*/g) ?? []).length % 2 ? `${kept}**` : kept
 }
 
 /** As much of one line as a limit holds, ending at a word rather than mid-syllable. */

@@ -12,12 +12,15 @@
 //   card-*     the CARD's own message in each state the top of a thread can show (#359).
 //              An ending the board takes the card back from has none: the top is left as it
 //              was, and the next event redraws it with its Implement.
-//   log-*      the one-line reply that state is logged as underneath it.
 //   ended-*    the extra reply those endings leave, carrying why and what to do.
+//   log-*      the one line the EVENT itself is logged as, and only for `actionable`: it is
+//              written on an event's first delivery and never again, and an event is
+//              actionable when it is first delivered. Every state after that rewrites the
+//              top message instead of adding a line.
 //
-// Together the card/log/ended trio is every transition a card's thread goes through, in the
-// order it goes through them. A state no event has reached yet is drawn off a real card with
-// that one field replaced, and the sample says so.
+// Together they are every message a card's thread really carries, in the order it carries
+// them. A state no event has reached yet is drawn off a real card with that one field
+// replaced, and the sample says so.
 //
 // Writes cloud/.slack-preview/<name>.json (out of git) and prints a Block Kit Builder link
 // for each. Every file holds `{ blocks }` and nothing else, which is what the builder's
@@ -99,9 +102,9 @@ async function main() {
     written.push(save(name, describe(event), { blocks: messageFor(event).blocks }))
   }
 
-  // Every state a card's thread goes through, in the order it goes through them (#359): the
-  // card's own message as that state rewrites it, the one-line reply the event is logged as
-  // underneath it, and — where a delivery ended badly — the extra reply carrying why.
+  // Every state a card's thread goes through, in the order it goes through them (#359). One
+  // sample each, because one message each: a state either rewrites the card's own message or
+  // — where the board takes the card back — leaves a reply the next rewrite cannot touch.
   const actorId = (await query(ref, token, ACTOR))[0]?.slack_user_id
   const events = rows.map((row) => row.event)
   for (const [state, what] of LIFE) {
@@ -109,20 +112,22 @@ async function main() {
     if (!event) continue
     const from = events.includes(event) ? title(event) : `${title(event)}, state substituted`
     const named = state.replace(/_/g, '-')
-    // The top message never shows an ending the board takes the card back from, so there is
-    // no card sample for one — only the thread lines it really leaves.
-    if (!RESTORED.includes(state)) {
+    if (RESTORED.includes(state)) {
+      written.push(
+        save(`ended-${named}`, `why it ended that way, in the thread — ${from}`, {
+          blocks: endingFor(event).blocks,
+        }),
+      )
+    } else {
       written.push(save(`card-${named}`, `${what} — ${from}`, { blocks: messageFor(event).blocks }))
     }
+    // The line the event itself gets, drawn once: `logFor` runs on an event's FIRST delivery
+    // and never again, and connector_jobs admits an undelivered event only while it is
+    // actionable. A log sample of any other state is a message nothing could post.
+    if (state !== 'actionable') continue
     written.push(
       save(`log-${named}`, `${what}, as its line in the thread — ${from}`, {
         blocks: logFor(event, { actorId }).blocks,
-      }),
-    )
-    if (!RESTORED.includes(state)) continue
-    written.push(
-      save(`ended-${named}`, `why it ended that way, in the thread — ${from}`, {
-        blocks: endingFor(event).blocks,
       }),
     )
   }

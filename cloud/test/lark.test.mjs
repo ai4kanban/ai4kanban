@@ -118,13 +118,13 @@ describe('cardFor', () => {
     const card = cardFor(anEvent({ state: 'running', acted: true }), { openId: 'ou_1' })
 
     assert.equal(card.elements[0].tag, 'note')
-    assert.equal(card.elements[0].elements[0].content, '🛠️ **Delivery running**')
+    assert.equal(card.elements[0].elements[0].content, '🛠️ **Working on it**')
     assert.doesNotMatch(said(card), /<at /, 'a report is not an ask')
   })
 
   it('names the machine a decision waits for, and says when there is none', () => {
     const waiting = cardFor(anEvent({ state: 'waiting_for_server', acted: true }))
-    assert.match(said(waiting), /Waiting for Wutao/)
+    assert.match(said(waiting), /On Wutao/)
     assert.deepEqual(
       buttons(waiting).map((b) => b.label),
       ['Open card in app'],
@@ -137,12 +137,12 @@ describe('cardFor', () => {
 
   it('ends under the same state names every other surface shows', () => {
     for (const [state, name] of [
-      ['accepted', 'Accepted'],
-      ['running', 'Delivery running'],
-      ['completed', 'Delivery completed'],
-      ['failed', 'Delivery failed'],
-      ['interrupted', 'Delivery interrupted'],
-      ['cancelled', 'Delivery cancelled'],
+      ['accepted', 'Starting'],
+      ['running', 'Working on it'],
+      ['completed', 'Landed'],
+      ['failed', 'Did not land'],
+      ['interrupted', 'Interrupted'],
+      ['cancelled', 'Stopped'],
       ['stale', 'No longer waiting'],
     ]) {
       const card = cardFor(anEvent({ state, acted: true }))

@@ -93,7 +93,7 @@ describe('messageFor', () => {
 
   it('names the machine a decision waits for, and says when there is none', () => {
     const waiting = messageFor(anEvent({ state: 'waiting_for_server', acted: true }))
-    assert.match(textIn(waiting.blocks), /Waiting for Wutao/)
+    assert.match(textIn(waiting.blocks), /On Wutao/)
     assert.deepEqual(
       buttons(waiting.blocks).map((b) => b.action),
       ['open_card'],
@@ -120,12 +120,12 @@ describe('messageFor', () => {
 
   it('ends under the same state names every other surface shows', () => {
     for (const [state, name] of [
-      ['accepted', 'Accepted'],
-      ['running', 'Delivery running'],
-      ['completed', 'Delivery completed'],
-      ['failed', 'Delivery failed'],
-      ['interrupted', 'Delivery interrupted'],
-      ['cancelled', 'Delivery cancelled'],
+      ['accepted', 'Starting'],
+      ['running', 'Working on it'],
+      ['completed', 'Landed'],
+      ['failed', 'Did not land'],
+      ['interrupted', 'Interrupted'],
+      ['cancelled', 'Stopped'],
       ['stale', 'No longer waiting'],
     ]) {
       const { text } = messageFor(anEvent({ state, acted: true }))
@@ -200,16 +200,20 @@ describe('messageFor', () => {
     assert.doesNotMatch(blocks[1].elements[0].text, /4f2a19c/)
   })
 
-  it('shows what a note leads with, and leaves the argument on the card', () => {
+  it('shows a note whole, on one line', () => {
     const notes = [
       '## Worth noting',
       '- **Nothing polls GitHub**: a maintainer imports an issue on purpose. The cost is that an',
       '  issue nobody looks at never reaches the board, which a schedule would fix at the price of',
       '  filling the board with cards nobody chose.',
     ].join('\n')
-    const said = textIn(messageFor(anEvent({ notes })).blocks)
+    const { blocks } = messageFor(anEvent({ notes }))
+    const said = blocks.find((block) => block.text?.text?.includes('Worth noting')).text.text
+    // The finding and the argument for it are one thought, so the note keeps both.
     assert.match(said, /• \*Nothing polls GitHub\*: a maintainer imports an issue on purpose\./)
-    assert.doesNotMatch(said, /nobody chose/, 'the argument stays on the card')
+    assert.match(said, /filling the board with cards nobody chose\.$/)
+    // What is taken out is the card's own wrapping: one note is one line, not three.
+    assert.equal(said.split('\n').filter((line) => line.startsWith('• ')).length, 1)
   })
 
   it('stops carrying the review notes once the decision is made', () => {
@@ -218,7 +222,7 @@ describe('messageFor', () => {
     const settled = textIn(messageFor(anEvent({ notes, state: 'running', acted: true })).blocks)
     assert.match(open, /A note/)
     assert.doesNotMatch(settled, /A note/, 'a record of what happened is not re-reviewed')
-    assert.match(settled, /Running on/)
+    assert.match(settled, /On Wutao/)
   })
 
   it('gives a button the option’s lead and the message the whole of it', () => {
@@ -271,7 +275,7 @@ describe('logFor', () => {
     const { blocks } = logFor(anEvent({ state: 'running', acted: true }), { actorId: 'U1' })
 
     assert.equal(blocks[0].type, 'context')
-    assert.equal(blocks[0].elements[0].text, ':hammer_and_wrench: *Delivery running*')
+    assert.equal(blocks[0].elements[0].text, ':hammer_and_wrench: *Working on it*')
     assert.doesNotMatch(textIn(blocks), /<@U1>/, 'a report is not an ask')
   })
 })
@@ -290,13 +294,13 @@ describe('endingFor', () => {
     // A section, not a context: what to fix is the point of the line, and a context sets it
     // in the grey a reader skips.
     assert.equal(blocks[0].type, 'section')
-    assert.match(blocks[0].text.text, /^:x: \*Delivery failed\*\n/)
+    assert.match(blocks[0].text.text, /^:x: \*Did not land\*\n/)
     assert.match(blocks[0].text.text, /uncommitted changes/)
     // A state name and a reason say what went wrong and neither says what happens next.
     assert.match(blocks[0].text.text, /back to \*Ready for review\*\. Fix that and press \*Implement\* again/)
     // The phone says the reason too — the top message has already moved on by the time
     // anybody opens the thread.
-    assert.match(text, /^Delivery failed: #329 .* — you have uncommitted changes/)
+    assert.match(text, /^Did not land: #329 .* — you have uncommitted changes/)
   })
 
   it('pings nobody — the fresh ask under it is what asks', () => {
@@ -311,7 +315,7 @@ describe('endingFor', () => {
     const stopped = endingFor(anEvent({ state: 'cancelled', acted: true }))
     assert.match(
       stopped.blocks[0].text.text,
-      /^:no_entry_sign: \*Delivery cancelled\*\nThe card is back to \*Ready for review\*\. Press \*Implement\* again/,
+      /^:no_entry_sign: \*Stopped\*\nThe card is back to \*Ready for review\*\. Press \*Implement\* again/,
     )
 
     // Cloud is told this one only when nothing is carrying the card, so it says that and
@@ -724,7 +728,7 @@ describe('deliverSlack', () => {
     assert.deepEqual(wrote.map((w) => w.slack), ['chat.update'], 'a reply is written once')
     assert.equal(wrote[0].args.ts, '1712.0001')
     assert.equal(wrote[0].args.blocks[0].type, 'header')
-    assert.match(textIn(wrote[0].args.blocks), /Delivery running/)
+    assert.match(textIn(wrote[0].args.blocks), /Working on it/)
     // The reply keeps its own timestamp, which is when that event arrived, and the card keeps
     // the message it already has.
     assert.equal(calls.find((c) => c.fn === 'record_event_delivery').args.p_external_ref, '1712.0002')
@@ -761,7 +765,7 @@ describe('deliverSlack', () => {
     // offers binds the event that is asking.
     const said = textIn(edited.args.blocks)
     assert.match(said, /Question waiting/)
-    assert.doesNotMatch(said, /Delivery completed/)
+    assert.doesNotMatch(said, /Landed/)
     assert.deepEqual(
       buttons(edited.args.blocks).map((b) => b.action),
       ['answer_option:0:1', 'answer_option:0:2', 'open_card'],
@@ -793,7 +797,7 @@ describe('deliverSlack', () => {
     // card back from are the ones that are not.
     const edited = calls.find((c) => c.slack === 'chat.update')
     const said = textIn(edited.args.blocks)
-    assert.match(said, /Delivery completed/)
+    assert.match(said, /Landed/)
     assert.doesNotMatch(said, /Ship it\?/, 'a settled card re-asks nothing')
     assert.deepEqual(buttons(edited.args.blocks).map((b) => b.action), ['open_card'])
   })
@@ -875,7 +879,7 @@ describe('deliverSlack', () => {
     // a thread that says how something finished before it says it arrived reads backwards.
     const said = calls.filter((c) => c.slack).map((c) => textIn(c.args.blocks ?? []))
     assert.equal(said.length, 3)
-    assert.match(said[1], /Delivery failed/)
+    assert.match(said[1], /Did not land/)
     assert.doesNotMatch(said[1], /approval was refused/, 'the arrival line carries no reason')
     assert.match(said[2], /approval was refused/)
   })

@@ -178,26 +178,32 @@ export interface CloudEvent {
   acted: boolean
 }
 
-/** The row's second line, and the words a system notification says. One wording per event,
- *  because a second one is a second thing to keep true. */
+/**
+ * The row's second line, and the words a system notification says. One wording per event,
+ * because a second one is a second thing to keep true.
+ *
+ * Said as what happened to the CARD. A delivery is what this codebase calls the run behind
+ * an **Implement**, and nobody pressing that button asked for one: they get back that it
+ * landed, or did not, or that something is working on it.
+ */
 export function eventLabel(event: Pick<CloudEvent, 'kind' | 'state'>): string {
   switch (event.state) {
     case 'actionable':
       return event.kind === 'question' ? 'Question waiting' : 'Ready for review'
     case 'accepted':
-      return 'Accepted'
+      return 'Starting'
     case 'waiting_for_server':
-      return 'Waiting for server'
+      return 'Waiting for a machine'
     case 'running':
-      return 'Delivery running'
+      return 'Working on it'
     case 'completed':
-      return 'Delivery completed'
+      return 'Landed'
     case 'failed':
-      return 'Delivery failed'
+      return 'Did not land'
     case 'cancelled':
-      return 'Delivery cancelled'
+      return 'Stopped'
     case 'interrupted':
-      return 'Delivery interrupted'
+      return 'Interrupted'
     case 'stale':
       return 'No longer waiting'
   }
@@ -219,9 +225,9 @@ export function bandLabel(state: CloudEventState): string {
     case 'actionable':
       return 'Actionable'
     case 'accepted':
-      return 'Accepted'
+      return 'Starting'
     case 'waiting_for_server':
-      return 'Waiting for server'
+      return 'Waiting for a machine'
     case 'stale':
       return 'No longer waiting'
     default:

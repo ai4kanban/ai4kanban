@@ -1602,7 +1602,7 @@ function OptionPicker({
             role={many ? "checkbox" : "radio"}
             aria-checked={on}
             onClick={() => onTick(n)}
-            className="nb-outline flex items-start gap-2 px-2.5 py-1.5 text-left text-[12.5px] leading-[18px] transition-colors hover:bg-nb-accent-soft"
+            className="flex cursor-pointer items-start gap-2 rounded-[14px] px-2.5 py-1.5 text-left text-[12.5px] leading-[18px] transition-colors hover:bg-nb-accent-soft"
             style={{
               background: on ? "var(--color-nb-accent-soft)" : "transparent",
               color: on ? "var(--color-nb-accent-deep)" : undefined,

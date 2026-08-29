@@ -67,6 +67,7 @@ declare
   BUDGET constant integer := 100000;
   v_event uuid;
   v_second uuid;
+  v_retired uuid;
   v_server_a uuid;
   v_server_b uuid;
   v_request uuid;
@@ -255,6 +256,24 @@ begin
   assert (v_json ->> 'contentAt')::timestamptz
        = (select content_at from cloud.events where id = v_event),
     'a connector job carries a version its message could not be checked against';
+
+  -- A card that stops needing a person is content moving too. A retirement that left
+  -- `content_at` alone would owe the chat nothing, and the ask would sit there with an
+  -- Implement on it that `record_event_action` then refuses.
+  v_json := api.publish_event(A, BOARD_A, 330, 'A card nobody gets to', '', 'r1',
+                              'ready_for_review', 'implement', '[]'::jsonb, 'why', '', 'f1', BUDGET);
+  v_retired := (v_json ->> 'id')::uuid;
+  update cloud.events set content_at = now() - interval '1 hour' where id = v_retired;
+  select content_at into v_content from cloud.events where id = v_retired;
+  v_json := api.retire_event(A, v_retired, BUDGET);
+  assert (v_json ->> 'state') = 'stale', 'a retirement did not leave the event stale';
+  assert (select content_at from cloud.events where id = v_retired) > v_content,
+    'a retired card left the chat offering a decision nobody can take';
+  perform api.record_event_delivery(A, v_retired, 'slack', 'sent', 'ts-retired', '',
+                                    v_content, BUDGET);
+  assert (api.connector_jobs('slack', v_retired, 10, 5) -> 0) is not null,
+    'a retired card owed a rewrite was not due';
+
   delete from cloud.slack_connections where owner_id = A;
 
   -- -------------------------------------------------------------------------
