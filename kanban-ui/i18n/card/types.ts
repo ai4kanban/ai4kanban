@@ -39,7 +39,6 @@ export type CardCopy = {
     /** Another run already holds this card. `verb` is what it is doing. */
     alreadyRunning: (verb: string) => string;
     edit: string;
-    resolve: string;
     reviewAgain: string;
     reviewAgainHint: string;
     archive: string;
@@ -142,10 +141,10 @@ export type CardCopy = {
     recommended: string;
     /** The way in, on the heading row: what the panel's hover shadow means, in words. */
     decide: string;
-    /** Under the open panel: what happens to a question left alone. */
-    staysOpen: string;
     answerPlaceholder: string;
     optionsPlaceholder: string;
+    /** Put the panel back to a read, keeping whatever was ticked or typed. */
+    close: string;
     resolve: string;
     andImplement: string;
   };

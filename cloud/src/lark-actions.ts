@@ -29,7 +29,13 @@ import { larkApp } from './env.ts'
 import { Refusal, unauthenticated } from './errors.ts'
 import type { EventRow } from './events.ts'
 import { json } from './http.ts'
-import { ACT_ANSWERS, ACT_IMPLEMENT, ACT_OPTION, answerField } from './lark-message.ts'
+import {
+  ACT_ANSWERS,
+  ACT_IMPLEMENT,
+  ACT_OPTION,
+  answerField,
+  wordsField,
+} from './lark-message.ts'
 import { larkActor, larkAppTicketPushed, type LarkActor } from './lark.ts'
 import { readQuestions, type Answer, type Question } from './message.ts'
 import { redrawEverywhere } from './redraw.ts'
@@ -213,21 +219,40 @@ async function press(
   // rest.
   const form = (action.form_value ?? {}) as Record<string, unknown>
   const answers = questions.map((question, at) => readAnswer(form, at, question))
+  // A pick and words together is the one shape the form can produce that the wire cannot
+  // carry. Saying so beats recording the pick and dropping the words just typed.
+  if (answers.some((answer, at) => answer.picked.length > 0 && wordsAt(form, at))) {
+    return toast('Either pick an option or write your own words — not both. Clear one of them.')
+  }
   const done = await record(env, actorRow, row, 'answer', answers, opId)
   if (!done.ok) return toast(done.words)
   redraw(env, ctx, row.id)
   return toast('Answered. This card now waits for your board’s machine.', 'success')
 }
 
-/** One question's answer, as the form hands it back. A picked option and words together is
- *  not a shape the form can produce, and a blank is an answer left open on purpose. */
+/**
+ * One question's answer, as the form hands it back.
+ *
+ * A pick wins over words, which is the board's own rule and the only one the wire carries.
+ * "Something else" is not a pick — its value is one past the card's options, so it falls
+ * through the filter and leaves the box below it as the answer. A blank is an answer left
+ * open on purpose.
+ */
 function readAnswer(form: Record<string, unknown>, at: number, question: Question): Answer {
   const held = form[answerField(at)]
   const chosen = (Array.isArray(held) ? held : held === undefined || held === null ? [] : [held])
     .map((option) => Number(option))
     .filter((n) => Number.isInteger(n) && n >= 1 && n <= question.options.length)
-  if (question.options.length > 0) return { picked: chosen, text: '' }
-  return { picked: [], text: typeof held === 'string' ? held.trim() : '' }
+  if (chosen.length > 0) return { picked: chosen, text: '' }
+  // A question with no options is answered in its own field; one with options has a second.
+  const words = question.options.length > 0 ? form[wordsField(at)] : held
+  return { picked: [], text: typeof words === 'string' ? words.trim() : '' }
+}
+
+/** What an options question's own-words box holds. */
+const wordsAt = (form: Record<string, unknown>, at: number): string => {
+  const words = form[wordsField(at)]
+  return typeof words === 'string' ? words.trim() : ''
 }
 
 // --- who pressed, and what they pressed ---------------------------------------

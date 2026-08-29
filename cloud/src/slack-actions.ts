@@ -35,6 +35,7 @@ import {
   answerBlockId,
   answerView,
   readQuestions,
+  wordsBlockId,
 } from './slack-message.ts'
 import { slackActor, slackApi, type SlackActor } from './slack.ts'
 import { hex, sameString } from './verify.ts'
@@ -200,33 +201,48 @@ async function viewSubmission(
 
   const who = actor(payload)
   const found = await resolve(env, { value: String(view.private_metadata ?? '') }, who)
-  if (!found.ok) return json(viewError(0, found.words))
+  if (!found.ok) return json(viewError(answerBlockId(0), found.words))
   const { event, actorRow } = found
 
   const questions = readQuestions(event)
   const state = ((view.state ?? {}) as { values?: Record<string, unknown> }).values ?? {}
   const answers = questions.map((question, at) => readAnswer(state, at, question.options.length))
 
+  // A pick and words together is the one shape the view can produce that the wire cannot
+  // carry. Saying so beats recording the pick and dropping the words the person just typed.
+  const both = answers.findIndex(
+    (answer, at) => answer.picked.length > 0 && wordsAt(state, at).length > 0,
+  )
+  if (both >= 0) {
+    return json(
+      viewError(
+        wordsBlockId(both),
+        'Either pick an option or write your own words — not both. Clear one of them.',
+      ),
+    )
+  }
+
   const opId = `slack:${event.id}:${String(view.id ?? payload.trigger_id ?? '')}`
   const done = await record(env, actorRow, event, 'answer', answers, opId)
-  if (!done.ok) return json(viewError(0, done.words))
+  if (!done.ok) return json(viewError(answerBlockId(0), done.words))
   redraw(env, ctx, event.id)
   return json({ response_action: 'clear' })
 }
 
-/** One question's answer, as Slack hands the view's state back. A tick and words together
- *  is not a shape the view can produce, and a blank is an answer left open on purpose. */
+/**
+ * One question's answer, as Slack hands the view's state back.
+ *
+ * A pick wins over words, which is the board's own rule and the only one the wire carries.
+ * "Something else" is not a pick — its value is one past the card's options, so it falls
+ * through the filter and leaves the box below it as the answer. A blank is an answer left
+ * open on purpose.
+ */
 function readAnswer(
   state: Record<string, unknown>,
   at: number,
   optionCount: number,
 ): Answer {
-  const block = (state[answerBlockId(at)] ?? {}) as Record<string, unknown>
-  const held = (block[ANSWER_ACTION] ?? {}) as {
-    value?: unknown
-    selected_option?: { value?: unknown } | null
-    selected_options?: { value?: unknown }[]
-  }
+  const held = heldAt(state, answerBlockId(at))
   const chosen = [
     ...(held.selected_option ? [held.selected_option] : []),
     ...(Array.isArray(held.selected_options) ? held.selected_options : []),
@@ -234,14 +250,32 @@ function readAnswer(
     .map((option) => Number(option?.value))
     .filter((n) => Number.isInteger(n) && n >= 1 && n <= optionCount)
   if (chosen.length > 0) return { picked: chosen, text: '' }
-  return { picked: [], text: typeof held.value === 'string' ? held.value.trim() : '' }
+  // A question with no options is answered in its own block; one with options has a second.
+  return { picked: [], text: valueAt(held) || wordsAt(state, at) }
 }
 
-/** A refusal a modal shows without closing. Keyed on the first question's block, because
- *  that is where the reader's eye already is. */
-const viewError = (at: number, words: string) => ({
+interface Held {
+  value?: unknown
+  selected_option?: { value?: unknown } | null
+  selected_options?: { value?: unknown }[]
+}
+
+function heldAt(state: Record<string, unknown>, blockId: string): Held {
+  const block = (state[blockId] ?? {}) as Record<string, unknown>
+  return (block[ANSWER_ACTION] ?? {}) as Held
+}
+
+const valueAt = (held: Held): string => (typeof held.value === 'string' ? held.value.trim() : '')
+
+/** What an options question's own-words box holds. */
+const wordsAt = (state: Record<string, unknown>, at: number): string =>
+  valueAt(heldAt(state, wordsBlockId(at)))
+
+/** A refusal a modal shows without closing, on the block it is about — where the reader's
+ *  eye already is. */
+const viewError = (blockId: string, words: string) => ({
   response_action: 'errors',
-  errors: { [answerBlockId(at)]: words.slice(0, 500) },
+  errors: { [blockId]: words.slice(0, 500) },
 })
 
 // --- who pressed, and what they pressed ---------------------------------------

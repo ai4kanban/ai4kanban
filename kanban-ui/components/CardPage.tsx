@@ -12,7 +12,6 @@ import {
   FiEdit2,
   FiFeather,
   FiGitBranch,
-  FiHelpCircle,
   FiPlay,
   FiTrash2,
   FiX,
@@ -1302,7 +1301,7 @@ export function CardPage({
   const finishedBlock = !delivery && !!card.finished && !!diff;
   // Whether the toolbar has anything to draw. A free card always does (Edit and Reject are
   // unconditional); a held one only when the delivery leaves it something to click.
-  const toolbar = !delivery || (actions.has("resolve") && answerable) || !!carryOn;
+  const toolbar = !delivery || !!carryOn;
 
   // This card's live Cloud event (#319). Two things read it: the title band's one mark, for
   // the four states no local mark has words for, and the Implement and Resolve clicks —
@@ -1611,21 +1610,8 @@ export function CardPage({
                       {c.toolbar.edit}
                     </Button>
                   )}
-                  {/* Not a dialog any more — it opens the questions panel further down the
-                      page and brings it on screen. The toolbar keeps the button because
-                      that panel can be a long way below the fold. */}
-                  {actions.has("resolve") && (!delivery || answerable) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={offUnlessAsked}
-                      title={held ? heldWhy : undefined}
-                      onClick={() => setDeciding(true)}
-                    >
-                      <FiHelpCircle className="text-[15px]" aria-hidden />
-                      {c.toolbar.resolve}
-                    </Button>
-                  )}
+                  {/* No Resolve button: the questions panel below is the control, and a
+                      decision is made against the question it is about. */}
                   {/* Review again (#302) — offered while a delivery is waiting on the question
                       its review left. Answer it, or write the exception you are approving under
                       ## Worth noting after implementation, and this judges the same work afresh.

@@ -150,6 +150,22 @@ export interface Answer {
   text: string
 }
 
+/**
+ * The last choice on every options question: none of these, I'll say it myself.
+ *
+ * The local board offers the same row (kanban-ui/lib/questions.ts), so a card is answered the
+ * same way wherever it is read. It is a choice, not an option the card wrote — it never
+ * reaches the wire as a pick. Taking it is what makes the words in the box the answer.
+ */
+export const OWN_WORDS = "Something else — I'll type it"
+
+/** The short form of that choice, for a button that has 75 characters and a row to share. */
+export const OWN_WORDS_SHORT = 'Something else…'
+
+/** What that choice carries: one past the options the card wrote, so a surface can tell it
+ *  apart from a real pick and drop it before the answer is recorded. */
+export const ownWordsValue = (question: Question): number => question.options.length + 1
+
 // --- the review text ----------------------------------------------------------
 
 /** What a message spends on the card's own words. A person scrolling a chat reads a few

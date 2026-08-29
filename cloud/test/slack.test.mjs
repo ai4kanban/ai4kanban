@@ -146,7 +146,7 @@ describe('messageFor', () => {
     // What the card recommends is a star on the option, not a sentence naming it again.
     assert.deepEqual(
       buttons(one.blocks).map((b) => b.label),
-      ['The app’s', ':star: Ask', 'Open card in app'],
+      ['The app’s', ':star: Ask', 'Something else…', 'Open card in app'],
     )
     assert.doesNotMatch(textIn(one.blocks), /Recommended/)
 
@@ -239,7 +239,7 @@ describe('messageFor', () => {
     )
     assert.deepEqual(
       buttons(blocks).map((b) => b.label),
-      [':star: No', 'Yes', 'Open card in app'],
+      [':star: No', 'Yes', 'Something else…', 'Open card in app'],
       'a 75-character cut of a sentence is not an answer anyone can read',
     )
     // Cut on the button, whole in the message: a press never means less than the card said.
@@ -346,9 +346,53 @@ describe('answerView', () => {
     const picked = answerView(event).blocks.find((b) => b.type === 'input')?.element.options
     assert.deepEqual(
       picked.map((o) => o.text.text),
-      [':star: A & B', 'C'],
-      'the star marks the recommendation in the modal too',
+      [':star: A & B', 'C', "Something else — I'll type it"],
+      'the star marks the recommendation in the modal too, and typing is the last choice',
     )
+  })
+
+  it('gives every question a box for the user’s own words, options or not', () => {
+    const { blocks } = answerView(
+      anEvent({
+        kind: 'question',
+        decision: 'answer',
+        questions: [
+          { text: 'Which one?', mode: 'single', options: ['a', 'b'], recommend: [] },
+          { text: 'What happens?' },
+        ],
+      }),
+    )
+    const inputs = blocks.filter((b) => b.type === 'input')
+    assert.deepEqual(
+      inputs.map((b) => [b.block_id, b.element.type]),
+      [
+        ['q0', 'radio_buttons'],
+        ['q0w', 'plain_text_input'],
+        ['q1', 'plain_text_input'],
+      ],
+    )
+    // The box under a picker is labelled with the choice it belongs to, not the question
+    // again — repeating the question there reads as a second question.
+    assert.equal(inputs[1].label.text, "Something else — I'll type it")
+    // Nothing is ever required: a question left alone stays open for the agent.
+    assert.deepEqual(
+      inputs.map((b) => b.optional),
+      [true, true, true],
+    )
+    assert.ok(blocks.length <= 50, `${blocks.length} blocks`)
+  })
+
+  it('keeps a card of options questions inside Slack’s block limit', () => {
+    const questions = Array.from({ length: 40 }, (_, at) => ({
+      text: `Question ${at}`,
+      mode: 'single',
+      options: ['a', 'b'],
+      recommend: [],
+    }))
+    const { blocks } = answerView(anEvent({ kind: 'question', decision: 'answer', questions }))
+    assert.ok(blocks.length <= 50, `${blocks.length} blocks`)
+    // What did not fit is said rather than dropped quietly.
+    assert.match(JSON.stringify(blocks.at(-1)), /more on the card/)
   })
 })
 
@@ -645,7 +689,73 @@ describe('slackCallback', () => {
       { picked: [], text: '' },
     ])
   })
+
+  it('takes an options question’s own words over the choices the card wrote', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      slack_actor: { ownerId: OWNER, botToken: 'xoxb', channelId: 'C1', revoked: false },
+      read_event: anEvent({
+        kind: 'question',
+        decision: 'answer',
+        questions: [{ text: 'Which one?', mode: 'single', options: ['a', 'b'], recommend: [] }],
+      }),
+      record_event_action: anEvent({ state: 'waiting_for_server', acted: true }),
+      connector_jobs: [],
+    })
+
+    const answer = await slackCallback(ENV, await signedRequest(submission({
+      // "Something else" carries one past the card's options, so it is never a pick.
+      q0: { answer: { selected_option: { value: '3' } } },
+      q0w: { answer: { value: 'neither — do the third thing' } },
+    })), ctx())
+
+    assert.deepEqual(await answer.json(), { response_action: 'clear' })
+    const recorded = calls.find((c) => c.fn === 'record_event_action')
+    assert.deepEqual(recorded.args.p_answers, [
+      { picked: [], text: 'neither — do the third thing' },
+    ])
+  })
+
+  it('refuses a pick and words together, on the box, rather than dropping the words', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      slack_actor: { ownerId: OWNER, botToken: 'xoxb', channelId: 'C1', revoked: false },
+      read_event: anEvent({
+        kind: 'question',
+        decision: 'answer',
+        questions: [{ text: 'Which one?', mode: 'single', options: ['a', 'b'], recommend: [] }],
+      }),
+      record_event_action: anEvent({ state: 'waiting_for_server', acted: true }),
+      connector_jobs: [],
+    })
+
+    const answer = await slackCallback(ENV, await signedRequest(submission({
+      q0: { answer: { selected_option: { value: '1' } } },
+      q0w: { answer: { value: 'actually, something else' } },
+    })), ctx())
+
+    const said = await answer.json()
+    assert.equal(said.response_action, 'errors')
+    assert.match(said.errors.q0w, /not both/)
+    assert.equal(calls.find((c) => c.fn === 'record_event_action'), undefined)
+  })
 })
+
+/** A modal submission carrying exactly these blocks. */
+const submission = (values) =>
+  new URLSearchParams({
+    payload: JSON.stringify({
+      type: 'view_submission',
+      team: { id: 'T1' },
+      user: { id: 'U1' },
+      view: {
+        id: 'V1',
+        callback_id: 'answers',
+        private_metadata: JSON.stringify({ eventId: EVENT, revision: '4f2a19c' }),
+        state: { values },
+      },
+    }),
+  }).toString()
 
 // ---------------------------------------------------------------------------
 // The delivery
@@ -768,7 +878,7 @@ describe('deliverSlack', () => {
     assert.doesNotMatch(said, /Landed/)
     assert.deepEqual(
       buttons(edited.args.blocks).map((b) => b.action),
-      ['answer_option:0:1', 'answer_option:0:2', 'open_card'],
+      ['answer_option:0:1', 'answer_option:0:2', 'open_answers', 'open_card'],
     )
   })
 

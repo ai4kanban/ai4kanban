@@ -158,10 +158,18 @@ describe('cardFor', () => {
         questions: [{ text: 'Which cloud?', mode: 'single', options: ['飞书', 'Lark'], recommend: [1] }],
       }),
     )
-    assert.equal(form(one), undefined, 'one question is answered without a form')
     assert.deepEqual(
       buttons(one).map((b) => b.label),
       ['⭐ 飞书', 'Lark', 'Open card in app'],
+    )
+    // A button cannot carry words, so the way past the card's own options is a box — the
+    // same field the full form writes it in.
+    assert.deepEqual(
+      form(one).elements.map((e) => [e.name, e.tag]),
+      [
+        ['q0w', 'input'],
+        ['submit', 'button'],
+      ],
     )
     assert.deepEqual(buttons(one)[1].value, {
       a: 'option',
@@ -189,6 +197,7 @@ describe('cardFor', () => {
       held.elements.filter((e) => e.name).map((e) => [e.name, e.tag]),
       [
         ['q0', 'select_static'],
+        ['q0w', 'input'],
         ['q1', 'input'],
         ['submit', 'button'],
       ],
@@ -569,6 +578,75 @@ describe('larkCallback', () => {
       // Left alone, which is the board's own rule for a blank: the agent researches it.
       { picked: [], text: '' },
     ])
+  })
+
+  it('takes an options question’s own words over the choices the card wrote', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      lark_actor: ACTOR,
+      read_event: anEvent({
+        kind: 'question',
+        decision: 'answer',
+        questions: [{ text: 'One?', mode: 'single', options: ['a', 'b'], recommend: [] }],
+      }),
+      record_event_action: anEvent({ state: 'waiting_for_server', acted: true }),
+      connector_jobs: [],
+    })
+
+    await larkCallback(
+      ENV,
+      'feishu',
+      await sealed(
+        press({
+          action: {
+            tag: 'button',
+            name: 'submit',
+            value: { a: 'answers', eventId: EVENT, revision: '4f2a19c' },
+            // "Something else" carries one past the card's options, so it is never a pick.
+            form_value: { q0: '3', q0w: 'neither — do the third thing' },
+          },
+        }),
+      ),
+      ctx(),
+    )
+
+    const recorded = calls.find((c) => c.fn === 'record_event_action')
+    assert.deepEqual(recorded.args.p_answers, [
+      { picked: [], text: 'neither — do the third thing' },
+    ])
+  })
+
+  it('refuses a pick and words together rather than dropping the words', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      lark_actor: ACTOR,
+      read_event: anEvent({
+        kind: 'question',
+        decision: 'answer',
+        questions: [{ text: 'One?', mode: 'single', options: ['a', 'b'], recommend: [] }],
+      }),
+      record_event_action: anEvent({ state: 'waiting_for_server', acted: true }),
+      connector_jobs: [],
+    })
+
+    const answer = await larkCallback(
+      ENV,
+      'feishu',
+      await sealed(
+        press({
+          action: {
+            tag: 'button',
+            name: 'submit',
+            value: { a: 'answers', eventId: EVENT, revision: '4f2a19c' },
+            form_value: { q0: '1', q0w: 'actually, something else' },
+          },
+        }),
+      ),
+      ctx(),
+    )
+
+    assert.match((await answer.json()).toast.content, /not both/)
+    assert.equal(calls.find((c) => c.fn === 'record_event_action'), undefined)
   })
 
   it('does nothing at all when the card link is what was pressed', async (t) => {

@@ -21,12 +21,15 @@
 import { SLACK_BLOCK_LIMIT, SLACK_SECTION_LIMIT } from './config.ts'
 import type { EventRow } from './events.ts'
 import {
+  OWN_WORDS,
+  OWN_WORDS_SHORT,
   RESTORED,
   actionValue as valueFor,
   bound,
   cardUrl,
   cardWords,
   clip,
+  ownWordsValue,
   readQuestions,
   splitOption,
   stateNote,
@@ -250,6 +253,9 @@ function decision(event: EventRow): Block[] {
             actionValue(event),
           ),
         ),
+        // The options the card wrote are never the whole menu. This one opens the same view
+        // the multi-question path uses, where the box for the user's own words is.
+        button(OWN_WORDS_SHORT, ACTION_OPEN_ANSWERS, actionValue(event)),
         link,
       ]),
       context('Leave it alone and the agent researches this one.'),
@@ -384,16 +390,16 @@ const linkOnly = (event: EventRow): Block => actions([linkButton(event)])
  * Every question the event carries, in one view that submits them all at once.
  *
  * The board's own rule holds here as it does everywhere: a ticked option OR the user's own
- * words, never both, and a question left alone stays open for the agent to research. That
- * is why a question with options gets a picker and a question without one gets a box, and
- * why neither is ever required.
+ * words, never both, and a question left alone stays open for the agent to research. Every
+ * question gets a box for those words, options or not — the card's options are a shortcut
+ * past typing, never the limit of what may be said.
  */
 export function answerView(event: EventRow): Record<string, unknown> {
   const questions = readQuestions(event)
   // Slack takes 50 blocks in a view too. A card asking more than a modal can hold says so
   // rather than losing the last ones quietly — the unshown ones stay open for the agent,
   // which is what a blank answer means anyway.
-  const shown = questions.slice(0, MODAL_QUESTIONS)
+  const shown = questionsThatFit(questions)
   const left = questions.length - shown.length
   return {
     type: 'modal',
@@ -414,14 +420,27 @@ export function answerView(event: EventRow): Record<string, unknown> {
   }
 }
 
-/** How many questions one view holds, inside Slack's 50 blocks with the two context lines
- *  this view puts around them. */
-const MODAL_QUESTIONS = SLACK_BLOCK_LIMIT - 2
+/** As many questions as fit Slack's 50 blocks, given the two context lines this view puts
+ *  around them and the box an options question carries under its picker. */
+function questionsThatFit(questions: Question[]): Question[] {
+  const shown: Question[] = []
+  let used = 2
+  for (const question of questions) {
+    const cost = question.options.length > 0 ? 2 : 1
+    if (used + cost > SLACK_BLOCK_LIMIT) break
+    used += cost
+    shown.push(question)
+  }
+  return shown
+}
 
 /** The block ids a submission is read back from. The index is the question's position in
  *  the event, which is what an answer is matched to — the two sides read their options from
  *  different places, and a position means nothing without the list it indexes. */
 export const answerBlockId = (at: number) => `q${at}`
+/** Where an options question's own words are written. A picker and a box cannot share one
+ *  input block, so the box gets its own — read back beside the picker, never instead of it. */
+export const wordsBlockId = (at: number) => `q${at}w`
 export const ANSWER_ACTION = 'answer'
 
 function questionInput(question: Question, at: number, of: number): Block[] {
@@ -430,21 +449,24 @@ function questionInput(question: Question, at: number, of: number): Block[] {
     text: (of > 1 ? `${at + 1}. ${question.text}` : question.text).slice(0, 2000),
     emoji: true,
   }
-  if (question.options.length === 0) {
-    return [
-      {
-        type: 'input',
-        block_id: answerBlockId(at),
-        optional: true,
-        label,
-        element: { type: 'plain_text_input', action_id: ANSWER_ACTION, multiline: true },
-      },
-    ]
-  }
+  const box = (blockId: string, boxLabel: Block): Block => ({
+    type: 'input',
+    block_id: blockId,
+    optional: true,
+    label: boxLabel,
+    element: {
+      type: 'plain_text_input',
+      action_id: ANSWER_ACTION,
+      multiline: true,
+      placeholder: { type: 'plain_text', text: 'Your own words' },
+    },
+  })
+  if (question.options.length === 0) return [box(answerBlockId(at), label)]
+
   // Slack refuses an option past 150 characters, so a long one ends at a word rather than
   // wherever the 150th character happens to land. The star is the whole of what the card
   // recommends, on the option itself — the same mark the message shows.
-  const options = question.options.map((option, index) => ({
+  const options = question.options.slice(0, SLACK_OPTIONS - 1).map((option, index) => ({
     text: {
       type: 'plain_text',
       text: question.recommend.includes(index + 1)
@@ -463,8 +485,23 @@ function questionInput(question: Question, at: number, of: number): Block[] {
       element: {
         type: question.mode === 'multi' ? 'checkboxes' : 'radio_buttons',
         action_id: ANSWER_ACTION,
-        options: options.slice(0, 10),
+        // The last choice is not one of the card's: it is the way out of them, and the box
+        // below is what it opens. Its value is one past the options, so the answer that
+        // reaches the wire is the words rather than a pick nothing on the card matches.
+        options: [
+          ...options,
+          {
+            text: { type: 'plain_text', text: OWN_WORDS, emoji: true },
+            value: String(ownWordsValue(question)),
+          },
+        ],
       },
     },
+    // Labelled with the choice rather than the question again: the box belongs to that last
+    // row, and repeating the question here would read as a second question.
+    box(wordsBlockId(at), { type: 'plain_text', text: OWN_WORDS, emoji: true }),
   ]
 }
+
+/** How many choices Slack shows in one picker. */
+const SLACK_OPTIONS = 10

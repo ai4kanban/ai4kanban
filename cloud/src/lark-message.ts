@@ -16,10 +16,12 @@
 import { LARK_ELEMENT_LIMIT, LARK_TEXT_LIMIT } from './config.ts'
 import type { EventRow } from './events.ts'
 import {
+  OWN_WORDS,
   actionValue,
   cardUrl,
   cardWords,
   clip,
+  ownWordsValue,
   readQuestions,
   splitOption,
   stateNote,
@@ -42,6 +44,9 @@ export const ACT_ANSWERS = 'answers'
  *  their options from different places, and a position means nothing without its list. */
 export const ANSWER_FORM = 'answers'
 export const answerField = (at: number): string => `q${at}`
+/** Where an options question's own words are written. A picker and a box are two controls,
+ *  so the box gets its own field — read back beside the picker, never instead of it. */
+export const wordsField = (at: number): string => `q${at}w`
 
 /** Lark's own mark and header colour for each state name. One glyph is what tells a scrolling
  *  reader a decision from a result; the names themselves are ./message.ts's. */
@@ -180,6 +185,30 @@ function decision(event: EventRow): Element[] {
         ),
         link,
       ]),
+      // The options the card wrote are never the whole menu. A button cannot carry words, so
+      // the way out of them is the box — the same field the full form writes it in, read back
+      // through the same path.
+      {
+        tag: 'form',
+        name: ANSWER_FORM,
+        elements: [
+          {
+            tag: 'input',
+            name: wordsField(0),
+            required: false,
+            input_type: 'multiline_text',
+            rows: 2,
+            placeholder: { tag: 'plain_text', content: `${OWN_WORDS} — write it here` },
+          },
+          {
+            tag: 'button',
+            name: 'submit',
+            action_type: 'form_submit',
+            text: { tag: 'plain_text', content: 'Send' },
+            value: { a: ACT_ANSWERS, ...actionValue(event) },
+          },
+        ],
+      },
       note('Leave it alone and the agent researches this one.'),
     ]
   }
@@ -204,14 +233,14 @@ function optionLine(option: { label: string; why: string }, at: number, starred:
  * Every question the event carries, in one form that submits them all at once.
  *
  * The board's own rule holds here as it does everywhere: a ticked option OR the user's own
- * words, never both, and a question left alone stays open for the agent to research. That is
- * why a question with options gets a picker and a question without one gets a box, and why
- * neither is ever required.
+ * words, never both, and a question left alone stays open for the agent to research. Every
+ * question gets a box for those words, options or not — the card's options are a shortcut
+ * past typing, never the limit of what may be said.
  */
 function answerForm(event: EventRow, questions: Question[]): Element[] {
   // A card asking more than one form can hold says so rather than losing the last ones
   // quietly — the unshown ones stay open for the agent, which is what a blank answer means.
-  const shown = questions.slice(0, FORM_QUESTIONS)
+  const shown = questionsThatFit(questions)
   const left = questions.length - shown.length
   return [
     {
@@ -237,26 +266,34 @@ function answerForm(event: EventRow, questions: Question[]): Element[] {
   ]
 }
 
-/** How many questions one form holds, inside the card's element budget with the line above
- *  each control, the submit button and the lines this card puts around them. */
-const FORM_QUESTIONS = Math.floor((LARK_ELEMENT_LIMIT - 8) / 2)
+/** As many questions as fit the card's element budget, given the line above each control,
+ *  the submit button, the lines this card puts around them, and the box an options question
+ *  carries under its picker. */
+function questionsThatFit(questions: Question[]): Question[] {
+  const shown: Question[] = []
+  let used = 8
+  for (const question of questions) {
+    const cost = question.options.length > 0 ? 3 : 2
+    if (used + cost > LARK_ELEMENT_LIMIT) break
+    used += cost
+    shown.push(question)
+  }
+  return shown
+}
 
-/** One question: the words above it, and the control it is answered in. */
+/** One question: the words above it, and the controls it is answered in. */
 function questionInput(question: Question, at: number, of: number): Element[] {
   const asked = of > 1 ? `**${at + 1}.** ${larkMd(question.text)}` : `**${larkMd(question.text)}**`
-  const name = answerField(at)
+  const box = (name: string, placeholder: string): Element => ({
+    tag: 'input',
+    name,
+    required: false,
+    input_type: 'multiline_text',
+    rows: 2,
+    placeholder: { tag: 'plain_text', content: placeholder },
+  })
   if (question.options.length === 0) {
-    return [
-      text(asked),
-      {
-        tag: 'input',
-        name,
-        required: false,
-        input_type: 'multiline_text',
-        rows: 2,
-        placeholder: { tag: 'plain_text', content: 'Your own words, or leave it blank' },
-      },
-    ]
+    return [text(asked), box(answerField(at), 'Your own words, or leave it blank')]
   }
   // Lark cuts a long option itself, so a long one ends at a word rather than wherever the
   // limit happens to land. The star is the whole of what the card recommends, on the option
@@ -274,11 +311,18 @@ function questionInput(question: Question, at: number, of: number): Element[] {
     text(asked),
     {
       tag: question.mode === 'multi' ? 'multi_select_static' : 'select_static',
-      name,
+      name: answerField(at),
       required: false,
       placeholder: { tag: 'plain_text', content: 'Pick one, or leave it blank' },
-      options,
+      // The last choice is not one of the card's: it is the way out of them, and the box
+      // below is what it opens. Its value is one past the options, so what reaches the wire
+      // is the words rather than a pick nothing on the card matches.
+      options: [
+        ...options,
+        { text: { tag: 'plain_text', content: OWN_WORDS }, value: String(ownWordsValue(question)) },
+      ],
     },
+    box(wordsField(at), `${OWN_WORDS} — write it here`),
   ]
 }
 
