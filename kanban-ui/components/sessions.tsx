@@ -516,7 +516,9 @@ function SessionsDialog({
         // overflow-hidden clips the list column's edge-to-edge cream fill to the
         // panel radius — without it the square fill pokes past the rounded corner.
         className="nb-panel flex flex-col overflow-hidden"
-        style={{ width: 880, maxWidth: "100%", height: "min(640px, calc(100vh - 5rem))" }}
+        // The same frame as Configuration: both are the board's two-pane dialogs, and a
+        // run's log needs at least as much room as a settings pane.
+        style={{ width: 1040, maxWidth: "100%", height: "min(760px, calc(100dvh - 2rem))" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-nb-ink/12 px-5 py-3">
@@ -547,7 +549,9 @@ function SessionsDialog({
           </div>
 
           {/* right: the selected run's input + log */}
-          <div className="min-w-0 flex-1 overflow-y-auto p-4">
+          {/* Scrolled to the end, the log frame sat tight against the panel edge —
+              the extra pb gives it the same air the top has. */}
+          <div className="min-w-0 flex-1 overflow-y-auto p-4 pb-6">
             {selected ? (
               <>
                 <div className="mb-3 flex items-center gap-2">

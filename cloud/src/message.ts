@@ -10,8 +10,8 @@
  *
  *   • a chat is read at a glance — a reviewer decides from what a note LEADS with, and the
  *     reasoning behind it stays on the card;
- *   • what does not fit is left behind the card link, cut at a bullet or paragraph boundary,
- *     never dropped silently.
+ *   • what does not fit is left behind the card link, cut at a bullet or paragraph boundary.
+ *     The link is on every message, so no message says it was trimmed.
  */
 
 import { API_ORIGIN } from './config.ts'
@@ -35,6 +35,23 @@ const STATES: Record<string, string> = {
   interrupted: 'Delivery interrupted',
   stale: 'No longer waiting',
 }
+
+/**
+ * The endings the BOARD takes the card back from — every one but a delivery that landed.
+ *
+ * `closeRun` restores the card and the publisher raises it again seconds later; an
+ * `interrupted` is the same card freed later rather than a different fate, because Cloud is
+ * only ever told one when NOTHING is carrying the card (`writeOffAbandoned` in
+ * `cli/src/lib/cloud/publish.ts`).
+ *
+ * So a surface never draws one of these as where the card stands. It would put a state
+ * carrying no control on the one message every control lives on, for a card that is about to
+ * offer **Implement** again. The thread says what happened and what to do; the next event
+ * redraws the top.
+ *
+ * `completed` is where a card stopped, and `stale` is not a delivery ending at all.
+ */
+export const RESTORED = ['failed', 'cancelled', 'interrupted']
 
 /**
  * Where this event stands: the name a reader sees, and the key a connector looks its own
@@ -73,8 +90,10 @@ export function stateNote(event: EventRow): string {
     case 'failed':
     case 'cancelled':
       return event.reason
+    // Cloud is told this one only when nothing is carrying the card, so it says what happened
+    // rather than sending anybody to a machine with nothing left on it to resume.
     case 'interrupted':
-      return 'The machine running it went away. Resume or cancel it on that machine.'
+      return 'The machine that took this on stopped carrying it.'
     case 'stale':
       return 'This task stopped needing a person, and nobody acted on it.'
     default:
@@ -147,27 +166,21 @@ export type Render = (markdown: string) => string
  * message is a record of what happened, its own line says where to read the rest, and nobody
  * re-reads seven review notes to learn that a delivery landed.
  *
- * Nothing a decision is made from is dropped silently: `cut` is what puts the "rest is on
- * the card" line at the foot of a message that is still asking.
+ * A message never says it was trimmed. The card link is on every one of them, so a line
+ * pointing at a button already on the screen reads as filler.
  */
-export function cardWords(
-  event: EventRow,
-  open: boolean,
-  render: Render,
-): { parts: string[]; cut: boolean } {
+export function cardWords(event: EventRow, open: boolean, render: Render): string[] {
   const parts: string[] = []
   const summary = bound(render((event.summary ?? '').trim()), open ? SUMMARY_BUDGET : SETTLED_BUDGET)
   if (summary.text) parts.push(summary.text)
 
-  // A settled message never says it was trimmed. It is a record with the card one press
-  // away, and a line pointing at a button that is already there reads as filler.
-  if (!open) return { parts, cut: false }
+  if (!open) return parts
   const notes = (event.notes ?? '').trim()
-  if (!notes) return { parts, cut: summary.cut }
+  if (!notes) return parts
 
   const leads = noteLeads(notes, render)
-  if (leads.text) parts.push(leads.text)
-  return { parts, cut: summary.cut || leads.cut }
+  if (leads) parts.push(leads)
+  return parts
 }
 
 /**
@@ -178,16 +191,14 @@ export function cardWords(
  * rest is the argument for it: a reviewer decides on the first and reads the second on the
  * card.
  */
-export function noteLeads(notes: string, render: Render): { text: string; cut: boolean } {
+export function noteLeads(notes: string, render: Render): string {
   const lines: string[] = []
   let held: string[] | null = null
-  let cut = false
 
   const close = () => {
     if (!held) return
     const whole = held.join(' ').replace(/\s+/g, ' ').trim()
     const lead = firstSentence(whole, NOTE_LEAD)
-    cut = cut || lead !== whole
     if (lead) lines.push(`• ${render(lead)}`)
     held = null
   }
@@ -215,8 +226,7 @@ export function noteLeads(notes: string, render: Render): { text: string; cut: b
   }
   close()
 
-  const bounded = bound(lines.join('\n'), NOTES_BUDGET)
-  return { text: bounded.text, cut: cut || bounded.cut }
+  return bound(lines.join('\n'), NOTES_BUDGET).text
 }
 
 /** A note's lead: its first sentence, or as much of one as a line holds. Emphasis the cut

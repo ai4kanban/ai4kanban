@@ -3,13 +3,21 @@
 //
 //   npm run preview:slack
 //
-// One read of cloud.events, one sample per shape a message renders differently — the state,
-// the kind, how many questions it carries and whether they have options, and whether the
-// card sent its opening paragraph and its review notes. The newest event of each shape wins.
-// Nothing is invented: the words in these files are the ones a channel is being shown.
+// Two sets of samples, both off one read of cloud.events. Nothing is invented: the words in
+// these files are the ones a channel is being shown.
 //
-// Every per-shape sample is the CARD's own message, which is what the top of a thread holds
-// (#359). The `log-*` samples are the one-line reply an event is logged as underneath it.
+//   shape-*    one per shape a message renders differently — the kind, how many questions it
+//              carries and whether they have options, and whether the card sent its opening
+//              paragraph and its review notes. The newest event of each shape wins.
+//   card-*     the CARD's own message in each state the top of a thread can show (#359).
+//              An ending the board takes the card back from has none: the top is left as it
+//              was, and the next event redraws it with its Implement.
+//   log-*      the one-line reply that state is logged as underneath it.
+//   ended-*    the extra reply those endings leave, carrying why and what to do.
+//
+// Together the card/log/ended trio is every transition a card's thread goes through, in the
+// order it goes through them. A state no event has reached yet is drawn off a real card with
+// that one field replaced, and the sample says so.
 //
 // Writes cloud/.slack-preview/<name>.json (out of git) and prints a Block Kit Builder link
 // for each. Every file holds `{ blocks }` and nothing else, which is what the builder's
@@ -23,7 +31,8 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
-import { answerView, logFor, messageFor } from '../src/slack-message.ts'
+import { RESTORED } from '../src/message.ts'
+import { answerView, endingFor, logFor, messageFor } from '../src/slack-message.ts'
 import { loadEnv, requireEnv, serviceRoot } from './env.mjs'
 
 const OUT = join(serviceRoot, '.slack-preview')
@@ -83,37 +92,43 @@ async function main() {
   const written = []
   for (const row of rows) {
     const event = row.event
-    const name = unique(nameFor(event), taken)
+    // An ending the board takes the card back from is never drawn at the top, so there is no
+    // shape of it to preview either.
+    if (RESTORED.includes(event.state)) continue
+    const name = unique(`shape-${nameFor(event)}`, taken)
     written.push(save(name, describe(event), { blocks: messageFor(event).blocks }))
   }
 
-  // The two shapes a channel actually holds (#359), named so they can be told apart from the
-  // per-shape samples above: the card's own message at the top of the thread — with its
-  // controls while it is still asking, and the state it reached once it is settled — and the
-  // one-line reply each event is logged as underneath.
+  // Every state a card's thread goes through, in the order it goes through them (#359): the
+  // card's own message as that state rewrites it, the one-line reply the event is logged as
+  // underneath it, and — where a delivery ended badly — the extra reply carrying why.
   const actorId = (await query(ref, token, ACTOR))[0]?.slack_user_id
-  const asking = rows.map((row) => row.event).find((event) => !event.acted && event.state === 'actionable')
-  const reported = rows.map((row) => row.event).find((event) => event.acted)
-  for (const [name, event] of [['card-asking', asking], ['card-settled', reported]]) {
+  const events = rows.map((row) => row.event)
+  for (const [state, what] of LIFE) {
+    const event = inState(events, state)
     if (!event) continue
+    const from = events.includes(event) ? title(event) : `${title(event)}, state substituted`
+    const named = state.replace(/_/g, '-')
+    // The top message never shows an ending the board takes the card back from, so there is
+    // no card sample for one — only the thread lines it really leaves.
+    if (!RESTORED.includes(state)) {
+      written.push(save(`card-${named}`, `${what} — ${from}`, { blocks: messageFor(event).blocks }))
+    }
     written.push(
-      save(name, `${describe(event)} — the card’s own message, at the top of its thread`, {
-        blocks: messageFor(event).blocks,
+      save(`log-${named}`, `${what}, as its line in the thread — ${from}`, {
+        blocks: logFor(event, { actorId }).blocks,
       }),
     )
-  }
-  for (const [name, event] of [['log-asking', asking], ['log-reporting', reported]]) {
-    if (!event) continue
+    if (!RESTORED.includes(state)) continue
     written.push(
-      save(name, `${describe(event)} — as a log line in the card’s thread`, {
-        blocks: logFor(event, { actorId }).blocks,
+      save(`ended-${named}`, `why it ended that way, in the thread — ${from}`, {
+        blocks: endingFor(event).blocks,
       }),
     )
   }
 
   // The modal the Answer button opens, off whichever real event asks the most.
-  const asked = rows
-    .map((row) => row.event)
+  const asked = events
     .filter((event) => event.decision === 'answer')
     .sort((a, b) => b.questions.length - a.questions.length)[0]
   if (asked) {
@@ -122,48 +137,58 @@ async function main() {
     writeFileSync(join(OUT, 'answer-modal.view.json'), `${JSON.stringify(view, null, 2)}\n`)
   }
 
-  // A state no event has reached yet is still a message this service posts. It is drawn off
-  // a real settled event with the state field replaced and nothing else, so the words are a
-  // real card's — and the name says the state is the one part that is not.
-  const held = new Set((await query(ref, token, STATES)).map((row) => row.state))
-  const missing = ALL_STATES.filter((state) => !held.has(state))
-  const settled = rows.map((row) => row.event).find((event) => event.acted && event.summary)
-  const stood = settled ? missing : []
-  for (const state of stood) {
-    const event = { ...settled, state }
-    written.push(
-      save(`unseen-${state.replace(/_/g, '-')}`, `${describe(event)} — real card, state substituted`, {
-        blocks: messageFor(event).blocks,
-      }),
-    )
-  }
-
   console.log(`${written.length} messages in ${relative(process.cwd(), OUT)}/\n`)
   for (const { name, what, link } of written) console.log(`${name}\n  ${what}\n  ${link}\n`)
   if (asked) console.log('answer-modal.view.json is the whole view — paste it with the builder on Modal.\n')
+
+  const held = new Set((await query(ref, token, STATES)).map((row) => row.state))
+  const missing = LIFE.map(([state]) => state).filter((state) => !held.has(state))
   if (missing.length > 0) {
     console.log(
-      stood.length > 0
-        ? `No event has reached ${missing.join(', ')} yet. The unseen-* samples put those states on ${title(settled)}, whose words are real.`
-        : `No event has reached ${missing.join(', ')} yet, and no settled event was found to stand in for one.`,
+      `No event has reached ${missing.join(', ')} yet. Those samples are a real card put into that state — with what the state machine writes beside it, and no ending's words borrowed from another card. Each one says which card.`,
     )
   }
 }
 
-/** The nine states an event can be in, as migrations/0004_events.sql checks them, plus the
- *  one cloud.event_json computes. A state no event has reached is not drawn from a made-up
- *  row — it is reported as missing. */
-const ALL_STATES = [
-  'actionable',
-  'accepted',
-  'waiting_for_server',
-  'running',
-  'completed',
-  'failed',
-  'cancelled',
-  'interrupted',
-  'stale',
+/**
+ * A card's life, in the order it is lived — the nine states migrations/0004_events.sql checks
+ * plus the one cloud.event_json computes.
+ *
+ * The sentence beside each is what that state means to whoever is reading the channel, not a
+ * second name for it: the names themselves are src/message.ts's, and the samples show them.
+ */
+const LIFE = [
+  ['actionable', 'waiting for a person'],
+  ['accepted', 'somebody decided it'],
+  ['waiting_for_server', 'waiting for the machine that runs it'],
+  ['running', 'the delivery is going'],
+  ['completed', 'it landed'],
+  ['failed', 'it did not land'],
+  ['cancelled', 'somebody stopped it'],
+  ['interrupted', 'the machine running it went away'],
+  ['stale', 'the card stopped needing a person'],
 ]
+
+/** The states somebody has decided by the time the message shows them. `cloud.event_json`
+ *  computes `acted` off the action row, and it is what decides whether a message still offers
+ *  its controls — so a substituted state has to carry the value that state really has. */
+const ACTED_ON = ['accepted', 'waiting_for_server', 'running', 'completed', 'failed', 'cancelled', 'interrupted']
+
+/**
+ * A real event in this state, or a real card standing in for one.
+ *
+ * A state no event has reached is still a message this service posts, and a made-up card
+ * would preview made-up words. So the state is substituted onto a real one — but every field
+ * the state machine writes ALONGSIDE that state is written too, or the sample is a message
+ * the service could never post: a card nobody decided cannot be `running`, and a `reason` is
+ * the words one particular ending wrote, so a state borrowed from another card carries none.
+ */
+function inState(events, state) {
+  const real = events.find((event) => event.state === state)
+  if (real) return real
+  const stand = events.find((event) => event.summary) ?? events[0]
+  return stand ? { ...stand, state, acted: ACTED_ON.includes(state), reason: '' } : undefined
+}
 
 // ---- naming and saying what a sample is --------------------------------------
 

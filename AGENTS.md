@@ -9,7 +9,8 @@
 
 ## Answering
 
-- Just answer what I ask, in a minimal language. If you make a mistake, admit and correct it. Don't argue what you already know your're wrong. 
+- Just answer what I ask, in a minimal language. If you make a mistake, admit and correct it. Don't argue what you already know your're wrong.
+- Use ascii diagram if the thing you're explaining is complex.
 
 ## System Design
 

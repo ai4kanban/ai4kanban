@@ -48,6 +48,10 @@ export interface ConnectorJob<Posts> {
   posts: Posts
   /** The id of the message this event already has, or null when it has none yet. */
   messageRef: string | null
+  /** The reply saying how this event's DELIVERY ended, and null when it has none yet. Absent
+   *  from a schema older than 0014 — which is what tells a connector to log no ending at all
+   *  rather than log one it cannot record, and so post it again every pass. */
+  endingRef?: string | null
   /** The CARD's own message under this connector, scoped to the destination this connection
    *  posts to now, and null when the card has none yet. Stored per board, task and connector
    *  rather than read back out of a delivery row: a message that follows the card belongs to
@@ -136,6 +140,26 @@ export const recordCardMessage = <Posts>(
     p_subject: job.ownerId,
     p_board: job.event.boardId,
     p_task_id: job.event.taskId,
+    p_connector: connector,
+    p_external_ref: ref,
+  })
+
+/**
+ * Where the reply saying how a delivery ended is (#359).
+ *
+ * Beside that delivery's own record, and written the moment the chat answers for the reason
+ * the card's message is: a pass that then fails is retried an hour later, and the thread must
+ * not gain a second ending for it.
+ */
+export const recordDeliveryEnding = <Posts>(
+  env: Env,
+  connector: string,
+  job: ConnectorJob<Posts>,
+  ref: string,
+): Promise<unknown> =>
+  mutate(env, 'record_delivery_ending', {
+    p_subject: job.ownerId,
+    p_event: job.eventId,
     p_connector: connector,
     p_external_ref: ref,
   })

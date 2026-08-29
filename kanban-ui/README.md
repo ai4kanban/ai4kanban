@@ -278,6 +278,17 @@ The folder is gitignored — a mockup is a working drawing, not something the re
 pulled from someone else's board shows its tags as those notes until `ui-design` draws the
 options again here.
 
+**Which of the two styles `ui-design` draws in is the board's Mockup style setting**, under
+Configuration → Agents (`mockupStyle` in `ui.config.json`). It is board-wide, so a card carries
+one style throughout. It starts at the rendered screen above; the other choice is a **plain-text
+drawing**, which costs a much shorter run and reads as itself in a terminal, at the price of the
+product's own look.
+
+A plain-text drawing is **not a file**. It is written straight into the card, as a block under a
+heading naming its layout, and shown exactly as the card holds it — nothing points at it, nothing
+opens it on its own, and a window too narrow for it scrolls sideways rather than breaking its
+columns. Because it is in the card, it travels with the card through git.
+
 ### Insights
 
 The header's chart button opens **Insights**, which holds two charts, one per tab — they answer

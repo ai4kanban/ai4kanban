@@ -21,6 +21,7 @@
 import { SLACK_BLOCK_LIMIT, SLACK_SECTION_LIMIT } from './config.ts'
 import type { EventRow } from './events.ts'
 import {
+  RESTORED,
   actionValue as valueFor,
   bound,
   cardUrl,
@@ -79,8 +80,7 @@ export function messageFor(event: EventRow): { text: string; blocks: Block[] } {
   const blocks: Block[] = [header(`#${event.taskId} ${event.taskTitle}`), context(facts(event))]
 
   // The card's own words, cut to what a message is read from rather than what a card holds.
-  const review = cardWords(event, open, mrkdwn)
-  for (const part of review.parts) blocks.push(section(part))
+  for (const part of cardWords(event, open, mrkdwn)) blocks.push(section(part))
 
   if (open) {
     blocks.push({ type: 'divider' })
@@ -89,10 +89,6 @@ export function messageFor(event: EventRow): { text: string; blocks: Block[] } {
     const note = stateNote(event)
     if (note) blocks.push(context(escape(note)))
     blocks.push(linkOnly(event))
-  }
-
-  if (review.cut) {
-    blocks.push(context(`Trimmed to fit Slack — <${cardUrl(event)}|the card> has the rest.`))
   }
 
   return {
@@ -140,6 +136,44 @@ export function logFor(
     text: `${label}: #${event.taskId} ${event.taskTitle}`,
     blocks: [actorId ? section(`${said}  ·  <@${actorId}>`) : context(said)],
   }
+}
+
+/**
+ * How a delivery ended, as its own line in the card's thread (#359).
+ *
+ * The top message says where the card stands NOW, so the moment the board raises the card
+ * again it stops saying the delivery was refused and why. That reason is the one thing in the
+ * chat a person has to act on — a `git stash` fixes one failure and nothing fixes another — so
+ * it gets a reply the next rewrite cannot take away.
+ *
+ * It pings nobody. The fresh ask posted under it is what asks for a decision, and two mentions
+ * a second apart read as two things to do.
+ */
+export function endingFor(event: EventRow): { text: string; blocks: Block[] } {
+  const { key, label } = stateOf(event)
+  const why = stateNote(event)
+  const said = [`${MARKS[key] ?? ''} *${escape(label)}*`, why && escape(why), whatNext(event, why)]
+    .filter(Boolean)
+    .join('\n')
+  return {
+    text: [`${label}: #${event.taskId} ${event.taskTitle}`, why].filter(Boolean).join(' — '),
+    // A section rather than a context: what to do next is the point of the line, and a context
+    // sets it in the grey a reader skips.
+    blocks: [why || whatNext(event, why) ? section(said) : context(said)],
+  }
+}
+
+/**
+ * What to do now the delivery is over.
+ *
+ * A state name and a reason say what went wrong and neither says what happens next, so the
+ * line that carries them says it: the card comes back, and the control is the one at the top
+ * of this thread rather than a second one down here.
+ */
+function whatNext(event: EventRow, why: string): string {
+  if (!RESTORED.includes(event.state)) return ''
+  const first = event.state === 'failed' && why ? 'Fix that and press' : 'Press'
+  return `The card is back to *Ready for review*. ${first} *Implement* again at the top of this thread.`
 }
 
 // --- the decision -------------------------------------------------------------

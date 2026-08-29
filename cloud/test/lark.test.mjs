@@ -198,7 +198,7 @@ describe('cardFor', () => {
     assert.equal(held.elements.find((e) => e.name === 'q0').required, false)
   })
 
-  it('cuts what does not fit at a boundary and says the rest is on the card', () => {
+  it('cuts what does not fit at a boundary and leaves the rest behind the card link', () => {
     const card = cardFor(
       anEvent({
         summary: `${'A sentence about the work. '.repeat(60)}`,
@@ -206,8 +206,10 @@ describe('cardFor', () => {
       }),
     )
     const shown = said(card)
-    assert.match(shown, /Trimmed to fit Lark/)
     assert.match(shown, /\/card\//, 'the rest is behind the card link')
+    // No message says it was trimmed: the link is on every one of them, and a line pointing
+    // at a button already on the screen reads as filler.
+    assert.doesNotMatch(shown, /Trimmed/)
     // Nothing is left half-emphasised: a stray `**` on the page reads as a bug.
     for (const element of card.elements) {
       const content = element.text?.content ?? element.elements?.[0]?.content ?? ''

@@ -587,6 +587,32 @@ begin
     'a card in flight did not adopt the earliest Lark message it already had';
 
   -- -------------------------------------------------------------------------
+  -- How a delivery ended (#359)
+  -- -------------------------------------------------------------------------
+  -- The top message shows where the card stands now, so it stops saying a delivery was
+  -- refused the moment the card is raised again. The reason gets a reply of its own, and the
+  -- reference to it is what keeps a pass an hour later from posting a second.
+
+  assert (api.connector_jobs('slack', v_second, 10, 5) -> 0) ->> 'endingRef' is null,
+    'a delivery with no ending logged was not offered one to log';
+  perform api.record_delivery_ending(A, v_second, 'slack', 'ts-ended', BUDGET);
+  assert ((api.connector_jobs('slack', v_second, 10, 5) -> 0) ->> 'endingRef') = 'ts-ended',
+    'an ending already logged was not handed back to the job that must not log it again';
+
+  -- Written once: a row that already names an ending keeps the one it has.
+  perform api.record_delivery_ending(A, v_second, 'slack', 'ts-ended-2', BUDGET);
+  assert ((api.connector_jobs('slack', v_second, 10, 5) -> 0) ->> 'endingRef') = 'ts-ended',
+    'an ending was rewritten by a later pass';
+
+  -- Each connector keeps its own, on that connector's own delivery row.
+  assert (api.connector_jobs('lark', v_second, 10, 5) -> 0) ->> 'endingRef' is null,
+    'one connector''s ending was offered to another';
+
+  perform pg_temp.refuses(
+    format('select api.record_delivery_ending(%L, %L, %L, %L, %s)', B, v_second, 'slack', 'ts', BUDGET),
+    'AKB02', 'record_delivery_ending');
+
+  -- -------------------------------------------------------------------------
   -- The day's write budget
   -- -------------------------------------------------------------------------
   -- A refused write rolls its own increment back, so writes stop at exactly the budget and

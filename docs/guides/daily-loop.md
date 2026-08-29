@@ -7,65 +7,51 @@ Everything you *say* below goes to a coding agent, which needs the skill in the 
 it. Every one of those asks is also a button in the app and a command you can type, so
 nothing here is closed to a board that has no skill.
 
+`kanban-ui/README.md` is the reference beside this one: what every column, panel, button and
+setting does. This file is the rhythm — what to say, and which button does the same thing.
+
 ## Two ways the work gets done
 
-Everything below happens one of two ways, and the difference is worth knowing.
-
 **In the conversation you're in.** You ask your coding agent for a board action — "refine
-#4", "#4 is done" — and it does the job itself, right there. It's already reading your
-code, it has the context, and nothing extra is billed. If it takes a wrong turn, "not that
-one" is your next message. Under the hood it asks the CLI for the steps with `--print`:
-the CLI hands back what to do for *your* board — the card's own path, the steps it has
-left, the memory file to write the note in, the command that closes the job — and the
-agent follows it.
+#4", "#4 is done" — and it does the job itself, right there. It already has your code in
+context, nothing extra is billed, and "not that one" is your next message when it takes a
+wrong turn. Under the hood it asks the CLI for the steps with `--print`, and follows what
+comes back for *your* board.
 
-**Sent off as a run.** You press a button on the local board, or type `akb refine 4`, and
-a second agent starts on its own. It keeps working when you close the terminal, it shows
-in the runs panel with its own log, and you can stop it. Nothing you say reaches it while
-it goes, so a correction costs the whole run.
+**Sent off as a run.** You press a button on the local board, or type `akb refine 4`, and a
+second agent starts on its own. It keeps working when you close the terminal, it shows in the
+runs panel with its own log, and you can stop it. Nothing you say reaches it while it goes, so
+a correction costs the whole run.
 
-Send it off when you want the work to happen while you do something else, or on the long
-read-heavy jobs — proposing across the repo, planning a release, refining round after
-round. Otherwise just ask, in the session you're already in. When your agent isn't sure
-which you meant, it asks the CLI to print: that costs nothing and you can still say "no,
-start a run".
-
-A run never starts another run. An agent working inside one that's asked for a board
-action gets the steps printed and does them itself, so one run can't quietly become five.
+Send it off for work you want happening while you do something else, or for the long
+read-heavy jobs — proposing across the repo, planning a release, refining round after round.
+Otherwise just ask, in the session you're already in. A run never starts another run: an agent
+inside one that's asked for a board action gets the steps printed and does them itself.
 
 ## Pick what to work on
 
-Ask **"what's next?"**. The skill:
+Ask **"what's next?"**. The skill reads the board, your published docs, `readme.md` and
+`rejected.md` so it won't repeat work, scans your planning sources for real gaps, and proposes
+**new tasks** from them — not a pick from the existing pile. Three of them unless you ask for a
+different count (ten is the most), each one short-term. You approve, tweak, or drop each.
 
-1. Reads the board, your published docs (where shipped work is recorded), `readme.md`
-   (the index of shipped work — one line per behavior, linking to its doc), and
-   `rejected.md` so it won't repeat work.
-2. Scans your planning sources for real gaps.
-3. Proposes **new tasks** from real gaps — not a pick from the existing pile. Three of
-   them unless you ask for a different count (ten is the most it will write), each one
-   short-term: a card a run can finish and you can feel right away.
-
-You approve, tweak, or drop each. Approved ones become cards.
-
-Every proposal is judged against `memory/goal.md` — the direction in your own words. The
-file starts empty, and the skill never writes the goal for you. It only marks how clear
-the goal looks in the file's frontmatter (`reviewed:`), and it re-marks it every time it
-proposes:
+Every proposal is judged against `memory/goal.md` — the direction in your own words. The file
+starts empty, and the skill never writes the goal for you. It only marks how clear the goal
+looks in that file's `reviewed:` field, and re-marks it every time it proposes:
 
 - `strong` / `good` — clear enough to plan from.
-- `pending` — you just wrote or edited the goal and nothing has read it yet. Written by
-  the board itself when the goal is saved, so it never asks you for work you just did.
-- `weak` — missing, empty, or too vague to plan from. This is the only value that makes
-  the board ask you for a goal.
+- `pending` — you just wrote or edited the goal and nothing has read it yet. Written by the
+  board itself when the goal is saved, so it never asks you for work you just did.
+- `weak` — missing, empty, or too vague to plan from. This is the only value that makes the
+  board ask you for a goal.
 
 The board keeps working either way, but proposals are guesses until you write the goal.
 
 ## Talk it over, and let it do it
 
-Not every answer is a job. When you want to think out loud — what's worth doing next, what
-a card actually means, whether two cards are the same card — open a conversation instead.
-And when the conversation lands on a change, the chat makes it; you don't go back to the
-buttons for something it just agreed to.
+Not every answer is a job. When you want to think out loud — what's worth doing next, what a
+card actually means, whether two cards are the same card — open a conversation instead. And
+when the conversation lands on a change, the chat makes it.
 
 ```bash
 akb chat "what should I build next, and why?"
@@ -74,20 +60,11 @@ akb chat 241 "put it in v0.8 and drop the last todo"
 akb chat "start a build on 241"
 ```
 
-You explain nothing. A chat opens knowing what a coding agent knows after you type
-`/kanban`: your goal, your modules, your tracks, every open card in one line, and — when
-you name one — that card in full, with its questions and the cards it waits on. It knows
-where your memory files are and reads them before it suggests anything, and it knows which
-`akb` command answers which ask.
-
-In the app the same conversation is a rail down the right of the window — **Chat** in the
-header opens it, and it follows what you are reading: the board's chat on the board, a card's
-on its page. It is one conversation either way, so you can start it in a terminal and carry it
-on in the app. The board behind it keeps up as the chat writes: a card moves while the reply
-is still arriving, and a card archived out from under its own page sends you back to the
-board.
-
-Reach for it when:
+You explain nothing. A chat opens knowing what a coding agent knows after you type `/kanban`:
+your goal, your modules, your tracks, every open card in one line, and — when you name one —
+that card in full. In the app it is a rail down the right of the window (**Chat** in the
+header), following what you are reading: the board's chat on the board, a card's on its page.
+It is one conversation either way, so you can start it in a terminal and carry it on in the app.
 
 | You want | What happens |
 | --- | --- |
@@ -97,318 +74,184 @@ Reach for it when:
 | a change you have already settled — reword it, put it in v1, archive it | it makes the change |
 | the card worked out, or the code written | the skill does its printed flow here unless you ask for a background run |
 
-Chat is the kanban skill in a persistent agent session. It follows the same board-specific
-flows as the skill in your coding agent, including writing code when that is the flow. By
-default it prints the flow and does the work here; ask for a background run when you want
-another agent to take it independently.
-
-A card a run is already working on is off limits — the change is refused, and the refusal
-names the card and what that run is doing. The chat itself is still not a run: it shows in
-no runs panel and holds no card, so it never gets in the way of work already going.
-
-Two things to know. A fresh chat prompt is only the harness's kanban-skill invocation plus
-your message; the skill reads the live board itself. And each conversation is separate and
-lives on your machine, under `docs/kanban/.chats/` and out of git — `akb chat 241` picks
-yours up from any terminal, and `akb chat 241 --clear` starts it fresh.
+Chat is the kanban skill in a persistent agent session, so it follows the same board-specific
+flows and by default does the work here. A card a run is already working on is off limits, and
+the refusal names the card and what that run is doing. The chat itself is not a run: it shows in
+no runs panel and holds no card. Each conversation lives on your machine under
+`docs/kanban/.chats/`, out of git — `akb chat 241 --clear` starts it fresh.
 
 ## Plan a release
 
-A release is a version you're planning — call it `v1`, `0.5.0`, or `august`; the board
-never reads the name. Say **"create release v1"** and it joins the list in
-`docs/kanban/releases.md`, in the order it ships. Say **"put #4 in v1"** and that card
-ships in that version. A card you never place is in no release — wanted, but not promised
-to a version.
+A release is a version you're planning — call it `v1`, `0.5.0`, or `august`; the board never
+reads the name. Say **"create release v1"** and it joins the list in `docs/kanban/releases.md`,
+in the order it ships. Say **"put #4 in v1"** and that card ships in that version. A card you
+never place is in no release — wanted, but not promised to a version.
 
-Say what the version is for while you make it: **"create release v1 — the first version
-worth showing someone"**. Those words sit on the release's own line in `releases.md`, so
-you and the agent can both say what this version is trying to ship, and `release list`
-prints them under each version. Say **"v1 is for …"** to change them later. The goal is
-never required — a release made without one works everywhere one with a goal does.
+Say what the version is for while you make it: **"create release v1 — the first version worth
+showing someone"**. Those words sit on the release's own line in `releases.md`, and
+`release list` prints them under each version. Say **"v1 is for …"** to change them later. A
+release made without a goal works everywhere one with a goal does.
 
-Say **"plan release v1"** and the agent fills the version against its goal: it moves the
-open cards that ship the goal into the release, and it writes the cards the goal needs that
-your board hasn't got. The new cards land plain, and each one is refined right after, as a
-run of its own. It decides on its own — nothing waits on you — and it ends by saying what it moved in, what it
-wrote, and what it left out and why. A card already in another release stays where it is, so
-planning only ever adds: run it again whenever the goal changes and it adds what the goal
-still lacks. To take a card back out, say **"take #4 out of v1"**.
+Say **"plan release v1"** and the agent fills the version against its goal: it moves the open
+cards that ship the goal into the release, writes the cards the goal needs that your board
+hasn't got, and refines each new one as a run of its own. Nothing waits on you, and it ends by
+saying what it moved in, what it wrote, and what it left out and why. A card already in another
+release stays where it is, so planning only ever adds — run it again whenever the goal changes.
+To take a card back out, say **"take #4 out of v1"**.
 
-A release with **no goal** has nothing to plan against, so it falls back to a plain rule.
-Say **"create release v1 and fill it"** and the unplaced high-priority cards go in as the
-version is made: a card goes in when its priority is high, nothing open is blocking it, and
-it is not a group root — a subtask is tested on its own, and a card already in a release
-stays where it is. Every card that moved is named, and every high-priority card left behind
-is named with the test it failed, so you read the plan instead of guessing it.
+A release with **no goal** falls back to a plain rule. Say **"create release v1 and fill it"**
+and the unplaced high-priority cards go in as the version is made: nothing open blocking it, and
+not a group root. Every card that moved is named, and every high-priority card left behind is
+named with the test it failed.
 
-On the local board, the New release dialog asks which kind of release this is with two tabs:
-**From a goal**, where the goal box is the whole choice and the release can't be made until it
-says something, and **No goal**, which has no goal box and applies the plain rule instead,
-counting the cards it would put in. The **⋯** beside the dropdown offers **Fill from its goal**
-on a release that already exists, so a release made without one can be given a goal later and
-filled from there. Planning is an ordinary run: it shows in the runs panel the moment the
-release is made, you can stop it, and its log is where you read what it did. While it goes the
-board says the release is being planned, and the cards it moves in appear as it writes them.
+On the local board the New release dialog carries both kinds as tabs — **From a goal**, where
+the goal box is the whole choice and the release can't be made without it, and **No goal**,
+which applies the plain rule and counts the cards it would put in. The **⋯** beside the release
+dropdown opens the goal to change it, and offers **Fill from its goal** on a release that
+already exists. Planning is an ordinary run: it shows in the runs panel, you can stop it, and
+the cards it moves in appear as it writes them.
 
-Say **"what's in v1?"** and you get every release in ship order, each with what it is for,
-how many cards it holds and how many are ready to build — the cards in no release counted
-last. So the work you promised for this version sits on the same screen as the work nobody
-promised.
+Say **"what's in v1?"** and you get every release in ship order, each with what it is for, how
+many cards it holds and how many are ready to build — the cards in no release counted last.
 
-On the local board, the New release dialog's **From a goal** tab asks for the goal under the
-version id, the release dropdown shows it under each version, and the **⋯** beside the
-dropdown opens the whole goal — that is where you change it.
-
-Releases are optional. Nothing asks you for one, and a board that never plans a version
-works exactly as it does without them.
+Releases are optional. A board that never plans a version works exactly as it does without them.
 
 ## Close a release
 
 The version shipped. Say **"close v1"**. The skill writes what the release held to
-`docs/kanban/.release-summaries/v1.md` — what shipped, from the cards you archived while
-they named it, and what didn't — clears the release off every card still open in it, and
-takes the version off the list. `releases.md` only ever shows what's still ahead.
+`docs/kanban/.release-summaries/v1.md` — what shipped, from the cards you archived while they
+named it, and what didn't — clears the release off every card still open in it, and takes the
+version off the list.
 
-You can close whenever you say the version shipped, however much is still open. Afterwards
-the id is gone: putting a card in `v1` fails like a typo, and the next version is a new
-release. A card whose todos are all ticked but which you never archived counts as not
-shipped — the skill names it so you can archive it and fix that line in the summary.
+You can close whenever you say the version shipped, however much is still open. Afterwards the
+id is gone: putting a card in `v1` fails like a typo. A card whose todos are all ticked but which
+you never archived counts as not shipped — the skill names it so you can archive it and fix that
+line in the summary. On the local board the **⋯** beside the release dropdown offers the close,
+showing what it records and which cards come out before you confirm.
 
-On the local board, the ⋯ beside the release dropdown offers the close while you're looking
-at that version. It shows you what the close records and which open cards come out of the
-version before you confirm, and it names the ticked-but-never-archived cards there — early
-enough to cancel, archive them, and close after.
+The summary opens with a **changelog** — at most six plain lines saying what the version changed,
+written by an agent from the cards it shipped, each one something you can now see or do. Under it
+the summary keeps what the version was for, since the line in `releases.md` is gone.
 
-The summary opens with a **changelog** — a few plain lines saying what the version changed,
-written by an agent from the cards it shipped. Six lines at most, each one something you can
-now see or do. Under it the summary keeps what the version was for: the line in
-`releases.md` is gone, so those words survive only there.
-
-On the local board the close starts that agent itself, in the background: the runs panel
-shows it, and the changelog reaches the file when it ends. In the terminal the close names
-the command instead — say **"write the changelog for v1"**, or run `akb changelog v1` — since
-a bookkeeping command never starts an agent. Either way the card list is written first and
-stands whatever the agent does, and running it again replaces the changelog rather than
-adding a second one.
-
-A version that shipped no card gets no changelog, and nothing is started for it. Not every
-change goes through the board, so one that was never a card is still missing from the file —
-that part is yours to add.
+The local board starts that agent itself in the background. In the terminal the close names the
+command instead — say **"write the changelog for v1"**, or run `akb changelog v1` — since a
+bookkeeping command never starts an agent. Either way the card list is written first and stands
+whatever the agent does, and running it again replaces the changelog rather than adding a second.
+A version that shipped no card gets no changelog. Not every change goes through the board, so one
+that was never a card is still yours to add.
 
 ## Drop a release
 
-You gave up on the version — it will not ship. Say **"drop v1"**. The version comes off
-the list with no shipped record. It reports the cards already archived under it and the
-open ones it sends back to no release, but writes no summary file or summary section. If a
-close of the same id left a summary earlier, that file stays untouched. On the local board,
-the ⋯ beside the release dropdown offers the drop while you're looking at that version and
-shows both groups of cards before you confirm.
+You gave up on the version — it will not ship. Say **"drop v1"**. The version comes off the list
+with no shipped record. It reports the cards already archived under it and the open ones it sends
+back to no release, but writes no summary file. A summary an earlier close left stays untouched.
+On the local board the **⋯** beside the release dropdown offers the drop and shows both groups
+before you confirm.
 
-The skill writes down nothing about the drop or why it happened. If the reason is worth
-keeping, write it wherever you keep such notes.
+Nothing is written down about the drop or why it happened. If the reason is worth keeping, write
+it wherever you keep such notes.
 
 ## Add a task
 
 Say **"add a task: <idea>"**. Before writing, the skill reviews the idea (business value,
-feasibility, duplication) and checks `redesign.md` so it doesn't repeat a known design
-mistake. Then it:
-
-- creates one indexed card and its id with `akb board create --title "..." --track <track>`,
-- fills its body in plain language, split into checkable todos,
-- adds it to `todo/README.md` under its track.
+feasibility, duplication) and checks `redesign.md` so it doesn't repeat a known design mistake.
+Then it creates one indexed card with `akb board create`, fills its body in plain language split
+into checkable todos, and adds it to `todo/README.md` under its track.
 
 ## Turn a source into tasks
 
-Say **"read this article and create tasks"**, or give the skill research, an analysis, or
-user feedback. It treats the material as evidence rather than a ready-made task list.
+Say **"read this article and create tasks"**, or give the skill research, an analysis, or user
+feedback. It treats the material as evidence rather than a ready-made task list: it extracts
+concrete user problems, finds the modules that could improve them, and validates each idea
+against the goal, code, docs, module memory, and open cards. Ideas that are already supported,
+already planned, previously rejected, outside the project's control, or too weak are skipped, and
+a useful detail for existing work updates that card instead of creating a duplicate.
 
-The skill extracts concrete user problems, finds the project modules that could improve
-them, and validates each idea against the goal, code, docs, module memory, and open cards.
-Work is checked in parallel by module, then reconciled before any ids are allocated. Ideas
-that are already supported, already planned, previously rejected, outside the project's
-control, or too weak to justify are skipped. A useful detail for existing work updates
-that card instead of creating a duplicate.
-
-The result can be fewer tasks than the source suggests — including none. Each card that
-does survive is about the product improvement and user value, not about reading the
-source.
+The result can be fewer tasks than the source suggests — including none. Each card that survives
+is about the product improvement, not about reading the source.
 
 ## Push a card forward
 
-Say **"refine #4"**. The skill first reviews the card (missing steps, missed edge cases,
-over-complication, actionability), then rewrites it one stage toward concrete — one stage
-only, stopping before code-level detail — and writes the result back into the card.
-Decisions only you can make land on the card as open questions.
+Say **"refine #4"**. The skill reviews the card (missing steps, missed edge cases,
+over-complication, actionability), then rewrites it one stage toward concrete — one stage only,
+stopping before code-level detail. Decisions only you can make land on the card as open questions.
 
-A card with open questions can't be refined again. Say **"resolve #4"** — the skill
-researches each question, decides the ones the evidence settles, asks you the real
-judgment calls, and clears the list.
+A card with open questions can't be refined again. Say **"resolve #4"** — the skill researches
+each question, decides the ones the evidence settles, asks you the real judgment calls, and
+clears the list.
 
-You rarely have to ask. Any run that writes or changes a card is followed by a refine of
-that card, started on its own once the run ends — so a card you add, revise or resolve comes
-back refined without a second instruction. A card a run splits off comes back refined too,
-whichever run created it, and finishing setup refines each of the first cards it writes. A
-rough card that becomes blocked saves its own one-shot refine instead; archiving or
-rejecting its last blocker makes that schedule eligible.
-Each one is an ordinary run: you can watch its log and stop it. What has nothing to refine is
-skipped — a card still blocked,
-one already ready, a
-recurring card, one whose todos are all ticked, and one waiting only on your answers. A
-group's main card is skipped too when a subtask finishes — ticking its line is progress, not
-a new plan — so a big group doesn't refine its main card once per subtask. And when that was
-the last subtask, the main card leaves the board with it: a group is over the moment its
-pieces are, so it is archived in the same breath rather than waiting for you to press
-Archive.
+You rarely have to ask. Any run that writes or changes a card is followed by a refine of that
+card, started on its own once the run ends, so a card you add, revise or resolve comes back
+refined without a second instruction. What has nothing to refine is skipped — a card still
+blocked, one already ready, a recurring card, one whose todos are all ticked, one waiting only on
+your answers, and a group's main card when a subtask finishes. When that was the last subtask the
+main card leaves the board with it, archived in the same breath.
 
 ## Build a card
 
-Press **Implement** on the card page, or say **"build #4"**. One click carries the card all
-the way: an agent builds it, a fresh run reviews what it built against the card as you
-approved it, corrections fix what the review found, the board lands the work as one commit
-on the branch you are on, and then it archives the card. Nothing asks you again in between.
+Press **Implement** on the card page, or say **"build #4"**. One click carries the card all the
+way: an agent builds it, a fresh run reviews what it built against the card as you approved it,
+corrections fix what the review found, the board lands the work as one commit on the branch you
+are on, and then it archives the card. Nothing asks you again in between.
 
 What you are approving is the **card** — what it should achieve, what to weigh, its open
-questions, and what building it turned up — not the diff. The dialog says the steps in order
-and names the branch the change will land on.
+questions, and what building it turned up — not the diff. The dialog says the steps in order and
+names the branch the change will land on.
 
 - **A card with open questions can still be built**, with a warning. It is built and reviewed,
-  and then holds at landing until you answer them — taking no landing slot while it waits, so
-  every other card still lands. **Resolve & implement** in the dialog is the other way: answer
-  first, and it builds once nothing is left for you to decide.
-- **A pause has nothing to press.** The card's title band says what the delivery is waiting
-  on and what answers it. Answering carries the same delivery on, with no second click — and
-  an answer that changed what the card asks for starts a fresh delivery on the card as it now
-  reads.
-- **Manual commit mode is the exception.** Untick **Build this on a branch of its own** in
-  the dialog — it opens on whatever **Allow automatic Git commits** says, and unticking it
-  changes this build alone — and nothing lands: the agent builds in the folder you are
-  sitting in, the delivery stops after review, and the card is archived when your own commit
-  matches what review passed. Where a worktree is impossible anyway — no git, no commit to
-  fork from, or a detached `HEAD` — there is no box and the build works this way regardless.
-- **Your own commits on that branch are refused while it lands.** One moves the target under
-  the delivery, so a `pre-commit` hook installed beside the skill names the delivery and
-  stops the commit. Commit on another branch, or `git commit --no-verify` to go ahead anyway.
+  then holds at landing until you answer — taking no landing slot while it waits, so every other
+  card still lands. **Resolve & implement** in the dialog is the other way round.
+- **A pause has nothing to press.** The card's title band says what the delivery is waiting on
+  and what answers it. Answering carries the same delivery on; an answer that changed what the
+  card asks for starts a fresh delivery on the card as it now reads.
+- **Manual commit mode is the exception.** Untick **Build this on a branch of its own** in the
+  dialog and nothing lands: the agent builds in the folder you are sitting in, the delivery stops
+  after review, and the card is archived when your own commit matches what review passed. Where a
+  worktree is impossible anyway — no git, no commit to fork from, a detached `HEAD` — the build
+  works this way regardless.
+- **Your own commits on that branch are refused while it lands.** A `pre-commit` hook installed
+  beside the skill names the delivery and stops the commit. Commit on another branch, or
+  `git commit --no-verify`.
 
 In a terminal it is `akb implement 4`, which starts the same delivery and warns about an open
 question the same way it warns about a blocker. `kanban-ui/README.md` has the whole of it.
 
 ## Let a specialist fill part of the spec
 
-Some parts of a card nobody should plan by guess — the screen a feature puts in front of
-the user, the outside library a feature leans on. Those go to a **spec agent**: a named
-agent that owns one part of a card's spec and fills only that part.
+Some parts of a card nobody should plan by guess — the screen a feature puts in front of the
+user, the outside library it leans on. Those go to a **spec agent**: a named agent that owns one
+part of a card's spec and fills only that part. The board ships two, and `akb spec` lists them:
 
-The board ships two, and `akb spec` lists them:
+- **`ui-design`** — draws the screen a card needs, as two or three layouts with one recommended
+  and nothing written under them: you pick by looking. Its drawings are **mockups**, either a
+  rendered screen or a plain-text drawing depending on the board's **Mockup style** setting
+  (Configuration → Agents). See "Mockups on a card" in `kanban-ui/README.md`.
+- **`technology-selection`** — picks the library, tool, or service a card leans on. Its answer is
+  one table — a row per candidate, with what it is, its pros and its cons — and one line naming
+  the pick. Keeping what the project already uses and writing it yourself are rows too, so a card
+  doesn't come back with something new to install by default.
 
-- **`ui-design`** — draws the screen a card needs. Its answer is two or three layouts, one of
-  them recommended, and nothing written under them: you pick by looking, not by reading a
-  description of what you are looking at. Whether it draws a screen styled like the product or
-  a drawing in plain text is the board's **Mockup style** setting (Configuration → Agents).
-  Run it again on the same card and it draws over its old answer and clears away the mockup
-  files it no longer uses.
-- **`technology-selection`** — picks the library, tool, or service a card leans on. Its
-  answer is one table — a row per candidate, with what it is, its pros and its cons — and one
-  line naming the pick. Nothing else, so the section stays short enough to actually read.
-  Keeping what the project already uses and writing it yourself are rows too, so a card
-  doesn't come back with something new to install by default. It looks each one up before
-  naming it, so a package that was renamed or abandoned never reaches the card.
+It is a run like any other, with three things that make it different: it starts clean, given the
+card and a short note but never the conversation that asked for it; it writes one named section —
+``## By `ui-design` agent`` — and nothing else, rewritten rather than doubled on a second run;
+and nothing waits for it, so a planning flow carries on and the section arrives when it is done.
+When the answer is a pick only you can make, it leaves an open question instead of choosing.
 
-### Picking a layout by looking at it
+You rarely ask for one yourself — the flow working the card asks when the card needs it, after a
+card is added, after a refine or revise that moved the screen or the library, and never from a
+propose or a release plan (each card's own refine asks instead). A card that needs neither a
+screen nor a library goes through all of those without a spec run, and nothing tells you it did.
 
-A card that changes a screen can carry **mockups** of it — small files under
-`docs/kanban/.mockups/<card id>/`, each drawing one layout the card could take. The card body
-points at each one with a short tag, and the card page draws the screen that file holds where
-the tag sits, so you pick a layout by looking at it instead of by reading a description of it.
+When you do want one: **"put the ui-design agent on #4"**, or `akb spec ui-design 4`. Switching
+one off and setting what it produces are both in **Configuration → Agents**; `akb spec` prints
+what each is set to.
 
-A mockup file is a `.tsx` component styled with Tailwind or a plain `.html` page. Either is a
-screen: it gets one desktop frame on the card, scaled down to fit, and a switch to the code
-behind it. Every mockup carries its label and its file name across the top, and the file name
-opens that mockup on its own at full size, where the words in it can be read; Back returns to
-the card.
+## Which tool each flow runs on
 
-Which of the two styles `ui-design` draws in is the board's **Mockup style** setting, under
-Configuration → Agents. It is board-wide, so a card carries one style throughout. It starts at
-the rendered screen; the plain-text drawing costs a much shorter run and reads as itself in a
-terminal, at the price of the product's own look.
-
-**A plain-text drawing is not a file** — it is written straight into the card, as a block under
-a heading naming its layout, shown exactly as the card holds it. Nothing points at it, nothing
-opens it on its own, and a window too narrow for it scrolls sideways rather than breaking its
-columns. Because it is in the card, it travels with the card through git.
-
-Nothing in a mockup runs, loads anything, or answers a click — it is a drawing of one screen
-in its normal state, and it is thrown away when the build starts. A tag pointing at a file
-that isn't there, or at one the board can't draw, reads as one plain note naming the file, and
-the rest of the card draws as usual.
-
-The folder is gitignored, so mockups stay on the machine that drew them: a card you pull from
-someone else carries the tags without the pictures, and running `ui-design` again draws them
-back. What a layout settled is in the card's own words, which is what travels.
-
-It is a run like any other — its own log, stoppable — with three things that make it
-different:
-
-- **It starts clean.** It is given the card and a short note, never the conversation that
-  asked for it. That is the point: a second opinion, not an echo.
-- **It writes one section and nothing else.** The section carries its name —
-  ``## By `ui-design` agent`` — so you can see who is answerable for that part of the
-  spec. Run it again and that section is rewritten, never doubled. The rest of the card —
-  your summary, the scope, the todo list — is closed to it, and every other flow leaves
-  its section alone in return.
-- **Nothing waits for it.** A planning flow asks for one and carries on; the board starts
-  it the moment that flow's run ends, and the section arrives on the card when it is done.
-  When the answer is a pick only you can make, it leaves an open question beside its
-  section instead of choosing.
-
-You rarely ask for one yourself — the flow working the card asks when the card needs it.
-When you do want one: **"put the ui-design agent on #4"**, or `akb spec ui-design 4`.
-
-### When one shows up on its own
-
-Most spec runs in the panel are ones you never typed. The flow working the card asked for
-them, and the board started them:
-
-- **After adding a card** — the flow that wrote the card asks for whatever part of the spec
-  it would otherwise have guessed at.
-- **After a refine** — only when that part of the spec is still open: the card changes a
-  screen and only describes it, or leans on a library nobody picked. A refine that sharpened
-  the wording or re-ordered the todos asks for none.
-- **After a revise** — only when your change moved the screen the card draws or the library
-  it picks.
-- **After a propose or a release plan** — never from the run itself. Those write rough cards
-  in bulk; each card's own refine follows, and that is what asks.
-
-So a card that needs neither a screen nor a library goes through every one of those without
-a spec run, and nothing tells you it did — that is the normal case, not a miss. A card that
-already carries an agent's section is not sent back to it unless the plan under it moved,
-and the board turns down a second ask while that agent is still working the card.
-
-### Switching one off, and setting one
-
-The board app lists the spec agents in **Configuration → Agents**, each with one switch. An
-agent you switch off is greyed and reads **off**, and the board starts no new run of it, on
-any card: it leaves the list a planning flow picks from, and a flow that asks for it by name
-plans that part of the card itself instead. The switch is saved with the board, so it holds
-across restarts, reads the same for everyone working on it, and applies to a flow run in a
-terminal as much as to a button. Whatever an agent already wrote on a card stays there, and
-switching it back on has the next flow calling it again.
-
-An agent can carry **settings** as well as a switch — what it produces, not just whether it
-runs — and they are set on that same row. Each one reads as a line saying what it is set to
-and what that choice costs; **Change** opens the choices in place, each with its own cost,
-and a pick saves itself. A setting is board-wide, like the switch: every card that agent runs
-on gets the same answer, and a run started from a terminal reads it too. A switched-off agent
-keeps its settings on screen and still changeable, and an agent with no settings shows none.
-
-`akb spec` prints what each agent is set to under its two lines, so a terminal says the same
-thing the pane does, and names the runtime it runs on beside them. It is a listing, not a
-menu: settings are picked in the board app.
-
-### Which tool each flow runs on
-
-A **runtime** is a name the board holds — `default`, `cheap` — and every flow and spec agent
-runs on one: the global one unless it names another. What a runtime actually spawns is each
-computer's own answer, kept in `~/.ai4kanban/runtimes.json` and never written into the
-board, so one member runs `cheap` on Codex and another on something else.
+A **runtime** is a name the board holds — `default`, `cheap` — and every flow and spec agent runs
+on one: the global one unless it names another. What a runtime actually spawns is each computer's
+own answer, kept in `~/.ai4kanban/runtimes.json` and never written into the board, so one member
+runs `cheap` on Codex and another on something else.
 
 ```bash
 akb agent runtimes                     # the runtimes, and what each flow and agent is on
@@ -418,16 +261,16 @@ akb agent bind cheap codex             # what it runs as on THIS computer
 akb agent bind cheap set model gpt-5.1-codex
 ```
 
-A runtime nobody bound here runs this computer's global binding, and a computer that has
-bound nothing runs `akb agent use`'s pick — so a fresh clone works with no local setup. The
-run's log says which runtime it was asked for and what it ran as.
+A runtime nobody bound here runs this computer's global binding, and a computer that has bound
+nothing runs `akb agent use`'s pick — so a fresh clone works with no local setup. The run's log
+says which runtime it was asked for and what it ran as.
 
 ## Queue a card that is waiting on another
 
-A card whose `blocked_by` still names an open card can be built or refined anyway — the
-board warns, it never stops you. A rough card waits properly by default: when it first becomes
-blocked the board schedules one refine, then runs it when the last card in its way leaves the
-board, archived or rejected alike. Schedule an implement to replace that default.
+A card whose `blocked_by` still names an open card can be built or refined anyway — the board
+warns, it never stops you. A rough card waits properly by default: when it first becomes blocked
+the board schedules one refine, then runs it when the last card in its way leaves the board,
+archived or rejected alike. Schedule an implement to replace that default.
 
 ```bash
 akb board schedule 4 --action implement --notes "start with the parser"
@@ -435,31 +278,20 @@ akb board schedule 4 --action refine
 akb board schedule 4 --clear
 ```
 
-In the local UI the card reads **Scheduled** with a **cancel** control. While its refine is
-scheduled, the Refine button is hidden; cancel the schedule to bring it back. The Implement
-dialog still offers **Schedule** to replace the refine with an implement.
+In the local UI the card reads **Scheduled** with a **cancel** control, and **pending** in place
+of its stage until it fires. A card holds one schedule at a time, it fires once within a minute
+of coming free, and a schedule that has gone pointless is dropped rather than run. The mark lives
+in the card's own frontmatter, so it survives a restart and travels with the card. "Schedule it
+instead" in `kanban-ui/README.md` has the rest.
 
-- A card holds **one** schedule at a time; a second replaces the first.
-- Cancelling the default refine lasts while the card remains blocked. A later change from
-  unblocked to blocked starts a new episode and schedules it again.
-- It reads **pending** in place of its stage until it fires — the card keeps its stage and
-  its place on the board.
-- It fires **once**, within a minute of coming free, and the mark comes off as the run
-  starts. A run that fails or is stopped doesn't come back on its own.
-- A schedule that has gone pointless is dropped rather than run — a refine queued on a card
-  that has since reached `ready` has nothing left to do.
-- The mark lives in the card's own frontmatter, so it survives a restart and travels with
-  the card.
-
-The saved refine is the answer to the refine that gets skipped: a card still blocked is passed
-over, because sharpening a plan whose foundation could still change shape is work you throw
-away. The card already carries the work it should run at the right moment.
+The saved refine is the answer to the refine that gets skipped: sharpening a plan whose
+foundation could still change shape is work you throw away.
 
 ## Review the board
 
-Say **"review the board"** (or "review #4"). The skill checks cards for plain language,
-split todos, duplication, and whether any are already done or no longer worth it. It
-archives finished ones and flags the rest.
+Say **"review the board"** (or "review #4"). The skill checks cards for plain language, split
+todos, duplication, and whether any are already done or no longer worth it. It archives finished
+ones and flags the rest.
 
 ## Finish a task
 
@@ -467,28 +299,23 @@ A card built by **Implement** finishes itself: the board archives it once its de
 landed, so "#4 is done" is not something you have to say.
 
 For work done outside a delivery — you built it yourself, or an agent built it in the
-conversation you were in — say **"#4 is done"**. The skill updates the published doc the
-change touched (via the card's doc todos) and adds one line to `readme.md` — a link to that
-doc, or a short plain-words note when no doc covers the behavior yet — then runs
-`akb board archive 4` to take the card off the board and record the metric.
+conversation you were in — say **"#4 is done"**. The skill updates the published doc the change
+touched (via the card's doc todos) and adds one line to `readme.md` — a link to that doc, or a
+short plain-words note when no doc covers the behavior yet — then runs `akb board archive 4`.
 
 ```bash
 akb board archive 4
 ```
 
+The card file isn't deleted — it moves to `docs/kanban/.archive/`, which stays in git. So you can
+still read a finished card, or diff it, long after it left the board.
+
 ### What the build leaves you to check
 
-A build sometimes ends with something only you can confirm — it needs your machine, your
-data, or your eye. Those land on the card as **verify lines**, listed under **check by hand**
-on the card page and marked by a clipboard on the board card.
-
-They are notes, not questions. Nothing waits on them: a card with verify lines still goes
-`ready`, still resolves, still archives, and the lines travel with the card into the archive
-so you can read them later. Work through them, then archive — or don't, and archive anyway.
-
-A **decision** you have to make is the other thing, and it stays an open question with the
-`[user]` tag: that one does hold the card back, because building on a guess is what it is
-there to stop.
+A build sometimes ends with something only you can confirm — it needs your machine, your data, or
+your eye. Those land on the card as **verify lines**, listed under **check by hand** on the card
+page and marked by a clipboard on the board card. They are notes, not questions: a card with them
+still goes `ready`, still resolves, still archives, and they travel with the card into the archive.
 
 | On the card | What it means | What you do |
 | --- | --- | --- |
@@ -498,9 +325,6 @@ there to stop.
 Your agent writes them with `akb board update-verify 4 --append ".."`, and `--drop 1,3` or
 `--clear` takes them off once you've checked them.
 
-The card file isn't deleted — it moves to `docs/kanban/.archive/`, which stays in git. So
-you can still read a finished card, or diff it, long after it left the board.
-
 ## Reject an idea
 
 Say **"reject #4"** (rare). The skill adds a one-line "why not" to `rejected.md` and runs
@@ -508,15 +332,14 @@ Say **"reject #4"** (rare). The skill adds a one-line "why not" to `rejected.md`
 
 ## Keep it lean
 
-Over time the memory set — `readme.md`, `decisions.md`, `rejected.md`, and
-`redesign.md` — grows. Ask the skill to **prune** it — it compresses each to
-planning-useful summaries grouped by topic, so scans stay cheap. The board itself stays
-small because finished work is a note, not a card.
+Over time the memory set — `readme.md`, `decisions.md`, `rejected.md`, and `redesign.md` — grows.
+Ask the skill to **prune** it: it compresses each to planning-useful summaries grouped by topic,
+so scans stay cheap. The board itself stays small because finished work is a note, not a card.
 
 ## Driving a run, and the agent behind it
 
-Everything above is a card. The rest of what the board app's buttons do can be asked for
-just as plainly, and your agent runs the matching command:
+Everything above is a card. The rest of what the board app's buttons do can be asked for just as
+plainly, and your agent runs the matching command:
 
 | You say | What runs |
 | --- | --- |
@@ -531,18 +354,16 @@ just as plainly, and your agent runs the matching command:
 | "check my setup works" | `akb agent test`, or `akb agent test cheap` for one runtime |
 | "save my API key" | it hands **you** `akb agent set apiKey <key>` to type yourself |
 
-A key is the one thing your agent hands back instead of running: a key it types lands in
-its transcript and in your shell history, and the board never reads a saved key back.
+A key is the one thing your agent hands back instead of running: a key it types lands in its
+transcript and in your shell history, and the board never reads a saved key back.
 
-When an ask can't run, the answer names the one line that fixes it — `akb install` for a
-project with no board, `npm install -g ai4kanban@latest` for an `akb` that is behind,
-`akb agent test` for an agent that isn't installed, `akb agent` for a key or provider that
-isn't set.
+When an ask can't run, the answer names the one line that fixes it — `akb install` for a project
+with no board, `npm install -g ai4kanban@latest` for an `akb` that is behind, `akb agent test` for
+an agent that isn't installed, `akb agent` for a key or provider that isn't set.
 
 ## The commands, for reference
 
-Only `akb board` allocates ids or touches metrics — never edit `next-id` or `metrics.csv`
-by hand.
+Only `akb board` allocates ids or touches metrics — never edit `next-id` or `metrics.csv` by hand.
 
 ```bash
 akb board create --title ".." --track <track>
@@ -575,7 +396,7 @@ akb board metrics                 # the daily CSV
 akb board help                    # full usage
 ```
 
-The flows themselves — how a card is refined, what goes in memory, how a release is
-planned — ship with the command too: `akb guide` lists them, `akb guide board` is how the
-board works at all. Your project keeps only a short note pointing there, so `akb update`
-upgrades every flow at once.
+The flows themselves — how a card is refined, what goes in memory, how a release is planned —
+ship with the command too: `akb guide` lists them, `akb guide board` is how the board works at
+all. Your project keeps only a short note pointing there, so `akb update` upgrades every flow at
+once.

@@ -8,17 +8,23 @@
  * A CARD is one message, and its thread is the log (#359). The top message belongs to the
  * card rather than to any one event: it is drawn from the card's newest event, rewritten
  * whenever that moves, and it is where every control is offered. Underneath it goes one reply
- * per event, written once and never edited — the chat's own timestamp is when it happened.
+ * per event, written once and never edited — the chat's own timestamp is when it happened —
+ * and one more when a delivery ends badly, carrying why and what to do.
  *
- * Where that message is, is stored: `api.connector_jobs` hands it over as `cardRef`, and it
- * is recorded the moment Slack answers rather than with the event's delivery.
+ * The one state the top message never shows is an ending the board takes the card back from:
+ * it would be a card with no control on it, for the seconds until the board raises it again.
+ *
+ * Where both are, is stored: `api.connector_jobs` hands them over as `cardRef` and
+ * `endingRef`, and each is recorded the moment Slack answers rather than with the event's
+ * delivery.
  */
 
 import { SLACK_BATCH, SLACK_MAX_ATTEMPTS } from './config.ts'
-import { deliver, recordCardMessage } from './deliver.ts'
+import { deliver, recordCardMessage, recordDeliveryEnding } from './deliver.ts'
 import type { Connector, ConnectorJob, DeliveryRun } from './deliver.ts'
 import type { Env } from './env.ts'
-import { logFor, messageFor, type Block } from './slack-message.ts'
+import { RESTORED } from './message.ts'
+import { endingFor, logFor, messageFor, type Block } from './slack-message.ts'
 import { slackApi, slackRefused } from './slack.ts'
 
 export type { DeliveryRun as SlackRun }
@@ -100,25 +106,60 @@ export const deliverSlack = (env: Env, eventId?: string): Promise<DeliveryRun> =
   deliver(env, slack({ ref: new Map(), drawn: new Set() }), eventId)
 
 /**
- * The card's message, brought up to date, and this event's line in its thread.
+ * The card's message, brought up to date, and this event's lines in its thread.
  *
- * The delivery record this answers is the EVENT's, so what is returned is the reply — which
- * is written once and never rewritten. An event that already has one costs one edit of the
- * card's message and nothing else: that edit is the whole of keeping the top of the thread in
- * step with the newest revision, the decision and the delivery's outcome.
+ * The delivery record this answers is the EVENT's, so what is returned is the arrival reply —
+ * written once and never rewritten. An event that already has one costs one edit of the card's
+ * message and nothing else: that edit is the whole of keeping the top of the thread in step
+ * with the newest revision, the decision and the delivery's outcome.
+ *
+ * The ending is the exception, and it is recorded on its own so it is written once too.
  */
 async function write(env: Env, job: SlackJob, pass: Pass): Promise<string> {
-  const root = await cardMessage(env, job, pass)
-  if (job.messageRef) return job.messageRef
+  // Not read back: it leaves the card's message in `pass`, which is where `reply` takes it.
+  if (redrawsCard(job)) await cardMessage(env, job, pass)
 
-  const line = logFor(job.event, { actorId: job.posts.actorId })
-  try {
-    return await post(job, line, root)
-  } catch (e) {
-    if (!THREAD_REFUSED.includes(e instanceof Error ? e.message : '')) throw e
+  const arrived = job.messageRef ?? (await reply(env, job, pass, logFor(job.event, { actorId: job.posts.actorId })))
+  if (owesEnding(job)) {
+    const ended = await reply(env, job, pass, endingFor(job.event))
+    await recordDeliveryEnding(env, 'slack', job, ended)
   }
-  const fresh = await postCard(env, job, pass)
-  return post(job, line, fresh)
+  return arrived
+}
+
+/**
+ * Whether this job redraws the card's own message.
+ *
+ * An ending the board takes the card back from does not (`RESTORED`). Drawing it would leave
+ * the one message every control lives on showing a state that offers none — for a card that
+ * is about to offer **Implement** again. The reply says what happened, why and what to do;
+ * the next event redraws the top.
+ *
+ * A card with no message at all is the exception: `reply` has to open one to have a thread,
+ * and what it opens is drawn from wherever the card stands.
+ */
+const redrawsCard = (job: SlackJob): boolean => !RESTORED.includes((job.card ?? job.event).state)
+
+/** Whether this delivery still owes the line saying how it ended. Only an ending the card
+ *  comes back from has one to owe — a delivery that landed is already said at the top.
+ *
+ *  A schema older than 0014 sends no `endingRef` at all: one posted and not recorded would be
+ *  posted again on every pass, so an absent field means no line rather than a line an hour. */
+const owesEnding = (job: SlackJob): boolean =>
+  job.endingRef === null && RESTORED.includes(job.event.state)
+
+/** One reply under the card's message. A message Slack will not thread under is one the card
+ *  no longer has, whatever the record says: post the card afresh and reply under that one. */
+async function reply(env: Env, job: SlackJob, pass: Pass, message: Message): Promise<string> {
+  const root = pass.ref.get(cardKey(job)) ?? job.cardRef ?? null
+  if (root) {
+    try {
+      return await post(job, message, root)
+    } catch (e) {
+      if (!THREAD_REFUSED.includes(e instanceof Error ? e.message : '')) throw e
+    }
+  }
+  return post(job, message, await postCard(env, job, pass))
 }
 
 /**

@@ -83,8 +83,7 @@ export function cardFor(event: EventRow, reply?: { openId?: string }): Record<st
   ]
 
   // The card's own words, cut to what a message is read from rather than what a card holds.
-  const review = cardWords(event, open, larkMd)
-  for (const part of review.parts) elements.push(text(part))
+  for (const part of cardWords(event, open, larkMd)) elements.push(text(part))
 
   if (open) {
     elements.push({ tag: 'hr' })
@@ -93,10 +92,6 @@ export function cardFor(event: EventRow, reply?: { openId?: string }): Record<st
     const said = stateNote(event)
     if (said) elements.push(note(said))
     elements.push(actions([linkButton(event)]))
-  }
-
-  if (review.cut) {
-    elements.push(note(`Trimmed to fit Lark — [the card](${cardUrl(event)}) has the rest.`))
   }
 
   return {

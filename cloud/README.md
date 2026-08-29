@@ -71,6 +71,13 @@ cloud/
   edited: the chat's own timestamp is when it happened. Where that message is is stored per
   board, task and connector in `cloud.card_messages`, recorded the moment the chat answers,
   and swept with the card's events.
+- **A delivery that did not land says why, where the card cannot take it back** (Slack): the
+  top message shows where the card stands NOW, so a refusal it is showing is gone the second
+  the board raises the card again — under a minute, in practice, and the reason is the one
+  thing in a chat somebody has to act on. So `failed`, `cancelled` and `interrupted` each
+  leave a reply of their own carrying it, held in `event_deliveries.ended_ref` so a retry an
+  hour later logs nothing twice. `completed` leaves none: nothing follows a delivery that
+  landed, so the top message goes on saying it landed.
 - **One card, one 话题** (Lark, until #360): every message but a card's earliest is a reply
   inside that one's topic. Nothing per-card is stored for it — `api.connector_jobs` reads the
   root back out of the delivery rows already kept — so the sweep taking a card's last message
@@ -378,10 +385,11 @@ the `+ 1`s.
 | Claimed by the board's server | 1 |
 | `running`, and the outcome | (2 + 1) × 2 |
 | Each five minutes the delivery runs | 1 |
+| An ending that did not land, logged once — Slack's, until #360 gives Lark one | 1 |
 | Retired as `stale` instead | 1 + 1 |
 
 So a card decided in a chat, revised twice, with a half-hour delivery, is about **24 writes**
-with one connector connected.
+with one connector connected — one more where that delivery did not land.
 A card nobody acts on is **5**.
 
 **A day, and a year of them.** Ten cards through and five retired is about **265 writes a

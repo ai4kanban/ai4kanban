@@ -68,14 +68,9 @@ is here and that `akb` owns it. The board app does the same thing from a button:
 **Configuration → Setup**.
 
 Nothing else is copied in. The flows ship inside the command (`akb guide`), so a newer
-command is newer flows in every project at once — and the command itself stays where npm put
-it, so a project's git history never carries 350 kB of it.
-
-An agent that finds no `akb` on the PATH doesn't stop: the note's first section says what to
-run instead — the copy in this project where there is one, and otherwise `npx --yes
-ai4kanban@<the version that wrote the note>`, pinned so the rules match the board. A run
-started from the app or the CLI is told the same thing in its own words, and `akb skill`
-says it to you at the moment the note lands.
+command is newer flows in every project at once, and a project's git history never carries
+350 kB of it. An agent that finds no `akb` on the PATH doesn't stop: the note names what to
+run instead, pinned to the version that wrote it so the rules match the board.
 
 ## Update
 
@@ -86,15 +81,11 @@ npm install -g ai4kanban@latest   # a newer command
 akb update                        # a repaired board, from the project root
 ```
 
-`akb update` refreshes a skill folder that is already there — it never adds one, since not
-having it is an ordinary state now — adds whatever an older release never wrote to the
-board, clears out what it no longer writes, and prints which version you moved from and to
-with a link to everything that changed in between. Your cards, config, and memory are never
-touched.
-
-It can't do the first line to itself — replacing the file that is running is how you get
-half a command — so it checks npm and names that line when it is behind, rather than
-reporting success a release late.
+`akb update` refreshes a skill folder that is already there — it never adds one — adds
+whatever an older release never wrote to the board, clears out what it no longer writes, and
+prints which version you moved from and to with a link to everything that changed in between.
+Your cards, config, and memory are never touched. It can't do the first line to itself, so it
+checks npm and names that line when it is behind.
 
 ## Put an agent to work
 
@@ -119,11 +110,10 @@ point at, and the command that closes the job.
 akb implement 12 --print      # the steps, for whoever is asking
 ```
 
-That is the mode for an agent already in a session: it does the job in the conversation
-it is already in, rather than paying for a second agent to do the job it is sitting there
-to do. Start a run when you want the work to happen on its own. `akb help runs` carries
-the whole rule, beside the commands it applies to. An agent working inside a run the board
-started always gets the printed flow, so a run can't spawn a copy of itself.
+That is the mode for an agent already in a session: it does the job where it is, rather than
+paying for a second agent to do it. Start a run when you want the work to happen on its own.
+An agent working inside a run always gets the printed flow, so a run can't spawn a copy of
+itself. `akb help runs` carries the whole rule.
 
 The run keeps working after the command returns. Watch it, or stop it, from anywhere —
 including from the board app, which drives its buttons through these same commands:
@@ -169,31 +159,19 @@ akb chat 12                   # the conversation so far
 akb chat 12 --clear           # forget it and start fresh
 ```
 
-Before opening a fresh conversation, `akb chat` ensures this repo has the kanban skill. The
-first prompt is only the skill invocation and your message: `/kanban …` for Claude Code,
-`$kanban …` for Codex, and `Use the kanban skill: …` for an agent without direct skill-call
-syntax. There is no second chat flow or copied board snapshot; the skill reads the current
-board when it needs it.
+Chat is the kanban skill in a persistent agent session — the first prompt is only the skill
+invocation and your message, and the skill reads the current board itself. It prints the
+board-specific flow and does the work in the conversation by default; ask for a background run
+when you want another agent to take it independently.
 
-The reply arrives as it is written, and the next message lands in the same session — the
-agent still has everything said before, so you can ask a follow-up without explaining your
-project again. Every message is its own command, so the conversation is picked up from any
-terminal and survives closing one. The board's conversation and each card's are separate,
-and both live under `docs/kanban/.chats/`, on your machine and out of git.
+Every message is its own command, so a conversation is picked up from any terminal and
+survives closing one. The board's conversation and each card's are separate, both under
+`docs/kanban/.chats/`, on your machine and out of git.
 
-From there, chat behaves exactly like using the kanban skill in your coding agent. The skill
-prints the board-specific flow and does the work in the conversation by default; ask for a
-background run when you want another agent to take it independently. If you explicitly say
-which way, that wins.
-
-A change to a card a run is already working on is refused, and the refusal names the card
-and what that run is doing — the same rule that keeps two runs off one card.
-
-A chat is still not a run: it never shows in `akb runs`, never holds a card, and never keeps
-a run off the card it is about.
-
-Only an agent whose command can take a second message into its own session can hold a
-conversation. On any other one, chat says so and names the agents that can.
+A chat is not a run: it never shows in `akb runs` and never holds a card. A change to a card a
+run is already working on is refused, and the refusal names the card and what that run is
+doing. Only an agent whose command can take a second message into its own session can hold a
+conversation; on any other, chat says so and names the agents that can.
 
 ## The manual
 
@@ -210,15 +188,12 @@ akb guide qa-loop             # settle one card's planning gaps
 akb guide plan-release        # fill a release from its goal
 ```
 
-A printed flow already carries the ones its action needs, in full, so this is for the
-rest.
+A printed flow already carries the ones its action needs, in full, so this is for the rest.
 
-A run that writes or changes a card is followed by `akb refine` on that card, started as a
-run of its own once the first one ends — so `akb create "…"`, `akb revise`, `akb resolve`,
-`akb propose` and `akb plan-release` all come back with their cards refined. Archiving or
-rejecting a card does the same for every card it was blocking that now has nothing left in
-its way. Each one is an ordinary run: it shows in `akb runs`, has its own log, and
-`akb stop` ends it.
+A run that writes or changes a card is followed by `akb refine` on that card, as a run of its
+own — so `akb create`, `akb revise`, `akb resolve`, `akb propose` and `akb plan-release` all
+come back with their cards refined. Archiving or rejecting a card does the same for every card
+it was blocking that now has nothing left in its way.
 
 ## What it won't do
 

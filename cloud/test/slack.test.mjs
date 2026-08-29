@@ -3,7 +3,7 @@ import { describe, it, mock } from 'node:test'
 
 import { verifySignature, slackCallback } from '../src/slack-actions.ts'
 import { deliverSlack } from '../src/slack-deliver.ts'
-import { answerView, bound, logFor, messageFor, mrkdwn } from '../src/slack-message.ts'
+import { answerView, bound, endingFor, logFor, messageFor, mrkdwn } from '../src/slack-message.ts'
 
 // The Worker's half of Slack (#320): what a message is made of, what a callback has to
 // prove before it is acted on, and which call one event's message costs. Whose action an
@@ -177,7 +177,14 @@ describe('messageFor', () => {
   it('leaves what does not fit behind the card link rather than dropping it', () => {
     const long = Array.from({ length: 400 }, (_, at) => `- a note about the ${at}th thing`).join('\n')
     const { blocks } = messageFor(anEvent({ summary: long }))
-    assert.match(textIn(blocks), /Trimmed to fit Slack/)
+    const said = textIn(blocks)
+
+    assert.match(said, /a note about the 0th thing/)
+    assert.doesNotMatch(said, /a note about the 399th thing/, 'the rest is behind the card link')
+    assert.ok(buttons(blocks).some((b) => b.action === 'open_card'))
+    // No message says it was trimmed: the link is on every one of them, and a line pointing
+    // at a button already on the screen reads as filler.
+    assert.doesNotMatch(said, /Trimmed/)
   })
 
   it('leads with the card, and says where it stands in one line', () => {
@@ -203,7 +210,6 @@ describe('messageFor', () => {
     const said = textIn(messageFor(anEvent({ notes })).blocks)
     assert.match(said, /• \*Nothing polls GitHub\*: a maintainer imports an issue on purpose\./)
     assert.doesNotMatch(said, /nobody chose/, 'the argument stays on the card')
-    assert.match(said, /Trimmed to fit Slack/)
   })
 
   it('stops carrying the review notes once the decision is made', () => {
@@ -212,8 +218,6 @@ describe('messageFor', () => {
     const settled = textIn(messageFor(anEvent({ notes, state: 'running', acted: true })).blocks)
     assert.match(open, /A note/)
     assert.doesNotMatch(settled, /A note/, 'a record of what happened is not re-reviewed')
-    // Its own line is where the rest is read, so it carries no second pointer to the card.
-    assert.doesNotMatch(settled, /Trimmed to fit Slack/)
     assert.match(settled, /Running on/)
   })
 
@@ -269,6 +273,60 @@ describe('logFor', () => {
     assert.equal(blocks[0].type, 'context')
     assert.equal(blocks[0].elements[0].text, ':hammer_and_wrench: *Delivery running*')
     assert.doesNotMatch(textIn(blocks), /<@U1>/, 'a report is not an ask')
+  })
+})
+
+describe('endingFor', () => {
+  it('says how the delivery ended and what to do about it, in one line the card cannot take back', () => {
+    const { text, blocks } = endingFor(
+      anEvent({
+        state: 'failed',
+        acted: true,
+        reason: 'you have uncommitted changes in cli/src/lib/help.ts. Commit or stash these first.',
+      }),
+    )
+
+    assert.equal(blocks.length, 1)
+    // A section, not a context: what to fix is the point of the line, and a context sets it
+    // in the grey a reader skips.
+    assert.equal(blocks[0].type, 'section')
+    assert.match(blocks[0].text.text, /^:x: \*Delivery failed\*\n/)
+    assert.match(blocks[0].text.text, /uncommitted changes/)
+    // A state name and a reason say what went wrong and neither says what happens next.
+    assert.match(blocks[0].text.text, /back to \*Ready for review\*\. Fix that and press \*Implement\* again/)
+    // The phone says the reason too — the top message has already moved on by the time
+    // anybody opens the thread.
+    assert.match(text, /^Delivery failed: #329 .* — you have uncommitted changes/)
+  })
+
+  it('pings nobody — the fresh ask under it is what asks', () => {
+    const { blocks } = endingFor(anEvent({ state: 'failed', acted: true, reason: 'it broke.' }))
+
+    assert.doesNotMatch(textIn(blocks), /<@/)
+    assert.deepEqual(buttons(blocks), [], 'every control is at the top of the thread')
+  })
+
+  it('sends whoever reads it back to the one control, where the board takes the card back', () => {
+    // Nothing to fix, so nothing to fix first: the card is simply there to press again.
+    const stopped = endingFor(anEvent({ state: 'cancelled', acted: true }))
+    assert.match(
+      stopped.blocks[0].text.text,
+      /^:no_entry_sign: \*Delivery cancelled\*\nThe card is back to \*Ready for review\*\. Press \*Implement\* again/,
+    )
+
+    // Cloud is told this one only when nothing is carrying the card, so it says that and
+    // sends the reader to the same button rather than to a machine with nothing left on it.
+    const gone = endingFor(anEvent({ state: 'interrupted', acted: true }))
+    assert.match(textIn(gone.blocks), /stopped carrying it/)
+    assert.match(textIn(gone.blocks), /Press \*Implement\* again/)
+  })
+
+  it('escapes the board’s own words, which are somebody’s filenames', () => {
+    const { blocks } = endingFor(
+      anEvent({ state: 'failed', acted: true, reason: 'the build wrote <script> & stopped.' }),
+    )
+
+    assert.match(blocks[0].text.text, /&lt;script&gt; &amp; stopped/)
   })
 })
 
@@ -599,6 +657,7 @@ function aJob(over = {}) {
     contentAt: '2026-08-01T10:00:00Z',
     posts: ACTOR_POSTS,
     messageRef: null,
+    endingRef: null,
     cardRef: null,
     attempts: 0,
     event: anEvent(),
@@ -714,15 +773,14 @@ describe('deliverSlack', () => {
     const calls = fakeDatabase({
       connector_jobs: [
         aJob({
-          messageRef: '1712.0002',
-          cardRef: '1712.0001',
+          messageRef: '1712.9002',
+          cardRef: '1712.9001',
           event: anEvent({
             kind: 'question',
             decision: 'answer',
             questions: [{ text: 'Ship it?', mode: 'single', options: ['Yes', 'No'], recommend: [] }],
-            state: 'failed',
+            state: 'completed',
             acted: true,
-            reason: 'the approval was refused on that machine.',
           }),
         }),
       ],
@@ -731,12 +789,121 @@ describe('deliverSlack', () => {
 
     await deliverSlack(ENV)
 
+    // `completed` is where the card stopped, so it is drawn — the endings the board takes the
+    // card back from are the ones that are not.
     const edited = calls.find((c) => c.slack === 'chat.update')
     const said = textIn(edited.args.blocks)
-    assert.match(said, /Delivery failed/)
-    assert.match(said, /approval was refused/)
+    assert.match(said, /Delivery completed/)
     assert.doesNotMatch(said, /Ship it\?/, 'a settled card re-asks nothing')
     assert.deepEqual(buttons(edited.args.blocks).map((b) => b.action), ['open_card'])
+  })
+
+  it('never draws an ending the board takes the card back from at the top', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        aJob({
+          contentAt: '2026-08-01T12:00:00Z',
+          messageRef: '1712.9002',
+          cardRef: '1712.9001',
+          event: anEvent({ state: 'cancelled', acted: true }),
+        }),
+      ],
+      record_event_delivery: anEvent(),
+    })
+
+    assert.deepEqual(await deliverSlack(ENV), { due: 1, sent: 1, failed: 0 })
+
+    // The card is back to `ready` seconds later, so drawing this at the top would leave the
+    // one message every control lives on offering none for as long as that takes. The reply
+    // is where it goes, and the next event is what redraws the top.
+    const wrote = calls.filter((c) => c.slack)
+    assert.deepEqual(wrote.map((w) => w.slack), ['chat.postMessage'])
+    assert.equal(wrote[0].args.thread_ts, '1712.9001')
+    assert.match(textIn(wrote[0].args.blocks), /Press \*Implement\* again at the top of this thread/)
+  })
+
+  it('logs how a delivery ended, under the card, and records that line on its own', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        aJob({
+          contentAt: '2026-08-01T12:00:00Z',
+          messageRef: '1712.9002',
+          cardRef: '1712.9001',
+          event: anEvent({
+            state: 'failed',
+            acted: true,
+            reason: 'you have uncommitted changes in kanban-ui/components/Cloud.tsx.',
+          }),
+        }),
+      ],
+      record_event_delivery: anEvent(),
+    })
+
+    assert.deepEqual(await deliverSlack(ENV), { due: 1, sent: 1, failed: 0 })
+
+    const wrote = calls.filter((c) => c.slack)
+    assert.deepEqual(wrote.map((w) => w.slack), ['chat.postMessage'], 'the top is left as it was')
+    // The reason goes where the next rewrite cannot reach it, with the card link's own
+    // control named rather than repeated down here.
+    assert.equal(wrote[0].args.thread_ts, '1712.9001')
+    assert.match(textIn(wrote[0].args.blocks), /uncommitted changes/)
+    assert.deepEqual(buttons(wrote[0].args.blocks), [])
+    // Recorded the moment Slack answers, against this event's delivery, so an hour's retry
+    // does not log the same ending twice.
+    const ended = calls.find((c) => c.fn === 'record_delivery_ending')
+    assert.equal(ended.args.p_event, EVENT)
+    assert.equal(ended.args.p_connector, 'slack')
+    assert.equal(ended.args.p_external_ref, '1712.0001')
+    // The event's own reply is untouched — it said the event arrived and still does.
+    assert.equal(calls.find((c) => c.fn === 'record_event_delivery').args.p_external_ref, '1712.9002')
+  })
+
+  it('logs the event’s arrival before how it ended', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        aJob({ event: anEvent({ state: 'failed', acted: true, reason: 'the approval was refused.' }) }),
+      ],
+      record_event_delivery: anEvent(),
+    })
+
+    await deliverSlack(ENV)
+
+    // A pass the batch limit cut short can reach an event only once it has already ended, and
+    // a thread that says how something finished before it says it arrived reads backwards.
+    const said = calls.filter((c) => c.slack).map((c) => textIn(c.args.blocks ?? []))
+    assert.equal(said.length, 3)
+    assert.match(said[1], /Delivery failed/)
+    assert.doesNotMatch(said[1], /approval was refused/, 'the arrival line carries no reason')
+    assert.match(said[2], /approval was refused/)
+  })
+
+  it('never logs one ending twice, and logs none for a delivery that landed', async (t) => {
+    t.after(() => mock.restoreAll())
+    const settled = { messageRef: '1712.9002', cardRef: '1712.9001' }
+    const calls = fakeDatabase({
+      connector_jobs: [
+        // Already logged.
+        aJob({
+          ...settled,
+          endingRef: '1712.0003',
+          event: anEvent({ state: 'failed', acted: true, reason: 'it broke.' }),
+        }),
+        // Landed, so the top message goes on saying so and the thread stays quiet.
+        aJob({ ...settled, eventId: '55555555-5555-4555-8555-555555555555', event: anEvent({ state: 'completed', acted: true }) }),
+        // A schema older than 0014 keeps no reference, so it is never told to post one.
+        aJob({ ...settled, eventId: '66666666-6666-4666-8666-666666666666', endingRef: undefined, event: anEvent({ state: 'failed', acted: true, reason: 'it broke.' }) }),
+      ],
+      record_event_delivery: anEvent(),
+    })
+
+    assert.deepEqual(await deliverSlack(ENV), { due: 3, sent: 3, failed: 0 })
+
+    const wrote = calls.filter((c) => c.slack)
+    assert.deepEqual(wrote.map((w) => w.slack), ['chat.update'], 'the card is redrawn once a pass')
+    assert.equal(calls.find((c) => c.fn === 'record_delivery_ending'), undefined)
   })
 
   it('holds the card’s message, so its two events in one pass share it', async (t) => {
