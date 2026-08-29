@@ -59,8 +59,7 @@ mouse, and a message that came back wrong has to be retyped from memory.
 - No branching a conversation from an earlier point.
 - No copy button on code blocks anywhere else in the app. Card pages, memory files and run
   logs are drawn by the same markdown and are not part of this.
-- Nothing on a reply while it is still being written, and nothing on a message sitting
-  under the box waiting to go (#268).
+- Nothing on a reply while it is still being written.
 - Up-arrow in the box is #268's. This card is the button.
 - Whether the box refills by itself after a stopped reply is #267's open question. This
   card only adds the button that does it by hand.

@@ -1,10 +1,10 @@
 ---
 title: Report app opens and which parts of the board get used
-track: 292-app-telemetry/features
+track: features
 priority: med
 roi: high
 status: todo
-release: 0.8.0
+release: ""
 blocked_by: [293, 294]
 related: [292]
 modules: [local-ui, skill]

@@ -1,10 +1,10 @@
 ---
 title: Count how many site visitors go on to download the app
-track: 292-app-telemetry/distribution
+track: distribution
 priority: med
 roi: high
 status: todo
-release: 0.8.0
+release: ""
 blocked_by: [294]
 related: [292]
 modules: [site, telemetry]

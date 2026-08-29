@@ -72,4 +72,11 @@ re-ask a settled call.
   `support@ai4kanban.dev`, a new mailbox on the site's own domain, rather than the
   `support@dist0.com` mailbox Nullreach already runs. It is the address for both support and
   a data request, so any later page that needs a contact uses it too.
+- **Which mailbox is behind `support@ai4kanban.dev`?**: Spacemail, run by Spaceship, reached
+  through Cloudflare Email Routing on the site's own domain. The privacy page's subprocessor
+  table names it, and a notice about the Cloud preview is sent by hand from that mailbox.
 
+- **Where does the subprocessor table say Spacemail processes the mailbox?**: the United
+  States, taken from Spaceship's privacy policy. Its Data Processing Addendum only permits a
+  US transfer and publishes no subprocessor list, so the pages cite no document for the
+  location.

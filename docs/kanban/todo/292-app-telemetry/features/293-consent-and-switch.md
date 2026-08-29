@@ -1,10 +1,10 @@
 ---
 title: Ask before any usage data leaves the machine, and let it be turned off
-track: 292-app-telemetry/features
+track: features
 priority: high
 roi: high
 status: todo
-release: 0.8.0
+release: ""
 blocked_by: []
 related: [292]
 modules: [local-ui, skill]

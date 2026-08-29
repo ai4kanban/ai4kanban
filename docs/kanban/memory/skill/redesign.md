@@ -112,6 +112,14 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   validation inside the CLI, and put only facts an agent must supply in the action-specific
   flow that supplies them.
 
+## Auto-delivery
+
+- ❌ **Turn an implementation detail found by review into a card** → ✅ review fixes
+  in-scope mistakes and drops unrelated implementation discoveries; task discovery belongs
+  to an explicit planning flow.
+- ❌ **Keep a review verdict after rebasing onto a moved target** → ✅ review the composed
+  tree after every rebase or conflict resolution, so the reviewed tree is the one that lands.
+
 ## Auto-refine
 
 - ❌ **Auto-refine records every auto-answer in `decisions.md`, same as the human resolve

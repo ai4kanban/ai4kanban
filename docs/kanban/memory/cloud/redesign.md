@@ -44,3 +44,6 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Put a mail binding and a second personal record on the card everything else is blocked
   by** → ✅ the sign-in card carries admission and nothing else; the request, the code, and
   every email belong to the invitation card behind it.
+- ❌ **Describe Cloud as switched on per board** → ✅ signing in on a machine is the switch:
+  every board opened there registers itself and publishes, and a board chooses only how wide
+  it watches — every release, or one. Check the app before a card promises a control.

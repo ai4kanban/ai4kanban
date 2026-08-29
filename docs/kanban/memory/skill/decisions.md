@@ -118,6 +118,9 @@ re-ask a settled call.
   leaves the agent folders alone — the skill is a later extra, added on purpose from the
   UI's button or one terminal command. Updating still refreshes a skill that is already
   there.
+- **Does the board install a git hook?**: yes, wherever the skill is installed and
+  without asking — `akb skill install` and `akb update` write `.git/hooks/pre-commit` when
+  there is none, print one line saying they did, and never touch an existing hook.
 
 ## The command
 

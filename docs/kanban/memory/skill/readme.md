@@ -134,10 +134,9 @@ covers it, or a plain-words note.
 - A review answers with `akb board review-verdict <id> --verdict pass|correct|ask` and its
   findings in `--file <path>`. It is the only thing the delivery reads, so a review session
   that records nothing stops the delivery and asks: `akb board help review-verdict`.
-- Review takes work nobody asked for back out of the delivery: a change no approved
-  requirement needed goes, and one that could meet a user goal on its own is removed here and
-  written as a new card instead. Wiring, configuration and dependencies a requirement needs
-  are the requirement being met, not extra work: `akb guide review`.
+- Review takes work nobody asked for back out of the delivery. It fixes implementation
+  mistakes in scope, drops unrelated implementation discoveries after noting them in the
+  run log, and never creates another card: `akb guide review`.
 - A stopped delivery leaves one `[user]` question on its card and keeps holding it, and
   `akb resolve` is the one held action let back through — answering is the way on:
   `akb guide review`.
@@ -336,7 +335,7 @@ covers it, or a plain-words note.
   own archive stands either way: "Group task" in `akb guide board`.
 - `akb cloud` says which account this machine is signed in to AI4Kanban Cloud as, and whether
   Cloud takes its work; `akb cloud sign-out` forgets it. Neither needs a board — the sign-in
-  belongs to the machine. Starting one is the app's, in **Configuration → Cloud**: the consent
+  belongs to the machine. Starting one is the app's, in **Configuration → Notifications**: the consent
   screen comes back to the app, so there is no address a terminal could be answered at.
 - The language you read in belongs to the machine, not to a board: `akb` holds it in
   `~/.ai4kanban/settings.json`, beside the Cloud sign-in and outside every repository, so the app,
@@ -361,3 +360,40 @@ covers it, or a plain-words note.
   rest are created and scheduled for refine. A user watching a refine can see one card become
   several, and is never asked to approve an evident split: "Split before refining details" in
   `akb guide qa-loop`.
+
+- **A board names its runtimes and each computer says what they run as.** A **runtime** is a
+  name in `ui.config.json` — `default`, `cheap` — and every flow and spec agent runs on one,
+  the global one unless it names another, keyed by the command a user types. What a runtime
+  spawns is the computer's answer, in `~/.ai4kanban/runtimes.json`, so a team shares the names
+  and nobody shares the tools. A runtime nobody bound here runs this computer's global
+  binding, and a computer that has bound nothing runs `harness` and `harnessSettings`, so a
+  fresh clone works with no local setup and a board with no runtime list reads exactly as it
+  did. `akb agent runtimes`, `akb agent runtime add|remove|global|for` and `akb agent
+  bind|unbind` are the whole of it; every harness also takes an `args` setting for a flag the
+  board has no box for. Set up in `kanban-ui/README.md` under Configuration; the everyday
+  version is "Which tool each flow runs on" in `docs/guides/daily-loop.md`.
+
+- **An event carries enough of the card to review it away from your machine.** A task the
+  board raises for a person now publishes the card's opening paragraph and its `## Worth
+  noting` sections beside the number, title, release, revision and questions it already
+  carried — bounded, cut at a bullet or a paragraph, so a long card costs one snapshot
+  rather than its whole body — and they are refreshed when the card is rewritten. `akb
+  cloud` names the Slack destination this account posts to beside the boards this machine
+  publishes, and says when Slack has refused it.
+
+- **`akb agent runtime rename <old> <new>` renames a runtime.** The board's half moves whole —
+  the flows and spec agents that named it, and the global pointer — while this computer's
+  binding is *copied* to the new name, so the old name stays bound for whatever else on this
+  machine names it and every other computer reads the renamed runtime as unbound until
+  someone binds it there. Removing a runtime now clears the spec agents that named it as well
+  as the flows, so re-adding the name never quietly puts them back on it.
+
+- **A board set to 中文 comes back in 中文.** Every run, every turn of a conversation and the
+  setup line you paste are told the language this machine reads in, so card titles and bodies,
+  open questions and their options, `verify:` lines, memory notes, changelogs and the agent's
+  replies follow it — while the frontmatter keys, `##` headings, the `<!-- agent -->` boundary,
+  todo checkboxes, the `[user]` tag, track and module names and card filenames stay English,
+  because the board matches those by literal text. Rewriting a card, memory file or changelog
+  keeps the language that file is already in; an open question and a `verify:` line follow you
+  on every card, including one written in English. An English machine is told nothing and its
+  prompts are unchanged. The rule in full is "The board's language" in `akb guide board`.

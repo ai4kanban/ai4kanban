@@ -68,3 +68,26 @@ covers it, or a plain-words note.
   board's folder are not among them — and both it and the retention list state that an
   event is deleted 30 days after it reaches a final outcome. The summary at the top of the
   page carries the same line in one sentence.
+
+- **Both legal pages now describe the Cloud that 0.8.0 actually ships.** They described a team
+  workspace holding a shared board, with members, roles, an owner's export and an owner's
+  deletion — none of which exists. `/privacy` and `/terms` now describe a relay for one
+  signed-in account's task events, point at [/cloud](https://ai4kanban.dev/cloud) for what the
+  product is rather than describing it, and say what the release really does: which records it
+  keeps and what deletes each one, that a board is registered under its folder's own name, that
+  nothing but disconnecting Slack and the 30-day event sweep deletes anything on its own, and
+  that the one removal the service has takes the whole account. The subprocessor table gains
+  the mailbox behind `support@ai4kanban.dev` — Cloudflare Email Routing, forwarding to Spacemail
+  (Spaceship, Inc.) in the United States — and a notice about the preview is now stated as mail
+  sent by hand from that address, the app and Slack routes having been promises the release
+  cannot keep.
+
+## The Cloud page
+
+- **[/cloud](https://ai4kanban.dev/cloud) says what AI4Kanban Cloud is.** One English page,
+  linked from the site footer in all five languages beside Privacy and Terms: what the relay
+  carries to the desktop and to Slack, that nothing is sent until Cloud is turned on for a
+  board, what stays on the machine against what an event carries off it, what the preview does
+  not ship, and how an invited person signs in and redeems a code. Nobody has to read the
+  product out of a data policy any more.
+

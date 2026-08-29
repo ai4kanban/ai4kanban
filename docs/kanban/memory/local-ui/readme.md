@@ -170,11 +170,12 @@ except where another doc is named.
   is the drawing. The file name opens it on its own page at reading size, and a window too
   narrow for it scrolls sideways rather than breaking its columns: "Mockups on a card".
 
-- See what a finished build left you to check by hand: the lines sit under **check by hand**
-  on the card page, in their own blue panel below the open questions, and a clipboard mark on
-  the board card says how many there are. They are plain text with nothing to tick or answer
-  — the accent stays reserved for a question that is really waiting on you: "What the build
-  leaves you to check" in `docs/guides/daily-loop.md`.
+- See what a finished build left you to check by hand, and cross one off once you have done
+  it: the lines sit under **check by hand** on the card page, in their own blue panel below
+  the open questions, and a clipboard mark on the board card says how many there are. The
+  **✕** beside a line takes it off the card and asks for a second click first. Writing one is
+  not something you do here — hand-checks come from the spec the board clarifies: "What the
+  build leaves you to check" in `docs/guides/daily-loop.md`.
 
 ## Configuration
 
@@ -408,3 +409,38 @@ except where another doc is named.
   another one, and says so plainly when that board is no longer on this machine. The card
   page's **Implement** and **Resolve** still act on the spot and record the same decision
   in Cloud, so every other surface showing that event stops offering it.
+
+- **Slack is connected once, in Configuration → Notifications, and it belongs to the account.** The
+  section offers **Connect**, which opens Slack's own consent screen in your browser and
+  comes back to the app; after that it names the workspace, the conversation it posts to —
+  a channel, or a direct message, so a card's reasoning need not go to a room — and
+  **Disconnect**, which stops every board's messages without touching any board. When Slack
+  refuses us, the section says so in Slack's own words where the connection was made, rather
+  than letting messages fail into a silence that reads as no work waiting; picking a
+  destination again clears it. **Open card in app** in a message opens that board's card
+  here, switching project first when it is another one, and says plainly when that board is
+  no longer on this machine.
+
+- **A board that could not reach Cloud now catches up on its own, and says so when it cannot.**
+  A change made while Cloud was unreachable is retried on the board's own tick — so a board
+  whose last write is the one that failed no longer holds it forever — and retried on a
+  backoff, so a closed laptop or a lost afternoon costs it a couple of attempts rather than
+  all of them. What a machine finally gives up on sending is said in the bell — *Cloud is
+  out of step: N changes never reached it* — instead of disappearing. Turning Cloud on for a
+  board that already holds many actionable cards now fills over minutes rather than arriving
+  at once. And **Resume** on a card whose delivery is still running here takes the request
+  back up without starting a second build over it.
+
+- **Configuration → Runtimes sets the board's runtimes and what this computer runs them as.**
+  The section named Harness is now **Runtimes**, and it says two things kept visibly apart: a
+  row per runtime carrying the board's name for it — shared with everyone on the board — and
+  what this computer, named by its hostname, runs it as. Pressing a row opens that runtime,
+  where the binding is the one thing that can be pressed: the same square harness cards, that
+  harness's own settings and a **Test** that spawns *that* runtime. **Rename**, **Make
+  global** and **Remove** are there too — a removal names the flows and spec agents it moves
+  onto the global runtime first, and removing the global one is refused. A board that names
+  no runtimes has no list: it is the harness pane it always was, said to be the board's, with
+  **Add runtime** on it. A key still goes to `docs/kanban/.env`, so two runtimes on one
+  harness share it, and the box says so. Which runtime a flow uses is still `akb agent
+  runtime for`. Set out in `kanban-ui/README.md` under **Runtimes, and the harness behind
+  one**.

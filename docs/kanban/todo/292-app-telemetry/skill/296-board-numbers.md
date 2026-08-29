@@ -1,10 +1,10 @@
 ---
 title: Report the board's own numbers from metrics.csv and record.csv
-track: 292-app-telemetry/skill
+track: skill
 priority: med
 roi: med
 status: todo
-release: 0.8.0
+release: ""
 blocked_by: [295]
 related: [292]
 modules: [skill, telemetry]

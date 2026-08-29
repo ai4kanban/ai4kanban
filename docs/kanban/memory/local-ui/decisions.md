@@ -60,6 +60,11 @@ re-ask a settled call.
   narrow column naming every item, marked where one is set, beside a single tall box for
   whichever is picked. Flow rules is the first pane built this way, because a rule is a
   paragraph and needs room; a pane of short settings stays a list of rows.
+- **How is the Harness pane laid out once runs go through a runtime?**: it becomes
+  **Runtimes** — a list naming this computer by its hostname, one row per runtime saying what
+  this computer runs it as, and a runtime's own view where that binding is set with the
+  board's server read-only under it. The list sets nothing and a row opens the runtime, at one
+  click to reach a binding; a board that names no runtimes opens on the binding itself.
 
 ## How the board is run
 
@@ -368,6 +373,10 @@ re-ask a settled call.
   nothing — what is on disk stays as written, and only new writing follows the setting. No
   one-off pass rewrites existing cards or memory into the new language, so a board that
   switches holds both languages at once.
+- **Do the errors the app shows follow the language?**: no. Everything `akb` produces stays
+  English wherever it surfaces — a failed action, the notification rows and the system
+  notifications raised from them, the Cloud band on a card page, and the terminal. The app
+  translates only the words it writes itself.
 - **Does the menu bar's system-standard wording follow the setting?**: yes — Quit, Services,
   Undo, Cut, Paste, Reload, Zoom and Minimize carry the app's own labels, so the whole menu
   bar reads in the picked language on every platform rather than in the operating system's.

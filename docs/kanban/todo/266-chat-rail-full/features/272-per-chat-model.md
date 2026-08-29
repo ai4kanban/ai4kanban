@@ -6,7 +6,7 @@ roi: high
 status: todo
 release: ""
 blocked_by: []
-related: [266, 246, 247]
+related: [266]
 modules: [local-ui, skill]
 questions:
   - question: "[user] Can a conversation switch harness as well as model, or only model?"
@@ -36,9 +36,10 @@ too.
   Configuration → Harness, and every run and every chat on this board uses it.
 - A chat records the model the agent reported (`held.model` in
   `cli/src/lib/agent/chat.ts`) but cannot choose one.
-- #246 and #247 are giving each spec agent its own harness and model. A conversation has
-  no equivalent, though it is the place a user most wants to switch — cheap model for the
-  quick questions, the expensive one for the thinking.
+- #342's group is giving every flow and spec agent a named runtime, and each computer the
+  harness and model it runs as. A conversation has no equivalent, though it is the place a
+  user most wants to switch — cheap model for the quick questions, the expensive one for
+  the thinking.
 - The board is harness-agnostic, so this cannot be a Claude-only `/model`: each harness
   already declares the settings it takes, and the model is one of them.
 

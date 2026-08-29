@@ -6,90 +6,121 @@ roi: high
 status: todo
 release: ""
 blocked_by: []
-related: [229, 266]
+related: [266]
 modules: [local-ui, skill]
 questions:
-  - question: "[user] Nothing is configured yet on a first run, so what does the setup conversation itself run on?"
+  - question: "[user] What does the first-run conversation talk on, before anyone has picked an agent?"
     mode: single
     options:
-      - Find an agent CLI already on the machine and use it; ask for a harness only when none is found
-      - Ask for the harness and its login first, on one screen, then start talking
-      - Ship a model the board pays for, used for onboarding only, so it works with nothing installed
+      - Whatever is already installed — the board takes the first agent CLI it finds on the PATH, says which one it used, and a first turn that fails shows what came back and opens the picker
+      - The harness screen first, then the conversation — today's last screen becomes the first, so nothing is ever spent on an agent the user did not choose
     recommend: [1]
-  - question: "[user] Does the conversation replace the setup form, or sit in front of it?"
+  - question: "[user] Does the conversation draft the goal, or ask for it in the user's own words?"
     mode: single
     options:
-      - "Replace it — the form stays one click away behind \"I'll fill it in myself\""
-      - Sit in front of it — the conversation fills the fields and the user reviews the same three screens
-      - Offer both on the first screen and let the user pick
+      - Ask — it may show what makes a good goal, but never words the user can accept unchanged; setup already treats seed text as no goal at all
+      - Draft it from the repo and let the user edit or throw it away — fastest, and an untouched draft is accepted as the goal
     recommend: [1]
-  - question: "[user] How much may the conversation settle on its own before it asks anything?"
-    mode: single
-    options:
-      - Everything it can read off the repo — name, what it is, tracks, modules — shown back as one summary to confirm; only the goal is asked for
-      - One short question at a time, confirming each thing as it goes
-      - Ask nothing — write a full draft board and let the user correct it afterwards
-    recommend: [1]
-  - question: "[user] Where does the conversation live — the chat the board already has, or a first-run screen of its own?"
-    mode: single
-    options:
-      - A first-run screen of its own, full window, so setup never looks like an ordinary chat
-      - The chat rail, opened wide, so there is one place you talk to the board
-    recommend: [1]
+verify:
+  - "Open a project of your own that has no board and go through the first run: it should read as a conversation you can answer in one sentence, not a form written out in prose."
+  - "Halfway through, press \"I'll fill it in myself\" and check the form comes up carrying what the conversation had already settled."
 ---
 
-The first thing a new user meets is a three-screen form: type the project name, type what
-it is, name the tracks, write the goal, pick the agent. The product's whole promise is that
-you hand it something vague and it works the rest out — and the first run does the opposite.
-Open a project with no board and have it talk to you instead: it reads the repo, says what
-it thinks the project is, asks for the one or two things it can't know, and the board exists.
+The first thing a new user meets is a three-screen form: the project's name and its tracks,
+the goal, then the agent. The product's promise is that you hand it something vague and it
+works the rest out, and the first run does the opposite. Replace those screens with a
+conversation: it reads the repo, says what it thinks the project is, asks for the one thing
+no repo can tell it, and the board is set up.
+
+## Worth noting
+- **What the conversation covers**: the same three answers the form asks for today — the
+  project and its tracks, the goal, the agent — and nothing more. `config.md`,
+  `decisions.md`, the module map and the first cards stay with the **Finish setup** run that
+  already follows the flow, so "two turns and it's set up" ends on a board whose memory is
+  still being written in the runs panel.
+- **The conversation is not a run**: it is the chat the board already holds with its agent,
+  so it takes no place in the runs panel and writes no run log. Its record is the transcript,
+  and a first run that goes wrong is cleared and started again rather than resumed.
+
+<!-- agent -->
+
+## Today
+- The guided first run (`kanban-ui/components/Setup.tsx`) walks three screens in order —
+  project, goal, agent — and the agent screen is last and cannot be pressed past.
+  `readSetupDraft` fills each from the repo and the scaffolded board.
+- `docs/kanban/setup-checklist.md` is the state. The three screens tick `project`, `goal`
+  and `agent`; **Finish setup** starts one ordinary run for `config`, `decisions`, `modules`
+  and `tasks`.
+- The chat rail (`kanban-ui/components/Chat.tsx`, `cli/src/lib/agent/chat.ts`) already holds
+  one session per board or card, resumes it turn by turn, streams the reply and lists what
+  the agent looked at on the way. Every harness the board offers can resume. But
+  `sendChatMessage` records every message as the user's, so the board has no way today to
+  open a conversation with the agent speaking first.
+- `agentInfo().options[].installed` already says which agent CLIs are on this machine, from
+  one PATH read and no spawn. Whether one is logged in is only ever answered by really
+  running it (`testConnection`).
 
 ## Scope
-- **Where it starts**: opening a folder with no board opens a conversation, not the form.
+- **Where it starts**: a board whose first run is unfinished opens the conversation in place
+  of the form's screens, full window, under the same header. Installing the board is
+  unchanged — the conversation needs a board on disk to write to and to hold its transcript.
 - **It reads first, asks second**: before its first sentence the agent reads the repo —
-  README, package files, folder shape, recent commits — and comes back with a filled draft:
-  the name, what the project is, its tracks, its modules, and a first stab at the goal.
-- **Two turns, not six fields**: "here's what I think this project is — right?" → the user
-  corrects it in a sentence or says yes → the board is written. Everything the agent is sure
-  of is stated, not asked.
-- **The goal is still the user's**: it is the one thing no repo can tell you. Ask for it in
-  words, from a draft the user edits or throws away, not from an empty box.
-- **The harness comes first**: nothing can be said until there is an agent to say it. Before
-  the conversation, find the agent CLIs installed on this machine, use one that works, and
-  get past login. Nothing installed, or nothing logged in, drops the user on today's form.
-- **A way out on every turn**: "I'll fill it in myself" goes to the screens that exist today.
-  Nobody is trapped in a chat.
-- **It has to look like work, not a hang**: while the agent reads the repo and writes files,
-  say what it is doing — a first run that shows a blinking cursor for forty seconds reads as
-  broken.
-- **It ends where setup ends today**: `config.md`, `goal.md`, `decisions.md`, the checklist
-  ticked step by step, and the steps that need a run handed to an ordinary run in the panel.
-  The user can read back what was assumed on their behalf.
+  README, package files, folder shape, recent commits — and opens with what it thinks the
+  project is called, what it is, and what tracks its work falls into.
+- **The board speaks first**: the opening turn is the board's, and it is never shown as
+  something the user typed.
+- **Two turns, not six fields**: the user corrects it in a sentence or says yes. Everything
+  the agent is sure of is stated, not asked.
+- **Nothing is written before the user agrees**: tracks are folders, so a guessed track
+  written early is a folder to delete afterwards.
+- **It writes what the form writes**: the project and tracks into `config.md` with their
+  folders and index sections, the goal into `memory/goal.md` with its `reviewed:` judgement,
+  and one `setup-done` per box as it finishes — through the board's own commands, following
+  `akb guide setup`.
+- **A way out on every turn**: "I'll fill it in myself" goes to the screens that exist today,
+  carrying whatever the conversation had already settled.
+- **A board part-way through**: a ticked box is answered — the conversation says what it
+  holds and asks only for what is left.
+- **A repo with nothing to read**: an empty folder gets a short, honest opening — what little
+  it can see and one question — never a guess dressed as a finding.
+- **It speaks the app's language**: the conversation follows the language setting, like
+  everything else the agent writes.
+- **It ends where the flow ends today**: the last tick hands `config`, `decisions`, `modules`
+  and `tasks` to the **Finish setup** run in the panel, unchanged.
 - **The words follow**: `cli/src/guide/setup.md` and `akb setup` describe a form-driven first
-  run; both have to say what actually happens now. Same for the guides and the READMEs.
-
-Not necessarily openclaw's shape — that is the reference, not the spec. Worth weighing
-against: a single "tell me about your project" box that produces the whole board in one go,
-and a first run that writes a complete draft board and asks nothing until the user is
-looking at it.
+  run; both have to say what happens now, and so do `kanban-ui/README.md`, `README.md` and
+  `README-zh.md`.
 
 ## Todo
 - [ ] Write the first run turn by turn — what it says, what it asks, what it never asks.
-- [ ] Settle the four open questions.
-- [ ] Draw the screen: the conversation, its progress while it works, its errors, and the
-      way back to the form. Read `akb guide ui-design`.
-- [ ] Work out the harness bootstrap: which CLIs to look for, how to know one is logged in,
-      and what the user sees when none is.
-- [ ] Have the agent read a repo and produce a full draft setup — name, description, tracks,
-      modules, draft goal — with a confidence it is willing to state.
-- [ ] Build the conversation and have it write `config.md`, `goal.md` and `decisions.md`,
-      ticking each checklist box as it goes.
-- [ ] Keep the existing form reachable from every turn, and as the fallback when there is no
-      agent to talk to.
-- [ ] Hand the remaining checklist steps to an ordinary run when the conversation ends.
-- [ ] Update `cli/src/guide/setup.md`, the guides, `README.md` and `README-zh.md`.
-- [ ] Try it on an empty folder, on a repo with a lot of existing code, and on a machine with
-      no agent installed at all.
+- [ ] Let the board open a conversation with the agent speaking first, without the opening
+      prompt reading as the user's message (`cli/src/lib/agent/chat.ts`).
+- [ ] Give the agent the setup conversation's own instructions — read the repo, state the
+      draft, ask only what is left — in `cli/src/guide/setup.md`.
+- [ ] Draw the conversation full-window in place of the form's screens, with its progress,
+      its errors and the way back to the form. Read `akb guide ui-design`.
+- [ ] Write `config.md`, `goal.md` and the checklist ticks out of the conversation, through
+      the board's own commands.
+- [ ] Keep the form reachable from every turn and as the fallback when there is no agent to
+      talk to, carrying what the conversation settled.
+- [ ] Hand the remaining checklist steps to the **Finish setup** run when the conversation
+      ends.
+- [ ] Update `cli/src/guide/setup.md`, `kanban-ui/README.md`, `README.md` and `README-zh.md`.
+- [ ] Try it on an empty folder, on a large existing repo, and on a machine with no agent
+      CLI installed.
+
+## Decided by the agent
+- **Where the conversation lives**: full window, in place of the form's screens, not in the
+  chat rail — on a first run there is no board behind the rail for it to sit beside. It
+  reuses the rail's plumbing: one resumed session, the reply streamed with the lookups
+  listed, which is also what keeps a forty-second repo read from reading as a hang.
+- **How much it settles on its own**: everything it can read off the repo, stated back as one
+  summary to confirm. One short question at a time is the form again, in prose.
+- **Whether it replaces the form or sits in front of it**: replaces it. The form stays one
+  click behind "I'll fill it in myself", and is the fallback when there is no agent to talk
+  to.
+- **What the board does not do**: teach a harness how to log in. A turn that fails shows what
+  the agent said and offers the picker, the same way `akb agent test` already does.
 
 ## Source
 - Feedback from a user, relayed in chat on 2026-08-21 — "涛哥目前 AI4Kanban 的新手体验我感觉

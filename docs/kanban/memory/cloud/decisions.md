@@ -67,11 +67,11 @@ Internal detail stays on the card.
   the account's verified email address, and cannot reach a repository; the privacy page's
   earlier "no scopes at all" promise goes with the change, because an invitation code needs a
   verified address to reach (#327).
-
-- **How does the app hold Cloud's live connection?**: on our own `WebSocket` against the
-  published Realtime protocol, not `@supabase/realtime-js`. The CLI bundle stays free of
-  bundled dependencies, and the client stays one file away behind the board's `Authorizable`
-  seam.
+- **What does turning Cloud on require of `akb`?**: nothing new. The publisher sends over
+  `fetch` and the live connection is written against the published Realtime protocol rather
+  than `@supabase/realtime-js`, so `akb` stays "Node 18+. No dependencies." for everyone,
+  Cloud users included. A runtime with no global `WebSocket` catches up through the Worker on
+  the next command instead of holding a socket.
 
 ## What we publish about a team's data
 
@@ -92,8 +92,12 @@ Internal detail stays on the card.
   owner's export is the only copy that survives a mis-click.
 - **What notice does the preview promise before a workspace is deleted?**: no fixed period —
   the terms say we may end the preview or close a workspace at any time, with reasonable
-  notice to its owners where practical, given in the app or the workspace's Slack channel
-  rather than by email. An export is the only copy a team is promised.
+  notice where practical. An export is the only copy a team is promised.
+- **Where does a notice about the preview reach an invited account?**: the email address
+  GitHub verified for the account, sent by hand from `support@ai4kanban.dev`, for the end of
+  the preview and for a material change to the privacy or terms page. The app and a connected
+  Slack channel are not notice routes, and the pages no longer promise the invitation loop is
+  the only mail the preview sends.
 - **How long does Cloud keep a finished event's history?**: an event is kept for as long as it
   is unresolved, then deleted 30 days after it reaches a final outcome, together with its
   deliveries, action and outcome. The privacy page's Data retention section states that period.
@@ -130,6 +134,10 @@ Internal detail stays on the card.
   it does not need the machine to be awake — the board's server picks the decision up and runs
   it when it is next reachable. Slack's link into the app is for reading the whole card, not
   for deciding.
+- **How does an account connect Lark?**: by installing an AI4Kanban app listed in the
+  cloud's own directory, so connecting is one button and the user registers nothing. Both
+  `open.larksuite.com` and `open.feishu.cn` are listed, and a connection belongs to the
+  cloud it was installed from.
 - **What does a Slack message show about a task?**: enough to review it — the card's summary,
   its Worth noting, and its Worth noting after implementation, not just its title and the ask.
   Cloud therefore holds that text alongside the event, and everyone in the destination channel
@@ -137,6 +145,10 @@ Internal detail stays on the card.
 - **Can a card be revised or talked through from Slack?**: not in 0.8.0 — the message carries
   **Implement** and the answer controls, and its card link opens the app for anything else.
   Replying in the thread to chat with the card's agent is wanted after it.
+- **Where may a Slack reply start a chat?**: in any reply in a card's thread, in a channel or
+  the direct message, with no mention of the app needed. A channel destination must have the
+  app invited to it, and Slack then sends Cloud every message posted there, of which only a
+  reply in a card's thread is kept.
 - **Does a save finish before the command returns?**: yes, on every board. There is no write
   queue and no background flush: a Cloud save takes as long as the network does and `akb`
   waits for it. That is the price of two teammates never overwriting each other silently.

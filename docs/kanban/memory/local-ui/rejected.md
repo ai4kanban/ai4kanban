@@ -51,6 +51,19 @@ before proposing so you don't re-suggest them.
 - **Dropping the Edit button from the card page** — keep it. A button that says Edit is the
   straightforward way to ask for a rewrite; the chat rail is folded away by default, so
   cutting it would leave no visible way in.
+- **Editing a card's title, body, track and links straight from the card page** — keep the
+  card page as it is. Priority, ROI, release and cadence are settings; the rest of a card is
+  the spec a flow wrote and a human approved, and a box you type over by hand has no flow
+  behind it. Edit stays the way to change a card: you ask, the agent rewrites.
+- **Putting a specialist agent on a card from the card page** — spec agents are already
+  supported: Configuration → Agents switches each one on or off, `akb spec <agent> <id>` puts
+  one on a card, and the board asks for one itself while it plans a card. Asking by hand is
+  rare enough that a button, a dialog and a list of specialists on every card page buy
+  nothing for it.
+- **Writing a new hand-check on the card page** — hand-checks are part of the spec, and the
+  board's whole point is that the agent clarifies a vague idea into that spec. A box for
+  typing your own turns a spec line into hand-entered data. Crossing a hand-check off, which
+  already ships, stays.
 - **Reading a closed version's changelog in the board UI** — not a common demand, and the
   board stays cleaner without a screen for it. A closed version leaves a plain-words file
   in `docs/kanban/.release-summaries/`, readable in an editor or on GitHub Releases.
@@ -118,6 +131,11 @@ before proposing so you don't re-suggest them.
   maintenance that sank asking each harness for its own list; offering only the ids already
   used on this board is empty on a fresh board, which is the one moment a newcomer needs
   telling what to type. The Model field stays a plain box you type any id into.
+
+- **A login line in the agent dialog, under the install line** — the board does not set a
+  harness up. The user installs it and signs in themselves; the dialog's job is to connect to
+  what is already on the machine, and Test tells them straight away whether it did. Teaching
+  each agent's own login command is the harness's business, not the board's.
 
 ## Setup
 

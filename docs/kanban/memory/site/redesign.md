@@ -10,3 +10,8 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   npm or npx line is a second, worse route to the same board.
 - ❌ **Softening a way in we no longer want by demoting it** → ✅ take it off the page. A
   way in that is still shown is still offered, whatever weight it is given.
+
+## Telling people what a feature is
+
+- ❌ **Leaving the privacy and terms pages to explain what a feature does** → ✅ give the
+  feature its own page and let the legal pages state only what they promise, linking to it.

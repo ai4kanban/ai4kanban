@@ -27,6 +27,11 @@ before proposing so you don't re-suggest them.
   written from a one-line ask has no spec to fill in yet, and a second place to call them
   means two flows to keep in step. Refine asks; add-task doesn't.
 
+- **Telling the user how to log in to an agent** — setting a harness up is the user's own
+  business: they install it and sign in on their own machine, and the board only connects to
+  what is already there. Test answers the one question the board can answer — whether the
+  connection works — and everything past that belongs to the harness.
+
 ## Chat
 
 - **A separate flow that limits what chat may do** — the chat rail is just a kanban-skill
@@ -61,6 +66,9 @@ before proposing so you don't re-suggest them.
 
 ## Planning
 
+- **Repairing one internal guide line as a user-facing task** — implementation repairs found
+  during review stay with the delivery or are dropped; they do not enter the user's planning
+  and refinement loop.
 - **Telling the agent which cards a card is holding up** — what a card holds up is the
   same links as `blocked_by`, read backwards, and it is the weaker half: "start this first"
   is a guess about order, while "don't start this yet" is a fact. Where a chain of work
@@ -73,6 +81,19 @@ before proposing so you don't re-suggest them.
   what the spec agents group already does: its `ui-design` agent draws the layout options.
   The one piece that was needed anyway — the skill's UI design reference — moved into that
   group. One group, not two.
+
+- **Changing a card's spec by hand instead of asking a flow to rewrite it** — a card's
+  words, track, modules and links are what refine and the spec agents wrote; typed over by
+  hand they have no flow behind them, and the next refine rewrites them anyway. Changing a
+  card stays a request to the agent.
+
+- **A card carrying its own acceptance check, with archive running it before the card closes**
+  — the board already stops a build from closing on its own word: the review run judges the
+  delivery against the card exactly as it was approved, and nothing lands without its pass.
+  What only a person can confirm goes under **check by hand**, written by the build and
+  crossed off on the card page. Making those lines a gate was settled when they shipped —
+  they are notes on finished work waiting on somebody who may never come back to them, so a
+  board that cannot archive until they are ticked stalls.
 
 - **release-completeness, a score for how right a release plan turned out** — nothing runs at
   the moment a plan is finished: a release plan is ordinary `akb board update --release` calls,
