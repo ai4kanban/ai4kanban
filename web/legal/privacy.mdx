@@ -12,7 +12,7 @@ effective: 2026-08-29
 - **AI4Kanban Cloud is an invite-only preview** that relays one signed-in account's task events — a review to approve, a question to answer — and the decisions made on them, on servers we run in Frankfurt. The board itself stays on your machine. [What Cloud is](/cloud).
 - **An event carries a task's number, title, release, revision, its open questions, its opening paragraph and its review notes** — no other part of the card — and is deleted 30 days after the work it is about finishes.
 - **Your code never reaches Cloud.** No repository, no worktree, no commit, no credential and no model key is sent to it, and no AI model is ever run over your board content.
-- **The preview emails you for two things**: your invitation code, and a notice about the preview itself. There is no mailing list, no announcement, and no marketing.
+- **The preview emails you for two things**: the answer to your invite request, and a notice about the preview itself. There is no mailing list, no announcement, and no marketing.
 - **We do not sell your personal information**, and we do not share it for cross-context behavioral advertising.
 - **You can ask us to access, correct, export, or delete** your personal information at any time at [support@ai4kanban.dev](mailto:support@ai4kanban.dev). Disconnecting Slack is the only removal you can make for yourself; everything else we do by hand.
 
@@ -108,31 +108,30 @@ Cloud relays a board's events. It does not run your project, and the following n
 
 ### What signing in stores about you
 
-You sign in to Cloud with a GitHub account, through Supabase Auth's GitHub provider. Our GitHub OAuth app requests **`user:email` and nothing else**, so a sign-in reads your profile and the email address GitHub has verified for you, and cannot reach a private repository even if everything else went wrong. We ask for the address because it is what an invitation code is sent to, so nothing about asking for one has to be typed.
+You sign in to Cloud with a GitHub account, through Supabase Auth's GitHub provider. Our GitHub OAuth app requests **`user:email` and nothing else**, so a sign-in reads your profile and the email address GitHub has verified for you, and cannot reach a private repository even if everything else went wrong. We ask for the address because it is where we answer an invite request, so nothing about asking for one has to be typed.
 
 Signing in creates **two separate records**, and removing one does not remove the other:
 
 - **A sign-in record**, held by Supabase Auth on our behalf. It holds **your GitHub login and public profile** as GitHub returns it at sign-in — your username, your numeric GitHub id, your display name, and your avatar URL — **any email address Supabase Auth records with that account**, and **sign-in timestamps** with the identity provider behind the account, which is `github` for everyone.
 - **A Cloud account row**, in our own database. It holds your GitHub handle, your display name, and your avatar URL, and it is what every other Cloud record — a board, an event, a machine record, a Slack connection — belongs to.
 
-If we have admitted you to the preview, we also hold **an admission**: the GitHub handle we let in, when we let it in, and a short note of our own saying who you are, so whoever reads the list later can tell.
+If we have admitted you to the preview, we also hold **an admission**: the GitHub handle we let in, when we let it in, and a short note of our own saying who you are, so whoever reads the list later can tell. When we admitted you by approving a request, it also holds **the sign-in it was written for**, so that renaming your GitHub account cannot take your place in the preview away.
 
-We do not ask you to type an address, we have no mailing list, and we send nothing to it but the invitation loop and the preview notice below. You can ask us to remove any of these records at [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
+We do not ask you to type an address, we have no mailing list, and we send nothing to it but the answer to an invite request and the preview notice below. You can ask us to remove any of these records at [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
 
-### Asking for an invite, and the code that answers
+### Asking for an invite, and the answer
 
-Cloud is invite-only, so there are two records behind getting in, and both hold your email address:
+Cloud is invite-only, so there is one record behind getting in, and it holds your email address:
 
-- **An invite request** — written when you press **Request an invite** in the app. It holds your GitHub handle, the email address GitHub has verified for your account, and when you asked. You type none of it: it is read from what the identity provider attested at sign-in.
-- **An invitation** — written when we approve a request, or when we invite somebody who never asked. It holds the code, the address it was sent to, the request it answers, a short note of our own saying who it is for, whether it has been withdrawn, and — once redeemed — which account redeemed it and when. That is what ties an admitted account back to the invitation that let it in.
+- **An invite request** — written when you press **Request an invite** in the app. It holds your GitHub handle, the email address GitHub has verified for your account, and when you asked. You type none of it: it is read from what the identity provider attested at sign-in. Once we approve it, the same record holds **that we answered it and when**, and whether the message telling you so has gone out.
 
-We email you once from each: a code, sent to that address from `invites@ai4kanban.dev`, with `support@ai4kanban.dev` to reply to. A request also sends **us** a notice at `support@ai4kanban.dev` carrying your handle and address, so we can answer you by replying.
+Approving is the whole of it: it admits your account and there is nothing for you to paste back. We email you once, to that address, from `invites@ai4kanban.dev` with `support@ai4kanban.dev` to reply to. A request also sends **us** a notice at `support@ai4kanban.dev` carrying your handle and address, so we can answer you by replying.
 
 **Beyond that loop, the preview sends one other email: a notice about the preview itself** — that it is ending, or that these pages have changed materially. It goes by hand from `support@ai4kanban.dev` to the address GitHub verified for your account. It is the one mail the preview sends that you did not ask for, and there is no way to switch it off. **That is the whole of the email the preview sends: no mailing list, no announcement, and no marketing.**
 
-**If you asked and we never admitted you, we still hold your records.** Your invite request — your GitHub handle, the address GitHub verified for you, and when you asked — any code we issued you, and your sign-in record all stay. No sweep reaches them and there is no action you can take that does; we remove them by hand when you write to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). Nothing on this page or in the [Terms](/terms) ties how long those records are kept to your being admitted.
+**If you asked and we never admitted you, we still hold your records.** Your invite request — your GitHub handle, the address GitHub verified for you, and when you asked — and your sign-in record both stay. No sweep reaches them and there is no action you can take that does; we remove them by hand when you write to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). Nothing on this page or in the [Terms](/terms) ties how long those records are kept to your being admitted.
 
-The invitation mail goes through **Resend**, and the `support@ai4kanban.dev` mailbox is run for us too. Both are subprocessors and both appear in the table below. Resend keeps 30 days of sending logs under its own policy.
+That mail goes through **Resend**, and the `support@ai4kanban.dev` mailbox is run for us too. Both are subprocessors and both appear in the table below. Resend keeps 30 days of sending logs under its own policy.
 
 ### Where it runs, and who can read it
 
@@ -151,7 +150,7 @@ The preview uses four subprocessors and one identity provider. There is no separ
 | --- | --- | --- |
 | **Cloudflare, Inc.** | Compute and hosting — the API, and the static site — and the Email Routing that delivers `support@ai4kanban.dev` | Global network |
 | **Supabase, Inc.** | The database and sign-in | `eu-central-1`, Frankfurt |
-| **Resend (Plus Five Five, Inc.)** | Sending the invitation email and the request notice | United States |
+| **Resend (Plus Five Five, Inc.)** | Sending the answer to an invite request, and the request notice | United States |
 | **Spacemail (Spaceship, Inc.)** | The mailbox that routing forwards `support@ai4kanban.dev` to — where a data request, a support message, and the preview notice are read and sent | United States |
 | **GitHub, Inc.** | The identity provider you sign in through | GitHub's own infrastructure |
 
@@ -173,7 +172,7 @@ What we hold for a connection is the Slack workspace, the conversation you picke
 
 Nothing else in the app deletes anything. Signing out stops that machine reaching Cloud and removes no record. Turning Cloud off for a board, or moving the board to another machine, removes no record either.
 
-**Everything else we remove by hand**, on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). What that removes is **your whole account and everything under it**: your Cloud account row and your admission, your board rows with their names, every machine record those boards registered, every event with its questions, decisions, answers and outcomes, your Slack connection, your invite request, and the invitation that admitted you. Your sign-in record goes alongside them, as its own step in Supabase rather than by the same operation.
+**Everything else we remove by hand**, on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). What that removes is **your whole account and everything under it**: your Cloud account row and your admission, your board rows with their names, every machine record those boards registered, every event with its questions, decisions, answers and outcomes, your Slack connection, and your invite request. Your sign-in record goes alongside them, as its own step in Supabase rather than by the same operation.
 
 **It is all of it or none of it.** The service has no way to remove one board's record and leave the account behind it, so **asking us to forget a board ends your place in the preview**. If that is not what you meant, tell us what you need and we will say what we can do.
 
@@ -197,7 +196,7 @@ We use information to:
 
 - **Run the Service** — serve the site, tell the app whether a newer release exists, and relay a board's events and the decisions made on them, to and from the account they belong to.
 - **Keep the Service safe** — verify a sign-in, check that a record belongs to the account asking for it, detect abuse, and stay inside the capacity the preview runs on.
-- **Send you a service notice** — the invitation code you asked for, and a notice about the preview itself: that it is ending, or that these pages have changed materially. Both go to the email address GitHub verified for your account.
+- **Send you a service notice** — the answer to the invite request you made, and a notice about the preview itself: that it is ending, or that these pages have changed materially. Both go to the email address GitHub verified for your account.
 - **Answer you** — handle a support message or a data request you send us.
 - **Comply with legal obligations** that apply to us.
 
@@ -205,7 +204,7 @@ We do **not** use your information for advertising, profiling, or scoring, and w
 
 For users in the EU, the UK, and Switzerland, the legal bases we rely on are:
 
-- **Contract** — running the Service you asked for, including holding the Cloud records of the account that turned Cloud on, and sending the invitation code you asked us for.
+- **Contract** — running the Service you asked for, including holding the Cloud records of the account that turned Cloud on, and answering the invite request you made.
 - **Legitimate interests** — keeping the Service secure and working, preventing abuse, and telling an account in the preview that the preview is ending or that these pages have materially changed.
 - **Legal obligation** — when a law applies to us.
 
@@ -238,7 +237,7 @@ We keep personal information only as long as we need it for the purposes describ
 - **App use** — nothing is retained, because nothing is collected. A board you have not turned Cloud on for sends us nothing to retain.
 - **Your sign-in record** — held by Supabase Auth, kept while your account can sign in. Only a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev) removes it, and removing it is its own step: it does not go with your Cloud records automatically.
 - **Your Cloud account row and your admission** — kept until we remove them by hand on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
-- **Your invite request and your invitation** — kept until we remove them by hand, whether or not we admitted you. A request we never approved, and any code issued against it, stay until you ask us to delete them. Resend's own sending logs are kept for 30 days under Resend's policy.
+- **Your invite request** — kept until we remove it by hand, whether or not we admitted you. A request we never approved stays until you ask us to delete it. Resend's own sending logs are kept for 30 days under Resend's policy.
 - **A board's Cloud id and its name** — kept until we remove them by hand. Turning Cloud off for a board, moving it to another machine, and signing out delete nothing.
 - **Events and actions** — kept while the event is unresolved, then deleted 30 days after it reaches a final outcome, together with the decision recorded against it, its answers, its outcome, and any message it was delivered as.
 - **A board's machine record** — the machine identifier, the hostname, and the runtimes described above, kept until we remove them by hand. Every machine a board registered keeps its record, including one the board has moved away from.
@@ -305,7 +304,7 @@ An account's Cloud records are stored in **Frankfurt, Germany**, inside the EU. 
 Two transfers can still happen, and we would rather name them than leave them implied:
 
 - **The API runs on Cloudflare's global network.** A request is handled close to where it was made, so an account working outside the EEA has their request processed in that region in transit before it reaches the database in Frankfurt.
-- **Our subprocessors are US companies.** Cloudflare, Supabase, Resend, Spaceship, and GitHub may access data from the United States for support and operations, under their own commitments. Resend sends from the United States, so an invitation to an EU address is processed there in transit, and Spaceship processes the `support@ai4kanban.dev` mailbox in the United States, so a data request you send us and a preview notice we send you pass through there too.
+- **Our subprocessors are US companies.** Cloudflare, Supabase, Resend, Spaceship, and GitHub may access data from the United States for support and operations, under their own commitments. Resend sends from the United States, so an answer to an EU address is processed there in transit, and Spaceship processes the `support@ai4kanban.dev` mailbox in the United States, so a data request you send us and a preview notice we send you pass through there too.
 
 Where personal information is transferred out of the UK, the EEA, or Switzerland, we rely on the European Commission's Standard Contractual Clauses, the UK's International Data Transfer Agreement or Addendum, the EU–US and UK–US Data Privacy Framework where a recipient is certified, or another safeguard recognized under applicable law. Copies of these safeguards are available on request.
 

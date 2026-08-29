@@ -12,7 +12,7 @@ import {
   retireEvent,
 } from './events.ts'
 import { json, refusalResponse } from './http.ts'
-import { redeemInvitation, requestInvite, sendPendingMail } from './invites.ts'
+import { requestInvite, sendPendingMail } from './invites.ts'
 import { readSession, requireOwner } from './owner.ts'
 import { runScheduled } from './scheduled.ts'
 import { slackCallback } from './slack-actions.ts'
@@ -79,9 +79,10 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     })
   }
 
-  // The two routes #327 opens before admission, beside the session above. A refused person
-  // asks for an invite here and redeems the code we answer with here, and both need exactly
-  // what the session needed: a verified sign-in, admitted or not.
+  // The one route open before admission beside the session above. A refused person asks for
+  // an invite here, and it needs exactly what the session needed: a verified sign-in,
+  // admitted or not. Approving is the whole of the answer (#350), so there is nothing for
+  // them to send back.
   if (pathname === '/v1/invite-request') {
     requireMethod(request, 'POST')
     const session = await readSession(request, env)
@@ -92,14 +93,6 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     // Resend's latency, and a send that fails is what the hourly run retries.
     ctx.waitUntil(sendPendingMail(env).catch((e) => console.error('cloud: mail failed', e)))
     return json({ requestedAt })
-  }
-
-  if (pathname === '/v1/invitations/redeem') {
-    requireMethod(request, 'POST')
-    const session = await readSession(request, env)
-    if (session.admitted) return json({ admitted: true })
-    await redeemInvitation(env, session.subject, await codeFrom(request))
-    return json({ admitted: true })
   }
 
   // The events a board publishes, and the one action each may carry (#319). All behind the
@@ -266,13 +259,4 @@ function requireMethod(request: Request, method: string): void {
  *  request; each route says which field it was missing. */
 async function bodyOf(request: Request): Promise<unknown> {
   return (await request.json().catch(() => null)) as unknown
-}
-
-/** The one thing a redeem carries. A body that is not a code is a bad request, not a code we
- *  do not know — the two read very differently to whoever pasted one. */
-async function codeFrom(request: Request): Promise<string> {
-  const body = (await request.json().catch(() => null)) as { code?: unknown } | null
-  const code = typeof body?.code === 'string' ? body.code.trim() : ''
-  if (!code) throw badRequest('That request carries no invitation code.')
-  return code
 }

@@ -120,8 +120,9 @@ describe('requireOwner', () => {
       assert.equal(error.code, 'not_admitted')
       assert.equal(error.status, 403)
       assert.match(error.message, /invite-only preview/)
-      // It names the two doors the pane offers (#327), not the mailbox #326 pointed at.
-      assert.match(error.message, /invitation code/)
+      // It names the one way in (#350) — asking — and nothing to paste back.
+      assert.match(error.message, /Ask us for an invite/)
+      assert.doesNotMatch(error.message, /code/i)
       return true
     })
   })

@@ -101,21 +101,14 @@ export async function readCloudAccount(): Promise<CloudAccount> {
     : { ...blank, ...attested, state: 'not-admitted', message: body.refusal?.message ?? null }
 }
 
-// --- the two doors out of the not-admitted state (#327) -----------------------
-// Both are open to a verified sign-in we have not admitted, and both are one call. Neither
-// decides anything: the service answers, and its refusal is carried through word for word.
+// --- the one way out of the not-admitted state (#327, #350) -------------------
+// Open to a verified sign-in we have not admitted, and one call. It decides nothing: the
+// service answers, and its refusal is carried through word for word.
 
 /** Ask us for an invite. Pressing again records no second request and sends no second email,
  *  so the caller can simply call it and re-read the account. */
 export async function requestCloudInvite(): Promise<CloudMove> {
   return post('/v1/invite-request')
-}
-
-/** Spend a code on this account. One code admits one account, and admits it for good. */
-export async function redeemCloudInvitation(code: string): Promise<CloudMove> {
-  const typed = typeof code === 'string' ? code.trim() : ''
-  if (!typed) return { ok: false, error: 'Paste the code from the email we sent.' }
-  return post('/v1/invitations/redeem', { code: typed })
 }
 
 async function post(path: string, body?: unknown): Promise<CloudMove> {

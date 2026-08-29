@@ -216,7 +216,8 @@ AI4Kanban Cloud — the account this MACHINE acts as
   the one session the app wrote, outside every repository.
 
   Cloud is an invite-only preview. A signed-in account we have not admitted is told so,
-  and pointed at the app, where a code is redeemed and an invite asked for.
+  and pointed at the app, where an invite is asked for. Approving it admits the account
+  and emails whoever asked; nothing is typed back.
 
 The flows
   guide                        every flow the board has, one line each

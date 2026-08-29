@@ -245,12 +245,13 @@ export function CloudPage() {
               <li>
                 <p className="font-semibold">
                   <span className="font-mono text-sm text-accent-deep">03</span>{" "}
-                  Paste the code we email you.
+                  We approve it, and you are in.
                 </p>
                 <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">
-                  We read every request by hand and email a code once we approve
-                  it. Redeem it in the same pane. One code admits one account,
-                  and admits it for good. No date is promised for a reply.
+                  We read every request by hand. Approving admits your account on
+                  the spot and emails you to say so — there is nothing to paste
+                  and nothing to sign in for a second time. No date is promised
+                  for a reply.
                 </p>
               </li>
             </ol>

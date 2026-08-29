@@ -20,9 +20,9 @@
 // of them here would be a second thing to keep true.
 //
 // The not-admitted state is the one with something to do in it (#327), and it reads as one
-// column: the refusal, the code box, **Request an invite** under a hairline, and Sign out
-// last. Whoever was handed a code meets the box immediately; whoever has none pays one short
-// line of reading before the button.
+// column: the refusal, one line saying how we answer, **Request an invite**, and Sign out
+// last. Approving is the whole of getting in (#350), so there is one ask here and nothing to
+// paste back.
 //
 // The admitted state is one column in two tiers, and no prose explaining what a notification
 // is — the tab already said it. Above: what holds for the account and the machine — who you
@@ -30,7 +30,7 @@
 // settles — the release it watches and the machine that runs its work.
 
 import { useCallback, useEffect, useState } from "react";
-import { FiAlertCircle, FiBell, FiBellOff, FiCheck, FiKey, FiLogOut, FiMail } from "react-icons/fi";
+import { FiAlertCircle, FiBell, FiBellOff, FiCheck, FiLogOut, FiMail } from "react-icons/fi";
 import { FaSlack } from "react-icons/fa";
 import { SiGithub } from "react-icons/si";
 import {
@@ -40,7 +40,6 @@ import {
   setBoardServerAction,
   finishCloudSignInAction,
   notificationCenterAction,
-  redeemCloudInvitationAction,
   requestCloudInviteAction,
   setSilencedAction,
   setSlackChannelAction,
@@ -799,10 +798,10 @@ function SignedOut({
   );
 }
 
-// --- signed in and not admitted (#327) ----------------------------------------
-// Two doors, one under the other: the code box first, because whoever was handed a code has
-// nothing to read, and **Request an invite** under a hairline for whoever has none. Both
-// press once and then re-read the account, so what is drawn next is the service's answer.
+// --- signed in and not admitted (#327, #350) ----------------------------------
+// One ask: the refusal, the line saying how we answer, and the button. Pressing it re-reads
+// the account, so what is drawn next is the service's answer. An approval admits the account
+// on our side, so the pane reaches the admitted state the next time it reads.
 
 function NotAdmitted({
   account,
@@ -818,39 +817,19 @@ function NotAdmitted({
   onSignOut: () => void;
 }) {
   const language = useLanguage();
-  const [code, setCode] = useState("");
-  /** The service's own words for the last code we tried. Cleared as soon as it is retyped.
-   *  Only a code lands here — a request that fails has no box to sit under, so it goes to
-   *  the pane's own error line. */
-  const [refusal, setRefusal] = useState<string | null>(null);
-  const [working, setWorking] = useState<"redeem" | "request" | null>(null);
-  const held = busy || working !== null;
+  const [working, setWorking] = useState(false);
+  const held = busy || working;
   const c = useCopy().configuration.cloud;
-
-  const redeem = async () => {
-    if (held || !code.trim()) return;
-    setWorking("redeem");
-    setRefusal(null);
-    try {
-      const done = await redeemCloudInvitationAction(code);
-      // A redemption moves the pane to the admitted state on the spot, so there is nothing
-      // to say on success — the pane it drew is gone.
-      if (!done.ok) setRefusal(done.error);
-      else await onDone();
-    } finally {
-      setWorking(null);
-    }
-  };
 
   const request = async () => {
     if (held) return;
-    setWorking("request");
+    setWorking(true);
     try {
       const done = await requestCloudInviteAction();
       if (!done.ok) onError?.(done.error);
       else await onDone();
     } finally {
-      setWorking(null);
+      setWorking(false);
     }
   };
 
@@ -865,64 +844,17 @@ function NotAdmitted({
         {account.message}
       </Note>
 
-      <div className="rounded-[10px] border border-nb-ink/12 bg-nb-paper px-4 py-3.5">
-        <p className="flex items-center gap-2 text-[13px] font-[800] text-nb-ink">
-          <FiKey size={14} aria-hidden />
-          {c.haveCode}
-        </p>
-        <form
-          className="mt-2.5 flex items-center gap-2.5"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void redeem();
-          }}
-        >
-          <input
-            value={code}
-            onChange={(e) => {
-              setCode(e.target.value);
-              setRefusal(null);
-            }}
-            spellCheck={false}
-            autoComplete="off"
-            aria-label={c.codeLabel}
-            aria-invalid={refusal ? true : undefined}
-            placeholder={c.codeExample}
-            className={`h-9 min-w-0 flex-1 rounded-[9px] border bg-nb-paper px-3 font-mono text-[13px] font-[700] tracking-[0.06em] text-nb-ink outline-none placeholder:font-[500] placeholder:tracking-normal placeholder:text-nb-ink-soft/50 ${
-              refusal ? "border-nb-peach-ink" : "border-nb-ink/25"
-            }`}
-          />
-          <Button size="sm" type="submit" disabled={held || !code.trim()}>
-            {working === "redeem" ? c.redeeming : c.redeem}
-          </Button>
-        </form>
-        {refusal ? (
-          <div
-            className="mt-2 flex items-start gap-2 rounded-[8px] bg-nb-peach-soft px-3 py-2"
-            role="status"
-          >
-            <FiAlertCircle className="mt-[1px] shrink-0 text-nb-peach-ink" size={12} aria-hidden />
-            <span className="text-[11.5px] leading-[16px] text-nb-ink">{refusal}</span>
-          </div>
-        ) : (
-          <p className="mt-2 text-[11.5px] leading-[16px] text-nb-ink-soft">{c.oneCode}</p>
-        )}
-      </div>
-
-      <div className="flex items-center gap-4 border-t border-nb-ink/12 pt-3.5">
-        <div className="min-w-0 flex-1">
-          <p className="text-[12.5px] font-[800] text-nb-ink">{c.noCode}</p>
-          <p className="mt-[3px] text-[11.5px] leading-[16px] text-nb-ink-soft">{c.noCodeBody}</p>
-        </div>
+      <div className="flex items-center gap-4">
+        <p className="min-w-0 flex-1 text-[12px] leading-[17px] text-nb-ink-soft">{c.howWeAnswer}</p>
         {account.inviteRequestedAt ? (
           <span className="flex h-[34px] shrink-0 items-center gap-2 rounded-[9px] bg-nb-mint-soft px-3 text-[12px] font-[700] text-nb-mint-ink">
             <FiCheck size={12} aria-hidden />
             {c.asked(asked(account.inviteRequestedAt, c.askedUndated, language))}
           </span>
         ) : (
-          <Button size="sm" variant="ghost" disabled={held} onClick={() => void request()}>
+          <Button size="sm" disabled={held} onClick={() => void request()}>
             <FiMail size={13} aria-hidden />
-            {working === "request" ? c.asking : c.requestInvite}
+            {working ? c.asking : c.requestInvite}
           </Button>
         )}
       </div>

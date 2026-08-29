@@ -127,12 +127,11 @@ function report(account: Awaited<ReturnType<typeof readCloudAccount>>, program: 
     case 'not-admitted':
       lines.push(`Signed in as ${who}, and not admitted.`)
       if (account.message) lines.push(account.message)
-      // Both doors are in the app: a code is pasted there, and the button that asks for one
-      // is there (#327). A terminal has neither, so it says where they are.
+      // Asking is a button in the app (#327). A terminal has none, so it says where it is.
       lines.push(
         account.inviteRequestedAt
           ? `You asked for an invite on ${account.inviteRequestedAt.slice(0, 10)}. We answer by email.`
-          : 'Redeem a code, or ask for one, in the AI4Kanban app under Configuration → Notifications.',
+          : 'Request an invite in the AI4Kanban app, under Configuration → Notifications.',
       )
       lines.push(`Sign out with \`${program} cloud sign-out\`.`)
       break

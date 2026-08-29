@@ -28,8 +28,8 @@ export interface Heartbeat {
  * day must not hold an invitation back.
  *
  * The mail step is the retry, not the first attempt: `/v1/invite-request` sends its own
- * notice through `waitUntil`. What is left for this run is a send the provider refused, and a
- * code approved in the SQL editor, where no Worker was in flight to send it.
+ * notice through `waitUntil`. What is left for this run is a send the provider refused, and an
+ * approval written in the SQL editor, where no Worker was in flight to send it.
  */
 export async function runScheduled(
   env: Env,

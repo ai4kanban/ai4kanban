@@ -29,7 +29,7 @@ export const CLOCK_SKEW_SECONDS = 60
 
 // --- the invitation mail (#327) ----------------------------------------------
 // One sender, one queue, one retry. Both messages the preview sends — the notice that
-// somebody asked, and the code that answers — go out from the hourly run through Resend.
+// somebody asked, and the news that we approved them — go out from the hourly run through Resend.
 
 /** Who an invitation comes from. The root name is what Resend verifies; it signs with a DKIM
  *  key there and keeps its return path on `send.`, so the mailbox MX and SPF stay untouched. */

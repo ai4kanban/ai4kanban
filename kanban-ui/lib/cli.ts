@@ -259,12 +259,11 @@ export interface BoardRules {
   finishCloudSignIn?(callback: string): Promise<{ ok: boolean; error?: string }>;
   signOutOfCloud?(): { ok: true };
 
-  // the two doors out of the not-admitted state (#327) — ask us for an invite, and spend the
-  // code we answer with. Optional on their own: a project can be running rules that sign in
-  // to Cloud but predate the invitation loop, and the pane offers neither rather than a
-  // button nothing can answer.
+  // the one way out of the not-admitted state (#327, #350) — ask us for an invite, and we
+  // admit the account when we approve it. Optional on its own: a project can be running rules
+  // that sign in to Cloud but predate the invitation loop, and the pane offers nothing rather
+  // than a button nothing can answer.
   requestCloudInvite?(): Promise<CloudMove>;
-  redeemCloudInvitation?(code: string): Promise<CloudMove>;
 
   // the Cloud notification center (#319) — the events this machine's boards raise, and the
   // bell that carries them. A board turns itself on inside the rules as soon as this machine

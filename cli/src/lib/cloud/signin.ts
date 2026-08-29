@@ -39,8 +39,8 @@ export type SignInResult =
  * Begin a sign-in: the consent URL to open, with the secret half kept here.
  *
  * GitHub is asked for `user:email` and nothing else (cloud/README.md, "Standing up a new
- * project"), so every account carries an address GitHub itself verified — which is what an
- * invitation is mailed to (#327) — and no repository is reachable with the grant.
+ * project"), so every account carries an address GitHub itself verified — which is where an
+ * invite request is answered (#327, #350) — and no repository is reachable with the grant.
  */
 export function startSignIn(): SignInStart | { ok: false; error: string } {
   if (!cloudConfigured()) return { ok: false, error: NOT_CONFIGURED }

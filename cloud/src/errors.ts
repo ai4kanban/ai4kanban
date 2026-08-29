@@ -6,9 +6,6 @@ export type RefusalCode =
   | 'bad_request'
   | 'unauthenticated'
   | 'not_admitted'
-  | 'invitation_unknown'
-  | 'invitation_redeemed'
-  | 'invitation_withdrawn'
   | 'no_verified_address'
   | 'not_yours'
   | 'stale_revision'
@@ -45,50 +42,25 @@ export const unauthenticated = (message = 'Sign in to reach this workspace.') =>
 /**
  * Signed in, and not in the preview. Its own code, so a client never answers it with
  * "sign in again" — signing in again lands on the same refusal. The message is the whole of
- * what a refused person is given, so it names the two doors the pane offers (#327) and no
- * position on any screen: a terminal reads the same sentence.
+ * what a refused person is given, so it names the one way in (#350) and no position on any
+ * screen: a terminal reads the same sentence.
  */
 export const notAdmitted = () =>
   new Refusal(
     'not_admitted',
     403,
     'AI4Kanban Cloud is an invite-only preview and this account is not in it yet. ' +
-      'Paste an invitation code to join, or ask us for one.',
-  )
-
-/**
- * The three ways a code can fail, each with its own code and its own sentence, because they
- * ask the reader for three different things: look again, use your own code, write to us.
- */
-export const invitationUnknown = () =>
-  new Refusal(
-    'invitation_unknown',
-    403,
-    'We don’t know that code. Check it against the email we sent.',
-  )
-
-export const invitationRedeemed = () =>
-  new Refusal(
-    'invitation_redeemed',
-    403,
-    'That code has already been used. One code admits one account.',
-  )
-
-export const invitationWithdrawn = () =>
-  new Refusal(
-    'invitation_withdrawn',
-    403,
-    'That code was withdrawn. Write to support@ai4kanban.dev.',
+      'Ask us for an invite and we will email you when you are in.',
   )
 
 /** Asking for an invite types nothing, so an account the provider attests no address for
- *  has nowhere for a code to be sent. */
+ *  leaves us nowhere to answer. */
 export const noVerifiedAddress = () =>
   new Refusal(
     'no_verified_address',
     403,
-    'GitHub returned no verified email address for this account, so there is nowhere to send ' +
-      'a code. Write to support@ai4kanban.dev.',
+    'GitHub returned no verified email address for this account, so there is nowhere to ' +
+      'answer you. Write to support@ai4kanban.dev.',
   )
 
 /** The request named a row belonging to another account. Whatever the row is. */

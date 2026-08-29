@@ -6,10 +6,9 @@
  * code of its own. A later card's route calls `requireOwner` and gets an `owner.accountId`
  * to hang its rows off, rather than inventing an owner column and a check of its own.
  *
- * Three routes are open before admission — the one that reports the session, so the app can
- * name the account it refused, and #327's two, where a refused person asks for an invite and
- * redeems the code that answers. They call `readSession`; everything else calls
- * `requireOwner`.
+ * Two routes are open before admission — the one that reports the session, so the app can
+ * name the account it refused, and #327's, where a refused person asks for an invite. They
+ * call `readSession`; everything else calls `requireOwner`.
  */
 
 import { bearerToken, verifyAccessToken } from './auth.ts'

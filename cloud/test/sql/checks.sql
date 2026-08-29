@@ -2,10 +2,11 @@
 --
 -- Every other check in cloud/test/ fakes PostgREST, so it can say what the Worker sends and
 -- nothing about what the database does with it. These run against a database with the
--- migrations really applied: the account check every route ends at, the two RLS policies
--- that are the whole of a private Realtime topic's authorization, and the handful of rules
--- that are properties of the schema rather than of any caller — one live row per task, one
--- action per event, a lease that ran out, and a refusal that costs the day's budget nothing.
+-- migrations really applied: the account check every route ends at, approving an invite
+-- request (#350), the two RLS policies that are the whole of a private Realtime topic's
+-- authorization, and the handful of rules that are properties of the schema rather than of
+-- any caller — one live row per task, one action per event, a lease that ran out, and a
+-- refusal that costs the day's budget nothing.
 --
 -- Run with `npm run test:sql`. Everything happens inside one transaction that is rolled
 -- back, so a project it is pointed at keeps exactly the rows it had.
@@ -57,6 +58,12 @@ declare
   MACHINE_A constant uuid := 'eeeeeeee-5555-4555-8555-555555555555';
   MACHINE_A2 constant uuid := 'eeeeeeee-7777-4777-8777-777777777777';
   MACHINE_B constant uuid := 'ffffffff-6666-4666-8666-666666666666';
+  -- The three the approval checks use. They sign in, so unlike A and B they need an
+  -- `auth.identities` row: admission is decided on what the provider attested, never on a
+  -- `cloud.accounts` row we wrote ourselves.
+  ASKER constant uuid := '11111111-8888-4888-8888-888888888888';
+  RENAMER constant uuid := '22222222-9999-4999-8999-999999999999';
+  SQUATTER constant uuid := '33333333-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   BUDGET constant integer := 100000;
   v_event uuid;
   v_second uuid;
@@ -310,6 +317,101 @@ begin
   assert v_second <> v_event, 'a finished event was reused rather than kept as history';
   select count(*) into v_count from cloud.events where board_id = BOARD_A and task_id = 329;
   assert v_count = 2, 'the finished row did not stay behind the new one';
+
+  -- -------------------------------------------------------------------------
+  -- Approving an invite request is the whole of getting in (#350)
+  -- -------------------------------------------------------------------------
+
+  insert into auth.identities (user_id, provider, identity_data)
+  values (ASKER, 'github', '{"user_name":"asker","email":"asker@example.com"}'::jsonb),
+         (RENAMER, 'github', '{"user_name":"before","email":"renamer@example.com"}'::jsonb),
+         (SQUATTER, 'github', '{"user_name":"nobody","email":"squatter@example.com"}'::jsonb);
+
+  perform api.request_invite(ASKER, BUDGET);
+  assert not (api.account_for_session(ASKER, BUDGET) ->> 'admitted')::boolean,
+    'asking for an invite admitted the account by itself';
+
+  -- The notice is queued while the request is open, and the approval is not yet.
+  select count(*) into v_count
+    from json_array_elements(api.pending_mail(50, 5)) m
+   where m ->> 'email' = 'asker@example.com';
+  assert v_count = 1, 'an open request queued something other than its one notice';
+  select m ->> 'kind' into v_text from json_array_elements(api.pending_mail(50, 5)) m
+   where m ->> 'email' = 'asker@example.com';
+  assert v_text = 'request', 'the open request queued the wrong message';
+
+  -- That notice goes out, and approving must not disturb it.
+  select (m ->> 'ref')::uuid into v_request from json_array_elements(api.pending_mail(50, 5)) m
+   where m ->> 'email' = 'asker@example.com';
+  perform api.mark_mail_sent('request', v_request::text);
+
+  v_json := cloud.approve_invite_request('ASKER');
+  assert (v_json ->> 'handle') = 'asker', 'approving did not answer with the handle it admitted';
+  assert (v_json ->> 'email') = 'asker@example.com', 'approving lost the attested address';
+  assert (api.account_for_session(ASKER, BUDGET) ->> 'admitted')::boolean,
+    'approving a request did not admit the requester';
+
+  select count(*) into v_count from cloud.invite_requests r
+   where r.subject = ASKER and r.closed_at is not null and r.approved_at is not null;
+  assert v_count = 1, 'approving did not close the request it answered';
+
+  -- The approval queues a message of its own, and the notice already sent stays sent.
+  select m ->> 'kind' into v_text from json_array_elements(api.pending_mail(50, 5)) m
+   where m ->> 'email' = 'asker@example.com';
+  assert v_text = 'approval', 'the approval queued no message of its own';
+  select count(*) into v_count
+    from json_array_elements(api.pending_mail(50, 5)) m
+   where m ->> 'email' = 'asker@example.com';
+  assert v_count = 1, 'the approval queued the notice a second time';
+
+  perform api.mark_mail_sent('approval', v_request::text);
+  select count(*) into v_count
+    from json_array_elements(api.pending_mail(50, 5)) m
+   where m ->> 'email' = 'asker@example.com';
+  assert v_count = 0, 'a message marked sent was picked up again';
+
+  -- A request already answered is refused a second approval.
+  perform pg_temp.refuses(
+    'select cloud.approve_invite_request(''asker'')', 'P0001', 'approving an answered request');
+
+  -- A rename cannot un-admit somebody we let in, and cannot hand the admission to whoever
+  -- takes the old handle: the admission was written for the subject, not for the name.
+  perform api.request_invite(RENAMER, BUDGET);
+  perform cloud.approve_invite_request('before');
+  update auth.identities set identity_data = '{"user_name":"after","email":"renamer@example.com"}'::jsonb
+   where user_id = RENAMER;
+  assert (api.account_for_session(RENAMER, BUDGET) ->> 'admitted')::boolean,
+    'a GitHub rename un-admitted an account an approval let in';
+  update auth.identities set identity_data = '{"user_name":"before","email":"squatter@example.com"}'::jsonb
+   where user_id = SQUATTER;
+  assert not (api.account_for_session(SQUATTER, BUDGET) ->> 'admitted')::boolean,
+    'the handle an admission was asked under admitted somebody else';
+
+  -- The list holds one row per handle, so approving the second person to hold one is
+  -- refused rather than admitting nobody and mailing them that they are in.
+  perform api.request_invite(SQUATTER, BUDGET);
+  perform pg_temp.refuses(
+    'select cloud.approve_invite_request(''before'')', 'P0001',
+    'approving a handle another account is admitted under');
+  assert not (api.account_for_session(SQUATTER, BUDGET) ->> 'admitted')::boolean,
+    'a refused approval admitted the requester anyway';
+  select count(*) into v_count from cloud.invite_requests r
+   where r.subject = SQUATTER and r.closed_at is null and r.approved_at is null;
+  assert v_count = 1, 'a refused approval closed the request or queued its message';
+
+  -- `remove_account` reaches the admission by either name: the subject of the account row
+  -- the handle names now, for somebody who renamed after we let them in...
+  perform cloud.remove_account('after');
+  assert not (api.account_for_session(RENAMER, BUDGET) ->> 'admitted')::boolean,
+    'remove_account left a renamed account admitted';
+
+  -- ...and the handle it was asked under, for somebody with no account row to find at all.
+  delete from cloud.accounts where id = ASKER;
+  perform cloud.remove_account('asker');
+  assert not (api.account_for_session(ASKER, BUDGET) ->> 'admitted')::boolean,
+    'remove_account left an approved account admitted';
+  select count(*) into v_count from cloud.invite_requests where subject = ASKER;
+  assert v_count = 0, 'remove_account left the request behind the admission';
 
   -- -------------------------------------------------------------------------
   -- The day's write budget

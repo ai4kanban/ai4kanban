@@ -30,15 +30,18 @@ cloud/
   secret to hold or leak.
 - **One owner check, applied by every route**: `src/owner.ts` turns a verified sign-in into
   an account (`cloud.accounts`), refuses one we have not admitted, and hands the route an
-  `owner.accountId` to hang its rows off. Exactly one route is open before admission — the
-  one that reports the session, so the app can name the account it refused.
+  `owner.accountId` to hang its rows off. Two routes are open before admission — the one that
+  reports the session, so the app can name the account it refused, and the one it asks for an
+  invite on.
 - **The trusted handle comes from the provider, not from a token**: the `api` function reads
   `auth.identities`, which Auth rewrites on every sign-in. A token carries only
   `user_metadata`, which the account holder can rewrite through Auth, so neither admission
   nor a Slack link may read a handle from one.
-- **Two doors admit an account**: the hand-written handle list, and a code the account
-  redeemed. A redemption is keyed on the sign-in subject rather than the handle, because
-  GitHub lets a handle be given up and taken by somebody else.
+- **One list admits an account, and it holds two kinds of row**: a hand-written row names a
+  handle and is matched on it, and an approval writes a row keyed on the sign-in subject the
+  request carried, because GitHub lets a handle be given up and taken by somebody else. So a
+  rename never un-admits somebody we approved, and never hands their place to whoever takes
+  the name.
 - **One schedule serves the whole service**: an hourly run touches the database, which is
   what keeps a free Supabase project from pausing after a quiet week. It also sweeps finished
   events, and retries mail.
@@ -60,8 +63,10 @@ cloud/
 - **Mail goes out at once, and the run is the retry**: `/v1/invite-request` sends its own
   notice through `waitUntil`, so nobody waits on the top of the hour and the response still
   never waits on Resend. The hourly run picks up what is left — a send the provider refused,
-  and a code approved in the SQL editor, where no Worker was in flight to send it. Either way
-  the mail key never leaves the Worker and a failed send is retried rather than lost.
+  and an approval written in the SQL editor, where no Worker was in flight to send it. Either
+  way the mail key never leaves the Worker and a failed send is retried rather than lost.
+  **Admission never waits on any of it**: approving admits the account there and then, so a
+  message that never lands costs the person the news and nothing else.
 
 ## Endpoints
 
@@ -69,9 +74,9 @@ cloud/
   read-only.
 - `GET /v1/session` — the caller's verified identity. Needs `Authorization: Bearer <token>`.
 - `POST /v1/invite-request` — record that this account asked for an invite. Open to a verified
-  sign-in that is **not** admitted. Pressing it again returns the request already open.
-- `POST /v1/invitations/redeem` — `{ "code": "…" }`. Open to the same. One code admits one
-  account.
+  sign-in that is **not** admitted. Pressing it again returns the request already open. It is
+  the only route open before admission besides the session, because approving is the whole of
+  the answer — there is nothing for the person to send back.
 - `POST /v1/self-check` — one budgeted write through the path every mutation uses. Needs the
   same bearer token **and an admitted account**; run it after a deploy.
 
@@ -102,7 +107,7 @@ to be shown to a user as it stands. The two a client must tell apart:
 | `not_admitted` | A good sign-in from an account we have not admitted. Signing in again lands on the same refusal, so a client must never answer it with "sign in again". |
 | `not_yours` | The request named a row belonging to another account. |
 | `slack_unavailable` / `slack_not_connected` | This service carries no Slack app, or this account has connected none. |
-| `invitation_unknown` / `invitation_redeemed` / `invitation_withdrawn` | The three ways a code can fail. Each asks the reader for something different, so each has its own code. A refused code writes nothing at all. |
+| `no_verified_address` | GitHub attests no address for this account, so a request would leave us nowhere to answer. |
 
 `GET /v1/session` answers `200` either way and carries `session.admitted`. When that is
 false it also carries `refusal`, the very refusal every other route would give, so the app
@@ -153,19 +158,22 @@ values ('neverchanje', 'Tao — 0.8.0 preview')
 on conflict (handle) do nothing;
 
 -- who is in
-select handle, note, admitted_at from cloud.admitted_accounts order by admitted_at;
+select handle, subject, note, admitted_at from cloud.admitted_accounts order by admitted_at;
 
 -- remove
 delete from cloud.admitted_accounts where lower(handle) = lower('neverchanje');
 ```
 
-Removing a row refuses that account from its next request **by this door only**. It leaves
-the `cloud.accounts` row, everything hanging off it, and any code the account redeemed
-exactly where they are. `cloud.remove_account` below is the one that closes both doors.
+A hand-written row leaves `subject` null and is matched on the handle, so a rename un-admits
+it — which is the point of naming a handle. An approval fills `subject` in, and that row is
+then decided on the subject alone.
 
-The handle is matched against what GitHub attests for the sign-in, so a row admits the
-account GitHub says owns that name. It is the door we admit **ourselves** through — an
-invitation code (below) is the one everybody else comes in by.
+Removing a row refuses that account from its next request **by this door only**. It leaves
+the `cloud.accounts` row and everything hanging off it exactly where they are.
+`cloud.remove_account` below is the one that takes the account with it.
+
+This is the door we admit **ourselves** through, and the one for inviting somebody who never
+asked — by hand, with no mail sent. Everybody else comes in by asking (below).
 
 ## Answer an invite request
 
@@ -174,19 +182,29 @@ the notice to `support@ai4kanban.dev` with the requester as the reply address �
 seconds, not at the top of the hour. The **record**, not the mail, is what an answer is
 written from, so a notice Resend refused is one the next hourly run sends again.
 
-Approving is one statement. It issues the code, points it at the address the sign-in
-attested, and leaves it for the next hourly run to send — nobody types a code, and no mail
-credential reaches whoever approves. It is SQL rather than a route, so this one really does
-wait for the hour.
+Approving is one statement, and it is the whole of getting in. It admits the account against
+the sign-in subject the request carried, closes the request, and queues one message telling
+the person they are in — nothing is typed back, and no mail credential reaches whoever
+approves. The admission does not wait on that message: it is SQL rather than a route, so the
+mail really does wait for the hour, and the account is in either way.
 
 `npm run invite` runs the common three from a shell, against the project named by
 `SUPABASE_PROJECT_REF` and `SUPABASE_ACCESS_TOKEN`:
 
 ```sh
 npm run invite                       # who is waiting
-npm run invite approve neverchanje   # issue the code; the next hourly run mails it
-npm run invite codes                 # every code, and what became of it
+npm run invite approve neverchanje   # admit them; the next hourly run mails the news
+npm run invite approved              # who we approved, and where their message got to
 ```
+
+`approved` is how a dead address shows up: a row with `approval_error` set, or with attempts
+climbing and `approval_sent_at` still empty, is somebody who is in and has not been told.
+
+The list holds one row per handle, so approving a handle another account is already admitted
+under is refused rather than admitted for nobody. That happens when somebody we let in
+renamed and a second person took the name: give the old admission the handle it goes by now
+(`update cloud.admitted_accounts set handle = '<new>' where lower(handle) = lower('<old>')`),
+then approve again.
 
 The rest, and the same statements by hand:
 
@@ -195,31 +213,27 @@ The rest, and the same statements by hand:
 select handle, email, requested_at, notified_at, notify_attempts, notify_error
 from cloud.invite_requests where closed_at is null order by requested_at;
 
--- approve one: returns the code, and the next hourly run mails it
+-- approve one: admits the account, and the next hourly run mails the news
 select cloud.approve_invite_request('neverchanje');
 
--- invite somebody who never asked, by naming the address
-select cloud.issue_invitation('someone@example.com', 'Ana — design review');
+-- who we approved, and where their message got to
+select handle, email, approved_at, approval_sent_at, approval_attempts, approval_error
+from cloud.invite_requests where approved_at is not null order by approved_at desc;
 
--- every code, and what became of it
-select code, email, note, issued_at, sent_at, send_attempts, send_error,
-       withdrawn_at, redeemed_by, redeemed_at
-from cloud.invitations order by issued_at desc;
-
--- withdraw a code: before it is redeemed this stops it admitting anybody and stops it
--- going out; after, it closes the door it opened
-select cloud.withdraw_invitation('AK4B-7QF2-M3XD');
-
--- remove an admitted account by BOTH doors, taking its request and its invitation with it
+-- remove an admitted account, taking its admission and its request with it
 select cloud.remove_account('neverchanje');
 ```
 
-A code is twelve characters of a thirty-two-letter alphabet with no `0`, `O`, `1` or `I` in
-it. It is matched with case and dashes ignored, so it can be pasted however it was read.
+Inviting somebody who never asked is the hand-written row above, not a statement here. Only
+somebody who has signed in can be invited out of the blue, because a hand-written row needs
+the handle a sign-in produces; an email-only contact has to install the app and press
+**Request an invite** first.
 
-`cloud.remove_account` matches on the handle, and `cloud.accounts.handle` is deliberately not
-unique — check `select id, handle from cloud.accounts where lower(handle) = lower('…')` first
-if there is any chance two accounts share one.
+`cloud.remove_account` finds the admission by either name — the handle it was asked under,
+for somebody who never signed in again, and the subject of any `cloud.accounts` row the named
+handle matches, for somebody who renamed after we let them in. `cloud.accounts.handle` is
+deliberately not unique, so check `select id, handle from cloud.accounts where lower(handle) =
+lower('…')` first if there is any chance two accounts share one.
 
 Nothing here is reachable over REST: these functions live in `cloud`, which PostgREST serves
 to nobody. Run them in the project's SQL editor, the same way an account is admitted above.
@@ -265,7 +279,7 @@ service refusing requests over a secret only the schedule needs.
   failure.
 - **The scheduled run is outside the budget** — 24 rows a day, and a busy day must not switch
   off the thing keeping the project awake. The mail it sends is outside it for the same
-  reason: a busy day must not hold an invitation back.
+  reason: a busy day must not hold an answer back.
 - **A send is given up on after five attempts** — `MAIL_MAX_ATTEMPTS` in `src/config.ts`. Past
   that the record keeps its last error and stops being mailed every hour forever, so a dead
   address is something the queries above can see.
@@ -345,8 +359,8 @@ Only needed once, and again if the project is ever recreated.
    `https://<project-ref>.supabase.co/auth/v1/callback`. Its client id and secret go into the
    project's GitHub auth provider, not into the Worker. The sign-in asks for **`user:email`
    and nothing else** (`cli/src/lib/cloud/signin.ts`), so every account carries an address
-   GitHub itself verified — which is what an invitation is mailed to — and the grant still
-   cannot read a repository.
+   GitHub itself verified — which is where we answer a request — and the grant still cannot
+   read a repository.
 4. **The sign-in's return address** — in the project's Auth URL configuration, add
    `ai4kanban://cloud/signed-in` to the redirect allow-list. That is the URL scheme the
    desktop app registers for itself (#326): the board UI server's loopback port is whatever

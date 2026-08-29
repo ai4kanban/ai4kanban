@@ -1,11 +1,11 @@
-// The invitation loop's Worker half (#327): the two refusals a code can come back with, and
-// the outbox the hourly run drains. The database's own rules are checked against the live
-// project — see the verify notes on the card.
+// The invitation loop's Worker half (#327, #350): the refusal asking can come back with, and
+// the outbox the hourly run drains. The database's own rules are checked against a real
+// Postgres in test/sql/checks.sql.
 
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { redeemInvitation, requestInvite, sendPendingMail } from '../src/invites.ts'
+import { requestInvite, sendPendingMail } from '../src/invites.ts'
 
 const ENV = {
   SUPABASE_URL: 'https://project.supabase.co',
@@ -57,53 +57,35 @@ describe('requestInvite', () => {
   it('refuses an account the provider attests no address for', async () => {
     answers.request_invite = { ok: false, reason: 'no_address' }
 
-    await assert.rejects(requestInvite(ENV, SUBJECT), { code: 'no_verified_address' })
-  })
-})
-
-describe('redeemInvitation', () => {
-  const cases = [
-    ['unknown', 'invitation_unknown'],
-    ['redeemed', 'invitation_redeemed'],
-    ['withdrawn', 'invitation_withdrawn'],
-  ]
-
-  for (const [reason, code] of cases) {
-    it(`turns a ${reason} code into a refusal of its own`, async () => {
-      answers.redeem_invitation = { ok: false, reason }
-
-      await assert.rejects(redeemInvitation(ENV, SUBJECT, 'AK4B-0000-0000'), (error) => {
-        assert.equal(error.code, code)
-        assert.equal(error.status, 403)
-        return true
-      })
+    await assert.rejects(requestInvite(ENV, SUBJECT), (error) => {
+      assert.equal(error.code, 'no_verified_address')
+      // Nothing is mailed to that account, so nothing names a code it could paste back.
+      assert.doesNotMatch(error.message, /code/i)
+      return true
     })
-  }
+  })
 
-  it('admits the account when the code is good', async () => {
-    answers.redeem_invitation = { ok: true, code: 'AK4B-7QF2-M3XD' }
+  it('refuses a sign-in with no attested handle the way the session does', async () => {
+    answers.request_invite = { ok: false, reason: 'no_provider' }
 
-    await redeemInvitation(ENV, SUBJECT, 'ak4b 7qf2 m3xd')
-
-    assert.equal(rpcCalls[0].args.p_code, 'ak4b 7qf2 m3xd')
+    await assert.rejects(requestInvite(ENV, SUBJECT), { code: 'not_admitted' })
   })
 })
 
 describe('sendPendingMail', () => {
-  const request = {
+  const REQUEST_ID = '22222222-2222-4222-8222-222222222222'
+  const notice = {
     kind: 'request',
-    ref: '22222222-2222-4222-8222-222222222222',
+    ref: REQUEST_ID,
     email: 'asker@example.com',
     handle: 'asker',
-    code: null,
     queued_at: '2026-08-24T09:00:00Z',
   }
-  const invitation = {
-    kind: 'invitation',
-    ref: 'AK4B-7QF2-M3XD',
-    email: 'invited@example.com',
-    handle: null,
-    code: 'AK4B-7QF2-M3XD',
+  const approval = {
+    kind: 'approval',
+    ref: REQUEST_ID,
+    email: 'asker@example.com',
+    handle: 'asker',
     queued_at: '2026-08-24T10:00:00Z',
   }
 
@@ -114,19 +96,20 @@ describe('sendPendingMail', () => {
     assert.equal(sends.length, 0)
   })
 
-  it('sends the code to the address it was issued for, replying to support', async () => {
-    answers.pending_mail = [invitation]
+  it('tells the requester they are in, and asks them to paste nothing', async () => {
+    answers.pending_mail = [approval]
 
     assert.deepEqual(await sendPendingMail(ENV), { queued: 1, sent: 1, failed: 0 })
-    assert.deepEqual(sends[0].to, ['invited@example.com'])
+    assert.deepEqual(sends[0].to, ['asker@example.com'])
     assert.equal(sends[0].reply_to, 'support@ai4kanban.dev')
     assert.match(sends[0].from, /invites@ai4kanban\.dev/)
-    assert.match(sends[0].text, /AK4B-7QF2-M3XD/)
+    assert.match(sends[0].text, /approved/)
     assert.match(sends[0].text, /Configuration/)
+    assert.doesNotMatch(sends[0].text, /code/i)
   })
 
   it('sends the notice to support, replying to whoever asked', async () => {
-    answers.pending_mail = [request]
+    answers.pending_mail = [notice]
 
     await sendPendingMail(ENV)
 
@@ -134,19 +117,23 @@ describe('sendPendingMail', () => {
     assert.equal(sends[0].reply_to, 'asker@example.com')
     assert.match(sends[0].text, /@asker/)
     assert.match(sends[0].text, /approve_invite_request/)
+    // What approving does, so nobody reading it goes looking for a code to send on.
+    assert.match(sends[0].text, /admits the account/)
+    // The command is given ready to run, with the handle it approves in it.
+    assert.match(sends[0].text, /npm run invite approve asker/)
   })
 
-  it('marks a record sent the moment the provider accepts it', async () => {
-    answers.pending_mail = [invitation]
+  it('marks a record sent by kind, so one request row can owe two messages', async () => {
+    answers.pending_mail = [approval]
 
     await sendPendingMail(ENV)
 
     const marked = rpcCalls.find((c) => c.fn === 'mark_mail_sent')
-    assert.deepEqual(marked.args, { p_kind: 'invitation', p_ref: 'AK4B-7QF2-M3XD' })
+    assert.deepEqual(marked.args, { p_kind: 'approval', p_ref: REQUEST_ID })
   })
 
   it('counts it sent though the mark itself answers with no body', async () => {
-    answers.pending_mail = [invitation]
+    answers.pending_mail = [approval]
 
     assert.deepEqual(await sendPendingMail(ENV), { queued: 1, sent: 1, failed: 0 })
     assert.equal(
@@ -156,12 +143,12 @@ describe('sendPendingMail', () => {
   })
 
   it('keeps the provider’s own words on a record it would not take', async () => {
-    answers.pending_mail = [invitation]
+    answers.pending_mail = [approval]
     resendStatus = 422
 
     assert.deepEqual(await sendPendingMail(ENV), { queued: 1, sent: 0, failed: 1 })
     const marked = rpcCalls.find((c) => c.fn === 'mark_mail_failed')
-    assert.equal(marked.args.p_kind, 'invitation')
+    assert.equal(marked.args.p_kind, 'approval')
     assert.match(marked.args.p_error, /422/)
     assert.equal(
       rpcCalls.some((c) => c.fn === 'mark_mail_sent'),
@@ -170,7 +157,7 @@ describe('sendPendingMail', () => {
   })
 
   it('carries on through a failure rather than stopping the run', async () => {
-    answers.pending_mail = [request, invitation]
+    answers.pending_mail = [notice, approval]
     let first = true
     const send = globalThis.fetch
     globalThis.fetch = async (url, init) => {
@@ -185,7 +172,7 @@ describe('sendPendingMail', () => {
   })
 
   it('sends nothing and says so when the key is not set', async () => {
-    answers.pending_mail = [invitation]
+    answers.pending_mail = [approval]
 
     assert.deepEqual(await sendPendingMail({ ...ENV, RESEND_API_KEY: undefined }), {
       queued: 1,

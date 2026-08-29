@@ -3,8 +3,8 @@
 // "Answer an invite request" in cloud/README.md, run through the management API.
 //
 //   node scripts/invite.mjs                    who is waiting
-//   node scripts/invite.mjs approve <handle>   issue the code; the next hourly run mails it
-//   node scripts/invite.mjs codes              every code, and what became of it
+//   node scripts/invite.mjs approve <handle>   admit them; the next hourly run mails the news
+//   node scripts/invite.mjs approved           who we approved, and where their message got to
 //
 // Values come from the environment or from cloud/.env, which is not in git:
 //   SUPABASE_PROJECT_REF, SUPABASE_ACCESS_TOKEN
@@ -14,9 +14,13 @@ import { loadEnv, requireEnv } from './env.mjs'
 const PENDING = `select handle, email, requested_at, notified_at, notify_attempts, notify_error
                  from cloud.invite_requests where closed_at is null order by requested_at;`
 
-const CODES = `select code, email, note, issued_at, sent_at, send_attempts, send_error,
-                      withdrawn_at, redeemed_by, redeemed_at
-               from cloud.invitations order by issued_at desc limit 50;`
+// Every account an approval admitted, newest first, with the state of the one message that
+// approval queued. Admission never waited on it, so a row with an error is somebody who is in
+// and has not been told.
+const APPROVED = `select handle, email, approved_at, approval_sent_at,
+                         approval_attempts, approval_error
+                  from cloud.invite_requests where approved_at is not null
+                  order by approved_at desc limit 50;`
 
 main().catch((error) => {
   console.error(`invite: ${error.message}`)
@@ -27,14 +31,18 @@ async function main() {
   const [command = 'list', handle] = process.argv.slice(2)
 
   if (command === 'list') return show(await query(PENDING), 'nobody is waiting.')
-  if (command === 'codes') return show(await query(CODES), 'no code has been issued.')
+  if (command === 'approved') return show(await query(APPROVED), 'nobody has been approved.')
   if (command === 'approve') {
     if (!handle) throw new Error('usage: node scripts/invite.mjs approve <handle>')
-    const [row] = await query(`select cloud.approve_invite_request(${literal(handle)}) as code;`)
-    console.log(`${handle}: code ${row.code} — the next hourly run mails it.`)
+    const [row] = await query(`select cloud.approve_invite_request(${literal(handle)}) as done;`)
+    const done = row.done
+    console.log(
+      `@${done.handle}: admitted. The next hourly run tells ${done.email} — ` +
+        '`npm run invite approved` says whether it has gone out.',
+    )
     return
   }
-  throw new Error(`unknown command "${command}" — list, approve or codes`)
+  throw new Error(`unknown command "${command}" — list, approve or approved`)
 }
 
 async function query(sql) {

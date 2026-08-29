@@ -244,14 +244,8 @@ export type ConfigurationCopy = {
     signOut: string;
     notAdmitted: string;
     signedInAs: (handle: string) => string;
-    haveCode: string;
-    codeLabel: string;
-    codeExample: string;
-    redeem: string;
-    redeeming: string;
-    oneCode: string;
-    noCode: string;
-    noCodeBody: string;
+    /** How a request is answered, beside the button that makes one. */
+    howWeAnswer: string;
     /** The request already went in. Takes the day it went in, or `askedUndated`. */
     asked: (when: string) => string;
     askedUndated: string;
