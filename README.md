@@ -33,6 +33,12 @@ planning cycle, so the system becomes more useful as the project evolves.
   project context, and continues until the work is ready to begin.
 - **Coordinates the task lifecycle.** It breaks down work, manages dependencies and
   priorities, plans releases, and sends ready tasks to coding agents.
+- **Carries a card all the way to landed.** One Implement click builds the work in a git
+  worktree of its own, reviews it against what the card asked for, corrects what review
+  found, and lands it as one commit on your branch.
+- **Reaches you when you are away from the machine.** Reviews that are ready and questions
+  only you can answer collect in the app's notification center and arrive in Slack, where
+  the card is approved and the questions answered from the message itself.
 - **Keeps product judgment with people.** Product direction, taste, and consequential
   tradeoffs remain human decisions; routine details are handled from project context.
 - **Builds long-term project memory.** Decisions, completed work, rejected ideas, and
@@ -67,6 +73,10 @@ implement #4
 
 The desktop app, coding agent, and bundled `akb` CLI all operate on the same board. For
 terminal use, run `akb` after installing the app; do not install the npm package separately.
+
+The app reads in English and Simplified Chinese and opens in the language the machine is set
+to. The board is written in the language you pick — cards, open questions, and the lines to
+check included.
 
 ## Learn more
 
