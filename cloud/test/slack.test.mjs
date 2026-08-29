@@ -124,11 +124,12 @@ describe('messageFor', () => {
         ],
       }),
     )
+    // What the card recommends is a star on the option, not a sentence naming it again.
     assert.deepEqual(
       buttons(one.blocks).map((b) => b.label),
-      ['The app’s', 'Ask', 'Open card in app'],
+      ['The app’s', ':star: Ask', 'Open card in app'],
     )
-    assert.match(textIn(one.blocks), /Recommended: Ask/)
+    assert.doesNotMatch(textIn(one.blocks), /Recommended/)
 
     // Several questions, a multi-choice one, or one with no options: a press may not spend
     // the event's single action on one question and forfeit the rest.
@@ -157,21 +158,83 @@ describe('messageFor', () => {
   it('leaves what does not fit behind the card link rather than dropping it', () => {
     const long = Array.from({ length: 400 }, (_, at) => `- a note about the ${at}th thing`).join('\n')
     const { blocks } = messageFor(anEvent({ summary: long }))
-    assert.match(textIn(blocks), /The rest of this card is behind/)
+    assert.match(textIn(blocks), /Trimmed to fit Slack/)
+  })
+
+  it('leads with the card, and says where it stands in one line', () => {
+    const { blocks } = messageFor(anEvent())
+    assert.deepEqual(blocks[0], {
+      type: 'header',
+      text: { type: 'plain_text', text: '#329 Harden the Cloud event flow', emoji: true },
+    })
+    // The state, the board and the release are one line rather than three. The revision is
+    // on none of them: it binds the press, and says nothing to whoever reads the channel.
+    assert.equal(blocks[1].type, 'context')
+    assert.match(blocks[1].elements[0].text, /:eyes: \*Ready for review\*.+ai4kanban.+release 0\.8\.0/)
+    assert.doesNotMatch(blocks[1].elements[0].text, /4f2a19c/)
+  })
+
+  it('shows what a note leads with, and leaves the argument on the card', () => {
+    const notes = [
+      '## Worth noting',
+      '- **Nothing polls GitHub**: a maintainer imports an issue on purpose. The cost is that an',
+      '  issue nobody looks at never reaches the board, which a schedule would fix at the price of',
+      '  filling the board with cards nobody chose.',
+    ].join('\n')
+    const said = textIn(messageFor(anEvent({ notes })).blocks)
+    assert.match(said, /• \*Nothing polls GitHub\*: a maintainer imports an issue on purpose\./)
+    assert.doesNotMatch(said, /nobody chose/, 'the argument stays on the card')
+    assert.match(said, /Trimmed to fit Slack/)
+  })
+
+  it('stops carrying the review notes once the decision is made', () => {
+    const notes = '## Worth noting\n- **A note**: worth reading before deciding.'
+    const open = textIn(messageFor(anEvent({ notes })).blocks)
+    const settled = textIn(messageFor(anEvent({ notes, state: 'running', acted: true })).blocks)
+    assert.match(open, /A note/)
+    assert.doesNotMatch(settled, /A note/, 'a record of what happened is not re-reviewed')
+    // Its own line is where the rest is read, so it carries no second pointer to the card.
+    assert.doesNotMatch(settled, /Trimmed to fit Slack/)
+    assert.match(settled, /Running on/)
+  })
+
+  it('gives a button the option’s lead and the message the whole of it', () => {
+    const options = [
+      'No — ship on `gh auth token` with a `GH_TOKEN` fallback; it costs us no account to keep alive',
+      'Yes — register the OAuth app and enable its device flow; our name on every consent screen',
+    ]
+    const { blocks } = messageFor(
+      anEvent({
+        kind: 'question',
+        decision: 'answer',
+        questions: [{ text: 'Register an OAuth app?', mode: 'single', options, recommend: [1] }],
+      }),
+    )
+    assert.deepEqual(
+      buttons(blocks).map((b) => b.label),
+      [':star: No', 'Yes', 'Open card in app'],
+      'a 75-character cut of a sentence is not an answer anyone can read',
+    )
+    // Cut on the button, whole in the message: a press never means less than the card said.
+    assert.match(textIn(blocks), /:star: \*1\. No\* — ship on `gh auth token`/)
   })
 })
 
 describe('answerView', () => {
   it('escapes an option where Slack reads markup, and nowhere it does not', () => {
-    // The same recommendation is shown twice: as a message's context line, which is mrkdwn,
-    // and as a modal's hint, which is plain text and would show the escape as written.
+    // A message's button is mrkdwn's neighbour and escapes what Slack reads as markup; a
+    // modal's option is plain text, which would show the escape as written.
     const question = { text: 'Which one?', mode: 'single', options: ['A & B', 'C'], recommend: [1] }
     const event = anEvent({ kind: 'question', decision: 'answer', questions: [question] })
 
-    assert.match(textIn(messageFor(event).blocks), /Recommended: A &amp; B/)
+    assert.match(textIn(messageFor(event).blocks), /:star: A & B/)
 
-    const hint = answerView(event).blocks.find((b) => b.type === 'input')?.hint
-    assert.deepEqual(hint, { type: 'plain_text', text: 'Recommended: A & B' })
+    const picked = answerView(event).blocks.find((b) => b.type === 'input')?.element.options
+    assert.deepEqual(
+      picked.map((o) => o.text.text),
+      [':star: A & B', 'C'],
+      'the star marks the recommendation in the modal too',
+    )
   })
 })
 
@@ -202,6 +265,14 @@ describe('mrkdwn', () => {
 
   it('turns a heading into a line and a dash into a bullet', () => {
     assert.equal(mrkdwn('## Worth noting\n- one\n- two'), '*Worth noting*\n• one\n• two')
+  })
+
+  it('undoes the card’s own wrapping, and only inside a paragraph', () => {
+    // A card is written at 100 columns; Slack keeps every one of those breaks.
+    assert.equal(mrkdwn('a card wrapped\nacross two lines'), 'a card wrapped across two lines')
+    assert.equal(mrkdwn('one\n\ntwo'), 'one\n\ntwo', 'a paragraph break is not a wrap')
+    assert.equal(mrkdwn('## Heading\nunder it'), '*Heading*\nunder it')
+    assert.equal(mrkdwn('- a note\n  wrapped\n- another'), '• a note wrapped\n• another')
   })
 })
 

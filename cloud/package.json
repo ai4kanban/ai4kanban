@@ -10,6 +10,7 @@
     "rollback": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler rollback",
     "migrate": "node scripts/migrate.mjs",
     "invite": "node scripts/invite.mjs",
+    "preview:slack": "node scripts/slack-preview.mjs",
     "check:closed": "node scripts/check-closed.mjs",
     "dev": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler dev",
     "tail": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler tail",

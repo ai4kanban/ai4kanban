@@ -6,8 +6,11 @@
  * one edits this message in place, so a channel carries one message per piece of work
  * however many times it moves.
  *
- * Three rules shape everything here:
+ * Four rules shape everything here:
  *
+ *   • a channel is read at a glance — the title is the message's heading, the state is one
+ *     line under it, and the card's own words are cut to a screenful. A reviewer decides
+ *     from what a note LEADS with; the reasoning behind it stays on the card;
  *   • the board's markup is never posted as written — Slack has its own emphasis, links and
  *     code, and a message full of `**` reads as a bug;
  *   • what does not fit is left behind the card link, cut at a bullet or paragraph
@@ -31,61 +34,53 @@ export const ACTION_OPEN_ANSWERS = 'open_answers'
 export const ANSWER_VIEW = 'answers'
 
 /**
- * The nine state names, in Slack's words.
+ * The nine state names, in Slack's words, each with the mark it is read by.
  *
- * They are `cli/src/lib/cloud/events.ts`'s contract, said again here because the Worker
+ * The names are `cli/src/lib/cloud/events.ts`'s contract, said again here because the Worker
  * cannot import the board's rules. A name invented in one surface would show the user two
- * words for one outcome, so this list is edited only when that one is.
+ * words for one outcome, so this list is edited only when that one is. The mark is Slack's
+ * own: one glyph is what tells a scrolling reader a decision from a result.
  */
-function stateLabel(state: string): string {
-  switch (state) {
-    case 'actionable':
-      return 'Actionable'
-    case 'accepted':
-      return 'Accepted'
-    case 'waiting_for_server':
-      return 'Waiting for server'
-    case 'running':
-      return 'Delivery running'
-    case 'completed':
-      return 'Delivery completed'
-    case 'failed':
-      return 'Delivery failed'
-    case 'cancelled':
-      return 'Delivery cancelled'
-    case 'interrupted':
-      return 'Delivery interrupted'
-    case 'stale':
-      return 'No longer waiting'
-    default:
-      return state
-  }
+const STATES: Record<string, [icon: string, label: string]> = {
+  actionable: [':bell:', 'Actionable'],
+  accepted: [':ballot_box_with_check:', 'Accepted'],
+  waiting_for_server: [':hourglass_flowing_sand:', 'Waiting for server'],
+  running: [':hammer_and_wrench:', 'Delivery running'],
+  completed: [':white_check_mark:', 'Delivery completed'],
+  failed: [':x:', 'Delivery failed'],
+  cancelled: [':no_entry_sign:', 'Delivery cancelled'],
+  interrupted: [':warning:', 'Delivery interrupted'],
+  stale: [':zzz:', 'No longer waiting'],
 }
 
-/** What the message says under the title while it is still asking. */
-const ask = (event: EventRow): string =>
-  event.kind === 'question' ? 'Question waiting' : 'Ready for review'
+/** The state as one line. `actionable` is the only state that reads differently by kind:
+ *  it is what the message is asking for. */
+function stateLine(event: EventRow): [icon: string, label: string] {
+  if (event.state === 'actionable') {
+    return event.kind === 'question'
+      ? [':question:', 'Question waiting']
+      : [':eyes:', 'Ready for review']
+  }
+  return STATES[event.state] ?? ['', event.state]
+}
 
-/** The line that takes the buttons' place once the decision is made, and what each state
- *  means for the person reading the channel. */
+/**
+ * The line under a decision that has been made — and only where there is one to write.
+ *
+ * The state line above already says the state, and the card link already says where to read
+ * the rest, so "It landed. Open the card." is two things the message has said. What is left
+ * is what a state name cannot carry: which machine, and what to do about it.
+ */
 function stateNote(event: EventRow): string {
   switch (event.state) {
-    case 'accepted':
-      return 'Recorded. The delivery runs on this board’s own machine.'
     case 'waiting_for_server':
       return event.serverName
         ? `Waiting for ${event.serverName}. It runs as soon as that machine is reachable.`
         : 'This board has no machine attached to run it. Attach one in Configuration → Notifications.'
     case 'running':
-      return event.serverName ? `Running on ${event.serverName}.` : 'Running.'
-    case 'completed':
-      return 'It landed. Open the card to read what changed.'
-    case 'failed':
-      return 'It stopped. Open the card to read why.'
+      return event.serverName ? `Running on ${event.serverName}.` : ''
     case 'interrupted':
       return 'The machine running it went away. Resume or cancel it on that machine.'
-    case 'cancelled':
-      return 'Cancelled on that machine.'
     case 'stale':
       return 'This task stopped needing a person, and nobody acted on it.'
     default:
@@ -105,19 +100,15 @@ export const cardUrl = (event: EventRow): string =>
  * the blocks are the message itself.
  */
 export function messageFor(event: EventRow): { text: string; blocks: Block[] } {
-  const heading = event.state === 'actionable' ? ask(event) : stateLabel(event.state)
-  const blocks: Block[] = [
-    section(`*${escape(heading)}*\n\`#${event.taskId}\` *${escape(event.taskTitle)}*`),
-    context(facts(event)),
-  ]
+  const open = event.state === 'actionable' && !event.acted
+  const [, heading] = stateLine(event)
+  const blocks: Block[] = [header(`#${event.taskId} ${event.taskTitle}`), context(facts(event))]
 
-  // The review text, in the order the card writes it. Bounded here rather than on the way
-  // in: the event carries what the publisher chose to send, and this is what fits in a
-  // message.
-  const review = boundedReview(event)
+  // The card's own words, cut to what a message is read from rather than what a card holds.
+  const review = cardWords(event, open)
   for (const part of review.parts) blocks.push(section(part))
 
-  if (event.state === 'actionable' && !event.acted) {
+  if (open) {
     blocks.push({ type: 'divider' })
     blocks.push(...decision(event))
   } else {
@@ -127,7 +118,7 @@ export function messageFor(event: EventRow): { text: string; blocks: Block[] } {
   }
 
   if (review.cut) {
-    blocks.push(context(`The rest of this card is behind <${cardUrl(event)}|Open card in app>.`))
+    blocks.push(context(`Trimmed to fit Slack — <${cardUrl(event)}|the card> has the rest.`))
   }
 
   return {
@@ -136,11 +127,18 @@ export function messageFor(event: EventRow): { text: string; blocks: Block[] } {
   }
 }
 
-/** The two facts every message carries under its title: which board, and what it binds. */
+/**
+ * The one line under the title: where this stands, which board it is on, and which release
+ * it is promised to.
+ *
+ * The revision is not on it. It is what a press binds — it travels in the button's value and
+ * refuses one made against a card that has moved — but eight opaque characters tell a person
+ * reading a channel nothing they can act on.
+ */
 function facts(event: EventRow): string {
-  const parts = [`*${escape(event.boardName || 'this board')}*`]
+  const [icon, label] = stateLine(event)
+  const parts = [`${icon} *${escape(label)}*`, escape(event.boardName || 'this board')]
   if (event.release) parts.push(`release ${escape(event.release)}`)
-  parts.push(`\`rev ${escape(event.revision.slice(0, 12))}\``)
   return parts.join('  ·  ')
 }
 
@@ -173,15 +171,27 @@ function decision(event: EventRow): Block[] {
   const questions = readQuestions(event)
   const only = questions.length === 1 ? questions[0] : undefined
   if (only && only.mode === 'single' && only.options.length > 0) {
+    const split = only.options.map(splitOption)
+    // The options are written out only when a button could not carry one whole. Saying the
+    // same four words twice is what makes a message look padded.
+    const spelt = split.some((o) => o.why)
+    const asked = `*${escape(only.text)}*`
+    const starred = (at: number) => only.recommend.includes(at + 1)
     return [
-      section(`*${escape(only.text)}*`),
+      section(
+        spelt ? `${asked}\n${split.map((o, at) => optionLine(o, at, starred(at))).join('\n')}` : asked,
+      ),
       actions([
-        ...only.options.map((option, at) =>
-          button(option, `${ACTION_ANSWER_OPTION}:0:${at + 1}`, actionValue(event)),
+        ...split.map((option, at) =>
+          button(
+            starred(at) ? `${STAR} ${option.label}` : option.label,
+            `${ACTION_ANSWER_OPTION}:0:${at + 1}`,
+            actionValue(event),
+          ),
         ),
         link,
       ]),
-      context(escape(recommendation(only)) || 'Leave it alone and the agent researches this one.'),
+      context('Leave it alone and the agent researches this one.'),
     ]
   }
 
@@ -199,19 +209,45 @@ function decision(event: EventRow): Block[] {
  *  reader knows what they are being asked before they press. */
 function questionList(questions: Question[]): string {
   if (questions.length === 0) return '_This event carries no question._'
+  if (questions.length === 1) return `*${escape(questions[0]?.text ?? '')}*`.slice(0, SLACK_SECTION_LIMIT)
   return questions
     .map((q, at) => `*${at + 1}.* ${escape(q.text)}`)
     .join('\n')
     .slice(0, SLACK_SECTION_LIMIT)
 }
 
-/** Plain words. The two places this is shown want different things — a message's context
- *  line is mrkdwn and escapes it, a modal's hint is plain text and would show the escape. */
-const recommendation = (question: Question): string => {
-  const picked = question.recommend
-    .map((n) => question.options[n - 1])
-    .filter((o): o is string => !!o)
-  return picked.length > 0 ? `Recommended: ${picked.join(', ')}` : ''
+/** What the card recommends, on the option itself rather than in a sentence under it. One
+ *  mark on the thing you press beats a line naming it again. */
+const STAR = ':star:'
+
+/** How long a button label reads well. Past it Slack cuts mid-word, which turns a card's
+ *  reasoning into nonsense on the one control that acts on it. */
+const OPTION_LABEL = 40
+
+/**
+ * An option as a button and as a line.
+ *
+ * A card writes a long option as `Pick — why it is the one to pick`, so the lead is what a
+ * button carries and the rest is what the message says above it. An option with no lead to
+ * find is numbered rather than cut: `Option 2` beside the whole sentence says more than
+ * two-thirds of that sentence on its own.
+ */
+function splitOption(option: string, at = 0): { label: string; why: string } {
+  if (option.length <= OPTION_LABEL) return { label: option, why: '' }
+  const lead = option.match(/^(.{1,40}?)\s*(?:—|–|:|;|\s-\s)\s+(\S.*)$/s)
+  if (!lead?.[1] || !lead[2]) return { label: `Option ${at + 1}`, why: option }
+  return { label: lead[1].trim(), why: lead[2].trim() }
+}
+
+/** The option as the message spells it out, numbered to the button under it and starred in
+ *  the margin when the card recommends it. A lead the card did not write is not invented
+ *  here — that option is its number and its words. */
+function optionLine(option: { label: string; why: string }, at: number, starred: boolean): string {
+  const said =
+    option.why && option.label !== `Option ${at + 1}`
+      ? `*${at + 1}. ${escape(option.label)}* — ${escape(option.why)}`
+      : `*${at + 1}.* ${escape(option.why || option.label)}`
+  return starred ? `${STAR} ${said}` : said
 }
 
 // --- the questions an event carries -------------------------------------------
@@ -242,23 +278,105 @@ export function readQuestions(event: EventRow): Question[] {
 
 // --- the review text ----------------------------------------------------------
 
+/** What a message spends on the card's own words. Slack allows a section 3000 characters;
+ *  a person scrolling a channel reads a few lines, and the card is one press away. */
+const SUMMARY_BUDGET = 700
+const NOTES_BUDGET = 700
+const SETTLED_BUDGET = 400
+/** One note, as a message shows it: its lead, and no more of the paragraph than a line. */
+const NOTE_LEAD = 160
+
 /**
  * The card's opening paragraph and its review notes, as Slack sections.
  *
- * Cut at a bullet or paragraph boundary rather than mid-sentence, and never dropped
- * silently: `cut` is what puts the "rest is on the card" line at the foot of the message.
+ * An open decision gets both — the paragraph says what the work is, the notes' leads say
+ * what was flagged about doing it. A settled one gets the paragraph alone: by then the
+ * message is a record of what happened, its own line says where to read the rest, and
+ * nobody re-reads seven review notes to learn that a delivery landed.
+ *
+ * Nothing a decision is made from is dropped silently: `cut` is what puts the "rest is on
+ * the card" line at the foot of a message that is still asking.
  */
-function boundedReview(event: EventRow): { parts: string[]; cut: boolean } {
+function cardWords(event: EventRow, open: boolean): { parts: string[]; cut: boolean } {
   const parts: string[] = []
+  const summary = bound(mrkdwn((event.summary ?? '').trim()), open ? SUMMARY_BUDGET : SETTLED_BUDGET)
+  if (summary.text) parts.push(summary.text)
+
+  // A settled message never says it was trimmed. It is a record with the card one press
+  // away, and a line pointing at a button that is already there reads as filler.
+  if (!open) return { parts, cut: false }
+  const notes = (event.notes ?? '').trim()
+  if (!notes) return { parts, cut: summary.cut }
+
+  const leads = noteLeads(notes)
+  if (leads.text) parts.push(leads.text)
+  return { parts, cut: summary.cut || leads.cut }
+}
+
+/**
+ * The review notes as one line each.
+ *
+ * A card writes a note as `- **what**: why`, wrapped over several lines, so seven of them
+ * arrive as forty lines of prose nobody reads in a channel. The lead is the finding and the
+ * rest is the argument for it: a reviewer decides on the first and reads the second on the
+ * card.
+ */
+function noteLeads(notes: string): { text: string; cut: boolean } {
+  const lines: string[] = []
+  let held: string[] | null = null
   let cut = false
-  for (const raw of [event.summary, event.notes]) {
-    const held = (raw ?? '').trim()
-    if (!held) continue
-    const bounded = bound(mrkdwn(held), SLACK_SECTION_LIMIT)
-    if (bounded.text) parts.push(bounded.text)
-    cut = cut || bounded.cut
+
+  const close = () => {
+    if (!held) return
+    const whole = held.join(' ').replace(/\s+/g, ' ').trim()
+    const lead = firstSentence(whole, NOTE_LEAD)
+    cut = cut || lead !== whole
+    if (lead) lines.push(`• ${mrkdwn(lead)}`)
+    held = null
   }
-  return { parts, cut }
+
+  for (const raw of notes.split('\n')) {
+    const line = raw.trim()
+    if (!line) {
+      close()
+      continue
+    }
+    if (/^#{1,6}\s/.test(line)) {
+      close()
+      lines.push(mrkdwn(line))
+      continue
+    }
+    const bullet = line.match(/^[-*+]\s+(.*)$/)
+    if (bullet) {
+      close()
+      held = [bullet[1] ?? '']
+      continue
+    }
+    // A wrapped line belongs to the note above it; a paragraph of its own is a note too.
+    if (held) held.push(line)
+    else held = [line]
+  }
+  close()
+
+  const bounded = bound(lines.join('\n'), NOTES_BUDGET)
+  return { text: bounded.text, cut: cut || bounded.cut }
+}
+
+/** A note's lead: its first sentence, or as much of one as a line holds. Emphasis the cut
+ *  ran through is closed, because a stray `**` on the page reads as a bug. */
+function firstSentence(text: string, limit: number): string {
+  const stop = text.search(/[.!?](\s|$)/)
+  if (stop >= 0 && stop + 1 <= limit) return text.slice(0, stop + 1)
+  const kept = clip(text, limit)
+  return (kept.match(/\*\*/g) ?? []).length % 2 ? `${kept}**` : kept
+}
+
+/** As much of one line as a limit holds, ending at a word rather than mid-syllable. */
+function clip(text: string, limit: number): string {
+  if (text.length <= limit) return text
+  const head = text.slice(0, limit - 1)
+  const space = head.lastIndexOf(' ')
+  return `${(space > limit / 2 ? head.slice(0, space) : head).trimEnd()}…`
 }
 
 /**
@@ -293,8 +411,9 @@ export function mrkdwn(markdown: string): string {
     return `\u0000${code.length - 1}\u0000`
   })
 
+  out = unwrap(out)
   out = escape(out)
-  out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_all, text: string, url: string) => `<${url}|${text}>`)
+  out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,(_all, text: string, url: string) => `<${url}|${text}>`)
   // Bold before italic: `**x**` is two of the character italic uses, so the other order
   // turns every bold run into a pair of empty italics. It is held aside and written back
   // once the italics are done.
@@ -308,11 +427,37 @@ export function mrkdwn(markdown: string): string {
   return out.trim()
 }
 
+/**
+ * A card's own line breaks, taken out of the paragraph they wrap.
+ *
+ * Markdown folds a wrapped line into the paragraph above it and Slack keeps it, so a card
+ * written at 100 columns arrives on a phone broken every eight words. A bullet, a heading,
+ * a quote and a table row start a line of their own; anything else continues the one above.
+ */
+function unwrap(text: string): string {
+  const out: string[] = []
+  for (const line of text.split('\n')) {
+    const above = out[out.length - 1]
+    const starts = /^\s*(?:[-*+]\s|\d+[.)]\s|#{1,6}\s|>|\|)/.test(line)
+    const closed = above === undefined || !above.trim() || /^\s*(?:#{1,6}\s|\|)/.test(above)
+    if (!line.trim() || starts || closed) out.push(line)
+    else out[out.length - 1] = `${above.trimEnd()} ${line.trim()}`
+  }
+  return out.join('\n')
+}
+
 /** The three characters Slack reads as markup. Everything a card wrote goes through here. */
 export const escape = (text: string): string =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 // --- blocks -------------------------------------------------------------------
+
+/** The title, as the message's own heading. Plain text — nothing is escaped for it, because
+ *  Slack shows an escape as written — and cut at the 150 characters a header holds. */
+const header = (text: string): Block => ({
+  type: 'header',
+  text: { type: 'plain_text', text: text.slice(0, 150), emoji: true },
+})
 
 const section = (text: string): Block => ({
   type: 'section',
@@ -380,7 +525,7 @@ export function answerView(event: EventRow): Record<string, unknown> {
     close: { type: 'plain_text', text: 'Cancel' },
     blocks: [
       context(`*${escape(event.taskTitle)}*`),
-      ...shown.flatMap((question, at) => questionInput(question, at)),
+      ...shown.flatMap((question, at) => questionInput(question, at, shown.length)),
       context(
         left > 0
           ? `A question you leave blank stays open for the agent to research — as do the ${left} more on the card.`
@@ -400,10 +545,10 @@ const MODAL_QUESTIONS = SLACK_BLOCK_LIMIT - 2
 export const answerBlockId = (at: number) => `q${at}`
 export const ANSWER_ACTION = 'answer'
 
-function questionInput(question: Question, at: number): Block[] {
+function questionInput(question: Question, at: number, of: number): Block[] {
   const label = {
     type: 'plain_text',
-    text: `${at + 1}. ${question.text}`.slice(0, 2000),
+    text: (of > 1 ? `${at + 1}. ${question.text}` : question.text).slice(0, 2000),
     emoji: true,
   }
   if (question.options.length === 0) {
@@ -417,18 +562,25 @@ function questionInput(question: Question, at: number): Block[] {
       },
     ]
   }
+  // Slack refuses an option past 150 characters, so a long one ends at a word rather than
+  // wherever the 150th character happens to land. The star is the whole of what the card
+  // recommends, on the option itself — the same mark the message shows.
   const options = question.options.map((option, index) => ({
-    text: { type: 'plain_text', text: option.slice(0, 150), emoji: true },
+    text: {
+      type: 'plain_text',
+      text: question.recommend.includes(index + 1)
+        ? `${STAR} ${clip(option, 143)}`
+        : clip(option, 150),
+      emoji: true,
+    },
     value: String(index + 1),
   }))
-  const hint = recommendation(question)
   return [
     {
       type: 'input',
       block_id: answerBlockId(at),
       optional: true,
       label,
-      ...(hint ? { hint: { type: 'plain_text', text: hint.slice(0, 150) } } : {}),
       element: {
         type: question.mode === 'multi' ? 'checkboxes' : 'radio_buttons',
         action_id: ANSWER_ACTION,

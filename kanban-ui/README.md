@@ -111,10 +111,10 @@ click first, because crossing off takes the line off the card and there is no wa
 this screen. A line a run has already taken off says so and the panel redraws to what the
 card holds now.
 
-**Add a check** at the foot of the panel writes a new one in your own words — one line,
-Enter to save, Escape to drop it. On a card with no hand-checks it is all the panel shows.
+You cannot write one here: hand-checks come from the spec the board clarifies, and a card
+with none shows no panel.
 
-Both save the moment you act and neither starts a run. Both are off while an agent is
+Crossing off saves the moment you act and starts no run. It is off while an agent is
 working the card. A card with hand-checks still open still archives — they are notes on
 finished work, not a gate.
 
