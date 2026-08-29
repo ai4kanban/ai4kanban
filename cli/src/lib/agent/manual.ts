@@ -145,7 +145,8 @@ branch \`card/<card>/<delivery>\` — so several run at once without touching ea
 your own edits, and the board's own files stay out of them. \`cancel\` leaves the worktree
 where it is; \`discard\` — and the card page's Discard — throws it away with the delivery. Turn **Allow automatic Git
 commits** off in Configuration and a delivery works in your checkout instead, one at a
-time, and you commit after review passes.
+time, and you commit after review passes — and the Implement dialog's **Build this on a
+branch of its own** turns one build round without moving that setting.
 
 Once review passes, the delivery LANDS: one squash commit on the branch you were on when
 you pressed Implement. One card lands at a time, however many are building. Uncommitted
@@ -160,8 +161,9 @@ would land — the **Approval** tab on the card page, or \`approve\` above. It t
 slot while it waits, so every other card still lands. An approval covers the delivery's base
 commit and the tree built on it, and either one moving — a rebase or a review fix — cancels
 it and the delivery waits again. Off by default, and frozen on a delivery the way its commit
-mode is. It has nothing to hold with automatic commits off: the board never
-commits there, so your own commit is the approval.
+mode is. It follows whether a build got a branch of its own, however that was chosen, so it
+has nothing to hold on one without: the board never commits there, and your own commit is
+the approval.
 
 Completion is the LAST step, never an earlier one: the board archives the card itself once
 the delivery has landed and ended — no run is started to do it, and the review that passes a

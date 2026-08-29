@@ -158,10 +158,17 @@ const en: RunsCopy = {
       needsApproval:
         " It waits for you to approve the tree before that, because this board requires diff approval.",
       thenArchives: " Then it ticks the todos, writes the shipped line, and archives the card.",
+      manualFolder:
+        "One click carries this card all the way: the agent builds it here in your project folder, then a fresh run reviews and fixes it, and it stops. Nothing is committed for you: commit what review passed, and the card is archived then.",
       manual:
         "One click carries this card all the way: the agent builds it, then a fresh run reviews and fixes it, and it stops. **Manual commit mode** is on, so nothing is committed for you: commit what review passed, and the card is archived then.",
       manualWhy: (why) =>
-        `One click carries this card all the way: the agent builds it, then a fresh run reviews and fixes it, and it stops. **Manual commit mode** is on — ${why}, so nothing is committed for you: commit what review passed, and the card is archived then.`,
+        `One click carries this card all the way: the agent builds it, then a fresh run reviews and fixes it, and it stops. Nothing is committed for you — ${why}. Commit what review passed, and the card is archived then.`,
+      ownBranch: "Build this on a branch of its own",
+      ownBranchOn:
+        "The agent works in a separate copy of the project — a git worktree — so your own files are left exactly as they are.",
+      ownBranchOff:
+        "The agent works right here, in this folder, and nothing else can be built until you commit what it leaves.",
       questionsOne:
         "This card has **1 open question**. It will be built and reviewed, then hold at landing until you answer it — or press **Resolve & implement** to answer it first.",
       questionsMany: (n) =>
@@ -188,7 +195,8 @@ const en: RunsCopy = {
       resolveFirstHint:
         "Answer the open questions first, and build the card once nothing is left to decide",
       schedule: "Schedule",
-      scheduleHint: "Build this card by itself, once nothing is in its way",
+      scheduleHint:
+        "Build this card by itself, once nothing is in its way — following the repository's commit setting, not the box here.",
     },
     run: {
       title: (id) => `Run #${id}`,

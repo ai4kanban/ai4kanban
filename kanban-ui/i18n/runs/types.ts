@@ -103,14 +103,22 @@ export type RunsCopy = {
     cancel: string;
     implement: {
       title: (id: number) => string;
-      /** The one-click sentence, in its three shapes: auto-commit onto a named
-       *  branch, auto-commit onto whatever branch you are on, and manual commits. */
+      /** The one-click sentence, in the shapes the tick and the checkout put it in
+       *  (#346): onto a named branch, onto whatever branch you are on, in this very
+       *  folder because the box is unticked, and — where there was never a box — because
+       *  no worktree is possible here (`manualWhy`) or the setting is off (`manual`). */
       autoBranch: (branch: string) => string;
       autoHere: string;
       needsApproval: string;
       thenArchives: string;
+      manualFolder: string;
       manual: string;
       manualWhy: (why: string) => string;
+      /** The box that picks where THIS build works (#346), and the line under it — which
+       *  follows the tick, since what it costs is what the tick changes. */
+      ownBranch: string;
+      ownBranchOn: string;
+      ownBranchOff: string;
       questionsOne: string;
       questionsMany: (n: number) => string;
       ackQuestionsOne: string;

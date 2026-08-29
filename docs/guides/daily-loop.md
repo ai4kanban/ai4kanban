@@ -278,9 +278,12 @@ and names the branch the change will land on.
   on and what answers it. Answering carries the same delivery on, with no second click — and
   an answer that changed what the card asks for starts a fresh delivery on the card as it now
   reads.
-- **Manual commit mode is the exception.** With **Allow automatic Git commits** off nothing
-  lands: the delivery stops after review and waits for your own commit, and the card is
-  archived when that commit matches what review passed.
+- **Manual commit mode is the exception.** Untick **Build this on a branch of its own** in
+  the dialog — it opens on whatever **Allow automatic Git commits** says, and unticking it
+  changes this build alone — and nothing lands: the agent builds in the folder you are
+  sitting in, the delivery stops after review, and the card is archived when your own commit
+  matches what review passed. Where a worktree is impossible anyway — no git, no commit to
+  fork from, or a detached `HEAD` — there is no box and the build works this way regardless.
 - **Your own commits on that branch are refused while it lands.** One moves the target under
   the delivery, so a `pre-commit` hook installed beside the skill names the delivery and
   stops the commit. Commit on another branch, or `git commit --no-verify` to go ahead anyway.

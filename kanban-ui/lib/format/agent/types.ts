@@ -104,6 +104,11 @@ export interface AgentRequest {
   /** spec: which spec agent this run is — a name from `lib/spec-agents.ts`. It decides
    *  the prompt the run is given and the section it is allowed to write. */
   specAgent?: string
+  /** implement: how THIS build commits (#346) — the Implement dialog's tick, and this one
+   *  delivery's answer. Absent on every other way in — a terminal `akb implement`, a queued
+   *  build, a resolve that carries on — and those fall back to **Allow automatic Git
+   *  commits**. Ignored where no worktree is possible; the build is manual there regardless. */
+  commitMode?: DeliveryCommitMode
 }
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */

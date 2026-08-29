@@ -331,21 +331,26 @@ export interface Card {
 }
 
 /** What an Implement click would do on this board right now, as the Implement dialog says
- *  it (#307). It belongs to the project rather than to any card: the branch is whichever
- *  one is checked out at the moment of the click, and the commit mode is one setting. */
+ *  it (#307). It belongs to the project rather than to any card: the branch is whichever one
+ *  is checked out at the moment of the click. It answers BOTH sides at once (#346) — what a
+ *  build with its own worktree would do, and what one without would — so the dialog's tick
+ *  rewrites its own sentence without asking the board again. */
 export interface DeliveryPlan {
-  /** The branch a delivery started now would land on. Absent outside a git repository, and
-   *  on a detached HEAD, where a delivery has nowhere to land. */
+  /** The branch a build with its own worktree would land on. Absent when none is possible. */
   branch?: string
-  /** `auto` lands the work itself; `manual` stops after review and waits for the user's own
-   *  commit. */
+  /** Which side the dialog's tick starts on: `auto` when the repository allows automatic Git
+   *  commits and a worktree is possible, `manual` otherwise. */
   commitMode: 'auto' | 'manual'
-  /** Why it would be manual when the setting did not ask for it — no git, or no commit to
-   *  fork from. Absent when the setting is the reason. */
+  /** Why this build can have no worktree — no git, no commit to fork from, or a detached
+   *  HEAD. Absent whenever one is possible, including when the setting is what chose manual. */
   manualWhy?: string
-  /** The delivery would wait for the user to approve the tree before it lands (#308).
-   *  Never in manual commit mode, where the user's own commit is the approval. */
+  /** A build with its own worktree waits for the user to approve the tree before it lands
+   *  (#308). Read from the setting alone, so it holds whichever side the tick picks. */
   needsApproval?: boolean
+  /** Whether the dialog may offer the tick at all (#346): false where no worktree is
+   *  possible. Absent on rules older than the choice, and the dialog then offers no box and
+   *  says only what `commitMode` alone always said. */
+  canChooseWorktree?: boolean
 }
 
 export interface Column {

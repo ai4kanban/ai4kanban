@@ -1,11 +1,14 @@
-// How a delivery commits, and everything that follows from it (#303).
+// How a delivery commits, and everything that follows from it (#303, #346).
 //
-// **Allow automatic Git commits** is one repository-level setting, on by default. With it
-// on a delivery gets a worktree and a branch of its own, several deliveries run at once,
-// and the board commits each session's work so review reads a settled tree. With it off —
-// or with no git at all, or no commit to fork from — the delivery takes MANUAL COMMIT MODE:
-// it works in the user's own checkout, one delivery at a time, and the user commits after
-// review has passed.
+// With a worktree of its own a delivery builds on a branch of its own, several run at once,
+// and the board commits each session's work so review reads a settled tree. Without one it
+// takes MANUAL COMMIT MODE: it works in the user's own checkout, one delivery at a time, and
+// the user commits after review has passed.
+//
+// The Implement dialog's tick picks the side, one build at a time (#346). **Allow automatic
+// Git commits** is the repository-level default the tick starts from and what a request that
+// says nothing falls back to. Where no worktree is possible at all — no git, no commit to
+// fork from, or a detached HEAD — manual mode is the only answer and there is nothing to ask.
 //
 // The mode is decided once, as the delivery starts, and written onto it. Flipping the
 // setting changes the next delivery and never one already in flight.
@@ -90,7 +93,8 @@ export interface DeliveryStart {
   targetBranch?: string
   worktree?: string
   branch?: string
-  /** Why it is in manual mode when the setting did not ask for it. */
+  /** Why it is in manual mode when nothing could have chosen otherwise — no git, no commit
+   *  to fork from, or a detached HEAD. Absent when the setting or the dialog's tick chose it. */
   manualWhy?: string
   /** Whether this delivery has to be approved before it lands (#308), read from the setting
    *  here and never again. Only ever true in auto commit mode: in manual mode the board
@@ -105,55 +109,61 @@ export const deliveryCwd = (delivery: { worktree?: string }): string =>
 const names = (files: string[]): string =>
   `${files.slice(0, MAX_NAMED).join(', ')}${files.length > MAX_NAMED ? `, and ${files.length - MAX_NAMED} more` : ''}`
 
-/** What an Implement click would do right now, without doing any of it (#307): the branch
- *  the change would land on, and whether it lands at all. The Implement dialog says this
- *  before the click, so it is the same three answers `prepareDelivery` settles after it —
- *  read, never written. */
+/** Why this checkout can give a delivery no worktree of its own, or nothing when it can.
+ *  The dialog says it before the click and `prepareDelivery` acts on it after, so what the
+ *  sentence promises and what the click does can never disagree (#346). */
+function noWorktreeWhy(): string | undefined {
+  if (!inGitRepo()) return 'this project is not a git repository, so there is no branch to build on'
+  if (!headCommit()) return 'this repository has no commit yet, so there is nothing to fork a branch from'
+  if (!currentBranch()) return 'this checkout is on a detached HEAD, so a build has nowhere to land'
+  return undefined
+}
+
+/** What an Implement click would do right now, without doing any of it (#307): both sides of
+ *  the dialog's tick at once (#346) — the branch a build with its own worktree would land on
+ *  and whether it would wait for approval, and why one without has nothing to land. Read,
+ *  never written. */
 export function deliveryPlan(): DeliveryPlan {
-  if (!inGitRepo()) {
-    return { commitMode: 'manual', manualWhy: 'this project is not a git repository, so there is no branch to build on' }
+  const manualWhy = noWorktreeWhy()
+  if (manualWhy) return { commitMode: 'manual', manualWhy, canChooseWorktree: false }
+  return {
+    commitMode: autoCommitAllowed() ? 'auto' : 'manual',
+    branch: currentBranch() ?? undefined,
+    needsApproval: diffApprovalRequired(),
+    canChooseWorktree: true,
   }
-  if (!headCommit()) {
-    return { commitMode: 'manual', manualWhy: 'this repository has no commit yet, so there is nothing to fork a branch from' }
-  }
-  if (!autoCommitAllowed()) return { commitMode: 'manual', branch: currentBranch() ?? undefined }
-  return { commitMode: 'auto', branch: currentBranch() ?? undefined, needsApproval: diffApprovalRequired() }
 }
 
 /** Get a delivery ready to start on this card: decide the mode, refuse what can't start,
  *  and make its worktree.
  *
+ *  `wants` is the Implement dialog's tick — this one build's answer (#346). A request that
+ *  says nothing falls back to **Allow automatic Git commits**, which is every other way in:
+ *  a terminal `akb implement`, a queued build, a resolve that carries on.
+ *
  *  Called before the record is written and before anything spawns, so a refusal costs
  *  nothing and a delivery is never written down half-made. Whatever it made is undone by
  *  `undoPrepared` when the run is refused after it. */
-export function prepareDelivery(cardId: number): { start: DeliveryStart } | { error: string } {
+export function prepareDelivery(
+  cardId: number,
+  wants?: DeliveryCommitMode,
+): { start: DeliveryStart } | { error: string } {
   const deliveryId = newDeliveryId()
   const base = inGitRepo() ? headCommit() : null
-  const wanted: DeliveryCommitMode = autoCommitAllowed() ? 'auto' : 'manual'
+  // No git, no commit to branch from, or a detached HEAD: there is nothing to fork, so the
+  // delivery works where it is however it was asked for. A board in an unversioned folder
+  // delivers today, and this must not take that away.
+  const manualWhy = noWorktreeWhy()
+  const wanted: DeliveryCommitMode = manualWhy ? 'manual' : (wants ?? (autoCommitAllowed() ? 'auto' : 'manual'))
 
-  // No git, or a repository with no commit yet: there is nothing to branch from, so the
-  // delivery works where it is. A board in an unversioned folder delivers today, and this
-  // must not take that away.
-  const manualWhy = !inGitRepo()
-    ? 'this project is not a git repository, so there is no branch to build on'
-    : !base
-      ? 'this repository has no commit yet, so there is nothing to fork a branch from'
-      : undefined
-
-  if (wanted === 'manual' || manualWhy) {
+  if (wanted === 'manual') {
     const refusal = manualRefusal(cardId, !!base)
     if (refusal) return { error: refusal }
     return { start: { deliveryId, commitMode: 'manual', base: base ?? undefined, manualWhy, needsApproval: false } }
   }
 
-  const targetBranch = currentBranch()
-  if (!targetBranch) {
-    return {
-      error:
-        `this checkout is on a detached HEAD, so a delivery has nowhere to land. ` +
-        `Check out a branch first, then start it again.`,
-    }
-  }
+  // `noWorktreeWhy` cleared all three, so the branch and the base are both there.
+  const targetBranch = currentBranch() as string
   const dirty = dirtyPaths(false)
   if (dirty.length) {
     return {
@@ -186,15 +196,16 @@ export function prepareDelivery(cardId: number): { start: DeliveryStart } | { er
 }
 
 // Why a manual delivery can't start right now — one at a time, from clean code — or
-// nothing when it may.
+// nothing when it may. It names the mode, never the setting: the dialog's tick reaches
+// manual mode too, and a refusal blaming a switch the user never touched would be a lie.
 function manualRefusal(cardId: number, hasBase: boolean): string | undefined {
   const held = readStore().deliveries.find(
     (d) => d.status === 'active' && d.commitMode !== 'auto' && d.cardId !== cardId,
   )
   if (held) {
     return (
-      `delivery ${held.deliveryId} is already working in this checkout on #${held.cardId} — with automatic Git commits off ` +
-      `only one delivery runs at a time. Finish or cancel that one first.`
+      `delivery ${held.deliveryId} is already working in this checkout on #${held.cardId} — a build without a branch ` +
+      `of its own works in your project folder, and only one does at a time. Finish or cancel that one first.`
     )
   }
   if (!hasBase) return undefined
@@ -204,8 +215,8 @@ function manualRefusal(cardId: number, hasBase: boolean): string | undefined {
   const dirty = dirtyPaths(true)
   if (dirty.length) {
     return (
-      `you have uncommitted changes in ${names(dirty)}. With automatic Git commits off a delivery works in this ` +
-      `checkout, so review can only tell its work from yours if you start from a clean tree — commit or stash these first.`
+      `you have uncommitted changes in ${names(dirty)}. A build without a branch of its own works in this checkout, ` +
+      `so review can only tell its work from yours if you start from a clean tree — commit or stash these first.`
     )
   }
   return undefined

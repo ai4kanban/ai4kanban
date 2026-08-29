@@ -134,14 +134,13 @@ const en: ConfigurationCopy = {
       "A change applies to deliveries started afterwards. One already in flight keeps what it started with.",
     commits: {
       title: "Allow automatic Git commits",
-      body: "Each delivery gets its own branch and worktree, so several run side by side and the reviewed code is what lands. Off, a delivery works in your project folder, one at a time, and you commit it after review.",
+      body: "The side each Implement opens on. On, a build gets its own branch and worktree, so several run side by side and the reviewed code is what lands. Off, it builds in your project folder, one at a time, and you commit it after review. The Implement dialog can turn one build round without changing this.",
       failedOn: "couldn't switch automatic Git commits on",
       failedOff: "couldn't switch automatic Git commits off",
     },
     approval: {
       title: "Require diff approval before landing",
-      body: "Every delivery waits after review until you approve the exact tree it would land — the Approval tab on the card. It takes no landing slot while it waits. An approval covers one base commit and one tree; either moving cancels it.",
-      moot: "Nothing to hold while automatic Git commits are off: the board never lands there, so your own commit is the approval.",
+      body: "Every build that got a branch of its own waits after review until you approve the exact tree it would land — the Approval tab on the card. It takes no landing slot while it waits. An approval covers one base commit and one tree; either moving cancels it.",
       failedOn: "couldn't switch diff approval on",
       failedOff: "couldn't switch diff approval off",
     },

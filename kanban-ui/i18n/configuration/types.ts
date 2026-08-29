@@ -141,14 +141,7 @@ export type ConfigurationCopy = {
     /** A change only reaches deliveries started afterwards. */
     frozen: string;
     commits: { title: string; body: string; failedOn: string; failedOff: string };
-    approval: {
-      title: string;
-      body: string;
-      /** Nothing to hold while automatic commits are off. */
-      moot: string;
-      failedOn: string;
-      failedOff: string;
-    };
+    approval: { title: string; body: string; failedOn: string; failedOff: string };
     /** Only read out loud: one setting's switch. */
     switchOn: (setting: string) => string;
     switchOff: (setting: string) => string;

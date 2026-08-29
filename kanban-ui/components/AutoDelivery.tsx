@@ -5,16 +5,17 @@
 // Two switches, both repository-level, both saved with the board rather than with this
 // machine, so a team shares one answer.
 //
-// **Allow automatic Git commits** (#303) decides where a delivery works. On — the default —
-// each delivery builds on a branch of its own in a worktree of its own, so several run at
-// once without touching each other or your open edits, and what review passed is exactly
-// what lands. Off, a delivery works in your own project folder, one at a time, and you
-// commit it yourself once review has passed.
+// **Allow automatic Git commits** (#303) is the side each Implement opens on. On — the
+// default — a build gets a branch and a worktree of its own, so several run at once without
+// touching each other or your open edits, and what review passed is exactly what lands. Off,
+// it builds in your own project folder, one at a time, and you commit it yourself once
+// review has passed. Either way the Implement dialog's box can turn this one build round
+// (#346), and it never writes its answer back here.
 //
 // **Require diff approval before landing** (#308) decides whether anything lands unread.
-// Off — the default — a reviewed delivery lands by itself. On, every delivery waits after
-// review until you approve the exact tree it would land. It has nothing to hold with
-// automatic commits off, where your own commit is already the approval.
+// Off — the default — a reviewed delivery lands by itself. On, every delivery that got a
+// branch of its own waits after review until you approve the exact tree it would land —
+// however that branch was chosen, so this stays settable with automatic commits off.
 
 import { useEffect, useState } from "react";
 import { FiAlertCircle } from "react-icons/fi";
@@ -34,14 +35,12 @@ function SettingRow({
   children,
   note,
   on,
-  disabled,
   onFlip,
 }: {
   title: string;
   children: React.ReactNode;
   note?: string;
   on: boolean | null;
-  disabled?: boolean;
   onFlip: (next: boolean) => Promise<void>;
 }) {
   const c = useCopy().configuration.delivery;
@@ -73,7 +72,7 @@ function SettingRow({
             role="switch"
             aria-checked={on === true}
             aria-label={(on ? c.switchOn : c.switchOff)(title)}
-            disabled={on === null || saving || disabled}
+            disabled={on === null || saving}
             onClick={() => void flip()}
             className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-[1.5px] border-nb-ink transition-[background-color,opacity] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50 ${
               on ? "bg-nb-accent" : "bg-nb-wash"
@@ -149,15 +148,9 @@ export function AutoDeliveryPanel({ onError }: { onError?: (msg: string) => void
         {c.commits.body}
       </SettingRow>
 
-      {/* With commits off the board never lands anything, so there is nothing to approve —
-          the switch stays readable and says why rather than disappearing. */}
-      <SettingRow
-        title={c.approval.title}
-        on={approval}
-        disabled={commits === false}
-        note={commits === false ? c.approval.moot : c.frozen}
-        onFlip={flipApproval}
-      >
+      {/* Always settable (#346): approval follows whether a build got a branch of its own,
+          and the Implement box can give one that here even with commits off. */}
+      <SettingRow title={c.approval.title} on={approval} note={c.frozen} onFlip={flipApproval}>
         {c.approval.body}
       </SettingRow>
     </div>

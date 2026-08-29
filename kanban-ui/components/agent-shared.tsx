@@ -30,6 +30,7 @@ import {
   type Boldness,
   type Card,
   type CommandAction,
+  type DeliveryCommitMode,
   type DeliveryPlan,
   type ScheduledAction,
   type SessionView,
@@ -89,6 +90,9 @@ export interface AgentReq {
   /** One answer per user-owned question, in the card's own order, blanks included — a
    *  ticked option or the user's own words, never both. Resolve only. */
   cloudAnswers?: CloudEventAnswer[];
+  /** Where THIS build works (#346) — the Implement dialog's tick, and nothing else's.
+   *  Absent everywhere it wasn't asked, and the board then reads the repository setting. */
+  commitMode?: DeliveryCommitMode;
 }
 
 export type DialogState =
@@ -805,6 +809,27 @@ function WarningBox({
   );
 }
 
+// The one choice on the Implement dialog (#346): whether THIS build gets a worktree and a
+// branch of its own, or works in the folder the user is looking at. Not a warning, so it
+// sits on the quiet wash rung rather than in peach or accent, and nothing is gated on it.
+// The hint follows the tick, because what it costs is exactly what the tick changes.
+function WorktreeBox({ on, onFlip, label, hint }: { on: boolean; onFlip: (v: boolean) => void; label: string; hint: string }) {
+  return (
+    <label className="mb-3 block cursor-pointer rounded-[8px] bg-nb-wash px-3 py-2 text-[12.5px] leading-relaxed">
+      <span className="flex items-start gap-2 font-[700] text-nb-ink">
+        <input
+          type="checkbox"
+          checked={on}
+          onChange={(e) => onFlip(e.target.checked)}
+          className="mt-[2px] size-[14px] shrink-0 cursor-pointer accent-nb-accent-deep"
+        />
+        {label}
+      </span>
+      <span className="mt-1 block pl-[22px] text-nb-ink-soft">{hint}</span>
+    </label>
+  );
+}
+
 // --- the input dialogs for each action --------------------------------------
 
 export function ActionDialog({
@@ -854,6 +879,11 @@ export function ActionDialog({
   const [ack, setAck] = useState(false);
   const [ackRough, setAckRough] = useState(false);
   const [ackAsked, setAckAsked] = useState(false);
+  // Where THIS build works (#346) — the Implement dialog's own box. It starts on the side
+  // the repository setting picks and never writes back to it, so the setting is still the
+  // default every Implement opens with. Like the acks, it is not persisted: closing the
+  // dialog drops it and the next open asks the board again.
+  const [ownBranch, setOwnBranch] = useState(plan.commitMode === "auto");
   const run = (req: AgentReq, label: string) => {
     clearDraft();
     onRun(req, label);
@@ -892,20 +922,36 @@ export function ActionDialog({
     const ids = blockers.map((n) => `#${n}`).join(", ");
     const one = blockers.length === 1;
     const c = d.implement;
+    // The box is offered only where a worktree is possible at all (#346); with no git, no
+    // commit to fork from or a detached HEAD there is nothing to ask, and on rules older
+    // than the choice the answer doesn't say, so the dialog keeps the one sentence it has
+    // always had. Where it is offered, the tick is what the paragraph reads from.
+    const canChoose = plan.canChooseWorktree === true;
+    const auto = canChoose ? ownBranch : plan.commitMode === "auto";
     return (
       <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
         <p className={INTRO}>
-          {plan.commitMode === "auto" ? (
+          {auto ? (
             <>
               <Rich code={BRANCH}>{plan.branch ? c.autoBranch(plan.branch) : c.autoHere}</Rich>
               {/* The one place the click does NOT carry the card all the way (#308). */}
               {plan.needsApproval ? c.needsApproval : ""}
               {c.thenArchives}
             </>
+          ) : canChoose ? (
+            <Rich>{c.manualFolder}</Rich>
           ) : (
             <Rich>{plan.manualWhy ? c.manualWhy(plan.manualWhy) : c.manual}</Rich>
           )}
         </p>
+        {canChoose && (
+          <WorktreeBox
+            on={ownBranch}
+            onFlip={setOwnBranch}
+            label={c.ownBranch}
+            hint={ownBranch ? c.ownBranchOn : c.ownBranchOff}
+          />
+        )}
         {asked > 0 && (
           <WarningBox
             tone="accent"
@@ -961,6 +1007,10 @@ export function ActionDialog({
                 // against this card's live Cloud event (#319), and is dropped on a card
                 // that has none — which is most of them.
                 cloudRevision: dialog.card.revision,
+                // This build's own answer (#346), sent only where the box was there to
+                // answer it. Left off, the board falls back to the repository setting —
+                // which is what every other way in does.
+                commitMode: canChoose ? (ownBranch ? "auto" : "manual") : undefined,
               },
               `Implement #${dialog.card.id}`,
             )

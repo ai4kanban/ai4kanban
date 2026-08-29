@@ -398,7 +398,7 @@ function committingClose(cardId: number): string[] {
     ]
   }
   return [
-    'leave your work uncommitted — automatic Git commits are off, so the user commits it themselves once review passes',
+    'leave your work uncommitted — this build has no branch of its own, so the user commits it themselves once review passes',
   ]
 }
 

@@ -523,8 +523,8 @@ delivery.
   its open questions, and what building it turned up. All four are on the page, unfolded, before
   you press Implement.
 - **The dialog says what the click will do**: the steps in order and the branch the change will
-  land on. With **Allow automatic Git commits** off it says instead that the delivery stops after
-  review and waits for your commit.
+  land on. **Build this on a branch of its own** is the tick under it, and the sentence rewrites
+  itself as you toggle it — see **Where a delivery's code goes**.
 - **It builds the card as you approved it.** The delivery copies the card's requirements — the
   title, the opening paragraph, **Worth noting**, **Scope**, **Scope out** and each agent-written
   spec section — the moment it starts, and every session inside it builds from that copy. Edit the
@@ -614,9 +614,10 @@ approval — see **Approving a delivery** below, which is the one policy that as
 #### Approving a delivery
 
 Turn **Require diff approval before landing** on in Configuration → Auto-delivery and nothing
-lands unread. Every delivery is built and reviewed as usual, and then waits for you to approve the
-exact tree it would land. Off by default: requiring it on every card puts you back in the loop for
-every change, which is what auto-delivery exists to remove.
+lands unread. Every delivery that got a branch of its own is built and reviewed as usual, and then
+waits for you to approve the exact tree it would land — however that branch was chosen, so the
+switch is settable with automatic Git commits off too. Off by default: requiring it on every card
+puts you back in the loop for every change, which is what auto-delivery exists to remove.
 
 - **The card reads Waiting for your approval**, and the delivery block opens on **Diff** — the tree
   is the thing to read, and the **Approval** tab beside it is where you sign it off.
@@ -647,16 +648,30 @@ The Implement dialog warns, and you can go ahead — you know things the board d
 
 ### Where a delivery's code goes
 
-Each delivery builds in a **git worktree of its own** — `.akb/worktrees/<card>/<delivery>` — on a
-branch of its own, `card/<card>/<delivery>`, forked from the commit your checkout was on when you
-pressed Implement. `.akb/` is added to your `.gitignore`, so none of it is ever committed.
+**Build this on a branch of its own** is a tick on the Implement dialog, and it settles this one
+build. It opens on the side **Allow automatic Git commits** picks and never writes back to it, so
+the setting stays the default every Implement starts from and one card can go the other way without
+moving it for the rest. The paragraph above the box rewrites itself as you toggle it: the branch a
+ticked build lands on, or that nothing is committed for you.
+
+Ticked, a delivery builds in a **git worktree of its own** — `.akb/worktrees/<card>/<delivery>` — on
+a branch of its own, `card/<card>/<delivery>`, forked from the commit your checkout was on when you
+pressed Implement. `.akb/` is added to your `.gitignore`, so none of it is ever committed. Unticked
+is **manual commit mode**, below.
+
+- **The box is only there when a worktree is possible.** With no git, no commit to fork from, or a
+  detached HEAD there is nothing to choose: the build is manual, and the paragraph says which of the
+  three is why. A detached HEAD builds this way rather than being refused — the commit you then make
+  is reachable from `HEAD` alone.
+- **Only the Implement button carries the tick.** **Schedule** and **Resolve & implement** start a
+  build later, and each reads **Allow automatic Git commits** as it stands then; so does
+  `akb implement` in a terminal.
 
 - **Several deliveries at once.** Each one has its own full checkout, so two cards that touch the
   same files never write over each other, and neither one touches the edits you have open.
 - **A delivery won't start on uncommitted work.** It forks from your last commit and never copies
   what you have not committed, so commit or stash first. The board's own files changing doesn't
-  count. It also won't start on a detached HEAD — check out a branch, and that branch is where the
-  delivery is meant to land.
+  count.
 - **The board's own files stay out.** `docs/kanban/` and `.akb/` are not checked out into a
   worktree, and a commit that reaches one is refused. The card, its todos and the delivery record
   are all changed in your project folder, as they always were.
@@ -705,18 +720,19 @@ repository.
 
 #### Manual commit mode
 
-Turn **Allow automatic Git commits** off in Configuration → Auto-delivery and a delivery works in
-your project folder instead. The setting is saved with the board, in `docs/kanban/ui.config.json`,
-so a team shares one answer; a change applies to deliveries started afterwards, never to one
-already in flight.
+Untick **Build this on a branch of its own** — or turn **Allow automatic Git commits** off in
+Configuration → Auto-delivery, which is what the box opens unticked — and the delivery works in your
+project folder instead. The setting is saved with the board, in `docs/kanban/ui.config.json`, so a
+team shares one answer; a change applies to deliveries started afterwards, never to one already in
+flight, and so does the tick.
 
 - **One delivery at a time**, from a clean tree — an uncommitted or untracked file blocks the
   start, because review would read it as the delivery's own work.
 - **You commit, after review passes.** The board saves what review passed; commit that in your own
   checkout and the delivery is done and the card is archived. Commit something else and it goes
   back through review, and the card reads **Code changed after review** until it has.
-- **A project with no git, or with no commit yet, always works this way** — there is nothing to
-  branch from, and the card page says so.
+- **A project with no git, with no commit yet, or on a detached HEAD always works this way** —
+  there is nothing to branch from, the dialog offers no box, and it says which of the three is why.
 - **Nothing lands.** The commit is yours, and the delivery ends on it — see
   **Landing on your branch** above for what auto commit mode does instead.
 
@@ -947,25 +963,25 @@ there is nothing to turn on.
 ### Auto-delivery
 
 Two switches. Both are repository-level answers, saved in `ui.config.json` and shared by everyone
-on the board — never a choice on a single card. A change applies to deliveries started afterwards;
-one already in flight keeps what it started with.
+on the board. A change applies to deliveries started afterwards; one already in flight keeps what it
+started with.
 
-**Allow automatic Git commits**, on by default.
+**Allow automatic Git commits**, on by default. It is the side each Implement opens on, not the only
+way to change it: the dialog's **Build this on a branch of its own** turns one build round and
+leaves this where it is.
 
-- **On** — each delivery builds on a branch in a git worktree of its own, so several run side by
-  side and what review passed is what lands. See **Where a delivery's code goes** above.
-- **Off** — manual commit mode: a delivery works in your project folder, one at a time, and you
-  commit it after review passes.
+- **On** — a build gets a branch in a git worktree of its own, so several run side by side and what
+  review passed is what lands. See **Where a delivery's code goes** above.
+- **Off** — manual commit mode: it builds in your project folder, one at a time, and you commit it
+  after review passes.
 
-**Require diff approval before landing**, off by default.
+**Require diff approval before landing**, off by default. It follows whether a build got a branch of
+its own, however that was chosen, so it stays settable with automatic Git commits off.
 
 - **Off** — a delivery that review passed lands by itself. That is right for routine work, and it
   is what auto-delivery is for.
 - **On** — nothing lands unread: every delivery waits after review until you approve the exact tree
   it would land. See **Approving a delivery** below.
-
-It has nothing to hold with automatic Git commits off — the board never lands there, so your own
-commit is already the approval — and the switch says so.
 
 ### Runtimes, and the harness behind one
 
