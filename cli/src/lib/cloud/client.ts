@@ -13,7 +13,14 @@ import type { CloudEvent, CloudEventAnswer, CloudEventState } from './events'
 import type { CloudRequest } from './requests'
 import type { CloudServer, ServerRuntime } from './servers'
 import { accessToken } from './session'
-import type { SlackConnection, SlackConversation } from './types'
+import type {
+  LarkChat,
+  LarkCloud,
+  LarkCloudOffer,
+  LarkConnection,
+  SlackConnection,
+  SlackConversation,
+} from './types'
 
 export type CloudCall<T> = { ok: true; value: T } | { ok: false; error: string; code?: string }
 
@@ -164,6 +171,36 @@ export const setSlackDestination = (
 /** End it. No board is touched and every event goes on exactly as it was. */
 export const disconnectSlack = (): Promise<CloudCall<{ disconnected: true }>> =>
   send('POST', '/v1/slack/disconnect')
+
+// ---- the account's Lark destination (#351) ----------------------------------
+// The same shape as Slack's above, with one difference: connecting names a cloud, because
+// 飞书 and Lark international are two platforms that list two apps.
+
+/** The consent screen to open in the user's own browser, for one cloud. */
+export const startLarkConnect = (cloud: LarkCloud): Promise<CloudCall<{ url: string }>> =>
+  send('POST', `/v1/lark/${cloud}/connect`)
+
+/** The connection this account holds, and which clouds the service carries an app for. */
+export const readLarkConnection = (): Promise<
+  CloudCall<{ connection: LarkConnection | null; clouds: LarkCloudOffer[] }>
+> => send('GET', '/v1/lark/connection')
+
+/** The chats a destination can be pointed at — the groups the bot is in, and the direct
+ *  message with whoever connected. */
+export const listLarkChats = (): Promise<CloudCall<{ chats: LarkChat[] }>> =>
+  send('GET', '/v1/lark/chats')
+
+/** Point it somewhere. Picking again is also how a refusal is cleared. */
+export const setLarkDestination = (
+  destinationId: string,
+  destinationName: string,
+  direct: boolean,
+): Promise<CloudCall<{ connection: LarkConnection }>> =>
+  send('POST', '/v1/lark/destination', { destinationId, destinationName, direct })
+
+/** End it. No board is touched and every event goes on exactly as it was. */
+export const disconnectLark = (): Promise<CloudCall<{ disconnected: true }>> =>
+  send('POST', '/v1/lark/disconnect')
 
 async function send<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<CloudCall<T>> {
   if (!cloudConfigured()) return { ok: false, error: NOT_CONFIGURED, code: 'bad_request' }

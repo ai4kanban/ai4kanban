@@ -31,13 +31,13 @@ import { jsonLd, webPage } from "@/lib/schema";
 export const PATH = "/cloud";
 
 export const TITLE =
-  "AI4Kanban Cloud — decide from your desktop or Slack, run on your own machine";
+  "AI4Kanban Cloud — decide from your desktop, Slack or Lark, run on your own machine";
 
 export const DESCRIPTION =
-  "Cloud carries a board's requests for judgment to the desktop notification center and to Slack, and hands your decision back to your own machine to run. The board, the repository and the agent never leave it. An invite-only preview.";
+  "Cloud carries a board's requests for judgment to the desktop notification center and to Slack and Lark, and hands your decision back to your own machine to run. The board, the repository and the agent never leave it. An invite-only preview.";
 
 export const SOCIAL =
-  "A card ready for review, a question only you can answer — Cloud brings both to your desktop and to Slack. Your own machine still does the work.";
+  "A card ready for review, a question only you can answer — Cloud brings both to your desktop and to Slack or Lark. Your own machine still does the work.";
 
 const schema = jsonLd(webPage(PATH, TITLE, DESCRIPTION));
 
@@ -107,8 +107,8 @@ export function CloudPage() {
             <p className="mt-6 max-w-2xl text-[1.05rem] leading-relaxed text-muted">
               AI4Kanban runs on your machine and stops when it needs you: a card
               ready for review, or a question only you can answer. Cloud carries
-              those two moments to your desktop and to Slack, records what you
-              decide, and hands it back to your own machine to run.
+              those two moments to your desktop and to Slack or Lark, records
+              what you decide, and hands it back to your own machine to run.
             </p>
 
             <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -118,8 +118,8 @@ export function CloudPage() {
                 question only you can answer.
               </Step>
               <Step num="02" where="Cloud">
-                The same event reaches the app&apos;s notification center and a
-                Slack conversation you connect.
+                The same event reaches the app&apos;s notification center and
+                the Slack or Lark conversation you connect.
               </Step>
               <Step num="03" where="Your machine">
                 Your decision comes back, and the board builds or resolves the
@@ -274,8 +274,8 @@ export function CloudPage() {
                 the name only, so a message can say which board it came from.
               </Point>
               <Point lead="A record of the machine that runs your board's work" />
-              <Point lead="One Slack connection">
-                if you connect one.
+              <Point lead="One Slack connection, one Lark connection">
+                if you connect them.
               </Point>
             </ul>
             <p className="mt-6 text-sm text-muted">

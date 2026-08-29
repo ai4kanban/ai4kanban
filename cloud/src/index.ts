@@ -1,3 +1,4 @@
+import { isLarkCloud } from './config.ts'
 import { mutate } from './db.ts'
 import { requireEnv } from './env.ts'
 import type { Env } from './env.ts'
@@ -13,10 +14,19 @@ import {
 } from './events.ts'
 import { json, refusalResponse } from './http.ts'
 import { requestInvite, sendPendingMail } from './invites.ts'
+import { larkCallback } from './lark-actions.ts'
+import {
+  beginLarkConnect,
+  disconnectLark,
+  finishLarkConnect,
+  listLarkChats,
+  readLarkConnection,
+  setLarkDestination,
+} from './lark.ts'
 import { readSession, requireOwner } from './owner.ts'
+import { redrawEverywhere } from './redraw.ts'
 import { runScheduled } from './scheduled.ts'
 import { slackCallback } from './slack-actions.ts'
-import { deliverSlack } from './slack-deliver.ts'
 import {
   beginSlackInstall,
   disconnectSlack,
@@ -147,7 +157,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     requireMethod(request, 'POST')
     const owner = await requireOwner(request, env)
     const published = await publishEvent(env, owner, await bodyOf(request))
-    deliverToSlack(env, ctx, published.event.id)
+    redraw(env, ctx, published.event.id)
     return json(published)
   }
 
@@ -160,12 +170,12 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
       return json(await readOneEvent(env, owner, id))
     }
     requireMethod(request, 'POST')
-    // Every write to an event is a message Slack may owe a rewrite of, so each one hands
-    // the delivery to `waitUntil`: the caller waits for the durable write and nothing else,
-    // and the hourly run is the retry behind whatever this attempt does not get out.
+    // Every write to an event is a message a connector may owe a rewrite of, so each one
+    // hands the delivery to `waitUntil`: the caller waits for the durable write and nothing
+    // else, and the hourly run is the retry behind whatever this attempt does not get out.
     if (move === 'retire') {
       const retired = await retireEvent(env, owner, id)
-      deliverToSlack(env, ctx, id)
+      redraw(env, ctx, id)
       return json(retired)
     }
     const body = await bodyOf(request)
@@ -173,7 +183,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
       move === 'action'
         ? await recordAction(env, owner, id, body)
         : await recordOutcome(env, owner, id, body)
-    deliverToSlack(env, ctx, id)
+    redraw(env, ctx, id)
     return json(moved)
   }
 
@@ -217,9 +227,50 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     return slackCallback(env, request, ctx)
   }
 
-  // The card link a Slack message carries. Slack takes an http address and nothing else, so
-  // this is the http half of `ai4kanban://card/…` — one redirect, no lookup, and nothing
-  // about the board is learnt by answering it.
+  // Lark (#351) — 飞书 and Lark international, which are two platforms rather than two
+  // addresses of one. Four routes the signed-in app calls for the account's one connection,
+  // and three that name a cloud in the path: the two that cloud's own authorization comes
+  // back on, and the one it posts a press to. That last one names the cloud BEFORE the body
+  // is read, because an encrypted callback carries nothing readable until the right Encrypt
+  // Key has been chosen.
+  if (pathname === '/v1/lark/connection') {
+    requireMethod(request, 'GET')
+    return json(await readLarkConnection(env, await requireOwner(request, env)))
+  }
+
+  if (pathname === '/v1/lark/chats') {
+    requireMethod(request, 'GET')
+    return json(await listLarkChats(env, await requireOwner(request, env)))
+  }
+
+  if (pathname === '/v1/lark/destination') {
+    requireMethod(request, 'POST')
+    const owner = await requireOwner(request, env)
+    return json(await setLarkDestination(env, owner, await bodyOf(request)))
+  }
+
+  if (pathname === '/v1/lark/disconnect') {
+    requireMethod(request, 'POST')
+    return json(await disconnectLark(env, await requireOwner(request, env)))
+  }
+
+  const lark = /^\/v1\/lark\/([^/]+)\/(connect|connected|callback)$/.exec(pathname)
+  if (lark) {
+    const [, named = '', move] = lark
+    if (!isLarkCloud(named)) throw notFound()
+    if (move === 'connected') {
+      requireMethod(request, 'GET')
+      return finishLarkConnect(env, named, request)
+    }
+    requireMethod(request, 'POST')
+    if (move === 'callback') return larkCallback(env, named, request, ctx)
+    const owner = await requireOwner(request, env)
+    return json(await beginLarkConnect(env, owner, named, new URL(request.url).origin))
+  }
+
+  // The card link every connector's message carries. A chat takes an http address and nothing
+  // else, so this is the http half of `ai4kanban://card/…` — one redirect, no lookup, and
+  // nothing about the board is learnt by answering it.
   const card = /^\/card\/([^/]+)\/(\d+)$/.exec(pathname)
   if (card) {
     requireMethod(request, 'GET')
@@ -242,12 +293,12 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   throw notFound()
 }
 
-/** Bring this event's Slack message up to date, off the response. The durable write is
- *  what the caller waited for; the message is a second round trip, and the hourly run is
- *  the retry behind it. */
-function deliverToSlack(env: Env, ctx: ExecutionContext, eventId: string): void {
+/** Bring every connector's message for this event up to date, off the response. The durable
+ *  write is what the caller waited for; the message is a second round trip, and the hourly
+ *  run is the retry behind it. */
+function redraw(env: Env, ctx: ExecutionContext, eventId: string): void {
   ctx.waitUntil(
-    deliverSlack(env, eventId).catch((e) => console.error('cloud: slack delivery failed', e)),
+    redrawEverywhere(env, eventId).catch((e) => console.error('cloud: delivery failed', e)),
   )
 }
 

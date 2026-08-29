@@ -18,6 +18,8 @@ const ENV = {
 const OWNER = '11111111-1111-4111-8111-111111111111'
 const EVENT = '33333333-3333-4333-8333-333333333333'
 const BOARD = '22222222-2222-4222-8222-222222222222'
+/** How this account's Slack connection posts, as `api.connector_jobs` answers it. */
+const POSTS = { botToken: 'xoxb', channelId: 'C1' }
 
 const anEvent = (over = {}) => ({
   id: EVENT,
@@ -406,7 +408,7 @@ describe('slackCallback', () => {
       slack_actor: { ownerId: OWNER, botToken: 'xoxb', channelId: 'C1', revoked: false },
       read_event: anEvent(),
       record_event_action: anEvent({ state: 'waiting_for_server', acted: true }),
-      slack_jobs: [],
+      connector_jobs: [],
     })
     const body = press()
 
@@ -466,7 +468,7 @@ describe('slackCallback', () => {
       slack_actor: { ownerId: OWNER, botToken: 'xoxb', channelId: 'C1', revoked: false },
       read_event: anEvent(),
       record_event_action: anEvent({ state: 'waiting_for_server', acted: true }),
-      slack_jobs: [],
+      connector_jobs: [],
     })
     const body = press()
 
@@ -505,7 +507,7 @@ describe('slackCallback', () => {
         ],
       }),
       record_event_action: anEvent({ state: 'waiting_for_server', acted: true }),
-      slack_jobs: [],
+      connector_jobs: [],
     })
     const body = new URLSearchParams({
       payload: JSON.stringify({
@@ -548,8 +550,8 @@ describe('deliverSlack', () => {
   it('posts an event that has no message and edits the one that has', async (t) => {
     t.after(() => mock.restoreAll())
     let calls = fakeDatabase({
-      slack_jobs: [
-        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: null, attempts: 0, event: anEvent() },
+      connector_jobs: [
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: POSTS, messageRef: null, attempts: 0, event: anEvent() },
       ],
       record_event_delivery: anEvent(),
     })
@@ -566,8 +568,8 @@ describe('deliverSlack', () => {
 
     mock.restoreAll()
     calls = fakeDatabase({
-      slack_jobs: [
-        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T11:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: '1712.0001', attempts: 0, event: anEvent({ state: 'running', acted: true }) },
+      connector_jobs: [
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T11:00:00Z', posts: POSTS, messageRef: '1712.0001', attempts: 0, event: anEvent({ state: 'running', acted: true }) },
       ],
       record_event_delivery: anEvent(),
     })
@@ -585,8 +587,8 @@ describe('deliverSlack', () => {
   it('takes the version token under the name an older schema gives it', async (t) => {
     t.after(() => mock.restoreAll())
     const calls = fakeDatabase({
-      slack_jobs: [
-        { ownerId: OWNER, eventId: EVENT, changedAt: '2026-08-01T10:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: null, attempts: 0, event: anEvent() },
+      connector_jobs: [
+        { ownerId: OWNER, eventId: EVENT, changedAt: '2026-08-01T10:00:00Z', posts: POSTS, messageRef: null, attempts: 0, event: anEvent() },
       ],
       record_event_delivery: anEvent(),
     })
@@ -608,8 +610,8 @@ describe('deliverSlack', () => {
       const fn = at.split('/rpc/')[1]
       calls.push({ fn, args: JSON.parse(init.body) })
       const answers = {
-        slack_jobs: [
-          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: null, attempts: 0, event: anEvent() },
+        connector_jobs: [
+          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: POSTS, messageRef: null, attempts: 0, event: anEvent() },
         ],
       }
       return new Response(JSON.stringify(answers[fn] ?? { ok: true }), {
@@ -641,8 +643,8 @@ describe('deliverSlack', () => {
       const fn = at.split('/rpc/')[1]
       calls.push({ fn, args: JSON.parse(init.body) })
       const answers = {
-        slack_jobs: [
-          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: null, attempts: 2, event: anEvent() },
+        connector_jobs: [
+          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: POSTS, messageRef: null, attempts: 2, event: anEvent() },
         ],
       }
       return new Response(JSON.stringify(answers[fn] ?? { ok: true }), {
@@ -657,15 +659,15 @@ describe('deliverSlack', () => {
     const failed = calls.find((c) => c.fn === 'record_event_delivery')
     assert.equal(failed.args.p_state, 'failed')
     assert.equal(failed.args.p_last_error, 'ratelimited')
-    // The delivery record counts the attempt and nothing else moves: `api.slack_jobs` hands
-    // this event back to the next hourly run until SLACK_MAX_ATTEMPTS.
+    // The delivery record counts the attempt and nothing else moves: `api.connector_jobs`
+    // hands this event back to the next hourly run until SLACK_MAX_ATTEMPTS.
     assert.equal(failed.args.p_rendered_at, '2026-08-01T10:00:00Z')
     assert.equal(calls.find((c) => c.fn === 'slack_refused'), undefined)
   })
 
   it('costs nothing when nothing is owed', async (t) => {
     t.after(() => mock.restoreAll())
-    const calls = fakeDatabase({ slack_jobs: [] })
+    const calls = fakeDatabase({ connector_jobs: [] })
 
     assert.deepEqual(await deliverSlack(ENV), { due: 0, sent: 0, failed: 0 })
     assert.equal(calls.filter((c) => c.slack).length, 0)

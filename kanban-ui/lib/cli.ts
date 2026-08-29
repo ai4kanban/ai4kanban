@@ -23,6 +23,9 @@ import type { CloudEventAnswer } from "./format/cloud/events";
 import type {
   CloudAccount,
   CloudMove,
+  LarkChat,
+  LarkCloud,
+  LarkState,
   SlackConversation,
   SlackState,
 } from "./format/cloud/types";
@@ -315,6 +318,17 @@ export interface BoardRules {
   >;
   setSlackChannel?(channelId: string, channelName: string): Promise<CloudMove>;
   disconnectSlack?(): Promise<CloudMove>;
+
+  // and the account's Lark destination (#351), beside Slack rather than instead of it. The
+  // same shape, with one difference: connecting names a cloud, because 飞书 and Lark
+  // international are two platforms that list two apps.
+  readLarkState?(): Promise<LarkState>;
+  startLarkConnection?(
+    cloud: LarkCloud,
+  ): Promise<{ ok: true; url: string } | { ok: false; error: string }>;
+  readLarkChats?(): Promise<{ ok: true; chats: LarkChat[] } | { ok: false; error: string }>;
+  setLarkChat?(chat: LarkChat): Promise<CloudMove>;
+  disconnectLark?(): Promise<CloudMove>;
 
   /** Where the card link in a Slack message leads — the board's own path on this machine,
    *  and the card to open in it. Null when the URL names no card. */

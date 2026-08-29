@@ -10,3 +10,13 @@ RESEND_API_KEY="<a Resend API key for send.ai4kanban.dev>"
 SLACK_CLIENT_ID="<the Slack app's client id>"
 SLACK_CLIENT_SECRET="<the Slack app's client secret>"
 SLACK_SIGNING_SECRET="<the Slack app's signing secret>"
+# The two Lark store apps (#351) — one listed on open.feishu.cn, one on open.larksuite.com.
+# Optional as a set per cloud: a build carrying one offers that one and says so where the
+# other's Connect would be. The Encrypt Key is not optional within a set — without it no
+# callback from that cloud is trusted at all.
+FEISHU_APP_ID="<the 飞书 app's App ID>"
+FEISHU_APP_SECRET="<the 飞书 app's App Secret>"
+FEISHU_ENCRYPT_KEY="<the 飞书 app's Encrypt Key>"
+LARK_APP_ID="<the Lark app's App ID>"
+LARK_APP_SECRET="<the Lark app's App Secret>"
+LARK_ENCRYPT_KEY="<the Lark app's Encrypt Key>"

@@ -83,3 +83,46 @@ export const SLACK_BLOCK_LIMIT = 50
  *  A message is written from the scheduled run as often as from a request, so it cannot be
  *  read off a request's origin. */
 export const API_ORIGIN = 'https://api.ai4kanban.dev'
+
+// --- Lark / 飞书 (#351) --------------------------------------------------------
+// A store app per cloud: listed in that cloud's own directory, installed by a tenant, and
+// posting with a token minted per tenant from the `app_ticket` the platform pushes. No
+// dependency here either — `fetch` for the API call, `crypto.subtle` for the callback.
+
+/** The two clouds, which are two separate platforms rather than two addresses of one: an
+ *  app listed in either is unknown to the other, and each reviews its listing itself. */
+export const LARK_CLOUDS = ['feishu', 'lark'] as const
+export type LarkCloud = (typeof LARK_CLOUDS)[number]
+
+export const isLarkCloud = (value: string): value is LarkCloud =>
+  (LARK_CLOUDS as readonly string[]).includes(value)
+
+/** Where each cloud answers, and what a person calls it. `api` takes every server call;
+ *  `accounts` is the only host that shows a consent screen. */
+export const LARK_HOSTS: Record<LarkCloud, { api: string; accounts: string; name: string }> = {
+  feishu: { api: 'https://open.feishu.cn', accounts: 'https://accounts.feishu.cn', name: '飞书' },
+  lark: { api: 'https://open.larksuite.com', accounts: 'https://accounts.larksuite.com', name: 'Lark' },
+}
+
+/** Where a finished connection comes back to — the app, on the scheme the sign-in and the
+ *  Slack connection already come back on. */
+export const LARK_CONNECTED_REDIRECT = 'ai4kanban://cloud/lark-connected'
+
+/** How many messages one scheduled run writes, and how many attempts one message gets.
+ *  Slack's numbers, for the same reasons. */
+export const LARK_BATCH = 25
+export const LARK_MAX_ATTEMPTS = 5
+
+/** How old a callback may be. Lark stamps every signed callback, so a captured one is
+ *  useless minutes later. */
+export const LARK_CALLBACK_MAX_AGE_SECONDS = 5 * 60
+
+/** A tenant token lasts two hours. It is minted again this far before it runs out, so a
+ *  message never goes out on one that expired between the read and the send. */
+export const LARK_TOKEN_SKEW_SECONDS = 5 * 60
+
+/** Lark's own limits on one card. A `lark_md` element takes far more than a reader does, so
+ *  these bound the card rather than the platform: text past them is cut at a bullet or
+ *  paragraph boundary and the rest is left behind the card link. */
+export const LARK_ELEMENT_LIMIT = 40
+export const LARK_TEXT_LIMIT = 3000

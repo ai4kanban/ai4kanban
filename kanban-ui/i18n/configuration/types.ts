@@ -305,6 +305,41 @@ export type ConfigurationCopy = {
       saveFailed: string;
       disconnectFailed: string;
     };
+    /** The account's one Lark destination (#351), beside Slack. 飞书 and Lark international
+     *  are two platforms, so connecting names a cloud. */
+    lark: {
+      title: string;
+      /** An administrator installs the app in the organisation first — that happens in Lark,
+       *  not here, and an authorization cannot finish without it. */
+      install: string;
+      checking: string;
+      /** Takes the cloud's own name: `飞书` or `Lark`. */
+      connect: (cloud: string) => string;
+      connecting: string;
+      /** The consent screen is out in the browser. */
+      waiting: string;
+      disconnect: string;
+      disconnecting: string;
+      /** Every enabled board posts here, named on each message. */
+      everyBoard: string;
+      /** The destination picker. */
+      postsTo: string;
+      pickChat: string;
+      loadingChats: string;
+      /** The bot is in no group and the direct message could not be reached. */
+      noChats: string;
+      /** Who connected it, under the cloud's name. */
+      connectedBy: (person: string) => string;
+      /** Lark refused us — the tenant uninstalled the app, or the destination is gone. */
+      refused: (cloud: string) => string;
+      /** Connecting needs the app: the consent screen comes back to it. */
+      needsApp: string;
+      /** This Cloud service carries no app for either cloud. */
+      unavailable: string;
+      connectFailed: string;
+      saveFailed: string;
+      disconnectFailed: string;
+    };
     /** Which machine runs this board's approvals (#318). A board attaches exactly one. */
     server: {
       title: string;

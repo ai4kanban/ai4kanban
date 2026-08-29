@@ -34,14 +34,19 @@ import { type ChatRead, clearChat, readChat, sendChat } from "@/lib/chat";
 import {
   cloudAccount,
   cloudCardLink,
+  disconnectLark,
   disconnectSlack,
   finishCloudSignIn,
+  larkChats,
+  larkState,
   requestCloudInvite,
+  setLarkChat,
   setSlackChannel,
   signOutOfCloud,
   slackConversations,
   slackState,
   startCloudSignIn,
+  startLarkConnect,
   startSlackConnect,
 } from "@/lib/cloud";
 import { machineCopy, setMachineLanguage } from "@/lib/language";
@@ -129,6 +134,9 @@ import type {
   FlowRuleView,
   HarnessOption,
   Language,
+  LarkChat,
+  LarkCloud,
+  LarkState,
   MetricsResult,
   SaveProjectResult,
   ScoreResult,
@@ -1170,8 +1178,67 @@ export async function disconnectSlackAction(): Promise<CloudMove> {
   }
 }
 
-/** Where the card link in a Slack message leads — the board's own path on this machine, and
- *  the card to open in it. Null when the URL names no card, so the window can hand every
+// --- the account's Lark destination (#351) -----------------------------------
+// Beside Slack rather than instead of it, and made the same way. Connecting names a cloud,
+// because 飞书 and Lark international are two platforms that list two apps.
+
+export async function larkStateAction(): Promise<LarkState> {
+  try {
+    return await larkState();
+  } catch (e) {
+    return { connection: null, clouds: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** The consent screen to open in the user's own browser, for one cloud. */
+export async function startLarkConnectAction(
+  cloud: LarkCloud,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  if (cloud !== "feishu" && cloud !== "lark") return { ok: false, error: "that is not a Lark cloud" };
+  try {
+    return await startLarkConnect(cloud);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** The chats a destination can be pointed at — the groups the bot is in, and the direct
+ *  message with whoever connected. */
+export async function larkChatsAction(): Promise<
+  { ok: true; chats: LarkChat[] } | { ok: false; error: string }
+> {
+  try {
+    return await larkChats();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Point it at one. Picking again is also how a refusal Lark raised is cleared. */
+export async function setLarkChatAction(chat: LarkChat): Promise<CloudMove> {
+  if (!chat || typeof chat.id !== "string" || !chat.id) return { ok: false, error: "that is not a chat" };
+  try {
+    return await setLarkChat({
+      id: chat.id,
+      name: typeof chat.name === "string" ? chat.name : "",
+      direct: chat.direct === true,
+    });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Stop posting. A Slack connection beside this one keeps posting, and no board is touched. */
+export async function disconnectLarkAction(): Promise<CloudMove> {
+  try {
+    return await disconnectLark();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Where the card link in a connector's message leads — the board's own path on this machine,
+ *  and the card to open in it. Null when the URL names no card, so the window can hand every
  *  one of the app's URLs through it. */
 export async function cloudCardLinkAction(url: string) {
   if (typeof url !== "string" || !url.startsWith("ai4kanban://")) return null;

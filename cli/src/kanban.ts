@@ -200,6 +200,23 @@ export {
   startSlackConnect,
 } from './lib/cloud/slack'
 export type { SlackConnection, SlackConversation, SlackState } from './lib/cloud/slack'
+// And the account's Lark destination (#351), beside Slack rather than instead of it. The same
+// shape, with one difference: connecting names a cloud, because 飞书 and Lark international
+// are two platforms that list two apps.
+export {
+  disconnectLark,
+  readLarkChats,
+  readLarkState,
+  setLarkChat,
+  startLarkConnection,
+} from './lib/cloud/lark'
+export type {
+  LarkChat,
+  LarkCloud,
+  LarkCloudOffer,
+  LarkConnection,
+  LarkState,
+} from './lib/cloud/lark'
 export type * from './lib/cloud/events'
 
 // The language the app and the agent work in (#334): one answer for this MACHINE, held in

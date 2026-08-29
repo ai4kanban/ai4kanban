@@ -13,6 +13,8 @@ export type RefusalCode =
   | 'server_elsewhere'
   | 'slack_unavailable'
   | 'slack_not_connected'
+  | 'lark_unavailable'
+  | 'lark_not_connected'
   | 'not_found'
   | 'method_not_allowed'
   | 'daily_write_budget_reached'
@@ -115,6 +117,26 @@ export const slackNotConnected = () =>
     'slack_not_connected',
     404,
     'This account has no Slack connection. Connect one in Configuration → Notifications.',
+  )
+
+/**
+ * The two Lark refusals a pane acts on (#351), matching Slack's: use a build that carries the
+ * app for that cloud, or connect one. The third state a store app has — the app is listed and
+ * the person's own tenant has not installed it — is not a refusal: the pane says so beside
+ * Connect, before an authorization that cannot finish is ever started.
+ */
+export const larkUnavailable = (cloud: string) =>
+  new Refusal(
+    'lark_unavailable',
+    503,
+    `This AI4Kanban Cloud service carries no ${cloud} app to connect to.`,
+  )
+
+export const larkNotConnected = () =>
+  new Refusal(
+    'lark_not_connected',
+    404,
+    'This account has no Lark connection. Connect one in Configuration → Notifications.',
   )
 
 export const notFound = () => new Refusal('not_found', 404, 'No such endpoint.')

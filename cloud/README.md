@@ -50,10 +50,23 @@ cloud/
   and a message keeps moving while the board's machine is off. A press comes back signed by
   Slack; the workspace and the Slack user together say whose account it is, and the press is
   recorded through the same `record_event_action` a click in the app calls.
-- **One event, one message**: the delivery record holds the `ts` Slack answered with, and an
-  event that has one is edited in place. `api.slack_jobs` decides what is owed by comparing
-  when the event last changed against the version its message is showing, so keeping a
-  message in step with a card needs no flag anybody has to set.
+- **Lark is two platforms, and the same shape**: 飞书 and Lark international list separate
+  apps, so a connection records which cloud it came from and the Worker posts on that cloud's
+  own host. Posting uses a token minted per tenant from the `app_ticket` the platform pushes,
+  held and renewed here; a press comes back encrypted and signed under the app's Encrypt Key,
+  and the cloud, the tenant and the Lark user together say whose account it is.
+- **A second connector is a second implementation, not a second copy**: the nine state names
+  and how far a card's own words are cut are `src/message.ts`'s, the delivery loop is
+  `src/deliver.ts`'s, and the due-message query is `api.connector_jobs`. Each connector adds
+  only its own markup, its own controls and its own API calls.
+- **One event, one message**: the delivery record holds the id the chat answered with, and an
+  event that has one is edited in place. `api.connector_jobs` decides what is owed by
+  comparing when the event last changed against the version its message is showing, so keeping
+  a message in step with a card needs no flag anybody has to set.
+- **A decision anywhere redraws everywhere**: an account may have Slack and Lark connected at
+  once, and the first press settles the event. `src/redraw.ts` rewrites every connector's
+  message the moment one is acted on, so the other does not go on offering a decision until
+  the hourly run notices.
 - **A private topic names the account, and the policy checks nothing else**: `account:<id>`
   and `server:<id>:<server>` are guarded by RLS policies on `realtime.messages`, which
   Realtime evaluates as `authenticated` — a role this project deliberately gives no access to
@@ -95,8 +108,32 @@ Slack (#320), all but the last two behind the same bearer token:
   signature over the raw body and a timestamp inside five minutes are what it is trusted on.
   It answers `200` for everything Slack itself did right — a refused press is said to the
   person ephemerally, because a non-200 tells them the app is broken.
-- `GET /card/<board>/<task>` — the http half of `ai4kanban://card/…`, which is all a Slack
-  link button will take. One redirect, no lookup.
+
+Lark (#351). `<cloud>` is `feishu` or `lark`; the last route names it **before the body is
+read**, because an encrypted callback carries nothing readable until the right Encrypt Key has
+been chosen. All but the last two behind the same bearer token:
+
+- `POST /v1/lark/<cloud>/connect` — the consent screen to open, with the nonce that makes the
+  answer this account's.
+- `GET /v1/lark/connection` — what the Configuration pane draws, and which clouds this build
+  carries an app for. Never a token.
+- `GET /v1/lark/chats` — the group chats the bot is in, and the direct message with whoever
+  connected.
+- `POST /v1/lark/destination` — `{ "destinationId": "…", "destinationName": "…", "direct": false }`.
+- `POST /v1/lark/disconnect` — end it. Nothing is handed back: the tenant's token is the app's,
+  and an uninstall in Lark is what ends that.
+- `GET /v1/lark/<cloud>/connected` — **Lark's** redirect. Carries no sign-in; the nonce is what
+  says whose connection it is. Ends by sending the browser to `ai4kanban://cloud/lark-connected`.
+- `POST /v1/lark/<cloud>/callback` — **Lark's** callback: the URL challenge, the `app_ticket`
+  push and every press. Carries no sign-in; the body is encrypted under the app's Encrypt Key
+  and signed over the timestamp, the nonce, that key and the raw body, inside five minutes. It
+  answers `200` for everything Lark itself did right — a refused press is said to the person
+  in a toast, because a non-200 tells them the app is broken.
+
+Both connectors' link buttons:
+
+- `GET /card/<board>/<task>` — the http half of `ai4kanban://card/…`, which is all a link
+  button in either chat will take. One redirect, no lookup.
 
 A refusal is always `{ "error": { "code": ..., "message": ... } }`, and `message` is written
 to be shown to a user as it stands. The two a client must tell apart:
@@ -107,6 +144,7 @@ to be shown to a user as it stands. The two a client must tell apart:
 | `not_admitted` | A good sign-in from an account we have not admitted. Signing in again lands on the same refusal, so a client must never answer it with "sign in again". |
 | `not_yours` | The request named a row belonging to another account. |
 | `slack_unavailable` / `slack_not_connected` | This service carries no Slack app, or this account has connected none. |
+| `lark_unavailable` / `lark_not_connected` | This service carries no app for that cloud, or this account has connected no Lark destination. |
 | `no_verified_address` | GitHub attests no address for this account, so a request would leave us nowhere to answer. |
 
 `GET /v1/session` answers `200` either way and carries `session.admitted`. When that is
@@ -261,8 +299,9 @@ npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY   # from cloud/
 The new value is live on the next request; no deploy is needed. To rotate the Supabase
 service role key itself: roll it in the Supabase dashboard, put the new value in with the
 command above, then `curl https://api.ai4kanban.dev/health` and run `POST /v1/self-check`.
-The secrets the Worker holds are `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and
-`RESEND_API_KEY`; `.dev.vars.example` lists them for local runs. `RESEND_API_KEY` is
+The secrets the Worker holds are `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`RESEND_API_KEY`, Slack's three and each Lark cloud's three; `.dev.vars.example` lists them
+for local runs. `RESEND_API_KEY` is
 deliberately not required at startup: a Worker that cannot mail still answers every route,
 and the hourly run logs `RESEND_API_KEY is not set — nothing sent` rather than the whole
 service refusing requests over a secret only the schedule needs.
@@ -305,21 +344,24 @@ only exists once the preview has people in it. Recount it when any of the number
 moves.
 
 **What one card costs, from the board to a finished delivery.** Every budgeted write is a
-`cloud.count_write` in `migrations/`; the Slack line is one delivery record per event change,
-because a message is rewritten whenever the event moves.
+`cloud.count_write` in `migrations/`; the connector line is one delivery record per event
+change **per connected connector**, because a message is rewritten whenever the event moves.
+The table counts one connector; an account with both Slack and Lark connected roughly doubles
+the `+ 1`s.
 
 | Step | Writes |
 | --- | --- |
-| Published, and its Slack message | 1 + 1 |
+| Published, and its message | 1 + 1 |
 | Each revision before anyone looks | 1 + 1 |
 | Decided in the app | 2 + 1 |
-| Decided in Slack — the extra one raises the request | 3 + 1 |
+| Decided in a chat — the extra one raises the request | 3 + 1 |
 | Claimed by the board's server | 1 |
 | `running`, and the outcome | (2 + 1) × 2 |
 | Each five minutes the delivery runs | 1 |
 | Retired as `stale` instead | 1 + 1 |
 
-So a card decided in Slack, revised twice, with a half-hour delivery, is about **23 writes**.
+So a card decided in a chat, revised twice, with a half-hour delivery, is about **23 writes**
+with one connector connected.
 A card nobody acts on is **4**.
 
 **A day, and a year of them.** Ten cards through and five retired is about **250 writes a
@@ -374,7 +416,8 @@ Only needed once, and again if the project is ever recreated.
    can be pointed at a throwaway project without a build.
 6. **Worker secrets** — `npx wrangler secret put SUPABASE_URL`,
    `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY`, `npx wrangler secret put
-   RESEND_API_KEY`, and the Slack app's three from step 11.
+   RESEND_API_KEY`, the Slack app's three from step 11 and each Lark cloud's three from
+   step 12.
 7. **Exposed schemas** — in the project's API settings, set the exposed schema list to
    `api` alone. Dropping `public` and `graphql_public` is what closes PostgREST and the
    GraphQL endpoint to everyone but the Worker.
@@ -405,6 +448,35 @@ Only needed once, and again if the project is ever recreated.
       mail key: a Worker with no Slack app answers every other route and says plainly that it
       carries none. Without the signing secret **no callback is trusted** — a build that
       cannot verify refuses rather than accepting unchecked.
+
+12. **Lark apps** (#351) — **two** store apps (商店应用), one per cloud, because
+    `open.feishu.cn` and `open.larksuite.com` are separate platforms that review separately.
+    A tenant installs the app from that cloud's directory; we register nothing per account.
+    Both are configured identically apart from their host:
+    - **Where**: [open.feishu.cn/app](https://open.feishu.cn/app) and
+      [open.larksuite.com/app](https://open.larksuite.com/app). 飞书 grants a listing only
+      against a Chinese company registration, which Cloud's operator has to hold first.
+    - **Capabilities**: the **bot** capability, on. Without it a message cannot be posted at
+      all.
+    - **Scopes**: send a message as the app (`im:message:send_as_bot`), list the chats the bot
+      is in (`im:chat:readonly`), and read the signed-in person's own identity
+      (`contact:user.id:readonly`). No history scope: the app never reads a message, including
+      its own.
+    - **Redirect URL**: `https://api.ai4kanban.dev/v1/lark/feishu/connected` on 飞书 and
+      `https://api.ai4kanban.dev/v1/lark/lark/connected` on Lark international.
+    - **Event and callback request URL**: `https://api.ai4kanban.dev/v1/lark/feishu/callback`
+      and `.../v1/lark/lark/callback`. Subscribe to the `app_ticket` push and to card
+      callbacks. The URL is confirmed once with a challenge, which the route answers.
+    - **Encrypt Key**: set one on **both** listings. It is not optional: Lark sends the
+      signature and the timestamp that make a replayed callback refusable only under
+      encryption, and a build without one accepts no callback rather than accepting them
+      unchecked.
+    - **Secrets**: `npx wrangler secret put FEISHU_APP_ID`, `FEISHU_APP_SECRET`,
+      `FEISHU_ENCRYPT_KEY`, and `LARK_APP_ID`, `LARK_APP_SECRET`, `LARK_ENCRYPT_KEY`. Each set
+      is optional on its own: a build carrying one cloud's app offers that one and says so
+      where the other's Connect would be.
+    - **Listing**: submit each app for review in its own directory. Neither cloud works until
+      its own listing is granted, and the release waits on both.
 
 GitHub is the only other service registered here, and it is reached from a member's own
 machine with its own grant.

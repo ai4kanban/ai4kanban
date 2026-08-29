@@ -14,7 +14,7 @@ effective: 2026-08-29
 - **Your code never reaches Cloud.** No repository, no worktree, no commit, no credential and no model key is sent to it, and no AI model is ever run over your board content.
 - **The preview emails you for two things**: the answer to your invite request, and a notice about the preview itself. There is no mailing list, no announcement, and no marketing.
 - **We do not sell your personal information**, and we do not share it for cross-context behavioral advertising.
-- **You can ask us to access, correct, export, or delete** your personal information at any time at [support@ai4kanban.dev](mailto:support@ai4kanban.dev). Disconnecting Slack is the only removal you can make for yourself; everything else we do by hand.
+- **You can ask us to access, correct, export, or delete** your personal information at any time at [support@ai4kanban.dev](mailto:support@ai4kanban.dev). Disconnecting Slack or Lark is the only removal you can make for yourself; everything else we do by hand.
 
 </TLDR>
 
@@ -76,7 +76,7 @@ It also holds enough of the card to review it away from your machine: the card's
 
 **Those are your own words leaving your machine**, stored as you wrote them. Everything else stays behind: not the plan, not the todo list, not the rest of the body, not your memory files, not your releases, and not the board's configuration. Treat a card's opening paragraph the way you would treat a line in a shared document.
 
-Once you act on an event, Cloud also holds **the decision you made and the answers you gave**, and **how the run it started ended**. Where the event was delivered — a Slack message, say — is recorded against it too.
+Once you act on an event, Cloud also holds **the decision you made and the answers you gave**, and **how the run it started ended**. Where the event was delivered — a Slack or Lark message, say — is recorded against it too.
 
 An event is kept while it is unresolved, and **deleted 30 days after it reaches a final outcome** — completed, failed, cancelled, interrupted, or retired because the task stopped needing you. An event no machine ever reports on reaches no final outcome, so it is kept rather than swept. Deleting it takes its answers, its outcome, and any message it was delivered as with it.
 
@@ -86,7 +86,7 @@ A board on Cloud is an identifier that means nothing outside Cloud, and **a name
 
 ### What a board's machine record holds
 
-A board runs its work on one computer, so that computer registers itself with Cloud — otherwise an approval you press in Slack has nowhere to run. The record holds three things and no more:
+A board runs its work on one computer, so that computer registers itself with Cloud — otherwise an approval you press in Slack or Lark has nowhere to run. The record holds three things and no more:
 
 - **A machine identifier** the computer generated for itself. It is tied to no account and to nothing about your hardware, and it means nothing outside Cloud.
 - **The name that computer calls itself** — its hostname, so you can tell one of your machines from another. Never an address.
@@ -113,7 +113,7 @@ You sign in to Cloud with a GitHub account, through Supabase Auth's GitHub provi
 Signing in creates **two separate records**, and removing one does not remove the other:
 
 - **A sign-in record**, held by Supabase Auth on our behalf. It holds **your GitHub login and public profile** as GitHub returns it at sign-in — your username, your numeric GitHub id, your display name, and your avatar URL — **any email address Supabase Auth records with that account**, and **sign-in timestamps** with the identity provider behind the account, which is `github` for everyone.
-- **A Cloud account row**, in our own database. It holds your GitHub handle, your display name, and your avatar URL, and it is what every other Cloud record — a board, an event, a machine record, a Slack connection — belongs to.
+- **A Cloud account row**, in our own database. It holds your GitHub handle, your display name, and your avatar URL, and it is what every other Cloud record — a board, an event, a machine record, a Slack or Lark connection — belongs to.
 
 If we have admitted you to the preview, we also hold **an admission**: the GitHub handle we let in, when we let it in, and a short note of our own saying who you are, so whoever reads the list later can tell. When we admitted you by approving a request, it also holds **the sign-in it was written for**, so that renaming your GitHub account cannot take your place in the preview away.
 
@@ -137,7 +137,7 @@ That mail goes through **Resend**, and the `support@ai4kanban.dev` mailbox is ru
 
 - **The database** is a Supabase Postgres project in **`eu-central-1` (Frankfurt, Germany)**, inside the EU. It holds Cloud's records and nothing else.
 - **The API** runs on Cloudflare Workers at `api.ai4kanban.dev`.
-- **Every record answers one account.** A Cloud route is called with your own verified sign-in — or, for a decision pressed in Slack, with a callback Slack signs — and refuses a record belonging to anyone else. There is no shared board, no way into another account's records, no public link, and no read-only web view.
+- **Every record answers one account.** A Cloud route is called with your own verified sign-in — or, for a decision pressed in Slack or Lark, with a callback that chat signs — and refuses a record belonging to anyone else. There is no shared board, no way into another account's records, no public link, and no read-only web view.
 - **The database is not a client API.** Only the service can reach it: its tables are closed to every role, the project serves only the small set of functions the service calls, and its keys never leave the service.
 - **We can technically reach the database**, as the operator of any hosted service can. We access an account's records only when it is necessary to run the Service, to investigate a fault, or where the law requires it — not to read your board.
 - **The API keeps a request log of its own.** Cloudflare retains it, and we can query it while it lasts — unlike the static site's delivery logs above, which we never receive. What the API writes to that log is a status, a database error code, the kind of mail attempted, and an internal reference: no board content, no GitHub handle, and no email address.
@@ -156,23 +156,27 @@ The preview uses four subprocessors and one identity provider. There is no separ
 
 Each processes data on our behalf under its published data processing agreement. If we add or replace a subprocessor, this table changes with it and the effective date at the top of the page moves.
 
-### Slack, and anywhere else you choose to send board content
+### Slack, Lark, and anywhere else you choose to send board content
 
-You can connect Slack so that a question or a review request is posted into a channel — or a direct message — you already read, and decided from there. **One connection belongs to your account**, and every board you turn Cloud on for shares it. You connect it and you disconnect it; nobody else can.
+You can connect **Slack** or **Lark** — which is 飞书 in China and Lark internationally — so that a question or a review request is posted into a channel, a group, or a direct message you already read, and decided from there. **One connection per chat belongs to your account**, and every board you turn Cloud on for shares it. You can connect both at once. You connect each one and you disconnect it; nobody else can.
 
-When Cloud posts, the content of that message — the card's title, its opening paragraph, its review notes, the question being asked, and a link back into the app — leaves Cloud and goes to Slack **on your own instruction**. Anyone who can see that conversation can read it.
+When Cloud posts, the content of that message — the card's title, its opening paragraph, its review notes, the question being asked, and a link back into the app — leaves Cloud and goes to that chat **on your own instruction**. Anyone who can see that conversation can read it.
 
-We do not present Slack as infrastructure AI4Kanban runs on: you install our Slack app into your own Slack workspace, choose the one conversation it posts to, and can disconnect it at any time, which deletes the connection and the token it was posting with. Once a message is in Slack, it is governed by that Slack workspace's own settings and retention policy, not by ours. The same is true of anything else you choose to point a board at.
+We do not present either chat as infrastructure AI4Kanban runs on: you install our app into your own Slack workspace or your own Lark organisation, choose the one conversation it posts to, and can disconnect it at any time. Once a message is in Slack or Lark, it is governed by that workspace's or organisation's own settings and retention policy, not by ours. The same is true of anything else you choose to point a board at.
 
-What we hold for a connection is the Slack workspace, the conversation you picked, the Slack account you connected as — which is what makes a decision you press there yours — and the token Slack issued us for posting. A decision pressed in Slack comes back as a callback Slack signs and the service verifies before it counts for anything. We never read a Slack message, including our own, and we ask for no scope that would let us.
+What we hold for a **Slack** connection is the Slack workspace, the conversation you picked, the Slack account you connected as — which is what makes a decision you press there yours — and the token Slack issued us for posting. Disconnecting deletes the connection and that token at once.
+
+What we hold for a **Lark** connection is which of the two clouds it is, the Lark organisation that installed the app, the chat you picked, the Lark account you connected as, and the short-lived token Lark issues us for posting into that organisation. Disconnecting deletes the connection at once; the posting token is issued to the app rather than to your account, and uninstalling AI4Kanban in Lark is what ends that.
+
+A decision pressed in either chat comes back as a callback that chat signs and the service verifies before it counts for anything. We never read a message in either, including our own, and we ask for no permission that would let us.
 
 ### Removing your Cloud records
 
-**Disconnecting Slack is the only removal you can make for yourself.** It deletes the connection and the token with it, at once.
+**Disconnecting Slack or Lark is the only removal you can make for yourself.** It deletes that connection at once.
 
 Nothing else in the app deletes anything. Signing out stops that machine reaching Cloud and removes no record. Turning Cloud off for a board, or moving the board to another machine, removes no record either.
 
-**Everything else we remove by hand**, on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). What that removes is **your whole account and everything under it**: your Cloud account row and your admission, your board rows with their names, every machine record those boards registered, every event with its questions, decisions, answers and outcomes, your Slack connection, and your invite request. Your sign-in record goes alongside them, as its own step in Supabase rather than by the same operation.
+**Everything else we remove by hand**, on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). What that removes is **your whole account and everything under it**: your Cloud account row and your admission, your board rows with their names, every machine record those boards registered, every event with its questions, decisions, answers and outcomes, your Slack and Lark connections, and your invite request. Your sign-in record goes alongside them, as its own step in Supabase rather than by the same operation.
 
 **It is all of it or none of it.** The service has no way to remove one board's record and leave the account behind it, so **asking us to forget a board ends your place in the preview**. If that is not what you meant, tell us what you need and we will say what we can do.
 
@@ -219,7 +223,7 @@ We share information only in these limited cases:
 - **Service providers (processors)** — the subprocessors named above, who run parts of the Service on our behalf. They process data only to perform the service we asked for, under written data processing agreements.
 - **Legal and safety** — when required by law, by valid legal process, or to protect the rights, property, or safety of AI4Kanban, our users, or the public.
 - **Business transfers** — if AI4Kanban is involved in a merger, acquisition, financing, or asset sale, information may form part of that transaction. We will give notice before any personal information becomes subject to a different privacy policy.
-- **With your direction** — when you ask us to send something somewhere, such as the Slack conversation you connected.
+- **With your direction** — when you ask us to send something somewhere, such as the Slack or Lark conversation you connected.
 
 ## Cookies and tracking
 
@@ -241,7 +245,7 @@ We keep personal information only as long as we need it for the purposes describ
 - **A board's Cloud id and its name** — kept until we remove them by hand. Turning Cloud off for a board, moving it to another machine, and signing out delete nothing.
 - **Events and actions** — kept while the event is unresolved, then deleted 30 days after it reaches a final outcome, together with the decision recorded against it, its answers, its outcome, and any message it was delivered as.
 - **A board's machine record** — the machine identifier, the hostname, and the runtimes described above, kept until we remove them by hand. Every machine a board registered keeps its record, including one the board has moved away from.
-- **Your Slack connection** — kept until you disconnect it, which deletes it and its token at once, or until we remove your records.
+- **Your Slack and Lark connections** — kept until you disconnect them, which deletes each one at once, or until we remove your records.
 - **The API's own request log** — retained by Cloudflare under Cloudflare's policy. It carries no board content, no handle, and no email address.
 - **Email correspondence** — kept for as long as needed to handle the conversation and any follow-up, then deleted.
 
@@ -275,7 +279,7 @@ Depending on where you live, you may have the right to:
 
 To exercise any of these rights, email [support@ai4kanban.dev](mailto:support@ai4kanban.dev). We will respond within the time applicable law requires — typically within 30 days, with one extension permitted under the GDPR. We may need to verify your identity before acting on a request. We will not discriminate against you for exercising any of these rights.
 
-Two things you can do without asking us: **disconnect Slack**, which deletes that connection at once, and **turn Cloud off for a board**, which stops it sending anything more. A copy, a correction, or a removal is a request to us.
+Two things you can do without asking us: **disconnect Slack or Lark**, which deletes that connection at once, and **turn Cloud off for a board**, which stops it sending anything more. A copy, a correction, or a removal is a request to us.
 
 ### United Kingdom and European Economic Area
 
@@ -316,7 +320,7 @@ The Service is not directed to children under 16, and we do not knowingly collec
 
 We will update this Policy as the Service evolves. When we do, we will change the effective date at the top of this page.
 
-**For a material change we send a notice by hand**, from [support@ai4kanban.dev](mailto:support@ai4kanban.dev) to the email address GitHub verified for your account. That is the route: the preview delivers no notice inside the app and none in a connected Slack channel. A post on `ai4kanban.dev` may accompany the email, but never stands in for it.
+**For a material change we send a notice by hand**, from [support@ai4kanban.dev](mailto:support@ai4kanban.dev) to the email address GitHub verified for your account. That is the route: the preview delivers no notice inside the app and none in a connected Slack or Lark chat. A post on `ai4kanban.dev` may accompany the email, but never stands in for it.
 
 ## Contact
 

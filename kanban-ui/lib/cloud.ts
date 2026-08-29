@@ -1,6 +1,15 @@
 import { getCopy } from "@/i18n";
 import { boardRules } from "./cli";
-import { DEFAULT_LANGUAGE, type CloudAccount, type CloudMove, type SlackConversation, type SlackState } from "./types";
+import {
+  DEFAULT_LANGUAGE,
+  type CloudAccount,
+  type CloudMove,
+  type LarkChat,
+  type LarkCloud,
+  type LarkState,
+  type SlackConversation,
+  type SlackState,
+} from "./types";
 
 // --- the Cloud sign-in (#326) ------------------------------------------------
 // Which account this MACHINE acts as. Not a board setting: one sign-in covers every project
@@ -115,8 +124,53 @@ export async function disconnectSlack(): Promise<CloudMove> {
   return rules.disconnectSlack();
 }
 
-/** Where the card link in a Slack message leads. Null when the URL names no card, so the
- *  window can hand every one of the app's URLs through it. */
+// --- the account's Lark destination (#351) -----------------------------------
+// Beside Slack rather than instead of it: an account may have both connected, and the first
+// press settles the event. Connecting names a cloud, because 飞书 and Lark international are
+// two platforms that list two apps.
+
+const NO_LARK: LarkState = { connection: null, clouds: [], error: TOO_OLD };
+
+/** The connection this account holds, or the absence of one. */
+export async function larkState(): Promise<LarkState> {
+  const rules = await boardRules();
+  return rules.readLarkState ? rules.readLarkState() : NO_LARK;
+}
+
+/** The consent screen to open in the user's own browser, for one cloud. */
+export async function startLarkConnect(
+  cloud: LarkCloud,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const rules = await boardRules();
+  if (!rules.startLarkConnection) return { ok: false, error: TOO_OLD };
+  return rules.startLarkConnection(cloud);
+}
+
+/** The chats a destination can be pointed at. */
+export async function larkChats(): Promise<
+  { ok: true; chats: LarkChat[] } | { ok: false; error: string }
+> {
+  const rules = await boardRules();
+  if (!rules.readLarkChats) return { ok: false, error: TOO_OLD };
+  return rules.readLarkChats();
+}
+
+/** Point it at one. Picking again is also how a refusal Lark raised is cleared. */
+export async function setLarkChat(chat: LarkChat): Promise<CloudMove> {
+  const rules = await boardRules();
+  if (!rules.setLarkChat) return { ok: false, error: TOO_OLD };
+  return rules.setLarkChat(chat);
+}
+
+/** Stop posting. A Slack connection beside this one keeps posting, and no board is touched. */
+export async function disconnectLark(): Promise<CloudMove> {
+  const rules = await boardRules();
+  if (!rules.disconnectLark) return { ok: false, error: TOO_OLD };
+  return rules.disconnectLark();
+}
+
+/** Where the card link in a connector's message leads. Null when the URL names no card, so
+ *  the window can hand every one of the app's URLs through it. */
 export async function cloudCardLink(url: string) {
   const rules = await boardRules();
   return rules.readCloudCardLink ? rules.readCloudCardLink(url) : null;

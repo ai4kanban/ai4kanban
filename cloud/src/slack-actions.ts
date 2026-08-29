@@ -24,7 +24,8 @@ import type { Env } from './env.ts'
 import { Refusal, badRequest, unauthenticated } from './errors.ts'
 import type { EventRow } from './events.ts'
 import { json } from './http.ts'
-import { deliverSlack } from './slack-deliver.ts'
+import type { Answer } from './message.ts'
+import { redrawEverywhere } from './redraw.ts'
 import {
   ACTION_ANSWER_OPTION,
   ACTION_IMPLEMENT,
@@ -36,12 +37,7 @@ import {
   readQuestions,
 } from './slack-message.ts'
 import { slackActor, slackApi, type SlackActor } from './slack.ts'
-
-/** One answer to one question — a ticked option or the user's own words, never both. */
-interface Answer {
-  picked: number[]
-  text: string
-}
+import { hex, sameString } from './verify.ts'
 
 /**
  * Slack's interactivity callback.
@@ -102,18 +98,6 @@ export async function verifySignature(env: Env, request: Request, body: string):
   const signed = await crypto.subtle.sign('HMAC', key, bytes.encode(`v0:${timestamp}:${body}`))
   const expected = `v0=${hex(signed)}`
   if (!sameString(expected, signature)) throw unauthenticated('That callback is signed wrongly.')
-}
-
-const hex = (buffer: ArrayBuffer): string =>
-  [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, '0')).join('')
-
-/** Compared without an early exit, so the comparison itself says nothing about how close a
- *  wrong signature was. */
-function sameString(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let same = 0
-  for (let i = 0; i < a.length; i += 1) same |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return same === 0
 }
 
 /** Slack posts one form field holding the whole payload. */
@@ -369,11 +353,12 @@ async function record(
   }
 }
 
-/** The message this press was made on, brought up to date. Off the response, because Slack
- *  wants its 200 inside three seconds and the rewrite is a second round trip. */
+/** Every connector's message for this event, brought up to date — the Lark one included, so
+ *  a chat does not wait for the hourly run to learn that a Slack press already settled it.
+ *  Off the response, because Slack wants its 200 inside three seconds. */
 function redraw(env: Env, ctx: ExecutionContext, eventId: string): void {
   ctx.waitUntil(
-    deliverSlack(env, eventId).catch((e) => console.error('cloud: slack redraw failed', e)),
+    redrawEverywhere(env, eventId).catch((e) => console.error('cloud: slack redraw failed', e)),
   )
 }
 

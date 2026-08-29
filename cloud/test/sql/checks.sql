@@ -139,6 +139,47 @@ begin
     from json_array_elements(api.list_servers(B)) s where (s ->> 'boardId')::uuid = BOARD_A;
   assert v_count = 0, 'list_servers showed another account’s server';
   assert api.read_slack_connection(B) is null, 'read_slack_connection answered for another account';
+  assert api.read_lark_connection(B) is null, 'read_lark_connection answered for another account';
+
+  -- -------------------------------------------------------------------------
+  -- One Lark person is one AI4Kanban account (#351)
+  -- -------------------------------------------------------------------------
+  -- Connecting the same Lark user to a second account would leave a press with two accounts
+  -- to be, and no way to pick. The check happens before the write, and the unique index is
+  -- what holds if two connections ever race.
+
+  perform api.lark_begin_connect(A, 'state-a', 'feishu', BUDGET);
+  assert (api.lark_finish_connect('state-a', 'feishu', 'T1', 'ou_1', 'on_1', 'Wu',
+                                  'ou_1', 'Direct message', true, BUDGET) ->> 'ok')::boolean,
+    'lark_finish_connect refused the first connection';
+  perform api.lark_begin_connect(B, 'state-b', 'feishu', BUDGET);
+  assert api.lark_finish_connect('state-b', 'feishu', 'T1', 'ou_1', 'on_1', 'Wu',
+                                 'ou_1', 'Direct message', true, BUDGET) ->> 'reason' = 'actor_taken',
+    'one Lark person reached two AI4Kanban accounts';
+  -- A nonce minted for one cloud cannot be spent on the other.
+  perform api.lark_begin_connect(B, 'state-c', 'feishu', BUDGET);
+  assert api.lark_finish_connect('state-c', 'lark', 'T2', 'ou_2', '', '',
+                                 'ou_2', 'Direct message', true, BUDGET) ->> 'reason' = 'expired',
+    'a nonce minted for 飞书 was spent on Lark';
+  -- The press is matched on the cloud, the tenant and the user together.
+  assert api.lark_actor('feishu', 'T1', 'ou_1') ->> 'ownerId' = A::text, 'lark_actor lost the account';
+  assert api.lark_actor('lark', 'T1', 'ou_1') is null, 'lark_actor crossed the two clouds';
+
+  -- Every connector is owed the same message by the same comparison (#351): the account's
+  -- one actionable event, once, and nothing for a connector this account has not connected.
+  assert json_array_length(api.connector_jobs('lark', null, 10, 5)) = 1,
+    'connector_jobs lost the one message Lark is owed';
+  assert json_array_length(api.connector_jobs('slack', null, 10, 5)) = 0,
+    'connector_jobs answered Slack for a Lark connection';
+  -- A message that got through is not owed again until the event moves past what it shows.
+  perform api.record_event_delivery(A, v_event, 'lark', 'sent', 'om_1', '',
+                                    (api.read_event(A, v_event) ->> 'changedAt')::timestamptz, BUDGET);
+  assert json_array_length(api.connector_jobs('lark', null, 10, 5)) = 0,
+    'connector_jobs owed a message the chat already shows';
+  perform api.lark_disconnect(A, BUDGET);
+  assert api.read_lark_connection(A) is null, 'lark_disconnect left the connection behind';
+  assert json_array_length(api.connector_jobs('lark', null, 10, 5)) = 0,
+    'connector_jobs kept posting after the connection ended';
 
   -- -------------------------------------------------------------------------
   -- The private Realtime topics
@@ -200,19 +241,20 @@ begin
   assert (v_json ->> 'id')::uuid = v_event, 'a revised card raised a second row';
   assert (v_json ->> 'changedAt')::timestamptz > v_changed, 'a card that moved did not refresh the row';
 
-  -- The version token a Slack job carries, under both names. A migration and a Worker deploy
-  -- do not land together, and the Worker echoes this value straight back as `rendered_at`:
-  -- one that read a key the other did not send would record NULL, and a delivery with no
-  -- `rendered_at` is due forever — every message in the channel rewritten on every pass.
+  -- The version token a connector's job carries, under both names. A migration and a Worker
+  -- deploy do not land together, and the Worker echoes this value straight back as
+  -- `rendered_at`: one that read a key the other did not send would record NULL, and a
+  -- delivery with no `rendered_at` is due forever — every message in the chat rewritten on
+  -- every pass.
   insert into cloud.slack_connections (owner_id, team_id, bot_token, channel_id, slack_user_id)
   values (A, 'T1', 'xoxb', 'C1', 'U1');
-  v_json := (api.slack_jobs(v_event, 10, 5) -> 0);
+  v_json := (api.connector_jobs('slack', v_event, 10, 5) -> 0);
   assert v_json is not null, 'an actionable event owed a message was not due';
   assert (v_json ->> 'contentAt') = (v_json ->> 'changedAt'),
     'the two names for one version token disagree';
   assert (v_json ->> 'contentAt')::timestamptz
        = (select content_at from cloud.events where id = v_event),
-    'a Slack job carries a version its message could not be checked against';
+    'a connector job carries a version its message could not be checked against';
   delete from cloud.slack_connections where owner_id = A;
 
   -- -------------------------------------------------------------------------

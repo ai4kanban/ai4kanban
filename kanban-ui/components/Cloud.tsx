@@ -30,23 +30,36 @@
 // settles — the release it watches and the machine that runs its work.
 
 import { useCallback, useEffect, useState } from "react";
-import { FiAlertCircle, FiBell, FiBellOff, FiCheck, FiLogOut, FiMail } from "react-icons/fi";
+import {
+  FiAlertCircle,
+  FiBell,
+  FiBellOff,
+  FiCheck,
+  FiLogOut,
+  FiMail,
+  FiMessageSquare,
+} from "react-icons/fi";
 import { FaSlack } from "react-icons/fa";
 import { SiGithub } from "react-icons/si";
 import {
   boardNotificationsAction,
   cloudAccountAction,
+  disconnectLarkAction,
   disconnectSlackAction,
   setBoardServerAction,
   finishCloudSignInAction,
   notificationCenterAction,
   requestCloudInviteAction,
   setSilencedAction,
+  larkChatsAction,
+  larkStateAction,
+  setLarkChatAction,
   setSlackChannelAction,
   signOutOfCloudAction,
   slackConversationsAction,
   slackStateAction,
   startCloudSignInAction,
+  startLarkConnectAction,
   startSlackConnectAction,
   watchReleaseAction,
 } from "@/app/actions";
@@ -59,6 +72,9 @@ import {
   LANGUAGE_TAGS,
   type CloudAccount,
   type Language,
+  type LarkChat,
+  type LarkCloud,
+  type LarkState,
   type SlackConversation,
   type SlackState,
 } from "@/lib/types";
@@ -69,10 +85,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 const PRIVACY_URL = "https://ai4kanban.dev/privacy";
 const TERMS_URL = "https://ai4kanban.dev/terms";
 
-/** The two answers this pane takes off the app's URL scheme: a finished sign-in, and a
- *  finished Slack connection. The card link is the window's and arrives elsewhere (#320). */
+/** The answers this pane takes off the app's URL scheme: a finished sign-in, and a finished
+ *  connection to either chat. The card link is the window's and arrives elsewhere (#320). */
 const SIGNED_IN = "ai4kanban://cloud/signed-in";
 const SLACK_CONNECTED = "ai4kanban://cloud/slack-connected";
+const LARK_CONNECTED = "ai4kanban://cloud/lark-connected";
 
 interface AppBridge {
   openExternal(url: string): Promise<void>;
@@ -91,9 +108,11 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
   const [busy, setBusy] = useState(false);
   // The sign-in is out in the browser and we are waiting for it to come back.
   const [waiting, setWaiting] = useState(false);
-  // Bumped when a finished Slack connection comes back on the scheme, so the Slack row
-  // re-reads what the service now holds.
+  // Bumped when a finished connection comes back on the scheme, so that connector's row
+  // re-reads what the service now holds. One counter each: the two rows are answered
+  // separately, and a shared one would redraw the row nobody was waiting on.
   const [slackTick, setSlackTick] = useState(0);
+  const [larkTick, setLarkTick] = useState(0);
   const inApp = typeof window !== "undefined" && !!bridge();
 
   const load = useCallback(async () => {
@@ -113,6 +132,10 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
     return app.onCloudCallback((url) => {
       if (url.startsWith(SLACK_CONNECTED)) {
         setSlackTick((n) => n + 1);
+        return;
+      }
+      if (url.startsWith(LARK_CONNECTED)) {
+        setLarkTick((n) => n + 1);
         return;
       }
       if (!url.startsWith(SIGNED_IN)) return;
@@ -172,6 +195,7 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
           busy={busy}
           inApp={inApp}
           slackTick={slackTick}
+          larkTick={larkTick}
           onError={onError}
           onSignOut={() => void signOut()}
         />
@@ -208,16 +232,18 @@ function SignedIn({
   busy,
   inApp,
   slackTick,
+  larkTick,
   onError,
   onSignOut,
 }: {
   account: CloudAccount;
   busy: boolean;
-  /** Connecting Slack needs the app for the same reason signing in does: the consent
+  /** Connecting a chat needs the app for the same reason signing in does: the consent
    *  screen comes back on a URL scheme only the app answers. */
   inApp: boolean;
   /** Bumped when a finished connection came back on that scheme. */
   slackTick: number;
+  larkTick: number;
   onError?: (msg: string) => void;
   onSignOut: () => void;
 }) {
@@ -246,6 +272,8 @@ function SignedIn({
       <Silencer />
 
       <Slack inApp={inApp} reload={slackTick} onError={onError} />
+
+      <Lark inApp={inApp} reload={larkTick} onError={onError} />
 
       <Notifications />
     </>
@@ -510,6 +538,247 @@ function Destination({
           list.map((conversation) => (
             <SelectItem key={conversation.id} value={conversation.id} className="text-[12px]">
               {conversation.name}
+            </SelectItem>
+          ))
+        )}
+      </SelectContent>
+    </Select>
+  );
+}
+
+// --- the account's one Lark destination (#351) --------------------------------
+// Beside Slack rather than instead of it: an account may have both connected, and the first
+// press settles the event.
+//
+// Before connecting it is one line and one button per cloud, because 飞书 and Lark
+// international are two platforms and only the person knows which they are in. The line is
+// the one thing that stops a connection finishing — an administrator installs the app in the
+// organisation first, and that happens in Lark rather than here. Connected, it is the cloud,
+// who connected it, the chat it posts to and the way out.
+
+function Lark({
+  inApp,
+  reload,
+  onError,
+}: {
+  inApp: boolean;
+  reload: number;
+  onError?: (msg: string) => void;
+}) {
+  const c = useCopy().configuration.cloud.lark;
+  const saving = useCopy().configuration.cloud.saving;
+  const [state, setState] = useState<LarkState | null>(null);
+  const [working, setWorking] = useState<"connect" | "save" | "disconnect" | null>(null);
+  // Which cloud is being connected. Two buttons stand here, and one that said "Connecting…"
+  // on both would name the wrong platform to whoever pressed the other.
+  const [connecting, setConnecting] = useState<LarkCloud | null>(null);
+  const [waiting, setWaiting] = useState(false);
+  // The chat just picked, drawn until Cloud has answered — the save is a round trip to the
+  // service, and a picker that keeps showing the old group reads as one that refused.
+  const [picked, setPicked] = useState<LarkChat | null>(null);
+
+  const load = useCallback(async () => setState(await larkStateAction()), []);
+  useEffect(() => {
+    void load();
+  }, [load, reload]);
+  // A connection that came back on the scheme is one this pane was waiting for.
+  useEffect(() => {
+    if (reload > 0) setWaiting(false);
+  }, [reload]);
+
+  const connect = async (cloud: LarkCloud) => {
+    const app = bridge();
+    if (!app || working) return;
+    setWorking("connect");
+    setConnecting(cloud);
+    try {
+      const start = await startLarkConnectAction(cloud);
+      if (!start.ok) return onError?.(start.error || c.connectFailed);
+      await app.openExternal(start.url);
+      setWaiting(true);
+    } finally {
+      setConnecting(null);
+      setWorking(null);
+    }
+  };
+
+  const move = async (what: "save" | "disconnect", run: () => Promise<{ ok: boolean; error?: string }>) => {
+    if (working) return;
+    setWorking(what);
+    try {
+      const done = await run();
+      if (!done.ok) onError?.(done.error || (what === "save" ? c.saveFailed : c.disconnectFailed));
+      await load();
+    } finally {
+      setPicked(null);
+      setWorking(null);
+    }
+  };
+
+  if (!state) {
+    return <p className="text-[12px] text-nb-ink-soft">{c.checking}</p>;
+  }
+
+  const { connection } = state;
+  const offered = state.clouds.filter((one) => one.configured);
+  const busy = working !== null;
+
+  if (!connection) {
+    return (
+      <div className="flex items-center gap-3.5 rounded-[10px] bg-nb-wash px-4 py-3.5">
+        <FiMessageSquare className="shrink-0 text-nb-ink-soft" size={15} aria-hidden />
+        <div className="min-w-0 flex-1">
+          <p className="text-[12.5px] font-[800] text-nb-ink">{c.title}</p>
+          {/* Cloud's own words first. A service that could not be reached answers no
+              connection and no cloud either, and reading that as "this service carries no
+              Lark app" would tell the user to change something that is not wrong. */}
+          <p className="mt-[3px] max-w-[52ch] text-[11.5px] leading-[16px] text-nb-ink-soft">
+            {state.error
+              ? state.error
+              : offered.length === 0
+                ? c.unavailable
+                : !inApp
+                  ? c.needsApp
+                  : waiting
+                    ? c.waiting
+                    : c.install}
+          </p>
+        </div>
+        {inApp &&
+          offered.map((one) => (
+            <Button
+              key={one.cloud}
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => void connect(one.cloud)}
+            >
+              {connecting === one.cloud ? c.connecting : c.connect(one.name)}
+            </Button>
+          ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[10px] border border-nb-ink/12 px-4 py-3.5">
+      <div className="flex items-center gap-4">
+        <p className="flex min-w-0 flex-1 items-center gap-2 text-[12.5px] font-[800] text-nb-ink">
+          <FiMessageSquare className="shrink-0 text-nb-ink-soft" size={13} aria-hidden />
+          {connection.cloudName}
+          {connection.userName && (
+            <span className="truncate text-[11.5px] font-[600] text-nb-ink-soft">
+              {c.connectedBy(connection.userName)}
+            </span>
+          )}
+        </p>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => void move("disconnect", disconnectLarkAction)}
+        >
+          {working === "disconnect" ? c.disconnecting : c.disconnect}
+        </Button>
+      </div>
+
+      <div className="mt-3 flex items-center gap-2.5 border-t border-nb-ink/12 pt-3">
+        <span className="text-[12px] font-[700] text-nb-ink">{c.postsTo}</span>
+        <LarkDestination
+          connection={connection}
+          picked={picked}
+          busy={busy}
+          onPick={(chat) => {
+            setPicked(chat);
+            void move("save", () => setLarkChatAction(chat));
+          }}
+        />
+        <span className="min-w-0 flex-1 text-[11.5px] leading-[16px] text-nb-ink-soft">
+          {working === "save" ? saving : c.everyBoard}
+        </span>
+      </div>
+
+      {connection.revoked && (
+        <div className="mt-3">
+          <Note title={c.refused(connection.cloudName)}>{connection.lastError}</Note>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The chat picker. Lark is asked only when the list is opened: a pane that read the
+ *  organisation's groups every time it was drawn would spend a Lark call on somebody who came
+ *  to read the sign-in. */
+function LarkDestination({
+  connection,
+  picked,
+  busy,
+  onPick,
+}: {
+  connection: NonNullable<LarkState["connection"]>;
+  /** Just picked and not yet written. Drawn over the connection's own answer. */
+  picked: LarkChat | null;
+  busy: boolean;
+  onPick: (chat: LarkChat) => void;
+}) {
+  const c = useCopy().configuration.cloud.lark;
+  const [chats, setChats] = useState<LarkChat[] | null>(null);
+  const [reading, setReading] = useState(false);
+
+  const read = async () => {
+    if (chats || reading) return;
+    setReading(true);
+    try {
+      const answer = await larkChatsAction();
+      setChats(answer.ok ? answer.chats : []);
+    } finally {
+      setReading(false);
+    }
+  };
+
+  const shownId = picked?.id ?? connection.destinationId;
+  const shownName = picked?.name ?? connection.destinationName;
+
+  // The one it already posts to is always in the list, whether or not Lark answered: the
+  // picker must show where messages go even when the organisation cannot be read this second.
+  const offered = chats ?? [];
+  const known = shownId ? offered.some((chat) => chat.id === shownId) : true;
+  const list = known
+    ? offered
+    : [{ id: shownId, name: shownName, direct: connection.direct }, ...offered];
+
+  return (
+    <Select
+      value={shownId || undefined}
+      disabled={busy}
+      onOpenChange={(open) => open && void read()}
+      onValueChange={(id) => {
+        const chat = list.find((one) => one.id === id);
+        if (chat) onPick(chat);
+      }}
+    >
+      {/* The name is drawn here rather than by `SelectValue`, which reads it off the item
+          that is selected: the list is only fetched when the picker is opened, so until then
+          there is no item to read and the trigger would say "pick one" over a destination
+          that is already set. */}
+      <SelectTrigger
+        aria-label={c.postsTo}
+        className={`h-8 w-auto max-w-[24ch] rounded-[8px] py-0 text-[12px] font-[700] ${
+          shownName ? "" : "text-nb-ink-soft/60"
+        }`}
+      >
+        <span className="truncate">{shownName || c.pickChat}</span>
+      </SelectTrigger>
+      <SelectContent>
+        {list.length === 0 ? (
+          <p className="px-2 py-1.5 text-[11.5px] leading-[16px] text-nb-ink-soft">
+            {reading ? c.loadingChats : c.noChats}
+          </p>
+        ) : (
+          list.map((chat) => (
+            <SelectItem key={chat.id} value={chat.id} className="text-[12px]">
+              {chat.name}
             </SelectItem>
           ))
         )}

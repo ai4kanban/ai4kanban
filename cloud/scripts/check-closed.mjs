@@ -71,10 +71,11 @@ const RPCS = [
     'account_for_session',
     { p_subject: '00000000-0000-4000-8000-000000000000', p_daily_write_budget: DAILY_WRITE_BUDGET },
   ],
-  // #320's actor lookup, which turns a Slack workspace and user into an account and the
-  // token Cloud posts with. It is the one function reached on behalf of a caller holding no
-  // sign-in at all, so it is the one worth proving nobody else can call.
+  // The two actor lookups (#320, #351), which turn a chat's own idea of a person into an
+  // account and what Cloud posts with. They are the functions reached on behalf of a caller
+  // holding no sign-in at all, so they are the ones worth proving nobody else can call.
   ['slack_actor', { p_team_id: 'T0', p_slack_user_id: 'U0' }],
+  ['lark_actor', { p_cloud: 'feishu', p_tenant_key: 'T0', p_open_id: 'ou_0' }],
 ]
 
 async function refusesRpc(url, anonKey, caller, fn, args) {

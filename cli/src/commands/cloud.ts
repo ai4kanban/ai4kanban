@@ -12,6 +12,7 @@ import { readCloudAccount, signOutOfCloud } from '../lib/cloud/account'
 import { readCloudBoards } from '../lib/cloud/boards'
 import { listServers } from '../lib/cloud/client'
 import type { CloudServer } from '../lib/cloud/servers'
+import { readLarkState } from '../lib/cloud/lark'
 import { readSlackState } from '../lib/cloud/slack'
 import { thisMachine } from '../lib/machine/identity'
 import { die } from '../lib/paths'
@@ -33,11 +34,14 @@ export async function cmdCloud(args: string[], program: string): Promise<MoveRes
 
   const account = await readCloudAccount()
   for (const line of report(account, program)) say(line)
-  // Where this account's tasks arrive away from the app (#320). Reported for the same
+  // Where this account's tasks arrive away from the app (#320, #351). Reported for the same
   // reason as the boards below: a terminal is where somebody wonders why nothing is
-  // reaching Slack, and the answer is usually a destination Slack has refused. Connecting
-  // one is the app's, under Configuration → Notifications.
-  if (account.state === 'signed-in') for (const line of await slackLines()) say(line)
+  // reaching a chat, and the answer is usually a destination that chat has refused.
+  // Connecting one is the app's, under Configuration → Notifications.
+  if (account.state === 'signed-in') {
+    for (const line of await slackLines()) say(line)
+    for (const line of await larkLines()) say(line)
+  }
   // Which boards this machine publishes events for (#319). Reported here because it is a
   // fact about the machine, like the sign-in above, and because a terminal is where
   // somebody wonders why a board is or is not filling the bell. Turning one on is the
@@ -76,6 +80,20 @@ async function slackLines(): Promise<string[]> {
     ? ['', `Slack (${held.teamName}) refused the last message: ${held.lastError}`,
        'Connect again in the AI4Kanban app, under Configuration → Notifications.']
     : ['', `Slack posts to ${where}${held.teamName ? ` in ${held.teamName}` : ''}.`]
+}
+
+/** The same for Lark, and named by the cloud it was connected in — `飞书` and `Lark` are two
+ *  platforms, and a person reading this knows which one they are in. Silent when there is no
+ *  connection: an account that has never connected one is not missing anything. */
+async function larkLines(): Promise<string[]> {
+  const lark = await readLarkState()
+  const held = lark.connection
+  if (!held) return []
+  const where = held.destinationName || 'nowhere yet — pick a chat in the app'
+  return held.revoked
+    ? ['', `${held.cloudName} refused the last message: ${held.lastError}`,
+       'Connect again in the AI4Kanban app, under Configuration → Notifications.']
+    : ['', `${held.cloudName} posts to ${where}.`]
 }
 
 /** Which machine holds each board, by board id. Empty when Cloud cannot be reached — the

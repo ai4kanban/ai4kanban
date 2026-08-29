@@ -90,3 +90,65 @@ export interface SlackConversation {
   /** A direct message rather than a channel, so a card's reasoning need not go to a room. */
   direct: boolean
 }
+
+// --- Lark / 飞书 (#351) --------------------------------------------------------
+// A second destination beside Slack, and a fact about the ACCOUNT in the same way: one Lark
+// destination, shared by every board this account turns Cloud on for, with the board named on
+// each message.
+//
+// 飞书 and Lark international are two platforms rather than two addresses of one, so a
+// connection records which cloud it came from. Nothing else does: no board and no card ever
+// learns about it.
+//
+// No credential is here either. The token Cloud posts with is minted per tenant inside the
+// service and never comes back.
+
+/** The two clouds a connection can be made in. */
+export type LarkCloud = 'feishu' | 'lark'
+
+/** What the Cloud section draws for Lark. */
+export interface LarkConnection {
+  connected: true
+  cloud: LarkCloud
+  /** What a person calls that cloud — `飞书` or `Lark`. */
+  cloudName: string
+  /** Who connected it, as Lark names them. Their press is this account's. */
+  userName: string
+  destinationId: string
+  /** The destination, as it is named on screen — a group's name, or `Direct message`. */
+  destinationName: string
+  /** The direct message with whoever connected, rather than a group. */
+  direct: boolean
+  /** Lark refused us — the tenant uninstalled the app, or the destination is gone. The pane
+   *  says so where the connection was made: messages failing into silence read as no work
+   *  waiting. */
+  revoked: boolean
+  /** Lark's own words for that refusal, shown as they stand. */
+  lastError: string
+}
+
+/** One cloud the pane offers, in the order it draws them. */
+export interface LarkCloudOffer {
+  cloud: LarkCloud
+  name: string
+  /** False when the service carries no app for that cloud — the pane says so rather than
+   *  offering a button that cannot finish. */
+  configured: boolean
+}
+
+/** What the Cloud section knows about Lark: the connection, or the absence of one, and which
+ *  clouds this service can offer at all. */
+export interface LarkState {
+  connection: LarkConnection | null
+  clouds: LarkCloudOffer[]
+  /** Cloud could not be reached, or refused. Null when there is nothing to say. */
+  error: string | null
+}
+
+/** One chat a destination can be pointed at. */
+export interface LarkChat {
+  id: string
+  name: string
+  /** The direct message with whoever connected, rather than a group. */
+  direct: boolean
+}
