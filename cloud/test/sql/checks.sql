@@ -537,6 +537,56 @@ begin
     'scoping Lark''s root to a chat narrowed Slack''s';
 
   -- -------------------------------------------------------------------------
+  -- The card's own message, and the log under it (#359)
+  -- -------------------------------------------------------------------------
+  -- The message belongs to the card rather than to one of its events, so it is stored per
+  -- board, task and connector — and looked up under the same destination filter #353 gave
+  -- the root, which is how #360 reads exactly this record for Lark.
+
+  -- What the message is drawn from is the card's NEWEST event, whichever event's delivery is
+  -- due. Aged first: every now() in this transaction answers the same instant, so without it
+  -- the newest could not be told from the oldest.
+  update cloud.events set content_at = now() - interval '1 hour' where id = v_event;
+  v_json := (api.connector_jobs('slack', v_event, 10, 5) -> 0);
+  assert v_json is not null, 'a card''s first event was not owed a redraw';
+  assert (v_json -> 'card' ->> 'id')::uuid = v_second,
+    'a job aimed at one event drew the card from that event rather than from the newest';
+  assert v_json ->> 'cardRef' is null, 'a card with no message recorded was handed one';
+
+  -- One record per card and connector, rewritten in place, and the account's own.
+  perform api.record_card_message(A, BOARD_A, 329, 'slack', 'ts-card', BUDGET);
+  perform api.record_card_message(A, BOARD_A, 329, 'slack', 'ts-card-2', BUDGET);
+  select count(*) into v_count from cloud.card_messages
+   where board_id = BOARD_A and task_id = 329 and connector = 'slack';
+  assert v_count = 1, 'a card kept two messages for one connector';
+  assert ((api.connector_jobs('slack', v_second, 10, 5) -> 0) ->> 'cardRef') = 'ts-card-2',
+    'the card''s message was not handed to the job that has to rewrite it';
+  perform pg_temp.refuses(
+    format('select api.record_card_message(%L, %L, 329, %L, %L, %s)', B, BOARD_A, 'slack', 'ts', BUDGET),
+    'AKB02', 'record_card_message');
+
+  -- Lark keeps a record of its own, scoped to the chat this connection posts to now — the
+  -- account moved to `oc_2` above, so one left behind in `oc_1` is never offered.
+  perform api.record_card_message(A, BOARD_A, 329, 'lark', 'oc_1:om-card', BUDGET);
+  assert (api.connector_jobs('lark', v_second, 10, 5) -> 0) ->> 'cardRef' is null,
+    'a card message left in the chat the connection moved away from was still offered';
+  perform api.record_card_message(A, BOARD_A, 329, 'lark', 'oc_2:om-card', BUDGET);
+  assert ((api.connector_jobs('lark', v_second, 10, 5) -> 0) ->> 'cardRef') = 'oc_2:om-card',
+    'a card message in the chat this connection posts to was not offered';
+
+  -- A card in flight when 0013 shipped adopts the earliest message it already has, so it
+  -- keeps its thread rather than opening a second one beside it. This runs the migration's
+  -- own one-time step against the rows above, so nothing here can drift from what it does.
+  delete from cloud.card_messages where board_id = BOARD_A and task_id = 329;
+  perform cloud.adopt_card_messages();
+  assert (select external_ref from cloud.card_messages
+           where board_id = BOARD_A and task_id = 329 and connector = 'slack') = 'ts-first',
+    'a card in flight did not adopt the earliest Slack message it already had';
+  assert (select external_ref from cloud.card_messages
+           where board_id = BOARD_A and task_id = 329 and connector = 'lark') = 'oc_1:om-first',
+    'a card in flight did not adopt the earliest Lark message it already had';
+
+  -- -------------------------------------------------------------------------
   -- The day's write budget
   -- -------------------------------------------------------------------------
   -- A refused write rolls its own increment back, so writes stop at exactly the budget and
@@ -578,6 +628,16 @@ begin
   assert v_json is not null, 'an event with no message at all was not owed one';
   assert v_json ->> 'threadRef' is null,
     'a card with no recorded message left was still told to reply to one';
+
+  -- The card's message is nobody's foreign key, so the sweep is what takes it — and only
+  -- once the card has no event left. A card that comes back after that opens a fresh
+  -- message, exactly as one whose thread was swept does (#359).
+  select count(*) into v_count from cloud.card_messages where board_id = BOARD_A and task_id = 329;
+  assert v_count = 2, 'the sweep took a card''s message while the card still had an event';
+  update cloud.events set finished_at = now() - interval '31 days' where id = v_second;
+  perform api.sweep_events();
+  select count(*) into v_count from cloud.card_messages where board_id = BOARD_A and task_id = 329;
+  assert v_count = 0, 'the sweep left a card''s message behind its last event';
 
   raise notice 'sql checks: every check passed';
 end

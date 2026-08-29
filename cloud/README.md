@@ -59,16 +59,23 @@ cloud/
   and how far a card's own words are cut are `src/message.ts`'s, the delivery loop is
   `src/deliver.ts`'s, and the due-message query is `api.connector_jobs`. Each connector adds
   only its own markup, its own controls and its own API calls.
-- **One event, one message**: the delivery record holds the id the chat answered with, and an
-  event that has one is edited in place. `api.connector_jobs` decides what is owed by
-  comparing when the event last changed against the version its message is showing, so keeping
-  a message in step with a card needs no flag anybody has to set.
-- **One card, one thread**: every message but a card's earliest is a reply under that one, so
-  a chat carries an entry per card rather than per event. Nothing per-card is stored for it —
-  `api.connector_jobs` reads the root back out of the delivery rows already kept — so the sweep
-  taking a card's last message is a card that starts a second thread. Both connectors reply:
-  Slack under the root, Lark inside its 话题 — and Lark opens one in group chats only, so its
-  direct message keeps a card per event.
+- **One event, one message**: the delivery record holds the id the chat answered with — the
+  event's own message in Lark, its one line in the thread in Slack — and an event that has one
+  is never given a second. `api.connector_jobs` decides what is owed by comparing when the
+  event last changed against the version its message is showing, so keeping a chat in step
+  with a card needs no flag anybody has to set.
+- **The top message is the card, and the thread is its log** (Slack): one message per card per
+  destination, drawn from the card's NEWEST event and rewritten whenever that moves — and the
+  one place **Implement**, a question's options and **Answer** are offered, however long the
+  thread grows. Under it goes one reply per event, one line each, written once and never
+  edited: the chat's own timestamp is when it happened. Where that message is is stored per
+  board, task and connector in `cloud.card_messages`, recorded the moment the chat answers,
+  and swept with the card's events.
+- **One card, one 话题** (Lark, until #360): every message but a card's earliest is a reply
+  inside that one's topic. Nothing per-card is stored for it — `api.connector_jobs` reads the
+  root back out of the delivery rows already kept — so the sweep taking a card's last message
+  is a card that starts a second topic. Lark opens a topic in group chats only, so its direct
+  message keeps a card per event.
 - **A Lark reference names the chat, and a reply names the person**: Lark's reply endpoint
   takes no destination, so a message id alone would let a root left in a chat the account has
   moved away from be replied to. The delivery reference records `<destination>:<message_id>`
@@ -364,6 +371,7 @@ the `+ 1`s.
 | Step | Writes |
 | --- | --- |
 | Published, and its message | 1 + 1 |
+| The card's own message, once — Slack's, until #360 gives Lark one | 1 |
 | Each revision before anyone looks | 1 + 1 |
 | Decided in the app | 2 + 1 |
 | Decided in a chat — the extra one raises the request | 3 + 1 |
@@ -372,16 +380,16 @@ the `+ 1`s.
 | Each five minutes the delivery runs | 1 |
 | Retired as `stale` instead | 1 + 1 |
 
-So a card decided in a chat, revised twice, with a half-hour delivery, is about **23 writes**
+So a card decided in a chat, revised twice, with a half-hour delivery, is about **24 writes**
 with one connector connected.
-A card nobody acts on is **4**.
+A card nobody acts on is **5**.
 
-**A day, and a year of them.** Ten cards through and five retired is about **250 writes a
+**A day, and a year of them.** Ten cards through and five retired is about **265 writes a
 day** for one busy account. Against `DAILY_WRITE_BUDGET`:
 
-- **20,000 ÷ 250 ≈ 80 accounts**, if every one of them is busy every day.
+- **20,000 ÷ 265 ≈ 75 accounts**, if every one of them is busy every day.
 - The largest burst is the **first fill** — turning Cloud on for a board that already holds
-  actionable cards costs 2 writes each, so a 200-card board is 400. The publisher sends at
+  actionable cards costs 3 writes each, so a 200-card board is 600. The publisher sends at
   most 20 items a pass (`SEND_PER_PASS` in `cli/src/lib/cloud/publish.ts`), so it spreads over
   minutes rather than arriving at once, but the day's total is unchanged: **invite in batches
   of a few, not twenty at a time**, or one afternoon of first fills spends the day's budget.
@@ -394,7 +402,7 @@ Supabase Free's 500 MB for indexes, WAL and the `auth` schema:
 
 - **250 MB ÷ 1.4 MB ≈ 180 accounts** typically, **÷ 6.8 MB ≈ 37** if every card is a long one.
 
-**The ceiling to invite up to: about 30 accounts.** Writes give out around 80 and storage
+**The ceiling to invite up to: about 30 accounts.** Writes give out around 75 and storage
 around 37 in the worst case, and neither number has any real traffic behind it — 30 leaves
 room for both to be wrong. Past it, read `select writes from cloud.daily_writes order by day
 desc limit 7` and the project's database size before inviting anybody else.

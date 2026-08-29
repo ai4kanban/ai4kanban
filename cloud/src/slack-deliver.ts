@@ -5,17 +5,20 @@
  * every other connector. What is Slack's is here: which call posts a message, which one
  * edits it, and which of Slack's own errors mean the user has to do something.
  *
- * A CARD keeps one thread (#352). Its earliest recorded message is the top of it and every
- * later event replies underneath, so a channel carries one entry per card rather than one
- * per event. Nothing per-card is stored for that: `api.connector_jobs` reads the root back
- * out of the delivery records already kept.
+ * A CARD is one message, and its thread is the log (#359). The top message belongs to the
+ * card rather than to any one event: it is drawn from the card's newest event, rewritten
+ * whenever that moves, and it is where every control is offered. Underneath it goes one reply
+ * per event, written once and never edited — the chat's own timestamp is when it happened.
+ *
+ * Where that message is, is stored: `api.connector_jobs` hands it over as `cardRef`, and it
+ * is recorded the moment Slack answers rather than with the event's delivery.
  */
 
 import { SLACK_BATCH, SLACK_MAX_ATTEMPTS } from './config.ts'
-import { deliver } from './deliver.ts'
+import { deliver, recordCardMessage } from './deliver.ts'
 import type { Connector, ConnectorJob, DeliveryRun } from './deliver.ts'
 import type { Env } from './env.ts'
-import { messageFor } from './slack-message.ts'
+import { logFor, messageFor, type Block } from './slack-message.ts'
 import { slackApi, slackRefused } from './slack.ts'
 
 export type { DeliveryRun as SlackRun }
@@ -30,6 +33,9 @@ interface SlackPosts {
 }
 
 type SlackJob = ConnectorJob<SlackPosts>
+
+/** A message as Slack takes it: the notification line and the blocks. */
+type Message = { text: string; blocks: Block[] }
 
 /**
  * The Slack errors that mean the user has to do something.
@@ -54,13 +60,11 @@ const NEEDS_THE_USER = [
 ]
 
 /**
- * The Slack errors that mean the thread we were given is not one to post in.
+ * The Slack errors that mean the message we were given is not one to reply under.
  *
- * A root somebody deleted and one left behind in a destination the account has moved away
- * from both land here, and both take the same path: post again with no thread. The card's
- * records still point at that root until the sweep takes it, so until then the card is back
- * to a message per event — which is what it had before threads, and not worth a write that
- * only unsays a `ts`.
+ * A card's message somebody deleted and one left behind in a destination the account has
+ * moved away from both land here, and both take the same path: post the card afresh and log
+ * this event under that one. Whatever that old message was, it is not the card's any more.
  */
 const THREAD_REFUSED = [
   'thread_not_found',
@@ -69,81 +73,104 @@ const THREAD_REFUSED = [
   'cannot_reply_to_message',
 ]
 
-/** Slack, holding the roots this one pass took. Two of a card's events posted in the same
- *  pass read the same `threadRef` — the one the database had before either was written — so
- *  without somewhere to keep it the second would open a thread of its own. */
-const slack = (roots: Map<string, string>): Connector<SlackPosts> => ({
+/**
+ * What one pass has written per card.
+ *
+ * Two of a card's events in the same pass read the same `cardRef` — the one the database had
+ * before either was written — so without somewhere to keep it the second would open a second
+ * message. `drawn` is what keeps the second from redrawing what the first just drew.
+ */
+interface Pass {
+  ref: Map<string, string>
+  drawn: Set<string>
+}
+
+/** Slack, holding the card messages this one pass took. */
+const slack = (pass: Pass): Connector<SlackPosts> => ({
   name: 'slack',
   batch: SLACK_BATCH,
   maxAttempts: SLACK_MAX_ATTEMPTS,
-  write: (_env, job) => write(job, roots),
+  write: (env, job) => write(env, job, pass),
   needsTheUser: (error) => NEEDS_THE_USER.includes(error),
   refused: (env, ownerId, error) => slackRefused(env, ownerId, error),
 })
 
 /** Write every Slack message that is owed. With an event named, only that one. */
 export const deliverSlack = (env: Env, eventId?: string): Promise<DeliveryRun> =>
-  deliver(env, slack(new Map()), eventId)
+  deliver(env, slack({ ref: new Map(), drawn: new Set() }), eventId)
 
 /**
- * Post it, or edit the one that is already there.
+ * The card's message, brought up to date, and this event's line in its thread.
  *
- * A message somebody deleted in Slack is posted again rather than reported as a failure:
- * the delivery record is what says a message exists, and the channel is what says whether
- * it still does.
- *
- * Where it sits is the card's, not the event's: everything but the card's earliest message
- * is a reply under that one, so a channel carries one entry per card. An edit is made
- * wherever the message already is — Slack needs no thread to update one — and its shape
- * follows the root the card has NOW: a reply whose root the sweep has taken is edited back
- * into a root's own shape, because that is what it has become.
+ * The delivery record this answers is the EVENT's, so what is returned is the reply — which
+ * is written once and never rewritten. An event that already has one costs one edit of the
+ * card's message and nothing else: that edit is the whole of keeping the top of the thread in
+ * step with the newest revision, the decision and the delivery's outcome.
  */
-async function write(job: SlackJob, roots: Map<string, string>): Promise<string> {
-  const card = `${job.event.boardId}:${job.event.taskId}`
-  if (!roots.has(card) && job.threadRef) roots.set(card, job.threadRef)
-  const root = roots.get(card)
-  // The root pointing at this event's own message is the event being the top of the thread.
-  const thread = root && root !== job.messageRef ? root : null
+async function write(env: Env, job: SlackJob, pass: Pass): Promise<string> {
+  const root = await cardMessage(env, job, pass)
+  if (job.messageRef) return job.messageRef
 
-  if (job.messageRef) {
+  const line = logFor(job.event, { actorId: job.posts.actorId })
+  try {
+    return await post(job, line, root)
+  } catch (e) {
+    if (!THREAD_REFUSED.includes(e instanceof Error ? e.message : '')) throw e
+  }
+  const fresh = await postCard(env, job, pass)
+  return post(job, line, fresh)
+}
+
+/**
+ * The card's message: posted where it has none, edited where it has one, once per pass.
+ *
+ * A message somebody deleted in Slack is posted again rather than reported as a failure: the
+ * record is what says a message exists, and the channel is what says whether it still does.
+ */
+async function cardMessage(env: Env, job: SlackJob, pass: Pass): Promise<string> {
+  const card = cardKey(job)
+  const known = pass.ref.get(card) ?? job.cardRef ?? null
+  if (known && pass.drawn.has(card)) return known
+
+  if (known) {
     try {
       await slackApi(job.posts.botToken, 'chat.update', {
         channel: job.posts.channelId,
-        ts: job.messageRef,
-        ...render(job, thread !== null),
+        ts: known,
+        ...shown(job),
       })
-      return job.messageRef
+      pass.ref.set(card, known)
+      pass.drawn.add(card)
+      return known
     } catch (e) {
       if ((e instanceof Error ? e.message : '') !== 'message_not_found') throw e
     }
   }
+  return postCard(env, job, pass)
+}
 
-  if (thread) {
-    try {
-      return await post(job, thread)
-    } catch (e) {
-      if (!THREAD_REFUSED.includes(e instanceof Error ? e.message : '')) throw e
-    }
-  }
-  // A thread of its own: the card has no message left to reply to, or the one it named is
-  // not one Slack will take. Either way this message is the top of what comes next.
-  const ts = await post(job, null)
-  roots.set(card, ts)
+/** A card's message where it has none Slack will take. Recorded the moment Slack answers, so
+ *  nothing later in this pass — a failed reply, a second event — opens a second one. */
+async function postCard(env: Env, job: SlackJob, pass: Pass): Promise<string> {
+  const ts = await post(job, shown(job), null)
+  await recordCardMessage(env, 'slack', job, ts)
+  pass.ref.set(cardKey(job), ts)
+  pass.drawn.add(cardKey(job))
   return ts
 }
 
-/** The message as it sits: the whole card at the top of a thread, and where the work stands
- *  in a reply under it. */
-const render = (job: SlackJob, reply: boolean) =>
-  reply ? messageFor(job.event, { actorId: job.posts.actorId }) : messageFor(job.event)
+/** The card as it stands now — its newest event, not whichever event's delivery is due. A
+ *  schema older than 0013 sends no newest event, and the one being delivered is all there is. */
+const shown = (job: SlackJob): Message => messageFor(job.card ?? job.event)
 
-/** Nothing is ever broadcast to the channel: a broadcast reply is a reference carrying no
- *  buttons, so it would leave the card's bulk in the timeline and take the decision out of
- *  the thread. */
-async function post(job: SlackJob, thread: string | null): Promise<string> {
+const cardKey = (job: SlackJob): string => `${job.event.boardId}:${job.event.taskId}`
+
+/** Nothing is ever broadcast to the channel: a broadcast reply would put the card's bulk back
+ *  in the timeline, and the controls are at the top of the thread rather than in a reply. */
+async function post(job: SlackJob, message: Message, thread: string | null): Promise<string> {
   const answer = await slackApi<{ ts?: string }>(job.posts.botToken, 'chat.postMessage', {
     channel: job.posts.channelId,
-    ...render(job, thread !== null),
+    ...message,
     ...(thread ? { thread_ts: thread } : {}),
   })
   if (!answer.ts) throw new Error('slack answered without a message id')

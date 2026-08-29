@@ -8,6 +8,9 @@
 // card sent its opening paragraph and its review notes. The newest event of each shape wins.
 // Nothing is invented: the words in these files are the ones a channel is being shown.
 //
+// Every per-shape sample is the CARD's own message, which is what the top of a thread holds
+// (#359). The `log-*` samples are the one-line reply an event is logged as underneath it.
+//
 // Writes cloud/.slack-preview/<name>.json (out of git) and prints a Block Kit Builder link
 // for each. Every file holds `{ blocks }` and nothing else, which is what the builder's
 // Message surface takes — paste one in, or open the link.
@@ -20,7 +23,7 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
-import { answerView, messageFor } from '../src/slack-message.ts'
+import { answerView, logFor, messageFor } from '../src/slack-message.ts'
 import { loadEnv, requireEnv, serviceRoot } from './env.mjs'
 
 const OUT = join(serviceRoot, '.slack-preview')
@@ -84,18 +87,26 @@ async function main() {
     written.push(save(name, describe(event), { blocks: messageFor(event).blocks }))
   }
 
-  // A reply, which is what every message but a card's first one is (#352). It differs only
-  // at the top — no card header, no board-and-release line, and the account a press is
-  // accepted from while the card is still asking — so one open sample and one settled one
-  // are the whole of it.
+  // The two shapes a channel actually holds (#359), named so they can be told apart from the
+  // per-shape samples above: the card's own message at the top of the thread — with its
+  // controls while it is still asking, and the state it reached once it is settled — and the
+  // one-line reply each event is logged as underneath.
   const actorId = (await query(ref, token, ACTOR))[0]?.slack_user_id
   const asking = rows.map((row) => row.event).find((event) => !event.acted && event.state === 'actionable')
   const reported = rows.map((row) => row.event).find((event) => event.acted)
-  for (const [name, event] of [['reply-asking', asking], ['reply-reporting', reported]]) {
+  for (const [name, event] of [['card-asking', asking], ['card-settled', reported]]) {
     if (!event) continue
     written.push(
-      save(name, `${describe(event)} — as a reply in the card’s thread`, {
-        blocks: messageFor(event, { actorId }).blocks,
+      save(name, `${describe(event)} — the card’s own message, at the top of its thread`, {
+        blocks: messageFor(event).blocks,
+      }),
+    )
+  }
+  for (const [name, event] of [['log-asking', asking], ['log-reporting', reported]]) {
+    if (!event) continue
+    written.push(
+      save(name, `${describe(event)} — as a log line in the card’s thread`, {
+        blocks: logFor(event, { actorId }).blocks,
       }),
     )
   }

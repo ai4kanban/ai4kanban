@@ -80,6 +80,10 @@ Once you act on an event, Cloud also holds **the decision you made and the answe
 
 An event is kept while it is unresolved, and **deleted 30 days after it reaches a final outcome** — completed, failed, cancelled, interrupted, or retired because the task stopped needing you. An event no machine ever reports on reaches no final outcome, so it is kept rather than swept. Deleting it takes its answers, its outcome, and any message it was delivered as with it.
 
+### Which message in a chat is the card's
+
+A task keeps one message in each chat you connected, and its events are logged in the thread under it. So Cloud holds **which message that is**: the board, the task number, the chat you connected, and **the chat's own identifier for that message**. It holds none of the message's words, and nothing about who read it or replied to it. It is deleted when the task's last event is, and it goes with the board and the account it belongs to.
+
 ### What a board is registered as
 
 A board on Cloud is an identifier that means nothing outside Cloud, and **a name — the name of the folder the board sits in**. The app reads that name rather than asking you for one, so a folder named after a client names that client on Cloud. **The path the board sits at is never sent**, only that last part of it. If a folder's name would say something you would not put in a shared document, rename it before you turn Cloud on.
@@ -176,7 +180,7 @@ A decision pressed in either chat comes back as a callback that chat signs and t
 
 Nothing else in the app deletes anything. Signing out stops that machine reaching Cloud and removes no record. Turning Cloud off for a board, or moving the board to another machine, removes no record either.
 
-**Everything else we remove by hand**, on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). What that removes is **your whole account and everything under it**: your Cloud account row and your admission, your board rows with their names, every machine record those boards registered, every event with its questions, decisions, answers and outcomes, your Slack and Lark connections, and your invite request. Your sign-in record goes alongside them, as its own step in Supabase rather than by the same operation.
+**Everything else we remove by hand**, on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). What that removes is **your whole account and everything under it**: your Cloud account row and your admission, your board rows with their names, every machine record those boards registered, every event with its questions, decisions, answers and outcomes, which message in a chat each task is, your Slack and Lark connections, and your invite request. Your sign-in record goes alongside them, as its own step in Supabase rather than by the same operation.
 
 **It is all of it or none of it.** The service has no way to remove one board's record and leave the account behind it, so **asking us to forget a board ends your place in the preview**. If that is not what you meant, tell us what you need and we will say what we can do.
 
@@ -244,6 +248,7 @@ We keep personal information only as long as we need it for the purposes describ
 - **Your invite request** — kept until we remove it by hand, whether or not we admitted you. A request we never approved stays until you ask us to delete it. Resend's own sending logs are kept for 30 days under Resend's policy.
 - **A board's Cloud id and its name** — kept until we remove them by hand. Turning Cloud off for a board, moving it to another machine, and signing out delete nothing.
 - **Events and actions** — kept while the event is unresolved, then deleted 30 days after it reaches a final outcome, together with the decision recorded against it, its answers, its outcome, and any message it was delivered as.
+- **Which message in a chat is a task's** — the board, the task number, the chat, and the chat's own identifier for that message. Kept while the task has any event on Cloud, and deleted with the last of them.
 - **A board's machine record** — the machine identifier, the hostname, and the runtimes described above, kept until we remove them by hand. Every machine a board registered keeps its record, including one the board has moved away from.
 - **Your Slack and Lark connections** — kept until you disconnect them, which deletes each one at once, or until we remove your records.
 - **The API's own request log** — retained by Cloudflare under Cloudflare's policy. It carries no board content, no handle, and no email address.

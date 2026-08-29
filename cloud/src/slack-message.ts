@@ -1,9 +1,9 @@
 /**
- * One event, as a Slack message (#320).
+ * A card, as a Slack message (#320) — and each of its events, as a line in the thread (#359).
  *
- * The whole ask is in the message: the card's facts under the title, the paragraph and the
- * review notes it was published with, and the decision as buttons under a divider. Pressing
- * one edits this message in place, so a channel carries one message per piece of work
+ * The whole ask is in the card's message: its facts under the title, the paragraph and the
+ * review notes it was published with, and the decision as buttons under a divider. It is
+ * rewritten whenever the card moves, so a channel carries one message per piece of work
  * however many times it moves.
  *
  * What the nine states are called, how far a card's own words are cut and where a question's
@@ -64,24 +64,19 @@ const MARKS: Record<string, string> = {
 }
 
 /**
- * The message for one event, as Slack takes it.
+ * The card's own message, drawn from where the card stands now.
  *
  * `text` is the notification line — what a phone shows before the message is opened — and
  * the blocks are the message itself.
  *
- * `reply` is set for an event posted inside its card's thread (#352). The thread already
- * opened on the card's title, board and release, so a reply says only where the work stands
- * — and, while it is still asking for a decision, who it is asking.
+ * It is the only message that carries controls (#359): **Implement**, a question's options
+ * and the **Answer** button are offered at the top of the thread and nowhere else, so there
+ * is one place to act however long the thread grows.
  */
-export function messageFor(
-  event: EventRow,
-  reply?: { actorId?: string },
-): { text: string; blocks: Block[] } {
+export function messageFor(event: EventRow): { text: string; blocks: Block[] } {
   const open = event.state === 'actionable' && !event.acted
   const { label: heading } = stateOf(event)
-  const blocks: Block[] = reply
-    ? [standing(event, open ? reply.actorId : undefined)]
-    : [header(`#${event.taskId} ${event.taskTitle}`), context(facts(event))]
+  const blocks: Block[] = [header(`#${event.taskId} ${event.taskTitle}`), context(facts(event))]
 
   // The card's own words, cut to what a message is read from rather than what a card holds.
   const review = cardWords(event, open, mrkdwn)
@@ -122,17 +117,29 @@ function facts(event: EventRow): string {
 }
 
 /**
- * A reply's opening line: where the work stands, and — while it is still asking — the one
- * account a press is accepted from.
+ * One event, as a line in the card's thread (#359).
  *
- * A reply pings nobody and nothing is broadcast to the channel, so naming that account is
- * the whole of how a later decision reaches the person it is for. It goes in a section
- * rather than a context because a mention in a context notifies nobody.
+ * The card's message says where the card stands; this says an event arrived, and is never
+ * rewritten — the chat's own timestamp is when it happened. So it carries no card words and
+ * no controls: both are at the top of the thread, which is the one place to act.
+ *
+ * A reply pings nobody and nothing is broadcast to the channel, so one recording an event
+ * that is asking for a decision names the account Slack was connected as — the one person a
+ * press is accepted from. It goes in a section rather than a context, because a mention in a
+ * context notifies nobody.
  */
-function standing(event: EventRow, actorId?: string): Block {
+export function logFor(
+  event: EventRow,
+  actor?: { actorId?: string },
+): { text: string; blocks: Block[] } {
+  const open = event.state === 'actionable' && !event.acted
   const { key, label } = stateOf(event)
   const said = `${MARKS[key] ?? ''} *${escape(label)}*`
-  return actorId ? section(`${said}  ·  <@${actorId}>`) : context(said)
+  const actorId = open ? actor?.actorId : undefined
+  return {
+    text: `${label}: #${event.taskId} ${event.taskTitle}`,
+    blocks: [actorId ? section(`${said}  ·  <@${actorId}>`) : context(said)],
+  }
 }
 
 // --- the decision -------------------------------------------------------------

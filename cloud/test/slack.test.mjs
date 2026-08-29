@@ -3,7 +3,7 @@ import { describe, it, mock } from 'node:test'
 
 import { verifySignature, slackCallback } from '../src/slack-actions.ts'
 import { deliverSlack } from '../src/slack-deliver.ts'
-import { answerView, bound, messageFor, mrkdwn } from '../src/slack-message.ts'
+import { answerView, bound, logFor, messageFor, mrkdwn } from '../src/slack-message.ts'
 
 // The Worker's half of Slack (#320): what a message is made of, what a callback has to
 // prove before it is acted on, and which call one event's message costs. Whose action an
@@ -193,38 +193,6 @@ describe('messageFor', () => {
     assert.doesNotMatch(blocks[1].elements[0].text, /4f2a19c/)
   })
 
-  it('says only where a reply stands, and who it is still asking', () => {
-    const { text, blocks } = messageFor(anEvent(), { actorId: 'U1' })
-
-    // The thread opened on the card. Repeating its title, board and release under itself is
-    // what made one card scroll past the channel several times over.
-    const said = textIn(blocks)
-    assert.doesNotMatch(said, /Harden the Cloud event flow/)
-    assert.doesNotMatch(said, /release 0\.8\.0/)
-    // A reply pings nobody, so the one account a press is accepted from is named — in a
-    // section, because a mention in a context notifies nobody.
-    assert.equal(blocks[0].type, 'section')
-    assert.equal(blocks[0].text.text, ':eyes: *Ready for review*  ·  <@U1>')
-    // The phone still says which card it is.
-    assert.equal(text, 'Ready for review: #329 Harden the Cloud event flow')
-    // And the decision is still in the reply.
-    assert.deepEqual(
-      buttons(blocks).map((b) => b.action),
-      ['implement', 'open_card'],
-    )
-  })
-
-  it('names nobody in a reply with no decision left to make', () => {
-    const { blocks } = messageFor(
-      anEvent({ state: 'running', acted: true }),
-      { actorId: 'U1' },
-    )
-
-    assert.equal(blocks[0].type, 'context')
-    assert.equal(blocks[0].elements[0].text, ':hammer_and_wrench: *Delivery running*')
-    assert.doesNotMatch(textIn(blocks), /<@U1>/, 'a report is not an ask')
-  })
-
   it('shows what a note leads with, and leaves the argument on the card', () => {
     const notes = [
       '## Worth noting',
@@ -268,6 +236,39 @@ describe('messageFor', () => {
     )
     // Cut on the button, whole in the message: a press never means less than the card said.
     assert.match(textIn(blocks), /:star: \*1\. No\* — ship on `gh auth token`/)
+  })
+})
+
+describe('logFor', () => {
+  it('is one line saying which event arrived, and who it is still asking', () => {
+    const { text, blocks } = logFor(anEvent(), { actorId: 'U1' })
+
+    // No card words: the thread already opened on the card, and repeating its title, board
+    // and release under itself is what made one card scroll past the channel several times.
+    assert.equal(blocks.length, 1)
+    assert.doesNotMatch(textIn(blocks), /Harden the Cloud event flow/)
+    assert.doesNotMatch(textIn(blocks), /release 0\.8\.0/)
+    // A reply pings nobody, so the one account a press is accepted from is named — in a
+    // section, because a mention in a context notifies nobody.
+    assert.equal(blocks[0].type, 'section')
+    assert.equal(blocks[0].text.text, ':eyes: *Ready for review*  ·  <@U1>')
+    // The phone still says which card it is.
+    assert.equal(text, 'Ready for review: #329 Harden the Cloud event flow')
+  })
+
+  it('carries no control — every one of them is at the top of the thread', () => {
+    const questions = [{ text: 'Ship it?', mode: 'single', options: ['Yes', 'No'], recommend: [1] }]
+    for (const event of [anEvent(), anEvent({ kind: 'question', decision: 'answer', questions })]) {
+      assert.deepEqual(buttons(logFor(event, { actorId: 'U1' }).blocks), [])
+    }
+  })
+
+  it('names nobody where there is no decision left to make', () => {
+    const { blocks } = logFor(anEvent({ state: 'running', acted: true }), { actorId: 'U1' })
+
+    assert.equal(blocks[0].type, 'context')
+    assert.equal(blocks[0].elements[0].text, ':hammer_and_wrench: *Delivery running*')
+    assert.doesNotMatch(textIn(blocks), /<@U1>/, 'a report is not an ask')
   })
 })
 
@@ -392,13 +393,21 @@ describe('verifySignature', () => {
 })
 
 /** Stand in for PostgREST, answering one function at a time and recording every call. */
-function fakeDatabase(answers) {
+function fakeDatabase(answers, refuses = () => '') {
   const calls = []
+  // A `ts` per message posted, so a card's own message and the replies under it can be told
+  // apart. `refuses` is the Slack error one call answers with, and '' for the ones that work.
+  let posted = 0
   mock.method(globalThis, 'fetch', async (url, init) => {
     const at = String(url)
     if (at.startsWith('https://slack.com/')) {
-      calls.push({ slack: at.split('/api/')[1], args: JSON.parse(init.body) })
-      return new Response(JSON.stringify({ ok: true, ts: '1712.0001' }), { status: 200 })
+      const api = at.split('/api/')[1]
+      const args = JSON.parse(init.body)
+      calls.push({ slack: api, args })
+      const error = refuses(api, args)
+      if (error) return new Response(JSON.stringify({ ok: false, error }), { status: 200 })
+      if (api === 'chat.postMessage') posted += 1
+      return new Response(JSON.stringify({ ok: true, ts: `1712.000${posted}` }), { status: 200 })
     }
     if (at.startsWith('https://hooks.slack')) {
       calls.push({ ephemeral: JSON.parse(init.body).text })
@@ -580,44 +589,184 @@ describe('slackCallback', () => {
 // The delivery
 // ---------------------------------------------------------------------------
 
+
+/** One message a connector owes, as `api.connector_jobs` answers it. `card` follows the event
+ *  unless a test says otherwise — a card whose newest event is the one being delivered. */
+function aJob(over = {}) {
+  const job = {
+    ownerId: OWNER,
+    eventId: EVENT,
+    contentAt: '2026-08-01T10:00:00Z',
+    posts: ACTOR_POSTS,
+    messageRef: null,
+    cardRef: null,
+    attempts: 0,
+    event: anEvent(),
+    ...over,
+  }
+  return { card: job.event, ...job }
+}
+
 describe('deliverSlack', () => {
-  it('posts an event that has no message and edits the one that has', async (t) => {
+  it('posts the card, then logs the event underneath it', async (t) => {
     t.after(() => mock.restoreAll())
-    let calls = fakeDatabase({
-      connector_jobs: [
-        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: POSTS, messageRef: null, attempts: 0, event: anEvent() },
-      ],
+    const calls = fakeDatabase({
+      connector_jobs: [aJob()],
       record_event_delivery: anEvent(),
     })
 
-    let run = await deliverSlack(ENV)
-    assert.deepEqual(run, { due: 1, sent: 1, failed: 0 })
-    assert.equal(calls.find((c) => c.slack)?.slack, 'chat.postMessage')
+    assert.deepEqual(await deliverSlack(ENV), { due: 1, sent: 1, failed: 0 })
+
+    const wrote = calls.filter((c) => c.slack)
+    assert.deepEqual(wrote.map((w) => w.slack), ['chat.postMessage', 'chat.postMessage'])
+    // The card first, at the top level, carrying the whole card and its controls.
+    assert.equal(wrote[0].args.thread_ts, undefined)
+    assert.equal(wrote[0].args.blocks[0].type, 'header')
+    assert.deepEqual(buttons(wrote[0].args.blocks).map((b) => b.action), ['implement', 'open_card'])
+    // Then one line under it, which is what pings the account Slack was connected as.
+    assert.equal(wrote[1].args.thread_ts, '1712.0001')
+    assert.equal(wrote[1].args.blocks.length, 1)
+    assert.match(wrote[1].args.blocks[0].text.text, /<@U1>/)
+    // A broadcast reply is a reference carrying no buttons: it would put the card's bulk back
+    // in the timeline and take the decision out of the thread.
+    assert.equal(wrote[1].args.reply_broadcast, undefined)
+
+    // The card's message is recorded on its own — per board and task, not per event, and the
+    // moment Slack answers rather than with the event's delivery.
+    const card = calls.find((c) => c.fn === 'record_card_message')
+    assert.equal(card.args.p_board, BOARD)
+    assert.equal(card.args.p_task_id, 329)
+    assert.equal(card.args.p_connector, 'slack')
+    assert.equal(card.args.p_external_ref, '1712.0001')
+    // The event's own delivery keeps the reply, and the version the card's message shows.
     const kept = calls.find((c) => c.fn === 'record_event_delivery')
-    assert.equal(kept.args.p_external_ref, '1712.0001')
+    assert.equal(kept.args.p_external_ref, '1712.0002')
     assert.equal(kept.args.p_connector, 'slack')
-    // What the message shows, not when it was written: an event that moved while Slack was
-    // answering is still owed a rewrite.
     assert.equal(kept.args.p_rendered_at, '2026-08-01T10:00:00Z')
+  })
 
-    mock.restoreAll()
-    calls = fakeDatabase({
+  it('rewrites the card’s message as the card moves, and never the reply already posted', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
       connector_jobs: [
-        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T11:00:00Z', posts: POSTS, messageRef: '1712.0001', attempts: 0, event: anEvent({ state: 'running', acted: true }) },
+        aJob({
+          contentAt: '2026-08-01T11:00:00Z',
+          messageRef: '1712.0002',
+          cardRef: '1712.0001',
+          event: anEvent({ state: 'running', acted: true }),
+        }),
       ],
       record_event_delivery: anEvent(),
     })
 
-    run = await deliverSlack(ENV, EVENT)
-    assert.deepEqual(run, { due: 1, sent: 1, failed: 0 })
-    // One event keeps one message however many times it moves.
-    assert.equal(calls.find((c) => c.slack)?.slack, 'chat.update')
-    assert.equal(calls.find((c) => c.slack)?.args.ts, '1712.0001')
+    assert.deepEqual(await deliverSlack(ENV, EVENT), { due: 1, sent: 1, failed: 0 })
+
+    const wrote = calls.filter((c) => c.slack)
+    assert.deepEqual(wrote.map((w) => w.slack), ['chat.update'], 'a reply is written once')
+    assert.equal(wrote[0].args.ts, '1712.0001')
+    assert.equal(wrote[0].args.blocks[0].type, 'header')
+    assert.match(textIn(wrote[0].args.blocks), /Delivery running/)
+    // The reply keeps its own timestamp, which is when that event arrived, and the card keeps
+    // the message it already has.
+    assert.equal(calls.find((c) => c.fn === 'record_event_delivery').args.p_external_ref, '1712.0002')
+    assert.equal(calls.find((c) => c.fn === 'record_card_message'), undefined)
+  })
+
+  it('draws the card from its newest event, not from the one being delivered', async (t) => {
+    t.after(() => mock.restoreAll())
+    const SECOND = '44444444-4444-4444-8444-444444444444'
+    const asking = anEvent({
+      id: SECOND,
+      kind: 'question',
+      decision: 'answer',
+      questions: [{ text: 'Ship it?', mode: 'single', options: ['Yes', 'No'], recommend: [1] }],
+    })
+    const calls = fakeDatabase({
+      // The card's first event, long settled, redrawn because a pass came round to it.
+      connector_jobs: [
+        aJob({
+          messageRef: '1712.0002',
+          cardRef: '1712.0001',
+          event: anEvent({ state: 'completed', acted: true }),
+          card: asking,
+        }),
+      ],
+      record_event_delivery: anEvent(),
+    })
+
+    await deliverSlack(ENV)
+
+    const edited = calls.find((c) => c.slack === 'chat.update')
+    assert.equal(edited.args.ts, '1712.0001')
+    // The card is asking again, so that is what the top of the thread says — and the press it
+    // offers binds the event that is asking.
+    const said = textIn(edited.args.blocks)
+    assert.match(said, /Question waiting/)
+    assert.doesNotMatch(said, /Delivery completed/)
+    assert.deepEqual(
+      buttons(edited.args.blocks).map((b) => b.action),
+      ['answer_option:0:1', 'answer_option:0:2', 'open_card'],
+    )
+  })
+
+  it('shows a settled card where it ended, and none of the questions it answered', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        aJob({
+          messageRef: '1712.0002',
+          cardRef: '1712.0001',
+          event: anEvent({
+            kind: 'question',
+            decision: 'answer',
+            questions: [{ text: 'Ship it?', mode: 'single', options: ['Yes', 'No'], recommend: [] }],
+            state: 'failed',
+            acted: true,
+            reason: 'the approval was refused on that machine.',
+          }),
+        }),
+      ],
+      record_event_delivery: anEvent(),
+    })
+
+    await deliverSlack(ENV)
+
+    const edited = calls.find((c) => c.slack === 'chat.update')
+    const said = textIn(edited.args.blocks)
+    assert.match(said, /Delivery failed/)
+    assert.match(said, /approval was refused/)
+    assert.doesNotMatch(said, /Ship it\?/, 'a settled card re-asks nothing')
+    assert.deepEqual(buttons(edited.args.blocks).map((b) => b.action), ['open_card'])
+  })
+
+  it('holds the card’s message, so its two events in one pass share it', async (t) => {
+    t.after(() => mock.restoreAll())
+    const SECOND = '44444444-4444-4444-8444-444444444444'
+    const asking = anEvent({ id: SECOND, kind: 'question', decision: 'answer' })
+    const calls = fakeDatabase({
+      // Both read the same `cardRef` — the one the database held before either was written.
+      connector_jobs: [
+        aJob({ card: asking }),
+        aJob({ eventId: SECOND, contentAt: '2026-08-01T10:05:00Z', event: asking, card: asking }),
+      ],
+      record_event_delivery: anEvent(),
+    })
+
+    assert.deepEqual(await deliverSlack(ENV), { due: 2, sent: 2, failed: 0 })
+
+    const wrote = calls.filter((c) => c.slack)
+    assert.equal(wrote.length, 3, 'one card message and one reply per event')
+    assert.equal(wrote[0].args.thread_ts, undefined)
+    assert.equal(wrote[1].args.thread_ts, '1712.0001')
+    assert.equal(wrote[2].args.thread_ts, '1712.0001')
+    // Drawn once, recorded once: the second event neither opens a message nor redraws the one
+    // the first just drew.
+    assert.equal(calls.filter((c) => c.fn === 'record_card_message').length, 1)
   })
 
   // A migration and a deploy do not land together, so for one window this reads a schema
-  // that names the version token the other way. Recording NULL for it would leave every
-  // message in the channel due forever — rewritten on every pass until the two sides met.
+  // that names the version token the other way — and sends no newest event, where the one
+  // being delivered is the whole of the card there is.
   it('takes the version token under the name an older schema gives it', async (t) => {
     t.after(() => mock.restoreAll())
     const calls = fakeDatabase({
@@ -631,6 +780,7 @@ describe('deliverSlack', () => {
 
     const kept = calls.find((c) => c.fn === 'record_event_delivery')
     assert.equal(kept.args.p_rendered_at, '2026-08-01T10:00:00Z')
+    assert.equal(calls.find((c) => c.slack).args.blocks[0].type, 'header')
   })
 
   it('shows a connection Slack has refused where it was made', async (t) => {
@@ -643,11 +793,7 @@ describe('deliverSlack', () => {
       }
       const fn = at.split('/rpc/')[1]
       calls.push({ fn, args: JSON.parse(init.body) })
-      const answers = {
-        connector_jobs: [
-          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: POSTS, messageRef: null, attempts: 0, event: anEvent() },
-        ],
-      }
+      const answers = { connector_jobs: [aJob()] }
       return new Response(JSON.stringify(answers[fn] ?? { ok: true }), {
         status: 200,
         headers: { 'content-type': 'application/json' },
@@ -676,11 +822,7 @@ describe('deliverSlack', () => {
       }
       const fn = at.split('/rpc/')[1]
       calls.push({ fn, args: JSON.parse(init.body) })
-      const answers = {
-        connector_jobs: [
-          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: POSTS, messageRef: null, attempts: 2, event: anEvent() },
-        ],
-      }
+      const answers = { connector_jobs: [aJob({ attempts: 2 })] }
       return new Response(JSON.stringify(answers[fn] ?? { ok: true }), {
         status: 200,
         headers: { 'content-type': 'application/json' },
@@ -699,129 +841,46 @@ describe('deliverSlack', () => {
     assert.equal(calls.find((c) => c.fn === 'slack_refused'), undefined)
   })
 
-  it('replies in the card’s thread, and broadcasts nothing to the channel', async (t) => {
+  it('posts the card afresh when Slack no longer has the one recorded', async (t) => {
     t.after(() => mock.restoreAll())
-    const calls = fakeDatabase({
-      connector_jobs: [
-        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: ACTOR_POSTS, messageRef: null, threadRef: '1712.0001', attempts: 0, event: anEvent() },
-      ],
-      record_event_delivery: anEvent(),
-    })
+    const calls = fakeDatabase(
+      { connector_jobs: [aJob({ cardRef: '1712.0001' })], record_event_delivery: anEvent() },
+      // Somebody deleted the card's message in the channel.
+      (api) => (api === 'chat.update' ? 'message_not_found' : ''),
+    )
 
     assert.deepEqual(await deliverSlack(ENV), { due: 1, sent: 1, failed: 0 })
 
-    const posted = calls.find((c) => c.slack)
-    assert.equal(posted.slack, 'chat.postMessage')
-    assert.equal(posted.args.thread_ts, '1712.0001')
-    // A broadcast reply is a reference carrying no buttons: it would put the card's bulk
-    // back in the timeline and take the decision out of the thread.
-    assert.equal(posted.args.reply_broadcast, undefined)
-    assert.equal(posted.args.blocks[0].type, 'section')
-    assert.match(posted.args.blocks[0].text.text, /<@U1>/)
+    const wrote = calls.filter((c) => c.slack)
+    assert.deepEqual(
+      wrote.map((w) => w.slack),
+      ['chat.update', 'chat.postMessage', 'chat.postMessage'],
+    )
+    assert.equal(wrote[1].args.thread_ts, undefined, 'the card opens a thread of its own again')
+    assert.equal(wrote[1].args.blocks[0].type, 'header')
+    assert.equal(wrote[2].args.thread_ts, '1712.0001')
+    assert.equal(calls.find((c) => c.fn === 'record_card_message').args.p_external_ref, '1712.0001')
   })
 
-  it('is the top of the thread when the root is its own message', async (t) => {
+  it('posts the card afresh when Slack will not reply under the one it has', async (t) => {
     t.after(() => mock.restoreAll())
-    const calls = fakeDatabase({
-      connector_jobs: [
-        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T11:00:00Z', posts: ACTOR_POSTS, messageRef: '1712.0001', threadRef: '1712.0001', attempts: 0, event: anEvent({ state: 'running', acted: true }) },
-      ],
-      record_event_delivery: anEvent(),
-    })
-
-    await deliverSlack(ENV, EVENT)
-
-    const edited = calls.find((c) => c.slack)
-    assert.equal(edited.slack, 'chat.update')
-    assert.equal(edited.args.blocks[0].type, 'header', 'the card’s own message keeps its header')
-  })
-
-  it('starts a thread of its own when the card has no message left to reply to', async (t) => {
-    t.after(() => mock.restoreAll())
-    const calls = fakeDatabase({
-      connector_jobs: [
-        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: ACTOR_POSTS, messageRef: null, threadRef: null, attempts: 0, event: anEvent() },
-      ],
-      record_event_delivery: anEvent(),
-    })
-
-    await deliverSlack(ENV)
-
-    const posted = calls.find((c) => c.slack)
-    assert.equal(posted.args.thread_ts, undefined)
-    assert.equal(posted.args.blocks[0].type, 'header')
-  })
-
-  it('posts again with no thread when Slack refuses the one it was given', async (t) => {
-    t.after(() => mock.restoreAll())
-    const calls = []
-    mock.method(globalThis, 'fetch', async (url, init) => {
-      const at = String(url)
-      if (at.startsWith('https://slack.com/')) {
-        const args = JSON.parse(init.body)
-        calls.push({ slack: at.split('/api/')[1], args })
-        // The root was deleted in the channel, or left behind in a destination this account
-        // has moved away from. Both land here.
-        if (args.thread_ts) {
-          return new Response(JSON.stringify({ ok: false, error: 'thread_not_found' }), { status: 200 })
-        }
-        return new Response(JSON.stringify({ ok: true, ts: '1712.0009' }), { status: 200 })
-      }
-      const fn = at.split('/rpc/')[1]
-      calls.push({ fn, args: JSON.parse(init.body) })
-      const answers = {
-        connector_jobs: [
-          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: ACTOR_POSTS, messageRef: null, threadRef: '1712.0001', attempts: 0, event: anEvent() },
-        ],
-      }
-      return new Response(JSON.stringify(answers[fn] ?? { ok: true }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      })
-    })
+    const calls = fakeDatabase(
+      { connector_jobs: [aJob({ cardRef: '1712.9999' })], record_event_delivery: anEvent() },
+      // The message is still there and still editable, and Slack will not thread under it.
+      (api, args) =>
+        api === 'chat.postMessage' && args.thread_ts === '1712.9999' ? 'cannot_reply_to_message' : '',
+    )
 
     assert.deepEqual(await deliverSlack(ENV), { due: 1, sent: 1, failed: 0 })
 
-    const posts = calls.filter((c) => c.slack)
-    assert.equal(posts.length, 2)
-    assert.equal(posts[1].args.thread_ts, undefined)
-    // A message starting a thread of its own carries the whole card again.
-    assert.equal(posts[1].args.blocks[0].type, 'header')
-    assert.equal(calls.find((c) => c.fn === 'record_event_delivery').args.p_external_ref, '1712.0009')
-  })
-
-  it('holds the root it took, so one card’s two events share one thread', async (t) => {
-    t.after(() => mock.restoreAll())
-    const SECOND = '44444444-4444-4444-8444-444444444444'
-    const calls = []
-    let posted = 0
-    mock.method(globalThis, 'fetch', async (url, init) => {
-      const at = String(url)
-      if (at.startsWith('https://slack.com/')) {
-        posted += 1
-        calls.push({ slack: at.split('/api/')[1], args: JSON.parse(init.body) })
-        return new Response(JSON.stringify({ ok: true, ts: `1712.000${posted}` }), { status: 200 })
-      }
-      const fn = at.split('/rpc/')[1]
-      calls.push({ fn, args: JSON.parse(init.body) })
-      const answers = {
-        // Both read the same root — the one the database held before either was written.
-        connector_jobs: [
-          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: ACTOR_POSTS, messageRef: null, threadRef: null, attempts: 0, event: anEvent() },
-          { ownerId: OWNER, eventId: SECOND, contentAt: '2026-08-01T10:05:00Z', posts: ACTOR_POSTS, messageRef: null, threadRef: null, attempts: 0, event: anEvent({ id: SECOND, kind: 'question', decision: 'answer' }) },
-        ],
-      }
-      return new Response(JSON.stringify(answers[fn] ?? { ok: true }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      })
-    })
-
-    assert.deepEqual(await deliverSlack(ENV), { due: 2, sent: 2, failed: 0 })
-
-    const posts = calls.filter((c) => c.slack)
-    assert.equal(posts[0].args.thread_ts, undefined)
-    assert.equal(posts[1].args.thread_ts, '1712.0001')
+    const wrote = calls.filter((c) => c.slack)
+    assert.deepEqual(
+      wrote.map((w) => w.slack),
+      ['chat.update', 'chat.postMessage', 'chat.postMessage', 'chat.postMessage'],
+    )
+    assert.equal(wrote[2].args.thread_ts, undefined, 'the card is posted again')
+    assert.equal(wrote[3].args.thread_ts, '1712.0001', 'and the event is logged under that one')
+    assert.equal(calls.find((c) => c.fn === 'record_card_message').args.p_external_ref, '1712.0001')
   })
 
   it('costs nothing when nothing is owed', async (t) => {

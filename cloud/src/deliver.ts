@@ -48,12 +48,21 @@ export interface ConnectorJob<Posts> {
   posts: Posts
   /** The id of the message this event already has, or null when it has none yet. */
   messageRef: string | null
+  /** The CARD's own message under this connector, scoped to the destination this connection
+   *  posts to now, and null when the card has none yet. Stored per board, task and connector
+   *  rather than read back out of a delivery row: a message that follows the card belongs to
+   *  no one event (#359). Absent from a schema older than 0013. */
+  cardRef?: string | null
+  /** The card's NEWEST event, whichever event's delivery is due — what the card's own message
+   *  is drawn from, so a redraw aimed at one event never shows a state the card has moved
+   *  past. Absent from a schema older than 0013. */
+  card?: EventRow
   /** The top of this CARD's thread: the earliest message still recorded for its
    *  `(board_id, task_id)` under this connector, whichever event that message belongs to.
    *  Equal to `messageRef` when this event is the top of the thread rather than in it, and
    *  null when the card has no message left to reply to. The loop does not read it — a
-   *  connector that threads does (#352). Absent from a schema older than 0011, which is a
-   *  card back to a message per event. */
+   *  connector that threads does (#352). Slack replies under `cardRef` from #359; Lark reads
+   *  this until #360. */
   threadRef?: string | null
   attempts: number
   event: EventRow
@@ -109,6 +118,27 @@ export async function deliver<Posts>(
   }
   return { due: jobs.length, sent, failed }
 }
+
+/**
+ * Where the card's own message is, per board, task and connector (#359).
+ *
+ * Recorded the moment the chat answers rather than with the event's delivery: a reply that
+ * then fails, and a second event of the same card arriving in the same pass, must neither of
+ * them cost the card a second message.
+ */
+export const recordCardMessage = <Posts>(
+  env: Env,
+  connector: string,
+  job: ConnectorJob<Posts>,
+  ref: string,
+): Promise<unknown> =>
+  mutate(env, 'record_card_message', {
+    p_subject: job.ownerId,
+    p_board: job.event.boardId,
+    p_task_id: job.event.taskId,
+    p_connector: connector,
+    p_external_ref: ref,
+  })
 
 /** Where this event's message stands, against that event's own delivery record. */
 const record = <Posts>(

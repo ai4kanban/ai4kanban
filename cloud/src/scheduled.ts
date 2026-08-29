@@ -6,9 +6,11 @@ import { sendPendingMail } from './invites.ts'
 import type { MailRun } from './invites.ts'
 import { redrawEverywhere } from './redraw.ts'
 
-/** What one pass of the 30-day sweep freed (#319). */
+/** What one pass of the 30-day sweep freed (#319): the events, and the card messages left
+ *  with no event to belong to (#359). */
 export interface Sweep {
   deleted: number
+  cardMessages?: number
 }
 
 export interface Heartbeat {
