@@ -308,14 +308,20 @@ export function SessionLog({
   // not the ✕ of a run that ended badly on its own — a run that was cut off. A
   // stopped run gets the square in the board's neutral blue: it neither passed
   // nor failed, someone ended it.
-  const indicator = running ? (
-    <span className={PULSE_DOT} aria-hidden />
-  ) : stopped ? (
-    <span aria-hidden style={{ color: "var(--color-nb-sky-ink)" }}>■</span>
-  ) : interrupted ? (
-    <span aria-hidden style={{ color: "var(--color-nb-peach-ink)" }}>⦸</span>
-  ) : (
-    <span aria-hidden style={{ color: "var(--color-nb-accent-deep)" }}>{session.ok ? "✓" : "✕"}</span>
+  // Every form sits in the same 22px box as the Stop button beside it, so the bar
+  // is one height whether the run is live or over.
+  const indicator = (
+    <span className="grid size-[22px] shrink-0 place-items-center leading-none">
+      {running ? (
+        <span className={PULSE_DOT} aria-hidden />
+      ) : stopped ? (
+        <span aria-hidden style={{ color: "var(--color-nb-sky-ink)" }}>■</span>
+      ) : interrupted ? (
+        <span aria-hidden style={{ color: "var(--color-nb-peach-ink)" }}>⦸</span>
+      ) : (
+        <span aria-hidden style={{ color: "var(--color-nb-accent-deep)" }}>{session.ok ? "✓" : "✕"}</span>
+      )}
+    </span>
   );
 
   // The log body, shared by both layouts.
@@ -426,7 +432,10 @@ export function SessionLog({
       onClick={onToggle}
     >
       {!bare && <span className="nb-tag">{c.title}</span>}
-      <span className="ml-auto flex items-center gap-1.5">
+      {/* 22px floor: the tallest thing that can ride here (Stop, Resume, the
+          outcome mark) sets the bar's height, and it stays that height when the
+          run ends and they swap. */}
+      <span className="ml-auto flex min-h-[22px] items-center gap-1.5">
         {/* Stop (#49) rides in the title bar, the one piece of chrome every place
             that shows a run already has — so the card page, the board's log
             overlay and the runs panel all get it from here. */}
@@ -642,7 +651,7 @@ function StopButton({ sessionId }: { sessionId: string }) {
         aria-label={c.title}
         aria-expanded={open}
         title={c.title}
-        className="-my-0.5 grid size-[22px] cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[background-color,color,transform] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90"
+        className="grid size-[22px] cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[background-color,color,transform] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90"
       >
         {/* The same glyph the delivery block's Stop run wears — one verb, one mark, wherever
             a run can be stopped. */}

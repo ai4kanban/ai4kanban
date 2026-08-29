@@ -280,8 +280,9 @@ export type ConfigurationCopy = {
       waiting: string;
       disconnect: string;
       disconnecting: string;
-      /** Every enabled board posts here, named on each message. */
-      everyBoard: string;
+      /** Reads "in workspace <name>" after the picker — the words each side of the name,
+       *  which is drawn in strong ink between them. */
+      inWorkspace: { before: string; after: string };
       /** The destination picker. */
       postsTo: string;
       pickChannel: string;
@@ -313,8 +314,6 @@ export type ConfigurationCopy = {
       waiting: string;
       disconnect: string;
       disconnecting: string;
-      /** Every enabled board posts here, named on each message. */
-      everyBoard: string;
       /** The destination picker. */
       postsTo: string;
       pickChat: string;
@@ -329,6 +328,8 @@ export type ConfigurationCopy = {
       needsApp: string;
       /** This Cloud service carries no app for either cloud. */
       unavailable: string;
+      /** No way in yet — the app is not published. */
+      comingSoon: string;
       connectFailed: string;
       saveFailed: string;
       disconnectFailed: string;

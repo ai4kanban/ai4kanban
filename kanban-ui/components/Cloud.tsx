@@ -354,7 +354,7 @@ function Connector({
 }: {
   mark: ReactNode;
   title: string;
-  /** Beside the title in soft ink — the workspace reached, or who connected it. */
+  /** Beside the title in soft ink — who connected it. */
   aside?: string | null;
   /** What to do next, or the service's own words about why there is nothing to do. */
   blurb?: string | null;
@@ -369,32 +369,37 @@ function Connector({
     <div className={BAND}>
       <div className="flex items-center gap-3">
         <span className="flex shrink-0 items-center">{mark}</span>
-        <p className="flex min-w-0 flex-1 items-baseline gap-2 text-[12.5px] font-[800] text-nb-ink">
+        <p className="flex min-w-0 flex-1 items-baseline gap-2 text-[14px] font-[800] text-nb-ink">
           {title}
           {aside && (
-            <span className="truncate text-[11.5px] font-[600] text-nb-ink-soft">{aside}</span>
+            <span className="truncate text-[12px] font-[600] text-nb-ink-soft">{aside}</span>
           )}
         </p>
         {action}
       </div>
       {blurb && (
-        <p className={`mt-1 max-w-[52ch] text-[11.5px] leading-[16px] text-nb-ink-soft ${INDENT}`}>
+        <p className={`mt-1 max-w-[52ch] text-[12.5px] leading-[18px] text-nb-ink-soft ${INDENT}`}>
           {blurb}
         </p>
       )}
-      {children && <div className={`mt-3 ${INDENT}`}>{children}</div>}
+      {children && <div className={`mt-1.5 ${INDENT}`}>{children}</div>}
       {note && <div className={`mt-3 ${INDENT}`}>{note}</div>}
     </div>
   );
 }
 
-/** Where a connected chat posts, and what that means. One row for both. */
-function PostsTo({ label, picker, hint }: { label: string; picker: ReactNode; hint: string }) {
+/** Where a connected chat posts, read as one sentence: label, picker, then where that
+ *  destination lives. One row for both. */
+function PostsTo({ label, picker, after }: { label: string; picker: ReactNode; after?: ReactNode }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="shrink-0 text-[12px] font-[700] text-nb-ink">{label}</span>
+      <span className="shrink-0 text-[13px] font-[700] text-nb-ink">{label}</span>
       {picker}
-      <span className="min-w-0 flex-1 text-[11.5px] leading-[16px] text-nb-ink-soft">{hint}</span>
+      {after && (
+        <span className="flex min-w-0 flex-1 items-baseline gap-1.5 truncate text-[13px] text-nb-ink-soft">
+          {after}
+        </span>
+      )}
     </div>
   );
 }
@@ -461,7 +466,7 @@ function Picker<T extends { id: string; name: string }>({
           that is already set. */}
       <SelectTrigger
         aria-label={label}
-        className={`h-8 w-auto max-w-[24ch] rounded-[8px] py-0 text-[12px] font-[700] ${
+        className={`h-8 w-auto max-w-[24ch] rounded-[8px] py-0 text-[13px] font-[700] ${
           name ? "" : "text-nb-ink-soft/60"
         }`}
       >
@@ -469,12 +474,12 @@ function Picker<T extends { id: string; name: string }>({
       </SelectTrigger>
       <SelectContent>
         {list.length === 0 ? (
-          <p className="px-2 py-1.5 text-[11.5px] leading-[16px] text-nb-ink-soft">
+          <p className="px-2 py-1.5 text-[12.5px] leading-[18px] text-nb-ink-soft">
             {reading ? loading : empty}
           </p>
         ) : (
           list.map((one) => (
-            <SelectItem key={one.id} value={one.id} className="text-[12px]">
+            <SelectItem key={one.id} value={one.id} className="text-[13px]">
               {one.name}
             </SelectItem>
           ))
@@ -488,8 +493,9 @@ function Picker<T extends { id: string; name: string }>({
 // One destination for the ACCOUNT, so it sits in the tier above the board's: every board
 // posts to it with its own name on each message.
 //
-// Not connected, the band is the platform and a button. Connected, it is the workspace, the
-// conversation it posts to and the way out — and when Slack has refused us, the band says so
+// Not connected, the band is the platform and a button. Connected, it is one line saying where
+// it posts — the conversation and the workspace it is in — and the way out; and when Slack has
+// refused us, the band says so
 // here, where the connection was made, since messages failing into silence read as no work
 // waiting.
 
@@ -595,7 +601,6 @@ function Slack({
     <Connector
       mark={<SlackMark size={MARK} />}
       title={c.title}
-      aside={connection.teamName}
       action={
         <Button
           size="sm"
@@ -610,7 +615,19 @@ function Slack({
     >
       <PostsTo
         label={c.postsTo}
-        hint={working === "save" ? saving : c.everyBoard}
+        // The workspace belongs to the destination, not to the platform: read together they
+        // say the whole address in one line, the two names carrying it in strong ink.
+        after={
+          working === "save" ? (
+            saving
+          ) : (
+            <>
+              {c.inWorkspace.before}
+              <span className="truncate font-[700] text-nb-ink">{connection.teamName}</span>
+              {c.inWorkspace.after}
+            </>
+          )
+        }
         picker={
           <Picker
             label={c.postsTo}
@@ -635,6 +652,10 @@ function Slack({
     </Connector>
   );
 }
+
+// Nothing to connect to until the app is published, so the band offers no way in (#361).
+// Flip this back to false once it is.
+const LARK_COMING_SOON = true;
 
 // --- the account's one Lark destination (#351) --------------------------------
 // Beside Slack rather than instead of it: an account may have both connected, and the first
@@ -715,6 +736,20 @@ function Lark({
   const busy = working !== null;
 
   if (!connection) {
+    if (LARK_COMING_SOON) {
+      // On the title's line, where the way in would be: one line for a band with nothing to do.
+      return (
+        <Connector
+          mark={<LarkMark size={MARK} />}
+          title={c.title}
+          action={
+            <span className="shrink-0 text-[12.5px] font-[600] text-nb-ink-soft">
+              {c.comingSoon}
+            </span>
+          }
+        />
+      );
+    }
     return (
       <Connector
         mark={<LarkMark size={MARK} />}
@@ -780,7 +815,7 @@ function Lark({
     >
       <PostsTo
         label={c.postsTo}
-        hint={working === "save" ? saving : c.everyBoard}
+        after={working === "save" ? saving : undefined}
         picker={
           <Picker
             label={c.postsTo}
