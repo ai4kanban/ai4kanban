@@ -155,7 +155,7 @@ moved is rebased onto, and a conflict is resolved as new work. Review happens in
 worktree, never after the rebase. The worktree and branch are removed once it has landed.
 Nothing is pushed.
 
-Turn **Require diff approval before landing** on in Configuration → Auto-delivery and no
+Turn **Approve diffs before landing** on in Configuration → General and no
 delivery lands unread: every one holds after review until you approve the exact tree it
 would land — the **Approval** tab on the card page, or \`approve\` above. It takes no landing
 slot while it waits, so every other card still lands. An approval covers the delivery's base

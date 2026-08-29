@@ -939,7 +939,7 @@ export function SetupNotice({
                 variant="ghost"
                 className="shrink-0"
                 title={c.addSkillHint}
-                onClick={() => configDialog.open("skill")}
+                onClick={() => configDialog.open("general")}
               >
                 <FiTerminal className="text-[13px]" aria-hidden />
                 {c.addSkill}

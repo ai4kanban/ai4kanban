@@ -1,35 +1,33 @@
 "use client";
 
 // The board's one configuration home (#41), opened from a quiet gear button in
-// the header. A sidebar on its left names the sections — Harness (the coding tool
-// every card action runs on, #68, and the settings it declares, #93), Agents (the
-// spec agents that fill part of a card's spec, and the switch that keeps one from
-// running, #191) and Setup (the skill and the `akb` command, which are what let a
-// coding agent drive this same board, #174).
+// the header. A sidebar on its left names the sections — General (the coding-agent
+// setup #174, how a delivery is built #303/#308, and the language this machine
+// reads in #334), Runtimes (the coding tools the board runs work on, #68/#344, and
+// the settings each declares, #93), Agents (the spec agents that fill part of a
+// card's spec, and the switch that keeps one from running, #191), Rules (#306) and
+// Notifications (#326).
 // The sidebar is how the dialog grows: a new group of settings is one more entry
 // there with a pane of its own, and the harness's growing field list (the model,
 // the reasoning level #97, #95's provider and base URL) never squeezes what joins
 // it.
 //
-// Harness and Agents are two different things with one word between them (#191):
-// the harness is the tool the work is done on, the agents are what the board puts
-// on a card while it is being planned. The section named Agent became Harness so
-// the pair reads as two names rather than the same word twice. Nothing the command
-// prints moved with it — `akb agent` and `akb spec` are as they were.
+// A pane earns its sidebar entry by being a list too long to sit beside another.
+// Setup, Auto-delivery and Language were three entries for five settings, so they
+// are three captioned groups of one General pane instead — everything a board is
+// set up with on one screen, in the order you meet it.
 //
 // The Auto-refine section is gone (#211). There is no switch to keep: a refine
 // follows the run that touched the card, so nothing is left to turn on or to
-// budget. Auto-delivery is a different question and has its own section (#303):
-// whether the board may commit, and so whether each delivery builds in a worktree
-// of its own or in the user's project folder.
+// budget.
 //
 // The agent's own settings are NOT written here: this file draws whatever list
 // the picked agent declares in lib/agent.ts, and knows no agent by name.
 
 import { useRouter } from "next/navigation";
-import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiAlignLeft, FiBell, FiCheck, FiGitBranch, FiGlobe, FiLink, FiSettings, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiAlignLeft, FiBell, FiCheck, FiSettings, FiSliders, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
   bindRuntimeAction,
   installedAgentsAction,
@@ -53,14 +51,12 @@ import type {
   RuntimeView,
   WriteResult,
 } from "@/lib/types";
-import { AutoDeliveryPanel } from "./AutoDelivery";
 import { TOOL_BTN } from "./chrome";
 import { CloudPanel } from "./Cloud";
 import { Dialog } from "./Dialog";
 import { FlowRulesPanel } from "./FlowRules";
-import { LanguagePanel } from "./language";
+import { GeneralPanel } from "./General";
 import { RuntimesPanel } from "./Runtimes";
-import { SkillPanel } from "./Skill";
 import { SpecAgentsPanel } from "./SpecAgents";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
@@ -90,23 +86,19 @@ function AgentMark({ src, size }: { src: string; size: number }) {
   return <img src={src} alt="" width={size} height={size} style={{ flex: "0 0 auto" }} />;
 }
 
-// The dialog's sections, in sidebar order. Adding a settings group is one entry
-// here plus its pane below — nothing else moves.
-type Section = "runtimes" | "agents" | "delivery" | "rules" | "skill" | "language" | "cloud";
-const SECTIONS: { id: Section; icon: IconType; apart?: boolean }[] = [
+// The dialog's sections, in sidebar order — what the board is set up with, then the tool
+// it runs on, then what that tool is told, then where the answers go. Adding a settings
+// group is one entry here plus its pane below; nothing else moves.
+type Section = "general" | "runtimes" | "agents" | "rules" | "cloud";
+const SECTIONS: { id: Section; icon: IconType }[] = [
+  { id: "general", icon: FiSliders },
   { id: "runtimes", icon: FiTerminal },
   { id: "agents", icon: FiUsers },
-  { id: "delivery", icon: FiGitBranch },
-  // The tool, the agents, how a card is delivered, then the rules that delivery follows
-  // (#306). Shortened to **Rules** here, beside Harness and Setup; the pane wears its full
+  // The rules a run follows (#306). Shortened to **Rules** here; the pane wears its full
   // name — Flow rules — where a reader meets it cold.
   { id: "rules", icon: FiAlignLeft },
-  { id: "skill", icon: FiLink },
-  // Below the rule, everything settles this MACHINE rather than this board (#326, #334):
-  // the language its reader reads in, and how work reaches the person it signs in as. Both
-  // follow the person into every project the app has open, and neither is cloned with the
-  // repository. **Notifications** is named for the job — Cloud is what carries it.
-  { id: "language", icon: FiGlobe, apart: true },
+  // How work reaches the person this machine signs in as (#326) — named for the job, not
+  // for Cloud, which is what carries it.
   { id: "cloud", icon: FiBell },
 ];
 
@@ -115,12 +107,12 @@ const SECTIONS: { id: Section; icon: IconType; apart?: boolean }[] = [
 // sessions.tsx), so a sibling that isn't in this tree can open the dialog on one
 // section. The setup strip uses it: the line it hands to a coding agent only
 // works once the skill is installed, so when it isn't, the way out of that strip
-// is this dialog's Setup pane rather than a sentence telling the user to go find
+// is this dialog's General pane rather than a sentence telling the user to go find
 // the gear.
 let openRequest: { at: number; section: Section } | null = null;
 const requestSubs = new Set<() => void>();
 export const configDialog = {
-  open(section: Section = "runtimes") {
+  open(section: Section = "general") {
     // A fresh object every time, so asking for the same section twice still
     // reaches a dialog the user closed in between.
     openRequest = { at: openRequest ? openRequest.at + 1 : 1, section };
@@ -148,8 +140,8 @@ export function Configuration({
 }) {
   const c = useCopy().configuration;
   const [open, setOpen] = useState(false);
-  // Which pane shows. Reopening the dialog starts back on Harness.
-  const [section, setSection] = useState<Section>("runtimes");
+  // Which pane shows. Reopening the dialog starts back on General.
+  const [section, setSection] = useState<Section>("general");
   const router = useRouter();
 
   // Someone outside this tree asked for the dialog — open it on the section they
@@ -172,7 +164,7 @@ export function Configuration({
         title={c.open}
         aria-label={c.open}
         onClick={() => {
-          setSection("runtimes");
+          setSection("general");
           setOpen(true);
         }}
       >
@@ -205,18 +197,11 @@ export function Configuration({
             aria-label={c.sections}
             className="flex w-[200px] shrink-0 flex-col gap-1 border-r border-nb-ink/10 bg-nb-cream p-3 max-sm:w-full max-sm:flex-row max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
           >
-            {SECTIONS.map(({ id, icon: Icon, apart }) => {
+            {SECTIONS.map(({ id, icon: Icon }) => {
               const on = id === section;
               return (
-                <Fragment key={id}>
-                  {/* Everything above settles this board; below it is the machine's. */}
-                  {apart && (
-                    <span
-                      aria-hidden
-                      className="my-2 block h-px bg-nb-ink/10 max-sm:my-0 max-sm:h-auto max-sm:w-px max-sm:self-stretch"
-                    />
-                  )}
                 <button
+                  key={id}
                   type="button"
                   aria-current={on}
                   onClick={() => setSection(id)}
@@ -229,7 +214,6 @@ export function Configuration({
                   <Icon className="shrink-0 text-[15px]" aria-hidden />
                   {c.section[id]}
                 </button>
-                </Fragment>
               );
             })}
           </nav>
@@ -240,6 +224,12 @@ export function Configuration({
               moment ago. The dialog's fixed height keeps the panes steady;
               a pane taller than it scrolls here. */}
           <div className="min-h-0 flex-1 overflow-y-auto p-6 max-sm:p-4">
+            {/* What the board is set up with, in three groups on one pane (see General.tsx):
+                the coding-agent setup (#174), how a delivery is built (#303, #308) and the
+                language this machine reads in (#334). Mounted only while it is the section
+                on screen — the setup group spawns a process to ask what `akb` on the PATH
+                is, and that answer should be the one from a moment ago. */}
+            {section === "general" && <GeneralPanel onError={onError} />}
             {/* The runtimes (#344) — the names the BOARD runs its work under, and what THIS
                 COMPUTER runs each of them as (#68, #93, #343). A board that names none gets
                 today's harness pane, which is the board's own answer.
@@ -255,10 +245,6 @@ export function Configuration({
                 own list when it draws, and that list carries the switches as they read
                 right now. */}
             {section === "agents" && <SpecAgentsPanel onError={onError} />}
-            {/* How a delivery builds a card (#303) — whether the board may commit, and so
-                whether each one gets a worktree of its own. Mounted only while it is the
-                section on screen: it reads the setting from the board when it draws. */}
-            {section === "delivery" && <AutoDeliveryPanel onError={onError} />}
             {/* One rule per flow, in the user's own words (#306) — appended to the end of
                 that flow's instructions. Mounted only while it is the section on screen:
                 it asks the board for its own list of flows when it draws, and that list
@@ -268,15 +254,6 @@ export function Configuration({
                 <FlowRulesPanel onError={onError} />
               </div>
             )}
-            {/* Driving this same board from a coding agent (#174) — an extra a
-                board does not arrive with. Mounted only while it is the section
-                on screen: it reads the project when it draws, and one of those
-                reads spawns a process to ask what `akb` on the PATH is. */}
-            {section === "skill" && <SkillPanel onError={onError} />}
-            {/* The language this MACHINE reads in (#334) — not a setting of this board.
-                Mounted only while it is the section on screen; it draws from the context the
-                layout put above every page, so it needs no read of its own. */}
-            {section === "language" && <LanguagePanel onError={onError} />}
             {/* The Cloud sign-in (#326) — the account this MACHINE acts as, not a setting of
                 this board. Mounted only while it is the section on screen: it asks the
                 service who is signed in, over the network. */}

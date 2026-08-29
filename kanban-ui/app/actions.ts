@@ -694,7 +694,7 @@ export async function setHarnessAction(name: string): Promise<WriteResult & { ag
   return { ok: true, agent: await agentInfo() };
 }
 
-// **Allow automatic Git commits** (#303) — read when the Auto-delivery pane opens, saved
+// **Automatic Git commits** (#303) — read when the Delivery group opens, saved
 // when the switch is flipped. One repository-level answer, in the same file as the rest.
 export async function autoCommitAction(): Promise<{ on: boolean; error?: string }> {
   try {
@@ -711,7 +711,7 @@ export async function setAutoCommitAction(on: boolean): Promise<WriteResult> {
   return setAutoCommit(on);
 }
 
-// **Require diff approval before landing** (#308) — read and saved beside it, in the same
+// **Approve diffs before landing** (#308) — read and saved beside it, in the same
 // file. Off by default, so nothing to read reads as off.
 export async function diffApprovalAction(): Promise<{ on: boolean; error?: string }> {
   try {

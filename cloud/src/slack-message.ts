@@ -77,6 +77,9 @@ const MARKS: Record<string, string> = {
 export function messageFor(event: EventRow): { text: string; blocks: Block[] } {
   const open = event.state === 'actionable' && !event.acted
   const { label: heading } = stateOf(event)
+  if (event.state === 'stale') {
+    return { text: `${heading}: #${event.taskId} ${event.taskTitle}`, blocks: [minimized(event)] }
+  }
   const blocks: Block[] = [header(`#${event.taskId} ${event.taskTitle}`), context(facts(event))]
 
   // The card's own words, cut to what a message is read from rather than what a card holds.
@@ -95,6 +98,30 @@ export function messageFor(event: EventRow): { text: string; blocks: Block[] } {
     text: `${heading}: #${event.taskId} ${event.taskTitle}`,
     blocks: blocks.slice(0, SLACK_BLOCK_LIMIT),
   }
+}
+
+/**
+ * A card nobody is being asked about, as one grey line.
+ *
+ * `stale` is the only state that asks for nothing AND undoes itself: the board revives this
+ * same row the moment the card is actionable again. So the message keeps its place in the
+ * channel — deleting it would take the thread's whole log with it — and gives up everything a
+ * decision needed. The heading, the card's own words, the facts line and the link as a button
+ * are all context for a choice there is no longer a choice to make.
+ *
+ * What is left is the three things a reader still wants: which card, why it went quiet, and a
+ * way back to it. The state name is not one of them — `:zzz:` says it, and the reason says it
+ * better.
+ */
+function minimized(event: EventRow): Block {
+  const { key } = stateOf(event)
+  const title = escape(`#${event.taskId} ${event.taskTitle}`)
+  const why = stateNote(event)
+  return context(
+    [`${MARKS[key] ?? ''} <${cardUrl(event)}|${title}>`, why && escape(why)]
+      .filter(Boolean)
+      .join('  ·  '),
+  )
 }
 
 /**

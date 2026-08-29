@@ -1,21 +1,21 @@
 "use client";
 
-// Auto-delivery: how the board builds a card once you press Implement.
+// Delivery: how the board builds a card once you press Implement.
 //
 // Two switches, both repository-level, both saved with the board rather than with this
 // machine, so a team shares one answer.
 //
-// **Allow automatic Git commits** (#303) is the side each Implement opens on. On — the
-// default — a build gets a branch and a worktree of its own, so several run at once without
-// touching each other or your open edits, and what review passed is exactly what lands. Off,
-// it builds in your own project folder, one at a time, and you commit it yourself once
-// review has passed. Either way the Implement dialog's box can turn this one build round
-// (#346), and it never writes its answer back here.
+// **Automatic Git commits** (#303) is the side each Implement opens on. On — the default —
+// a build gets a branch and a worktree of its own, so several run at once without touching
+// each other or your open edits, and what review passed is exactly what lands. Off, it
+// builds in your own project folder, one at a time, and you commit it yourself once review
+// has passed. Either way the Implement dialog's box can turn this one build round (#346),
+// and it never writes its answer back here.
 //
-// **Require diff approval before landing** (#308) decides whether anything lands unread.
-// Off — the default — a reviewed delivery lands by itself. On, every delivery that got a
-// branch of its own waits after review until you approve the exact tree it would land —
-// however that branch was chosen, so this stays settable with automatic commits off.
+// **Approve diffs before landing** (#308) decides whether anything lands unread. Off — the
+// default — a reviewed delivery lands by itself. On, every delivery that got a branch of
+// its own waits after review until you approve the exact tree it would land — however that
+// branch was chosen, so this stays settable with automatic commits off.
 
 import { useEffect, useState } from "react";
 import { FiAlertCircle } from "react-icons/fi";
@@ -26,75 +26,13 @@ import {
   setAutoCommitAction,
   setDiffApprovalAction,
 } from "@/app/actions";
+import { Group, Row, Switch } from "./settings";
 
-// One setting: its name, what it does, and the switch. On screen at once, saved behind it,
-// and put back if the save fails — a switch that silently didn't land is a setting nobody
-// can trust.
-function SettingRow({
-  title,
-  children,
-  note,
-  on,
-  onFlip,
-}: {
-  title: string;
-  children: React.ReactNode;
-  note?: string;
-  on: boolean | null;
-  onFlip: (next: boolean) => Promise<void>;
-}) {
+/** The **Delivery** group of Configuration → General. It reads both settings from the board
+ *  when it draws. */
+export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) {
   const c = useCopy().configuration.delivery;
-  const [saving, setSaving] = useState(false);
-  const flip = async () => {
-    if (on === null) return;
-    setSaving(true);
-    try {
-      await onFlip(!on);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="border-b border-nb-ink/12 py-4 first:border-t first:border-t-nb-ink/12">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h4 className="text-[14px] font-[800] text-nb-ink">{title}</h4>
-          <p className="mt-1 max-w-[52ch] text-[12px] leading-relaxed text-nb-ink-soft">{children}</p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2.5">
-          <span className="text-[11px] font-[700] leading-none text-nb-ink-soft">
-            {on === null ? c.loading : on ? c.on : c.off}
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={on === true}
-            aria-label={(on ? c.switchOn : c.switchOff)(title)}
-            disabled={on === null || saving}
-            onClick={() => void flip()}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-[1.5px] border-nb-ink transition-[background-color,opacity] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50 ${
-              on ? "bg-nb-accent" : "bg-nb-wash"
-            }`}
-          >
-            <span
-              className={`inline-block size-[16px] rounded-full border border-nb-ink bg-nb-paper transition-transform duration-150 ${
-                on ? "translate-x-[22px]" : "translate-x-[3px]"
-              }`}
-              aria-hidden
-            />
-          </button>
-        </div>
-      </div>
-
-      {note && <p className="mt-3 text-[12px] leading-relaxed text-nb-ink-soft">{note}</p>}
-    </div>
-  );
-}
-
-export function AutoDeliveryPanel({ onError }: { onError?: (msg: string) => void }) {
-  const c = useCopy().configuration.delivery;
+  const caption = useCopy().configuration.general.delivery;
   const [commits, setCommits] = useState<boolean | null>(null);
   const [approval, setApproval] = useState<boolean | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -131,28 +69,36 @@ export function AutoDeliveryPanel({ onError }: { onError?: (msg: string) => void
   };
 
   return (
-    <div>
-      <div className="mb-5">
-        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{c.title}</h3>
-        <p className="mt-1 max-w-[56ch] text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
-      </div>
-
+    <Group title={caption}>
       {loadError && (
-        <p className="mb-4 flex items-start gap-2 rounded-[10px] border border-nb-ink/12 bg-nb-wash px-3 py-2 text-[12px] leading-relaxed text-nb-ink-soft">
-          <FiAlertCircle className="mt-[2px] shrink-0" aria-hidden />
+        <p className="mt-2.5 flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
+          <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
           <span>{loadError}</span>
         </p>
       )}
 
-      <SettingRow title={c.commits.title} on={commits} note={c.frozen} onFlip={flipCommits}>
-        {c.commits.body}
-      </SettingRow>
+      <div>
+        <Row label={c.commits.title} hint={c.commits.body}>
+          <Switch
+            on={commits}
+            label={(commits ? c.switchOn : c.switchOff)(c.commits.title)}
+            onFlip={flipCommits}
+          />
+        </Row>
 
-      {/* Always settable (#346): approval follows whether a build got a branch of its own,
-          and the Implement box can give one that here even with commits off. */}
-      <SettingRow title={c.approval.title} on={approval} note={c.frozen} onFlip={flipApproval}>
-        {c.approval.body}
-      </SettingRow>
-    </div>
+        {/* Always settable (#346): approval follows whether a build got a branch of its own,
+            and the Implement box can give one that here even with commits off. */}
+        <Row label={c.approval.title} hint={c.approval.body}>
+          <Switch
+            on={approval}
+            label={(approval ? c.switchOn : c.switchOff)(c.approval.title)}
+            onFlip={flipApproval}
+          />
+        </Row>
+      </div>
+
+      {/* Said once for both, under them — a change is a change to either switch. */}
+      <p className="mt-2 text-[11.5px] leading-relaxed text-nb-ink-soft">{c.frozen}</p>
+    </Group>
   );
 }

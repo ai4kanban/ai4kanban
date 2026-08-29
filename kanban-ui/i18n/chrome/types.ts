@@ -50,9 +50,8 @@ export type ChromeCopy = {
     /** Shown when the app couldn't scaffold the board and said nothing about why. */
     makeFailed: string;
   };
-  /** Putting `akb` on the PATH, in Configuration → Setup. */
+  /** Putting `akb` on the PATH, from the command row of Configuration → General. */
   command: {
-    heading: string;
     install: string;
     repair: string;
     writeAgain: string;

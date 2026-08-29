@@ -7,13 +7,16 @@ const en: ConfigurationCopy = {
   title: "Configuration",
   sections: "Configuration sections",
   section: {
+    general: "General",
     runtimes: "Runtimes",
     agents: "Agents",
-    delivery: "Auto-delivery",
     rules: "Rules",
-    skill: "Setup",
-    language: "Language",
     cloud: "Notifications",
+  },
+  general: {
+    setup: "Setup",
+    delivery: "Delivery",
+    language: "Language",
   },
   runtimes: {
     title: "Runtimes",
@@ -125,22 +128,16 @@ const en: ConfigurationCopy = {
     saveFailed: (agent) => `couldn't save ${agent}'s setting`,
   },
   delivery: {
-    title: "Auto-delivery",
-    blurb: "How the board builds a card once you press Implement.",
-    on: "On",
-    off: "Off",
-    loading: "…",
-    frozen:
-      "A change applies to deliveries started afterwards. One already in flight keeps what it started with.",
+    frozen: "A change applies to deliveries started afterwards.",
     commits: {
-      title: "Allow automatic Git commits",
-      body: "The side each Implement opens on. On, a build gets its own branch and worktree, so several run side by side and the reviewed code is what lands. Off, it builds in your project folder, one at a time, and you commit it after review. The Implement dialog can turn one build round without changing this.",
+      title: "Automatic Git commits",
+      body: "On, each build gets its own branch and worktree, so several run side by side. Off, it builds in your project folder, one at a time.",
       failedOn: "couldn't switch automatic Git commits on",
       failedOff: "couldn't switch automatic Git commits off",
     },
     approval: {
-      title: "Require diff approval before landing",
-      body: "Every build that got a branch of its own waits after review until you approve the exact tree it would land — the Approval tab on the card. It takes no landing slot while it waits. An approval covers one base commit and one tree; either moving cancels it.",
+      title: "Approve diffs before landing",
+      body: "A reviewed build waits on the card's Approval tab until you approve the exact tree it would land.",
       failedOn: "couldn't switch diff approval on",
       failedOff: "couldn't switch diff approval off",
     },
@@ -162,29 +159,12 @@ const en: ConfigurationCopy = {
     saveFailed: (flow) => `couldn't save the ${flow} rule`,
   },
   skill: {
-    title: "Setup",
-    blurb:
-      "Two things let a coding agent work on this board: the AI4Kanban skill, installed in this project, and the `akb` command.",
-    checking: "Checking this project…",
+    checking: "Checking…",
     checkAgain: "Check again",
     writing: "Writing…",
     writeAgain: "Write the skill again",
     skillRow: "AI4Kanban skill",
     commandRow: "akb command",
-    headline: {
-      unchecked: "Couldn't check this project",
-      unfinished: "Not finished",
-      update: "Update needed",
-      ready: "Ready",
-    },
-    detail: {
-      unchecked: "Update AI4Kanban before checking this project.",
-      none: "Add the skill and a coding agent can work on this board.",
-      some: (agents) => `${agents} can use this board. Add the skill for the rest.`,
-      outdated: "The skill in this project is older than this version of AI4Kanban.",
-      commandBehind: "The skill is ready, but the akb command needs an update.",
-      ready: (agents) => `${agents} can use this board.`,
-    },
     status: {
       unchecked: "Couldn't check",
       notInstalled: "Not installed",
@@ -193,7 +173,6 @@ const en: ConfigurationCopy = {
       ready: (version) => `Ready · ${version}`,
     },
     commandStatus: {
-      checking: "Checking…",
       unchecked: "Couldn't check",
       notFound: "Not found",
       behind: (version) => `${version} · update available`,
@@ -218,22 +197,14 @@ const en: ConfigurationCopy = {
     },
     reviewDiff: "Changes project files. Review `git diff` before committing.",
     behind: {
-      onPath: (found, running) =>
-        `The \`akb\` on your PATH is ${found}; this board runs ${running}.`,
-      none: "There is no working `akb` on your PATH.",
-      useButton: "Use the button above to connect this app’s current command.",
-      title: "Update the akb command",
       runThis: "Run this in a terminal to use the current AI4Kanban flows:",
       copy: "Copy",
     },
   },
   language: {
-    title: "Language",
-    blurb:
-      "The language this machine reads in. Saved outside every project, so it follows you into every board you open on this machine.",
     group: "Language",
     saveFailed: "couldn't save that language",
-    note: "What the `akb` command prints in a terminal stays English, and so does everything the agent writes onto a card.",
+    note: "Follows you into every board on this machine. What `akb` prints, and what an agent writes onto a card, stay English.",
   },
   cloud: {
     title: "Notifications",

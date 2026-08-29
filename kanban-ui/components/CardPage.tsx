@@ -7,16 +7,13 @@ import {
   FiAlertCircle,
   FiArchive,
   FiCheckCircle,
-  FiCheckSquare,
   FiChevronRight,
-  FiCircle,
   FiCornerLeftUp,
   FiEdit2,
   FiFeather,
   FiGitBranch,
   FiHelpCircle,
   FiPlay,
-  FiSquare,
   FiTrash2,
   FiX,
   FiXCircle,
@@ -71,7 +68,6 @@ import {
   LevelSelect,
   ModuleChip,
   PendingPill,
-  QuestionTagBadge,
   ReleaseSelect,
   StatusPill,
   TodoProgress,
@@ -79,7 +75,7 @@ import {
 } from "./chips";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import type { MockupSet } from "@/lib/mockup-tag";
-import { FREE_TEXT_CHOICE, hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
+import { parseQuestion } from "@/lib/questions";
 import { bandLabel, CARD_BAND_STATES, type CloudEventState } from "@/lib/types";
 import { useCardEvent } from "./Notifications";
 import type { BoardChange } from "@/lib/chat-rail";
@@ -88,6 +84,7 @@ import { scheduleLabel } from "@/lib/schedule";
 import { CardBody } from "./CardBody";
 import { Fold } from "./fold";
 import { OpenIdsProvider } from "./open-ids";
+import { OpenQuestions } from "./questions";
 import { SubtaskMap } from "./SubtaskMap";
 import { Window } from "./Window";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
@@ -311,47 +308,6 @@ function HandChecks({
         </p>
       )}
     </Fold>
-  );
-}
-
-// The choices on an options question, read-only — the same list the Resolve
-// dialog hands the user, "Something else" included, shown here so the options can
-// be read without opening the dialog. The recommended ones wear a filled marker and
-// say so in words; the marker's SHAPE says how many may be picked (round = one,
-// square = as many as you like), matching the radio / checkbox the dialog shows.
-function QuestionOptions({ question }: { question: CardQuestion }) {
-  const c = useCopy().card.questions;
-  const many = question.mode === "multi";
-  const On = many ? FiCheckSquare : FiCheckCircle;
-  const Off = many ? FiSquare : FiCircle;
-  return (
-    <ul className="mt-1.5 flex flex-col gap-1">
-      {[...(question.options ?? []), FREE_TEXT_CHOICE].map((option, k) => {
-        const recommended = (question.recommend ?? []).includes(k + 1);
-        const Icon = recommended ? On : Off;
-        return (
-          <li
-            key={k}
-            className="flex items-baseline gap-1.5 text-[12.5px] leading-[18px]"
-            style={{ color: recommended ? "var(--color-nb-accent-deep)" : undefined }}
-          >
-            <Icon
-              aria-hidden
-              className="relative top-[2px] shrink-0"
-              style={{ width: 12, height: 12 }}
-            />
-            <span>
-              {option}
-              {recommended && (
-                <span className="ml-1.5 text-[10.5px] font-[700] uppercase tracking-[0.04em]">
-                  {c.recommended}
-                </span>
-              )}
-            </span>
-          </li>
-        );
-      })}
-    </ul>
   );
 }
 
@@ -890,7 +846,7 @@ function TabStrip({
 
 // ---- the Approval tab (#308) -------------------------------------------------
 //
-// On a board with **Require diff approval before landing** on, nothing lands until the tree
+// On a board with **Approve diffs before landing** on, nothing lands until the tree
 // has been read and signed off. This is where that is done: one line saying what an approval
 // covers, and one button.
 //
@@ -1241,6 +1197,11 @@ export function CardPage({
   const c = t.card;
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
+  // The open-questions panel is answering rather than being read. Held here rather than
+  // inside it because two other controls open it: the toolbar's Resolve, and the Implement
+  // dialog's way out of its open-question warning.
+  const [deciding, setDeciding] = useState(false);
+  const closeDeciding = useCallback(() => setDeciding(false), []);
   const [error, setError] = useState<string | null>(null);
   // The subtask chip under the cursor, said in the panel's heading (#333).
   const [mapTip, setMapTip] = useState("");
@@ -1650,13 +1611,16 @@ export function CardPage({
                       {c.toolbar.edit}
                     </Button>
                   )}
+                  {/* Not a dialog any more — it opens the questions panel further down the
+                      page and brings it on screen. The toolbar keeps the button because
+                      that panel can be a long way below the fold. */}
                   {actions.has("resolve") && (!delivery || answerable) && (
                     <Button
                       variant="ghost"
                       size="sm"
                       disabled={offUnlessAsked}
                       title={held ? heldWhy : undefined}
-                      onClick={() => setDialog({ kind: "resolve", card })}
+                      onClick={() => setDeciding(true)}
                     >
                       <FiHelpCircle className="text-[15px]" aria-hidden />
                       {c.toolbar.resolve}
@@ -1942,32 +1906,17 @@ export function CardPage({
               </div>
             )}
 
-            {/* The one section with something to decide in it, so it takes the ember —
-                thinned to a section ground, because a full `-soft` band this tall shouts
-                over the Resolve button that actually answers it. */}
-            {card.questions.length > 0 && (
-              <div className="nb-section bg-nb-accent-wash p-3.5">
-                <div className="nb-tag mb-2">
-                  <span style={{ color: "var(--color-nb-accent)" }}>?</span> {c.questions.heading}
-                </div>
-                {/* The marker leads the question inline rather than sitting in its own
-                    column: questions here run several lines, and a marker column holds
-                    that width open for all of them — a blank gutter beside every line
-                    but the first. Inline, the text wraps back under the marker. */}
-                <ul className="flex flex-col gap-2.5 text-[13px] leading-[19px]">
-                  {card.questions.map((q, i) => {
-                    const { tag, text } = parseQuestion(q.text);
-                    return (
-                      <li key={i}>
-                        <QuestionTagBadge tag={tag} />
-                        {text}
-                        {hasOptions(q) && <QuestionOptions question={q} />}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
+            {/* The questions, and the decision made in them — the panel is the control,
+                so there is no dialog between reading one and answering it. */}
+            <OpenQuestions
+              card={card}
+              open={deciding}
+              onOpen={() => setDeciding(true)}
+              onClose={closeDeciding}
+              canDecide={actions.has("resolve") && !offUnlessAsked}
+              disabledWhy={held ? heldWhy : busy && liveSession ? c.toolbar.alreadyRunning(t.runs.verb[liveSession.action]) : undefined}
+              onRun={runAgent}
+            />
 
               <CardBody
                 body={card.body}
@@ -1988,7 +1937,10 @@ export function CardPage({
               onClose={() => setDialog(null)}
               onRun={runAgent}
               onSchedule={scheduleAgent}
-              onResolveFirst={() => setDialog({ kind: "resolve", card })}
+              onResolveFirst={() => {
+                setDialog(null);
+                setDeciding(true);
+              }}
               plan={plan}
             />
           )}

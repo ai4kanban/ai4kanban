@@ -26,7 +26,7 @@
 // call below checks first.
 
 import { useCallback, useEffect, useState } from "react";
-import { FiAlertTriangle, FiCheck, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } from "react-icons/fi";
+import { FiAlertTriangle, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } from "react-icons/fi";
 import type { ChromeCopy } from "@/i18n/chrome/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
@@ -610,8 +610,8 @@ export function MakeBoardHere({ desktop }: { desktop: boolean }) {
 
 // --- putting `akb` on the PATH ----------------------------------------------
 
-/** The button in Configuration → Setup that installs the board's command, and the four things it
- *  can find on this machine (#226).
+/** The button on the `akb` command row of Configuration → General that installs the board's
+ *  command, and the four things it can find on this machine (#226).
  *
  *  The app carries `akb` already — installing only points the system at it, so nothing is
  *  copied out and updating the app updates the command. On macOS that is one symlink — in
@@ -621,22 +621,23 @@ export function MakeBoardHere({ desktop }: { desktop: boolean }) {
  *
  *  Renders nothing in a browser and nothing on Linux, where an AppImage unpacks itself
  *  somewhere new every run and there is no lasting path to point at. Both keep the
- *  `npm install -g` line the pane already gives.
+ *  `npm install -g` line the group already gives.
  *
- *  `onFixable` says whether a press would put a working `akb` on the PATH, so the paragraph
- *  under it can point at the button instead of handing over a line to type. */
+ *  `onFixable` says whether a press would put a working `akb` on the PATH, so the group can
+ *  drop the line to type when there is a button instead. `onNote` hands out what a press
+ *  found, because the button sits in a row too narrow to say it. */
 export function InstallCommand({
   onInstalled,
   onFixable,
+  onNote,
 }: {
   onInstalled?: () => void;
   onFixable?: (fixable: boolean) => void;
+  onNote?: (note: { ok: boolean; text: string } | null) => void;
 }) {
   const c = useCopy().chrome.command;
   const [state, setState] = useState<CommandInstall | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
 
   const load = useCallback(() => {
     const app = bridge();
@@ -667,48 +668,31 @@ export function InstallCommand({
   const install = () => {
     if (busy) return;
     setBusy(true);
-    setError(null);
-    setDone(false);
+    onNote?.(null);
     bridge()
       ?.installCommand()
       .then((res) => {
         setState(res.state);
-        if (res.ok) setDone(true);
-        else setError(res.error ?? c.failed);
-        // The PATH has changed under the rest of the pane: the notice about a missing or
-        // old `akb` is read from the command itself, and it has to be asked again.
-        if (res.ok) onInstalled?.();
+        if (res.ok) {
+          onNote?.({ ok: true, text: res.state.kind === "path" ? c.donePath : c.doneSymlink });
+          // The PATH has changed under the rest of the group: the notice about a missing or
+          // old `akb` is read from the command itself, and it has to be asked again.
+          onInstalled?.();
+        } else {
+          onNote?.({ ok: false, text: res.error ?? c.failed });
+        }
       })
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e) => onNote?.({ ok: false, text: e instanceof Error ? e.message : String(e) }))
       .finally(() => setBusy(false));
   };
 
   return (
-    <div className="rounded-[10px] bg-nb-peach-soft p-3">
-      <div className="flex items-center justify-between gap-4 max-sm:items-start max-sm:flex-col">
-        <div>
-          <p className="text-[12.5px] font-[700] text-nb-peach-ink">{c.heading}</p>
-          <p className="mt-0.5 text-[12px] leading-relaxed text-nb-ink-soft">{commandHeadline(state, c.state)}</p>
-        </div>
-        <Button size="sm" disabled={busy} onClick={install}>
-          {busy ? c.writing : <>{<FiTerminal className="text-[13px]" aria-hidden />}{label}</>}
-        </Button>
-      </div>
-      {done && (
-        <p className="mt-2 flex items-start gap-1.5 text-[12.5px] leading-relaxed text-nb-mint-ink">
-          <FiCheck className="mt-[3px] shrink-0" aria-hidden />
-          <span>
-            {state.kind === "path" ? c.donePath : c.doneSymlink}
-          </span>
-        </p>
-      )}
-      {error && (
-        <p className="mt-2 flex items-start gap-1.5 text-[12.5px] leading-relaxed text-nb-ink-soft">
-          <FiAlertTriangle className="mt-[3px] shrink-0" aria-hidden />
-          <span>{error}</span>
-        </p>
-      )}
-    </div>
+    // The button's own words are the whole message in the row; what this machine actually
+    // has — the path, and the app a dangling link points at — is a hover away rather than a
+    // paragraph nobody reads twice.
+    <Button size="sm" disabled={busy} title={commandHeadline(state, c.state)} onClick={install}>
+      {busy ? c.writing : <><FiTerminal className="text-[13px]" aria-hidden />{label}</>}
+    </Button>
   );
 }
 

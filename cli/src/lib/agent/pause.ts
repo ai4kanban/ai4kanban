@@ -19,7 +19,7 @@ export type DeliveryStage =
   /** Built and reviewed; landing waits until the card's open questions are answered. */
   | 'held'
   /** Built and reviewed; landing waits until the user approves the tree it would land
-   *  (#308). Only on a board with **Require diff approval before landing** on. */
+   *  (#308). Only on a board with **Approve diffs before landing** on. */
   | 'approval'
   /** Manual commit mode: review passed, and the commit is the user's to make. */
   | 'commit'

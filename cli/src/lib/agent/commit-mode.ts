@@ -138,7 +138,7 @@ export function deliveryPlan(): DeliveryPlan {
  *  and make its worktree.
  *
  *  `wants` is the Implement dialog's tick — this one build's answer (#346). A request that
- *  says nothing falls back to **Allow automatic Git commits**, which is every other way in:
+ *  says nothing falls back to **Automatic Git commits**, which is every other way in:
  *  a terminal `akb implement`, a queued build, a resolve that carries on.
  *
  *  Called before the record is written and before anything spawns, so a refusal costs

@@ -4,8 +4,7 @@
 //
 // It is a fact about the reader, not about a board: one answer covers every project you
 // open and every terminal on this machine, so it is held outside every repository and
-// never in `docs/kanban/`. That is why the switcher sits under the rule in Configuration,
-// beside Cloud — everything above that line settles the board.
+// never in `docs/kanban/`. The switcher is the last group of Configuration → General.
 //
 // The answer is read on the server in `app/layout.tsx` and put here, so every screen has it
 // in its first paint and none of them draws English and corrects itself. A component reads
@@ -17,11 +16,11 @@
 
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { FiCheck } from "react-icons/fi";
 import { setLanguageAction } from "@/app/actions";
 import { getCopy } from "@/i18n";
 import { Rich } from "@/i18n/rich";
 import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES, type Language } from "@/lib/types";
+import { Group } from "./settings";
 
 const LanguageContext = createContext<{
   language: Language;
@@ -80,11 +79,12 @@ export function useLanguage(): Language {
   return useContext(LanguageContext).language;
 }
 
-/** The **Language** section of the Configuration dialog: two entries, each written in its
- *  own name, so a reader recognises theirs without knowing the other. */
-export function LanguagePanel({ onError }: { onError?: (msg: string) => void }) {
+/** The **Language** group of Configuration → General: one segmented control, each entry
+ *  written in its own name so a reader recognises theirs without knowing the other. */
+export function LanguageGroup({ onError }: { onError?: (msg: string) => void }) {
   const { language, choose } = useContext(LanguageContext);
   const c = getCopy(language).configuration.language;
+  const caption = getCopy(language).configuration.general.language;
   const [saving, setSaving] = useState(false);
 
   const pick = async (next: Language) => {
@@ -99,40 +99,41 @@ export function LanguagePanel({ onError }: { onError?: (msg: string) => void }) 
   };
 
   return (
-    <div>
-      <div className="mb-5">
-        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{c.title}</h3>
-        <p className="mt-1 max-w-[58ch] text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
+    <Group title={caption}>
+      <div className="flex items-center justify-between gap-4 py-2.5 max-sm:flex-col max-sm:items-start max-sm:gap-2">
+        <p className="max-w-[56ch] text-[12px] leading-snug text-nb-ink-soft">
+          <Rich>{c.note}</Rich>
+        </p>
+        {/* One control, both answers visible — a two-entry dropdown hides half of what
+            there is to pick. */}
+        <div
+          role="radiogroup"
+          aria-label={c.group}
+          className="flex shrink-0 rounded-[10px] border border-nb-ink/20 bg-nb-paper p-[3px]"
+        >
+          {LANGUAGES.map((code) => {
+            const on = code === language;
+            return (
+              <button
+                key={code}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                disabled={saving}
+                onClick={() => void pick(code)}
+                lang={LANGUAGE_TAGS[code]}
+                className={`cursor-pointer rounded-[7px] px-3 py-1.5 text-[13px] font-[700] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait ${
+                  on
+                    ? "bg-nb-accent-soft text-nb-accent-deep"
+                    : "text-nb-ink-soft hover:bg-nb-ink/[0.06] hover:text-nb-ink"
+                }`}
+              >
+                {LANGUAGE_NAMES[code]}
+              </button>
+            );
+          })}
+        </div>
       </div>
-
-      <div role="radiogroup" aria-label={c.group} className="flex flex-col gap-2">
-        {LANGUAGES.map((code) => {
-          const on = code === language;
-          return (
-            <button
-              key={code}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              disabled={saving}
-              onClick={() => void pick(code)}
-              lang={LANGUAGE_TAGS[code]}
-              className={`flex cursor-pointer items-center justify-between gap-3 rounded-[10px] border px-3 py-2.5 text-left text-[14px] font-[700] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait ${
-                on
-                  ? "border-nb-accent bg-nb-accent-soft text-nb-accent-deep"
-                  : "border-nb-ink/15 bg-nb-paper text-nb-ink hover:border-nb-ink/30 hover:bg-nb-wash"
-              }`}
-            >
-              {LANGUAGE_NAMES[code]}
-              {on && <FiCheck className="shrink-0 text-[15px]" aria-hidden />}
-            </button>
-          );
-        })}
-      </div>
-
-      <p className="mt-4 max-w-[58ch] text-[12px] leading-relaxed text-nb-ink-soft">
-        <Rich>{c.note}</Rich>
-      </p>
-    </div>
+    </Group>
   );
 }

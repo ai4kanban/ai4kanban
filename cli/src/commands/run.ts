@@ -280,7 +280,7 @@ export async function cmdCancel(args: string[]): Promise<MoveResult> {
 }
 
 /** Approve the tree a delivery would land (#308), so it may leave the landing queue's
- *  waiting room. Only a board with **Require diff approval before landing** on has anything
+ *  waiting room. Only a board with **Approve diffs before landing** on has anything
  *  to approve.
  *
  *  The approval covers the delivery's base commit and the tree built on it as they stand

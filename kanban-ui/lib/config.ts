@@ -15,7 +15,7 @@ export async function setHarnessSetting(key: string, value: string): Promise<{ o
 }
 
 // --- auto-delivery (#303) ----------------------------------------------------
-// **Allow automatic Git commits** — one repository-level setting, saved in the same file,
+// **Automatic Git commits** — one repository-level setting, saved in the same file,
 // so a team shares one answer rather than each machine keeping its own.
 
 export async function autoCommitAllowed(): Promise<boolean> {
@@ -34,7 +34,7 @@ export async function setAutoCommit(on: boolean): Promise<{ ok: boolean; error?:
 }
 
 // --- diff approval (#308) ----------------------------------------------------
-// **Require diff approval before landing** — the other repository-level answer in the same
+// **Approve diffs before landing** — the other repository-level answer in the same
 // file. Off by default, so rules from before it existed read as off, which is what they did.
 
 export async function diffApprovalRequired(): Promise<boolean> {

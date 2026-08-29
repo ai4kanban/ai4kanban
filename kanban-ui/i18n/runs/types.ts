@@ -178,15 +178,6 @@ export type RunsCopy = {
       placeholder: string;
       confirm: string;
     };
-    resolve: {
-      title: (id: number) => string;
-      blurb: string;
-      confirm: string;
-      andImplement: string;
-      answerPlaceholder: string;
-      optionsPlaceholder: string;
-      recommended: string;
-    };
     create: {
       title: string;
       tabDescribe: string;

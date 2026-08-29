@@ -3,7 +3,7 @@
 Once the board exists, you drive it in plain language. Here's the rhythm.
 
 Everything you *say* below goes to a coding agent, which needs the skill in the repo —
-`akb skill install`, or **Configuration → Skill** in the board app. A board arrives without
+`akb skill install`, or **Configuration → General** in the board app. A board arrives without
 it. Every one of those asks is also a button in the app and a command you can type, so
 nothing here is closed to a board that has no skill.
 
@@ -200,7 +200,7 @@ names the branch the change will land on.
 
 - **A card with open questions can still be built**, with a warning. It is built and reviewed,
   then holds at landing until you answer — taking no landing slot while it waits, so every other
-  card still lands. **Resolve & implement** in the dialog is the other way round.
+  card still lands. **Resolve & implement**, under the card's **open questions**, is the other way round.
 - **A pause has nothing to press.** The card's title band says what the delivery is waiting on
   and what answers it. Answering carries the same delivery on; an answer that changed what the
   card asks for starts a fresh delivery on the card as it now reads.

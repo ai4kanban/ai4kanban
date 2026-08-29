@@ -246,16 +246,6 @@ const en: RunsCopy = {
       placeholder: "What should change about this task? e.g. narrow the scope to…, add a todo for…",
       confirm: "Save edit",
     },
-    resolve: {
-      title: (id) => `Resolve #${id}`,
-      blurb:
-        "Confirm or change the answers you want to settle. Unanswered questions stay open. **Resolve & implement** also builds the task when none remain.",
-      confirm: "Resolve",
-      andImplement: "Resolve & implement",
-      answerPlaceholder: "Your answer…",
-      optionsPlaceholder: "In your own words…",
-      recommended: "recommended",
-    },
     create: {
       title: "Create task",
       tabDescribe: "Describe a task",

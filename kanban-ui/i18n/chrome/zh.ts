@@ -42,8 +42,7 @@ const zh: ChromeCopy = {
     makeFailed: "看板创建失败",
   },
   command: {
-    heading: "接入 akb 命令",
-    install: "安装 akb 命令",
+    install: "安装",
     repair: "修复",
     writeAgain: "重新写入",
     writing: "写入中…",

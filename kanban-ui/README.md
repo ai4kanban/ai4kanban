@@ -624,7 +624,7 @@ approval — see **Approving a delivery** below, which is the one policy that as
 
 #### Approving a delivery
 
-Turn **Require diff approval before landing** on in Configuration → Auto-delivery and nothing
+Turn **Approve diffs before landing** on in Configuration → General and nothing
 lands unread. Every delivery that got a branch of its own is built and reviewed as usual, and then
 waits for you to approve the exact tree it would land — however that branch was chosen, so the
 switch is settable with automatic Git commits off too. Off by default: requiring it on every card
@@ -654,13 +654,13 @@ The Implement dialog warns, and you can go ahead — you know things the board d
   it is a reason not to land one.
 - **It holds at landing** until nothing is left to answer, and takes no landing slot while it
   waits, so every other card still lands.
-- **Resolve & implement** in the dialog is the other way: answer first, and the card is built
+- **Resolve & implement** under **open questions** is the other way: answer first, and the card is built
   once nothing is left for you to decide.
 
 ### Where a delivery's code goes
 
 **Build this on a branch of its own** is a tick on the Implement dialog, and it settles this one
-build. It opens on the side **Allow automatic Git commits** picks and never writes back to it, so
+build. It opens on the side **Automatic Git commits** picks and never writes back to it, so
 the setting stays the default every Implement starts from and one card can go the other way without
 moving it for the rest. The paragraph above the box rewrites itself as you toggle it: the branch a
 ticked build lands on, or that nothing is committed for you.
@@ -675,7 +675,7 @@ is **manual commit mode**, below.
   three is why. A detached HEAD builds this way rather than being refused — the commit you then make
   is reachable from `HEAD` alone.
 - **Only the Implement button carries the tick.** **Schedule** and **Resolve & implement** start a
-  build later, and each reads **Allow automatic Git commits** as it stands then; so does
+  build later, and each reads **Automatic Git commits** as it stands then; so does
   `akb implement` in a terminal.
 
 - **Several deliveries at once.** Each one has its own full checkout, so two cards that touch the
@@ -731,8 +731,8 @@ repository.
 
 #### Manual commit mode
 
-Untick **Build this on a branch of its own** — or turn **Allow automatic Git commits** off in
-Configuration → Auto-delivery, which is what the box opens unticked — and the delivery works in your
+Untick **Build this on a branch of its own** — or turn **Automatic Git commits** off in
+Configuration → General, which is what the box opens unticked — and the delivery works in your
 project folder instead. The setting is saved with the board, in `docs/kanban/ui.config.json`, so a
 team shares one answer; a change applies to deliveries started afterwards, never to one already in
 flight, and so does the tick.
@@ -796,12 +796,14 @@ delivery still says what it was about to do.
 `akb conflict <id>` resolves the conflict a landing's rebase stopped on, and `akb guide review`
 prints the review flow.
 
-**Resolve** gives each open question an answer box. A question that carries choices shows them as
-a tick list instead — one pick, or as many as you like, depending on the question — with the
-agent's recommended ones already ticked, so agreeing is one click. Those questions keep their box
-too: type an answer and the ticks clear, tick an option and the text clears. Your answer is either
-the options or your own words, never both. Leave a question untouched and the agent researches that
-one itself. The card page lists the same choices under **open questions**.
+**Open questions** is answered where it is read. Click the panel — or **Resolve** in the toolbar,
+which brings it on screen — and every question you own turns into an answer box. A question that
+carries choices shows them as a tick list instead — one pick, or as many as you like, depending on
+the question — with the agent's recommended ones already ticked, so agreeing is one click.
+**Something else** is the last choice on every such list, and ticking it opens the box. Your answer
+is either the options or your own words, never both. Leave a question untouched and the agent
+researches that one itself. Click away and the panel goes back to being a read, keeping whatever
+you ticked or typed.
 
 **Resolve & implement** is a second confirm: the agent answers the questions it can settle itself,
 and if nothing is left for you to decide it goes straight on to build the card in the same run. If
@@ -962,22 +964,26 @@ struck through, so the outcome survives after the subtask files are gone.
 ## Configuration
 
 The gear in the header opens the **Configuration** dialog. A sidebar names its sections —
-**Runtimes**, **Agents**, **Auto-delivery**, **Rules** and **Setup**, then **Language** and **Cloud**
-under a rule. Settings live in `docs/kanban/ui.config.json`, next to your board, so
-`npx` always serves the latest UI and an update never touches them. Everything the dialog holds
-writes itself there, with two exceptions: a key goes to `docs/kanban/.env`, and everything below
-the rule settles this machine rather than this board and is held outside every project.
+**General**, **Runtimes**, **Agents**, **Rules** and **Notifications**. Settings live in
+`docs/kanban/ui.config.json`, next to your board, so `npx` always serves the latest UI and an update
+never touches them. Everything the dialog holds writes itself there, with three exceptions: a key
+goes to `docs/kanban/.env`, and the language and the Cloud sign-in settle this machine rather than
+this board and are held outside every project.
+
+A pane earns a sidebar entry by being a list too long to sit beside another. Setup, delivery and
+language are five settings between them, so they are three captioned groups of the **General** pane
+rather than three entries.
 
 There is no Auto-refine section and no switch: a refine follows the run that touched the card, so
 there is nothing to turn on.
 
-### Auto-delivery
+### General → Delivery
 
 Two switches. Both are repository-level answers, saved in `ui.config.json` and shared by everyone
 on the board. A change applies to deliveries started afterwards; one already in flight keeps what it
 started with.
 
-**Allow automatic Git commits**, on by default. It is the side each Implement opens on, not the only
+**Automatic Git commits**, on by default. It is the side each Implement opens on, not the only
 way to change it: the dialog's **Build this on a branch of its own** turns one build round and
 leaves this where it is.
 
@@ -986,7 +992,7 @@ leaves this where it is.
 - **Off** — manual commit mode: it builds in your project folder, one at a time, and you commit it
   after review passes.
 
-**Require diff approval before landing**, off by default. It follows whether a build got a branch of
+**Approve diffs before landing**, off by default. It follows whether a build got a branch of
 its own, however that was chosen, so it stays settable with automatic Git commits off.
 
 - **Off** — a delivery that review passed lands by itself. That is right for routine work, and it
@@ -1255,10 +1261,10 @@ in the file, so switching agents or providers never touches any of them.
 }
 ```
 
-`autoCommit` is **Allow automatic Git commits** above. Only written when you turn it off — a
+`autoCommit` is **Automatic Git commits** above. Only written when you turn it off — a
 missing key means on, which is the default.
 
-`requireDiffApproval` is **Require diff approval before landing** above. The other way round:
+`requireDiffApproval` is **Approve diffs before landing** above. The other way round:
 only written when you turn it **on**, so a missing key means off, which is the default.
 
 `harness` is the agent that runs: `claude-code` (the default), `codex`, `cursor`, `opencode` or
@@ -1451,53 +1457,52 @@ There is no way to run a shell command from a rule, and no per-delivery approval
 break the one-click flow. Spec agents take no rule — each keeps its own settings already — and
 neither does **Chat**, which is a conversation rather than a flow the board starts.
 
-### The coding agent skill
+### General → Setup: the coding agent skill
 
 Getting a board does not bring this with it. A new board is `docs/kanban/` and nothing else, and
 every button here runs without it. What it adds is a second way in: you can say *"add a task"* or
 *"what's next"* to your coding agent in your repo and it works this same board — the same cards, the
 same runs, the same files.
 
-**Configuration → Setup** is where you turn that on. The pane says where the project stands and one
-button does the rest:
+**Configuration → General → Setup** is where you turn that on. Two rows say where the project stands
+and carry the button that fixes each:
 
 - **Not installed** — nothing in either folder. **Add the skill** writes it.
 - **Installed** — the version in each folder, beside the version this board runs on.
 - **Out of date** — a folder written by an older release. The button says **Update the skill**.
 
-Under the button it names the folders it touches — `.claude/skills/kanban/` for Claude Code,
+Under **Technical details** it names the folders it touches — `.claude/skills/kanban/` for Claude Code,
 `.agents/skills/kanban/` for the other four — and after a press it says, folder by folder, what it
 wrote. Each folder gets one file, `SKILL.md`: a short note saying the board is here and that `akb`
 owns it. The rules themselves live in the command, so this writes a few kB in your repo and never
 runs a global install.
 
-That is why the pane carries one more thing: an answer to the `akb` on your PATH being older than the
-copy this board runs on, or missing. The note points your agent at `akb`, and every flow it follows
+That is why the group carries a second row: the `akb` on your PATH, which can be older than the copy
+this board runs on, or missing. The note points your agent at `akb`, and every flow it follows
 ships inside that command — so an old `akb` means old flows even in a project whose note was just
 refreshed.
 
-In the desktop app that answer is a second button, **Install the `akb` command**. The app already
-carries the command; the button only points your system at the copy inside it, so updating the app
-updates the command. It is one link at `/usr/local/bin/akb` on macOS, written with the system's own
-password dialog, and the app's own folder on your PATH on Windows. Before you press it the pane names
-the path it would write, and which of four things is true right now: nothing installed; installed at
-that path; installed but pointing at an app that is no longer there; or that path held by an `akb`
-the app didn't put there — an npm install lands there too, and the button leaves it alone. The app
+In the desktop app that row carries an **Install** button. The app already carries the command; the
+button only points your system at the copy inside it, so updating the app updates the command. It is one link at `/usr/local/bin/akb` on macOS, written with the system's own
+password dialog, and the app's own folder on your PATH on Windows. Hovering the button names the path
+it would write, and which of four things is true right now: nothing installed; installed at that
+path; installed but pointing at an app that is no longer there; or that path held by an `akb` the app
+didn't put there — an npm install lands there too, and the button leaves it alone. The app
 offers this once by itself, at the first launch that finds no `akb`; saying no costs nothing. In a
-browser, and on Linux where the AppImage has no lasting path to point at, the pane hands you the line
-to copy instead.
+browser, and on Linux where the AppImage has no lasting path to point at, the group hands you the
+line to copy instead.
 
 If you never want it, you never need it. Nothing else in the board asks for it — except the two
 places that hand you a line to paste into a coding agent (the first run's handover, and the setup
-strip), which say the skill isn't there and offer this pane instead of a line that would reach
+strip), which say the skill isn't there and offer this group instead of a line that would reach
 nothing.
 
-### Language
+### General → Language
 
-**Language** picks the language you read in — **English** or **中文**. It is the first section under
-the rule in the sidebar, because it is not a setting of this board: it is a fact about you, so one
-answer covers every project you open and every terminal on this machine. The change takes effect at
-once, with no reload.
+**Language** picks the language you read in — **English** or **中文**. It is the last group of the
+General pane, and not a setting of this board: it is a fact about you, so one answer covers every
+project you open and every terminal on this machine. The change takes effect at once, with no
+reload.
 
 It is held in `~/.ai4kanban/settings.json`, beside the Cloud sign-in and outside every repository,
 so the app, a board served to a browser and a bare `akb` in a terminal all read the same answer —
@@ -1508,7 +1513,7 @@ On a machine that has never said, the app picks for you the first time it opens:
 system's preferred languages and keeps the first one it has a copy for — any Chinese is **中文**, and
 a language it doesn't have falls through to the next one and then to English. The answer is written
 down like any other pick, so it is guessed once and never again: a machine whose system language
-changes later keeps what it was opened in, and this section is what moves it. An app that has been
+changes later keeps what it was opened in, and this group is what moves it. An app that has been
 reading English under a Chinese system turns Chinese once when it updates, for the same reason.
 Guessing is the app's alone — a board served to a browser and `akb` in a terminal read the answer and
 never write one.

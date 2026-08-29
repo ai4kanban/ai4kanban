@@ -7,24 +7,16 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  FiCheckCircle,
-  FiCheckSquare,
-  FiCircle,
-  FiPlay,
-  FiSquare,
-  FiZap,
-} from "react-icons/fi";
+import { FiPlay, FiZap } from "react-icons/fi";
 import { FaPauseCircle } from "react-icons/fa";
 import { resumeSessionAction, stopSessionAction } from "@/app/actions";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
-import { useDraft, useDraftList, useDraftPicks } from "@/lib/draft";
-import { FREE_TEXT_CHOICE, freeTextPick, hasOptions, parseQuestion, type CardQuestion } from "@/lib/questions";
+import { useDraft } from "@/lib/draft";
+import { parseQuestion } from "@/lib/questions";
 import type { CloudEventAnswer } from "@/lib/types";
 import {
-  answerNotes,
   PROPOSE_DEFAULT,
   PROPOSE_MAX,
   type Boldness,
@@ -37,7 +29,7 @@ import {
   type TokenUsage,
 } from "@/lib/types";
 import { Button } from "./button";
-import { ELASTIC_CHIP, QuestionTagBadge } from "./chips";
+import { ELASTIC_CHIP } from "./chips";
 import { PULSE_DOT } from "./chrome";
 import { Dialog } from "./Dialog";
 import { Markdown } from "./Markdown";
@@ -102,7 +94,6 @@ export type DialogState =
   | { kind: "reject"; card: Card }
   | { kind: "archive"; card: Card }
   | { kind: "edit"; card: Card }
-  | { kind: "resolve"; card: Card }
   | { kind: "create" }
   | null;
 
@@ -855,8 +846,8 @@ export function ActionDialog({
   onClose: () => void;
   onRun: (req: AgentReq, label: string) => void;
   // Answer the card's open questions before building it (#307) — the Implement dialog's
-  // way out of its third warning. The card page swaps this dialog for Resolve; a view
-  // with no Resolve dialog of its own simply doesn't offer it.
+  // way out of its third warning. The card page closes this dialog and opens the questions
+  // panel behind it; a view with no questions panel simply doesn't offer it.
   onResolveFirst?: () => void;
   // What the click would do (#307): the branch it lands on, and whether it lands at all.
   // Implement only. Defaults to the plain auto-commit answer with no branch named, which
@@ -1198,12 +1189,8 @@ export function ActionDialog({
     );
   }
 
-  if (dialog.kind === "resolve") {
-    return <ResolveDialog card={dialog.card} onClose={onClose} onRun={onRun} />;
-  }
-
   // create — its own component so the propose toggle + module pick are clean,
-  // unconditional hooks (like ResolveDialog).
+  // unconditional hooks.
   return <CreateDialog modules={modules} release={release} onClose={onClose} onRun={onRun} />;
 }
 
@@ -1444,239 +1431,6 @@ function PickerSection({
       <div className="flex flex-wrap items-center gap-1.5">{children}</div>
     </div>
   );
-}
-
-// Resolve is the one action with structured input: a card carries a *list* of
-// open questions, so the dialog gives each its own answer box instead of one
-// catch-all note. Unanswered questions stay open. Its own component keeps the
-// per-question answer array a clean, unconditional hook.
-function ResolveDialog({
-  card,
-  onClose,
-  onRun,
-}: {
-  card: Card;
-  onClose: () => void;
-  onRun: (req: AgentReq, label: string) => void;
-}) {
-  const questions = card.questions.filter((q) => parseQuestion(q.text).tag === "user");
-  // Persist the per-question answers so an accidental close keeps them; reconciled
-  // to the current question count on reopen. Cleared once the run starts.
-  const t = useCopy();
-  const c = t.runs.dialog.resolve;
-  const [answers, setAnswer, clearAnswers] = useDraftList(`resolve:${card.id}`, questions.length);
-  // The ticked options beside them. An untouched question opens on the agent's
-  // recommendation, so a whole card of options questions is one click to confirm.
-  const [picks, setPick, clearPicks] = useDraftPicks(
-    `resolve-picks:${card.id}`,
-    questions.map((q) => (hasOptions(q) ? (q.recommend ?? []) : [])),
-  );
-
-  // Typing is a choice too: "Something else" is the last row of the tick list, and
-  // ticking it opens the box. So on a multi-select question the user can pick two of
-  // the choices AND add a word of their own, which is the answer they'd have given
-  // anyway. Only the box behind an unticked "Something else" is dropped.
-  const tick = (i: number, q: CardQuestion, n: number) => {
-    const current = picks[i] ?? [];
-    const next =
-      q.mode === "multi"
-        ? current.includes(n)
-          ? current.filter((x) => x !== n)
-          : [...current, n].sort((a, b) => a - b)
-        : current.includes(n)
-          ? [] // clicking the ticked option again unticks it — back to unanswered
-          : [n];
-    setPick(i, next);
-  };
-
-  const hasAnswer = questions.some((q, i) => {
-    if (!hasOptions(q)) return Boolean(answers[i]?.trim());
-    const selected = (picks[i] ?? []).some((n) => n <= (q.options ?? []).length);
-    const typed = (picks[i] ?? []).includes(freeTextPick(q)) && Boolean(answers[i]?.trim());
-    return selected || typed;
-  });
-
-  // Both footer buttons share this — resolve alone, or resolve then keep going into
-  // implement in the same session. The prompt (see buildPrompt) tells the agent to
-  // only implement when nothing genuine is left for the user to decide.
-  const submit = (andImplement: boolean) => {
-    const notes = composeAnswers(questions, answers, picks);
-    const cloudAnswers = composeCloudAnswers(questions, answers, picks);
-    clearAnswers();
-    clearPicks();
-    onRun(
-      {
-        action: "resolve",
-        id: card.id,
-        title: card.title,
-        notes,
-        andImplement: andImplement || undefined,
-        cloudRevision: card.revision,
-        cloudAnswers,
-      },
-      `${andImplement ? "Resolve & implement" : "Resolve"} #${card.id}`,
-    );
-  };
-
-  return (
-    <Dialog title={c.title(card.id)} onClose={onClose}>
-      <p className={INTRO}>
-        <Rich>{c.blurb}</Rich>
-      </p>
-      <div className="flex flex-col gap-3.5">
-        {questions.map((q, i) => {
-          const { tag, text } = parseQuestion(q.text);
-          const options = hasOptions(q);
-          // The box belongs to the "Something else" tick, so it only shows when that
-          // one is on. A question with no choices at all is all box, as it always was.
-          const typing = !options || (picks[i] ?? []).includes(freeTextPick(q));
-          return (
-          <div key={i} className="flex flex-col gap-1.5">
-            {/* Marker inline ahead of the question, not in a column beside it — see
-                the same call in CardPage's open questions. */}
-            <label className="block text-[13px] font-[700] leading-[19px] text-nb-ink">
-              <QuestionTagBadge tag={tag} />
-              {text}
-            </label>
-            {options && (
-              <OptionPicker question={q} picked={picks[i] ?? []} onTick={(n) => tick(i, q, n)} />
-            )}
-            {typing && (
-              <textarea
-                className={INPUT}
-                rows={2}
-                autoFocus={options}
-                placeholder={options ? c.optionsPlaceholder : c.answerPlaceholder}
-                value={answers[i]}
-                onChange={(e) => setAnswer(i, e.target.value)}
-              />
-            )}
-          </div>
-          );
-        })}
-      </div>
-      <div className="mt-4 flex flex-wrap justify-end gap-2.5">
-        <Button variant="ghost" onClick={onClose}>{t.shared.cancel}</Button>
-        <Button variant="ghost" disabled={!hasAnswer} onClick={() => submit(false)}>{c.confirm}</Button>
-        <Button disabled={!hasAnswer} onClick={() => submit(true)}>{c.andImplement}</Button>
-      </div>
-    </Dialog>
-  );
-}
-
-// The tick list for a question that carries options. Rows are buttons, not native
-// radios/checkboxes, for one reason: a ticked option can be clicked again to untick
-// it — a native radio can't — and leaving everything unticked is a real answer
-// here ("I have no view; you research it"). The marker's shape still says how many
-// may be picked: round for one, square for as many as you like.
-//
-// The last row is "Something else", the free-text choice every options question
-// gets. It ticks like the rest; what it opens is the box under the list.
-function OptionPicker({
-  question,
-  picked,
-  onTick,
-}: {
-  question: CardQuestion;
-  picked: number[];
-  onTick: (n: number) => void;
-}) {
-  const c = useCopy().runs.dialog.resolve;
-  const many = question.mode === "multi";
-  const On = many ? FiCheckSquare : FiCheckCircle;
-  const Off = many ? FiSquare : FiCircle;
-  return (
-    <div
-      role={many ? "group" : "radiogroup"}
-      aria-label={parseQuestion(question.text).text}
-      className="flex flex-col gap-1"
-    >
-      {[...(question.options ?? []), FREE_TEXT_CHOICE].map((option, k) => {
-        const n = k + 1;
-        const on = picked.includes(n);
-        const Icon = on ? On : Off;
-        return (
-          <button
-            key={k}
-            type="button"
-            role={many ? "checkbox" : "radio"}
-            aria-checked={on}
-            onClick={() => onTick(n)}
-            className="flex cursor-pointer items-start gap-2 rounded-[14px] px-2.5 py-1.5 text-left text-[12.5px] leading-[18px] transition-colors hover:bg-nb-accent-soft"
-            style={{
-              background: on ? "var(--color-nb-accent-soft)" : "transparent",
-              color: on ? "var(--color-nb-accent-deep)" : undefined,
-              fontWeight: on ? 700 : 400,
-            }}
-          >
-            <Icon aria-hidden className="relative top-[2px] shrink-0" style={{ width: 13, height: 13 }} />
-            <span>
-              {option}
-              {(question.recommend ?? []).includes(n) && (
-                <span className="ml-1.5 text-[10.5px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
-                  {c.recommended}
-                </span>
-              )}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// Pair the questions the user answered with their answers into a note block the
-// agent can fold into the card. A question answered by ticking sends the option
-// lines themselves, so the agent reads a choice rather than interpreting prose.
-// Ticks and words can arrive together — "Something else" is one of the ticks.
-// Unanswered questions are omitted and remain open.
-function composeAnswers(
-  questions: CardQuestion[],
-  answers: string[],
-  picks: number[][],
-): string | undefined {
-  return answerNotes(
-    questions.map((q, i) => {
-      const options = hasOptions(q);
-      // Words count only when the box was open: an unticked "Something else" leaves
-      // its draft behind, and that draft is not an answer the user gave.
-      const typing = !options || (picks[i] ?? []).includes(freeTextPick(q));
-      return {
-        question: parseQuestion(q.text).text,
-        picked: options
-          ? (picks[i] ?? []).map((n) => (q.options ?? [])[n - 1]).filter((o): o is string => !!o)
-          : [],
-        typed: typing ? (answers[i]?.trim() ?? "") : "",
-      };
-    }),
-  );
-}
-
-/**
- * The same answers again, as the shape a Cloud event carries (#319) — one entry per
- * question, in the card's own order, blanks included. What #318's server reads them back
- * through is `answeredFromEvent`, and both ends compose their sentence with `answerNotes`.
- *
- * The board's own rule holds here too: a ticked option OR the user's own words, never both.
- * A real tick wins, because "Something else" is itself a tick and the box behind it is only
- * an answer when that tick is on.
- */
-function composeCloudAnswers(
-  questions: CardQuestion[],
-  answers: string[],
-  picks: number[][],
-): CloudEventAnswer[] {
-  return questions.map((q, i) => {
-    const options = hasOptions(q);
-    const real = options
-      ? (picks[i] ?? []).filter((n) => n <= (q.options ?? []).length)
-      : [];
-    if (real.length > 0) return { picked: real, text: "" };
-    const typed = (!options || (picks[i] ?? []).includes(freeTextPick(q)))
-      ? (answers[i]?.trim() ?? "")
-      : "";
-    return { picked: [], text: typed };
-  });
 }
 
 export function DialogButtons({

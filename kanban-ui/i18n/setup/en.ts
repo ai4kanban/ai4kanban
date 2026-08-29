@@ -106,7 +106,7 @@ const en: SetupCopy = {
       "Paste this into it. It picks up wherever setup got to, so nothing you answered here is asked again.",
   },
   addSkillFirst:
-    "**Your coding agent can’t see this board yet.** A board arrives without the skill — run this in the repo first, then paste the line below. (Configuration → Setup does the same from here.)",
+    "**Your coding agent can’t see this board yet.** A board arrives without the skill — run this in the repo first, then paste the line below. (Configuration → General does the same from here.)",
   copy: { hint: "Copy for your coding agent" },
   noBoard: {
     title: "There is no board here.",

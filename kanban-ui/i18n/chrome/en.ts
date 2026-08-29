@@ -43,10 +43,9 @@ const en: ChromeCopy = {
     makeFailed: "the board could not be made",
   },
   command: {
-    heading: "Connect the akb command",
-    install: "Install the akb command",
-    repair: "Repair it",
-    writeAgain: "Write it again",
+    install: "Install",
+    repair: "Repair",
+    writeAgain: "Write again",
     writing: "Writing…",
     failed: "the command was not installed",
     donePath: "Done. Open a new terminal and run `akb version`.",

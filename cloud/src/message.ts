@@ -96,8 +96,11 @@ export function stateNote(event: EventRow): string {
     // rather than sending anybody to a machine with nothing left on it to resume.
     case 'interrupted':
       return 'The machine that took this on stopped carrying it.'
+    // A card goes quiet because a run picked it up, because it left `ready`, because a
+    // blocker opened, or because its release did — and three of those four are good news. The
+    // board knows which; the state name cannot say it, so the retirement carries it.
     case 'stale':
-      return 'This task stopped needing a person, and nobody acted on it.'
+      return event.reason || 'The board stopped asking about this card.'
     default:
       return ''
   }

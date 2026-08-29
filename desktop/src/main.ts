@@ -430,7 +430,7 @@ async function createBoard(): Promise<CreateBoardResult> {
 // The app carries the command already; installing only points the system at it. The offer
 // is made once, on the first launch that finds no `akb` on the PATH — before the user has
 // done anything, since a Mac app dragged out of a disk image has no installer to have asked
-// during. Declining costs nothing: the button in Configuration → Skill stays, and the offer
+// during. Declining costs nothing: the button in Configuration → General stays, and the offer
 // itself comes back only when a command that was installed stops working.
 
 /** Offer to install, if this is the launch that should. */
@@ -491,7 +491,7 @@ async function offerCommand(): Promise<void> {
 }
 
 /** Install, and then let the open project's note learn the new spelling. The whole move,
- *  wherever it was asked for — the offer above, or the button in the Skill pane. */
+ *  wherever it was asked for — the offer above, or the button in the Setup group. */
 async function putCommandOnPath(): Promise<CommandInstallResult> {
   const result = await installCommand(shellEnv);
   if (!result.ok) return result;

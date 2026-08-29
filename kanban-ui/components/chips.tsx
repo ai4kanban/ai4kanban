@@ -361,8 +361,8 @@ export function ReleaseSelect({
 // The colour carries the meaning at a glance.
 //
 // Borderless, like RoiTag: every question list this marks already sits inside a
-// frame of its own (the card page's peach questions panel, the resolve dialog's
-// labels), and a filled pill in there reads as a box pasted on a box — worse, the
+// frame of its own (the card page's peach questions panel, read or being answered),
+// and a filled pill in there reads as a box pasted on a box — worse, the
 // accent-soft `user` chip all but vanished against the accent-soft panel. Icon +
 // coloured label carries the same meaning without the second surface. The line
 // box matches the 13px question text beside it so the marker centres on its first

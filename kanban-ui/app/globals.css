@@ -88,6 +88,24 @@ body {
   border-radius: 14px;
 }
 
+/* A section you decide IN, not just read — the card page's open questions. At rest it is
+   a plain section; hovered, focused or open it lifts onto a double offset shadow (ember
+   sheet, then ink) and takes the ink outline, which is this language's way of saying a
+   block is a control. The transparent border is always there so nothing shifts when it
+   colours in. */
+.nb-decide {
+  border: 1.5px solid transparent;
+  transition: box-shadow 120ms ease, border-color 120ms ease;
+}
+.nb-decide:hover,
+.nb-decide:focus-within,
+.nb-decide[data-open] {
+  border-color: var(--color-nb-ink);
+  box-shadow:
+    3px 3px 0 0 var(--color-nb-accent-soft),
+    6px 6px 0 0 var(--color-nb-ink);
+}
+
 /* Section kicker — clean borderless label */
 .nb-tag {
   display: inline-flex;

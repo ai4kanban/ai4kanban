@@ -45,7 +45,7 @@ const zh: DownloadCopy = {
   command: {
     title: "`akb` 命令",
     body: "应用自带 `akb`——编码 Agent 驱动看板所用的命令——并在首次打开时提出把它加入 PATH。macOS 会在 `/usr/local/bin/akb` 写入一个链接，需要管理员密码；Windows 把应用目录加入 PATH，只对之后新开的终端生效。命令不会复制到应用之外，更新应用就等于更新命令。",
-    later: "拒绝之后，按钮仍留在 **Configuration → Setup** 里。Linux 不提供这一项：AppImage 每次运行都解包到新的临时目录，因此仍然使用 `npm install -g ai4kanban`。",
+    later: "拒绝之后，按钮仍留在 **Configuration → General** 里。Linux 不提供这一项：AppImage 每次运行都解包到新的临时目录，因此仍然使用 `npm install -g ai4kanban`。",
   },
 };
 

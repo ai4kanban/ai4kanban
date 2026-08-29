@@ -117,7 +117,16 @@ const zh: CardCopy = {
     running: "运行中",
     waitingOutside: (ids) => `等待 ${ids}，它们在这个任务组之外`,
   },
-  questions: { heading: "待澄清问题", recommended: "推荐" },
+  questions: {
+    heading: "待澄清问题",
+    recommended: "推荐",
+    decide: "作决定",
+    staysOpen: "没有答复的问题会保持待澄清。",
+    answerPlaceholder: "你的答案…",
+    optionsPlaceholder: "用你自己的话…",
+    resolve: "答复",
+    andImplement: "答复并开发",
+  },
   handChecks: {
     heading: "人工验收",
     crossOff: "标记完成",

@@ -6,7 +6,7 @@
 // `cli/` package published to npm — and runs it under Electron's own Node. Same
 // script, same result: `docs/kanban/` scaffolded, with setup's own checklist
 // waiting inside it, and nothing written outside it. The coding agent skill is
-// not part of this (#174) — it is added later, from Configuration → Skill.
+// not part of this (#174) — it is added later, from Configuration → General.
 //
 // Nothing here decides anything the CLI wouldn't: no tracks are passed, so the
 // board gets the defaults, and everything past that is setup's job — which is

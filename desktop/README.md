@@ -51,7 +51,7 @@ What the app adds, and all it adds:
   have falls through to English. It is guessed once, before the window opens, so the menu and
   the board's first paint read one answer; every launch after that reads what was saved. The
   launcher carries an **English / 中文** switcher in its corner, since it comes before there is
-  a board to open **Configuration → Language** on. A guess that cannot be saved is not made,
+  a board to open **Configuration → General** on. A guess that cannot be saved is not made,
   and a build whose bundled rules predate the setting opens English and draws no switcher.
 - **Going back.** On a card, a two-finger swipe right goes back to the view before and left
   goes forward again, the same as in a browser, and the edge you left by lights up for a
@@ -74,7 +74,7 @@ What the app adds, and all it adds:
   (`build/installer.nsh`) and repairable from the same button. Nothing is copied out of the
   app, so updating the app updates the command. Linux is offered nothing: an AppImage
   unpacks itself somewhere new every run, so there is no lasting path to point at. Declining
-  leaves the button in the board's **Configuration → Skill** pane; the offer itself comes
+  leaves the button in the board's **Configuration → General** pane; the offer itself comes
   back only when a command that was installed stops working. Typed with no action at all,
   `akb` opens the app — on the folder you are standing in when it has a board, and otherwise
   on the project the app had open last (`--cwd`, read in `src/main.ts`).

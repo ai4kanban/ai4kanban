@@ -6,13 +6,18 @@ export type ConfigurationCopy = {
   title: string;
   sections: string;
   section: {
+    general: string;
     runtimes: string;
     agents: string;
-    delivery: string;
     rules: string;
-    skill: string;
-    language: string;
     cloud: string;
+  };
+  /** Configuration → General: three captioned groups on one pane. Each caption is the
+   *  whole of that group's explanation, so the panes below carry no blurb of their own. */
+  general: {
+    setup: string;
+    delivery: string;
+    language: string;
   };
   /** Configuration → Runtimes (#344): the runtimes the BOARD names, and what THIS COMPUTER
    *  runs each of them as. The harness block below draws the second half — and, on a board
@@ -133,12 +138,7 @@ export type ConfigurationCopy = {
     saveFailed: (agent: string) => string;
   };
   delivery: {
-    title: string;
-    blurb: string;
-    on: string;
-    off: string;
-    loading: string;
-    /** A change only reaches deliveries started afterwards. */
+    /** A change only reaches deliveries started afterwards. Said once, under both. */
     frozen: string;
     commits: { title: string; body: string; failedOn: string; failedOff: string };
     approval: { title: string; body: string; failedOn: string; failedOff: string };
@@ -159,24 +159,14 @@ export type ConfigurationCopy = {
     saveFailed: (flow: string) => string;
   };
   skill: {
-    title: string;
-    blurb: string;
+    /** The right-hand answer on either row while the board is being asked. */
     checking: string;
     checkAgain: string;
     writing: string;
     writeAgain: string;
-    /** The two rows under the headline. */
+    /** The group's two rows: the skill in this project, the command on the PATH. */
     skillRow: string;
     commandRow: string;
-    headline: { unchecked: string; unfinished: string; update: string; ready: string };
-    detail: {
-      unchecked: string;
-      none: string;
-      some: (agents: string) => string;
-      outdated: string;
-      commandBehind: string;
-      ready: (agents: string) => string;
-    };
     status: {
       unchecked: string;
       notInstalled: string;
@@ -185,7 +175,6 @@ export type ConfigurationCopy = {
       ready: (version: string) => string;
     };
     commandStatus: {
-      checking: string;
       unchecked: string;
       notFound: string;
       behind: (version: string) => string;
@@ -209,18 +198,11 @@ export type ConfigurationCopy = {
       refreshed: (path: string, files: string) => string;
     };
     reviewDiff: string;
-    behind: {
-      onPath: (found: string, running: string) => string;
-      none: string;
-      useButton: string;
-      title: string;
-      runThis: string;
-      copy: string;
-    };
+    /** The line to type where no button can put a current `akb` on the PATH — a browser,
+     *  Linux, or an `akb` that came from somewhere else. */
+    behind: { runThis: string; copy: string };
   };
   language: {
-    title: string;
-    blurb: string;
     /** Only read out loud: the group of language choices. */
     group: string;
     note: string;

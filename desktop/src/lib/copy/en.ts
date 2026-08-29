@@ -86,11 +86,11 @@ const en: DesktopCopy = {
     command: {
       ask: "Put the akb command on your PATH?",
       detailWindows: (folder) =>
-        `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This puts the app's own folder (${folder}) on your PATH. Updating the app updates the command.\n\nA new PATH entry only reaches terminals opened after it.\n\nYou can do this later from Configuration → Setup.`,
+        `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This puts the app's own folder (${folder}) on your PATH. Updating the app updates the command.\n\nA new PATH entry only reaches terminals opened after it.\n\nYou can do this later from Configuration → General.`,
       detailLink: (path) =>
-        `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This points ${path} at the copy inside the app, so updating the app updates the command.\n\nYou can do this later from Configuration → Setup.`,
+        `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This points ${path} at the copy inside the app, so updating the app updates the command.\n\nYou can do this later from Configuration → General.`,
       detailLinkPassword: (path) =>
-        `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This points ${path} at the copy inside the app, so updating the app updates the command. macOS asks for your administrator password to write there.\n\nYou can do this later from Configuration → Setup.`,
+        `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This points ${path} at the copy inside the app, so updating the app updates the command. macOS asks for your administrator password to write there.\n\nYou can do this later from Configuration → General.`,
       install: "Install",
       notNow: "Not now",
       failed: "akb was not installed.",

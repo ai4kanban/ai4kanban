@@ -40,7 +40,7 @@ export interface Question {
   /** Each option is one short line, with its reason inside that line. Absent or empty on a
    *  plain question. */
   options?: string[]
-  /** 1-based positions into `options` — the ones a resolve dialog opens already ticked.
+  /** 1-based positions into `options` — the ones a question opens already ticked.
    *  Empty means nothing is recommended, so the list opens with nothing ticked. */
   recommend?: number[]
 }

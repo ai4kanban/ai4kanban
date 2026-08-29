@@ -97,7 +97,7 @@ export interface AnsweredQuestion {
 /**
  * The answer text a resolve run is given, from whatever the user said (#318).
  *
- * One composition, used twice: the board's own Resolve dialog writes it from the boxes and
+ * One composition, used twice: the board's own questions panel writes it from the boxes and
  * ticks on screen, and the board's server writes it from the entries a remote action stored.
  * Two spellings of one answer would hand the resolve run two different sentences for the
  * same decision.

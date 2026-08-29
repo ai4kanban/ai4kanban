@@ -136,9 +136,18 @@ export type CardCopy = {
     /** A chip in the build-order map that waits on a card outside its own group. */
     waitingOutside: (ids: string) => string;
   };
+  /** The block the card's open questions are read in — and answered in. */
   questions: {
     heading: string;
     recommended: string;
+    /** The way in, on the heading row: what the panel's hover shadow means, in words. */
+    decide: string;
+    /** Under the open panel: what happens to a question left alone. */
+    staysOpen: string;
+    answerPlaceholder: string;
+    optionsPlaceholder: string;
+    resolve: string;
+    andImplement: string;
   };
   handChecks: {
     heading: string;

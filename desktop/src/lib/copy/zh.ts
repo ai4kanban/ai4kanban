@@ -85,11 +85,11 @@ const zh: DesktopCopy = {
     command: {
       ask: "把 akb 命令加入 PATH？",
       detailWindows: (folder) =>
-        `AI4Kanban 自带一份 akb——编码 Agent 驱动这个看板所用的命令。这一步会把应用自己的目录（${folder}）加入你的 PATH。更新应用就等于更新命令。\n\n新增的 PATH 只对之后新开的终端生效。\n\n之后也可以在「配置 → 安装」里完成这一步。`,
+        `AI4Kanban 自带一份 akb——编码 Agent 驱动这个看板所用的命令。这一步会把应用自己的目录（${folder}）加入你的 PATH。更新应用就等于更新命令。\n\n新增的 PATH 只对之后新开的终端生效。\n\n之后也可以在「配置 → 通用」里完成这一步。`,
       detailLink: (path) =>
-        `AI4Kanban 自带一份 akb——编码 Agent 驱动这个看板所用的命令。这一步会让 ${path} 指向应用内的那份副本，因此更新应用就等于更新命令。\n\n之后也可以在「配置 → 安装」里完成这一步。`,
+        `AI4Kanban 自带一份 akb——编码 Agent 驱动这个看板所用的命令。这一步会让 ${path} 指向应用内的那份副本，因此更新应用就等于更新命令。\n\n之后也可以在「配置 → 通用」里完成这一步。`,
       detailLinkPassword: (path) =>
-        `AI4Kanban 自带一份 akb——编码 Agent 驱动这个看板所用的命令。这一步会让 ${path} 指向应用内的那份副本，因此更新应用就等于更新命令。macOS 会要求输入管理员密码才能写入那里。\n\n之后也可以在「配置 → 安装」里完成这一步。`,
+        `AI4Kanban 自带一份 akb——编码 Agent 驱动这个看板所用的命令。这一步会让 ${path} 指向应用内的那份副本，因此更新应用就等于更新命令。macOS 会要求输入管理员密码才能写入那里。\n\n之后也可以在「配置 → 通用」里完成这一步。`,
       install: "安装",
       notNow: "暂不",
       failed: "akb 未能安装。",

@@ -1,6 +1,6 @@
 // Diff approval: the tree the user signed off, and what stops it meaning anything (#308).
 //
-// With **Require diff approval before landing** on, a delivery that review has passed does
+// With **Approve diffs before landing** on, a delivery that review has passed does
 // not land until the user has read the diff and approved it. The approval is bound to two
 // things as they stood when it was given — the delivery's BASE COMMIT and the candidate's
 // FINGERPRINT — and landing re-reads both immediately before it moves the target branch.
@@ -88,7 +88,7 @@ export function approveDelivery(
     return {
       ok: false,
       error:
-        `delivery ${delivery.deliveryId} needs no approval — **Require diff approval before landing** was off when it ` +
+        `delivery ${delivery.deliveryId} needs no approval — **Approve diffs before landing** was off when it ` +
         `started, and the setting is frozen on a delivery the way its commit mode is.`,
     }
   }

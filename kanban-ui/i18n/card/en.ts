@@ -119,7 +119,16 @@ const en: CardCopy = {
     running: "running",
     waitingOutside: (ids) => `waiting on ${ids}, outside this group`,
   },
-  questions: { heading: "open questions", recommended: "recommended" },
+  questions: {
+    heading: "open questions",
+    recommended: "recommended",
+    decide: "decide",
+    staysOpen: "Unanswered questions stay open.",
+    answerPlaceholder: "Your answer…",
+    optionsPlaceholder: "In your own words…",
+    resolve: "Resolve",
+    andImplement: "Resolve & implement",
+  },
   handChecks: {
     heading: "check by hand",
     crossOff: "Cross it off",

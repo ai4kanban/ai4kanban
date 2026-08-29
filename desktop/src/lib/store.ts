@@ -114,7 +114,7 @@ export function forgetProject(dir: string): void {
 }
 
 /** Has the app already offered to put `akb` on the PATH? The offer is made once, at the
- *  first launch that finds no command — after that the button in the Skill pane is where it
+ *  first launch that finds no command — after that the button in the Setup group is where it
  *  lives, and declining costs nothing. Someone updating from an app that never offered it
  *  has nothing written here, so they get the offer too. */
 export function commandOffered(): boolean {

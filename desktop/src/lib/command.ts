@@ -202,7 +202,7 @@ function onWindowsPath(env: Env): boolean {
     .some((entry) => entry && path.resolve(entry).toLowerCase() === dir);
 }
 
-/** Where `akb` stands on this machine — everything the Skill pane says, and everything the
+/** Where `akb` stands on this machine — everything the Setup group says, and everything the
  *  first-launch offer decides from. Reads files and the PATH; starts nothing. */
 export function commandState(env: Env): CommandInstall {
   if (!MAC && !WINDOWS) {

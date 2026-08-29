@@ -236,16 +236,6 @@ const zh: RunsCopy = {
       placeholder: "这个任务要改什么？例如：把范围收窄到…、补一个 todo…",
       confirm: "保存修改",
     },
-    resolve: {
-      title: (id) => `答复 #${id}`,
-      blurb:
-        "确认或修改你想定下来的答案。没有答复的问题会保持待澄清。**答复并开发**会在没有遗留问题时顺带构建这个任务。",
-      confirm: "答复",
-      andImplement: "答复并开发",
-      answerPlaceholder: "你的答案…",
-      optionsPlaceholder: "用你自己的话…",
-      recommended: "推荐",
-    },
     create: {
       title: "新建任务",
       tabDescribe: "描述一个任务",

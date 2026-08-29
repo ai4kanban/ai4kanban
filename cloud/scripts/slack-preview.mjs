@@ -108,9 +108,14 @@ async function main() {
   const actorId = (await query(ref, token, ACTOR))[0]?.slack_user_id
   const events = rows.map((row) => row.event)
   for (const [state, what] of LIFE) {
-    const event = inState(events, state)
-    if (!event) continue
-    const from = events.includes(event) ? title(event) : `${title(event)}, state substituted`
+    const held = inState(events, state)
+    if (!held) continue
+    const event = held.reason || !PENDING_REASON[state] ? held : { ...held, reason: PENDING_REASON[state] }
+    const said = [
+      events.includes(held) ? null : 'state substituted',
+      event === held ? null : 'reason substituted',
+    ].filter(Boolean)
+    const from = said.length > 0 ? `${title(held)}, ${said.join(' and ')}` : title(held)
     const named = state.replace(/_/g, '-')
     if (RESTORED.includes(state)) {
       written.push(
@@ -173,6 +178,16 @@ const LIFE = [
   ['interrupted', 'the machine running it went away'],
   ['stale', 'the card stopped needing a person'],
 ]
+
+/**
+ * A reason the message renders but no board sends yet.
+ *
+ * A retirement carries only `stale` today, so every stale row in the database has an empty
+ * reason and a sample off one would preview the fallback rather than the design. This is what
+ * the publisher's own retirement test already knows and throws away — a card goes quiet
+ * because a run picked it up, it left `ready`, a blocker opened, or its release closed.
+ */
+const PENDING_REASON = { stale: 'Picked up by a run on this board.' }
 
 /** The states somebody has decided by the time the message shows them. `cloud.event_json`
  *  computes `acted` off the action row, and it is what decides whether a message still offers
