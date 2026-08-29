@@ -26,7 +26,7 @@ import {
   setAutoCommitAction,
   setDiffApprovalAction,
 } from "@/app/actions";
-import { Group, Row, Switch } from "./settings";
+import { Group, Panel, Row, Switch } from "./settings";
 
 /** The **Delivery** group of Configuration → General. It reads both settings from the board
  *  when it draws. */
@@ -70,14 +70,7 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
 
   return (
     <Group title={caption}>
-      {loadError && (
-        <p className="mt-2.5 flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-          <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
-          <span>{loadError}</span>
-        </p>
-      )}
-
-      <div>
+      <Panel>
         <Row label={c.commits.title} hint={c.commits.body}>
           <Switch
             on={commits}
@@ -95,10 +88,17 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
             onFlip={flipApproval}
           />
         </Row>
-      </div>
+      </Panel>
+
+      {loadError && (
+        <p className="mt-2.5 flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
+          <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
+          <span>{loadError}</span>
+        </p>
+      )}
 
       {/* Said once for both, under them — a change is a change to either switch. */}
-      <p className="mt-2 text-[11.5px] leading-relaxed text-nb-ink-soft">{c.frozen}</p>
+      <p className="mt-2.5 text-[11.5px] leading-relaxed text-nb-ink-soft">{c.frozen}</p>
     </Group>
   );
 }

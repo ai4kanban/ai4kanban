@@ -204,6 +204,7 @@ const en: ConfigurationCopy = {
   language: {
     group: "Language",
     saveFailed: "couldn't save that language",
+    comingSoon: "Coming soon",
     note: "Follows you into every board on this machine. What `akb` prints, and what an agent writes onto a card, stay English.",
   },
   cloud: {

@@ -20,7 +20,8 @@ import { setLanguageAction } from "@/app/actions";
 import { getCopy } from "@/i18n";
 import { Rich } from "@/i18n/rich";
 import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES, type Language } from "@/lib/types";
-import { Group } from "./settings";
+import { Group, Panel } from "./settings";
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "./ui/select";
 
 const LanguageContext = createContext<{
   language: Language;
@@ -79,8 +80,13 @@ export function useLanguage(): Language {
   return useContext(LanguageContext).language;
 }
 
-/** The **Language** group of Configuration → General: one segmented control, each entry
- *  written in its own name so a reader recognises theirs without knowing the other. */
+/** The languages this app doesn't speak yet, written in their own names and greyed in the
+ *  list. Not `Language` values and never saved: a reader looking for theirs gets an answer
+ *  where they look for it, rather than a list of two that says nothing about the rest. */
+const COMING_SOON = ["日本語", "Español", "Français"];
+
+/** The **Language** group of Configuration → General: one dropdown, each entry written in
+ *  its own name so a reader recognises theirs without knowing the language it is listed in. */
 export function LanguageGroup({ onError }: { onError?: (msg: string) => void }) {
   const { language, choose } = useContext(LanguageContext);
   const c = getCopy(language).configuration.language;
@@ -100,40 +106,44 @@ export function LanguageGroup({ onError }: { onError?: (msg: string) => void }) 
 
   return (
     <Group title={caption}>
-      <div className="flex items-center justify-between gap-4 py-2.5 max-sm:flex-col max-sm:items-start max-sm:gap-2">
-        <p className="max-w-[56ch] text-[12px] leading-snug text-nb-ink-soft">
-          <Rich>{c.note}</Rich>
-        </p>
-        {/* One control, both answers visible — a two-entry dropdown hides half of what
-            there is to pick. */}
-        <div
-          role="radiogroup"
-          aria-label={c.group}
-          className="flex shrink-0 rounded-[10px] border border-nb-ink/20 bg-nb-paper p-[3px]"
-        >
-          {LANGUAGES.map((code) => {
-            const on = code === language;
-            return (
-              <button
-                key={code}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                disabled={saving}
-                onClick={() => void pick(code)}
-                lang={LANGUAGE_TAGS[code]}
-                className={`cursor-pointer rounded-[7px] px-3 py-1.5 text-[13px] font-[700] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait ${
-                  on
-                    ? "bg-nb-accent-soft text-nb-accent-deep"
-                    : "text-nb-ink-soft hover:bg-nb-ink/[0.06] hover:text-nb-ink"
-                }`}
-              >
-                {LANGUAGE_NAMES[code]}
-              </button>
-            );
-          })}
+      <Panel>
+        <div className="flex items-center justify-between gap-5 py-3 max-sm:flex-col max-sm:items-start max-sm:gap-2.5">
+          <p className="max-w-[56ch] text-[12px] leading-snug text-nb-ink-soft">
+            <Rich>{c.note}</Rich>
+          </p>
+          <Select
+            value={language}
+            disabled={saving}
+            onValueChange={(next) => void pick(next as Language)}
+          >
+            <SelectTrigger
+              aria-label={c.group}
+              className="w-[184px] shrink-0 text-[13px] font-[700] disabled:cursor-wait max-sm:w-full"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LANGUAGES.map((code) => (
+                <SelectItem key={code} value={code} lang={LANGUAGE_TAGS[code]}>
+                  {LANGUAGE_NAMES[code]}
+                </SelectItem>
+              ))}
+              <SelectSeparator />
+              {/* Listed, greyed, unpickable — the value is a stand-in no save ever sees. */}
+              {COMING_SOON.map((name) => (
+                <SelectItem key={name} value={`soon:${name}`} disabled>
+                  <span className="flex items-center gap-2">
+                    {name}
+                    <span className="text-[10px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
+                      {c.comingSoon}
+                    </span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </div>
+      </Panel>
     </Group>
   );
 }

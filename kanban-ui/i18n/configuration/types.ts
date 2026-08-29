@@ -207,6 +207,8 @@ export type ConfigurationCopy = {
     group: string;
     note: string;
     saveFailed: string;
+    /** Beside a language the app doesn't speak yet — listed, but not pickable. */
+    comingSoon: string;
   };
   cloud: {
     title: string;

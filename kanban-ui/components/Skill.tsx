@@ -30,7 +30,7 @@ import { useCopy } from "@/i18n/use-copy";
 import type { CommandState, SkillFolder, SkillInstall, SkillState } from "@/lib/types";
 import { Button } from "./button";
 import { InstallCommand } from "./desktop";
-import { CAPTION_BTN, Group, Row, Status } from "./settings";
+import { CAPTION_BTN, Group, Panel, Row, Status } from "./settings";
 
 /** The **Setup** group of Configuration → General. It reads its own state when it first
  *  draws — the board's poll never carries it, since one of the two answers spawns a
@@ -108,30 +108,32 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
         </button>
       }
     >
-      <div aria-live="polite">
-        <Row label={c.skillRow}>
-          <Status ready={!!skill && !skillNeedsWork}>
-            {skill ? skillStatus(skill, c) : c.checking}
-          </Status>
-          {skillNeedsWork && (
-            <Button size="sm" disabled={installing || !skill.folders.length} onClick={() => void install()}>
-              {installing ? c.writing : buttonLabel(skill, c)}
-            </Button>
-          )}
-        </Row>
+      <Panel>
+        <div aria-live="polite">
+          <Row label={c.skillRow}>
+            <Status ready={!!skill && !skillNeedsWork}>
+              {skill ? skillStatus(skill, c) : c.checking}
+            </Status>
+            {skillNeedsWork && (
+              <Button size="sm" disabled={installing || !skill.folders.length} onClick={() => void install()}>
+                {installing ? c.writing : buttonLabel(skill, c)}
+              </Button>
+            )}
+          </Row>
 
-        <Row label={c.commandRow}>
-          <Status ready={commandReady}>{commandStatus(command, checking, c)}</Status>
-          {/* The desktop app can point the PATH at the copy it carries. In a browser, on
-              Linux, and where another `akb` comes first, this draws nothing and the line to
-              type below is the answer. */}
-          <InstallCommand
-            onInstalled={() => void load()}
-            onFixable={setButtonFixes}
-            onNote={setCommandNote}
-          />
-        </Row>
-      </div>
+          <Row label={c.commandRow}>
+            <Status ready={commandReady}>{commandStatus(command, checking, c)}</Status>
+            {/* The desktop app can point the PATH at the copy it carries. In a browser, on
+                Linux, and where another `akb` comes first, this draws nothing and the line
+                to type below is the answer. */}
+            <InstallCommand
+              onInstalled={() => void load()}
+              onFixable={setButtonFixes}
+              onNote={setCommandNote}
+            />
+          </Row>
+        </div>
+      </Panel>
 
       {loadError && <Note icon={<FiAlertCircle />}>{loadError}</Note>}
       {commandNote && (
@@ -300,7 +302,7 @@ function CommandLine({ line, copy }: { line: string; copy: SkillCopy }) {
   return (
     <div className="mt-3">
       <p className="text-[12px] leading-relaxed text-nb-ink-soft">{copy.behind.runThis}</p>
-      <div className="mt-1.5 flex items-center gap-1 rounded-[9px] bg-nb-wash py-1 pl-3 pr-1">
+      <div className="mt-1.5 flex items-center gap-1 rounded-[10px] border border-nb-ink/12 bg-nb-wash py-2 pl-3 pr-1.5">
         <code className="min-w-0 flex-1 break-words font-mono text-[12px] text-nb-ink">{line}</code>
         <button
           type="button"

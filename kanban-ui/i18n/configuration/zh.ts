@@ -198,6 +198,7 @@ const zh: ConfigurationCopy = {
   language: {
     group: "语言",
     saveFailed: "语言保存失败",
+    comingSoon: "即将支持",
     note: "在这台机器上打开的每个看板都跟着它走。`akb` 在终端里输出的内容、以及 Agent 写进卡片的内容仍是英文。",
   },
   cloud: {

@@ -1,14 +1,20 @@
 "use client";
 
-// The compact parts a settings pane is built from: a captioned group, one row per
-// setting, a switch and a status word. One row is one decision — its name on the left,
-// its control on the right — so a pane reads as a list you can run your eye down rather
-// than a page of paragraphs.
+// The compact parts a settings pane is built from: a captioned group, the card its
+// settings sit in, one row per setting, a switch and a status pill. One row is one
+// decision — its name on the left, its control on the right — so a pane reads as a list
+// you can run your eye down rather than a page of paragraphs.
+//
+// What parts two groups is the card, not a rule. A pane of hairline-separated blocks made
+// everything one flat list and left the eye to work out where a group started; a caption
+// on the pane's ground with its settings in one inset under it says it before it is read.
+// Anything that is not a setting — a note, a line to copy, a fold — stays outside the card,
+// which is what keeps the card meaning "these are the things you can change".
 
 import { useState } from "react";
 
-/** A captioned block of rows. `action` sits at the caption's right edge — a Check again,
- *  never a setting. */
+/** A captioned block. `action` sits at the caption's right edge — a Check again, never a
+ *  setting. */
 export function Group({
   title,
   action,
@@ -20,8 +26,8 @@ export function Group({
 }) {
   return (
     <section>
-      <div className="flex min-h-[26px] items-center justify-between gap-3 border-b border-nb-ink/15 pb-1.5">
-        <h4 className="text-[11px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft">
+      <div className="mb-2 flex min-h-[30px] items-center justify-between gap-3">
+        <h4 className="text-[11px] font-[700] uppercase tracking-[0.1em] text-nb-ink-soft">
           {title}
         </h4>
         {action}
@@ -31,7 +37,13 @@ export function Group({
   );
 }
 
-/** One setting: its name, at most one line of what it does, and its control. */
+/** The card a group's settings sit in — one quiet inset inside the dialog, so a hairline
+ *  frame and no shadow. Its own side padding is what insets the rules between its rows. */
+export function Panel({ children }: { children: React.ReactNode }) {
+  return <div className="rounded-[12px] border border-nb-ink/12 bg-nb-sheet px-4">{children}</div>;
+}
+
+/** One setting: its name, at most a line or two of what it does, and its control. */
 export function Row({
   label,
   hint,
@@ -42,11 +54,11 @@ export function Row({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-nb-ink/10 py-2.5 last:border-b-0 max-sm:flex-col max-sm:items-start max-sm:gap-2">
+    <div className="flex items-center justify-between gap-5 border-b border-nb-ink/10 py-3 last:border-b-0 max-sm:flex-col max-sm:items-start max-sm:gap-2">
       <div className="min-w-0">
-        <p className="text-[13px] font-[700] leading-tight text-nb-ink">{label}</p>
+        <p className="text-[13.5px] font-[700] leading-tight text-nb-ink">{label}</p>
         {hint && (
-          <p className="mt-1 max-w-[64ch] text-[12px] leading-snug text-nb-ink-soft">{hint}</p>
+          <p className="mt-1 max-w-[62ch] text-[12px] leading-snug text-nb-ink-soft">{hint}</p>
         )}
       </div>
       {children && <div className="flex shrink-0 items-center gap-2.5">{children}</div>}
@@ -54,12 +66,32 @@ export function Row({
   );
 }
 
-/** A row's right-hand answer, in words. Mint when the answer is "nothing to do" — the
- *  words say it too, so the colour is never the whole message. */
+/** A row's right-hand answer: a dot you can glance at and the word itself in a pill. Mint
+ *  when the answer is "nothing to do" — the word says it too, so the colour is never the
+ *  whole message. */
 export function Status({ ready, children }: { ready: boolean; children: React.ReactNode }) {
   return (
-    <span className={`text-[12.5px] font-[600] ${ready ? "text-nb-mint-ink" : "text-nb-ink-soft"}`}>
-      {children}
+    <span className="inline-flex items-center gap-2.5">
+      <span
+        className="size-[8px] shrink-0 rounded-full"
+        style={{
+          background: ready
+            ? "var(--color-nb-mint-ink)"
+            : "color-mix(in srgb, var(--color-nb-ink) 28%, transparent)",
+        }}
+        aria-hidden
+      />
+      <span
+        className="rounded-[7px] px-2.5 py-1 text-[12px] font-[700] leading-none"
+        style={{
+          background: ready
+            ? "var(--color-nb-mint-soft)"
+            : "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)",
+          color: ready ? "var(--color-nb-mint-ink)" : "var(--color-nb-ink-soft)",
+        }}
+      >
+        {children}
+      </span>
     </span>
   );
 }
@@ -110,7 +142,7 @@ export function Switch({
   );
 }
 
-/** The quiet text button a group's caption carries — Check again, Write it again. No
- *  frame: it sits in a caption row, and a framed button there reads as a setting. */
+/** The button a group's caption carries — Check again. It sits outside the card, on the
+ *  pane's own ground, so it takes a hairline frame to read as something you press. */
 export const CAPTION_BTN =
-  "inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] px-1.5 py-1 text-[12px] font-[700] text-nb-ink-soft transition-colors duration-100 hover:bg-nb-ink/[0.06] hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border border-nb-ink/20 bg-nb-paper px-2.5 py-1.5 text-[12px] font-[700] text-nb-ink transition-colors duration-100 hover:border-nb-ink/35 hover:bg-nb-wash focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50";
