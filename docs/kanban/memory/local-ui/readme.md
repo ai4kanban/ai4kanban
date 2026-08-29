@@ -64,7 +64,7 @@ naming no other doc is covered there.
   stay yours.
 - Each delivery builds in its own git worktree and branch under `.akb/worktrees/`, so
   several cards build at once without touching each other or your open edits. Turn
-  **Allow automatic Git commits** off and it works in your project folder instead, one at
+  **Automatic Git commits** off and it works in your project folder instead, one at
   a time, and you commit after review: "Where a delivery's code goes", "Manual commit mode".
 - The Implement dialog also carries **Build this on a branch of its own** per click — it
   opens on the setting's side and never writes back, so one card can go the other way
@@ -72,7 +72,7 @@ naming no other doc is covered there.
 - Review is a fresh session reading the approved card and the diff, never the session that
   wrote the code: it passes, sends clear mistakes back for up to two corrections, or stops
   and asks you: "Review".
-- **Require diff approval before landing** holds every delivery for a human read of the
+- **Approve diffs before landing** holds every delivery for a human read of the
   tree, outside the landing queue so other cards still land; an approval covers one base
   commit and one tree and is cancelled by either moving: "Approving a delivery".
 - Building a card with **open questions** is allowed behind a third warning: it builds,

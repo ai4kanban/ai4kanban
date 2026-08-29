@@ -42,7 +42,7 @@ re-ask a settled call.
 
 - Each delivery builds in a git worktree and branch of its own, forked from the commit it
   started at, so several run side by side without touching each other or the user's edits.
-- **Allow automatic Git commits** off is manual commit mode: one delivery at a time in the
+- **Automatic Git commits** off is manual commit mode: one delivery at a time in the
   user's own folder, from clean code, with the user committing after review. A change
   applies only to deliveries started afterwards.
 - Where one build works is also a per-click choice on the Implement dialog. It opens on

@@ -47,3 +47,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Describe Cloud as switched on per board** → ✅ signing in on a machine is the switch:
   every board opened there registers itself and publishes, and a board chooses only how wide
   it watches — every release, or one. Check the app before a card promises a control.
+- ❌ **Read a channel's whole message stream to catch a message meant for the app** → ✅ a
+  mention is one subscription that arrives only when the app is addressed; require the app's
+  name in a channel and read in full only its own direct message.
+- ❌ **Let a connector chat only about the card its message carries** → ✅ the board's own
+  conversation is a chat too — a direct message and a mention reach it, and only a card's
+  thread scopes a turn to a card.

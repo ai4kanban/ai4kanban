@@ -32,6 +32,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   changes; restating what already holds reads as new work.
 - ❌ **A user-facing answer planned as a command only** → ✅ a card whose result the user
   would want while looking at the board says where it shows in the UI too.
+- ❌ **Answer an ask the agent already fields by adding a command and a screen** → ✅ when
+  the board's existing commands already return the data, the deliverable is a flow the
+  command prints and the agent applies, and nothing is built.
 
 ## Idea intake
 

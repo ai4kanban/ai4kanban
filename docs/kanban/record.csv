@@ -370,3 +370,5 @@ date,event,card,detail
 2026-08-29,question-closed,360,board
 2026-08-29,card-created,363,asked
 2026-08-29,question-closed,363,board
+2026-08-29,question-closed,153,user
+2026-08-29,release-closed,,0.8.0
