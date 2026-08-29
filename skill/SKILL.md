@@ -44,8 +44,8 @@ arguments are the same with or without `--print`.
   a `## Process`). Never `implement` one — it has no end state.
 - **`create "<what you want>"`**: turn something the user just said into card(s) — "add a
   task for…". `--release <version>` files them in a release.
-- **`propose [--module m] [--count n] [--boldness safe|normal|bold]`**: the user wants the
-  work found for them — "what's next", "propose some tasks".
+- **`propose [--module m] [--count n] [--boldness safe|normal|bold]`**: the user wants new
+  work found for them — "what are we missing", "propose some tasks", "find me work".
 - **`plan-release <version>`**: fill a release from its goal — "plan v0.7".
 - **`changelog <version>`**: rewrite a closed version's changelog — "write the changelog for
   v0.7 again". The close starts it once by itself, so this is only for a second pass.
@@ -55,6 +55,12 @@ arguments are the same with or without `--print`.
   action on this board.
 
 Each action's full flow comes back from `--print`, so don't work one out from this list.
+
+## Say what to build next
+
+"what's next", "what should I build next", "what to build next" — the user wants a pick from
+the cards the board already has, not new ones. Print `akb guide next-card` and follow it. It
+is a flow, not an action: no run starts and nothing on the board changes.
 
 ## Keep a card minimal
 

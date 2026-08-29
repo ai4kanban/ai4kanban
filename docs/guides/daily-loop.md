@@ -30,10 +30,19 @@ inside one that's asked for a board action gets the steps printed and does them 
 
 ## Pick what to work on
 
-Ask **"what's next?"**. The skill reads the board, your published docs, `readme.md` and
-`rejected.md` so it won't repeat work, scans your planning sources for real gaps, and proposes
-**new tasks** from them — not a pick from the existing pile. Three of them unless you ask for a
-different count (ten is the most), each one short-term. You approve, tweak, or drop each.
+Two asks, two answers.
+
+**"What's next?"** — a pick from the cards you already have. The skill takes the ones that are
+ready to build and unblocked, ranks them by priority, then ROI, then which release ships
+first, and names up to three: id, title, and one line on why each won. Priority outranks the
+release, so the pick can be work the release you're shipping doesn't contain. Nothing is
+written, so "not that one" costs you nothing. When nothing qualifies it says what's in the way
+— "4 cards wait on another card, 12 still need refining" — rather than an empty answer.
+
+**"What are we missing?"** — **new tasks**, found for you. The skill reads the board, your
+published docs, `readme.md` and `rejected.md` so it won't repeat work, scans your planning
+sources for real gaps, and proposes tasks from them. Three unless you ask for a different
+count (ten is the most), each one short-term. You approve, tweak, or drop each.
 
 Every proposal is judged against `memory/goal.md` — the direction in your own words. The file
 starts empty, and the skill never writes the goal for you. It only marks how clear the goal

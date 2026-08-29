@@ -24,6 +24,7 @@ import extractIdeas from '../guide/extract-ideas.md'
 import implement from '../guide/implement.md'
 import localUi from '../guide/local-ui.md'
 import moduleMap from '../guide/module-map.md'
+import nextCard from '../guide/next-card.md'
 import planRelease from '../guide/plan-release.md'
 import presetIndieHacker from '../guide/preset-indie-hacker.md'
 import presetValidateOnReddit from '../guide/preset-validate-on-reddit.md'
@@ -59,6 +60,7 @@ export const GUIDES: Guide[] = [
   { name: 'writing', when: "write a card body — its format, and the rules every card is held to", text: writing },
   { name: 'evaluate-task', when: 'check one task idea before it becomes a card', text: evaluateTask },
   { name: 'add-task', when: 'turn one idea into a card', text: addTask },
+  { name: 'next-card', when: 'name which cards already on the board to build now', text: nextCard },
   { name: 'implement', when: 'build a settled card and stop cleanly on an execution blocker', text: implement },
   { name: 'propose', when: 'find the work the board is missing and write it', text: propose },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
