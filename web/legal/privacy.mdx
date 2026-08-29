@@ -1,20 +1,20 @@
 ---
 title: "Privacy Policy"
-lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, and put a team's board on AI4Kanban Cloud."
+lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, and turn AI4Kanban Cloud on for a board."
 description: "How AI4Kanban collects, uses, shares, and protects your information across the site, the app, and the AI4Kanban Cloud preview."
-effective: 2026-08-26
+effective: 2026-08-29
 ---
 
 <TLDR title="The short version">
 
 - **This site collects nothing.** No analytics, no cookies, no accounts. It is static files served by Cloudflare.
-- **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. The app asks GitHub once whether a newer release is out, and sends nothing else.
-- **AI4Kanban Cloud is an invite-only preview** that stores a team's board — cards, memory, releases, history — on servers we run in Frankfurt. Only that workspace's members can read it.
-- **A notification carries a task's number, title, release, revision, its open questions, its opening paragraph and its review notes** — no other part of the card — and is deleted 30 days after the work it is about finishes.
+- **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. With Cloud off, the app asks GitHub once whether a newer release is out, and sends nothing else.
+- **AI4Kanban Cloud is an invite-only preview** that relays one signed-in account's task events — a review to approve, a question to answer — and the decisions made on them, on servers we run in Frankfurt. The board itself stays on your machine. [What Cloud is](/cloud).
+- **An event carries a task's number, title, release, revision, its open questions, its opening paragraph and its review notes** — no other part of the card — and is deleted 30 days after the work it is about finishes.
 - **Your code never reaches Cloud.** No repository, no worktree, no commit, no credential and no model key is sent to it, and no AI model is ever run over your board content.
-- **The only email we send is your invitation code**, and the notice to ourselves that you asked for one. There is no mailing list.
+- **The preview emails you for two things**: your invitation code, and a notice about the preview itself. There is no mailing list, no announcement, and no marketing.
 - **We do not sell your personal information**, and we do not share it for cross-context behavioral advertising.
-- **You can ask us to access, correct, export, or delete** your personal information at any time at [support@ai4kanban.dev](mailto:support@ai4kanban.dev). An owner can delete a Cloud workspace and everything in it from the app.
+- **You can ask us to access, correct, export, or delete** your personal information at any time at [support@ai4kanban.dev](mailto:support@ai4kanban.dev). Disconnecting Slack is the only removal you can make for yourself; everything else we do by hand.
 
 </TLDR>
 
@@ -26,7 +26,7 @@ AI4Kanban is operated by **NULLREACH LTD**, a private limited company registered
 
 Use of the Service is also governed by our [Terms of Service](/terms).
 
-The three parts of the Service handle data very differently, so the three sections that follow answer them one at a time: the site you are reading, the app you install, and the Cloud workspace a team can put its board in. The rights and boilerplate sections after them apply to all three.
+The three parts of the Service handle data very differently, so the three sections that follow answer them one at a time: the site you are reading, the app you install, and the Cloud preview a board's events can be relayed through. The rights and boilerplate sections after them apply to all three.
 
 ## Visiting the site
 
@@ -37,48 +37,52 @@ The three parts of the Service handle data very differently, so the three sectio
 - **No advertising or tracking pixels.** There are no ad networks, no data brokers, no retargeting tags, and no third-party trackers embedded in any page.
 - **No accounts.** There is nothing to sign up for on this site, and no form that asks for your email address.
 
-The one thing we do not control is the delivery itself. Cloudflare, as our hosting and content delivery provider, processes the technical request data that any web server sees — your IP address, the page requested, your user agent, and a timestamp — to route the request and protect the site from abuse. That processing is Cloudflare's own, under their published privacy documentation, and we do not receive, keep, or query those logs.
+The one thing we do not control is the delivery itself. Cloudflare, as our hosting and content delivery provider, processes the technical request data that any web server sees — your IP address, the page requested, your user agent, and a timestamp — to route the request and protect the site from abuse. That processing is Cloudflare's own, under their published privacy documentation, and we do not receive, keep, or query those logs. Cloud's API is a different system with a log of its own, described below.
 
 Pages on the site link out to other places, including GitHub. Once you follow a link, the site you land on is governed by its own privacy policy, not this one.
 
 ## Using the app
 
-The AI4Kanban desktop app and the `akb` command run on your own machine. A board is a folder of Markdown files inside your own repository, and the app reads and writes those files locally. Nothing about your board, your project, your prompts, or your work is sent to us.
+The AI4Kanban desktop app and the `akb` command run on your own machine. A board is a folder of Markdown files inside your own repository, and the app reads and writes those files locally.
+
+**For a local board — one you have not turned Cloud on for — nothing about your board, your project, your prompts, or your work is sent to us.**
 
 - **No account and no sign-in** are needed to install or use the app on a local board.
 - **No usage data, telemetry, or crash reports** are collected by the app today.
 - **The one network request the app makes on its own** is to `api.github.com`, once, to ask which release of AI4Kanban is newest, so it can tell you when a newer build is out. That request is unauthenticated, carries no identifier of yours, and sends nothing about your board or your machine. If it fails, the app carries on without a notice. GitHub sees the request as it would see any anonymous visitor: your IP address, a static user agent, and a timestamp.
 
+**Turning Cloud on for a board is what changes that**, and it reaches two destinations rather than one. Neither is contacted for a board you have not turned Cloud on for:
+
+- **`api.ai4kanban.dev`** — where the app and `akb` send that board's events, the board's name, and the machine record of the computer running it. The next section says what each of those holds.
+- **The Supabase project behind sign-in** — where the app signs you in through your own browser, refreshes that sign-in, and holds a live socket open so a decision you press elsewhere reaches the machine in seconds.
+
 The coding agent you point at your board is separate software with its own account, its own model provider, and its own privacy policy. It runs on your machine under your control, and what it sends to its provider is governed by that provider's terms — not by this policy.
 
 ## Using AI4Kanban Cloud
 
-AI4Kanban Cloud is an **invite-only preview**. It exists so a team can share one authoritative board while every member keeps their code and their agent work on their own machine. Using it is a deliberate choice: you install the app on a local board, and Cloud is an option you pick afterwards. If you never choose it, nothing in this section applies to you.
+AI4Kanban Cloud is an **invite-only preview**. It relays the task events a board raises — a review to approve, a question to answer — and the decisions made on them, so you can act on a board without being at the machine it runs on. The board, the repository around it, and the agent that works on it stay on that machine.
 
-### What a workspace stores
+**[What Cloud is, and what this release does not ship, is described on `/cloud`](/cloud).** This section says only what it does with your information.
 
-A Cloud workspace holds the board and only the board:
+Using it is a deliberate choice: you install the app on a local board, sign in, and turn Cloud on for a board afterwards. If you never do, nothing in this section applies to you.
 
-- **Cards** — every task's title, body, metadata, questions, and the answers to them, open and archived alike.
-- **Project memory** — the memory files the board keeps: shipped work, settled decisions, rejected ideas, design notes, and the project goal.
-- **Releases** — open and closed releases and their summaries.
-- **The board's own configuration** — its name, tracks, modules, and per-flow rules.
-- **History** — the board's counts and records, the delivery record of what each run built, and an audit trail attributing every change to the member who made it.
-- **Membership** — who is in the workspace and what role each member holds.
-- **Events and actions** — the questions, review requests, and approvals a member is asked to act on, and their outcomes.
-- **A board's machine record** — which computer runs the board's work, and what that computer runs the board's runtimes as. Described in full below.
-
-Whatever you type into a card, a memory file, or a release note is stored as you wrote it. Treat a shared board the way you would treat any shared document: if a card body would be sensitive in a wiki, it is sensitive here too.
+**This release has no shared board and no team workspace.** Every record described below belongs to one signed-in account, and Cloud answers that account alone.
 
 ### What an event holds
 
-Turning notifications on for a board sends Cloud one **event** per task that needs a person: a task that reaches `ready`, or one that raises a question only you can answer. An event holds that task's **number, title, release, and current revision**, the decision it asks for, and — when it is a question — **each question with its options and the board's recommendation**.
+Turning Cloud on for a board sends Cloud one **event** per task that needs a person: a task that reaches `ready`, or one that raises a question only you can answer. An event holds that task's **number, title, release, and current revision**, the decision it asks for, and — when it is a question — **each question with its options and the board's recommendation**.
 
-It also holds enough of the card to review it away from your machine: the card's **opening paragraph** and its **review notes** — the sections a card writes under *Worth noting* — shortened before they are sent. Approving a build off a title alone is not a review, and the machine that raised the event may be switched off when you read it. Everything else stays behind: not the plan, not the todo list, not the rest of the body, and never the folder the board is in. Your board is registered under an identifier that means nothing outside Cloud, and where that board sits on your machine is held on that machine alone.
+It also holds enough of the card to review it away from your machine: the card's **opening paragraph** and its **review notes** — the sections a card writes under *Worth noting* — shortened before they are sent. Approving a build off a title alone is not a review, and the machine that raised the event may be switched off when you read it.
 
-Once you act on an event, Cloud also holds **the decision you made and the answers you gave**, and **how the run it started ended**.
+**Those are your own words leaving your machine**, stored as you wrote them. Everything else stays behind: not the plan, not the todo list, not the rest of the body, not your memory files, not your releases, and not the board's configuration. Treat a card's opening paragraph the way you would treat a line in a shared document.
 
-An event is kept while it is unresolved, and **deleted 30 days after it reaches a final outcome** — completed, failed, cancelled, interrupted, or retired because the task stopped needing you. Deleting it takes its answers, its outcome, and any message it was delivered as with it.
+Once you act on an event, Cloud also holds **the decision you made and the answers you gave**, and **how the run it started ended**. Where the event was delivered — a Slack message, say — is recorded against it too.
+
+An event is kept while it is unresolved, and **deleted 30 days after it reaches a final outcome** — completed, failed, cancelled, interrupted, or retired because the task stopped needing you. An event no machine ever reports on reaches no final outcome, so it is kept rather than swept. Deleting it takes its answers, its outcome, and any message it was delivered as with it.
+
+### What a board is registered as
+
+A board on Cloud is an identifier that means nothing outside Cloud, and **a name — the name of the folder the board sits in**. The app reads that name rather than asking you for one, so a folder named after a client names that client on Cloud. **The path the board sits at is never sent**, only that last part of it. If a folder's name would say something you would not put in a shared document, rename it before you turn Cloud on.
 
 ### What a board's machine record holds
 
@@ -88,89 +92,112 @@ A board runs its work on one computer, so that computer registers itself with Cl
 - **The name that computer calls itself** — its hostname, so you can tell one of your machines from another. Never an address.
 - **What it runs the board's runtimes as** — for each runtime your board names, the **name of the coding agent** that computer runs it with, and the **name of the model** you set for it where you set one. Names only: never a key, never the arguments or the path a command runs under, and never the folder your board is in.
 
-The record is kept for as long as the board is on Cloud, and goes when the board or the workspace goes. Moving the board to another machine retires the old computer's record rather than deleting it, so a job that machine started and never finished can still be accounted for.
+**Nothing in the preview deletes this record.** Turning Cloud off for a board stops that machine reaching Cloud and forgets the board on the machine; the record stays. Moving the board to another machine retires the old computer's record rather than deleting it, so a job that machine started and never finished can still be accounted for. Every machine record a board ever registered is kept until we remove it by hand — see **Removing your Cloud records** below.
 
 ### What never reaches Cloud
 
-Cloud coordinates a board. It does not run your project, and the following never leave your machine:
+Cloud relays a board's events. It does not run your project, and the following never leave your machine:
 
 - **Your source code**, your repository, your working tree, your branches, your commits, and your merges.
+- **Your board itself** — your cards in full, your memory files, your releases, and the board's configuration. Cloud sees the part of a card an event carries, and nothing else.
 - **Your credentials** — Git remotes, SSH keys, tokens, and anything in your environment.
 - **Your model provider keys and accounts.** Your coding agent runs locally, under your own account with your own provider. The board's machine record names which agent and model a computer runs — the names alone, never anything you sign in with.
-- **Agent transcripts and prompts.** A run happens on your machine; Cloud sees the card it produced, not the conversation that produced it.
+- **Agent transcripts and prompts.** A run happens on your machine; Cloud sees the event it produced, not the conversation that produced it.
 
-**No AI model is ever run over your board content.** We do not send cards, memory files, or any other workspace content to an AI provider, and we do not use your board content to train any model, ours or anyone else's.
+**No AI model is ever run over your board content.** We do not send an event, or anything else your board publishes, to an AI provider, and we do not use your board content to train any model, ours or anyone else's.
 
 ### What signing in stores about you
 
-A Cloud member signs in with a GitHub account, through Supabase Auth's GitHub provider. Our GitHub OAuth app requests **`user:email` and nothing else**, so a sign-in reads your profile and the email address GitHub has verified for you, and cannot reach a private repository even if everything else went wrong. We ask for the address because it is what an invitation code is sent to, so nothing about asking for one has to be typed.
+You sign in to Cloud with a GitHub account, through Supabase Auth's GitHub provider. Our GitHub OAuth app requests **`user:email` and nothing else**, so a sign-in reads your profile and the email address GitHub has verified for you, and cannot reach a private repository even if everything else went wrong. We ask for the address because it is what an invitation code is sent to, so nothing about asking for one has to be typed.
 
-Signing in creates one account record, held by Supabase Auth on our behalf. It holds:
+Signing in creates **two separate records**, and removing one does not remove the other:
 
-- **Your GitHub login and public profile** as GitHub returns it at sign-in — your username, your numeric GitHub id, your display name, and your avatar URL.
-- **Any email address Supabase Auth records with that account.** GitHub's sign-in response can include the address on your GitHub account, and Supabase Auth stores it with the account record when it does.
-- **Sign-in timestamps** and the identity provider behind the account, which is `github` for every member.
+- **A sign-in record**, held by Supabase Auth on our behalf. It holds **your GitHub login and public profile** as GitHub returns it at sign-in — your username, your numeric GitHub id, your display name, and your avatar URL — **any email address Supabase Auth records with that account**, and **sign-in timestamps** with the identity provider behind the account, which is `github` for everyone.
+- **A Cloud account row**, in our own database. It holds your GitHub handle, your display name, and your avatar URL, and it is what every other Cloud record — a board, an event, a machine record, a Slack connection — belongs to.
 
-We do not ask you to type that address, we have no mailing list, and we send nothing to it but the invitation loop below. You can ask us to remove it, or to delete the account record entirely, at [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
+If we have admitted you to the preview, we also hold **an admission**: the GitHub handle we let in, when we let it in, and a short note of our own saying who you are, so whoever reads the list later can tell.
 
-Beyond that record, a workspace stores your member row — the account it points at, your role, and when you joined — and your name against the changes you made, which is the point of a shared board.
+We do not ask you to type an address, we have no mailing list, and we send nothing to it but the invitation loop and the preview notice below. You can ask us to remove any of these records at [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
 
 ### Asking for an invite, and the code that answers
 
 Cloud is invite-only, so there are two records behind getting in, and both hold your email address:
 
 - **An invite request** — written when you press **Request an invite** in the app. It holds your GitHub handle, the email address GitHub has verified for your account, and when you asked. You type none of it: it is read from what the identity provider attested at sign-in.
-- **An invitation** — written when we approve a request, or when we invite somebody who never asked. It holds the code, the address it was sent to, the request it answers, and — once redeemed — which account redeemed it and when. That is what ties an admitted account back to the invitation that let it in.
+- **An invitation** — written when we approve a request, or when we invite somebody who never asked. It holds the code, the address it was sent to, the request it answers, a short note of our own saying who it is for, whether it has been withdrawn, and — once redeemed — which account redeemed it and when. That is what ties an admitted account back to the invitation that let it in.
 
-We email you once from each: a code, sent to that address from `invites@send.ai4kanban.dev`, with `support@ai4kanban.dev` to reply to. A request also sends **us** a notice at `support@ai4kanban.dev` carrying your handle and address, so we can answer you by replying. **These are the only emails the preview sends.** There is no mailing list, no announcement, and no marketing.
+We email you once from each: a code, sent to that address from `invites@ai4kanban.dev`, with `support@ai4kanban.dev` to reply to. A request also sends **us** a notice at `support@ai4kanban.dev` carrying your handle and address, so we can answer you by replying.
 
-The mail goes through **Resend**, which is therefore a subprocessor and appears in the table below. Resend keeps 30 days of sending logs under its own policy.
+**Beyond that loop, the preview sends one other email: a notice about the preview itself** — that it is ending, or that these pages have changed materially. It goes by hand from `support@ai4kanban.dev` to the address GitHub verified for your account. It is the one mail the preview sends that you did not ask for, and there is no way to switch it off. **That is the whole of the email the preview sends: no mailing list, no announcement, and no marketing.**
+
+**If you asked and we never admitted you, we still hold your records.** Your invite request — your GitHub handle, the address GitHub verified for you, and when you asked — any code we issued you, and your sign-in record all stay. No sweep reaches them and there is no action you can take that does; we remove them by hand when you write to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). Nothing on this page or in the [Terms](/terms) ties how long those records are kept to your being admitted.
+
+The invitation mail goes through **Resend**, and the `support@ai4kanban.dev` mailbox is run for us too. Both are subprocessors and both appear in the table below. Resend keeps 30 days of sending logs under its own policy.
 
 ### Where it runs, and who can read it
 
-- **The workspace database** is a Supabase Postgres project in **`eu-central-1` (Frankfurt, Germany)**, inside the EU. It holds Cloud's boards and nothing else.
+- **The database** is a Supabase Postgres project in **`eu-central-1` (Frankfurt, Germany)**, inside the EU. It holds Cloud's records and nothing else.
 - **The API** runs on Cloudflare Workers at `api.ai4kanban.dev`.
-- **Every workspace is private.** Signing in is not membership: every endpoint that reads a workspace or writes to it answers that workspace's members and nobody else. There is no public workspace, no shared link, and no read-only web view.
+- **Every record answers one account.** A Cloud route is called with your own verified sign-in — or, for a decision pressed in Slack, with a callback Slack signs — and refuses a record belonging to anyone else. There is no shared board, no way into another account's records, no public link, and no read-only web view.
 - **The database is not a client API.** Only the service can reach it: its tables are closed to every role, the project serves only the small set of functions the service calls, and its keys never leave the service.
-- **We can technically reach the database**, as the operator of any hosted service can. We access workspace content only when it is necessary to run the Service, to investigate a fault, or where the law requires it — not to read your board.
+- **We can technically reach the database**, as the operator of any hosted service can. We access an account's records only when it is necessary to run the Service, to investigate a fault, or where the law requires it — not to read your board.
+- **The API keeps a request log of its own.** Cloudflare retains it, and we can query it while it lasts — unlike the static site's delivery logs above, which we never receive. What the API writes to that log is a status, a database error code, the kind of mail attempted, and an internal reference: no board content, no GitHub handle, and no email address.
 
 ### Subprocessors
 
-The preview uses three subprocessors and one identity provider. There is no separate subprocessors page, because this is the whole list:
+The preview uses four subprocessors and one identity provider. There is no separate subprocessors page, because this is the whole list:
 
 | Who | What they do | Where |
 | --- | --- | --- |
-| **Cloudflare, Inc.** | Compute and hosting — the API, and the static site | Global network |
-| **Supabase, Inc.** | The workspace database and sign-in | `eu-central-1`, Frankfurt |
+| **Cloudflare, Inc.** | Compute and hosting — the API, and the static site — and the Email Routing that delivers `support@ai4kanban.dev` | Global network |
+| **Supabase, Inc.** | The database and sign-in | `eu-central-1`, Frankfurt |
 | **Resend (Plus Five Five, Inc.)** | Sending the invitation email and the request notice | United States |
-| **GitHub, Inc.** | The identity provider a member signs in through | GitHub's own infrastructure |
+| **Spacemail (Spaceship, Inc.)** | The mailbox that routing forwards `support@ai4kanban.dev` to — where a data request, a support message, and the preview notice are read and sent | United States |
+| **GitHub, Inc.** | The identity provider you sign in through | GitHub's own infrastructure |
 
 Each processes data on our behalf under its published data processing agreement. If we add or replace a subprocessor, this table changes with it and the effective date at the top of the page moves.
 
 ### Slack, and anywhere else you choose to send board content
 
-You can connect a Slack destination so that a question or a review request is posted into a channel — or a direct message — you already read, and decided from there. When you do that, the content of that message — the card's title, its opening paragraph, its review notes, the question being asked, and a link back into the app — leaves Cloud and goes to Slack **on your own instruction**. Anyone who can see that conversation can read it.
+You can connect Slack so that a question or a review request is posted into a channel — or a direct message — you already read, and decided from there. **One connection belongs to your account**, and every board you turn Cloud on for shares it. You connect it and you disconnect it; nobody else can.
 
-We do not present Slack as infrastructure AI4Kanban runs on: you install our Slack app into your own workspace, choose the one conversation it posts to, and can disconnect it at any time, which removes the connection and the token it was posting with. Once a message is in Slack, it is governed by your Slack workspace's own settings and retention policy, not by ours. The same is true of anything else you choose to point a workspace at.
+When Cloud posts, the content of that message — the card's title, its opening paragraph, its review notes, the question being asked, and a link back into the app — leaves Cloud and goes to Slack **on your own instruction**. Anyone who can see that conversation can read it.
 
-What we hold for a connection is the workspace, the conversation you picked, the Slack account you connected as — which is what makes a decision you press there yours — and the token Slack issued us for posting. We never read a Slack message, including our own, and we ask for no scope that would let us.
+We do not present Slack as infrastructure AI4Kanban runs on: you install our Slack app into your own Slack workspace, choose the one conversation it posts to, and can disconnect it at any time, which deletes the connection and the token it was posting with. Once a message is in Slack, it is governed by that Slack workspace's own settings and retention policy, not by ours. The same is true of anything else you choose to point a board at.
 
-### Deleting a workspace
+What we hold for a connection is the Slack workspace, the conversation you picked, the Slack account you connected as — which is what makes a decision you press there yours — and the token Slack issued us for posting. A decision pressed in Slack comes back as a callback Slack signs and the service verifies before it counts for anything. We never read a Slack message, including our own, and we ask for no scope that would let us.
 
-An owner can delete a workspace from the app. Deletion **takes effect at once**: the one confirmed operation removes the workspace and everything in it — cards, memory, releases, history, membership, and the audit trail — with no grace window and no recovery period behind it.
+### Removing your Cloud records
 
-Because **the preview keeps no backups of its own**, no copy of a deleted workspace survives anywhere else for us to restore, hand over, or be compelled to produce. An export a team took beforehand is the only copy that outlives the workspace, and it lives on their machines, not ours.
+**Disconnecting Slack is the only removal you can make for yourself.** It deletes the connection and the token with it, at once.
+
+Nothing else in the app deletes anything. Signing out stops that machine reaching Cloud and removes no record. Turning Cloud off for a board, or moving the board to another machine, removes no record either.
+
+**Everything else we remove by hand**, on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). What that removes is **your whole account and everything under it**: your Cloud account row and your admission, your board rows with their names, every machine record those boards registered, every event with its questions, decisions, answers and outcomes, your Slack connection, your invite request, and the invitation that admitted you. Your sign-in record goes alongside them, as its own step in Supabase rather than by the same operation.
+
+**It is all of it or none of it.** The service has no way to remove one board's record and leave the account behind it, so **asking us to forget a board ends your place in the preview**. If that is not what you meant, tell us what you need and we will say what we can do.
+
+The one thing that removes itself is finished event history, 30 days after an event reaches a final outcome.
+
+### What losing Cloud would cost you
+
+The preview keeps no backups of its own, so nothing is restored if a record is lost, and no copy survives anywhere for us to hand over or be compelled to produce.
+
+**What you would lose is your event history and the decisions recorded against it** — which task asked what, what you answered, and how the run ended.
+
+**You would not lose your board.** Cloud never held it. Your cards, your memory files, your releases and the board's configuration are Markdown in your own repository, on your own machine, and they are the same files whether Cloud is on or off. There is no board export from Cloud, because there is no board on Cloud to export. A copy of what Cloud *does* hold about you is a data request — see [Your rights and choices](#your-rights-and-choices).
 
 ### Making a data request about Cloud
 
-Write to [support@ai4kanban.dev](mailto:support@ai4kanban.dev) for anything in this section: a copy of what a workspace holds about you, a correction, the removal of your account record, or a question about how any of it works.
+Write to [support@ai4kanban.dev](mailto:support@ai4kanban.dev) for anything in this section: a copy of what Cloud holds about you, a correction, the removal of your records, or a question about how any of it works.
 
 ## How we use information
 
 We use information to:
 
-- **Run the Service** — serve the site, tell the app whether a newer release exists, and store, serve, and coordinate a Cloud workspace's board for its members.
-- **Keep the Service safe** — verify a sign-in, enforce membership, detect abuse, and stay inside the capacity the preview runs on.
+- **Run the Service** — serve the site, tell the app whether a newer release exists, and relay a board's events and the decisions made on them, to and from the account they belong to.
+- **Keep the Service safe** — verify a sign-in, check that a record belongs to the account asking for it, detect abuse, and stay inside the capacity the preview runs on.
+- **Send you a service notice** — the invitation code you asked for, and a notice about the preview itself: that it is ending, or that these pages have changed materially. Both go to the email address GitHub verified for your account.
 - **Answer you** — handle a support message or a data request you send us.
 - **Comply with legal obligations** that apply to us.
 
@@ -178,8 +205,8 @@ We do **not** use your information for advertising, profiling, or scoring, and w
 
 For users in the EU, the UK, and Switzerland, the legal bases we rely on are:
 
-- **Contract** — running the Service you asked for, including holding a Cloud workspace for the team that created it.
-- **Legitimate interests** — keeping the Service secure and working, and preventing abuse.
+- **Contract** — running the Service you asked for, including holding the Cloud records of the account that turned Cloud on, and sending the invitation code you asked us for.
+- **Legitimate interests** — keeping the Service secure and working, preventing abuse, and telling an account in the preview that the preview is ending or that these pages have materially changed.
 - **Legal obligation** — when a law applies to us.
 
 We rely on **consent** for nothing today, because the Service asks for nothing optional: there is no marketing email, no analytics, and no non-essential cookie to consent to.
@@ -193,7 +220,7 @@ We share information only in these limited cases:
 - **Service providers (processors)** — the subprocessors named above, who run parts of the Service on our behalf. They process data only to perform the service we asked for, under written data processing agreements.
 - **Legal and safety** — when required by law, by valid legal process, or to protect the rights, property, or safety of AI4Kanban, our users, or the public.
 - **Business transfers** — if AI4Kanban is involved in a merger, acquisition, financing, or asset sale, information may form part of that transaction. We will give notice before any personal information becomes subject to a different privacy policy.
-- **With your direction** — when you ask us to send something somewhere, such as a workspace's connected Slack channel.
+- **With your direction** — when you ask us to send something somewhere, such as the Slack conversation you connected.
 
 ## Cookies and tracking
 
@@ -208,13 +235,15 @@ We do not use tracking pixels, fingerprinting, or cross-site identifiers anywher
 We keep personal information only as long as we need it for the purposes described in this Policy:
 
 - **Site visits** — nothing is retained by us. Cloudflare's own delivery logs are kept under Cloudflare's policy and are not ours to query.
-- **App use** — nothing is retained, because nothing is collected.
-- **Workspace content** — kept for as long as the workspace exists. Deleting the workspace removes it at once, and no backup of it survives (see above). A workspace whose preview access ends is closed under the [Terms](/terms).
-- **Your account record** — kept while your account can sign in. Ask us at [support@ai4kanban.dev](mailto:support@ai4kanban.dev) and we will delete it.
-- **Your invite request and your invitation** — kept for as long as the account is admitted, because the invitation is what ties an admission back to the code that made it. Removing an account takes its request and its invitation with it. Resend's own sending logs are kept for 30 days under Resend's policy.
-- **Events and actions** — kept while the event is unresolved, then deleted 30 days after it reaches a final outcome, together with the decision recorded against it, its outcome, and any message it was delivered as.
-- **A board's machine record** — the machine identifier, the hostname, and the runtimes described above, kept while the board is on Cloud and deleted with the board or the workspace. A computer the board has moved away from keeps a retired record until then.
-- **The audit trail** — an attributed record of who changed what lives inside the workspace and goes with it when the workspace is deleted.
+- **App use** — nothing is retained, because nothing is collected. A board you have not turned Cloud on for sends us nothing to retain.
+- **Your sign-in record** — held by Supabase Auth, kept while your account can sign in. Only a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev) removes it, and removing it is its own step: it does not go with your Cloud records automatically.
+- **Your Cloud account row and your admission** — kept until we remove them by hand on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
+- **Your invite request and your invitation** — kept until we remove them by hand, whether or not we admitted you. A request we never approved, and any code issued against it, stay until you ask us to delete them. Resend's own sending logs are kept for 30 days under Resend's policy.
+- **A board's Cloud id and its name** — kept until we remove them by hand. Turning Cloud off for a board, moving it to another machine, and signing out delete nothing.
+- **Events and actions** — kept while the event is unresolved, then deleted 30 days after it reaches a final outcome, together with the decision recorded against it, its answers, its outcome, and any message it was delivered as.
+- **A board's machine record** — the machine identifier, the hostname, and the runtimes described above, kept until we remove them by hand. Every machine a board registered keeps its record, including one the board has moved away from.
+- **Your Slack connection** — kept until you disconnect it, which deletes it and its token at once, or until we remove your records.
+- **The API's own request log** — retained by Cloudflare under Cloudflare's policy. It carries no board content, no handle, and no email address.
 - **Email correspondence** — kept for as long as needed to handle the conversation and any follow-up, then deleted.
 
 We may keep limited information longer where we need it to comply with a legal obligation, resolve a dispute, or enforce our agreements.
@@ -223,7 +252,7 @@ We may keep limited information longer where we need it to comply with a legal o
 
 We use reasonable administrative and technical safeguards to protect personal information:
 
-- **Encryption** — workspace data is encrypted at rest by our database provider, and every connection to the Service uses TLS 1.2 or later.
+- **Encryption** — an account's Cloud records are encrypted at rest by our database provider, and every connection to the Service uses TLS 1.2 or later.
 - **A closed database** — the database denies every caller but the service, exposes only the functions the service calls, and its keys are held in the service's secret store and never in our source code.
 - **Asymmetric sign-in tokens** — the service verifies a session against the project's published signing keys, so there is no shared signing secret for anyone to hold or leak.
 - **A minimal-scope OAuth app** — the GitHub app behind sign-in asks for `user:email` and nothing more, so a compromised session still cannot read a private repository.
@@ -231,7 +260,7 @@ We use reasonable administrative and technical safeguards to protect personal in
 
 No system is perfectly secure. If we experience a breach that materially affects you, we will notify you in line with applicable law.
 
-Because this is a free preview running on free infrastructure tiers with **no backups**, do not treat a Cloud workspace as your only copy of anything you cannot lose. Export it.
+Because this is a free preview running on free infrastructure tiers with **no backups**, do not treat Cloud as the only copy of anything you cannot lose. Your board is not at risk — it is Markdown in your own repository — but the event history Cloud holds is kept nowhere else.
 
 ## Your rights and choices
 
@@ -247,7 +276,7 @@ Depending on where you live, you may have the right to:
 
 To exercise any of these rights, email [support@ai4kanban.dev](mailto:support@ai4kanban.dev). We will respond within the time applicable law requires — typically within 30 days, with one extension permitted under the GDPR. We may need to verify your identity before acting on a request. We will not discriminate against you for exercising any of these rights.
 
-Some of them you can exercise without asking us: an owner can export a workspace and delete a workspace from the app at any time.
+Two things you can do without asking us: **disconnect Slack**, which deletes that connection at once, and **turn Cloud off for a board**, which stops it sending anything more. A copy, a correction, or a removal is a request to us.
 
 ### United Kingdom and European Economic Area
 
@@ -261,16 +290,22 @@ If you are in Switzerland, you have equivalent rights under the Swiss Federal Ac
 
 California residents have additional rights, including the right to know what categories of personal information we collect, the right to delete, the right to correct, the right to opt out of the sale or sharing of personal information for cross-context behavioral advertising (**we do neither**), the right to limit the use of sensitive personal information (we do not collect sensitive personal information), and the right not to be discriminated against for exercising these rights. You may use an authorized agent to make a request.
 
-In the past 12 months, the categories of personal information we have collected, as defined by the CCPA, are: **identifiers** (a GitHub username and id, and an email address where the sign-in returns one) and **internet or network activity** limited to what our subprocessors log to deliver a request. We collect no commercial information, no geolocation, no biometric data, and we draw no inferences about you. We share these categories only with the service providers described above.
+In the past 12 months, the categories of personal information we have collected, as defined by the CCPA, are:
+
+- **Identifiers** — a GitHub username and numeric id, a display name, an avatar URL, and an email address where the sign-in returns one; and, for a board on Cloud, the name of the folder that board sits in, the identifier the computer running it generated for itself, and that computer's hostname.
+- **Internet or network activity** — limited to what our subprocessors log to deliver a request, and the API's own request log described above.
+- **Other information you choose to provide** — the part of a card an event carries (its title, its opening paragraph, its review notes, and its questions), the decisions and answers you record against it, and anything you write to us in an email.
+
+We collect no commercial information, no geolocation, no biometric data, and we draw no inferences about you. We share these categories only with the service providers described above.
 
 ## International data transfers
 
-A Cloud workspace's board is stored in **Frankfurt, Germany**, inside the EU. An EU team's board therefore stays in the EU at rest.
+An account's Cloud records are stored in **Frankfurt, Germany**, inside the EU. An EU account's records therefore stay in the EU at rest.
 
 Two transfers can still happen, and we would rather name them than leave them implied:
 
-- **The API runs on Cloudflare's global network.** A request is handled close to where it was made, so a member working outside the EEA has their request processed in that region in transit before it reaches the database in Frankfurt.
-- **Our subprocessors are US companies.** Cloudflare, Supabase, Resend, and GitHub may access data from the United States for support and operations, under their own commitments. Resend sends from the United States, so an invitation to an EU address is processed there in transit.
+- **The API runs on Cloudflare's global network.** A request is handled close to where it was made, so an account working outside the EEA has their request processed in that region in transit before it reaches the database in Frankfurt.
+- **Our subprocessors are US companies.** Cloudflare, Supabase, Resend, Spaceship, and GitHub may access data from the United States for support and operations, under their own commitments. Resend sends from the United States, so an invitation to an EU address is processed there in transit, and Spaceship processes the `support@ai4kanban.dev` mailbox in the United States, so a data request you send us and a preview notice we send you pass through there too.
 
 Where personal information is transferred out of the UK, the EEA, or Switzerland, we rely on the European Commission's Standard Contractual Clauses, the UK's International Data Transfer Agreement or Addendum, the EU–US and UK–US Data Privacy Framework where a recipient is certified, or another safeguard recognized under applicable law. Copies of these safeguards are available on request.
 
@@ -280,7 +315,9 @@ The Service is not directed to children under 16, and we do not knowingly collec
 
 ## Changes to this policy
 
-We will update this Policy as the Service evolves. When we do, we will change the effective date at the top of this page and, for material changes, give reasonable notice through the Service. Because the preview sends no email as a notice, the app and any destination your workspace has connected are where a notice reaches you.
+We will update this Policy as the Service evolves. When we do, we will change the effective date at the top of this page.
+
+**For a material change we send a notice by hand**, from [support@ai4kanban.dev](mailto:support@ai4kanban.dev) to the email address GitHub verified for your account. That is the route: the preview delivers no notice inside the app and none in a connected Slack channel. A post on `ai4kanban.dev` may accompany the email, but never stands in for it.
 
 ## Contact
 

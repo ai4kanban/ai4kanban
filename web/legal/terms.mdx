@@ -1,17 +1,17 @@
 ---
 title: "Terms of Service"
 lead: "The agreement between you and AI4Kanban covering this website and the AI4Kanban Cloud preview. Plain language where we can; legal precision where we have to."
-description: "The terms covering use of the AI4Kanban website and the invite-only AI4Kanban Cloud preview, including how the preview ends and what a team keeps."
-effective: 2026-08-26
+description: "The terms covering use of the AI4Kanban website and the invite-only AI4Kanban Cloud preview, including how the preview ends and what you keep."
+effective: 2026-08-29
 ---
 
 <TLDR title="The short version">
 
 - **These Terms cover this website and AI4Kanban Cloud.** The app itself is open source under the Apache License 2.0, and that licence — not this page — governs the software you install.
-- **Cloud is an invite-only preview.** It is free, it makes no availability promise, and we may end it or close a workspace at any time.
-- **We give the workspace's owners reasonable notice where practical**, in the app and in any Slack channel the workspace has connected. No fixed notice period is promised. The preview sends email only to answer an invite request, never as a notice.
-- **The preview keeps no backups.** Exporting your workspace is how your team keeps its own copy, and an export taken beforehand is what survives a workspace being closed.
-- **Your board content stays yours.** We take only the licence needed to store and serve it to your team.
+- **Cloud is an invite-only preview.** It is free, it makes no availability promise, and we may end it or close an account at any time.
+- **We give you reasonable notice where practical**, by email from `support@ai4kanban.dev` to the address GitHub verified for your account. No fixed notice period is promised.
+- **The preview keeps no backups** — but your board is never on Cloud in the first place. What a closure takes is your event history, not your cards.
+- **Your board content stays yours.** Cloud receives only what an event carries, and we take only the licence needed to store it and serve it back to you.
 - **English and Welsh law governs these Terms**, and the courts of England and Wales settle any dispute.
 
 </TLDR>
@@ -20,7 +20,7 @@ effective: 2026-08-26
 
 These Terms of Service (the "Terms") form a binding agreement between you and **NULLREACH LTD**, a private limited company registered in England and Wales, with a registered office at Suite 11615, 61 Bridge Street, Kington, United Kingdom, HR5 3DJ ("AI4Kanban," "we," "us"). These Terms govern your access to and use of the website at `ai4kanban.dev` and AI4Kanban Cloud (together, the "Service").
 
-By using the Service — including by signing in to AI4Kanban Cloud, creating a workspace, or joining one — you confirm that you have read these Terms and our [Privacy Policy](/privacy) and agree to be bound by them. If you do not agree, do not use the Service.
+By using the Service — including by signing in to AI4Kanban Cloud, or turning Cloud on for a board — you confirm that you have read these Terms and our [Privacy Policy](/privacy) and agree to be bound by them. If you do not agree, do not use the Service.
 
 ## What AI4Kanban is, and what these Terms do not cover
 
@@ -28,7 +28,7 @@ AI4Kanban is a project board that a coding agent plans and keeps. The board is a
 
 **The app is open-source software, distributed under the Apache License 2.0.** That licence is the whole of your rights to use, copy, modify, and redistribute it, and nothing on this page adds to it or takes from it. These Terms cover the two things the licence does not: this website, and the hosted service described below.
 
-**AI4Kanban Cloud** is a hosted service that stores one shared board for a team, so members can work from one authoritative board while their code, their repositories, and their coding agents stay on their own machines. Cloud is optional. A local board never touches it.
+**AI4Kanban Cloud** is a hosted service that relays the task events a board raises — a review to approve, a question to answer — and the decisions made on them, so you can act on a board without being at the machine it runs on. Your board, your repository, and your coding agent stay on that machine. Cloud is optional. A local board never touches it. **[What Cloud is, and what this release does not ship, is described on `/cloud`](/cloud)**, and the [Privacy Policy](/privacy) says exactly what it holds.
 
 The Service is provided as a working product. Features and availability can change, and we may add, modify, or remove features at our discretion. Where a change is material, we will give reasonable notice.
 
@@ -36,49 +36,51 @@ The Service is provided as a working product. Features and availability can chan
 
 AI4Kanban Cloud is currently an **invite-only preview**. That has three consequences worth stating plainly.
 
-**Access is something we grant.** Sign-up is not open. Creating a workspace requires an invitation from us, and we may decline, limit, or withdraw one at our discretion.
+**Access is something we grant.** Sign-up is not open. Using Cloud requires an invitation from us, and we may decline, limit, or withdraw one at our discretion.
 
 **There is no availability promise.** The preview carries no uptime commitment, no service level, and no support response time. It runs on free infrastructure tiers whose own limits may refuse writes or make the Service unavailable without notice. It may be slow, it may break, and features may change or disappear between one day and the next.
 
-**We may act on a workspace to keep the Service running.** Specifically, we may:
+**We may act on an account to keep the Service running.** Specifically, we may:
 
-- Suspend or close a workspace whose use violates these Terms, creates a security risk, or creates legal exposure for us or for others.
+- Suspend or close an account whose use violates these Terms, creates a security risk, or creates legal exposure for us or for others.
 - Limit or refuse writes to stay inside the capacity the preview runs on.
-- Migrate, restructure, or reset a workspace where necessary to operate or repair the Service.
-- Access workspace content where it is necessary to run the Service, to investigate a fault, or where the law requires it — not to read your board. See the [Privacy Policy](/privacy).
+- Migrate, restructure, or reset an account's Cloud records where necessary to operate or repair the Service.
+- Access those records where it is necessary to run the Service, to investigate a fault, or where the law requires it — not to read your board. See the [Privacy Policy](/privacy).
 
 ### How the preview ends
 
-**We may end the preview, or close any workspace, at any time.**
+**We may end the preview, or close any account, at any time.**
 
-Where it is practical, we will give the workspace's owners reasonable notice first. **No fixed notice period is promised** — not 30 days, not any other number. A preview running on infrastructure that can be withdrawn inside a month should not make a promise it cannot keep, so it does not make one.
+Where it is practical, we will give you reasonable notice first. **No fixed notice period is promised** — not 30 days, not any other number. A preview running on infrastructure that can be withdrawn inside a month should not make a promise it cannot keep, so it does not make one.
 
-**Where a notice is delivered:** in the app, and in any Slack channel the workspace has configured. **The preview sends no email as a notice.** The only email it sends is the invitation loop: the code you asked for, sent to the address GitHub verified for your account. The address itself is not one you handed us for notices, and we do not use it as one. If your workspace has no connected channel, the app is where a notice reaches you.
+**Where a notice is delivered: by email.** We send it by hand from `support@ai4kanban.dev` to the email address GitHub verified for your account. That is the only route — the preview delivers no notice inside the app and none in a connected Slack channel, and a post on `ai4kanban.dev` may accompany the email but never stands in for it. This notice and the invitation loop are the whole of the email the preview sends; there is no mailing list and no marketing.
 
-### What your team keeps
+### What you keep
 
-**The preview keeps no backups.** There is no daily backup, no point-in-time recovery, and no copy of your workspace anywhere except the live one.
+**Your board is not on Cloud, so a closure does not take it.** Your cards, your memory files, your releases and the board's configuration are Markdown in your own repository, on your own machine, and they are the same files whether Cloud is on or off. There is no board export from Cloud because there is no board on Cloud to export.
 
-**Exporting your workspace is how your team keeps its own copy.** An owner can export a workspace from the app at any time, and the export restores a whole board on its own: cards, memory, releases, the board's configuration, its history, and its delivery records. An export taken beforehand is what survives a workspace being closed, deleted, or lost — and it is the only thing that does.
+**The preview keeps no backups.** There is no daily backup, no point-in-time recovery, and no copy of your Cloud records anywhere except the live one.
 
-Deleting a workspace takes effect at once. The confirmed operation removes the workspace and everything in it, with no recovery window behind it, so your export is the only copy that outlives a mis-click.
+**What ending the preview costs you is your event history** — which task asked what, what you answered, and how the run ended — and your Slack connection. Those are the things Cloud holds and nothing else does.
+
+A copy of what Cloud holds about you is a data request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev); so is removing it. A removal takes your whole account and everything under it, and therefore your place in the preview — the service has no way to remove one board's record and leave the account. The [Privacy Policy](/privacy) sets out both in full.
 
 ## Eligibility and accounts
 
 You must be at least 16 years old to use the Service. If you use the Service on behalf of a company or other organization, you represent that you have authority to bind that organization to these Terms, in which case "you" means that organization.
 
-A Cloud member signs in with a GitHub account. You are responsible for everything that happens under your account, including keeping your GitHub credentials secure and telling us promptly at [support@ai4kanban.dev](mailto:support@ai4kanban.dev) about any unauthorized use.
+You sign in to Cloud with a GitHub account. You are responsible for everything that happens under your account, including keeping your GitHub credentials secure and telling us promptly at [support@ai4kanban.dev](mailto:support@ai4kanban.dev) about any unauthorized use.
 
-A workspace's owners decide who is in it. If you invite someone into a workspace, you are responsible for what they can then read.
+**This release has no shared board and no members.** Every Cloud record belongs to one account and answers that account alone; there is nobody to invite into it and no role to hold in it. If a later release adds a way to share a board, these Terms will change with it and the effective date at the top of this page will move.
 
 ## Acceptable use
 
 You agree not to:
 
 - Use the Service for any illegal purpose, or to infringe anyone's rights, including intellectual property, privacy, and publicity rights.
-- Put content into a workspace that you do not have the right to store there, or that contains malware, phishing, or other harmful material.
+- Send content to Cloud that you do not have the right to send there, or that contains malware, phishing, or other harmful material.
 - Probe, scan, or test the vulnerability of the Service, attempt to bypass rate limits or the preview's capacity limits, or interfere with its normal operation.
-- Attempt to reach a workspace you are not a member of, or any data belonging to another team.
+- Attempt to reach records belonging to another account.
 - Resell, sublicense, or otherwise commercially exploit the hosted Service without our written permission. (This restriction is about the hosted Service. What you may do with the open-source app is the Apache License 2.0's business, not ours.)
 - Use the Service to store data whose loss would harm someone, given that the preview keeps no backups.
 
@@ -86,13 +88,15 @@ We may suspend or close access if we reasonably believe you are violating this s
 
 ## Your board content
 
-**You keep all ownership in what you put into a workspace** — cards, memory, releases, configuration, and everything else your team writes ("Board Content").
+**You keep all ownership in what your board sends to Cloud** — a card's title, its opening paragraph, its review notes, the questions it raises, and the decisions and answers you record against them ("Board Content").
 
-You grant AI4Kanban a worldwide, non-exclusive, royalty-free licence to host, store, transmit, and display Board Content **solely as needed to operate and secure the Service for you and the other members of your workspace**. That licence is the minimum the Service needs to exist; it ends when the content is deleted.
+Board Content is the part of a card an event carries, and nothing more. The board itself — the rest of every card, your memory files, your releases, and the board's configuration — never reaches Cloud, so these Terms ask for no licence over any of it.
 
-We do not train AI models on your Board Content, and no AI model is run over it. AI4Kanban Cloud coordinates a board — your coding agent runs on your own machine, under your own model account, and neither its prompts nor its output pass through the Service except as a card your board already holds.
+You grant AI4Kanban a worldwide, non-exclusive, royalty-free licence to host, store, transmit, and display Board Content **solely as needed to operate and secure the Service for the one account it belongs to**, and to deliver it to a destination you connect yourself, such as a Slack conversation. That licence is the minimum the Service needs to exist; it ends when the content is deleted.
 
-You are responsible for your Board Content, including making sure you have the rights to store it and that it complies with these Terms. We may remove content that violates these Terms or that we are legally required to remove.
+We do not train AI models on your Board Content, and no AI model is run over it. AI4Kanban Cloud relays a board's events — your coding agent runs on your own machine, under your own model account, and neither its prompts nor its output pass through the Service except as the part of a card an event already carries.
+
+You are responsible for your Board Content, including making sure you have the rights to send it and that it complies with these Terms. We may remove content that violates these Terms or that we are legally required to remove.
 
 ## Intellectual property and feedback
 
@@ -112,7 +116,7 @@ For any paid plan we introduce, fees, taxes, refunds, billing cycles, and renewa
 
 THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE." TO THE FULLEST EXTENT PERMITTED BY LAW, AI4KANBAN DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, ACCURACY, AND UNINTERRUPTED OR ERROR-FREE OPERATION.
 
-The Cloud preview in particular carries **no warranty of availability, durability, or data retention**. It keeps no backups, and you are responsible for exporting your own copy.
+The Cloud preview in particular carries **no warranty of availability, durability, or data retention**. It keeps no backups. Your board is on your own machine either way; the event history Cloud holds is kept nowhere else, and you should not rely on it lasting.
 
 Some jurisdictions do not allow the exclusion of certain warranties, in which case the exclusions above apply only to the extent permitted by law and do not affect any non-waivable rights you have as a consumer.
 
@@ -132,7 +136,7 @@ If you are a government entity, this section applies only to the extent permitte
 
 ## Termination
 
-You may stop using the Service at any time. An owner can export a workspace and then delete it, which removes it and everything in it at once.
+You may stop using the Service at any time. Signing out stops that machine reaching Cloud, and turning Cloud off for a board stops it sending anything more; neither removes a record. Removing your Cloud records is a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev), and it takes your whole account and your place in the preview with it. Your board stays where it has always been, on your machine.
 
 We may suspend or end your access if you violate these Terms, if your use creates risk or legal exposure for AI4Kanban or others, or if we discontinue the Service — on the terms described in [The Cloud preview](#the-cloud-preview) above.
 
@@ -146,9 +150,9 @@ Nothing in this section affects mandatory consumer protections in your country o
 
 ## Changes to these terms
 
-We may update these Terms as the Service evolves. When we do, we will change the effective date at the top of this page and, for material changes, give reasonable notice through the Service — in the app, and in any Slack channel your workspace has configured. We will not email you about it.
+We may update these Terms as the Service evolves. When we do, we will change the effective date at the top of this page and, for a material change, send a notice by hand from `support@ai4kanban.dev` to the email address GitHub verified for your account. We deliver no notice inside the app and none in a connected Slack channel.
 
-Your continued use of the Service after the updated Terms take effect means you accept them. If you do not, export your workspace and stop using the Service.
+Your continued use of the Service after the updated Terms take effect means you accept them. If you do not, stop using Cloud — your board is on your own machine either way.
 
 ## General provisions
 
@@ -156,7 +160,7 @@ Your continued use of the Service after the updated Terms take effect means you 
 - **Severability.** If any provision is held unenforceable, the rest of these Terms remain in effect, and the unenforceable provision will be modified to the minimum extent necessary to make it enforceable.
 - **No waiver.** Our failure to enforce any provision is not a waiver of that provision.
 - **Assignment.** You may not assign these Terms without our prior written consent. We may assign these Terms in connection with a merger, acquisition, financing, or sale of assets, or by operation of law.
-- **Notices.** We give notices through the Service — in the app, or in a channel your workspace has connected — or by posting on `ai4kanban.dev`. You may give notices to us at [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
+- **Notices.** We give notices by email, sent by hand from `support@ai4kanban.dev` to the email address GitHub verified for your account. A post on `ai4kanban.dev` may accompany one but does not stand in for it. You may give notices to us at [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
 - **Force majeure.** Neither party is liable for any failure or delay caused by events beyond its reasonable control, including natural disasters, war, terrorism, civil unrest, labour disputes, internet or provider outages, or government action.
 - **Relationship.** These Terms do not create any agency, partnership, joint venture, or employment relationship between you and AI4Kanban. There are no third-party beneficiaries.
 - **Export and sanctions.** You may not use the hosted Service if you are subject to applicable sanctions or located in a jurisdiction subject to a comprehensive embargo. You agree to comply with all applicable export control and sanctions laws.
