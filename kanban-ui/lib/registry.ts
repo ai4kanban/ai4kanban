@@ -1,4 +1,4 @@
-import { copy } from "@/i18n";
+import { machineCopy } from "./language";
 import { boardRules, type AgentRequest, type RunView } from "./cli";
 import type { DeliveryRecord, SessionView } from "./types";
 
@@ -81,7 +81,7 @@ async function launch(
   const { sessionId } = opened.run;
   const pid = rules.spawnWatcher(sessionId);
   rules.markSpawned(sessionId, pid);
-  if (!pid) return { ok: false, error: copy.messages.run.noProcess };
+  if (!pid) return { ok: false, error: (await machineCopy()).messages.run.noProcess };
   return { ok: true, sessionId };
 }
 
@@ -143,7 +143,7 @@ export async function cancelDelivery(id: string): Promise<StartResult> {
   try {
     const rules = await boardRules();
     if (!rules.cancelDelivery) {
-      return { ok: false, error: copy.messages.tooOld.deliveries };
+      return { ok: false, error: (await machineCopy()).messages.tooOld.deliveries };
     }
     const res = await rules.cancelDelivery(id);
     return { ok: res.ok, error: res.error };
@@ -159,7 +159,7 @@ export async function discardDelivery(id: string): Promise<StartResult> {
   try {
     const rules = await boardRules();
     if (!rules.discardDelivery) {
-      return { ok: false, error: copy.messages.tooOld.worktrees };
+      return { ok: false, error: (await machineCopy()).messages.tooOld.worktrees };
     }
     const res = await rules.discardDelivery(id);
     return { ok: res.ok, error: res.error };
@@ -175,7 +175,7 @@ export async function approveDelivery(id: string): Promise<StartResult> {
   try {
     const rules = await boardRules();
     if (!rules.approveDelivery) {
-      return { ok: false, error: copy.messages.tooOld.diffApproval };
+      return { ok: false, error: (await machineCopy()).messages.tooOld.diffApproval };
     }
     const res = await rules.approveDelivery(id, "the card page");
     return res.ok ? { ok: true } : { ok: false, error: res.error };

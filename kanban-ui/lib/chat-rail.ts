@@ -1,7 +1,7 @@
-import { copy } from "@/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePanelRef, type Layout, type LayoutChangedMeta } from "react-resizable-panels";
 import { clearChatAction, readChatAction, sendChatAction } from "@/app/actions";
+import { useCopy } from "@/i18n/use-copy";
 import type { ChatRead } from "./chat";
 
 // The chat rail's own state (#242): whether it is up, how wide it is, and the conversation
@@ -95,6 +95,7 @@ export function useChatRail({
    *  or by anything else on this machine. The page re-reads itself on it. */
   onBoardChanged?(change: BoardChange): void;
 }): ChatRail {
+  const c = useCopy().messages.chat;
   const [open, setOpen] = useState(false);
   const [read, setRead] = useState<ChatRead | null>(null);
   const [draft, setDraft] = useState("");
@@ -238,20 +239,20 @@ export function useChatRail({
     setError(null);
     const res = await sendChatAction(cardId, text);
     if (!res.ok) {
-      setError(res.error ?? copy.messages.chat.sendFailed);
+      setError(res.error ?? c.sendFailed);
       // The words go back in the box rather than being lost to a refusal.
       setDraft((typed) => (typed ? typed : text));
     }
     kickRef.current();
-  }, [cardId, draft]);
+  }, [cardId, draft, c]);
 
   const clear = useCallback(async () => {
     setError(null);
     const res = await clearChatAction(cardId);
-    if (!res.ok) setError(res.error ?? copy.messages.chat.clearFailed);
+    if (!res.ok) setError(res.error ?? c.clearFailed);
     seen.mark(0);
     kickRef.current();
-  }, [cardId, seen]);
+  }, [cardId, seen, c]);
 
   const last = chat?.messages[chat.messages.length - 1];
   const unread = !open && !!chat && last?.role === "agent" && chat.updatedAt > seen.at;

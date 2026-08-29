@@ -1,6 +1,6 @@
-import { copy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { boardRules } from "./cli";
-import type { CloudAccount, CloudMove, SlackConversation, SlackState } from "./types";
+import { DEFAULT_LANGUAGE, type CloudAccount, type CloudMove, type SlackConversation, type SlackState } from "./types";
 
 // --- the Cloud sign-in (#326) ------------------------------------------------
 // Which account this MACHINE acts as. Not a board setting: one sign-in covers every project
@@ -13,7 +13,8 @@ import type { CloudAccount, CloudMove, SlackConversation, SlackState } from "./t
 
 /** What the section shows when the rules loaded here predate Cloud. It draws the not
  *  signed-in state and says why the button cannot help. */
-const TOO_OLD = copy.messages.rules.tooOldForCloud;
+// Read at load, so English: rules that predate Cloud may predate the language setting too.
+const TOO_OLD = getCopy(DEFAULT_LANGUAGE).messages.rules.tooOldForCloud;
 
 const UNKNOWN: CloudAccount = {
   state: "signed-out",

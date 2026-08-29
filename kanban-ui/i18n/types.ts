@@ -11,6 +11,7 @@ import type { ChipsCopy } from "./chips/types";
 import type { ChromeCopy } from "./chrome/types";
 import type { ConfigurationCopy } from "./configuration/types";
 import type { MessagesCopy } from "./messages/types";
+import type { NotificationsCopy } from "./notifications/types";
 import type { RailCopy } from "./rail/types";
 import type { RunsCopy } from "./runs/types";
 import type { SetupCopy } from "./setup/types";
@@ -28,5 +29,6 @@ export type UiCopy = {
   setup: SetupCopy;
   configuration: ConfigurationCopy;
   rail: RailCopy;
+  notifications: NotificationsCopy;
   messages: MessagesCopy;
 };

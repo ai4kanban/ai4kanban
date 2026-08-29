@@ -1,5 +1,6 @@
-import { copy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { boardRules } from "./cli";
+import { DEFAULT_LANGUAGE } from "./types";
 import type {
   BulkReleaseResult,
   CardPatch,
@@ -43,9 +44,11 @@ export async function patchCard(id: number, patch: CardPatch): Promise<WriteResu
  *  card now holds it, so the panel redraws from what was written — including a cross-off
  *  refused because a run had already taken that line off. Rules older than this say so in
  *  the line that names the update. */
+// Read at load, so English: rules this old may not be able to say what language to use.
+const ENGLISH = getCopy(DEFAULT_LANGUAGE).messages.rules;
 const OLD_RULES: WriteResult = {
   ok: false,
-  error: `${copy.messages.rules.tooOldForHandChecks} ${copy.messages.rules.updateIt}`,
+  error: `${ENGLISH.tooOldForHandChecks} ${ENGLISH.updateIt}`,
 };
 
 export async function addVerify(id: number, line: string): Promise<VerifyResult> {

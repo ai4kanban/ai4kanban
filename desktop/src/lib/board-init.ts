@@ -15,6 +15,7 @@
 import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { copy } from "./copy";
 import { nodeBinary } from "./node-binary";
 import { bundledResource } from "./resources";
 
@@ -27,12 +28,7 @@ const TIMEOUT_MS = 120_000;
 export function makeBoard(dir: string): Promise<void> {
   const entry = bundledResource("cli", "bin", "ai4kanban.mjs");
   if (!fs.existsSync(entry)) {
-    return Promise.reject(
-      new Error(
-        `the board installer is missing from this build (looked in ${entry}).\n` +
-          "Built from source? Run `npm run bundle` in desktop/ first.",
-      ),
-    );
+    return Promise.reject(new Error(copy().board.installerMissing(entry)));
   }
   return new Promise((resolve, reject) => {
     execFile(
@@ -46,7 +42,7 @@ export function makeBoard(dir: string): Promise<void> {
       (err, stdout, stderr) => {
         if (err) return reject(new Error(String(stderr || err.message).trim()));
         if (!fs.existsSync(path.join(dir, "docs", "kanban", "todo"))) {
-          return reject(new Error(String(stdout).trim() || "the installer left no board behind"));
+          return reject(new Error(String(stdout).trim() || copy().board.nothingMade));
         }
         resolve();
       },

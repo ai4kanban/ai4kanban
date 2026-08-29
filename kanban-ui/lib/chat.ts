@@ -1,7 +1,8 @@
-import { copy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { cardStillThere } from "./board";
 import { boardRules, whyNoRules } from "./cli";
-import type { Chat } from "./types";
+import { machineCopy } from "./language";
+import { DEFAULT_LANGUAGE, type Chat } from "./types";
 
 // --- the conversation, through the CLI (#242) --------------------------------
 // The chat itself is the command's (cli/src/lib/agent/chat.ts): the transcript file, the
@@ -55,7 +56,10 @@ export interface ChatRead {
 /** The chat a window is showing: the board's, or one card's. */
 const keyOf = (cardId: number | null): string => (cardId === null ? "board" : `card-${cardId}`);
 
-const TOO_OLD = `${copy.messages.rules.tooOldForChat} ${copy.messages.rules.updateIt}`;
+// Read at load, so English: this is the line for rules too old to hold a conversation,
+// and the language is one of the things such a copy may not be able to answer for.
+const ENGLISH = getCopy(DEFAULT_LANGUAGE).messages.rules;
+const TOO_OLD = `${ENGLISH.tooOldForChat} ${ENGLISH.updateIt}`;
 
 interface Flight {
   /** The reply so far, as the agent writes it. */
@@ -129,7 +133,7 @@ export async function sendChat(cardId: number | null, message: string): Promise<
 
   const key = keyOf(cardId);
   const { live, failed } = flights();
-  if (live.has(key)) return { ok: false, error: copy.messages.chat.busy };
+  if (live.has(key)) return { ok: false, error: (await machineCopy()).messages.chat.busy };
   failed.delete(key);
 
   const flight: Flight = { text: "" };

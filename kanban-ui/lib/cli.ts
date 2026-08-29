@@ -2,8 +2,9 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { copy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { repoRoot } from "./paths";
+import { DEFAULT_LANGUAGE } from "./types";
 import type {
   AgentInfo,
   AgentRequest,
@@ -326,15 +327,23 @@ export interface BoardRules {
 
 export type { AgentRequest, CommandRequest, RunRecord, RunView } from "./format/agent/types";
 
+// The language is held by the board's rules and read through them, and this file is what
+// loads them — so nothing here can ask. Every sentence it writes is about not having a
+// usable copy, which is exactly the case where there is nothing to read a language from.
+const ENGLISH = getCopy(DEFAULT_LANGUAGE).messages.rules;
+
 /** The one line every screen shows when there is no usable copy of the board's rules —
  *  none installed, or one too old to read the board. It names the fix, because the fix is
  *  one command. */
 export class NoRulesError extends Error {
-  constructor(what: string) {
+  /** `fix` is the line that ends it, English by default for the same reason the rest of
+   *  this file is: the language is held by the rules, and every sentence here is about not
+   *  having them. A caller that does hold them passes its own translation. */
+  constructor(what: string, fix: string = ENGLISH.installIt) {
     // The rules are the installed command's own copy (#213), so the fix is putting the
     // command on the PATH — not `skill install`, which writes the agent's note and carries
     // no rules with it, and not `update`, which refreshes a board that is already here.
-    super(`${what} ${copy.messages.rules.installIt}`);
+    super(`${what} ${fix}`);
     this.name = "NoRulesError";
   }
 }
@@ -400,8 +409,8 @@ export function boardRules(): Promise<BoardRules> {
     return Promise.reject(
       new NoRulesError(
         looked.length
-          ? copy.messages.rules.noneLookedIn(looked.join(", "))
-          : copy.messages.rules.none,
+          ? ENGLISH.noneLookedIn(looked.join(", "))
+          : ENGLISH.none,
       ),
     );
   }
@@ -409,7 +418,7 @@ export function boardRules(): Promise<BoardRules> {
     (mod: Partial<BoardRules>) => {
       const missing = REQUIRED.filter((name) => typeof mod[name] !== "function");
       if (missing.length > 0) {
-        throw new NoRulesError(copy.messages.rules.tooOld(found));
+        throw new NoRulesError(ENGLISH.tooOld(found));
       }
       // Every command points the rules at one board before it runs; here it is one board
       // for the life of the server, so it is set once.

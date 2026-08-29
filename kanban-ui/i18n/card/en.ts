@@ -114,7 +114,11 @@ const en: CardCopy = {
     unscheduleHint: "Take the schedule off — nothing will start on its own",
     related: "Related",
   },
-  subtasks: { heading: "subtasks", running: "running" },
+  subtasks: {
+    heading: "subtasks",
+    running: "running",
+    waitingOutside: (ids) => `waiting on ${ids}, outside this group`,
+  },
   questions: { heading: "open questions", recommended: "recommended" },
   handChecks: {
     heading: "check by hand",

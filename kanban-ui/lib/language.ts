@@ -1,4 +1,5 @@
-import { copy } from "@/i18n";
+import { getCopy } from "@/i18n";
+import type { UiCopy } from "@/i18n/types";
 import { boardRules } from "./cli";
 import { DEFAULT_LANGUAGE, isLanguage, type Language, type WriteResult } from "./types";
 
@@ -18,7 +19,14 @@ export async function machineLanguage(): Promise<Language> {
 export async function setMachineLanguage(value: Language): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.setLanguage) {
-    return { ok: false, error: copy.messages.tooOld.language };
+    return { ok: false, error: (await machineCopy()).messages.tooOld.language };
   }
   return rules.setLanguage(value);
+}
+
+/** The words the server writes in — `getCopy()` on the language this machine is set to.
+ *  What `useCopy()` is to a client component, this is to `lib/` and to a server action.
+ *  Rules that cannot say fall back to English rather than failing the render. */
+export async function machineCopy(): Promise<UiCopy> {
+  return getCopy(await machineLanguage().catch(() => DEFAULT_LANGUAGE));
 }

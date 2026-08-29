@@ -1,0 +1,134 @@
+// 简体中文 —— the main process, mirroring `en.ts` key for key.
+// Writing rules: `./index.ts`.
+import type { DesktopCopy } from "./types";
+
+const zh: DesktopCopy = {
+  menu: {
+    app: {
+      about: "关于 AI4Kanban",
+      checkUpdates: "检查更新…",
+      services: "服务",
+      hide: "隐藏 AI4Kanban",
+      hideOthers: "隐藏其他",
+      unhide: "全部显示",
+      quit: "退出 AI4Kanban",
+    },
+    file: {
+      title: "文件",
+      open: "打开项目…",
+      openRecent: "最近打开",
+      close: "关闭项目",
+      noRecent: "暂无其他项目",
+      recent: (name) => name,
+      recentGone: (name) => `${name}  （文件夹已不存在）`,
+      recentRunning: (name) => `${name}  （运行中）`,
+      closeWindow: "关闭窗口",
+      quit: "退出",
+      checkUpdates: "检查更新…",
+    },
+    edit: {
+      title: "编辑",
+      undo: "撤销",
+      redo: "重做",
+      cut: "剪切",
+      copy: "拷贝",
+      paste: "粘贴",
+      pasteAndMatchStyle: "粘贴并匹配样式",
+      delete: "删除",
+      selectAll: "全选",
+      speech: "语音",
+      startSpeaking: "开始朗读",
+      stopSpeaking: "停止朗读",
+    },
+    view: {
+      title: "显示",
+      back: "后退",
+      forward: "前进",
+      reload: "重新载入",
+      forceReload: "强制重新载入",
+      devTools: "开发者工具",
+      actualSize: "实际大小",
+      zoomIn: "放大",
+      zoomOut: "缩小",
+      fullScreen: "全屏",
+    },
+    window: {
+      title: "窗口",
+      minimize: "最小化",
+      zoom: "缩放",
+      front: "前置全部窗口",
+      close: "关闭",
+    },
+    help: { title: "帮助", guide: "AI4Kanban 指南", downloads: "下载" },
+  },
+  launcher: {
+    openFolder: "打开文件夹",
+    recent: "最近打开",
+    language: "语言",
+    soon: "即将支持",
+    runningHere: "这里有任务正在运行",
+    pathGone: (path) => `${path} —— 文件夹已不存在`,
+    forget: "把这个项目移出列表——磁盘上的文件不受影响",
+    forgetGone: "文件夹已不存在——把它移出列表",
+  },
+  dialog: {
+    folderGone: {
+      message: (name) => `${name} 已经不在了。`,
+      detail: (path) => `${path}\n\n这个文件夹被移动或删除了。可以把它移出列表，或者把它放回原处。`,
+    },
+    pick: {
+      titleFirst: "打开一个项目",
+      titleAnother: "打开另一个项目",
+      message: "选择要打开的项目文件夹。它还没有看板也没关系。",
+      button: "打开",
+    },
+    command: {
+      ask: "把 akb 命令加入 PATH？",
+      detailWindows: (folder) =>
+        `AI4Kanban 自带一份 akb——编码 Agent 驱动这个看板所用的命令。这一步会把应用自己的目录（${folder}）加入你的 PATH。更新应用就等于更新命令。\n\n新增的 PATH 只对之后新开的终端生效。\n\n之后也可以在「配置 → 安装」里完成这一步。`,
+      detailLink: (path) =>
+        `AI4Kanban 自带一份 akb——编码 Agent 驱动这个看板所用的命令。这一步会让 ${path} 指向应用内的那份副本，因此更新应用就等于更新命令。\n\n之后也可以在「配置 → 安装」里完成这一步。`,
+      detailLinkPassword: (path) =>
+        `AI4Kanban 自带一份 akb——编码 Agent 驱动这个看板所用的命令。这一步会让 ${path} 指向应用内的那份副本，因此更新应用就等于更新命令。macOS 会要求输入管理员密码才能写入那里。\n\n之后也可以在「配置 → 安装」里完成这一步。`,
+      install: "安装",
+      notNow: "暂不",
+      failed: "akb 未能安装。",
+      ready: "akb 已就绪。",
+      readyWindows: "新开一个终端，运行 `akb version`。单独输入 `akb` 会打开这个应用。",
+      readyLink: "在终端里运行 `akb version`。单独输入 `akb` 会在你当前所在的项目上打开这个应用。",
+    },
+    update: {
+      newest: (version) => `AI4Kanban ${version} 已是最新版本。`,
+      out: (version) => `AI4Kanban ${version} 已发布。`,
+      detail: "应用不会自动更新——你想升级时再下载新版本。",
+      download: "下载",
+      later: "稍后",
+    },
+    startFailed: "AI4Kanban 无法启动看板",
+  },
+  command: {
+    blockedSource: "这是从源码构建的版本，不是安装好的应用——还没有可以指向的应用包。",
+    blockedLinux: "Linux 版本每次运行都解压到新的位置，因此没有可以长期指向的路径。",
+    blockedImage: "AI4Kanban 正从磁盘映像中运行。请先把它移入「应用程序」，再从那里打开。",
+    blockedTranslocated:
+      "macOS 正在运行 AI4Kanban 的一份临时副本。请先把它移入「应用程序」，再从那里打开。",
+    blockedDownloads: "AI4Kanban 正从「下载」文件夹运行。请先把它移入「应用程序」，再从那里打开。",
+    password: (folder) => `AI4Kanban 需要你的密码，才能把 akb 命令放进 ${folder}。`,
+    cancelled: "已取消——没有写入任何内容。",
+    noWay: "这个系统没有安装该命令的方式。",
+    held: (path, holder) => `${path} 被${holder}占用——应用只会替换它自己写下的链接。`,
+    holderUnknown: "别的东西",
+    holderFile: "一个普通文件",
+    holderUnreadable: "一个无法读取的符号链接",
+    holderLink: (target) => `一个指向 ${target} 的符号链接`,
+    missing: (path) => `这个构建里没有该命令（在 ${path} 找过）。`,
+    missingScript: (path) => `这个构建里没有 PATH 脚本（在 ${path} 找过）。`,
+  },
+  board: {
+    installerMissing: (path) =>
+      `这个构建里没有看板安装程序（在 ${path} 找过）。\n从源码构建的？请先在 desktop/ 下运行 \`npm run bundle\`。`,
+    nothingMade: "安装程序没有留下看板",
+  },
+};
+
+export default zh;

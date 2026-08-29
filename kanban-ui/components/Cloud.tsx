@@ -51,10 +51,18 @@ import {
   startSlackConnectAction,
   watchReleaseAction,
 } from "@/app/actions";
+import { useLanguage } from "@/components/language";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import type { BoardNotifications } from "@/lib/notifications";
-import { ALL_RELEASES, type CloudAccount, type SlackConversation, type SlackState } from "@/lib/types";
+import {
+  ALL_RELEASES,
+  LANGUAGE_TAGS,
+  type CloudAccount,
+  type Language,
+  type SlackConversation,
+  type SlackState,
+} from "@/lib/types";
 import { Button } from "./button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
@@ -809,6 +817,7 @@ function NotAdmitted({
   onError?: (msg: string) => void;
   onSignOut: () => void;
 }) {
+  const language = useLanguage();
   const [code, setCode] = useState("");
   /** The service's own words for the last code we tried. Cleared as soon as it is retyped.
    *  Only a code lands here — a request that fails has no box to sit under, so it goes to
@@ -908,7 +917,7 @@ function NotAdmitted({
         {account.inviteRequestedAt ? (
           <span className="flex h-[34px] shrink-0 items-center gap-2 rounded-[9px] bg-nb-mint-soft px-3 text-[12px] font-[700] text-nb-mint-ink">
             <FiCheck size={12} aria-hidden />
-            {c.asked(asked(account.inviteRequestedAt, c.askedUndated))}
+            {c.asked(asked(account.inviteRequestedAt, c.askedUndated, language))}
           </span>
         ) : (
           <Button size="sm" variant="ghost" disabled={held} onClick={() => void request()}>
@@ -928,11 +937,12 @@ function NotAdmitted({
   );
 }
 
-/** When the request went in, in the shortest form that still says which day. */
-function asked(at: string, undated: string): string {
+/** When the request went in, in the shortest form that still says which day — dated in
+ *  the language the app is set to rather than in the browser's own. */
+function asked(at: string, undated: string, language: Language): string {
   const when = new Date(at);
   if (Number.isNaN(when.getTime())) return undated;
-  return when.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return when.toLocaleDateString(LANGUAGE_TAGS[language], { month: "short", day: "numeric" });
 }
 
 /** What Cloud is for, and what it never receives. Said here because in 0.8.0 this pane is

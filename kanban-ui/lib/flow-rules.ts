@@ -1,4 +1,4 @@
-import { copy } from "@/i18n";
+import { machineCopy } from "./language";
 import { boardRules } from "./cli";
 import type { FlowRuleView, WriteResult } from "./types";
 
@@ -23,7 +23,7 @@ export async function flowRules(): Promise<FlowRuleView[] | null> {
 export async function setFlowRule(command: string, text: string): Promise<WriteResult> {
   const rules = await boardRules();
   if (!rules.setFlowRule) {
-    return { ok: false, error: copy.messages.tooOld.flowRule };
+    return { ok: false, error: (await machineCopy()).messages.tooOld.flowRule };
   }
   return rules.setFlowRule(command, text);
 }

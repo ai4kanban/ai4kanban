@@ -30,6 +30,7 @@ import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { app } from "electron";
+import { copy } from "./copy";
 import { bundledResource } from "./resources";
 import type { CommandInstall, CommandInstallResult, CommandLinkState } from "../shared/bridge";
 import type { Env } from "./shell-env";
@@ -105,18 +106,18 @@ function lstat(file: string): fs.Stats | null {
  *  isn't its home. */
 function blockedReason(): string | null {
   if (!app.isPackaged) {
-    return "This is a build from source, not an installed app — there is no app bundle to point at yet.";
+    return copy().command.blockedSource;
   }
   if (!MAC && !WINDOWS) {
-    return "The Linux build unpacks itself somewhere new every time it runs, so there is no lasting path to point at.";
+    return copy().command.blockedLinux;
   }
   if (!MAC) return null;
   const exe = app.getPath("exe");
   if (exe.startsWith("/Volumes/")) {
-    return "AI4Kanban is running from a disk image. Move it into Applications first, then open it from there.";
+    return copy().command.blockedImage;
   }
   if (exe.includes("/AppTranslocation/")) {
-    return "macOS is running AI4Kanban from a temporary copy of itself. Move it into Applications first, then open it from there.";
+    return copy().command.blockedTranslocated;
   }
   let downloads = "";
   try {
@@ -125,7 +126,7 @@ function blockedReason(): string | null {
     // No Downloads folder on this account — then the app isn't in one.
   }
   if (downloads && exe.startsWith(`${downloads}${path.sep}`)) {
-    return "AI4Kanban is running from Downloads. Move it into Applications first, then open it from there.";
+    return copy().command.blockedDownloads;
   }
   return null;
 }
@@ -145,16 +146,16 @@ function linkStateAt(link: string): {
   const st = lstat(link);
   if (!st) return { state: "absent", points: null, holder: null };
   if (!st.isSymbolicLink()) {
-    return { state: "foreign", points: null, holder: "a file of its own" };
+    return { state: "foreign", points: null, holder: copy().command.holderFile };
   }
   let target: string;
   try {
     target = linkTarget(link);
   } catch {
-    return { state: "foreign", points: null, holder: "a symlink we cannot read" };
+    return { state: "foreign", points: null, holder: copy().command.holderUnreadable };
   }
   if (!target.endsWith(OURS)) {
-    return { state: "foreign", points: target, holder: `a symlink to ${target}` };
+    return { state: "foreign", points: target, holder: copy().command.holderLink(target) };
   }
   return fs.existsSync(target)
     ? { state: "installed", points: target, holder: null }
@@ -269,12 +270,12 @@ const appleQuote = (s: string) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\
  *  the line if the user answers it. */
 async function installWithPassword(target: string, link: string): Promise<{ ok: boolean; error: string }> {
   const line = `/bin/mkdir -p ${shellQuote(path.dirname(link))} && /bin/ln -sfn ${shellQuote(target)} ${shellQuote(link)}`;
-  const prompt = `AI4Kanban needs your password to put the akb command in ${path.dirname(link)}.`;
+  const prompt = copy().command.password(path.dirname(link));
   const script = `do shell script ${appleQuote(line)} with prompt ${appleQuote(prompt)} with administrator privileges`;
   const res = await run("/usr/bin/osascript", ["-e", script]);
   // The one failure that isn't a failure to report: the user closed the dialog.
   if (!res.ok && /User canceled|-128/.test(res.error)) {
-    return { ok: false, error: "cancelled — nothing was written." };
+    return { ok: false, error: copy().command.cancelled };
   }
   return res;
 }
@@ -284,19 +285,19 @@ async function installWithPassword(target: string, link: string): Promise<{ ok: 
 export async function installCommand(env: Env): Promise<CommandInstallResult> {
   const state = commandState(env);
   if (state.kind === "none") {
-    return { ok: false, error: state.blocked ?? "this system has no way to install the command.", state };
+    return { ok: false, error: state.blocked ?? copy().command.noWay, state };
   }
   if (state.blocked) return { ok: false, error: state.blocked, state };
   if (state.state === "foreign") {
     return {
       ok: false,
-      error: `${state.writes} is held by ${state.holder ?? "something else"} — the app only ever replaces a link it wrote.`,
+      error: copy().command.held(state.writes, state.holder ?? copy().command.holderUnknown),
       state,
     };
   }
   const target = launcher();
   if (!fs.existsSync(target)) {
-    return { ok: false, error: `the command is missing from this build (looked in ${target}).`, state };
+    return { ok: false, error: copy().command.missing(target), state };
   }
 
   if (WINDOWS) {
@@ -342,7 +343,7 @@ async function symlinkDirectly(
 async function addToWindowsPath(target: string): Promise<{ ok: boolean; error: string }> {
   const script = path.join(path.dirname(target), "path.ps1");
   if (!fs.existsSync(script)) {
-    return { ok: false, error: `the PATH script is missing from this build (looked in ${script}).` };
+    return { ok: false, error: copy().command.missingScript(script) };
   }
   return run("powershell.exe", [
     "-NoProfile",

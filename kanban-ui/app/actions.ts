@@ -45,7 +45,7 @@ import {
   startCloudSignIn,
   startSlackConnect,
 } from "@/lib/cloud";
-import { setMachineLanguage } from "@/lib/language";
+import { machineCopy, setMachineLanguage } from "@/lib/language";
 import {
   addRuntime,
   bindRuntime,
@@ -384,14 +384,16 @@ export async function readChatAction(cardId: number | null): Promise<ChatRead> {
 
 export async function sendChatAction(cardId: number | null, message: string): Promise<{ ok: boolean; error?: string }> {
   const target = chatTarget(cardId);
-  if (target === undefined) return { ok: false, error: "that is not a card on this board." };
-  if (typeof message !== "string" || !message.trim()) return { ok: false, error: "say something to send." };
+  if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+  if (typeof message !== "string" || !message.trim()) {
+    return { ok: false, error: (await machineCopy()).messages.actions.emptyChat };
+  }
   return sendChat(target, message.trim());
 }
 
 export async function clearChatAction(cardId: number | null): Promise<{ ok: boolean; error?: string }> {
   const target = chatTarget(cardId);
-  if (target === undefined) return { ok: false, error: "that is not a card on this board." };
+  if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   return clearChat(target);
 }
 
@@ -478,7 +480,7 @@ export async function startSetupRunAction(): Promise<StartResult> {
   if (!setup) return { ok: false, error: "this board is already set up" };
   const goal = setup.steps.find((s) => s.name === "goal");
   if (goal && !goal.done) {
-    return { ok: false, error: "write the project goal first — every step after it is planned from it" };
+    return { ok: false, error: (await machineCopy()).messages.actions.goalFirst };
   }
   const req: AgentRequest = { action: "setup" };
   return startSession(req, await buildPrompt(req));
@@ -593,7 +595,9 @@ export async function setCardsReleaseAction(ids: number[], release: string): Pro
     return { moved: 0, failed: [], error: "a bulk move takes card ids and a release" };
   }
   const clean = ids.filter((id) => Number.isInteger(id));
-  if (clean.length === 0) return { moved: 0, failed: [], error: "no cards were ticked" };
+  if (clean.length === 0) {
+    return { moved: 0, failed: [], error: (await machineCopy()).messages.actions.nothingTicked };
+  }
   return setCardsRelease(clean, release);
 }
 

@@ -16,6 +16,7 @@
 // the board, so `window.ai4kanban` is the same bridge (../preload.ts).
 
 import fs from "node:fs";
+import { getCopy, type DesktopCopy } from "./copy";
 import type { LanguageChoice } from "./rules";
 import { bundledResource } from "./resources";
 
@@ -24,9 +25,9 @@ export interface LauncherOptions {
   /** macOS, where the window has no title bar of its own and the page has to
    *  leave a drag strip and room for the traffic lights. */
   mac: boolean;
-  /** The language this machine reads in (#339) — what `<html lang>` carries and
-   *  which entry the switcher marks. The page's own words stay English until
-   *  #336 translates them. */
+  /** The language this machine reads in (#339) — what `<html lang>` carries, which
+   *  entry the switcher marks, and which of the page's two languages it is written in
+   *  (#336). */
   language: string;
   /** What the switcher offers, each written in its own name. Empty draws no
    *  switcher: a build whose bundled rules predate the setting cannot save a
@@ -37,6 +38,11 @@ export interface LauncherOptions {
 export function launcherUrl(options: LauncherOptions): string {
   return `data:text/html;charset=utf-8,${encodeURIComponent(page(options))}`;
 }
+
+/** A sentence the page finishes: written here, where the path isn't known yet, and put
+ *  together in the browser around this mark. A private-use codepoint, so no path or folder
+ *  name can be mistaken for it. */
+const FILLS_IN = "\uE000";
 
 /** A folder name is whoever made it's, and so is nothing here — but the page is
  *  built as a string, so everything put into one goes through this. */
@@ -59,7 +65,7 @@ const SOON: LanguageChoice[] = [
  *  closed control says one thing and the open one says everything.
  *
  *  Nothing at all when there is nothing that could save a pick. */
-function switcher(language: string, languages: LanguageChoice[]): string {
+function switcher(language: string, languages: LanguageChoice[], c: DesktopCopy["launcher"]): string {
   if (languages.length < 2) return "";
   const now = languages.find((l) => l.code === language) ?? { code: language, name: language, tag: language };
   const rows = languages
@@ -70,11 +76,11 @@ function switcher(language: string, languages: LanguageChoice[]): string {
     .join("");
   const soon = SOON.map(
     (l) =>
-      `<div class="lang soon" aria-disabled="true" lang="${escapeHtml(l.tag)}">${escapeHtml(l.name)}<span class="tag">Soon</span></div>`,
+      `<div class="lang soon" aria-disabled="true" lang="${escapeHtml(l.tag)}">${escapeHtml(l.name)}<span class="tag">${escapeHtml(c.soon)}</span></div>`,
   ).join("");
   return `<div class="langs">
   <details id="langs">
-    <summary class="current" title="Language">${GLOBE_ICON}<span lang="${escapeHtml(now.tag)}">${escapeHtml(now.name)}</span>${CHEVRON_ICON}</summary>
+    <summary class="current" title="${escapeHtml(c.language)}">${GLOBE_ICON}<span lang="${escapeHtml(now.tag)}">${escapeHtml(now.name)}</span>${CHEVRON_ICON}</summary>
     <div class="menu" role="menu">${rows}<div class="rule"></div>${soon}</div>
   </details>
 </div>`;
@@ -101,6 +107,7 @@ function artwork(): string {
 // screen is the app's front door, so it has to be the same object as the board
 // behind it.
 function page({ mac, language, languages }: LauncherOptions): string {
+  const c = getCopy(language).launcher;
   const tag = languages.find((l) => l.code === language)?.tag ?? "en";
   return `<!doctype html>
 <html lang="${escapeHtml(tag)}">
@@ -400,20 +407,20 @@ function page({ mac, language, languages }: LauncherOptions): string {
 </head>
 <body>
 <div class="titlebar"></div>
-${switcher(language, languages)}
+${switcher(language, languages, c)}
 <aside class="art">${artwork()}</aside>
 <main>
   <div class="inner">
     <div class="lockup">${MARK}<h1>AI4Kanban</h1></div>
-    <button type="button" class="open" id="open" autofocus>${FOLDER_ICON} Open Folder</button>
+    <button type="button" class="open" id="open" autofocus>${FOLDER_ICON} ${escapeHtml(c.openFolder)}</button>
     <section class="recent" id="recent" hidden>
-      <h2><span>Recent</span></h2>
+      <h2><span>${escapeHtml(c.recent)}</span></h2>
       <ul class="rows" id="rows"></ul>
     </section>
   </div>
 </main>
 <script>
-${SCRIPT}
+${script(c)}
 </script>
 </body>
 </html>`;
@@ -641,8 +648,11 @@ const DRAWN_ART = `<svg viewBox="0 0 480 900" preserveAspectRatio="xMidYMid slic
 // here has to undraw itself. Rows are built as nodes rather than as markup: a
 // folder is named by whoever made it, and a path is not something to paste into
 // HTML.
-const SCRIPT = `
+function script(c: DesktopCopy["launcher"]): string {
+  return `
   const app = window.ai4kanban;
+  const FILLS_IN = ${JSON.stringify(FILLS_IN)};
+  const PATH_GONE = ${JSON.stringify(c.pathGone(FILLS_IN))};
   document.getElementById("open").addEventListener("click", () => app?.pickRepo());
 
   // The switcher saves through the app rather than through a board server, which this
@@ -681,7 +691,9 @@ const SCRIPT = `
     const button = document.createElement("button");
     button.type = "button";
     button.className = "row";
-    button.title = p.missing ? p.path + " — the folder is gone" : p.path;
+    // Through a function, so a dollar sign in a folder's name is a character and not a
+    // replacement pattern.
+    button.title = p.missing ? PATH_GONE.replace(FILLS_IN, () => p.path) : p.path;
     if (p.missing) button.dataset.missing = "true";
     else button.addEventListener("click", () => app?.openProject(p.path));
 
@@ -690,7 +702,7 @@ const SCRIPT = `
     if (p.running && !p.missing) {
       const dot = document.createElement("span");
       dot.className = "dot";
-      dot.title = "A run is going here";
+      dot.title = ${JSON.stringify(c.runningHere)};
       name.append(dot);
     }
     name.append(p.name);
@@ -704,9 +716,7 @@ const SCRIPT = `
     const forget = document.createElement("button");
     forget.type = "button";
     forget.className = "forget";
-    forget.title = p.missing
-      ? "The folder is gone — take it off the list"
-      : "Take this project off the list — nothing on disk is touched";
+    forget.title = p.missing ? ${JSON.stringify(c.forgetGone)} : ${JSON.stringify(c.forget)};
     forget.innerHTML = ${JSON.stringify(CLOSE_ICON)};
     forget.addEventListener("click", () => {
       app?.forgetProject(p.path).then(draw).catch(() => {});
@@ -719,3 +729,4 @@ const SCRIPT = `
 
   app?.projects().then(draw).catch(() => {});
 `;
+}

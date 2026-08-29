@@ -234,7 +234,7 @@ const en: ConfigurationCopy = {
       "The language this machine reads in. Saved outside every project, so it follows you into every board you open on this machine.",
     group: "Language",
     saveFailed: "couldn't save that language",
-    note: "The board still draws in English — the words are translated in a later release. What the `akb` command prints in a terminal stays English either way.",
+    note: "What the `akb` command prints in a terminal stays English, and so does everything the agent writes onto a card.",
   },
   cloud: {
     title: "Notifications",

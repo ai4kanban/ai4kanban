@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { NavEdge } from "@/components/desktop";
-import { copy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { LanguageProvider } from "@/components/language";
 import { insetTitleBar, isDesktop } from "@/lib/desktop";
 import { machineLanguage } from "@/lib/language";
@@ -23,11 +23,17 @@ const ICON =
   "<rect x='43' y='8' width='12' height='26' rx='3.5'/>" +
   "</g></svg>";
 
-export const metadata: Metadata = {
-  title: copy.chrome.window.title,
-  description: copy.chrome.window.description,
-  icons: { icon: ICON },
-};
+// Read per request rather than fixed at build, so the window's own title follows a language
+// change along with everything under it — a constant here would keep the title the app was
+// launched in until the next launch.
+export async function generateMetadata(): Promise<Metadata> {
+  const c = getCopy(await machineLanguage().catch(() => DEFAULT_LANGUAGE));
+  return {
+    title: c.chrome.window.title,
+    description: c.chrome.window.description,
+    icons: { icon: ICON },
+  };
+}
 
 // The language is read per request, so a switch takes effect on the next paint rather
 // than at the next build. Every board page under this layout already declares this for the

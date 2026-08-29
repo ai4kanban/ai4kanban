@@ -29,6 +29,12 @@ const en: MessagesCopy = {
     specAgentSwitch: "the board's rules in this project are too old to switch a spec agent",
     specAgentSetting: "the board's rules in this project are too old to set a spec agent",
   },
+  actions: {
+    noSuchCard: "that is not a card on this board.",
+    emptyChat: "say something to send.",
+    goalFirst: "write the project goal first — every step after it is planned from it",
+    nothingTicked: "no cards were ticked",
+  },
   run: { noProcess: "couldn't start a process for that run" },
   chat: {
     busy: "this conversation is still answering the last message.",

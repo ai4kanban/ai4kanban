@@ -9,8 +9,16 @@
 // out at the ends. The list in the board's header is the fuller one — it says
 // which projects have a run going and lets a project be taken off — and this is
 // the same list where a person's hand already is.
+//
+// Every standard item is written out and named (#336) rather than left to
+// `editMenu` and `windowMenu`, so the whole bar reads in the picked language on
+// every system. Each one keeps its `role` — that is what gives it its behaviour
+// and its platform shortcut — and `label` only overrides its wording. What the
+// system still writes is the Services submenu's contents, the items macOS adds
+// to Window and Help itself, and the About panel.
 
 import { app, Menu, shell, type MenuItemConstructorOptions } from "electron";
+import { getCopy } from "./copy";
 import { DEFAULT_LANGUAGE } from "./rules";
 import { DOWNLOADS_URL } from "./update";
 import type { ProjectInfo } from "../shared/bridge";
@@ -37,26 +45,29 @@ export interface MenuOptions {
   canGoBack?: boolean;
   canGoForward?: boolean;
   projects?: ProjectInfo[];
-  /** The language this machine reads in (#334). Every label below is still English —
-   *  translating them is #336 — so what this carries is the answer, not yet its words. */
+  /** The language this machine reads in (#334) — which of the menu's two
+   *  languages is drawn. */
   language?: string;
 }
+
+type MenuCopy = ReturnType<typeof getCopy>["menu"];
 
 function recentSubmenu(
   projects: ProjectInfo[],
   onOpenProject: (dir: string) => unknown,
+  c: MenuCopy["file"],
 ): MenuItemConstructorOptions[] {
   const entries = projects.slice(0, RECENT_IN_MENU).map<MenuItemConstructorOptions>((p) => ({
     // The folder's name, then a word for the two states worth knowing before
     // you click: its folder has gone, or an agent is working in it.
-    label: `${p.name}${p.missing ? "  (folder is gone)" : p.running ? "  (running)" : ""}`,
+    label: p.missing ? c.recentGone(p.name) : p.running ? c.recentRunning(p.name) : c.recent(p.name),
     type: "checkbox",
     checked: p.open,
     enabled: !p.missing,
     toolTip: p.path,
     click: () => onOpenProject(p.path),
   }));
-  return entries.length ? entries : [{ label: "No other projects yet", enabled: false }];
+  return entries.length ? entries : [{ label: c.noRecent, enabled: false }];
 }
 
 export function buildMenu({
@@ -72,8 +83,7 @@ export function buildMenu({
   projects = [],
   language = DEFAULT_LANGUAGE,
 }: MenuOptions): void {
-  // Carried, not yet read: every label below is English until #336 translates them.
-  void language;
+  const c = getCopy(language).menu;
   const isMac = process.platform === "darwin";
   const template: MenuItemConstructorOptions[] = [
     ...(isMac
@@ -81,84 +91,131 @@ export function buildMenu({
           {
             label: app.name,
             submenu: [
-              { role: "about" },
-              { label: "Check for Updates…", click: onCheckUpdates },
+              { role: "about", label: c.app.about },
+              { label: c.app.checkUpdates, click: onCheckUpdates },
               { type: "separator" },
-              { role: "services" },
+              { role: "services", label: c.app.services },
               { type: "separator" },
-              { role: "hide" },
-              { role: "hideOthers" },
-              { role: "unhide" },
+              { role: "hide", label: c.app.hide },
+              { role: "hideOthers", label: c.app.hideOthers },
+              { role: "unhide", label: c.app.unhide },
               { type: "separator" },
-              { role: "quit" },
+              { role: "quit", label: c.app.quit },
             ],
           } satisfies MenuItemConstructorOptions,
         ]
       : []),
     {
-      label: "File",
+      label: c.file.title,
       submenu: [
-        { label: "Open Project…", accelerator: "CmdOrCtrl+O", click: onOpenRepo },
-        { label: "Open Recent", submenu: recentSubmenu(projects, onOpenProject) },
+        { label: c.file.open, accelerator: "CmdOrCtrl+O", click: onOpenRepo },
+        { label: c.file.openRecent, submenu: recentSubmenu(projects, onOpenProject, c.file) },
         // Done with this project, without quitting: back to the launcher, and
         // the next launch starts there too. The one way to say that — closing
         // the window is quitting in a one-window app, so it can't also mean
         // this.
         {
-          label: "Close Project",
+          label: c.file.close,
           accelerator: "CmdOrCtrl+Shift+W",
           enabled: hasProject,
           click: onCloseProject,
         },
         { type: "separator" },
         ...(isMac
-          ? [{ role: "close" } satisfies MenuItemConstructorOptions]
+          ? [{ role: "close", label: c.file.closeWindow } satisfies MenuItemConstructorOptions]
           : [
-              { label: "Check for Updates…", click: onCheckUpdates },
-              { role: "quit" } satisfies MenuItemConstructorOptions,
+              { label: c.file.checkUpdates, click: onCheckUpdates },
+              { role: "quit", label: c.file.quit } satisfies MenuItemConstructorOptions,
             ]),
       ],
     },
     // The board has text boxes — a card note, a goal, an API key — so copy,
     // paste and undo have to work, and on macOS they only do when the menu says
     // so.
-    { role: "editMenu" },
     {
-      label: "View",
+      label: c.edit.title,
+      submenu: [
+        { role: "undo", label: c.edit.undo },
+        { role: "redo", label: c.edit.redo },
+        { type: "separator" },
+        { role: "cut", label: c.edit.cut },
+        { role: "copy", label: c.edit.copy },
+        { role: "paste", label: c.edit.paste },
+        ...(isMac
+          ? [
+              {
+                role: "pasteAndMatchStyle",
+                label: c.edit.pasteAndMatchStyle,
+              } satisfies MenuItemConstructorOptions,
+              { role: "delete", label: c.edit.delete } satisfies MenuItemConstructorOptions,
+              { role: "selectAll", label: c.edit.selectAll } satisfies MenuItemConstructorOptions,
+              { type: "separator" } satisfies MenuItemConstructorOptions,
+              {
+                label: c.edit.speech,
+                submenu: [
+                  { role: "startSpeaking", label: c.edit.startSpeaking },
+                  { role: "stopSpeaking", label: c.edit.stopSpeaking },
+                ],
+              } satisfies MenuItemConstructorOptions,
+            ]
+          : [
+              { role: "delete", label: c.edit.delete } satisfies MenuItemConstructorOptions,
+              { type: "separator" } satisfies MenuItemConstructorOptions,
+              { role: "selectAll", label: c.edit.selectAll } satisfies MenuItemConstructorOptions,
+            ]),
+      ],
+    },
+    {
+      label: c.view.title,
       submenu: [
         // The way back for a mouse, and for a trackpad with the swipe turned
         // off. The shortcuts are the ones the system's own browser uses, so a
         // hand that knows one knows this.
         {
-          label: "Back",
+          label: c.view.back,
           accelerator: isMac ? "Cmd+[" : "Alt+Left",
           enabled: canGoBack,
           click: onBack,
         },
         {
-          label: "Forward",
+          label: c.view.forward,
           accelerator: isMac ? "Cmd+]" : "Alt+Right",
           enabled: canGoForward,
           click: onForward,
         },
         { type: "separator" },
-        { role: "reload" },
-        { role: "forceReload" },
-        { role: "toggleDevTools" },
+        { role: "reload", label: c.view.reload },
+        { role: "forceReload", label: c.view.forceReload },
+        { role: "toggleDevTools", label: c.view.devTools },
         { type: "separator" },
-        { role: "resetZoom" },
-        { role: "zoomIn" },
-        { role: "zoomOut" },
+        { role: "resetZoom", label: c.view.actualSize },
+        { role: "zoomIn", label: c.view.zoomIn },
+        { role: "zoomOut", label: c.view.zoomOut },
         { type: "separator" },
-        { role: "togglefullscreen" },
+        { role: "togglefullscreen", label: c.view.fullScreen },
       ],
     },
-    { role: "windowMenu" },
+    // `role: "window"` is what lets macOS add its own window list underneath.
+    {
+      role: "window",
+      label: c.window.title,
+      submenu: [
+        { role: "minimize", label: c.window.minimize },
+        { role: "zoom", label: c.window.zoom },
+        ...(isMac
+          ? [
+              { type: "separator" } satisfies MenuItemConstructorOptions,
+              { role: "front", label: c.window.front } satisfies MenuItemConstructorOptions,
+            ]
+          : [{ role: "close", label: c.window.close } satisfies MenuItemConstructorOptions]),
+      ],
+    },
     {
       role: "help",
+      label: c.help.title,
       submenu: [
-        { label: "AI4Kanban Guide", click: () => shell.openExternal(DOCS_URL) },
-        { label: "Downloads", click: () => shell.openExternal(DOWNLOADS_URL) },
+        { label: c.help.guide, click: () => shell.openExternal(DOCS_URL) },
+        { label: c.help.downloads, click: () => shell.openExternal(DOWNLOADS_URL) },
       ],
     },
   ];

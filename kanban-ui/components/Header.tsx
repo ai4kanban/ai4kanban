@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { copy } from "@/i18n";
+import { useCopy } from "@/i18n/use-copy";
 import type { ReleasePick } from "@/lib/release-pick";
 import type { AgentInfo } from "@/lib/types";
 import { ChatButton } from "./Chat";
@@ -141,6 +141,7 @@ export function Header({
    *  is no terminal to restart the board from. */
   desktop?: boolean;
 }) {
+  const c = useCopy();
   return (
     // `data-titlebar` is what the app on macOS hangs the window's own title bar
     // off (app/globals.css): the window is drawn without one, so this row is it
@@ -155,8 +156,8 @@ export function Header({
             is simply which product you are in. */}
         <Link
           href="/"
-          title={copy.chrome.header.home}
-          aria-label={copy.chrome.header.home}
+          title={c.chrome.header.home}
+          aria-label={c.chrome.header.home}
           className="a4k-nodrag"
         >
           <LogoMark />

@@ -1,11 +1,12 @@
 "use client";
 
-import { copy } from ".";
+import { useLanguage } from "@/components/language";
+import { getCopy } from ".";
 import type { UiCopy } from "./types";
 
-/** The words this screen draws in. One language ships today, so this hands back
- *  English; #336 makes it read the machine's language (`components/language.tsx`)
- *  and every caller here follows without changing. */
+/** The words this screen draws in, in the language the machine is set to
+ *  (`components/language.tsx`). The language is in the first paint, so a screen
+ *  never draws English and corrects itself. */
 export function useCopy(): UiCopy {
-  return copy;
+  return getCopy(useLanguage());
 }

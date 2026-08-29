@@ -14,7 +14,8 @@
 // in a sandboxed iframe, so nothing in it runs, nothing reaches the network, and its styling
 // and the board's never meet.
 
-import { copy } from "@/i18n";
+import type { MessagesCopy } from "@/i18n/messages/types";
+import { machineCopy } from "./language";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -59,11 +60,14 @@ export async function readMockups(body: string): Promise<MockupSet> {
 /** One mockup, drawn. `contain` is false on the mockup's own page, where the page is what
  *  scrolls and the frame must let the scroll through (see `frameCss`). */
 export async function readMockup(src: string, contain = true): Promise<MockupView> {
+  // Read once at the door and handed down: everything below it is sync or deep in a
+  // sandbox, and neither can wait on the language.
+  const c = (await machineCopy()).messages.mockup;
   const match = SRC.exec(src);
   if (!match) {
     return {
       src,
-      error: copy.messages.mockup.notAMockup(src),
+      error: c.notAMockup(src),
     };
   }
   const [, folder, name, ext] = match;
@@ -71,7 +75,7 @@ export async function readMockup(src: string, contain = true): Promise<MockupVie
   const file = path.join(root, folder!, `${name}.${ext}`);
   // The regex already refuses a path that climbs; this is the check that answers for it.
   if (!file.startsWith(root + path.sep)) {
-    return { src, error: copy.messages.mockup.outside(src) };
+    return { src, error: c.outside(src) };
   }
   let code: string;
   try {
@@ -79,27 +83,27 @@ export async function readMockup(src: string, contain = true): Promise<MockupVie
   } catch {
     // Mockups are not in git, so a card pulled from someone else's board points at
     // drawings this machine never made. Nothing is broken — the card still reads.
-    return { src, error: copy.messages.mockup.missing(src) };
+    return { src, error: c.missing(src) };
   }
   // A `.txt` mockup is the drawing itself (#256) — nothing to transpile, nothing to style,
   // and so nothing that can fail once the file has been read.
   if (ext === "txt") return { src, text: code };
   try {
-    const doc = ext === "tsx" ? await drawComponent(code, src, contain) : dressPage(code, contain);
+    const doc = ext === "tsx" ? await drawComponent(code, src, contain, c) : dressPage(code, contain);
     return { src, code, doc };
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
-    return { src, code, error: copy.messages.mockup.notDrawn(src, why) };
+    return { src, code, error: c.notDrawn(src, why) };
   }
 }
 
 // --- .tsx --------------------------------------------------------------------
 
-async function drawComponent(code: string, src: string, contain: boolean): Promise<string> {
+async function drawComponent(code: string, src: string, contain: boolean, c: MessagesCopy["mockup"]): Promise<string> {
   for (const found of code.matchAll(IMPORTS)) {
     const id = (found[1] ?? found[2])!;
     if (!REACT_IDS.has(id)) {
-      throw new Error(copy.messages.mockup.importsOther(id));
+      throw new Error(c.importsOther(id));
     }
   }
 
@@ -120,32 +124,32 @@ async function drawComponent(code: string, src: string, contain: boolean): Promi
     exports: mod.exports,
     require: (id: string) => {
       if (REACT_IDS.has(id)) return React;
-      throw new Error(copy.messages.mockup.cannotImport(id));
+      throw new Error(c.cannotImport(id));
     },
     console: { log() {}, warn() {}, error() {}, info() {}, debug() {} },
   };
   const context = vm.createContext(sandbox);
-  run(js, context, src);
+  run(js, context, src, c);
 
   const Component = mod.exports.default;
   if (typeof Component !== "function") {
-    throw new Error(copy.messages.mockup.noDefault);
+    throw new Error(c.noDefault);
   }
   sandbox.__draw = () =>
     renderToStaticMarkup(React.createElement(Component as React.FunctionComponent));
-  const markup = run("__draw()", context, src) as string;
-  return page(await tailwindFor(markup), markup, contain);
+  const markup = run("__draw()", context, src, c) as string;
+  return page(await tailwindFor(markup, c), markup, contain);
 }
 
 /** One turn inside the sandbox, on the clock. Whatever comes back out is a sentence the
  *  note on the card can end with. */
-function run(script: string, context: vm.Context, src: string): unknown {
+function run(script: string, context: vm.Context, src: string, c: MessagesCopy["mockup"]): unknown {
   try {
     return vm.runInContext(script, context, { timeout: DRAW_MS, filename: src });
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
     if (/timed out/i.test(why)) {
-      throw new Error(copy.messages.mockup.tooSlow(DRAW_MS / 1000));
+      throw new Error(c.tooSlow(DRAW_MS / 1000));
     }
     throw new Error(why.replace(/^Error:\s*/, ""));
   }
@@ -157,9 +161,9 @@ function run(script: string, context: vm.Context, src: string): unknown {
  *  the utilities. Read once; the compiler is what gets built per mockup. */
 let baseCss: { path: string; css: string } | null = null;
 
-function tailwindBase(): { path: string; css: string } {
+function tailwindBase(c: MessagesCopy["mockup"]): { path: string; css: string } {
   if (baseCss) return baseCss;
-  const file = findTailwindCss();
+  const file = findTailwindCss(c);
   baseCss = { path: file, css: fs.readFileSync(file, "utf8") };
   return baseCss;
 }
@@ -167,7 +171,7 @@ function tailwindBase(): { path: string; css: string } {
 /** Tailwind's own stylesheet is a file, not code, so it is found rather than imported —
  *  in node_modules beside the built app, or beside where the app was started. Looked for
  *  by walking up, because the bundler rewrites every other way of asking. */
-function findTailwindCss(): string {
+function findTailwindCss(c: MessagesCopy["mockup"]): string {
   const starts = [process.cwd()];
   try {
     starts.push(path.dirname(fileURLToPath(import.meta.url)));
@@ -184,7 +188,7 @@ function findTailwindCss(): string {
       dir = parent;
     }
   }
-  throw new Error(copy.messages.mockup.noStylesheet);
+  throw new Error(c.noStylesheet);
 }
 
 const CLASS_ATTR = /class="([^"]*)"/g;
@@ -192,8 +196,8 @@ const CLASS_ATTR = /class="([^"]*)"/g;
 /** The styling this markup asks for, worked out now rather than when the app was built —
  *  which is what makes every Tailwind class work, including the ones the board's own
  *  screens never use. */
-async function tailwindFor(markup: string): Promise<string> {
-  const { path: file, css } = tailwindBase();
+async function tailwindFor(markup: string, c: MessagesCopy["mockup"]): Promise<string> {
+  const { path: file, css } = tailwindBase(c);
   const base = path.dirname(file);
   const compiler = await compile('@import "tailwindcss";', {
     base,

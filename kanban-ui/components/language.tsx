@@ -11,14 +11,16 @@
 // in its first paint and none of them draws English and corrects itself. A component reads
 // it with `useLanguage()`; nothing threads it as a prop.
 //
-// Nothing is translated yet — #336 fills the English words in with Chinese ones. What this
-// ships is the setting, the switcher, and `<html lang>` following both.
+// Both halves of this file read their words with `getCopy()` rather than `useCopy()`: a
+// component reading the context it provides would get the default, which would leave the
+// switcher's own save-failed message English on a Chinese app.
 
+import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { FiCheck } from "react-icons/fi";
 import { setLanguageAction } from "@/app/actions";
+import { getCopy } from "@/i18n";
 import { Rich } from "@/i18n/rich";
-import { useCopy } from "@/i18n/use-copy";
 import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES, type Language } from "@/lib/types";
 
 const LanguageContext = createContext<{
@@ -27,8 +29,9 @@ const LanguageContext = createContext<{
 }>({ language: DEFAULT_LANGUAGE, choose: async () => null });
 
 export function LanguageProvider({ initial, children }: { initial: Language; children: React.ReactNode }) {
-  const c = useCopy().configuration.language;
+  const router = useRouter();
   const [language, hold] = useState(initial);
+  const c = getCopy(language).configuration.language;
 
   // A refresh re-reads the setting on the server. Take what it says, so a save made in
   // another window doesn't leave this one showing the answer it had at first paint.
@@ -55,13 +58,18 @@ export function LanguageProvider({ initial, children }: { initial: Language; chi
           hold(was);
           return saved.error || c.saveFailed;
         }
+        // Half of what is on screen was rendered on the server in the old language — the
+        // window title and the header among it. Asking for a new render is what turns those
+        // over with the rest, so the whole screen changes at once and none of it waits for
+        // the next launch.
+        router.refresh();
         // The menu bar is outside the page, so the app is told once the setting is safely
         // saved. Absent in a browser, and in an app older than the setting.
         void window.ai4kanban?.languageChanged?.(next);
         return null;
       },
     }),
-    [language, c],
+    [language, c, router],
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
@@ -75,8 +83,8 @@ export function useLanguage(): Language {
 /** The **Language** section of the Configuration dialog: two entries, each written in its
  *  own name, so a reader recognises theirs without knowing the other. */
 export function LanguagePanel({ onError }: { onError?: (msg: string) => void }) {
-  const c = useCopy().configuration.language;
   const { language, choose } = useContext(LanguageContext);
+  const c = getCopy(language).configuration.language;
   const [saving, setSaving] = useState(false);
 
   const pick = async (next: Language) => {

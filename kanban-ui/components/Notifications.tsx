@@ -23,6 +23,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { FiBell, FiBellOff, FiChevronRight, FiSlash, FiX } from "react-icons/fi";
 import { boardNotificationsAction, watchReleaseAction } from "@/app/actions";
+import type { NotificationsCopy } from "@/i18n/notifications/types";
+import { useCopy } from "@/i18n/use-copy";
 import type { BellRail } from "@/lib/bell-rail";
 import type { NotificationRow } from "@/lib/notifications";
 import { ALL_RELEASES } from "@/lib/types";
@@ -46,6 +48,7 @@ export function BellProvider({ rail, children }: { rail: BellRail; children: Rea
  * the three beside it.
  */
 export function BellButton() {
+  const c = useCopy().notifications;
   const rail = useContext(BellContext);
   if (!rail) return null;
   const { unread } = rail.center;
@@ -53,7 +56,7 @@ export function BellButton() {
   return (
     <button
       type="button"
-      aria-label={lit ? `Notifications — ${unread} unread` : "Notifications"}
+      aria-label={lit ? c.bellUnread(unread) : c.bell}
       aria-pressed={rail.open}
       onClick={rail.toggle}
       // The count rides inside the segment, so the segment grows rather than the frame
@@ -76,53 +79,55 @@ export function BellButton() {
 /** The rail itself. Drawn by the window in whichever shape fits — a panel beside the body,
  *  or a cover over it — with the same contents either way. */
 export function BellPane({ rail }: { rail: BellRail }) {
+  const c = useCopy().notifications;
   const { center } = rail;
   // The rail draws what is waiting for a person. `center.rows` carries every live event
   // because the card page reads its own out of the same list.
   const rows = center.rows.filter((row) => row.onRail !== false);
   return (
     <div className="flex h-full flex-col overflow-hidden py-2 pl-1 pr-3">
-      <Head unread={center.unread} silenced={center.silenced} onFold={rail.fold} />
+      <Head c={c} unread={center.unread} silenced={center.silenced} onFold={rail.fold} />
       {center.unavailable ? (
         <Empty
           icon={<FiBellOff size={20} aria-hidden />}
-          title="Notifications aren’t available here"
+          title={c.unavailable}
           body={center.unavailable}
         />
       ) : !center.signedIn ? (
         <Empty
           icon={<FiBellOff size={20} aria-hidden />}
-          title="Not signed in to Cloud"
-          body="Sign in and this board's cards start filling the bell. Nothing leaves this machine until you do."
-          hint="Configuration → Notifications"
+          title={c.signedOut.title}
+          body={c.signedOut.body}
+          hint={c.signedOut.hint}
         />
       ) : !center.enabled && rows.length === 0 ? (
         <Empty
           icon={<FiBellOff size={20} aria-hidden />}
-          title="No open release"
-          body="The bell watches one open release. Start one from the version picker in the header."
+          title={c.noRelease.title}
+          body={c.noRelease.body}
         />
       ) : (
         <>
           {/* The watched release closed, so the filling stopped. The prompt is here rather
               than only in Configuration, because here is where it stopped. */}
-          {center.enabled && !center.release && <PickRelease onPicked={rail.refresh} />}
+          {center.enabled && !center.release && <PickRelease c={c} onPicked={rail.refresh} />}
           {rows.length === 0 ? (
             <Empty
               icon={<FiBell size={20} aria-hidden />}
-              title="Nothing waiting"
-              body="Cards that need you appear here, and stay 30 days after they finish."
+              title={c.empty.title}
+              body={c.empty.body}
             />
           ) : (
             <>
               <p className="mb-1 px-2 text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">
-                Newest change first
+                {c.sortOrder}
               </p>
               <div className="min-h-0 flex-1 overflow-y-auto">
                 {rows.map((row) => (
                   <Row
                     key={row.eventId}
                     row={row}
+                    c={c}
                     named={center.namesBoards}
                     onOpen={() => void rail.openRow(row.eventId)}
                   />
@@ -132,7 +137,7 @@ export function BellPane({ rail }: { rail: BellRail }) {
           )}
           {center.error && (
             <p className="px-2 pt-2 text-[11.5px] leading-[16px] text-nb-ink-soft">
-              Cloud could not be reached: {center.error}. These are the rows we last knew about.
+              {c.unreachable(center.error)}
             </p>
           )}
           {/* Changes this machine gave up on sending (#329). Said here because this is where
@@ -140,8 +145,7 @@ export function BellPane({ rail }: { rail: BellRail }) {
               behind the board, and the board is the one that is right. */}
           {!!center.unsent && (
             <p className="px-2 pt-2 text-[11.5px] leading-[16px] text-nb-peach-ink">
-              Cloud is out of step: {center.unsent} {center.unsent === 1 ? "change" : "changes"} never
-              reached it. This board is the one that is right.
+              {c.unsent(center.unsent)}
             </p>
           )}
         </>
@@ -151,10 +155,12 @@ export function BellPane({ rail }: { rail: BellRail }) {
 }
 
 function Head({
+  c,
   unread,
   silenced,
   onFold,
 }: {
+  c: NotificationsCopy;
   unread: number;
   silenced: boolean;
   onFold: () => void;
@@ -162,25 +168,25 @@ function Head({
   return (
     <div className="mb-1 flex h-[30px] shrink-0 items-center gap-2 px-2">
       <FiBell size={13} aria-hidden />
-      <span className="text-[12.5px] font-[700] text-nb-ink">Notifications</span>
+      <span className="text-[12.5px] font-[700] text-nb-ink">{c.title}</span>
       {/* The machine's silencing switch is a fact worth stating where its effect is felt:
           the bell keeps filling and nothing interrupts. */}
       {silenced && (
         <span
           className="nb-tip inline-flex items-center gap-1 text-[11px] font-[700] text-nb-ink-soft"
           tabIndex={0}
-          data-tip="System notifications are silenced for every board on this machine."
+          data-tip={c.silencedTip}
         >
           <FiSlash size={11} aria-hidden />
-          silenced
+          {c.silenced}
         </span>
       )}
       {unread > 0 && (
-        <span className="ml-auto text-[11.5px] font-[700] text-nb-ink-soft">{unread} new</span>
+        <span className="ml-auto text-[11.5px] font-[700] text-nb-ink-soft">{c.newCount(unread)}</span>
       )}
       <button
         type="button"
-        aria-label="Close notifications"
+        aria-label={c.close}
         onClick={onFold}
         className={`${unread > 0 ? "" : "ml-auto"} -mr-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[7px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,transparent)] hover:text-nb-ink`}
       >
@@ -195,10 +201,12 @@ function Head({
  *  wears. */
 function Row({
   row,
+  c,
   named,
   onOpen,
 }: {
   row: NotificationRow;
+  c: NotificationsCopy;
   named: boolean;
   onOpen: () => void;
 }) {
@@ -244,7 +252,7 @@ function Row({
             to a folder that is not there. */}
         {!row.boardHere && (
           <span className="mt-[3px] block text-[11px] leading-[15px] text-nb-ink-soft">
-            {row.boardName} is no longer on this machine.
+            {c.boardGone(row.boardName)}
           </span>
         )}
       </span>
@@ -258,7 +266,7 @@ function Row({
 /** The watched release closed. One line and what to watch instead, where the filling stopped
  *  — the same choice Configuration offers, so nobody has to remember a version id to type.
  *  **All** leads, and is the one answer a board with no open release left still has. */
-function PickRelease({ onPicked }: { onPicked: () => void }) {
+function PickRelease({ c, onPicked }: { c: NotificationsCopy; onPicked: () => void }) {
   const [releases, setReleases] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -273,7 +281,7 @@ function PickRelease({ onPicked }: { onPicked: () => void }) {
     setError(null);
     try {
       const done = await watchReleaseAction(release);
-      if (!done.ok) setError(done.error ?? "that release could not be watched");
+      if (!done.ok) setError(done.error ?? c.closed.failed);
       else onPicked();
     } finally {
       setBusy(false);
@@ -282,14 +290,12 @@ function PickRelease({ onPicked }: { onPicked: () => void }) {
 
   return (
     <div className="mx-1 mb-2 rounded-[9px] bg-nb-peach-soft px-3 py-2.5">
-      <p className="text-[12px] font-[800] text-nb-peach-ink">The release you were watching closed.</p>
-      <p className="mt-1 text-[11.5px] leading-[16px] text-nb-ink">
-        Nothing new fills the bell until you pick what to watch.
-      </p>
+      <p className="text-[12px] font-[800] text-nb-peach-ink">{c.closed.title}</p>
+      <p className="mt-1 text-[11.5px] leading-[16px] text-nb-ink">{c.closed.body}</p>
       {releases && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           <Button size="sm" disabled={busy} onClick={() => void watch(ALL_RELEASES)}>
-            All releases
+            {c.closed.all}
           </Button>
           {releases.map((release) => (
             <Button key={release} size="sm" disabled={busy} onClick={() => void watch(release)}>

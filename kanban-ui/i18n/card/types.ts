@@ -133,6 +133,8 @@ export type CardCopy = {
     heading: string;
     /** Only read out loud: a subtask an agent is inside. */
     running: string;
+    /** A chip in the build-order map that waits on a card outside its own group. */
+    waitingOutside: (ids: string) => string;
   };
   questions: {
     heading: string;

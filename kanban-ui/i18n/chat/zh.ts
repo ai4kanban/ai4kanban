@@ -1,0 +1,42 @@
+// 简体中文 —— the chat rail, mirroring `en.ts` key for key.
+// Writing rules: `i18n/index.ts`.
+import type { ChatCopy } from "./types";
+
+const zh: ChatCopy = {
+  label: "对话",
+  unread: "有新回复",
+  clear: "清空这段对话",
+  clearConfirm: "确认清空",
+  fold: "收起对话",
+  aboutBoard: "整个看板",
+  aboutBoardHint: "关于整个看板",
+  aboutCard: (id) => `#${id}`,
+  aboutCardHint: (id, title) => `关于 #${id} ${title}`,
+  agentMissing: (agent) =>
+    `这台机器上没有安装 ${agent}，消息可能无人应答。请在「配置」（顶栏的 ⚙）中选择一个 Agent。`,
+  noAgent: "没有可以对话的编码 Agent。",
+  noAgentFix: "请在「配置」（顶栏的 ⚙）中设置一个。",
+  thinking: "思考中…",
+  writing: "正在回复",
+  nothingCameBack: "没有返回任何内容",
+  stopped: "已经收到的内容会保留——再发一条消息即可继续。",
+  emptyBoard: "问它这个项目的情况，或者说出你想改什么。它依据这个看板作答，并落实你确定下来的改动。",
+  emptyBoardAsks: [
+    "接下来该做什么？",
+    "现在是什么卡住了整体进度？",
+    "把 #12 放进 v1，并否决 #14。",
+    "开始开发 #12。",
+  ],
+  emptyCard: (id) =>
+    `问它 #${id} 的情况，或者说出你想改什么。它依据这张卡片和整个看板作答，并落实你确定下来的改动。`,
+  emptyCardAsks: ["这张卡片还有什么不清楚的？", "它是不是大到无法一次做完？", "有哪些可以砍掉？"],
+  ask: "提问，或说出你想改什么",
+  askCard: (id) => `提问 #${id}，或说出你想改什么`,
+  waiting: "等待回复…",
+  message: "你的消息",
+  send: "发送",
+  oneAtATime: "一次只能发一条消息。",
+  keys: "Enter 发送 · Shift-Enter 换行",
+};
+
+export default zh;

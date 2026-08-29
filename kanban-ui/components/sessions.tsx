@@ -12,10 +12,11 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { createPortal } from "react-dom";
 import { FiActivity, FiX } from "react-icons/fi";
 import { getSessionAction, listSessionsAction, startAgentAction } from "@/app/actions";
+import { useLanguage } from "@/components/language";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import { flowLabel, flowOf, runFlows, stepLabel, type RunFlow } from "@/lib/run-flows";
-import type { SessionView } from "@/lib/types";
+import { LANGUAGE_TAGS, type Language, type SessionView } from "@/lib/types";
 import { type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
 import { TOOL_BTN } from "./chrome";
 
@@ -273,8 +274,10 @@ function relTime(ts: number, c: RunsCopy["panel"]): string {
   if (h < 24) return c.hoursAgo(h);
   return c.daysAgo(Math.round(h / 24));
 }
-function fullTime(ts: number): string {
-  return new Date(ts).toLocaleString(undefined, {
+// Dated in the language the app is set to, not in the browser's own: an English date
+// under a Chinese heading is the one word on the row that didn't follow the setting.
+function fullTime(ts: number, language: Language): string {
+  return new Date(ts).toLocaleString(LANGUAGE_TAGS[language], {
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -313,6 +316,7 @@ function SessionDot({ session }: { session: SessionView }) {
 function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | null }) {
   const t = useCopy();
   const c = t.runs.panel;
+  const language = useLanguage();
   const steps = flow.sessions.length > 1 ? flow.sessions : [];
   const holds = flow.sessions.some((s) => s.sessionId === selectedId);
   // The row stands for the job, so it selects the session the job is ON: the live one, or
@@ -363,7 +367,7 @@ function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | nul
                 key={s.sessionId}
                 type="button"
                 onClick={() => sessionsPanel.select(s.sessionId)}
-                title={fullTime(s.startedAt)}
+                title={fullTime(s.startedAt, language)}
                 className={`relative flex w-full cursor-pointer items-center gap-2 py-1.5 pl-7 pr-3 text-left transition-colors ${
                   active ? "bg-nb-paper" : "hover:bg-nb-wash/70"
                 }`}
@@ -474,6 +478,7 @@ function SessionsDialog({
 }) {
   const t = useCopy();
   const c = t.runs.panel;
+  const language = useLanguage();
   const panel = usePanelState();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -572,7 +577,7 @@ function SessionsDialog({
                   {/* A job is dated by when IT started, not by the session you happen to be
                       reading — each session carries its own time on its step. */}
                   <span className="text-[11px] text-nb-ink-soft">
-                    {fullTime(flow?.startedAt ?? selected.startedAt)}
+                    {fullTime(flow?.startedAt ?? selected.startedAt, language)}
                   </span>
                   {/* A run started by Resume says so — otherwise it reads as a
                       second identical run of the same action out of nowhere. */}

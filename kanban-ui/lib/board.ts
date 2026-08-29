@@ -1,4 +1,4 @@
-import { copy } from "@/i18n";
+import { machineCopy } from "./language";
 import { boardRules, NoRulesError } from "./cli";
 import type {
   Board,
@@ -167,10 +167,8 @@ export async function readScore(): Promise<ScoreResult> {
   try {
     const rules = await boardRules();
     if (!rules.readScoreView) {
-      return {
-        ok: false,
-        error: `${copy.messages.rules.tooOldForScores} ${copy.messages.rules.updateIt}`,
-      };
+      const c = (await machineCopy()).messages.rules;
+      return { ok: false, error: `${c.tooOldForScores} ${c.updateIt}` };
     }
     return await rules.readScoreView();
   } catch (e) {
@@ -199,7 +197,8 @@ export async function readGoalText(): Promise<string> {
 export async function readMemory(name: string, module = ""): Promise<MemoryFile | null> {
   const rules = await boardRules();
   if (!rules.readMemoryFile) {
-    throw new NoRulesError(copy.messages.rules.tooOldForMemory);
+    const c = (await machineCopy()).messages.rules;
+    throw new NoRulesError(c.tooOldForMemory, c.installIt);
   }
   return rules.readMemoryFile(name, module);
 }

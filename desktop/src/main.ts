@@ -29,6 +29,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { makeBoard } from "./lib/board-init";
 import { commandAnswers, commandState, installCommand, refreshSkillNote } from "./lib/command";
+import { copy, holdLanguage, heldLanguage } from "./lib/copy";
 import { launcherUrl } from "./lib/launcher";
 import { buildMenu } from "./lib/menu";
 import { attachNavigation, type Navigation } from "./lib/navigation";
@@ -67,9 +68,12 @@ let nav: Navigation | null = null;
 // Set the first time the window is asked, so switching project or reloading
 // doesn't hit GitHub again in the same sitting.
 let updatePromise: Promise<UpdateInfo | null> | null = null;
-// The language the menu is drawn in (#334). Read from the machine's own settings before
-// the first menu, and set again whenever the page says the user changed it.
-let language: string = DEFAULT_LANGUAGE;
+// The language everything outside the page is drawn in (#334) — the menu, the launcher,
+// the dialogs, and the sentences the app hands the page to print. Read from the machine's
+// own settings before the first menu, and set again whenever the page says the user
+// changed it. Held by the copy module, since `lib/command.ts` and `lib/board-init.ts` are
+// called from deep inside a move and have no language to be handed one.
+holdLanguage(DEFAULT_LANGUAGE);
 
 // --- the app's own URL scheme (#326) -----------------------------------------
 // `ai4kanban://…` opens this app. It is what a finished Cloud sign-in comes back to: the
@@ -178,7 +182,7 @@ async function start(): Promise<void> {
   // saved, this is also where the machine's own language is guessed and written down (#339),
   // so the menu and the board's first paint read one answer.
   await guessLanguage(app.getPreferredSystemLanguages());
-  language = await machineLanguage();
+  holdLanguage(await machineLanguage());
 
   createWindow();
   refreshMenu();
@@ -316,8 +320,8 @@ async function openProject(repo: unknown): Promise<string | null> {
   if (projects.describe(repo).missing) {
     await messageBox({
       type: "warning",
-      message: `${path.basename(repo)} isn't there any more.`,
-      detail: `${repo}\n\nThe folder was moved or deleted. Take it off the list, or put it back.`,
+      message: copy().dialog.folderGone.message(path.basename(repo)),
+      detail: copy().dialog.folderGone.detail(repo),
     });
     return servers?.boardDir ?? null;
   }
@@ -353,7 +357,9 @@ async function closeProject(): Promise<void> {
  *  and never has to undraw itself. */
 async function showLauncher(): Promise<void> {
   win?.setTitle("AI4Kanban");
-  await win?.loadURL(launcherUrl({ mac: MAC, language, languages: await languageChoices() }));
+  await win?.loadURL(
+    launcherUrl({ mac: MAC, language: heldLanguage(), languages: await languageChoices() }),
+  );
   nav?.reset();
 }
 
@@ -361,11 +367,11 @@ async function showLauncher(): Promise<void> {
  *  that leaves the launcher up, which is where a cancel should land. */
 async function askForRepo(): Promise<string | null> {
   const res = await openDialog({
-    title: servers?.boardDir ? "Open another project" : "Open a project",
+    title: servers?.boardDir ? copy().dialog.pick.titleAnother : copy().dialog.pick.titleFirst,
     // A folder with no board is a fine answer — the board UI offers to make one
     // there. So this asks for a project folder, not for a board.
-    message: "Pick the project folder to open. It doesn't need a board yet.",
-    buttonLabel: "Open",
+    message: copy().dialog.pick.message,
+    buttonLabel: copy().dialog.pick.button,
     properties: ["openDirectory", "createDirectory"],
     // Where the last pick was, even after Close Project forgot which one was
     // open: the newest project on the list is the same folder, and a dialog
@@ -457,13 +463,16 @@ async function offerCommand(): Promise<void> {
   else store.rememberCommandOffer();
 
   const windows = state.kind === "path";
+  const c = copy().dialog.command;
   const { response } = await messageBox({
     type: "question",
-    message: "Put the akb command on your PATH?",
+    message: c.ask,
     detail: windows
-      ? `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This puts the app's own folder (${state.writes}) on your PATH. Updating the app updates the command.\n\nA new PATH entry only reaches terminals opened after it.\n\nYou can do this later from Configuration → Skill.`
-      : `AI4Kanban carries its own copy of akb — the command a coding agent drives this board with. This points ${state.writes} at the copy inside the app, so updating the app updates the command.${state.needsPassword ? " macOS asks for your administrator password to write there." : ""}\n\nYou can do this later from Configuration → Skill.`,
-    buttons: ["Install", "Not now"],
+      ? c.detailWindows(state.writes)
+      : state.needsPassword
+        ? c.detailLinkPassword(state.writes)
+        : c.detailLink(state.writes),
+    buttons: [c.install, c.notNow],
     defaultId: 0,
     cancelId: 1,
   });
@@ -471,15 +480,13 @@ async function offerCommand(): Promise<void> {
 
   const result = await putCommandOnPath();
   if (!result.ok) {
-    if (result.error) await messageBox({ type: "warning", message: "akb was not installed.", detail: result.error });
+    if (result.error) await messageBox({ type: "warning", message: c.failed, detail: result.error });
     return;
   }
   await messageBox({
     type: "info",
-    message: "akb is ready.",
-    detail: windows
-      ? "Open a new terminal and run `akb version`. Typing `akb` on its own opens this app."
-      : "Run `akb version` in a terminal. Typing `akb` on its own opens this app on the project you are standing in.",
+    message: c.ready,
+    detail: windows ? c.readyWindows : c.readyLink,
   });
 }
 
@@ -516,7 +523,7 @@ function refreshMenu(): void {
     canGoBack: nav?.canGoBack() ?? false,
     canGoForward: nav?.canGoForward() ?? false,
     projects: listProjects(),
-    language,
+    language: heldLanguage(),
   });
 }
 
@@ -533,18 +540,16 @@ function pendingUpdate(): Promise<UpdateInfo | null> {
 async function checkUpdatesFromMenu(): Promise<void> {
   const found = await newerRelease(app.getVersion());
   updatePromise = Promise.resolve(found);
+  const c = copy().dialog.update;
   if (!found) {
-    await messageBox({
-      type: "info",
-      message: `AI4Kanban ${app.getVersion()} is the newest version.`,
-    });
+    await messageBox({ type: "info", message: c.newest(app.getVersion()) });
     return;
   }
   const { response } = await messageBox({
     type: "info",
-    message: `AI4Kanban ${found.version} is out.`,
-    detail: "The app never updates itself — download the new one when you want it.",
-    buttons: ["Download", "Later"],
+    message: c.out(found.version),
+    detail: c.detail,
+    buttons: [c.download, c.later],
     defaultId: 0,
     cancelId: 1,
   });
@@ -603,11 +608,11 @@ ipcMain.handle(CHANNELS.openExternal, (_e, url: unknown) => {
 // saved — a click that changes nothing on screen reads as a control that does not work. A
 // save that failed leaves both where they were, which is the only error this page can say.
 ipcMain.handle(CHANNELS.setLanguage, async (_e, next: unknown) => {
-  if (typeof next !== "string" || next === language || !(await knownLanguage(next))) return null;
+  if (typeof next !== "string" || next === heldLanguage() || !(await knownLanguage(next))) return null;
   await saveLanguage(next);
   const saved = await machineLanguage();
-  if (saved === language) return null;
-  language = saved;
+  if (saved === heldLanguage()) return null;
+  holdLanguage(saved);
   refreshMenu();
   // Only ever the launcher: every way off that page loads a board over it, and a board saves
   // through its own server and comes back on the channel below.
@@ -668,8 +673,8 @@ function raiseNotification(title: string, body: string, eventId: unknown): void 
 // The board changed language (#334). The setting is already saved by the time this
 // arrives — the page is only telling the menu, which lives outside it.
 ipcMain.handle(CHANNELS.languageChanged, async (_e, next: unknown) => {
-  if (next === language || !(await knownLanguage(next))) return null;
-  language = next as string;
+  if (next === heldLanguage() || !(await knownLanguage(next))) return null;
+  holdLanguage(next as string);
   refreshMenu();
   return null;
 });
@@ -705,6 +710,6 @@ app.on("before-quit", (e) => {
 
 function fatal(err: unknown): void {
   const detail = err instanceof Error ? err.message : String(err);
-  dialog.showErrorBox("AI4Kanban could not start the board", detail);
+  dialog.showErrorBox(copy().dialog.startFailed, detail);
   app.exit(1);
 }

@@ -1,4 +1,5 @@
-/** The few sentences `lib/` renders itself, outside any component. */
+/** The few sentences the server writes itself, outside any component — `lib/`, and
+ *  the handful of refusals in `app/actions.ts` a person can actually land on. */
 export type MessagesCopy = {
   rules: {
     /** No usable copy of the board's rules — the two ways that happens, and the
@@ -29,6 +30,15 @@ export type MessagesCopy = {
     skillInstall: string;
     specAgentSwitch: string;
     specAgentSetting: string;
+  };
+  /** The refusals a server action gives back to the screen that called it. The rest
+   *  of `app/actions.ts` guards its own arguments and stays English: nothing a person
+   *  does can reach one. */
+  actions: {
+    noSuchCard: string;
+    emptyChat: string;
+    goalFirst: string;
+    nothingTicked: string;
   };
   run: { noProcess: string };
   chat: { busy: string; sendFailed: string; clearFailed: string };

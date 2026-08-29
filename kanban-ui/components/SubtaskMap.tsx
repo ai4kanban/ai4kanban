@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FiLock } from "react-icons/fi";
 
+import { useCopy } from "@/i18n/use-copy";
 import { buildSubtaskMap, type MapNode } from "@/lib/subtask-map";
 import type { Subtask } from "@/lib/types";
 
@@ -30,11 +31,6 @@ function chipWidth(nodes: MapNode[]): number {
   return 26 + digits * 8 + lock;
 }
 
-/** The words the panel says on its own. English here while `kanban-ui/i18n/` (#335) has not
- *  landed — the same place the rest of this screen's words still sit. */
-const WAITING = (ids: number[]) =>
-  `waiting on ${ids.map((n) => `#${n}`).join(", ")}, outside this group`;
-
 export function SubtaskMap({
   subtasks,
   onHover,
@@ -45,6 +41,7 @@ export function SubtaskMap({
    *  never hovers; the heading is already on screen and has room to spare. */
   onHover: (title: string) => void;
 }) {
+  const c = useCopy().card.subtasks;
   const map = buildSubtaskMap(subtasks);
   if (!map) return null;
 
@@ -109,7 +106,8 @@ export function SubtaskMap({
           </svg>
           {map.nodes.map((n) => {
             const p = at.get(n.id)!;
-            const waiting = n.outside.length > 0 ? WAITING(n.outside) : "";
+            const waiting =
+              n.outside.length > 0 ? c.waitingOutside(n.outside.map((o) => `#${o}`).join(", ")) : "";
             const title = waiting ? `${n.title} — ${waiting}` : n.title;
             return (
               <Link
