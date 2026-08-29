@@ -12,82 +12,65 @@ covers it, or a plain-words note.
 
 ## Getting started
 
-- The landing page starts you on the board app, in all five languages: the button at the
-  top is the download, the getting-started section leads with the app and what a Mac user
-  has to click through on first open, and carries a picture of the guided first run. The
-  download is the only way in the section offers — no npm or npx line and no setup-prompt
-  link. One line under it says the app installs the `akb` command at first open, so a reader
-  who wanted a terminal knows the download already gave them one.
+- The landing page starts you on the board app in all five languages: the top button is the
+  download, the getting-started section leads with the app and what a Mac user clicks
+  through on first open, and carries a picture of the guided first run. The download is the
+  only way in it offers — no npm or npx line, no setup-prompt link — with one line saying
+  the app installs the `akb` command at first open.
 - The install section says what setup actually does: the agent asks only for the project
   goal, settles the first decisions from it, and creates the first ten tasks.
-- The plain-Markdown mirror at `/index.md` and the file index at `/llms.txt` say the same
-  as the page they mirror: the opening pitch, the comparison with a traditional board,
-  the four steps that keep work moving, the project-memory file tree, continuous
-  iteration, and getting started last.
+- The plain-Markdown mirror at `/index.md` and the file index at `/llms.txt` say the same as
+  the page they mirror.
+- ZCode is on the home page's agent strip and named in the comparison pages, in all five
+  languages and in the plain-markdown copies, so someone on a Z.ai GLM plan can see the
+  board runs on their agent before downloading anything.
 
 ## Comparison pages
 
-- `/vs-task-master` — what each one needs from you on day one (a written PRD, or one rough
-  line it asks questions about), the board as one `tasks.json` versus one Markdown file per
-  card, and where Task Master is ahead: batch autonomous runs, built-in research, many more
-  editors and model providers, and a paid hosted tier for teams.
+- `/vs-task-master` — what each one needs from you on day one, one `tasks.json` versus one
+  Markdown file per card, and where Task Master is ahead: batch autonomous runs, built-in
+  research, more editors and providers, and a paid hosted tier.
 - `/vs-linear` — repo-local agent planning versus Linear's team workspace, with current
   agent features, pricing, and honest guidance on who should stay with Linear.
 - `/vs-vibe-kanban` — where Vibe Kanban stands after Bloop closed in April 2026, what it
-  still does better (running many coding agents in parallel, which we don't do), and who
-  should pick which. The page names no forks and no other alternatives.
-- `/vs-hermes-kanban` — the memory section names the files the board really writes
-  (`readme.md`, `decisions.md`, `rejected.md`, `redesign.md`, one folder per module, with
-  `goal.md` on its own at the top of the memory folder), in all five languages and in the
-  page's plain-Markdown mirror; the Multica mirror says the same as its page.
+  still does better (running many coding agents in parallel), and who should pick which. It
+  names no forks and no other alternatives.
+- `/vs-hermes-kanban` — its memory section names the files the board really writes, in all
+  five languages and in the plain-Markdown mirrors.
 
 ## Recipes
 
-- The competitor analysis recipe at `/recipes/competitor-analysis-loop` keeps one feature
-  checklist per competitor instead of a prose study: every feature they offer as one line,
-  ticked when your users can already do it, carrying a card id when one of your cards is
-  building it, and bare when nobody has touched it — the bare lines are the gap list the
-  run files cards from. The published card is `web/public/recipes/competitor-analysis-loop.md`.
-- The memory-pruning recipe at `/recipes/daily-kanban-maintenance` rewrites the project-wide
-  and per-module memory sets to retain only what still helps plan future work. The
-  published card is `web/public/recipes/prune-the-memory.md`.
-- ZCode is on the home page's agent strip and named in the comparison pages, in all five
-  languages and in the plain-markdown copies under `web/public/`, so someone on a Z.ai GLM
-  plan can see the board runs on their agent before downloading anything.
+- `/recipes/competitor-analysis-loop` keeps one feature checklist per competitor instead of
+  a prose study: every feature as one line, ticked when your users can already do it,
+  carrying a card id when a card is building it, and bare when nobody has touched it — the
+  bare lines are the gap list. Published card:
+  `web/public/recipes/competitor-analysis-loop.md`.
+- `/recipes/daily-kanban-maintenance` rewrites the project-wide and per-module memory sets
+  to keep only what still helps plan future work. Published card:
+  `web/public/recipes/prune-the-memory.md`.
 
-## Legal pages
+## Legal and Cloud pages
 
-- `/privacy` and `/terms` are their own English-only pages, set in the blog's prose and
-  linked from the site footer in all five languages. Both name NULLREACH LTD as the operator and
-  `support@ai4kanban.dev` as the address for support and data requests. The bodies are MDX
-  in `web/legal/`, and the effective date on each page is also its sitemap `lastmod`.
-
-- **The privacy page says what a Cloud notification holds and how long it is kept.** A new
-  "What an event holds" section under *Using AI4Kanban Cloud* names the task's number,
-  title, release, revision and open questions — and says the card body, the plan and the
-  board's folder are not among them — and both it and the retention list state that an
-  event is deleted 30 days after it reaches a final outcome. The summary at the top of the
-  page carries the same line in one sentence.
-
-- **Both legal pages now describe the Cloud that 0.8.0 actually ships.** They described a team
-  workspace holding a shared board, with members, roles, an owner's export and an owner's
-  deletion — none of which exists. `/privacy` and `/terms` now describe a relay for one
-  signed-in account's task events, point at [/cloud](https://ai4kanban.dev/cloud) for what the
-  product is rather than describing it, and say what the release really does: which records it
-  keeps and what deletes each one, that a board is registered under its folder's own name, that
-  nothing but disconnecting Slack and the 30-day event sweep deletes anything on its own, and
-  that the one removal the service has takes the whole account. The subprocessor table gains
-  the mailbox behind `support@ai4kanban.dev` — Cloudflare Email Routing, forwarding to Spacemail
-  (Spaceship, Inc.) in the United States — and a notice about the preview is now stated as mail
-  sent by hand from that address, the app and Slack routes having been promises the release
-  cannot keep.
-
-## The Cloud page
-
-- **[/cloud](https://ai4kanban.dev/cloud) says what AI4Kanban Cloud is.** One English page,
-  linked from the site footer in all five languages beside Privacy and Terms: what the relay
-  carries to the desktop and to Slack, that nothing is sent until Cloud is turned on for a
-  board, what stays on the machine against what an event carries off it, what the preview does
-  not ship, and how somebody signs in, asks for an invite and is answered. Nobody has to read
-  the product out of a data policy any more.
-
+- `/privacy` and `/terms` are English-only pages set in the blog's prose, linked from the
+  footer in all five languages, naming NULLREACH LTD as the operator and
+  `support@ai4kanban.dev` for support and data requests. The bodies are MDX in `web/legal/`,
+  and each page's effective date is also its sitemap `lastmod`.
+- Both describe the Cloud that actually ships: a relay for one signed-in account's task
+  events, not a team workspace. They say which records are kept and what deletes each one,
+  that a board is registered under its folder's own name, that nothing but disconnecting a
+  chat connection and the 30-day event sweep deletes anything on its own, and that the one
+  removal the service has takes the whole account.
+- `/privacy` says what an event holds — number, title, release, revision and open questions,
+  not the card body, the plan or the board's folder — that it is deleted 30 days after a
+  final outcome, and which message in a chat a card's is (the board, task number, chat and
+  the chat's own identifier for that message, and none of its words).
+- The subprocessor table names the mailbox behind `support@ai4kanban.dev` — Cloudflare Email
+  Routing forwarding to Spacemail (Spaceship, Inc.) in the United States — and a notice
+  about the preview is stated as mail sent by hand from that address.
+- [/cloud](https://ai4kanban.dev/cloud) says what AI4Kanban Cloud is: one English page,
+  linked from the footer in all five languages, covering what the relay carries, that
+  nothing is sent until Cloud is turned on for a board, what stays on the machine, what the
+  preview does not ship, and how somebody signs in, asks for an invite and is answered.
+- All three pages name Lark beside Slack: what a connection holds, what leaves Cloud for
+  that chat on your own instruction, and that disconnecting either is a removal you can make
+  yourself.

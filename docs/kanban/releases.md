@@ -11,3 +11,4 @@ The order is whatever the lines say, so a hand edit is how you reorder. What com
 the em dash is the release's goal — what this version is for, in your own words.
 
 - **0.8.0** — Auto-delivery and asynchronous task handling: approve a clear card and the board implements, reviews, corrects, and lands it locally; an authenticated Cloud relay brings ready reviews and user questions to the desktop notification center and Slack, then returns the decision to the board's local server.
+- **0.9.0** — 1. low hanging fruit for ui/ux improvemnets 2. web version so mobile users can access the board.

@@ -5,397 +5,229 @@ covers it, or a plain-words note.
 
 ## The board and the flows
 
-- The flows ship with the `akb` command, not with the project: `akb guide` lists them,
-  `akb guide board` is how the board works at all, and a printed flow carries the ones its
-  action needs in full. A project holds only a short note pointing there, so an update
-  upgrades every flow at once: `skill/SKILL.md`.
+- The flows ship with the `akb` command, not with the project: `akb guide` lists them, a
+  printed flow carries the ones its action needs in full, and a project holds only a short
+  note pointing there, so an update upgrades every flow at once: `skill/SKILL.md`.
 - The manual a coding agent reads — every command it may call, when to call each, and the
-  one line that fixes an ask that can't run: `akb help runs`.
-- The daily loop as users drive it, including archiving a finished card into
-  `docs/kanban/.archive/` where it stays in git, and the refine that follows every run —
-  each as its own run, on every card the run created as well as the ones it changed, with a
-  group's main card left alone when a subtask finishes: `docs/guides/daily-loop.md`.
-- Refine runs one QA session that loops over the updated card until a clean sweep finds no
-  new gap, then writes it: `akb guide qa-loop`.
-- A question for the user with choices is written as options they tick, not as prose with
-  the choices inside the line: `akb guide qa-loop`.
-- A card reads in two halves: what a reviewer must read on top — the opening paragraph and
-  `## Worth noting`, the calls a human could have made the other way — and everything a
-  builder needs below a `<!-- agent -->` marker that never shows when the card is rendered.
-  Refine repairs an older card into that shape without rewording it: `akb guide board` and
-  `akb guide qa-loop`.
-- A card that changes a screen carries its layouts one of two ways. A rendered screen is a
-  file under `docs/kanban/.mockups/<card id>/` — a `.tsx` component styled with Tailwind or a
-  plain `.html` page — that the card points at with one tag on a line of its own,
-  `<Mockup src=".mockups/239/a.tsx" label="A" />`; that folder is gitignored, so the drawing
-  never travels with the card and what it settled has to be in the card's words. A plain-text
-  layout is written into the card body instead, as a fenced block under a `###` heading naming
-  it, so it needs no file and travels with the card. `<Mockup>` is the only tag a card body may
-  carry: `akb guide board`.
-- A card that changes something users see and click is planned against the board's UI design
-  reference, `akb guide ui-design`: the screen is matched to the ones the project already
-  has, its colours and spacing come from the project, it says what it shows with nothing to
-  show and when it fails, and a layout choice is put to the user as drawn options labelled
-  `A`, `B`, `C` rather than in prose — so the question is one short line and the options are
-  the labels. add-task, refine and revise each read it when the card has a screen in it, and
-  no run pays for it otherwise.
-- Source-to-task extraction treats articles, research, analyses, and user feedback as
-  evidence, validates ideas by module, and skips work already supported or planned:
-  `akb guide extract-ideas`.
-
-- A finished build leaves what only the user can confirm on the card's own `verify:` field
-  instead of as a fake open question — one short line each, written with
-  `akb board update-verify <id> --append ".."` and taken off with `--drop`/`--clear`. A
-  verify line is a note to read: nothing waits on it, and the card still reaches `ready`,
-  still resolves, and still archives with the lines travelling into the archive. A decision
-  only the user can make is still a `[user]` question, QA moves a hand-check misfiled as one
-  across, and `akb board list` counts them beside the open questions: "What the build
-  leaves you to check" in `docs/guides/daily-loop.md`.
+  line that fixes an ask that can't run: `akb help runs`.
+- The daily loop as users drive it, archiving a finished card into `docs/kanban/.archive/`,
+  and the refine that follows every run on every card it created or changed:
+  `docs/guides/daily-loop.md`.
+- Refine runs one QA session that loops over the card until a clean sweep finds no new gap,
+  and asks a question with choices as options to tick rather than prose: `akb guide qa-loop`.
+- Refine checks a card's size before its details — roughly 200 lines or 12 todos is a stop
+  sign for a cohesion check, and a split happens only at an obvious seam, never waiting for
+  approval: "Split before refining details" in `akb guide qa-loop`.
+- A card reads in two halves: what a reviewer must read on top, and everything a builder
+  needs below a `<!-- agent -->` marker that never renders. Refine repairs an older card
+  into that shape without rewording it: `akb guide board`, `akb guide qa-loop`.
+- A card that changes a screen carries its layouts either as a file under
+  `docs/kanban/.mockups/<card id>/` pointed at by one `<Mockup>` tag — gitignored, so what
+  the drawing settled has to be in the card's words — or as a fenced plain-text block in the
+  body, which travels with the card. `<Mockup>` is the only tag a card body may carry:
+  `akb guide board`.
+- A card that changes something users see is planned against `akb guide ui-design`: matched
+  to the screens the project already has, saying what it shows with nothing to show and when
+  it fails, with a layout choice put as drawn options `A`, `B`, `C` rather than in prose.
+- Source-to-task extraction treats articles, research and user feedback as evidence,
+  validates by module, and skips work already supported or planned: `akb guide extract-ideas`.
+- A finished build leaves what only the user can confirm on the card's `verify:` field —
+  `akb board update-verify <id> --append ".."` — as a note that blocks nothing, while a
+  decision only the user can make stays a `[user]` question: "What the build leaves you to
+  check" in `docs/guides/daily-loop.md`.
+- A card's `## Worth noting after implementation` holds what building it turned up that
+  needs no decision, and is never part of what a delivery is approved to build:
+  `akb guide board`.
+- "Group task" in `akb guide board` gives the steps that build one, and a group closes
+  itself: resolving the last subtask line archives the root in the same run, unless every
+  line was struck out by reject or the root carries an open question or todo of its own.
 
 ## Setup and the goal
 
-- Setup follows one guide — config, goal, decisions, modules, first tasks, in order. Its
-  first three boxes are the user's own (the project and its tracks, the goal, and the agent
-  that does the work), it asks for nothing else, and it leaves every call it can't settle
-  as `[user]` questions on one card that tops the board: `akb guide setup`.
-- Setup keeps its steps in `docs/kanban/setup-checklist.md` and ticks each box as it goes —
-  while the file is there the skill creates no cards, and the last tick deletes it:
-  "Setup" in `skill/SKILL.md`.
-- `akb setup` finishes a board in one run, starting at the first unticked box, so it can be
-  run again after a failure; `--print` says what to do instead. It needs no installed skill
-  and no `akb` on the PATH — the board's own copy of the command answers `guide` and
-  `board` for exactly this reason: `akb help runs`.
-- `goal.md` starts empty and carries a `reviewed: strong | good | pending | weak` field —
-  the agent judges whether the goal is clear enough to plan from, and `pending` marks a
-  goal written but not judged yet: `docs/guides/daily-loop.md`.
+- Setup follows one guide — config, goal, decisions, modules, first tasks — asking only for
+  the project and its tracks, the goal, and the agent that works, and leaving every call it
+  can't settle as `[user]` questions on one card that tops the board: `akb guide setup`.
+- Setup keeps its steps in `docs/kanban/setup-checklist.md`, creating no cards while the
+  file is there and deleting it on the last tick: "Setup" in `skill/SKILL.md`.
+- `akb setup` finishes a board in one run from the first unticked box, so it can be run
+  again after a failure, and needs no installed skill and no `akb` on the PATH:
+  `akb help runs`.
+- `goal.md` starts empty and carries `reviewed: strong | good | pending | weak`, the agent's
+  judgement of whether the goal is clear enough to plan from: `docs/guides/daily-loop.md`.
 - What a good goal covers, offered as one line the user can skip:
   `docs/guides/what-makes-a-good-goal.md`.
 
 ## Releases
 
 - Say which release a card ships in — `create --release v1`, `update <id> --release v1`,
-  `--release ""` to take it back out: "Releases" in `skill/SKILL.md` and `akb guide releases`.
-- Plan a version, say what it is for, and see every version in ship order with its card
-  counts — `release new v1 --goal ".."`, `release goal v1`, `release list`, and `--fill`
-  for the plain high-priority rule: "Plan a release" in `docs/guides/daily-loop.md`.
-- Fill a version against its goal — say "plan release v1" and the agent moves in the open
-  cards that ship the goal, writes the ones the board is missing, and reports what it
-  moved, wrote and left out. It only adds, so it can be run again whenever the goal
-  changes: `akb guide plan-release`.
-- Close a shipped version or drop one that won't ship — both clear the release off the
-  cards still open and take it off the list for good; close writes a summary, drop writes
-  none and leaves an older one untouched: "Close a release" and "Drop a release" in
-  `docs/guides/daily-loop.md`.
+  `--release ""` to take it out: "Releases" in `skill/SKILL.md`, `akb guide releases`.
+- Plan a version, say what it is for, and list every version in ship order with its counts:
+  "Plan a release" in `docs/guides/daily-loop.md`.
+- Fill a version against its goal — the agent moves in the cards that ship it, writes the
+  ones the board is missing, and only ever adds, so it can be run again: `akb guide plan-release`.
+- Close a shipped version or drop one that won't ship; both clear it off the cards still
+  open: "Close a release", "Drop a release" in `docs/guides/daily-loop.md`.
+- Closing also writes a changelog — a few plain lines saying what the version changed, six
+  at most, in the language of the release goal. `akb changelog <version>` starts the same
+  run by hand and replaces rather than appends: `akb guide changelog`.
 
 ## Recurring tasks
 
-- Run a job, give it a cadence (`30m`, `6h`, `1d at 09:30`) so the board runs it itself,
-  and read when it last ran and when it comes round again: "Recurring tasks" in
-  `kanban-ui/README.md`. From a terminal it is `akb run <id>`, which does one pass and
-  stamps `last_run` into the card.
-- Every new board starts with one recurring card, "Prune the memory", seeded with no
-  cadence — setting a cadence prunes on that schedule, deleting the card opts out for good,
-  and nothing puts it back. No published doc covers this yet.
+- Run a job, give it a cadence (`30m`, `6h`, `1d at 09:30`) so the board runs it itself, and
+  read when it last ran: "Recurring tasks" in `kanban-ui/README.md`. From a terminal it is
+  `akb run <id>`, one pass, stamping `last_run`.
+- Every new board starts with one recurring card, "Prune the memory", with no cadence —
+  setting one prunes on that schedule, deleting the card opts out for good. No published doc
+  covers this yet.
 
 ## The command
 
-- Every bookkeeping move is a command of `akb` — `create`, `update`, `update-questions`,
-  `archive`, `reject`, `release`, `init` — listed by `akb board help`, with each move in
-  full when named. They are the agent's to call, not the README's to teach.
-- A board command works on any board: `--dir <path>` names one, and with none named it
-  finds the board from the folder it was run in: `akb board help`.
-- A refused move says why and exits 1 instead of ending whoever asked, and `--json` makes
-  any move answer as one object a program can read: `akb board help`.
-- Every run the board can start is a command — `akb implement`, `refine`, `resolve`,
-  `create`, `propose`, `archive`, `reject`, `run`, `plan-release` — so a card can be built
-  from a terminal, over ssh or from a script, with no browser and no chat session:
-  `cli/README.md`.
+- Every bookkeeping move is a command of `akb`, listed by `akb board help`; a move works on
+  any board (`--dir <path>`, or the folder it was run in), a refused one says why and exits
+  1, and `--json` makes any move answer as one object.
+- Every run the board can start is also a command, so a card can be built from a terminal,
+  over ssh or from a script: `cli/README.md`.
 - Every one of those takes `--print`: it starts nothing and prints the job filled in for
-  this board instead, so an agent already in a session does the work there rather than
-  starting a second agent. An agent inside a run always gets the printed flow, so a run
-  can't spawn a copy of itself: `docs/guides/daily-loop.md` and `akb help runs`.
-- A run outlives the command that started it: it keeps working after the terminal closes,
-  and `akb runs`, `akb log --follow`, `akb stop` and `akb resume` reach any run from
-  anywhere, whoever started it: `cli/README.md`.
-- `akb implement` starts a **delivery** — the whole job, several agent sessions long, against
-  the card exactly as it read when it started. `akb runs` names the delivery each session
-  belongs to, and `akb cancel <delivery-or-card-id>` ends one and hands the card back:
-  `akb help`.
-- While a delivery is in flight, `akb revise`, `refine`, `resolve`, `reject` and `archive`
-  refuse that card and name what has it — except from inside the delivery's own session,
-  which is how its flow ticks todos and archives the card at the close: `akb help`.
+  this board, so an agent already in a session does the work there. An agent inside a run
+  always gets the printed flow, so a run can't spawn a copy of itself: `akb help runs`.
+- A run outlives the command that started it, and `akb runs`, `akb log --follow`, `akb stop`
+  and `akb resume` reach any run from anywhere, whoever started it: `cli/README.md`.
+- The board's three nested things each have one name everywhere: a **delivery** is the whole
+  job one Implement starts, a **run** is one execution attempt inside it, a **session** is
+  the coding agent's own conversation that a resume picks back up: `akb help runs`.
+- `akb implement` starts a delivery against the card exactly as it read when it started;
+  `akb cancel <delivery-or-card-id>` ends one and hands the card back. While one is in
+  flight, `revise`, `refine`, `resolve`, `reject` and `archive` refuse that card and name
+  what has it — except from inside the delivery's own session: `akb help`.
+- `akb implement <id>` warns about a card's open questions the way it warns about a blocker:
+  the delivery starts and holds at landing until they are answered. The board archives the
+  card itself as the last step after landing; the `review` flow no longer archives one.
+- A delivery reviews its own work: `akb review <id>` judges the candidate against the
+  approved card, `akb correct <id>` fixes what it found, and the board starts both. Review
+  answers with `akb board review-verdict`, the only thing the delivery reads, so a review
+  that records nothing stops the delivery and asks: `akb guide review`.
+- Review takes work nobody asked for back out of the delivery: it fixes implementation
+  mistakes in scope, notes unrelated discoveries in the run log, and never creates a card.
+- A stopped delivery leaves one `[user]` question and keeps holding the card; `akb resolve`
+  is the one held action let back through: `akb guide review`.
+- `akb approve <delivery-or-card-id>` signs off the tree a delivery would land on a board
+  requiring diff approval. It covers the base commit and tree as they stand, so read the
+  diff first, and either one moving cancels it: `akb help runs`, `akb guide review`.
+- A build's commit mode can be asked for per Implement, not just configured; `akb implement`
+  in a terminal carries none and falls back to the setting. A detached `HEAD` no longer
+  refuses a build — it joins no-git and no-commit as a case where manual mode is the answer.
 - Every delivery leaves one JSON file under `docs/kanban/deliveries/`, tracked in git and
-  kept after the card is archived — including every review verdict, its findings, each
-  correction round and why a stopped delivery stopped: `akb guide board`.
-- A delivery reviews its own work before it finishes: `akb review <id>` is the fresh session
-  that judges the candidate against the approved card, `akb correct <id>` is the one that
-  fixes what it found, and the board starts both itself as the delivery moves. Typed by hand
-  they put a stopped delivery back in motion: `akb guide review`.
-- A review answers with `akb board review-verdict <id> --verdict pass|correct|ask` and its
-  findings in `--file <path>`. It is the only thing the delivery reads, so a review session
-  that records nothing stops the delivery and asks: `akb board help review-verdict`.
-- Review takes work nobody asked for back out of the delivery. It fixes implementation
-  mistakes in scope, drops unrelated implementation discoveries after noting them in the
-  run log, and never creates another card: `akb guide review`.
-- A stopped delivery leaves one `[user]` question on its card and keeps holding it, and
-  `akb resolve` is the one held action let back through — answering is the way on:
-  `akb guide review`.
-- `akb approve <delivery-or-card-id>` signs off the tree a delivery would land, on a board
-  with **Require diff approval before landing** on. It ends nothing and starts nothing: a
-  delivery already waiting carries on. The approval covers the base commit and the tree built
-  on it as they stand at that moment, so read the diff first, and either one moving cancels
-  it: `akb help runs` and `akb guide review`.
-- A card's `## Worth noting after implementation` holds what building it turned up that
-  needs no decision. It is never part of what a delivery is approved to build:
+  kept after the card is archived, including every review verdict and why one stopped:
   `akb guide board`.
-- A run goes through the settings the board saved, never what your shell exported, and the
-  same command changes them — which agent, its model, how hard it thinks, who pays, and the
-  key — and says which agents it can run and what each takes: `cli/README.md`.
-- A fifth agent runs the board: **DeepSeek Harness**, with `akb agent use dsh`. It needs
-  `npm install -g @deepseek-ai/dsh` and then `npm install -g @openma/deepseek-harness-acp`
-  — two commands, never one, since npm gives everything named together its own folder and
-  the bridge would come out with no dsh under it. It then takes a model and a DeepSeek key,
-  both optional, since an empty key uses the one dsh already saved: `cli/README.md` and
-  "Running on DeepSeek Harness" in `kanban-ui/README.md`.
-- A sixth agent runs the board: **ZCode**, with `akb agent use zcode`. Z.ai ships no
-  terminal command, so it needs `npm install -g zcode-app-cli` — a community package, not
-  Z.ai's — or ZCode Desktop with this agent's `command` pointed at the `zcode` inside it.
-  It signs in with a Z.AI or BigModel Coding Plan key and nothing else — a `zcode login`
-  credential belongs to a provider `zcode`'s own config never points at, so a run without
-  the key stops on `Model provider is missing an API key: zai`. A ZCode run is not fenced to
-  the project: ZCode ships no sandbox: `docs/guides/connectors.md`.
-- A dsh run is pinned to the dsh sitting beside the bridge, with `--dsh-path`. `dsh-acp`
-  otherwise takes the first `dsh` on the PATH, and on a machine that has one that is a
-  second copy of the same plugin system — every run then dies as it opens, on
-  `agent-presets: refusing to compose an unscoped context`. No published doc covers this
-  yet.
+- A board can add **one rule of its own to any flow** — plain words in
+  `docs/kanban/rules/<command>.md`, appended to the end of that flow's instructions, tracked
+  in git. A delivery freezes the rules of its four flows when it starts, so editing one
+  changes the next delivery and never one in flight: `akb guide board`.
+- A rough card gets `schedule: refine` when it first becomes blocked; `akb board schedule
+  <id> --action implement|refine` replaces it and `--clear` cancels it for that episode:
+  "Queue a card that is waiting on another" in `docs/guides/daily-loop.md`.
 - One writer at a time on a board: a move waits its turn and says which process it is
-  waiting on when it gives up. A lock left by a killed run is taken over the moment that
-  process is gone, so there is never a folder to delete by hand. No published doc covers
-  this yet.
-- A rough card gets `schedule: refine` when it first becomes blocked. `akb board schedule
-  <id> --action implement|refine` replaces that one-shot action, and `--clear` cancels it
-  for the current blocked episode: "Queue a card that is waiting on another" in
-  `docs/guides/daily-loop.md`.
-- A card is refined as soon as a run creates it, whichever run that was — the subtasks a
-  refine pass splits off, and the first cards finishing setup writes: "Push a card forward"
+  waiting on. A lock left by a killed run is taken over the moment that process is gone. No
+  published doc covers this yet.
+- The board keeps `docs/kanban/record.csv` in git beside `metrics.csv` — one appended line
+  per card created, archived or rejected, per question cleared, per call that stood or was
+  overruled, and per release closed — written by board commands as they run.
+- The board scores its own planning from that record, one set per release: **Details
+  settled**, **Decisions that stood**, **Proposals built**, worked out on each read, with
+  `not enough yet` instead of a percentage where the evidence is thin, and none of the three
+  a target: "Insights" in `kanban-ui/README.md`.
+
+## Agents, runtimes and keys
+
+- A run goes through the settings the board saved, never what your shell exported, and the
+  same command changes them — which agent, its model, how hard it thinks, who pays, the key
+  — and says which agents it can run and what each takes: `cli/README.md`.
+- **DeepSeek Harness** (`akb agent use dsh`) needs `npm install -g @deepseek-ai/dsh` and
+  then `npm install -g @openma/deepseek-harness-acp` — two commands, never one, since npm
+  gives everything named together its own folder. A dsh run is pinned to the dsh beside the
+  bridge with `--dsh-path`, or every run dies as it opens: `cli/README.md`.
+- **ZCode** (`akb agent use zcode`) needs `npm install -g zcode-app-cli` or ZCode Desktop,
+  and signs in with a Z.AI or BigModel Coding Plan key alone. A ZCode run is not fenced to
+  the project — ZCode ships no sandbox: `docs/guides/connectors.md`.
+- **A board names its runtimes and each computer says what they run as.** A runtime is a
+  name in `ui.config.json`; what it spawns is the computer's answer in
+  `~/.ai4kanban/runtimes.json`, so a team shares the names and nobody shares the tools. A
+  fresh clone works with no local setup, and a board with no runtime list reads as it did.
+  `akb agent runtimes`, `runtime add|remove|global|for|rename` and `bind|unbind` are the
+  whole of it: "Which tool each flow runs on" in `docs/guides/daily-loop.md`.
+- Renaming a runtime moves the board's half whole and *copies* this computer's binding, so
+  every other computer reads the renamed runtime as unbound. Removing one clears the spec
+  agents that named it as well as the flows.
+
+## Spec agents
+
+- A **spec agent** fills one part of a card's spec in a run of its own: `akb spec` lists
+  them, `akb spec <name> <id>` puts one on a card. It starts clean, writes one
+  ``## By `<name>` agent`` section and nothing else, and rewrites that section when it runs
+  again: `docs/guides/daily-loop.md`, `akb guide spec-agent`.
+- The board asks for one itself, so most spec runs are ones nobody typed: the flow writing a
+  card asks for the part it would otherwise guess at, a refine or revise asks only when that
+  part is still open, and propose and plan-release ask for none.
+- A spec agent can carry settings of its own — what it produces, not only whether it runs —
+  chosen in the board UI and saved with the board, so every card that agent runs on gets the
+  same answer: "The spec agents" in `kanban-ui/README.md`.
+- `ui-design` answers with the screen drawn, not described: two or three layouts labelled
+  `A`, `B`, `C` with one recommended, and nothing written under a drawing. Its setting picks
+  **Rendered screen** (a `.tsx`/`.html` file per option) or **ASCII drawing** (written into
+  the card, travelling through git, a much shorter run): "Picking a layout by looking at it"
   in `docs/guides/daily-loop.md`.
+- `technology-selection` comes back with one table — two or three candidates, what each is,
+  pros and cons — and one line naming the pick. Keeping what the project already uses and
+  writing it yourself are rows on the same terms, and every name is looked up before it is
+  written down.
+
+## Chat
+
+- `akb chat "…"` talks about the board and `akb chat <id> "…"` about one card. The reply
+  arrives as it is written, the next message lands in the same session, and
+  `--clear` starts fresh. Conversations are kept under `docs/kanban/.chats/`, out of git,
+  and a chat is not a run — it never shows in `akb runs` and never holds a card:
+  `cli/README.md`.
+- A fresh conversation is only the harness's kanban-skill invocation plus the user's
+  message — no copied board snapshot, command manual or separate chat flow — so chat behaves
+  exactly like the skill in a coding-agent conversation, `--print` and all. There is no
+  `akb guide chat`: `docs/guides/daily-loop.md`.
 
 ## Installing and updating
 
-- `akb` is a command you install — `npm install -g ai4kanban`, and
-  `npm install -g ai4kanban@latest` for a newer one; `npx --yes ai4kanban@latest <command>`
-  runs it without installing anything: "Quick start" in `README.md`.
+- `akb` is a command you install — `npm install -g ai4kanban` — or run with
+  `npx --yes ai4kanban@latest <command>`: "Quick start" in `README.md`.
 - `akb install` scaffolds the board and writes nothing outside `docs/kanban/`. Letting a
-  coding agent drive that board is a separate, optional step — `akb skill` says where it
-  stands, `akb skill install` adds it or brings an older copy up to date, and `akb update`
-  refreshes one that is already there without ever adding one: "Install into a project" and
-  "Drive the board from your coding agent" in `cli/README.md`.
-- Adding the skill writes one file, `SKILL.md`; the command it names stays where npm put
-  it, so nothing generated lands in the user's git history: "The coding agent skill" in
-  `cli/README.md`.
+  coding agent drive it is separate and optional: `akb skill`, `akb skill install`, and
+  `akb update` for one already there: `cli/README.md`.
+- Adding the skill writes one file, `SKILL.md`, so nothing generated lands in git.
 - A desktop user needs no npm: the app carries `akb` and installs it as one symlink, so
-  updating the app updates the command, and after an install that answers it rewrites the
-  open project's skill note to say `akb`: `desktop/README.md`.
-- Updating is two lines and no third: a newer command, then `akb update` to repair the
-  board. `akb update` can't replace the running command, so it checks npm and names the
-  line when it is behind: `akb guide update`.
+  updating the app updates the command: `desktop/README.md`.
+- Updating is two lines and no third — a newer command, then `akb update` to repair the
+  board, which checks npm and names the line when it is behind: `akb guide update`.
 - `akb board init` keeps `docs/kanban/.env` out of git on new boards and repairs the ignore
-  rule on older ones, so hand-written API keys stay local: `kanban-ui/README.md`.
-- Every board action a button offers can be asked for in plain words from a coding agent —
-  starting and stopping a build, reading a run's log, continuing a failed one, picking the
-  agent and its model, testing the setup. An API key is the one thing handed back instead:
-  the agent gives the user the line to type: `docs/guides/daily-loop.md`.
-- A **spec agent** fills one part of a card's spec in a run of its own: `akb spec` lists
-  them, `akb spec <name> <id>` puts one on a card. It starts clean — the card and a note,
-  never the conversation that asked — writes one ``## By `<name>` agent`` section and
-  nothing else, and rewrites that same section when it runs again. Asked for from inside a
-  run, the board starts it once that run ends, so nothing waits for it: "Let a specialist
-  fill part of the spec" in `docs/guides/daily-loop.md`, and `akb guide spec-agent` for the
-  flow one follows.
-- A spec agent can carry settings of its own — what it produces, not only whether it runs.
-  The agent says what it can be set to, the choice is made in the board UI under
-  Configuration → Agents, and it is saved with the board, so every card that agent runs on
-  gets the same answer, including a run started from a terminal. `akb spec` prints each
-  agent's settings and what each one is set to, and an agent that declares no settings is
-  unchanged: "The spec agents" in `kanban-ui/README.md`.
-- The `ui-design` spec agent answers with the screen drawn, not described: on a card that
-  changes or adds a screen, it draws two or three layouts labelled `A`, `B`, `C` and
-  recommends one. Nothing is written under a drawing — the user picks a layout by looking.
-  Run again on the same card it writes over its old answer and deletes the mockup files its
-  new one dropped: "Let a specialist fill part of the spec" in `docs/guides/daily-loop.md`.
-- Choose how `ui-design` draws a layout, in the board UI under Configuration → Agents:
-  **Rendered screen** — a `.tsx` or `.html` file per option, styled like the product, which
-  the card points at — or **ASCII drawing**, a plain-text drawing written straight into the
-  card section, which needs no file, travels through git and costs a much shorter run.
-  Rendered screen is what a board starts with, and the setting is board-wide, so one card is
-  drawn in one style: "Picking a layout by looking at it" in `docs/guides/daily-loop.md`.
-- The second spec agent is `technology-selection`: on a card that leans on an outside
-  library, tool, or service, it comes back with one table — two or three candidates, a row
-  each, with what it is, its pros and its cons — and one line naming the pick. Nothing else
-  goes in the section, because a section too long to read is one nobody reviews. Keeping what
-  the project already uses and writing it yourself are rows on the same terms, so a card
-  doesn't come back with something new to install by default, and every name is looked up
-  before it is written down — a renamed or abandoned package never reaches the card: "Let a
-  specialist fill part of the spec" in `docs/guides/daily-loop.md`.
-- The board asks for a spec agent by itself, so most spec runs are ones nobody typed: the
-  flow that writes a card asks for the part it would otherwise guess at, a refine or a
-  revise asks only when that part of the spec is still open, and propose and plan-release
-  ask for none — each card's own refine does. A card that needs neither a screen nor a
-  library goes through all of them without a spec run, and a second ask is turned down
-  while that agent is still working the card: "When one shows up on its own" in
-  `docs/guides/daily-loop.md`.
-- `akb chat "…"` holds a conversation with the agent about the board, and `akb chat <id> "…"`
-  about one card. The reply arrives as it is written, the next message lands in the same
-  session so the agent still has everything said before, and `akb chat [<id>] --clear` starts
-  fresh. Each conversation is picked up from any terminal and survives closing one; the
-  board's and each card's are separate, kept under `docs/kanban/.chats/` and out of git. A
-  chat is not a run — it never shows in `akb runs` and never holds a card — and it is offered
-  only on an agent whose command takes a second message into its own session, which today is
-  every agent the board ships: `cli/README.md`, "Talk to it about the board".
-- A fresh conversation is only the configured harness's kanban-skill invocation plus the
-  user's message: `/kanban` on Claude Code, `$kanban` on Codex, and a plain request on agents
-  without direct syntax. Chat installs the one shared skill first and sends no copied board
-  snapshot, command manual, environment rules, or separate chat flow:
-  `cli/README.md`, "Talk to it about the board".
-- Chat now behaves exactly like the kanban skill in a coding-agent conversation: `--print`
-  does the flow here, omitting it starts a background run, and the user's explicit choice
-  wins. The skill is the only maintained behavior source; there is no `akb guide chat`:
-  `docs/guides/daily-loop.md`, "Talk it over, and let it do it".
-- The board keeps `docs/kanban/record.csv` in git beside `metrics.csv`: one appended line per
-  card created, archived or rejected, per question cleared, per set of the board's own calls
-  that stood or was overruled, and per release closed. Board commands write it as they run —
-  nothing new to type and nothing to edit by hand — and the setup questions card and the
-  recurring cards are left out of it. Moving a question that turned out to be a hand-check
-  into a card's `verify:` list is now one call, `akb board update-questions <id> --to-verify
-  <n>`, and `akb board create --proposed` marks a card the board found rather than one a
-  person asked for.
+  rule on older ones: `kanban-ui/README.md`.
+- Every board action a button offers can be asked for in plain words from a coding agent. An
+  API key is the one thing handed back: the agent gives the user the line to type.
 
-- `readScoreView` turns `docs/kanban/record.csv` into ready-to-draw release windows — every
-  closed release in close order, then the window still open, each with the three planning
-  scores, their counts, their evidence state and their contributing card ids. A window is the
-  lines between one `release-closed` line and the one before it, in file order and never by
-  date. Nothing saves a percentage: the figures are worked out from the evidence on each read.
+## Cloud and language
 
-- The board now scores its own planning, one set of numbers per release, and every board
-  keeps its own. **Details settled** is the share of a card's questions the board answered
-  itself instead of asking the user; **Decisions that stood** is the share of the calls it
-  made on its own that the user did not overrule; **Proposals built** is the share of the
-  cards it proposed, and that have since been decided, that shipped rather than being
-  dropped. Nothing extra is typed or answered to collect them — creating a card, clearing
-  its questions, archiving it, rejecting it and closing a release each leave the evidence
-  behind. A release with too little evidence for a number shows its two counts and `not
-  enough yet` rather than a percentage, and none of the three is a target:
-  `kanban-ui/README.md`, "Insights".
-
-- Closing a release now leaves a changelog, not just a card list. `akb board release close
-  <version>` writes the shipped and left-behind cards as it always did, then starts an agent
-  run that puts a few plain lines at the top of that dated section saying what the version
-  changed — six at most, each one something a user can now see or do, in the language of the
-  release goal. `akb changelog <version>` starts the same run by hand, on any version the
-  board holds a closed record of, and running it again replaces the changelog rather than
-  adding a second. A version that shipped no card gets none, and the close says so. The
-  agent writes through `akb board release changelog <version> --file <path>`, which owns the
-  placement: `akb guide changelog`, and "Close a release" in `docs/guides/daily-loop.md`.
-
-- "Group task" in `akb guide board` now gives the steps that actually build one: write the
-  root card, write each piece related to it, move the files into `todo/<id>-<slug>/`, point
-  the root at its pieces, and repoint the moved bullets in the board index. `akb board
-  create` now writes exactly one complete card and allocates its id in the same call; the
-  unusable bare id-reservation mode is gone.
-
-- A board can now add **one rule of its own to any flow** — plain words in
-  `docs/kanban/rules/<command>.md`, named by the command that starts the flow (`revise.md` for
-  `akb revise`). The command appends it to the end of that flow's instructions, so a started run
-  and a `--print`ed flow both carry it; a printed flow puts it last, after the flows. On `review`,
-  a check the rule asks for is treated as one of the repository's own. Rules are tracked in git,
-  and a delivery freezes the rules of the four flows it is made of when it starts, so editing one
-  changes the next delivery and never one in flight: "Follow the board's flow rules" in the skill
-  note, and `rules/` in `akb guide board`.
-
-- A delivery's card is now archived by the BOARD, as the last step after landing — the `review`
-  flow no longer archives one, and the `implement` flow inside a delivery leaves the card where it
-  is. `akb implement <id>` warns about a card's open questions the way it already warned about a
-  blocker: the delivery still starts, and holds at landing until they are answered. `akb help` and
-  `akb guide review` carry the whole of it.
-
-- The board's three nested things now each have one name, said the same way everywhere. A
-  **delivery** is the whole job one Implement click starts; a **run** is one execution attempt
-  inside it — implement, review, correct; a **session** is the coding agent's own conversation,
-  the thing a resume picks back up. Every surface follows it: `akb help` and `akb help runs`, the
-  CLI's own output and errors, the flows in `akb guide`, the board UI (the header's **Runs**
-  button and its panel, and the **run log** window), `docs/guides/`, and the landing page's mock
-  of that panel. Resume is where the third level is stated outright — it continues the coding
-  agent's own session while the board counts the work as a fresh run: `akb help runs` and
-  `docs/guides/connectors.md`.
-- A **group closes itself**: the command that resolves the last subtask line archives the group's
-  root in the same run, through the same bookkeeping a hand-pressed Archive takes. A finished root
-  still waits for a person when every line was struck out by reject, or when it carries an open
-  question or an unticked todo of its own — the receipt names which rule kept it, and the subtask's
-  own archive stands either way: "Group task" in `akb guide board`.
-- `akb cloud` says which account this machine is signed in to AI4Kanban Cloud as, and whether
-  Cloud takes its work; `akb cloud sign-out` forgets it. Neither needs a board — the sign-in
-  belongs to the machine. Starting one is the app's, in **Configuration → Notifications**: the consent
-  screen comes back to the app, so there is no address a terminal could be answered at. An
-  account we have not admitted is told to ask for an invite in the app — there is no code to
-  paste, in the terminal or anywhere else, and `akb help` says the same.
-- The language you read in belongs to the machine, not to a board: `akb` holds it in
-  `~/.ai4kanban/settings.json`, beside the Cloud sign-in and outside every repository, so the app,
-  a board served to a browser and a bare `akb` in a terminal all reach one answer and no project
-  carries a language in git. There is no command that sets it — the switcher is the app's, in
-  **Configuration → Language**, and one more on the app's launcher — and what `akb` prints in a
-  terminal stays English either way. `akb` does own the answer to "which language is this system
-  tag?": the app hands over the machine's preferred languages and the rules decide, so any `zh-*` is
-  Simplified Chinese and a tag no copy exists for is no answer rather than English.
-
-- **`akb` publishes a board's actionable tasks to Cloud after every write, over plain
-  `fetch`.** Turning notifications on is the app's — `akb cloud` prints which boards are on
-  and which release each watches. Every publication is written into the board's own
-  `.akb/cloud-outbox.json` before it is sent and retried from there, so a board write never
-  waits for the network and an unreachable Cloud loses nothing; a start reconciles the
-  board against Cloud to catch what a crash between the two missed. `akb` still runs on
-  Node 18 with no dependencies: only the app opens the live connection.
-
-- **Refining a card checks its size before it checks its details.** Roughly 200 lines or 12
-  todos is the stop sign for a cohesion check, not a hard limit: the card is split only at an
-  obvious seam between independently refinable deliverables, one slice keeps the id and the
-  rest are created and scheduled for refine. A user watching a refine can see one card become
-  several, and is never asked to approve an evident split: "Split before refining details" in
-  `akb guide qa-loop`.
-
-- **A board names its runtimes and each computer says what they run as.** A **runtime** is a
-  name in `ui.config.json` — `default`, `cheap` — and every flow and spec agent runs on one,
-  the global one unless it names another, keyed by the command a user types. What a runtime
-  spawns is the computer's answer, in `~/.ai4kanban/runtimes.json`, so a team shares the names
-  and nobody shares the tools. A runtime nobody bound here runs this computer's global
-  binding, and a computer that has bound nothing runs `harness` and `harnessSettings`, so a
-  fresh clone works with no local setup and a board with no runtime list reads exactly as it
-  did. `akb agent runtimes`, `akb agent runtime add|remove|global|for` and `akb agent
-  bind|unbind` are the whole of it; every harness also takes an `args` setting for a flag the
-  board has no box for. Set up in `kanban-ui/README.md` under Configuration; the everyday
-  version is "Which tool each flow runs on" in `docs/guides/daily-loop.md`.
-
-- **An event carries enough of the card to review it away from your machine.** A task the
-  board raises for a person now publishes the card's opening paragraph and its `## Worth
-  noting` sections beside the number, title, release, revision and questions it already
-  carried — bounded, cut at a bullet or a paragraph, so a long card costs one snapshot
-  rather than its whole body — and they are refreshed when the card is rewritten. `akb
-  cloud` names the Slack destination this account posts to beside the boards this machine
-  publishes, and says when Slack has refused it.
-
-- **`akb agent runtime rename <old> <new>` renames a runtime.** The board's half moves whole —
-  the flows and spec agents that named it, and the global pointer — while this computer's
-  binding is *copied* to the new name, so the old name stays bound for whatever else on this
-  machine names it and every other computer reads the renamed runtime as unbound until
-  someone binds it there. Removing a runtime now clears the spec agents that named it as well
-  as the flows, so re-adding the name never quietly puts them back on it.
-
-- **A board set to 中文 comes back in 中文.** Every run, every turn of a conversation and the
-  setup line you paste are told the language this machine reads in, so card titles and bodies,
-  open questions and their options, `verify:` lines, memory notes, changelogs and the agent's
-  replies follow it — while the frontmatter keys, `##` headings, the `<!-- agent -->` boundary,
-  todo checkboxes, the `[user]` tag, track and module names and card filenames stay English,
-  because the board matches those by literal text. Rewriting a card, memory file or changelog
-  keeps the language that file is already in; an open question and a `verify:` line follow you
-  on every card, including one written in English. An English machine is told nothing and its
-  prompts are unchanged. The rule in full is "The board's language" in `akb guide board`.
+- `akb cloud` says which account this machine is signed in as, whether Cloud takes its work,
+  which boards publish and which release each watches, and where Slack and Lark post or what
+  they last refused; `akb cloud sign-out` forgets the account. Signing in is the app's — the
+  consent screen comes back to it, so there is no code to paste anywhere.
+- `akb` publishes a board's actionable tasks to Cloud after every write over plain `fetch`,
+  through `.akb/cloud-outbox.json`, so a board write never waits for the network and an
+  unreachable Cloud loses nothing; a start reconciles the board against Cloud. `akb` still
+  runs on Node 18 with no dependencies.
+- An event carries enough of the card to review away from your machine: the opening
+  paragraph and `## Worth noting` sections beside the number, title, release, revision and
+  questions, bounded and refreshed when the card is rewritten.
+- The language you read in belongs to the machine, held in `~/.ai4kanban/settings.json`
+  outside every repository, so no project carries a language in git. There is no command
+  that sets it — the switcher is the app's — and what `akb` prints stays English either way.
+- A board set to 中文 comes back in 中文: card prose, questions, options, `verify:` lines,
+  memory notes and changelogs follow it, while frontmatter keys, `##` headings, the
+  `<!-- agent -->` boundary, the `[user]` tag, track and module names and filenames stay
+  English. Rewriting a file keeps the language it is already in: "The board's language" in
+  `akb guide board`.

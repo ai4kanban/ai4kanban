@@ -28,9 +28,13 @@ _(none)_
 - [#322 Open a Cloud board in the browser](features/322-open-a-cloud-board-in-the-browser.md)
 - [#328 Notify a workspace's owners and members about a card that needs them](311-team-collaboration-cloud/features/328-notify-a-workspace-s-owners-and-members-about-a-card-that-ne.md)
 - [#341 Chat about a card from its Slack message](features/341-chat-about-a-card-from-its-slack-message.md)
-- [#346 Pick whether a build gets its own worktree, each time you press Implement](features/346-pick-whether-a-build-gets-its-own-worktree-each-time-you-pre.md)
-- [#350 Admit an invite request without an invitation code](features/350-admit-an-invite-request-without-an-invitation-code.md)
-- [#351 Act on Cloud task events from Lark](features/351-act-on-cloud-task-events-from-lark.md)
+- [#354 Read and answer the board from your phone](354-mobile-board/root.md)
+- [#355 Give the board a URL a phone can open](354-mobile-board/features/355-phone-url.md)
+- [#356 Let only the people you allow open the board's phone URL](354-mobile-board/features/356-phone-access.md)
+- [#357 Lay the board out for a phone screen](354-mobile-board/features/357-phone-layout.md)
+- [#358 Work the board from the keyboard](features/358-keyboard-shortcuts.md)
+- [#360 Track the card in its Lark message and log each event in its thread](features/360-lark-card-message.md)
+- [#363 Connect 飞书 by scanning a QR code, with no app to install](features/363-feishu-qr-connect.md)
 
 ## skill
 
@@ -43,6 +47,7 @@ _(none)_
 
 - [#202 Test whether the board changes what a coding agent builds](202-board-vs-no-board/root.md)
 - [#292 See how the app is actually used, from download to daily work](292-app-telemetry/root.md)
+- [#362 Publish the Lark app so anyone can connect it](distribution/362-publish-the-lark-app-so-anyone-can-connect-it.md)
 
 ## recurring
 

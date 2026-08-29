@@ -18,6 +18,7 @@ don't re-ask a settled call.
 - There is no single on/off switch for what the board does on its own, and no ladder of
   levels. Work that needs no user follows whatever caused it — a refine follows the run
   that touched the card — and each further step brings its own setting if it needs one.
-- Auto-implement, the agent building a `ready` card by itself, is the next step. Letting
-  it reject a card is a separate feature: nothing today ever decides a card should be
-  rejected.
+- One click already carries a card from build to landed and archived. The next step is the
+  board starting a `ready` card with no click at all, which waits on limits for concurrent
+  runs, card count and spend. Letting it reject a card is a separate feature: nothing today
+  ever decides a card should be rejected.

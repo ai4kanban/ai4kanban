@@ -7,148 +7,126 @@ re-ask a settled call.
 
 ## The memory set
 
-- The set is five files. There is no `archive.md`: a file nothing writes is exactly the
-  leftover we avoid. What shipped is recorded in the published docs, with a `readme.md`
-  line pointing at them.
+- The set is four files, plus `goal.md` outside it at the project level. There is no
+  `archive.md`: a file nothing writes is exactly the leftover we avoid, and what shipped is
+  recorded in the published docs with a `readme.md` line pointing at them.
 - What the agent decided by itself stays on the card, in its own section, so the user can
   check it. Only a call a future card would need reaches `decisions.md`.
+- A finished card moves to `.archive/` beside `todo/` and stays in git, so finished work can
+  be read and diffed; a rejected card is still deleted, since `rejected.md` records why. The
+  archive is not project memory — no flow reads it.
 
 ## The goal
 
-- The agent judges only whether a goal is there, never the prose: missing or still seed
-  text is `weak`, anything the user wrote is at least `good`. Nagging about a goal the
-  user did write is worse than no nag.
-- What a good goal contains is advice in a guide setup links to — the business goal, the
-  long horizon, a rough roadmap, the direction. Nothing enforces it and the file stays
-  free-form.
-
-## Finished cards
-
-- A finished card moves to a `.archive/` folder next to `todo/`, kept in git, so finished
-  work can still be read and diffed. A rejected card is still deleted — `rejected.md`
-  already records why.
-- The archive is not project memory. No flow reads it; `readme.md` plus the published docs
-  stay the only record of shipped work.
+- The agent judges only whether a goal is there, never the prose: missing or seed text is
+  `weak`, anything the user wrote is at least `good`. Nagging about a goal the user did
+  write is worse than no nag.
+- What a good goal contains is advice in a guide setup links to. Nothing enforces it and the
+  file stays free-form.
 
 ## Setup
 
 - Setup asks the user for one thing, the goal. It settles what the goal answers into
-  `decisions.md`, and hands over every call it can't settle as `[user]` questions on one
-  card that tops the board — never in the checklist, never in `decisions.md`, which holds
-  only settled calls.
+  `decisions.md` and hands every call it can't settle over as `[user]` questions on one card
+  that tops the board — never in the checklist, never in `decisions.md`.
 - Without a written `goal.md` setup stops at the goal step: nothing after it can be built
-  from seed text, so there are no decisions, no module map, no first cards. A later run
-  picks up from there.
-- The module map comes after the decisions. A project started without code has no code to
-  read a map from — the map can only come from what's been decided.
-- Setup ends with 10 first cards, the ones later work builds on — never improvements aimed
-  at what the project hasn't built yet.
-- While `setup-checklist.md` is there the board is unfinished and no flow creates a card;
-  the last tick deletes it, and a finished checklist is never kept as a record. A card the
-  user writes by hand, outside the skill, is never blocked.
+  from seed text, so there are no decisions, no module map and no first cards.
+- The module map comes after the decisions — a project started without code has no code to
+  read a map from.
+- Setup ends with 10 first cards, the ones later work builds on, never improvements aimed at
+  what the project hasn't built yet.
+- While `setup-checklist.md` is there no flow creates a card; the last tick deletes it and a
+  finished checklist is never kept as a record. A card the user writes by hand is never
+  blocked.
 
 ## The module map
 
-- Be conservative, above all in a from-scratch repo — a simple single-purpose project is
-  one module, not several. Add lines only as the code grows.
-- Adding a module later moves the notes that are now clearly its own out of the memory
-  they came from, once. A rename keeps the memory with the module; deleting one folds its
-  memory back into the project-wide set, so nothing we learned is lost with the map line.
+- Be conservative, above all in a from-scratch repo — a simple single-purpose project is one
+  module, not several. Add lines only as the code grows.
+- Adding a module later moves the notes now clearly its own out of the memory they came
+  from, once. A rename keeps the memory with the module; deleting one folds its memory back
+  into the project-wide set.
 
-## Auto-refine
+## Refining on its own
 
 - One session drives one card the whole way. It never pauses to ask the user: it answers
-  what it's sure of and ends either `ready` or holding only the questions a human must
+  what it is sure of and ends either `ready` or holding only the questions a human must
   answer.
-- **A card is refined as soon as a run creates it**: every action that used to follow
-  nothing — refine, implement, revise, resolve, setup, spec — starts a refine on the cards
-  it created, and none on the cards it merely edited.
-
-## Recurring tasks
-
-- A built-in background job (say, pruning the memory) ships as a seeded card in the
-  recurring track, run when the user sets a cadence — never as its own UI switch with its
-  own state file. The card is the visible, editable record of the job; deleting it is the
-  opt-out, and nothing re-adds it behind the user's back.
-- A cadence is always the units grammar — `30m`, `2h`, `1d`, `1d at 09:30`. There is no
-  word form like `daily` anywhere, so nothing has to translate between two.
+- Creation and refinement keep a hard context boundary: creation distills the request into a
+  self-contained card, and refinement starts fresh and tests that card on its own. Context
+  the card failed to preserve is a creation defect.
+- A card is refined as soon as a run creates it — every action that used to follow nothing
+  starts a refine on the cards it created, and none on the cards it merely edited.
 
 ## Open questions
 
-- A question can carry options — `single-option` to pick one, `multi-options` to pick as
-  many as you want — and one with no options stays an open-ended ask.
-- A question written as prose with the choices inside it keeps working and is never
-  rewritten. Both shapes live side by side; no card is migrated.
-- **May a run stop and ask the user in the moment?**: no. No flow puts a human in the loop
-  while it works — anything it cannot settle is left on the card as an open question and the
-  run finishes. The card is where the user answers, at the time they choose.
+- A question can carry options — `single-option` to pick one, `multi-options` for as many as
+  you want — and one with no options stays an open-ended ask. A question written as prose
+  with the choices inside keeps working and is never rewritten; no card is migrated.
+- No flow puts a human in the loop while it works. Anything it cannot settle is left on the
+  card as an open question and the run finishes; the card is where the user answers, at the
+  time they choose.
+
+## Recurring tasks
+
+- A built-in background job ships as a seeded card in the recurring track, run when the user
+  sets a cadence — never as its own UI switch with its own state file. The card is the
+  visible, editable record; deleting it is the opt-out, and nothing re-adds it.
+- A cadence is always the units grammar — `30m`, `2h`, `1d`, `1d at 09:30`. There is no word
+  form like `daily`, so nothing has to translate between two.
 
 ## Releases
 
-- A version ships when the user says it ships, open cards or not. Closing clears the
-  release off the cards still open; they are never moved into the release afterwards.
+- A version ships when the user says it ships, open cards or not. Closing clears the release
+  off the cards still open; they are never moved into the release afterwards.
 - The open releases are one line each in `docs/kanban/releases.md`, in ship order, holding
   only what is still ahead — short enough that reordering and renaming are hand edits.
-- A version id is letters, numbers, dot, dash and underscore, kept as typed. A card with
-  no release has an empty field; there is no sentinel name for that state.
-- A card naming a release that is not on the list keeps it, and `release list` names the
-  id so it can be put back. The board never clears the field and never refuses to run over
-  it — but setting a release the list doesn't have is still an error, so a typo can't
-  invent a version.
-- A release with a goal is filled against that goal, by an agent run: it judges each open
-  card on whether it ships the goal, and writes the cards the goal needs that the board
-  hasn't got. The run's log is the record of what it moved, wrote and left out.
-- A release with **no** goal keeps the plain rule: the cards in no release that are high
-  priority, have nothing open blocking them, and are not a group root. With nothing to plan
-  against, a rule the user can predict is all there is.
+- A version id is letters, numbers, dot, dash and underscore, kept as typed. A card with no
+  release has an empty field, and there is no sentinel name for that state.
+- A card naming a release that is not on the list keeps it and `release list` names the id,
+  so it can be put back; setting a release the list doesn't have is still an error, so a
+  typo can't invent a version.
+- A release with a goal is filled by an agent run that judges each open card on whether it
+  ships the goal and writes what the board hasn't got. One with **no** goal keeps the plain
+  predictable rule: high-priority cards in no release, unblocked, not a group root.
 - Filling only ever adds — a card already in another release is left alone — so it can be
-  run as often as the goal changes, and taking a card back out is always the user's move.
-
-## Installing and updating
-
-- Our GitHub repo is `ai4kanban/ai4kanban` — every link, manifest, and install
-  instruction names it, and nothing leans on the old `dist0com` redirect.
-- A user installs and updates by running one Node script published on npm —
-  `npx ai4kanban install` and `npx ai4kanban update`. No shell script, no `curl … | sh`,
-  no git clone: the package carries the skill folder. The plugin channel is unaffected.
-- Install never asks which agents you use; when it writes the skill it writes both
-  `.claude/skills/kanban/` and `.agents/skills/kanban/`. The skill names no agent's folder
-  in its own instructions, so it also runs from wherever another installer put it.
-- **Does installing a board also install the skill?**: no. Install scaffolds the board and
-  leaves the agent folders alone — the skill is a later extra, added on purpose from the
-  UI's button or one terminal command. Updating still refreshes a skill that is already
-  there.
-- **Does the board install a git hook?**: yes, wherever the skill is installed and
-  without asking — `akb skill install` and `akb update` write `.git/hooks/pre-commit` when
-  there is none, print one line saying they did, and never touch an existing hook.
+  run as often as the goal changes, and taking a card back out is the user's move.
 
 ## The command
 
 - One command owns every board and agent action, and the skill shrinks to a short note
   pointing at it. The UI drives its runs through the same command, so there is one
   implementation of every move rather than one per surface.
-- What we teach a person is the actions the UI's buttons stand for — implement, refine,
-  propose, archive. The board's own bookkeeping stays a command the agent calls and stays
-  out of the README: nobody wants to type "set card 12's priority to high".
-- The command is a Node program, not a compiled binary. Everything the board already runs
-  on — the installer on npm, the desktop app's Electron, the agents driving the board —
+- What we teach a person is the actions the UI's buttons stand for. The board's own
+  bookkeeping stays a command the agent calls and stays out of the README.
+- The command is a Node program, not a compiled binary: everything the board runs on already
   carries Node, so a binary would remove no dependency and would add six signed builds per
-  release to the app and the download page.
-- The desktop app keeps carrying the command and running it under Electron's own Node, so
-  the app still needs nothing installed on the machine.
-- **What does `akb` typed alone do?**: installed by the app, it opens the app — the same
-  command is the CLI when given an action, the way `cursor` works. The npm copy keeps
-  printing help; it has no app to open.
-- **How does the board spell its own command on a machine with no `akb`?**: as `node
-  <path>/ai4kanban.mjs`, pointing at the copy that is running. Every flow and guide writes
-  `akb`, and each printed line resolves it for the machine. Nothing installs the command or
-  fetches it from npm so that the name works, so a test or doc that hard-codes `akb` is the
-  thing to fix.
+  release. The desktop app runs it under Electron's own Node.
+- `akb` typed alone opens the app when the app installed it — the same command is the CLI
+  when given an action, the way `cursor` works. The npm copy prints help.
+- On a machine with no `akb`, the board spells its own command as `node
+  <path>/ai4kanban.mjs`, pointing at the copy that is running. Every flow writes `akb` and
+  each printed line resolves it, so a test or doc that hard-codes `akb` is the thing to fix,
+  and nothing installs the command or fetches it from npm to make the name work.
+
+## Installing and updating
+
+- Our GitHub repo is `ai4kanban/ai4kanban` — every link, manifest and install instruction
+  names it.
+- A user installs and updates by running one Node script published on npm. No shell script,
+  no `curl … | sh`, no git clone: the package carries the skill folder.
+- Install never asks which agents you use; when it writes the skill it writes both
+  `.claude/skills/kanban/` and `.agents/skills/kanban/`, and the skill names no agent's
+  folder in its own instructions.
+- Installing a board does not install the skill — that is a later extra, added on purpose.
+  Updating still refreshes a skill already there.
+- The board installs a git `pre-commit` hook wherever the skill is installed and without
+  asking, writing it only when there is none and printing one line saying it did.
 
 ## Storage
 
-- The GitHub Projects backend is wanted but parked — nothing is built until we pick it up.
-  Notion is a later idea; it gets a card when a user asks for it.
+- The GitHub Projects backend is wanted but parked; Notion is a later idea that gets a card
+  when a user asks for it.
 - We require and ship no Obsidian community plugin, so the board shows there as a grouped
   table, never as drag-and-drop columns.
 - The memory set, `metrics.csv` and `next-id` stay local markdown on every backend — only
@@ -156,76 +134,56 @@ re-ask a settled call.
 
 ## Spec agents
 
-- Two spec agents ship, and only two: `ui-design` and `technology-selection`. No third.
-  Adding one later is writing a prompt, not changing the machinery — worth doing once the
-  two we ship prove the shape.
-- **How does a card body point at a mockup file?**: with a tag the board UI knows, on a line
-  of its own — `<Mockup src=".mockups/239/a.html" label="A" />`. A markdown link is never
-  drawn as a mockup, so nothing a card already says turns into one by accident.
-- **Are mockups in git?**: no. They live in `docs/kanban/.mockups/`, which `init` adds to the
-  board's own `.gitignore` — a mockup is a working drawing the build throws away, and keeping
-  it out of the repo means what a layout settled has to be in the card's words. Archiving or
-  rejecting a card still deletes its folder; there is just nothing to read it back from.
-- **Does the Resolve dialog show the mockups a layout question is about?**: no. The options
-  name the labels `A` and `B` and nothing more; the user opens the card page, one click
-  away, to look at the drawings. Nothing links the dialog back to the card.
-- **How long may one option's mockup run?**: short — one screen, and about as long as the
-  card's own plan. The agent trims detail to stay inside it.
-- **Does every spec agent get settings of its own?**: no. A spec agent may declare settings,
-  and one that declares none is unchanged. `ui-design` gets the first — mockup style —
-  and `technology-selection` gets none.
-- **What are the mockup styles, and which is the default?**: `full` — a `.tsx` or `.html`
-  screen styled like the product, in a file the card points at — and `ascii`, a plain-text
-  drawing written straight into the card section as a fenced block, with no file behind it.
-  `full` is the default, so a board that never opens the setting draws what it always did. The
-  setting is board-wide, so a card is drawn in one style and never a mix.
-- **Why does the ASCII style write no file?**: the drawing is already text the card can hold,
-  and a file under gitignored `.mockups/` would have thrown it away on every other machine.
-  In the card it survives the pull, and there is no tag, no folder and no cleanup for it.
-- **How wide may an ASCII mockup be?**: 96 columns, and every character one column wide —
-  plain ASCII or the box-drawing characters, never emoji or full-width text. A drawing is
-  never re-wrapped, so a longer line is one the reader has to scroll to.
-- **Where is the list of mockup formats written down?**: in `akb guide ui-design` only.
-  `akb guide board` never carried it, and putting it there would cost every flow the context
-  for a rule only the screen-drawing ones need.
+- Two spec agents ship, and only two: `ui-design` and `technology-selection`. Adding one
+  later is writing a prompt, not changing the machinery.
+- A spec agent may declare settings, and one that declares none is unchanged. `ui-design`
+  gets the first — mockup style — and `technology-selection` gets none.
+- A card points at a mockup with a tag the board UI knows, on a line of its own —
+  `<Mockup src=".mockups/239/a.html" label="A" />`. A markdown link is never drawn as one,
+  so nothing a card already says turns into a mockup by accident.
+- Mockups are not in git: they live under `docs/kanban/.mockups/`, which `init` gitignores,
+  because a mockup is a working drawing the build throws away — so what a layout settled has
+  to be in the card's words. Archiving or rejecting a card still deletes its folder.
+- The two styles are `full` — a `.tsx` or `.html` screen styled like the product, in a file
+  the card points at — and `ascii`, a plain-text drawing written straight into the card
+  section. `full` is the default and the setting is board-wide, so a card is never a mix.
+- The ASCII style writes no file because the drawing is already text the card can hold: it
+  survives the pull, with no tag, folder or cleanup. It is 96 columns wide, every character
+  one column, and never re-wrapped.
+- One option's mockup stays short — one screen, about as long as the card's own plan.
+- The Resolve dialog does not show the mockups a layout question is about: the options name
+  the labels and the user opens the card page, one click away, to look.
+- The list of mockup formats is written in `akb guide ui-design` only — putting it in
+  `akb guide board` would cost every flow the context for a rule only screen cards need.
 
 ## Chat
 
-- **Which agents can hold a live conversation?**: only the ones whose command can be sent a
-  second message into the session it already opened. Any other agent says chat is not
-  available on it and names the ones it is — a conversation is never held by sending the
-  whole exchange again each turn, which would cost more with every message.
-- **Does a chat do the board work itself?**: yes — it does what it is asked as soon as it is
-  asked, through the board's own moves. It never writes out a change and waits for a click,
-  and never sends the user to a button. A card's chat is that same chat and acts too.
-- **Which actions may a chat take without asking first?**: all of them, archiving, rejecting
-  and starting a build included. What a chat changes stays in the working tree, and git is
-  where the user takes any of it back.
-- **How does chat choose between doing work here and starting a run?**: it adds no rule of
-  its own. The rail is an ordinary kanban-skill session: `--print` does a flow there, no
-  flag starts a run, and users may run any `akb` command they want.
+- Only agents whose command can be sent a second message into the session it already opened
+  can hold a chat; any other names the ones that can. A conversation is never held by
+  sending the whole exchange again each turn.
+- A chat does the board work itself, as soon as it is asked, through the board's own moves —
+  it never writes out a change and waits for a click, and never sends the user to a button.
+- It may take any action without asking, archiving, rejecting and starting a build included;
+  what it changes stays in the working tree, and git is where the user takes it back.
+- It adds no rule of its own: the session is an ordinary kanban-skill session, so `--print`
+  does a flow there and no flag starts a run.
 
 ## Card format
 
-- **Where does a card's "worth noting" live?**: in the human half, as its own section under
-  the summary paragraph. It is written for the reviewer; the agent reads every line and
-  needs no such section in `## Decided by the agent`.
-- **What is each half of a card for?**: the human half is for review — one short paragraph
-  of what the task does plus the points worth noting, self-contained because the agent half
-  is folded by default. The agent half is for execution — `## Scope`, `## Todo` and the
-  rest, detailed enough to implement from but still plain and concise, no coding details.
-- **Where does a spec agent's section go when the user has to pick from it?**: the human
-  half. A section that asks the user to choose is work for the human, wherever it was
-  written; every other spec agent section stays in the agent half.
-- **What happens to cards written before the two halves?**: each is reordered the next time
-  it is refined. There is no pass over the board.
-- **What marks where a card's agent half starts?**: an HTML comment, `<!-- agent -->`, on a
-  line of its own above the first agent half section. It does not show when the card is
-  rendered.
+- The human half is for review — one short paragraph of what the task does plus the points
+  worth noting, self-contained because the agent half is folded by default. The agent half
+  is for execution — `## Scope`, `## Todo` and the rest — detailed enough to implement from
+  but still plain, with no coding details.
+- "Worth noting" is its own section in the human half, under the summary paragraph, written
+  for the reviewer; the agent reads every line and needs no such section of its own.
+- A spec agent's section goes in the human half when the user has to pick from it; every
+  other one stays in the agent half.
+- The boundary is an HTML comment, `<!-- agent -->`, on a line of its own, which does not
+  show when the card is rendered. Cards written before it are reordered the next time they
+  are refined — there is no pass over the board.
 
 ## The board's language
 
-- **On a card already written in English, what language does an agent's open question or
-  verify line come in?**: the reader's. The two things written to be read by the user
-  personally follow the language setting on every card, including cards that existed before
-  the setting; the body of the card around them still follows the file.
+- On a card already written in English, an agent's open question and `verify:` line still
+  come in the reader's language: the two things written to be read by the user personally
+  follow the setting on every card, while the body around them follows the file.

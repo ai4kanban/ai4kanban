@@ -69,14 +69,9 @@ re-ask a settled call.
   from a template — one operator, one set of terms.
 - **Are the legal pages translated?**: no. They follow the blog, which is English-only.
 - **Which address do the legal pages give for support and data requests?**:
-  `support@ai4kanban.dev`, a new mailbox on the site's own domain, rather than the
-  `support@dist0.com` mailbox Nullreach already runs. It is the address for both support and
-  a data request, so any later page that needs a contact uses it too.
-- **Which mailbox is behind `support@ai4kanban.dev`?**: Spacemail, run by Spaceship, reached
-  through Cloudflare Email Routing on the site's own domain. The privacy page's subprocessor
-  table names it, and a notice about the Cloud preview is sent by hand from that mailbox.
-
-- **Where does the subprocessor table say Spacemail processes the mailbox?**: the United
-  States, taken from Spaceship's privacy policy. Its Data Processing Addendum only permits a
-  US transfer and publishes no subprocessor list, so the pages cite no document for the
-  location.
+  `support@ai4kanban.dev`, on the site's own domain rather than the `support@dist0.com`
+  mailbox Nullreach already runs. Any later page needing a contact uses it too.
+- Behind it is Spacemail (Spaceship, Inc.), reached through Cloudflare Email Routing. The
+  subprocessor table names it and places it in the United States, taken from Spaceship's own
+  privacy policy — its DPA permits only a US transfer and publishes no subprocessor list, so
+  the pages cite no document for the location.
