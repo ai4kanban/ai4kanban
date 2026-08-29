@@ -59,6 +59,7 @@ import {
   cancelCloudRequest,
   notificationCenter,
   openNotification,
+  readAllNotifications,
   recordCloudAction,
   resumeCloudRequest,
   setBoardServer,
@@ -1233,6 +1234,15 @@ export async function openNotificationAction(
     return await openNotification(eventId);
   } catch {
     return null;
+  }
+}
+
+/** Mark every row read at once. The rows stay — only the bell's count empties. */
+export async function readAllNotificationsAction(): Promise<void> {
+  try {
+    await readAllNotifications();
+  } catch {
+    // A read mark we could not save is a row that stays bold. Not worth an error.
   }
 }
 

@@ -10,7 +10,11 @@ const en: NotificationsCopy = {
   silenced: "silenced",
   silencedTip: "System notifications are silenced for every board on this machine.",
   newCount: (unread) => `${unread} new`,
-  sortOrder: "Newest change first",
+  markAllRead: "Mark all read",
+  justNow: "just now",
+  minutesAgo: (m) => `${m}m ago`,
+  hoursAgo: (h) => `${h}h ago`,
+  daysAgo: (d) => `${d}d ago`,
   unavailable: "Notifications aren’t available here",
   signedOut: {
     title: "Not signed in to Cloud",

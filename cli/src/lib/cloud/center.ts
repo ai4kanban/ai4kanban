@@ -43,7 +43,8 @@ import { readSession } from './session'
 export interface NotificationRow {
   eventId: string
   boardId: string
-  /** Named on a row only once a second board is enabled. */
+  /** The board this event came from. A row says it only when that board has left this
+   *  machine — the second line carries the event's time instead. */
   boardName: string
   /** False when that board is no longer on this machine. The row says so rather than
    *  switching to it, because the checkout can come back. */
@@ -342,6 +343,16 @@ export function openNotification(eventId: string): { boardPath: string | null; t
   marks[eventId] = event.changedAt
   writeReads(marks)
   return { boardPath: cloudBoardById(event.boardId)?.path ?? null, taskId: event.taskId }
+}
+
+/** Mark every row read at once, without opening any of them. The rows stay — what they are
+ *  waiting for has not changed — and the bell's count empties. */
+export function readAllNotifications(): void {
+  const marks = reads()
+  for (const event of state().events.values()) {
+    if (needsPerson(event)) marks[event.id] = event.changedAt
+  }
+  writeReads(marks)
 }
 
 // ---- the card link a message carries (#320) ----------------------------------

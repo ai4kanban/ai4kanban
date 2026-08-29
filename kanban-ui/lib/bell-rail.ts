@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePanelRef, type Layout, type LayoutChangedMeta } from "react-resizable-panels";
-import { notificationCenterAction, openNotificationAction } from "@/app/actions";
+import {
+  notificationCenterAction,
+  openNotificationAction,
+  readAllNotificationsAction,
+} from "@/app/actions";
 import type { NotificationAlert, NotificationCenter } from "./notifications";
 
 // The bell's own state (#319): whether the rail is up, how wide it is, and the events it is
@@ -56,6 +60,8 @@ export interface BellRail {
   /** Open a row: mark it read, and go to that card — switching the app to that board first
    *  when the row belongs to another one. */
   openRow(eventId: string): Promise<void>;
+  /** Mark every row read at once. The rows stay; only the count empties. */
+  readAll(): Promise<void>;
   /** Force a read now, rather than waiting out the tick already running. */
   refresh(): void;
   panel: ReturnType<typeof usePanelRef>;
@@ -148,6 +154,14 @@ export function useBellRail({
     [onOpenCard, projectRoot],
   );
 
+  // The click empties the count here first: the marks are written on the machine and the
+  // next poll is up to 2.5s away, which is long enough to look like the button missed.
+  const readAll = useCallback(async () => {
+    setCenter((was) => ({ ...was, rows: was.rows.map((r) => ({ ...r, unread: false })), unread: 0 }));
+    await readAllNotificationsAction();
+    kickRef.current();
+  }, []);
+
   const toggle = useCallback(() => {
     setOpen((was) => {
       const next = !was;
@@ -176,6 +190,7 @@ export function useBellRail({
     overlay,
     center,
     openRow,
+    readAll,
     refresh: () => kickRef.current(),
     panel,
     onLayoutChanged,

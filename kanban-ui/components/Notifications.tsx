@@ -8,9 +8,10 @@
 // segment because it is the one thing in that cluster that changes on its own.
 //
 // The rail is the chat rail's own place, and the right side holds one at a time — opening
-// this folds that. A row is the card's number and title with the event's name under it, and
-// nothing else: opening it opens that card's own page, because a second page drawn for an
-// event would only duplicate the card's.
+// this folds that. A row is the card's number and title with the event's name and how long
+// ago it changed under it, and nothing else: opening it opens that card's own page, because
+// a second page drawn for an event would only duplicate the card's. The time is also what
+// says the list runs newest first, so the order takes no heading of its own.
 //
 // What gets a row is what is waiting for a person — a card to decide, and how a delivery
 // that person approved ended. A delivery going, an approval this machine just took and a
@@ -21,7 +22,7 @@
 // this board. Both say what would fill it, and the off state names where to turn it on.
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { FiBell, FiBellOff, FiChevronRight, FiSlash, FiX } from "react-icons/fi";
+import { FiBell, FiBellOff, FiCheck, FiChevronRight, FiSlash, FiX } from "react-icons/fi";
 import { boardNotificationsAction, watchReleaseAction } from "@/app/actions";
 import type { NotificationsCopy } from "@/i18n/notifications/types";
 import { useCopy } from "@/i18n/use-copy";
@@ -86,7 +87,7 @@ export function BellPane({ rail }: { rail: BellRail }) {
   const rows = center.rows.filter((row) => row.onRail !== false);
   return (
     <div className="flex h-full flex-col overflow-hidden py-2 pl-1 pr-3">
-      <Head c={c} unread={center.unread} silenced={center.silenced} onFold={rail.fold} />
+      <Head c={c} silenced={center.silenced} onFold={rail.fold} />
       {center.unavailable ? (
         <Empty
           icon={<FiBellOff size={20} aria-hidden />}
@@ -119,16 +120,35 @@ export function BellPane({ rail }: { rail: BellRail }) {
             />
           ) : (
             <>
-              <p className="mb-1 px-2 text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">
-                {c.sortOrder}
-              </p>
+              {/* How many are waiting, and the one move over the whole list: empty the count
+                  without opening anything. The two ends of one bar — the state on the left
+                  where the rows' own ink starts, the action on the right where the header's
+                  buttons are — so the chrome reads as two columns rather than a ragged stack.
+                  The list needs no heading of its own: every row wears its time. */}
+              {center.unread > 0 && (
+                <div
+                  className="flex h-[26px] shrink-0 items-center justify-between px-2"
+                  style={{ borderBottom: `1px solid ${HAIRLINE}` }}
+                >
+                  <span className="text-[11.5px] font-[700] text-nb-ink-soft">
+                    {c.newCount(center.unread)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void rail.readAll()}
+                    className="-mr-1.5 inline-flex cursor-pointer items-center gap-1 rounded-[7px] px-1.5 py-0.5 text-[11.5px] font-[700] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,transparent)] hover:text-nb-ink"
+                  >
+                    <FiCheck size={11} aria-hidden />
+                    {c.markAllRead}
+                  </button>
+                </div>
+              )}
               <div className="min-h-0 flex-1 overflow-y-auto">
                 {rows.map((row) => (
                   <Row
                     key={row.eventId}
                     row={row}
                     c={c}
-                    named={center.namesBoards}
                     onOpen={() => void rail.openRow(row.eventId)}
                   />
                 ))}
@@ -154,17 +174,9 @@ export function BellPane({ rail }: { rail: BellRail }) {
   );
 }
 
-function Head({
-  c,
-  unread,
-  silenced,
-  onFold,
-}: {
-  c: NotificationsCopy;
-  unread: number;
-  silenced: boolean;
-  onFold: () => void;
-}) {
+/** The rail's title row: what this is, and the one way out of it. The count is not here —
+ *  it belongs with the button that empties it, over the list it counts. */
+function Head({ c, silenced, onFold }: { c: NotificationsCopy; silenced: boolean; onFold: () => void }) {
   return (
     <div className="mb-1 flex h-[30px] shrink-0 items-center gap-2 px-2">
       <FiBell size={13} aria-hidden />
@@ -181,14 +193,11 @@ function Head({
           {c.silenced}
         </span>
       )}
-      {unread > 0 && (
-        <span className="ml-auto text-[11.5px] font-[700] text-nb-ink-soft">{c.newCount(unread)}</span>
-      )}
       <button
         type="button"
         aria-label={c.close}
         onClick={onFold}
-        className={`${unread > 0 ? "" : "ml-auto"} -mr-1 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[7px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,transparent)] hover:text-nb-ink`}
+        className="-mr-1 ml-auto inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[7px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,transparent)] hover:text-nb-ink"
       >
         <FiX size={14} aria-hidden />
       </button>
@@ -196,20 +205,11 @@ function Head({
   );
 }
 
-/** One row: the card's number and title, the event's name under it, and nothing else.
- *  Unread is an accent dot and ink-weight text; read is the soft ink everything settled
- *  wears. */
-function Row({
-  row,
-  c,
-  named,
-  onOpen,
-}: {
-  row: NotificationRow;
-  c: NotificationsCopy;
-  named: boolean;
-  onOpen: () => void;
-}) {
+/** One row: the card's number and title, the event's name and how long ago it changed under
+ *  it, and nothing else. The time is what says the list runs newest first, so the order needs
+ *  no heading of its own. Unread is an accent dot and ink-weight text; read is the soft ink
+ *  everything settled wears. */
+function Row({ row, c, onOpen }: { row: NotificationRow; c: NotificationsCopy; onOpen: () => void }) {
   return (
     <button
       type="button"
@@ -237,16 +237,10 @@ function Row({
           className={`mt-[3px] flex items-center gap-1.5 text-[11.5px] font-[700] ${row.unread ? "text-nb-accent-deep" : "text-nb-ink-soft"}`}
         >
           {row.label}
-          {/* The board is named only once a second one is enabled — on one board the name
-              is on every row and tells two rows nothing apart. */}
-          {named && (
-            <>
-              <span aria-hidden className="text-nb-ink-soft/50">
-                ·
-              </span>
-              <span className="min-w-0 truncate font-[500] text-nb-ink-soft">{row.boardName}</span>
-            </>
-          )}
+          <span aria-hidden className="text-nb-ink-soft/50">
+            ·
+          </span>
+          <span className="shrink-0 font-[500] text-nb-ink-soft">{ago(row.changedAt, c)}</span>
         </span>
         {/* The checkout can come back, so the row stays and says so rather than switching
             to a folder that is not there. */}
@@ -261,6 +255,20 @@ function Row({
       )}
     </button>
   );
+}
+
+/** How long ago a row changed. Read off the clock at render, which the poll re-runs every
+ *  few seconds while the rail is up. */
+function ago(changedAt: string, c: NotificationsCopy): string {
+  const at = Date.parse(changedAt);
+  if (Number.isNaN(at)) return "";
+  const s = Math.max(0, Math.round((Date.now() - at) / 1000));
+  if (s < 45) return c.justNow;
+  const m = Math.round(s / 60);
+  if (m < 60) return c.minutesAgo(m);
+  const h = Math.round(m / 60);
+  if (h < 24) return c.hoursAgo(h);
+  return c.daysAgo(Math.round(h / 24));
 }
 
 /** The watched release closed. One line and what to watch instead, where the filling stopped

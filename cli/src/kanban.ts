@@ -149,6 +149,7 @@ export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME
 // no bell rather than failing to draw the header.
 export {
   openNotification,
+  readAllNotifications,
   readCloudCenter,
   startCloudCenter,
   stopCloudCenter,

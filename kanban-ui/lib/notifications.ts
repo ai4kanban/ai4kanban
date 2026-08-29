@@ -131,6 +131,12 @@ export async function openNotification(
   return rules.openNotification ? rules.openNotification(eventId) : null;
 }
 
+/** Mark every row read at once. The rows stay where they are — only the count empties. */
+export async function readAllNotifications(): Promise<void> {
+  const rules = await boardRules();
+  rules.readAllNotifications?.();
+}
+
 /** Stop every board's system notifications while the bell keeps filling. One switch for the
  *  machine, beside the sign-in: the interruptions it stops arrive from every enabled board. */
 export async function setSilenced(on: boolean): Promise<{ ok: boolean; error?: string }> {

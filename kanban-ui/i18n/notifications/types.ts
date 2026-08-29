@@ -9,9 +9,14 @@ export type NotificationsCopy = {
   /** The machine's silencing switch, said where its effect is felt. */
   silenced: string;
   silencedTip: string;
-  /** The unread count over the list. */
+  /** The unread count over the list, and the one click that empties it. */
   newCount: (unread: number) => string;
-  sortOrder: string;
+  markAllRead: string;
+  /** How long ago a row changed — what says the list is newest first. */
+  justNow: string;
+  minutesAgo: (m: number) => string;
+  hoursAgo: (h: number) => string;
+  daysAgo: (d: number) => string;
   /** The rail's ends: a mark, what would fill it, and where to go. */
   unavailable: string;
   signedOut: { title: string; body: string; hint: string };

@@ -276,6 +276,8 @@ export interface BoardRules {
   startCloudCenter?(focused: boolean): void;
   readCloudCenter?(): NotificationCenter;
   openNotification?(eventId: string): { boardPath: string | null; taskId: number } | null;
+  /** Mark every row read without opening any of them. */
+  readAllNotifications?(): void;
   setNotificationsSilenced?(on: boolean): WriteResult;
   readBoardNotifications?(): Promise<BoardNotifications>;
   watchRelease?(release: string): Promise<WriteResult>;

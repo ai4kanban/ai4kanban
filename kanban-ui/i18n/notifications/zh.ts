@@ -10,7 +10,11 @@ const zh: NotificationsCopy = {
   silenced: "已静音",
   silencedTip: "这台机器上所有看板的系统通知都已静音。",
   newCount: (unread) => `${unread} 条新消息`,
-  sortOrder: "按最新变化排序",
+  markAllRead: "全部标为已读",
+  justNow: "刚刚",
+  minutesAgo: (m) => `${m} 分钟前`,
+  hoursAgo: (h) => `${h} 小时前`,
+  daysAgo: (d) => `${d} 天前`,
   unavailable: "这里无法使用通知",
   signedOut: {
     title: "尚未登录 Cloud",
