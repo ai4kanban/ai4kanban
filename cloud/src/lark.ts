@@ -84,6 +84,10 @@ export interface LarkPosts {
   tenantKey: string
   destinationId: string
   direct: boolean
+  /** The account the connection was made under. A topic reply notifies its subscribers and a
+   *  bot opening one subscribes nobody, so a reply still asking for a decision names it.
+   *  Absent from a schema older than 0012. */
+  openId?: string
 }
 
 // --- connecting ---------------------------------------------------------------

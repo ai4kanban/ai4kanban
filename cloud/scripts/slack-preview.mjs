@@ -59,6 +59,10 @@ select event from ranked where newest = 1 order by state, kind, questions;
 /** How many events one board holds per state, so the run says what it did not find. */
 const STATES = `select state, count(*) as events from cloud.events group by state order by state;`
 
+/** The account a reply names, so a sample mentions the person a press is really accepted
+ *  from rather than a Slack id nobody has. */
+const ACTOR = `select slack_user_id from cloud.slack_connections order by created_at limit 1;`
+
 main().catch((error) => {
   console.error(`slack-preview: ${error.message}`)
   process.exit(1)
@@ -78,6 +82,22 @@ async function main() {
     const event = row.event
     const name = unique(nameFor(event), taken)
     written.push(save(name, describe(event), { blocks: messageFor(event).blocks }))
+  }
+
+  // A reply, which is what every message but a card's first one is (#352). It differs only
+  // at the top — no card header, no board-and-release line, and the account a press is
+  // accepted from while the card is still asking — so one open sample and one settled one
+  // are the whole of it.
+  const actorId = (await query(ref, token, ACTOR))[0]?.slack_user_id
+  const asking = rows.map((row) => row.event).find((event) => !event.acted && event.state === 'actionable')
+  const reported = rows.map((row) => row.event).find((event) => event.acted)
+  for (const [name, event] of [['reply-asking', asking], ['reply-reporting', reported]]) {
+    if (!event) continue
+    written.push(
+      save(name, `${describe(event)} — as a reply in the card’s thread`, {
+        blocks: messageFor(event, { actorId }).blocks,
+      }),
+    )
   }
 
   // The modal the Answer button opens, off whichever real event asks the most.

@@ -67,13 +67,20 @@ const STAR = '⭐'
  *
  * `update_multi` is not optional: without it a card posted to a group cannot be edited in
  * place, and one event would leave a chat a message per state it passed through.
+ *
+ * `reply` is set for an event posted inside its card's 话题 (#353). The topic already opened
+ * on the card's board and release, so a reply drops that line and says only where the work
+ * stands — and, while it is still asking for a decision, who it is asking. The title stays:
+ * it is the whole of what names the card in the chat list and in a phone's notification.
  */
-export function cardFor(event: EventRow): Record<string, unknown> {
+export function cardFor(event: EventRow, reply?: { openId?: string }): Record<string, unknown> {
   const open = event.state === 'actionable' && !event.acted
   const { key } = stateOf(event)
   const [, template] = MARKS[key] ?? ['', 'blue']
 
-  const elements: Element[] = [note(facts(event))]
+  const elements: Element[] = [
+    reply ? standing(event, open ? reply.openId : undefined) : note(facts(event)),
+  ]
 
   // The card's own words, cut to what a message is read from rather than what a card holds.
   const review = cardWords(event, open, larkMd)
@@ -116,6 +123,22 @@ function facts(event: EventRow): string {
   const parts = [`${mark} **${label}**`, event.boardName || 'this board']
   if (event.release) parts.push(`release ${event.release}`)
   return parts.join('  ·  ')
+}
+
+/**
+ * A reply's opening line: where the work stands, and — while it is still asking — the one
+ * account a press is accepted from.
+ *
+ * A topic reply notifies whoever is subscribed to the topic and a bot opening one subscribes
+ * nobody, so naming that account is the whole of how a later decision reaches the person it
+ * is for. The `<at>` goes in a `div` rather than a `note`: a mention in a note notifies
+ * nobody, which is the one thing it is here to do.
+ */
+function standing(event: EventRow, openId?: string): Element {
+  const { key, label } = stateOf(event)
+  const [mark] = MARKS[key] ?? ['', '']
+  const said = `${mark} **${label}**`
+  return openId ? text(`${said}  ·  <at id="${openId}"></at>`) : note(said)
 }
 
 // --- the decision -------------------------------------------------------------

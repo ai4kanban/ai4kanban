@@ -48,6 +48,13 @@ export interface ConnectorJob<Posts> {
   posts: Posts
   /** The id of the message this event already has, or null when it has none yet. */
   messageRef: string | null
+  /** The top of this CARD's thread: the earliest message still recorded for its
+   *  `(board_id, task_id)` under this connector, whichever event that message belongs to.
+   *  Equal to `messageRef` when this event is the top of the thread rather than in it, and
+   *  null when the card has no message left to reply to. The loop does not read it — a
+   *  connector that threads does (#352). Absent from a schema older than 0011, which is a
+   *  card back to a message per event. */
+  threadRef?: string | null
   attempts: number
   event: EventRow
 }

@@ -68,11 +68,20 @@ const MARKS: Record<string, string> = {
  *
  * `text` is the notification line — what a phone shows before the message is opened — and
  * the blocks are the message itself.
+ *
+ * `reply` is set for an event posted inside its card's thread (#352). The thread already
+ * opened on the card's title, board and release, so a reply says only where the work stands
+ * — and, while it is still asking for a decision, who it is asking.
  */
-export function messageFor(event: EventRow): { text: string; blocks: Block[] } {
+export function messageFor(
+  event: EventRow,
+  reply?: { actorId?: string },
+): { text: string; blocks: Block[] } {
   const open = event.state === 'actionable' && !event.acted
   const { label: heading } = stateOf(event)
-  const blocks: Block[] = [header(`#${event.taskId} ${event.taskTitle}`), context(facts(event))]
+  const blocks: Block[] = reply
+    ? [standing(event, open ? reply.actorId : undefined)]
+    : [header(`#${event.taskId} ${event.taskTitle}`), context(facts(event))]
 
   // The card's own words, cut to what a message is read from rather than what a card holds.
   const review = cardWords(event, open, mrkdwn)
@@ -110,6 +119,20 @@ function facts(event: EventRow): string {
   const parts = [`${MARKS[key] ?? ''} *${escape(label)}*`, escape(event.boardName || 'this board')]
   if (event.release) parts.push(`release ${escape(event.release)}`)
   return parts.join('  ·  ')
+}
+
+/**
+ * A reply's opening line: where the work stands, and — while it is still asking — the one
+ * account a press is accepted from.
+ *
+ * A reply pings nobody and nothing is broadcast to the channel, so naming that account is
+ * the whole of how a later decision reaches the person it is for. It goes in a section
+ * rather than a context because a mention in a context notifies nobody.
+ */
+function standing(event: EventRow, actorId?: string): Block {
+  const { key, label } = stateOf(event)
+  const said = `${MARKS[key] ?? ''} *${escape(label)}*`
+  return actorId ? section(`${said}  ·  <@${actorId}>`) : context(said)
 }
 
 // --- the decision -------------------------------------------------------------

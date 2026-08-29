@@ -63,6 +63,18 @@ cloud/
   event that has one is edited in place. `api.connector_jobs` decides what is owed by
   comparing when the event last changed against the version its message is showing, so keeping
   a message in step with a card needs no flag anybody has to set.
+- **One card, one thread**: every message but a card's earliest is a reply under that one, so
+  a chat carries an entry per card rather than per event. Nothing per-card is stored for it —
+  `api.connector_jobs` reads the root back out of the delivery rows already kept — so the sweep
+  taking a card's last message is a card that starts a second thread. Both connectors reply:
+  Slack under the root, Lark inside its 话题 — and Lark opens one in group chats only, so its
+  direct message keeps a card per event.
+- **A Lark reference names the chat, and a reply names the person**: Lark's reply endpoint
+  takes no destination, so a message id alone would let a root left in a chat the account has
+  moved away from be replied to. The delivery reference records `<destination>:<message_id>`
+  and only a reference from the chat this connection posts to now can be a root. A topic reply
+  subscribes nobody, so one still asking for a decision carries an `<at>` on the account the
+  connection was made under.
 - **A decision anywhere redraws everywhere**: an account may have Slack and Lark connected at
   once, and the first press settles the event. `src/redraw.ts` rewrites every connector's
   message the moment one is acted on, so the other does not go on offering a decision until

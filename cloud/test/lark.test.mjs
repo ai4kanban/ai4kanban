@@ -23,6 +23,8 @@ const EVENT = '33333333-3333-4333-8333-333333333333'
 const BOARD = '22222222-2222-4222-8222-222222222222'
 /** How this account's Lark connection posts, as `api.connector_jobs` answers it. */
 const POSTS = { cloud: 'feishu', tenantKey: 'T1', destinationId: 'oc_1', direct: false }
+/** The same, once the schema names the account a reply's ask is addressed to (#353). */
+const TOPIC_POSTS = { ...POSTS, openId: 'ou_1' }
 const ACTOR = { ownerId: OWNER, cloud: 'feishu', revoked: false }
 
 const anEvent = (over = {}) => ({
@@ -92,6 +94,32 @@ describe('cardFor', () => {
     // A heading is a line rather than a size, and a list is a bullet rather than a syntax.
     assert.doesNotMatch(shown, /## Worth noting/)
     assert.match(shown, /• \*\*A Lark button decides\*\*/)
+  })
+
+  it('says only where a reply stands, and who it is still asking', () => {
+    const card = cardFor(anEvent(), { openId: 'ou_1' })
+
+    // The chat list and a phone's notification have nowhere but the title to name the card,
+    // so a reply keeps it. The board and release, which the topic already opened on, go.
+    assert.match(card.header.title.content, /^#351 /)
+    assert.doesNotMatch(said(card), /release 0\.8\.0/)
+    // A topic reply subscribes nobody, so the one account a press is accepted from is named —
+    // in a `div`, because a mention in a `note` notifies nobody.
+    assert.equal(card.elements[0].tag, 'div')
+    assert.equal(card.elements[0].text.content, '👀 **Ready for review**  ·  <at id="ou_1"></at>')
+    // And the decision is still in the reply.
+    assert.deepEqual(
+      buttons(card).map((b) => b.label),
+      ['Implement', 'Open card in app'],
+    )
+  })
+
+  it('names nobody in a reply with no decision left to make', () => {
+    const card = cardFor(anEvent({ state: 'running', acted: true }), { openId: 'ou_1' })
+
+    assert.equal(card.elements[0].tag, 'note')
+    assert.equal(card.elements[0].elements[0].content, '🛠️ **Delivery running**')
+    assert.doesNotMatch(said(card), /<at /, 'a report is not an ask')
   })
 
   it('names the machine a decision waits for, and says when there is none', () => {
@@ -543,7 +571,9 @@ describe('deliverLark', () => {
     assert.equal(posted.args.receive_id, 'oc_1')
     assert.equal(posted.args.msg_type, 'interactive')
     const kept = calls.find((c) => c.fn === 'record_event_delivery')
-    assert.equal(kept.args.p_external_ref, 'om_1')
+    // The chat rides in the reference beside the message id (#353): Lark's reply endpoint
+    // takes no destination, so where a message sits has to be known before the call.
+    assert.equal(kept.args.p_external_ref, 'oc_1:om_1')
     assert.equal(kept.args.p_connector, 'lark')
     // What the message shows, not when it was written: an event that moved while Lark was
     // answering is still owed a rewrite.
@@ -667,6 +697,197 @@ describe('deliverLark', () => {
     assert.deepEqual(run, { due: 1, sent: 0, failed: 1 })
     assert.equal(calls.find((c) => c.fn === 'record_event_delivery').args.p_state, 'failed')
     assert.equal(calls.find((c) => c.fn === 'lark_refused'), undefined)
+  })
+
+  it('replies in the card’s 话题, and records the chat it posted to', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: TOPIC_POSTS, messageRef: null, threadRef: 'oc_1:om_root', attempts: 0, event: anEvent() },
+      ],
+      lark_tenant_token: { token: 't-1' },
+      record_event_delivery: anEvent(),
+    })
+
+    assert.deepEqual(await deliverLark(ENV), { due: 1, sent: 1, failed: 0 })
+
+    const posted = calls.find((c) => c.lark)
+    // A reply is a second endpoint, not a parameter — and `reply_in_thread` is what makes it
+    // a 话题 rather than a quote.
+    assert.equal(posted.lark, 'im/v1/messages/om_root/reply')
+    assert.equal(posted.args.reply_in_thread, true)
+    assert.equal(posted.args.msg_type, 'interactive')
+    const card = JSON.parse(posted.args.content)
+    assert.match(card.elements[0].text.content, /<at id="ou_1"><\/at>/)
+    assert.doesNotMatch(said(card), /release 0\.8\.0/)
+    // Lark's reply endpoint takes no destination, so where a message sits travels in the
+    // reference: without it a root left in a chat the account has left would be replied to.
+    assert.equal(calls.find((c) => c.fn === 'record_event_delivery').args.p_external_ref, 'oc_1:om_1')
+  })
+
+  it('is the top of the topic when the root is its own message', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T11:00:00Z', posts: TOPIC_POSTS, messageRef: 'oc_1:om_1', threadRef: 'oc_1:om_1', attempts: 0, event: anEvent({ state: 'running', acted: true }) },
+      ],
+      lark_tenant_token: { token: 't-1' },
+      record_event_delivery: anEvent(),
+    })
+
+    await deliverLark(ENV, EVENT)
+
+    const edited = calls.find((c) => c.lark)
+    assert.equal(edited.method, 'PATCH')
+    // The chat rides in the reference; the message id is what Lark is asked for.
+    assert.equal(edited.lark, 'im/v1/messages/om_1')
+    assert.match(said(JSON.parse(edited.args.content)), /release 0\.8\.0/, 'the card’s own message keeps its facts')
+  })
+
+  it('keeps patching a message recorded before the chat was written beside it', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T11:00:00Z', posts: TOPIC_POSTS, messageRef: 'om_old', threadRef: 'om_old', attempts: 0, event: anEvent({ state: 'running', acted: true }) },
+      ],
+      lark_tenant_token: { token: 't-1' },
+      record_event_delivery: anEvent(),
+    })
+
+    await deliverLark(ENV, EVENT)
+
+    assert.equal(calls.find((c) => c.lark).lark, 'im/v1/messages/om_old')
+    // And it keeps the reference it had: the chat that message is in is not known, so
+    // claiming it is this one would let a moved destination be replied into.
+    assert.equal(calls.find((c) => c.fn === 'record_event_delivery').args.p_external_ref, 'om_old')
+  })
+
+  it('opens a topic in the chat it posts to now, not in the one it was moved away from', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: TOPIC_POSTS, messageRef: null, threadRef: 'oc_left:om_root', attempts: 0, event: anEvent() },
+      ],
+      lark_tenant_token: { token: 't-1' },
+      record_event_delivery: anEvent(),
+    })
+
+    await deliverLark(ENV)
+
+    const posted = calls.find((c) => c.lark)
+    assert.match(posted.lark, /^im\/v1\/messages\?receive_id_type=chat_id/)
+    assert.equal(posted.args.receive_id, 'oc_1')
+    assert.match(said(JSON.parse(posted.args.content)), /release 0\.8\.0/, 'a topic of its own is a whole card')
+  })
+
+  it('starts a topic of its own when the card has no message left to reply to', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: TOPIC_POSTS, messageRef: null, threadRef: null, attempts: 0, event: anEvent() },
+      ],
+      lark_tenant_token: { token: 't-1' },
+      record_event_delivery: anEvent(),
+    })
+
+    await deliverLark(ENV)
+
+    const posted = calls.find((c) => c.lark)
+    assert.match(posted.lark, /^im\/v1\/messages\?receive_id_type=chat_id/)
+    assert.doesNotMatch(said(JSON.parse(posted.args.content)), /<at /)
+  })
+
+  it('keeps the direct message at one card per event', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: { ...TOPIC_POSTS, destinationId: 'ou_1', direct: true }, messageRef: null, threadRef: 'ou_1:om_root', attempts: 0, event: anEvent() },
+      ],
+      lark_tenant_token: { token: 't-1' },
+      record_event_delivery: anEvent(),
+    })
+
+    await deliverLark(ENV)
+
+    // Lark opens a topic in group chats only, so the direct message is left exactly as it was.
+    const posted = calls.find((c) => c.lark)
+    assert.match(posted.lark, /receive_id_type=open_id/)
+    assert.equal(posted.args.reply_in_thread, undefined)
+    assert.match(said(JSON.parse(posted.args.content)), /release 0\.8\.0/)
+  })
+
+  it('posts at the top level when Lark refuses the topic', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = []
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      const at = String(url)
+      if (at.startsWith('https://open.feishu.cn/')) {
+        const path = at.split('/open-apis/')[1]
+        calls.push({ lark: path, args: JSON.parse(init.body ?? '{}') })
+        // The chat will not take a thread reply, or the root was recalled. Both land here,
+        // and neither is a connection anybody has to mend.
+        if (path.endsWith('/reply')) {
+          return new Response(JSON.stringify({ code: 230071, msg: 'not supported' }), { status: 200 })
+        }
+        return new Response(JSON.stringify({ code: 0, data: { message_id: 'om_2' } }), { status: 200 })
+      }
+      const fn = at.split('/rpc/')[1]
+      calls.push({ fn, args: JSON.parse(init.body) })
+      const answers = {
+        connector_jobs: [
+          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: TOPIC_POSTS, messageRef: null, threadRef: 'oc_1:om_root', attempts: 0, event: anEvent() },
+        ],
+        lark_tenant_token: { token: 't-1' },
+      }
+      return new Response(JSON.stringify(answers[fn] ?? null), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    })
+
+    assert.deepEqual(await deliverLark(ENV), { due: 1, sent: 1, failed: 0 })
+
+    const posts = calls.filter((c) => c.lark)
+    assert.equal(posts.length, 2)
+    assert.match(posts[1].lark, /^im\/v1\/messages\?receive_id_type=chat_id/)
+    // A refused topic is not a refused connection.
+    assert.equal(calls.find((c) => c.fn === 'lark_refused'), undefined)
+    assert.equal(calls.find((c) => c.fn === 'record_event_delivery').args.p_external_ref, 'oc_1:om_2')
+  })
+
+  it('holds the root it took, so one card’s two events share one 话题', async (t) => {
+    t.after(() => mock.restoreAll())
+    const SECOND = '44444444-4444-4444-8444-444444444444'
+    const calls = []
+    let posted = 0
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      const at = String(url)
+      if (at.startsWith('https://open.feishu.cn/')) {
+        posted += 1
+        calls.push({ lark: at.split('/open-apis/')[1], args: JSON.parse(init.body ?? '{}') })
+        return new Response(JSON.stringify({ code: 0, data: { message_id: `om_${posted}` } }), { status: 200 })
+      }
+      const fn = at.split('/rpc/')[1]
+      calls.push({ fn, args: JSON.parse(init.body) })
+      const answers = {
+        // Both read the same root — the one the database held before either was written.
+        connector_jobs: [
+          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: TOPIC_POSTS, messageRef: null, threadRef: null, attempts: 0, event: anEvent() },
+          { ownerId: OWNER, eventId: SECOND, contentAt: '2026-08-01T10:05:00Z', posts: TOPIC_POSTS, messageRef: null, threadRef: null, attempts: 0, event: anEvent({ id: SECOND, kind: 'question', decision: 'answer' }) },
+        ],
+        lark_tenant_token: { token: 't-1' },
+      }
+      return new Response(JSON.stringify(answers[fn] ?? null), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    })
+
+    assert.deepEqual(await deliverLark(ENV), { due: 2, sent: 2, failed: 0 })
+
+    const posts = calls.filter((c) => c.lark)
+    assert.match(posts[0].lark, /^im\/v1\/messages\?receive_id_type=chat_id/)
+    assert.equal(posts[1].lark, 'im/v1/messages/om_1/reply')
   })
 
   it('costs nothing when nothing is owed', async (t) => {

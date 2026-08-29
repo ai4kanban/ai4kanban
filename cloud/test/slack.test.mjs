@@ -20,6 +20,8 @@ const EVENT = '33333333-3333-4333-8333-333333333333'
 const BOARD = '22222222-2222-4222-8222-222222222222'
 /** How this account's Slack connection posts, as `api.connector_jobs` answers it. */
 const POSTS = { botToken: 'xoxb', channelId: 'C1' }
+/** The same, once the schema names the account a reply's ask is addressed to (#352). */
+const ACTOR_POSTS = { ...POSTS, actorId: 'U1' }
 
 const anEvent = (over = {}) => ({
   id: EVENT,
@@ -189,6 +191,38 @@ describe('messageFor', () => {
     assert.equal(blocks[1].type, 'context')
     assert.match(blocks[1].elements[0].text, /:eyes: \*Ready for review\*.+ai4kanban.+release 0\.8\.0/)
     assert.doesNotMatch(blocks[1].elements[0].text, /4f2a19c/)
+  })
+
+  it('says only where a reply stands, and who it is still asking', () => {
+    const { text, blocks } = messageFor(anEvent(), { actorId: 'U1' })
+
+    // The thread opened on the card. Repeating its title, board and release under itself is
+    // what made one card scroll past the channel several times over.
+    const said = textIn(blocks)
+    assert.doesNotMatch(said, /Harden the Cloud event flow/)
+    assert.doesNotMatch(said, /release 0\.8\.0/)
+    // A reply pings nobody, so the one account a press is accepted from is named — in a
+    // section, because a mention in a context notifies nobody.
+    assert.equal(blocks[0].type, 'section')
+    assert.equal(blocks[0].text.text, ':eyes: *Ready for review*  ·  <@U1>')
+    // The phone still says which card it is.
+    assert.equal(text, 'Ready for review: #329 Harden the Cloud event flow')
+    // And the decision is still in the reply.
+    assert.deepEqual(
+      buttons(blocks).map((b) => b.action),
+      ['implement', 'open_card'],
+    )
+  })
+
+  it('names nobody in a reply with no decision left to make', () => {
+    const { blocks } = messageFor(
+      anEvent({ state: 'running', acted: true }),
+      { actorId: 'U1' },
+    )
+
+    assert.equal(blocks[0].type, 'context')
+    assert.equal(blocks[0].elements[0].text, ':hammer_and_wrench: *Delivery running*')
+    assert.doesNotMatch(textIn(blocks), /<@U1>/, 'a report is not an ask')
   })
 
   it('shows what a note leads with, and leaves the argument on the card', () => {
@@ -663,6 +697,131 @@ describe('deliverSlack', () => {
     // hands this event back to the next hourly run until SLACK_MAX_ATTEMPTS.
     assert.equal(failed.args.p_rendered_at, '2026-08-01T10:00:00Z')
     assert.equal(calls.find((c) => c.fn === 'slack_refused'), undefined)
+  })
+
+  it('replies in the card’s thread, and broadcasts nothing to the channel', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: ACTOR_POSTS, messageRef: null, threadRef: '1712.0001', attempts: 0, event: anEvent() },
+      ],
+      record_event_delivery: anEvent(),
+    })
+
+    assert.deepEqual(await deliverSlack(ENV), { due: 1, sent: 1, failed: 0 })
+
+    const posted = calls.find((c) => c.slack)
+    assert.equal(posted.slack, 'chat.postMessage')
+    assert.equal(posted.args.thread_ts, '1712.0001')
+    // A broadcast reply is a reference carrying no buttons: it would put the card's bulk
+    // back in the timeline and take the decision out of the thread.
+    assert.equal(posted.args.reply_broadcast, undefined)
+    assert.equal(posted.args.blocks[0].type, 'section')
+    assert.match(posted.args.blocks[0].text.text, /<@U1>/)
+  })
+
+  it('is the top of the thread when the root is its own message', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T11:00:00Z', posts: ACTOR_POSTS, messageRef: '1712.0001', threadRef: '1712.0001', attempts: 0, event: anEvent({ state: 'running', acted: true }) },
+      ],
+      record_event_delivery: anEvent(),
+    })
+
+    await deliverSlack(ENV, EVENT)
+
+    const edited = calls.find((c) => c.slack)
+    assert.equal(edited.slack, 'chat.update')
+    assert.equal(edited.args.blocks[0].type, 'header', 'the card’s own message keeps its header')
+  })
+
+  it('starts a thread of its own when the card has no message left to reply to', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      connector_jobs: [
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: ACTOR_POSTS, messageRef: null, threadRef: null, attempts: 0, event: anEvent() },
+      ],
+      record_event_delivery: anEvent(),
+    })
+
+    await deliverSlack(ENV)
+
+    const posted = calls.find((c) => c.slack)
+    assert.equal(posted.args.thread_ts, undefined)
+    assert.equal(posted.args.blocks[0].type, 'header')
+  })
+
+  it('posts again with no thread when Slack refuses the one it was given', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = []
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      const at = String(url)
+      if (at.startsWith('https://slack.com/')) {
+        const args = JSON.parse(init.body)
+        calls.push({ slack: at.split('/api/')[1], args })
+        // The root was deleted in the channel, or left behind in a destination this account
+        // has moved away from. Both land here.
+        if (args.thread_ts) {
+          return new Response(JSON.stringify({ ok: false, error: 'thread_not_found' }), { status: 200 })
+        }
+        return new Response(JSON.stringify({ ok: true, ts: '1712.0009' }), { status: 200 })
+      }
+      const fn = at.split('/rpc/')[1]
+      calls.push({ fn, args: JSON.parse(init.body) })
+      const answers = {
+        connector_jobs: [
+          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: ACTOR_POSTS, messageRef: null, threadRef: '1712.0001', attempts: 0, event: anEvent() },
+        ],
+      }
+      return new Response(JSON.stringify(answers[fn] ?? { ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    })
+
+    assert.deepEqual(await deliverSlack(ENV), { due: 1, sent: 1, failed: 0 })
+
+    const posts = calls.filter((c) => c.slack)
+    assert.equal(posts.length, 2)
+    assert.equal(posts[1].args.thread_ts, undefined)
+    // A message starting a thread of its own carries the whole card again.
+    assert.equal(posts[1].args.blocks[0].type, 'header')
+    assert.equal(calls.find((c) => c.fn === 'record_event_delivery').args.p_external_ref, '1712.0009')
+  })
+
+  it('holds the root it took, so one card’s two events share one thread', async (t) => {
+    t.after(() => mock.restoreAll())
+    const SECOND = '44444444-4444-4444-8444-444444444444'
+    const calls = []
+    let posted = 0
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      const at = String(url)
+      if (at.startsWith('https://slack.com/')) {
+        posted += 1
+        calls.push({ slack: at.split('/api/')[1], args: JSON.parse(init.body) })
+        return new Response(JSON.stringify({ ok: true, ts: `1712.000${posted}` }), { status: 200 })
+      }
+      const fn = at.split('/rpc/')[1]
+      calls.push({ fn, args: JSON.parse(init.body) })
+      const answers = {
+        // Both read the same root — the one the database held before either was written.
+        connector_jobs: [
+          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', posts: ACTOR_POSTS, messageRef: null, threadRef: null, attempts: 0, event: anEvent() },
+          { ownerId: OWNER, eventId: SECOND, contentAt: '2026-08-01T10:05:00Z', posts: ACTOR_POSTS, messageRef: null, threadRef: null, attempts: 0, event: anEvent({ id: SECOND, kind: 'question', decision: 'answer' }) },
+        ],
+      }
+      return new Response(JSON.stringify(answers[fn] ?? { ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    })
+
+    assert.deepEqual(await deliverSlack(ENV), { due: 2, sent: 2, failed: 0 })
+
+    const posts = calls.filter((c) => c.slack)
+    assert.equal(posts[0].args.thread_ts, undefined)
+    assert.equal(posts[1].args.thread_ts, '1712.0001')
   })
 
   it('costs nothing when nothing is owed', async (t) => {

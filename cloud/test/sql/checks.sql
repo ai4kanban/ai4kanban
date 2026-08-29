@@ -456,6 +456,87 @@ begin
   assert v_count = 0, 'remove_account left the request behind the admission';
 
   -- -------------------------------------------------------------------------
+  -- The thread a card's messages go in (#352)
+  -- -------------------------------------------------------------------------
+  -- The root is the earliest message still RECORDED for the task, whichever event it belongs
+  -- to, so a card that needs a person again replies under the message it already has instead
+  -- of scrolling past the channel a second time. Nothing per-card is stored for it: this is
+  -- the delivery rows read back, per connector.
+
+  insert into cloud.slack_connections (owner_id, team_id, bot_token, channel_id, slack_user_id)
+  values (A, 'T1', 'xoxb', 'C1', 'U1');
+  perform api.record_event_delivery(A, v_event, 'slack', 'sent', 'ts-first', '',
+                                    now() - interval '2 hours', BUDGET);
+  perform api.record_event_delivery(A, v_second, 'slack', 'sent', 'ts-second', '',
+                                    now() - interval '1 hour', BUDGET);
+  -- Aged, because every now() in this transaction answers the same instant and the earliest
+  -- message is the one the order is taken from.
+  update cloud.event_deliveries set created_at = now() - interval '2 hours'
+   where event_id = v_event;
+
+  v_json := (api.connector_jobs('slack', v_second, 10, 5) -> 0);
+  assert v_json is not null, 'a card''s second event was not owed a message';
+  assert (v_json ->> 'threadRef') = 'ts-first',
+    'a later event was not given the earliest message the card still has';
+  assert (v_json ->> 'messageRef') = 'ts-second', 'an event lost the message it already had';
+  -- A reply pings nobody, so one still asking for a decision has an account to name.
+  assert (v_json -> 'posts' ->> 'actorId') = 'U1',
+    'a reply has no account a press is accepted from';
+
+  -- The card's first message is the top of that thread rather than in it, which is the root
+  -- pointing at the event's own message.
+  v_json := (api.connector_jobs('slack', v_event, 10, 5) -> 0);
+  assert (v_json ->> 'threadRef') = (v_json ->> 'messageRef'),
+    'the card''s first message was told to reply to itself';
+
+  -- -------------------------------------------------------------------------
+  -- The 话题 a card's Lark messages go in (#353)
+  -- -------------------------------------------------------------------------
+  -- Lark's reply endpoint takes no destination — a reply lands in whichever chat the message
+  -- it answers is in — so the chat travels in the delivery's own reference and only a
+  -- reference from the chat this connection posts to NOW can be a root. The account a reply
+  -- names rides on the Lark half of `posts`, beside Slack's `actorId`.
+
+  perform api.lark_begin_connect(A, 'state-topic', 'feishu', BUDGET);
+  perform api.lark_finish_connect('state-topic', 'feishu', 'T1', 'ou_1', 'on_1', 'Wu',
+                                  'oc_1', 'Team chat', false, BUDGET);
+  perform api.record_event_delivery(A, v_second, 'lark', 'sent', 'oc_1:om-second', '',
+                                    now() - interval '1 hour', BUDGET);
+  -- Aged, because every now() in this transaction answers the same instant and the earliest
+  -- message is the one the order is taken from.
+  update cloud.event_deliveries set created_at = now() - interval '2 hours'
+   where event_id = v_event and connector = 'lark';
+
+  -- v_event still holds the bare `om_1` this file recorded before the chat was written beside
+  -- it. It names no chat, so it is never replied under: the card's next message is the top of
+  -- a fresh topic instead.
+  v_json := (api.connector_jobs('lark', v_second, 10, 5) -> 0);
+  assert v_json is not null, 'a card''s second Lark message was not owed';
+  assert (v_json ->> 'threadRef') = (v_json ->> 'messageRef'),
+    'a reference written before the chat was recorded was taken as a root';
+
+  -- Once the earliest message names this chat, the later event replies inside it.
+  update cloud.event_deliveries
+     set external_ref = 'oc_1:om-first', created_at = now() - interval '2 hours'
+   where event_id = v_event and connector = 'lark';
+  v_json := (api.connector_jobs('lark', v_second, 10, 5) -> 0);
+  assert (v_json ->> 'threadRef') = 'oc_1:om-first',
+    'a later Lark event was not given the earliest message the card still has in this chat';
+  -- A topic reply subscribes nobody, so one still asking for a decision has an account to name.
+  assert (v_json -> 'posts' ->> 'openId') = 'ou_1',
+    'a Lark reply has no account a press is accepted from';
+
+  -- The destination moves. Both of the card's messages are in the chat the account has left,
+  -- so it has none to reply to here and its next event opens a topic in the new chat.
+  perform api.set_lark_destination(A, 'oc_2', 'Another chat', false, BUDGET);
+  v_json := (api.connector_jobs('lark', v_second, 10, 5) -> 0);
+  assert v_json ->> 'threadRef' is null,
+    'a root left in the chat the connection moved away from was still offered as one';
+  -- Slack records no chat and posts wherever `channelId` says, so its root is untouched.
+  assert ((api.connector_jobs('slack', v_second, 10, 5) -> 0) ->> 'threadRef') = 'ts-first',
+    'scoping Lark''s root to a chat narrowed Slack''s';
+
+  -- -------------------------------------------------------------------------
   -- The day's write budget
   -- -------------------------------------------------------------------------
   -- A refused write rolls its own increment back, so writes stop at exactly the budget and
@@ -484,6 +565,19 @@ begin
   assert v_count = 0, 'the sweep left a request behind its event';
   select count(*) into v_count from cloud.events where id = v_second;
   assert v_count = 1, 'the sweep took live work with it';
+
+  -- The sweep took the card's first message with the event it belonged to, so the card keeps
+  -- replying under whichever message it has left — here, its own.
+  v_json := (api.connector_jobs('slack', v_second, 10, 5) -> 0);
+  assert (v_json ->> 'threadRef') = 'ts-second',
+    'a card whose earliest message was swept did not fall back to the one it has left';
+
+  -- And with none left there is nothing to reply to: the next message opens a thread.
+  delete from cloud.event_deliveries where event_id = v_second;
+  v_json := (api.connector_jobs('slack', v_second, 10, 5) -> 0);
+  assert v_json is not null, 'an event with no message at all was not owed one';
+  assert v_json ->> 'threadRef' is null,
+    'a card with no recorded message left was still told to reply to one';
 
   raise notice 'sql checks: every check passed';
 end
