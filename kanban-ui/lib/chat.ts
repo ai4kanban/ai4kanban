@@ -27,6 +27,11 @@ export interface ChatRead {
   chat: Chat | null;
   /** The reply being written this second, as far as it has got — null when none is. */
   live: string | null;
+  /** A reply stopped from a window (#267), as far as it got. The turn is over from the
+   *  click, but the agent is given a few seconds to shut down before the transcript has it,
+   *  so the words are held here across that gap rather than leaving the rail blank. Null
+   *  once the transcript has them. */
+  stopped: string | null;
   /** A reply is coming, from this window or from a terminal. `live` only knows about one
    *  this window asked for; this knows about any of them. */
   answering: boolean;
@@ -62,8 +67,21 @@ const ENGLISH = getCopy(DEFAULT_LANGUAGE).messages.rules;
 const TOO_OLD = `${ENGLISH.tooOldForChat} ${ENGLISH.updateIt}`;
 
 interface Flight {
-  /** The reply so far, as the agent writes it. */
+  /** The reply so far, as the agent writes it. Frozen once stopped, so the words on screen
+   *  are the words that were there when the button was pressed. */
   text: string;
+  /** End the reply early. Handed over once the agent is actually running, so it is missing
+   *  for the gap a first message spends installing the skill. */
+  stop?(): void;
+  /** Stop was asked for. The turn is over from that moment as far as any window is
+   *  concerned; the agent's few seconds to shut down happen behind this. */
+  stopped: boolean;
+  /** The transcript has this turn. From here the words are the transcript's to draw, so a
+   *  stopped reply stops being held — otherwise it would be on screen twice. */
+  landed: boolean;
+  /** The whole turn, transcript write included — what a message sent during those seconds
+   *  waits on rather than being turned away. */
+  done: Promise<void>;
 }
 
 // Pinned to globalThis for the reason lib/cli.ts pins the rules: Next may evaluate this
@@ -77,6 +95,7 @@ function flights(): { live: Map<string, Flight>; failed: Map<string, string> } {
 const NOTHING: ChatRead = {
   chat: null,
   live: null,
+  stopped: null,
   answering: false,
   stamp: null,
   cardGone: false,
@@ -99,12 +118,18 @@ export async function readChat(cardId: number | null): Promise<ChatRead> {
   const view = rules.readChatView(cardId);
   const { live, failed } = flights();
   const flight = live.get(keyOf(cardId));
+  // A stopped reply is over from the click (#267). The board still holds its marker while
+  // the agent shuts down, so `view` still calls the conversation answering — this is where
+  // that is corrected, and where the words wait for the transcript.
+  const stopping = flight?.stopped ? flight : null;
+  const agent = rules.agentInfo();
   return {
     chat: view.chat,
-    live: flight ? flight.text : null,
+    live: stopping ? null : flight ? flight.text : null,
+    stopped: stopping && !stopping.landed ? stopping.text : null,
     // Our own reply in flight, or anyone's — a conversation carried on from a terminal is
     // writing this same board, and the window follows it the same way.
-    answering: Boolean(flight) || view.answering === true,
+    answering: stopping ? false : Boolean(flight) || view.answering === true,
     stamp: rules.boardStamp ? await rules.boardStamp() : null,
     // Asked of the board rather than remembered: the card may have gone at any moment, and
     // a title read is one card file. A card page gives itself up on this, so a miss is
@@ -113,10 +138,29 @@ export async function readChat(cardId: number | null): Promise<ChatRead> {
     canChat: view.canChat,
     agent: view.agent,
     able: view.able,
-    missing: agentMissing(rules.agentInfo()),
-    blocked: view.blocked,
+    missing: agentMissing(agent),
+    blocked: stopping ? stillBlocked(view, agent.options) : view.blocked,
     failed: failed.get(keyOf(cardId)),
   };
+}
+
+/** Why a message still can't be sent once a reply has been stopped. "Still answering" is
+ *  not one of them — the turn is over from the click — but an agent that can't chat at all,
+ *  or a conversation held with another one, both outlive a stop. The board checks those two
+ *  first, so its own wording is the right wording for either.
+ *
+ *  Matched by label: `view.agent` is the agent that answers HERE, which on a board with
+ *  runtimes is this computer's binding rather than the board's own name (#343), and it is
+ *  that one the board holds a conversation against. */
+function stillBlocked(
+  view: { canChat: boolean; chat: { harness: string } | null; agent: string; blocked?: string },
+  options: { name: string; label: string }[],
+): string | undefined {
+  if (!view.canChat) return view.blocked;
+  const harness = view.chat?.harness;
+  if (harness === undefined) return undefined;
+  const held = options.find((o) => o.name === harness)?.label ?? harness;
+  return held === view.agent ? undefined : view.blocked;
 }
 
 /** Send one message, and come straight back. The reply is written into the transcript by
@@ -133,22 +177,43 @@ export async function sendChat(cardId: number | null, message: string): Promise<
 
   const key = keyOf(cardId);
   const { live, failed } = flights();
-  if (live.has(key)) return { ok: false, error: (await machineCopy()).messages.chat.busy };
+  // A stopped reply is given a few seconds to shut down, and the conversation stays shut
+  // until it has. The message waits that out rather than being refused: the turn is over as
+  // far as the user is concerned, and "still answering" would read as a lie. Re-read after
+  // the wait — whichever of two held messages wakes first takes the conversation, and the
+  // other gets the plain no it would have got anyway.
+  let held = live.get(key);
+  while (held?.stopped) {
+    await held.done;
+    held = live.get(key);
+  }
+  if (held) return { ok: false, error: (await machineCopy()).messages.chat.busy };
   failed.delete(key);
 
-  const flight: Flight = { text: "" };
+  const flight: Flight = { text: "", stopped: false, landed: false, done: Promise.resolve() };
   live.set(key, flight);
   // Not awaited: this call returns as soon as the agent has been asked, and the reply lands
   // in the transcript whether or not anyone is still watching. The transcript is written
   // before the promise settles, so clearing the flight afterwards can never show the
   // browser a gap between the live text and the saved message.
-  void send(cardId, message, {
+  flight.done = send(cardId, message, {
     title: cardId === null ? undefined : rules.titleOf(cardId),
     onText: (chunk) => {
-      flight.text += chunk;
+      // Frozen on a stop, so the words on screen are the words that were there when the
+      // button was pressed.
+      if (!flight.stopped) flight.text += chunk;
+    },
+    // The way to end this reply, once there is one to end. A stop asked for before it
+    // arrives is remembered on the flight and spent here.
+    onOpen: (stop) => {
+      flight.stop = stop;
+      if (flight.stopped) stop();
     },
   })
     .then((sent) => {
+      // The transcript is on disk by the time this runs, so a stopped reply hands its words
+      // over here rather than being drawn beside the message that now holds them.
+      flight.landed = true;
       if ("error" in sent) failed.set(key, sent.error);
     })
     .catch((e: unknown) => {
@@ -157,6 +222,20 @@ export async function sendChat(cardId: number | null, message: string): Promise<
     .finally(() => {
       live.delete(key);
     });
+  return { ok: true };
+}
+
+/** End the reply being written, keeping what arrived (#267). Quiet when there is nothing to
+ *  stop: a reply that has already landed, or one a terminal is writing, is left alone.
+ *
+ *  The flight is this server's, and this server owns every reply a window started on this
+ *  board — so a reply started on another page or in another window ends here too. */
+export async function stopChat(cardId: number | null): Promise<{ ok: boolean }> {
+  const flight = flights().live.get(keyOf(cardId));
+  if (!flight) return { ok: true };
+  flight.stopped = true;
+  // Missing only in the gap before the agent is running; `onOpen` spends it then instead.
+  flight.stop?.();
   return { ok: true };
 }
 

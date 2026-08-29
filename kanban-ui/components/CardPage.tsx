@@ -74,6 +74,7 @@ import {
 } from "./chips";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import type { MockupSet } from "@/lib/mockup-tag";
+import { useOverRail } from "@/lib/over-rail";
 import { parseQuestion } from "@/lib/questions";
 import { bandLabel, CARD_BAND_STATES, type CloudEventState } from "@/lib/types";
 import { useCardEvent } from "./Notifications";
@@ -133,6 +134,10 @@ function ConfirmationPopover({
   const titleId = useId();
   const descriptionId = useId();
   const safeRef = useRef<HTMLButtonElement>(null);
+
+  // Over the chat rail while it is open, so Esc dismisses the confirmation and leaves a
+  // reply alone (#267).
+  useOverRail(open);
 
   useEffect(() => {
     if (!open) return;

@@ -22,6 +22,9 @@ export type ChatCopy = {
   nothingCameBack: string;
   /** Follows the board's own reason a reply stopped part way. */
   stopped: string;
+  /** Why a reply stopped, for the seconds this window holds it before the transcript does
+   *  — the board's own wording for a reply the user ended. */
+  youStopped: string;
   /** The rail with nothing in it yet: what the chat is for, and what to ask it.
    *  Tuples, so a language cannot ship a shorter list than English. */
   emptyBoard: string;
@@ -33,6 +36,9 @@ export type ChatCopy = {
   waiting: string;
   message: string;
   send: string;
+  /** The button Send becomes while a reply is coming. */
+  stop: string;
+  /** The line under the box while a reply is coming: one at a time, and how to end it. */
   oneAtATime: string;
   keys: string;
 };

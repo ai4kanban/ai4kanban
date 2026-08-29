@@ -142,7 +142,10 @@ export interface BoardRules {
   sendChatMessage?(
     cardId: number | null,
     message: string,
-    options?: { onText?(chunk: string): void; title?: string },
+    /** `onOpen` is handed the way to end this reply early (#267), once the agent is running.
+     *  Rules from before it simply never call it, and the window's Stop then waits out the
+     *  reply it asked to end. */
+    options?: { onText?(chunk: string): void; onOpen?(stop: () => void): void; title?: string },
   ): Promise<ChatReply | { error: string }>;
   clearChat?(cardId: number | null): boolean;
 

@@ -20,6 +20,7 @@ const en: ChatCopy = {
   writing: "writing",
   nothingCameBack: "nothing came back",
   stopped: "What arrived is kept — send another message to carry on.",
+  youStopped: "you stopped the reply.",
   emptyBoard:
     "Ask about this project, or say what to change. It answers from this board, and it makes the changes you settle on.",
   emptyBoardAsks: [
@@ -40,7 +41,8 @@ const en: ChatCopy = {
   waiting: "Waiting for the reply…",
   message: "Your message",
   send: "Send",
-  oneAtATime: "One message at a time.",
+  stop: "Stop",
+  oneAtATime: "One message at a time · Esc stops the reply",
   keys: "Enter sends · Shift-Enter starts a line",
 };
 

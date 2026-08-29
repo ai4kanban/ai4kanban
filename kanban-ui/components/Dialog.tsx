@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiX } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
+import { useOverRail } from "@/lib/over-rail";
 
 // A small modal on the neo-brutalism scrim. Esc closes; clicking the backdrop
 // closes; the panel itself doesn't.
@@ -36,6 +37,10 @@ export function Dialog({
   const c = useCopy().shared;
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // The chat rail wants Esc too (#267). A dialog is over it while it is up, so the key
+  // closes the dialog and leaves the reply alone.
+  useOverRail();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

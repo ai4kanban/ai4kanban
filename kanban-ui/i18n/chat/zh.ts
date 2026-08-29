@@ -20,6 +20,7 @@ const zh: ChatCopy = {
   writing: "正在回复",
   nothingCameBack: "没有返回任何内容",
   stopped: "已经收到的内容会保留——再发一条消息即可继续。",
+  youStopped: "你停止了这次回复。",
   emptyBoard: "问它这个项目的情况，或者说出你想改什么。它依据这个看板作答，并落实你确定下来的改动。",
   emptyBoardAsks: [
     "接下来该做什么？",
@@ -35,7 +36,8 @@ const zh: ChatCopy = {
   waiting: "等待回复…",
   message: "你的消息",
   send: "发送",
-  oneAtATime: "一次只能发一条消息。",
+  stop: "停止",
+  oneAtATime: "一次只能发一条消息 · Esc 停止回复",
   keys: "Enter 发送 · Shift-Enter 换行",
 };
 

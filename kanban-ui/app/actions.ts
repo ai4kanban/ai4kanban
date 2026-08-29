@@ -30,7 +30,7 @@ import {
   readSetupState,
   searchCards,
 } from "@/lib/board";
-import { type ChatRead, clearChat, readChat, sendChat } from "@/lib/chat";
+import { type ChatRead, clearChat, readChat, sendChat, stopChat } from "@/lib/chat";
 import {
   cloudAccount,
   cloudCardLink,
@@ -377,6 +377,7 @@ export async function readChatAction(cardId: number | null): Promise<ChatRead> {
     return {
       chat: null,
       live: null,
+      stopped: null,
       answering: false,
       stamp: null,
       cardGone: false,
@@ -397,6 +398,14 @@ export async function sendChatAction(cardId: number | null, message: string): Pr
     return { ok: false, error: (await machineCopy()).messages.actions.emptyChat };
   }
   return sendChat(target, message.trim());
+}
+
+/** End the reply being written, keeping what arrived. Quiet when there is none: a reply
+ *  that has already landed is not an error to have tried to stop. */
+export async function stopChatAction(cardId: number | null): Promise<{ ok: boolean; error?: string }> {
+  const target = chatTarget(cardId);
+  if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+  return stopChat(target);
 }
 
 export async function clearChatAction(cardId: number | null): Promise<{ ok: boolean; error?: string }> {

@@ -14,6 +14,7 @@ import type { RunsCopy } from "@/i18n/runs/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
+import { useOverRail } from "@/lib/over-rail";
 import { parseQuestion } from "@/lib/questions";
 import type { CloudEventAnswer } from "@/lib/types";
 import {
@@ -591,6 +592,10 @@ function StopButton({ sessionId }: { sessionId: string }) {
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLSpanElement>(null);
 
+  // Over the chat rail while it is open, so Esc dismisses the popover and leaves a reply
+  // alone.
+  useOverRail(open);
+
   // Escape, or a click anywhere else, dismisses the popover — the same way out
   // the dialogs give. Only bound while it's open.
   useEffect(() => {
@@ -716,6 +721,8 @@ export function SessionLogOverlay({
   const t = useCopy();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // Over the chat rail while it is up, so Esc closes the log and leaves a reply alone.
+  useOverRail();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();

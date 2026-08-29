@@ -15,6 +15,7 @@ import { getSessionAction, listSessionsAction, startAgentAction } from "@/app/ac
 import { useLanguage } from "@/components/language";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
+import { useOverRail } from "@/lib/over-rail";
 import { flowLabel, flowOf, runFlows, stepLabel, type RunFlow } from "@/lib/run-flows";
 import { LANGUAGE_TAGS, type Language, type SessionView } from "@/lib/types";
 import { type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
@@ -482,6 +483,8 @@ function SessionsDialog({
   const panel = usePanelState();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // Over the chat rail while it is up, so Esc closes the panel and leaves a reply alone.
+  useOverRail();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") sessionsPanel.close();

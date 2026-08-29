@@ -18,7 +18,7 @@
 // walking to another card never cuts a reply off, and closing the app never loses one.
 
 import { createContext, memo, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { FiMessageSquare, FiSend, FiTrash2, FiX } from "react-icons/fi";
+import { FiMessageSquare, FiSend, FiSquare, FiTrash2, FiX } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRail } from "@/lib/chat-rail";
 import type { ChatMessage } from "@/lib/types";
@@ -103,6 +103,7 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
       <Transcript
         messages={messages}
         live={rail.live}
+        stopped={rail.stopped}
         // Only once this conversation has actually been read. Landing on a card drops the
         // last one's messages on the spot, and the invitation before the read would be a
         // beat of "nothing has been said" on a card that has plenty.
@@ -191,12 +192,16 @@ function IconButton({ label, onClick, children }: { label: string; onClick(): vo
 function Transcript({
   messages,
   live,
+  stopped,
   empty,
 }: {
   messages: ChatMessage[];
   live: string | null;
+  /** A stopped reply's words, held here until the transcript has them (#267). */
+  stopped: string | null;
   empty: React.ReactNode;
 }) {
+  const c = useCopy().chat;
   const box = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const onScroll = () => {
@@ -207,9 +212,9 @@ function Transcript({
   useLayoutEffect(() => {
     const el = box.current;
     if (el && stick.current) el.scrollTop = el.scrollHeight;
-  }, [messages, live]);
+  }, [messages, live, stopped]);
 
-  const nothing = messages.length === 0 && live === null;
+  const nothing = messages.length === 0 && live === null && stopped === null;
   return (
     <div ref={box} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-2.5">
       {nothing ? (
@@ -220,6 +225,11 @@ function Transcript({
             <Said key={i} message={m} />
           ))}
           {live !== null && <Writing text={live} />}
+          {/* A stopped reply reads as a finished one from the click: no pulse, no
+              "writing", and the peach note the transcript will carry a moment later. */}
+          {stopped !== null && (
+            <Said message={{ role: "agent", text: stopped, at: 0, stoppedWhy: c.youStopped }} />
+          )}
         </div>
       )}
     </div>
@@ -392,9 +402,20 @@ function Composer({ rail, disabled, answering }: { rail: ChatRail; disabled: boo
         <span className="min-w-0 flex-1 truncate text-[11px] text-nb-ink-soft">
           {answering ? c.oneAtATime : c.keys}
         </span>
-        <Button size="xs" disabled={disabled || empty} onClick={() => void rail.send()} aria-label={c.send}>
-          <FiSend className="text-[13px]" aria-hidden />
-          <span className="sr-only">{c.send}</span>
+        {/* One button in this corner, not two: while a reply is coming it IS Stop, and it
+            stays live though the box beside it is shut. */}
+        <Button
+          size="xs"
+          disabled={answering ? false : disabled || empty}
+          onClick={() => void (answering ? rail.stop() : rail.send())}
+          aria-label={answering ? c.stop : c.send}
+        >
+          {answering ? (
+            <FiSquare className="text-[13px]" aria-hidden />
+          ) : (
+            <FiSend className="text-[13px]" aria-hidden />
+          )}
+          <span className="sr-only">{answering ? c.stop : c.send}</span>
         </Button>
       </div>
     </div>

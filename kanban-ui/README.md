@@ -173,6 +173,12 @@ written, and where it names a card the name is a link to that card's page.
 - **It is still not a run.** It shows in no runs panel, locks no card, and keeps no run off
   one — you can talk about a card an agent is building.
 - **One message at a time.** The box is shut while a reply is coming.
+- **Stop a reply that went the wrong way.** While one is coming, Send is **Stop** — one
+  click, or Esc, and it ends there. What arrived is kept and the next message carries on
+  from it; nothing is undone, and the message you stopped is not put back to be reworded.
+  Esc stops it only when nothing is over the chat — a dialog, a panel or a menu keeps the
+  key. A reply `akb chat` is writing is the terminal's own, so Ctrl-C there stays the way to
+  end it.
 - **Folding it doesn't stop it.** The reply keeps arriving, and the Chat button marks that
   there is something to read.
 - **It keeps.** The exchange is still there after the app is closed and reopened, and it is per
