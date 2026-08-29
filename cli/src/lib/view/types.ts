@@ -173,6 +173,7 @@ export type CardDeliveryStage =
   | 'commit'
   | 'rereview'
   | 'refused'
+  | 'queued'
   | 'landed'
 
 /** The delivery's state, as the title band draws it: the pill's words, the one line under

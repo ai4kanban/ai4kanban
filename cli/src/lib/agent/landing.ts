@@ -29,7 +29,7 @@ import {
   syncAudit,
   wantsLanding,
 } from './deliveries'
-import { HELD_ON_APPROVAL, HELD_ON_QUESTIONS } from './pause'
+import { HELD_ON_APPROVAL, HELD_ON_QUESTIONS, IN_LINE } from './pause'
 import { askUser, reviewOf, type Ask } from './review'
 import { readStore, withStore } from './store'
 import type { AgentRequest, DeliveryLanding, DeliveryRecord } from './types'
@@ -300,6 +300,34 @@ async function owedRestart(): Promise<AgentRequest | null> {
   return null
 }
 
+// ---- queued behind the slot -------------------------------------------------
+
+const inLineWhy = (cardId: number): string =>
+  `${IN_LINE} #${cardId} — one card lands at a time, and this one carries on by itself`
+
+/** Tell every waiter that the slot is taken, and by which card.
+ *
+ *  `takeSlot` returns on the holder before it ever reaches the queue, so without this a
+ *  waiter keeps the `why` of the last pass that actually looked at it — a dirty checkout the
+ *  user cleaned up an hour ago, still on the card page as the thing in its way. The queue is
+ *  the honest answer, and it is the one nothing else was writing down.
+ *
+ *  The two holds and a stopped review are left out: those wait on a person whether or not
+ *  the slot is free, which is the same reason `takeSlot` passes them over. */
+function noteQueue(held: Set<string>): void {
+  const store = readStore()
+  const holder = store.deliveries.find((d) => d.status === 'active' && d.landing?.status === 'landing')
+  if (!holder) return
+  const why = inLineWhy(holder.cardId)
+  for (const delivery of store.deliveries) {
+    if (delivery.deliveryId === holder.deliveryId) continue
+    if (delivery.status !== 'active' || delivery.landing?.status !== 'waiting') continue
+    if (held.has(delivery.deliveryId) || delivery.review?.stopped || !wantsLanding(delivery)) continue
+    if (delivery.landing.why === why) continue
+    patchLanding(delivery.deliveryId, (landing) => void (landing.why = why))
+  }
+}
+
 // ---- one pass ---------------------------------------------------------------
 
 /** Move the landing queue on by one step, and hand back the run it wants started — the
@@ -329,7 +357,10 @@ export async function advanceLanding(): Promise<AgentRequest | null> {
     const tried = new Set<string>()
     for (;;) {
       const picked = takeSlot(tried, held)
-      if (!picked) return null
+      if (!picked) {
+        noteQueue(held)
+        return null
+      }
       tried.add(picked.deliveryId)
       const step = await landStep(picked)
       if (step.start) return step.start

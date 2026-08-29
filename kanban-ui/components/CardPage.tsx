@@ -762,6 +762,7 @@ const PILL_TONE: Record<CardDeliveryStage, keyof typeof PILL_SKIN> = {
   commit: "live",
   rereview: "warn",
   refused: "warn",
+  queued: "live",
   landed: "done",
 };
 

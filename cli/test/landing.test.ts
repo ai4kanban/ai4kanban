@@ -284,6 +284,78 @@ describe('a target branch that moved', () => {
   })
 })
 
+describe('queued behind the slot', () => {
+  // The slot's holder, stopped for the review of its rebase — so it keeps the slot across
+  // every pass, which is exactly when a waiter is never looked at.
+  async function holdTheSlot(): Promise<DeliveryRecord> {
+    const first = await reviewed(1, 'card one', 'one\n')
+    fs.writeFileSync(path.join(root, 'theirs.txt'), 'someone else\n')
+    git(['add', '-A'])
+    git(['commit', '--quiet', '-m', 'someone else'])
+    assert.equal((await advanceLanding())?.action, 'review')
+    assert.equal(landingOf(first.deliveryId)?.status, 'landing')
+    return first
+  }
+
+  async function waiting(): Promise<DeliveryRecord> {
+    const built = run('implement', 2, 'card two')
+    const second = activeDelivery(2)!
+    fs.writeFileSync(path.join(worktreeDir(second.worktree!), 'other.txt'), 'two\n')
+    await end(built)
+    await passReview(2, 'card two')
+    return second
+  }
+
+  it('says which card it is behind rather than nothing at all', async () => {
+    await holdTheSlot()
+    const second = await waiting()
+
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(second.deliveryId)?.status, 'waiting')
+    assert.match(landingOf(second.deliveryId)?.why ?? '', /^in line behind #1 —/)
+  })
+
+  it('replaces the refusal of the last pass that looked at it', async () => {
+    await holdTheSlot()
+    const second = await waiting()
+    // What the queue used to leave on the card: a refusal from before the slot was taken,
+    // naming a checkout the user has since cleaned up.
+    withStore((store) => {
+      store.deliveries.find((d) => d.deliveryId === second.deliveryId)!.landing!.why =
+        'your checkout has uncommitted changes in 10 files — commit or stash them'
+    })
+
+    assert.equal(await advanceLanding(), null)
+    assert.match(landingOf(second.deliveryId)?.why ?? '', /^in line behind #1 —/)
+  })
+
+  it('drops the note as soon as the slot is its own', async () => {
+    const first = await holdTheSlot()
+    const second = await waiting()
+    assert.equal(await advanceLanding(), null)
+    assert.match(landingOf(second.deliveryId)?.why ?? '', /^in line behind #1/)
+
+    await passReview(1, 'card one')
+    await advanceLanding()
+    assert.equal(landingOf(first.deliveryId)?.status, 'landed')
+    assert.doesNotMatch(landingOf(second.deliveryId)?.why ?? '', /^in line behind/)
+  })
+
+  it('leaves a delivery waiting on a person out of the queue', async () => {
+    await holdTheSlot()
+    const second = await waiting()
+    // Its own landing already handed over to the user; the queue is not what it waits on.
+    withStore((store) => {
+      const live = store.deliveries.find((d) => d.deliveryId === second.deliveryId)!
+      live.landing!.why = 'main moved again after 3 rebases, so this landing is not converging'
+      live.review = { ...(live.review ?? { rounds: [], corrections: 0 }), stopped: { reason: 'landing', why: 'x', at: 1 } }
+    })
+
+    assert.equal(await advanceLanding(), null)
+    assert.match(landingOf(second.deliveryId)?.why ?? '', /^main moved again after 3 rebases/)
+  })
+})
+
 describe('a conflict', () => {
   it('is resolved by a session and reviewed again before landing', async () => {
     const first = await reviewed(1, 'card one', 'one\n')

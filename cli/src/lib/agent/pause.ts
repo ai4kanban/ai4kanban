@@ -29,6 +29,9 @@ export type DeliveryStage =
   /** Reviewed and queued, and landing refused it — a dirty checkout, a target branch that
    *  is gone. The refusal already says what clears it, and the next pass tries again. */
   | 'refused'
+  /** Reviewed and queued behind the card that holds the landing slot. Nothing is asked of
+   *  the user: it moves the moment the one in front of it lands. */
+  | 'queued'
   /** Its commit is on the target branch, and the board is completing the card. */
   | 'landed'
 
@@ -52,6 +55,11 @@ export interface DeliveryState {
  *  are what keeps a stale `landing.why` from being read back as a refusal. */
 export const HELD_ON_QUESTIONS = 'held on an open question'
 export const HELD_ON_APPROVAL = 'held on your approval'
+
+/** The fixed opening words on a delivery queued behind the one holding the landing slot.
+ *  Same trick as the two above: it tells a wait from a refusal without a field of its own,
+ *  which is what keeps a queued card from wearing the refusal of an earlier pass. */
+export const IN_LINE = 'in line behind'
 
 const count = (n: number): string => `${n} open question${n === 1 ? '' : 's'}`
 
@@ -131,6 +139,17 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
         `Landing waits for your approval — read the tree on \`Diff\`, then \`Approve this tree\`.` +
         (again ? ` The tree moved, so the last approval was cancelled.` : ''),
       paused: true,
+    }
+  }
+  // Queued behind whichever card holds the landing slot. Before the refusal below, because
+  // a waiter the queue never reached still carries the `why` of the last pass that did look
+  // at it — and that one asks the user for something the queue is not waiting on.
+  if (landing?.status === 'waiting' && landing.why?.startsWith(IN_LINE)) {
+    return {
+      stage: 'queued',
+      label: 'In line to land',
+      line: upper(end(landing.why)),
+      paused: false,
     }
   }
   // Landing looked at it and put it back, saying why (`landing.ts`). That sentence names
