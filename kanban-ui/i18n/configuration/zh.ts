@@ -285,7 +285,7 @@ const zh: ConfigurationCopy = {
       disconnectFailed: "未能断开连接",
     },
     lark: {
-      title: "飞书 / Lark",
+      title: "Lark",
       install: "请先由管理员在应用目录里把 AI4Kanban 安装到你的组织。",
       checking: "检查中…",
       connect: (cloud) => `连接 ${cloud}`,

@@ -300,7 +300,7 @@ const en: ConfigurationCopy = {
       disconnectFailed: "that could not be disconnected",
     },
     lark: {
-      title: "Lark / 飞书",
+      title: "Lark",
       install:
         "An administrator installs AI4Kanban in your organisation from its app directory first.",
       checking: "Checking…",
