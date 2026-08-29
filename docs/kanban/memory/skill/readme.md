@@ -336,7 +336,9 @@ covers it, or a plain-words note.
 - `akb cloud` says which account this machine is signed in to AI4Kanban Cloud as, and whether
   Cloud takes its work; `akb cloud sign-out` forgets it. Neither needs a board — the sign-in
   belongs to the machine. Starting one is the app's, in **Configuration → Notifications**: the consent
-  screen comes back to the app, so there is no address a terminal could be answered at.
+  screen comes back to the app, so there is no address a terminal could be answered at. An
+  account we have not admitted is told to ask for an invite in the app — there is no code to
+  paste, in the terminal or anywhere else, and `akb help` says the same.
 - The language you read in belongs to the machine, not to a board: `akb` holds it in
   `~/.ai4kanban/settings.json`, beside the Cloud sign-in and outside every repository, so the app,
   a board served to a browser and a bare `akb` in a terminal all reach one answer and no project

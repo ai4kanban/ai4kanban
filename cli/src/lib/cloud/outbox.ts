@@ -20,9 +20,14 @@ import type { EventSnapshot } from './snapshot'
 /** What this board last got onto Cloud for one task. */
 export interface PublishedEvent {
   eventId: string
-  /** The snapshot this event was last published at — a fingerprint that has not moved is
-   *  not news, so nothing is written and nobody is interrupted. */
+  /** What the person was last asked to decide — a fingerprint that has not moved is not
+   *  news, so nobody is interrupted. */
   fingerprint: string
+  /** The card revision Cloud last stored for it. Kept apart from the fingerprint because it
+   *  moves on every edit to the card file and none of them is news: an action binds this, so
+   *  a revision that has moved still has to be written through, quietly. Empty on a record
+   *  this board took over from a claim, which is one refresh. */
+  revision?: string
   /** As the board last knew it. Local truth about a remote row, kept so the publisher can
    *  tell a live event from one already retired without a round trip. */
   state: CloudEventState
@@ -199,10 +204,13 @@ const subject = (p: Pending): string => {
 }
 
 /** Whether a queued item and a new one about the same subject would send the same thing. A
- *  publication is its fingerprint; nothing else carries a payload that can move. */
+ *  publication is its fingerprint AND its revision — the revision is not news, but Cloud
+ *  stores it, so a queued snapshot must not hold back the one the card reads at now. Nothing
+ *  else carries a payload that can move. */
 const unchanged = (queued: Pending, next: Pending): boolean =>
   queued.kind === 'publish' && next.kind === 'publish'
-    ? queued.snapshot.fingerprint === next.snapshot.fingerprint
+    ? queued.snapshot.fingerprint === next.snapshot.fingerprint &&
+      queued.snapshot.revision === next.snapshot.revision
     : true
 
 /**
@@ -299,7 +307,12 @@ function taskHolding(outbox: Outbox, eventId: string): number {
 export function notePublication(taskId: number, eventId: string, state: CloudEventState): void {
   editOutbox((outbox) => {
     const held = outbox.published[String(taskId)]
-    outbox.published[String(taskId)] = { eventId, fingerprint: held?.fingerprint ?? '', state }
+    outbox.published[String(taskId)] = {
+      eventId,
+      fingerprint: held?.fingerprint ?? '',
+      revision: held?.revision ?? '',
+      state,
+    }
   })
 }
 

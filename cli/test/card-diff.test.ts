@@ -11,9 +11,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { cmdReviewVerdict } from '../src/commands/review-verdict.ts'
 import { activeDelivery, listDeliveries } from '../src/lib/agent/deliveries.ts'
-import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { advanceLanding } from '../src/lib/agent/landing.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
@@ -70,11 +68,9 @@ beforeEach(() => {
   setBoardRoot(root)
   fs.writeFileSync(path.join(root, 'docs', 'kanban', 'todo', 'features', '1-card.md'), card(1, 'card one'))
   setAutoCommit(true)
-  delete process.env[RUN_ENV]
 })
 
 afterEach(() => {
-  delete process.env[RUN_ENV]
   fs.rmSync(root, { recursive: true, force: true })
 })
 
@@ -103,12 +99,6 @@ async function reviewed(
   await end(built)
   const review = run('review', 1, 'card one')
   reviewWrite?.(dir)
-  process.env[RUN_ENV] = review
-  try {
-    cmdReviewVerdict(['1', '--verdict', 'pass'])
-  } finally {
-    delete process.env[RUN_ENV]
-  }
   await end(review)
   return delivery
 }

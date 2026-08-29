@@ -8,7 +8,7 @@
  * `ts` Slack answered with, so a message that exists is edited in place — which is also the
  * whole of keeping it in step with the card's newest revision, the decision and the
  * delivery's outcome. What is due is decided in `api.slack_jobs`, by comparing when the
- * event last changed against the version its message is showing.
+ * event's content last moved against the version its message is showing.
  *
  * Called twice over, like the invitation mail: from the route that wrote the event, through
  * `waitUntil`, so a channel hears about a card in seconds; and from the hourly run, which
@@ -32,9 +32,17 @@ export interface SlackRun {
 interface SlackJob {
   ownerId: string
   eventId: string
-  /** When the event last changed, as it was when this job was read. Recorded with a message
-   *  that gets through, so an event that moved while Slack was answering is still due. */
-  changedAt: string
+  /** When any field of the event last moved, as it was when this job was read — `content_at`,
+   *  not `changed_at`: a message follows a quiet refresh too, because an edit in a channel
+   *  pings nobody and a message naming the wrong release is one somebody would review from.
+   *  Recorded with a message that gets through, so an event that moved while Slack was
+   *  answering is still due.
+   *
+   *  `changedAt` is what a schema older than 0008 calls it. Read both ways round, because a
+   *  deploy and a migration do not land together and a version token this echoed back as
+   *  NULL would leave every message due forever. */
+  contentAt?: string
+  changedAt?: string
   botToken: string
   channelId: string
   /** The `ts` of the message this event already has, or null when it has none yet. */
@@ -142,5 +150,5 @@ const record = (
     p_last_error: outcome.error ?? '',
     // What the message now shows, not when it was written. The event may have moved while
     // Slack was answering, and that one is still owed a rewrite.
-    p_rendered_at: job.changedAt,
+    p_rendered_at: job.contentAt ?? job.changedAt,
   })

@@ -294,9 +294,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `${kb}. Review task ${req.id} ${named} — judge what the delivery in flight on it has built against the card as it was approved, following \`akb guide review\`.`,
         `\`${command} review ${req.id} --print\` supplies the approved requirements, changed-file summary and small diff.`,
         `You did not build this. Do not read the run that wrote it.`,
-        `Fix plain mistakes in this run, rerun the affected checks, then record \`pass\` or \`ask\` with \`${command} board review-verdict ${req.id}\`.`,
-        `A review that records nothing stops the delivery.`,
-        `Don't ask me questions with human-in-the-loop — the \`ask\` verdict is how you defer to me.`,
+        `Fix plain mistakes and rerun the affected checks. If a genuine user decision still blocks landing, append it to #${req.id} following \`akb guide update-questions\`; otherwise finish successfully and review passes.`,
+        `Don't ask me questions with human-in-the-loop — the card's validated open question is how you defer to me.`,
       ].join(' ')
     // Kept only so a correction run already in flight during an upgrade can finish.
     case 'correct':

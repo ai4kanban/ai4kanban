@@ -31,7 +31,6 @@ import { cmdList } from '../../commands/list'
 import { cmdMigrate, cmdRun } from '../../commands/misc'
 import { cmdRelease } from '../../commands/release'
 import { cmdRemove } from '../../commands/remove'
-import { cmdReviewVerdict } from '../../commands/review-verdict'
 import { cmdRunBlocker } from '../../commands/run-blocker'
 import { cmdSetupDone, cmdSetupStatus } from '../../commands/setup'
 import { cmdSpecWrite } from '../../commands/spec-write'
@@ -108,7 +107,6 @@ const MOVES: Record<string, RunMove> = {
   reject: (rest) => cmdRemove(Number(rest[0]), 'rejected'),
   'record-run': (rest) => cmdRun(Number(rest[0])),
   'spec-write': (rest) => cmdSpecWrite(rest),
-  'review-verdict': (rest) => cmdReviewVerdict(rest),
   'run-blocker': (rest) => cmdRunBlocker(rest),
   peek: () => {
     const id = readNextId()

@@ -8,7 +8,7 @@ covers it, or a plain-words note.
 - Anyone weighing the Cloud preview can read what it does with their data before installing
   anything: [/privacy](https://ai4kanban.dev/privacy) names every record 0.8.0 keeps for one
   signed-in account — the sign-in record and the Cloud account row as two separate records, the
-  admission, the invite request and the invitation, the board's Cloud id and the folder name it
+  admission, the invite request, the board's Cloud id and the folder name it
   is registered under, the event with its decision, answers and outcome, the board's machine
   record, and the Slack connection — with what deletes each one against it, says it runs in
   Frankfurt and answers the one account that owns a record, and says code, credentials and model
@@ -24,8 +24,8 @@ covers it, or a plain-words note.
   another machine delete nothing. Everything else is a request to `support@ai4kanban.dev`, and
   that removal takes the whole account and everything under it — so asking for one board to be
   forgotten ends the account's place in the preview. A person who asked for an invite and was
-  never admitted keeps their request, any code issued to them and their sign-in record until we
-  delete them by hand. Both pages say so.
+  never admitted keeps their request and their sign-in record until we delete them by hand.
+  Both pages say so.
 
 ## Signing in to Cloud
 
@@ -36,42 +36,46 @@ covers it, or a plain-words note.
   changes nothing already on the board. `akb cloud` says who a terminal is signed in as.
 - **Cloud is an invite-only preview, and says so to everyone else.** An account we have not
   admitted signs in successfully, is named on screen, and is refused with one message naming
-  the two doors in: paste an invitation code, or ask us for one. It is a refusal of its own,
-  never "sign in again", so nobody is sent round a loop that cannot end.
+  the one way in: ask us for an invite, and we email you when you are in. It is a refusal of
+  its own, never "sign in again", so nobody is sent round a loop that cannot end.
 - A machine with no desktop app cannot reach Cloud in 0.8.0: the consent screen comes back to
   the app over a URL scheme, and a terminal never starts a sign-in of its own.
 
 ## Getting into the preview
 
-- **A refused account has two doors, and finishes the job itself.** In **Configuration →
-  Cloud** it can paste an invitation code, or press **Request an invite**. A code admits one
-  account — whichever redeems it first — and admits it for good; the pane moves to the
-  admitted state on the spot, with no second sign-in. A wrong code is told which of the three
-  things went wrong: we don't know it, it has been used, or it was withdrawn.
+- **A refused account has one door: it asks, and we answer.** In **Configuration →
+  Notifications** it presses **Request an invite**, and that is the whole of what it does.
+  Approving admits the account on our side, so the pane reaches the admitted state the next
+  time it is opened — nothing is pasted, and nobody signs in twice. An admission written by
+  an approval is decided on the sign-in itself, so renaming a GitHub account never takes a
+  place in the preview away and never hands it to whoever takes the name.
 - **Asking is one click and types nothing.** The request carries the GitHub handle and the
   email address GitHub verified, both read from the identity provider's own record. Pressing
   again records no second request and sends no second email; the pane shows the day it was
   asked instead of the button.
-- **We answer by hand, and approving is one statement.** `select
-  cloud.approve_invite_request('<handle>')` in the project's SQL editor issues the code and
-  the next hourly run mails it — no admin screen, and no mail credential reaches whoever
-  approves. `cloud.issue_invitation('<address>')` invites somebody who never asked,
-  `cloud.withdraw_invitation` closes a code, and `cloud.remove_account` closes both doors and
-  takes the request and the invitation with it. All of it is in `cloud/README.md`, "Answer an
-  invite request".
-- **The preview now sends email, and only this.** The code that answers a request, and the
-  notice to `support@ai4kanban.dev` that somebody asked. Both go out from the Worker's hourly
+- **We answer by hand, and approving is the whole of it.** `npm run invite approve <handle>`
+  from `cloud/` — or `select cloud.approve_invite_request('<handle>')` in the project's SQL
+  editor — admits the account, closes the request and queues the message telling the person
+  they are in. No admin screen, and no mail credential reaches whoever approves. The
+  admission never waits on that message: `npm run invite approved` is what says whether it
+  went out, so a dead address is somebody we can see rather than somebody admitted in
+  silence. A hand-written `cloud.admitted_accounts` row still invites somebody who never
+  asked, with no mail sent, and `cloud.remove_account` takes the admission and the request
+  with it. All of it is in `cloud/README.md`, "Answer an invite request".
+- **The preview now sends email, and only this.** The answer to a request, and the notice to
+  `support@ai4kanban.dev` that somebody asked. Both go out from the Worker's hourly
   run through Resend, from `invites@ai4kanban.dev` replying to `support@ai4kanban.dev`,
   so a failed send is retried rather than lost. There is no mailing list and no announcement.
 - **The sign-in now asks GitHub for `user:email`.** The consent screen names an email
   permission where it named none, so every account carries an address GitHub itself verified
   and nothing about a request has to be typed. It still cannot read a repository.
 - **[/privacy](https://ai4kanban.dev/privacy) and [/terms](https://ai4kanban.dev/terms) say
-  so.** The privacy page describes the request and the invitation, names Resend and the
-  `support@ai4kanban.dev` mailbox as subprocessors, and says both records are kept until we
-  remove them by hand whether or not the account was admitted; both pages say the preview mails
-  an account twice — the invitation loop, and a notice about the preview itself — and nothing
-  else.
+  so.** The privacy page describes the invite request — including that an approved one records
+  we answered it — and the admission, which now records the sign-in it was written for as well
+  as the handle; it names Resend and the `support@ai4kanban.dev` mailbox as subprocessors, and
+  says the request is kept until we remove it by hand whether or not the account was admitted.
+  Both pages say the preview mails an account twice — the answer to a request, and a notice
+  about the preview itself — and nothing else. What is kept, and for how long, is unchanged.
 
 - **A board can send Cloud the tasks that need a person, and Cloud tells the app.** Turn
   notifications on for a board under **Configuration → Notifications** and pick one open release:
@@ -122,4 +126,13 @@ covers it, or a plain-words note.
   moments the board needs you to your desktop and to Slack while your own machine does the
   work, and points at [/cloud](https://ai4kanban.dev/cloud) for the rest. The Worker has to be
   redeployed for the correction to reach anybody.
+
+- **Getting into the preview is now one ask, answered by us.** An invitation code no longer
+  exists anywhere: approving a request admits the account there and then and emails the person
+  to say so, and the code box, the twelve-character code, and redeeming and withdrawing one
+  are gone from the app, the service and the database. `akb cloud` and the app both say "ask us
+  for an invite" where they said "paste a code", and [/cloud](https://ai4kanban.dev/cloud),
+  [/privacy](https://ai4kanban.dev/privacy) and [/terms](https://ai4kanban.dev/terms) describe
+  asking and being answered. Apply the migration and redeploy the Worker in the same window —
+  the migration drops the function the Worker before it calls to redeem a code.
 

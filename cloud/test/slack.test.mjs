@@ -33,6 +33,7 @@ const anEvent = (over = {}) => ({
   questions: [],
   summary: '',
   notes: '',
+  reason: '',
   serverName: 'Wutao’s MacBook Pro',
   createdAt: '2026-08-01T10:00:00Z',
   changedAt: '2026-08-01T10:00:00Z',
@@ -97,6 +98,20 @@ describe('messageFor', () => {
 
     const orphan = messageFor(anEvent({ state: 'waiting_for_server', acted: true, serverName: '' }))
     assert.match(textIn(orphan.blocks), /no machine attached/)
+  })
+
+  it('says why a delivery ended badly, and nothing where there is nothing to say', () => {
+    const refused = messageFor(
+      anEvent({
+        state: 'failed',
+        acted: true,
+        reason: 'you have uncommitted changes in cli/src/lib/help.ts — commit or stash these first.',
+      }),
+    )
+    assert.match(textIn(refused.blocks), /uncommitted changes/)
+
+    const bare = messageFor(anEvent({ state: 'failed', acted: true }))
+    assert.doesNotMatch(textIn(bare.blocks), /uncommitted/)
   })
 
   it('ends under the same state names every other surface shows', () => {
@@ -534,7 +549,7 @@ describe('deliverSlack', () => {
     t.after(() => mock.restoreAll())
     let calls = fakeDatabase({
       slack_jobs: [
-        { ownerId: OWNER, eventId: EVENT, changedAt: '2026-08-01T10:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: null, attempts: 0, event: anEvent() },
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: null, attempts: 0, event: anEvent() },
       ],
       record_event_delivery: anEvent(),
     })
@@ -552,7 +567,7 @@ describe('deliverSlack', () => {
     mock.restoreAll()
     calls = fakeDatabase({
       slack_jobs: [
-        { ownerId: OWNER, eventId: EVENT, changedAt: '2026-08-01T11:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: '1712.0001', attempts: 0, event: anEvent({ state: 'running', acted: true }) },
+        { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T11:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: '1712.0001', attempts: 0, event: anEvent({ state: 'running', acted: true }) },
       ],
       record_event_delivery: anEvent(),
     })
@@ -562,6 +577,24 @@ describe('deliverSlack', () => {
     // One event keeps one message however many times it moves.
     assert.equal(calls.find((c) => c.slack)?.slack, 'chat.update')
     assert.equal(calls.find((c) => c.slack)?.args.ts, '1712.0001')
+  })
+
+  // A migration and a deploy do not land together, so for one window this reads a schema
+  // that names the version token the other way. Recording NULL for it would leave every
+  // message in the channel due forever — rewritten on every pass until the two sides met.
+  it('takes the version token under the name an older schema gives it', async (t) => {
+    t.after(() => mock.restoreAll())
+    const calls = fakeDatabase({
+      slack_jobs: [
+        { ownerId: OWNER, eventId: EVENT, changedAt: '2026-08-01T10:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: null, attempts: 0, event: anEvent() },
+      ],
+      record_event_delivery: anEvent(),
+    })
+
+    await deliverSlack(ENV)
+
+    const kept = calls.find((c) => c.fn === 'record_event_delivery')
+    assert.equal(kept.args.p_rendered_at, '2026-08-01T10:00:00Z')
   })
 
   it('shows a connection Slack has refused where it was made', async (t) => {
@@ -576,7 +609,7 @@ describe('deliverSlack', () => {
       calls.push({ fn, args: JSON.parse(init.body) })
       const answers = {
         slack_jobs: [
-          { ownerId: OWNER, eventId: EVENT, changedAt: '2026-08-01T10:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: null, attempts: 0, event: anEvent() },
+          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: null, attempts: 0, event: anEvent() },
         ],
       }
       return new Response(JSON.stringify(answers[fn] ?? { ok: true }), {
@@ -609,7 +642,7 @@ describe('deliverSlack', () => {
       calls.push({ fn, args: JSON.parse(init.body) })
       const answers = {
         slack_jobs: [
-          { ownerId: OWNER, eventId: EVENT, changedAt: '2026-08-01T10:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: null, attempts: 2, event: anEvent() },
+          { ownerId: OWNER, eventId: EVENT, contentAt: '2026-08-01T10:00:00Z', botToken: 'xoxb', channelId: 'C1', messageRef: null, attempts: 2, event: anEvent() },
         ],
       }
       return new Response(JSON.stringify(answers[fn] ?? { ok: true }), {

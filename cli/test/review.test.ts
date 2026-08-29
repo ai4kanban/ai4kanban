@@ -1,5 +1,5 @@
 // Review is one fresh session: it judges the delivery, fixes plain mistakes itself, and
-// records pass or ask. These tests cover that handoff and its stop conditions.
+// passes unless it appends a validated user decision to the card.
 
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
@@ -8,7 +8,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
-import { cmdReviewVerdict } from '../src/commands/review-verdict.ts'
+import { cmdUpdateQuestions } from '../src/commands/card.ts'
 import {
   activeDelivery,
   deliveryRunAfter,
@@ -17,8 +17,6 @@ import {
   joinDelivery,
   settleDelivery,
 } from '../src/lib/agent/deliveries.ts'
-import { RUN_ENV } from '../src/lib/agent/env.ts'
-import { parseFindings } from '../src/lib/agent/review.ts'
 import { readStore, withStore } from '../src/lib/agent/store.ts'
 import type { AgentAction, RunRecord } from '../src/lib/agent/types.ts'
 import { DELIVERIES, setBoardRoot } from '../src/lib/paths.ts'
@@ -68,7 +66,6 @@ beforeEach(() => {
   fs.mkdirSync(path.join(todo, 'features'), { recursive: true })
   fs.writeFileSync(file, CARD)
   setBoardRoot(root)
-  delete process.env[RUN_ENV]
 })
 
 git('init', '--quiet', '-b', 'main')
@@ -79,7 +76,6 @@ git('add', '-A')
 git('commit', '--quiet', '-m', 'start')
 
 after(() => {
-  delete process.env[RUN_ENV]
   fs.rmSync(root, { recursive: true, force: true })
 })
 
@@ -126,15 +122,6 @@ async function close(run: RunRecord, status: RunRecord['status'] = 'done'): Prom
   return closed
 }
 
-function verdict(sessionId: string, kind: 'pass' | 'ask', findings?: string): void {
-  process.env[RUN_ENV] = sessionId
-  try {
-    cmdReviewVerdict(['5', '--verdict', kind, ...(findings ? ['--text', findings] : [])])
-  } finally {
-    delete process.env[RUN_ENV]
-  }
-}
-
 const questions = (): string[] =>
   fs
     .readFileSync(file, 'utf8')
@@ -151,31 +138,6 @@ const passedOn = (cardId: number): boolean => {
   return delivery.next === undefined && !delivery.review?.stopped && delivery.reviewed !== undefined
 }
 
-describe('reading a review answer', () => {
-  it('takes each bullet as one finding', async () => {
-    const found = parseFindings(
-      ['- **Empty input crashes**: `parse("")` throws in read.ts:20.', '- **Missing test**: nothing covers it.'].join('\n'),
-    )
-    assert.deepEqual(
-      found.map((finding) => finding.title),
-      ['Empty input crashes', 'Missing test'],
-    )
-    assert.match(found[0]!.detail, /read\.ts:20/)
-  })
-
-  it('folds a wrapped line into the preceding finding', async () => {
-    const found = parseFindings(['- **One thing**: the first half', '      and the second half.'].join('\n'))
-    assert.equal(found.length, 1)
-    assert.match(found[0]!.detail, /first half and the second half/)
-  })
-
-  it('reads prose as one finding', async () => {
-    const found = parseFindings('the change does not do what the card asked for')
-    assert.equal(found.length, 1)
-    assert.match(found[0]!.title, /does not do what the card asked/)
-  })
-})
-
 describe('reviewing and fixing in one session', () => {
   it('reviews after implementation and finishes on pass', async () => {
     const built = build()
@@ -183,7 +145,6 @@ describe('reviewing and fixing in one session', () => {
     await close(built)
     const review = carryOn(built)
     assert.equal(review.action, 'review')
-    verdict(review.sessionId, 'pass')
     await close(review)
 
     assert.equal(passedOn(5), true)
@@ -196,7 +157,6 @@ describe('reviewing and fixing in one session', () => {
     await close(built)
     const review = carryOn(built)
     fs.writeFileSync(code, 'fixed by review\n')
-    verdict(review.sessionId, 'pass')
     await close(review)
 
     assert.equal(fs.readFileSync(code, 'utf8'), 'fixed by review\n')
@@ -214,35 +174,33 @@ describe('reviewing and fixing in one session', () => {
 })
 
 describe('stopping for the user', () => {
-  const stops = (why: RegExp) => {
-    assert.equal(activeDelivery(5)?.status, 'active')
-    assert.match(deliveryWaiting(5) ?? '', why)
-    assert.equal(questions().length, 1)
-    assert.match(questions()[0]!, /Review stopped on delivery/)
-  }
-
-  it('stops on ask and records the finding', async () => {
+  it('waits on the exact validated question review appended', async () => {
     const built = build()
     await close(built)
     const review = carryOn(built)
-    verdict(review.sessionId, 'ask', '- **Is the retry wanted?**: the card does not say.')
+    cmdUpdateQuestions([
+      '5',
+      '--append',
+      '[user] Which retry behavior should apply?',
+      '--recommended-option',
+      'Retry once — recovers transient failures with one delay',
+      '--option',
+      'Do not retry — fails immediately without duplicate work',
+    ])
     await close(review)
-    stops(/only you can settle/)
-    assert.match(questions()[0]!, /Is the retry wanted\?/)
+    assert.match(deliveryWaiting(5) ?? '', /open decision/)
+    assert.equal(questions().length, 1)
+    assert.match(questions()[0]!, /Which retry behavior should apply\?/)
+    assert.doesNotMatch(questions()[0]!, /delivery|ai4kanban\.mjs|review 5/i)
   })
 
-  it('stops when review failed before recording a verdict', async () => {
+  it('leaves a failed review unfinished without inventing a question', async () => {
     const built = build()
     await close(built)
     await close(carryOn(built), 'error')
-    stops(/failed before it recorded a verdict/)
-  })
-
-  it('stops when review ended without a verdict', async () => {
-    const built = build()
-    await close(built)
-    await close(carryOn(built))
-    stops(/without recording a verdict/)
+    assert.equal(activeDelivery(5)?.status, 'active')
+    assert.equal(deliveryWaiting(5), undefined)
+    assert.equal(questions().length, 0)
   })
 
   it('does not add a question when the user stopped the session', async () => {
@@ -253,57 +211,46 @@ describe('stopping for the user', () => {
     assert.equal(questions().length, 0)
   })
 
-  it('clears a stop when a fresh review starts', async () => {
+  it('clears the question stop when a fresh review starts', async () => {
     const built = build()
     await close(built)
-    await close(carryOn(built), 'error')
+    const first = carryOn(built)
+    cmdUpdateQuestions([
+      '5',
+      '--append',
+      '[user] Which retry behavior should apply?',
+      '--recommended-option',
+      'Retry once — recovers transient failures',
+      '--option',
+      'Do not retry — fails immediately',
+    ])
+    await close(first)
     assert.ok(deliveryWaiting(5))
+    cmdUpdateQuestions(['5', '--drop', '1'])
     const again = session('review')
     withStore((store) => {
       store.runs.push(again)
       joinActive(store, again, 'review')
     })
     assert.equal(deliveryWaiting(5), undefined)
-  })
-})
-
-describe('recording a verdict', () => {
-  it('refuses a card with no delivery in flight', async () => {
-    assert.throws(() => cmdReviewVerdict(['5', '--verdict', 'pass']), /no delivery is in flight/)
-  })
-
-  it('accepts only pass or ask', async () => {
-    build()
-    assert.throws(() => cmdReviewVerdict(['5', '--verdict', 'correct']), /takes pass, ask/)
-  })
-
-  it('requires findings for ask and refuses them for pass', async () => {
-    build()
-    assert.throws(() => cmdReviewVerdict(['5', '--verdict', 'ask']), /has to say what was found/)
-    assert.throws(
-      () => cmdReviewVerdict(['5', '--verdict', 'pass', '--text', 'nothing wrong']),
-      /carries no findings/,
-    )
-  })
-
-  it('replaces the verdict when one session records twice', async () => {
-    const built = build()
-    await close(built)
-    const review = carryOn(built)
-    verdict(review.sessionId, 'ask', '- **First thought**: needs a decision.')
-    verdict(review.sessionId, 'pass')
-    assert.equal(activeDelivery(5)!.review!.rounds.length, 1)
-    await close(review)
+    await close(again)
     assert.equal(passedOn(5), true)
   })
 
-  it('does not trust a verdict recorded outside the review session', async () => {
+  it('does not mistake a question that predates implementation for one raised by review', async () => {
+    cmdUpdateQuestions([
+      '5',
+      '--append',
+      '[user] Which shade should apply?',
+      '--recommended-option',
+      'Blue — matches the existing palette',
+      '--option',
+      'Green — distinguishes the new state',
+    ])
     const built = build()
     await close(built)
-    const review = carryOn(built)
-    cmdReviewVerdict(['5', '--verdict', 'pass'])
-    await close(review)
-    assert.equal(activeDelivery(5)?.status, 'active')
-    assert.match(deliveryWaiting(5) ?? '', /without recording a verdict/)
+    await close(carryOn(built))
+    assert.equal(activeDelivery(5)?.review?.stopped, undefined)
+    assert.equal(activeDelivery(5)?.review?.rounds.at(-1)?.verdict, 'pass')
   })
 })

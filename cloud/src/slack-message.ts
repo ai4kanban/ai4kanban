@@ -69,7 +69,8 @@ function stateLine(event: EventRow): [icon: string, label: string] {
  *
  * The state line above already says the state, and the card link already says where to read
  * the rest, so "It landed. Open the card." is two things the message has said. What is left
- * is what a state name cannot carry: which machine, and what to do about it.
+ * is what a state name cannot carry: which machine, why it ended that way, and what to do
+ * about it.
  */
 function stateNote(event: EventRow): string {
   switch (event.state) {
@@ -79,6 +80,11 @@ function stateNote(event: EventRow): string {
         : 'This board has no machine attached to run it. Attach one in Configuration → Notifications.'
     case 'running':
       return event.serverName ? `Running on ${event.serverName}.` : ''
+    // What the state name cannot carry: a refused approval and a broken build both read
+    // `failed`, and only one of them is fixed by a `git stash`.
+    case 'failed':
+    case 'cancelled':
+      return event.reason
     case 'interrupted':
       return 'The machine running it went away. Resume or cancel it on that machine.'
     case 'stale':

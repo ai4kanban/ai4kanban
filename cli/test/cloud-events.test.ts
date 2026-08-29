@@ -257,9 +257,26 @@ describe('when a live event has to be refreshed', () => {
     assert.equal(snapshotFor(ready, BOARD)!.fingerprint, snapshotFor(card({ status: 'ready' }), BOARD)!.fingerprint)
   })
 
-  it('moves when the revision does', () => {
+  // A revision is a hash of the whole card file, so it moves for edits an event cannot see —
+  // a `release:` reset, a typo in a section it never carries (#182). It rides along on the
+  // snapshot, because an action binds it, and is written through without waking anybody.
+  it('stays put when only the revision moves, so a card edit is not news', () => {
     const moved = card({ status: 'ready', revision: 'r2' })
-    assert.notEqual(snapshotFor(ready, BOARD)!.fingerprint, snapshotFor(moved, BOARD)!.fingerprint)
+    assert.equal(snapshotFor(ready, BOARD)!.fingerprint, snapshotFor(moved, BOARD)!.fingerprint)
+    assert.equal(snapshotFor(moved, BOARD)!.revision, 'r2')
+  })
+
+  it('stays put when only the release does', () => {
+    const all = { ...BOARD, release: ALL_RELEASES }
+    const promised = card({ status: 'ready', release: '0.8.0' })
+    const unpromised = card({ status: 'ready', release: '' })
+    assert.equal(snapshotFor(promised, all)!.fingerprint, snapshotFor(unpromised, all)!.fingerprint)
+    assert.equal(snapshotFor(unpromised, all)!.release, '')
+  })
+
+  it('moves when the title does', () => {
+    const renamed = card({ status: 'ready', title: 'Something else' })
+    assert.notEqual(snapshotFor(ready, BOARD)!.fingerprint, snapshotFor(renamed, BOARD)!.fingerprint)
   })
 
   it('moves when the question list does', () => {

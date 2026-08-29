@@ -66,6 +66,8 @@ declare
   v_json json;
   v_text text;
   v_count integer;
+  v_changed timestamptz;
+  v_content timestamptz;
 begin
   -- Two accounts, each with a board, a server and one actionable event.
   insert into cloud.accounts (id, handle) values (A, 'account-a'), (B, 'account-b');
@@ -163,11 +165,48 @@ begin
                               'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', BUDGET);
   assert (v_json ->> 'id')::uuid = v_event, 'an unchanged snapshot raised a second row';
 
-  -- A card that moved refreshes the same row rather than raising another.
-  v_json := api.publish_event(A, BOARD_A, 329, 'Harden the Cloud event flow', '0.8.0', 'r2',
-                              'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f2', BUDGET);
+  -- An edit the event cannot see — a `release:` reset, a typo in a section it never carries
+  -- — moves the revision and nothing else (#182). Cloud takes it, because an action binds
+  -- the revision, and says nothing: `changed_at` stays put so the row stays as read as it
+  -- was, and `content_at` moves so Slack's message is rewritten to match.
+  --
+  -- Aged first: every check here runs in ONE transaction, so every `now()` in it answers the
+  -- same instant and a clock that moved could not be told from one that did not.
+  update cloud.events set changed_at = now() - interval '1 hour',
+                          content_at = now() - interval '1 hour'
+   where id = v_event;
+  select changed_at, content_at into v_changed, v_content from cloud.events where id = v_event;
+  v_json := api.publish_event(A, BOARD_A, 329, 'Harden the Cloud event flow', '', 'r2',
+                              'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', BUDGET);
+  assert (v_json ->> 'id')::uuid = v_event, 'a quiet refresh raised a second row';
+  assert (v_json ->> 'revision') = 'r2', 'a quiet refresh did not write the revision through';
+  assert (v_json ->> 'release') = '', 'a quiet refresh did not write the release through';
+  assert (v_json ->> 'changedAt')::timestamptz = v_changed,
+    'an edit the event cannot see marked the row unread again';
+  assert (select content_at from cloud.events where id = v_event) > v_content,
+    'a quiet refresh left the message showing what the card no longer says';
+
+  -- What the person is asked to decide moving IS news: the same row, refreshed, and
+  -- `changed_at` with it.
+  v_json := api.publish_event(A, BOARD_A, 329, 'Harden the Cloud event flow', '', 'r2',
+                              'ready_for_review', 'implement', '[]'::jsonb, 'why moved', 'notes', 'f2', BUDGET);
   assert (v_json ->> 'id')::uuid = v_event, 'a revised card raised a second row';
-  assert (v_json ->> 'revision') = 'r2', 'a revised card did not refresh the row';
+  assert (v_json ->> 'changedAt')::timestamptz > v_changed, 'a card that moved did not refresh the row';
+
+  -- The version token a Slack job carries, under both names. A migration and a Worker deploy
+  -- do not land together, and the Worker echoes this value straight back as `rendered_at`:
+  -- one that read a key the other did not send would record NULL, and a delivery with no
+  -- `rendered_at` is due forever — every message in the channel rewritten on every pass.
+  insert into cloud.slack_connections (owner_id, team_id, bot_token, channel_id, slack_user_id)
+  values (A, 'T1', 'xoxb', 'C1', 'U1');
+  v_json := (api.slack_jobs(v_event, 10, 5) -> 0);
+  assert v_json is not null, 'an actionable event owed a message was not due';
+  assert (v_json ->> 'contentAt') = (v_json ->> 'changedAt'),
+    'the two names for one version token disagree';
+  assert (v_json ->> 'contentAt')::timestamptz
+       = (select content_at from cloud.events where id = v_event),
+    'a Slack job carries a version its message could not be checked against';
+  delete from cloud.slack_connections where owner_id = A;
 
   -- -------------------------------------------------------------------------
   -- One action per event, against the revision it was granted on
@@ -178,10 +217,20 @@ begin
            A, 'op-stale', v_event, 'implement', 'r1', '[]', 'waiting_for_server', BUDGET),
     'AKB03', 'an action against a revision that has moved');
 
+  -- Aged, so the clock a message's rewrite is owed against can be seen to move: a decision
+  -- is content moving as well as news, and a message left on "Ready for review" would offer
+  -- a decision somebody already took.
+  update cloud.events set changed_at = now() - interval '1 hour',
+                          content_at = now() - interval '1 hour'
+   where id = v_event;
+  select content_at into v_content from cloud.events where id = v_event;
+
   v_json := api.record_event_action(A, 'op-1', v_event, 'implement', 'r2', '[]'::jsonb,
                                     'waiting_for_server', BUDGET);
   assert (v_json ->> 'state') = 'waiting_for_server', 'the action did not leave the event waiting';
   assert (v_json ->> 'acted')::boolean, 'the action was not recorded against the event';
+  assert (select content_at from cloud.events where id = v_event) > v_content,
+    'a decision left the message still offering one';
 
   -- The same attempt again is that attempt's retry, not a second action.
   v_json := api.record_event_action(A, 'op-1', v_event, 'implement', 'r2', '[]'::jsonb,
@@ -236,8 +285,21 @@ begin
   -- The outcome ends the request in the same transaction
   -- -------------------------------------------------------------------------
 
+  -- Why it ended is the EVENT's, because that is the row every surface renders — and because
+  -- a decision taken on the board's own machine raises no request for it to live on.
+  update cloud.events set content_at = now() - interval '1 hour' where id = v_event;
+  select content_at into v_content from cloud.events where id = v_event;
+  v_json := api.record_event_outcome(A, 'out-refused', v_event, 'failed',
+                                     'you have uncommitted changes in cli/src/lib/help.ts', 900, BUDGET);
+  assert (v_json ->> 'reason') like '%uncommitted changes%', 'a refusal reached the event without its words';
+  assert (select content_at from cloud.events where id = v_event) > v_content,
+    'an outcome left the message showing a delivery that had ended';
+
+  -- And an ending with nothing to explain says nothing: a retry must not still show why the
+  -- attempt before it was refused.
   v_json := api.record_event_outcome(A, 'out-1', v_event, 'completed', '', 900, BUDGET);
   assert (v_json ->> 'state') = 'completed', 'the outcome did not reach the event';
+  assert (v_json ->> 'reason') = '', 'a delivery that finished still showed the last refusal';
   select state into v_text from cloud.event_requests where id = v_request;
   assert v_text = 'finished', 'a finished delivery left its request open';
 

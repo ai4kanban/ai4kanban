@@ -212,6 +212,10 @@ function readDeliveryRows(raw: unknown): DeliveryRecord[] {
       endedAt: typeof entry.endedAt === 'number' ? entry.endedAt : undefined,
       sessions: Array.isArray(entry.sessions) ? entry.sessions.filter((s) => typeof s === 'string') : [],
       approved: typeof entry.approved === 'string' ? entry.approved : '',
+      initialQuestions:
+        typeof entry.initialQuestions === 'number' && entry.initialQuestions >= 0
+          ? Math.floor(entry.initialQuestions)
+          : undefined,
       steps: readSteps(entry.steps),
       base: typeof entry.base === 'string' && entry.base ? entry.base : undefined,
       review: readReview(entry.review),

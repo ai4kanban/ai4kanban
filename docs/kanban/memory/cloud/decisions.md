@@ -27,20 +27,23 @@ Internal detail stays on the card.
 - **Who may sign in to the Cloud relay?**: only an account we admit, on the same invite-only
   terms. 0.8.0 ships the notification relay in a public release, so most people who download
   it meet a refusal saying Cloud is an invite-only preview rather than the asynchronous flow
-  the release leads with. Approving an invitation is a hand step we run, and the invited
-  person then admits themselves with the code; there is no self-serve sign-up and no admin
-  screen in this release.
+  the release leads with. Approving a request is a hand step we run, and approving is what
+  admits the account; there is no self-serve sign-up and no admin screen in this release.
 - **How does a refused person ask to be let in?**: with **Request an invite** in the refusal
   itself. The request is recorded against their account and emailed to
   `support@ai4kanban.dev`, which we approve by hand; the site gets no invite page, no
   waitlist and no public thread, and no time is promised for a reply.
-- **How is an invitation given out?**: as a code the invited person redeems in the app,
-  admitting one account each (#327), from 0.8.0 onward. It replaces the hand-written row
-  without opening sign-up — a code is still something we decide to give.
-- **How does a code reach the person who asked for one?**: Cloud emails it once we approve
-  their recorded request, so approving is the whole answer rather than a reply someone
-  writes. The preview therefore does send one email to a user, from the site's own domain
-  with `support@ai4kanban.dev` as the reply address, and the terms and privacy pages say so.
+- **How is an invitation given out?**: by approving the person's own request (#350), from
+  0.8.0 onward. Approving admits their account there and then and emails them to say so —
+  nothing is typed back, and there is no code. #327's twelve-character code was the earlier
+  answer and is gone; the hand-written `cloud.admitted_accounts` row stays, for inviting
+  somebody who never asked. The preview therefore does send one email to a user, from the
+  site's own domain with `support@ai4kanban.dev` as the reply address, and the terms and
+  privacy pages say so.
+- **Does an admission survive a GitHub rename?**: an approval-written one does, because it is
+  decided on the sign-in it was written for; it records the handle too, but only so we can
+  find and remove it by name. A hand-written row names a handle and nothing else, so a rename
+  does un-admit it — which is the point of naming a handle.
 
 ## Where Cloud runs
 
@@ -65,8 +68,8 @@ Internal detail stays on the card.
   project's address rather than `ai4kanban.dev`. Putting that redirect on our own name is a
   paid Supabase add-on the preview does not take. A sign-in reads a public GitHub profile and
   the account's verified email address, and cannot reach a repository; the privacy page's
-  earlier "no scopes at all" promise goes with the change, because an invitation code needs a
-  verified address to reach (#327).
+  earlier "no scopes at all" promise goes with the change, because answering an invite request
+  needs a verified address to reach (#327).
 - **What does turning Cloud on require of `akb`?**: nothing new. The publisher sends over
   `fetch` and the live connection is written against the published Realtime protocol rather
   than `@supabase/realtime-js`, so `akb` stays "Node 18+. No dependencies." for everyone,
@@ -80,7 +83,7 @@ Internal detail stays on the card.
   the Cloud choice in onboarding. They are live before the first outside team is invited,
   and they promise that an owner can delete a workspace and everything in it.
 - **Which release publishes the privacy and terms pages?**: 0.8.0, the same release that
-  starts emailing an invitation code. The version that sends a user mail is the one that
+  starts emailing an answer to an invite request. The version that sends a user mail is the one that
   carries the pages saying so, rather than treating them as a gate cleared before Cloud is
   turned on.
 - **Who legally runs AI4Kanban Cloud?**: Nullreach Ltd, a private limited company registered

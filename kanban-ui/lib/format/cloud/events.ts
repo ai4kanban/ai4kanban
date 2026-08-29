@@ -167,6 +167,10 @@ export interface CloudEvent {
   summary: string
   /** The card's `## Worth noting` and `## Worth noting after implementation`, likewise. */
   notes: string
+  /** Why the delivery ended as it did, in this board's own words — the refusal a start was
+   *  turned down with, or the failure a run reported. Empty on an ending with nothing to
+   *  explain, and on an event that ended before Cloud held one. */
+  reason: string
   /** The machine that runs this board's work, so a surface can name what a decision is
    *  waiting for. Empty when the board has no server attached. */
   serverName: string

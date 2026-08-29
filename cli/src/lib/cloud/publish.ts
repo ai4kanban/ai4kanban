@@ -5,9 +5,10 @@
 // this board already has on Cloud, and writes the difference into the outbox before anything
 // is sent:
 //
-//   • actionable, nothing on record        → publish
-//   • actionable, on record, moved under it → refresh that same event in place
-//   • on record, no longer actionable      → retire it as `stale`
+//   • actionable, nothing on record         → publish
+//   • actionable, on record, asking something else → refresh that event in place, as news
+//   • actionable, on record, only its revision moved → write the revision through, quietly
+//   • on record, no longer actionable       → retire it as `stale`
 //
 // Actionable means waiting for a person with NOTHING WORKING ON IT (./snapshot.ts). A run
 // picking a card up puts its row down, and the run ending picks it back up — which is the
@@ -203,8 +204,20 @@ async function queueDifference(enabled: CloudBoard, reconcile: boolean): Promise
     seen.add(card.id)
     const held = publishedFor(card.id)
     if (held) {
-      // The same piece of work, unchanged. Nothing to write and nobody to interrupt.
-      if (held.state === 'actionable' && held.fingerprint === snapshot.fingerprint) continue
+      // The same piece of work at the same revision. Nothing to write and nobody to interrupt.
+      //
+      // The revision is checked as well as the fingerprint because it is not part of one
+      // (./snapshot.ts): an edit an event cannot see still moves it, and Cloud refuses an
+      // action against a revision it does not hold. Such a pass sends the snapshot anyway
+      // and the Worker writes the revision through without moving `changed_at`, so the row
+      // stays exactly as read as it was.
+      if (
+        held.state === 'actionable' &&
+        held.fingerprint === snapshot.fingerprint &&
+        held.revision === snapshot.revision
+      ) {
+        continue
+      }
       // A task whose DELIVERY finished and which needs a person again is new work: the
       // record is dropped so a fresh event is raised, and the finished one stays where it
       // is — it is the history the bell looks back over.
@@ -503,6 +516,7 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
       event: {
         eventId: answer.value.event.id,
         fingerprint: snapshot.fingerprint,
+        revision: snapshot.revision,
         state: answer.value.event.state,
       },
     })

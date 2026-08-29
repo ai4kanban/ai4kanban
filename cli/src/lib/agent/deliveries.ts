@@ -34,20 +34,15 @@ import { insideRun } from './env'
 import { deliveryState, type DeliveryState } from './pause'
 import { deliveryRules } from './rules'
 import {
-  askUser,
   lastRound,
   nextAfterSession,
-  parseFindings,
   reviewOf,
-  stopQuestion,
-  type Ask,
 } from './review'
 import { readStore, withStore, type Store } from './store'
 import type {
   AgentRequest,
   DeliveryRecord,
   DeliveryStatus,
-  ReviewVerdict,
   RunRecord,
 } from './types'
 
@@ -274,6 +269,9 @@ export function joinDelivery(
       sessions: [],
       // The one read of the card this delivery will ever make for its requirements.
       approved: approvedRequirements(cardId),
+      // Existing questions predate review. Review waits only on a decision it adds itself;
+      // these keep waiting at landing as before.
+      initialQuestions: openQuestions(cardId),
       steps: [],
       // And the one read of where the code stood before it started. Everything the
       // delivery writes is the difference from here, which is the diff review judges.
@@ -359,38 +357,6 @@ const DELIVERY_OUTCOME: Record<Exclude<DeliveryStatus, 'active'>, CloudEventStat
   cancelled: 'cancelled',
 }
 
-// ---- review, across a delivery's runs (#302) --------------------------------
-
-/** Write one review's verdict onto the delivery in flight on this card.
- *
- *  The review run records its own verdict — it is the only thing that read the diff —
- *  and everything the loop does next is decided from it once the run has closed. A second
- *  call in one run REPLACES the first: a reviewer that changed its mind mid-run leaves
- *  one verdict, not two. */
-export function recordVerdict(
-  cardId: number,
-  sessionId: string,
-  verdict: ReviewVerdict,
-  findingsText: string,
-): { ok: true; delivery: DeliveryRecord } | { ok: false; error: string } {
-  const findings = parseFindings(findingsText)
-  if (verdict !== 'pass' && !findings.length) {
-    return { ok: false, error: `a "${verdict}" verdict has to say what was found — pass the findings with --file` }
-  }
-  const out = withStore<{ ok: true; delivery: DeliveryRecord } | { ok: false; error: string }>((store) => {
-    const delivery = activeIn(store, cardId)
-    if (!delivery) return { ok: false, error: `no delivery is in flight on #${cardId}, so there is nothing to review` }
-    const review = reviewOf(delivery)
-    const mine = review.rounds[review.rounds.length - 1]
-    const round = { sessionId, verdict, findings, at: Date.now() }
-    if (mine?.sessionId === sessionId) review.rounds[review.rounds.length - 1] = round
-    else review.rounds.push(round)
-    return { ok: true, delivery: { ...delivery } }
-  })
-  if (out.ok) syncAudit(out.delivery.deliveryId)
-  return out
-}
-
 /** What a run's ending means for the delivery it belonged to.
  *
  *  A delivery is implementation, then a review that fixes plain mistakes itself. The
@@ -402,7 +368,9 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
   if (!run.deliveryId) return
   const before = readStore().deliveries.find((d) => d.deliveryId === run.deliveryId)
   if (!before) return
-  type Settled = { end: 'finished' } | { ask: Ask; cardId: number }
+  type Settled = { end: 'finished' }
+  const questions = openQuestions(before.cardId)
+  const raisedQuestions = Math.max(0, questions - (before.initialQuestions ?? 0))
 
   // Everything that has to run git happens here, before the record's lock — every process
   // on this board waits on that lock, and a git command is not what it should be waiting
@@ -417,7 +385,11 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
   // And, in manual commit mode, the snapshot a passed review leaves for the user's own
   // commit to be matched against.
   const reviewed =
-    !uncommitted && before.commitMode === 'manual' && run.action === 'review' && passedIn(before, run)
+    !uncommitted &&
+    before.commitMode === 'manual' &&
+    run.action === 'review' &&
+    run.status === 'done' &&
+    raisedQuestions === 0
       ? snapshotReviewed(before)
       : undefined
 
@@ -431,9 +403,9 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
       review.stopped = { reason: 'uncommitted', why: uncommitted, at: Date.now() }
       delivery.next = undefined
       releaseLanding(delivery)
-      return { ask: stopQuestion(delivery, uncommitted), cardId: delivery.cardId }
+      return null
     }
-    const next = nextAfterSession(delivery, run)
+    const next = nextAfterSession(delivery, run, raisedQuestions)
     if ('hold' in next) return null
     if ('finish' in next) {
       delivery.next = undefined
@@ -461,15 +433,12 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
       // A re-review that stops waits on a person, and a landing queue that waits with it
       // stops every other card on the board — so the slot goes back (#304).
       releaseLanding(delivery)
-      // The delivery stays ACTIVE. It has not failed and it has not finished — it is
-      // waiting for the user, and the card it is holding is the card their answer goes on.
-      return { ask: stopQuestion(delivery, next.why), cardId: delivery.cardId }
+      return null
     }
     delivery.next = next.start
     return null
   })
   if (settled && 'end' in settled) endDelivery(run.deliveryId, settled.end)
-  if (settled && 'ask' in settled) await askUser(settled.cardId, settled.ask)
   // Whatever happened, the permanent record follows the run that just closed — from
   // the caller's copy, since closing and pruning it are one write.
   syncAudit(run.deliveryId, run)
@@ -527,18 +496,6 @@ function queueLanding(delivery: DeliveryRecord, run: RunRecord): void {
 function releaseLanding(delivery: DeliveryRecord): void {
   if (delivery.landing?.status !== 'landing') return
   delivery.landing = { ...delivery.landing, status: 'waiting', at: Date.now() }
-}
-
-/** The verdict this delivery's last review left, for a flow that has to say where it
- *  stands. */
-export const latestVerdict = (delivery: DeliveryRecord): ReviewVerdict | undefined =>
-  lastRound(delivery)?.verdict
-
-// This very run recorded a pass. A review whose run ended without a verdict told us
-// nothing, and a verdict from an earlier round is not this run's answer.
-function passedIn(delivery: DeliveryRecord, run: RunRecord): boolean {
-  const round = lastRound(delivery)
-  return round?.sessionId === run.sessionId && round.verdict === 'pass'
 }
 
 // ---- manual commit mode: the user's own commit (#303) -----------------------

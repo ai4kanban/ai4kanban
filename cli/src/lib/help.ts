@@ -19,12 +19,16 @@ type Brief = [string, string]
 // One usage form in full: its label, the detail lines under it, and how to lay it out.
 type Legacy = [string, string[]] | [string, string[], { inline?: boolean }]
 
+// One concrete command, split into lines so a long example stays readable.
+type Example = [string, ...string[]]
+
 // One move of the board's bookkeeping, written once and rendered both ways.
 export interface Move {
   name: string
   group: string | null
   brief: Brief[]
   legacy: Legacy[]
+  examples?: Example[]
   aliases?: string[]
 }
 
@@ -32,6 +36,7 @@ export interface Move {
 // `legacy` — [label, detail-lines] as today's block shows it. `inline` keeps a long label
 //            on the same line as its first detail line, which is how `tag` has always
 //            printed.
+// `examples` — concrete commands shown only in full help when syntax needs demonstration.
 // `aliases` — other spellings that reach this move. `run` is the old name for
 //            `record-run`: starting an agent becomes `akb run`, so counting a run that
 //            already happened had to stop sharing the word.
@@ -171,30 +176,46 @@ export const MOVES: Move[] = [
     brief: [
       [
         'update-questions <id>',
-        'patch the open questions one op at a time: --append,\n--update <n>, --drop <n,n>, --to-verify <n,n>, --clear.\n--append/--update need 2+ --option "a — why"; add\n--mode multi when several picks may be combined',
+        'append one direct decision, or rewrite, remove, or move\nan existing question; see `help update-questions` for exact forms',
       ],
     ],
     legacy: [
       [
-        'update-questions <id> [ops]',
+        'update-questions <id> --append <question> --recommended-option <choice> --option <choice>',
         [
-          'patch the open-question list, one op at a time, applied in',
-          'the order typed: --append ".." adds a question, --update',
-          '<n> ".." rewrites question n whole (options included),',
-          '--drop n[,n...] removes answered ones, --to-verify n[,n...]',
-          'moves ones that turned out to be hand-checks into the card\'s',
-          'verify: list (tag dropped, wording kept), --clear removes',
-          'them all. Positions are 1-based, read against the list as',
-          'it stands when the op runs. --option and',
-          '--recommended-option attach to the --append or --update',
-          "before them, same as create's --question. Every question",
-          'written here needs 2 or more --option "a — why" — a bare',
-          'line is refused. It is exclusive unless --mode multi says',
-          'the picks may be combined.',
-          'The user also gets a free-text choice, added by the board:',
-          'never write one yourself. A question may carry a leading',
-          "[user] tag marking it as the human's judgment call.",
+          'append one direct decision. Write the question as `[user] Which behavior should',
+          'apply?`; write each choice as `behavior — outcome and cost`. One choice is',
+          'recommended, and at least one alternative is required. The user also gets a',
+          'free-text choice from the board, so never add one yourself. The question is',
+          'exclusive unless --mode multi says several choices may be combined.',
         ],
+      ],
+      [
+        'update-questions <id> --update <n> <question> --recommended-option <choice> --option <choice>',
+        [
+          'rewrite one existing question whole. Positions are 1-based; choices follow the',
+          'same form and validation as --append.',
+        ],
+      ],
+      [
+        'update-questions <id> --drop <n[,n...]>',
+        ['remove one or more answered questions. Positions are 1-based.'],
+      ],
+      [
+        'update-questions <id> --to-verify <n[,n...]>',
+        ['move one or more hand-checks into `verify:`. Positions are 1-based.'],
+      ],
+      [
+        'update-questions <id> --clear',
+        ['remove every open question.'],
+      ],
+    ],
+    examples: [
+      [
+        'update-questions 42 \\',
+        '  --append "[user] Which retry behavior should apply?" \\',
+        '  --recommended-option "Retry once — recovers transient failures with one delay" \\',
+        '  --option "Do not retry — fails immediately without duplicate work"',
       ],
     ],
   },
@@ -288,31 +309,6 @@ export const MOVES: Move[] = [
           'record why the current implementation cannot safely continue and',
           'the one action that lets Resume carry it on. Each field is one short',
           'sentence. This belongs to the run, never to the card questions.',
-        ],
-      ],
-    ],
-  },
-  {
-    name: 'review-verdict',
-    group: 'Cards',
-    brief: [
-      [
-        'review-verdict <id>',
-        'record a review\'s verdict on the delivery in flight:\n--verdict pass|ask, findings for ask in --file <path>',
-      ],
-    ],
-    legacy: [
-      [
-        'review-verdict <id> --verdict pass|ask',
-        [
-          "record what a review made of the delivery in flight on that card,",
-          'so the delivery knows whether to finish or stop and ask.',
-          'pass — the reviewed and corrected work meets the approved card.',
-          'ask — only the user can settle it. Ask carries findings:',
-          '--file <path> (markdown, written to a file first), or --text ".."',
-          'for a one-liner. Write each as `- **<short title>**: <evidence>`.',
-          'Calling it twice in one run replaces the first verdict. A review',
-          'run that never calls it stops the delivery and asks the user.',
         ],
       ],
     ],
@@ -590,6 +586,15 @@ export function moveHelp(move: Move, program: string): string {
     out.push(`${program} ${label.replace(/\s{2,}/g, ' ')}`)
     for (const line of detail) out.push(`  ${line}`)
     out.push('')
+  }
+  if (move.examples?.length) {
+    out.push(move.examples.length === 1 ? 'Example:' : 'Examples:')
+    for (const example of move.examples) {
+      const [first, ...rest] = example
+      out.push(`  ${program} ${first}`)
+      for (const line of rest) out.push(`  ${line}`)
+      out.push('')
+    }
   }
   if (move.aliases?.length) out.push(`also spelled: ${move.aliases.join(', ')}`, '')
   return out.join('\n').trimEnd()

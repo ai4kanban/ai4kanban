@@ -40,6 +40,7 @@ import setup from '../guide/setup.md'
 import specAgent from '../guide/spec-agent.md'
 import uiDesign from '../guide/ui-design.md'
 import update from '../guide/update.md'
+import updateQuestions from '../guide/update-questions.md'
 import writing from '../guide/writing.md'
 
 /** One flow: the name it is asked for by, the one line the list shows, and the text. */
@@ -61,6 +62,7 @@ export const GUIDES: Guide[] = [
   { name: 'implement', when: 'build a settled card and stop cleanly on an execution blocker', text: implement },
   { name: 'propose', when: 'find the work the board is missing and write it', text: propose },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
+  { name: 'update-questions', when: 'hand one genuine decision to the user in the board\'s question form', text: updateQuestions },
   { name: 'qa-loop', when: "settle one task's planning gaps and leave only the user's", text: qaLoop },
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
   { name: 'resolve', when: "apply the user's answers to a card's open questions", text: resolve },

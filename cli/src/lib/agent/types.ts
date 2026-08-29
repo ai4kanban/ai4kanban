@@ -222,7 +222,7 @@ export interface DeliveryStep {
 // ---- what review said about a delivery's work (#302) -----------------------
 
 /** What one review pass concluded. `correct` is retained only to read records written by
- *  the older review/correction loop. New reviews record `pass` or `ask`. */
+ *  the older review/correction loop. New conclusions are derived as `pass` or `ask`. */
 export type ReviewVerdict = 'pass' | 'correct' | 'ask'
 
 /** One thing a review found. */
@@ -363,6 +363,9 @@ export interface DeliveryRecord {
    *  spec agent's section. Every run in the delivery builds from THIS, so a change to
    *  the card file underneath never changes what the delivery was approved to build. */
   approved: string
+  /** Questions already open when implementation began. Review waits only on a new decision
+   *  it appends; these pre-existing questions continue to hold at landing. */
+  initialQuestions?: number
   /** The steps this delivery entered, in order. */
   steps: DeliveryStep[]
   /** The commit the candidate is compared against — the repository's HEAD when the
@@ -370,8 +373,7 @@ export interface DeliveryRecord {
    *  delivery changed and nothing that was already there. Absent outside a git
    *  repository, and review says so rather than guessing at a base. */
   base?: string
-  /** What review has said about this delivery's work (#302). Absent until the first
-   *  review run records a verdict. */
+  /** What each completed review concluded (#302). */
   review?: DeliveryReview
   /** The card's stage the instant before the delivery's FIRST run overwrote it with
    *  `implementing`, so the end of the delivery puts back what was there — not the
@@ -399,7 +401,7 @@ export interface DeliveryRecord {
   /** The branch that worktree builds on — `card/<card>/<delivery>`. */
   branch?: string
   /** What review passed, in manual commit mode: the fingerprint of the code as it stood
-   *  when the verdict came in, and where the diff of it was written. The user's own commit
+   *  when review finished, and where the diff of it was written. The user's own commit
    *  is matched against this — the same code committed reads as the same fingerprint, and
    *  anything else goes back through review. */
   reviewed?: { mark: string; diff?: string; at: number }

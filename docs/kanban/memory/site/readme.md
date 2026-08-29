@@ -88,6 +88,6 @@ covers it, or a plain-words note.
   linked from the site footer in all five languages beside Privacy and Terms: what the relay
   carries to the desktop and to Slack, that nothing is sent until Cloud is turned on for a
   board, what stays on the machine against what an event carries off it, what the preview does
-  not ship, and how an invited person signs in and redeems a code. Nobody has to read the
-  product out of a data policy any more.
+  not ship, and how somebody signs in, asks for an invite and is answered. Nobody has to read
+  the product out of a data policy any more.
 

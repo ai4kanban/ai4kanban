@@ -297,13 +297,13 @@ function reviewField(cardId: number): string[] {
   const review = delivery?.review
   if (!review?.rounds.length) return field('review', 'the first pass on this delivery — nothing has judged it yet')
   const last = review.rounds[review.rounds.length - 1]
-  const passes = review.rounds.map((r, i) => `${i + 1}. ${r.verdict}${r.findings.length ? ` — ${r.findings.map((f) => f.title).join('; ')}` : ''}`)
+  const rounds = review.rounds.map((r, i) => `${i + 1}. ${r.verdict}${r.findings.length ? ` — ${r.findings.map((f) => f.title).join('; ')}` : ''}`)
   return field('review', [
-    `${review.rounds.length} pass${review.rounds.length === 1 ? '' : 'es'} so far:`,
-    ...passes.map((line) => `  ${line}`),
+    `${review.rounds.length} review${review.rounds.length === 1 ? '' : 's'} so far:`,
+    ...rounds.map((line) => `  ${line}`),
     ...(last?.verdict === 'correct'
       ? [
-          'this delivery came from an older review flow — fix these findings in this run before recording pass or ask:',
+          'this delivery came from an older review flow — fix these findings in this run:',
           ...last.findings.map((finding) => `  - **${finding.title}**: ${finding.detail}`),
         ]
       : []),
@@ -427,21 +427,21 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   implement: ['board', 'implement', 'document-feature'],
   // Review owns post-implementation decision notes, so it receives their writing contract
   // rather than trying to reconstruct it from the review flow.
-  review: ['board', 'writing', 'review'],
+  review: ['board', 'writing', 'update-questions', 'review'],
   // Kept only for a correction run resumed from an older delivery.
   correct: [],
   conflict: ['conflict'],
   run: ['board', 'recurring-task'],
   // QA edits decision prose as it settles and prunes the plan.
-  clarify: ['writing', 'qa-loop'],
+  clarify: ['writing', 'update-questions', 'qa-loop'],
   // Apply the user's answers first, then validate the resulting plan to convergence in the
   // same session. The watcher may start writing afterwards, but never another QA session.
-  resolve: ['board', 'writing', 'resolve', 'qa-loop'],
+  resolve: ['board', 'writing', 'resolve', 'update-questions', 'qa-loop'],
   // The dedicated writing pass gets that guide alone: it writes a body and nothing else.
   writing: ['writing'],
   // Apply the requested correction first, then validate the resulting plan to convergence
   // in the same session. Writing may follow, but never another QA session.
-  edit: ['writing', 'revise', 'qa-loop'],
+  edit: ['writing', 'revise', 'update-questions', 'qa-loop'],
   create: ['board', 'evaluate-task', 'add-task'],
   propose: ['board', 'propose', 'evaluate-task', 'add-task'],
   'plan-release': ['board', 'releases', 'plan-release', 'evaluate-task', 'add-task'],
@@ -529,10 +529,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...notesField(card!))
       facts.push(...questionsField(card!.meta))
       close.push(
-        `${board} review-verdict ${req.id} --verdict pass|ask [--file <findings>] — the ONE way a review is recorded. Without it the delivery stops and asks the user, whatever you wrote in your last message`,
-        'write each finding as `- **<short title>**: <the approved requirement or the changed code it concerns, and the evidence to act on it>` — the title is its identity, so the same mistake keeps the same one',
-        'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself, drop unrelated implementation discoveries after noting them in the run log, and never create or update another card from review',
-        `leave the card on the board — a pass is not the end of the delivery, and the board archives the card itself once the work has landed`,
+        `finish successfully with no new question when the work is ready — that passes review`,
+        `${board} update-questions ${req.id} --append "[user] <one direct decision question>" --recommended-option "<recommended behavior — outcome and cost>" --option "<alternative — outcome and cost>" — only when a genuine user-owned decision blocks landing; then stop`,
+        'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself, settle facts, and drop unrelated discoveries after noting them in the run log',
+        `leave the card on the board — passing review is not the end of the delivery, and the board archives the card itself once the work has landed`,
       )
       break
     }

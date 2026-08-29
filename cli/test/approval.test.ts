@@ -11,10 +11,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { cmdReviewVerdict } from '../src/commands/review-verdict.ts'
 import { approveDelivery } from '../src/lib/agent/approval.ts'
 import { activeDelivery, listDeliveries } from '../src/lib/agent/deliveries.ts'
-import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { advanceLanding } from '../src/lib/agent/landing.ts'
 import { deliveryState } from '../src/lib/agent/pause.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
@@ -74,11 +72,9 @@ beforeEach(() => {
   }
   setAutoCommit(true)
   setDiffApproval(true)
-  delete process.env[RUN_ENV]
 })
 
 afterEach(() => {
-  delete process.env[RUN_ENV]
   fs.rmSync(root, { recursive: true, force: true })
 })
 
@@ -96,12 +92,6 @@ async function end(sessionId: string, status: 'done' | 'error' = 'done'): Promis
 
 async function passReview(id: number, title: string): Promise<void> {
   const review = run('review', id, title)
-  process.env[RUN_ENV] = review
-  try {
-    cmdReviewVerdict([String(id), '--verdict', 'pass'])
-  } finally {
-    delete process.env[RUN_ENV]
-  }
   await end(review)
 }
 

@@ -52,8 +52,8 @@ export interface EventSnapshot {
   /** The card's `## Worth noting` and `## Worth noting after implementation` — the review
    *  notes, which is what approving a build off a title alone is missing. */
   notes: string
-  /** What makes two snapshots of one task the same piece of work: the revision it binds and
-   *  the questions it carries. A snapshot whose fingerprint has not moved needs no write. */
+  /** What the person is being asked to decide. A snapshot whose fingerprint has not moved is
+   *  not news, however much of the card moved under it. */
   fingerprint: string
 }
 
@@ -114,17 +114,24 @@ export function snapshotFor(
   return { ...snapshot, fingerprint: fingerprint(snapshot) }
 }
 
-/** What a task at this revision, asking this, comes down to. Used to tell a refresh from a
- *  no-op: a card rewritten in a way an event cannot see is not news. */
+/**
+ * What the person is being asked to decide, and nothing else. This is what tells a refresh
+ * that interrupts somebody from one that must not.
+ *
+ * `revision` and `release` are deliberately out of it. A revision is a hash of the WHOLE card
+ * file (../board/revision.ts), so putting it in here would make every edit news — retitling a
+ * heading, resetting `release`, fixing a typo in a section an event never carries. Both still
+ * travel on the snapshot and Cloud still stores them: an action binds the revision, so Cloud
+ * must hold the current one. They are written through without moving the event's
+ * `changed_at`, which is what re-marks a row unread.
+ */
 function fingerprint(snapshot: Omit<EventSnapshot, 'fingerprint'>): string {
   return crypto
     .createHash('sha256')
     .update(
       JSON.stringify([
-        snapshot.revision,
         snapshot.kind,
         snapshot.taskTitle,
-        snapshot.release,
         snapshot.questions,
         snapshot.summary,
         snapshot.notes,

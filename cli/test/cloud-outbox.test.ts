@@ -394,7 +394,7 @@ describe('an action nothing on this board is carrying any more', () => {
 })
 
 /** The card `card()` describes, on disk, so the publisher has a board to read. */
-function writeCardFile(): void {
+function writeCardFile(release = '0.8.0'): void {
   const dir = path.join(root, 'docs', 'kanban', 'todo', 'features')
   fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(
@@ -406,7 +406,7 @@ function writeCardFile(): void {
       'priority: high',
       'roi: high',
       'status: ready',
-      'release: "0.8.0"',
+      `release: "${release}"`,
       'blocked_by: []',
       'related: []',
       'modules: []',
@@ -522,6 +522,54 @@ describe('a sign-in that ran out mid-delivery', () => {
     const [held] = readOutbox().pending
     assert.equal(held?.attempts, 1, 'the publication waits for the next sign-in')
     assert.deepEqual(unsentToCloud(), [])
+  })
+})
+
+// A revision is a hash of the whole card file, so any edit moves it — and #319 hashed the
+// revision into the fingerprint, which made every edit news. Resetting a card's `release`
+// re-marked its row unread over a change nobody was waiting on (#182).
+describe('an edit the event cannot see', () => {
+  /** The board on every release, one card published, and what the outbox holds for it. */
+  async function published(): Promise<{ fingerprint: string; revision: string }> {
+    const watching = enableCloudBoard(root, ALL_RELEASES)
+    writeCardFile()
+    // Not `publishedEvent`: that helper re-enables the board on one release, and this is
+    // about a board watching all of them.
+    const event = { id: 'e-1', boardId: watching.id, taskId: 12, state: 'actionable', changedAt: 'now', acted: false }
+    fakeCloud((url) => (url.endsWith('/v1/events') ? ok({ event }) : ok({})))
+    await publishBoardEvents()
+    const held = readOutbox().published['12']
+    assert.ok(held, 'the card was never published')
+    return { fingerprint: held.fingerprint, revision: held.revision ?? '' }
+  }
+
+  it('sends the revision through without asking anybody to look again', async () => {
+    const before = await published()
+    writeCardFile('')
+
+    await recordBoardEvents()
+
+    const [queued] = readOutbox().pending
+    assert.equal(queued?.kind, 'publish')
+    assert.equal(
+      queued?.kind === 'publish' ? queued.snapshot.fingerprint : '',
+      before.fingerprint,
+      'a release reset is not something to decide, so the fingerprint holds',
+    )
+    assert.notEqual(
+      queued?.kind === 'publish' ? queued.snapshot.revision : '',
+      before.revision,
+      'the revision moved, and Cloud refuses an action against one it does not hold',
+    )
+    assert.equal(queued?.kind === 'publish' ? queued.snapshot.release : 'x', '')
+  })
+
+  it('queues nothing at all when the card has not moved', async () => {
+    await published()
+
+    await recordBoardEvents()
+
+    assert.deepEqual(readOutbox().pending, [])
   })
 })
 

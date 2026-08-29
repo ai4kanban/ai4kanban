@@ -85,7 +85,9 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
     return {
       stage: 'stopped',
       label: 'Waiting on you',
-      line: `${upper(end(stopped.why))} Answer it on this card, then \`Review again\`.`,
+      line: questions
+        ? `${upper(end(stopped.why))} Answer it on this card, then \`Review again\`.`
+        : `${upper(end(stopped.why))} Resolve it, then \`Review again\`.`,
       paused: true,
     }
   }

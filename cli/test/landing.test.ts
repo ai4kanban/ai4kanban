@@ -11,9 +11,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { cmdReviewVerdict } from '../src/commands/review-verdict.ts'
 import { activeDelivery, listDeliveries } from '../src/lib/agent/deliveries.ts'
-import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { advanceLanding, repairLanding } from '../src/lib/agent/landing.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
@@ -74,11 +72,9 @@ beforeEach(() => {
     fs.writeFileSync(path.join(root, 'docs', 'kanban', 'todo', 'features', `${id}-card.md`), card(id, title))
   }
   setAutoCommit(true)
-  delete process.env[RUN_ENV]
 })
 
 afterEach(() => {
-  delete process.env[RUN_ENV]
   fs.rmSync(root, { recursive: true, force: true })
 })
 
@@ -97,12 +93,6 @@ async function end(sessionId: string, status: 'done' | 'error' = 'done'): Promis
 
 async function passReview(id: number, title: string): Promise<string> {
   const review = run('review', id, title)
-  process.env[RUN_ENV] = review
-  try {
-    cmdReviewVerdict([String(id), '--verdict', 'pass'])
-  } finally {
-    delete process.env[RUN_ENV]
-  }
   await end(review)
   return review
 }
@@ -234,9 +224,6 @@ describe('a target branch that moved', () => {
     fs.writeFileSync(path.join(worktreeDir(second.worktree!), 'other.txt'), 'two\n')
     await end(built)
     const review = run('review', 2, 'card two')
-    process.env[RUN_ENV] = review
-    cmdReviewVerdict(['2', '--verdict', 'pass'])
-    delete process.env[RUN_ENV]
     await end(review)
 
     const wants = await advanceLanding()

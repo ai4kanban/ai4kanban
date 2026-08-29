@@ -48,18 +48,10 @@ dependencies. Give each title that is not in English a `--slug <short-english-sl
 filenames are ASCII. Then continue this loop on the current slice.
 Do not ask the user to approve an evident split or refine the new cards here.
 
-## Decide what survives
+## Decide and write questions
 
-Leave a question only when all of these hold:
-
-- **The plan needs the answer**: implementation cannot safely choose a normal default and
-  still deliver the promised result.
-- **The choice is real**: at least two safe, coherent answers remain after research.
-- **The user owns it**: evidence favors neither answer, and the choice materially changes
-  what the user receives or accepts.
-
-Judge the decision, not its category. Ask once for one missing policy instead of listing its
-consequences. If more than three independent questions survive, challenge each again.
+Follow `akb guide update-questions`. If more than three independent questions survive, challenge
+each again.
 
 ## Apply what the project answers
 
@@ -90,22 +82,6 @@ Challenge aggressively, but delete conservatively. QA prunes only:
 Outside a split, do not otherwise compress `## Today`, `## Scope`, `## Todo`, or the spec.
 The writing pass owns general cleanup; QA must preserve promised behavior and implementation
 requirements.
-
-## Write user decisions
-
-Each surviving question must be `[user]`, one line, and carry at least two concise options
-with one recommendation. Fold dependent choices into the options of the decision they depend
-on. Append all survivors in one command:
-
-```text
-akb board update-questions <id> \
-  --append "[user] Which behavior should apply?" \
-  --recommended-option "A — reason" --option "B — reason"
-```
-
-A question is exclusive: the user picks one option. Add `--mode multi` only when the options
-can genuinely be combined — "which of these to include", not "which way to go" — and then
-recommend every option you would take.
 
 ## Success criteria
 

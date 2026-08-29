@@ -33,6 +33,10 @@ export interface EventRow {
   summary: string
   /** The card's `## Worth noting` and `## Worth noting after implementation`, likewise. */
   notes: string
+  /** Why the delivery ended as it did, in the board's own words — a refused approval reads
+   *  nothing like a broken build, and a state name carries neither. Empty on an ending with
+   *  nothing to explain. */
+  reason: string
   /** The machine that runs this board's work, so a surface can name what a decision is
    *  waiting for. Empty when the board has no server attached. */
   serverName: string

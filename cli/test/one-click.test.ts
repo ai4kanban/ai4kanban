@@ -16,7 +16,6 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { cmdReviewVerdict } from '../src/commands/review-verdict.ts'
 import { cmdRunBlocker } from '../src/commands/run-blocker.ts'
 import { activeDelivery, listDeliveries, openQuestions } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
@@ -109,12 +108,6 @@ async function end(sessionId: string, status: 'done' | 'error' = 'done'): Promis
 
 async function passReview(id: number, title: string): Promise<void> {
   const review = run('review', id, title)
-  process.env[RUN_ENV] = review
-  try {
-    cmdReviewVerdict([String(id), '--verdict', 'pass'])
-  } finally {
-    delete process.env[RUN_ENV]
-  }
   await end(review)
 }
 
@@ -162,9 +155,6 @@ describe('completion is the last step', () => {
     const built = run('implement', 1, 'card one')
     await end(built)
     const review = run('review', 1, 'card one')
-    process.env[RUN_ENV] = review
-    cmdReviewVerdict(['1', '--verdict', 'pass'])
-    delete process.env[RUN_ENV]
     await end(review)
 
     await advanceLanding()

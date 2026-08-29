@@ -1,6 +1,6 @@
-// A question the board hands to the user always carries choices to tick, exclusive unless it
-// says otherwise. `update-questions` is the only way one reaches a card, so it is where that
-// shape is enforced — a bare line is refused rather than quietly written.
+// A question an agent hands to the user always carries choices to tick, exclusive unless it
+// says otherwise. `update-questions` is that handoff, so it enforces the shape rather than
+// quietly writing a bare line.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -9,6 +9,7 @@ import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { cmdCreate, cmdUpdateQuestions } from '../src/commands/card.ts'
+import { findMove, moveHelp } from '../src/lib/help.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-card-questions-'))
@@ -29,6 +30,21 @@ const card = (): string =>
   fs.readFileSync(path.join(todo, 'features', fs.readdirSync(path.join(todo, 'features'))[0]!), 'utf8')
 
 describe('a question handed to the user carries choices', () => {
+  it('shows the ideal append form in command help', () => {
+    const move = findMove('update-questions')
+    assert.ok(move)
+    const help = moveHelp(move, 'akb board')
+    assert.match(help, /--append <question> --recommended-option <choice> --option <choice>/)
+    assert.match(help, /--update <n> <question> --recommended-option <choice> --option <choice>/)
+    assert.match(help, /--drop <n\[,n\.\.\.\]>/)
+    assert.match(help, /--to-verify <n\[,n\.\.\.\]>/)
+    assert.match(help, /--clear/)
+    assert.match(help, /\[user\] Which behavior should\s+apply\?/)
+    assert.match(help, /Example:\s+akb board update-questions 42/)
+    assert.match(help, /Which retry behavior should apply\?/)
+    assert.equal(findMove('review-verdict'), null)
+  })
+
   it('refuses a question with no options', () => {
     assert.throws(() => cmdUpdateQuestions(['1', '--append', 'which region?']), /needs choices to tick/)
   })

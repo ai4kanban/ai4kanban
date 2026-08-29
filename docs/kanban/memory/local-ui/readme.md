@@ -392,13 +392,12 @@ except where another doc is named.
   to right. A chip is the id alone and opens that card; hovering one puts its title in the band
   at the top of the map. A subtask waiting on a card outside the group wears a lock and names
   it on hover. A group with no subtask blocking another shows no map at all.
-- The **Cloud** section's not-admitted state is one column with something to do in it: the
-  refusal, then a box to paste an invitation code into with **Redeem** beside it, then **No
-  code yet?** and **Request an invite** under a hairline, and **Sign out** last. Whoever was
-  handed a code meets the box immediately; whoever has none pays one short line of reading
-  first. A refused code answers in the service's own words under the box, a redeemed one
-  moves the pane to the admitted state without signing in again, and once an invite has been
-  asked for the button becomes the day it was asked.
+- The **Cloud** section's not-admitted state is one ask and nothing else: the refusal in the
+  service's own words, one line saying we read every request by hand and promise no date,
+  **Request an invite**, and **Sign out** last. Nothing is typed and nothing is pasted —
+  approving admits the account on our side, so the pane reaches the admitted state the next
+  time it is opened, with no second sign-in. Once an invite has been asked for the button
+  becomes the day it was asked.
 
 - **A bell in the top row carries every board Cloud is on for.** It leads the tool cluster
   with its unread count inside the segment, and opens a rail down the right in the chat
