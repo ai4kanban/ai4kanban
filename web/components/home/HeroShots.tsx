@@ -24,8 +24,8 @@ import type { HomeCopy } from "@/i18n/home/types";
 type Mode = "board" | "card";
 
 const SRC: Record<Mode, string> = {
-  board: "https://cdn.ai4kanban.dev/ai4kanban-ui-v5-board-view.jpg",
-  card: "https://cdn.ai4kanban.dev/ai4kanban-ui-v5-card-view.jpg",
+  board: "https://cdn.ai4kanban.dev/ai4kanban-ui-v6-board-view.jpg",
+  card: "https://cdn.ai4kanban.dev/ai4kanban-ui-v6-card-view.jpg",
 };
 
 function Frame({

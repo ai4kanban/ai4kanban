@@ -8,7 +8,7 @@
 
 [Download](https://ai4kanban.dev/download) · [Website](https://ai4kanban.dev) · [Guide](docs/guides/daily-loop.md)
 
-<img src="https://cdn.ai4kanban.dev/og-image-v5.jpg" alt="AI4Kanban — a project board that plans autonomously" width="720">
+<img src="https://cdn.ai4kanban.dev/og-image-v6.jpg" alt="AI4Kanban — a project board that plans autonomously" width="720">
 
 </div>
 

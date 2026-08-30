@@ -8,7 +8,7 @@
 
 [下载](https://ai4kanban.dev/download) · [官网](https://ai4kanban.dev) · [使用指南](docs/guides/daily-loop.md)
 
-<img src="https://cdn.ai4kanban.dev/og-image-v5.jpg" alt="AI4Kanban——自主规划、随决策成长的项目看板" width="720">
+<img src="https://cdn.ai4kanban.dev/og-image-v6.jpg" alt="AI4Kanban——自主规划、随决策成长的项目看板" width="720">
 
 </div>
 

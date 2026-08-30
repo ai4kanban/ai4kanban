@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 };
 
 const SHOTS = {
-  board: "https://cdn.ai4kanban.dev/ai4kanban-ui-v5-board-view.jpg",
-  card: "https://cdn.ai4kanban.dev/ai4kanban-ui-v5-card-view.jpg",
+  board: "https://cdn.ai4kanban.dev/ai4kanban-ui-v6-board-view.jpg",
+  card: "https://cdn.ai4kanban.dev/ai4kanban-ui-v6-card-view.jpg",
 };
 
 const c = getCopy("en").home;
