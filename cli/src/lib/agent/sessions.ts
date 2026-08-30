@@ -44,6 +44,7 @@ import type {
   AgentRequest,
   DeliveryRecord,
   RefineAsk,
+  RefineEffort,
   RunRecord,
   RunStatus,
   RunView,
@@ -528,6 +529,7 @@ export function openRun(
     // Internal refinement sessions name their position in the request. A standalone
     // resolve carries no round: it already applies the answers and runs QA in this session.
     refineRound: req.refineRound,
+    refineEffort: req.refineEffort,
     // And the flow it belongs to. A run started by a person opens one here; the watcher
     // copies the id onto every session that run goes on to start — a refinement's passes,
     // the spec agents it asked for, the review after a build. So one job is one thing in
@@ -615,6 +617,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     logPath: logPathOf(sessionId),
     specAgent: prev.specAgent,
     refineRound: prev.refineRound,
+    refineEffort: prev.refineEffort,
     // The same refinement carried on, not a second one — the way a resume re-joins the
     // delivery it continues rather than opening another.
     flowId: prev.flowId,
@@ -668,10 +671,11 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
  *  `already` means this run has asked for that agent on that card before; a second ask
  *  would be the same run twice. */
 export function askForSpec(sessionId: string, ask: SpecAsk): 'queued' | 'already' | 'no-run' {
-  if (!peekRun(sessionId)) return 'no-run'
+  const run = peekRun(sessionId)
+  if (!run) return 'no-run'
   const file = readAsks(sessionId)
   if (file.asks.some((a) => a.specAgent === ask.specAgent && a.cardId === ask.cardId)) return 'already'
-  file.asks.push(ask)
+  file.asks.push({ ...ask, refineEffort: ask.refineEffort ?? run.refineEffort })
   writeAsks(sessionId, file)
   return 'queued'
 }
@@ -722,15 +726,29 @@ function readAsks(sessionId: string): { asks: SpecAsk[]; refines: RefineAsk[] } 
   const asks = (Array.isArray(raw.asks) ? raw.asks : []).flatMap((entry) => {
     const a = entry as Partial<SpecAsk>
     if (!a || typeof a.specAgent !== 'string' || !a.specAgent || !Number.isInteger(a.cardId)) return []
-    return [{ specAgent: a.specAgent, cardId: a.cardId as number, notes: typeof a.notes === 'string' ? a.notes : undefined }]
+    const refineEffort = validRefineEffort(a.refineEffort)
+    return [{
+      specAgent: a.specAgent,
+      cardId: a.cardId as number,
+      notes: typeof a.notes === 'string' ? a.notes : undefined,
+      ...(refineEffort ? { refineEffort } : {}),
+    }]
   })
   const refines = (Array.isArray(raw.refines) ? raw.refines : []).flatMap((entry) => {
     const a = entry as Partial<RefineAsk>
     if (!a || !Number.isInteger(a.cardId)) return []
-    return [{ cardId: a.cardId as number, notes: typeof a.notes === 'string' ? a.notes : undefined }]
+    const effort = validRefineEffort(a.effort)
+    return [{
+      cardId: a.cardId as number,
+      notes: typeof a.notes === 'string' ? a.notes : undefined,
+      ...(effort ? { effort } : {}),
+    }]
   })
   return { asks, refines }
 }
+
+const validRefineEffort = (value: unknown): RefineEffort | undefined =>
+  value === 'lightweight' || value === 'standard' || value === 'parallel' ? value : undefined
 
 function writeAsks(sessionId: string, file: { asks: SpecAsk[]; refines: RefineAsk[] }): void {
   fs.mkdirSync(SESSIONS_DIR, { recursive: true })

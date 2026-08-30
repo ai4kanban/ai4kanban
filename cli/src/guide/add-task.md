@@ -59,6 +59,22 @@ akb board create --title "Add a GitHub Projects storage backend for the board" \
 A new card carries no questions. Its follow-up refinement discovers the details and
 decisions the initial body does not cover.
 
+## Choose its refine effort
+
+After writing each card, classify it from the request, card, and only relevant project
+evidence. Never ask the user for an estimate or classification.
+
+- **Lightweight**: the observable outcome and boundaries are clear, and implementation is
+  one localized path with contained compatibility, data, security, and coordination risk.
+- **Parallel**: material behavior or boundaries are still vague, and implementation spans
+  several paths or carries cross-cutting risk.
+- **Standard**: every mixed or uncertain case.
+
+For lightweight or parallel effort, run `akb refine <id> --effort lightweight|parallel
+--print` and follow it inline. Omit `--print` only when the user explicitly wants background
+refinement. For standard effort, run `akb refine <id> --effort standard` to hand the card to
+its own session. Choose separately for every card in a group.
+
 Got a field wrong, or learned something after the fact? `akb board update <id> --priority low`
 — never an editor.
 

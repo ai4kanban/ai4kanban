@@ -232,9 +232,14 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Change nothing but that version's summary file, and write it with \`akb board release changelog\`.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
-    case 'clarify':
+    case 'clarify': {
+      const qaGuide = req.refineEffort === 'lightweight'
+        ? 'qa-lightweight'
+        : req.refineEffort === 'parallel'
+          ? 'qa-parallel'
+          : 'qa-loop'
       return [
-        `${kb}. Finish the planning QA loop for task ${req.id} ${named} following \`akb guide qa-loop\`.`,
+        `${kb}. Finish planning QA for task ${req.id} ${named} following \`akb guide ${qaGuide}\`.`,
         // A refine has no note box of its own, but one SCHEDULED on a blocked card
         // carries whatever was typed when it was scheduled — often the very reason the user
         // wanted it to wait — so it has to reach the run when it finally fires.
@@ -242,6 +247,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ]
         .filter(Boolean)
         .join(' ')
+    }
     // Finish setting the board up (#173) — the one run the board offers before it is a
     // board. It is the only prompt here that does NOT open with the skill call: a board
     // arrives without the skill, and this is the run a user who never opens a coding agent

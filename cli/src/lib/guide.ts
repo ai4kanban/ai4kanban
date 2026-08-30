@@ -30,7 +30,9 @@ import presetIndieHacker from '../guide/preset-indie-hacker.md'
 import presetValidateOnReddit from '../guide/preset-validate-on-reddit.md'
 import propose from '../guide/propose.md'
 import pruneMemory from '../guide/prune-memory.md'
+import qaLightweight from '../guide/qa-lightweight.md'
 import qaLoop from '../guide/qa-loop.md'
+import qaParallel from '../guide/qa-parallel.md'
 import recurringTask from '../guide/recurring-task.md'
 import reject from '../guide/reject.md'
 import review from '../guide/review.md'
@@ -66,6 +68,8 @@ export const GUIDES: Guide[] = [
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
   { name: 'update-questions', when: 'hand one genuine decision to the user in the board\'s question form', text: updateQuestions },
   { name: 'qa-loop', when: "settle one task's planning gaps and leave only the user's", text: qaLoop },
+  { name: 'qa-lightweight', when: 'check one clear, localized task with a short evidence walk', text: qaLightweight },
+  { name: 'qa-parallel', when: 'audit one vague, broad task from three perspectives', text: qaParallel },
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
   { name: 'resolve', when: "apply the user's answers to a card's open questions", text: resolve },
   { name: 'reject', when: 'drop a card, and write down why', text: reject },

@@ -11,6 +11,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { chatPrompt } from '../src/lib/agent/chat.ts'
+import { cmdStartRun } from '../src/commands/run.ts'
 import { activeDelivery } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { FLOWS } from '../src/lib/agent/flows.ts'
@@ -124,6 +125,77 @@ describe('the prompt', () => {
     assert.doesNotMatch(prompt, /Append the gaps|Do not resolve|don't implement/)
   })
 
+  it('has add-task choose the effort and refine inline by default', () => {
+    const guide = findGuide('add-task')!.text
+    assert.match(guide, /Choose its refine effort/)
+    assert.match(guide, /Lightweight[\s\S]*Parallel[\s\S]*Standard/)
+    assert.match(guide, /akb refine <id> --effort lightweight\|parallel\s+--print/)
+    assert.match(guide, /follow it inline/)
+    assert.match(guide, /Omit `--print` only when the user explicitly wants background\s+refinement/)
+    assert.match(guide, /akb refine <id> --effort standard[\s\S]*own session/)
+  })
+
+  it('loads only the QA guide selected for the clarify session', () => {
+    for (const [effort, guide] of [
+      ['lightweight', 'qa-lightweight'],
+      ['standard', 'qa-loop'],
+      ['parallel', 'qa-parallel'],
+    ] as const) {
+      const req = { action: 'clarify' as const, id: 1, refineRound: 1, refineEffort: effort }
+      assert.match(buildPrompt(req), new RegExp(`akb guide ${guide}`))
+      startCollecting()
+      try {
+        assert.deepEqual(printFlow(req).guides, ['writing', 'update-questions', guide])
+      } finally {
+        stopCollecting()
+      }
+    }
+    assert.doesNotMatch(findGuide('qa-loop')!.text, /Choose the QA effort|Parallel QA handed off/)
+  })
+
+  it('accepts the effort on the refine command and prints that guide', async () => {
+    fs.writeFileSync(
+      path.join(root, 'docs', 'kanban', 'todo', 'features', '1-card.md'),
+      card(1, 'card one').replace('status: ready', 'status: todo'),
+    )
+    startCollecting()
+    try {
+      const flow = await cmdStartRun('refine', ['1', '--effort', 'lightweight', '--print'])
+      assert.deepEqual(flow.guides, ['writing', 'update-questions', 'qa-lightweight'])
+    } finally {
+      stopCollecting()
+    }
+  })
+
+  it('lets lightweight QA settle the plan automatically without a checklist', () => {
+    const qa = findGuide('qa-lightweight')!.text
+    assert.match(qa, /Refine the card automatically/)
+    assert.match(qa, /settle implementation details/)
+    assert.match(qa, /Do not run or retain a question checklist/)
+    assert.doesNotMatch(qa, /Use this only|5–10|What observable result/)
+    const build = findGuide('implement')!.text
+    assert.match(build, /printed, interactive implementation may stay uncommitted/)
+    assert.match(build, /Background runs[\s\S]*delivery, review, and landing path/)
+    assert.match(build, /focused checks[\s\S]*repository-required check/)
+  })
+
+  it('lets parallel audits find gaps independently and keeps their barrier', () => {
+    const guide = findGuide('qa-parallel')!.text
+    for (const requirement of [
+      /Freeze the current card revision/,
+      /three fresh read-only audits together/,
+      /independently find concrete planning gaps/,
+      /Do not prescribe a questionnaire/,
+      /Wait for all three/,
+      /Resume a failed,[\s\S]*interrupted,[\s\S]*stopped audit/,
+      /never consolidate a partial round/,
+      /Restart the round if the card revision changed/,
+      /settle everything project evidence answers/,
+      /After user answers, run the three audits again/,
+    ]) assert.match(guide, requirement)
+    assert.doesNotMatch(guide, /Experience|Risk|Build|Use this only/)
+  })
+
   it('keeps implementation blockers out of card questions', () => {
     const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })
     const guide = findGuide('implement')!.text
@@ -195,14 +267,33 @@ describe('the prompt', () => {
     assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /<spec-agents>/)
   })
 
-  it('starts a fresh refinement after each card created from a printed flow', () => {
+  it('continues refinement inline after each card created from a printed flow', () => {
     startCollecting()
     try {
       const flow = printFlow({ action: 'create', description: 'Add a task.' })
       const next = (flow.next as string[]).join('\n')
       assert.match(next, /akb refine <id>/)
+      assert.match(next, /--effort <lightweight\|parallel> --print/)
+      assert.match(next, /--effort standard/)
+      assert.match(next, /--print/)
       assert.match(next, /after add-task/)
-      assert.doesNotMatch(next, /refine <id> --print/)
+      assert.match(next, /follow lightweight or parallel refinement inline/)
+    } finally {
+      stopCollecting()
+    }
+  })
+
+  it('lets a printed clarify finish the card inline', () => {
+    startCollecting()
+    try {
+      const flow = printFlow({
+        action: 'clarify',
+        id: 1,
+        refineRound: 1,
+        refineEffort: 'lightweight',
+      })
+      assert.deepEqual(flow.next, [])
+      assert.match((flow.close as string[]).join('\n'), /update 1 --status ready/)
     } finally {
       stopCollecting()
     }

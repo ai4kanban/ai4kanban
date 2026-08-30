@@ -8,6 +8,7 @@ import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { refineRunsAfter } from '../src/lib/agent/follow.ts'
+import { buildPrompt } from '../src/lib/agent/prompts.ts'
 import {
   claimChanges,
   markBoard,
@@ -140,6 +141,19 @@ describe('entering refinement', () => {
       title: 'A card to refine',
       notes: undefined,
       refineRound: 1,
+      refineEffort: 'standard',
+    })
+  })
+
+  it('carries the chosen effort into the fresh clarify session', () => {
+    writeCard()
+    assert.deepEqual(refinementRequest({ action: 'refine', id: 7, refineEffort: 'lightweight' }), {
+      action: 'clarify',
+      id: 7,
+      title: 'A card to refine',
+      notes: undefined,
+      refineRound: 1,
+      refineEffort: 'lightweight',
     })
   })
 
@@ -369,6 +383,14 @@ describe('an explicit refine handoff', () => {
     clearAsks(sessionId)
     assert.deepEqual(readRefineAsks(sessionId), [])
   })
+
+  it('keeps the chosen effort on the queued fresh session', () => {
+    writeCard()
+    const opened = openRun({ action: 'create', description: 'A card' }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    assert.equal(askForRefine(opened.run.sessionId, { cardId: 7, effort: 'parallel' }), 'queued')
+    assert.equal(refineRunsAfter(readRefineAsks(opened.run.sessionId))[0]!.refineEffort, 'parallel')
+  })
 })
 
 // Several runs are up at once and their windows overlap, so "the board changed while I was
@@ -502,6 +524,7 @@ describe('specialized input', () => {
     const { runs, stalled } = closing({ ...run('spec', 1), refineRound: undefined }, before)
     assert.equal(stalled, undefined)
     assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['clarify', 1]])
+    assert.match(buildPrompt(runs[0]!), /akb guide qa-loop/)
   })
 
   it('resumes QA even when a spec agent could not write a section', () => {
@@ -510,5 +533,16 @@ describe('specialized input', () => {
     const { runs, stalled } = closing({ ...run('spec', 1), refineRound: undefined }, before)
     assert.equal(stalled, undefined)
     assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['clarify', 1]])
+  })
+
+  it('resumes the same effort after a spec agent', () => {
+    writeCard()
+    const before = markBoard()
+    const { runs } = closing({
+      ...run('spec', 1),
+      refineRound: undefined,
+      refineEffort: 'parallel',
+    }, before)
+    assert.match(buildPrompt(runs[0]!), /akb guide qa-parallel/)
   })
 })

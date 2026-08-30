@@ -15,7 +15,7 @@ import { byDispatchOrder, canRefine, parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
 import { withStore } from './store'
-import type { AgentAction, AgentRequest, CommandRequest, RunRecord } from './types'
+import type { AgentAction, AgentRequest, CommandRequest, RefineEffort, RunRecord } from './types'
 
 export type RefinementStep = 'clarify' | 'writing' | 'done'
 
@@ -155,7 +155,14 @@ export function refinementRequest(req: CommandRequest): AgentRequest | { error: 
   if (!card) return { error: `task #${req.id} does not exist` }
   const step = refinementStep(card)
   if (step === 'done') return { error: `a refine would not move #${card.id}` }
-  return { action: step, id: card.id, title: card.title, notes: req.notes, refineRound: 1 }
+  return {
+    action: step,
+    id: card.id,
+    title: card.title,
+    notes: req.notes,
+    refineRound: 1,
+    refineEffort: req.refineEffort ?? 'standard',
+  }
 }
 
 export function startRefinement(
@@ -169,6 +176,7 @@ function afterQa(
   card: Card | undefined,
   round: number,
   flowId?: string,
+  refineEffort: RefineEffort = 'standard',
 ): AgentRequest | 'incomplete' | null {
   if (!card || card.openBlockers.length > 0) return null
   if (card.questions.some((q) => parseQuestion(q.text).tag !== 'user')) return 'incomplete'
@@ -178,6 +186,7 @@ function afterQa(
     id: card.id,
     title: card.title,
     refineRound: round + 1,
+    refineEffort,
     ...(flowId ? { flowId } : {}),
   }
 }
@@ -189,6 +198,7 @@ export function refinementAfter(
   round: number | undefined,
   changed: readonly number[],
   flowId?: string,
+  refineEffort: RefineEffort = 'standard',
 ): AgentRequest | 'incomplete' | null {
   if (
     round === undefined ||
@@ -211,10 +221,11 @@ export function refinementAfter(
       id: card.id,
       title: card.title,
       refineRound: round + 1,
+      refineEffort,
       ...(flowId ? { flowId } : {}),
     }
   }
-  return afterQa(card, round, flowId)
+  return afterQa(card, round, flowId, refineEffort)
 }
 
 // Actions that follow only the cards they CREATED. Each of them just exercised its own
@@ -262,7 +273,7 @@ function refinesAfter(
       const action = refinementStep(card)
       return action === 'done' || action === 'writing'
         ? []
-        : [{ action, id: card.id, title: card.title, refineRound: 1 }]
+        : [{ action, id: card.id, title: card.title, refineRound: 1, refineEffort: 'standard' }]
     })
 }
 
@@ -297,6 +308,7 @@ function qaAfterSpec(run: RunRecord): AgentRequest | null {
     id: card.id,
     title: card.title,
     refineRound: 1,
+    refineEffort: run.refineEffort ?? 'standard',
     ...(run.flowId ? { flowId: run.flowId } : {}),
   }
 }
@@ -311,10 +323,10 @@ export function refinementRunsAfter(
     waitingForSpec || run.cardId === null
       ? null
       : (run.action === 'resolve' || run.action === 'edit') && run.refineRound === undefined
-        ? afterQa(currentCard(run.cardId), 0, run.flowId)
+        ? afterQa(currentCard(run.cardId), 0, run.flowId, run.refineEffort)
         : run.refineRound === undefined
           ? null
-          : refinementAfter(run.action, run.cardId, run.refineRound, changed, run.flowId)
+          : refinementAfter(run.action, run.cardId, run.refineRound, changed, run.flowId, run.refineEffort)
   const starts = refinesAfter(run.action, changed, before).filter(
     (req) =>
       req.id !== run.cardId || (run.refineRound === undefined && run.action !== 'spec'),

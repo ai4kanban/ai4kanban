@@ -185,6 +185,12 @@ Say **"refine #4"**. The skill reviews the card (missing steps, missed edge case
 over-complication, actionability), then rewrites it one stage toward concrete — one stage only,
 stopping before code-level detail. Decisions only you can make land on the card as open questions.
 
+When the skill adds a card, it chooses the next refine's effort. Clear, localized work is
+settled directly; vague, broad work gets three independent audits; mixed and uncertain work
+gets the standard loop. Each refine loads only its own QA guide. Lightweight and parallel use
+`--print` and finish inline; omit it only for explicitly background work. Standard QA runs in
+its own session, and a refine started by hand defaults to standard.
+
 A card with open questions can't be refined again. Say **"resolve #4"** — the skill researches
 each question, decides the ones the evidence settles, asks you the real judgment calls, and
 clears the list.

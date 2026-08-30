@@ -96,7 +96,8 @@ without a browser.
 ```bash
 akb implement 12              # build the card, then review what was built
 akb review 12                 # judge the delivery in flight on it again
-akb refine 12                 # sharpen it until it is ready to build
+akb refine 12                 # sharpen it; defaults to standard QA
+akb refine 12 --effort lightweight --print  # use the chosen effort inline
 akb create "add dark mode"    # write the card(s) for it
 akb propose                   # write the next tasks
 akb archive 12                # finish it
@@ -185,6 +186,8 @@ The flows are `akb guide`:
 akb guide                     # every flow, one line each
 akb guide board               # how the board works: card format, layout, memory
 akb guide qa-loop             # settle one card's planning gaps
+akb guide qa-lightweight      # short check for clear, localized work
+akb guide qa-parallel         # three audits for vague, broad work
 akb guide plan-release        # fill a release from its goal
 ```
 

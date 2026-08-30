@@ -63,7 +63,7 @@ export const FLOWS: Flow[] = [
   {
     command: 'refine',
     action: 'refine',
-    usage: 'refine <id>',
+    usage: 'refine <id> [--effort lightweight|standard|parallel]',
     gloss: 'sharpen the card until it is ready to build',
   },
   {

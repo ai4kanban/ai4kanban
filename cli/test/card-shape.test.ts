@@ -156,6 +156,7 @@ describe('repairing a card is not a change worth another pass', () => {
       id: 5,
       title: 'A card',
       refineRound: 2,
+      refineEffort: 'standard',
     })
   })
 

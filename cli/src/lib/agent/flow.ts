@@ -457,6 +457,16 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   spec: ['spec-agent'],
 }
 
+const guidesFor = (req: AgentRequest): string[] => {
+  if (req.action !== 'clarify') return GUIDES_FOR[req.action]
+  const qa = req.refineEffort === 'lightweight'
+    ? 'qa-lightweight'
+    : req.refineEffort === 'parallel'
+      ? 'qa-parallel'
+      : 'qa-loop'
+  return ['writing', 'update-questions', qa]
+}
+
 /** Build the flow for one action. A `board` command spelled out here is spelled with the
  *  program the caller was typed as, so what is printed can be pasted back. */
 function buildFlow(req: AgentRequest, program: string): Flow {
@@ -474,14 +484,12 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   // The refine a job hands over to. A run starts each follow-up refine as its own run,
   // never inside the job that wrote the card — so the handover says fresh run, or an
   // agent reading the flow refines right here, in a context already full of the writing.
-  const refineNext = (target: number | '<id>', when: string) =>
-    `${self} refine ${target === '<id>' ? target : String(target)} --print — ${when}; in a fresh run, not this one — the board gives each refine its own clean context, and so should you`
+  const refineNext = (target: number | '<id>', when: string, effort?: string) =>
+    `${self} refine ${target === '<id>' ? target : String(target)}${effort ? ` --effort ${effort}` : ''} --print — ${when}; in a fresh run, not this one — the board gives each refine its own clean context, and so should you`
 
   // A printed card-creation flow has no watcher to infer the refinements its cards need.
-  // Without --print this starts one from an ordinary conversation and queues one from
-  // inside a watched run, so both ways of creating a card get the same fresh handoff.
   const startRefineNext = (target: number | '<id>') =>
-    `${self} refine ${target === '<id>' ? target : String(target)} — after add-task, run this without --print for each new card; it starts or queues that card's refinement in a fresh context`
+    `after add-task, choose one: ${self} refine ${target === '<id>' ? target : String(target)} --effort <lightweight|parallel> --print — follow lightweight or parallel refinement inline; ${self} refine ${target === '<id>' ? target : String(target)} --effort standard — hand standard refinement to a fresh session`
 
   // Every card action opens the same way: where the card is, and what it says about itself.
   if (card) {
@@ -585,7 +593,11 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
     case 'clarify': {
       facts.push(...stepsField(card!), ...questionsField(card!.meta))
-      next.push(refineNext(req.id!, 'continue the programmatic refinement flow'))
+      close.push(
+        'settle the plan automatically with the selected QA guide; leave only genuine user-owned questions',
+        'when no question remains, improve the body according to `akb guide writing`',
+        `${board} update ${req.id} --status ready — after the plan is compact, clear, and internally consistent`,
+      )
       break
     }
     case 'resolve': {
@@ -738,7 +750,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
   }
 
-  return { lead: leadLine(req, program), facts, guides: GUIDES_FOR[req.action], close, next }
+  return { lead: leadLine(req, program), facts, guides: guidesFor(req), close, next }
 }
 
 // What the flow opens with: the action, what it is on, and — plainly — that nothing started.

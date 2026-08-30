@@ -38,7 +38,14 @@ export function specRunsAfter(asks: SpecAsk[]): AgentRequest[] {
     if (!card) return []
     const agent = findSpecAgent(ask.specAgent)
     if (!agent || !specAgentEnabled(agent.name, entries)) return []
-    return [{ action: 'spec' as const, id: ask.cardId, title: card.title, specAgent: agent.name, notes: ask.notes }]
+    return [{
+      action: 'spec' as const,
+      id: ask.cardId,
+      title: card.title,
+      specAgent: agent.name,
+      notes: ask.notes,
+      refineEffort: ask.refineEffort,
+    }]
   })
 }
 
@@ -51,7 +58,12 @@ export function specRunsAfter(asks: SpecAsk[]): AgentRequest[] {
  */
 export function refineRunsAfter(asks: RefineAsk[]): AgentRequest[] {
   return asks.flatMap((ask) => {
-    const next = refinementRequest({ action: 'refine', id: ask.cardId, notes: ask.notes })
+    const next = refinementRequest({
+      action: 'refine',
+      id: ask.cardId,
+      notes: ask.notes,
+      refineEffort: ask.effort,
+    })
     return 'error' in next ? [] : [next]
   })
 }

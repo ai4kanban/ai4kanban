@@ -1,9 +1,9 @@
 # QA loop
 
-Finish one task's planning QA in this session. Resolve everything the project can answer
-and leave only decisions that genuinely need the user. Do not mark the card ready, change
-project code, or change an existing unrelated card. Creating cards while splitting this
-one is allowed.
+Finish one task's standard planning QA in this session. Resolve everything the project can
+answer and leave only decisions that genuinely need the user. Do not mark the card ready,
+change project code, or change an existing unrelated card. Creating cards while splitting
+this one is allowed.
 
 ## Loop until the card converges
 

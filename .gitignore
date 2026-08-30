@@ -21,6 +21,7 @@ kanban-ui/.next-guide-test/
 researches/
 .env
 social-posts/
+screenshots/
 .DS_Store
 .wrangler/
 video/

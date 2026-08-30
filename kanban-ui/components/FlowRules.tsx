@@ -105,6 +105,14 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
       {!loaded && <Loading>{c.loading}</Loading>}
       {loaded && !loadError && flows === null && <Note icon={<FiAlertCircle />}>{c.tooOld}</Note>}
 
+      {/* What a rule is, and what a long one costs — under the caption, so it is read
+          before a flow is picked rather than at the bottom of a full-height box. */}
+      {flows && (
+        <div className="mb-3 shrink-0">
+          <Note>{c.blurb}</Note>
+        </div>
+      )}
+
       {flows && flow && (
         <div className="flex min-h-0 flex-1 gap-4">
           {/* Every flow the board has, the ones in use dotted. This column is what
@@ -190,9 +198,6 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
           </div>
         </div>
       )}
-
-      {/* What a rule is, and what a long one costs — under the box it is true of. */}
-      {flows && <Note>{c.blurb}</Note>}
     </Group>
   );
 }

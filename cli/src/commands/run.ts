@@ -27,6 +27,7 @@ import {
   type CommandAction,
   type CommandRequest,
   type Boldness,
+  type RefineEffort,
   type RunView,
 } from '../lib/agent/types'
 import { say } from '../lib/io'
@@ -91,7 +92,11 @@ function queueRefine(inside: string, req: CommandRequest): MoveResult {
       action: 'refine',
     })
   }
-  const queued = askForRefine(inside, { cardId: req.id as number, notes: req.notes })
+  const queued = askForRefine(inside, {
+    cardId: req.id as number,
+    notes: req.notes,
+    effort: req.refineEffort,
+  })
   if (queued === 'no-run') {
     die(`run ${short(inside)} is not on this board's list, so the ask has nowhere to be written down`, {
       kind: 'no-such-run',
@@ -230,6 +235,13 @@ function readRequest(
   } else {
     req.notes = positional.slice(1).join(' ').trim() || text('notes')
   }
+  if (action === 'refine') {
+    const effort = text('effort')
+    if (effort && !['lightweight', 'standard', 'parallel'].includes(effort)) {
+      die('--effort takes lightweight, standard or parallel', { kind: 'bad-option' })
+    }
+    req.refineEffort = effort as RefineEffort | undefined
+  }
   if (action === 'resolve' && flags['and-implement'] === true) req.andImplement = true
   return { req, follow, print }
 }
@@ -246,7 +258,7 @@ const FLAGS: Record<CommandAction, string[]> = {
   propose: ['module', 'count', 'boldness'],
   'plan-release': ['release'],
   changelog: ['release'],
-  refine: [],
+  refine: ['effort'],
   resolve: ['notes', 'and-implement'],
   setup: [],
 }
