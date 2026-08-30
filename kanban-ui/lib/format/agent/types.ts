@@ -508,12 +508,18 @@ export interface ChatMessage {
   stoppedWhy?: string
 }
 
-/** One conversation — the board's, or one card's. It is not a run: nothing here reaches
- *  the run record, so a chat never shows in the runs panel, never holds a card, and never
- *  keeps a run off one. */
+/** What a conversation is about: the whole board, one card, or the board's first run
+ *  (#280). The first run's is separate from the board's own so neither can read the
+ *  other's — one is a form being filled in, the other is a chat about a working board. */
+export type ChatTarget = number | null | 'setup'
+
+/** One conversation — the board's, one card's, or the first run's. It is not a run:
+ *  nothing here reaches the run record, so a chat never shows in the runs panel, never
+ *  holds a card, and never keeps a run off one. */
 export interface Chat {
-  /** Null for the conversation about the whole board; a card id for that card's own. */
-  cardId: number | null
+  /** Null for the conversation about the whole board, a card id for that card's own, and
+   *  `setup` for the first run's. */
+  cardId: ChatTarget
   /** The agent this conversation is being held with. A board switched to another agent
    *  can't carry it on — that agent's CLI knows nothing about this session. */
   harness: string
@@ -541,7 +547,7 @@ export interface ChatAgent {
 /** A conversation as a reader is shown it: the conversation itself when there is one, plus
  *  what the board can do about it right now. */
 export interface ChatView {
-  cardId: number | null
+  cardId: ChatTarget
   chat: Chat | null
   /** The agent the board runs right now can hold a conversation. */
   canChat: boolean
@@ -862,4 +868,29 @@ export interface ConnectionTest {
   install?: string
   /** The test gave up on its own after the time limit. */
   timedOut?: boolean
+}
+
+/** What the first-run conversation came back with (#280) — the board's two config answers
+ *  as the agent read them off the repo, and the sentence it states them in.
+ *
+ *  Nothing here has been written: the board writes it when the user says yes, through the
+ *  same move the form's project screen calls. */
+export interface SetupProposal {
+  /** What the agent thinks this project is, in one sentence — the view's own heading. On an
+   *  unsure answer it says what little the repo showed instead. */
+  summary: string
+  /** The project's name, and the one line saying what it is — `config.md`'s two values. */
+  name: string
+  description: string
+  /** The tracks its work falls into, each with the line saying what belongs in it. `was` is
+   *  the folder a track replaces, so a rename moves the folder and its cards rather than
+   *  making one and stranding the other. */
+  tracks: { name: string; note: string; was?: string }[]
+  /** Where those tracks came from, in a few words ("your folder names, kept"). */
+  tracksFrom: string
+  /** The repo said nothing worth stating. Then `summary` is what little it saw, `ask` is
+   *  the one question, and the tracks are whatever the board was scaffolded with. */
+  unsure: boolean
+  /** The one question an unsure answer asks. Empty otherwise. */
+  ask: string
 }

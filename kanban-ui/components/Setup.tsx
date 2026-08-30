@@ -4,25 +4,34 @@
 // over.
 //
 // Setting a board up used to mean copying a line into a coding agent and hoping.
-// Now the board asks for what only the user knows itself — what the project is
-// and its tracks, the goal, and which agent does the work — one question a
-// screen, in place of the board. Everything else setup does reads the repo and
-// thinks, so it is an agent's job — and the board starts that agent itself when
-// asked (#173): one ordinary run, in the runs panel, doing every step still
-// unticked. The line to paste into a coding agent stays beside the offer, for
-// whoever would rather finish there.
+// The board asks for what only the user knows itself — which agent does the work,
+// what the project is and its tracks, and the goal. Everything else setup does
+// reads the repo and thinks, so it is an agent's job — and the board starts that
+// agent itself when asked (#173): one ordinary run, in the runs panel, doing every
+// step still unticked. The line to paste into a coding agent stays beside the
+// offer, for whoever would rather finish there.
+//
+// The run has two shapes, and this file holds the frame both wear:
+//
+//   • the conversation (#280, components/FirstRun.tsx) — the default. One full
+//     window per step: the agent picker, then the agent saying what it thinks the
+//     project is, then the goal.
+//   • the screens (below) — a rail and a form per step. Reached by "I'll fill it
+//     in myself", and by a board whose agent cannot hold a conversation at all.
+//     They are also where the run ends: the closing screen is the same either way.
 //
 // Three rules shape it:
 //
 //   • Nothing is a dead end. Every screen has a way through to the board, and the
 //     board has a way back in, so leaving is never losing.
-//   • Every answer starts on something sensible — the repo's own name, the
-//     tracks the board was scaffolded with — so someone in a hurry can press
-//     through and still end up with a working board.
-//   • The agent step is the exception: it can't be pressed past. Setup says it is
-//     finished by deleting its checklist, and the steps after this flow are agent
-//     runs, so a board that finished setup without an agent was never set up. It
-//     ends on one thing only: an agent that answered a test.
+//   • Every answer starts on something sensible — what the agent read off the
+//     repo, or the tracks the board was scaffolded with — so someone in a hurry
+//     can press through and still end up with a working board. The goal is the
+//     exception: it is asked, never drafted.
+//   • The agent step can't be pressed past. Setup says it is finished by deleting
+//     its checklist, and the steps after this flow are agent runs, so a board that
+//     finished setup without an agent was never set up. That step ends on one
+//     thing only: an agent that answered a test.
 //
 // The checklist is the state. Which of setup's boxes are ticked decides what the
 // flow opens on and when it is over — there is no second record of how far the
@@ -39,9 +48,18 @@ import {
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import { cn } from "@/lib/utils";
-import { type AgentInfo, GUIDED_STEPS, type SetupDraft, type SetupState, type SetupStep } from "@/lib/types";
+import {
+  type AgentInfo,
+  FIRST_RUN_DONE,
+  GUIDED_STEPS,
+  type SetupDraft,
+  type SetupProposal,
+  type SetupState,
+  type SetupStep,
+} from "@/lib/types";
 import { Button } from "./button";
 import { configDialog, HarnessPicker } from "./Configuration";
+import { FirstRun } from "./FirstRun";
 import { GoalEditor } from "./Goal";
 import { GuideDrawer } from "./Guide";
 import { Header } from "./Header";
@@ -63,22 +81,24 @@ function guidedSteps(setup: SetupState): SetupStep[] {
   );
 }
 
-/** Should the board open on the guided run? Yes until its LAST step is ticked —
- *  the agent one, which can't be skipped. Tested on that step alone rather than
- *  on all of them, because the goal can be left for later: a user who skipped it
- *  and finished the run has been through the flow, and being asked again on
- *  every load would make "skip" mean nothing. */
+/** Should the board open on the guided run? Yes until the agent is picked and the project
+ *  is written (#280) — the two boxes that say a board was set up. Tested on those rather
+ *  than on all of them, because the goal can be left for later: a user who walked past it
+ *  has been through the flow, and being asked again on every load would make "later" mean
+ *  nothing. A checklist too old to hold one of them is judged on what it does hold. */
 export function needsFirstRun(setup: SetupState | null): boolean {
   if (!setup) return false;
   const steps = guidedSteps(setup);
-  return steps.length > 0 && !steps[steps.length - 1].done;
+  const closing = steps.filter((s) => (FIRST_RUN_DONE as readonly string[]).includes(s.name));
+  if (closing.length === 0) return steps.length > 0 && steps.some((s) => !s.done);
+  return closing.some((s) => !s.done);
 }
 
 /** Is there anything in the run still worth reopening it for? Any unanswered
  *  step, the skipped goal included — which is why this is a different question
- *  from the one above. The run stops opening ITSELF once the last step is
- *  answered, but a goal left for later has to stay one click away, or skipping
- *  it would mean losing the only way back to it until setup ends. */
+ *  from the one above. The run stops opening ITSELF once the agent is picked and
+ *  the project is written, but a goal left for later has to stay one click away,
+ *  or skipping it would mean losing the only way back to it until setup ends. */
 export function setupHasQuestionsLeft(setup: SetupState | null): boolean {
   return Boolean(setup) && guidedSteps(setup as SetupState).some((s) => !s.done);
 }
@@ -243,6 +263,29 @@ export function SetupFlow({
   const [goalSkipped, setGoalSkipped] = useState(false);
   // What a header control couldn't save — surfaced here, where the user is.
   const [chromeError, setChromeError] = useState<string | null>(null);
+  // The user stepped off the conversation onto the screens that exist today (#280), or the
+  // board can't hold one at all. Kept for as long as this window is open: the conversation
+  // is not offered again once it has been walked away from, and a board reopened later
+  // starts on it as usual.
+  const [byHand, setByHand] = useState(false);
+  // Stepping off the conversation carries what it had on screen into the boxes, so a
+  // correction already made is not lost by choosing to finish by hand.
+  const fillItIn = useCallback((seed?: SetupProposal) => {
+    if (seed && !seed.unsure) {
+      setDraft((d) =>
+        d
+          ? {
+              ...d,
+              project: { name: seed.name, description: seed.description },
+              tracks: seed.tracks.map((t) => ({ name: t.name, note: t.note, was: t.was })),
+            }
+          : d,
+      );
+    }
+    setByHand(true);
+  }, []);
+  // The conversation reporting it cannot run takes no seed with it.
+  const noTalk = useCallback(() => setByHand(true), []);
 
   useEffect(() => {
     let alive = true;
@@ -256,6 +299,29 @@ export function SetupFlow({
 
   const step = steps[index] ?? null;
   const advance = useCallback(() => setIndex((i) => i + 1), []);
+  const savedAndOn = useCallback(() => {
+    onSaved();
+    // The screens behind "I'll fill it in myself" and the rail's own notes are drawn from
+    // the draft, so an answer the conversation just wrote has to reach it — otherwise the
+    // rail keeps naming the project the folder was called before the agent named it.
+    getSetupDraftAction()
+      .then(setDraft)
+      .catch(() => {});
+    advance();
+  }, [onSaved, advance]);
+  const skipGoal = useCallback(() => {
+    setGoalSkipped(true);
+    advance();
+  }, [advance]);
+  const backToAgent = useCallback(() => {
+    const at = steps.findIndex((s) => s.name === "agent");
+    if (at >= 0) setIndex(at);
+  }, [steps]);
+  // The conversation runs the questions; the closing screen after them is the one this
+  // flow always had, so it is drawn by the rail layout below. A board whose answers can't
+  // be read is drawn by it too: the conversation has no rail, so its ways out live under
+  // the turn, and a turn that never draws would be the one screen with no way off it.
+  const talking = !byHand && Boolean(step) && !readError;
 
   return (
     // The same frame the board is drawn in (components/Window.tsx): the top row
@@ -270,6 +336,31 @@ export function SetupFlow({
         goalWritten={goalWritten}
         desktop={desktop}
       />
+      {talking ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-tl-[14px] bg-nb-paper">
+          {chromeError && (
+            <div className="px-6 pt-4 sm:px-9">
+              <Failure text={chromeError} />
+            </div>
+          )}
+          {!draft && <p className="px-6 pt-6 text-[13px] italic text-nb-ink-soft sm:px-9">{c.reading}</p>}
+          {draft && (
+            <FirstRun
+              steps={steps}
+              index={index}
+              draft={draft}
+              agent={agent}
+              onAgentChanged={onAgentChanged}
+              onSaved={savedAndOn}
+              onSkipGoal={skipGoal}
+              onNoTalk={noTalk}
+              onBackToAgent={backToAgent}
+              onByHand={fillItIn}
+              onExit={onExit}
+            />
+          )}
+        </div>
+      ) : (
       <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
         {/* What has been settled so far, the way back to any of it, and the way
             out to the board at its foot. */}
@@ -360,6 +451,7 @@ export function SetupFlow({
           <Handover instruction={setupInstruction} skillInstalled={skillInstalled} />
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -367,8 +459,12 @@ export function SetupFlow({
 // The window's rail, worn by setup: what the flow is, the steps down the side —
 // each showing what it has settled — and the way out to the board at its foot. A
 // step already answered can be gone back to — nothing here is one-way — and the
-// one being asked is marked. Steps ahead are listed but not reachable: they read
-// the answers before them.
+// one being asked is marked.
+//
+// Every step is reachable, the ones ahead included (#280). The agent comes first now, and
+// it is the one step that can't be pressed past — so a machine with no working agent would
+// otherwise reach neither the project nor the goal, and those two read nothing off it. The
+// gate is still there: the run isn't over until an agent has answered a test.
 function StepRail({
   steps,
   index,
@@ -415,21 +511,17 @@ function StepRail({
       <nav aria-label={c.rail.steps} className="flex flex-col gap-1">
         {steps.map((step, i) => {
           const on = i === index;
-          const reachable = step.done || i <= index;
           const note = step.done || on ? settled(step.name) : "";
           return (
             <button
               key={step.name}
               type="button"
               aria-current={on}
-              disabled={!reachable}
               onClick={() => onGo(i)}
               className={`flex w-full items-start gap-2 rounded-[8px] px-3 py-2 text-left transition-colors duration-100 ${
                 on
                   ? "bg-nb-accent-soft text-nb-accent-deep"
-                  : reachable
-                    ? "cursor-pointer text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink"
-                    : "text-nb-ink-soft/50"
+                  : "cursor-pointer text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink"
               }`}
             >
               <span className="mt-[3px] shrink-0">
@@ -462,9 +554,9 @@ function StepRail({
 
 // The checklist's own wording is written for whoever runs setup from a terminal.
 // On screen each step is a question being asked, so it gets a short title of its own
-// (`i18n/setup`); the names are the script's. The checklist's own name for the last
-// step is `agent` and stays that way — the rename is what the user reads, not what the
-// command prints (#191).
+// (`i18n/setup`); the names are the script's. The checklist's own name for the agent step
+// is `agent` and stays that way — the rename is what the user reads, not what the command
+// prints (#191).
 function stepTitle(c: ReturnType<typeof useCopy>["setup"], name: string): string {
   return c.stepTitles[name as keyof typeof c.stepTitles] ?? name;
 }

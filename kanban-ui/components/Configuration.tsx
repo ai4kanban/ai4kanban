@@ -297,6 +297,13 @@ function Field({
 // that asks the same questions in different words. `onTested` is how that flow
 // hears the answer — it is the one place that needs to know whether the setup on
 // screen has actually answered.
+/** A handle on the pane's own Test, for a screen whose only way forward is to run it
+ *  (#280): the first run's agent step is one button, and pressing it has to be the same
+ *  call the Test button makes. The picker fills it in; it answers what the test found. */
+export interface RunTest {
+  current: (() => Promise<ConnectionTest | null>) | null;
+}
+
 /** What a picker in bind mode sets: one runtime, on THIS computer (#344). */
 export interface BindTarget {
   runtime: string;
@@ -311,6 +318,7 @@ export function HarnessPicker({
   agent,
   onError,
   onTested,
+  runTest,
   bind,
 }: {
   agent: AgentInfo;
@@ -318,6 +326,8 @@ export function HarnessPicker({
   /** The last test's result, or null when there is none to speak of — including
    *  the moment a setting changes and the old result stops applying. */
   onTested?: (result: ConnectionTest | null) => void;
+  /** Filled in with the pane's own Test, so a screen outside it can run one (#280). */
+  runTest?: RunTest;
   /** Set one RUNTIME's binding on this computer instead of the board's own harness
    *  (#344). Everything drawn is the same — the same grid, the same declared settings,
    *  the same Test — and only where a save lands differs: `~/.ai4kanban/runtimes.json`
@@ -774,6 +784,7 @@ export function HarnessPicker({
         unsavedPick={Boolean(pending)}
         disabled={saving}
         onResult={onTested}
+        runTest={runTest}
       />
 
       {/* Never move a user to another agent silently: when the config asks for a
@@ -851,6 +862,7 @@ function ConnectionTester({
   unsavedPick,
   disabled,
   onResult,
+  runTest,
 }: {
   agentLabel: string;
   /** The runtime to spawn (#344). Absent tests the board's global one, which is what
@@ -865,6 +877,9 @@ function ConnectionTester({
   // (#172), which can't be pressed past until this setup has answered once.
   // Nothing in the dialog itself listens.
   onResult?: (result: ConnectionTest | null) => void;
+  // Handed this button's own press, for the first run's agent step (#280) — one
+  // button there, and it has to be this call.
+  runTest?: RunTest;
 }) {
   const c = useCopy().configuration.harness.test;
   const [running, setRunning] = useState(false);
@@ -879,21 +894,24 @@ function ConnectionTester({
     report.current?.(result);
   }, [result]);
 
-  const test = async () => {
-    if (running || disabled || unsavedPick) return;
+  const test = async (): Promise<ConnectionTest | null> => {
+    if (running || disabled || unsavedPick) return null;
     setRunning(true);
     setResult(null);
+    let answer: ConnectionTest;
     try {
-      setResult(await testConnectionAction(runtime));
+      answer = await testConnectionAction(runtime);
     } catch (e) {
       // The action doesn't throw for anything the test itself hit — this is the
       // call not getting there (the server went away mid-test). Shown the same
       // way a failure is, in the words we were given.
-      setResult({ ok: false, ms: 0, output: e instanceof Error ? e.message : String(e) });
-    } finally {
-      setRunning(false);
+      answer = { ok: false, ms: 0, output: e instanceof Error ? e.message : String(e) };
     }
+    setResult(answer);
+    setRunning(false);
+    return answer;
   };
+  if (runTest) runTest.current = test;
 
   return (
     <div className="mt-3">

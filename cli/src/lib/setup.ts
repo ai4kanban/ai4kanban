@@ -55,9 +55,10 @@ export interface TickResult {
 // The steps, in the order setup runs them. `owner` says who does the step — `script` is
 // already done by the time the file is written, `agent` needs a run that reads the repo and
 // thinks, `you` is the user's own. The three `you` steps come first and in one block: they
-// are what only the user knows, and the local UI asks for them one screen at a time as its
-// guided first run (#172). The UI reads the owner to decide whether it can ask for a step
-// itself or has to hand it to a coding agent; it never learns the names of the steps.
+// are what only the user knows, and the local UI settles them on its guided first run — the
+// agent picked, then a conversation, then the goal (#172, #280). It reads the owner to
+// decide whether it can ask for a step itself or has to hand it to a coding agent; it never
+// learns the names of the steps.
 //
 // `agent` is a step because a board that ticked every box without one can't run anything:
 // the steps below it are agent runs, and so is every button on the board.

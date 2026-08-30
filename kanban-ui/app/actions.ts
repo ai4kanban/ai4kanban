@@ -31,6 +31,7 @@ import {
   searchCards,
 } from "@/lib/board";
 import { type ChatRead, clearChat, readChat, sendChat, stopChat } from "@/lib/chat";
+import { openSetupChat, readSetupChat, saySetupChat, type SetupChatRead } from "@/lib/setup-chat";
 import {
   cloudAccount,
   cloudCardLink,
@@ -415,6 +416,27 @@ export async function clearChatAction(cardId: number | null): Promise<{ ok: bool
   return clearChat(target);
 }
 
+// ---- the first run's own conversation (#280) --------------------------------
+//
+// The first run asks what the project is by talking. These are its three moves: open the
+// conversation (the board speaks first), read how far it has got, and say one correction
+// into it. Everything they need is in lib/setup-chat.ts.
+
+export async function readSetupChatAction(): Promise<SetupChatRead> {
+  return readSetupChat();
+}
+
+export async function openSetupChatAction(): Promise<{ ok: boolean; error?: string }> {
+  return openSetupChat();
+}
+
+export async function saySetupChatAction(text: string): Promise<{ ok: boolean; error?: string }> {
+  if (typeof text !== "string" || !text.trim()) {
+    return { ok: false, error: (await machineCopy()).messages.actions.emptyChat };
+  }
+  return saySetupChat(text.trim());
+}
+
 // ---- the goal ---------------------------------------------------------------
 
 // The goal editor — the first run's goal step, and the board's goal notice long after
@@ -432,10 +454,10 @@ export async function saveGoalAction(text: string): Promise<WriteResult> {
 
 // ---- the guided first run (#172) --------------------------------------------
 //
-// Three of setup's steps are the user's own — what the project is and its tracks, the goal,
-// and which agent runs the board. The flow asks for them one screen at a time; these are
-// what it reads and writes. Everything else setup does reads the repo and thinks, and is an
-// agent's job.
+// Three of setup's steps are the user's own — which agent runs the board, what the project
+// is and its tracks, and the goal. The flow settles them one view at a time, the middle one
+// by talking (#280); these are what it reads and writes. Everything else setup does reads
+// the repo and thinks, and is an agent's job.
 
 /** What the flow opens with: the board's answers as they stand today. */
 export async function getSetupDraftAction(): Promise<SetupDraft> {
@@ -465,9 +487,10 @@ export async function saveSetupProjectAction(
   return saveProject(name, description, clean);
 }
 
-// Tick setup's `agent` box — the flow's last step, and the one it can't be pressed past. A
-// test that passed here is the only thing that ticks it: every step after this flow is an
-// agent run, so a board that finished setup without a working agent was never set up.
+// Tick setup's `agent` box — the flow's first step (#280), and the one it can't be pressed
+// past. A test that passed here is the only thing that ticks it: everything after it is
+// that agent talking, so a board that finished setup without a working agent was never set
+// up.
 //
 // It answers with the whole agent setting as it now reads, the way switching agents does:
 // the picker keeps the switch to itself while the step is open, so this is where the board

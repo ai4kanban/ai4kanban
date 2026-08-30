@@ -29,6 +29,7 @@ export type {
   Boldness,
   Chat,
   ChatMessage,
+  ChatTarget,
   CommandAction,
   CommandRequest,
   ConnectionTest,
@@ -42,6 +43,7 @@ export type {
   RuntimeView,
   RunStatus,
   SettingChoice,
+  SetupProposal,
   SpecAgentSettingView,
   SpecAgentView,
   TokenUsage,
@@ -102,7 +104,7 @@ export type {
   VerifyResult,
   WriteResult,
 } from "./format/view/types";
-export { GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE, SCORE_SERIES } from "./format/view/types";
+export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE, SCORE_SERIES } from "./format/view/types";
 
 export type {
   CommandState,

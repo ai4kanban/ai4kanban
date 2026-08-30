@@ -10,6 +10,7 @@ import type {
   AgentRequest,
   CommandRequest,
   ChatReply,
+  ChatTarget,
   ChatView,
   ConnectionTest,
   DeliveryRecord,
@@ -17,6 +18,7 @@ import type {
   HarnessSetting,
   RunRecord,
   RunView,
+  SetupProposal,
   SpecAgentView,
 } from "./format/agent/types";
 import type { CloudEventAnswer } from "./format/cloud/events";
@@ -138,16 +140,30 @@ export interface BoardRules {
   // the conversation with that agent (#242) — the board's, and each card's. Optional for
   // the same reason as the moves below: a project can be running rules older than the
   // release that added them, and the chat says so rather than the window failing to draw.
-  readChatView?(cardId: number | null): ChatView;
+  readChatView?(cardId: ChatTarget): ChatView;
   sendChatMessage?(
-    cardId: number | null,
+    cardId: ChatTarget,
     message: string,
     /** `onOpen` is handed the way to end this reply early (#267), once the agent is running.
      *  Rules from before it simply never call it, and the window's Stop then waits out the
      *  reply it asked to end. */
-    options?: { onText?(chunk: string): void; onOpen?(stop: () => void): void; title?: string },
+    options?: {
+      onText?(chunk: string): void;
+      onOpen?(stop: () => void): void;
+      title?: string;
+      /** The board is speaking, not the user (#280) — sent, but written into no
+       *  transcript as something the user said. */
+      fromBoard?: boolean;
+    },
   ): Promise<ChatReply | { error: string }>;
-  clearChat?(cardId: number | null): boolean;
+  clearChat?(cardId: ChatTarget): boolean;
+
+  // the board's first-run conversation (#280): the opening turn the board speaks itself,
+  // and the reader that turns one reply into the two answers the project view draws. Both
+  // optional — rules older than the release that added them make the first run fall back to
+  // the screens it always had.
+  setupOpening?(): string;
+  parseSetupProposal?(reply: string): SetupProposal | null;
 
   // the agent, and what it is set to
   agentInfo(): AgentInfo;

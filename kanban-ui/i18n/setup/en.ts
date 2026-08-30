@@ -16,6 +16,47 @@ const en: SetupCopy = {
   },
   stepTitles: { project: "Project", goal: "Goal", agent: "Harness" },
   reading: "Reading the board…",
+  firstRun: {
+    title: "Set up this board",
+    step: (at, total) => `${at} of ${total}`,
+    byHand: "I’ll fill it in myself",
+    toBoard: "Go to the board",
+    yourWords: "Your words",
+    agent: {
+      ask: "Which agent does the work?",
+      blurb:
+        "It reads your repo and does the talking from here. Nothing is run until you pick one.",
+      test: "Test and continue",
+      testNote: (agent) => `One call to ${agent}, to check it is logged in.`,
+      answered: "Answered — carry on.",
+    },
+    reading: {
+      ask: "Reading your repo.",
+      blurb:
+        "A minute at most. I will come back with what I think this project is — you tell me what is wrong with it.",
+    },
+    project: {
+      tracks: "Its work falls into",
+      right: "Right? Say what is wrong and I will fix it. Nothing is written until you say yes.",
+      hint: "What I got wrong",
+      yes: "Yes, that’s it",
+      send: "Send",
+    },
+    goal: {
+      ask: "Where is this headed?",
+      blurb:
+        "The one thing no repo can tell me. A year out, in your own words — what you want, and roughly what comes next. Rough and short is fine, and only you can write it.",
+      guide: "What makes a good goal",
+      save: "Save and finish",
+      later: "I’ll write it later",
+    },
+    failed: {
+      noAnswer: "the agent ended the turn without answering.",
+      nothingWritten: "Nothing was written.",
+      backToAgent: "Back to the agent",
+      retry: "Try again",
+    },
+  },
   project: {
     title: "What is this project?",
     blurb:

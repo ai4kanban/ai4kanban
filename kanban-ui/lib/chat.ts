@@ -2,7 +2,7 @@ import { getCopy } from "@/i18n";
 import { cardStillThere } from "./board";
 import { boardRules, whyNoRules } from "./cli";
 import { machineCopy } from "./language";
-import { DEFAULT_LANGUAGE, type Chat } from "./types";
+import { DEFAULT_LANGUAGE, type Chat, type ChatTarget } from "./types";
 
 // --- the conversation, through the CLI (#242) --------------------------------
 // The chat itself is the command's (cli/src/lib/agent/chat.ts): the transcript file, the
@@ -58,8 +58,9 @@ export interface ChatRead {
   failed?: string;
 }
 
-/** The chat a window is showing: the board's, or one card's. */
-const keyOf = (cardId: number | null): string => (cardId === null ? "board" : `card-${cardId}`);
+/** The chat a window is showing: the board's, one card's, or the first run's (#280). */
+const keyOf = (target: ChatTarget): string =>
+  target === null ? "board" : target === "setup" ? "setup" : `card-${target}`;
 
 // Read at load, so English: this is the line for rules too old to hold a conversation,
 // and the language is one of the things such a copy may not be able to answer for.
@@ -107,7 +108,7 @@ const NOTHING: ChatRead = {
 
 /** One conversation as the window draws it. Never throws: a board with no rules to read is
  *  a chat that says so, not a page that fails. */
-export async function readChat(cardId: number | null): Promise<ChatRead> {
+export async function readChat(cardId: ChatTarget): Promise<ChatRead> {
   let rules;
   try {
     rules = await boardRules();
@@ -134,7 +135,7 @@ export async function readChat(cardId: number | null): Promise<ChatRead> {
     // Asked of the board rather than remembered: the card may have gone at any moment, and
     // a title read is one card file. A card page gives itself up on this, so a miss is
     // confirmed before it counts — see `cardStillThere`.
-    cardGone: cardId !== null && !(await cardStillThere(cardId)),
+    cardGone: typeof cardId === "number" && !(await cardStillThere(cardId)),
     canChat: view.canChat,
     agent: view.agent,
     able: view.able,
@@ -165,7 +166,13 @@ function stillBlocked(
 
 /** Send one message, and come straight back. The reply is written into the transcript by
  *  the rules as it arrives; the window reads it through `readChat`. */
-export async function sendChat(cardId: number | null, message: string): Promise<{ ok: boolean; error?: string }> {
+export async function sendChat(
+  cardId: ChatTarget,
+  message: string,
+  /** The board is speaking, not the user (#280): the message is sent, and the transcript
+   *  keeps only the reply. */
+  opts: { fromBoard?: boolean } = {},
+): Promise<{ ok: boolean; error?: string }> {
   let rules;
   try {
     rules = await boardRules();
@@ -197,7 +204,8 @@ export async function sendChat(cardId: number | null, message: string): Promise<
   // before the promise settles, so clearing the flight afterwards can never show the
   // browser a gap between the live text and the saved message.
   flight.done = send(cardId, message, {
-    title: cardId === null ? undefined : rules.titleOf(cardId),
+    title: typeof cardId === "number" ? rules.titleOf(cardId) : undefined,
+    fromBoard: opts.fromBoard,
     onText: (chunk) => {
       // Frozen on a stop, so the words on screen are the words that were there when the
       // button was pressed.
@@ -230,7 +238,7 @@ export async function sendChat(cardId: number | null, message: string): Promise<
  *
  *  The flight is this server's, and this server owns every reply a window started on this
  *  board — so a reply started on another page or in another window ends here too. */
-export async function stopChat(cardId: number | null): Promise<{ ok: boolean }> {
+export async function stopChat(cardId: ChatTarget): Promise<{ ok: boolean }> {
   const flight = flights().live.get(keyOf(cardId));
   if (!flight) return { ok: true };
   flight.stopped = true;
@@ -241,7 +249,7 @@ export async function stopChat(cardId: number | null): Promise<{ ok: boolean }> 
 
 /** Forget a conversation and start fresh. A reply still being written is left to finish —
  *  it belongs to the conversation that was cleared, and its own transcript is already gone. */
-export async function clearChat(cardId: number | null): Promise<{ ok: boolean; error?: string }> {
+export async function clearChat(cardId: ChatTarget): Promise<{ ok: boolean; error?: string }> {
   let rules;
   try {
     rules = await boardRules();

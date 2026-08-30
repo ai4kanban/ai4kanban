@@ -90,6 +90,11 @@ export { readFlowRules, setFlowRule } from './lib/agent/rules'
 // code, in the same file. Nothing here touches the run record: a conversation is not a run.
 export { clearChat, readChat, readChatView, sendChatMessage } from './lib/agent/chat'
 export type { SendOptions as ChatSendOptions } from './lib/agent/chat'
+
+// The board's first-run conversation (#280): the opening turn the board speaks itself, and
+// the reader that turns one reply into the two config answers a screen draws. The screen
+// never parses the agent — it asks here, so the board and the command read one shape.
+export { parseSetupProposal, setupOpening } from './lib/agent/setup-chat'
 export { chatAgent } from './lib/agent/resolve'
 export { agentInfo, activeSettings, setupInstruction, settingSaveError } from './lib/agent/resolve'
 export {

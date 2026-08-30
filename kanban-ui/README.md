@@ -443,18 +443,38 @@ card, and a dropdown that says **No release** and offers **New release**.
 
 ## The first run
 
-A board whose setup is unfinished opens on a short guided run instead of the columns. It asks for
-the three things only you can answer, one to a screen:
+A board whose setup is unfinished opens on a short guided run instead of the columns. One full
+window per step, one thing asked in each:
 
-1. **The project** — its name, one line saying what it is, and the tracks work falls into.
-   Everything starts filled in. A track is a folder under `docs/kanban/todo/`, so adding one here
-   makes it, renaming one moves it with its cards, and dropping one removes it — unless it holds
-   cards, and then it stays and the screen says so.
-2. **The goal** — an empty box on `memory/goal.md`, your own words, with a link to the longer
-   guide. **Skip for now** leaves it for later.
-3. **The agent** — which agent every button on this board runs, with the same picker, settings and
-   **Test** the Configuration dialog has. This one can't be pressed past: Continue opens on a test
-   that passed, and on nothing else.
+1. **The agent** — which agent every button on this board runs, with the same picker, settings and
+   **Test** the Configuration dialog has. It comes first because everything after it is that
+   agent talking, and nothing is ever run before you have chosen one. This step can't be pressed
+   past: **Test and continue** sends one call through the agent you picked, and moves on only if
+   it comes back.
+2. **The project** — a conversation, not a form. The agent reads your repo — README, package
+   files, folder shape, recent commits — and comes back with one sentence saying what it thinks
+   this project is and what tracks its work falls into, starting from whatever `config.md` and the
+   folders under `docs/kanban/todo/` already hold. While it reads you get a turning arc and one
+   line, never a list of the files it opened. **Yes, that's it** writes the answer; a correction
+   in the box under it sends it back to read again. Nothing reaches disk before you press Yes, so
+   no guessed track leaves a folder to delete. On a repo with nothing to read the same view says
+   what little it saw and asks you outright — no guess is dressed as a finding.
+3. **The goal** — an empty box on `memory/goal.md`, in your own words, with the longer guide beside
+   it. It is asked and never drafted: the agent will not put words in this box, not its own and
+   not the repo's. **I'll write it later** leaves it for later.
+
+The conversation is not a run. It is the chat the board already holds with its agent, so it takes
+no place in the runs panel and writes no log — and nothing resumes one that went wrong. When a
+turn fails, the view shows what the agent said, verbatim, and the line **Nothing was written**;
+**Try again** starts the conversation over, and the board never explains how to log a harness in.
+
+**I'll fill it in myself** is on every view. It goes to the project and goal screens this run
+always had — boxes for the name, what it is and the tracks, and a box for the goal — carrying
+whatever the conversation had already settled. Choosing it is not an answer and is written
+nowhere; the conversation is not offered again while that window is open, and a board reopened
+later starts on it as usual. It is also how a machine with no agent CLI at all still answers what
+it knows: the agent step can't be pressed past to finish setup, so the run keeps reopening until
+an agent has answered a test.
 
 Then a closing screen names what is left — the steps that read your repo and think — and offers to
 do them for you: **Finish setup** starts one agent run that works down every step still unticked.
@@ -478,9 +498,9 @@ The line to paste is there either way, under the offer rather than instead of it
 The line follows the agent you picked, because agents trigger a skill differently: on Codex it
 reads `$kanban. Set up this board …`, and on Cursor, OpenCode, DeepSeek Harness and ZCode it asks for
 the
-skill in a sentence. Copy it and paste it as it comes. It is on every screen of the run too, under
-**Rather set this up from your coding agent?** — setup picks up at the first unticked box, so
-nothing you answered here is asked again.
+skill in a sentence. Copy it and paste it as it comes. It is on the closing screen and on every
+screen behind **I'll fill it in myself**, under **Rather set this up from your coding agent?** —
+setup picks up at the first unticked box, so nothing you answered here is asked again.
 
 That line only works once the coding agent skill is in the repo, and a board arrives without it.
 Where there is none, both places say so and hand you the one command that adds it —
@@ -488,9 +508,10 @@ Where there is none, both places say so and hand you the one command that adds i
 is given the board's own command directly.
 
 **Go to the board** leaves the run for the columns at any step, and the board then carries a strip
-saying how far setup got with **Continue setup** on it. The steps down the left take you back to
-any of them. The run is remembered in `setup-checklist.md`, so closing the window and coming back
-lands on the same screen. The strip stays until setup is finished, carrying **Finish setup** and
+saying how far setup got with **Continue setup** on it. The run is remembered in
+`setup-checklist.md`, so closing the window and coming back lands on the same screen — and the run
+stops opening itself once the agent is picked and the project is written, so a goal left for later
+does not reopen it. The strip stays until setup is finished, carrying **Finish setup** and
 **Finish in your coding agent** beside it — or, on a repo with no skill, **Add the coding agent
 skill**. Before setup ends the skill creates no cards at all: ask it for one and it tells you to
 finish setup first. The last box creates your first cards and deletes the checklist.

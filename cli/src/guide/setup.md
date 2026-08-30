@@ -12,9 +12,9 @@ below, in order. Each step ticks its own box the moment it finishes. Never hand-
 `docs/kanban/setup-checklist.md` — the local UI reads its shape.
 
 The first three boxes are the user's own (`owner: you`) — what only they know. The board
-app asks for them one screen at a time on its first run, so on a board driven from the app
-they are ticked before you ever start. Ticked boxes are answered: never ask again for
-anything they settled.
+app's first run settles them before you ever start: it picks the agent, talks its way to
+what the project is, and asks for the goal in the user's own words. Ticked boxes are
+answered: never ask again for anything they settled.
 
 The boxes marked `owner: agent` are a run's, and that run comes from one of two places: the
 user pastes a line into their coding agent, or they press **Finish setup** in the board app
@@ -26,6 +26,53 @@ on your own, append it to the questions card the install created —
 `akb board update-questions <id> --append "[user] .." --recommended-option ".." --option ".."`
 — following "Decide what survives" in `akb guide qa-loop`. `akb board setup-status` prints
 the card's id.
+
+## The first-run conversation
+
+The board app opens on the agent picker and then talks, rather than handing over a form
+(#280). What follows is what the board says to the agent for the `project` box; the board
+sends it, and reads the answer. It applies to that conversation only — a setup run reaching
+the `project` section below is not in it.
+
+Read the repo — README, package files, folder shape, recent commits — and say what you think
+the project is. Start from what `docs/kanban/config.md` and the folders under
+`docs/kanban/todo/` already hold, so a track set in the terminal is stated back rather than
+guessed at again.
+
+Answer with one fenced `json` block:
+
+```json
+{
+  "summary": "Ledger — the double-entry bookkeeping service behind Acme's billing API. TypeScript, Postgres, one deploy.",
+  "name": "Ledger",
+  "description": "the double-entry bookkeeping service behind Acme's billing API",
+  "tracks": [{ "name": "features", "note": "new behavior a user can see.", "was": "feature" }],
+  "tracksFrom": "your folder names, kept",
+  "unsure": false,
+  "ask": ""
+}
+```
+
+- **`summary` is the whole screen's heading**: one sentence saying what the project is
+  called and what it is. Never a question, never a paragraph.
+- **`name` and `description` are `config.md`'s two values**: the name on its own, and the
+  line saying what the project is.
+- **`tracks` are folder names**: lowercase letters, digits and dashes, each with the plain
+  line saying what belongs in it. Keep the folders that are already there; add one only
+  where the repo plainly calls for it.
+- **A renamed folder carries `was`**: the folder this track replaces. Without it the board
+  makes a new folder and leaves the old one — with its cards — behind. Leave `was` out for a
+  track that is genuinely new, and set it to the track's own name for one you are keeping.
+- **`tracksFrom` says where they came from**, in a few words.
+- **A repo with nothing to read sets `unsure`**: `summary` says what little you saw, `ask`
+  is the one question you want answered, and `tracks` stays as the board scaffolded it. No
+  guess is ever dressed as a finding.
+- **Write nothing**: no file, no board command, no folder. The board writes this itself once
+  the user agrees, so a guessed track leaves nothing to delete.
+- **A correction is the same block rewritten**: what the user did not correct stays as it
+  was.
+- **Never ask for the goal**: the run asks for it on a screen of its own, and only the user's
+  own words go in it.
 
 ## `project`
 

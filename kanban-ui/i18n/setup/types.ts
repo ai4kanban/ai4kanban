@@ -16,6 +16,47 @@ export type SetupCopy = {
    *  script's and stay as they are. */
   stepTitles: { project: string; goal: string; agent: string };
   reading: string;
+  /** The first run as a conversation (#280): one full window per step, one thing asked in
+   *  each. The screens below it are what "I'll fill it in myself" reaches. */
+  firstRun: {
+    title: string;
+    step: (at: number, total: number) => string;
+    byHand: string;
+    toBoard: string;
+    /** The empty box's hint, wherever the answer has to be the user's own. */
+    yourWords: string;
+    agent: {
+      ask: string;
+      blurb: string;
+      test: string;
+      /** What Test and continue is about to spend, naming the agent picked. */
+      testNote: (agent: string) => string;
+      answered: string;
+    };
+    reading: { ask: string; blurb: string };
+    project: {
+      tracks: string;
+      right: string;
+      hint: string;
+      yes: string;
+      send: string;
+    };
+    goal: {
+      ask: string;
+      blurb: string;
+      guide: string;
+      save: string;
+      later: string;
+    };
+    failed: {
+      /** The agent ended its turn with nothing this could be read from. */
+      noAnswer: string;
+      nothingWritten: string;
+      /** A failed turn is usually a login, so the way back is the picker it came from. */
+      backToAgent: string;
+      retry: string;
+    };
+  };
   project: {
     title: string;
     blurb: string;

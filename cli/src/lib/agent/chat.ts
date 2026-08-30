@@ -31,14 +31,17 @@ import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { ensureSkillInstalled } from '../skill/install'
 import { languageNote } from './language'
 import { chatAgent, harnessLabel, openPlan, planResume, planRun, skillPrompt, type RunPlan } from './resolve'
+import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
-import type { Chat, ChatMessage, ChatReply, ChatView } from './types'
+import type { Chat, ChatMessage, ChatReply, ChatTarget, ChatView } from './types'
 
-/** A conversation's file is named by what it is about, so the board's conversation and each
- *  card's are separate by construction and one card's can never be read as another's. */
-const keyOf = (cardId: number | null): string => (cardId === null ? 'board' : `card-${cardId}`)
+/** A conversation's file is named by what it is about, so the board's conversation, the
+ *  first run's and each card's are separate by construction and one can never be read as
+ *  another's. */
+const keyOf = (target: ChatTarget): string =>
+  target === null ? 'board' : target === 'setup' ? 'setup' : `card-${target}`
 
-const chatFile = (cardId: number | null): string => path.join(CHATS_DIR, `${keyOf(cardId)}.json`)
+const chatFile = (target: ChatTarget): string => path.join(CHATS_DIR, `${keyOf(target)}.json`)
 
 // A conversation is this machine's record of what was said to an agent on it — the same
 // kind of thing as a run's log, and no more the repo's business than one.
@@ -52,7 +55,7 @@ export const CHAT_IGNORE_LINE = {
 /** One conversation as it stands, or null when there has never been one. Reads only, and
  *  a damaged file reads as no conversation rather than throwing: the answer to a transcript
  *  nobody can parse is to start again, which is what clearing already does. */
-export function readChat(cardId: number | null): Chat | null {
+export function readChat(cardId: ChatTarget): Chat | null {
   let data: unknown
   try {
     data = JSON.parse(fs.readFileSync(chatFile(cardId), 'utf8'))
@@ -95,7 +98,7 @@ function writeChat(chat: Chat): void {
  *
  *  Only our end is dropped. The agent's own session stays wherever that CLI keeps it, and is
  *  never spoken to again — nothing on this board holds its id any more. */
-export function clearChat(cardId: number | null): boolean {
+export function clearChat(cardId: ChatTarget): boolean {
   try {
     fs.unlinkSync(chatFile(cardId))
     return true
@@ -107,7 +110,7 @@ export function clearChat(cardId: number | null): boolean {
 // ---- what can be said right now --------------------------------------------
 
 // The one place a refusal is worked out, so the CLI and a screen say the same words.
-function blockedBy(cardId: number | null, chat: Chat | null): string | undefined {
+function blockedBy(cardId: ChatTarget, chat: Chat | null): string | undefined {
   const agent = chatAgent()
   if (!agent.canChat) {
     return `chat is not available on ${agent.label}. The agents that can hold a conversation: ${agent.able.join(', ')}.`
@@ -123,7 +126,7 @@ function blockedBy(cardId: number | null, chat: Chat | null): string | undefined
 }
 
 /** One conversation and what the board can do about it right now. */
-export function readChatView(cardId: number | null): ChatView {
+export function readChatView(cardId: ChatTarget): ChatView {
   const chat = readChat(cardId)
   const agent = chatAgent()
   return {
@@ -148,7 +151,7 @@ export function readChatView(cardId: number | null): ChatView {
 // message at a time, and a second is refused rather than queued — the user is sitting there
 // watching the first, and a queue they can't see is worse than a plain no.
 
-const busyDir = (cardId: number | null): string => path.join(CHATS_DIR, `${keyOf(cardId)}.answering`)
+const busyDir = (cardId: ChatTarget): string => path.join(CHATS_DIR, `${keyOf(cardId)}.answering`)
 
 // How long a marker that names nobody is believed. Whoever takes one writes their pid in
 // the next instruction, so an unnamed marker older than this belongs to a process that died
@@ -158,7 +161,7 @@ const UNNAMED_MS = 10_000
 
 // Who is answering, or nobody — and a marker left behind by a process that is gone is
 // cleared here rather than left to block the conversation for good.
-function answering(cardId: number | null): boolean {
+function answering(cardId: ChatTarget): boolean {
   const dir = busyDir(cardId)
   let age: number
   try {
@@ -183,7 +186,7 @@ function ownerOf(dir: string): number | undefined {
 
 // Take the marker, or hand back nothing when someone else already has it. mkdir settles
 // which of two callers gets it, the same way it settles every other lock on this board.
-function startAnswering(cardId: number | null): (() => void) | null {
+function startAnswering(cardId: ChatTarget): (() => void) | null {
   const dir = busyDir(cardId)
   if (answering(cardId)) return null
   fs.mkdirSync(CHATS_DIR, { recursive: true })
@@ -213,6 +216,10 @@ export interface SendOptions {
   /** Handed a way to end the reply early, once the agent is running. What arrives before
    *  it is called is kept, the same as a reply that dies on its own. */
   onOpen?(stop: () => void): void
+  /** The board is speaking, not the user (#280) — the message is sent and the reply kept,
+   *  but nothing is written into the transcript as something the user said. It is how a
+   *  conversation opens with the agent's turn rather than waiting to be spoken to. */
+  fromBoard?: boolean
 }
 
 /** What one turn sends.
@@ -228,19 +235,26 @@ export interface SendOptions {
  *  once at the top drifts back to English as it grows, and a language switched mid-
  *  conversation would never reach it at all. An English board carries nothing. */
 export function chatPrompt(
-  cardId: number | null,
+  cardId: ChatTarget,
   message: string,
   opts: { resuming?: boolean; title?: string } = {},
 ): string {
   const language = languageNote()
-  if (opts.resuming) return [language, message].filter(Boolean).join('\n\n')
-  const title = opts.title ?? (cardId === null ? undefined : cardTitle(cardId))
+  if (opts.resuming) {
+    // The first run's later turns carry one more line: the session already holds the
+    // instructions, and what a long conversation drifts away from is the answer's shape.
+    const reminder = cardId === 'setup' ? SETUP_REMINDER : ''
+    return [language, message, reminder].filter(Boolean).join('\n\n')
+  }
+  const title = opts.title ?? (typeof cardId === 'number' ? cardTitle(cardId) : undefined)
   const subject =
-    cardId === null
-      ? `This is a chat about this project's board.`
-      : `This is a chat about task #${cardId}${title ? ` ("${title}")` : ''} on this project's board. ` +
-        `Read the card before you answer, and take "it", "this" and "this task" to mean that card ` +
-        `unless I name another.`
+    cardId === 'setup'
+      ? setupSubject()
+      : cardId === null
+        ? `This is a chat about this project's board.`
+        : `This is a chat about task #${cardId}${title ? ` ("${title}")` : ''} on this project's board. ` +
+          `Read the card before you answer, and take "it", "this" and "this task" to mean that card ` +
+          `unless I name another.`
   return skillPrompt([subject, language, message].filter(Boolean).join('\n\n'))
 }
 
@@ -260,7 +274,7 @@ function cardTitle(cardId: number): string | undefined {
 /** Send one message and answer with the reply. Never throws: everything that can go wrong
  *  is something to tell the user in the conversation they are having. */
 export async function sendChatMessage(
-  cardId: number | null,
+  cardId: ChatTarget,
   message: string,
   options: SendOptions = {},
 ): Promise<ChatReply | { error: string }> {
@@ -287,8 +301,9 @@ export async function sendChatMessage(
       if (!skill.ok) return { error: skill.error || 'the kanban skill could not be installed.' }
     }
     // Written down before the agent is asked anything, so a reply that never arrives still
-    // leaves the conversation holding what the user said.
-    held.messages.push({ role: 'you', text, at: now })
+    // leaves the conversation holding what the user said. The board's own opening turn is
+    // the exception: it was never said by the user, so it is not shown as though it were.
+    if (!options.fromBoard) held.messages.push({ role: 'you', text, at: now })
     held.updatedAt = now
     writeChat(held)
 

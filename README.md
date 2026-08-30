@@ -53,8 +53,9 @@ this history, keeping future decisions grounded in the project.
 1. **[Download and install the desktop app](https://ai4kanban.dev/download).** No prior
    Node.js, npm, or terminal setup is needed. The app includes the `akb` CLI and adds the
    coding-agent skills automatically when a project is opened.
-2. **Open a project folder.** Confirm the project summary and tracks, set the project goal,
-   and choose the coding agent that will run the board.
+2. **Open a project folder.** Choose the coding agent that will run the board, then let it
+   read the repository and tell you what it thinks the project is — confirm or correct it in
+   a sentence. The project goal is the one thing it asks for in your own words.
 3. **Select Finish setup.** AI4Kanban reads the repository, creates project memory, maps the
    modules, and proposes the first tasks.
 

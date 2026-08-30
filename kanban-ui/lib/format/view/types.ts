@@ -370,7 +370,7 @@ export interface ArchiveGroup {
 
 /** One box on setup's checklist. `owner` says who does the step: `script` is already done
  *  by the time the board exists, `agent` needs a run that reads the repo and thinks, `you`
- *  is the user's own — the three a guided first run asks for, one screen at a time. */
+ *  is the user's own — the three a guided first run settles, one thing to a view. */
 export interface SetupStepView {
   name: string
   owner: 'script' | 'agent' | 'you'
@@ -390,10 +390,14 @@ export interface SetupState {
 }
 
 /** The steps a guided first run asks for itself, in the order it asks them — the user's
- *  own, in the checklist's names. The last one is what says the flow is over: it can't be
- *  skipped, so a board that got past it has been through the whole run. A board whose
+ *  own, in the checklist's names. The agent comes first (#280): the run talks its way
+ *  through the other two, and nothing may be spent on an agent nobody chose. A board whose
  *  checklist predates these names simply has fewer of them. */
-export const GUIDED_STEPS = ['project', 'goal', 'agent'] as const
+export const GUIDED_STEPS = ['agent', 'project', 'goal'] as const
+
+/** The boxes that say the first run is over. The goal is not among them — it can be left
+ *  for later, and a run that reopened on it would make "later" mean nothing. */
+export const FIRST_RUN_DONE = ['agent', 'project'] as const
 
 /** One track as the first-run flow shows it: the folder's name, and the plain line saying
  *  what belongs in it. `was` is the folder this row came from, which is what makes renaming
