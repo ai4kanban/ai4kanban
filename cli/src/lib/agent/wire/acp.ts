@@ -8,16 +8,18 @@
 //
 // This is dsh's client, and only dsh's. What it knows is the protocol, not the agent: any
 // command that speaks ACP is driven by the same file. What it deliberately does NOT know
-// is runs, cards, or logs — it is handed pipes and hands back text (agent/client.ts).
+// is runs, cards, or logs — it is handed pipes and hands back text (wire/client.ts). The
+// JSON-line conversation itself is wire/rpc.ts, which ZCode's client is held over too.
 //
 // Proved by hand against `dsh-acp` 0.4.14 (@openma/deepseek-harness-acp) over
 // @deepseek-ai/dsh 0.1.0-rc.7, ACP protocol version 1, on 2026-08-18.
 
-import type { Readable, Writable } from 'node:stream'
-
+import { hint, num, obj, str, type Json } from './json'
+import { connect } from './rpc'
+import { createTail, type Tail } from './tail'
 import type { ClientTurn, RunClient, TurnEnd } from './client'
-import type { TokenUsage } from './types'
-import { SKILL_VERSION } from '../../version'
+import type { TokenUsage } from '../types'
+import { SKILL_VERSION } from '../../../version'
 
 /** The protocol version this client speaks. */
 const PROTOCOL_VERSION = 1
@@ -29,166 +31,6 @@ const PROTOCOL_VERSION = 1
 const CLIENT_CAPABILITIES = {
   fs: { readTextFile: false, writeTextFile: false },
   terminal: false,
-}
-
-type Json = Record<string, unknown>
-
-interface Message {
-  id?: number | string
-  method?: string
-  params?: Json
-  result?: Json
-  error?: { code?: number; message?: string }
-}
-
-function obj(value: unknown): Json {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Json) : {}
-}
-
-function str(value: unknown): string {
-  return typeof value === 'string' ? value : ''
-}
-
-function num(value: unknown): number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 0
-}
-
-// ---- the wire --------------------------------------------------------------
-
-/** One JSON-RPC conversation over a pair of pipes. Requests both ways: `call` asks the
- *  agent something, `onCall` answers what it asks us. */
-function connect(stdout: Readable, stdin: Writable, onCall: (msg: Message) => void) {
-  let buf = ''
-  let nextId = 1
-  let gone: string | undefined
-  const waiting = new Map<number, { ok: (result: Json) => void; fail: (err: Error) => void }>()
-
-  const send = (msg: Json) => {
-    if (gone) return
-    try {
-      stdin.write(`${JSON.stringify(msg)}\n`)
-    } catch {
-      // The far end is already gone; the close below is what reports it.
-    }
-  }
-
-  const closed = (why: string) => {
-    if (gone) return
-    gone = why
-    for (const { fail } of waiting.values()) fail(new Error(why))
-    waiting.clear()
-  }
-
-  stdout.on('data', (chunk: Buffer) => {
-    buf += chunk.toString()
-    const lines = buf.split('\n')
-    buf = lines.pop() ?? ''
-    for (const line of lines) {
-      if (!line.trim()) continue
-      let msg: Message
-      try {
-        msg = JSON.parse(line) as Message
-      } catch {
-        // Not a frame. An ACP command's stdout is the protocol and nothing else, so this
-        // is a stray print from something that shouldn't have printed — ignored rather
-        // than passed off as the agent talking.
-        continue
-      }
-      if (msg.method) {
-        onCall(msg)
-        continue
-      }
-      if (typeof msg.id !== 'number') continue
-      const pending = waiting.get(msg.id)
-      if (!pending) continue
-      waiting.delete(msg.id)
-      if (msg.error) pending.fail(new Error(str(msg.error.message) || `the agent refused (${msg.error.code ?? 'no code'})`))
-      else pending.ok(obj(msg.result))
-    }
-  })
-  stdout.on('close', () => closed('the agent closed the connection'))
-  stdout.on('error', (err: Error) => closed(String(err)))
-
-  return {
-    /** Ask the agent something. Rejects with the agent's own words when it says no. */
-    call(method: string, params: Json): Promise<Json> {
-      if (gone) return Promise.reject(new Error(gone))
-      const id = nextId++
-      return new Promise<Json>((ok, fail) => {
-        waiting.set(id, { ok, fail })
-        send({ jsonrpc: '2.0', id, method, params })
-      })
-    },
-    /** Answer something the agent asked us. */
-    reply(id: number | string, result: Json) {
-      send({ jsonrpc: '2.0', id, result })
-    },
-    /** Say we can't. Sent for anything we never offered to do, so the agent gets an answer
-     *  rather than waiting on one forever. */
-    refuse(id: number | string, message: string) {
-      send({ jsonrpc: '2.0', id, error: { code: -32601, message } })
-    },
-  }
-}
-
-// ---- what the agent says ---------------------------------------------------
-
-// The log this writes reads like every other agent's: the agent's words as prose, one
-// `⏺ line` per tool call, and `[error]` in front of anything that went wrong. Thinking is
-// marked, because unmarked it reads as the answer.
-function createTail(log: (text: string) => void) {
-  let mode: 'none' | 'text' | 'thought' = 'none'
-  let said = '' // the message being written right now — the last one is the run's result
-  let final: string | undefined
-
-  const close = () => {
-    if (mode === 'none') return
-    if (mode === 'text' && said.trim()) final = said.trim()
-    said = ''
-    mode = 'none'
-    log('\n\n')
-  }
-
-  return {
-    /** A piece of the agent's answer, as it is written. */
-    text(chunk: string) {
-      if (!chunk) return
-      if (mode !== 'text') {
-        close()
-        mode = 'text'
-      }
-      said += chunk
-      log(chunk)
-    },
-    /** A piece of the agent's thinking. */
-    thought(chunk: string) {
-      if (!chunk) return
-      if (mode !== 'thought') {
-        close()
-        mode = 'thought'
-        log('💭 ')
-      }
-      log(chunk)
-    },
-    /** One line about something that isn't the agent talking. */
-    line(text: string) {
-      close()
-      log(`${text}\n`)
-    },
-    /** End of the turn: whatever is half-written is finished off. */
-    end(): string | undefined {
-      close()
-      return final
-    },
-  }
-}
-
-// The first line of the text a tool call is recognisable by, bounded — the same hint the
-// other renderers put beside a call, so every agent's log reads alike.
-function hint(raw: string): string {
-  const line = raw.split('\n')[0]!.trim()
-  if (!line) return ''
-  return `(${line.length > 96 ? `${line.slice(0, 93)}…` : line})`
 }
 
 // What a tool call was called on: the file it names, when its title doesn't already say.
@@ -268,21 +110,26 @@ async function oneTurn(io: ClientTurn, options: AcpOptions): Promise<TurnEnd> {
   let live = false
   let costUsd: number | undefined
 
-  const rpc = connect(io.stdout, io.stdin, (msg) => {
-    if (msg.method === 'session/update') {
-      if (live) update(obj(msg.params).update, tail, (usd) => (costUsd = usd))
-      return
-    }
-    if (msg.id === undefined) return // a notification we have nothing to do about
-    if (msg.method === 'session/request_permission') {
-      rpc.reply(msg.id, decide(obj(msg.params), tail))
-      return
-    }
-    // Everything else is something we never said we could do — the agent asking us to read
-    // a file for it, or to hold a terminal. Answering "no" keeps it moving; leaving it
-    // unanswered would hang the run.
-    rpc.refuse(msg.id, `the board's ACP client doesn't do ${msg.method}`)
-  })
+  const rpc = connect(
+    io.stdout,
+    io.stdin,
+    (msg) => {
+      if (msg.method === 'session/update') {
+        if (live) update(obj(msg.params).update, tail, (usd) => (costUsd = usd))
+        return
+      }
+      if (msg.id === undefined) return // a notification we have nothing to do about
+      if (msg.method === 'session/request_permission') {
+        rpc.reply(msg.id, decide(obj(msg.params), tail))
+        return
+      }
+      // Everything else is something we never said we could do — the agent asking us to
+      // read a file for it, or to hold a terminal. Answering "no" keeps it moving; leaving
+      // it unanswered would hang the run.
+      rpc.refuse(msg.id, `the board's ACP client doesn't do ${msg.method}`)
+    },
+    { jsonrpc: true },
+  )
 
   try {
     await rpc.call('initialize', {
@@ -346,7 +193,7 @@ async function oneTurn(io: ClientTurn, options: AcpOptions): Promise<TurnEnd> {
 }
 
 // One `session/update` notification, rendered into the log.
-function update(raw: unknown, tail: ReturnType<typeof createTail>, gotCost: (usd: number) => void): void {
+function update(raw: unknown, tail: Tail, gotCost: (usd: number) => void): void {
   const change = obj(raw)
   switch (change.sessionUpdate) {
     case 'agent_message_chunk':
@@ -394,7 +241,7 @@ function update(raw: unknown, tail: ReturnType<typeof createTail>, gotCost: (usd
 // than the board's other agents can, and the board answers it the same way Codex's sandbox
 // does: it doesn't happen. The log says what was turned down, so a run that couldn't
 // finish reads as a refusal rather than as a mystery.
-function decide(params: Json, tail: ReturnType<typeof createTail>): Json {
+function decide(params: Json, tail: Tail): Json {
   const options = Array.isArray(params.options) ? params.options : []
   const no = options.map(obj).find((option) => str(option.kind).startsWith('reject'))
   const title = str(obj(params.toolCall).title) || 'that'

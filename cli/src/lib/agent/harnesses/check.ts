@@ -25,7 +25,7 @@ export function checkHarnesses(harnesses: Harness[]): void {
     // one would leave the picker saying nothing is missing while the runs panel shows a blank,
     // so the two are compared here rather than left to drift. Only a renderer can be checked:
     // a client reports from inside a live conversation and has nothing to ask until one is
-    // open (agent/acp.ts).
+    // open (agent/wire/acp.ts).
     const renderer = harness.renderer?.()
     if (renderer) {
       const implemented: Record<Harness['reports'][number], boolean> = {

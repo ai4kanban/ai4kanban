@@ -1,4 +1,4 @@
-import { createStreamRenderer } from '../stream'
+import { createStreamRenderer } from '../wire'
 import type { Harness } from './types'
 
 // `claude -p` in its default text mode prints nothing until the session ends, so a live

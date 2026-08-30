@@ -1,4 +1,4 @@
-import { createCursorStreamRenderer } from '../cursor-stream'
+import { createCursorStreamRenderer } from '../wire'
 import { namesFlag, SKILL_SENTENCE, type Harness } from './types'
 
 // What every `cursor-agent` run wants, added only when the user's own `command` hasn't

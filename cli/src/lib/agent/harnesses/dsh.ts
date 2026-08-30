@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { createAcpClient } from '../acp'
+import { createAcpClient } from '../wire'
 import { namesFlag, SKILL_SENTENCE, type Harness } from './types'
 
 // The folder `dsh-acp` was installed into, so the dsh it boots is the one sitting beside
@@ -51,7 +51,7 @@ function dshHome(argv: string[]): string | undefined {
 // what the command starts at anyway — named here so a `settings.yaml` on this machine
 // can't quietly widen a board run. Under it the agent writes inside the project without
 // stopping to ask, and anything further raises a question the board answers with no (see
-// `decide` in agent/acp.ts). `--permission-mode danger-full-access` in a hand-written
+// `decide` in agent/wire/acp.ts). `--permission-mode danger-full-access` in a hand-written
 // command is someone choosing otherwise, and nothing is added on top.
 //
 // Nothing about streaming or about a session id: an ACP command streams by nature, and its
@@ -90,7 +90,7 @@ export const DSH: Harness = {
   resumes: true,
 
   // Nothing changes on the command line for a resumed run: which conversation to carry on
-  // is said inside it, as `session/load` (agent/acp.ts).
+  // is said inside it, as `session/load` (agent/wire/acp.ts).
   resumeArgs(argv) {
     return dshExtraArgs(argv)
   },
@@ -102,7 +102,7 @@ export const DSH: Harness = {
     // Free text, for the same reason the others' are: model ids change between releases
     // and a stale list would block one the agent already runs. It carries no flag — an
     // ACP session picks its model once it is open, so this reaches the run inside the
-    // conversation instead (agent/acp.ts).
+    // conversation instead (agent/wire/acp.ts).
     {
       key: 'model',
       label: 'Model',
@@ -122,7 +122,7 @@ export const DSH: Harness = {
 
   env: () => ({ ...process.env }),
 
-  // ACP carries all three in the conversation itself (agent/acp.ts), so a dsh run shows a
+  // ACP carries all three in the conversation itself (agent/wire/acp.ts), so a dsh run shows a
   // price, its tokens and the model the session opened on.
   reports: ['cost', 'tokens', 'model'],
 

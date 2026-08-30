@@ -16,7 +16,7 @@ import { randomUUID } from 'node:crypto'
 
 import { REPO_ROOT } from '../paths'
 import { openPlan, planRun } from './resolve'
-import { createStderrFilter } from './stream'
+import { createStderrFilter } from './wire'
 import type { ConnectionTest } from './types'
 
 // What the test asks for. A few words, because the answer is never read: an answer at all

@@ -21,136 +21,97 @@
 // off rather than invented and the UI shows nothing where Claude Code shows a
 // number.
 
-import type { StreamRenderer } from "./stream";
+import { argHint, obj, str, type Json } from './json'
+import { createLineReader, frame, type StreamRenderer } from './stream'
 
-type Event = Record<string, unknown>;
-
-function text(value: unknown): string {
-  return typeof value === "string" ? value : "";
-}
-
-// One short hint beside a call — the first line of the argument a human would
-// recognise it by, bounded. Same shape the other renderers use, so every agent's
-// log reads alike.
-function hint(raw: string): string {
-  const line = raw.split("\n")[0].trim();
-  if (!line) return "";
-  return `(${line.length > 96 ? line.slice(0, 93) + "…" : line})`;
-}
+// The argument a human would recognise a call by, across the tools Cursor
+// ships. Same list the Claude renderer keeps, plus Cursor's own `path`.
+const ARG_KEYS = ['command', 'path', 'file_path', 'pattern', 'query', 'url', 'prompt'] as const
 
 // Cursor names a call by the KEY it puts inside `tool_call`, not by a `name`
 // field: `{"tool_call":{"readToolCall":{"args":{"path":"a.ts"}}}}`. So the call
 // is whatever single key is there, and its arguments are that key's `args`.
 // `readToolCall` reads as `read` — the suffix is Cursor's wire naming, not
 // something a log should repeat on every line.
-function callOf(ev: Event): { name: string; args: Event } | null {
-  const call = ev.tool_call;
-  if (!call || typeof call !== "object") return null;
-  const [key] = Object.keys(call as Event);
-  if (!key) return null;
-  const body = (call as Event)[key];
-  const args = body && typeof body === "object" ? ((body as Event).args as Event) : undefined;
-  return { name: key.replace(/ToolCall$/, ""), args: args && typeof args === "object" ? args : {} };
-}
-
-// The argument a human would recognise a call by, across the tools Cursor
-// ships. Same list the Claude renderer keeps, plus Cursor's own `path`.
-function argHint(args: Event): string {
-  const raw = [args.command, args.path, args.file_path, args.pattern, args.query, args.url, args.prompt].find(
-    (v) => typeof v === "string" && v,
-  ) as string | undefined;
-  return raw ? hint(raw) : "";
+function callOf(ev: Json): { name: string; args: Json } | null {
+  const call = obj(ev.tool_call)
+  const [key] = Object.keys(call)
+  if (!key) return null
+  return { name: key.replace(/ToolCall$/, ''), args: obj(obj(call[key]).args) }
 }
 
 // The text an assistant event carries, joined from its content blocks.
-function saidIn(ev: Event): string {
-  const msg = ev.message as { content?: unknown } | undefined;
-  const blocks: unknown[] = Array.isArray(msg?.content) ? msg.content : [];
+function saidIn(ev: Json): string {
+  const msg = ev.message as { content?: unknown } | undefined
+  const blocks: unknown[] = Array.isArray(msg?.content) ? msg.content : []
   return blocks
     .map((raw) => {
-      const b = raw as Event;
-      return b?.type === "text" ? text(b.text) : "";
+      const b = obj(raw)
+      return b.type === 'text' ? str(b.text) : ''
     })
-    .join("");
+    .join('')
 }
 
 export function createCursorStreamRenderer(): StreamRenderer {
-  let buf = "";
-  let final: string | undefined;
-  let model: string | undefined;
-  let sessionId: string | undefined;
+  let final: string | undefined
+  let model: string | undefined
+  let sessionId: string | undefined
   // The last thing logged, so a message Cursor flushes twice is written once.
   // Its stream aggregates deltas itself, and a flush at the end of a message can
   // repeat what the previous event already carried.
-  let said = "";
+  let said = ''
 
   const renderLine = (line: string): string => {
-    if (!line.trim()) return "";
-    let ev: Event;
-    try {
-      const parsed: unknown = JSON.parse(line);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return line + "\n";
-      ev = parsed as Event;
-    } catch {
-      return line + "\n";
-    }
+    if (!line.trim()) return ''
+    const ev = frame(line)
+    if (!ev) return `${line}\n`
     // The id to resume by rides on every event; the first one wins, and a
     // resumed run reports the same session it continued.
-    if (!sessionId) sessionId = text(ev.session_id).trim() || undefined;
+    if (!sessionId) sessionId = str(ev.session_id).trim() || undefined
     switch (ev.type) {
-      case "system":
+      case 'system':
         // The opening banner names the model, which is what lets a Cursor run
         // show one from its first second.
-        if (ev.subtype === "init" && !model) model = text(ev.model).trim() || undefined;
-        return "";
-      case "assistant": {
-        const whole = saidIn(ev).trim();
-        if (!whole || whole === said) return "";
-        said = whole;
-        return `${whole}\n\n`;
+        if (ev.subtype === 'init' && !model) model = str(ev.model).trim() || undefined
+        return ''
+      case 'assistant': {
+        const whole = saidIn(ev).trim()
+        if (!whole || whole === said) return ''
+        said = whole
+        return `${whole}\n\n`
       }
-      case "tool_call": {
+      case 'tool_call': {
         // Logged when it STARTS: a shell command or a long search should show up
         // while it runs, not once it's over. The matching `completed` event
         // repeats the call and is dropped, so one call is one line.
-        if (ev.subtype !== "started") return "";
-        const call = callOf(ev);
-        if (!call) return "";
-        said = "";
-        return `⏺ ${call.name}${argHint(call.args)}\n`;
+        if (ev.subtype !== 'started') return ''
+        const call = callOf(ev)
+        if (!call) return ''
+        said = ''
+        return `⏺ ${call.name}${argHint(call.args, ARG_KEYS)}\n`
       }
-      case "result": {
+      case 'result': {
         // The run's own summary of what it did. The UI leads with it and folds
         // the events away.
-        const result = text(ev.result).trim();
-        if (result) final = result;
+        const result = str(ev.result).trim()
+        if (result) final = result
         // An error the CLI reports as the result rather than as a message —
         // otherwise the log would end on the events and say nothing about why.
-        if (ev.is_error === true) return `[error] ${result || "the session failed"}\n`;
-        return "";
+        if (ev.is_error === true) return `[error] ${result || 'the session failed'}\n`
+        return ''
       }
       default:
         // `user` (the prompt echoed back) and anything a newer Cursor adds:
         // noise in a tail.
-        return "";
+        return ''
     }
-  };
+  }
 
   return {
-    push(chunk: string): string {
-      buf += chunk;
-      const lines = buf.split("\n");
-      buf = lines.pop() ?? "";
-      return lines.map(renderLine).join("");
-    },
-    flush(): string {
-      const rest = buf;
-      buf = "";
-      return rest ? renderLine(rest) : "";
-    },
+    ...createLineReader(renderLine),
     result: () => final,
     model: () => model,
     // No costUsd and no usage on purpose — see the note at the top.
     resumeId: () => sessionId,
-  };
+  }
 }

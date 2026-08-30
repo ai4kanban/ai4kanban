@@ -8,7 +8,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
-import { createCodexStreamRenderer } from '../src/lib/agent/codex-stream.ts'
+import { createCodexStreamRenderer } from '../src/lib/agent/wire/codex-stream.ts'
 import { priceUsd } from '../src/lib/agent/prices.ts'
 
 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-codex-'))

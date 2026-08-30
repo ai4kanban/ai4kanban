@@ -31,7 +31,7 @@ import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { ensureSkillInstalled } from '../skill/install'
 import { languageNote } from './language'
 import { chatAgent, harnessLabel, openPlan, planResume, planRun, skillPrompt, type RunPlan } from './resolve'
-import { createStderrFilter } from './stream'
+import { createStderrFilter } from './wire'
 import type { Chat, ChatMessage, ChatReply, ChatView } from './types'
 
 /** A conversation's file is named by what it is about, so the board's conversation and each
@@ -398,7 +398,7 @@ async function speak(io: {
   try {
     // A connector the board talks to is handed its prompt inside the conversation and needs
     // its stdin kept open; one that prints takes the prompt on its command line and gets no
-    // stdin at all (agent/client.ts).
+    // stdin at all (agent/wire/client.ts).
     child = spawn(cmd!, client ? args : [...args, io.prompt], {
       // The project, not this process's cwd: a chat runs inside the board server, whose cwd
       // is its own bundled folder in the app. See the note in agent/test.ts.

@@ -17,7 +17,7 @@
 
 import type { Readable, Writable } from 'node:stream'
 
-import type { TokenUsage } from './types'
+import type { TokenUsage } from '../types'
 
 /** One turn, from the pipes it is held over to the things it reports back. */
 export interface ClientTurn {

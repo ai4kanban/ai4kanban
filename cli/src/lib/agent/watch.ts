@@ -22,7 +22,7 @@ import { advanceLanding } from './landing'
 import { runEnv } from './flow'
 import { refineRunsAfter, specRunsAfter } from './follow'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
-import { createStderrFilter } from './stream'
+import { createStderrFilter } from './wire'
 import { resumePrompt } from './prompts'
 import { openPlan } from './resolve'
 import {
@@ -48,7 +48,7 @@ import {
   type CardClaim,
 } from './sessions'
 import { startRun } from './start'
-import type { TurnEnd } from './client'
+import type { TurnEnd } from './wire'
 import type { AgentRequest, RunRecord } from './types'
 
 // How long a run gets to end on its own after a stop asks it to, before it is killed
@@ -140,7 +140,7 @@ export async function watchRun(sessionId: string): Promise<number> {
   const workDir = active.cwd ?? REPO_ROOT
   // A connector the board talks to is started differently in two ways: the prompt is sent
   // in the conversation rather than spelled on the command line, and its stdin stays open,
-  // because that is the half of the conversation this end writes (agent/client.ts).
+  // because that is the half of the conversation this end writes (agent/wire/client.ts).
   const client = active.client
   // Spelled out rather than written inline so both shapes stay one spawn: stdin is a pipe
   // for a conversation and closed for a command that only prints.

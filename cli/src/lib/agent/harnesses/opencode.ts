@@ -1,4 +1,4 @@
-import { createOpencodeStreamRenderer } from '../opencode-stream'
+import { createOpencodeStreamRenderer } from '../wire'
 import { namesFlag, SKILL_SENTENCE, type Harness } from './types'
 
 // The two flags every `opencode run` wants, added only when the user's own `command` hasn't

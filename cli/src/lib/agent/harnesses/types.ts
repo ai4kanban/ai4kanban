@@ -6,8 +6,7 @@
 // end. Adding an agent is adding one file beside this one and one name to the list in
 // `./index` — nothing outside this folder learns its name.
 
-import type { RunClient } from '../client'
-import type { StreamRenderer } from '../stream'
+import type { RunClient, StreamRenderer } from '../wire'
 import type { HarnessOption, HarnessSetting } from '../types'
 
 // A harness declares everything about itself but the three things it is never asked
@@ -65,7 +64,7 @@ export interface Harness extends Omit<HarnessOption, 'binary' | 'installed' | 'g
    *  a noisy one. */
   quietStderr?(line: string): boolean
   /** The client that holds the conversation, for a command that answers back rather than
-   *  printing a report and exiting (agent/client.ts). A harness declares this OR a
+   *  printing a report and exiting (agent/wire/). A harness declares this OR a
    *  `renderer`, never both — a command either talks or it prints.
    *
    *  It is handed the settings this harness is set to, because what a conversation opens
@@ -118,7 +117,7 @@ export const SKILL_SENTENCE = 'Use the kanban skill'
 // with `cwd` set to folder B and ask it to run `pwd`. Claude Code, Codex and Cursor all
 // answer B, so their own folder flags would only repeat the cwd. dsh and ZCode are talked
 // to rather than printed from, and both name the folder inside the conversation already
-// (agent/acp.ts, agent/zcode.ts). Re-run that probe before trusting a new connector here.
+// (agent/wire/acp.ts, agent/wire/zcode.ts). Re-run that probe before trusting a new connector here.
 
 /** True when this argv already names a flag — `--model id` or `--model=id`, in any of the
  *  names that harness answers to. Used for a setting's flags, and by a harness deciding

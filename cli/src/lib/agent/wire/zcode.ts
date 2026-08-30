@@ -3,8 +3,9 @@
 // ZCode holds a conversation over `zcode app-server`'s own stdin and stdout, in JSON lines
 // of its own shape: a request is `{id, method, params}`, an answer `{id, result}` or
 // `{id, error}`, and anything with a method and no id is a notification. There is no
-// `jsonrpc` field — the server rejects a message that carries one — so this is not the ACP
-// client with different method names, and the two share no code.
+// `jsonrpc` field — the server rejects a message that carries one, which is the one thing
+// wire/rpc.ts is told about a dialect. The methods, the session lifecycle and the events
+// below are ZCode's alone.
 //
 // We open a session, subscribe to its events, and send the prompt. `session/send` answers
 // the moment the prompt is accepted, not when the work is done: the turn ends on a
@@ -13,7 +14,7 @@
 // itself keeps running until the runner ends it.
 //
 // This is ZCode's client and only ZCode's. What it deliberately does NOT know is runs,
-// cards, or logs — it is handed pipes and hands back text (agent/client.ts).
+// cards, or logs — it is handed pipes and hands back text (wire/client.ts).
 //
 // Proved by hand against `zcode` 0.16.3 (zcode-app-cli 3.7.7-14) on 2026-08-21: the
 // session lifecycle, the event stream, the two questions the server asks back, and the
@@ -21,169 +22,12 @@
 // model — that needs a Z.ai Coding Plan key, and the card carries it as a check.
 
 import path from 'node:path'
-import type { Readable, Writable } from 'node:stream'
 
+import { hint, num, obj, str, type Json } from './json'
+import { connect, type Rpc } from './rpc'
+import { createTail, type Tail } from './tail'
 import type { ClientTurn, RunClient, TurnEnd } from './client'
-import type { TokenUsage } from './types'
-
-type Json = Record<string, unknown>
-
-interface Message {
-  id?: number | string
-  method?: string
-  params?: Json
-  result?: Json
-  error?: { code?: number; message?: string }
-}
-
-function obj(value: unknown): Json {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Json) : {}
-}
-
-function str(value: unknown): string {
-  return typeof value === 'string' ? value : ''
-}
-
-function num(value: unknown): number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 0
-}
-
-// ---- the wire --------------------------------------------------------------
-
-/** One ZCode Protocol conversation over a pair of pipes. Requests both ways: `call` asks
- *  the server something, `onCall` answers what it asks us. */
-function connect(stdout: Readable, stdin: Writable, onCall: (msg: Message) => void) {
-  let buf = ''
-  let nextId = 1
-  let gone: string | undefined
-  const waiting = new Map<string, { ok: (result: Json) => void; fail: (err: Error) => void }>()
-
-  const send = (msg: Json) => {
-    if (gone) return
-    try {
-      stdin.write(`${JSON.stringify(msg)}\n`)
-    } catch {
-      // The far end is already gone; the close below is what reports it.
-    }
-  }
-
-  const closed = (why: string) => {
-    if (gone) return
-    gone = why
-    for (const { fail } of waiting.values()) fail(new Error(why))
-    waiting.clear()
-  }
-
-  stdout.on('data', (chunk: Buffer) => {
-    buf += chunk.toString()
-    const lines = buf.split('\n')
-    buf = lines.pop() ?? ''
-    for (const line of lines) {
-      if (!line.trim()) continue
-      let msg: Message
-      try {
-        msg = JSON.parse(line) as Message
-      } catch {
-        // Not a frame. An app-server's stdout is the protocol and nothing else, so this is
-        // a stray print — an update notice, a warning — rather than the agent talking.
-        continue
-      }
-      if (msg.method) {
-        onCall(msg)
-        continue
-      }
-      const id = msg.id === undefined ? '' : String(msg.id)
-      const pending = waiting.get(id)
-      if (!pending) continue
-      waiting.delete(id)
-      if (msg.error) pending.fail(new Error(str(msg.error.message) || `the agent refused (${msg.error.code ?? 'no code'})`))
-      else pending.ok(obj(msg.result))
-    }
-  })
-  stdout.on('close', () => closed('the agent closed the connection'))
-  stdout.on('error', (err: Error) => closed(String(err)))
-
-  return {
-    /** Ask the server something. Rejects with its own words when it says no. */
-    call(method: string, params: Json): Promise<Json> {
-      if (gone) return Promise.reject(new Error(gone))
-      const id = String(nextId++)
-      return new Promise<Json>((ok, fail) => {
-        waiting.set(id, { ok, fail })
-        send({ id, method, params })
-      })
-    },
-    /** Answer something the server asked us. */
-    reply(id: number | string, result: Json) {
-      send({ id, result })
-    },
-    /** Say we can't. Sent for anything we never offered to do, so the server gets an
-     *  answer rather than waiting on one forever. */
-    refuse(id: number | string, message: string) {
-      send({ id, error: { code: -32601, message } })
-    },
-  }
-}
-
-// ---- what the agent says ---------------------------------------------------
-
-// The log this writes reads like every other agent's: the agent's words as prose, one
-// `⏺ line` per tool call, and `[error]` in front of anything that went wrong. Thinking is
-// marked, because unmarked it reads as the answer.
-function createTail(log: (text: string) => void) {
-  let mode: 'none' | 'text' | 'thought' = 'none'
-  let said = '' // the message being written right now — the last one is the run's result
-  let final: string | undefined
-
-  const close = () => {
-    if (mode === 'none') return
-    if (mode === 'text' && said.trim()) final = said.trim()
-    said = ''
-    mode = 'none'
-    log('\n\n')
-  }
-
-  return {
-    /** A piece of the agent's answer, as it is written. */
-    text(chunk: string) {
-      if (!chunk) return
-      if (mode !== 'text') {
-        close()
-        mode = 'text'
-      }
-      said += chunk
-      log(chunk)
-    },
-    /** A piece of the agent's thinking. */
-    thought(chunk: string) {
-      if (!chunk) return
-      if (mode !== 'thought') {
-        close()
-        mode = 'thought'
-        log('💭 ')
-      }
-      log(chunk)
-    },
-    /** One line about something that isn't the agent talking. */
-    line(text: string) {
-      close()
-      log(`${text}\n`)
-    },
-    /** End of the turn: whatever is half-written is finished off. */
-    end(): string | undefined {
-      close()
-      return final
-    },
-  }
-}
-
-// The first line of the text a tool call is recognisable by, bounded — the same hint the
-// other renderers put beside a call, so every agent's log reads alike.
-function hint(raw: string): string {
-  const line = raw.split('\n')[0]!.trim()
-  if (!line) return ''
-  return `(${line.length > 96 ? `${line.slice(0, 93)}…` : line})`
-}
+import type { TokenUsage } from '../types'
 
 // What a tool call was called on, out of whichever field its input names it in. ZCode's
 // tools take a path, a command, a pattern or a URL, and its own permission checks read the
@@ -242,7 +86,7 @@ function modelOf(ref: unknown): string {
 // new. A delta appends; an upsert whose text continues what we have appends the rest of
 // it; an upsert that rewrites a part from the start is the agent replacing its own words,
 // and only the new tail is worth a log line.
-function createParts(tail: ReturnType<typeof createTail>) {
+function createParts(tail: Tail) {
   const written = new Map<string, string>()
   const tools = new Set<string>()
 
@@ -364,41 +208,46 @@ async function oneTurn(io: ClientTurn, options: ZcodeOptions): Promise<TurnEnd> 
     ended = resolve
   })
 
-  const rpc = connect(io.stdout, io.stdin, (msg) => {
-    if (msg.method === 'session/event') {
-      const envelope = obj(msg.params)
-      if (str(envelope.sessionId) === sessionId) event(envelope, parts, tail, live, ended!)
-      return
-    }
-    if (msg.id === undefined) return // a notification we have nothing to do about
-    if (msg.method === 'session/requestRuntimePreferences') {
-      rpc.reply(msg.id, RUNTIME_PREFERENCES)
-      return
-    }
-    if (msg.method === 'interaction/requestPermission') {
-      rpc.reply(msg.id, decide(obj(msg.params), tail))
-      return
-    }
-    if (msg.method === 'interaction/requestUserInput') {
-      // A run has nobody to ask. Declining lets the agent carry on with what it knows;
-      // leaving it unanswered would hold the turn open until the runner killed it.
-      tail.line('[refused] the agent asked the user a question — a run has nobody to ask')
-      rpc.reply(msg.id, { action: 'decline', reason: 'this board run has no one at the keyboard' })
-      return
-    }
-    if (msg.method === 'interaction/requestProviderRuntimeHeaders') {
-      // Z.AI's Start plans want headers only the desktop app can mint. Saying so ends the
-      // run with a reason; claiming we applied them would fail at the provider instead.
-      rpc.reply(msg.id, {
-        headersApplied: false,
-        errorMessage: 'This plan needs headers only ZCode Desktop can supply. Sign in to a Coding Plan instead.',
-      })
-      return
-    }
-    // Everything else is something we never said we could do. Answering keeps the server
-    // moving; leaving it unanswered would hang the run.
-    rpc.refuse(msg.id, `the board's ZCode client doesn't do ${msg.method}`)
-  })
+  const rpc = connect(
+    io.stdout,
+    io.stdin,
+    (msg) => {
+      if (msg.method === 'session/event') {
+        const envelope = obj(msg.params)
+        if (str(envelope.sessionId) === sessionId) event(envelope, parts, tail, live, ended!)
+        return
+      }
+      if (msg.id === undefined) return // a notification we have nothing to do about
+      if (msg.method === 'session/requestRuntimePreferences') {
+        rpc.reply(msg.id, RUNTIME_PREFERENCES)
+        return
+      }
+      if (msg.method === 'interaction/requestPermission') {
+        rpc.reply(msg.id, decide(obj(msg.params), tail))
+        return
+      }
+      if (msg.method === 'interaction/requestUserInput') {
+        // A run has nobody to ask. Declining lets the agent carry on with what it knows;
+        // leaving it unanswered would hold the turn open until the runner killed it.
+        tail.line('[refused] the agent asked the user a question — a run has nobody to ask')
+        rpc.reply(msg.id, { action: 'decline', reason: 'this board run has no one at the keyboard' })
+        return
+      }
+      if (msg.method === 'interaction/requestProviderRuntimeHeaders') {
+        // Z.AI's Start plans want headers only the desktop app can mint. Saying so ends the
+        // run with a reason; claiming we applied them would fail at the provider instead.
+        rpc.reply(msg.id, {
+          headersApplied: false,
+          errorMessage: 'This plan needs headers only ZCode Desktop can supply. Sign in to a Coding Plan instead.',
+        })
+        return
+      }
+      // Everything else is something we never said we could do. Answering keeps the server
+      // moving; leaving it unanswered would hang the run.
+      rpc.refuse(msg.id, `the board's ZCode client doesn't do ${msg.method}`)
+    },
+    { stringIds: true },
+  )
 
   try {
     const workspacePath = path.resolve(io.cwd)
@@ -476,7 +325,7 @@ async function oneTurn(io: ClientTurn, options: ZcodeOptions): Promise<TurnEnd> 
 // What the turn used, asked for once it is over. ZCode carries no price — a Coding Plan is
 // a quota rather than a per-token bill — so this is tokens and nothing else, and a run
 // whose counts never arrive shows blanks rather than a number the board made up.
-async function tokensOf(rpc: ReturnType<typeof connect>, sessionId: string): Promise<TokenUsage | undefined> {
+async function tokensOf(rpc: Rpc, sessionId: string): Promise<TokenUsage | undefined> {
   try {
     return usageOf(await rpc.call('session/usage', { sessionId }))
   } catch {
@@ -488,7 +337,7 @@ async function tokensOf(rpc: ReturnType<typeof connect>, sessionId: string): Pro
 function event(
   envelope: Json,
   parts: ReturnType<typeof createParts>,
-  tail: ReturnType<typeof createTail>,
+  tail: Tail,
   live: boolean,
   ended: (end: { ok: boolean; error?: string }) => void,
 ): void {
@@ -525,7 +374,7 @@ function event(
 // rule in the user's own ZCode config, or a mode their hand-written command chose, held
 // this back — their setting, not ours to overrule. The log says what was turned down, so a
 // run that couldn't finish reads as a refusal rather than as a mystery.
-function decide(params: Json, tail: ReturnType<typeof createTail>): Json {
+function decide(params: Json, tail: Tail): Json {
   const tool = str(params.toolName) || 'that'
   tail.line(`[refused] ${tool} — your own ZCode rules ask before this one, and a run has nobody to ask`)
   return { decision: 'deny', reason: "this board run can't answer a permission question" }

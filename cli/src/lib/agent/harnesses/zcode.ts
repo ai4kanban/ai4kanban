@@ -1,4 +1,4 @@
-import { createZcodeClient } from '../zcode'
+import { createZcodeClient } from '../wire'
 import { SKILL_SENTENCE, type Harness } from './types'
 
 // The environment every ZCode run starts under.
@@ -28,7 +28,7 @@ function zcodeEnv(): NodeJS.ProcessEnv {
 // which pulls that runtime out of the app and publishes it. Its `--prompt` mode prints for
 // a person to read and never says which session it ran under, so the board drives
 // `zcode app-server` instead: ZCode's own protocol over stdin and stdout, where the log
-// arrives as it is written and a session can be picked back up (agent/zcode.ts).
+// arrives as it is written and a session can be picked back up (agent/wire/zcode.ts).
 export const ZCODE: Harness = {
   name: 'zcode',
   label: 'ZCode',
@@ -44,7 +44,7 @@ export const ZCODE: Harness = {
   resumes: true,
 
   // Nothing changes on the command line for a resumed run either: which conversation to
-  // carry on is said inside it, as `session/resume` (agent/zcode.ts).
+  // carry on is said inside it, as `session/resume` (agent/wire/zcode.ts).
   resumeArgs() {
     return []
   },
@@ -57,7 +57,7 @@ export const ZCODE: Harness = {
     // Free text, for the same reason the others' are: model ids change between releases
     // and a stale list would block one the agent already runs. It carries no flag — ZCode
     // has none — so this reaches the run inside the conversation instead, on the session
-    // it just opened (agent/zcode.ts). `zai/glm-5.3` names a provider too; a bare id uses
+    // it just opened (agent/wire/zcode.ts). `zai/glm-5.3` names a provider too; a bare id uses
     // the one the session opened on.
     {
       key: 'model',

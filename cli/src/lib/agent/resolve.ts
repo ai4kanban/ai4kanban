@@ -10,7 +10,7 @@ import { machineName } from '../machine/identity'
 import { readBindings, type RuntimeBinding } from '../machine/runtimes'
 import { REPO_ROOT } from '../paths'
 import { harnessGaps } from './capabilities'
-import type { RunClient } from './client'
+import type { RunClient, StreamRenderer } from './wire'
 import {
   HARNESSES,
   type Harness,
@@ -32,7 +32,6 @@ import {
 } from './providers'
 import { runtimeOfFlow } from './runtime'
 import { configBlock, readEnvFile, readRuntimes, safeConfig, type BoardRuntimes } from './settings'
-import type { StreamRenderer } from './stream'
 import type {
   AgentInfo,
   ChatAgent,
@@ -413,7 +412,7 @@ export interface ActiveRun extends RunPlan {
   env: NodeJS.ProcessEnv
   /** Reads this agent's stdout into log lines. */
   renderer?: StreamRenderer
-  /** Talks to this agent over its own pipes (agent/client.ts). */
+  /** Talks to this agent over its own pipes (agent/wire/). */
   client?: RunClient
   /** This agent's own housekeeping chatter on stderr, which the log leaves out
    *  (agent/harnesses/types.ts). Undefined for a harness that has none. */
