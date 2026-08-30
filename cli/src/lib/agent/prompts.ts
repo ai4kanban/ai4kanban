@@ -233,11 +233,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
     case 'clarify': {
-      const qaGuide = req.refineEffort === 'lightweight'
-        ? 'qa-lightweight'
-        : req.refineEffort === 'parallel'
-          ? 'qa-parallel'
-          : 'qa-loop'
+      const qaGuide = req.refineEffort === 'lightweight' ? 'qa-lightweight' : 'qa-loop'
       return [
         `${kb}. Finish planning QA for task ${req.id} ${named} following \`akb guide ${qaGuide}\`.`,
         // A refine has no note box of its own, but one SCHEDULED on a blocked card

@@ -388,8 +388,8 @@ describe('an explicit refine handoff', () => {
     writeCard()
     const opened = openRun({ action: 'create', description: 'A card' }, 'prompt', [])
     if ('error' in opened) throw new Error(opened.error)
-    assert.equal(askForRefine(opened.run.sessionId, { cardId: 7, effort: 'parallel' }), 'queued')
-    assert.equal(refineRunsAfter(readRefineAsks(opened.run.sessionId))[0]!.refineEffort, 'parallel')
+    assert.equal(askForRefine(opened.run.sessionId, { cardId: 7, effort: 'lightweight' }), 'queued')
+    assert.equal(refineRunsAfter(readRefineAsks(opened.run.sessionId))[0]!.refineEffort, 'lightweight')
   })
 })
 
@@ -439,25 +439,31 @@ describe('two runs at once', () => {
   })
 })
 
-// A subtask is born rough and nothing else comes for it, so the run that wrote it leaves a
-// refine behind — even when that run's own action performs its own judgment on its own card.
+// A split exits at the group boundary. Each new subtask carries its own scheduled refine;
+// ordinary created cards still get the usual inferred follow-up.
 describe('the refine a created card gets', () => {
-  it('follows the subtasks a refine pass split off, not the card it only edited', () => {
+  it('leaves a completed split to its scheduled subtasks', () => {
     writeCard()
-    writePiece(9)
     const before = markBoard()
-    writePiece(9, { body: 'Edited in passing.' })
-    writePiece(10)
-    writePiece(11)
-    const { runs } = closing(run('clarify', 1), before)
-    assert.deepEqual(
-      runs.map((r) => [r.action, r.id]),
-      [
-        ['clarify', 10],
-        ['clarify', 11],
-        ['writing', 7],
-      ],
+    const group = path.join(root, 'docs', 'kanban', 'todo', '7-a-card-to-refine')
+    const nestedTrack = path.join(group, 'skill')
+    fs.mkdirSync(nestedTrack, { recursive: true })
+    fs.renameSync(cardFile, path.join(group, 'root.md'))
+    fs.appendFileSync(path.join(group, 'root.md'), '\n## Subtasks\n\n- [ ] Refine the piece #8\n')
+    writePiece(8)
+    const piece = path.join(track, '8-a-piece.md')
+    fs.writeFileSync(
+      piece,
+      fs.readFileSync(piece, 'utf8').replace(
+        'questions: []',
+        'schedule:\n  action: refine\nquestions: []',
+      ),
     )
+    fs.renameSync(piece, path.join(nestedTrack, '8-a-piece.md'))
+
+    const { runs, stalled } = closing(run('clarify', 1), before)
+    assert.deepEqual(runs, [])
+    assert.equal(stalled, undefined)
   })
 
   it('leaves a blocked subtask to the one-shot schedule its creation gave it', () => {
@@ -541,8 +547,8 @@ describe('specialized input', () => {
     const { runs } = closing({
       ...run('spec', 1),
       refineRound: undefined,
-      refineEffort: 'parallel',
+      refineEffort: 'lightweight',
     }, before)
-    assert.match(buildPrompt(runs[0]!), /akb guide qa-parallel/)
+    assert.match(buildPrompt(runs[0]!), /akb guide qa-lightweight/)
   })
 })

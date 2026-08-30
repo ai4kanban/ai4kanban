@@ -128,9 +128,10 @@ describe('the prompt', () => {
   it('has add-task choose the effort and refine inline by default', () => {
     const guide = findGuide('add-task')!.text
     assert.match(guide, /Choose its refine effort/)
-    assert.match(guide, /Lightweight[\s\S]*Parallel[\s\S]*Standard/)
-    assert.match(guide, /akb refine <id> --effort lightweight\|parallel\s+--print/)
-    assert.match(guide, /follow it inline/)
+    assert.match(guide, /Lightweight[\s\S]*Standard/)
+    assert.doesNotMatch(guide, /Parallel/)
+    assert.match(guide, /akb refine <id> --effort lightweight --print/)
+    assert.match(guide, /follow it\s+inline/)
     assert.match(guide, /Omit `--print` only when the user explicitly wants background\s+refinement/)
     assert.match(guide, /akb refine <id> --effort standard[\s\S]*own session/)
   })
@@ -139,7 +140,6 @@ describe('the prompt', () => {
     for (const [effort, guide] of [
       ['lightweight', 'qa-lightweight'],
       ['standard', 'qa-loop'],
-      ['parallel', 'qa-parallel'],
     ] as const) {
       const req = { action: 'clarify' as const, id: 1, refineRound: 1, refineEffort: effort }
       assert.match(buildPrompt(req), new RegExp(`akb guide ${guide}`))
@@ -150,6 +150,7 @@ describe('the prompt', () => {
         stopCollecting()
       }
     }
+    assert.equal(findGuide('qa-parallel'), null)
     assert.doesNotMatch(findGuide('qa-loop')!.text, /Choose the QA effort|Parallel QA handed off/)
   })
 
@@ -167,6 +168,17 @@ describe('the prompt', () => {
     }
   })
 
+  it('rejects the removed parallel effort', async () => {
+    fs.writeFileSync(
+      path.join(root, 'docs', 'kanban', 'todo', 'features', '1-card.md'),
+      card(1, 'card one').replace('status: ready', 'status: todo'),
+    )
+    await assert.rejects(
+      () => cmdStartRun('refine', ['1', '--effort', 'parallel', '--print']),
+      /--effort takes lightweight or standard/,
+    )
+  })
+
   it('lets lightweight QA settle the plan automatically without a checklist', () => {
     const qa = findGuide('qa-lightweight')!.text
     assert.match(qa, /Refine the card automatically/)
@@ -177,23 +189,6 @@ describe('the prompt', () => {
     assert.match(build, /printed, interactive implementation may stay uncommitted/)
     assert.match(build, /Background runs[\s\S]*delivery, review, and landing path/)
     assert.match(build, /focused checks[\s\S]*repository-required check/)
-  })
-
-  it('lets parallel audits find gaps independently and keeps their barrier', () => {
-    const guide = findGuide('qa-parallel')!.text
-    for (const requirement of [
-      /Freeze the current card revision/,
-      /three fresh read-only audits together/,
-      /independently find concrete planning gaps/,
-      /Do not prescribe a questionnaire/,
-      /Wait for all three/,
-      /Resume a failed,[\s\S]*interrupted,[\s\S]*stopped audit/,
-      /never consolidate a partial round/,
-      /Restart the round if the card revision changed/,
-      /settle everything project evidence answers/,
-      /After user answers, run the three audits again/,
-    ]) assert.match(guide, requirement)
-    assert.doesNotMatch(guide, /Experience|Risk|Build|Use this only/)
   })
 
   it('keeps implementation blockers out of card questions', () => {
@@ -273,11 +268,11 @@ describe('the prompt', () => {
       const flow = printFlow({ action: 'create', description: 'Add a task.' })
       const next = (flow.next as string[]).join('\n')
       assert.match(next, /akb refine <id>/)
-      assert.match(next, /--effort <lightweight\|parallel> --print/)
+      assert.match(next, /--effort lightweight --print/)
       assert.match(next, /--effort standard/)
       assert.match(next, /--print/)
       assert.match(next, /after add-task/)
-      assert.match(next, /follow lightweight or parallel refinement inline/)
+      assert.match(next, /follow lightweight refinement inline/)
     } finally {
       stopCollecting()
     }
@@ -301,9 +296,17 @@ describe('the prompt', () => {
 
   it('keeps the split gate and its handoff in the QA guide', () => {
     const guide = findGuide('qa-loop')!.text
-    assert.match(guide, /200 lines or 12 todo items/)
-    assert.match(guide, /not a hard limit/)
-    assert.match(guide, /akb board create --schedule\n?refine/)
+    assert.match(guide, /Check task boundaries/)
+    assert.match(guide, /decide whether the card is one coherent task/)
+    assert.match(guide, /Split only when/)
+    assert.match(guide, /multiple independently refinable areas/)
+    assert.match(guide, /at least one is still materially vague/)
+    assert.match(guide, /some areas may already be clear/)
+    assert.match(guide, /akb guide add-task/)
+    assert.match(guide, /akb board create[\s\S]*--related <root-id> --schedule refine/)
+    assert.match(guide, /After creating the group, exit/)
+    assert.doesNotMatch(guide, /\*\*Split\*\*:/)
+    assert.doesNotMatch(guide, /200 lines|12 todo items/)
   })
 
   it('keeps lifecycle bookkeeping out of the writing agent', () => {

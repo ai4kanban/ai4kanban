@@ -748,7 +748,7 @@ function readAsks(sessionId: string): { asks: SpecAsk[]; refines: RefineAsk[] } 
 }
 
 const validRefineEffort = (value: unknown): RefineEffort | undefined =>
-  value === 'lightweight' || value === 'standard' || value === 'parallel' ? value : undefined
+  value === 'lightweight' || value === 'standard' ? value : undefined
 
 function writeAsks(sessionId: string, file: { asks: SpecAsk[]; refines: RefineAsk[] }): void {
   fs.mkdirSync(SESSIONS_DIR, { recursive: true })

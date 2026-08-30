@@ -187,7 +187,6 @@ akb guide                     # every flow, one line each
 akb guide board               # how the board works: card format, layout, memory
 akb guide qa-loop             # settle one card's planning gaps
 akb guide qa-lightweight      # short check for clear, localized work
-akb guide qa-parallel         # three audits for vague, broad work
 akb guide plan-release        # fill a release from its goal
 ```
 

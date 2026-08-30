@@ -186,10 +186,11 @@ over-complication, actionability), then rewrites it one stage toward concrete �
 stopping before code-level detail. Decisions only you can make land on the card as open questions.
 
 When the skill adds a card, it chooses the next refine's effort. Clear, localized work is
-settled directly; vague, broad work gets three independent audits; mixed and uncertain work
-gets the standard loop. Each refine loads only its own QA guide. Lightweight and parallel use
-`--print` and finish inline; omit it only for explicitly background work. Standard QA runs in
-its own session, and a refine started by hand defaults to standard.
+settled directly; everything else gets the standard loop, which first checks whether several
+independently refinable areas include one that remains vague. Each refine loads only its own
+QA guide. Lightweight uses `--print` and finishes inline; omit it only for explicitly
+background work. Standard QA runs in its own session, and a refine started by hand defaults
+to standard.
 
 A card with open questions can't be refined again. Say **"resolve #4"** — the skill researches
 each question, decides the ones the evidence settles, asks you the real judgment calls, and
@@ -279,6 +280,11 @@ akb agent bind cheap set model gpt-5.1-codex
 A runtime nobody bound here runs this computer's global binding, and a computer that has bound
 nothing runs `akb agent use`'s pick — so a fresh clone works with no local setup. The run's log
 says which runtime it was asked for and what it ran as.
+
+**Configuration → Runtimes** is the same thing with the answers on screen: one row per runtime,
+opening onto what it runs as, and headed with the computer it runs on. That computer is the
+board's answer and travels with the repository — it says where a runtime belongs, and a run still
+lands on the machine it was started from.
 
 ## Queue a card that is waiting on another
 

@@ -15,7 +15,7 @@ export const PROPOSE_MAX = 10
 export type Boldness = 'safe' | 'normal' | 'bold'
 
 /** How much planning QA one refinement needs. */
-export type RefineEffort = 'lightweight' | 'standard' | 'parallel'
+export type RefineEffort = 'lightweight' | 'standard'
 
 /** The tokens one run consumed, as the agent's own closing event counted them. Four
  *  numbers because the API bills them differently: fresh input, input written to the

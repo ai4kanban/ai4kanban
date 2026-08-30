@@ -66,14 +66,13 @@ evidence. Never ask the user for an estimate or classification.
 
 - **Lightweight**: the observable outcome and boundaries are clear, and implementation is
   one localized path with contained compatibility, data, security, and coordination risk.
-- **Parallel**: material behavior or boundaries are still vague, and implementation spans
-  several paths or carries cross-cutting risk.
-- **Standard**: every mixed or uncertain case.
+- **Standard**: every other case. Its QA loop checks task boundaries before refining details
+  and splits only when several independently refinable areas exist and one remains vague.
 
-For lightweight or parallel effort, run `akb refine <id> --effort lightweight|parallel
---print` and follow it inline. Omit `--print` only when the user explicitly wants background
-refinement. For standard effort, run `akb refine <id> --effort standard` to hand the card to
-its own session. Choose separately for every card in a group.
+For lightweight effort, run `akb refine <id> --effort lightweight --print` and follow it
+inline. Omit `--print` only when the user explicitly wants background refinement. For
+standard effort, run `akb refine <id> --effort standard` to hand the card to its own session.
+Choose separately for every card in a group.
 
 Got a field wrong, or learned something after the fact? `akb board update <id> --priority low`
 — never an editor.

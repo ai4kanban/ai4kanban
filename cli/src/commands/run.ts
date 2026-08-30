@@ -237,8 +237,8 @@ function readRequest(
   }
   if (action === 'refine') {
     const effort = text('effort')
-    if (effort && !['lightweight', 'standard', 'parallel'].includes(effort)) {
-      die('--effort takes lightweight, standard or parallel', { kind: 'bad-option' })
+    if (effort && !['lightweight', 'standard'].includes(effort)) {
+      die('--effort takes lightweight or standard', { kind: 'bad-option' })
     }
     req.refineEffort = effort as RefineEffort | undefined
   }

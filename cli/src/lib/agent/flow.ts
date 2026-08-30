@@ -459,11 +459,7 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
 
 const guidesFor = (req: AgentRequest): string[] => {
   if (req.action !== 'clarify') return GUIDES_FOR[req.action]
-  const qa = req.refineEffort === 'lightweight'
-    ? 'qa-lightweight'
-    : req.refineEffort === 'parallel'
-      ? 'qa-parallel'
-      : 'qa-loop'
+  const qa = req.refineEffort === 'lightweight' ? 'qa-lightweight' : 'qa-loop'
   return ['writing', 'update-questions', qa]
 }
 
@@ -489,7 +485,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
 
   // A printed card-creation flow has no watcher to infer the refinements its cards need.
   const startRefineNext = (target: number | '<id>') =>
-    `after add-task, choose one: ${self} refine ${target === '<id>' ? target : String(target)} --effort <lightweight|parallel> --print — follow lightweight or parallel refinement inline; ${self} refine ${target === '<id>' ? target : String(target)} --effort standard — hand standard refinement to a fresh session`
+    `after add-task, choose one: ${self} refine ${target === '<id>' ? target : String(target)} --effort lightweight --print — follow lightweight refinement inline; ${self} refine ${target === '<id>' ? target : String(target)} --effort standard — hand standard refinement to a fresh session`
 
   // Every card action opens the same way: where the card is, and what it says about itself.
   if (card) {

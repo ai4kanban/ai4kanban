@@ -33,8 +33,9 @@ Match the ask to one action below; when two fit, take the one that changes less.
 arguments are the same with or without `--print`.
 
 - **`implement <id> [note]`**: build the card — "do #12", "work on this", "ship it".
-- **`refine <id>`**: the card is too vague to build — "sharpen it", "make it ready". One
-  session loops over the plan until a clean sweep leaves only decisions the user owns.
+- **`refine <id>`**: the card is vague to build — "sharpen it", "make it ready". It checks
+  whether vague multi-area work should become recursively refined subtasks; otherwise one
+  session loops until a clean sweep leaves only decisions the user owns.
 - **`resolve <id> [note]`**: apply the user's answers, then QA the resulting plan in the
   same session — "answer these", "decide it".
   Add `--and-implement` to carry straight on into building when nothing is left for the user.

@@ -124,7 +124,7 @@ export function readStore(): Store {
           ? entry.refineRound
           : undefined,
       refineEffort:
-        entry.refineEffort === 'lightweight' || entry.refineEffort === 'standard' || entry.refineEffort === 'parallel'
+        entry.refineEffort === 'lightweight' || entry.refineEffort === 'standard'
           ? entry.refineEffort
           : undefined,
       flowId: typeof entry.flowId === 'string' && entry.flowId ? entry.flowId : undefined,
