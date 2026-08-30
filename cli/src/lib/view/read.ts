@@ -18,7 +18,7 @@ import { deliveryState } from '../agent/pause'
 import { readRuns } from '../agent/sessions'
 import type { DeliveryRecord } from '../agent/types'
 import { branchExists, worktreeExists } from '../agent/worktree'
-import { subtaskLines, trackOf } from '../cards'
+import { idPrefix, isGroupFolder, subtaskLines, trackNames, trackOf } from '../cards'
 import { ARCHIVE_MD, README, TODO } from '../paths'
 import { formatStamp, nextDue } from '../cadence'
 import { parseFrontmatter } from '../frontmatter'
@@ -29,11 +29,6 @@ import { goalNeedsWork, goalWritten } from './goal'
 import { readMemoryModules } from './memory'
 import { byPickOrder } from './rules'
 import type { ArchiveGroup, Board, Card, CardApproval, CardStatus, Column, SetupState, Subtask } from './types'
-
-const idPrefix = (name: string): number | null => {
-  const m = name.match(/^(\d+)-/)
-  return m ? Number(m[1]) : null
-}
 
 function countTodos(body: string): { total: number; done: number } {
   const matches = body.match(/^[ \t]*[-*]\s+\[( |x|X)\]/gm) || []
@@ -124,24 +119,21 @@ function attachBlockers(cards: Card[]): void {
   }
 }
 
-// A group folder is `todo/<id>-<slug>/` holding a `root.md` (the tracking card) plus its
-// subtasks under `<track>/<subid>-<slug>.md`. It is detected by the presence of root.md —
-// the folder itself is never a track or a column.
-function isGroupDir(dir: string): boolean {
-  return fs.existsSync(path.join(dir, 'root.md'))
-}
-
 // Read a group folder: its root card (carrying a light list of its subtasks for the root
 // page) and the full subtask cards (each linked back to the root so a subtask page can
 // point up). Subtasks never surface as their own board cards.
 function readGroup(folderName: string): { root: Card; subCards: Card[] } | null {
   const groupDir = path.join(TODO, folderName)
-  const root = readCard(path.join(groupDir, 'root.md'), path.join(folderName, 'root.md'))
+  const rootFile = path.join(groupDir, 'root.md')
+  // A group folder whose card isn't written yet — the name minted, `root.md` still to come.
+  // Nothing to show for it, and it is emphatically not a new column: its name says group
+  // (../cards.ts), so it waits rather than appearing on the board as a track.
+  if (!fs.existsSync(rootFile)) return null
+  const root = readCard(rootFile, path.join(folderName, 'root.md'))
   if (!root) return null
-  // Group-ness comes from the folder shape (it has a root.md), not from the subtask count
-  // below: a finished subtask's file is removed, so a group whose subtasks are all done
-  // reads as zero subtasks and would stop looking like a group right when it becomes
-  // archiveable.
+  // Group-ness comes from the folder's name, not from the subtask count below: a finished
+  // subtask's file is removed, so a group whose subtasks are all done reads as zero
+  // subtasks and would stop looking like a group right when it becomes archiveable.
   root.isGroup = true
   // The gate is "all subtasks resolved", not "all todos done", so this can't reuse
   // `countTodos` — that one's plain done/total drives the progress bar and must keep
@@ -202,8 +194,7 @@ function collectCards(): { board: Card[]; every: Card[] } {
   const every: Card[] = []
   for (const entry of fs.readdirSync(TODO, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
-    const dir = path.join(TODO, entry.name)
-    if (isGroupDir(dir)) {
+    if (isGroupFolder(entry.name)) {
       const g = readGroup(entry.name)
       if (g) {
         board.push(g.root)
@@ -369,19 +360,10 @@ export function allCards(): Card[] {
   return collectCards().every
 }
 
-// Track folders present on disk — every directory under todo/ except the group folders (a
-// group is one card in its own track, not a column).
-function trackFolders(): string[] {
-  return fs
-    .readdirSync(TODO, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && !isGroupDir(path.join(TODO, e.name)))
-    .map((e) => e.name)
-}
-
 // Column order follows the README's `## ` headings so the board matches the board file,
 // with any track folder missing from the README appended after.
 function orderedTracks(): { track: string; title: string }[] {
-  const folders = new Set(trackFolders())
+  const folders = new Set(trackNames())
   const ordered: { track: string; title: string }[] = []
   const seen = new Set<string>()
 
@@ -402,7 +384,7 @@ function orderedTracks(): { track: string; title: string }[] {
     ordered.unshift({ track: 'blockers', title: 'Blockers' })
     seen.add('blockers')
   }
-  for (const t of trackFolders()) {
+  for (const t of trackNames()) {
     if (!seen.has(t)) ordered.push({ track: t, title: t })
   }
   return ordered

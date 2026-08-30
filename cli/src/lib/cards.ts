@@ -33,6 +33,39 @@ export const idPrefix = (name: string): number | null => {
   return m ? Number(m[1]) : null
 }
 
+// ---- what a folder under todo/ is ------------------------------------------
+//
+// Two shapes live side by side under `docs/kanban/todo/`, and telling them apart is the
+// board's most-asked question — the columns a screen draws, the tracks `--track` accepts,
+// and what a flow tells an agent the board's buckets are all come out of it:
+//
+//   todo/<track>/<id>-<slug>.md            a TRACK — one column on the board
+//   todo/<id>-<slug>/root.md               a GROUP task — one card, never a column
+//                    <track>/<sub>-….md    its subtasks
+//
+// The id prefix decides, and it decides alone. It is the board's own naming: a group
+// folder is created as `<id>-<slug>/` and nothing else under todo/ ever is. Asking for a
+// `root.md` instead would call a group folder written a moment ago — its name minted, its
+// card not yet saved — a brand new track, and draw a column for it.
+
+/** A group task's folder, told by its name. */
+export const isGroupFolder = (name: string): boolean => idPrefix(name) !== null
+
+/** The tracks this board has, in name order. The folders are the authority — the config
+ *  describes them, it doesn't define them — so a track added by hand shows up without
+ *  anyone editing a file. Empty on a board with no `todo/` yet. */
+export function trackNames(): string[] {
+  try {
+    return fs
+      .readdirSync(TODO, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !isGroupFolder(e.name))
+      .map((e) => e.name)
+      .sort()
+  } catch {
+    return []
+  }
+}
+
 // Returns { kind: 'group'|'file', target, rel } or null.
 //   group  — an id-prefixed folder holding a root.md tracking card; target is the folder.
 //            found at any depth, so a recurring folder-task (its card plus sibling docs)

@@ -4,10 +4,7 @@
 // starts with (`akb chat`). Both want the same `label   value` shape and the same one-line
 // summary of a card's fields, so the layout lives here rather than once per caller.
 
-import fs from 'node:fs'
-
-import { idPrefix } from '../cards'
-import { TODO } from '../paths'
+import { trackNames } from '../cards'
 import type { CardSchedule } from '../view/types'
 
 const LABEL = 10
@@ -50,15 +47,5 @@ export function metaLine(meta: MetaBits): string {
 }
 
 /** The buckets a card can live in on this board, read off the folders rather than described
- *  in general. Id-prefixed folders are group tasks, not tracks. */
-export function trackNames(): string[] {
-  try {
-    return fs
-      .readdirSync(TODO, { withFileTypes: true })
-      .filter((e) => e.isDirectory() && idPrefix(e.name) === null)
-      .map((e) => e.name)
-      .sort()
-  } catch {
-    return []
-  }
-}
+ *  in general (../cards.ts). */
+export { trackNames }

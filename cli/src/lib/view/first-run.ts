@@ -14,6 +14,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { trackNames } from '../cards'
 import { die, CONFIG, MODULES_MD, README, REPO_ROOT, TODO } from '../paths'
 import { readGoalText } from './goal'
 import type { SaveProjectResult, SetupDraft, TrackDraft } from './types'
@@ -88,27 +89,18 @@ function readmeHeadings(): string[] {
   }
 }
 
-// Every track folder under `todo/`, in the board index's order where it says one. The
-// folders are the authority — the config describes them, it doesn't define them — so a
-// track added by hand shows up without anyone editing a file.
+// The board's tracks (../cards.ts) minus the two the user never picked, in the board
+// index's order where it says one. Setup asks about the tracks someone chose, so the two
+// reserved folders are not among them — every other reader wants all of them.
 function trackFolders(): string[] {
-  let entries: fs.Dirent[]
-  try {
-    entries = fs.readdirSync(TODO, { withFileTypes: true })
-  } catch {
-    return []
-  }
-  const folders = entries
-    .filter((e) => e.isDirectory() && !RESERVED.includes(e.name))
-    // A group task lives in `<id>-<slug>/` — one card in a folder, never a track.
-    .filter((e) => !fs.existsSync(path.join(TODO, e.name, 'root.md')))
-    .map((e) => e.name)
   const order = readmeHeadings()
-  return [...folders].sort((a, b) => {
-    const ia = order.indexOf(a)
-    const ib = order.indexOf(b)
-    return (ia === -1 ? order.length : ia) - (ib === -1 ? order.length : ib)
-  })
+  return trackNames()
+    .filter((name) => !RESERVED.includes(name))
+    .sort((a, b) => {
+      const ia = order.indexOf(a)
+      const ib = order.indexOf(b)
+      return (ia === -1 ? order.length : ia) - (ib === -1 ? order.length : ib)
+    })
 }
 
 // What each track is for, as the config's list has it: `- \`feature\` 45% — …`. The share

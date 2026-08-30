@@ -3,7 +3,7 @@
 import fs from 'node:fs'
 
 import { die, warn, rel, TODO, MODULES_MD } from './paths'
-import { locate } from './cards'
+import { locate, trackNames } from './cards'
 import type { FlagOrder, FlagValue, Flags, ParsedFlags } from './types'
 
 // Minimal flag parser. `--key value` sets a string; a repeated `--key` builds an
@@ -84,13 +84,6 @@ export function normalizeRelease(raw: unknown): string {
   if (raw === undefined || raw === null || typeof raw === 'object') return NO_RELEASE
   if (typeof raw === 'boolean') return NO_RELEASE
   return String(raw).trim()
-}
-
-function trackNames(): string[] {
-  return fs
-    .readdirSync(TODO, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && !/^\d+-/.test(e.name))
-    .map((e) => e.name)
 }
 
 export function validTrack(track: string): void {
