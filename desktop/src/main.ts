@@ -311,6 +311,10 @@ function openDialog(options: OpenDialogOptions) {
  *  mistake is the setup screen's own — one press, and the folder is as it was. */
 async function open(repo: string): Promise<void> {
   let url: string;
+  // The page on screen keeps it until the board's own page paints over it. Installing a
+  // board and starting its server are seconds of work with the launcher still up, and a
+  // front door that answers nothing reads as a hang.
+  win?.webContents.send(CHANNELS.opening, path.basename(repo) || repo);
   if (madeBoard && madeBoard.dir !== repo) madeBoard = null;
   if (!boardIn(repo)) {
     // A failed install falls through to the board UI, which is the "no board here" screen

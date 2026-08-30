@@ -257,8 +257,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'setup':
       return [
         `Finish setting up the AI4Kanban board in this repo — the one under \`docs/kanban/\`.`,
-        `Run \`${command} guide setup\` and follow it: start at the first unticked box in \`docs/kanban/setup-checklist.md\` and work down, ticking each box as it finishes.`,
-        `\`${command} guide board\` is how a card and the memory files are written — read it before you write either.`,
+        `Read \`${command} guide setup\` and \`${command} guide board\` together in your first shell call, then follow setup from the first unticked box in \`docs/kanban/setup-checklist.md\`.`,
+        `At the tasks step, read \`${command} guide add-task\` once. Do not call any other guide or help command during setup.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions, the way the setup flow says.`,
       ].join(' ')
     // One spec agent on one card (#187). Its own prompt is inlined rather than named: a

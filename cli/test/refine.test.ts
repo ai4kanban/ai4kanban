@@ -481,7 +481,7 @@ describe('the refine a created card gets', () => {
     )
   })
 
-  it('gives a finished setup a refine on every card the board holds', () => {
+  it('hands every initial card to an independent refinement after setup finishes', () => {
     writeCard()
     writePiece(10)
     const before = markBoard()

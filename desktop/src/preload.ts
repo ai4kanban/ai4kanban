@@ -42,6 +42,7 @@ const CHANNELS: typeof Channels = {
   setLanguage: "a4k:set-language",
   notify: "a4k:notify",
   openNotification: "a4k:open-notification",
+  opening: "a4k:opening",
 };
 
 const bridge: Ai4kanbanBridge = {
@@ -74,6 +75,12 @@ const bridge: Ai4kanbanBridge = {
   onNavigated: (fn) => {
     navWatchers.add(fn);
     return () => navWatchers.delete(fn);
+  },
+  // Nothing is held for a late subscriber here, unlike the three above: this only ever
+  // follows a click on the page that is listening.
+  onOpening: (fn) => {
+    openingWatchers.add(fn);
+    return () => openingWatchers.delete(fn);
   },
   onCloudCallback: (fn) => {
     cloudWatchers.add(fn);
@@ -139,6 +146,13 @@ ipcRenderer.on(CHANNELS.cardLink, (_e, url: string) => {
     return;
   }
   cardWatchers.forEach((fn) => fn(url));
+});
+
+// The project the app has started opening, on its way to the launcher.
+const openingWatchers = new Set<(name: string) => void>();
+ipcRenderer.on(CHANNELS.opening, (_e, name: string) => {
+  if (typeof name !== "string" || !name) return;
+  openingWatchers.forEach((fn) => fn(name));
 });
 
 // Whoever is drawing the mark on the edge. Two things feed it: a swipe, read

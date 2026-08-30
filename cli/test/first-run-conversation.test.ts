@@ -43,7 +43,7 @@ describe('what the conversation opens with', () => {
     const prompt = chatPrompt('setup', setupOpening())
     // The guide's section, embedded — a rename that lost it would leave these out.
     assert.match(prompt, /"summary"/)
-    assert.match(prompt, /"tracksFrom"/)
+    assert.match(prompt, /"description"/)
     assert.match(prompt, /unsure/)
   })
 
@@ -84,7 +84,6 @@ const GOOD = {
   name: 'Ledger',
   description: 'the bookkeeping service behind the billing API',
   tracks: [{ name: 'features', note: 'new behavior a user can see.' }],
-  tracksFrom: 'your folder names, kept',
   unsure: false,
   ask: '',
 }
@@ -111,7 +110,6 @@ describe('reading one reply', () => {
         name: '',
         description: '',
         tracks: [],
-        tracksFrom: '',
         unsure: true,
         ask: 'What is this project, in a line?',
       }),

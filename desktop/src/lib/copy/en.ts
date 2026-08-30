@@ -67,6 +67,7 @@ const en: DesktopCopy = {
     language: "Language",
     soon: "Soon",
     runningHere: "A run is going here",
+    opening: (name) => `Opening ${name}…`,
     pathGone: (path) => `${path} — the folder is gone`,
     forget: "Take this project off the list — nothing on disk is touched",
     forgetGone: "The folder is gone — take it off the list",

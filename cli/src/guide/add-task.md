@@ -1,88 +1,63 @@
 # Add tasks
 
-Route every request that may create a card through this file. Evaluate each task idea with
-`akb guide evaluate-task` before creating it.
+Use this guide whenever work may become a card. If setup is unfinished, stop and follow
+`akb guide setup`; its final `tasks` step is the only exception.
 
-**Stop if setup is unfinished** — `docs/kanban/setup-checklist.md` being there says it is.
-Create no card; follow `akb guide setup` instead.
+## Route
 
-## Route the request
+- No task idea supplied → `akb guide propose`.
+- Source material supplied for extracting ideas → `akb guide extract-ideas`.
+- Repeating work → `akb guide recurring-task`.
+- Direct task idea → continue below.
 
-- No idea supplied; find missing work → `akb guide propose`.
-- Article, analysis, research, complaint, or other source supplied →
-  `akb guide extract-ideas`.
-- Repeating job → `akb guide recurring-task`.
-- Direct task idea → "Add one task idea" below.
+## Create the card
 
-A research task is a direct idea; a research report is source material. Reading or
-summarizing a source without asking for tasks creates no card.
+Evaluate the idea with `akb guide evaluate-task`; during setup, use setup's batch
+evaluation instead. Skip unclear, duplicate, unsupported, or previously rejected work.
 
-## Add one task idea
+Create the card with metadata flags rather than editing frontmatter:
 
-Turn one evaluated direct idea or validated draft into a card. Run
-`akb board create --title "..." --track <track> --modules <modules>` plus any other meta
-flags (`akb board help create`) to write the file, its frontmatter, and the README entry.
-
-## Tightly coupled tasks go in one group
-
-If the request needs several tasks that only make sense together, make them a **group
-task** instead of loose cards.
-
-Example: "build a plugin system with a Slack and a Notion
-demo plugin" → 4 cards: a group root for the plugin system + a subtask for the
-system + a subtask for the Slack plugin + a subtask for the Notion plugin.
-
-See "Group task" in `akb guide board` for the folder layout and the steps that build one.
-Cards that stand on their own stay loose.
-
-## Scaffold the card
-
-Every meta field comes from a `create` flag. The frontmatter is not hand-editable — pass
-the fields to `akb board create`:
-
-`--blocked-by` and `--related` are optional, based on the task dependencies. A title that is
-not in English also needs `--slug <short-english-slug>` — filenames are ASCII, and without
-one every such card is named `<id>-task.md`.
-
-```
-akb board create --title "Continue a run's conversation instead of copying its id" \
-             --track features --priority med --roi med --modules local-ui
-
-akb board create --title "Stop saving a card's implementing stage" --track features \
-             --priority med --roi high --modules local-ui,skill --related 58
-
-akb board create --title "Add a GitHub Projects storage backend for the board" \
-             --track features --priority low --roi med --modules skill,local-ui \
-             --blocked-by 55,61 --related 57
+```text
+akb board create --title "..." --track <track> --modules <modules> \
+  --priority <low|med|high> --roi <low|med|high>
 ```
 
-A new card carries no questions. Its follow-up refinement discovers the details and
-decisions the initial body does not cover.
+Add `--blocked-by` or `--related` when needed. Non-English titles also need
+`--slug <short-english-slug>`.
 
-## Choose its refine effort
+Representative examples:
 
-After writing each card, classify it from the request, card, and only relevant project
-evidence. Never ask the user for an estimate or classification.
+```text
+akb board create --title "Add CSV export" --track features \
+  --modules local-ui --priority med --roi high
 
-- **Lightweight**: the observable outcome and boundaries are clear, and implementation is
-  one localized path with contained compatibility, data, security, and coordination risk.
-- **Standard**: every other case. Its QA loop checks task boundaries before refining details
-  and splits only when several independently refinable areas exist and one remains vague.
+akb board create --title "Document the export format" --track features \
+  --modules docs --blocked-by 42 --related 41 --priority low --roi med
 
-For lightweight effort, run `akb refine <id> --effort lightweight --print` and follow it
-inline. Omit `--print` only when the user explicitly wants background refinement. For
-standard effort, run `akb refine <id> --effort standard` to hand the card to its own session.
-Choose separately for every card in a group.
+akb board create --title "支持导出任务" --slug export-tasks --track features \
+  --modules local-ui --priority med --roi high
+```
 
-Got a field wrong, or learned something after the fact? `akb board update <id> --priority low`
-— never an editor.
+### Group tasks
 
-## Write the card's body
+Use a group task when its cards are useful as parts of one larger outcome.
+For example, “Build a plugin system with Slack and Notion examples” can be one group root
+with three subtasks: the system, Slack integration, and Notion integration. Follow the
+folder and linking steps in `akb guide board`; otherwise keep cards independent.
 
-Replace the scaffolded body according to `akb guide writing`. A new card normally needs
-the opening paragraph, `## Scope`, and
-`## Todo`; add other sections only when that guide calls for them.
+### Writing
 
-The title lives in frontmatter, so do not repeat it as an H1 in the body.
+Write a short opening paragraph, then `## Scope` and `## Todo`; do not repeat the title as
+an H1. During setup, write only the opening paragraph—the background refinement completes
+the plan.
 
-This isn't a full plan, just enough to start.
+## Refine
+
+- **Lightweight**: clear outcome, narrow change, and low compatibility or coordination
+  risk. Run `akb refine <id> --effort lightweight --print` and continue inline.
+- **Standard**: everything else. Run `akb refine <id> --effort standard` to start a
+  separate session.
+
+Choose per card. If the user explicitly requests background work, omit `--print` for a
+lightweight refinement. During setup, start neither; the setup watcher starts refinement
+after setup exits.

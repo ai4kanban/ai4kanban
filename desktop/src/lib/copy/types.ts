@@ -82,6 +82,8 @@ export interface DesktopCopy {
     /** A language on the switcher that isn't written yet. */
     soon: string;
     runningHere: string;
+    /** What the button says while a project is being opened. */
+    opening: (name: string) => string;
     /** One row's tooltip, where the folder has gone. */
     pathGone: (path: string) => string;
     forget: string;

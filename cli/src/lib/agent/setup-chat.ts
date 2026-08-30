@@ -129,7 +129,6 @@ function readProposal(text: string): SetupProposal | null {
     name,
     description: str('description'),
     tracks,
-    tracksFrom: str('tracksFrom'),
     unsure,
     ask: str('ask'),
   }

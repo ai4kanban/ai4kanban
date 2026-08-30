@@ -164,6 +164,12 @@ export const CHANNELS = {
   /** A notification was clicked — the other way, like `cloudCallback`. The page opens the
    *  event it names, switching boards first when the event belongs to another one. */
   openNotification: "a4k:open-notification",
+  /** The app has begun opening a project, named by its folder. Sent once the picker is
+   *  out of the way, so the launcher can say what it is doing instead of sitting there:
+   *  a folder with no board gets one installed here, and that is seconds of nothing.
+   *  Nothing comes back and nothing clears it — every way out of an open replaces this
+   *  page or ends the app. */
+  opening: "a4k:opening",
 } as const;
 
 /**
@@ -229,6 +235,10 @@ export interface Ai4kanbanBridge {
    *  The page opens that event exactly as clicking its row does — switching the app to that
    *  board first when the event belongs to another one. Returns the way to stop being told. */
   onOpenNotification(fn: (eventId: string) => void): () => void;
+  /** Be told that a project is being opened, by the name of its folder — the launcher's,
+   *  which is the page left on screen while the work happens. Returns the way to stop
+   *  being told. */
+  onOpening(fn: (name: string) => void): () => void;
   /** Be told when the app was opened with a card link (#320) — `ai4kanban://card/<board>/<task>`,
    *  which a Slack message carries. The window opens that board's card, switching project
    *  first when it is not the one on screen. Returns the way to stop being told. */

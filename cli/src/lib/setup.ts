@@ -64,10 +64,10 @@ export interface TickResult {
 // the steps below it are agent runs, and so is every button on the board.
 export const SETUP_STEPS: SetupStep[] = [
   { name: 'install', owner: 'script', text: 'Install the `akb` command and scaffold the board.' },
+  { name: 'config', owner: 'script', text: 'Seed the board with practical default settings.' },
   { name: 'project', owner: 'you', text: 'Say what this project is and what tracks its work falls into, in `docs/kanban/config.md`.' },
   { name: 'goal', owner: 'you', text: 'Write the project goal in `docs/kanban/memory/goal.md`.' },
   { name: 'agent', owner: 'you', text: 'Pick the agent that runs this board, and give it a key.' },
-  { name: 'config', owner: 'agent', text: 'Fill in the rest of `docs/kanban/config.md` from what the repo says.' },
   { name: 'decisions', owner: 'agent', text: 'Settle `docs/kanban/memory/decisions.md` from the goal.' },
   { name: 'modules', owner: 'agent', text: 'Write `docs/kanban/modules.md`, then move each settled call into its module\'s memory.' },
   { name: 'tasks', owner: 'agent', text: 'Create the first tasks.' },
@@ -75,7 +75,7 @@ export const SETUP_STEPS: SetupStep[] = [
 
 // The boxes install itself finishes. They are written ticked, so a user who installs and
 // stops there opens the UI onto a bar that says what is actually left.
-const DONE_AT_INSTALL = ['install']
+const DONE_AT_INSTALL = ['install', 'config']
 
 const HEADER = `# Setup checklist
 

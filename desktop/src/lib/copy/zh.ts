@@ -67,6 +67,7 @@ const zh: DesktopCopy = {
     language: "语言",
     soon: "即将支持",
     runningHere: "这里有任务正在运行",
+    opening: (name) => `正在打开 ${name}…`,
     pathGone: (path) => `${path} —— 文件夹已不存在`,
     forget: "把这个项目移出列表——磁盘上的文件不受影响",
     forgetGone: "文件夹已不存在——把它移出列表",

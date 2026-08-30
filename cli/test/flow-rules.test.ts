@@ -127,13 +127,12 @@ describe('the prompt', () => {
 
   it('has add-task choose the effort and refine inline by default', () => {
     const guide = findGuide('add-task')!.text
-    assert.match(guide, /Choose its refine effort/)
     assert.match(guide, /Lightweight[\s\S]*Standard/)
     assert.doesNotMatch(guide, /Parallel/)
     assert.match(guide, /akb refine <id> --effort lightweight --print/)
-    assert.match(guide, /follow it\s+inline/)
-    assert.match(guide, /Omit `--print` only when the user explicitly wants background\s+refinement/)
-    assert.match(guide, /akb refine <id> --effort standard[\s\S]*own session/)
+    assert.match(guide, /continue inline/)
+    assert.match(guide, /explicitly requests background work, omit `--print`/)
+    assert.match(guide, /akb refine <id> --effort standard[\s\S]*separate session/)
   })
 
   it('loads only the QA guide selected for the clarify session', () => {
@@ -273,6 +272,25 @@ describe('the prompt', () => {
       assert.match(next, /--print/)
       assert.match(next, /after add-task/)
       assert.match(next, /follow lightweight refinement inline/)
+    } finally {
+      stopCollecting()
+    }
+  })
+
+  it('ends setup after three cards and leaves their refinements to background runs', () => {
+    const guide = findGuide('setup')!.text
+    assert.match(guide, /Choose exactly three clear, non-duplicate foundational tasks/)
+    assert.match(guide, /seed card/)
+    assert.match(guide, /do not start or wait for them here/)
+
+    const prompt = buildPrompt({ action: 'setup' })
+    assert.match(prompt, /guide setup.*guide board.*together in your first shell call/)
+    assert.match(prompt, /guide add-task.*once/)
+
+    startCollecting()
+    try {
+      const flow = printFlow({ action: 'setup' })
+      assert.deepEqual(flow.guides, ['board', 'setup', 'add-task'])
     } finally {
       stopCollecting()
     }

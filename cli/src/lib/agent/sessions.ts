@@ -59,7 +59,7 @@ export { logPathOf, readAction, readRuns, withRuns } from './store'
 // too, and so does a recurring run: its close bumps metrics.csv and rewrites the README
 // index, the very files this lock exists for. A plan-release run belongs here for the same
 // reason propose does — it allocates ids and rewrites the index as it moves cards in. So
-// does a setup run: its last step writes the board's first cards.
+// does a setup run: its last step writes three initial cards.
 const INDEX_ACTIONS = new Set<AgentAction>(['create', 'propose', 'archive', 'reject', 'run', 'plan-release', 'setup'])
 
 // Actions that may run only one at a time across the whole board. A create has no card

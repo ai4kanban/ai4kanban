@@ -409,3 +409,7 @@ date,event,card,detail
 2026-08-30,card-archived,370,asked
 2026-08-30,decisions-stood,370,7
 2026-08-30,decisions-overruled,370,4
+2026-08-30,question-closed,314,user
+2026-08-30,question-closed,280,user
+2026-08-30,decisions-stood,280,6
+2026-08-30,decisions-overruled,280,0

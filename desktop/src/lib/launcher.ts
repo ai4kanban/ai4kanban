@@ -235,6 +235,27 @@ function page({ mac, language, languages }: LauncherOptions): string {
   .open:hover { background: var(--accent-deep); }
   .open:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 0 var(--ink); }
   .open:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  /* A folder is named by whoever made it, so the button holds the long ones
+     rather than growing past the column. */
+  .open .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 230px; }
+
+  /* Opening a project. Installing a board into a fresh folder and starting its
+     server are seconds of work with this page still on screen, and a front door
+     that answers nothing reads as a hang — so the button becomes the progress,
+     and the page stops taking clicks it would only queue up. */
+  body.busy .inner { pointer-events: none; }
+  body.busy .open { background: var(--accent-deep); }
+  body.busy .recent { opacity: 0.45; }
+  .spinner {
+    flex: none;
+    width: 15px;
+    height: 15px;
+    border: 2px solid color-mix(in srgb, var(--paper) 32%, transparent);
+    border-top-color: var(--paper);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   /* The projects you have opened before. Absent on a first launch, which is
      the launch this screen was drawn for. */
@@ -412,7 +433,7 @@ ${switcher(language, languages, c)}
 <main>
   <div class="inner">
     <div class="lockup">${MARK}<h1>AI4Kanban</h1></div>
-    <button type="button" class="open" id="open" autofocus>${FOLDER_ICON} ${escapeHtml(c.openFolder)}</button>
+    <button type="button" class="open" id="open">${FOLDER_ICON}<span class="label">${escapeHtml(c.openFolder)}</span></button>
     <section class="recent" id="recent" hidden>
       <h2><span>${escapeHtml(c.recent)}</span></h2>
       <ul class="rows" id="rows"></ul>
@@ -653,7 +674,24 @@ function script(c: DesktopCopy["launcher"]): string {
   const app = window.ai4kanban;
   const FILLS_IN = ${JSON.stringify(FILLS_IN)};
   const PATH_GONE = ${JSON.stringify(c.pathGone(FILLS_IN))};
-  document.getElementById("open").addEventListener("click", () => app?.pickRepo());
+  const OPENING = ${JSON.stringify(c.opening(FILLS_IN))};
+  const openButton = document.getElementById("open");
+  openButton.addEventListener("click", () => app?.pickRepo());
+
+  // The app has started opening a project — the picker is already gone, and this page has
+  // the wait. Nothing puts it back: the board's page loads over this one, and the only
+  // other way out of an open ends the app.
+  app?.onOpening((name) => {
+    document.body.classList.add("busy");
+    document.body.setAttribute("aria-busy", "true");
+    const spinner = document.createElement("span");
+    spinner.className = "spinner";
+    const label = document.createElement("span");
+    label.className = "label";
+    // Through a function, so a dollar sign in a folder's name is a character.
+    label.textContent = OPENING.replace(FILLS_IN, () => name);
+    openButton.replaceChildren(spinner, label);
+  });
 
   // The switcher saves through the app rather than through a board server, which this
   // page has none of. The app draws this page again in whatever was saved, so a click

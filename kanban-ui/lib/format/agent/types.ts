@@ -885,8 +885,6 @@ export interface SetupProposal {
    *  the folder a track replaces, so a rename moves the folder and its cards rather than
    *  making one and stranding the other. */
   tracks: { name: string; note: string; was?: string }[]
-  /** Where those tracks came from, in a few words ("your folder names, kept"). */
-  tracksFrom: string
   /** The repo said nothing worth stating. Then `summary` is what little it saw, `ask` is
    *  the one question, and the tracks are whatever the board was scaffolded with. */
   unsure: boolean

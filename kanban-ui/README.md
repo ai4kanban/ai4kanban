@@ -514,7 +514,8 @@ stops opening itself once the agent is picked and the project is written, so a g
 does not reopen it. The strip stays until setup is finished, carrying **Finish setup** and
 **Finish in your coding agent** beside it — or, on a repo with no skill, **Add the coding agent
 skill**. Before setup ends the skill creates no cards at all: ask it for one and it tells you to
-finish setup first. The last box creates your first cards and deletes the checklist.
+finish setup first. The last box creates three initial cards and deletes the checklist. Setup
+then closes while a separate refinement run starts for each card in the background.
 
 **When the goal needs writing.** Long after setup, one notice comes back on its own when there is
 no goal to plan from — the file is empty, or the agent has judged it weak again (`reviewed: weak`).
