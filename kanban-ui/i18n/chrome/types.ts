@@ -7,6 +7,10 @@ export type ChromeCopy = {
   header: {
     /** The mark that leads home — its tooltip and what a screen reader reads. */
     home: string;
+    /** The quiet mark that opens AI4Kanban's own repository in a browser — its
+     *  tooltip and what a screen reader reads. Name the product: on a board that
+     *  is itself a repo, "GitHub" alone reads as the user's own. */
+    github: string;
   };
   /** Only read out loud: the drag handles that widen a pane. */
   resize: { rail: string; chat: string; bell: string };

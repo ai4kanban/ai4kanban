@@ -7,7 +7,7 @@ const en: ChromeCopy = {
     title: "AI4Kanban",
     description: "Local kanban board — spawn agents to do the work.",
   },
-  header: { home: "All cards" },
+  header: { home: "All cards", github: "AI4Kanban on GitHub" },
   resize: { rail: "Resize the rail", chat: "Resize the chat", bell: "Resize notifications" },
   cardLink: {
     notHere: "That card's board is not on this machine. Open it there, or open that folder here.",

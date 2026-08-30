@@ -121,7 +121,8 @@ body {
 
 /* Press interaction — lift on hover, settle on active */
 .nb-press {
-  transition: transform 120ms ease, box-shadow 120ms ease;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease,
+    border-color 120ms ease;
 }
 .nb-press:hover {
   transform: translate(-1px, -1px);

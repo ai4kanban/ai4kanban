@@ -172,7 +172,7 @@ function bridge(): AppBridge | null {
 /** Open a link the way this window should: in the user's browser when we are in
  *  the app (a desktop window must never navigate away from the board), and
  *  normally otherwise. */
-function openLink(url: string) {
+export function openLink(url: string) {
   const app = bridge();
   if (app) void app.openExternal(url);
   else window.open(url, "_blank", "noopener,noreferrer");

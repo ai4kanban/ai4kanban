@@ -7,6 +7,7 @@ import { ToolCluster } from "./chrome";
 import { Configuration } from "./Configuration";
 import { CreateTask } from "./CreateTask";
 import { ProjectPath } from "./desktop";
+import { GitHubLink } from "./GitHubLink";
 import { Goal } from "./Goal";
 import { Insights } from "./Insights";
 import { LogoMark } from "./Logo";
@@ -168,6 +169,10 @@ export function Header({
           them rather than 8, since a row of hard shadows needs more air beside
           the traffic lights than it does on a page. */}
       <div data-controls className="a4k-nodrag flex shrink-0 items-center gap-2">
+        {/* The repository leads the group: the same ghost block as Goal and
+            Chat, icon-only, since it is the one control here that acts on
+            nothing on this board. */}
+        <GitHubLink />
         <Goal written={goalWritten} />
         {onReleaseChange && onCreateRelease && onPlanRelease && onDropRelease && onCloseRelease && onSetReleaseGoal && (
           <ReleasePicker

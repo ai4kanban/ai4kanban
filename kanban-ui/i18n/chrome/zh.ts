@@ -7,7 +7,7 @@ const zh: ChromeCopy = {
     title: "AI4Kanban",
     description: "本地看板——把工作交给 Agent 去做。",
   },
-  header: { home: "全部卡片" },
+  header: { home: "全部卡片", github: "在 GitHub 上查看 AI4Kanban" },
   resize: { rail: "调整侧栏宽度", chat: "调整对话宽度", bell: "调整通知栏宽度" },
   cardLink: {
     notHere: "这张卡片所属的看板不在这台机器上。请到那台机器上打开，或在这里打开该文件夹。",

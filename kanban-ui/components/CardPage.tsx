@@ -1867,11 +1867,11 @@ export function CardPage({
                     <li key={s.id}>
                       <Link
                         href={`/${s.id}`}
-                        // A row darkens by a step of ink, the same hover every other
-                        // pressable band on this page takes. Lightening it to paper was
-                        // four units off the sheet under it — a change you had to look
-                        // for — and it went cold against a warm ground while it was at it.
-                        className="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_11%,transparent)]"
+                        // A row is the same control the map's chip is, so it hovers the
+                        // same way: outline in, onto paper, up onto the ink shadow. The
+                        // border is there at rest, transparent, so nothing shifts when
+                        // it colours in.
+                        className="nb-press flex items-center gap-2.5 rounded-[10px] border-[1.5px] border-transparent px-2.5 py-2 hover:border-nb-ink hover:bg-nb-paper"
                       >
                         <span className="shrink-0 text-[12px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
                           #{s.id}
