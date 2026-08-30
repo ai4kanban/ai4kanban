@@ -37,8 +37,11 @@ Internal detail stays on the card.
 
 - Cloudflare Workers for compute, on the account the site already deploys from, and a
   Supabase Postgres project of its own.
-- Both on their free tier, $0 a month: the preview keeps no backups, and a free-tier limit
-  refuses writes rather than producing a bill. Paid plans come with pricing.
+- Supabase is on its free tier, $0 a month: the preview keeps no backups, and a free-tier
+  limit refuses writes rather than producing a bill. Charging a user for AI4Kanban comes with
+  pricing.
+- The Worker moves to Workers Paid, $5 a month, when 0.9.0's public board pages ship —
+  server-rendering a board does not fit Workers Free's bundle cap or its CPU per request.
 - The region is `eu-central-1`, Frankfurt, so an EU team's data stays inside the EU and the
   privacy page covers a transfer under an adequacy decision. Changing it means recreating
   the project.
@@ -93,6 +96,9 @@ Internal detail stays on the card.
   directory, so connecting is one button and the user registers nothing. Both
   `open.larksuite.com` and `open.feishu.cn` are listed, and a connection belongs to the cloud
   it was installed from.
+- A conversation with the agent answers one turn at a time, whichever state that turn is in: a
+  message sent while an earlier turn is still answering, or still waiting for a machine that is
+  off, is refused saying which, rather than queued behind it.
 - One event takes exactly one action, from whichever surface acts first. Cloud refuses a
   second and tells every other surface, so a message for an event already handled in the app
   is redrawn as answered rather than left pressable.
@@ -103,9 +109,9 @@ Internal detail stays on the card.
   ignored files — no cards, no memory, no mirrored markdown — so every clone opens the same
   workspace and export is how a team gets markdown back. Anything that reads the board as
   files works on a Local board or an export.
-- A team reaches its Cloud board from the installed app only: there is no Cloud page at a
-  URL, no public read-only board and no browser Resolve. Putting a workspace on the web is
-  later work.
+- A team reaches its Cloud board from the installed app only until 0.9.0, when a workspace
+  gets a URL: a public read-only board for anyone, and card review and Resolve for a signed-in
+  member.
 - A save finishes before the command returns, on every board: no write queue and no
   background flush. That is the price of two teammates never overwriting each other silently.
 - Two people changing one card gets the second write refused as a conflict naming the version

@@ -58,6 +58,11 @@ re-ask a settled call.
 - A card is refined as soon as a run creates it — every action that used to follow nothing
   starts a refine on the cards it created, and none on the cards it merely edited.
 
+## Implementation runs
+
+- Minor direct-to-target, no-commit execution is limited to interactive in-session work;
+  background runs retain delivery tracking and landing semantics.
+
 ## Open questions
 
 - A question can carry options — `single-option` to pick one, `multi-options` for as many as

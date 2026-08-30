@@ -27,20 +27,21 @@ _(none)_
 - [#313 Import GitHub Issues and mirror progress back](features/313-import-github-issues-and-mirror-progress-back.md)
 - [#322 Open a Cloud board in the browser](features/322-open-a-cloud-board-in-the-browser.md)
 - [#328 Notify a workspace's owners and members about a card that needs them](311-team-collaboration-cloud/features/328-notify-a-workspace-s-owners-and-members-about-a-card-that-ne.md)
-- [#341 Chat about a card from its Slack message](features/341-chat-about-a-card-from-its-slack-message.md)
 - [#354 Read and answer the board from your phone](354-mobile-board/root.md)
 - [#355 Give the board a URL a phone can open](354-mobile-board/features/355-phone-url.md)
 - [#356 Let only the people you allow open the board's phone URL](354-mobile-board/features/356-phone-access.md)
 - [#357 Lay the board out for a phone screen](354-mobile-board/features/357-phone-layout.md)
-- [#358 Work the board from the keyboard](features/358-keyboard-shortcuts.md)
 - [#360 Track the card in its Lark message and log each event in its thread](features/360-lark-card-message.md)
 - [#363 Connect 飞书 by scanning a QR code, with no app to install](features/363-feishu-qr-connect.md)
+- [#341 Chat with the board from Slack](features/341-chat-with-the-board-from-slack.md)
+- [#364 Review and Resolve a Cloud card in the browser](features/364-browser-card-decisions.md)
+- [#365 Act on Cloud task events from Discord](features/365-discord-connector.md)
+- [#371 Start a run on the computer its runtime names](features/371-run-on-runtime-computer.md)
 
 ## skill
 
 - [#112 Move a module's calls into its memory when the map gains that module](skill/112-move-a-module-s-calls-into-its-memory-when-the-map-gains-tha.md)
 - [#141 Update the sibling tasks when one task's plan changes](skill/141-update-the-sibling-tasks-when-one-task-s-plan-changes.md)
-- [#153 Name the one card to build next](skill/153-name-the-one-card-to-build-next.md)
 - [#157 Turn a spec you already wrote into the cards that build it](skill/157-turn-a-spec-you-already-wrote-into-the-cards-that-build-it.md)
 
 ## distribution
@@ -72,7 +73,6 @@ _(none)_
 
 ## 266-chat-rail-full/features
 
-- [#267 Stop a reply while it is being written](266-chat-rail-full/features/267-stop-a-reply.md)
 - [#268 Keep typing while a reply is still coming](266-chat-rail-full/features/268-keep-typing.md)
 - [#269 Copy, resend or reword a message without retyping it](266-chat-rail-full/features/269-reply-actions.md)
 - [#270 Open up what the agent looked at, and say what the reply cost](266-chat-rail-full/features/270-what-it-did.md)

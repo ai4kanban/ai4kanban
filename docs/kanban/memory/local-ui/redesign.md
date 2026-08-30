@@ -82,6 +82,16 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   that really runs the thing once and shows what came back; a real run answers what a
   checklist can't see.
 
+- ❌ **A pane answers "where does this run" with a thing-by-machine grid** (a row per
+  runtime, a column per computer) → ✅ the thing the user came for stays the list, and it
+  names its one machine itself. A second axis is repeated rows, and repeated rows read as
+  noise.
+- ❌ **A list that only reports sends the user into a page of its own to change what it
+  reports** → ✅ set it where it is read: the one row that matters is open, the rest are
+  folded, and a separate view is only for what the list cannot hold.
+- ❌ **Monospace is used to make a name read as a literal** → ✅ settings prose is one
+  typeface; a name earns its weight from position and weight, not from a second font.
+
 ## Keys
 
 - ❌ **A key comes from whatever the user exported before starting the server** → ✅ one fixed

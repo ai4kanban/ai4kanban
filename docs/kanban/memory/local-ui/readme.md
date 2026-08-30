@@ -130,6 +130,12 @@ naming no other doc is covered there.
   visibly apart — rename, make global, remove, and a **Test** that spawns that runtime. A
   board naming no runtimes is the plain harness pane it always was: "Runtimes, and the
   harness behind one".
+- Two tabs: **Runtimes** is one row per runtime, the global one open and the rest folded to
+  where and what they run, and **Computers** lists the machines the board knows. Each runtime
+  is headed with the computer it runs on, picked there and travelling with the repository;
+  pointed at another computer it shows what that machine reported and offers nothing to press.
+  The pick says where a runtime belongs — a run still lands on the machine it was started
+  from: `docs/guides/daily-loop.md`, "Which tool each flow runs on".
 - Run the board on Claude Code, Codex CLI, Cursor, OpenCode, DeepSeek Harness or ZCode,
   each with its own settings, live log, stop and resume; the picker dims the ones whose CLI
   isn't installed and names the install command: "What each agent needs",

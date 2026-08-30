@@ -4,10 +4,13 @@
     "claude-code": {
       "provider": "subscription",
       "model": "claude-opus-5",
-      "reasoning": "xhigh"
+      "reasoning": "high"
     },
     "zcode": {
       "provider": "coding-plan"
+    },
+    "codex": {
+      "reasoning": "high"
     }
   }
 }

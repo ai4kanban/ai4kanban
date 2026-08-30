@@ -50,6 +50,9 @@ before proposing so you don't re-suggest them.
   version leaves a plain-words file in `docs/kanban/.release-summaries/`.
 - **A separate group for the UI work behind design questions** — the pieces sit with the
   spec agents work that raises the questions; a group of its own would hold a card or two.
+- **Working the board from the keyboard** — the current UI is simple enough that a
+  shortcut set, its own dispatcher and a panel to list it would cost more than the mouse
+  trips they save.
 
 ## Runs
 

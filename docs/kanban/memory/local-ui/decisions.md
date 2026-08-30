@@ -18,8 +18,14 @@ re-ask a settled call.
   settings and separated from them.
 - A pane of short settings is a list of rows. A pane whose items are paragraphs — flow
   rules — is a narrow picker column beside one tall box.
-- Runtimes is a list that sets nothing: a row opens that runtime, where the binding is the
-  one thing that can be pressed, and a board naming no runtimes opens on the binding itself.
+- Runtimes is a list of runtimes, never a list of computers: each one names the single
+  computer it runs on, the global one is open and the rest are folded, and its computer,
+  harness and model are set in place. Computers get a tab of their own. A board naming no
+  runtimes opens on the binding itself. No monospace anywhere.
+- A runtime's computer is a setting first: the board records where a runtime should run and
+  says the pick does not send runs there yet. Dispatching a run to that computer is its own
+  work. A runtime pointed at another computer shows that computer's answer read-only —
+  a binding belongs to the machine that holds it.
 
 ## Getting the board
 
@@ -68,6 +74,10 @@ re-ask a settled call.
 - Setup runs in the UI as a guided first run asking only what the user knows — the project,
   its tracks, the goal, which agent works — with defaults so it can be pressed through. The
   steps that read the repo and think run after it.
+- Which agent works is asked first, before anything else the first run does. Nothing is
+  spent on an agent the user did not choose.
+- The first run never drafts the goal. It may say what makes a good goal, but it offers no
+  words the user could accept unchanged, because text the user did not write is no goal.
 - Finishing setup refines the cards it writes: they are the roughest the board will ever
   hold and nothing else comes for them.
 - The goal nudge is a nudge, not a gate — dismissible, back if the goal turns weak again,

@@ -231,3 +231,12 @@ covers it, or a plain-words note.
   `<!-- agent -->` boundary, the `[user]` tag, track and module names and filenames stay
   English. Rewriting a file keeps the language it is already in: "The board's language" in
   `akb guide board`.
+- "What's next?" now answers with a pick from the cards you already have, not three new ones:
+  `akb guide next-card` is the rule — ready and unblocked cards, ranked by priority, then ROI,
+  then which release ships first, up to three named with one line each on why. "What are we
+  missing?" is what still proposes new work. No new command and no new field; the two asks
+  route apart in the skill and in `docs/guides/daily-loop.md`.
+- Adding a card chooses lightweight or standard QA and loads only its matching guide.
+  Lightweight uses `--print` and finishes inline; standard QA gets its own session and
+  checks task boundaries before refining details: "Push a card forward" in
+  `docs/guides/daily-loop.md`.
