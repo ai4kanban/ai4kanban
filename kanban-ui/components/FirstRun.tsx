@@ -21,7 +21,7 @@
 // follows from that is that nothing resumes one that went wrong — it is started over, or
 // left for the screens behind "I'll fill it in myself".
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
   finishSetupAgentStepAction,
   openSetupChatAction,
@@ -36,6 +36,7 @@ import type { AgentInfo, SetupDraft, SetupProposal, SetupStep } from "@/lib/type
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { HarnessPicker, type RunTest } from "./Configuration";
+import { DiscardNewBoard } from "./desktop";
 import { GuideDrawer } from "./Guide";
 
 // How often the conversation is re-read: fast while a turn is out, so the waiting view
@@ -56,6 +57,7 @@ export function FirstRun({
   onBackToAgent,
   onByHand,
   onExit,
+  canDiscard,
 }: {
   /** The run's steps, in the order it asks them — agent, project, goal. */
   steps: SetupStep[];
@@ -83,6 +85,10 @@ export function FirstRun({
   onByHand: (seed?: SetupProposal) => void;
   /** The way out to the board. */
   onExit: () => void;
+  /** Whether the folder this board was made in can still be given back — the app
+   *  makes one the moment a boardless folder is opened, and this is the way out of a
+   *  folder picked by mistake. */
+  canDiscard: boolean;
 }) {
   const c = useCopy().setup.firstRun;
   const step = steps[index] ?? null;
@@ -134,8 +140,9 @@ export function FirstRun({
         </div>
       </div>
 
-      {/* The same two ways out on every turn. Choosing either is not an answer and is
-          written nowhere. */}
+      {/* The same ways out on every turn. Choosing one is not an answer and is written
+          nowhere — except the last, which is the folder itself being given back, and it
+          stands apart on the right for that reason. */}
       <div className="flex shrink-0 items-center gap-5 border-t border-nb-ink/12 px-6 py-4 sm:px-9">
         <button
           type="button"
@@ -151,6 +158,11 @@ export function FirstRun({
         >
           {c.toBoard}
         </button>
+        {canDiscard && (
+          <span className="ml-auto">
+            <DiscardNewBoard shape="link" />
+          </span>
+        )}
       </div>
     </div>
   );
@@ -443,18 +455,23 @@ function ProjectTurn({
 
   return (
     <>
-      <Ask>{proposal.summary}</Ask>
+      <ProjectHeading name={proposal.name} description={proposal.description} />
+      {/* The tracks as a counted list, one to a line with what belongs in it — not four
+          words in a row. A reader meeting the board for the first time has never heard of a
+          track: the lead-in says how many and what one is, and each line says what that one
+          holds, so what the Yes agrees to is on screen rather than assumed. */}
       {proposal.tracks.length > 0 && (
-        <p className="mt-4 text-[16px] leading-[1.55]">
-          {c.project.tracks}{" "}
-          {proposal.tracks.map((track, i) => (
-            <span key={track.name}>
-              {i > 0 && <span className="text-nb-ink-soft"> · </span>}
-              <span className="font-mono text-[15px] font-[700]">{track.name}</span>
-            </span>
-          ))}
-          {proposal.tracksFrom && <span className="text-nb-ink-soft"> — {proposal.tracksFrom}</span>}
-        </p>
+        <div className="mt-5">
+          <p className="text-[16px] leading-[1.55]">{c.project.tracks(proposal.tracks.length)}</p>
+          <dl className="mt-3 grid grid-cols-[max-content_1fr] gap-x-5 gap-y-2 text-[15px] leading-[1.5]">
+            {proposal.tracks.map((track) => (
+              <Fragment key={track.name}>
+                <dt className="font-mono text-[14px] font-[700]">{track.name}</dt>
+                <dd className="min-w-0 text-nb-ink-soft">{track.note}</dd>
+              </Fragment>
+            ))}
+          </dl>
+        </div>
       )}
       <Under>{c.project.right}</Under>
       <Box value={said} onChange={setSaid} hint={c.project.hint} rows={3} />
@@ -550,6 +567,19 @@ function GoalTurn({
 
 function Ask({ children }: { children: React.ReactNode }) {
   return <p className="text-[26px] font-[800] leading-[1.22] tracking-[-0.01em] sm:text-[30px]">{children}</p>;
+}
+
+function ProjectHeading({ name, description }: { name: string; description: string }) {
+  return (
+    <header>
+      <h2 className="text-[26px] font-[800] leading-[1.22] tracking-[-0.01em] sm:text-[30px]">{name}</h2>
+      {description && (
+        <p className="mt-2 text-[16px] leading-[1.55] text-nb-ink-soft first-letter:uppercase">
+          {description}
+        </p>
+      )}
+    </header>
+  );
 }
 
 function Under({ children }: { children: React.ReactNode }) {

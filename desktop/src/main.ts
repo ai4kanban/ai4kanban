@@ -27,7 +27,7 @@ import {
 } from "electron";
 import fs from "node:fs";
 import path from "node:path";
-import { makeBoard } from "./lib/board-init";
+import { makeBoard, unmakeBoard, type NewBoard } from "./lib/board-init";
 import { commandAnswers, commandState, installCommand, refreshSkillNote } from "./lib/command";
 import { copy, holdLanguage, heldLanguage } from "./lib/copy";
 import { launcherUrl } from "./lib/launcher";
@@ -65,6 +65,11 @@ let win: BrowserWindow | null = null;
 let shellEnv: Env = process.env as Env;
 // Back and forward through the views the window opened. Set with the window.
 let nav: Navigation | null = null;
+// The board the open on screen made for itself, and what it wrote over. Opening a
+// folder with no board makes one rather than asking, so this is what makes that undoable:
+// while it is set, the setup screen offers to put the folder back and open another. It is
+// dropped the moment the window shows any other project.
+let madeBoard: NewBoard | null = null;
 // Set the first time the window is asked, so switching project or reloading
 // doesn't hit GitHub again in the same sitting.
 let updatePromise: Promise<UpdateInfo | null> | null = null;
@@ -218,6 +223,13 @@ function boardNear(dir: string | null | undefined): string | null {
   }
 }
 
+/** Whether `dir` itself holds a board the UI can read. Half a board — a `docs/kanban/`
+ *  with no `todo/` in it — counts as none: that is what the UI turns away, and the
+ *  installer is also the repair for it. */
+function boardIn(dir: string): boolean {
+  return fs.existsSync(path.join(dir, "docs", "kanban", "todo"));
+}
+
 // On macOS the window has no title bar of its own: the board's own top row is
 // the title bar, the way an editor's is. The row is 43px and already holds the
 // board's identity on the left, so a separate 28px bar above it would say the
@@ -290,9 +302,21 @@ function openDialog(options: OpenDialogOptions) {
 
 /** Point the app at `repo`: start (or come back to) its server and show it.
  *  Loading its URL replaces the page wholesale, so nothing of the project
- *  before — no card, no dialog, no half-typed note — is left on screen. */
+ *  before — no card, no dialog, no half-typed note — is left on screen.
+ *
+ *  A folder with no board gets one here, without being asked. Picking a folder is
+ *  the answer to "which project" and there is no second question worth stopping for: the
+ *  screen that used to ask offered one useful button, and everyone who reached it pressed
+ *  it. So the window opens on setup instead, and the way back out of a folder picked by
+ *  mistake is the setup screen's own — one press, and the folder is as it was. */
 async function open(repo: string): Promise<void> {
   let url: string;
+  if (madeBoard && madeBoard.dir !== repo) madeBoard = null;
+  if (!boardIn(repo)) {
+    // A failed install falls through to the board UI, which is the "no board here" screen
+    // — the same two ways out it has always had, one of them the installer's own error.
+    madeBoard = await makeBoard(repo).catch(() => null);
+  }
   try {
     if (!servers) throw new Error("the app is not started yet");
     url = await servers.open(repo);
@@ -409,20 +433,46 @@ function forgetProject(repo: unknown): ProjectInfo[] {
   return listProjects();
 }
 
-/** Make a board in the open project, then show it. The way out of the "no board
- *  here" screen inside the app, where there is no terminal to run the installer
- *  from. */
+/** Make a board in the open project, then show it. Opening a boardless folder already does
+ *  this, so what is left for this is the retry on the "no board here" screen — the folder
+ *  where the install failed once, tried again with its error on screen. */
 async function createBoard(): Promise<CreateBoardResult> {
   const repo = servers?.boardDir;
   if (!repo) return { ok: false, error: "no project is open" };
   try {
-    await makeBoard(repo);
+    madeBoard = await makeBoard(repo);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
   // Reload rather than reopen: the server is already on this folder and finds
   // the board on its next look (it only caches a hit).
   win?.webContents.reload();
+  return { ok: true };
+}
+
+/** The wrong folder, taken back: the board this window made for itself is removed,
+ *  the folder is put back as it was, the project comes off the list it was only on because
+ *  it was opened, and the picker opens on the folder the user meant. Cancelling that leaves
+ *  the launcher up, which is where the mistake started.
+ *
+ *  Refused once anything has been answered on the board — the page only offers it on an
+ *  untouched one — and refused outright for a board this window didn't make. */
+async function discardBoard(): Promise<CreateBoardResult> {
+  const made = madeBoard;
+  if (!made || made.dir !== servers?.boardDir) return { ok: false, error: "no new board here" };
+  if (made.boardExisted) return { ok: false, error: "this board was already here" };
+  madeBoard = null;
+  // The server reads that folder, so it goes first — and the launcher it leaves behind is
+  // already the right screen if removing the board turns out to be impossible.
+  await closeProject();
+  try {
+    unmakeBoard(made);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+  store.forgetProject(made.dir);
+  refreshMenu();
+  await pickRepo();
   return { ok: true };
 }
 
@@ -570,6 +620,7 @@ ipcMain.handle(
     platform: process.platform,
     boardDir: servers?.boardDir ?? null,
     downloadsUrl: DOWNLOADS_URL,
+    boardJustMade: Boolean(madeBoard && madeBoard.dir === servers?.boardDir && !madeBoard.boardExisted),
   }),
 );
 
@@ -582,6 +633,8 @@ ipcMain.handle(CHANNELS.forgetProject, (_e, repo: unknown) => forgetProject(repo
 ipcMain.handle(CHANNELS.pickRepo, () => pickRepo());
 
 ipcMain.handle(CHANNELS.createBoard, () => createBoard());
+
+ipcMain.handle(CHANNELS.discardBoard, () => discardBoard());
 
 ipcMain.handle(CHANNELS.command, (): CommandInstall => commandState(shellEnv));
 

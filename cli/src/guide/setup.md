@@ -59,7 +59,9 @@ Answer with one fenced `json` block:
   line saying what the project is.
 - **`tracks` are folder names**: lowercase letters, digits and dashes, each with the plain
   line saying what belongs in it. Keep the folders that are already there; add one only
-  where the repo plainly calls for it.
+  where the repo plainly calls for it. Every `note` is read on screen, beside its track, by
+  someone meeting this board for the first time — so it says what goes in that folder in
+  plain words, not why you picked it.
 - **A renamed folder carries `was`**: the folder this track replaces. Without it the board
   makes a new folder and leaves the old one — with its cards — behind. Leave `was` out for a
   track that is genuinely new, and set it to the track's own name for one you are keeping.

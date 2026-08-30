@@ -46,13 +46,20 @@ export type ChromeCopy = {
     get: string;
     hide: string;
   };
-  /** The two buttons on the "no board here" screen that only the app can offer. */
+  /** The buttons about a board's own existence that only the app can offer: the two on the
+   *  "no board here" screen, and the way back out of a folder opened by mistake (#372). */
   noBoard: {
     pickAnother: string;
     make: string;
     making: string;
     /** Shown when the app couldn't scaffold the board and said nothing about why. */
     makeFailed: string;
+    /** On the setup rail, while the board is the app's own work and none of the user's. */
+    discard: string;
+    /** What the press does, since the button says only what it is for. */
+    discardHint: string;
+    discarding: string;
+    discardFailed: string;
   };
   /** Putting `akb` on the PATH, from the command row of Configuration → General. */
   command: {

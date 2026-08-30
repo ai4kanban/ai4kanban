@@ -868,13 +868,12 @@ export interface ConnectionTest {
 }
 
 /** What the first-run conversation came back with (#280) — the board's two config answers
- *  as the agent read them off the repo, and the sentence it states them in.
+ *  as the agent read them off the repo, plus a fallback summary for an unsure answer.
  *
  *  Nothing here has been written: the board writes it when the user says yes, through the
  *  same move the form's project screen calls. */
 export interface SetupProposal {
-  /** What the agent thinks this project is, in one sentence — the view's own heading. On an
-   *  unsure answer it says what little the repo showed instead. */
+  /** On an unsure answer, what little the repo showed. */
   summary: string
   /** The project's name, and the one line saying what it is — `config.md`'s two values. */
   name: string

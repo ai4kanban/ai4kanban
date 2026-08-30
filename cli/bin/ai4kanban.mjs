@@ -234,12 +234,34 @@ function rescueSkillConfig(root, skillDir) {
 
 // ---- the board -------------------------------------------------------------
 
+// Run one board move against `root`.
+//
+// `--dir` is not optional here, even though the process already runs in that folder: with
+// nothing named, the rules WALK UP from the working directory to the nearest docs/kanban/
+// and work on that one. In a folder with no board of its own — every folder an install is
+// pointed at — the nearest board can be anywhere above it, up to the user's home. Naming
+// the folder is what keeps `install --dir X` from repairing somebody else's board and
+// leaving X untouched.
 function runKanban(rulesFile, root, args) {
-  const result = spawnSync(process.execPath, [rulesFile, ...args], {
+  const [move, ...rest] = args
+  const result = spawnSync(process.execPath, [rulesFile, move, '--dir', root, ...rest], {
     cwd: root,
     stdio: 'inherit',
   })
   if (result.status !== 0) fail(`\`kanban.mjs ${args.join(' ')}\` failed — nothing else was changed`)
+}
+
+// The nearest board strictly ABOVE `root`, when there is one. A second board underneath an
+// existing one is legal and occasionally meant, but it is almost never what someone who ran
+// `install` in a subfolder wanted, so it is said out loud.
+function boardAbove(root) {
+  let at = path.dirname(path.resolve(root))
+  for (;;) {
+    if (fs.existsSync(path.join(at, 'docs', 'kanban'))) return at
+    const up = path.dirname(at)
+    if (up === at) return null
+    at = up
+  }
 }
 
 // The repair steps an update has to run on a board written by an older version. Each one is
@@ -339,12 +361,17 @@ function checkModules(board) {
 function cmdInstall(root, tracks) {
   say(`ai4kanban ${VERSION} — installing into ${root}`)
   say('')
+  const above = fs.existsSync(path.join(root, 'docs', 'kanban')) ? null : boardAbove(root)
+  if (above) {
+    notes.push(`there is already a board at ${above} — this makes a second one, and commands run here will find this one`)
+  }
   runKanban(builtRules(), root, ['init', ...tracks])
   sayNotes()
   say('')
   // Say what landed, so nobody goes looking for the flows in the repo. They ship with the
   // command; a project holds its own board and nothing else.
-  say('That is the board. Nothing was written outside docs/kanban/.')
+  say('That is the board, under docs/kanban/. The one line written outside it is `.akb/` in')
+  say('.gitignore, which keeps the folders a delivery works in out of git.')
   say('')
   say('To drive this board from your coding agent, add the skill — from the button in the')
   say('board UI (Configuration → Agent setup), or here:')

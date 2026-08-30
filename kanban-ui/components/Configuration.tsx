@@ -878,7 +878,9 @@ function ConnectionTester({
   // Nothing in the dialog itself listens.
   onResult?: (result: ConnectionTest | null) => void;
   // Handed this button's own press, for the first run's agent step (#280) — one
-  // button there, and it has to be this call.
+  // button there, and it has to be this call. Being asked for it is also what takes
+  // this button off the pane: the press has an owner, and two controls that start the
+  // same call, both reading "Testing…" while it runs, is the same button drawn twice.
   runTest?: RunTest;
 }) {
   const c = useCopy().configuration.harness.test;
@@ -913,22 +915,32 @@ function ConnectionTester({
   };
   if (runTest) runTest.current = test;
 
+  // Whose press this is. When it is somebody else's, all that is left here is what came
+  // back — and the one line that is not a duplicate: a pick that has not been saved, which
+  // is why a press outside would appear to do nothing.
+  const own = !runTest;
+  if (!own && !unsavedPick && !running && !result) return null;
+
   return (
     <div className="mt-3">
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          disabled={running || disabled || unsavedPick}
-          onClick={() => void test()}
-          className={`${QUIET_BTN} inline-flex shrink-0 items-center gap-1.5`}
-        >
-          <FiZap className="text-[13px]" aria-hidden />
-          {running ? c.running : c.run}
-        </button>
-        <p className="text-[12px] leading-relaxed text-nb-ink-soft">
-          {unsavedPick ? c.unsavedPick : c.blurb(agentLabel)}
-        </p>
-      </div>
+      {own ? (
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled={running || disabled || unsavedPick}
+            onClick={() => void test()}
+            className={`${QUIET_BTN} inline-flex shrink-0 items-center gap-1.5`}
+          >
+            <FiZap className="text-[13px]" aria-hidden />
+            {running ? c.running : c.run}
+          </button>
+          <p className="text-[12px] leading-relaxed text-nb-ink-soft">
+            {unsavedPick ? c.unsavedPick : c.blurb(agentLabel)}
+          </p>
+        </div>
+      ) : (
+        unsavedPick && <p className="text-[12px] leading-relaxed text-nb-ink-soft">{c.unsavedPick}</p>
+      )}
       {(running || result) && <TestResult copy={c} running={running} result={result} />}
     </div>
   );

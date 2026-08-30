@@ -35,7 +35,9 @@ export type SetupCopy = {
     };
     reading: { ask: string; blurb: string };
     project: {
-      tracks: string;
+      /** Leads the list of tracks, counting them: a reader who has never heard the word
+       *  learns what one is from this line and the list under it. */
+      tracks: (count: number) => string;
       right: string;
       hint: string;
       yes: string;
@@ -101,10 +103,10 @@ export type SetupCopy = {
     /** The goal was left for later and every step left is planned from it. */
     goalFirst: string;
     writeGoal: string;
-    offer: string;
+    /** Start the setup run: the board's own strip offers it, and the closing screen
+     *  offers it again after one failed. */
     finish: string;
     starting: string;
-    handOver: string;
     open: string;
     startFailed: string;
   };

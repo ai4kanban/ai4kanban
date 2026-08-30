@@ -124,12 +124,24 @@ export interface CommandInstallResult {
 }
 
 interface AppBridge {
-  info(): Promise<{ version: string; platform: string; boardDir: string | null; downloadsUrl: string }>;
+  info(): Promise<{
+    version: string;
+    platform: string;
+    boardDir: string | null;
+    downloadsUrl: string;
+    /** This board was made when the folder was opened, and nothing has been done to it
+     *  since — what `discardBoard` below is offered on. Absent in an app older
+     *  than that, where the board was never made without being asked for. */
+    boardJustMade?: boolean;
+  }>;
   projects(): Promise<ProjectEntry[]>;
   openProject(dir: string): Promise<string | null>;
   forgetProject(dir: string): Promise<ProjectEntry[]>;
   pickRepo(): Promise<string | null>;
   createBoard(): Promise<{ ok: boolean; error?: string }>;
+  /** Wrong folder: remove the board opening it made, put the folder back as it was,
+   *  and ask which project was meant. Optional — an older app makes no board unasked. */
+  discardBoard?(): Promise<{ ok: boolean; error?: string }>;
   command(): Promise<CommandInstall>;
   installCommand(): Promise<CommandInstallResult>;
   update(): Promise<{ version: string; url: string } | null>;
@@ -604,6 +616,88 @@ export function MakeBoardHere({ desktop }: { desktop: boolean }) {
           {error}
         </pre>
       )}
+    </div>
+  );
+}
+
+/** The way back out of a folder opened by mistake.
+ *
+ *  Opening a folder with no board makes one there rather than asking — one step into the
+ *  board instead of two — and this is what pays for that. While the board is still the
+ *  app's own work and none of the user's, one press removes it, puts the folder back as it
+ *  was, and asks which project was meant.
+ *
+ *  It draws nothing in a browser, nothing on a board this window didn't just make, and
+ *  nothing once setup has an answer in it — the caller decides that last one, because the
+ *  answers are on its screen. */
+export function DiscardNewBoard({ shape = "button" }: { shape?: "button" | "link" }) {
+  const c = useCopy().chrome.noBoard;
+  const [offered, setOffered] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const app = bridge();
+    if (!app?.discardBoard) return;
+    let alive = true;
+    app
+      .info()
+      .then((info) => alive && setOffered(Boolean(info.boardJustMade)))
+      // An app that can't say leaves the button off, which is the safe way round: the
+      // board stays where it is and Open Folder is still on the folder badge.
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const discard = () => {
+    setBusy(true);
+    setError(null);
+    bridge()
+      ?.discardBoard?.()
+      // A board that went comes back as the launcher with the folder picker over it, so
+      // there is nothing left to draw here but a failure.
+      .then((res) => {
+        if (!res.ok) {
+          setError(res.error ?? c.discardFailed);
+          setBusy(false);
+        }
+      })
+      .catch((e) => {
+        setError(String(e));
+        setBusy(false);
+      });
+  };
+
+  if (!offered) return null;
+  // Two shapes for the two screens setup has: a button on the rail, where the way out to
+  // the board is a button too, and a link in the conversation's row of ways out.
+  return (
+    <div className={shape === "link" ? "flex items-center gap-3" : undefined}>
+      {shape === "link" ? (
+        <button
+          type="button"
+          title={c.discardHint}
+          disabled={busy}
+          onClick={discard}
+          className="cursor-pointer text-[13px] font-[700] text-nb-ink-soft underline-offset-2 hover:text-nb-ink hover:underline"
+        >
+          {busy ? c.discarding : c.discard}
+        </button>
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full"
+          title={c.discardHint}
+          disabled={busy}
+          onClick={discard}
+        >
+          <FiFolder size={14} /> {busy ? c.discarding : c.discard}
+        </Button>
+      )}
+      {error && <p className="mt-2 text-[11.5px] leading-relaxed text-nb-ink-soft">{error}</p>}
     </div>
   );
 }

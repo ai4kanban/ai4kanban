@@ -41,6 +41,10 @@ const en: ChromeCopy = {
     make: "Make a board here",
     making: "Making the board…",
     makeFailed: "the board could not be made",
+    discard: "Wrong folder",
+    discardHint: "Remove this new board, put the folder back as it was, and open another",
+    discarding: "Removing…",
+    discardFailed: "the board could not be removed",
   },
   command: {
     install: "Install",

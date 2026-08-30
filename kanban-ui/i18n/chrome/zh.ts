@@ -40,6 +40,10 @@ const zh: ChromeCopy = {
     make: "在这里创建看板",
     making: "正在创建看板…",
     makeFailed: "看板创建失败",
+    discard: "选错文件夹了",
+    discardHint: "删掉刚创建的看板，把文件夹恢复原样，再选一个",
+    discarding: "正在删除…",
+    discardFailed: "看板删除失败",
   },
   command: {
     install: "安装",

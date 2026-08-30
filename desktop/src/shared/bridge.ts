@@ -15,6 +15,10 @@ export interface AppInfo {
   platform: NodeJS.Platform;
   boardDir: string | null;
   downloadsUrl: string;
+  /** The board on screen was made when this folder was opened, and nothing has been done
+   *  to it since. It is what lets the setup screen offer to take a wrong folder
+   *  back — the only place `discardBoard` may be called from. */
+  boardJustMade: boolean;
 }
 
 /** One line of the projects list. `name` is the folder's own name, which is what
@@ -118,6 +122,8 @@ export const CHANNELS = {
   forgetProject: "a4k:forget-project",
   pickRepo: "a4k:pick-repo",
   createBoard: "a4k:create-board",
+  /** Take back a board the app made when this folder was opened. */
+  discardBoard: "a4k:discard-board",
   /** Where `akb` stands on this machine, and the press that puts it there (#226). */
   command: "a4k:command",
   installCommand: "a4k:install-command",
@@ -181,9 +187,13 @@ export interface Ai4kanbanBridge {
   /** Ask the user for another project folder and open it. Returns the folder
    *  now open, which is the old one when they cancelled. */
   pickRepo(): Promise<string | null>;
-  /** Make a board in the open project — the way out of "there is no board here"
+  /** Make a board in the open project — the retry on "there is no board here"
    *  in a window with no terminal. */
   createBoard(): Promise<CreateBoardResult>;
+  /** Wrong folder: remove the board opening it made, put the folder back as it
+   *  was, and ask which project was meant. Only ever offered while `boardJustMade` — a
+   *  board with an answered setup step is the user's, not the app's to remove. */
+  discardBoard(): Promise<CreateBoardResult>;
   /** Where the `akb` command stands on this machine (#226). */
   command(): Promise<CommandInstall>;
   /** Put `akb` on the PATH. On macOS this is where the system asks for an

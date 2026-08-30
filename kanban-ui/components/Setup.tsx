@@ -37,7 +37,7 @@
 // flow opens on and when it is over — there is no second record of how far the
 // user got, so closing the window and coming back lands on the same screen.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiCheck, FiChevronUp, FiCopy, FiFlag, FiPlay, FiTerminal, FiX } from "react-icons/fi";
 import {
   finishSetupAgentStepAction,
@@ -59,6 +59,7 @@ import {
 } from "@/lib/types";
 import { Button } from "./button";
 import { configDialog, HarnessPicker } from "./Configuration";
+import { DiscardNewBoard } from "./desktop";
 import { FirstRun } from "./FirstRun";
 import { GoalEditor } from "./Goal";
 import { GuideDrawer } from "./Guide";
@@ -322,6 +323,12 @@ export function SetupFlow({
   // be read is drawn by it too: the conversation has no rail, so its ways out live under
   // the turn, and a turn that never draws would be the one screen with no way off it.
   const talking = !byHand && Boolean(step) && !readError;
+  // Whether the wrong folder can still be taken back. The app makes a board the
+  // moment a boardless folder is opened, and this is the offer that pays for not asking
+  // first — but only until the project step is answered. That answer is the first thing
+  // written that is the user's rather than the installer's, and it is also the screen the
+  // folder's own name is read out on, which is where a wrong one is noticed.
+  const canDiscard = desktop && !steps.some((s) => s.name === "project" && s.done);
 
   return (
     // The same frame the board is drawn in (components/Window.tsx): the top row
@@ -357,6 +364,7 @@ export function SetupFlow({
               onBackToAgent={backToAgent}
               onByHand={fillItIn}
               onExit={onExit}
+              canDiscard={canDiscard}
             />
           )}
         </div>
@@ -372,6 +380,7 @@ export function SetupFlow({
           goalSkipped={goalSkipped}
           onGo={setIndex}
           onExit={onExit}
+          canDiscard={canDiscard}
         />
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-tl-[14px] bg-nb-paper">
@@ -429,8 +438,6 @@ export function SetupFlow({
               {draft && !step && (
                 <DoneStep
                   setup={setup}
-                  instruction={setupInstruction}
-                  skillInstalled={skillInstalled}
                   runId={setupRunId}
                   failedRunId={failedSetupRunId}
                   onStart={onFinishSetup}
@@ -473,6 +480,7 @@ function StepRail({
   goalSkipped,
   onGo,
   onExit,
+  canDiscard,
 }: {
   steps: SetupStep[];
   index: number;
@@ -481,6 +489,8 @@ function StepRail({
   goalSkipped: boolean;
   onGo: (index: number) => void;
   onExit: () => void;
+  /** Whether the folder this board was made in can still be given back. */
+  canDiscard: boolean;
 }) {
   const c = useCopy().setup;
   const settled = (name: string): string => {
@@ -542,11 +552,14 @@ function StepRail({
           );
         })}
       </nav>
-      {/* Leaving is never losing (the rules above) — the board keeps a way back in. */}
-      <div className="mt-auto pt-3">
+      {/* Leaving is never losing (the rules above) — the board keeps a way back in. Under
+          it, while the board is still nobody's work but the installer's, the way out of
+          the folder itself. */}
+      <div className="mt-auto flex flex-col gap-2 pt-3">
         <Button variant="ghost" size="sm" className="w-full" onClick={onExit}>
           {c.rail.exit}
         </Button>
+        {canDiscard && <DiscardNewBoard />}
       </div>
     </div>
   );
@@ -856,13 +869,20 @@ function AgentStep({
 
 // ---- the closing screen ----------------------------------------------------
 
-// What is left after the questions: the steps that read the repo and think. The
-// board runs them itself now (#173) — one press, one run — and the line to paste
-// into a coding agent sits under it for whoever would rather finish there.
+// What is left after the questions: the steps that read the repo and think. The board runs
+// them itself (#173), and it starts the moment this screen opens — there was never a choice
+// to make here, and a button that everyone presses is a screen asking permission to do the
+// only thing it does. So this is a progress view: the steps that were left, ticking off as
+// the run works down them, and the way to watch it or leave it going.
+//
+// It starts once. A run that stopped short says so and offers the press again — a screen
+// that restarted a failing run by itself would loop — and a board whose goal was left for
+// later asks for that first, since nothing after the goal can be planned without one.
+//
+// The line to paste into a coding agent is not here: the frame's own fold at the foot of
+// every setup screen carries it, and it was the same two elements twice.
 function DoneStep({
   setup,
-  instruction,
-  skillInstalled,
   runId,
   failedRunId,
   onStart,
@@ -870,8 +890,6 @@ function DoneStep({
   onExit,
 }: {
   setup: SetupState;
-  instruction: string;
-  skillInstalled: boolean;
   runId: string | null;
   failedRunId: string | null;
   onStart: () => Promise<StartAnswer>;
@@ -879,30 +897,55 @@ function DoneStep({
   onExit: () => void;
 }) {
   const c = useCopy().setup.done;
-  const left = setup.steps.filter((s) => !s.done);
   const { start, starting, error } = useFinishSetup(onStart);
   const noGoal = goalMissing(setup);
+  // The steps left when this screen opened, held by name so the list ticks in place rather
+  // than shrinking away under the reader as the run works down it.
+  const [plan] = useState(() => setup.steps.filter((s) => !s.done).map((s) => s.name));
+  const rows = plan
+    .map((name) => setup.steps.find((s) => s.name === name))
+    .filter((s): s is SetupStep => Boolean(s));
+  const at = rows.find((s) => !s.done)?.name ?? null;
+  const running = Boolean(runId) || starting;
+
+  // Started here, once, on arrival — never again, whatever the answer was.
+  const began = useRef(false);
+  useEffect(() => {
+    if (began.current || noGoal || runId || failedRunId) return;
+    began.current = true;
+    void start();
+  }, [noGoal, runId, failedRunId, start]);
+
   return (
     <StepBody title={c.title} blurb={c.blurb}>
-      {left.length > 0 && (
+      {rows.length > 0 && (
         <ul className="flex flex-col gap-2">
-          {left.map((step) => (
+          {rows.map((step) => (
             <li key={step.name} className="flex items-start gap-2 text-[13px] leading-relaxed">
-              <span
-                className="mt-[6px] size-[6px] shrink-0 rounded-full bg-nb-ink/30"
-                aria-hidden
-              />
-              <Ticks text={step.text} />
+              {step.done ? (
+                <FiCheck className="mt-[3px] shrink-0 text-[13px] text-nb-mint-ink" aria-hidden />
+              ) : (
+                <span
+                  className={cn(
+                    "mt-[6px] size-[6px] shrink-0 rounded-full",
+                    step.name === at && running
+                      ? "bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]"
+                      : "bg-nb-ink/30",
+                  )}
+                  aria-hidden
+                />
+              )}
+              <span className={step.done ? "text-nb-ink-soft" : undefined}>
+                <Ticks text={step.text} />
+              </span>
             </li>
           ))}
         </ul>
       )}
 
-      {/* The offer, or what stands in for it. */}
+      {/* What the run is doing, or the one thing standing in its way. */}
       <div className="mt-5 nb-panel-sm p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
-        {runId ? (
-          <WatchingSetup runId={runId} />
-        ) : noGoal ? (
+        {noGoal ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] leading-relaxed">
             <span className="min-w-0 flex-1">
               <Rich>{c.goalFirst}</Rich>
@@ -911,27 +954,29 @@ function DoneStep({
               {c.writeGoal}
             </Button>
           </div>
-        ) : (
+        ) : runId ? (
+          <WatchingSetup runId={runId} />
+        ) : failedRunId || error ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] leading-relaxed">
             <span className="min-w-0 flex-1">
-              {failedRunId ? (
-                <SetupRunFailed runId={failedRunId} />
-              ) : (
-                <Rich>{c.offer}</Rich>
-              )}
+              {failedRunId && <SetupRunFailed runId={failedRunId} />}
             </span>
             <Button size="sm" className="shrink-0" disabled={starting} onClick={start}>
               <FiPlay className="text-[13px]" aria-hidden />
               {starting ? c.starting : c.finish}
             </Button>
           </div>
+        ) : (
+          <span className="flex items-center gap-2 text-[13px] text-nb-ink-soft">
+            <span
+              className="size-[8px] shrink-0 rounded-full bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]"
+              aria-hidden
+            />
+            {c.starting}
+          </span>
         )}
         {error && <div className="mt-3"><Failure text={error} /></div>}
       </div>
-
-      <div className="mt-5">{!skillInstalled && <AddSkillFirst />}</div>
-      <p className="text-[13px] leading-relaxed text-nb-ink-soft">{c.handOver}</p>
-      <CopyLine text={instruction} />
 
       <StepButtons>
         <Button size="sm" onClick={onExit}>
