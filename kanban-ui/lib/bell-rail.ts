@@ -5,6 +5,7 @@ import {
   openNotificationAction,
   readAllNotificationsAction,
 } from "@/app/actions";
+import { CHAT_MAX, CHAT_MIN, CHAT_W } from "./chat-rail";
 import type { NotificationAlert, NotificationCenter } from "./notifications";
 
 // The bell's own state (#319): whether the rail is up, how wide it is, and the events it is
@@ -22,12 +23,12 @@ import type { NotificationAlert, NotificationCenter } from "./notifications";
 const OPEN_KEY = "kanban-ui.bell-open";
 const WIDTH_KEY = "kanban-ui.bell-width";
 
-/** What the rail opens at: wide enough for two lines of a card title, narrow enough to
- *  leave the board the screen. Deliberately the chat rail's own range, since they share the
- *  right side and a user who widened one meant "this side is this wide". */
-export const BELL_W = 292;
-export const BELL_MIN = 248;
-export const BELL_MAX = 480;
+/** What the rail opens at: wide enough for a card title on one line, narrow enough to leave
+ *  the board the screen. The chat rail's range exactly (lib/chat-rail.ts), since they share
+ *  the right side and a rail that changes width as you switch between them reads as a jump. */
+export const BELL_W = CHAT_W;
+export const BELL_MIN = CHAT_MIN;
+export const BELL_MAX = CHAT_MAX;
 
 /** Under this the window cannot hold the board between two rails, so the bell covers it. */
 const OVERLAY_UNDER = "(width < 60rem)";

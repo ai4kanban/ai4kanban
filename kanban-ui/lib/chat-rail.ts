@@ -30,11 +30,12 @@ const WIDTH_KEY = "kanban-ui.chat-width";
  *  is worked out from. */
 const SEEN_PREFIX = "kanban-ui.chat-seen:";
 
-/** What the rail opens at: wide enough for a paragraph of reply, narrow enough to leave the
- *  board the screen. */
-export const CHAT_W = 360;
-export const CHAT_MIN = 288;
-export const CHAT_MAX = 620;
+/** What the rail opens at: wide enough for a paragraph of reply without a line break every
+ *  few words, narrow enough to leave the board the screen. Shared with the bell
+ *  (lib/bell-rail.ts) — one side of the window, one width. */
+export const CHAT_W = 420;
+export const CHAT_MIN = 320;
+export const CHAT_MAX = 680;
 
 /** Under this the window cannot hold the board between two rails, so the chat covers it
  *  instead of squeezing it. */
