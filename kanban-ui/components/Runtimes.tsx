@@ -43,15 +43,12 @@ import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import type { BoardServer } from "@/lib/notifications";
 import type { AgentInfo, RuntimeView } from "@/lib/types";
-import { CONTROL, HarnessPicker, PaneHeading, QUIET_BTN } from "./Configuration";
+import { HarnessPicker } from "./Configuration";
+import { Alert, CAPTION, CONTROL, Group, Note, Panel, QUIET_BTN } from "./settings";
 
 // One runtime's name, wherever it is shown: the board holds it, so it reads as the word it
 // is rather than as a sentence.
 const NAME = "font-mono text-[13px] font-[800] text-nb-ink";
-
-// The small uppercase label a column heading and the server's line wear — the same one the
-// settings under the harness cards use.
-const CAP = "text-[10px] font-[700] uppercase leading-[13px] tracking-[0.07em]";
 
 export function RuntimesPanel({
   agent,
@@ -109,31 +106,29 @@ export function RuntimesPanel({
   // too old to answer, where **Add runtime** is not offered either.
   if (!manageable || !info.namedRuntimes) {
     return (
-      <>
-        <PaneHeading title={c.title} description={c.boardsOwn} />
+      <Group title={c.title}>
         <HarnessPicker agent={info} onError={onError} />
+        <Note>{c.boardsOwn}</Note>
         {manageable && (
-          <div className="mt-5 border-t border-nb-ink/10 pt-4">
+          <div className="mt-3">
             <AddRuntime onAdded={setInfo} onError={onError} />
           </div>
         )}
-      </>
+      </Group>
     );
   }
 
   return (
-    <>
-      <PaneHeading title={c.title} description={c.blurb(info.machine)} />
-
+    <Group title={c.title}>
       {/* Who reads which half. The board's names go with the repository; what they run as
           stops at this machine — said once, over the column it is true of. */}
-      <div className="mb-1.5 flex items-end gap-3 px-0.5">
+      <div className="mb-1.5 flex items-end gap-3 px-4">
         <div className="w-[150px] shrink-0">
-          <p className={`${CAP} text-nb-ink`}>{c.boardHalf}</p>
+          <p className={`${CAPTION} text-nb-ink`}>{c.boardHalf}</p>
           <p className="text-[11px] leading-[14px] text-nb-ink-soft">{c.boardHalfNote}</p>
         </div>
         <div className="min-w-0 flex-1">
-          <p className={`${CAP} flex items-center gap-1.5 text-nb-ink`}>
+          <p className={`${CAPTION} flex items-center gap-1.5 text-nb-ink`}>
             <FiMonitor className="shrink-0 text-[12px]" aria-hidden />
             {c.computerHalf(info.machine)}
           </p>
@@ -141,39 +136,42 @@ export function RuntimesPanel({
         </div>
       </div>
 
-      <ul className="overflow-hidden rounded-[12px] border border-nb-ink/25 bg-nb-paper">
+      {/* One row per runtime, and the whole row opens it — so the card is a list of names
+          rather than a list of names with a button beside each. */}
+      <Panel>
         {info.runtimes.map((runtime) => (
-          <li key={runtime.name} className="border-b border-nb-ink/10 last:border-b-0">
-            <button
-              type="button"
-              onClick={() => setOpen(runtime.name)}
-              className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-colors duration-100 hover:bg-nb-wash focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-nb-accent"
+          <button
+            key={runtime.name}
+            type="button"
+            onClick={() => setOpen(runtime.name)}
+            className="flex w-full cursor-pointer items-center gap-3 border-b border-nb-ink/10 py-3 text-left last:border-b-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-nb-accent"
+          >
+            <span className="flex w-[150px] shrink-0 items-center gap-2">
+              <span className={NAME}>{runtime.name}</span>
+              {runtime.global && (
+                <span className="rounded-[5px] bg-nb-accent-soft px-1.5 py-0.5 text-[9px] font-[800] uppercase leading-none tracking-[0.06em] text-nb-accent-deep">
+                  {c.global}
+                </span>
+              )}
+            </span>
+            <span
+              className={`min-w-0 flex-1 truncate text-[12.5px] ${
+                runtime.binding ? "text-nb-ink" : "text-nb-ink-soft"
+              }`}
             >
-              <span className="flex w-[150px] shrink-0 items-center gap-2">
-                <span className={NAME}>{runtime.name}</span>
-                {runtime.global && (
-                  <span className="rounded-[5px] bg-nb-accent-soft px-1.5 py-0.5 text-[9px] font-[800] uppercase leading-none tracking-[0.06em] text-nb-accent-deep">
-                    {c.global}
-                  </span>
-                )}
-              </span>
-              <span
-                className={`min-w-0 flex-1 truncate text-[12.5px] ${
-                  runtime.binding ? "text-nb-ink" : "text-nb-ink-soft"
-                }`}
-              >
-                {runsAs(runtime, info, c)}
-              </span>
-              <FiChevronRight className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
-            </button>
-          </li>
+              {runsAs(runtime, info, c)}
+            </span>
+            <FiChevronRight className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
+          </button>
         ))}
-      </ul>
+      </Panel>
+
+      <Note>{c.blurb(info.machine)}</Note>
 
       <div className="mt-3">
         <AddRuntime onAdded={setInfo} onError={onError} />
       </div>
-    </>
+    </Group>
   );
 }
 
@@ -279,17 +277,15 @@ function RuntimePane({
         {c.back}
       </button>
 
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="flex items-center gap-2">
-          <span className="font-mono text-[17px] font-[800] tracking-[-0.01em] text-nb-ink">
-            {view.name}
-          </span>
+      <div className="mb-2 flex min-h-[30px] items-center justify-between gap-3">
+        <h4 className="flex items-center gap-2">
+          <span className="font-mono text-[13px] font-[800] text-nb-ink">{view.name}</span>
           {view.global && (
             <span className="rounded-[5px] bg-nb-accent-soft px-1.5 py-0.5 text-[9px] font-[800] uppercase leading-none tracking-[0.06em] text-nb-accent-deep">
               {c.global}
             </span>
           )}
-        </h3>
+        </h4>
         <span className="flex shrink-0 items-center gap-1.5">
           <button
             type="button"
@@ -321,9 +317,6 @@ function RuntimePane({
           </button>
         </span>
       </div>
-      <p className="mb-3 mt-1 text-[13px] leading-relaxed text-nb-ink-soft">
-        <Rich>{c.bindingBlurb(view.name) + (view.global ? ` ${c.isGlobal}` : "")}</Rich>
-      </p>
 
       {asking === "rename" && (
         <RenameRuntime
@@ -352,7 +345,7 @@ function RuntimePane({
 
       {/* This computer's binding. The card names the machine it is true of, because every
           other board on it shares the same entry. */}
-      <div className="rounded-[12px] border border-nb-ink/25 bg-nb-paper p-3">
+      <div className="rounded-[12px] border border-nb-ink/12 bg-nb-sheet px-4 py-3">
         <div className="mb-2.5 flex items-center justify-between gap-2">
           <span className="flex items-center gap-2">
             <FiMonitor className="shrink-0 text-[14px] text-nb-ink" aria-hidden />
@@ -376,10 +369,9 @@ function RuntimePane({
         {/* Nothing bound here, so nothing on the grid is pressed — and the runtime still
             runs something, which the list already says. */}
         {!view.binding && (
-          <p className="mb-2 flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-            <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
-            <span>{c.pickHarness(notBound(view, c), fellBackTo(view, info, c))}</span>
-          </p>
+          <Note icon={<FiAlertCircle />}>
+            {c.pickHarness(notBound(view, c), fellBackTo(view, info, c))}
+          </Note>
         )}
 
         {/* Keyed by what is bound, not just by the runtime: Unbind above is a change the
@@ -392,11 +384,17 @@ function RuntimePane({
         />
       </div>
 
+      {/* What the board names this runtime, and whether every flow that names none runs on
+          it — under the card it is true of. */}
+      <Note>
+        <Rich>{c.bindingBlurb(view.name) + (view.global ? ` ${c.isGlobal}` : "")}</Rich>
+      </Note>
+
       {/* The machine that runs this board's work, and what IT runs this runtime as (#345).
           Read-only: a binding belongs to the computer that holds it, and nothing here can
           reach that one. */}
       {theirs && (
-        <div className="mt-2.5 flex items-center gap-3 rounded-[12px] border border-nb-ink/15 bg-nb-wash px-3 py-2">
+        <div className="mt-2.5 flex items-center gap-3 rounded-[12px] border border-nb-ink/12 bg-nb-wash px-4 py-2.5">
           <span className="flex w-[150px] shrink-0 items-center gap-2">
             <FiMonitor className="shrink-0 text-[12px] text-nb-ink-soft" aria-hidden />
             <span className="truncate font-mono text-[12px] font-[700] text-nb-ink-soft">
@@ -408,7 +406,7 @@ function RuntimePane({
               ? c.server.notBound
               : c.runs(labelOf(info, theirs.harness), theirs.model ?? "")}
           </span>
-          <span className={`${CAP} flex shrink-0 items-center gap-1 text-nb-ink-soft`}>
+          <span className={`${CAPTION} flex shrink-0 items-center gap-1 text-nb-ink-soft`}>
             <FiCloud className="text-[12px]" aria-hidden />
             {c.server.label}
           </span>
@@ -518,7 +516,7 @@ function RenameRuntime({
   const [name, setName] = useState(runtime);
 
   return (
-    <div className="mb-3 flex items-start gap-3 rounded-[12px] border border-nb-ink/15 bg-nb-wash px-3 py-2.5">
+    <div className="mb-3 flex items-start gap-3 rounded-[12px] border border-nb-ink/12 bg-nb-wash px-4 py-2.5">
       <div className="flex w-[260px] shrink-0 items-center gap-2">
         <input
           autoFocus
@@ -595,15 +593,18 @@ function RemoveRuntime({
   const moved = [...(users?.flows ?? []), ...(users?.specAgents ?? [])];
 
   return (
-    <div className="mb-3 rounded-[12px] border border-nb-ink/15 bg-nb-peach-soft px-3 py-2.5">
-      <p className="text-[12.5px] leading-relaxed text-nb-peach-ink">
+    <div className="mb-3">
+      <Alert>
         <Rich>{isGlobal ? c.removeGlobal(runtime) : c.removeBlurb(runtime)}</Rich>
-      </p>
-      {!isGlobal && users && (
-        <p className="mt-1 text-[12px] leading-relaxed text-nb-ink-soft">
-          <Rich>{moved.length ? c.removeMoves(moved.join(", "), globalRuntime) : c.removeNothing}</Rich>
-        </p>
-      )}
+        {!isGlobal && users && (
+          <>
+            {" "}
+            <Rich>
+              {moved.length ? c.removeMoves(moved.join(", "), globalRuntime) : c.removeNothing}
+            </Rich>
+          </>
+        )}
+      </Alert>
       <div className="mt-2 flex items-center gap-2">
         {!isGlobal && (
           <button type="button" disabled={busy} onClick={onRemove} className={QUIET_BTN}>

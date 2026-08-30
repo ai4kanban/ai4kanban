@@ -4,9 +4,15 @@
 // through (#326). Named for the job in the nav; Cloud is the plumbing, and is said in the
 // sentences rather than on the tab.
 //
-// It sits below the sections that settle this board, separated from them by a rule, because
-// the sign-in is not a board setting: one sign-in covers every project the app has open and
-// every terminal on the machine, and it is held outside every repository.
+// Three captioned groups, the same shape General is built from (components/settings.tsx):
+// **Account** — who this machine acts as, and the silencing switch that holds for every
+// board on it. **Where it posts** — one row per chat. **This board** — the release it
+// watches and the machine that runs its work. One row is one decision, so the sign-in, a
+// connection and a switch all read off the same left edge.
+//
+// The sign-in is not a board setting: one sign-in covers every project the app has open and
+// every terminal on the machine, and it is held outside every repository. That is what the
+// note under the first group says.
 //
 // The sign-in happens in three places and no fewer. This pane asks the board server for the
 // consent URL — the secret half of it never leaves the machine — the app opens that URL in
@@ -17,27 +23,12 @@
 // Four states, one per answer a sign-in can come back with: not signed in, signed in and
 // admitted, signed in and not admitted, and expired. What the service refuses is shown in
 // the service's own words — Cloud writes its refusals to be read as they stand, and a copy
-// of them here would be a second thing to keep true.
-//
-// The not-admitted state is the one with something to do in it (#327), and it reads as one
-// column: the refusal, one line saying how we answer, **Request an invite**, and Sign out
-// last. Approving is the whole of getting in (#350), so there is one ask here and nothing to
-// paste back.
-//
-// The admitted state is one column in two tiers, and no prose explaining what a notification
-// is — the tab already said it. Above: what holds for the account and the machine — who you
-// are, the silencing switch, and Slack. Below a **This board** caption: what only this board
-// settles — the release it watches and the machine that runs its work.
+// of them here would be a second thing to keep true. The not-admitted state keeps the same
+// account row and adds one asking row (#327): approving is the whole of getting in (#350),
+// so there is one ask here and nothing to paste back.
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import {
-  FiAlertCircle,
-  FiBell,
-  FiBellOff,
-  FiCheck,
-  FiLogOut,
-  FiMail,
-} from "react-icons/fi";
+import { FiBell, FiBellOff, FiLogOut, FiMail } from "react-icons/fi";
 import { SiGithub } from "react-icons/si";
 import {
   boardNotificationsAction,
@@ -78,6 +69,19 @@ import {
 } from "@/lib/types";
 import { LarkMark, SlackMark } from "./brands";
 import { Button } from "./button";
+import {
+  Alert,
+  CAPTION,
+  Group,
+  Loading,
+  MARK,
+  Note,
+  Panel,
+  QUIET_BTN,
+  Row,
+  Status,
+  Switch,
+} from "./settings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 /** The published pages the terms say signing in confirms you have read. */
@@ -89,16 +93,6 @@ const TERMS_URL = "https://ai4kanban.dev/terms";
 const SIGNED_IN = "ai4kanban://cloud/signed-in";
 const SLACK_CONNECTED = "ai4kanban://cloud/slack-connected";
 const LARK_CONNECTED = "ai4kanban://cloud/lark-connected";
-
-/** The pane's one band shape. A wash fill and no frame: the fill already says which lines
- *  belong together, and an outline round it is a second boundary saying the same thing
- *  (components/section.tsx). Tiers inside a band are parted by space, not by a rule. */
-const BAND = "rounded-[10px] bg-nb-wash px-4 py-3.5";
-
-/** The gutter every band's icon sits in, and the indent of anything written under a title —
- *  the mark plus the gap beside it — so a band's lines all start on the same column. */
-const MARK = 18;
-const INDENT = "pl-[30px]";
 
 interface AppBridge {
   openExternal(url: string): Promise<void>;
@@ -190,14 +184,9 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
   };
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{c.title}</h3>
-        <p className="mt-1 max-w-[58ch] text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
-      </div>
-
+    <div className="flex flex-col gap-6">
       {!account ? (
-        <p className="text-[13px] text-nb-ink-soft">{c.checking}</p>
+        <Loading>{c.checking}</Loading>
       ) : account.state === "signed-in" ? (
         <SignedIn
           account={account}
@@ -227,9 +216,7 @@ export function CloudPanel({ onError }: { onError?: (msg: string) => void }) {
         />
       )}
 
-      {account?.error && (
-        <Note>{c.unreachable(account.error)}</Note>
-      )}
+      {account?.error && <Alert>{c.unreachable(account.error)}</Alert>}
     </div>
   );
 }
@@ -259,44 +246,70 @@ function SignedIn({
   const c = useCopy().configuration.cloud;
   return (
     <>
-      <div className={`flex items-center gap-3.5 ${BAND}`}>
-        <Avatar account={account} />
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 text-[14px] font-[800] text-nb-ink">
-            {account.name || account.handle || c.signedIn}
-            <SiGithub className="shrink-0 text-nb-ink-soft" size={13} aria-label="GitHub" />
-          </p>
-          {account.handle && (
-            <p className="mt-[3px] font-mono text-[11.5px] font-[700] text-nb-ink">
-              @{account.handle}
-            </p>
-          )}
-        </div>
-        <Button size="sm" variant="ghost" disabled={busy} onClick={onSignOut}>
-          <FiLogOut size={13} aria-hidden />
-          {c.signOut}
-        </Button>
-      </div>
+      <Group title={c.account}>
+        <Panel>
+          <AccountRow account={account} busy={busy} onSignOut={onSignOut} />
+          <Silencer />
+        </Panel>
+        {/* One sign-in covers every project on this machine — said under the card, because
+            it is a fact about the row above rather than something to change. */}
+        <Note>{c.blurb}</Note>
+      </Group>
 
-      <Silencer />
-
-      <Slack inApp={inApp} reload={slackTick} onError={onError} />
-
-      <Lark inApp={inApp} reload={larkTick} onError={onError} />
+      <Group title={c.wherePosts}>
+        <Panel>
+          <Slack inApp={inApp} reload={slackTick} onError={onError} />
+          <Lark inApp={inApp} reload={larkTick} onError={onError} />
+        </Panel>
+      </Group>
 
       <Notifications />
     </>
   );
 }
 
+/** Who this machine acts as. The same row whether or not the account is admitted, so the
+ *  two states differ only in what is under it. */
+function AccountRow({
+  account,
+  busy,
+  onSignOut,
+}: {
+  account: CloudAccount;
+  busy: boolean;
+  onSignOut: () => void;
+}) {
+  const c = useCopy().configuration.cloud;
+  return (
+    <Row
+      icon={<Avatar account={account} />}
+      label={
+        <span className="flex items-center gap-2">
+          {account.name || account.handle || c.signedIn}
+          <SiGithub className="shrink-0 text-nb-ink-soft" size={13} aria-label="GitHub" />
+        </span>
+      }
+      hint={
+        account.handle && (
+          <span className="font-mono text-[11.5px] font-[700] text-nb-ink">@{account.handle}</span>
+        )
+      }
+    >
+      <button type="button" className={QUIET_BTN} disabled={busy} onClick={onSignOut}>
+        <FiLogOut size={13} aria-hidden />
+        {c.signOut}
+      </button>
+    </Row>
+  );
+}
+
 // --- the machine's one silencing switch (#319) --------------------------------
-// Above the board's tier: what it stops arrives from every board, and the bell keeps filling
-// either way.
+// In the account's group rather than the board's: what it stops arrives from every board,
+// and the bell keeps filling either way.
 
 function Silencer() {
   const c = useCopy().configuration.cloud;
   const [on, setOn] = useState<boolean | null>(null);
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     void notificationCenterAction().then((center) => setOn(center.silenced));
@@ -304,44 +317,32 @@ function Silencer() {
 
   // Flipped on screen before it is written, and put back only if the write refused: the
   // switch is the whole of the feedback, so one that waits reads as one that missed the press.
-  const flip = async () => {
-    if (busy || on === null) return;
-    setBusy(true);
-    setOn(!on);
-    try {
-      const done = await setSilencedAction(!on);
-      if (!done.ok) setOn(on);
-    } finally {
-      setBusy(false);
-    }
+  const flip = async (next: boolean) => {
+    setOn(next);
+    const done = await setSilencedAction(next);
+    if (!done.ok) setOn(!next);
   };
 
   return (
-    <div className={`flex items-center gap-3 ${BAND}`}>
-      <span className="shrink-0 text-nb-ink-soft">
-        {on ? <FiBellOff size={MARK} aria-hidden /> : <FiBell size={MARK} aria-hidden />}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[12.5px] font-[800] text-nb-ink">{c.silence.title}</p>
-        <p className="mt-[3px] text-[11.5px] leading-[16px] text-nb-ink-soft">{c.silence.blurb}</p>
-      </div>
-      <Switch
-        on={on === true}
-        busy={busy || on === null}
-        onFlip={() => void flip()}
-        label={c.silence.title}
-      />
-    </div>
+    <Row
+      icon={
+        <span className="text-nb-ink-soft">
+          {on ? <FiBellOff size={MARK} aria-hidden /> : <FiBell size={MARK} aria-hidden />}
+        </span>
+      }
+      label={c.silence.title}
+      hint={c.silence.blurb}
+    >
+      <Switch on={on} label={c.silence.title} onFlip={flip} />
+    </Row>
   );
 }
 
-// --- the band both chats wear ------------------------------------------------
-// Slack and Lark differ in what they call things and in which service answers; the band is
-// one shape. The mark and the platform on the top line with the way in or out at its end,
-// what to do or what went wrong under that, and — once connected — where it posts.
-//
-// The mark sits on the TITLE's line rather than in the middle of the band. Centred, a band
-// whose blurb runs to two lines floats its logo between them, level with nothing.
+// --- the row both chats wear -------------------------------------------------
+// Slack and Lark differ in what they call things and in which service answers; the row is
+// one shape — the settings kit's, with the platform's mark at its left edge. The platform
+// and the way in or out on the row's own line, what to do or what went wrong as its hint,
+// and — once connected — where it posts under it.
 
 function Connector({
   mark,
@@ -366,25 +367,28 @@ function Connector({
   children?: ReactNode;
 }) {
   return (
-    <div className={BAND}>
-      <div className="flex items-center gap-3">
-        <span className="flex shrink-0 items-center">{mark}</span>
-        <p className="flex min-w-0 flex-1 items-baseline gap-2 text-[14px] font-[800] text-nb-ink">
+    <Row
+      icon={mark}
+      label={
+        <span className="flex items-baseline gap-2">
           {title}
           {aside && (
             <span className="truncate text-[12px] font-[600] text-nb-ink-soft">{aside}</span>
           )}
-        </p>
-        {action}
-      </div>
-      {blurb && (
-        <p className={`mt-1 max-w-[52ch] text-[12.5px] leading-[18px] text-nb-ink-soft ${INDENT}`}>
-          {blurb}
-        </p>
-      )}
-      {children && <div className={`mt-1.5 ${INDENT}`}>{children}</div>}
-      {note && <div className={`mt-3 ${INDENT}`}>{note}</div>}
-    </div>
+        </span>
+      }
+      hint={blurb}
+      below={
+        (children || note) && (
+          <>
+            {children}
+            {note}
+          </>
+        )
+      }
+    >
+      {action}
+    </Row>
   );
 }
 
@@ -554,7 +558,7 @@ function Slack({
   };
 
   if (!state) {
-    return <p className="text-[12px] text-nb-ink-soft">{c.checking}</p>;
+    return <Connector mark={<SlackMark size={MARK} />} title={c.title} blurb={c.checking} />;
   }
 
   const { connection } = state;
@@ -602,16 +606,16 @@ function Slack({
       mark={<SlackMark size={MARK} />}
       title={c.title}
       action={
-        <Button
-          size="sm"
-          variant="ghost"
+        <button
+          type="button"
+          className={QUIET_BTN}
           disabled={busy}
           onClick={() => void move("disconnect", disconnectSlackAction)}
         >
           {working === "disconnect" ? c.disconnecting : c.disconnect}
-        </Button>
+        </button>
       }
-      note={connection.revoked && <Note title={c.refused}>{connection.lastError}</Note>}
+      note={connection.revoked && <Alert title={c.refused}>{connection.lastError}</Alert>}
     >
       <PostsTo
         label={c.postsTo}
@@ -728,7 +732,7 @@ function Lark({
   };
 
   if (!state) {
-    return <p className="text-[12px] text-nb-ink-soft">{c.checking}</p>;
+    return <Connector mark={<LarkMark size={MARK} />} title={c.title} blurb={c.checking} />;
   }
 
   const { connection } = state;
@@ -771,13 +775,7 @@ function Lark({
         action={
           inApp &&
           offered.map((one) => (
-            <Button
-              key={one.cloud}
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={() => void connect(one.cloud)}
-            >
+            <Button key={one.cloud} size="sm" disabled={busy} onClick={() => void connect(one.cloud)}>
               {connecting === one.cloud ? c.connecting : c.connect(one.name)}
             </Button>
           ))
@@ -798,18 +796,18 @@ function Lark({
       title={c.title}
       aside={connection.userName && c.connectedBy(connection.userName)}
       action={
-        <Button
-          size="sm"
-          variant="ghost"
+        <button
+          type="button"
+          className={QUIET_BTN}
           disabled={busy}
           onClick={() => void move("disconnect", disconnectLarkAction)}
         >
           {working === "disconnect" ? c.disconnecting : c.disconnect}
-        </Button>
+        </button>
       }
       note={
         connection.revoked && (
-          <Note title={c.refused(connection.cloudName)}>{connection.lastError}</Note>
+          <Alert title={c.refused(connection.cloudName)}>{connection.lastError}</Alert>
         )
       }
     >
@@ -887,17 +885,23 @@ function Notifications() {
   const release = pending.release ?? state.release;
 
   return (
-    <div>
-      <p className="text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">
-        {c.title}
-      </p>
-
-      <div className={`mt-2 ${BAND}`}>
+    <Group title={c.title}>
+      <Panel>
         {/* How wide this board watches. `All` is always there — it needs no release to exist —
             so the only empty answer left is a board resting on a release that closed, which
             shows the placeholder and the same prompt the rail gives where the filling stopped. */}
-        <div className="flex items-center gap-2.5">
-          <span className="text-[12px] font-[700] text-nb-ink">{c.watching}</span>
+        <Row
+          label={c.watching}
+          hint={
+            pending.release !== undefined
+              ? saving
+              : release === ALL_RELEASES
+                ? c.anyRelease
+                : release
+                  ? c.onlyThisRelease
+                  : c.releaseClosed
+          }
+        >
           <Select
             value={release || undefined}
             disabled={busy}
@@ -920,27 +924,14 @@ function Notifications() {
               ))}
             </SelectContent>
           </Select>
-          <span className="min-w-0 flex-1 text-[11.5px] leading-[16px] text-nb-ink-soft">
-            {pending.release !== undefined
-              ? saving
-              : release === ALL_RELEASES
-                ? c.anyRelease
-                : release
-                  ? c.onlyThisRelease
-                  : c.releaseClosed}
-          </span>
-        </div>
+        </Row>
 
         {/* Which machine runs this board's work (#318). */}
         <ServerRow state={state} here={pending.here ?? state.server.here} busy={busy} onMove={move} />
+      </Panel>
 
-        {error && (
-          <p className="mt-2 text-[11.5px] leading-[16px] text-nb-peach-ink" role="status">
-            {error}
-          </p>
-        )}
-      </div>
-    </div>
+      {error && <Alert>{error}</Alert>}
+    </Group>
   );
 }
 
@@ -973,90 +964,55 @@ function ServerRow({
   const elsewhere = server.attached && !server.here;
 
   return (
-    <div className="mt-4">
-      <div className="flex items-center gap-4">
-        <div className="min-w-0 flex-1">
-          <p className="text-[12.5px] font-[800] text-nb-ink">{c.title}</p>
-          <p className="mt-[3px] max-w-[52ch] text-[11.5px] leading-[16px] text-nb-ink-soft">
-            {elsewhere ? <Rich>{c.heldBy(server.machineName)}</Rich> : c.blurb}
-          </p>
-        </div>
-        {elsewhere ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => void onMove({ here: true }, () => setBoardServerAction(true, true))}
-          >
-            {busy ? c.moving : c.moveHere}
-          </Button>
-        ) : (
-          <Switch
-            on={here}
-            busy={busy}
-            onFlip={() => void onMove({ here: !here }, () => setBoardServerAction(!here))}
-            label={here ? c.switchOn : c.switchOff}
-          />
-        )}
-      </div>
-
-      {/* What that machine runs the board's runtimes as (#345). A board that names no
-          runtimes reports none, and this whole block is then absent. */}
-      {server.runtimes.length > 0 && (
-        <div className="mt-2.5">
-          <p className="text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">{c.runsAs}</p>
-          <ul className="mt-1 space-y-[2px]">
-            {server.runtimes.map((runtime) => (
-              <li
-                key={runtime.name}
-                className="flex items-baseline gap-2 font-mono text-[11.5px] leading-[17px]"
-              >
-                <span className="w-[104px] shrink-0 truncate font-[700] text-nb-ink">{runtime.name}</span>
-                <span className="min-w-0 flex-1 truncate text-nb-ink-soft">
-                  {runtime.model ? `${runtime.harness}, ${runtime.model}` : runtime.harness}
-                </span>
-                {runtime.fallback && <span className="shrink-0 text-nb-ink-soft">{c.notBound}</span>}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** The section's one switch shape, so the machine's silencing and the board's server read as
- *  one control used twice rather than two that happen to look alike. */
-function Switch({
-  on,
-  busy,
-  onFlip,
-  label,
-}: {
-  on: boolean;
-  busy: boolean;
-  onFlip: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      disabled={busy}
-      onClick={onFlip}
-      className={`relative inline-flex h-[22px] w-[38px] shrink-0 rounded-full border-[1.5px] border-nb-ink transition-colors disabled:opacity-50 ${
-        busy ? "cursor-default" : "cursor-pointer"
-      }`}
-      style={{ background: on ? "var(--color-nb-accent)" : "var(--color-nb-paper)" }}
+    <Row
+      label={c.title}
+      hint={elsewhere ? <Rich>{c.heldBy(server.machineName)}</Rich> : c.blurb}
+      // What that machine runs the board's runtimes as (#345). A board that names no
+      // runtimes reports none, and this whole block is then absent.
+      below={
+        server.runtimes.length > 0 && (
+          <>
+            <p className={`${CAPTION} text-nb-ink-soft`}>{c.runsAs}</p>
+            <ul className="mt-1 space-y-[2px]">
+              {server.runtimes.map((runtime) => (
+                <li
+                  key={runtime.name}
+                  className="flex items-baseline gap-2 font-mono text-[11.5px] leading-[17px]"
+                >
+                  <span className="w-[104px] shrink-0 truncate font-[700] text-nb-ink">
+                    {runtime.name}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-nb-ink-soft">
+                    {runtime.model ? `${runtime.harness}, ${runtime.model}` : runtime.harness}
+                  </span>
+                  {runtime.fallback && (
+                    <span className="shrink-0 text-nb-ink-soft">{c.notBound}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )
+      }
     >
-      <span
-        aria-hidden
-        className="absolute top-[2px] size-[15px] rounded-full border-[1.5px] border-nb-ink transition-[left]"
-        style={{ left: on ? 18 : 2, background: "var(--color-nb-paper)" }}
-      />
-    </button>
+      {elsewhere ? (
+        <button
+          type="button"
+          className={QUIET_BTN}
+          disabled={busy}
+          onClick={() => void onMove({ here: true }, () => setBoardServerAction(true, true))}
+        >
+          {busy ? c.moving : c.moveHere}
+        </button>
+      ) : (
+        <Switch
+          on={here}
+          busy={busy}
+          onFlip={(next) => onMove({ here: next }, () => setBoardServerAction(next))}
+          label={here ? c.switchOn : c.switchOff}
+        />
+      )}
+    </Row>
   );
 }
 
@@ -1081,43 +1037,38 @@ function SignedOut({
   const expired = account.state === "expired";
 
   return (
-    <>
-      {expired ? (
-        <Note title={c.expired}>{c.expiredBody}</Note>
-      ) : (
-        <div className={BAND}>
-          <p className="text-[13px] font-[800] text-nb-ink">{c.inviteOnly}</p>
-          <p className="mt-1 max-w-[58ch] text-[12.5px] leading-relaxed text-nb-ink-soft">
-            {c.inviteOnlyBody}
-          </p>
-        </div>
-      )}
+    <Group title={c.account}>
+      <Panel>
+        {/* One row, whichever end it is: what this state is, and the one way out of it. In a
+            browser there is no scheme for the consent screen to come back on, so the row
+            says that instead of offering a button that cannot finish. */}
+        <Row
+          label={expired ? c.expired : c.inviteOnly}
+          hint={inApp ? (expired ? c.expiredBody : c.inviteOnlyBody) : c.needsApp}
+        >
+          {inApp && (
+            <>
+              {expired && (
+                <button type="button" className={QUIET_BTN} disabled={busy} onClick={onSignOut}>
+                  <FiLogOut size={13} aria-hidden />
+                  {c.signOut}
+                </button>
+              )}
+              <Button size="sm" disabled={busy || !account.configured} onClick={onSignIn}>
+                <SiGithub size={14} aria-hidden />
+                {expired ? c.signInAgain : c.signIn}
+              </Button>
+            </>
+          )}
+        </Row>
+      </Panel>
+
+      {waiting && <Note>{c.waiting}</Note>}
+      {!account.configured && account.message && <Alert>{account.message}</Alert>}
 
       {/* What Cloud does and does not do, before the sign-in rather than after it. */}
       <Boundary />
-
-      <div className="flex flex-wrap items-center gap-3">
-        {inApp ? (
-          <Button size="sm" disabled={busy || !account.configured} onClick={onSignIn}>
-            <SiGithub size={14} aria-hidden />
-            {expired ? c.signInAgain : c.signIn}
-          </Button>
-        ) : (
-          <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">{c.needsApp}</p>
-        )}
-        {expired && (
-          <Button size="sm" variant="ghost" disabled={busy} onClick={onSignOut}>
-            <FiLogOut size={13} aria-hidden />
-            {c.signOut}
-          </Button>
-        )}
-        {waiting && (
-          <span className="text-[12px] text-nb-ink-soft">{c.waiting}</span>
-        )}
-      </div>
-
-      {!account.configured && account.message && <Note>{account.message}</Note>}
-    </>
+    </Group>
   );
 }
 
@@ -1157,38 +1108,31 @@ function NotAdmitted({
   };
 
   return (
-    <>
-      <Note title={c.notAdmitted}>
-        {account.handle && (
-          <>
-            <Rich code="font-mono text-[11.5px] font-[700]">{c.signedInAs(account.handle)}</Rich>{" "}
-          </>
-        )}
-        {account.message}
-      </Note>
+    <Group title={c.account}>
+      <Panel>
+        {/* The same account row the admitted state wears — it already says who is signed in
+            and how to stop being — so the two states differ only in the row under it. */}
+        <AccountRow account={account} busy={held} onSignOut={onSignOut} />
 
-      <div className="flex items-center gap-4">
-        <p className="min-w-0 flex-1 text-[12px] leading-[17px] text-nb-ink-soft">{c.howWeAnswer}</p>
-        {account.inviteRequestedAt ? (
-          <span className="flex h-[34px] shrink-0 items-center gap-2 rounded-[9px] bg-nb-mint-soft px-3 text-[12px] font-[700] text-nb-mint-ink">
-            <FiCheck size={12} aria-hidden />
-            {c.asked(asked(account.inviteRequestedAt, c.askedUndated, language))}
-          </span>
-        ) : (
-          <Button size="sm" disabled={held} onClick={() => void request()}>
-            <FiMail size={13} aria-hidden />
-            {working ? c.asking : c.requestInvite}
-          </Button>
-        )}
-      </div>
-
-      <div>
-        <Button size="sm" variant="ghost" disabled={held} onClick={onSignOut}>
-          <FiLogOut size={13} aria-hidden />
-          Sign out
-        </Button>
-      </div>
-    </>
+        <Row
+          label={c.notAdmitted}
+          hint={
+            <>
+              {account.message} {c.howWeAnswer}
+            </>
+          }
+        >
+          {account.inviteRequestedAt ? (
+            <Status ready>{c.asked(asked(account.inviteRequestedAt, c.askedUndated, language))}</Status>
+          ) : (
+            <Button size="sm" disabled={held} onClick={() => void request()}>
+              <FiMail size={13} aria-hidden />
+              {working ? c.asking : c.requestInvite}
+            </Button>
+          )}
+        </Row>
+      </Panel>
+    </Group>
   );
 }
 
@@ -1205,16 +1149,15 @@ function asked(at: string, undated: string, language: Language): string {
 function Boundary() {
   const c = useCopy().configuration.cloud;
   return (
-    <div className={BAND}>
-      <p className="max-w-[62ch] text-[12.5px] leading-relaxed text-nb-ink-soft">{c.boundary}</p>
-      <p className="mt-2 text-[12px] leading-relaxed text-nb-ink-soft">
-        {c.terms}{" "}
-        <Link href={PRIVACY_URL}>{c.privacyLink}</Link>
+    <>
+      <Note>{c.boundary}</Note>
+      <Note>
+        {c.terms} <Link href={PRIVACY_URL}>{c.privacyLink}</Link>
         {c.termsAnd}
         <Link href={TERMS_URL}>{c.termsLink}</Link>
         {c.termsEnd}
-      </p>
-    </div>
+      </Note>
+    </>
   );
 }
 
@@ -1250,7 +1193,7 @@ function Avatar({ account }: { account: CloudAccount }) {
     .join("");
   return (
     <span
-      className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-[10px] bg-nb-ink/8 text-[14px] font-[800] text-nb-ink"
+      className="relative grid size-[26px] shrink-0 place-items-center overflow-hidden rounded-[8px] bg-nb-ink/8 text-[11px] font-[800] text-nb-ink"
       aria-hidden
     >
       {initials || "?"}
@@ -1259,18 +1202,5 @@ function Avatar({ account }: { account: CloudAccount }) {
         <img src={account.avatarData} alt="" className="absolute inset-0 size-full object-cover" />
       )}
     </span>
-  );
-}
-
-/** The pane's one attention band — a refusal, an expiry, a Cloud that cannot be reached. */
-function Note({ title, children }: { title?: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-2.5 rounded-[9px] bg-nb-peach-soft px-3.5 py-3" role="status">
-      <FiAlertCircle className="mt-[2px] shrink-0 text-nb-peach-ink" size={14} aria-hidden />
-      <div className="min-w-0">
-        {title && <p className="text-[12.5px] font-[800] text-nb-peach-ink">{title}</p>}
-        <p className={`text-[12px] leading-relaxed text-nb-ink ${title ? "mt-1" : ""}`}>{children}</p>
-      </div>
-    </div>
   );
 }

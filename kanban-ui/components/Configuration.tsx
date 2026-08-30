@@ -57,27 +57,14 @@ import { Dialog } from "./Dialog";
 import { FlowRulesPanel } from "./FlowRules";
 import { GeneralPanel } from "./General";
 import { RuntimesPanel } from "./Runtimes";
+import { CAPTION, CONTROL, Note, QUIET_BTN } from "./settings";
 import { SpecAgentsPanel } from "./SpecAgents";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
-// The look of every box and list in this pane. One string, because the provider
-// list, the model box and the reasoning list are the same control with different
-// contents. A 1px hairline frame, not the board's ink outline: the dialog is
-// already one raised block, and a screenful of full-strength frames inside it
-// reads as a grid of boxes rather than a form. The ember focus ring is what
-// keeps the control findable by keyboard.
-export const CONTROL =
-  "w-full rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait";
-
-// The pane's small button — the key field's Save/Replace/Clear and the Test
-// button. Flat inside the dialog: the hairline frame and a wash on hover, no
-// hard shadow to press into.
-export const QUIET_BTN =
-  "cursor-pointer rounded-[8px] border border-nb-ink/25 bg-nb-paper px-3 py-1.5 text-[12px] font-[700] text-nb-ink transition-[background-color,border-color,transform] duration-[120ms] hover:border-nb-ink/40 hover:bg-nb-wash active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-nb-ink/25 disabled:hover:bg-nb-paper disabled:active:scale-100";
-
-// The pane's dropdowns are ui/select.tsx — its default trigger IS the CONTROL
-// frame, so a list and a text box read as the same control. `disabled` here is
-// always a save in flight, hence the cursor-wait override.
+// Every box, list and small button in here is the settings kit's
+// (components/settings.tsx) — CONTROL is the frame a field wears and ui/select.tsx's
+// trigger copies, QUIET_BTN the flat button attached to one. Both live there because
+// every pane in this dialog draws them.
 
 // A harness's mark, e.g. the Claude sunburst at public/agents/claude.svg.
 // alt="" because the agent name always sits right next to it.
@@ -285,7 +272,7 @@ function Field({
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,17rem)] gap-x-5 max-sm:grid-cols-1">
       <label
-        className="col-start-1 row-start-1 mb-1.5 block text-[11px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft"
+        className={`col-start-1 row-start-1 mb-1.5 block ${CAPTION} text-nb-ink-soft`}
         htmlFor={id}
       >
         {label}
@@ -294,15 +281,6 @@ function Field({
       <div className="col-start-2 row-start-2 flex flex-col justify-center gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft max-sm:col-start-1 max-sm:row-start-3 max-sm:mt-1.5">
         {help}
       </div>
-    </div>
-  );
-}
-
-export function PaneHeading({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="mb-5">
-      <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{title}</h3>
-      <p className="mt-1 text-[13px] leading-relaxed text-nb-ink-soft">{description}</p>
     </div>
   );
 }
@@ -700,13 +678,10 @@ export function HarnessPicker({
           needs. It says nothing about whether the CLI would then work: that is Test's
           answer, from a real run. */}
       {activeOption?.installed === false && (
-        <p className="flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-          <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
-          <span>
-            <Rich>{c.missingHint(activeOption.binary)}</Rich>{" "}
-            <code className="rounded bg-nb-ink/8 px-1 py-0.5">{activeOption.install}</code>
-          </span>
-        </p>
+        <Note icon={<FiAlertCircle />}>
+          <Rich>{c.missingHint(activeOption.binary)}</Rich>{" "}
+          <code className="rounded bg-nb-ink/8 px-1 py-0.5">{activeOption.install}</code>
+        </Note>
       )}
 
       {/* What the picked agent can't do that another on the grid can. Drawn from the list
@@ -805,17 +780,14 @@ export function HarnessPicker({
           harness we don't ship, or still carries the pre-#68 `command` key that
           nothing reads, the dialog says which agent is actually running. */}
       {!bind && (info.unknownName || info.staleCommand) && (
-        <p className="flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-          <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
-          <span>
-            {info.unknownName
-              ? c.unknown(
-                  info.unknownName,
-                  options.find((o) => o.name === info.name)?.label ?? info.name,
-                )
-              : c.staleCommand}
-          </span>
-        </p>
+        <Note icon={<FiAlertCircle />}>
+          {info.unknownName
+            ? c.unknown(
+                info.unknownName,
+                options.find((o) => o.name === info.name)?.label ?? info.name,
+              )
+            : c.staleCommand}
+        </Note>
       )}
     </div>
   );
@@ -839,9 +811,7 @@ export function HarnessPicker({
 function HarnessGaps({ heading, gaps }: { heading: string; gaps: HarnessGap[] }) {
   return (
     <div className="rounded-[10px] border border-nb-ink/15 bg-nb-wash px-3 py-2.5">
-      <p className="mb-1.5 text-[11px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft">
-        {heading}
-      </p>
+      <p className={`mb-1.5 ${CAPTION} text-nb-ink-soft`}>{heading}</p>
       <dl className="flex flex-col gap-1">
         {gaps.map((gap) => (
           // The label column is fixed so the consequences line up into a column of their

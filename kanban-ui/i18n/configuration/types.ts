@@ -211,7 +211,10 @@ export type ConfigurationCopy = {
     comingSoon: string;
   };
   cloud: {
-    title: string;
+    /** The caption over who this machine acts as. */
+    account: string;
+    /** The caption over the chats a notification is posted to. */
+    wherePosts: string;
     blurb: string;
     checking: string;
     /** Beside a control whose new value is already drawn but not yet written. */
@@ -220,7 +223,6 @@ export type ConfigurationCopy = {
     signedIn: string;
     signOut: string;
     notAdmitted: string;
-    signedInAs: (handle: string) => string;
     /** How a request is answered, beside the button that makes one. */
     howWeAnswer: string;
     /** The request already went in. Takes the day it went in, or `askedUndated`. */

@@ -11,6 +11,10 @@
 // an agent declares and the choices each setting offers are the board's own list, asked for
 // when the section opens — so `akb spec` and this can never say different things. It reads,
 // switches and sets, and that is all: an agent's prompt is not something the UI writes.
+//
+// One captioned group and one row per agent (components/settings.tsx): the name and its
+// switch on the row's own line, what it contributes and when it runs as its hint, and the
+// settings it declares under it. A paused agent keeps every one of them.
 
 import { useEffect, useState } from "react";
 import { FiAlertCircle, FiChevronDown } from "react-icons/fi";
@@ -18,6 +22,7 @@ import { setSpecAgentAction, setSpecAgentSettingAction, specAgentsAction } from 
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import type { SpecAgentSettingView, SpecAgentView } from "@/lib/types";
+import { Group, Loading, Note, Panel, Row, Switch } from "./settings";
 
 /** The section in the Configuration dialog. It reads the board's list when it first draws;
  *  the board's poll never carries it, and nothing else on screen shows these switches. */
@@ -47,8 +52,7 @@ export function SpecAgentsPanel({ onError }: { onError?: (msg: string) => void }
   // Flip one switch: on screen at once, saved behind it, and put back if the save fails.
   // The switch is the whole section, so a flip that silently didn't land would be a
   // setting the user can't trust.
-  const flip = async (agent: SpecAgentView) => {
-    const on = !agent.enabled;
+  const flip = async (agent: SpecAgentView, on: boolean) => {
     setAgents((all) => all?.map((a) => (a.name === agent.name ? { ...a, enabled: on } : a)) ?? all);
     setSaving((names) => [...names, agent.name]);
     try {
@@ -88,90 +92,66 @@ export function SpecAgentsPanel({ onError }: { onError?: (msg: string) => void }
   };
 
   return (
-    <div>
-      <div className="mb-5">
-        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{c.title}</h3>
-        <p className="mt-1 max-w-[56ch] text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
-      </div>
-
-      {loadError && <Note text={loadError} />}
-      {!loaded && <Loading text={c.loading} />}
-      {loaded && !loadError && agents === null && <Note text={c.tooOld} />}
+    <Group title={c.title}>
+      {loadError && <Note icon={<FiAlertCircle />}>{loadError}</Note>}
+      {!loaded && <Loading>{c.loading}</Loading>}
+      {loaded && !loadError && agents === null && <Note icon={<FiAlertCircle />}>{c.tooOld}</Note>}
 
       {agents && (
-        <div className="border-y border-nb-ink/12">
-          {agents.map((agent) => {
-            const off = !agent.enabled;
-            const busy = saving.includes(agent.name);
-            return (
-              <article
-                key={agent.name}
-                className="border-b border-nb-ink/12 py-4 last:border-b-0"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <h4 className={`text-[14px] font-[800] ${off ? "text-nb-ink-soft" : "text-nb-ink"}`}>
-                      {agentTitle(agent.name)}
-                    </h4>
-                  </div>
-
-                  <div className="flex shrink-0 items-center gap-2.5">
-                    <span className="text-[11px] font-[700] leading-none text-nb-ink-soft">
-                      {agent.enabled ? c.enabled : c.paused}
-                    </span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={agent.enabled}
-                      aria-label={(agent.enabled ? c.switchOn : c.switchOff)(agentTitle(agent.name))}
-                      disabled={busy}
-                      onClick={() => void flip(agent)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-[1.5px] border-nb-ink transition-[background-color,opacity] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-wait disabled:opacity-50 ${
-                        agent.enabled ? "bg-nb-accent" : "bg-nb-wash"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block size-[16px] rounded-full border border-nb-ink bg-nb-paper transition-transform duration-150 ${
-                          agent.enabled ? "translate-x-[22px]" : "translate-x-[3px]"
-                        }`}
-                        aria-hidden
-                      />
-                    </button>
-                  </div>
-                </div>
-
-                <dl className={`mt-3 grid grid-cols-[88px_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[12px] leading-relaxed ${off ? "text-nb-ink-soft" : ""}`}>
-                  <dt className="font-[700] text-nb-ink-soft">{c.contributes}</dt>
-                  <dd className="text-nb-ink-soft">{sentence(agent.owns)}</dd>
-                  <dt className="font-[700] text-nb-ink-soft">{c.runsWhen}</dt>
-                  <dd className="text-nb-ink-soft">{sentence(agent.calledOn.replace(/^called on\s+/i, ""))}</dd>
-                </dl>
-
-                {/* What this agent is set to (#257). One line per setting, on the row
-                    itself, so nothing has to be opened to read the answer or to change
-                    it. An agent that declares none draws nothing here, and so does a
-                    board reading rules older than the settings — its rows look exactly
-                    as they did. */}
-                {agent.settings?.length ? (
-                  <div className="mt-3 flex flex-col gap-2">
-                    {agent.settings.map((setting) => (
-                      <SettingLine
-                        key={setting.key}
-                        setting={setting}
-                        value={agent.values?.[setting.key] ?? setting.default}
-                        off={off}
-                        busy={saving.includes(`${agent.name}/${setting.key}`)}
-                        onPick={(value) => void pick(agent, setting.key, value)}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-              </article>
-            );
-          })}
-        </div>
+        <>
+          <Panel>
+            {agents.map((agent) => {
+              const off = !agent.enabled;
+              return (
+                <Row
+                  key={agent.name}
+                  label={agentTitle(agent.name)}
+                  // What it fills in and when it runs, then what it is set to (#257) —
+                  // under the row, so nothing has to be opened to read the answer or to
+                  // change it. An agent that declares no setting draws only the two lines,
+                  // and so does a board reading rules older than the settings.
+                  below={
+                    <>
+                      <dl className="grid grid-cols-[88px_minmax(0,1fr)] gap-x-3 gap-y-1 text-[12px] leading-snug text-nb-ink-soft">
+                        <dt className="font-[700]">{c.contributes}</dt>
+                        <dd>{sentence(agent.owns)}</dd>
+                        <dt className="font-[700]">{c.runsWhen}</dt>
+                        <dd>{sentence(agent.calledOn.replace(/^called on\s+/i, ""))}</dd>
+                      </dl>
+                      {agent.settings?.length ? (
+                        <div className="mt-2 flex flex-col gap-2">
+                          {agent.settings.map((setting) => (
+                            <SettingLine
+                              key={setting.key}
+                              setting={setting}
+                              value={agent.values?.[setting.key] ?? setting.default}
+                              off={off}
+                              busy={saving.includes(`${agent.name}/${setting.key}`)}
+                              onPick={(value) => void pick(agent, setting.key, value)}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                    </>
+                  }
+                >
+                  <span className="text-[11px] font-[700] leading-none text-nb-ink-soft">
+                    {agent.enabled ? c.enabled : c.paused}
+                  </span>
+                  <Switch
+                    on={agent.enabled}
+                    busy={saving.includes(agent.name)}
+                    label={(agent.enabled ? c.switchOn : c.switchOff)(agentTitle(agent.name))}
+                    onFlip={(next) => flip(agent, next)}
+                  />
+                </Row>
+              );
+            })}
+          </Panel>
+          <Note>{c.blurb}</Note>
+        </>
       )}
-    </div>
+    </Group>
   );
 }
 
@@ -206,7 +186,7 @@ function SettingLine({
 
   return (
     <div
-      className={`rounded-[10px] border border-nb-ink/22 bg-nb-wash px-3 py-2 ${off ? "opacity-70" : ""}`}
+      className={`rounded-[10px] border border-nb-ink/12 bg-nb-wash px-3 py-2 ${off ? "opacity-70" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         {/* Closed, the line carries the cost too — that is the whole answer, and it wraps
@@ -295,21 +275,3 @@ function sentenceStart(text: string): string {
   return text ? text[0].toUpperCase() + text.slice(1) : text;
 }
 
-function Loading({ text }: { text: string }) {
-  return (
-    <p className="flex items-center gap-2 text-[12px] text-nb-ink-soft" aria-live="polite">
-      <span className="size-1.5 rounded-full bg-nb-ink-soft animate-[nbPulse_1.1s_ease-in-out_infinite]" aria-hidden />
-      {text}
-    </p>
-  );
-}
-
-// The one line this section says when it has no list to draw.
-function Note({ text }: { text: string }) {
-  return (
-    <p className="flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-      <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
-      <span>{text}</span>
-    </p>
-  );
-}

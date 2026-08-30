@@ -128,6 +128,19 @@ shadow. Shadows never blur or change direction.
   the same hairline as the field it belongs to.
 - **A dialog's sidebar sits on cream**: wash is for insets within a pane, not for the
   column beside it.
+- **A settings pane is captioned groups**: it carries no title of its own — the sidebar
+  names it — and each group is a small uppercase caption on the pane's ground with its
+  settings in one hairline `nb-sheet` card under it. The kit is `components/settings.tsx`;
+  every pane in Configuration is built from it and nothing reimplements a part of it.
+- **One row is one decision**: its name and at most a line or two of what it does on the
+  left, its control on the right, hairlines between rows. What will not fit on that line —
+  where a connection posts, what a choice costs — goes under the row, on the label's column.
+- **Only settings go in the card**: a note, a fold, a line to copy, an alert and a pane's
+  own explanation sit outside it, which is what keeps the card meaning "these are the
+  things you can change".
+- **One caption, one quiet button, one box**: `CAPTION`, `QUIET_BTN` and `CONTROL`. A row's
+  secondary action — Sign out, Disconnect, Check again — is the quiet button; the button
+  family's ink frame and hard shadow belong to the one action a pane is really about.
 - **An inner window is a dialog one rung down**: a log or preview frame is a hairline, a
   paper title bar, a hairline under it, and a wash well below — the same shape wherever it
   is dropped, inside a dialog or on a page.
@@ -202,8 +215,8 @@ shadow. Shadows never blur or change direction.
   first paint and no screen draws English and corrects itself.
 - **Tag text in another language**: put `lang` on the element when its words are not the
   language the document is in — the switcher's own two entries are the standing example.
-- **Leave the setting where it is**: the switcher lives in Configuration under the rule,
-  with Cloud. Nothing else offers one.
+- **Leave the setting where it is**: the switcher is Configuration → General's Language
+  group. Nothing else offers one.
 
 ## Styling rules
 

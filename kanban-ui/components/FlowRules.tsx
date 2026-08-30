@@ -20,6 +20,7 @@ import { FiAlertCircle, FiCheck } from "react-icons/fi";
 import { flowRulesAction, setFlowRuleAction } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import type { FlowRuleView } from "@/lib/types";
+import { CAPTION, Group, Loading, Note } from "./settings";
 
 export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void }) {
   const c = useCopy().configuration.flowRules;
@@ -99,22 +100,17 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
   const inUse = flows?.filter((f) => (drafts[f.command] ?? "").trim()).length ?? 0;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="mb-4 shrink-0">
-        <h3 className="text-[17px] font-[800] tracking-[-0.02em] text-nb-ink">{c.title}</h3>
-        <p className="mt-1 max-w-[56ch] text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
-      </div>
-
-      {loadError && <Note text={loadError} />}
-      {!loaded && <Loading text={c.loading} />}
-      {loaded && !loadError && flows === null && <Note text={c.tooOld} />}
+    <Group title={c.title} fill>
+      {loadError && <Note icon={<FiAlertCircle />}>{loadError}</Note>}
+      {!loaded && <Loading>{c.loading}</Loading>}
+      {loaded && !loadError && flows === null && <Note icon={<FiAlertCircle />}>{c.tooOld}</Note>}
 
       {flows && flow && (
         <div className="flex min-h-0 flex-1 gap-4">
           {/* Every flow the board has, the ones in use dotted. This column is what
               scrolls; the box beside it never does. */}
           <div className="flex w-[136px] shrink-0 flex-col">
-            <p className="mb-1.5 text-[10.5px] font-[800] uppercase tracking-[0.1em] text-nb-ink-soft">
+            <p className={`mb-1.5 ${CAPTION} text-nb-ink-soft`}>
               {c.set(inUse, flows.length)}
             </p>
             <div
@@ -190,31 +186,13 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
             {/* What this flow's rule is for, or what it can cost — read beside the flow it
                 belongs to rather than in a warning met before the user knows which flow
                 they want. Most flows have nothing particular to say and show no line. */}
-            {flow.note && (
-              <p className="mt-2 text-[11.5px] leading-[17px] text-nb-ink-soft">{flow.note}</p>
-            )}
+            {flow.note && <Note>{flow.note}</Note>}
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-function Loading({ text }: { text: string }) {
-  return (
-    <p className="flex items-center gap-2 text-[12px] text-nb-ink-soft" aria-live="polite">
-      <span className="size-1.5 rounded-full bg-nb-ink-soft animate-[nbPulse_1.1s_ease-in-out_infinite]" aria-hidden />
-      {text}
-    </p>
-  );
-}
-
-// The one line this section says when it has no list to draw.
-function Note({ text }: { text: string }) {
-  return (
-    <p className="flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-      <FiAlertCircle className="mt-[3px] shrink-0" aria-hidden />
-      <span>{text}</span>
-    </p>
+      {/* What a rule is, and what a long one costs — under the box it is true of. */}
+      {flows && <Note>{c.blurb}</Note>}
+    </Group>
   );
 }

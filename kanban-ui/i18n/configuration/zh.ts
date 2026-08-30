@@ -202,7 +202,8 @@ const zh: ConfigurationCopy = {
     note: "在这台机器上打开的每个看板都跟着它走。`akb` 在终端里输出的内容、以及 Agent 写进卡片的内容仍是英文。",
   },
   cloud: {
-    title: "通知",
+    account: "账号",
+    wherePosts: "发到哪里",
     blurb: "需要你处理的卡片通过什么方式找到你。一次登录覆盖这台机器上的所有项目。",
     checking: "正在检查这台机器…",
     saving: "保存中…",
@@ -210,7 +211,6 @@ const zh: ConfigurationCopy = {
     signedIn: "已登录",
     signOut: "退出登录",
     notAdmitted: "这个账号还不在内测名单中。",
-    signedInAs: (handle) => `你已以 \`@${handle}\` 的身份登录。`,
     howWeAnswer: "我们会逐一人工审阅申请。审阅通过后你的账号即已开通，我们会发邮件通知你。不承诺具体时间。",
     asked: (when) => `已于${when}提交申请——我们会发邮件`,
     askedUndated: "此前",

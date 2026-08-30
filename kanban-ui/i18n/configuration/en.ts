@@ -208,7 +208,8 @@ const en: ConfigurationCopy = {
     note: "Follows you into every board on this machine. What `akb` prints, and what an agent writes onto a card, stay English.",
   },
   cloud: {
-    title: "Notifications",
+    account: "Account",
+    wherePosts: "Where it posts",
     blurb:
       "Where a card that needs you reaches you. One sign-in covers every project on this machine.",
     checking: "Checking this machine…",
@@ -217,7 +218,6 @@ const en: ConfigurationCopy = {
     signedIn: "Signed in",
     signOut: "Sign out",
     notAdmitted: "This account is not in the preview yet.",
-    signedInAs: (handle) => `You are signed in as \`@${handle}\`.`,
     howWeAnswer:
       "We read every request by hand. Once we approve it your account is in, and we email you. No date is promised.",
     asked: (when) => `Asked ${when} — we’ll email`,

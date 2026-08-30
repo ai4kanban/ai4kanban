@@ -30,7 +30,7 @@ import { useCopy } from "@/i18n/use-copy";
 import type { CommandState, SkillFolder, SkillInstall, SkillState } from "@/lib/types";
 import { Button } from "./button";
 import { InstallCommand } from "./desktop";
-import { CAPTION_BTN, Group, Panel, Row, Status } from "./settings";
+import { Group, Note, Panel, QUIET_BTN, Row, Status } from "./settings";
 
 /** The **Setup** group of Configuration → General. It reads its own state when it first
  *  draws — the board's poll never carries it, since one of the two answers spawns a
@@ -101,7 +101,7 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
           type="button"
           disabled={checking}
           onClick={() => void load()}
-          className={CAPTION_BTN}
+          className={QUIET_BTN}
         >
           <FiRefreshCw className="text-[12px]" aria-hidden />
           {checking ? c.checking : c.checkAgain}
@@ -176,18 +176,6 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
         </details>
       ) : null}
     </Group>
-  );
-}
-
-// A quiet line under the rows — an error the read hit, nothing that needs a coloured box.
-function Note({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <p className="mt-2.5 flex items-start gap-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
-      <span className="mt-[3px] shrink-0" aria-hidden>
-        {icon}
-      </span>
-      <span>{children}</span>
-    </p>
   );
 }
 
