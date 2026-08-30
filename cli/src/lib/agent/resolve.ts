@@ -694,6 +694,7 @@ export function runtimeViews(runtimes: BoardRuntimes = readRuntimes()): RuntimeV
     return {
       name,
       global: name === runtimes.global,
+      ...(runtimes.computers[name] ? { computer: runtimes.computers[name] } : {}),
       harness: resolved.harness.name,
       ...(model ? { model } : {}),
       ...(resolved.fallback ? { fallback: resolved.fallback } : {}),

@@ -458,14 +458,18 @@ export function setSecret(name: string, value: string): { ok: boolean; error?: s
 //   "runtimes": {
 //     "names": ["default", "cheap"],
 //     "global": "default",
-//     "flows": { "implement": "cheap" }
+//     "flows": { "implement": "cheap" },
+//     "computers": { "cheap": "buildbox" }
 //   },
 //   "specAgents": { "ui-design": { "runtime": "cheap", "mockupStyle": "ascii" } }
 //
-// A runtime is a name and nothing else. The board says which ones there are, which one is
-// global, and which one each flow and spec agent runs on; what a runtime RUNS as is the
-// computer's answer, in `~/.ai4kanban/runtimes.json` (lib/machine/runtimes.ts). So the
-// names travel with the repository and the tools do not.
+// A runtime is a name and the computer it is meant to run on. The board says which ones
+// there are, which one is global, which one each flow and spec agent runs on, and where each
+// one belongs (#370); what a runtime RUNS as is the computer's answer, in
+// `~/.ai4kanban/runtimes.json` (lib/machine/runtimes.ts). So the names travel with the
+// repository and the tools do not.
+//
+// `computers` is the intent and nothing more: nothing dispatches a run by it yet (#371).
 //
 // `flows` is keyed by the command a user types — `revise`, not the `edit` the board keeps
 // that action under — which is the same key a flow's rule file uses.
@@ -486,6 +490,16 @@ export const runtimeNameError = (name: string): string | null =>
     ? null
     : `"${name}" can't be a runtime name — up to 32 letters, digits, ".", "-" or "_", starting with a letter or digit.`
 
+// A computer is the hostname a person reads (`machine/identity.ts`), never an address and
+// never an id: a board with no Cloud has no ids to point at. Held loosely — the name comes
+// from another machine's `os.hostname()`, and this side has no business ruling on what a
+// hostname may look like beyond keeping it printable. The length is a hostname's own limit,
+// so no machine the pane lists is one the pane then refuses to save.
+const COMPUTER_NAME = /^[^\s\x00-\x1f][^\x00-\x1f]{0,252}$/
+
+export const computerNameError = (name: string): string | null =>
+  COMPUTER_NAME.test(name) ? null : `"${name}" can't be a computer name.`
+
 /** The runtimes a board names, and what runs on which. */
 export interface BoardRuntimes {
   /** Every runtime, in the order the board holds them. Never empty: a board that names
@@ -496,6 +510,11 @@ export interface BoardRuntimes {
   /** The runtime each flow names, keyed by `FLOWS[].command` — only the flows that name
    *  one. */
   flows: Record<string, string>
+  /** The computer each runtime is meant to run on, by machine name (#370) — only the
+   *  runtimes somebody pointed somewhere. Absent is the computer the run starts on.
+   *
+   *  Set, not routed: nothing dispatches a run by this yet (#371). */
+  computers: Record<string, string>
   /** False when the board names no runtimes at all — a board written before they existed. */
   named: boolean
 }
@@ -519,7 +538,9 @@ function nameList(value: unknown): string[] {
 export function readRuntimes(cfg: Record<string, unknown> = safeConfig()): BoardRuntimes {
   const block = configBlock(cfg.runtimes)
   const names = nameList(block.names)
-  if (!names.length) return { names: [DEFAULT_RUNTIME], global: DEFAULT_RUNTIME, flows: {}, named: false }
+  if (!names.length) {
+    return { names: [DEFAULT_RUNTIME], global: DEFAULT_RUNTIME, flows: {}, computers: {}, named: false }
+  }
   const asked = typeof block.global === 'string' ? block.global.trim() : ''
   const global = names.includes(asked) ? asked : names[0]!
   const flows: Record<string, string> = {}
@@ -527,7 +548,14 @@ export function readRuntimes(cfg: Record<string, unknown> = safeConfig()): Board
     const name = typeof value === 'string' ? value.trim() : ''
     if (names.includes(name)) flows[command] = name
   }
-  return { names, global, flows, named: true }
+  // A computer is only ever read for a runtime the board still holds, and an unreadable one
+  // is dropped rather than refused — the same treatment the names above get.
+  const computers: Record<string, string> = {}
+  for (const [runtime, value] of Object.entries(configBlock(block.computers))) {
+    const on = typeof value === 'string' ? value.trim() : ''
+    if (on && names.includes(runtime) && !computerNameError(on)) computers[runtime] = on
+  }
+  return { names, global, flows, computers, named: true }
 }
 
 // Every write rewrites the whole block, because its keys are one answer: a name that goes
@@ -535,13 +563,21 @@ export function readRuntimes(cfg: Record<string, unknown> = safeConfig()): Board
 // than a board that never had one.
 function writeRuntimeBlock(cfg: Record<string, unknown>, next: BoardRuntimes): void {
   const flows = Object.fromEntries(Object.entries(next.flows).filter(([, name]) => next.names.includes(name)))
-  const plain = next.names.length === 1 && next.names[0] === DEFAULT_RUNTIME && !Object.keys(flows).length
+  const computers = Object.fromEntries(
+    Object.entries(next.computers).filter(([runtime, on]) => on && next.names.includes(runtime)),
+  )
+  const plain =
+    next.names.length === 1 &&
+    next.names[0] === DEFAULT_RUNTIME &&
+    !Object.keys(flows).length &&
+    !Object.keys(computers).length
   if (plain) delete cfg.runtimes
   else {
     cfg.runtimes = {
       names: next.names,
       global: next.global,
       ...(Object.keys(flows).length ? { flows } : {}),
+      ...(Object.keys(computers).length ? { computers } : {}),
     }
   }
 }
@@ -601,6 +637,7 @@ export function removeRuntime(name: string): { ok: boolean; error?: string } {
       ...current,
       names: current.names.filter((n) => n !== name),
       flows: Object.fromEntries(Object.entries(current.flows).filter(([, on]) => on !== name)),
+      computers: Object.fromEntries(Object.entries(current.computers).filter(([on]) => on !== name)),
     })
     // The spec agents that named it go back to the global one too, and their pointers are
     // CLEARED rather than left: re-adding the name later must not quietly put them back on
@@ -633,6 +670,11 @@ export function renameRuntime(from: string, to: string): { ok: boolean; error?: 
       names: current.names.map((n) => (n === from ? to : n)),
       global: current.global === from ? to : current.global,
       flows: Object.fromEntries(Object.entries(current.flows).map(([command, on]) => [command, on === from ? to : on])),
+      // The computer is the board's answer about this runtime, so it is carried by the
+      // rename the way the flows are — a renamed runtime still belongs where it belonged.
+      computers: Object.fromEntries(
+        Object.entries(current.computers).map(([runtime, on]) => [runtime === from ? to : runtime, on]),
+      ),
     })
     moveSpecAgentRuntimes(cfg, from, to)
   })
@@ -649,6 +691,26 @@ export function setGlobalRuntime(name: string): { ok: boolean; error?: string } 
   const now = readRuntimes()
   if (!now.names.includes(name)) return { ok: false, error: unknownRuntime(name, now) }
   return writeRuntimes((current) => ({ ...current, global: name }))
+}
+
+/** Point one runtime at a computer, or back at the one a run starts on with an empty name
+ *  (#370). The board holds the answer, so every checkout of it reads the same one; what that
+ *  computer RUNS the runtime as stays in that computer's own file, and nothing here can
+ *  write another machine's. */
+export function setRuntimeComputer(name: string, computer: string): { ok: boolean; error?: string } {
+  const now = readRuntimes()
+  if (!now.names.includes(name)) return { ok: false, error: unknownRuntime(name, now) }
+  const on = computer.trim()
+  if (on) {
+    const bad = computerNameError(on)
+    if (bad) return { ok: false, error: bad }
+  }
+  return writeRuntimes((current) => {
+    const computers = { ...current.computers }
+    if (on) computers[name] = on
+    else delete computers[name]
+    return { ...current, computers }
+  })
 }
 
 /** Point one flow at a runtime, or back at the global one with an empty name. That the

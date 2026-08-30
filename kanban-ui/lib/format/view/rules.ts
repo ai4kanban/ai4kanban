@@ -86,10 +86,11 @@ export function byDispatchOrder(a: Card, b: Card): number {
  * each card it touched, and a Refine button on a card page — so the button can never offer
  * a run that arrives, finds nothing to do, and leaves the card exactly as it was.
  *
- * The four cases where a refine has nothing to work with:
+ * The five cases where a refine has nothing to work with:
  *   • the card is recurring — it carries a `## Process`, not a build plan with todo boxes,
  *     and it never reaches `ready` because it is never finished at all. A run owns any new
  *     decision and leaves only the user's questions open;
+ *   • the card is a group root — its recursively refined subtasks own the work;
  *   • the card isn't `todo` — it's `ready` (the plan is already concrete) or being
  *     implemented, and neither is a plan waiting to be sharpened;
  *   • every todo is checked — that card is finished, not rough;
@@ -106,6 +107,7 @@ export function byDispatchOrder(a: Card, b: Card): number {
  */
 export function canRefine(card: Card): boolean {
   if (card.recurring) return false
+  if (card.isGroup) return false
   if (card.status !== 'todo') return false
   const { total, done } = card.todos
   if (total > 0 && done === total) return false

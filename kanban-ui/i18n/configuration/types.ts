@@ -19,20 +19,19 @@ export type ConfigurationCopy = {
     delivery: string;
     language: string;
   };
-  /** Configuration → Runtimes (#344): the runtimes the BOARD names, and what THIS COMPUTER
-   *  runs each of them as. The harness block below draws the second half — and, on a board
-   *  that names no runtimes, the board's own harness on its own. */
+  /** Configuration → Runtimes (#344, #370): the runtimes the BOARD names, the computer each
+   *  one runs on, and what THIS COMPUTER runs it as. The harness block below draws the last
+   *  of those — and, on a board that names no runtimes, the board's own harness on its own. */
   runtimes: {
     title: string;
-    /** The list pane. Takes this computer's name. */
-    blurb: (machine: string) => string;
+    /** The pane's two tabs. */
+    tabs: { runtimes: string; computers: string };
+    /** Over the runtime list. */
+    listCaption: string;
     /** The pane on a board that names no runtimes: today's harness, said to be the board's. */
     boardsOwn: string;
-    /** The list's two halves, each naming who reads it. */
-    boardHalf: string;
-    boardHalfNote: string;
-    computerHalf: (machine: string) => string;
-    computerHalfNote: string;
+    /** …and the computer it runs on, said there too. */
+    runsOn: (machine: string) => string;
     global: string;
     /** One row's right-hand half: what this computer runs that runtime as. */
     runs: (harness: string, model: string) => string;
@@ -51,9 +50,19 @@ export type ConfigurationCopy = {
     save: string;
     cancel: string;
     /** One runtime's view. */
-    back: string;
     thisComputer: string;
     bindingBlurb: (runtime: string) => string;
+    /** The computer picker heading the binding card, read out loud. */
+    computer: string;
+    /** A computer the board can neither reach nor place — one only a runtime names. */
+    unreachable: string;
+    /** A runtime pointed somewhere else: what that computer says it runs it as, or that it
+     *  has said nothing, and the line that keeps the pick from reading as live routing. */
+    thereRuns: string;
+    saidNothing: (computer: string) => string;
+    notRouted: (computer: string) => string;
+    /** The Computers tab: every machine a runtime can be pointed at. */
+    computers: { caption: string; blurb: string };
     /** Nothing on the grid is pressed, because this computer isn't running its own binding.
      *  Takes the reason and what runs meanwhile, both built from the four above. */
     pickHarness: (why: string, instead: string) => string;
@@ -73,13 +82,16 @@ export type ConfigurationCopy = {
     /** Said where a key box is drawn on a runtime: the key is the board's, not this
      *  computer's, so two runtimes on one harness share it. */
     keyIsBoards: string;
-    /** The board's server, read-only under this computer. */
-    server: { label: string; notBound: string };
+    /** The board's server, read-only under this computer. `notSaid` is the folded row's
+     *  short form of `saidNothing`: that computer reported nothing, which is not the same
+     *  as reporting it is unbound. */
+    server: { label: string; notBound: string; notSaid: string };
     addFailed: string;
     removeFailed: (runtime: string) => string;
     renameFailed: (runtime: string) => string;
     globalFailed: (runtime: string) => string;
     unbindFailed: (runtime: string) => string;
+    computerFailed: (runtime: string) => string;
   };
   /** The harness picker, drawn on a runtime and — on a board that names none — as the
    *  Runtimes pane itself. Its heading is `runtimes` above. */

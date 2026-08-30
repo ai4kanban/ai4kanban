@@ -19,6 +19,7 @@ import {
   removeRuntime,
   renameRuntime,
   setFlowRuntime,
+  setRuntimeComputer,
   setSpecAgentRuntime,
   specAgentEntries,
 } from '../src/lib/agent/settings.ts'
@@ -457,5 +458,78 @@ describe('what the agent info says about a runtime', () => {
   it('says a board that names none names none', () => {
     config({ harness: 'claude-code' })
     assert.equal(agentInfo().namedRuntimes, false)
+  })
+})
+
+// Which computer a runtime is meant to run on (#370). The board holds the answer beside the
+// names, so everyone on the repository reads the same one; what that computer RUNS it as
+// stays in that computer's own file. Set, not routed — nothing here dispatches by it (#371).
+describe('the computer a runtime runs on', () => {
+  const held = (): Record<string, unknown> =>
+    JSON.parse(fs.readFileSync(path.join(root, 'docs', 'kanban', 'ui.config.json'), 'utf8'))
+  const block = (): Record<string, unknown> => held().runtimes as Record<string, unknown>
+
+  beforeEach(() => {
+    config({ harness: 'claude-code', runtimes: { names: ['default', 'cheap'], global: 'default' } })
+  })
+
+  it('is absent until the pick is made, and reaches the pane once it is', () => {
+    assert.deepEqual(readRuntimes().computers, {})
+    assert.equal(agentInfo().runtimes.find((r) => r.name === 'cheap')?.computer, undefined)
+    assert.equal(setRuntimeComputer('cheap', 'buildbox').ok, true)
+    assert.deepEqual(block().computers, { cheap: 'buildbox' })
+    assert.equal(agentInfo().runtimes.find((r) => r.name === 'cheap')?.computer, 'buildbox')
+  })
+
+  it('goes back to nothing, which is the computer the run starts on', () => {
+    setRuntimeComputer('cheap', 'buildbox')
+    assert.equal(setRuntimeComputer('cheap', '').ok, true)
+    assert.deepEqual(readRuntimes().computers, {})
+    assert.equal(block().computers, undefined)
+  })
+
+  it('refuses a runtime the board doesn’t hold, and lists the ones it does', () => {
+    const res = setRuntimeComputer('nope', 'buildbox')
+    assert.equal(res.ok, false)
+    assert.match(res.error ?? '', /default, cheap/)
+  })
+
+  it('changes nothing about where a run actually lands', () => {
+    bind({ default: { harness: 'codex', settings: {} } })
+    setFlowRuntime('implement', 'cheap')
+    setRuntimeComputer('cheap', 'buildbox')
+    const run = plan({ action: 'implement' })
+    assert.equal(run.runtime, 'cheap')
+    assert.equal(run.harness, 'codex')
+  })
+
+  it('is carried by a rename and dropped by a removal', () => {
+    setRuntimeComputer('cheap', 'buildbox')
+    assert.equal(renameRuntime('cheap', 'plan').ok, true)
+    assert.deepEqual(readRuntimes().computers, { plan: 'buildbox' })
+    assert.equal(removeRuntime('plan').ok, true)
+    assert.deepEqual(readRuntimes().computers, {})
+  })
+
+  it('takes a hostname of any length the pane can put on the list', () => {
+    assert.equal(setRuntimeComputer('cheap', 'a'.repeat(253)).ok, true)
+    assert.equal(setRuntimeComputer('cheap', 'has a space in it').ok, true)
+    assert.equal(setRuntimeComputer('cheap', 'a'.repeat(254)).ok, false)
+    assert.equal(setRuntimeComputer('cheap', 'two\nlines').ok, false)
+  })
+
+  it('drops one naming a runtime the board no longer holds', () => {
+    config({
+      harness: 'claude-code',
+      runtimes: { names: ['default'], global: 'default', computers: { gone: 'buildbox' } },
+    })
+    assert.deepEqual(readRuntimes().computers, {})
+  })
+
+  it('keeps the block on a lone default that names a computer', () => {
+    config({ harness: 'claude-code', runtimes: { names: ['default'], global: 'default' } })
+    assert.equal(setRuntimeComputer('default', 'buildbox').ok, true)
+    assert.deepEqual(block().computers, { default: 'buildbox' })
+    assert.equal(readRuntimes().named, true)
   })
 })

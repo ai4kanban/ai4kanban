@@ -1,22 +1,24 @@
 "use client";
 
-// Configuration → Runtimes (#344).
+// Configuration → Runtimes (#344, #370).
 //
-// Two answers, kept visibly apart. THE BOARD names its runtimes and says which one is
-// global — that travels with the repository, and everyone on the board reads it. THIS
-// COMPUTER says which coding tool each of those names runs as here — that lives in
-// `~/.ai4kanban/runtimes.json`, outside every project, and is never shared.
+// Two tabs. RUNTIMES is the list: one row per runtime, named by the board, headed with the
+// computer it runs on and opening in place onto everything that computer can be told about
+// it. COMPUTERS is the machines the board knows, and nothing more — no runtime points at one
+// the tab doesn't list.
 //
-// The list sets nothing: a row per runtime carrying the board's name for it and what this
-// computer runs it as, each half labelled with who reads it. Pressing a row opens that
-// runtime over the whole pane, and there the binding is the one thing that can be pressed —
-// the same square harness cards and the same declared settings the board's own harness has
-// always used (Configuration.tsx), only saving somewhere else.
+// Three answers, and three places they live. THE BOARD names its runtimes, says which one is
+// global, and says which computer each one runs on — all of it travels with the repository.
+// THAT COMPUTER says what it runs the name as, in its own `~/.ai4kanban/runtimes.json`, which
+// nothing here can write for another machine: a runtime pointed elsewhere shows what that
+// machine reported and offers nothing to press.
 //
-// A board that names no runtimes has no list at all: the pane is today's Harness pane, said
-// to be the board's, with **Add runtime** on it. `readRuntimes` answers `named: false`
-// there, so a row called `default` would put a name on screen that neither the board nor
-// Cloud holds.
+// The pick is intent, not routing: a run still lands where it was started until #371.
+//
+// A board that names no runtimes has no list at all: the Runtimes tab is today's harness
+// pane, said to be the board's and headed with the computer it runs on, with **Add runtime**
+// on it. `readRuntimes` answers `named: false` there, so a row called `default` would put a
+// name on screen that neither the board nor Cloud holds.
 //
 // Which runtime a flow or spec agent uses is NOT set here — `akb agent runtime for` is where
 // that lives (#343), and a removal says so where it names the flows it moves.
@@ -24,11 +26,12 @@
 import { useEffect, useState } from "react";
 import {
   FiAlertCircle,
-  FiArrowLeft,
+  FiChevronDown,
   FiChevronRight,
   FiCloud,
   FiMonitor,
   FiPlus,
+  FiServer,
 } from "react-icons/fi";
 import {
   addRuntimeAction,
@@ -37,18 +40,27 @@ import {
   renameRuntimeAction,
   runtimeUsersAction,
   setGlobalRuntimeAction,
+  setRuntimeComputerAction,
   unbindRuntimeAction,
 } from "@/app/actions";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
-import type { BoardServer } from "@/lib/notifications";
+import type { BoardServer, ServerRuntime } from "@/lib/notifications";
 import type { AgentInfo, RuntimeView } from "@/lib/types";
 import { HarnessPicker } from "./Configuration";
 import { Alert, CAPTION, CONTROL, Group, Note, Panel, QUIET_BTN } from "./settings";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
-// One runtime's name, wherever it is shown: the board holds it, so it reads as the word it
-// is rather than as a sentence.
-const NAME = "font-mono text-[13px] font-[800] text-nb-ink";
+type RuntimesCopy = ReturnType<typeof useCopy>["configuration"]["runtimes"];
+
+/** One machine the board knows, as both the picker and the Computers tab draw it. */
+interface Computer {
+  name: string;
+  /** `here` is the computer the app is running on; `server` the machine that holds the
+   *  board's work; `named` one the board knows only because a runtime points at it, which
+   *  is the same as one it cannot reach. */
+  kind: "here" | "server" | "named";
+}
 
 export function RuntimesPanel({
   agent,
@@ -61,12 +73,14 @@ export function RuntimesPanel({
   // The whole setting as it now reads. Seeded from the page's first paint and replaced by
   // every save, so a runtime added a moment ago is on the list without a read of its own.
   const [info, setInfo] = useState(agent);
-  // The runtime whose view is up, over the list. Null is the list itself.
-  const [open, setOpen] = useState<string | null>(null);
+  const [tab, setTab] = useState<"runtimes" | "computers">("runtimes");
+  // The one runtime that is open; every other is folded to a line. The global one when the
+  // tab opens — the answer most boards are here for.
+  const [open, setOpen] = useState<string | null>(agent.globalRuntime);
   // What the board's server runs each runtime as (#345). Read once when the dialog opens,
-  // and again when a runtime's view closes — on the machine that IS the server that read is
-  // also what sends this computer's own resolution to Cloud, so a rebinding here reaches it
-  // without waiting for the next tick. Nothing waits for it: the pane draws first.
+  // and again whenever the open runtime changes — on the machine that IS the server that
+  // read is also what sends this computer's own resolution to Cloud, so a rebinding here
+  // reaches it without waiting for the next tick. Nothing waits for it: the pane draws first.
   const [server, setServer] = useState<BoardServer | null>(null);
 
   const readServer = () => {
@@ -80,107 +94,191 @@ export function RuntimesPanel({
   };
   useEffect(readServer, []);
 
+  const show = (runtime: string | null) => {
+    setOpen(runtime);
+    readServer();
+  };
+
   // Rules older than runtimes answer nothing about this machine, and a board with no rules
-  // at all has no agents to offer. Both draw today's Harness pane and stop there.
-  const manageable = typeof info.machine === "string" && info.options.length > 0;
-  const view = open ? info.runtimes.find((r) => r.name === open) : undefined;
-
-  if (view) {
-    return (
-      <RuntimePane
-        info={info}
-        view={view}
-        server={server}
-        onChanged={setInfo}
-        onRenamed={setOpen}
-        onBack={() => {
-          setOpen(null);
-          readServer();
-        }}
-        onError={onError}
-      />
-    );
-  }
-
-  // The board's own harness, on a board that names no runtimes — and on one whose command is
-  // too old to answer, where **Add runtime** is not offered either.
-  if (!manageable || !info.namedRuntimes) {
+  // at all has no agents to offer. Both draw today's harness pane and stop there — no tabs
+  // either, since every move on them would fail.
+  if (!info.machine || !info.options.length) {
     return (
       <Group title={c.title}>
         <HarnessPicker agent={info} onError={onError} />
         <Note>{c.boardsOwn}</Note>
-        {manageable && (
-          <div className="mt-3">
-            <AddRuntime onAdded={setInfo} onError={onError} />
-          </div>
-        )}
       </Group>
     );
   }
 
-  return (
-    <Group title={c.title}>
-      {/* Who reads which half. The board's names go with the repository; what they run as
-          stops at this machine — said once, over the column it is true of. */}
-      <div className="mb-1.5 flex items-end gap-3 px-4">
-        <div className="w-[150px] shrink-0">
-          <p className={`${CAPTION} text-nb-ink`}>{c.boardHalf}</p>
-          <p className="text-[11px] leading-[14px] text-nb-ink-soft">{c.boardHalfNote}</p>
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className={`${CAPTION} flex items-center gap-1.5 text-nb-ink`}>
-            <FiMonitor className="shrink-0 text-[12px]" aria-hidden />
-            {c.computerHalf(info.machine)}
-          </p>
-          <p className="text-[11px] leading-[14px] text-nb-ink-soft">{c.computerHalfNote}</p>
-        </div>
-      </div>
+  const computers = knownComputers(info, server);
 
-      {/* One row per runtime, and the whole row opens it — so the card is a list of names
-          rather than a list of names with a button beside each. */}
+  return (
+    <div>
+      <Tabs tab={tab} onTab={setTab} c={c} />
+      {tab === "computers" ? (
+        <Computers computers={computers} c={c} />
+      ) : !info.namedRuntimes ? (
+        // The board's own harness, on a board that names no runtimes — the one runtime every
+        // flow is on, which IS this setting, on the one computer this app runs on. The tab
+        // above already names the pane, so the machine line is its whole heading.
+        <section>
+          <p className="mb-2.5 flex min-h-[30px] items-center gap-2 text-[12px] text-nb-ink-soft">
+            <FiMonitor className="shrink-0 text-[13px]" aria-hidden />
+            {c.runsOn(info.machine)}
+          </p>
+          <HarnessPicker agent={info} onError={onError} />
+          <Note>{c.boardsOwn}</Note>
+          <div className="mt-3">
+            <AddRuntime onAdded={setInfo} onError={onError} />
+          </div>
+        </section>
+      ) : (
+        <Group title={c.listCaption}>
+          {/* One block, one runtime per row: the open one carries everything that can be
+              said about it, and the rest are a name and a line. */}
+          <div className="overflow-hidden rounded-[12px] border border-nb-ink/12 bg-nb-paper">
+            {info.runtimes.map((runtime) =>
+              runtime.name === open ? (
+                <OpenRuntime
+                  key={runtime.name}
+                  info={info}
+                  view={runtime}
+                  server={server}
+                  computers={computers}
+                  onChanged={setInfo}
+                  onRenamed={setOpen}
+                  onFold={() => show(null)}
+                  onError={onError}
+                />
+              ) : (
+                <FoldedRuntime
+                  key={runtime.name}
+                  info={info}
+                  view={runtime}
+                  server={server}
+                  onOpen={() => show(runtime.name)}
+                />
+              ),
+            )}
+          </div>
+          <div className="mt-3">
+            <AddRuntime onAdded={setInfo} onError={onError} />
+          </div>
+        </Group>
+      )}
+    </div>
+  );
+}
+
+// --- the two tabs -------------------------------------------------------------
+
+function Tabs({
+  tab,
+  onTab,
+  c,
+}: {
+  tab: "runtimes" | "computers";
+  onTab: (tab: "runtimes" | "computers") => void;
+  c: RuntimesCopy;
+}) {
+  const tabs = [
+    ["runtimes", c.tabs.runtimes],
+    ["computers", c.tabs.computers],
+  ] as const;
+  return (
+    <div className="mb-3 flex gap-5 border-b border-nb-ink/12" role="tablist">
+      {tabs.map(([key, label]) => (
+        <button
+          key={key}
+          type="button"
+          role="tab"
+          aria-selected={tab === key}
+          onClick={() => onTab(key)}
+          className={`-mb-px cursor-pointer border-b-2 pb-2 text-[13.5px] font-[800] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent ${
+            tab === key
+              ? "border-nb-accent text-nb-ink"
+              : "border-transparent text-nb-ink-soft hover:text-nb-ink"
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Every machine a runtime may be pointed at: this computer, the board's server when it is
+ *  another one, and any computer a runtime already names — so a name the board can no longer
+ *  place stays on the list rather than reading as a setting that changed itself. */
+function knownComputers(info: AgentInfo, server: BoardServer | null): Computer[] {
+  const out: Computer[] = [{ name: info.machine, kind: "here" }];
+  const held = server?.attached ? server.machineName : "";
+  if (held && held !== info.machine) out.push({ name: held, kind: "server" });
+  for (const runtime of info.runtimes) {
+    if (runtime.computer && !out.some((m) => m.name === runtime.computer)) {
+      out.push({ name: runtime.computer, kind: "named" });
+    }
+  }
+  return out;
+}
+
+const tagOf = (kind: Computer["kind"], c: RuntimesCopy): string =>
+  kind === "here" ? c.thisComputer : kind === "server" ? c.server.label : c.unreachable;
+
+const ComputerMark = ({ kind }: { kind: Computer["kind"] }) =>
+  kind === "server" ? (
+    <FiServer className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
+  ) : (
+    <FiMonitor className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
+  );
+
+function Computers({ computers, c }: { computers: Computer[]; c: RuntimesCopy }) {
+  return (
+    <Group title={c.computers.caption}>
       <Panel>
-        {info.runtimes.map((runtime) => (
-          <button
-            key={runtime.name}
-            type="button"
-            onClick={() => setOpen(runtime.name)}
-            className="flex w-full cursor-pointer items-center gap-3 border-b border-nb-ink/10 py-3 text-left last:border-b-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-nb-accent"
+        {computers.map((computer) => (
+          <div
+            key={computer.name}
+            className="flex items-center gap-2.5 border-b border-nb-ink/10 py-3 last:border-b-0"
           >
-            <span className="flex w-[150px] shrink-0 items-center gap-2">
-              <span className={NAME}>{runtime.name}</span>
-              {runtime.global && (
-                <span className="rounded-[5px] bg-nb-accent-soft px-1.5 py-0.5 text-[9px] font-[800] uppercase leading-none tracking-[0.06em] text-nb-accent-deep">
-                  {c.global}
-                </span>
-              )}
+            <ComputerMark kind={computer.kind} />
+            <span className="min-w-0 flex-1 truncate text-[13px] font-[700] text-nb-ink">
+              {computer.name}
             </span>
-            <span
-              className={`min-w-0 flex-1 truncate text-[12.5px] ${
-                runtime.binding ? "text-nb-ink" : "text-nb-ink-soft"
-              }`}
-            >
-              {runsAs(runtime, info, c)}
+            <span className="shrink-0 text-[11.5px] text-nb-ink-soft">
+              {tagOf(computer.kind, c)}
             </span>
-            <FiChevronRight className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
-          </button>
+          </div>
         ))}
       </Panel>
-
-      <Note>{c.blurb(info.machine)}</Note>
-
-      <div className="mt-3">
-        <AddRuntime onAdded={setInfo} onError={onError} />
-      </div>
+      <Note>{c.computers.blurb}</Note>
     </Group>
   );
 }
 
-type RuntimesCopy = ReturnType<typeof useCopy>["configuration"]["runtimes"];
+// --- what one runtime runs as, wherever it is said ----------------------------
 
 // The label the harness cards wear, for whatever a runtime resolved to. The board hands the
 // list down, so nothing here knows a harness by name.
 const labelOf = (info: AgentInfo, harness: string): string =>
   info.options.find((o) => o.name === harness)?.label ?? harness;
+
+/** The computer the board says this runtime runs on. Nothing stored is the computer the app
+ *  is running on, which is what happens today — and drawing the pane never writes one. */
+const computerOf = (view: RuntimeView, info: AgentInfo): string => view.computer || info.machine;
+
+const isHere = (view: RuntimeView, info: AgentInfo): boolean =>
+  computerOf(view, info) === info.machine;
+
+/** What the machine holding the board reported about one runtime (#345) — the only answer
+ *  this app has about a computer that is not this one. Undefined when that machine is this
+ *  one, when nobody holds the board, or when it reported nothing for this runtime. */
+function reportedBy(view: RuntimeView, info: AgentInfo, server: BoardServer | null) {
+  if (!server?.attached || server.here) return undefined;
+  if (computerOf(view, info) !== server.machineName) return undefined;
+  return server.runtimes.find((r) => r.name === view.name);
+}
 
 // What this computer runs one runtime as, in one line, and null when the answer is simply
 // its own binding. Two halves: why it isn't running its own, and what ran instead — this
@@ -206,28 +304,85 @@ function runsAs(runtime: RuntimeView, info: AgentInfo, c: RuntimesCopy): string 
   return `${notBound(runtime, c)} — ${fellBackTo(runtime, info, c)}`;
 }
 
-// --- one runtime -------------------------------------------------------------
-// The binding is the only thing here that can be pressed. Above it the board's three moves —
-// rename, make global, remove — each of which changes what the repository holds and nothing
-// about this machine; below it the board's server, read-only.
+/** The same answer for a runtime pointed at another computer: what that machine reported,
+ *  in the short form a folded row has room for. Reporting nothing is its own line — it is
+ *  not the same as reporting that nothing is bound. */
+const runsThere = (reported: ServerRuntime | undefined, info: AgentInfo, c: RuntimesCopy): string =>
+  !reported
+    ? c.server.notSaid
+    : reported.fallback
+      ? c.server.notBound
+      : c.runs(labelOf(info, reported.harness), reported.model ?? "");
 
-function RuntimePane({
+// --- the list -----------------------------------------------------------------
+
+function FoldedRuntime({
   info,
   view,
   server,
+  onOpen,
+}: {
+  info: AgentInfo;
+  view: RuntimeView;
+  server: BoardServer | null;
+  onOpen: () => void;
+}) {
+  const c = useCopy().configuration.runtimes;
+  const here = isHere(view, info);
+  const summary = `${computerOf(view, info)} · ${
+    here ? runsAs(view, info, c) : runsThere(reportedBy(view, info, server), info, c)
+  }`;
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex w-full cursor-pointer items-center gap-2 border-t border-nb-ink/10 px-3.5 py-3 text-left first:border-t-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-nb-accent"
+    >
+      <FiChevronRight className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
+      <span className="shrink-0 text-[13.5px] font-[700] text-nb-ink">{view.name}</span>
+      {view.global && <GlobalBadge />}
+      <span className="ml-1 min-w-0 flex-1 truncate text-[12.5px] text-nb-ink-soft">
+        {summary}
+      </span>
+    </button>
+  );
+}
+
+function GlobalBadge() {
+  const c = useCopy().configuration.runtimes;
+  return (
+    <span className="shrink-0 rounded-[5px] bg-nb-accent-soft px-1.5 py-0.5 text-[9px] font-[800] uppercase leading-none tracking-[0.06em] text-nb-accent-deep">
+      {c.global}
+    </span>
+  );
+}
+
+// --- one runtime, open --------------------------------------------------------
+// The computer heads the card, and what is under it follows from it: this computer's binding
+// is the one thing that can be pressed, and another computer's is read. Above them the
+// board's three moves — rename, make global, remove — each of which changes what the
+// repository holds and nothing about any machine.
+
+function OpenRuntime({
+  info,
+  view,
+  server,
+  computers,
   onChanged,
   onRenamed,
-  onBack,
+  onFold,
   onError,
 }: {
   info: AgentInfo;
   view: RuntimeView;
   server: BoardServer | null;
+  computers: Computer[];
   onChanged: (agent: AgentInfo) => void;
   /** A rename moves the view with it — the runtime on screen is the same one, under the
-   *  name the board now holds, so it stays open rather than dropping back to the list. */
+   *  name the board now holds, so it stays open rather than folding. */
   onRenamed: (to: string) => void;
-  onBack: () => void;
+  onFold: () => void;
   onError?: (msg: string) => void;
 }) {
   const c = useCopy().configuration.runtimes;
@@ -259,33 +414,29 @@ function RuntimePane({
     }
   };
 
-  // What the board's server runs this same runtime as. Absent on the machine that IS the
-  // server, on a board nobody holds, and on one whose server reported nothing for it.
+  const computer = computerOf(view, info);
+  const here = isHere(view, info);
+  const reported = reportedBy(view, info, server);
+  // What the board's server runs this same runtime as, under a runtime that runs HERE — the
+  // read-only line #345 added. A runtime pointed at that server says it in the card itself,
+  // and saying it twice would read as two answers.
   const theirs =
-    server && server.attached && !server.here
+    here && server?.attached && !server.here
       ? server.runtimes.find((r) => r.name === view.name)
       : undefined;
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-1.5 inline-flex cursor-pointer items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft transition-colors duration-100 hover:text-nb-ink"
-      >
-        <FiArrowLeft className="text-[13px]" aria-hidden />
-        {c.back}
-      </button>
-
+    <div className="border-t border-nb-ink/10 px-3.5 pb-3.5 pt-3 first:border-t-0">
       <div className="mb-2 flex min-h-[30px] items-center justify-between gap-3">
-        <h4 className="flex items-center gap-2">
-          <span className="font-mono text-[13px] font-[800] text-nb-ink">{view.name}</span>
-          {view.global && (
-            <span className="rounded-[5px] bg-nb-accent-soft px-1.5 py-0.5 text-[9px] font-[800] uppercase leading-none tracking-[0.06em] text-nb-accent-deep">
-              {c.global}
-            </span>
-          )}
-        </h4>
+        <button
+          type="button"
+          onClick={onFold}
+          className="flex min-w-0 cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+        >
+          <FiChevronDown className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
+          <span className="truncate text-[13.5px] font-[800] text-nb-ink">{view.name}</span>
+          {view.global && <GlobalBadge />}
+        </button>
         <span className="flex shrink-0 items-center gap-1.5">
           <button
             type="button"
@@ -338,23 +489,26 @@ function RuntimePane({
           busy={busy}
           onCancel={() => setAsking(null)}
           onRemove={() =>
-            void run(() => removeRuntimeAction(view.name), c.removeFailed(view.name), onBack)
+            void run(() => removeRuntimeAction(view.name), c.removeFailed(view.name), onFold)
           }
         />
       )}
 
-      {/* This computer's binding. The card names the machine it is true of, because every
-          other board on it shares the same entry. */}
+      {/* The computer heads the card, because everything on it is that computer's answer. */}
       <div className="rounded-[12px] border border-nb-ink/12 bg-nb-sheet px-4 py-3">
         <div className="mb-2.5 flex items-center justify-between gap-2">
-          <span className="flex items-center gap-2">
-            <FiMonitor className="shrink-0 text-[14px] text-nb-ink" aria-hidden />
-            <span className={NAME}>{info.machine}</span>
-            <span className="rounded-[5px] bg-nb-wash px-1.5 py-0.5 text-[9px] font-[800] uppercase leading-none tracking-[0.06em] text-nb-ink-soft">
-              {c.thisComputer}
-            </span>
-          </span>
-          {view.binding && (
+          <ComputerPicker
+            value={computer}
+            computers={computers}
+            busy={busy}
+            onPick={(to) =>
+              void run(
+                () => setRuntimeComputerAction(view.name, to),
+                c.computerFailed(view.name),
+              )
+            }
+          />
+          {here && view.binding && (
             <button
               type="button"
               disabled={busy}
@@ -366,38 +520,57 @@ function RuntimePane({
           )}
         </div>
 
-        {/* Nothing bound here, so nothing on the grid is pressed — and the runtime still
-            runs something, which the list already says. */}
-        {!view.binding && (
-          <Note icon={<FiAlertCircle />}>
-            {c.pickHarness(notBound(view, c), fellBackTo(view, info, c))}
-          </Note>
-        )}
+        {here ? (
+          <>
+            {/* Nothing bound here, so nothing on the grid is pressed — and the runtime still
+                runs something, which the line says. */}
+            {!view.binding && (
+              <Note icon={<FiAlertCircle />}>
+                {c.pickHarness(notBound(view, c), fellBackTo(view, info, c))}
+              </Note>
+            )}
 
-        {/* Keyed by what is bound, not just by the runtime: Unbind above is a change the
-            picker did not make, and every field in it is seeded once at mount. */}
-        <HarnessPicker
-          key={`${view.name}|${view.binding?.harness ?? ""}`}
-          agent={info}
-          onError={onError}
-          bind={{ runtime: view.name, view, onSaved: onChanged }}
-        />
+            {/* Keyed by what is bound, not just by the runtime: Unbind above is a change the
+                picker did not make, and every field in it is seeded once at mount. */}
+            <HarnessPicker
+              key={`${view.name}|${view.binding?.harness ?? ""}`}
+              agent={info}
+              onError={onError}
+              bind={{ runtime: view.name, view, onSaved: onChanged }}
+            />
+          </>
+        ) : reported && !reported.fallback ? (
+          // A binding belongs to the file of the machine it is on, and nothing here can write
+          // another machine's — so this is what that computer reported, and nothing else.
+          <div>
+            <p className={`${CAPTION} text-nb-ink-soft`}>{c.thereRuns}</p>
+            <p className="mt-1 text-[13px] text-nb-ink">
+              {c.runs(labelOf(info, reported.harness), reported.model ?? "")}
+            </p>
+          </div>
+        ) : (
+          <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">
+            {reported ? c.server.notBound : c.saidNothing(computer)}
+          </p>
+        )}
       </div>
 
-      {/* What the board names this runtime, and whether every flow that names none runs on
-          it — under the card it is true of. */}
+      {/* Where the answer above lives, and whether every flow that names no runtime runs on
+          this one. Pointed elsewhere, the pick is intent and the line says so (#371). */}
       <Note>
-        <Rich>{c.bindingBlurb(view.name) + (view.global ? ` ${c.isGlobal}` : "")}</Rich>
+        <Rich>
+          {(here ? c.bindingBlurb(view.name) : c.notRouted(computer)) +
+            (view.global ? ` ${c.isGlobal}` : "")}
+        </Rich>
       </Note>
 
       {/* The machine that runs this board's work, and what IT runs this runtime as (#345).
-          Read-only: a binding belongs to the computer that holds it, and nothing here can
-          reach that one. */}
+          Read-only: a binding belongs to the computer that holds it. */}
       {theirs && (
         <div className="mt-2.5 flex items-center gap-3 rounded-[12px] border border-nb-ink/12 bg-nb-wash px-4 py-2.5">
           <span className="flex w-[150px] shrink-0 items-center gap-2">
-            <FiMonitor className="shrink-0 text-[12px] text-nb-ink-soft" aria-hidden />
-            <span className="truncate font-mono text-[12px] font-[700] text-nb-ink-soft">
+            <FiServer className="shrink-0 text-[12px] text-nb-ink-soft" aria-hidden />
+            <span className="truncate text-[12px] font-[700] text-nb-ink-soft">
               {server?.machineName}
             </span>
           </span>
@@ -412,7 +585,59 @@ function RuntimePane({
           </span>
         </div>
       )}
-    </>
+    </div>
+  );
+}
+
+/** The one thing about the card that changed: a computer, picked here, where the machine
+ *  this card was titled with used to be. */
+function ComputerPicker({
+  value,
+  computers,
+  busy,
+  onPick,
+}: {
+  value: string;
+  computers: Computer[];
+  busy: boolean;
+  onPick: (computer: string) => void;
+}) {
+  const c = useCopy().configuration.runtimes;
+  const picked = computers.find((m) => m.name === value);
+
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <Select value={value} disabled={busy} onValueChange={onPick}>
+        <SelectTrigger
+          aria-label={c.computer}
+          className="w-[210px] shrink-0 py-1.5 text-[13px] font-[700]"
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            <ComputerMark kind={picked?.kind ?? "named"} />
+            <SelectValue>{value}</SelectValue>
+          </span>
+        </SelectTrigger>
+        <SelectContent>
+          {computers.map((computer) => (
+            <SelectItem
+              key={computer.name}
+              value={computer.name}
+              hint={
+                <span className="text-[11px] text-nb-ink-soft">{tagOf(computer.kind, c)}</span>
+              }
+            >
+              <span className="flex items-center gap-2">
+                <ComputerMark kind={computer.kind} />
+                {computer.name}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <span className="min-w-0 truncate text-[11.5px] text-nb-ink-soft">
+        {tagOf(picked?.kind ?? "named", c)}
+      </span>
+    </span>
   );
 }
 
@@ -480,7 +705,7 @@ function AddRuntime({
             if (e.key === "Enter") void add();
             if (e.key === "Escape") setNaming(false);
           }}
-          className={`${CONTROL} font-mono`}
+          className={CONTROL}
         />
         <button
           type="button"
@@ -531,7 +756,7 @@ function RenameRuntime({
             if (e.key === "Enter" && name.trim()) onRename(name.trim());
             if (e.key === "Escape") onCancel();
           }}
-          className={`${CONTROL} font-mono`}
+          className={CONTROL}
         />
         <button
           type="button"

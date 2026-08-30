@@ -36,6 +36,15 @@ export async function setGlobalRuntime(name: string): Promise<WriteResult> {
   return rules.setGlobalRuntime ? rules.setGlobalRuntime(name) : { ok: false, error: TOO_OLD };
 }
 
+/** Point a runtime at a computer, or back at the one a run starts on with an empty name
+ *  (#370). The board's half: it travels with the repository, beside the names. */
+export async function setRuntimeComputer(name: string, computer: string): Promise<WriteResult> {
+  const rules = await boardRules();
+  return rules.setRuntimeComputer
+    ? rules.setRuntimeComputer(name, computer)
+    : { ok: false, error: TOO_OLD };
+}
+
 // ---- this computer's half ----------------------------------------------------
 
 export async function bindRuntime(runtime: string, harness: string): Promise<WriteResult> {

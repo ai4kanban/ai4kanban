@@ -17,6 +17,9 @@ export const PROPOSE_MAX = 10
  *  (`akb guide propose`, "Boldness"); this is only the name a run sends. */
 export type Boldness = 'safe' | 'normal' | 'bold'
 
+/** How much planning QA one refinement needs. */
+export type RefineEffort = 'lightweight' | 'standard'
+
 /** The tokens one run consumed, as the agent's own closing event counted them. Four
  *  numbers because the API bills them differently: fresh input, input written to the
  *  prompt cache, input read back from it, and output. This run's own numbers alone — the
@@ -98,6 +101,8 @@ export interface AgentRequest {
   andImplement?: boolean // resolve: keep going and implement once the questions settle
   /** Internal position in a watcher-managed refinement run chain. */
   refineRound?: number
+  /** The one QA guide this refinement's clarify session loads. */
+  refineEffort?: RefineEffort
   /** The flow this run belongs to. Absent on the run that opens one — it is given an id
    *  when it is written down, and every session it goes on to start inherits that id. */
   flowId?: string
@@ -199,6 +204,8 @@ export interface RunRecord {
   specAgent?: string
   /** Position in a watcher-managed refinement run chain. */
   refineRound?: number
+  /** The QA guide this refinement uses across its sessions and resume. */
+  refineEffort?: RefineEffort
   /** The FLOW this run is one session of — the id shared by the command a user typed and
    *  every session it went on to start: a refinement's passes, the spec agents a create
    *  asked for, the review that follows a build. It is what lets the runs panel show one
@@ -462,6 +469,7 @@ export interface SpecAsk {
   /** What the flow wants looked at, in a line or two. Everything else the agent is given
    *  is the card itself: the conversation that asked is deliberately not passed on. */
   notes?: string
+  refineEffort?: RefineEffort
 }
 
 /** One ask for a refinement, written down by the run that asked for it with
@@ -471,6 +479,7 @@ export interface SpecAsk {
 export interface RefineAsk {
   cardId: number
   notes?: string
+  effort?: RefineEffort
 }
 
 /** One run as a reader is told about it — the record, plus the few things worked out
@@ -713,6 +722,10 @@ export interface RuntimeView {
   name: string
   /** True for the one a flow that names none runs on. */
   global: boolean
+  /** The computer the board says it runs on, by machine name (#370). Absent is the computer
+   *  the run starts on. Set, not routed: nothing dispatches a run by it yet (#371), and the
+   *  four answers below are always THIS computer's. */
+  computer?: string
   /** The harness it actually resolves to here, after every fallback. */
   harness: string
   /** The model that harness is set to here. Absent where nothing set one, so the harness

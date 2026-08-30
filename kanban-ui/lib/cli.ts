@@ -174,6 +174,9 @@ export interface BoardRules {
   removeRuntime?(name: string): WriteResult;
   renameRuntime?(from: string, to: string): WriteResult;
   setGlobalRuntime?(name: string): WriteResult;
+  /** The computer a runtime is meant to run on (#370) — the board's answer, not this
+   *  machine's. An empty name puts it back on the computer a run starts on. */
+  setRuntimeComputer?(name: string, computer: string): WriteResult;
   bindRuntime?(runtime: string, harness: string): WriteResult;
   setBindingSetting?(runtime: string, key: string, value: string): WriteResult;
   unbindRuntime?(runtime: string): WriteResult;

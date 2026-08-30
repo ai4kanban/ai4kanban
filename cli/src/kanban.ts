@@ -114,6 +114,7 @@ export {
   renameRuntime,
   setFlowRuntime,
   setGlobalRuntime,
+  setRuntimeComputer,
   setSpecAgentRuntime,
 } from './lib/agent/settings'
 export type { BoardRuntimes } from './lib/agent/settings'

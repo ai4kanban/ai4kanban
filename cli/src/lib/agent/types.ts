@@ -719,6 +719,10 @@ export interface RuntimeView {
   name: string
   /** True for the one a flow that names none runs on. */
   global: boolean
+  /** The computer the board says it runs on, by machine name (#370). Absent is the computer
+   *  the run starts on. Set, not routed: nothing dispatches a run by it yet (#371), and the
+   *  four answers below are always THIS computer's. */
+  computer?: string
   /** The harness it actually resolves to here, after every fallback. */
   harness: string
   /** The model that harness is set to here. Absent where nothing set one, so the harness

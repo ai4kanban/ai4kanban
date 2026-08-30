@@ -20,14 +20,11 @@ const en: ConfigurationCopy = {
   },
   runtimes: {
     title: "Runtimes",
-    blurb: (machine) =>
-      `The names this board runs its work under, and what ${machine} — this computer — runs each one as.`,
+    tabs: { runtimes: "Runtimes", computers: "Computers" },
+    listCaption: "The names this board runs its work under",
     boardsOwn:
       "Every run on this board goes through one coding tool, and it is the board's: everyone here reads these settings. Add a runtime to run some flows on something else.",
-    boardHalf: "The board names these",
-    boardHalfNote: "everyone here reads them",
-    computerHalf: (machine) => `${machine} runs them as`,
-    computerHalfNote: "this computer — stays on this machine",
+    runsOn: (machine) => `Runs on ${machine} — this computer.`,
     global: "global",
     runs: (harness, model) => (model ? `${harness} · ${model}` : harness),
     notBound: "Not bound here",
@@ -36,14 +33,23 @@ const en: ConfigurationCopy = {
     ranAsBoard: (harness) => `runs the board's own harness: ${harness}`,
     add: "Add runtime",
     addBlurb:
-      "A name the board holds, and each computer says what it runs as. The board keeps `default` beside it and stays global on it, so every flow goes on running what it runs now.",
+      "A name the board holds, and each computer says what it runs as. The board keeps **default** beside it and stays global on it, so every flow goes on running what it runs now.",
     namePlaceholder: "plan",
     save: "Save",
     cancel: "Cancel",
-    back: "Runtimes",
     thisComputer: "this computer",
     bindingBlurb: (runtime) =>
-      `The board names \`${runtime}\`; what it runs as below is this computer's and stays on this machine.`,
+      `The board names **${runtime}**; what it runs as below is this computer's and stays on this machine.`,
+    computer: "Computer",
+    unreachable: "unreachable",
+    thereRuns: "Runs it as",
+    saidNothing: (computer) => `${computer} hasn't said what it runs this runtime as.`,
+    notRouted: (computer) => `Set, not routed — no run is sent to ${computer} yet.`,
+    computers: {
+      caption: "The computers this board knows",
+      blurb:
+        "Every computer a runtime can be pointed at: this one, the board's server, and any a runtime already names.",
+    },
     pickHarness: (why, instead) =>
       `${why} — pick the coding tool this computer runs it as. Meanwhile it ${instead}.`,
     unbind: "Unbind",
@@ -54,20 +60,25 @@ const en: ConfigurationCopy = {
     isGlobal: "Every flow that names no runtime runs on this one.",
     remove: "Remove",
     removeBlurb: (runtime) =>
-      `Remove \`${runtime}\`? Its binding on this computer stays — every board on this machine shares it.`,
+      `Remove **${runtime}**? Its binding on this computer stays — every board on this machine shares it.`,
     removeMoves: (names, globalRuntime) =>
-      `These move to \`${globalRuntime}\`, the board's global runtime: ${names}. Point them somewhere else with \`akb agent\`.`,
+      `These move to **${globalRuntime}**, the board's global runtime: ${names}. Point them somewhere else with \`akb agent\`.`,
     removeNothing: "No flow and no spec agent names it.",
     removeGlobal: (runtime) =>
-      `\`${runtime}\` is the board's global runtime. Make another one global first.`,
+      `**${runtime}** is the board's global runtime. Make another one global first.`,
     confirmRemove: "Remove",
     keyIsBoards: "The board's key, in docs/kanban/.env — shared by every runtime on this harness.",
-    server: { label: "the board's server", notBound: "Not bound there" },
+    server: {
+      label: "the board's server",
+      notBound: "Not bound there",
+      notSaid: "Hasn't said what it runs this as",
+    },
     addFailed: "couldn't add the runtime",
     removeFailed: (runtime) => `couldn't remove ${runtime}`,
     renameFailed: (runtime) => `couldn't rename ${runtime}`,
     globalFailed: (runtime) => `couldn't make ${runtime} the global runtime`,
     unbindFailed: (runtime) => `couldn't unbind ${runtime} on this computer`,
+    computerFailed: (runtime) => `couldn't set the computer ${runtime} runs on`,
   },
   harness: {
     notInstalled: "not installed",

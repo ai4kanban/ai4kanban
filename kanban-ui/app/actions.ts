@@ -57,6 +57,7 @@ import {
   renameRuntime,
   setBindingSetting,
   setGlobalRuntime,
+  setRuntimeComputer,
   unbindRuntime,
 } from "@/lib/runtimes";
 import {
@@ -900,6 +901,19 @@ export async function setGlobalRuntimeAction(
   name: string,
 ): Promise<WriteResult & { agent?: AgentInfo }> {
   return runtimeMove(() => setGlobalRuntime(String(name ?? "").trim()));
+}
+
+/** Point a runtime at one of the board's computers, or back at the one a run starts on with
+ *  an empty name (#370). Set, not routed: it says where the runtime belongs and dispatches
+ *  nothing (#371). */
+export async function setRuntimeComputerAction(
+  runtime: string,
+  computer: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  if (typeof runtime !== "string" || typeof computer !== "string") {
+    return { ok: false, error: "a computer is saved as text" };
+  }
+  return runtimeMove(() => setRuntimeComputer(runtime.trim(), computer.trim()));
 }
 
 /** Bind a runtime on THIS computer. The harness is checked against the ones this build
