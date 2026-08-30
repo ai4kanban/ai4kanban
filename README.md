@@ -12,39 +12,41 @@
 
 </div>
 
-Coding agents can now implement clear requirements reliably. The bottleneck is moving
-upstream to project management: deciding what to build next, turning rough ideas into
-workable requirements, and coordinating priorities and dependencies across a growing
-product.
+Coding agents can now turn well-defined requirements into working code reliably. The
+bottleneck is shifting from coding to planning and decision-making: deciding what to build
+next, turning rough ideas into actionable requirements, and coordinating priorities and
+dependencies as a product grows.
 
-AI4Kanban is a project-management agent built around a Kanban board. It combines project
-goals, code, and long-term memory to propose work, clarify requirements, plan execution,
-and move tasks through their complete lifecycle.
+AI4Kanban is a project-management agent with a Kanban interface. It combines project goals,
+the codebase, and long-term memory to propose work, clarify requirements, plan execution,
+and move tasks from idea to delivery.
 
-The board preserves context that code alone does not: product decisions, rejected
-directions, delivered features, and design lessons. That context carries into each new
-planning cycle, so the system becomes more useful as the project evolves.
+The board records context that code alone cannot fully preserve: product decisions,
+rejected directions, delivered features, and design lessons. Each planning cycle draws on
+this history, keeping future decisions grounded in the project.
 
 ## What it does
 
-- **Plans work proactively.** The agent uses project goals, code, and memory to determine
-  what should happen next and propose concrete tasks.
-- **Clarifies requirements in a loop.** It questions rough ideas, answers what it can from
-  project context, and continues until the work is ready to begin.
+- **Plans the next steps proactively.** The agent uses project goals, the codebase, and
+  long-term memory to determine what should happen next and propose concrete tasks.
+- **Turns rough ideas into ready-to-build tasks.** The agent identifies missing details,
+  handles routine decisions from project context, and asks only the questions that require
+  your judgment. It continues until the work is ready to begin.
 - **Coordinates the task lifecycle.** It breaks down work, manages dependencies and
   priorities, plans releases, and sends ready tasks to coding agents.
-- **Carries a card all the way to landed.** One Implement click builds the work in a git
-  worktree of its own, reviews it against what the card asked for, corrects what review
-  found, and lands it as one commit on your branch.
-- **Reaches you when you are away from the machine.** Reviews that are ready and questions
-  only you can answer collect in the app's notification center and arrive in Slack, where
-  the card is approved and the questions answered from the message itself.
-- **Keeps product judgment with people.** Product direction, taste, and consequential
+- **Delivers each card to your branch.** One Implement click builds the work in an isolated
+  git worktree, checks it against the card, fixes issues found during review, and lands it
+  as a single commit on your branch.
+- **Notifies you when your input is needed.** Reviews awaiting approval and questions only
+  you can answer appear in the app's notification center and in Slack. Approve the task or
+  answer the question directly from the message.
+- **Keeps product judgment with people.** Product direction, design preferences, and major
   tradeoffs remain human decisions; routine details are handled from project context.
 - **Builds long-term project memory.** Decisions, completed work, rejected ideas, and
   design lessons inform future planning instead of disappearing with a chat session.
-- **Stays local and agent-agnostic.** The board is Markdown under `docs/kanban/` and works
-  with Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, and ZCode.
+- **Keeps the board local and your choice of agent open.** The board is stored as Markdown
+  files under `docs/kanban/`. AI4Kanban supports Claude Code, Codex, Cursor, OpenCode,
+  DeepSeek Harness, and ZCode.
 
 ## Get started
 
@@ -53,13 +55,13 @@ planning cycle, so the system becomes more useful as the project evolves.
    coding-agent skills automatically when a project is opened.
 2. **Open a project folder.** Confirm the project summary and tracks, set the project goal,
    and choose the coding agent that will run the board.
-3. **Select Finish setup.** AI4Kanban reads the repository, creates project memory, maps
-   the modules, and proposes the first tasks.
+3. **Select Finish setup.** AI4Kanban reads the repository, creates project memory, maps the
+   modules, and proposes the first tasks.
 
 Current builds are unsigned, so the operating system may show a warning on first launch.
 The [download page](https://ai4kanban.dev/download) provides the exact steps for macOS,
-Windows, and Linux. Starting agent runs also requires one of the supported coding agents to
-be installed and authenticated on the machine.
+Windows, and Linux. Before starting a task, install one of the supported coding agents and
+complete its sign-in or API key setup.
 
 After setup, work from the desktop app or ask the coding agent directly:
 
@@ -71,12 +73,13 @@ review the board
 implement #4
 ```
 
-The desktop app, coding agent, and bundled `akb` CLI all operate on the same board. For
-terminal use, run `akb` after installing the app; do not install the npm package separately.
+The desktop app, coding agent, and bundled `akb` CLI all operate on the same board. To use
+the terminal, install the desktop app and run `akb`; there is no separate npm package to
+install.
 
-The app reads in English and Simplified Chinese and opens in the language the machine is set
-to. The board is written in the language you pick — cards, open questions, and the lines to
-check included.
+The app supports English and Simplified Chinese and follows your system language by default.
+The board also uses the language you choose, including cards, open questions, and acceptance
+criteria.
 
 ## Learn more
 
