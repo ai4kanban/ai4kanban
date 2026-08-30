@@ -195,6 +195,19 @@ describe('the prompt', () => {
     assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /<spec-agents>/)
   })
 
+  it('starts a fresh refinement after each card created from a printed flow', () => {
+    startCollecting()
+    try {
+      const flow = printFlow({ action: 'create', description: 'Add a task.' })
+      const next = (flow.next as string[]).join('\n')
+      assert.match(next, /akb refine <id>/)
+      assert.match(next, /after add-task/)
+      assert.doesNotMatch(next, /refine <id> --print/)
+    } finally {
+      stopCollecting()
+    }
+  })
+
   it('keeps the split gate and its handoff in the QA guide', () => {
     const guide = findGuide('qa-loop')!.text
     assert.match(guide, /200 lines or 12 todo items/)

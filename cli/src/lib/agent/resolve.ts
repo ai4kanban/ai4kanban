@@ -23,7 +23,13 @@ import {
 import { FLOWS } from './flows'
 import { commandBinary, pathLookup } from './installed'
 import { languageNote } from './language'
-import { missingRequired, pickedProvider, providerSetting, shownForProvider } from './providers'
+import {
+  missingRequired,
+  pickedProvider,
+  providerOwned,
+  providerSetting,
+  shownForProvider,
+} from './providers'
 import { runtimeOfFlow } from './runtime'
 import { configBlock, readEnvFile, readRuntimes, safeConfig, type BoardRuntimes } from './settings'
 import type { StreamRenderer } from './stream'
@@ -274,13 +280,32 @@ export function settingSaveError(key: string, value: string, ask: HarnessAsk = {
 function settingArgs(resolved: ResolvedHarness): string[] {
   const { harness, values, ignored } = resolved
   const picked = activeProviderOf(resolved)
+  // The pick's own arguments, for a connector that names its provider on the command line
+  // rather than in the environment (Codex). They come first, so the settings that fill in
+  // that provider's block follow the block itself.
+  //
+  // A `command` that names the provider setting's flag has picked by hand, and then nothing
+  // the board's pick would have written reaches the command line — neither the pick's
+  // arguments nor the settings that belong to it. The environment is untouched: a
+  // hand-written provider is free to read the key the box already holds.
+  const list = providerSetting(harness.settings)
+  const byHand = !!list && ignored.includes(list.key)
+  const providerArgs = byHand ? [] : (picked?.args ?? [])
   const flags = harness.settings.flatMap((setting) => {
     const value = values[setting.key]
     if (!value || !setting.flags?.length || ignored.includes(setting.key)) return []
+    // The provider list is never a flag of its own. Its `flags` name the config key a
+    // hand-written command would pick with, which is what `byHand` above is read from; what
+    // the pick itself writes is that provider's `args`.
+    if (setting.kind === 'provider') return []
+    if (byHand && providerOwned(harness.settings, setting.key)) return []
     // A setting the picked provider doesn't need can't reach the run either — whichever
     // way it would have got there. The pick decides the whole of what a run is given.
     if (!shownForProvider(harness.settings, setting.key, picked)) return []
-    return [setting.flags[0]!, value]
+    // A setting the CLI has no flag of its own for rides on a generic config flag as one
+    // `key=value` entry; everything else is the flag and then the value.
+    const flag = setting.flags[0]!
+    return setting.configFlag ? [setting.configFlag, `${flag}=${value}`] : [flag, value]
   })
   // The raw arguments go last of the settings' own, and so still BEFORE whatever the
   // harness adds: a connector whose own arguments open a subcommand (`codex exec … resume
@@ -288,7 +313,7 @@ function settingArgs(resolved: ResolvedHarness): string[] {
   //
   // Split on spaces, the same way the command itself is, and nothing is checked: what this
   // is for is the flags the board has no words for, and only the CLI can judge one.
-  return [...flags, ...(values[RAW_ARGS_KEY]?.split(/\s+/).filter(Boolean) ?? [])]
+  return [...providerArgs, ...flags, ...(values[RAW_ARGS_KEY]?.split(/\s+/).filter(Boolean) ?? [])]
 }
 
 // The environment one run gets, in three steps.

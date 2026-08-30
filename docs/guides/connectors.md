@@ -58,14 +58,20 @@ Each agent's fields sit under the grid. A field that isn't shown isn't sent.
 | Agent | Fields |
 |---|---|
 | Claude Code | Provider (subscription, Anthropic API, or a compatible gateway), model, reasoning effort |
-| Codex | Model, OpenAI key (optional — otherwise your `codex` login) |
+| Codex | Provider (ChatGPT subscription, OpenAI API, or a Responses-API gateway), model, reasoning effort |
 | Cursor | Model, Cursor key (optional). Reasoning goes inside the model id: `claude-opus-4-8[effort=high]` |
 | OpenCode | Model as `provider/model`, reasoning effort. Keys come from `opencode auth login` |
 | DeepSeek Harness | Model, DeepSeek key (optional — otherwise the one `dsh` saved) |
 | ZCode | Model, Z.AI Coding Plan key (a `zcode login` won't run the board) |
 
-Claude Code is the only one with a provider choice for gateways, so it is the one to pick
-for OpenRouter or LiteLLM.
+Claude Code and Codex are the two with a provider choice for gateways, so one of them is
+the pick for OpenRouter or LiteLLM. They want the gateway in different formats: Claude Code
+in the Anthropic one, Codex in OpenAI's Responses API and no longer the older chat format.
+
+Codex settles its provider on the command line rather than in the environment, with a model
+provider of its own: Codex's built-in one signs through a `codex login` and ignores your
+key, so an OpenAI API pick would otherwise spend the subscription. A run through a gateway
+shows no cost — the rates are the gateway's, not OpenAI's.
 
 Codex's model and cost are read from the session files it keeps under `~/.codex`, because
 its own output names neither. A `command` that adds `--ephemeral` stops it writing them,

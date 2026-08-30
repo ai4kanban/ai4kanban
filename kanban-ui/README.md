@@ -1053,7 +1053,7 @@ Six harnesses ship:
 | Agent | It spawns | Settings | Key | Cost | Model name |
 | --- | --- | --- | --- | --- | --- |
 | **Claude Code** (default) | `claude` | Provider, Endpoint base URL, Model, Reasoning effort | `ANTHROPIC_API_KEY` (optional) | yes | yes |
-| **Codex** | `codex exec --json --sandbox workspace-write` | Model | `OPENAI_API_KEY` (optional) | no | no |
+| **Codex** | `codex exec --json --sandbox workspace-write` | Provider, Endpoint base URL, Model, Reasoning effort | `OPENAI_API_KEY` (optional) | yes | yes |
 | **Cursor** | `cursor-agent -p --output-format stream-json --force` | Model | `CURSOR_API_KEY` (optional) | no | yes |
 | **OpenCode** | `opencode run --format json` | Model, Reasoning effort | none | yes | no |
 | **DeepSeek Harness** | `dsh-acp --permission-mode workspace-write` | Model | `DEEPSEEK_API_KEY` (optional) | yes | yes |
@@ -1074,9 +1074,9 @@ restarted. That the CLI is there is not that a run would work: that is **Test**.
 Each agent brings its own settings, so the fields change when you pick another one. Switching
 empties them — a Claude model id means nothing to Codex — and leaves your saved keys alone.
 
-- **Provider** (Claude Code only) — who pays for a run and where it goes. See below.
-- **Endpoint base URL** (Claude Code only) — the address your gateway answers on. Required before
-  the endpoint pick will save.
+- **Provider** (Claude Code and Codex) — who pays for a run and where it goes. See below.
+- **Endpoint base URL** (Claude Code and Codex) — the address your gateway answers on. Required
+  before the endpoint pick will save.
 - **Model** — the id that agent runs with, passed as `--model`. Leave it empty for the agent's own
   default; the board never invents an id. Two agents write it differently: **OpenCode** takes
   `provider/model` (`anthropic/claude-opus-5`), because it reaches every provider and the name alone
@@ -1084,13 +1084,17 @@ empties them — a Claude model id means nothing to Codex — and leaves your sa
   so it has no reasoning box. **DeepSeek Harness** and **ZCode** choose the model as the run's
   session opens rather than on the command line, because each carries its model catalog per session;
   ZCode also takes `zai/glm-5.3` when you want to name the provider too.
-- **Reasoning effort** — how hard the model thinks, passed as `--effort`. Claude Code offers a list:
-  Low, Medium, High, Extra high (xhigh), Max. **Agent's default** passes nothing. OpenCode makes this
-  a box you type in, because the level is your provider's own word (`minimal`, `high`, `max`) and
-  providers don't agree on the words.
+- **Reasoning effort** — how hard the model thinks. Claude Code and Codex each offer the same list in
+  their own words — Low, Medium, High, Extra high (xhigh), Max — and **Agent's default** passes
+  nothing. Claude Code takes it as `--effort`; Codex has no flag for it and takes
+  `-c model_reasoning_effort=…`, passing the level straight to the API, so one the model you named
+  doesn't offer fails there and the run's log says so. OpenCode makes this a box you type in, because
+  the level is your provider's own word (`minimal`, `high`, `max`) and providers don't agree on the
+  words.
 - **The key box** — optional everywhere but ZCode. Leave it empty and runs use whatever login that
   CLI already has; for dsh, the key it saved in its own `$DSH_HOME`. Clear it and the next run goes
-  straight back to that login. **ZCode** is the exception: a `zcode login` credential belongs to a
+  straight back to that login. On Claude Code and Codex the key belongs to the **Provider** pick:
+  only a pick that uses one is given it, so a subscription run never carries a key. **ZCode** is the exception: a `zcode login` credential belongs to a
   provider `zcode`'s own config never points at, so a run without the key stops on
   `Model provider is missing an API key: zai`, and the log says where to paste one. OpenCode has no
   key box on purpose: it reaches any provider and each has its own key, so its runs use the login
@@ -1104,8 +1108,8 @@ empties them — a Claude model id means nothing to Codex — and leaves your sa
   backing off for the best part of an hour. That is not a spend control: whether hitting your plan's
   limit spills into paid extra usage is an account setting on claude.ai.
 - **Codex** — the `codex` CLI on your PATH, signed in; a ChatGPT subscription runs the board the same
-  way a Claude one does. **Codex 0.94 or newer**, which is when it started reading skills from
-  `.agents/skills/`. `--sandbox workspace-write` keeps a run inside the working folder, gives it no
+  way a Claude one does, and **Provider** takes it to an OpenAI key or a gateway instead. **Codex
+  0.94 or newer**, which is when it started reading skills from `.agents/skills/`. `--sandbox workspace-write` keeps a run inside the working folder, gives it no
   network, and makes it refuse to start outside a git repo; widen it with a `command` of your own if
   your work needs more — the `--sandbox` you name there is the one that runs, and the board adds none
   on top. It has no retries switch, so a rate-limited run sits there retrying and holds
@@ -1148,13 +1152,16 @@ Every agent's rate limit but Claude Code's is waited out, holding the card while
 ### Which provider a run goes through
 
 Every run goes through somebody's account. **Provider**, at the top of the Agent section, is where
-you say whose. Claude Code offers three:
+you say whose. Claude Code and Codex each offer the same three, in their own words:
 
 | Provider | What it is | What it needs |
 | --- | --- | --- |
-| **Claude subscription** | The login your `claude` CLI already has. | Nothing. |
-| **Anthropic API** | Pay per token on an Anthropic key. | The **API key** box. |
-| **Anthropic-compatible endpoint** | A gateway that answers in the Anthropic format — OpenRouter, LiteLLM, a company proxy. | The **base URL**; a key only if that gateway asks for one. |
+| **Claude subscription** / **ChatGPT subscription** | The login your `claude` or `codex` CLI already has. | Nothing. |
+| **Anthropic API** / **OpenAI API** | Pay per token on that provider's key. | The **API key** box. |
+| **Anthropic-compatible endpoint** / **OpenAI-compatible endpoint** | A gateway that answers in that agent's format — OpenRouter, LiteLLM, a company proxy. | The **base URL**; a key only if that gateway asks for one. |
+
+Codex's endpoint pick means OpenAI's **Responses** API specifically: Codex dropped the older chat
+format, so a gateway that speaks only that one can't carry a run.
 
 **You only see the boxes your pick uses.** The endpoint is the one pick the board won't save without
 its box. A key is never demanded — you can write one into `docs/kanban/.env` by hand at any time.
@@ -1166,14 +1173,21 @@ exported in your shell months ago can't quietly route a **Claude subscription** 
 gateway. Your cloud credentials themselves — `AWS_PROFILE`, `GOOGLE_APPLICATION_CREDENTIALS` and the
 like — are left alone: the agent may need them for the work it's doing in your repo.
 
+Codex settles the same question on its command line instead, because that is the only place its CLI
+takes it: a pick that isn't the subscription writes a model provider of its own with
+`-c model_provider=…`, reading your key from `OPENAI_API_KEY`. It has to be its own provider rather
+than Codex's built-in one — a `codex login` signs every request through the built-in provider and
+ignores your key, so an **OpenAI API** pick would otherwise quietly spend the subscription. If your
+own `command` already names `model_provider`, that is your pick and the board writes none.
+
 **Changing your mind costs nothing.** The base URL and the key stay in their boxes when you pick
 something else. **Defaults keep an existing board running as it is**: a board that never picks
-anything runs on the subscription, and one whose `.env` already holds an Anthropic key reads as the
-Anthropic API instead.
+anything runs on the subscription, and one whose `.env` already holds that agent's key reads as the
+API pick instead.
 
-**There is no "OpenAI" entry, on purpose.** Claude Code speaks the Anthropic API and nothing else. An
+**Claude Code has no "OpenAI" entry, on purpose.** It speaks the Anthropic API and nothing else. An
 OpenAI model reaches it through a gateway that answers in that format — the endpoint entry. To run
-Codex on an OpenAI account, pick Codex.
+on an OpenAI account directly, pick Codex.
 
 The other four agents have no provider list: each runs on whatever login its own CLI has, plus the
 optional key where it takes one, and their runs inherit your shell environment. OpenCode is the one
@@ -1294,10 +1308,11 @@ for. A name the file doesn't carry is on and set to its defaults, and putting ei
 switching an agent on, or picking a setting's default — drops that key rather than writing it
 out, so the file only ever records what somebody changed.
 
-`provider` is who pays for the run: `subscription`, `anthropic-api` or `endpoint`. Leave it out and
-the board picks for you — `anthropic-api` on a board whose `.env` already holds an Anthropic key,
-`subscription` otherwise — and a value this UI doesn't know reads as that same default. `baseUrl`
-goes with the `endpoint` pick and is the only setting the board insists on.
+`provider` is who pays for the run: `subscription`, `endpoint`, and `anthropic-api` on Claude Code or
+`openai-api` on Codex. Leave it out and the board picks for you — the API one on a board whose `.env`
+already holds that agent's key, `subscription` otherwise — and a value this UI doesn't know reads as
+that same default. `baseUrl` goes with the `endpoint` pick and is the only setting the board insists
+on.
 
 To run a custom binary of an agent, or add flags to it, add a `command` to that agent's block by hand:
 

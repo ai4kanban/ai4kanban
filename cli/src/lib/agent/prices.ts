@@ -50,7 +50,13 @@ const OPENAI: Record<string, Price> = {
 // One table per provider, because a model id only means a price alongside the provider that
 // served it: a gateway can answer to `gpt-5.6-sol` at its own rates, and an id nobody
 // publishes rates for belongs to no table at all.
-const PRICES: Record<string, Record<string, Price>> = { openai: OPENAI }
+//
+// `openai-api` is the model provider the board declares for Codex's "OpenAI API" pick
+// (harnesses/codex.ts) and the name Codex then writes into the run's rollout. It reaches
+// OpenAI at OpenAI's own rates, so it prices off the same table. The "endpoint" pick is
+// deliberately absent: a gateway's rates are the gateway's, and a run through one shows no
+// price rather than OpenAI's.
+const PRICES: Record<string, Record<string, Price>> = { openai: OPENAI, 'openai-api': OPENAI }
 
 // `gpt-5.6-sol` is what the agent reports; `gpt-5.6-sol-2026-07-09` is the same model pinned
 // to a snapshot, and `openai/gpt-5.6-sol` is the same model written provider-first. All three

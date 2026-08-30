@@ -477,6 +477,12 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   const refineNext = (target: number | '<id>', when: string) =>
     `${self} refine ${target === '<id>' ? target : String(target)} --print — ${when}; in a fresh run, not this one — the board gives each refine its own clean context, and so should you`
 
+  // A printed card-creation flow has no watcher to infer the refinements its cards need.
+  // Without --print this starts one from an ordinary conversation and queues one from
+  // inside a watched run, so both ways of creating a card get the same fresh handoff.
+  const startRefineNext = (target: number | '<id>') =>
+    `${self} refine ${target === '<id>' ? target : String(target)} — after add-task, run this without --print for each new card; it starts or queues that card's refinement in a fresh context`
+
   // Every card action opens the same way: where the card is, and what it says about itself.
   if (card) {
     facts.push(...field('card', card.file), ...field('meta', metaLine(card.meta)))
@@ -644,7 +650,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${board} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''} --track <track>${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
         'then write only the body: the human half (the opening paragraph, ## Worth noting), the <!-- agent --> marker, then the agent half — ## Scope, ## Todo',
       )
-      next.push(refineNext('<id>', 'for each new card'))
+      next.push(startRefineNext('<id>'))
       break
     }
     case 'archive': {

@@ -581,6 +581,12 @@ export interface Provider {
   /** Fixed variables this provider sets on every run. An empty value is a real setting,
    *  not a skip: it is how a provider says "this must be there and empty". */
   env?: Record<string, string>
+  /** Fixed arguments this provider adds to the command line, for a connector that names
+   *  its provider there rather than in the environment — Codex declares one with
+   *  `-c model_provider=…` and a block of its own beside it. They go on every run under
+   *  this pick, and a `command` that already names the provider setting's flag turns them
+   *  off along with the pick, the same way it turns off any other setting. */
+  args?: string[]
   /** The variable a setting's value goes out under while this provider is picked,
    *  INSTEAD of the setting's own `env`, keyed by the setting's key. */
   envAs?: Record<string, string>
@@ -613,8 +619,18 @@ export interface HarnessSetting {
    *  A picked provider's own `envAs` wins over this one. */
   envAs?: string
   /** Every flag name this agent's CLI takes for this setting. The first one is what a
-   *  run appends. A setting with no flags reaches the run some other way. */
+   *  run appends. A setting with no flags reaches the run some other way.
+   *
+   *  On a `provider` list these name the flag a hand-written `command` would pick with,
+   *  and nothing more: the list itself is never appended — what a pick writes is that
+   *  provider's own `args`. */
   flags?: string[]
+  /** The flag this setting's value rides on, for a CLI with no flag of its own for it.
+   *  Codex takes every config value through one `-c key=value`, so `flags` holds the
+   *  config KEY — `model_reasoning_effort` — and a run appends this flag followed by
+   *  `key=value` as a single entry. `flags` stays what a hand-written `command` is checked
+   *  against, which is that same config key there too. */
+  configFlag?: string
   /** The line to show instead of `help` when a hand-written `command` already names one
    *  of `flags`: the override wins, so the field isn't in effect. */
   overriddenHelp?: string
