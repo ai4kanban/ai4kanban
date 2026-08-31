@@ -5,7 +5,7 @@
 // as they happen. The final `result` event is captured separately: the UI leads with it
 // once the session completes and folds the event lines away.
 
-import { argHint, num } from './json'
+import { argHint, num, obj, str } from './json'
 import { createLineReader, frame, type StreamRenderer } from './stream'
 import type { TokenUsage } from '../types'
 
@@ -28,11 +28,34 @@ function eventModel(ev: Record<string, unknown>): string | undefined {
   return undefined
 }
 
+// Why a `result` event that says it failed, failed — in Claude Code's own words, tried in
+// the order that carries the most meaning. `errors` is the sentence a person can act on
+// ("Reached maximum budget ($0.0001)"); `subtype` and `terminal_reason` are its machine
+// names, and one of them is always there. Never empty: an error line saying nothing is
+// worse than a made-up one.
+function whyItFailed(ev: Record<string, unknown>): string {
+  const errors = Array.isArray(ev.errors) ? ev.errors.map(str).filter(Boolean) : []
+  if (errors.length) return errors.join('; ')
+  const named = str(ev.subtype) || str(ev.terminal_reason)
+  if (named && named !== 'error') return named
+  return str(ev.result).trim() || 'the agent reported the session failed'
+}
+
+// The tool calls the run asked for and didn't get. A run whose every edit was refused reads
+// in the log exactly like a run that decided to change nothing, so the denials are named.
+function denials(ev: Record<string, unknown>): string {
+  const list = Array.isArray(ev.permission_denials) ? ev.permission_denials : []
+  const names = [...new Set(list.map((raw) => str(obj(raw).tool_name)).filter(Boolean))]
+  if (!names.length) return ''
+  return `[refused] ${list.length} tool call${list.length === 1 ? '' : 's'} were not allowed: ${names.join(', ')}\n`
+}
+
 export function createStreamRenderer(): StreamRenderer {
   let final: string | undefined
   let cost: number | undefined
   let model: string | undefined
   let usage: TokenUsage | undefined
+  let failure: string | undefined
 
   const renderLine = (line: string): string => {
     if (!line.trim()) return ''
@@ -84,7 +107,16 @@ export function createStreamRenderer(): StreamRenderer {
             }
           }
         }
-        return ''
+        // The one thing on this stream the exit code doesn't already say. `claude -p` exits
+        // 0 on a result that failed — a budget it ran out of, a limit it hit — so without
+        // this the run closes as done, the card advances, and the refinements behind it
+        // fire on work that never happened. Every other agent the board runs exits non-zero
+        // for the same thing, which is why only this renderer reports one.
+        if (ev.is_error === true) {
+          failure = whyItFailed(ev)
+          return `${denials(ev)}[error] ${failure}\n`
+        }
+        return denials(ev)
       default:
         // system/init banners and tool results are noise in a tail.
         return ''
@@ -97,5 +129,6 @@ export function createStreamRenderer(): StreamRenderer {
     costUsd: () => cost,
     usage: () => usage,
     model: () => model,
+    failure: () => failure,
   }
 }

@@ -199,11 +199,13 @@ export function testConnection(runtime?: string): Promise<ConnectionTest> {
     child.on('close', (code) => {
       events += renderer?.flush() ?? ''
       stderr += errs.flush()
-      // The exit code is the whole verdict. The agent answered or it didn't; what the
-      // answer said is not the board's business — so a pass carries no output at all.
-      // A conversation has already settled this by the time its command closes; only a
-      // command that died before the turn ended reaches here, and that is a failure.
-      if (code === 0 && !client) done({ ok: true })
+      // The exit code is the whole verdict, except on the one CLI that reports a failure
+      // on its stream and still exits 0 (agent/wire/stream.ts). The agent answered or it
+      // didn't; what the answer said is not the board's business — so a pass carries no
+      // output at all. A conversation has already settled this by the time its command
+      // closes; only a command that died before the turn ended reaches here, and that is
+      // a failure.
+      if (code === 0 && !client && !renderer?.failure?.()) done({ ok: true })
       else done({ ok: false, output: said(events, renderer?.result(), stderr) })
     })
   })

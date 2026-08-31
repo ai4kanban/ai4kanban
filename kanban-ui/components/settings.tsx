@@ -232,6 +232,11 @@ export function Loading({ children }: { children: React.ReactNode }) {
 export const QUIET_BTN =
   "inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border border-nb-ink/20 bg-nb-paper px-2.5 py-1.5 text-[12px] font-[700] text-nb-ink transition-[background-color,border-color,transform] duration-100 hover:border-nb-ink/35 hover:bg-nb-wash active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
+/** The same button, for the one move that takes something away — peach, the palette's
+ *  attention signal, so Remove reads apart from Rename beside it without shouting. */
+export const DANGER_BTN =
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border border-nb-peach/60 bg-nb-paper px-2.5 py-1.5 text-[12px] font-[700] text-nb-peach-ink transition-[background-color,border-color,transform] duration-100 hover:border-nb-peach hover:bg-nb-peach-soft active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
+
 /** The pane's one box to type in, and the frame ui/select.tsx gives its trigger — so a list
  *  and a text box read as the same control. A hairline frame and an ember focus ring;
  *  `disabled` here is always a save in flight, hence the wait cursor. */

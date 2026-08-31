@@ -111,13 +111,6 @@ export function copyBinding(from: string, to: string): { ok: boolean; error?: st
   return save(to, binding)
 }
 
-/** Drop a runtime's binding here, so it runs this computer's global binding again. */
-export function unbindRuntime(runtime: string): { ok: boolean; error?: string } {
-  return write((all) => {
-    delete all[runtime]
-  })
-}
-
 function save(runtime: string, binding: RuntimeBinding): { ok: boolean; error?: string } {
   return write((all) => {
     all[runtime] = binding

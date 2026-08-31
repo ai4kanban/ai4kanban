@@ -12,16 +12,26 @@ import { namesFlag, type Harness } from './types'
 // whole run and no thread id would ever arrive.
 //
 // `--sandbox workspace-write` is needed because `codex exec` defaults to read-only and a
-// board run writes files. It is also the whole of what a Codex run may do: inside the
-// repo, no network, and it refuses to start outside a git repo. Someone who needs more
-// widens it in that agent's `command`. `--full-auto` is deprecated in current Codex (it
-// warns and points here), so it is never used — but a command that names it, or the bypass
-// flag, counts as a sandbox already chosen and nothing is added on top.
+// board run writes files. It is also the whole of what a Codex run may do: inside the repo,
+// and it refuses to start outside a git repo. Someone who needs more widens it in that
+// agent's `command`. `--full-auto` is deprecated in current Codex (it warns and points
+// here), so it is never used — but a command that names it, or the bypass flag, counts as a
+// sandbox already chosen and nothing is added on top.
+//
+// The network goes with it, and only with it. `workspace-write` blocks outbound network by
+// default, and Codex is the only one of the six that fences it: Claude Code, Cursor and
+// ZCode have no fence at all, and OpenCode's and dsh's are about writes rather than
+// sockets. Left off, the same card passes on five agents and fails on this one the moment
+// it needs an `npm install`, a `pip install` or a `git fetch` — a difference nobody could
+// explain from the board. It rides on the sandbox WE chose, so a hand-written sandbox keeps
+// choosing for itself, network included.
 function codexExtraArgs(argv: string[]): string[] {
   const extra: string[] = []
   if (!namesFlag(argv, ['--json', '--experimental-json'])) extra.push('--json')
   const sandboxFlags = ['--sandbox', '-s', '--full-auto', '--dangerously-bypass-approvals-and-sandbox']
-  if (!namesFlag(argv, sandboxFlags)) extra.push('--sandbox', 'workspace-write')
+  if (!namesFlag(argv, sandboxFlags)) {
+    extra.push('--sandbox', 'workspace-write', '-c', 'sandbox_workspace_write.network_access=true')
+  }
   return extra
 }
 
@@ -53,7 +63,7 @@ export const CODEX: Harness = {
   name: 'codex',
   label: 'Codex',
   icon: '/agents/codex.svg',
-  command: 'codex exec --json --sandbox workspace-write',
+  command: 'codex exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=true',
 
   // Nothing to pin: Codex mints its own thread id and takes none from us, so the generated
   // session id is ignored here and the id arrives on the run's first event instead.

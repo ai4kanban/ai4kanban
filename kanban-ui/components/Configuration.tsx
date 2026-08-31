@@ -66,11 +66,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 // trigger copies, QUIET_BTN the flat button attached to one. Both live there because
 // every pane in this dialog draws them.
 
-// A harness's mark, e.g. the Claude sunburst at public/agents/claude.svg.
-// alt="" because the agent name always sits right next to it.
-function AgentMark({ src, size }: { src: string; size: number }) {
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt="" width={size} height={size} style={{ flex: "0 0 auto" }} />;
+// A harness's mark, e.g. the Claude sunburst at public/agents/claude.svg. `name` is passed
+// only where the mark stands alone — on the cards the agent's name sits right next to it.
+export function AgentMark({ src, size, name }: { src: string; size: number; name?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={name ?? ""}
+      title={name}
+      width={size}
+      height={size}
+      style={{ flex: "0 0 auto" }}
+    />
+  );
 }
 
 // The dialog's sections, in sidebar order — what the board is set up with, then the tool

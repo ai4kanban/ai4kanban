@@ -1053,8 +1053,9 @@ own harness where this computer has bound nothing at all. Pressing a row opens t
 
 There, the binding is the one thing that can be pressed: the square harness cards below, that
 harness's own settings, **Test** — which spawns that runtime and not the board's global one — and
-**Unbind**. Above them are the board's three moves, which change what the repository holds and
-nothing about this machine:
+**Reset**, which drops this computer's binding after saying what the runtime falls back to and that
+the settings under it go with it. Above them are the board's three moves, which change what the
+repository holds and nothing about this machine:
 
 - **Rename** carries the flows and spec agents that named it. This computer's binding is *copied* to
   the new name, so the old name stays bound for whatever else on this machine names it, and every
@@ -1085,7 +1086,7 @@ Six harnesses ship:
 | Agent | It spawns | Settings | Key | Cost | Model name |
 | --- | --- | --- | --- | --- | --- |
 | **Claude Code** (default) | `claude` | Provider, Endpoint base URL, Model, Reasoning effort | `ANTHROPIC_API_KEY` (optional) | yes | yes |
-| **Codex** | `codex exec --json --sandbox workspace-write` | Provider, Endpoint base URL, Model, Reasoning effort | `OPENAI_API_KEY` (optional) | yes | yes |
+| **Codex** | `codex exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=true` | Provider, Endpoint base URL, Model, Reasoning effort | `OPENAI_API_KEY` (optional) | yes | yes |
 | **Cursor** | `cursor-agent -p --output-format stream-json --force` | Model | `CURSOR_API_KEY` (optional) | no | yes |
 | **OpenCode** | `opencode run --format json` | Model, Reasoning effort | none | yes | no |
 | **DeepSeek Harness** | `dsh-acp --permission-mode workspace-write` | Model | `DEEPSEEK_API_KEY` (optional) | yes | yes |

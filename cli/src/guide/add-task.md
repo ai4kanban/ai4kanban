@@ -7,7 +7,8 @@ Use this guide whenever work may become a card. If setup is unfinished, stop and
 
 - No task idea supplied → `akb guide propose`.
 - Source material supplied for extracting ideas → `akb guide extract-ideas`.
-- Repeating work → `akb guide recurring-task`.
+- Repeating work → follow `akb guide recurring-task`; do not continue with the one-shot
+  card flow below.
 - Direct task idea → continue below.
 
 ## Create the card

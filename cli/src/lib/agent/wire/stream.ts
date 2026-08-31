@@ -34,6 +34,15 @@ export interface StreamRenderer {
    *  model. Only harnesses whose output names a model implement this; the rest
    *  leave it out and the UI shows nothing rather than inventing a name. */
   model?(): string | undefined
+  /** Why this run ended badly, in the agent's own words — for a CLI that reports a failure
+   *  on its stream and still exits 0. The exit code is the verdict everywhere else, and
+   *  every other agent we ship exits non-zero on its own failures, so only Claude Code
+   *  implements this: `claude -p` exits 0 on a `result` event carrying `is_error`, and
+   *  without this the run would close as `done` and its card would advance.
+   *
+   *  Read after `flush`, so the closing event is in. Undefined means the stream reported
+   *  no failure — never "the run passed", which is still the exit code's to say. */
+  failure?(): string | undefined
   /** The id this harness's own CLI resumes by, once its output has reported one.
    *  Only harnesses that mint their own id mid-run implement this — one that
    *  adopts the id we generate (Claude Code, via `--session-id`) knows it before

@@ -59,7 +59,6 @@ import {
   setBindingSetting,
   setGlobalRuntime,
   setRuntimeComputer,
-  unbindRuntime,
 } from "@/lib/runtimes";
 import {
   boardNotifications,
@@ -958,14 +957,6 @@ export async function bindRuntimeAction(
     return { ok: false, error: `unknown agent "${harness}"` };
   }
   return runtimeMove(() => bindRuntime(runtime, harness));
-}
-
-/** Drop this computer's binding, so the runtime falls back again. */
-export async function unbindRuntimeAction(
-  runtime: string,
-): Promise<WriteResult & { agent?: AgentInfo }> {
-  if (typeof runtime !== "string" || !runtime) return { ok: false, error: "that names no runtime" };
-  return runtimeMove(() => unbindRuntime(runtime));
 }
 
 /** Save one of the bound harness's settings on this computer. Judged against the harness THAT

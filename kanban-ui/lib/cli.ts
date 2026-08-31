@@ -195,7 +195,6 @@ export interface BoardRules {
   setRuntimeComputer?(name: string, computer: string): WriteResult;
   bindRuntime?(runtime: string, harness: string): WriteResult;
   setBindingSetting?(runtime: string, key: string, value: string): WriteResult;
-  unbindRuntime?(runtime: string): WriteResult;
 
   // the board, read
   readBoard(): Promise<Board>;

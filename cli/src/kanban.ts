@@ -123,7 +123,7 @@ export {
   setSpecAgentRuntime,
 } from './lib/agent/settings'
 export type { BoardRuntimes } from './lib/agent/settings'
-export { bindRuntime, copyBinding, readBindings, setBindingSetting, unbindRuntime } from './lib/machine/runtimes'
+export { bindRuntime, copyBinding, readBindings, setBindingSetting } from './lib/machine/runtimes'
 export type { RuntimeBinding } from './lib/machine/runtimes'
 export { ensureAkbDir, setBoardRoot } from './lib/paths'
 

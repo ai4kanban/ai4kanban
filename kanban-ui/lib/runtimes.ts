@@ -62,8 +62,3 @@ export async function setBindingSetting(
     ? rules.setBindingSetting(runtime, key, value)
     : { ok: false, error: TOO_OLD };
 }
-
-export async function unbindRuntime(runtime: string): Promise<WriteResult> {
-  const rules = await boardRules();
-  return rules.unbindRuntime ? rules.unbindRuntime(runtime) : { ok: false, error: TOO_OLD };
-}

@@ -26,8 +26,8 @@ import { readmeHeadingFor, addReadmeRef, stripReadmeRefs, repointReadmeLink } fr
 import { reconcileBoard } from '../lib/reconcile'
 import type { FlagValue, Flags, Meta, MoveResult, Question } from '../lib/types'
 
-// A todo item in any accepted form: `- [ ]`, `- []`, `- [x]`, `* [X]`, … — the shape
-// counts, not the literal string.
+// A one-shot todo item in any accepted form: `- [ ]`, `- []`, `- [x]`, `* [X]`, … — the
+// shape counts, not the literal string. Recurring cards have a Process instead.
 const TODO_ITEM = /^[ \t]*[-*+][ \t]*\[[ xX]?\]/m
 
 function defaultBody() {
@@ -47,6 +47,19 @@ function defaultBody() {
     '## Decided by the agent',
     '',
     '### Overruled by the user',
+    '',
+  ].join('\n')
+}
+
+function recurringBody() {
+  return [
+    '<one short paragraph: what the job is for and why it repeats.>',
+    '',
+    '## Run state',
+    '<only what the next run needs; update in place after each run, or write "None">',
+    '',
+    '## Process',
+    '1. <one pass, in order>',
     '',
   ].join('\n')
 }
@@ -135,7 +148,7 @@ export function cmdCreate(args: string[]): MoveResult {
   writeNextId(start + 1)
   bumpMetric('created')
   const meta: Partial<Meta> = { title, track, priority, roi, status: 'todo', release, blocked_by, related, modules, cadence, questions }
-  const body = flags['no-body'] ? '' : defaultBody()
+  const body = flags['no-body'] ? '' : track === RECURRING ? recurringBody() : defaultBody()
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
   if (countsForRecord(file)) recordFact('card-created', start, originOf(flags))
   const indexed = addReadmeRef(track, start, title, fileRel)
@@ -151,7 +164,7 @@ export function cmdCreate(args: string[]): MoveResult {
   say(start)
   say(`  wrote ${rel(file)} — frontmatter is set; fill the body with your editor, leave the frontmatter to the script`)
   if (scheduled) say(`  ${scheduleReceipt(start, scheduled)}`)
-  if (!TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
+  if (track !== RECURRING && !TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
   if (indexed) say(`  indexed under "## ${readmeHeadingFor(track)}"`)
   reconcileBoard()
   return { id: start, ids: [start], title, track, file: rel(file), indexed, schedule: scheduled }

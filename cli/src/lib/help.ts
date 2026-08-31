@@ -105,7 +105,7 @@ export const MOVES: Move[] = [
     brief: [
       [
         'create --title T --track K',
-        'allocate its id and write exactly one card — fields, body\ntemplate, and index entry. Options: --priority, --roi,\n--release, --blocked-by, --related, --modules, --question,\n--schedule, --slug, --cadence, --no-body, --proposed',
+        'allocate its id and write exactly one card — fields, track-specific\nbody template, and index entry. Options: --priority, --roi,\n--release, --blocked-by, --related, --modules, --question,\n--schedule, --slug, --cadence, --no-body, --proposed',
       ],
     ],
     legacy: [
@@ -124,13 +124,16 @@ export const MOVES: Move[] = [
           '--blocked-by 1,2, --related 3, --modules skill,site',
           '(validated against modules.md), --question "..." (repeatable),',
           '--slug my-slug, --no-body, --cadence "1d at 09:30"',
-          '(--track recurring only — see update below), --proposed,',
+          '(--track recurring only; omitted by default so the card runs by hand),',
+          '--proposed,',
           '--schedule implement|refine — hand the new card\'s first run to',
           'the board instead of starting one yourself. See schedule below.',
           '--proposed says the board went looking for this work rather than',
           'a person asking for it — the propose, extract-ideas and',
           'plan-release flows pass it, nothing else does.',
-          'The script owns the frontmatter — fill only the body by hand.',
+          'The script owns the frontmatter and writes the body scaffold for',
+          'the track — recurring cards get Run state + Process; fill only',
+          'the body by hand.',
           'A question the user picks from carries its choices: follow its',
           '--question with one --option "a — why" per choice (2+), and',
           '--mode single|multi (default single) for how many may be',

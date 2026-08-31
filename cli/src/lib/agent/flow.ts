@@ -581,6 +581,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         ...field('process', card!.hasProcess ? `the job is the card's ## Process — do its steps in order` : `the card has no ## Process — there is nothing to run`),
       )
       close.push(
+        `update or add the card's ## Run state in place with only what the next pass needs`,
         `${board} record-run ${req.id} — counts this pass and stamps last_run`,
         `${board} update-verify ${req.id} --append ".." — add one short note for each manual check this pass left to the user`,
         `never archive it: a recurring card has no end state`,

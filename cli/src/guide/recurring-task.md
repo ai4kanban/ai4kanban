@@ -6,8 +6,7 @@ shipped behavior.
 
 ## Add one
 
-Evaluate it with `akb guide evaluate-task`, then follow "Add one task idea" in
-`akb guide add-task` and create it with `--track recurring`:
+Evaluate it with `akb guide evaluate-task`, then create it with `--track recurring`:
 
 ```
 akb board create --title "Prune the memory" --track recurring \
@@ -15,6 +14,9 @@ akb board create --title "Prune the memory" --track recurring \
 ```
 
 It lands in `docs/kanban/todo/recurring/`.
+
+Leave `--cadence` off unless the user explicitly asks for an automatic schedule. With no
+cadence the card runs only when someone asks; `board create` omits the field entirely.
 
 ## The card shape
 
@@ -26,21 +28,30 @@ priority: …
 roi: …
 blocked_by: []
 related: []
-last_run: 2026-07-10 09:31
 questions: []
 ---
 
 <one short paragraph: what the job is for and why it repeats>
 
-<!-- agent -->
+## Run state
+<only what the next run needs; update in place after each run, or write "None">
 
 ## Process
+1. <one pass, in order>
 ```
 
-The paragraph is the card's human half and `## Process` its agent half — the same two
-halves every card has (`akb guide writing`).
+`last_run` appears after the first successful run; the command owns it.
 
 Don't edit frontmatter by hand.
+
+## `## Run state` — what survives between runs
+
+Keep only information the next run must know, such as the last item processed, remaining
+inputs, or a compact source index. Update it in place; it is not an append-only run history.
+Write `None` when the job is stateless.
+
+Do not create a sibling log, ledger, or history file for ordinary run state. A separate
+artifact belongs in the process only when that artifact is an explicit output of the job.
 
 ## `## Process` — one run, in order
 
@@ -50,6 +61,8 @@ imperative sentences.
 
 - **Put the exact command in the step** when there is one — the command as typed, not
   "run the pruner".
+- **Leave run bookkeeping out of the process.** Do not add a step that calls `akb run` or
+  stamps `last_run`; the run flow records a successful pass itself.
 - **No step may wait for an answer.** When an unexpected choice appears, make a safe,
   reversible call when evidence supports one. If it genuinely needs the user, skip only
   the dependent work and leave a `[user]` question —
@@ -64,5 +77,6 @@ imperative sentences.
 
 ## Run one
 
-1. Do the `## Process` steps in order.
-2. Leave any `[user]` question open for the user; `akb resolve` applies their answer later.
+1. Read `## Run state`, then do the `## Process` steps in order.
+2. Update `## Run state` in place with only what the next run needs.
+3. Leave any `[user]` question open for the user; `akb resolve` applies their answer later.

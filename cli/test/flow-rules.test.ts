@@ -127,12 +127,29 @@ describe('the prompt', () => {
 
   it('has add-task choose the effort and refine inline by default', () => {
     const guide = findGuide('add-task')!.text
+    assert.match(guide, /Repeating work[\s\S]*akb guide recurring-task/)
     assert.match(guide, /Lightweight[\s\S]*Standard/)
     assert.doesNotMatch(guide, /Parallel/)
     assert.match(guide, /akb refine <id> --effort lightweight --print/)
     assert.match(guide, /continue inline/)
     assert.match(guide, /explicitly requests background work, omit `--print`/)
     assert.match(guide, /akb refine <id> --effort standard[\s\S]*separate session/)
+  })
+
+  it('keeps recurring state on the card and cadence opt-in', () => {
+    const guide = findGuide('recurring-task')!.text
+    assert.match(guide, /## Run state/)
+    assert.match(guide, /Do not create a sibling log, ledger, or history file/)
+    assert.match(guide, /Leave `--cadence` off unless the user explicitly asks/)
+    assert.match(guide, /Do not add a step that calls `akb run` or[\s\S]*stamps `last_run`/)
+
+    startCollecting()
+    try {
+      const flow = printFlow({ action: 'run', id: 1, title: 'card one' })
+      assert.match((flow.close as string[]).join('\n'), /update or add the card's ## Run state in place/)
+    } finally {
+      stopCollecting()
+    }
   })
 
   it('loads only the QA guide selected for the clarify session', () => {

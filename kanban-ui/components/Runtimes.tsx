@@ -23,9 +23,8 @@
 // Which runtime a flow or spec agent uses is NOT set here — `akb agent runtime for` is where
 // that lives (#343), and a removal says so where it names the flows it moves.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  FiAlertCircle,
   FiChevronDown,
   FiChevronRight,
   FiCloud,
@@ -41,14 +40,14 @@ import {
   runtimeUsersAction,
   setGlobalRuntimeAction,
   setRuntimeComputerAction,
-  unbindRuntimeAction,
 } from "@/app/actions";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import type { BoardServer, ServerRuntime } from "@/lib/notifications";
 import type { AgentInfo, RuntimeView } from "@/lib/types";
-import { HarnessPicker } from "./Configuration";
-import { Alert, CAPTION, CONTROL, Group, Note, Panel, QUIET_BTN } from "./settings";
+import { AgentMark, HarnessPicker } from "./Configuration";
+import { ConfirmationPopover } from "./confirm-popover";
+import { CAPTION, CONTROL, DANGER_BTN, Group, Note, Panel, QUIET_BTN } from "./settings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 type RuntimesCopy = ReturnType<typeof useCopy>["configuration"]["runtimes"];
@@ -264,6 +263,38 @@ function Computers({ computers, c }: { computers: Computer[]; c: RuntimesCopy })
 const labelOf = (info: AgentInfo, harness: string): string =>
   info.options.find((o) => o.name === harness)?.label ?? harness;
 
+/** The harness itself, said by its own mark: a row is scanned for which tool it runs, and
+ *  the logo is read before a word is. The name rides along as its alt and its tooltip. A
+ *  harness this build ships no mark for falls back to the name. */
+function HarnessMark({ info, harness }: { info: AgentInfo; harness: string }) {
+  const option = info.options.find((o) => o.name === harness);
+  const label = option?.label ?? harness;
+  if (!option?.icon) return <span className="font-[700]">{label}</span>;
+  return <AgentMark src={option.icon} size={15} name={label} />;
+}
+
+/** A harness and the model under it — the answer every "runs as" line ends with. */
+function RanAs({
+  info,
+  harness,
+  model,
+}: {
+  info: AgentInfo;
+  harness: string;
+  model?: string | null;
+}) {
+  const c = useCopy().configuration.runtimes;
+  return (
+    <span
+      className="flex min-w-0 items-center gap-1.5"
+      title={c.runs(labelOf(info, harness), model ?? "")}
+    >
+      <HarnessMark info={info} harness={harness} />
+      {model ? <span className="truncate">{model}</span> : null}
+    </span>
+  );
+}
+
 /** The computer the board says this runtime runs on. Nothing stored is the computer the app
  *  is running on, which is what happens today — and drawing the pane never writes one. */
 const computerOf = (view: RuntimeView, info: AgentInfo): string => view.computer || info.machine;
@@ -280,39 +311,33 @@ function reportedBy(view: RuntimeView, info: AgentInfo, server: BoardServer | nu
   return server.runtimes.find((r) => r.name === view.name);
 }
 
-// What this computer runs one runtime as, in one line, and null when the answer is simply
-// its own binding. Two halves: why it isn't running its own, and what ran instead — this
-// computer's binding for the global runtime, or the board's own harness where this computer
-// has bound nothing at all.
-function fellBackTo(runtime: RuntimeView, info: AgentInfo, c: RuntimesCopy): string {
-  const label = labelOf(info, runtime.harness);
-  return runtime.fallback?.ran === "global"
-    ? c.ranAsGlobal(info.globalRuntime, label)
-    : c.ranAsBoard(label);
-}
-
-// Why it isn't running its own — nothing bound here, or bound to a harness this build doesn't
-// ship. The row and the runtime's own view say it in the same words.
-function notBound(runtime: RuntimeView, c: RuntimesCopy): string {
-  return runtime.fallback?.was === "unknown-harness"
-    ? c.boundUnknown(runtime.fallback.bound ?? "")
-    : c.notBound;
-}
-
-function runsAs(runtime: RuntimeView, info: AgentInfo, c: RuntimesCopy): string {
-  if (runtime.binding) return c.runs(labelOf(info, runtime.harness), runtime.model ?? "");
-  return `${notBound(runtime, c)} — ${fellBackTo(runtime, info, c)}`;
+/** A row says what runs, and nothing else. Nothing set here for the name is the agent it
+ *  falls back to, greyed — the card below is where that is changed. A saved agent this
+ *  build can't run is the one case worth words: it is a setting that stopped working. */
+function RunsHere({ view, info }: { view: RuntimeView; info: AgentInfo }) {
+  const c = useCopy().configuration.runtimes;
+  const ran = <RanAs info={info} harness={view.harness} model={view.model} />;
+  if (view.binding) return ran;
+  return (
+    <span className="flex min-w-0 items-center gap-1.5 opacity-55">
+      {view.fallback?.was === "unknown-harness" && (
+        <span className="truncate">{c.unknownAgent(view.fallback.bound ?? "")} —</span>
+      )}
+      {ran}
+    </span>
+  );
 }
 
 /** The same answer for a runtime pointed at another computer: what that machine reported,
  *  in the short form a folded row has room for. Reporting nothing is its own line — it is
  *  not the same as reporting that nothing is bound. */
-const runsThere = (reported: ServerRuntime | undefined, info: AgentInfo, c: RuntimesCopy): string =>
-  !reported
-    ? c.server.notSaid
-    : reported.fallback
-      ? c.server.notBound
-      : c.runs(labelOf(info, reported.harness), reported.model ?? "");
+function RunsThere({ reported, info }: { reported: ServerRuntime | undefined; info: AgentInfo }) {
+  const c = useCopy().configuration.runtimes;
+  if (!reported) return <span className="truncate">{c.server.notSaid}</span>;
+  const ran = <RanAs info={info} harness={reported.harness} model={reported.model} />;
+  if (!reported.fallback) return ran;
+  return <span className="flex min-w-0 items-center opacity-55">{ran}</span>;
+}
 
 // --- the list -----------------------------------------------------------------
 
@@ -327,11 +352,7 @@ function FoldedRuntime({
   server: BoardServer | null;
   onOpen: () => void;
 }) {
-  const c = useCopy().configuration.runtimes;
   const here = isHere(view, info);
-  const summary = `${computerOf(view, info)} · ${
-    here ? runsAs(view, info, c) : runsThere(reportedBy(view, info, server), info, c)
-  }`;
 
   return (
     <button
@@ -342,8 +363,14 @@ function FoldedRuntime({
       <FiChevronRight className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
       <span className="shrink-0 text-[13.5px] font-[700] text-nb-ink">{view.name}</span>
       {view.global && <GlobalBadge />}
-      <span className="ml-1 min-w-0 flex-1 truncate text-[12.5px] text-nb-ink-soft">
-        {summary}
+      <span className="ml-1 flex min-w-0 flex-1 items-center gap-1.5 text-[12.5px] text-nb-ink-soft">
+        <span className="truncate">{computerOf(view, info)}</span>
+        <span aria-hidden>·</span>
+        {here ? (
+          <RunsHere view={view} info={info} />
+        ) : (
+          <RunsThere reported={reportedBy(view, info, server)} info={info} />
+        )}
       </span>
     </button>
   );
@@ -387,9 +414,10 @@ function OpenRuntime({
 }) {
   const c = useCopy().configuration.runtimes;
   const [busy, setBusy] = useState(false);
-  // Which of the board's three moves is being confirmed, if any. One at a time: they are
-  // three answers about the same runtime, and two open at once would ask two questions.
+  // Which move is being confirmed, if any. One at a time: they are answers about the same
+  // runtime, and two open at once would ask two questions.
   const [asking, setAsking] = useState<"rename" | "remove" | null>(null);
+  const removeRef = useRef<HTMLSpanElement>(null);
 
   const run = async (
     move: () => Promise<{ ok: boolean; error?: string; agent?: AgentInfo }>,
@@ -428,24 +456,35 @@ function OpenRuntime({
   return (
     <div className="border-t border-nb-ink/10 px-3.5 pb-3.5 pt-3 first:border-t-0">
       <div className="mb-2 flex min-h-[30px] items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onFold}
-          className="flex min-w-0 cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
-        >
-          <FiChevronDown className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
-          <span className="truncate text-[13.5px] font-[800] text-nb-ink">{view.name}</span>
-          {view.global && <GlobalBadge />}
-        </button>
-        <span className="flex shrink-0 items-center gap-1.5">
+        {/* The name is renamed where it is written, so nothing else moves. */}
+        <span className="flex min-w-0 items-center gap-2">
           <button
             type="button"
-            disabled={busy}
-            onClick={() => setAsking(asking === "rename" ? null : "rename")}
-            className={QUIET_BTN}
+            onClick={onFold}
+            aria-label={view.name}
+            className="flex min-w-0 cursor-pointer items-center gap-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
           >
-            {c.rename}
+            <FiChevronDown className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
+            {asking !== "rename" && (
+              <span className="truncate text-[13.5px] font-[800] text-nb-ink">{view.name}</span>
+            )}
           </button>
+          {asking === "rename" ? (
+            <RenameRuntime
+              runtime={view.name}
+              busy={busy}
+              onCancel={() => setAsking(null)}
+              onRename={(to) =>
+                void run(() => renameRuntimeAction(view.name, to), c.renameFailed(view.name), () =>
+                  onRenamed(to),
+                )
+              }
+            />
+          ) : (
+            view.global && <GlobalBadge />
+          )}
+        </span>
+        <span className="flex shrink-0 items-center gap-1.5">
           {!view.global && (
             <button
               type="button"
@@ -460,43 +499,44 @@ function OpenRuntime({
           )}
           <button
             type="button"
-            disabled={busy}
-            onClick={() => setAsking(asking === "remove" ? null : "remove")}
+            disabled={busy || asking === "rename"}
+            onClick={() => setAsking("rename")}
             className={QUIET_BTN}
           >
-            {c.remove}
+            {c.rename}
           </button>
+          {/* The confirmation hangs off the button that opens it, so what is about to be
+              taken away is read beside the name it belongs to. */}
+          <span ref={removeRef} className="relative inline-flex">
+            <button
+              type="button"
+              disabled={busy}
+              aria-haspopup="dialog"
+              aria-expanded={asking === "remove"}
+              onClick={() => setAsking(asking === "remove" ? null : "remove")}
+              className={DANGER_BTN}
+            >
+              {c.remove}
+            </button>
+            <RemoveRuntime
+              open={asking === "remove"}
+              anchorRef={removeRef}
+              runtime={view.name}
+              global={view.global}
+              globalRuntime={info.globalRuntime}
+              busy={busy}
+              onCancel={() => setAsking(null)}
+              onRemove={() =>
+                void run(() => removeRuntimeAction(view.name), c.removeFailed(view.name), onFold)
+              }
+            />
+          </span>
         </span>
       </div>
 
-      {asking === "rename" && (
-        <RenameRuntime
-          runtime={view.name}
-          busy={busy}
-          onCancel={() => setAsking(null)}
-          onRename={(to) =>
-            void run(() => renameRuntimeAction(view.name, to), c.renameFailed(view.name), () =>
-              onRenamed(to),
-            )
-          }
-        />
-      )}
-      {asking === "remove" && (
-        <RemoveRuntime
-          runtime={view.name}
-          global={view.global}
-          globalRuntime={info.globalRuntime}
-          busy={busy}
-          onCancel={() => setAsking(null)}
-          onRemove={() =>
-            void run(() => removeRuntimeAction(view.name), c.removeFailed(view.name), onFold)
-          }
-        />
-      )}
-
       {/* The computer heads the card, because everything on it is that computer's answer. */}
-      <div className="rounded-[12px] border border-nb-ink/12 bg-nb-sheet px-4 py-3">
-        <div className="mb-2.5 flex items-center justify-between gap-2">
+      <div className="rounded-[12px] bg-nb-sheet px-4 py-3">
+        <div className="mb-4 flex items-center justify-between gap-2">
           <ComputerPicker
             value={computer}
             computers={computers}
@@ -508,61 +548,35 @@ function OpenRuntime({
               )
             }
           />
-          {here && view.binding && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void run(() => unbindRuntimeAction(view.name), c.unbindFailed(view.name))}
-              className={QUIET_BTN}
-            >
-              {c.unbind}
-            </button>
-          )}
         </div>
 
         {here ? (
-          <>
-            {/* Nothing bound here, so nothing on the grid is pressed — and the runtime still
-                runs something, which the line says. */}
-            {!view.binding && (
-              <Note icon={<FiAlertCircle />}>
-                {c.pickHarness(notBound(view, c), fellBackTo(view, info, c))}
-              </Note>
-            )}
-
-            {/* Keyed by what is bound, not just by the runtime: Unbind above is a change the
-                picker did not make, and every field in it is seeded once at mount. */}
-            <HarnessPicker
-              key={`${view.name}|${view.binding?.harness ?? ""}`}
-              agent={info}
-              onError={onError}
-              bind={{ runtime: view.name, view, onSaved: onChanged }}
-            />
-          </>
+          // Keyed by what is bound, not just by the runtime: every field in the picker is
+          // seeded once at mount, so a binding changed elsewhere needs a fresh one.
+          <HarnessPicker
+            key={`${view.name}|${view.binding?.harness ?? ""}`}
+            agent={info}
+            onError={onError}
+            bind={{ runtime: view.name, view, onSaved: onChanged }}
+          />
         ) : reported && !reported.fallback ? (
           // A binding belongs to the file of the machine it is on, and nothing here can write
           // another machine's — so this is what that computer reported, and nothing else.
           <div>
             <p className={`${CAPTION} text-nb-ink-soft`}>{c.thereRuns}</p>
-            <p className="mt-1 text-[13px] text-nb-ink">
-              {c.runs(labelOf(info, reported.harness), reported.model ?? "")}
-            </p>
+            <div className="mt-1 text-[13px] text-nb-ink">
+              <RanAs info={info} harness={reported.harness} model={reported.model} />
+            </div>
           </div>
         ) : (
           <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">
-            {reported ? c.server.notBound : c.saidNothing(computer)}
+            {reported ? c.server.notSet : c.saidNothing(computer)}
           </p>
         )}
       </div>
 
-      {/* Where the answer above lives, and whether every flow that names no runtime runs on
-          this one. Pointed elsewhere, the pick is intent and the line says so (#371). */}
-      <Note>
-        <Rich>
-          {(here ? c.bindingBlurb(view.name) : c.notRouted(computer)) +
-            (view.global ? ` ${c.isGlobal}` : "")}
-        </Rich>
-      </Note>
+      {/* Pointed at another computer, the pick is intent and not routing yet (#371). */}
+      {!here && <Note>{c.notRouted(computer)}</Note>}
 
       {/* The machine that runs this board's work, and what IT runs this runtime as (#345).
           Read-only: a binding belongs to the computer that holds it. */}
@@ -574,10 +588,12 @@ function OpenRuntime({
               {server?.machineName}
             </span>
           </span>
-          <span className="min-w-0 flex-1 truncate text-[12px] text-nb-ink-soft">
-            {theirs.fallback
-              ? c.server.notBound
-              : c.runs(labelOf(info, theirs.harness), theirs.model ?? "")}
+          <span className="flex min-w-0 flex-1 items-center text-[12px] text-nb-ink-soft">
+            {theirs.fallback ? (
+              <span className="truncate">{c.server.notSet}</span>
+            ) : (
+              <RanAs info={info} harness={theirs.harness} model={theirs.model} />
+            )}
           </span>
           <span className={`${CAPTION} flex shrink-0 items-center gap-1 text-nb-ink-soft`}>
             <FiCloud className="text-[12px]" aria-hidden />
@@ -634,9 +650,6 @@ function ComputerPicker({
           ))}
         </SelectContent>
       </Select>
-      <span className="min-w-0 truncate text-[11.5px] text-nb-ink-soft">
-        {tagOf(picked?.kind ?? "named", c)}
-      </span>
     </span>
   );
 }
@@ -726,6 +739,8 @@ function AddRuntime({
   );
 }
 
+/** The name, editable in place: the input sits where the heading was, with its two answers
+ *  beside it. */
 function RenameRuntime({
   runtime,
   busy,
@@ -741,39 +756,34 @@ function RenameRuntime({
   const [name, setName] = useState(runtime);
 
   return (
-    <div className="mb-3 flex items-start gap-3 rounded-[12px] border border-nb-ink/12 bg-nb-wash px-4 py-2.5">
-      <div className="flex w-[260px] shrink-0 items-center gap-2">
-        <input
-          autoFocus
-          type="text"
-          value={name}
-          disabled={busy}
-          spellCheck={false}
-          autoComplete="off"
-          aria-label={c.rename}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && name.trim()) onRename(name.trim());
-            if (e.key === "Escape") onCancel();
-          }}
-          className={CONTROL}
-        />
-        <button
-          type="button"
-          disabled={busy || !name.trim() || name.trim() === runtime}
-          onClick={() => onRename(name.trim())}
-          className={QUIET_BTN}
-        >
-          {c.save}
-        </button>
-        <button type="button" disabled={busy} onClick={onCancel} className={QUIET_BTN}>
-          {c.cancel}
-        </button>
-      </div>
-      <p className="min-w-0 flex-1 self-center text-[12px] leading-relaxed text-nb-ink-soft">
-        {c.renameBlurb}
-      </p>
-    </div>
+    <>
+      <input
+        autoFocus
+        type="text"
+        value={name}
+        disabled={busy}
+        spellCheck={false}
+        autoComplete="off"
+        aria-label={c.rename}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && name.trim()) onRename(name.trim());
+          if (e.key === "Escape") onCancel();
+        }}
+        className={`${CONTROL} w-[150px] shrink-0 py-1 font-[700]`}
+      />
+      <button
+        type="button"
+        disabled={busy || !name.trim() || name.trim() === runtime}
+        onClick={() => onRename(name.trim())}
+        className={QUIET_BTN}
+      >
+        {c.save}
+      </button>
+      <button type="button" disabled={busy} onClick={onCancel} className={QUIET_BTN}>
+        {c.cancel}
+      </button>
+    </>
   );
 }
 
@@ -782,6 +792,8 @@ function RenameRuntime({
 // name never quietly puts them back on it. Where that assignment is changed is a typed
 // command, and the line says so.
 function RemoveRuntime({
+  open,
+  anchorRef,
   runtime,
   global: isGlobal,
   globalRuntime,
@@ -789,6 +801,8 @@ function RemoveRuntime({
   onCancel,
   onRemove,
 }: {
+  open: boolean;
+  anchorRef: React.RefObject<HTMLSpanElement | null>;
   runtime: string;
   global: boolean;
   globalRuntime: string;
@@ -800,7 +814,7 @@ function RemoveRuntime({
   const [users, setUsers] = useState<{ flows: string[]; specAgents: string[] } | null>(null);
 
   useEffect(() => {
-    if (isGlobal) return;
+    if (!open || isGlobal) return;
     let live = true;
     void runtimeUsersAction(runtime)
       .then((found) => {
@@ -813,33 +827,41 @@ function RemoveRuntime({
     return () => {
       live = false;
     };
-  }, [runtime, isGlobal]);
+  }, [runtime, isGlobal, open]);
 
   const moved = [...(users?.flows ?? []), ...(users?.specAgents ?? [])];
 
   return (
-    <div className="mb-3">
-      <Alert>
-        <Rich>{isGlobal ? c.removeGlobal(runtime) : c.removeBlurb(runtime)}</Rich>
-        {!isGlobal && users && (
+    <ConfirmationPopover
+      open={open}
+      anchorRef={anchorRef}
+      align="right"
+      confirm="filled"
+      title={c.removeTitle(runtime)}
+      description={
+        isGlobal ? (
+          <Rich>{c.removeGlobal(runtime)}</Rich>
+        ) : (
           <>
-            {" "}
-            <Rich>
-              {moved.length ? c.removeMoves(moved.join(", "), globalRuntime) : c.removeNothing}
-            </Rich>
+            <Rich>{c.removeBlurb}</Rich>
+            {users && (
+              <>
+                {" "}
+                <Rich>
+                  {moved.length ? c.removeMoves(moved.join(", "), globalRuntime) : c.removeNothing}
+                </Rich>
+              </>
+            )}
           </>
-        )}
-      </Alert>
-      <div className="mt-2 flex items-center gap-2">
-        {!isGlobal && (
-          <button type="button" disabled={busy} onClick={onRemove} className={QUIET_BTN}>
-            {c.confirmRemove}
-          </button>
-        )}
-        <button type="button" disabled={busy} onClick={onCancel} className={QUIET_BTN}>
-          {c.cancel}
-        </button>
-      </div>
-    </div>
+        )
+      }
+      cancelLabel={c.cancel}
+      confirmLabel={c.confirmRemove}
+      busy={busy}
+      onDismiss={onCancel}
+      // The board's global runtime has nowhere to send what names it, so there is nothing
+      // to confirm — the line above is the whole answer.
+      onConfirm={isGlobal ? undefined : onRemove}
+    />
   );
 }

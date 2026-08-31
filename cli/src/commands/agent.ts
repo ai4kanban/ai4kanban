@@ -11,7 +11,7 @@
 // computer that has bound nothing runs `harness` and `harnessSettings`, which is what
 // `akb agent use` and `akb agent set` write, so a fresh clone runs with no local setup.
 
-import { bindRuntime, readBindings, setBindingSetting, unbindRuntime } from '../lib/machine/runtimes'
+import { bindRuntime, readBindings, setBindingSetting } from '../lib/machine/runtimes'
 import { FLOWS } from '../lib/agent/flows'
 import { providerSetting } from '../lib/agent/providers'
 import { activeSettings, agentInfo, runtimeHarness, settingSaveError } from '../lib/agent/resolve'
@@ -59,13 +59,11 @@ export async function cmdAgent(args: string[]): Promise<MoveResult> {
       return runtimeCommand(rest)
     case 'bind':
       return bindCommand(rest)
-    case 'unbind':
-      return unbindCommand(rest)
     case 'test':
       return await testAgent(rest)
     default:
       die(
-        `unknown agent command "${word}" — try \`akb agent\`, or one of use, set, list, runtimes, runtime, bind, unbind, test`,
+        `unknown agent command "${word}" — try \`akb agent\`, or one of use, set, list, runtimes, runtime, bind, test`,
         { kind: 'unknown-move', move: word },
       )
   }
@@ -436,15 +434,6 @@ function bindSetting(runtime: string, args: string[]): MoveResult {
       : `${setting.label} cleared for "${runtime}" — ${label}'s own default runs.`,
   )
   return { runtime, setting: key, value }
-}
-
-function unbindCommand(args: string[]): MoveResult {
-  const runtime = args[0]?.trim() ?? ''
-  if (!runtime) die('name a runtime: akb agent unbind cheap', { kind: 'needs-input' })
-  const res = unbindRuntime(runtime)
-  if (!res.ok) die(res.error ?? 'the binding could not be removed', { kind: 'save-failed' })
-  say(`"${runtime}" runs this computer's global binding again — ${runtimeHarness(runtime).label}.`)
-  return { runtime, unbound: true }
 }
 
 // A test that passed is what settles setup's `agent` step — the same rule the local UI

@@ -44,7 +44,8 @@ arguments are the same with or without `--print`.
 - **`run <id> [note]`**: one pass of a recurring card (it lives in `todo/recurring/` and has
   a `## Process`). Never `implement` one — it has no end state.
 - **`create "<what you want>"`**: turn something the user just said into card(s) — "add a
-  task for…". `--release <version>` files them in a release.
+  task for…". `--release <version>` files them in a release. For repeating work, read
+  `akb guide recurring-task`.
 - **`propose [--module m] [--count n] [--boldness safe|normal|bold]`**: the user wants new
   work found for them — "what are we missing", "propose some tasks", "find me work".
 - **`plan-release <version>`**: fill a release from its goal — "plan v0.7".

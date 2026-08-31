@@ -259,7 +259,13 @@ export async function watchRun(sessionId: string): Promise<number> {
       // blocker, not its shell code, makes that run unfinished and keeps the delivery ready
       // for Resume rather than sending incomplete work to review.
       const blocker = peekRun(sessionId)?.blocker
-      const status = asked ? 'stopped' : blocker ? 'error' : code === 0 ? 'done' : 'error'
+      // And the same for a CLI that reports a failure on its stream and still exits 0.
+      // Only Claude Code does (agent/wire/stream.ts) — read after the flush above, so the
+      // closing event is in. A run that failed this way must not close as done: its card
+      // would advance and the refinements behind it would run on work that never happened.
+      const failure = renderer?.failure?.()
+      const unfinished = blocker || failure
+      const status = asked ? 'stopped' : unfinished ? 'error' : code === 0 ? 'done' : 'error'
       // Writing is the last refinement session. A clean exit is its verdict; lifecycle
       // bookkeeping belongs to the watcher, not to an agent editing prose. The board keeps
       // the card at todo if questions appeared or refuses the transition for another reason.
@@ -286,11 +292,11 @@ export async function watchRun(sessionId: string): Promise<number> {
         status,
         // `ok` stays unset on a stopped run, as it does on one that was cut off: it
         // neither passed nor failed, it was ended.
-        ok: asked ? undefined : !blocker && code === 0,
+        ok: asked ? undefined : !unfinished && code === 0,
         code: asked ? null : code,
         // What went wrong, in whoever's words know: ours when the command wouldn't start,
-        // the agent's own when the conversation ended badly.
-        error: spawnError ?? (asked ? undefined : spoken?.error),
+        // the agent's own when the conversation ended badly or its stream said so.
+        error: spawnError ?? (asked ? undefined : (spoken?.error ?? failure)),
         note,
         endedAt,
       })

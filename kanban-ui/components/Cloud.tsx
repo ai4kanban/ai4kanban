@@ -986,7 +986,7 @@ function ServerRow({
                     {runtime.model ? `${runtime.harness}, ${runtime.model}` : runtime.harness}
                   </span>
                   {runtime.fallback && (
-                    <span className="shrink-0 text-nb-ink-soft">{c.notBound}</span>
+                    <span className="shrink-0 text-nb-ink-soft">{c.notSet}</span>
                   )}
                 </li>
               ))}

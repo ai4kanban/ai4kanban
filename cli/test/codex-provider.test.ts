@@ -32,9 +32,11 @@ const argv = (): string[] => planRun('s1', root).argv
 const runEnv = (): NodeJS.ProcessEnv => openPlan(planRun('s1', root)).env
 
 /** The `-c` overrides one run carries, as `key=value`, so an assertion reads like the
- *  config it writes rather than like a walk over argv. */
+ *  config it writes rather than like a walk over argv. The sandbox's own overrides are left
+ *  out: they ride with the sandbox the board picks, not with a provider or a setting, and
+ *  `the sandbox` below is where they are asked about. */
 const overrides = (): string[] =>
-  argv().flatMap((tok, i) => (argv()[i - 1] === '-c' ? [tok] : []))
+  argv().flatMap((tok, i) => (argv()[i - 1] === '-c' && !tok.startsWith('sandbox_') ? [tok] : []))
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-codex-provider-'))
@@ -62,7 +64,15 @@ describe('the ChatGPT subscription', () => {
   // exec` a bare word it reads as a subcommand, and the run would exit before it started.
   it('puts neither the pick nor its name on the command line', () => {
     board({ provider: 'subscription' })
-    assert.deepEqual(argv(), ['codex', 'exec', '--json', '--sandbox', 'workspace-write'])
+    assert.deepEqual(argv(), [
+      'codex',
+      'exec',
+      '--json',
+      '--sandbox',
+      'workspace-write',
+      '-c',
+      'sandbox_workspace_write.network_access=true',
+    ])
   })
 
   it('never carries a key, not even one the board holds', () => {
@@ -134,6 +144,41 @@ describe('the reasoning effort', () => {
   it('gives way to a command that already names one', () => {
     board({ command: 'codex exec -c model_reasoning_effort=low', reasoning: 'xhigh' })
     assert.ok(!argv().includes('model_reasoning_effort=xhigh'))
+  })
+})
+
+// The fence a Codex run works inside, and the one thing about it the board had to choose
+// deliberately. `workspace-write` blocks the network by default, and Codex is the only
+// connector that fences it at all — so a card needing an `npm install` would pass on five
+// agents and fail on this one. The network is opened with the sandbox and never apart from
+// it: a hand-written sandbox is someone choosing for themselves, network included.
+describe('the sandbox', () => {
+  it('opens the network alongside the workspace the board writes in', () => {
+    board()
+    assert.deepEqual(argv().slice(-4), [
+      '--sandbox',
+      'workspace-write',
+      '-c',
+      'sandbox_workspace_write.network_access=true',
+    ])
+  })
+
+  it('is left entirely to a command that names one, network and all', () => {
+    board({ command: 'codex exec --json --sandbox read-only' })
+    assert.ok(!argv().some((tok) => tok.startsWith('sandbox_')), argv().join(' '))
+  })
+
+  it('is added whole to a command that names none', () => {
+    board({ command: 'codex exec' })
+    assert.deepEqual(argv(), [
+      'codex',
+      'exec',
+      '--json',
+      '--sandbox',
+      'workspace-write',
+      '-c',
+      'sandbox_workspace_write.network_access=true',
+    ])
   })
 })
 

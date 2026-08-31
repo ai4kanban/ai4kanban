@@ -19,6 +19,7 @@ const nextId = path.join(kanban, 'next-id')
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
   fs.mkdirSync(path.join(todo, 'features'), { recursive: true })
+  fs.mkdirSync(path.join(todo, 'recurring'), { recursive: true })
   fs.mkdirSync(path.join(todo, '7-group', 'features'), { recursive: true })
   fs.writeFileSync(nextId, '8\n')
   setBoardRoot(root)
@@ -44,6 +45,32 @@ describe('card creation owns its id', () => {
         '### Overruled by the user',
       ],
     )
+  })
+
+  it('scaffolds recurring state and process without an implicit cadence', () => {
+    const made = cmdCreate(['--title', 'A repeated job', '--track', 'recurring'])
+    assert.ok(typeof made.file === 'string')
+    const written = fs.readFileSync(path.join(root, made.file), 'utf8')
+    assert.deepEqual(
+      written.split('\n').filter((line) => /^(#{2,3}\s|<!-- agent -->)/.test(line)),
+      ['## Run state', '## Process'],
+    )
+    assert.doesNotMatch(written, /^cadence:/m)
+    assert.doesNotMatch(written, /^## (Scope|Todo|Decided by the agent)$/m)
+  })
+
+  it('writes a recurring cadence only when explicitly requested', () => {
+    const made = cmdCreate([
+      '--title',
+      'A scheduled job',
+      '--track',
+      'recurring',
+      '--cadence',
+      '1d at 09:30',
+    ])
+    assert.ok(typeof made.file === 'string')
+    const written = fs.readFileSync(path.join(root, made.file), 'utf8')
+    assert.match(written, /^cadence: 1d at 09:30$/m)
   })
 
   it('requires a complete card instead of reserving an id', () => {

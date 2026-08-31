@@ -18,7 +18,8 @@ function pruneBody() {
   return `Squeeze the memory files back down to what helps plan the next task. Delete this
 card if you don't want the job — nothing puts it back.
 
-<!-- agent -->
+## Run state
+None.
 
 ## Process
 1. Prune the project-wide memory at \`docs/kanban/memory/\` and each module's at

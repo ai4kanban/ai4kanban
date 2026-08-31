@@ -27,10 +27,7 @@ const en: ConfigurationCopy = {
     runsOn: (machine) => `Runs on ${machine} — this computer.`,
     global: "global",
     runs: (harness, model) => (model ? `${harness} · ${model}` : harness),
-    notBound: "Not bound here",
-    boundUnknown: (bound) => `Bound to "${bound}", which this app doesn't run`,
-    ranAsGlobal: (globalRuntime, harness) => `runs as ${globalRuntime}: ${harness}`,
-    ranAsBoard: (harness) => `runs the board's own harness: ${harness}`,
+    unknownAgent: (agent) => `Unknown agent "${agent}"`,
     add: "Add runtime",
     addBlurb:
       "A name the board holds, and each computer says what it runs as. The board keeps **default** beside it and stays global on it, so every flow goes on running what it runs now.",
@@ -38,46 +35,37 @@ const en: ConfigurationCopy = {
     save: "Save",
     cancel: "Cancel",
     thisComputer: "this computer",
-    bindingBlurb: (runtime) =>
-      `The board names **${runtime}**; what it runs as below is this computer's and stays on this machine.`,
     computer: "Computer",
     unreachable: "unreachable",
     thereRuns: "Runs it as",
-    saidNothing: (computer) => `${computer} hasn't said what it runs this runtime as.`,
+    saidNothing: (computer) => `${computer} hasn't set an agent for this runtime.`,
     notRouted: (computer) => `Set, not routed — no run is sent to ${computer} yet.`,
     computers: {
       caption: "The computers this board knows",
       blurb:
         "Every computer a runtime can be pointed at: this one, the board's server, and any a runtime already names.",
     },
-    pickHarness: (why, instead) =>
-      `${why} — pick the coding tool this computer runs it as. Meanwhile it ${instead}.`,
-    unbind: "Unbind",
     rename: "Rename",
-    renameBlurb:
-      "The flows and spec agents that name it come with it. This computer's binding is copied to the new name; every other computer reads it as unbound until someone binds it there.",
     makeGlobal: "Make global",
-    isGlobal: "Every flow that names no runtime runs on this one.",
     remove: "Remove",
-    removeBlurb: (runtime) =>
-      `Remove **${runtime}**? Its binding on this computer stays — every board on this machine shares it.`,
+    removeTitle: (runtime) => `Remove ${runtime}?`,
+    removeBlurb: "The agent picked here stays — every board on this computer shares it.",
     removeMoves: (names, globalRuntime) =>
-      `These move to **${globalRuntime}**, the board's global runtime: ${names}. Point them somewhere else with \`akb agent\`.`,
-    removeNothing: "No flow and no spec agent names it.",
+      `${names} move to **${globalRuntime}**. Repoint with \`akb agent\`.`,
+    removeNothing: "Nothing names it.",
     removeGlobal: (runtime) =>
       `**${runtime}** is the board's global runtime. Make another one global first.`,
     confirmRemove: "Remove",
     keyIsBoards: "The board's key, in docs/kanban/.env — shared by every runtime on this harness.",
     server: {
       label: "the board's server",
-      notBound: "Not bound there",
-      notSaid: "Hasn't said what it runs this as",
+      notSet: "Not set there",
+      notSaid: "Hasn't said",
     },
     addFailed: "couldn't add the runtime",
     removeFailed: (runtime) => `couldn't remove ${runtime}`,
     renameFailed: (runtime) => `couldn't rename ${runtime}`,
     globalFailed: (runtime) => `couldn't make ${runtime} the global runtime`,
-    unbindFailed: (runtime) => `couldn't unbind ${runtime} on this computer`,
     computerFailed: (runtime) => `couldn't set the computer ${runtime} runs on`,
   },
   harness: {
@@ -315,7 +303,7 @@ const en: ConfigurationCopy = {
       switchOn: "Run this board's work here — on",
       switchOff: "Run this board's work here — off",
       runsAs: "Runs as",
-      notBound: "not bound",
+      notSet: "not set",
     },
     notifications: {
       title: "This board",

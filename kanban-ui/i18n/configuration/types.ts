@@ -33,16 +33,12 @@ export type ConfigurationCopy = {
     /** …and the computer it runs on, said there too. */
     runsOn: (machine: string) => string;
     global: string;
-    /** One row's right-hand half: what this computer runs that runtime as. */
+    /** What this computer runs that runtime as, in words. The row itself draws the harness
+     *  as its own mark, so this is what that mark is titled with. */
     runs: (harness: string, model: string) => string;
-    /** Why a runtime isn't running its own binding: nothing bound here, or bound to a
-     *  harness this build doesn't ship. */
-    notBound: string;
-    boundUnknown: (bound: string) => string;
-    /** …and what ran instead — this computer's binding for the global runtime, or the
-     *  board's own harness where this computer has bound nothing at all. */
-    ranAsGlobal: (globalRuntime: string, harness: string) => string;
-    ranAsBoard: (harness: string) => string;
+    /** A row whose agent is inherited rather than set here is greyed and says nothing. The
+     *  one case said out loud: the agent set here isn't one this build can run. */
+    unknownAgent: (agent: string) => string;
     /** Naming a new runtime. */
     add: string;
     addBlurb: string;
@@ -51,7 +47,6 @@ export type ConfigurationCopy = {
     cancel: string;
     /** One runtime's view. */
     thisComputer: string;
-    bindingBlurb: (runtime: string) => string;
     /** The computer picker heading the binding card, read out loud. */
     computer: string;
     /** A computer the board can neither reach nor place — one only a runtime names. */
@@ -63,17 +58,12 @@ export type ConfigurationCopy = {
     notRouted: (computer: string) => string;
     /** The Computers tab: every machine a runtime can be pointed at. */
     computers: { caption: string; blurb: string };
-    /** Nothing on the grid is pressed, because this computer isn't running its own binding.
-     *  Takes the reason and what runs meanwhile, both built from the four above. */
-    pickHarness: (why: string, instead: string) => string;
-    unbind: string;
     rename: string;
-    renameBlurb: string;
     makeGlobal: string;
-    isGlobal: string;
     remove: string;
     /** Before a removal: what it moves, and where that assignment is changed. */
-    removeBlurb: (runtime: string) => string;
+    removeTitle: (runtime: string) => string;
+    removeBlurb: string;
     removeMoves: (names: string, globalRuntime: string) => string;
     removeNothing: string;
     /** The one removal that is refused. */
@@ -84,13 +74,12 @@ export type ConfigurationCopy = {
     keyIsBoards: string;
     /** The board's server, read-only under this computer. `notSaid` is the folded row's
      *  short form of `saidNothing`: that computer reported nothing, which is not the same
-     *  as reporting it is unbound. */
-    server: { label: string; notBound: string; notSaid: string };
+     *  as reporting it has no agent set. */
+    server: { label: string; notSet: string; notSaid: string };
     addFailed: string;
     removeFailed: (runtime: string) => string;
     renameFailed: (runtime: string) => string;
     globalFailed: (runtime: string) => string;
-    unbindFailed: (runtime: string) => string;
     computerFailed: (runtime: string) => string;
   };
   /** The harness picker, drawn on a runtime and — on a board that names none — as the
@@ -345,8 +334,8 @@ export type ConfigurationCopy = {
       switchOff: string;
       /** Above what that machine runs the board's runtimes as (#345). */
       runsAs: string;
-      /** Beside a runtime that machine bound nothing for, so it falls back. */
-      notBound: string;
+      /** Beside a runtime that machine set no agent for, so it falls back. */
+      notSet: string;
     };
     /** This board's own settings — the one open release it watches, and the machine
      *  that runs its work. On as soon as this machine is signed in. */

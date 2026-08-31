@@ -46,10 +46,18 @@ Cursor, OpenCode, DeepSeek Harness and ZCode are asked in the prompt instead, an
 ## What a run may touch
 
 Codex, OpenCode and DeepSeek Harness run inside a fence: they write in the project and
-refuse anything outside it. Cursor and ZCode have none — their tools run without stopping
-to ask, because a run has nobody at the keyboard to answer, and nothing holds them to the
-project folder. Pick a fenced agent if that matters to you, or run the board in a
-container.
+refuse anything outside it. All three still reach the network, so a card that needs an
+`npm install` or a `git fetch` works on any agent.
+
+Cursor and ZCode have none — their tools run without stopping to ask, because a run has
+nobody at the keyboard to answer, and nothing holds them to the project folder.
+
+Claude Code is the one the board doesn't decide for: it runs under your own Claude Code
+permission settings, whatever those already are. Put `--permission-mode bypassPermissions`
+or `--dangerously-skip-permissions` in **Extra arguments** to stop a run being refused work
+it needed to do — its log names any tool call that was turned down.
+
+Pick a fenced agent if that matters to you, or run the board in a container.
 
 ## Settings
 
