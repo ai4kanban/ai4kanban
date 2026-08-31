@@ -1,7 +1,7 @@
 {
   "name": "ai4kanban-desktop",
   "productName": "AI4Kanban",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "description": "The AI4Kanban board as a desktop app — no terminal, no Node, nothing to install first.",
   "license": "Apache-2.0",
@@ -14,7 +14,8 @@
   },
   "main": "out/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "clean": "node -e \"require('node:fs').rmSync('out', { recursive: true, force: true })\"",
     "bundle": "node scripts/bundle-ui.mjs && node scripts/bundle-cli.mjs",
     "start": "npm run build && node scripts/bundle-ui.mjs --if-missing && node scripts/bundle-cli.mjs && electron .",
     "dist": "npm run build && npm run bundle && electron-builder --mac --win --linux",

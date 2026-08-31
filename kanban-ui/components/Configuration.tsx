@@ -725,7 +725,7 @@ export function HarnessPicker({
           subscription. A field that isn't drawn doesn't reach a run either, so
           what you see here is what the agent is given. */}
       {activeOption && activeOption.settings.length > 0 && (
-        <div className="mt-1">
+        <div className="mt-3">
           <div className="flex flex-col gap-5">
             {activeOption.settings
               .filter((setting) => shownForProvider(activeOption.settings, setting.key, picked))

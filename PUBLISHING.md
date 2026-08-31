@@ -61,7 +61,10 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
 2. `node scripts/sync-version.mjs <new-version>`; commit and `git tag v<new-version>`.
 3. README, `README-zh.md`, and the guides reflect any behavior change.
 4. `npm publish` from `cli/` — smoke-test `npx ai4kanban@latest install` in a throwaway repo.
-5. Build the app (below) and check a run works end to end on macOS.
+5. Build the app (below) and check a run works end to end on macOS. Keep one build of this
+   code stamped a version *lower* than the release, outside `desktop/dist/` — it is the only
+   way to prove the published feed installs (#372), and it cannot be made after the release.
+   See `desktop/README.md`.
 6. `git push --follow-tags`, then create the GitHub release for `v<new-version>` and upload
    this version's files from `desktop/dist/` — the folder keeps every past release's builds
    too, so upload by name, not `dist/*`. Four traps, all silent:
@@ -87,7 +90,7 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
    release exists and the buttons 404. If a build's file name changes, that page's
    `components/download/builds.ts` is the one place to change it.
 
-   The Windows installer is `AI4Kanban-Setup-<version>.exe` from v0.9.0 on, which is the name
+   The Windows installer is `AI4Kanban-Setup-<version>.exe` from v0.8.1 on, which is the name
    `latest.yml` has always pointed at (`nsis.artifactName` in `electron-builder.yml`).
    Releases published before that carry `AI4Kanban.Setup.<version>.exe` and keep it.
 

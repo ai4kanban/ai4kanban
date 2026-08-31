@@ -105,6 +105,11 @@ what `electron-builder` packages — `package.json`'s `main` and the `files:` li
 there, and every `start`/`dist:*` script compiles first, so the two can't drift. Both are
 gitignored build products, along with `resources/server/` (built from `../kanban-ui`).
 
+`npm run build` wipes `out/` first. `tsc` leaves behind the output of sources that no longer
+exist, and one of those can shadow what replaced it — a stale `out/lib/update.js` from before
+`update.ts` became `update/` wins `require("./lib/update")` and takes the whole in-app
+install with it, in the packaged app only.
+
 `src/shared/bridge.ts` is the one description of what a board page can ask the app for.
 The main process, the preload script and the board UI all have to agree on it, so it is
 written down once rather than three times.
