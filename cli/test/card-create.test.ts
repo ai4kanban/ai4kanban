@@ -5,9 +5,14 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { after, beforeEach, describe, it } from 'node:test'
+import { after, afterEach, beforeEach, describe, it } from 'node:test'
 
 import { cmdCreate } from '../src/commands/card.ts'
+import { RUN_ENV } from '../src/lib/agent/env.ts'
+import { peekRun } from '../src/lib/agent/sessions.ts'
+import { withStore } from '../src/lib/agent/store.ts'
+import type { RunRecord } from '../src/lib/agent/types.ts'
+import { runBoard } from '../src/lib/board-cli.ts'
 import { findMove, moveHelp } from '../src/lib/help.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
@@ -17,6 +22,7 @@ const todo = path.join(kanban, 'todo')
 const nextId = path.join(kanban, 'next-id')
 
 beforeEach(() => {
+  delete process.env[RUN_ENV]
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
   fs.mkdirSync(path.join(todo, 'features'), { recursive: true })
   fs.mkdirSync(path.join(todo, 'recurring'), { recursive: true })
@@ -25,6 +31,7 @@ beforeEach(() => {
   setBoardRoot(root)
 })
 
+afterEach(() => delete process.env[RUN_ENV])
 after(() => fs.rmSync(root, { recursive: true, force: true }))
 
 const unchanged = (): void => assert.equal(fs.readFileSync(nextId, 'utf8'), '8\n')
@@ -104,5 +111,28 @@ describe('card creation owns its id', () => {
     assert.match(help, /existing open cards/)
     assert.match(help, /Group task/)
     assert.doesNotMatch(help, /--count/)
+  })
+
+  it('attaches a card made through the CLI to its cardless create run', async () => {
+    const owner: RunRecord = {
+      sessionId: 'create-run',
+      cardId: null,
+      action: 'create',
+      status: 'running',
+      startedAt: Date.now(),
+      harness: 'test',
+      logPath: '/dev/null',
+    }
+    withStore((store) => store.runs.push(owner))
+    process.env[RUN_ENV] = owner.sessionId
+
+    assert.equal(
+      await runBoard(['create', '--title', 'Owned card', '--track', 'features'], {
+        style: 'board',
+        cwd: root,
+      }),
+      0,
+    )
+    assert.deepEqual(peekRun(owner.sessionId)?.createdCardIds, [8])
   })
 })

@@ -108,9 +108,8 @@ export function markBoard(): BoardMarks {
  *
  * EVERY close calls this, whatever the run ended as — a change left unclaimed is a change
  * the next unrelated run to close would pick up. What it can't tell apart is a card nobody
- * ran on: an edit made by hand, or a card written by a run that names a different card,
- * goes to whichever close sees it first. That is one refine in the wrong flow, never the
- * same work started twice.
+ * ran on: an edit made by hand goes to whichever close sees it first. Cards made through
+ * the CLI name their creating run explicitly.
  */
 export function claimChanges(before: BoardMarks, sessionId: string): number[] {
   const now = markBoard()
@@ -122,7 +121,7 @@ export function claimChanges(before: BoardMarks, sessionId: string): number[] {
       const held = new Set(
         store.runs
           .filter((r) => r.status === 'running' && r.sessionId !== sessionId && r.action !== 'spec')
-          .map((r) => r.cardId),
+          .flatMap((r) => [r.cardId, ...(r.createdCardIds ?? [])]),
       )
       const claimed: number[] = []
       // Rebuilt from the board rather than merged into, so a card that has been archived or

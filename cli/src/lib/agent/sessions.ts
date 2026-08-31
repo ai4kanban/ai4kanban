@@ -605,6 +605,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   const record: RunRecord = {
     sessionId,
     cardId: prev.cardId,
+    createdCardIds: prev.createdCardIds,
     action: prev.action,
     status: 'running',
     startedAt: Date.now(),

@@ -54,11 +54,13 @@ setup, fill only the opening paragraph—the background refinement completes the
 
 ## Refine
 
-- **Lightweight**: clear outcome, narrow change, and low compatibility or coordination
-  risk. Run `akb refine <id> --effort lightweight --print` and continue inline.
-- **Standard**: everything else. Run `akb refine <id> --effort standard` to start a
-  separate session.
+- **Lightweight**: use only when the source already supplies a concrete outcome, boundaries,
+  and build steps. Run `akb refine <id> --effort lightweight --print` and continue inline;
+  it verifies the build scope and switches to standard QA if the plan is less settled than
+  it appeared.
+- **Standard**: use for ordinary user requests and whenever scope, evidence, or decisions
+  remain vague. Run `akb refine <id> --effort standard` to start a separate session.
 
-Choose per card. If the user explicitly requests background work, omit `--print` for a
-lightweight refinement. During setup, start neither; the setup watcher starts refinement
-after setup exits.
+Choose standard unless the source makes lightweight clearly sufficient. If the user asks for
+background work, omit `--print` for lightweight. During setup, start neither; the setup
+watcher starts refinement after setup exits.

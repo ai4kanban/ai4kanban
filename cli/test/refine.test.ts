@@ -26,6 +26,7 @@ import {
 } from '../src/lib/agent/sessions.ts'
 import type { AgentAction, RunRecord } from '../src/lib/agent/types.ts'
 import { setBoardProvider } from '../src/lib/board/index.ts'
+import { withStore } from '../src/lib/agent/store.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-refine-'))
@@ -435,6 +436,20 @@ describe('two runs at once', () => {
     if ('error' in opened) throw new Error(opened.error)
     const wide = markBoard()
     writeCard({ body: 'What the live pass on #7 is writing.' })
+    assert.deepEqual(closing(other(), wide).runs, [])
+  })
+
+  it('leaves a new card with the cardless run that created it', () => {
+    const wide = markBoard()
+    const creator: RunRecord = {
+      ...run('create', 1, { sessionId: 'create', cardId: null }),
+      status: 'running',
+      refineRound: undefined,
+      createdCardIds: [7],
+    }
+    withStore((store) => store.runs.push(creator))
+    writeCard()
+
     assert.deepEqual(closing(other(), wide).runs, [])
   })
 })

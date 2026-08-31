@@ -148,6 +148,9 @@ export interface RunRecord {
    *  spawns. A harness that mints an id of its own keeps it in `resumeId`. */
   sessionId: string
   cardId: number | null
+  /** Cards this run created through `akb board create`. A cardless creation run holds these
+   *  until it closes, so an overlapping run cannot adopt and refine its half-written cards. */
+  createdCardIds?: number[]
   action: AgentAction
   status: RunStatus
   startedAt: number

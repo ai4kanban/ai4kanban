@@ -483,10 +483,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   const refineNext = (target: number | '<id>', when: string, effort?: string) =>
     `${self} refine ${target === '<id>' ? target : String(target)}${effort ? ` --effort ${effort}` : ''} --print — ${when}; in a fresh run, not this one — the board gives each refine its own clean context, and so should you`
 
-  // A printed card-creation flow has no watcher to infer the refinements its cards need.
-  const startRefineNext = (target: number | '<id>') =>
-    `after add-task, choose one: ${self} refine ${target === '<id>' ? target : String(target)} --effort lightweight --print — follow lightweight refinement inline; ${self} refine ${target === '<id>' ? target : String(target)} --effort standard — hand standard refinement to a fresh session`
-
   // Every card action opens the same way: where the card is, and what it says about itself.
   if (card) {
     facts.push(...field('card', card.file), ...field('meta', metaLine(card.meta)))
@@ -659,7 +655,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${board} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''} --track <track>${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
         'then fill only the existing body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place',
       )
-      next.push(startRefineNext('<id>'))
       break
     }
     case 'archive': {

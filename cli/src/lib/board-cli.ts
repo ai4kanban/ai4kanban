@@ -25,6 +25,8 @@ import { board, moveTarget, withLease } from './board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from './board/local'
 import { flushOnExit } from './cloud/publish'
 import { catchUpOnExit } from './cloud/requests'
+import { insideRun } from './agent/env'
+import { recordCreatedCards } from './agent/store'
 import { boardHelp, findMove, legacyHelp, moveHelp, MOVE_NAMES } from './help'
 import type { MoveOutput, OpResult } from './board'
 
@@ -215,9 +217,23 @@ export async function runBoard(argv: string[], options: RunBoardOptions = {}): P
     // A read answers straight off the board. A write is one operation of the contract, under
     // a lease taken for it — whoever typed this never read the card, so the lease is what
     // hands them the revision they write against (lib/board/ops.ts).
+    const owner = move === 'create' ? insideRun() : null
     const data = READ_ONLY_MOVES.has(move)
       ? await board().readMove(move, args)
-      : unwrap(await withLease(moveTarget(move, args), (env) => board().runMove(move, args, env)))
+      : unwrap(
+          await withLease(moveTarget(move, args), async (env) => {
+            const result = await board().runMove(move, args, env)
+            // A cardless create run cannot hold its cards through `cardId`. Attach each new
+            // id before giving the board lease back, so another close cannot adopt it first.
+            if (result.ok && owner && Array.isArray(result.data.ids)) {
+              recordCreatedCards(
+                owner,
+                result.data.ids.filter((id): id is number => Number.isInteger(id)),
+              )
+            }
+            return result
+          }),
+        )
     // A board that ran the move somewhere else sends its prose back rather than printing it;
     // Local printed as it went and has none to add.
     const { output, warnings, ...fields } = data

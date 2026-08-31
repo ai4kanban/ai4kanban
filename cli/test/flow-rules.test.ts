@@ -125,15 +125,14 @@ describe('the prompt', () => {
     assert.doesNotMatch(prompt, /Append the gaps|Do not resolve|don't implement/)
   })
 
-  it('has add-task choose the effort and refine inline by default', () => {
+  it('has add-task choose standard unless the source is concrete', () => {
     const guide = findGuide('add-task')!.text
     assert.match(guide, /Repeating work[\s\S]*akb guide recurring-task/)
-    assert.match(guide, /Lightweight[\s\S]*Standard/)
     assert.doesNotMatch(guide, /Parallel/)
     assert.match(guide, /akb refine <id> --effort lightweight --print/)
-    assert.match(guide, /continue inline/)
-    assert.match(guide, /explicitly requests background work, omit `--print`/)
-    assert.match(guide, /akb refine <id> --effort standard[\s\S]*separate session/)
+    assert.match(guide, /Lightweight[\s\S]*source already supplies[\s\S]*build scope/)
+    assert.match(guide, /Standard[\s\S]*ordinary user requests[\s\S]*separate session/)
+    assert.match(guide, /Choose standard unless/)
   })
 
   it('keeps recurring state on the card and cadence opt-in', () => {
@@ -278,17 +277,16 @@ describe('the prompt', () => {
     assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /<spec-agents>/)
   })
 
-  it('continues refinement inline after each card created from a printed flow', () => {
+  it('keeps the card-creation refinement choice in one guide', () => {
+    assert.match(
+      buildPrompt({ action: 'create', description: 'Add a task.' }),
+      /Follow `akb guide add-task`/,
+    )
     startCollecting()
     try {
       const flow = printFlow({ action: 'create', description: 'Add a task.' })
       const next = (flow.next as string[]).join('\n')
-      assert.match(next, /akb refine <id>/)
-      assert.match(next, /--effort lightweight --print/)
-      assert.match(next, /--effort standard/)
-      assert.match(next, /--print/)
-      assert.match(next, /after add-task/)
-      assert.match(next, /follow lightweight refinement inline/)
+      assert.doesNotMatch(next, /akb refine <id>/)
     } finally {
       stopCollecting()
     }

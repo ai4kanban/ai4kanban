@@ -93,6 +93,9 @@ export function readStore(): Store {
     runs.push({
       sessionId: entry.sessionId,
       cardId: typeof entry.cardId === 'number' ? entry.cardId : null,
+      createdCardIds: Array.isArray(entry.createdCardIds)
+        ? [...new Set(entry.createdCardIds.filter((id): id is number => Number.isInteger(id) && id > 0))]
+        : undefined,
       action: readAction(entry.action),
       status: asStatus(entry.status),
       startedAt: typeof entry.startedAt === 'number' ? entry.startedAt : Date.now(),
@@ -467,4 +470,16 @@ export function withStore<T>(fn: (store: Store) => T): T {
 /** The runs half of the record, changed under the same lock. */
 export function withRuns<T>(fn: (runs: RunRecord[]) => T): T {
   return withStore((store) => fn(store.runs))
+}
+
+/** Attach cards made by `akb board create` to the run whose agent called it. */
+export function recordCreatedCards(sessionId: string, ids: readonly number[]): boolean {
+  const valid = ids.filter((id) => Number.isInteger(id) && id > 0)
+  if (!valid.length) return false
+  return withRuns((runs) => {
+    const run = runs.find((entry) => entry.sessionId === sessionId && entry.status === 'running')
+    if (!run) return false
+    run.createdCardIds = [...new Set([...(run.createdCardIds ?? []), ...valid])]
+    return true
+  })
 }
