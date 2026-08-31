@@ -38,11 +38,11 @@ const en: ChatCopy = {
   ],
   ask: "Ask, or say what to change",
   askCard: (id) => `Ask about #${id}, or say what to change`,
-  waiting: "Waiting for the reply…",
   message: "Your message",
   send: "Send",
   stop: "Stop",
-  oneAtATime: "One message at a time · Esc stops the reply",
+  sendingWaits: "Sending waits for the reply",
+  sendingWaitsEsc: "Sending waits for the reply · Esc stops it",
   keys: "Enter sends · Shift-Enter starts a line",
 };
 

@@ -69,9 +69,12 @@ export interface ChatRail {
   unread: boolean;
   /** The conversation as the server last read it — null until the first read lands. */
   read: ChatRead | null;
-  /** The reply being written this second, as far as it has got. Null from the moment it is
-   *  stopped. */
+  /** The reply being written this second, as far as it has got — this server's own, so it
+   *  is also the one that can be stopped. Null from the moment it is stopped. */
   live: string | null;
+  /** A reply is coming, whoever started it: this window, another window, or a terminal
+   *  (#268). Sending waits for it; the box does not. */
+  answering: boolean;
   /** A stopped reply's words, held on screen until the transcript has them (#267). */
   stopped: string | null;
   /** End the reply being written, keeping what arrived. Nothing to stop is quietly
@@ -80,6 +83,9 @@ export interface ChatRail {
   /** What the user has typed and not yet sent. */
   draft: string;
   setDraft(text: string): void;
+  /** Walk this conversation's own sent messages back into an empty box — `back` is
+   *  up-arrow, and the answer is whether the key was taken (#268). */
+  recall(back: boolean): boolean;
   /** Why the last send never got off the ground. Cleared by the next one. */
   error: string | null;
   send(): Promise<void>;
@@ -109,6 +115,9 @@ export function useChatRail({
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [held, setHeld] = useState<string | null>(null);
+  // How far back through this conversation's sent messages the arrows have walked, newest
+  // at 0 — null while the box holds what the user typed rather than what they once sent.
+  const [walked, setWalked] = useState<number | null>(null);
 
   // Another card's page is another conversation, and nothing of the last one carries over
   // to it: not its messages, not a half-typed message, not the error its last send left.
@@ -121,6 +130,7 @@ export function useChatRail({
     setDraft("");
     setError(null);
     setHeld(null);
+    setWalked(null);
   }
 
   const overlay = useMatches(OVERLAY_UNDER);
@@ -161,16 +171,17 @@ export function useChatRail({
   // What the rail draws. For the beat between the click and the read that agrees with it,
   // this window still holds the read from before the stop — and its "this conversation is
   // still answering" is already untrue. Dropped here, so nothing goes on saying the
-  // conversation is answering, and the box takes the next message rather than refusing it.
+  // conversation is answering, and the box can send the next message rather than waiting.
   const shown =
-    read !== null && holding !== null && read.stopped === null
-      ? { ...read, answering: false, blocked: undefined }
-      : read;
+    read !== null && holding !== null && read.stopped === null ? { ...read, answering: false } : read;
 
   // Any reply being written on this machine, not only one this window started: a
   // conversation carried on from a terminal writes this same board, and the page under the
-  // rail has to keep up with it too.
-  const answering = live !== null || Boolean(read?.answering);
+  // rail has to keep up with it too. What sending waits for reads it off `shown`, so a
+  // stopped reply frees the box from the click; the poll reads the raw one, so the seconds
+  // that stop spends landing are still read at the fast cadence.
+  const answering = live !== null || Boolean(shown?.answering);
+  const anyFlight = live !== null || Boolean(read?.answering);
 
   // The board's fingerprint as this window last saw it, and the callback to fire when it
   // moves. Both in refs: they change what a poll DOES, never how often it runs, so neither
@@ -192,7 +203,7 @@ export function useChatRail({
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let inFlight = false;
-    let answeringNow = answering;
+    let answeringNow = anyFlight;
     const tick = async () => {
       if (!alive || inFlight) return;
       inFlight = true;
@@ -234,9 +245,9 @@ export function useChatRail({
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-    // `answering` restarts the loop when a reply starts or ends, so the cadence follows it
+    // `anyFlight` restarts the loop when a reply starts or ends, so the cadence follows it
     // rather than waiting out a slow tick to notice.
-  }, [cardId, open, answering]);
+  }, [cardId, open, anyFlight]);
 
   // Reading is what marks a reply read: the rail is up and the words are on screen. A
   // conversation this window has never looked at is adopted as read instead — one held in a
@@ -285,15 +296,14 @@ export function useChatRail({
   }, [cardId]);
 
   // Esc stops it too, and only then: the rail up, a reply of this window's coming, nothing
-  // over the rail, and the key not pressed in a text box. On the window rather than on the
-  // rail because the box is shut while a reply is coming, so nothing inside the rail can
-  // hold focus to hear the key.
+  // over the rail, and the key not pressed in a text box the chat's own box excepted — that
+  // one is live while a reply comes (#268), and is where the hand already is.
   const writingNow = live !== null;
   useEffect(() => {
     if (!open || !writingNow) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (overRail() || inTextBox(e.target)) return;
+      if (overRail() || (inTextBox(e.target) && !isChatBox(e.target))) return;
       void stop();
     };
     window.addEventListener("keydown", onKey);
@@ -301,10 +311,49 @@ export function useChatRail({
     // The reply's words change every tick; whether there IS one is what binds the key.
   }, [open, writingNow, stop]);
 
+  // This conversation's own sent messages, oldest first, read from the transcript — so the
+  // walk survives a reload, takes in what a terminal sent, and is nobody else's.
+  const sent = useMemo(
+    () => (chat?.messages ?? []).filter((m) => m.role === "you").map((m) => m.text),
+    [chat],
+  );
+
+  // Typing is what ends a walk: from there the box holds the user's words again.
+  const type = useCallback((text: string) => {
+    setDraft(text);
+    setWalked(null);
+  }, []);
+
+  const recall = useCallback(
+    (back: boolean) => {
+      if (sent.length === 0) return false;
+      // Only an empty box starts a walk; in a typed one the arrows belong to the caret.
+      if (walked === null) {
+        if (!back || draft !== "") return false;
+        setWalked(0);
+        setDraft(sent[sent.length - 1]);
+        return true;
+      }
+      const step = back ? walked + 1 : walked - 1;
+      // Past the oldest, stay on it. Past the newest, the box is the user's own again.
+      if (step >= sent.length) return true;
+      if (step < 0) {
+        setWalked(null);
+        setDraft("");
+        return true;
+      }
+      setWalked(step);
+      setDraft(sent[sent.length - 1 - step]);
+      return true;
+    },
+    [sent, walked, draft],
+  );
+
   const send = useCallback(async () => {
     const text = draft.trim();
     if (!text) return;
     setDraft("");
+    setWalked(null);
     setError(null);
     setHeld(null);
     const res = await sendChatAction(cardId, text);
@@ -337,10 +386,12 @@ export function useChatRail({
     unread,
     read: shown,
     live,
+    answering,
     stopped,
     stop,
     draft,
-    setDraft,
+    setDraft: type,
+    recall,
     error,
     send,
     clear,
@@ -348,6 +399,12 @@ export function useChatRail({
     onLayoutChanged,
     onDoubleClick,
   };
+}
+
+/** The chat's own box — the one text box that hands Esc back to the rail. Marked with
+ *  `data-chat-box` in components/Chat.tsx. */
+function isChatBox(target: EventTarget | null): boolean {
+  return (target as HTMLElement | null)?.hasAttribute?.("data-chat-box") === true;
 }
 
 /** The key belongs to whatever is being typed in — the card rail's search, a name box —

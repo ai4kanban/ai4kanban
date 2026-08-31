@@ -33,11 +33,11 @@ const zh: ChatCopy = {
   emptyCardAsks: ["这张卡片还有什么不清楚的？", "它是不是大到无法一次做完？", "有哪些可以砍掉？"],
   ask: "提问，或说出你想改什么",
   askCard: (id) => `提问 #${id}，或说出你想改什么`,
-  waiting: "等待回复…",
   message: "你的消息",
   send: "发送",
   stop: "停止",
-  oneAtATime: "一次只能发一条消息 · Esc 停止回复",
+  sendingWaits: "发送需等回复结束",
+  sendingWaitsEsc: "发送需等回复结束 · Esc 停止回复",
   keys: "Enter 发送 · Shift-Enter 换行",
 };
 

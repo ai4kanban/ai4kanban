@@ -172,13 +172,23 @@ written, and where it names a card the name is a link to that card's page.
   and what that run is doing.
 - **It is still not a run.** It shows in no runs panel, locks no card, and keeps no run off
   one — you can talk about a card an agent is building.
-- **One message at a time.** The box is shut while a reply is coming.
+- **Keep typing while a reply is coming.** The box stays live, so a thought that arrives
+  mid-reply goes into it instead of being held in your head. Only sending waits — Enter does
+  nothing and the corner button can't send — and the moment the reply lands you press send
+  yourself. Nothing is ever sent on your behalf, and there is no queue.
+- **The box grows with what you type**, to about eight rows — fewer on a window too short to
+  leave the conversation a few lines above it — and scrolls rather than growing past that.
+- **Up-arrow brings back what you last sent.** In an empty box it walks back through this
+  conversation's own messages, down-arrow walks the other way, and typing ends the walk.
+  They come from the transcript, so they survive a reload and take in what you sent from a
+  terminal — and another card's chat offers its own.
 - **Stop a reply that went the wrong way.** While one is coming, Send is **Stop** — one
   click, or Esc, and it ends there. What arrived is kept and the next message carries on
   from it; nothing is undone, and the message you stopped is not put back to be reworded.
   Esc stops it only when nothing is over the chat — a dialog, a panel or a menu keeps the
-  key. A reply `akb chat` is writing is the terminal's own, so Ctrl-C there stays the way to
-  end it.
+  key. A reply `akb chat` is writing is the terminal's own: the chat follows it and the box
+  still takes typing, but the corner button stays a greyed Send, and Ctrl-C in that terminal
+  is the way to end it.
 - **Folding it doesn't stop it.** The reply keeps arriving, and the Chat button marks that
   there is something to read.
 - **It keeps.** The exchange is still there after the app is closed and reopened, and it is per

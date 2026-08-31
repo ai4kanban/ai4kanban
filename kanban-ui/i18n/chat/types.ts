@@ -33,12 +33,14 @@ export type ChatCopy = {
   emptyCardAsks: [string, string, string];
   ask: string;
   askCard: (id: number) => string;
-  waiting: string;
   message: string;
   send: string;
   /** The button Send becomes while a reply is coming. */
   stop: string;
-  /** The line under the box while a reply is coming: one at a time, and how to end it. */
-  oneAtATime: string;
+  /** The line under the box while a reply is coming (#268). The box still takes typing;
+   *  only sending waits — and Esc ends a reply this board's server owns, which is the one
+   *  the window can reach. */
+  sendingWaits: string;
+  sendingWaitsEsc: string;
   keys: string;
 };

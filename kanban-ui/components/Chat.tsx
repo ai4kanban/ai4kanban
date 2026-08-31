@@ -17,7 +17,7 @@
 // reply is written on the server (lib/chat.ts, lib/chat-rail.ts), so folding the rail or
 // walking to another card never cuts a reply off, and closing the app never loses one.
 
-import { createContext, memo, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FiMessageSquare, FiSend, FiSquare, FiTrash2, FiX } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRail } from "@/lib/chat-rail";
@@ -33,6 +33,14 @@ const CONFIRM_MS = 4000;
 /** Near enough to the bottom that a new line should follow it down. Further up and the
  *  user is reading something older, which a jump would take them away from. */
 const STICK_PX = 72;
+
+/** How tall the box grows with what is typed, and what it opens at. */
+const MAX_ROWS = 8;
+const MIN_ROWS = 3;
+
+/** What the rest of the window keeps whatever is typed — the top row, the rail's head, the
+ *  hint line, and a few lines of the conversation above the box. */
+const KEEP_PX = 260;
 
 // The rail's state belongs to the window, and the button that folds it is in the top row —
 // which the page builds and hands the window as a prop. Context is what puts the two on the
@@ -84,9 +92,13 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
   const c = useCopy().chat;
   const read = rail.read;
   const messages = read?.chat?.messages ?? [];
-  const answering = rail.live !== null;
-  // `blocked` is the one word for everything that shuts the box: no agent that can hold a
-  // conversation, one held with an agent this board no longer runs, a reply still coming.
+  // A reply is coming, and whether it is this board's server's — the one Stop and Esc can
+  // reach. A terminal's reply is followed just the same, but only its own Ctrl-C ends it.
+  const answering = rail.answering;
+  const ours = rail.live !== null;
+  // `blocked` is what shuts the box for good: no agent that can hold a conversation, or one
+  // held with an agent this board no longer runs. A reply in flight is not one of them
+  // (#268) — the box stays live and only sending waits.
   const blocked = read?.blocked;
   // Nothing on this board can hold a conversation at all. Its own block says so, since
   // there is nothing else to put in an empty rail.
@@ -95,7 +107,7 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
   // lives outside the PATH the board was started on can still send, the same way the
   // Configuration dialog still lets them pick it.
   const missing = read?.missing ? c.agentMissing(read.agent) : undefined;
-  const trouble = rail.error ?? read?.failed ?? (answering ? undefined : blocked) ?? missing;
+  const trouble = rail.error ?? read?.failed ?? blocked ?? missing;
 
   return (
     <section aria-label={c.label} className="flex h-full flex-col py-2 pl-1 pr-3">
@@ -117,7 +129,7 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
           {trouble}
         </p>
       )}
-      <Composer rail={rail} disabled={!read || !!blocked} answering={answering} />
+      <Composer rail={rail} disabled={!read || !!blocked} answering={answering} ours={ours} />
     </section>
   );
 }
@@ -374,50 +386,124 @@ function Empty({ cardId, hopeless }: { cardId: number | null; hopeless?: string 
 }
 
 /** The box at the foot. Enter sends and Shift-Enter starts a line, which is what anyone who
- *  has used a chat expects; the button is there for anyone who hasn't. */
-function Composer({ rail, disabled, answering }: { rail: ChatRail; disabled: boolean; answering: boolean }) {
+ *  has used a chat expects; the button is there for anyone who hasn't.
+ *
+ *  It stays live while a reply is coming (#268), so a thought that arrives mid-reply goes
+ *  into the box instead of being held in the user's head. Only sending waits — nothing
+ *  leaves the box until the user presses send. */
+function Composer({
+  rail,
+  disabled,
+  answering,
+  ours,
+}: {
+  rail: ChatRail;
+  /** Shut for good — no agent that can hold a conversation, or one held with another. */
+  disabled: boolean;
+  answering: boolean;
+  /** The reply coming is this board's server's, so the corner button can end it. */
+  ours: boolean;
+}) {
   const c = useCopy().chat;
   const empty = !rail.draft.trim();
+  const sends = !disabled && !answering && !empty;
+  const box = useGrow(rail.draft);
   // On a card's page the box asks about that card, so the words in it never read as an
   // invitation to talk about the whole board.
   const ask = rail.cardId === null ? c.ask : c.askCard(rail.cardId);
   return (
     <div className="shrink-0 px-2.5 pt-1.5" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
       <textarea
+        ref={box}
+        // The one text box Esc is not taken in: it is where the hand is while a reply is
+        // coming, and Esc there ends the reply (lib/chat-rail.ts).
+        data-chat-box=""
         value={rail.draft}
         onChange={(e) => rail.setDraft(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            if (!disabled && !empty) void rail.send();
+            if (sends) void rail.send();
+            return;
           }
+          // An empty box walks back through what this conversation has sent; a typed one
+          // leaves the arrows to the caret (lib/chat-rail.ts).
+          const arrow = e.key === "ArrowUp" || e.key === "ArrowDown";
+          if (arrow && rail.recall(e.key === "ArrowUp")) e.preventDefault();
         }}
-        rows={3}
+        rows={MIN_ROWS}
         disabled={disabled}
-        placeholder={answering ? c.waiting : ask}
+        placeholder={ask}
         aria-label={c.message}
         className="w-full resize-none rounded-[8px] bg-nb-paper px-2.5 py-2 text-[13px] leading-[1.5] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none disabled:opacity-60 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]"
       />
       <div className="mt-1.5 flex items-center gap-2">
         <span className="min-w-0 flex-1 truncate text-[11px] text-nb-ink-soft">
-          {answering ? c.oneAtATime : c.keys}
+          {/* One short line: the one thing that matters right then. Esc only where it
+              reaches — a terminal's reply is ended in that terminal. */}
+          {answering ? (ours ? c.sendingWaitsEsc : c.sendingWaits) : c.keys}
         </span>
-        {/* One button in this corner, not two: while a reply is coming it IS Stop, and it
-            stays live though the box beside it is shut. */}
+        {/* One button in this corner, not two: on a reply this server owns it IS Stop, and
+            on one a terminal is writing it is a Send that has to wait for it. */}
         <Button
           size="xs"
-          disabled={answering ? false : disabled || empty}
-          onClick={() => void (answering ? rail.stop() : rail.send())}
-          aria-label={answering ? c.stop : c.send}
+          disabled={ours ? false : answering || disabled || empty}
+          onClick={() => void (ours ? rail.stop() : rail.send())}
+          aria-label={ours ? c.stop : c.send}
         >
-          {answering ? (
+          {ours ? (
             <FiSquare className="text-[13px]" aria-hidden />
           ) : (
             <FiSend className="text-[13px]" aria-hidden />
           )}
-          <span className="sr-only">{answering ? c.stop : c.send}</span>
+          <span className="sr-only">{ours ? c.stop : c.send}</span>
         </Button>
       </div>
     </div>
   );
+}
+
+/** Grow the box with what is typed, and scroll past the ceiling rather than pushing the
+ *  conversation off the screen. */
+function useGrow(text: string) {
+  const box = useRef<HTMLTextAreaElement>(null);
+
+  const fit = useCallback(() => {
+    const el = box.current;
+    if (!el) return;
+    const style = getComputedStyle(el);
+    const line = parseFloat(style.lineHeight) || 20;
+    const pad = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+    // Eight rows where the window has room for them, fewer where it hasn't, never under
+    // the three the box has always opened at.
+    const rows = Math.max(MIN_ROWS, Math.min(MAX_ROWS, Math.floor((window.innerHeight - KEEP_PX) / line)));
+    const ceiling = rows * line + pad;
+    el.style.height = "auto";
+    const wanted = el.scrollHeight;
+    el.style.height = `${Math.min(wanted, ceiling)}px`;
+    el.style.overflowY = wanted > ceiling ? "auto" : "hidden";
+  }, []);
+
+  useLayoutEffect(fit, [text, fit]);
+
+  // The rail dragged wider takes the same words in fewer lines, and a shorter window brings
+  // the ceiling down. Width only from the box itself: its own height is what `fit` changes.
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    let wide = el.clientWidth;
+    const watch = new ResizeObserver(() => {
+      if (el.clientWidth === wide) return;
+      wide = el.clientWidth;
+      fit();
+    });
+    watch.observe(el);
+    window.addEventListener("resize", fit);
+    return () => {
+      watch.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, [fit]);
+
+  return box;
 }

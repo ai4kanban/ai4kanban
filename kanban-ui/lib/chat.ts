@@ -50,8 +50,9 @@ export interface ChatRead {
   able: string[];
   /** That agent's own CLI isn't on this machine, so nothing would answer. */
   missing: boolean;
-  /** Why nothing can be sent this second: no agent that can chat, a conversation held with
-   *  another one, or a reply still coming. Not an error — the box is simply shut. */
+  /** Why the box is shut for good: no agent that can chat, a conversation held with another
+   *  one, or rules too old to hold one at all. Not an error, and never a reply in flight —
+   *  that one leaves the box open (#268), so the next thought goes into it. */
   blocked?: string;
   /** The last send that never got off the ground, in the agent's own words. Cleared by the
    *  next message. */
@@ -140,15 +141,16 @@ export async function readChat(cardId: ChatTarget): Promise<ChatRead> {
     agent: view.agent,
     able: view.able,
     missing: agentMissing(agent),
-    blocked: stopping ? stillBlocked(view, agent.options) : view.blocked,
+    blocked: stillBlocked(view, agent.options),
     failed: failed.get(keyOf(cardId)),
   };
 }
 
-/** Why a message still can't be sent once a reply has been stopped. "Still answering" is
- *  not one of them — the turn is over from the click — but an agent that can't chat at all,
- *  or a conversation held with another one, both outlive a stop. The board checks those two
- *  first, so its own wording is the right wording for either.
+/** Why the box is shut whatever the conversation is doing. "Still answering" is not one of
+ *  them — a reply in flight leaves the box open (#268) and a stopped one is over from the
+ *  click — but an agent that can't chat at all, or a conversation held with another one,
+ *  both outlast either. The board checks those two first, so its own wording is the right
+ *  wording for either.
  *
  *  Matched by label: `view.agent` is the agent that answers HERE, which on a board with
  *  runtimes is this computer's binding rather than the board's own name (#343), and it is
