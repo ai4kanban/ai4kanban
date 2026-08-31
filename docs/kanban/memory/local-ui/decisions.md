@@ -76,6 +76,9 @@ re-ask a settled call.
   steps that read the repo and think run after it.
 - Which agent works is asked first, before anything else the first run does. Nothing is
   spent on an agent the user did not choose.
+- The first run is one full-window view a step, one thing asked in each — no step rail, no
+  transcript, and no list of what the agent read; a long repo read is its own waiting view
+  with a spinner and a line.
 - The first run never drafts the goal. It may say what makes a good goal, but it offers no
   words the user could accept unchanged, because text the user did not write is no goal.
 - Finishing setup refines the cards it writes: they are the roughest the board will ever
@@ -211,6 +214,9 @@ re-ask a settled call.
 
 ## The board on a phone
 
+- Cloud's URL and its GitHub sign-in are the whole of phone access: the app never serves its
+  own board to a second device. A user who does not turn Cloud on has no phone access, which
+  is the price of one way in rather than two.
 - At phone width the board becomes a bottom tab bar — Board, Find, Memory, More — with the
   columns swiped one at a time and Resolve opening as a page. The window-width board keeps
   its rail, header and side-by-side columns.

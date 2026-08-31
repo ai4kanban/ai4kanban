@@ -54,6 +54,12 @@ before proposing so you don't re-suggest them.
   shortcut set, its own dispatcher and a panel to list it would cost more than the mouse
   trips they save.
 
+- **Serving the board to a phone from the user's own machine** — a LAN address, a tunnel or
+  a QR code onto the local server, with the owner approving each device at the board. The
+  Cloud workspace's URL and its GitHub sign-in reach a phone from anywhere, work while the
+  machine is asleep, and need no second way in; the cost we accepted is that a user who
+  never turns Cloud on has no phone access at all.
+
 ## Runs
 
 - **Human-in-the-loop / mid-run reply to the agent** — no live reply channel. The agent

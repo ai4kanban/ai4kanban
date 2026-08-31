@@ -106,6 +106,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Refining on its own
 
+- ❌ **Treat every test as "check by hand"** → ✅ put agent-executable checks in
+  `## Todo`; reserve `verify:` for a reproducible human plan with its setup, action and
+  expected result, and add any fixture or test seam that plan needs to the todo.
 - ❌ **Record every auto-answer in `decisions.md`** → ✅ keep auto-answers on the card and
   append only a decision that helps future decision-making, so it stays a short memory.
 - ❌ **An auto-refined card mixes the human's original input with the agent's additions** →

@@ -33,8 +33,10 @@ re-ask a settled call.
   from seed text, so there are no decisions, no module map and no first cards.
 - The module map comes after the decisions — a project started without code has no code to
   read a map from.
-- Setup ends with 10 first cards, the ones later work builds on, never improvements aimed at
-  what the project hasn't built yet.
+- Setup ends after creating 3 initial cards, the foundations later work builds on. Their
+  refinement runs continue independently in the background.
+- Setup is a bounded bootstrap: one repository scan, at most 5 high-level decisions and 5
+  modules, and seed cards without full plans. Background refinement does the deeper work.
 - While `setup-checklist.md` is there no flow creates a card; the last tick deletes it and a
   finished checklist is never kept as a record. A card the user writes by hand is never
   blocked.

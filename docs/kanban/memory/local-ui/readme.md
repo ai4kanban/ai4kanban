@@ -7,8 +7,15 @@ naming no other doc is covered there.
 ## Running the board
 
 - The desktop app, from `ai4kanban.dev/download`: nothing installed first, it reopens the
-  last repo, finds your coding agent, and says when a newer version is out. Unsigned on
-  macOS, Windows and Linux, with the download page saying how to get past each warning.
+  last repo, finds your coding agent, and installs a newer version when one is out. Unsigned
+  on macOS, Windows and Linux, with the download page saying how to get past each warning.
+- A newer version installs from the notice above the board and from **Check for Updates…**:
+  one click downloads it while you keep working, and the restart you pick puts it in place —
+  never before. A download that fails, is cut off, or does not match the checksum published
+  with it leaves the running app untouched and still offers the downloads page, and a copy
+  that cannot replace itself — a checkout, a Mac copy on a disk image or translocated, a
+  folder it cannot write, a Linux copy that is not an AppImage — says why instead:
+  `desktop/README.md`.
 - Open, reopen and drop projects from the launcher; one project open at a time, a run
   keeps going in the project it started in, and back/forward walks the views you opened:
   `desktop/README.md`.
@@ -123,6 +130,11 @@ naming no other doc is covered there.
 - What chat changes shows on the board and card pages as the reply arrives, with no
   reload; asking for work sends an ordinary run to the runs panel, and a card another run
   already has is refused by name: "Chat".
+- The chat box stays live while a reply is coming — one the window started or one `akb chat`
+  is writing in a terminal — so a thought that arrives mid-reply goes into it. Only sending
+  waits, and nothing leaves the box until you press send. The box grows with what is typed
+  to about eight rows, fewer on a short window, then scrolls; up- and down-arrow in an empty
+  box walk back through what this conversation has sent. See `kanban-ui/README.md` → Chat.
 
 ## Configuration
 

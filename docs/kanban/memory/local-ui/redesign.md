@@ -32,6 +32,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Make an external service the only place to inspect and test notification messages** →
   ✅ prove the complete event, message and action flow in the app's own notification center
   first, then let external connectors reuse it.
+- ❌ **A UI feature ships with an app-wide keyboard shortcut for reaching it** → ✅ the
+  feature is reached from the control already on screen. The app's first global key is a key
+  map it then owes consistency to, and that is a card of its own, not a line in someone
+  else's.
 
 ## Runs and deliveries
 
@@ -130,3 +134,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   and never edit a shell startup file to make a folder qualify.
 - ❌ **A dialog before a write that needs no privilege** → ✅ do it and say where it went; a
   dialog is only earned by the password it warns about.
+- ❌ **A platform is scoped out because the chosen library's path there needs a signature**
+  → ✅ the requirement belongs to the library's mechanism, not to the platform. Check what
+  the system itself allows an unsigned build to do before dropping the feature there —
+  especially when it is the platform we actually test on.
+- ❌ **A card whose `verify:` can only be run after the release ships** → ✅ scope a way to
+  exercise the feature locally — a feed, a fixture, an environment variable — as part of the
+  card. A check that has to wait for publishing is a check nobody makes, and it is the
+  failure cases that never get tested at all.

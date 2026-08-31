@@ -32,6 +32,9 @@ Internal detail stays on the card.
   it — which is the point of naming a handle.
 - The preview therefore sends a user one email, from the site's own domain with
   `support@ai4kanban.dev` as the reply address, and the terms and privacy pages say so.
+- Being added to a workspace is not an admission. A teammate an owner adds must already be
+  admitted in their own right, so an owner's invitation makes an admitted account a member
+  and nothing more; everyone else presses **Request an invite** and waits for us.
 
 ## Where Cloud runs
 
@@ -105,21 +108,34 @@ Internal detail stays on the card.
 
 ## How a Cloud board would be reached
 
-- A Cloud team's repo holds one committed pointer to the workspace and the machine's own
+- A Cloud board's repo holds one committed pointer to the workspace and the machine's own
   ignored files — no cards, no memory, no mirrored markdown — so every clone opens the same
-  workspace and export is how a team gets markdown back. Anything that reads the board as
+  workspace and export is how anyone gets markdown back. Anything that reads the board as
   files works on a Local board or an export.
-- A team reaches its Cloud board from the installed app only until 0.9.0, when a workspace
-  gets a URL: a public read-only board for anyone, and card review and Resolve for a signed-in
-  member.
+- A Cloud board is reached from the installed app only until 0.9.0, when a workspace gets a
+  URL: a public read-only board for anyone, and card review and Resolve for a signed-in
+  account.
 - A save finishes before the command returns, on every board: no write queue and no
   background flush. That is the price of two teammates never overwriting each other silently.
 - Two people changing one card gets the second write refused as a conflict naming the version
   the board holds now, and the caller re-reads that card — never a silent overwrite, never a
   message the user has to interpret.
 - A Local board never meets that refusal: the app writes against the writer lease it takes,
-  so passing the revision a screen read starts on Cloud, where a second teammate makes it
-  real.
+  so passing the revision a screen read starts on Cloud, where one account on two machines
+  already makes it real.
+
+## Cloud first, a team second
+
+- A board in Cloud and a team sharing it are two pieces of work, not one. The workspace, its
+  store, the app and CLI against it, onboarding and the browser surface serve one account on
+  their own — the board survives the machine, opens on a phone and can be published read-only
+  — and members, roles, a per-card writer and question routing are a layer on top of them.
+- Deferring the team layer costs no rewrite: one owner on two machines already has two
+  writers and the expected-revision check settles that, so the writer lease is what a second
+  person needs rather than what correctness needs, and membership is a forward-only migration
+  that swaps one authorization predicate.
+- The store is Supabase Postgres behind the Worker, as it shipped. The one-Durable-Object-per-
+  workspace proposal that stood in the team group's plan is not the runtime this program has.
 
 ## The machine that runs the work
 
