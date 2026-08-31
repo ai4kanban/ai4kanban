@@ -24,8 +24,8 @@ After creating the group, exit. The scheduled subtasks refine themselves.
 1. Read only the card and relevant project evidence.
 2. Compare it with the available spec agents once. Request only agents whose responsibility
    is material and whose section is missing, then stop; QA resumes after their work.
-3. Resolve every question project evidence can answer. Move manual checks to `verify:` and
-   drop duplicated or unnecessary questions.
+3. Resolve every question project evidence can answer. Drop duplicated or unnecessary
+   questions.
 4. Reconstruct the promised outcome and walk concrete normal, edge, failure, recovery, and
    regression scenarios from trigger to observable result.
 5. Apply supported conclusions with `akb guide writing`. Remove obsolete text and decision
@@ -36,6 +36,14 @@ After creating the group, exit. The scheduled subtasks refine themselves.
    sweep finds no new gap and makes no change.
 
 There is no pass quota. Do not reopen a settled decision without concrete contrary evidence.
+
+## Verification
+
+- Put checks the implementation agent can run in `## Todo`, with expected results.
+- Reserve `verify:` for post-build checks that need a human's judgment or environment.
+- Every `verify:` line gives a reproducible setup, human action, and expected result.
+- Name required fixtures. An old build without the behavior under test is not one.
+- Add missing test seams, fixtures, or recipes to `## Todo`.
 
 ## Success criteria
 

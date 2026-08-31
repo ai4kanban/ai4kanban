@@ -327,6 +327,16 @@ describe('the prompt', () => {
     assert.doesNotMatch(guide, /200 lines|12 todo items/)
   })
 
+  it('separates agent tests from a reproducible human test plan', () => {
+    const guide = findGuide('qa-loop')!.text
+    assert.match(guide, /## Plan verification/)
+    assert.match(guide, /Put checks the implementation agent can run in `## Todo`/)
+    assert.match(guide, /Reserve `verify:` for post-build checks/)
+    assert.match(guide, /reproducible setup, human action, and expected result/)
+    assert.match(guide, /old build without the behavior under test is not one/)
+    assert.match(guide, /test seams, fixtures, or recipes to `## Todo`/)
+  })
+
   it('keeps lifecycle bookkeeping out of the writing agent', () => {
     const prompt = buildPrompt({ action: 'writing', id: 1, refineRound: 2 })
     assert.match(prompt, /akb guide writing/)
