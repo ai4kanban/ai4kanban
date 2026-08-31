@@ -83,6 +83,11 @@ win:
       arch: [x64, arm64]
 
 nsis:
+  # The name `latest.yml` points at. electron-builder writes that file naming
+  # `AI4Kanban-Setup-<version>.exe` whatever the installer is actually called, and
+  # the default spells it with spaces — which GitHub then publishes with dots. One
+  # name, so the in-app install (#372) finds the file it was told about.
+  artifactName: AI4Kanban-Setup-${version}.${ext}
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true

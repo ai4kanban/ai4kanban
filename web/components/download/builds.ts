@@ -39,7 +39,7 @@ const SYSTEMS: { os: OS; name: string; builds: Build[] }[] = [
     name: "Windows",
     // One NSIS installer covers x64 and arm64, so there is nothing to pick.
     builds: [
-      { label: "x64 / arm64", arch: null, ext: ".exe", file: (v) => `AI4Kanban.Setup.${v}.exe` },
+      { label: "x64 / arm64", arch: null, ext: ".exe", file: (v) => `AI4Kanban-Setup-${v}.exe` },
     ],
   },
   {

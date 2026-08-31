@@ -22,6 +22,7 @@
     "dist:win": "npm run build && npm run bundle && electron-builder --win",
     "dist:linux": "npm run build && npm run bundle && electron-builder --linux",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test \"test/*.test.mjs\"",
     "lint": "npm run typecheck && node --check scripts/after-pack.js && node --check scripts/bundle-cli.mjs && node --check scripts/bundle-ui.mjs"
   },
   "devDependencies": {

@@ -45,8 +45,8 @@ the number in its first lines; a checkout that has never been built has no file 
 `--check` says so instead of failing), `cli/package.json`, `kanban-ui/package.json`,
 `desktop/package.json`. They
 all share the one version, so they ship together. The app compares its own version against
-the newest GitHub release to tell the user a newer one is out — so an unstamped app would
-nag forever.
+the newest GitHub release to tell the user a newer one is out, and installs that release
+from inside itself — so an unstamped app would nag forever.
 
 Tag every release. `npx ai4kanban update` links `…/compare/v<old>...v<new>`, which only
 resolves if the tags exist.
@@ -64,7 +64,7 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
 5. Build the app (below) and check a run works end to end on macOS.
 6. `git push --follow-tags`, then create the GitHub release for `v<new-version>` and upload
    this version's files from `desktop/dist/` — the folder keeps every past release's builds
-   too, so upload by name, not `dist/*`. Three traps, all silent:
+   too, so upload by name, not `dist/*`. Four traps, all silent:
    - **`--follow-tags` doesn't push a lightweight tag.** `git tag v<x>` makes one, so the
      push leaves the tag behind. `git ls-remote --tags origin | grep <x>`, and
      `git push origin v<x>` if it isn't there.
@@ -72,7 +72,13 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
      `127.0.0.1:7890` and the big files reset mid-transfer.
    - **`gh release create` exits 0 even when an upload failed**, leaving a draft with some
      of the assets. Count them before publishing: `gh release view v<x> --json assets -q
-     '.assets[].name' | wc -l` — 16. Then `gh release edit v<x> --draft=false --latest`.
+     '.assets[].name' | wc -l` — 16 (twelve build files and four `latest*.yml`). Then
+     `gh release edit v<x> --draft=false --latest`.
+   - **The four `latest*.yml` are what the in-app install reads** (#372). Drop one and every
+     user on that system gets the notice and no install; upload a wrong one and the install
+     404s for all of them. They come out of `desktop/dist/` with the builds and need no
+     editing — the only thing to get right is uploading them, and the count above is the
+     check.
 7. Deploy the landing page — last, and not optional. Every asset name on a release carries
    the version, so the download page links straight at this tag's files: `web/lib/release.ts`
    reads the root `VERSION` at build time and writes
@@ -80,6 +86,10 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
    the deploy, ai4kanban.dev/download hands out the previous release; deploy it before the
    release exists and the buttons 404. If a build's file name changes, that page's
    `components/download/builds.ts` is the one place to change it.
+
+   The Windows installer is `AI4Kanban-Setup-<version>.exe` from v0.9.0 on, which is the name
+   `latest.yml` has always pointed at (`nsis.artifactName` in `electron-builder.yml`).
+   Releases published before that carry `AI4Kanban.Setup.<version>.exe` and keep it.
 
    Build it from the tag, not from the working tree. `next build` compiles whatever is on
    disk, so half-finished page work — yours or another session's — ships to production
@@ -127,7 +137,7 @@ What each system gets, and what we promise about it:
 | System | Build | Signed | Tested |
 | --- | --- | --- | --- |
 | macOS arm64 + x64 | `.dmg`, `.zip` | no | yes, each release |
-| Windows x64 + arm64 | `.exe` (NSIS) | no | no |
+| Windows x64 + arm64 | `AI4Kanban-Setup-<version>.exe` (NSIS) | no | no |
 | Linux x64 + arm64 | `.AppImage` | no | no |
 
 Nothing is signed this release, and Windows and Linux are built and published untested. The

@@ -36,10 +36,27 @@ export interface ProjectInfo {
   open: boolean;
 }
 
-/** A newer app than this one, and where to get it. */
-export interface UpdateInfo {
+/** Where installing a newer app stands (#372). `idle` is a version offered and
+ *  nothing started; `downloading` is the bytes coming in; `ready` has them on
+ *  disk, checked, waiting for the restart the user picks. A failure goes back to
+ *  `idle` carrying `error`. */
+export type UpdateStage = "idle" | "downloading" | "ready";
+
+/** A newer app than this one, where to get it, and how far along installing it
+ *  is. Held by the app, not by a page, so moving between the board and a card
+ *  neither restarts a download nor loses one. */
+export interface UpdateStatus {
   version: string;
+  /** The downloads page — the fallback whenever this copy cannot install. */
   url: string;
+  stage: UpdateStage;
+  received: number;
+  total: number;
+  /** Why this copy cannot install it itself — a checkout, a disk image, a
+   *  folder it cannot write. Null when it can. */
+  blocked: string | null;
+  /** What went wrong last time, said plainly. */
+  error: string | null;
 }
 
 export type CreateBoardResult = { ok: true } | { ok: false; error: string };
@@ -128,6 +145,12 @@ export const CHANNELS = {
   command: "a4k:command",
   installCommand: "a4k:install-command",
   update: "a4k:update",
+  /** Download the new version — nothing downloads before this (#372). */
+  startUpdate: "a4k:start-update",
+  /** Put it in place and restart into it. Nothing is written before this. */
+  restartForUpdate: "a4k:restart-for-update",
+  /** The other way: the download moved, so the notice redraws. */
+  updateStatus: "a4k:update-status",
   skipUpdate: "a4k:skip-update",
   openExternal: "a4k:open-external",
   /** The one channel that runs the other way: main tells the page whether the
@@ -205,9 +228,17 @@ export interface Ai4kanbanBridge {
   /** Put `akb` on the PATH. On macOS this is where the system asks for an
    *  administrator password, when the folder being written needs one. */
   installCommand(): Promise<CommandInstallResult>;
-  /** A newer app, when one is out and the user hasn't waved this one off. */
-  update(): Promise<UpdateInfo | null>;
-  /** Don't mention this version again. */
+  /** A newer app, when one is out and the user hasn't waved this one off —
+   *  including a download of it already going. */
+  update(): Promise<UpdateStatus | null>;
+  /** Download it. Nothing downloads until this is called. */
+  startUpdate(): Promise<UpdateStatus | null>;
+  /** Install it and restart into it — the app quits behind this call. */
+  restartForUpdate(): Promise<null>;
+  /** Be told each time the download moves, so the notice redraws. Returns the
+   *  way to stop being told. */
+  onUpdateStatus(fn: (status: UpdateStatus | null) => void): () => void;
+  /** Don't mention this version again. Refused once a download has started. */
   skipUpdate(version: string): Promise<null>;
   /** Open a link in the user's own browser. */
   openExternal(url: string): Promise<null>;

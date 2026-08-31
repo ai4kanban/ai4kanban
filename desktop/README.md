@@ -64,8 +64,17 @@ What the app adds, and all it adds:
   terminal would have given them (`src/lib/shell-env.ts`).
 - **Ending cleanly.** Closing the window ends the board server and every agent run under
   it — the server child leads its own process group for exactly this reason.
-- **Saying a newer version is out.** Read from the newest GitHub release, shown as a line
-  above the board with a link. The app never updates itself.
+- **Installing a newer version.** Read from the newest GitHub release, shown as a line above
+  the board — and installed from that line (#372): one click downloads the build for this
+  system and architecture, the line shows progress while you keep working, and the restart
+  you pick puts it in place. The only integrity check is the sha512 the release publishes,
+  over HTTPS. macOS replaces its own bundle from a detached helper that waits for the app to
+  exit, so an ad-hoc-signed build can install one and the restart raises no Gatekeeper
+  warning; Windows reruns the same NSIS installer with `--updated /S`, which rewrites the
+  PATH entry; Linux replaces the file at `$APPIMAGE`. A copy that cannot replace itself — a
+  checkout, a Mac copy on a mounted disk image or translocated, a folder it cannot write, a
+  Linux copy that is not an AppImage — says why and offers the downloads page instead. A swap
+  that fails partway puts the old version back, so what starts next time is what was running.
 - **Installing the `akb` command.** The app carries the command (`resources/bin/akb`, a
   launcher beside the bundled CLI) and offers to put it on the PATH at the first launch that
   finds none — before the user has done anything. macOS gets one symlink at
@@ -87,6 +96,7 @@ npm start          # compiles src/, builds the board UI if it isn't built, opens
 npm run build      # just the compile: src/*.ts → out/
 npm run bundle     # rebuild the board UI into resources/server/
 npm run lint       # typecheck, plus a syntax check of the build scripts
+npm test           # compile, then the updater's tests (test/*.test.mjs)
 npm run dist:mac   # package for macOS (see PUBLISHING.md for signing)
 ```
 
@@ -103,3 +113,57 @@ The version comes from the root `VERSION` file — `node scripts/sync-version.mj
 here too.
 
 How the app ships, and how the Mac build gets signed, is in the repo's `PUBLISHING.md`.
+
+## Trying the in-app install before a release exists
+
+`AI4KANBAN_UPDATE_FEED` points the app at any folder served over http instead of the GitHub
+release. A `dist/` folder is already a working feed: `npm run dist:*` writes the builds and
+the `latest*.yml` that names them side by side, and the urls inside are bare file names. The
+variable is read from the environment and is never a setting — a shipped build with nothing
+set reads the real release and nothing else.
+
+Two builds of **this** code: a lower version to install *from*, and a higher one to install.
+Both must be updater-capable, so build them from the same checkout with only `VERSION`
+changed.
+
+```
+# 1. The higher version — what gets installed. Keep this dist/ as the feed.
+node ../scripts/sync-version.mjs 0.9.1
+npm run dist:mac                       # or dist:win / dist:linux
+mv dist /tmp/feed
+
+# 2. The lower version — the copy you launch and press Install in.
+node ../scripts/sync-version.mjs 0.9.0
+npm run dist:mac
+
+# 3. Install the lower one the way a user would (macOS: open dist/*.dmg, drag it
+#    into /Applications; Windows: run dist/AI4Kanban-Setup-0.9.0.exe; Linux:
+#    chmod +x dist/AI4Kanban-0.9.0.AppImage).
+
+# 4. Serve the feed and open the lower build against it.
+(cd /tmp/feed && python3 -m http.server 8099) &
+AI4KANBAN_UPDATE_FEED=http://127.0.0.1:8099/ open -a /Applications/AI4Kanban.app
+```
+
+On Windows and Linux, set the variable in the shell that launches the installed build
+instead — `set AI4KANBAN_UPDATE_FEED=http://127.0.0.1:8099/` before running the `.exe`'s
+shortcut target, or `AI4KANBAN_UPDATE_FEED=… ./AI4Kanban-0.9.0.AppImage`.
+
+The notice offers 0.9.1. Install it, restart, and the app is 0.9.1 with its board, its
+settings and its `akb` link intact.
+
+**Two failures worth producing on purpose.** Both leave the running app untouched and keep
+the downloads page on offer:
+
+- **A build that does not match its sha512** — append a byte to one file in `/tmp/feed`
+  without touching its `latest*.yml`: `printf x >> /tmp/feed/AI4Kanban-0.9.1-arm64-mac.zip`.
+  The download runs to the end and is thrown away.
+- **A download that is interrupted** — stop the http server partway through the download
+  (`kill %1`), or unplug the network. The notice says how far it got.
+
+**Keeping a fixture for the published feed.** The `verify:` check that proves the *real*
+release works needs a lower-version build made from the final code, kept before the version
+is bumped. Copy step 2's build somewhere out of `dist/` — that folder is overwritten by the
+next `npm run dist:*` — and after publishing, launch it with **no** `AI4KANBAN_UPDATE_FEED`
+set. It then reads the GitHub release, which is what proves the published asset names and
+the `latest*.yml` on it are right.

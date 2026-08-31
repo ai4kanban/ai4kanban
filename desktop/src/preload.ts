@@ -19,7 +19,7 @@
 // wrong here fails the typecheck rather than the app.
 
 import { contextBridge, ipcRenderer } from "electron";
-import type { Ai4kanbanBridge, CHANNELS as Channels, NavDirection } from "./shared/bridge";
+import type { Ai4kanbanBridge, CHANNELS as Channels, NavDirection, UpdateStatus } from "./shared/bridge";
 
 const CHANNELS: typeof Channels = {
   info: "a4k:info",
@@ -32,6 +32,9 @@ const CHANNELS: typeof Channels = {
   command: "a4k:command",
   installCommand: "a4k:install-command",
   update: "a4k:update",
+  startUpdate: "a4k:start-update",
+  restartForUpdate: "a4k:restart-for-update",
+  updateStatus: "a4k:update-status",
   skipUpdate: "a4k:skip-update",
   openExternal: "a4k:open-external",
   fullscreen: "a4k:fullscreen",
@@ -56,6 +59,12 @@ const bridge: Ai4kanbanBridge = {
   command: () => ipcRenderer.invoke(CHANNELS.command),
   installCommand: () => ipcRenderer.invoke(CHANNELS.installCommand),
   update: () => ipcRenderer.invoke(CHANNELS.update),
+  startUpdate: () => ipcRenderer.invoke(CHANNELS.startUpdate),
+  restartForUpdate: () => ipcRenderer.invoke(CHANNELS.restartForUpdate),
+  onUpdateStatus: (fn) => {
+    updateWatchers.add(fn);
+    return () => updateWatchers.delete(fn);
+  },
   skipUpdate: (version) => ipcRenderer.invoke(CHANNELS.skipUpdate, version),
   openExternal: (url) => ipcRenderer.invoke(CHANNELS.openExternal, url),
   languageChanged: (language) => ipcRenderer.invoke(CHANNELS.languageChanged, language),
@@ -105,6 +114,14 @@ const bridge: Ai4kanbanBridge = {
     return () => cardWatchers.delete(fn);
   },
 };
+
+// How far along a download of the new version is (#372). Nothing is held for a late
+// subscriber: the page asks for the state it is drawing from, and this only says what
+// changed after that.
+const updateWatchers = new Set<(status: UpdateStatus | null) => void>();
+ipcRenderer.on(CHANNELS.updateStatus, (_e, status: UpdateStatus | null) => {
+  updateWatchers.forEach((fn) => fn(status));
+});
 
 // A finished Cloud sign-in, on its way to the Configuration dialog (#326). Kept when it
 // beats its listener: the app raised this window from the browser, and the pane that asked

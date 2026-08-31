@@ -25,9 +25,12 @@ const en: ChromeCopy = {
     forget: "Take this project off the list — nothing on disk is touched",
   },
   update: {
-    available: (version) =>
-      `**AI4Kanban ${version}** is out. The app never updates itself — get the new one when you want it.`,
-    download: "Download",
+    available: (version) => `**AI4Kanban ${version}** is out.`,
+    install: "Install",
+    download: "Download page",
+    downloading: (percent) => `Downloading… ${percent}%`,
+    ready: (version) => `**AI4Kanban ${version}** is ready. It installs when the app restarts.`,
+    restart: "Restart now",
     skip: "Don't mention this version again",
   },
   app: {

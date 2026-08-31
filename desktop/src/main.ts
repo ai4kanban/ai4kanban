@@ -45,7 +45,15 @@ import {
 import { BoardServers } from "./lib/server";
 import { loginShellEnv, type Env } from "./lib/shell-env";
 import * as store from "./lib/store";
-import { newerRelease, DOWNLOADS_URL } from "./lib/update";
+import {
+  canSkipUpdate,
+  checkForUpdate,
+  installUpdate,
+  onUpdateChanged,
+  recheckForUpdate,
+  startUpdate,
+  DOWNLOADS_URL,
+} from "./lib/update";
 import {
   CHANNELS,
   type AppInfo,
@@ -54,7 +62,7 @@ import {
   type CreateBoardResult,
   type NotificationAlert,
   type ProjectInfo,
-  type UpdateInfo,
+  type UpdateStatus,
 } from "./shared/bridge";
 
 let servers: BoardServers | null = null;
@@ -70,9 +78,6 @@ let nav: Navigation | null = null;
 // while it is set, the setup screen offers to put the folder back and open another. It is
 // dropped the moment the window shows any other project.
 let madeBoard: NewBoard | null = null;
-// Set the first time the window is asked, so switching project or reloading
-// doesn't hit GitHub again in the same sitting.
-let updatePromise: Promise<UpdateInfo | null> | null = null;
 // The language everything outside the page is drawn in (#334) — the menu, the launcher,
 // the dialogs, and the sentences the app hands the page to print. Read from the machine's
 // own settings before the first menu, and set again whenever the page says the user
@@ -581,33 +586,70 @@ function refreshMenu(): void {
   });
 }
 
-/** Whether a newer app is out, asked once per launch. Null when there isn't
- *  one, or when the check couldn't be made. */
-function pendingUpdate(): Promise<UpdateInfo | null> {
-  if (!updatePromise) updatePromise = newerRelease(app.getVersion());
-  return updatePromise;
-}
-
 // The menu's own "Check for updates" is the one place this is said out loud
 // either way: a user who asks deserves an answer even when the answer is "you
 // are up to date". The notice in the board says nothing when there is nothing.
+//
+// It offers the same install the notice does. A download already going is not
+// thrown away by asking about it — the answer is how far along it is.
 async function checkUpdatesFromMenu(): Promise<void> {
-  const found = await newerRelease(app.getVersion());
-  updatePromise = Promise.resolve(found);
+  const found = await recheckForUpdate(app.getVersion());
   const c = copy().dialog.update;
   if (!found) {
     await messageBox({ type: "info", message: c.newest(app.getVersion()) });
+    return;
+  }
+  if (found.stage === "downloading") {
+    await messageBox({ type: "info", message: c.out(found.version), detail: c.downloading });
+    return;
+  }
+  if (found.stage === "ready") {
+    const { response } = await messageBox({
+      type: "info",
+      message: c.ready(found.version),
+      detail: c.readyDetail,
+      buttons: [c.restart, c.later],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) restartForUpdate();
+    return;
+  }
+  if (found.blocked) {
+    const { response } = await messageBox({
+      type: "info",
+      message: c.out(found.version),
+      detail: c.detailManual(found.blocked),
+      buttons: [c.download, c.later],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) void shell.openExternal(found.url);
     return;
   }
   const { response } = await messageBox({
     type: "info",
     message: c.out(found.version),
     detail: c.detail,
-    buttons: [c.download, c.later],
+    buttons: [c.install, c.later],
     defaultId: 0,
     cancelId: 1,
   });
-  if (response === 0) void shell.openExternal(found.url);
+  if (response === 0) void beginUpdate();
+}
+
+/** Start the download. Asking for it un-waves the version first: the menu offers
+ *  the install even for one the user waved off, and the notice above the board is
+ *  where the progress and the restart are. */
+function beginUpdate(): Promise<UpdateStatus | null> {
+  store.unskipVersion();
+  return startUpdate();
+}
+
+/** Put the new version in place and go. Nothing is written until this process
+ *  has exited, so the quit is the install — the helper waits for it. */
+function restartForUpdate(): void {
+  if (installUpdate()) app.quit();
 }
 
 // --- what the page can ask for ----------------------------------------------
@@ -645,14 +687,35 @@ ipcMain.handle(CHANNELS.command, (): CommandInstall => commandState(shellEnv));
 ipcMain.handle(CHANNELS.installCommand, (): Promise<CommandInstallResult> => putCommandOnPath());
 
 ipcMain.handle(CHANNELS.update, async () => {
-  const found = await pendingUpdate();
-  if (!found || store.skippedVersion() === found.version) return null;
-  return found;
+  const found = await checkForUpdate(app.getVersion());
+  return waved(found);
 });
 
-ipcMain.handle(CHANNELS.skipUpdate, (_e, version: unknown) => {
-  if (typeof version === "string" && version) store.skipVersion(version);
+ipcMain.handle(CHANNELS.startUpdate, async () => waved(await beginUpdate()));
+
+ipcMain.handle(CHANNELS.restartForUpdate, () => {
+  restartForUpdate();
   return null;
+});
+
+// Waving a version off is offered only before a download starts, so it is
+// refused after one has: the notice stops offering it, and this is the same
+// answer for a page that asks anyway.
+ipcMain.handle(CHANNELS.skipUpdate, (_e, version: unknown) => {
+  if (typeof version === "string" && version && canSkipUpdate()) store.skipVersion(version);
+  return null;
+});
+
+/** A version the user has already waved off is no notice at all. */
+function waved(found: UpdateStatus | null): UpdateStatus | null {
+  if (!found) return null;
+  return store.skippedVersion() === found.version ? null : found;
+}
+
+// The download moved, so the notice redraws — wherever in the board it is being
+// shown. The page asked for it, so there is nothing to hold for a late listener.
+onUpdateChanged((status) => {
+  if (win && !win.isDestroyed()) win.webContents.send(CHANNELS.updateStatus, waved(status));
 });
 
 ipcMain.handle(CHANNELS.openExternal, (_e, url: unknown) => {

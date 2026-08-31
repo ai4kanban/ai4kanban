@@ -101,9 +101,15 @@ const zh: DesktopCopy = {
     update: {
       newest: (version) => `AI4Kanban ${version} 已是最新版本。`,
       out: (version) => `AI4Kanban ${version} 已发布。`,
-      detail: "应用不会自动更新——你想升级时再下载新版本。",
+      detail: "可以在这里安装，应用会重启到新版本。",
+      detailManual: (reason) => `${reason}\n\n请到下载页获取新版本。`,
+      install: "安装",
       download: "下载",
       later: "稍后",
+      downloading: "AI4Kanban 正在下载新版本。看板上方那一行会显示进度。",
+      ready: (version) => `AI4Kanban ${version} 已下载完成。`,
+      readyDetail: "下次重启时安装。",
+      restart: "立即重启",
     },
     startFailed: "AI4Kanban 无法启动看板",
   },
@@ -124,6 +130,16 @@ const zh: DesktopCopy = {
     holderLink: (target) => `一个指向 ${target} 的符号链接`,
     missing: (path) => `这个构建里没有该命令（在 ${path} 找过）。`,
     missingScript: (path) => `这个构建里没有 PATH 脚本（在 ${path} 找过）。`,
+  },
+  update: {
+    blockedSource: "这是从源码构建的版本，不是安装好的应用——没有可以替换的应用包。",
+    blockedNotAppImage: "这个副本不是以 AppImage 方式运行的，没有单一文件可以替换。请到下载页获取新版本。",
+    blockedReadOnly: (folder) => `AI4Kanban 无法写入 ${folder}，因此不能把新版本放到那里。请到下载页获取新版本。`,
+    noBuild: "这个版本没有适配这台电脑的构建，需要手动下载。",
+    failedRead: "AI4Kanban 读不到这个版本的发布信息，因此无法安装。",
+    failedDownload: (reason) => `下载没有完成：${reason}。`,
+    failedChecksum: "下载的文件与发布时公布的校验值不一致，已丢弃。这台电脑上没有任何改动。",
+    failedUnpack: (reason) => `下载的文件无法解压：${reason}。`,
   },
   board: {
     installerMissing: (path) =>

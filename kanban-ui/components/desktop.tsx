@@ -13,8 +13,9 @@
 //    there is nobody to ask, so it stays a label.
 //  - In the app, a folder with no board offers to make one. In a browser that is
 //    a command to type, which the screen already gives.
-//  - In the app, a newer release says so, with a link to the download. The app
-//    never updates itself.
+//  - In the app, a newer release says so, and installs from that line: one click
+//    downloads it and the restart puts it in place (#372). A copy that cannot
+//    replace itself says why and points at the downloads page instead.
 //  - In a browser, the board mentions the app and where to get it. Only
 //    mentions it: running here is a supported way to run the board, not a
 //    deprecated one. It is the same server either way, so there is no second
@@ -123,6 +124,21 @@ export interface CommandInstallResult {
   state: CommandInstall;
 }
 
+/** A newer app, and how far along installing it is (#372). Everything past the version
+ *  and the link is optional: an app older than the install answers those two alone. */
+export interface UpdateStatus {
+  version: string;
+  url: string;
+  stage?: "idle" | "downloading" | "ready";
+  received?: number;
+  total?: number;
+  /** Why this copy cannot install it itself — a checkout, a disk image, a folder it
+   *  cannot write. Null when it can. */
+  blocked?: string | null;
+  /** What went wrong last time, said plainly. */
+  error?: string | null;
+}
+
 interface AppBridge {
   info(): Promise<{
     version: string;
@@ -144,7 +160,19 @@ interface AppBridge {
   discardBoard?(): Promise<{ ok: boolean; error?: string }>;
   command(): Promise<CommandInstall>;
   installCommand(): Promise<CommandInstallResult>;
-  update(): Promise<{ version: string; url: string } | null>;
+  /** A newer app, and how far along installing it is (#372). An app older than the
+   *  install answers `{ version, url }` alone, which draws the link the notice always
+   *  was. */
+  update(): Promise<UpdateStatus | null>;
+  /** Download it. Nothing downloads until this is called. Optional — an older app
+   *  never installs anything itself. */
+  startUpdate?(): Promise<UpdateStatus | null>;
+  /** Install it and restart into it; the app quits behind this call. Optional for the
+   *  same reason. */
+  restartForUpdate?(): Promise<void>;
+  /** Be told each time the download moves. Returns the way to stop being told.
+   *  Optional for the same reason. */
+  onUpdateStatus?(fn: (status: UpdateStatus | null) => void): () => void;
   skipUpdate(version: string): Promise<void>;
   openExternal(url: string): Promise<void>;
   /** Told each time the window moves between views — a swipe, the menu, a
@@ -451,25 +479,88 @@ export function RunningNotice({ desktop }: { desktop: boolean }) {
   return desktop ? <UpdateNotice /> : <AppAvailable />;
 }
 
+/** A newer app, and the one click that installs it (#372).
+ *
+ *  The download is the app's, not this component's: it is asked for on mount and
+ *  followed as it moves, so leaving the board for a card, coming back, or reloading
+ *  either finds the same download exactly where it was. A copy that cannot replace
+ *  itself — a checkout, a disk image, a folder it cannot write — says why and offers
+ *  the downloads page, which is the notice this always was. */
 function UpdateNotice() {
   const c = useCopy().chrome.update;
-  const [found, setFound] = useState<{ version: string; url: string } | null>(null);
+  const [found, setFound] = useState<UpdateStatus | null>(null);
   useEffect(() => {
+    const app = bridge();
+    if (!app) return;
     // Asked once per window. The app answers from a check it made when it
     // started, so this costs nothing and never blocks the board.
-    bridge()
-      ?.update()
+    app
+      .update()
       .then(setFound)
       .catch(() => {});
+    return app.onUpdateStatus?.(setFound);
   }, []);
   if (!found) return null;
+  const stage = found.stage ?? "idle";
+  const total = found.total ?? 0;
+  const percent = total ? Math.min(100, Math.floor(((found.received ?? 0) / total) * 100)) : 0;
+
+  if (stage === "downloading") {
+    return (
+      <Strip tone="sky">
+        <span className="shrink-0">
+          <Rich>{c.downloading(percent)}</Rich>
+        </span>
+        <Progress percent={percent} />
+      </Strip>
+    );
+  }
+  if (stage === "ready") {
+    return (
+      <Strip tone="sky">
+        <span>
+          <Rich>{c.ready(found.version)}</Rich>
+        </span>
+        <Button
+          size="sm"
+          className="shrink-0"
+          onClick={() => void bridge()?.restartForUpdate?.()}
+        >
+          <FiDownload size={13} /> {c.restart}
+        </Button>
+      </Strip>
+    );
+  }
+
+  const canInstall = !found.blocked && Boolean(bridge()?.startUpdate);
   return (
     <Strip tone="sky">
       <span>
+        {found.error ? <span className="text-nb-peach-ink">{found.error} </span> : null}
         <Rich>{c.available(found.version)}</Rich>
+        {found.blocked ? <span className="text-nb-ink-soft"> {found.blocked}</span> : null}
       </span>
-      <Button size="sm" className="shrink-0" onClick={() => openLink(found.url)}>
-        <FiDownload size={13} /> {c.download}
+      {canInstall ? (
+        <Button
+          size="sm"
+          className="shrink-0"
+          onClick={() => {
+            // Draw the download the moment it is asked for; the app's own messages
+            // carry it from here.
+            setFound({ ...found, stage: "downloading", received: 0, error: null });
+            void bridge()?.startUpdate?.();
+          }}
+        >
+          <FiDownload size={13} /> {c.install}
+        </Button>
+      ) : null}
+      <Button
+        size="sm"
+        variant={canInstall ? "ghost" : "accent"}
+        className="shrink-0"
+        onClick={() => openLink(found.url)}
+      >
+        {c.download}
       </Button>
       <Close
         title={c.skip}
@@ -479,6 +570,26 @@ function UpdateNotice() {
         }}
       />
     </Strip>
+  );
+}
+
+/** How far the download has got. Its own bar rather than a number alone: the number
+ *  says how much, the bar says at a glance that it is still moving. */
+function Progress({ percent }: { percent: number }) {
+  return (
+    <div
+      className="h-[10px] min-w-0 flex-1 overflow-hidden rounded-full border-[1.5px] border-nb-ink"
+      style={{ background: "var(--color-nb-paper)" }}
+      role="progressbar"
+      aria-valuenow={percent}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <div
+        className="h-full transition-[width] duration-200"
+        style={{ width: `${percent}%`, background: "var(--color-nb-sky-ink)" }}
+      />
+    </div>
   );
 }
 

@@ -103,9 +103,15 @@ const en: DesktopCopy = {
     update: {
       newest: (version) => `AI4Kanban ${version} is the newest version.`,
       out: (version) => `AI4Kanban ${version} is out.`,
-      detail: "The app never updates itself — download the new one when you want it.",
+      detail: "Install it here and the app restarts into the new version.",
+      detailManual: (reason) => `${reason}\n\nGet the new version from the downloads page.`,
+      install: "Install",
       download: "Download",
       later: "Later",
+      downloading: "AI4Kanban is downloading it. The line above the board shows how far along it is.",
+      ready: (version) => `AI4Kanban ${version} is downloaded.`,
+      readyDetail: "It installs on the next restart.",
+      restart: "Restart now",
     },
     startFailed: "AI4Kanban could not start the board",
   },
@@ -131,6 +137,19 @@ const en: DesktopCopy = {
     holderLink: (target) => `a symlink to ${target}`,
     missing: (path) => `the command is missing from this build (looked in ${path}).`,
     missingScript: (path) => `the PATH script is missing from this build (looked in ${path}).`,
+  },
+  update: {
+    blockedSource: "This is a build from source, not an installed app — there is nothing here to replace.",
+    blockedNotAppImage:
+      "This copy is not running as an AppImage, so there is no single file to replace. Get the new version from the downloads page.",
+    blockedReadOnly: (folder) =>
+      `AI4Kanban cannot write ${folder}, so it cannot put a new version there. Get the new version from the downloads page.`,
+    noBuild: "This release has no build for this computer, so it has to be downloaded by hand.",
+    failedRead: "AI4Kanban could not read this release, so it cannot install it.",
+    failedDownload: (reason) => `The download did not finish: ${reason}.`,
+    failedChecksum:
+      "The download does not match the checksum published with it, so it was thrown away. Nothing on this computer was changed.",
+    failedUnpack: (reason) => `The download could not be unpacked: ${reason}.`,
   },
   board: {
     installerMissing: (path) =>

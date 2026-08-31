@@ -111,9 +111,18 @@ export interface DesktopCopy {
     update: {
       newest: (version: string) => string;
       out: (version: string) => string;
+      /** This copy can install it — one click, then a restart. */
       detail: string;
+      /** It cannot, and the reason says why. */
+      detailManual: (reason: string) => string;
+      install: string;
       download: string;
       later: string;
+      /** Asked again while a download of this version is already going. */
+      downloading: string;
+      ready: (version: string) => string;
+      readyDetail: string;
+      restart: string;
     };
     /** The board server never came up — the app has no window to say it in. */
     startFailed: string;
@@ -140,6 +149,22 @@ export interface DesktopCopy {
     holderLink: (target: string) => string;
     missing: (path: string) => string;
     missingScript: (path: string) => string;
+  };
+  /** What the updater says for itself (#372) — why a copy cannot replace itself, and what
+   *  went wrong when a download did not finish. The board UI prints these as they arrive. */
+  update: {
+    /** A checkout: there is no app bundle to replace yet. */
+    blockedSource: string;
+    /** A Linux copy that is not running as an AppImage — there is no one file to replace. */
+    blockedNotAppImage: string;
+    blockedReadOnly: (folder: string) => string;
+    /** The release carries no build for this system and architecture. */
+    noBuild: string;
+    failedRead: string;
+    /** The reason passes through as it arrived — a status code, a byte count. */
+    failedDownload: (reason: string) => string;
+    failedChecksum: string;
+    failedUnpack: (reason: string) => string;
   };
   /** The failures `lib/board-init.ts` reports. A `stderr` from the installer passes through
    *  as it arrived. */

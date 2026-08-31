@@ -87,4 +87,4 @@ akb board version
 ```
 
 Tell the user to review `git diff` before committing. The board app updates separately —
-it says when a newer one is out and links the download; it never updates itself.
+it says when a newer one is out and installs it from that notice.

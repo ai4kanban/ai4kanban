@@ -149,3 +149,9 @@ export function skippedVersion(): string | null {
 export function skipVersion(version: string): void {
   write({ skippedVersion: version });
 }
+
+/** Forget it. Asking to install a version un-waves it, so the notice can show
+ *  the download that is now going (#372). */
+export function unskipVersion(): void {
+  if (read().skippedVersion) write({ skippedVersion: null });
+}

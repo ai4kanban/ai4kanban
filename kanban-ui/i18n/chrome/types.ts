@@ -38,7 +38,14 @@ export type ChromeCopy = {
   };
   update: {
     available: (version: string) => string;
+    /** Start the download. Nothing downloads before this is clicked. */
+    install: string;
+    /** Open the downloads page — all a copy that cannot install itself is offered,
+     *  and still offered after a download that failed. */
     download: string;
+    downloading: (percent: number) => string;
+    ready: (version: string) => string;
+    restart: string;
     skip: string;
   };
   app: {
