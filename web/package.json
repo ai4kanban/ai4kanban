@@ -16,7 +16,7 @@
     "github-slugger": "^2.0.0",
     "gray-matter": "^4.0.3",
     "next": "^15.1.6",
-    "next-mdx-remote": "^5.0.0",
+    "next-mdx-remote": "^6.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.7.0",
@@ -31,8 +31,11 @@
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.5.20",
-    "postcss": "^8.5.0",
+    "postcss": "^8.5.26",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0"
+  },
+  "overrides": {
+    "postcss": "$postcss"
   }
 }
