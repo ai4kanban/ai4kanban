@@ -16,10 +16,10 @@
 // This is ZCode's client and only ZCode's. What it deliberately does NOT know is runs,
 // cards, or logs — it is handed pipes and hands back text (wire/client.ts).
 //
-// Proved by hand against `zcode` 0.16.3 (zcode-app-cli 3.7.7-14) on 2026-08-21: the
-// session lifecycle, the event stream, the two questions the server asks back, and the
-// shape of a failed turn. What no machine here could prove is a turn that reaches the
-// model — that needs a Z.ai Coding Plan key, and the card carries it as a check.
+// Proved by hand against `zcode` 0.16.3 (zcode-app-cli 3.7.7-14) on 2026-08-21 and again
+// against 0.16.5 (3.10.1-17) on 2026-08-31, that time through a real turn on a Coding Plan
+// key: the session lifecycle, the event stream, the two questions the server asks back, and
+// the shape of a failed turn. The two releases stream a turn differently — see below.
 
 import path from 'node:path'
 
@@ -41,13 +41,14 @@ function whereHint(input: unknown, title: string): string {
   return ''
 }
 
-// ZCode counts tokens for the whole session rather than for one turn, so a run that
-// carried an earlier conversation on reports what that conversation has used. The agent's
-// own numbers either way, and never ones the board added up itself.
+// The agent's own token counts, out of either place it reports them: the turn's own
+// `turn.completed`, and `session/usage` — which counts the whole session, so a run that
+// carried an earlier conversation on reports what that conversation has used. The two spell
+// the cache-write count differently. Never numbers the board added up itself.
 function usageOf(value: Json): TokenUsage | undefined {
   const counts: TokenUsage = {
     input: num(value.inputTokens),
-    cacheCreation: num(value.cacheCreationTokens),
+    cacheCreation: num(value.cacheCreationTokens) || num(value.cacheWriteTokens),
     cacheRead: num(value.cacheReadTokens),
     output: num(value.outputTokens),
   }
@@ -77,18 +78,26 @@ function modelOf(ref: unknown): string {
 
 // ---- what a turn is made of ------------------------------------------------
 
-// ZCode streams an assistant message as PARTS: a part is started or upserted with its
-// whole text so far, and a delta appends to one. Both carry the same text, and which of
-// them a build sends depends on the delivery kind — so a log written from one alone is
-// either doubled or empty.
+// ZCode has said a turn two ways across releases, and a build sends one or the other:
 //
-// So the log keeps what it has already written for each part and only ever appends what is
-// new. A delta appends; an upsert whose text continues what we have appends the rest of
-// it; an upsert that rewrites a part from the start is the agent replacing its own words,
-// and only the new tail is worth a log line.
+//   • PARTS (through 0.16.3) — a part is started or upserted with its whole text so far,
+//     and a delta appends to one. Both carry the same text, so a log written from one
+//     alone is either doubled or empty.
+//   • STREAMING (0.16.5) — `model.streaming` deltas for the agent's words and its
+//     thinking, `tool_call` for a call once its arguments are whole, and the call's
+//     outcome on separate `tool.updated` events. No parts at all, under either delivery
+//     kind.
+//
+// Both are handled, because neither is a version the board can insist on. For parts the
+// log keeps what it has already written for each one and only ever appends what is new: a
+// delta appends; an upsert whose text continues what we have appends the rest of it; an
+// upsert that rewrites a part from the start is the agent replacing its own words, and only
+// the new tail is worth a log line.
 function createParts(tail: Tail) {
   const written = new Map<string, string>()
   const tools = new Set<string>()
+  // What each call was named, kept because the event carrying its result names only the id.
+  const named = new Map<string, string>()
 
   const say = (partId: string, kind: string, text: string) => {
     const before = written.get(partId) ?? ''
@@ -137,6 +146,30 @@ function createParts(tail: Tail) {
       written.set(partId, (written.get(partId) ?? '') + delta)
       if (field === 'reasoning') tail.thought(delta)
       else tail.text(delta)
+    },
+    /** A piece of the turn, as `model.streaming` sends it. */
+    streaming(payload: Json) {
+      const kind = str(payload.kind)
+      if (kind === 'text_delta') return tail.text(str(payload.delta))
+      if (kind === 'reasoning_delta') return tail.thought(str(payload.delta))
+      // `tool_input_start`, `tool_input_delta` and `tool_input_end` are one call's
+      // arguments being spelled out; `tool_call` is the same call with them all in.
+      if (kind !== 'tool_call') return
+      const callId = str(payload.toolCallId)
+      const name = str(payload.toolName) || 'tool'
+      named.set(callId, name)
+      if (callId && tools.has(callId)) return
+      tools.add(callId)
+      tail.line(`⏺ ${name}${whereHint(payload.input, name)}`)
+    },
+    /** How a call went, as `tool.updated` sends it. `scheduled`, `started`, `result` and
+     *  `batch` are progress on a call that already has its line; only `error` is worth a
+     *  second one. */
+    toolUpdate(payload: Json) {
+      if (str(payload.kind) !== 'error') return
+      const name = named.get(str(payload.toolCallId)) ?? 'tool'
+      const why = str(obj(payload.error).message).split('\n')[0]!.trim()
+      tail.line(`[error] ${name} failed${why ? `: ${why.slice(0, 200)}` : ''}`)
     },
   }
 }
@@ -195,6 +228,16 @@ function stopped(io: ClientTurn, why: string): void {
   }
 }
 
+/** How the session said the turn ended, and what it said on the way out. */
+interface TurnStop {
+  ok: boolean
+  error?: string
+  /** The agent's closing message, as the ending event repeats it. */
+  response?: string
+  /** What this turn used, when the ending event counted it. */
+  usage?: TokenUsage
+}
+
 async function oneTurn(io: ClientTurn, options: ZcodeOptions): Promise<TurnEnd> {
   const tail = createTail(io.log)
   const parts = createParts(tail)
@@ -203,8 +246,8 @@ async function oneTurn(io: ClientTurn, options: ZcodeOptions): Promise<TurnEnd> 
   // work, and both would bury it.
   let live = false
   let sessionId = ''
-  let ended: ((end: { ok: boolean; error?: string }) => void) | undefined
-  const finished = new Promise<{ ok: boolean; error?: string }>((resolve) => {
+  let ended: ((end: TurnStop) => void) | undefined
+  const finished = new Promise<TurnStop>((resolve) => {
     ended = resolve
   })
 
@@ -303,8 +346,10 @@ async function oneTurn(io: ClientTurn, options: ZcodeOptions): Promise<TurnEnd> 
     // `session/send` answers as soon as the prompt is accepted. The turn is over when the
     // session says so, or when the connection goes away under it.
     const done = await finished
-    const result = tail.end()
-    const usage = await tokensOf(rpc, sessionId)
+    // The message the log ends on, or — on a build that streamed nothing we could render —
+    // the one the ending event repeats. Never both, and never nothing when the agent spoke.
+    const result = tail.end() || done.response || undefined
+    const usage = done.usage ?? (await tokensOf(rpc, sessionId))
     if (!done.ok) {
       const why = done.error ?? 'the agent stopped without saying why'
       stopped(io, why)
@@ -339,7 +384,7 @@ function event(
   parts: ReturnType<typeof createParts>,
   tail: Tail,
   live: boolean,
-  ended: (end: { ok: boolean; error?: string }) => void,
+  ended: (end: TurnStop) => void,
 ): void {
   const payload = obj(envelope.payload)
   switch (str(envelope.type)) {
@@ -350,10 +395,20 @@ function event(
     case 'part.delta':
       if (live) parts.delta(payload)
       return
+    case 'model.streaming':
+      if (live) parts.streaming(payload)
+      return
+    case 'tool.updated':
+      if (live) parts.toolUpdate(payload)
+      return
     case 'turn.completed': {
+      // The turn's own counts and its closing message, which is the one place a streaming
+      // build states either — `session/usage` counts the session and leaves the cache out.
+      const usage = usageOf(obj(payload.usage))
+      const response = str(payload.response)
       const how = str(payload.resultType) || 'success'
-      if (how === 'success') return ended({ ok: true })
-      return ended({ ok: false, error: STOPPED[how] ?? `the agent stopped: ${how}` })
+      if (how === 'success') return ended({ ok: true, response, usage })
+      return ended({ ok: false, error: STOPPED[how] ?? `the agent stopped: ${how}`, response, usage })
     }
     case 'turn.failed': {
       const error = obj(payload.error)
