@@ -27,7 +27,27 @@ import type { TokenUsage } from '../types'
 // `filePath`, `command`, `pattern` and so on, and an MCP tool brings whatever
 // names its server chose — so the first recognisable string wins and a tool with
 // none is logged by name alone.
-const ARG_KEYS = ['command', 'filePath', 'file_path', 'path', 'pattern', 'query', 'url'] as const
+// `description` is last and is the one that isn't a thing: a subagent is called on a task
+// rather than on a file, and without it every `task` call reads as the same bare line.
+const ARG_KEYS = ['command', 'filePath', 'file_path', 'path', 'pattern', 'query', 'url', 'description'] as const
+
+// A subagent dispatched into the background, and why it is worth a line of its own.
+//
+// OpenCode's own `task` tool runs a subagent inline: the call doesn't come back until the
+// subagent has, and its answer is in the parent's next step. Some plugins add a background
+// mode instead — the call returns "launched" at once, the subagent works on in a session of
+// its own, and its result is promised to the parent as a later notification.
+//
+// `opencode run` ends when the MAIN agent's turn ends, and takes its server with it. So a
+// background subagent is not merely unwaited-for: it is cut off part way, and its own
+// session's events were never in this stream to begin with. Nothing on this end can wait
+// for it — hence a line saying so, rather than a log that reads as if the work was done.
+const BACKGROUND_SUBAGENT =
+  '[board] this subagent runs in the background, and OpenCode ends the run with the main agent’s turn — so its work is cut off and never reported. `--pure` in Extra arguments runs OpenCode without the plugins that dispatch these.\n'
+
+function dispatchedInBackground(input: unknown): boolean {
+  return obj(input).run_in_background === true
+}
 
 export function createOpencodeStreamRenderer(): StreamRenderer {
   let final: string | undefined
@@ -58,7 +78,8 @@ export function createOpencodeStreamRenderer(): StreamRenderer {
         const state = obj(part.state)
         const name = str(part.tool) || 'tool'
         const call = `⏺ ${name}${argHint(state.input, ARG_KEYS)}\n`
-        return state.status === 'error' ? `${call}[error] ${str(state.error)}\n` : call
+        if (state.status === 'error') return `${call}[error] ${str(state.error)}\n`
+        return dispatchedInBackground(state.input) ? `${call}${BACKGROUND_SUBAGENT}` : call
       }
       case 'step_finish':
         // One step is one model call, so a run that used tools reports several.

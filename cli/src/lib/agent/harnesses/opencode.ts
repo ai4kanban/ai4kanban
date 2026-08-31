@@ -13,8 +13,16 @@ import { namesFlag, SKILL_SENTENCE, type Harness } from './types'
 //
 // Nothing about permissions. Left alone OpenCode writes inside the repo and refuses to
 // touch anything outside it, which is what a board run wants, so there is nothing here to
-// widen or narrow. The flag that would (`--auto`) isn't in the version people install
-// today: passing it makes the CLI print its usage and exit without running anything.
+// widen or narrow. The flag that would is `--auto`, and it is deliberately not added: it
+// auto-approves everything not explicitly denied, which is a wider run than a card asks
+// for. Extra arguments reach it for anyone who wants it.
+//
+// Nothing about plugins either, and that one costs something. A plugin can hand the model a
+// `task` tool that dispatches a subagent into the BACKGROUND, and `opencode run` ends with
+// the main agent's turn — so that subagent's work is cut off (see wire/opencode-stream.ts,
+// which says so in the log). `--pure` runs without plugins and makes subagents inline
+// again; it is left to Extra arguments, because turning off the user's whole OpenCode setup
+// is not the board's call to make for them.
 function opencodeExtraArgs(argv: string[], cwd: string): string[] {
   const extra: string[] = []
   if (!namesFlag(argv, ['--format'])) extra.push('--format', 'json')

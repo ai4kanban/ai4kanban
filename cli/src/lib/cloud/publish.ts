@@ -58,6 +58,7 @@ import {
 import { attachBoardServer } from './servers'
 import { readSession } from './session'
 import { snapshotFor } from './snapshot'
+import { traceCloud } from './trace'
 
 /** How many times a queued item is tried before this board gives up on it. Spread over the
  *  backoff below, so it is most of an afternoon of Cloud being unreachable rather than eight
@@ -246,6 +247,7 @@ function retireLive(keep?: Set<number>): void {
   for (const { taskId, event } of livePublications()) {
     if (keep?.has(taskId)) continue
     if (event.state !== 'actionable') continue
+    traceCloud(`retire #${taskId} queued: event ${event.eventId} is no longer actionable`)
     queue({ opId: newOpId(), kind: 'retire', attempts: 0, eventId: event.eventId, state: 'stale' })
   }
 }
@@ -275,6 +277,32 @@ async function reconcileAgainstCloud(
     if (actionable.has(event.taskId)) continue
     if (event.acted) continue
     queue({ opId: newOpId(), kind: 'retire', attempts: 0, eventId: event.id, state: 'stale' })
+  }
+  dropSwept(answer.value.events, actionable)
+}
+
+/**
+ * Records pointing at an event Cloud no longer has (#372).
+ *
+ * Cloud sweeps an event 30 days after it finished, and a retirement finishes one — so a row
+ * this board never managed to retire while it was live is swept underneath it. Nothing told
+ * this board: `not_found` is terminal, so the retirement is taken off the queue with the
+ * record left exactly as it was, and the next pass queues the same doomed retirement again.
+ *
+ * The cost is not the wasted round trips. A record reading `actionable` is what makes
+ * `queueDifference` skip its card, so a card whose event was swept can never be raised
+ * again — it is silently absent from every channel for good. Forgetting the record is what
+ * lets the card be published afresh the next time it needs a person.
+ *
+ * A task this pass found actionable is left alone: its event may have been published between
+ * the read above and now, and forgetting that record would raise the card twice.
+ */
+function dropSwept(events: Array<{ id: string }>, actionable: Set<number>): void {
+  const onCloud = new Set(events.map((e) => e.id))
+  for (const { taskId, event } of livePublications()) {
+    if (actionable.has(taskId) || onCloud.has(event.eventId)) continue
+    traceCloud(`record #${taskId} dropped: event ${event.eventId} is gone from Cloud`)
+    forgetPublication(taskId)
   }
 }
 
@@ -347,7 +375,13 @@ export function recordCloudActionFor(
   answers: CloudEventAnswer[] = [],
 ): void {
   const held = publishedFor(taskId)
-  if (!held || held.state !== 'actionable') return
+  if (!held || held.state !== 'actionable') {
+    traceCloud(`action #${taskId} ${decision} dropped: record is ${held?.state ?? 'missing'}`)
+    return
+  }
+  traceCloud(
+    `action #${taskId} ${decision} queued: event ${held.eventId} at ${held.revision}, clicked at ${revision}`,
+  )
   queue({
     opId: newOpId(),
     kind: 'action',
@@ -389,6 +423,7 @@ export function recordCloudDeliveryState(taskId: number, outcome: CloudEventStat
   if (held.state === 'actionable') {
     // Still waiting on a person, so there is nothing to report against yet. Held rather
     // than dropped: on the card page this is the delivery the click is about to record.
+    traceCloud(`delivery #${taskId} ${outcome} parked: event ${held.eventId} has no action yet`)
     startedBeforeAction.set(taskId, { eventId: held.eventId, state: outcome })
     return
   }
@@ -476,13 +511,18 @@ async function run(): Promise<void> {
     if (sent >= SEND_PER_PASS) return
     const done = await sendOne(item)
     sent += 1
-    if (done.ok) continue
+    if (done.ok) {
+      traceCloud(`sent ${describe(item)}`)
+      continue
+    }
     // A refusal re-reading changes nothing about is not worth retrying forever: it is taken
     // off with what it left behind recorded, so the next pass writes the truth instead.
     if (isTerminal(done.code)) {
+      traceCloud(`refused ${describe(item)}: ${done.code ?? 'terminal'} — ${done.error}`)
       settle(item.opId)
       continue
     }
+    traceCloud(`failed ${describe(item)}: ${done.error}`)
     if (item.attempts + 1 >= MAX_ATTEMPTS) giveUp(item.opId, done.error)
     else failed(item.opId, done.error, Date.now() + backoff(item.attempts))
     // Cloud is not answering. Stop here rather than spending the whole queue on it.
@@ -491,6 +531,20 @@ async function run(): Promise<void> {
 }
 
 const backoff = (attempts: number): number => BACKOFF_MS[Math.min(attempts, BACKOFF_MS.length - 1)]!
+
+/** One queued item, as the trace names it. */
+function describe(item: Pending): string {
+  switch (item.kind) {
+    case 'publish':
+      return `publish #${item.snapshot.taskId} at ${item.snapshot.revision}`
+    case 'retire':
+      return `retire ${item.eventId} as ${item.state}`
+    case 'action':
+      return `action ${item.eventId} ${item.decision} at ${item.revision}`
+    default:
+      return `outcome ${item.eventId} ${item.outcome}`
+  }
+}
 
 async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error: string; code?: string }> {
   if (item.kind === 'publish') {
@@ -526,7 +580,10 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
   if (item.kind === 'retire') {
     const answer = await retireEvent(item.opId, item.eventId)
     if (!answer.ok) return answer
-    forget(item.eventId, 'stale')
+    // What Cloud now holds, not what was asked for: it refuses to retire an event somebody
+    // acted on and answers with the state it kept, so writing `stale` here would put this
+    // board out of step with the row it just read.
+    forget(item.eventId, answer.value.event.state)
     settle(item.opId)
     return { ok: true }
   }
