@@ -6,7 +6,7 @@ import { ChatButton } from "./Chat";
 import { ToolCluster } from "./chrome";
 import { Configuration } from "./Configuration";
 import { CreateTask } from "./CreateTask";
-import { ProjectPath } from "./desktop";
+import { ProjectPath, UpdateChip } from "./desktop";
 import { GitHubLink } from "./GitHubLink";
 import { Goal } from "./Goal";
 import { Insights } from "./Insights";
@@ -169,6 +169,14 @@ export function Header({
           them rather than 8, since a row of hard shadows needs more air beside
           the traffic lights than it does on a page. */}
       <div data-controls className="a4k-nodrag flex shrink-0 items-center gap-2">
+        {/* A newer version, when there is one (#372) — its own chip rather than a
+            segment of the cluster, since it comes and goes and the cluster's shape
+            should not. It leads the group beside the repository: those two are the
+            controls here that act on nothing on this board. The head is also the one
+            place a control can appear without shoving another one sideways — the
+            group is right-aligned, so it grows out to the left. Absent entirely the
+            rest of the time. */}
+        <UpdateChip />
         {/* The repository leads the group: the same ghost block as Goal and
             Chat, icon-only, since it is the one control here that acts on
             nothing on this board. */}

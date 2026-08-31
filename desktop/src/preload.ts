@@ -35,7 +35,6 @@ const CHANNELS: typeof Channels = {
   startUpdate: "a4k:start-update",
   restartForUpdate: "a4k:restart-for-update",
   updateStatus: "a4k:update-status",
-  skipUpdate: "a4k:skip-update",
   openExternal: "a4k:open-external",
   fullscreen: "a4k:fullscreen",
   navigated: "a4k:navigated",
@@ -65,7 +64,6 @@ const bridge: Ai4kanbanBridge = {
     updateWatchers.add(fn);
     return () => updateWatchers.delete(fn);
   },
-  skipUpdate: (version) => ipcRenderer.invoke(CHANNELS.skipUpdate, version),
   openExternal: (url) => ipcRenderer.invoke(CHANNELS.openExternal, url),
   languageChanged: (language) => ipcRenderer.invoke(CHANNELS.languageChanged, language),
   setLanguage: (language) => ipcRenderer.invoke(CHANNELS.setLanguage, language),

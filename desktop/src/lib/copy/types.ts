@@ -118,6 +118,9 @@ export interface DesktopCopy {
       install: string;
       download: string;
       later: string;
+      /** Wave this version off for good. The board's chip is news and nothing else,
+       *  so this dialog is where a version gets buried. */
+      skip: string;
       /** Asked again while a download of this version is already going. */
       downloading: string;
       ready: (version: string) => string;

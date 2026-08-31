@@ -36,17 +36,18 @@ export type ChromeCopy = {
     runningHere: string;
     forget: string;
   };
+  /** The update chip is an icon, so all but one of these are its tooltip. */
   update: {
-    available: (version: string) => string;
-    /** Start the download. Nothing downloads before this is clicked. */
-    install: string;
-    /** Open the downloads page — all a copy that cannot install itself is offered,
-     *  and still offered after a download that failed. */
-    download: string;
+    /** A newer version, and this copy can put it in place itself. */
+    out: (version: string) => string;
+    /** A newer version this copy cannot install — a checkout, a disk image, a
+     *  folder it cannot write. The reason, and the downloads page a click opens. */
+    outManual: (version: string, reason: string) => string;
     downloading: (percent: number) => string;
     ready: (version: string) => string;
-    restart: string;
-    skip: string;
+    /** The one word the chip ever shows, once the download is in place. */
+    install: string;
+    failed: (error: string) => string;
   };
   app: {
     notice: string;

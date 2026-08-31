@@ -25,13 +25,12 @@ const zh: ChromeCopy = {
     forget: "把这个项目移出列表——磁盘上的文件不受影响",
   },
   update: {
-    available: (version) => `**AI4Kanban ${version}** 已发布。`,
+    out: (version) => `AI4Kanban ${version} 已发布，点击安装。`,
+    outManual: (version, reason) => `AI4Kanban ${version} 已发布。${reason}`,
+    downloading: (percent) => `正在下载 AI4Kanban…… ${percent}%`,
+    ready: (version) => `AI4Kanban ${version} 已下载完成，点击重启装上。`,
     install: "安装",
-    download: "下载页",
-    downloading: (percent) => `正在下载…… ${percent}%`,
-    ready: (version) => `**AI4Kanban ${version}** 已就绪，重启应用即可装上。`,
-    restart: "立即重启",
-    skip: "不再提示这个版本",
+    failed: (error) => `${error} 点击重试。`,
   },
   app: {
     notice:

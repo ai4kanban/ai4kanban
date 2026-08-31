@@ -13,9 +13,9 @@
 //    there is nobody to ask, so it stays a label.
 //  - In the app, a folder with no board offers to make one. In a browser that is
 //    a command to type, which the screen already gives.
-//  - In the app, a newer release says so, and installs from that line: one click
-//    downloads it and the restart puts it in place (#372). A copy that cannot
-//    replace itself says why and points at the downloads page instead.
+//  - In the app, a newer release lights one chip in the header: a click downloads
+//    it, the chip fills, and the restart puts it in place (#372). A copy that
+//    cannot replace itself opens the downloads page instead.
 //  - In a browser, the board mentions the app and where to get it. Only
 //    mentions it: running here is a supported way to run the board, not a
 //    deprecated one. It is the same server either way, so there is no second
@@ -33,6 +33,7 @@ import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import type { NotificationAlert } from "@/lib/notifications";
 import { Button } from "./button";
+import { CHROME } from "./chrome";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -173,7 +174,6 @@ interface AppBridge {
   /** Be told each time the download moves. Returns the way to stop being told.
    *  Optional for the same reason. */
   onUpdateStatus?(fn: (status: UpdateStatus | null) => void): () => void;
-  skipUpdate(version: string): Promise<void>;
   openExternal(url: string): Promise<void>;
   /** Told each time the window moves between views — a swipe, the menu, a
    *  mouse's own buttons. Returns the way to stop being told. */
@@ -471,22 +471,32 @@ function Line({ children, muted = false }: { children: React.ReactNode; muted?: 
 
 // --- the notice line --------------------------------------------------------
 
-/** The one line above the board that says something about how it is being run:
- *  a newer app in the app, the app itself in a browser. Nothing at all once
- *  there is nothing to say. Rendered on both the board and a card page, since
- *  either is where a person may be standing. */
+/** The one line above the board that says something about how it is being run.
+ *  In a browser that is the app's existence; in the app it is nothing — a newer
+ *  version is the header's chip, not a band across the board. */
 export function RunningNotice({ desktop }: { desktop: boolean }) {
-  return desktop ? <UpdateNotice /> : <AppAvailable />;
+  return desktop ? null : <AppAvailable />;
 }
 
-/** A newer app, and the one click that installs it (#372).
+// --- the update chip --------------------------------------------------------
+
+/** A newer app, and the one click that installs it (#372) — a single 28px control
+ *  in the header's row, never a band across the board. It is news, not a demand:
+ *  the whole thing is one icon that lights, fills and turns green, and a user who
+ *  ignores it forever loses nothing.
+ *
+ *  Four states, one control:
+ *
+ *      out          downloading        ready          cannot install
+ *    ┌──────┐        ┌──────┐      ┌────────────┐      ┌──────┐
+ *    │  ↓   │  ···>  │  ◔   │ ···> │ ✓ Install  │      │  ↓   │
+ *    └──────┘        └──────┘      └────────────┘      └──────┘
+ *     sky, lit        the ring       mint, named        plain — opens the page
  *
  *  The download is the app's, not this component's: it is asked for on mount and
  *  followed as it moves, so leaving the board for a card, coming back, or reloading
- *  either finds the same download exactly where it was. A copy that cannot replace
- *  itself — a checkout, a disk image, a folder it cannot write — says why and offers
- *  the downloads page, which is the notice this always was. */
-function UpdateNotice() {
+ *  either finds the same download exactly where it was. */
+export function UpdateChip() {
   const c = useCopy().chrome.update;
   const [found, setFound] = useState<UpdateStatus | null>(null);
   useEffect(() => {
@@ -507,89 +517,140 @@ function UpdateNotice() {
 
   if (stage === "downloading") {
     return (
-      <Strip tone="sky">
-        <span className="shrink-0">
-          <Rich>{c.downloading(percent)}</Rich>
-        </span>
-        <Progress percent={percent} />
-      </Strip>
+      <Chip
+        title={c.downloading(percent)}
+        tint="var(--color-nb-sky-soft)"
+        ink="var(--color-nb-sky-ink)"
+        role="progressbar"
+        percent={percent}
+      >
+        <Ring percent={percent} />
+      </Chip>
     );
   }
   if (stage === "ready") {
     return (
-      <Strip tone="sky">
-        <span>
-          <Rich>{c.ready(found.version)}</Rich>
-        </span>
-        <Button
-          size="sm"
-          className="shrink-0"
-          onClick={() => void bridge()?.restartForUpdate?.()}
-        >
-          <FiDownload size={13} /> {c.restart}
-        </Button>
-      </Strip>
+      <Chip
+        title={c.ready(found.version)}
+        tint="var(--color-nb-mint-soft)"
+        ink="var(--color-nb-mint-ink)"
+        onClick={() => void bridge()?.restartForUpdate?.()}
+        wide
+      >
+        <FiDownload size={13} aria-hidden />
+        <span className="text-[11.5px] font-[800] leading-none">{c.install}</span>
+      </Chip>
     );
   }
 
+  // A copy that cannot replace itself keeps the one thing it can offer: the
+  // downloads page. It is the same chip, unlit — nothing is being asked of the
+  // user that this copy can actually do.
   const canInstall = !found.blocked && Boolean(bridge()?.startUpdate);
-  return (
-    <Strip tone="sky">
-      <span>
-        {found.error ? <span className="text-nb-peach-ink">{found.error} </span> : null}
-        <Rich>{c.available(found.version)}</Rich>
-        {found.blocked ? <span className="text-nb-ink-soft"> {found.blocked}</span> : null}
-      </span>
-      {canInstall ? (
-        <Button
-          size="sm"
-          className="shrink-0"
-          onClick={() => {
-            // Draw the download the moment it is asked for; the app's own messages
-            // carry it from here.
-            setFound({ ...found, stage: "downloading", received: 0, error: null });
-            void bridge()?.startUpdate?.();
-          }}
-        >
-          <FiDownload size={13} /> {c.install}
-        </Button>
-      ) : null}
-      <Button
-        size="sm"
-        variant={canInstall ? "ghost" : "accent"}
-        className="shrink-0"
+  if (!canInstall) {
+    return (
+      <Chip
+        title={c.outManual(found.version, found.blocked ?? "")}
         onClick={() => openLink(found.url)}
       >
-        {c.download}
-      </Button>
-      <Close
-        title={c.skip}
-        onClick={() => {
-          void bridge()?.skipUpdate(found.version);
-          setFound(null);
-        }}
-      />
-    </Strip>
+        <FiDownload size={14} aria-hidden />
+      </Chip>
+    );
+  }
+  const failed = Boolean(found.error);
+  return (
+    <Chip
+      title={failed ? c.failed(found.error ?? "") : c.out(found.version)}
+      tint={failed ? "var(--color-nb-peach-soft)" : "var(--color-nb-sky-soft)"}
+      ink={failed ? "var(--color-nb-peach-ink)" : "var(--color-nb-sky-ink)"}
+      lit={!failed}
+      onClick={() => {
+        // Draw the download the moment it is asked for; the app's own messages
+        // carry it from here.
+        setFound({ ...found, stage: "downloading", received: 0, error: null });
+        void bridge()?.startUpdate?.();
+      }}
+    >
+      {failed ? <FiAlertTriangle size={14} aria-hidden /> : <FiDownload size={14} aria-hidden />}
+    </Chip>
   );
 }
 
-/** How far the download has got. Its own bar rather than a number alone: the number
- *  says how much, the bar says at a glance that it is still moving. */
-function Progress({ percent }: { percent: number }) {
+/** The chip itself: one framed 28px box in the header's row, in whatever tone the
+ *  state calls for. `lit` adds the glow that says "this is new" — a slow one, since
+ *  the point is to be noticed on the next glance, not this one. */
+function Chip({
+  title,
+  tint,
+  ink,
+  lit = false,
+  wide = false,
+  percent,
+  role,
+  onClick,
+  children,
+}: {
+  title: string;
+  tint?: string;
+  ink?: string;
+  lit?: boolean;
+  wide?: boolean;
+  percent?: number;
+  role?: "progressbar";
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
+  const still = !onClick;
   return (
-    <div
-      className="h-[10px] min-w-0 flex-1 overflow-hidden rounded-full border-[1.5px] border-nb-ink"
-      style={{ background: "var(--color-nb-paper)" }}
-      role="progressbar"
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      disabled={still}
+      onClick={onClick}
+      role={role}
       aria-valuenow={percent}
-      aria-valuemin={0}
-      aria-valuemax={100}
+      aria-valuemin={role ? 0 : undefined}
+      aria-valuemax={role ? 100 : undefined}
+      className={`a4k-nodrag relative inline-flex h-7 shrink-0 items-center justify-center gap-1 overflow-hidden rounded-[8px] ${CHROME} ${
+        wide ? "px-2" : "w-7"
+      } ${still ? "cursor-default" : "cursor-pointer hover:brightness-[0.97] active:translate-y-[1px]"} ${
+        lit ? "a4k-lit" : ""
+      }`}
+      style={{ background: tint ?? "var(--color-nb-paper)", color: ink ?? "var(--color-nb-ink)" }}
     >
-      <div
-        className="h-full transition-[width] duration-200"
-        style={{ width: `${percent}%`, background: "var(--color-nb-sky-ink)" }}
+      {children}
+    </button>
+  );
+}
+
+/** How far the download has got, drawn as the chip itself rather than beside it —
+ *  the ring is the icon while it runs. */
+function Ring({ percent }: { percent: number }) {
+  const circumference = 2 * Math.PI * 8;
+  return (
+    <svg viewBox="0 0 22 22" className="size-[17px] -rotate-90" aria-hidden>
+      <circle
+        cx="11"
+        cy="11"
+        r="8"
+        fill="none"
+        strokeWidth="2.5"
+        stroke="color-mix(in srgb, currentColor 22%, transparent)"
       />
-    </div>
+      <circle
+        cx="11"
+        cy="11"
+        r="8"
+        fill="none"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        stroke="currentColor"
+        strokeDasharray={circumference}
+        strokeDashoffset={circumference * (1 - percent / 100)}
+        className="transition-[stroke-dashoffset] duration-200"
+      />
+    </svg>
   );
 }
 

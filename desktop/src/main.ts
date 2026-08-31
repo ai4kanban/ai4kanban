@@ -615,27 +615,36 @@ async function checkUpdatesFromMenu(): Promise<void> {
     if (response === 0) restartForUpdate();
     return;
   }
+  // Waving a version off lives here now (#372): the board's chip is one icon with
+  // no room for a dismiss, and burying a version for good is a deliberate act
+  // rather than something to put a click away from Install.
+  const buries = canSkipUpdate();
+  const bury = (version: string, response: number) => {
+    if (buries && response === 2) store.skipVersion(version);
+  };
   if (found.blocked) {
     const { response } = await messageBox({
       type: "info",
       message: c.out(found.version),
       detail: c.detailManual(found.blocked),
-      buttons: [c.download, c.later],
+      buttons: buries ? [c.download, c.later, c.skip] : [c.download, c.later],
       defaultId: 0,
       cancelId: 1,
     });
     if (response === 0) void shell.openExternal(found.url);
+    bury(found.version, response);
     return;
   }
   const { response } = await messageBox({
     type: "info",
     message: c.out(found.version),
     detail: c.detail,
-    buttons: [c.install, c.later],
+    buttons: buries ? [c.install, c.later, c.skip] : [c.install, c.later],
     defaultId: 0,
     cancelId: 1,
   });
   if (response === 0) void beginUpdate();
+  bury(found.version, response);
 }
 
 /** Start the download. Asking for it un-waves the version first: the menu offers
@@ -695,14 +704,6 @@ ipcMain.handle(CHANNELS.startUpdate, async () => waved(await beginUpdate()));
 
 ipcMain.handle(CHANNELS.restartForUpdate, () => {
   restartForUpdate();
-  return null;
-});
-
-// Waving a version off is offered only before a download starts, so it is
-// refused after one has: the notice stops offering it, and this is the same
-// answer for a page that asks anyway.
-ipcMain.handle(CHANNELS.skipUpdate, (_e, version: unknown) => {
-  if (typeof version === "string" && version && canSkipUpdate()) store.skipVersion(version);
   return null;
 });
 

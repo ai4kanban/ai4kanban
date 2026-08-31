@@ -106,6 +106,7 @@ const zh: DesktopCopy = {
       install: "安装",
       download: "下载",
       later: "稍后",
+      skip: "跳过这个版本",
       downloading: "AI4Kanban 正在下载新版本。看板上方那一行会显示进度。",
       ready: (version) => `AI4Kanban ${version} 已下载完成。`,
       readyDetail: "下次重启时安装。",

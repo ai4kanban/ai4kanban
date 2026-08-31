@@ -108,6 +108,7 @@ const en: DesktopCopy = {
       install: "Install",
       download: "Download",
       later: "Later",
+      skip: "Skip this version",
       downloading: "AI4Kanban is downloading it. The line above the board shows how far along it is.",
       ready: (version) => `AI4Kanban ${version} is downloaded.`,
       readyDetail: "It installs on the next restart.",

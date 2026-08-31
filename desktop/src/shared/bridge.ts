@@ -151,7 +151,6 @@ export const CHANNELS = {
   restartForUpdate: "a4k:restart-for-update",
   /** The other way: the download moved, so the notice redraws. */
   updateStatus: "a4k:update-status",
-  skipUpdate: "a4k:skip-update",
   openExternal: "a4k:open-external",
   /** The one channel that runs the other way: main tells the page whether the
    *  window is full screen, because the page holds a gutter for the traffic
@@ -238,8 +237,6 @@ export interface Ai4kanbanBridge {
   /** Be told each time the download moves, so the notice redraws. Returns the
    *  way to stop being told. */
   onUpdateStatus(fn: (status: UpdateStatus | null) => void): () => void;
-  /** Don't mention this version again. Refused once a download has started. */
-  skipUpdate(version: string): Promise<null>;
   /** Open a link in the user's own browser. */
   openExternal(url: string): Promise<null>;
   /** Be told each time the window moves between views, so the page can mark the

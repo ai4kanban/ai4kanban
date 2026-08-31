@@ -252,6 +252,60 @@ body {
   }
 }
 
+/* The update chip when a newer version is out (#372): a slow breath of sky around
+   the frame, and a specular highlight that crosses it now and then. It has to be
+   caught on the next glance rather than this one — anything faster is a control
+   asking to be pressed, and this one is only news. Both stop for a user who has
+   asked the system for less motion. */
+@keyframes nbLit {
+  0%,
+  100% {
+    box-shadow:
+      2px 2px 0 0 var(--color-nb-ink),
+      0 0 0 0 color-mix(in srgb, var(--color-nb-sky) 55%, transparent);
+  }
+  50% {
+    box-shadow:
+      2px 2px 0 0 var(--color-nb-ink),
+      0 0 0 3.5px color-mix(in srgb, var(--color-nb-sky) 0%, transparent);
+  }
+}
+@keyframes nbSpecular {
+  0% {
+    transform: translateX(-160%) skewX(-20deg);
+  }
+  35%,
+  100% {
+    transform: translateX(160%) skewX(-20deg);
+  }
+}
+.a4k-lit {
+  animation: nbLit 2.6s ease-in-out infinite;
+}
+.a4k-lit::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  width: 45%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    color-mix(in srgb, #fff 78%, transparent),
+    transparent
+  );
+  animation: nbSpecular 4.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .a4k-lit,
+  .a4k-lit::after {
+    animation: none;
+  }
+  .a4k-lit::after {
+    content: none;
+  }
+}
+
 /* The ui/select list opening — a small settle-down from just above, so the
    panel reads as dropping out of its trigger rather than blinking in. */
 @keyframes nbPopIn {
