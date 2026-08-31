@@ -243,11 +243,8 @@ describe("the calls the board made on its own", () => {
     assert.deepEqual(countDecisions(body), { stood: 3, overruled: 0 })
   })
 
-  it('counts an unrepaired card under its old headings too', () => {
+  it('counts an unrepaired card under its old subsection too', () => {
     const body = [
-      '## Pushback',
-      '- more work than the value is worth',
-      '',
       '## Decided by the agent',
       '- **One?** Yes.',
       '',
@@ -257,7 +254,7 @@ describe("the calls the board made on its own", () => {
       '### Overruled by the user',
       '- **Two?** The user said no.',
     ].join('\n')
-    assert.deepEqual(countDecisions(body), { stood: 3, overruled: 1 })
+    assert.deepEqual(countDecisions(body), { stood: 2, overruled: 1 })
   })
 
   it('counts nothing on a card with no section', () => {

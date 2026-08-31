@@ -20,7 +20,7 @@
 // Gone below `sm`, like the folder badge: on a window that narrow every pixel
 // belongs to a control that acts on the board, and this is the one that doesn't.
 
-import { FiGithub } from "react-icons/fi";
+import { SiGithub } from "react-icons/si";
 import { useCopy } from "@/i18n/use-copy";
 import { Button } from "./button";
 import { openLink } from "./desktop";
@@ -37,14 +37,19 @@ export function GitHubLink() {
     <Button
       variant="ghost"
       size="xs"
-      className="hidden w-7 shrink-0 px-0 sm:inline-flex"
+      // Inverted against the rest of the row: ink fill, paper glyph — GitHub's
+      // own mark, and the one control here that leaves the board. The shadow
+      // stays ink and merges into the fill, so this one is a solid slab that
+      // grows and settles as a whole rather than a block over a ledge.
+      className="hidden w-7 shrink-0 bg-nb-ink px-0 text-nb-paper sm:inline-flex"
       title={c.github}
       aria-label={c.github}
       onClick={() => openLink(REPO_URL)}
     >
-      {/* A pixel over the cluster's 15: Feather's github glyph carries padding
-          inside its own box, so at 15 it read a size smaller than the bell. */}
-      <FiGithub size={16} aria-hidden />
+      {/* The filled brand mark, the same glyph the Cloud pane signs in with. It
+          sits tight to its own box where the row's Feather icons carry padding
+          inside theirs, so it takes 14 against the cluster's 15. */}
+      <SiGithub size={14} aria-hidden />
     </Button>
   );
 }

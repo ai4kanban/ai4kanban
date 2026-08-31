@@ -188,7 +188,8 @@ export function countsForRecord(file: string): boolean {
 
 const AGENT_SECTION = /^##\s+Decided by the agent\s*$/i
 const NOTING_SECTION = /^##\s+Worth noting\s*$/i
-const PUSHBACK_SECTION = /^##\s+Pushback\s*$/i
+// Pre-0.7.2 cards used this subsection. Read it only so archiving an old external board
+// does not lose its decision counts; no current flow writes it.
 const NOTING_SUBSECTION = /^###\s+Worth noting\s*$/i
 const OVERRULED_SECTION = /^###\s+Overruled by the user\s*$/i
 const HEADING = /^#{1,6}\s/
@@ -202,9 +203,8 @@ const BULLET = /^[-*+][ \t]/
  * A call stands wherever the board wrote it. That is `## Decided by the agent` and the
  * human half's `## Worth noting` — the calls a reviewer is most likely to refuse, so
  * leaving them out would flatter the board exactly where it is least sure of itself. A card
- * no refine has reshaped yet still carries them under `### Worth noting` and `## Pushback`,
- * which count the same way; otherwise a card's figure would depend on whether a repair pass
- * reached it first.
+ * no refine has reshaped yet still carries some under `### Worth noting`, which counts the
+ * same way; otherwise a card's figure would depend on whether a repair pass reached it first.
  *
  * Only bullets at the left margin count, so a call's own continuation lines are not
  * mistaken for calls of their own.
@@ -216,7 +216,7 @@ export function countDecisions(body: string): { stood: number; overruled: number
   let overruled = 0
   for (const line of body.split('\n')) {
     if (/^##(?!#)\s/.test(line)) {
-      const counts = AGENT_SECTION.test(line) || NOTING_SECTION.test(line) || PUSHBACK_SECTION.test(line)
+      const counts = AGENT_SECTION.test(line) || NOTING_SECTION.test(line)
       bucket = counts ? 'stood' : 'outside'
       continue
     }

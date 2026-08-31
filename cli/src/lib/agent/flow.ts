@@ -633,7 +633,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       close.push(
         `${board} update ${req.id} [--title|--priority|--roi|--release|--modules|--track|--blocked-by|--related] — the fields are the command's, never hand-written`,
-        'the body is yours to write — the human half (the opening paragraph, ## Worth noting), the <!-- agent --> marker, then the agent half',
+        'fill the existing body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place',
       )
       break
     }
@@ -656,7 +656,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         // `--slug` only on a board that isn't English (#337): a non-English title slugifies
         // to nothing, and every card would be named `<id>-task.md`.
         `${board} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''} --track <track>${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
-        'then write only the body: the human half (the opening paragraph, ## Worth noting), the <!-- agent --> marker, then the agent half — ## Scope, ## Todo',
+        'then fill only the existing body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place',
       )
       next.push(startRefineNext('<id>'))
       break

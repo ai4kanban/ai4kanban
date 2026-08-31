@@ -29,7 +29,7 @@ export function languageNote(language: Language = readLanguage()): string {
   const name = LANGUAGE_NAMES[language]
   return [
     `Write this board's prose in ${name}: card titles and bodies, open questions and their options, \`verify:\` lines, memory notes, changelogs, and what you say back to me.`,
-    `Keep English whatever the language: frontmatter keys and their fixed values, \`##\` and \`###\` section headings, the \`<!-- agent -->\` boundary, todo checkboxes, the \`[user]\` tag, track and module names, and card filenames — the board matches those by literal English text, so a translated one is a card it can no longer read, and a title that is not English needs \`akb board create --slug\` a short English slug.`,
+    `Keep English whatever the language: frontmatter keys and their fixed values, \`##\` and \`###\` section headings, the \`<!-- agent -->\` boundary, todo checkboxes, the \`[user]\` tag, track and module names, and card filenames. Never rename or translate a section title — the board matches those by literal English text, so a changed one is a card it can no longer read, and a title that is not English needs \`akb board create --slug\` a short English slug.`,
     `Rewriting a card or a memory file that already exists keeps the language that file is already in; only what you write for me to read personally — an open question, its options and a \`verify:\` line — follows ${name} on every card, and so does the first note in a memory file still holding nothing but its seeded header.`,
     `This governs the board's prose alone: code, comments, commit messages and the repository's own documents follow the repository, not me. \`akb guide board\` carries the rule in full.`,
   ].join(' ')

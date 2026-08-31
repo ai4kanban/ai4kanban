@@ -34,6 +34,8 @@ function defaultBody() {
   return [
     '<one short paragraph: the observable result and the current behavior or constraint it changes.>',
     '',
+    '## Worth noting',
+    '',
     '<!-- agent -->',
     '',
     '## Scope',
@@ -41,6 +43,10 @@ function defaultBody() {
     '',
     '## Todo',
     '- [ ] every task must have todos — replace this line with the real steps.',
+    '',
+    '## Decided by the agent',
+    '',
+    '### Overruled by the user',
     '',
   ].join('\n')
 }

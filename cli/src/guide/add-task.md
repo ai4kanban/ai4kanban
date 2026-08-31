@@ -47,9 +47,9 @@ folder and linking steps in `akb guide board`; otherwise keep cards independent.
 
 ### Writing
 
-Write a short opening paragraph, then `## Scope` and `## Todo`; do not repeat the title as
-an H1. During setup, write only the opening paragraph—the background refinement completes
-the plan.
+Fill the body scaffold that `akb board create` wrote. Do not rename or translate its section
+titles, and leave empty scaffold sections in place. Do not repeat the title as an H1. During
+setup, fill only the opening paragraph—the background refinement completes the plan.
 
 ## Refine
 

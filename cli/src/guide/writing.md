@@ -6,7 +6,7 @@ Every flow writes a card in this order:
 ```text
 <one short paragraph: the observable result and the current behavior or constraint it changes.>
 
-## Worth noting              <- answered material decisions; omit when empty
+## Worth noting              <- answered material decisions; keep empty when none
 - **<question the decision settles>**: <answer>
 
 ## Worth noting after implementation
@@ -78,6 +78,8 @@ Every flow writes a card in this order:
 
 ## General writing requirements
 
+- **Keep section titles fixed**: do not rename or translate an existing `##` or `###`
+  section title, and leave empty scaffold sections in place.
 - **Edit only the body**: use board commands for every frontmatter field (`akb guide board`).
 - **Write for a fresh reader**: use professional, comprehensible language with no assumed
   conversation context.

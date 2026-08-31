@@ -29,6 +29,23 @@ after(() => fs.rmSync(root, { recursive: true, force: true }))
 const unchanged = (): void => assert.equal(fs.readFileSync(nextId, 'utf8'), '8\n')
 
 describe('card creation owns its id', () => {
+  it('scaffolds the exact decision sections', () => {
+    const made = cmdCreate(['--title', 'A card', '--track', 'features'])
+    assert.ok(typeof made.file === 'string')
+    const written = fs.readFileSync(path.join(root, made.file), 'utf8')
+    assert.deepEqual(
+      written.split('\n').filter((line) => /^(#{2,3}\s|<!-- agent -->)/.test(line)),
+      [
+        '## Worth noting',
+        '<!-- agent -->',
+        '## Scope',
+        '## Todo',
+        '## Decided by the agent',
+        '### Overruled by the user',
+      ],
+    )
+  })
+
   it('requires a complete card instead of reserving an id', () => {
     assert.throws(() => cmdCreate([]), /create writes exactly one card/)
     assert.throws(() => cmdCreate(['--count', '3']), /unknown option "--count"/)
