@@ -151,6 +151,9 @@ export interface RunRecord {
    *  spawns. A harness that mints an id of its own keeps it in `resumeId`. */
   sessionId: string
   cardId: number | null
+  /** Cards this run created through `akb board create`. A cardless creation run holds these
+   *  until it closes, so an overlapping run cannot adopt and refine its half-written cards. */
+  createdCardIds?: number[]
   action: AgentAction
   status: RunStatus
   startedAt: number
@@ -691,57 +694,34 @@ export interface HarnessOption {
   gaps: HarnessGap[]
 }
 
-/** Why a runtime is not running what this computer bound it to (#343): nothing was bound
- *  for it here, or what was bound names a harness this build doesn't ship. Either way it
- *  falls back to this computer's global binding, and then to what the board holds. */
-export interface RuntimeFallback {
-  was: 'unbound' | 'unknown-harness'
-  /** The harness name the binding asked for, on `unknown-harness`. */
-  bound?: string
-  /** What ran instead: this computer's binding for the GLOBAL runtime, or the board's own
-   *  `harness`, which is what a computer that has bound nothing at all lands on. */
-  ran: 'global' | 'board'
-}
-
-/** What THIS computer runs one runtime as, as its own pane draws it (#344) — the same four
- *  answers `AgentInfo` gives for the board's own harness, for one binding. Absent from a
- *  runtime this computer has not bound, or has bound to a harness this build doesn't ship. */
-export interface RuntimeBindingView {
-  /** The harness this computer bound it to. */
-  harness: string
-  /** The command a run would spawn: that harness's own, or the `command` override in the
-   *  binding. */
-  command: string
-  /** What that harness's settings are set to here. A `secret` is never in here. */
-  values: Record<string, string>
-  /** The keys of that harness's `secret` settings docs/kanban/.env holds right now. The
-   *  file is the BOARD's, so two runtimes on one harness share one key. */
-  secretsSet: string[]
-  /** The keys whose flag the binding's `command` override already names, so the override
-   *  wins and the setting is never appended. */
-  ignored: string[]
-}
-
-/** One runtime as a reader is told about it: the board's name for it, and what it runs as
- *  on THIS computer. The board never holds the second half. */
+/** One runtime as a reader is told about it, and everything a pane needs to change one. All
+ *  of it is the board's answer, out of docs/kanban/ui.config.json — no machine holds a
+ *  runtime setting of its own, so every checkout reads this same list. */
 export interface RuntimeView {
   name: string
   /** True for the one a flow that names none runs on. */
   global: boolean
-  /** The computer the board says it runs on, by machine name (#370). Absent is the computer
-   *  the run starts on. Set, not routed: nothing dispatches a run by it yet (#371), and the
-   *  four answers below are always THIS computer's. */
-  computer?: string
-  /** The harness it actually resolves to here, after every fallback. */
+  /** The agent it runs. The board's own `harness` for the global runtime, this runtime's own
+   *  entry for any other. */
   harness: string
-  /** The model that harness is set to here. Absent where nothing set one, so the harness
-   *  runs its own default — there is no name for that default to give. */
+  /** The model that agent is set to. Absent where nothing set one, so it runs its own
+   *  default — there is no name for that default to give. */
   model?: string
-  /** Absent when this computer's own binding for it is what ran. */
-  fallback?: RuntimeFallback
-  /** What this computer bound for it (#344). Absent is `fallback` — nothing bound here, or
-   *  bound to a harness this build doesn't ship. */
-  binding?: RuntimeBindingView
+  /** The agent name the board holds for this runtime, when it is one this build can't run.
+   *  The fields here are the agent that RAN instead. */
+  unknownHarness?: string
+  /** The command a run would spawn: the agent's own, or the `command` override set for this
+   *  runtime. */
+  command: string
+  /** What that agent's settings are set to for this runtime — its own block on the board
+   *  with this runtime's overrides on top. A `secret` is never in here. */
+  values: Record<string, string>
+  /** The keys of that agent's `secret` settings docs/kanban/.env holds right now. The file is
+   *  the board's, so two runtimes on one agent share one key. */
+  secretsSet: string[]
+  /** The keys whose flag the `command` override already names, so the override wins and the
+   *  setting is never appended. */
+  ignored: string[]
 }
 
 /** What one flow runs on: the runtime it names, and what that resolves to here. Keyed by
@@ -769,8 +749,8 @@ export interface AgentInfo {
   ignored: string[]
   /** Every agent the board can run, with the settings each one takes. */
   options: HarnessOption[]
-  /** The board's runtimes, and what each one runs as here (#343). A board that names none
-   *  has the one, bound to whatever `harness` and `harnessSettings` already say. */
+  /** The board's runtimes, and what each one runs as (#343). A board that names none has the
+   *  one, running whatever `harness` and `harnessSettings` already say. */
   runtimes: RuntimeView[]
   /** False when the board names no runtimes at all — one written before they existed. Then
    *  `runtimes` holds the one every flow is on, which IS the harness above, and a screen
@@ -778,8 +758,8 @@ export interface AgentInfo {
   namedRuntimes: boolean
   /** The name of the runtime a flow that names none runs on. */
   globalRuntime: string
-  /** What a person recognises THIS computer by — its hostname. The bindings above are
-   *  this machine's alone, and a pane saying so names the machine it means (#344). */
+  /** What a person recognises this computer by — its hostname. Nothing about a runtime is
+   *  this machine's, so this is only ever a label a screen shows. */
   machine: string
   /** What each flow runs on — every flow, in the order `FLOWS` lists them, so no screen
    *  keeps a list of its own. The spec agents are on the spec agent list instead. */
@@ -868,6 +848,12 @@ export interface ConnectionTest {
   install?: string
   /** The test gave up on its own after the time limit. */
   timedOut?: boolean
+  /** What was actually spawned, and the runtime it resolved through — never what the screen
+   *  asked for. A pane drawing the board's own answer can be showing one agent while this
+   *  computer's binding runs another, and a result that doesn't say which is a result that
+   *  can be read as being about the wrong one. */
+  harness?: string
+  runtime?: string
 }
 
 /** What the first-run conversation came back with (#280) — the board's two config answers

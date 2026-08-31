@@ -1,14 +1,21 @@
-# The daily loop
-
-Once the board exists, you drive it in plain language. Here's the rhythm.
+---
+title: "The daily loop"
+title_tag: "The AI4Kanban daily loop — drive the board in plain language"
+description: "The rhythm once the board exists: pick what to work on, plan and close a release, add and refine cards, build one end to end, and the button that does the same thing."
+lead: "Once the board exists, you drive it in plain language. Here's the rhythm — what to say, and which button does the same thing."
+last_updated: "September 1, 2026"
+nav_label: "The daily loop"
+icon: "repeat"
+---
 
 Everything you *say* below goes to a coding agent, which needs the skill in the repo —
 `akb skill install`, or **Configuration → General** in the board app. A board arrives without
 it. Every one of those asks is also a button in the app and a command you can type, so
 nothing here is closed to a board that has no skill.
 
-`kanban-ui/README.md` is the reference beside this one: what every column, panel, button and
-setting does. This file is the rhythm — what to say, and which button does the same thing.
+`kanban-ui/README.md` in the [repository](https://github.com/ai4kanban/ai4kanban) is the
+reference beside this page: what every column, panel, button and setting does. This page is
+the rhythm.
 
 ## Two ways the work gets done
 
@@ -162,7 +169,7 @@ it wherever you keep such notes.
 
 ## Add a task
 
-Say **"add a task: <idea>"**. Before writing, the skill reviews the idea (business value,
+Say **"add a task: `<idea>`"**. Before writing, the skill reviews the idea (business value,
 feasibility, duplication) and checks `redesign.md` so it doesn't repeat a known design mistake.
 Then it creates one indexed card with `akb board create`, fills its body in plain language split
 into checkable todos, and adds it to `todo/README.md` under its track.
@@ -265,26 +272,24 @@ what each is set to.
 ## Which tool each flow runs on
 
 A **runtime** is a name the board holds — `default`, `cheap` — and every flow and spec agent runs
-on one: the global one unless it names another. What a runtime actually spawns is each computer's
-own answer, kept in `~/.ai4kanban/runtimes.json` and never written into the board, so one member
-runs `cheap` on Codex and another on something else.
+on one: the global one unless it names another. What each runtime spawns is the board's answer
+too, in `docs/kanban/ui.config.json` beside the names, so every checkout of the repository runs
+the same thing with nothing to set up per machine.
 
 ```bash
 akb agent runtimes                     # the runtimes, and what each flow and agent is on
 akb agent runtime add cheap            # name one
 akb agent runtime for implement cheap  # point a flow — or a spec agent — at it
-akb agent bind cheap codex             # what it runs as on THIS computer
+akb agent bind cheap codex             # what it runs as
 akb agent bind cheap set model gpt-5.1-codex
 ```
 
-A runtime nobody bound here runs this computer's global binding, and a computer that has bound
-nothing runs `akb agent use`'s pick — so a fresh clone works with no local setup. The run's log
-says which runtime it was asked for and what it ran as.
+A runtime with nothing of its own runs `akb agent use`'s pick, which is the global runtime's
+agent — so a new name works before anyone sets it. A runtime's settings start from that agent's
+own block and override it key by key.
 
 **Configuration → Runtimes** is the same thing with the answers on screen: one row per runtime,
-opening onto what it runs as, and headed with the computer it runs on. That computer is the
-board's answer and travels with the repository — it says where a runtime belongs, and a run still
-lands on the machine it was started from.
+opening onto the agent it runs and everything that agent is set to.
 
 ## Queue a card that is waiting on another
 

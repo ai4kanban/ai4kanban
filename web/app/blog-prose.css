@@ -1,5 +1,6 @@
-/* The long-form prose of a blog post, and the one stylesheet on the site that
-   is not tokens.
+/* The long-form prose of a blog post or a documentation page, and the one
+   stylesheet on the site that is not tokens. Both bodies are compiled by
+   `BlogMdx.tsx` into `.blog-prose`, so both are set here.
 
    Everywhere else the styles are Tailwind utilities written next to the markup,
    because there is markup to write them on. A post's body is compiled from
@@ -99,6 +100,15 @@
 }
 .blog-prose a:hover {
   text-decoration-color: currentColor;
+}
+
+/* A navigation card (`components/docs/DocCards.tsx`) is a block, not a phrase:
+   the whole panel is the link, so it takes the body's ink and none of the
+   underline. It needs this rule because `.blog-prose a` above would otherwise
+   win on specificity. */
+.blog-prose a.mdx-card {
+  color: inherit;
+  text-decoration: none;
 }
 
 /* The same chip `Rich.tsx` draws: the neighbouring step of the ramp, no

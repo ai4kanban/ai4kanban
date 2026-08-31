@@ -6,8 +6,8 @@ import { localeHref, type Locale } from "@/lib/i18n";
 import type { SiteCopy } from "@/i18n/types";
 
 // The header's links on a phone, behind one button, so the chrome stays a
-// single row instead of the three it wrapped to. Below `md` this replaces the
-// nav; from `md` up the nav is back and this is gone. The language switcher and
+// single row instead of the three it wrapped to. Below `lg` this replaces the
+// nav; from `lg` up the nav is back and this is gone. The language switcher and
 // the GitHub button stay out in the row — see `Header.tsx`.
 //
 // The comparisons are listed flat under a heading rather than nested in
@@ -31,6 +31,9 @@ export function MobileNav({ c, locale }: { c: SiteCopy; locale: Locale }) {
           download is the only way in and why recipes never takes a locale. */}
       <a href={localeHref(locale, "/download")} className={item}>
         {nav.download}
+      </a>
+      <a href="/docs" className={item}>
+        {nav.docs}
       </a>
       <a href="/recipes" className={item}>
         {nav.recipes}

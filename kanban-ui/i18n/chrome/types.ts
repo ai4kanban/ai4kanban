@@ -102,7 +102,7 @@ export type ChromeCopy = {
     /** The drawer couldn't fetch the guide: the sentence, the link that ends it,
      *  and the stop after the link. */
     failed: string;
-    readOnGitHub: string;
+    readOnline: string;
     failedEnd: string;
     reading: string;
   };

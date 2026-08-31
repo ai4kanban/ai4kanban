@@ -223,7 +223,7 @@ export function readSpecAgents(): SpecAgentView[] {
 }
 
 /** What one spec agent runs on: the runtime it names — the board's global one when it names
- *  none — and what that runtime resolves to on this computer. */
+ *  none — and what that runtime runs as. */
 export function specAgentRun(
   name: string,
   entries = specAgentEntries(),

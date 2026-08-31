@@ -36,12 +36,17 @@ export function pageMetadata({
   socialTitle,
   social,
   type = "website",
+  publishedTime,
+  modifiedTime,
   translated = true,
 }: PageMeta & {
   locale: Locale;
   /** Route path, e.g. "/vs-github-issues". Empty string for the home page. */
   path: string;
   type?: "website" | "article";
+  /** ISO 8601. `article` only — the dates the page's JSON-LD already carries. */
+  publishedTime?: string;
+  modifiedTime?: string;
   /**
    * Whether this route exists in every language (`TRANSLATED_PATHS` in
    * `lib/i18n.ts`). The English-only pages — the recipes, the blog — pass
@@ -54,6 +59,20 @@ export function pageMetadata({
   const ogTitle = socialTitle ?? title;
   const ogDescription = social ?? description;
 
+  // `type` is a union, so the article-only fields are attached in a branch:
+  // spreading them onto a common object leaves them unnarrowed and dropped.
+  const openGraph = {
+    url,
+    siteName: "AI4Kanban",
+    title: ogTitle,
+    description: ogDescription,
+    images: [OG_IMAGE],
+    locale: OG_LOCALES[locale],
+    alternateLocale: LOCALES.filter((l) => l !== locale).map(
+      (l) => OG_LOCALES[l],
+    ),
+  };
+
   return {
     title,
     description,
@@ -61,18 +80,10 @@ export function pageMetadata({
       canonical: url,
       languages: translated ? languageAlternates(path) : undefined,
     },
-    openGraph: {
-      type,
-      url,
-      siteName: "AI4Kanban",
-      title: ogTitle,
-      description: ogDescription,
-      images: [OG_IMAGE],
-      locale: OG_LOCALES[locale],
-      alternateLocale: LOCALES.filter((l) => l !== locale).map(
-        (l) => OG_LOCALES[l],
-      ),
-    },
+    openGraph:
+      type === "article"
+        ? { ...openGraph, type, publishedTime, modifiedTime }
+        : { ...openGraph, type },
     twitter: {
       card: "summary_large_image",
       title: ogTitle,

@@ -2,8 +2,7 @@
 //
 // The board names the runtimes and points each flow and spec agent at one
 // (agent/settings.ts); this is the one place that reads that pointing for a run about to
-// start. What the answer then RUNS as is agent/resolve.ts's, through this computer's
-// bindings.
+// start. What the answer then RUNS as is agent/resolve.ts's, out of the same board file.
 //
 // Only a flow is named, never a pass: a refine's `clarify`, `resolve` and `writing` passes
 // take refine's runtime, and a `correct` still in flight from the older review loop takes

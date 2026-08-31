@@ -1,0 +1,81 @@
+---
+title: "An AI kanban is not another dashboard"
+title_tag: "What an AI kanban should do for coding agents"
+dek: "The board is working memory for agents. Humans should receive decisions, recommendations, and results—not another tool to maintain."
+excerpt: "An AI kanban coordinates task graphs, project memory, and agent decisions, then compresses the work into the few questions that need human judgment."
+date: 2026-08-31
+categories: ["agents", "workflow"]
+tags: ["coding-agents", "kanban-coding", "human-in-the-loop", "product-planning"]
+read_minutes: 4
+author: "AI4Kanban"
+featured_image: "https://cdn.ai4kanban.dev/ai4kanban-ui-v5-board-view.jpg"
+featured_image_alt: "AI4Kanban coordinating agent tasks and surfacing selected decisions for human review."
+seo:
+  description: "An AI kanban gives agents a shared task graph and project memory, then surfaces only the product decisions that require human judgment."
+---
+
+Tools such as [wmux](https://wmux.org/) make multiple coding-agent sessions easier to supervise. Spec-driven development gives each session a clearer assignment. Both are useful. Neither answers the project-level question that appears once ten agents can work at once: **how do they share product context, coordinate dependencies, and know which decisions actually need you?**
+
+That is the role of an AI kanban. It is not another dashboard for watching agents. The board is structured working memory for the agents themselves. Its human-facing product is a much smaller thing: a brief containing the few decisions that require judgment.
+
+## The board is for the agent
+
+On a traditional kanban board, people create the cards, fill in the requirements, move work between columns, and inspect status. The software displays planning that people have already done.
+
+An AI kanban reverses that relationship. Agents drive each task from proposal to delivery. They refine the requirement, create subtasks, maintain dependencies, record decisions, and decide what work belongs in the next release. The board gives every agent an addressable project state instead of asking it to reconstruct the project from chat history.
+
+<BoardAudience />
+
+The person does not need to operate the board day to day. They may review it when they want the full picture, but routine interaction can happen through an email digest or an IM notification: this task is ready, this assumption needs approval, this result is ready to inspect.
+
+In that sense, the visual board is secondary. The important part is the task model underneath it.
+
+## Spec-driven development defines a task; the board coordinates the project
+
+Spec-driven development already addresses the obvious problem of planning before coding. Give an agent one idea, interrogate the ambiguity, and produce a detailed specification. That works well for one task.
+
+Now run ten such sessions in parallel. They can ask the same product question ten times, inherit conflicting assumptions, cross the same ownership boundary, or build features that do not belong in the same release. A collection of good specifications is not yet a coherent project.
+
+<RequirementCascade />
+
+The board supplies the coordination layer. A rough goal can split recursively into cards until each piece is small enough for one agent to execute reliably. The cards retain their dependencies and responsibility boundaries. Accepted decisions become shared context for every branch. Release planning keeps locally sensible work aligned with one short-term outcome.
+
+Chat is chronological; this structure is top-down. An agent can retrieve the requirement, its parent goal, its blockers, and the decisions that constrain it without rereading ten conversations.
+
+## How AI4Kanban surfaces only the decisions people need to make
+
+Refining a feature may expose a dozen product questions about defaults, persistence, missing data, and workflow priority. Each needs an answer, but most do not need a person.
+
+Sending every question to a person does not create human oversight. It turns the person into the planning bottleneck.
+
+AI4Kanban instead asks the agent to challenge the requirement and attempt the answers itself. It uses the repository for technical facts and project memory for product facts: earlier requirements, accepted decisions, rejected ideas, and corrections. Routine, reversible choices stay with the agent. Questions involving taste, product direction, business constraints, or market insight are escalated.
+
+<DecisionCompression />
+
+The remaining question should not arrive as a transcript. It should arrive with the context that makes a decision quick: a concise explanation, distinct options, and the agent's recommendation. If the decision is visual, a mockup communicates more than another page of prose.
+
+This is the interface we care about. The quality metric is not how much agent activity the UI exposes. It is how much valid work one person can approve without losing the decisions that matter.
+
+## Answers should reduce future supervision
+
+Selective escalation is only useful if it compounds. Otherwise the agent asks the same “exceptional” question on the next feature and human attention remains fixed per task.
+
+AI4Kanban records the answer where future planning can use it. A product choice becomes a decision. A correction becomes a design lesson. A rejected idea keeps the reason it was rejected. The next agent does not arrive like a new employee with access only to the codebase; it inherits the business-specific common sense taught to earlier agents.
+
+The loop is simple:
+
+1. The agent turns a goal into proposed work.
+2. It answers what project context already settles.
+3. It packages the unresolved decisions for human review.
+4. The answers return to project memory.
+5. The next planning pass starts with more autonomy.
+
+The goal is not to remove human authority. It is to stop spending that authority on repeated or low-consequence choices.
+
+## Human supervision becomes direction, exceptions, and acceptance
+
+When this works, a person has three jobs: set direction, decide the genuine exceptions, and accept the delivered outcome. They do not need to write every spec or maintain the agent's task list.
+
+That changes what coding automation buys. The benefit is not another row of busy terminals. It is time to speak with users, understand the market, find distribution, work with partners, and make the judgments for which the project has no recorded answer.
+
+[AI4Kanban](https://github.com/ai4kanban/ai4kanban) is our open-source implementation of this idea. The board belongs to the agents. The decisions remain with the human.

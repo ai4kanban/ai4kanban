@@ -7,7 +7,6 @@
 // the NEXT run spawns, never this one.
 
 import { machineName } from '../machine/identity'
-import { readBindings, type RuntimeBinding } from '../machine/runtimes'
 import { REPO_ROOT } from '../paths'
 import { harnessGaps } from './capabilities'
 import type { RunClient, StreamRenderer } from './wire'
@@ -32,15 +31,7 @@ import {
 } from './providers'
 import { runtimeOfFlow } from './runtime'
 import { configBlock, readEnvFile, readRuntimes, safeConfig, type BoardRuntimes } from './settings'
-import type {
-  AgentInfo,
-  ChatAgent,
-  HarnessSetting,
-  Provider,
-  RuntimeBindingView,
-  RuntimeFallback,
-  RuntimeView,
-} from './types'
+import type { AgentInfo, ChatAgent, HarnessSetting, Provider, RuntimeView } from './types'
 
 interface ResolvedHarness {
   harness: Harness
@@ -49,9 +40,9 @@ interface ResolvedHarness {
   /** The runtime this run was asked for — the board's global one when nothing named
    *  another (#343). */
   runtime: string
-  /** The harness this computer's binding for that runtime named, when it isn't the one that
-   *  ran: nothing was bound, or what was bound this build doesn't ship. */
-  fallback?: RuntimeFallback
+  /** The agent the runtime's own entry named, when it isn't the one that ran: the board
+   *  holds a name this build doesn't ship, so the run fell back. */
+  unknownRuntimeHarness?: string
   /** What each declared setting is set to, keyed by its key. A setting the file doesn't
    *  carry is absent, meaning the agent's own default. A `secret` is never in here — its
    *  value lives in docs/kanban/.env and is never read back. */
@@ -104,35 +95,6 @@ export interface HarnessAsk {
   /** The harness a run already committed to — a resume continues the conversation the agent
    *  that started it opened, and a plan being reopened spawns exactly what it planned. */
   pin?: string
-  /** Read the BOARD's own answer and skip this computer's bindings: `harness` and
-   *  `harnessSettings`, which are the binding a computer that has bound nothing falls back
-   *  to. This is what `akb agent use` and `akb agent set` read and write, so a dialog never
-   *  shows one agent's values while saving into another's block. */
-  board?: boolean
-}
-
-// What a runtime runs as here, in the order the answers are tried:
-//
-//   1. this computer's binding for that runtime;
-//   2. this computer's binding for the GLOBAL runtime, which is what a runtime nobody bound
-//      here falls back to;
-//   3. nothing — and then the board's own `harness` and `harnessSettings` are this
-//      computer's global binding, so a fresh clone runs with no local setup at all.
-//
-// A binding naming a harness this build doesn't ship is passed over exactly like a binding
-// that isn't there. Either way the run's log says which runtime was asked for and what it
-// ran as (`runtimeNote`).
-function resolveBinding(
-  runtime: string,
-  global: string,
-  bindings: Record<string, RuntimeBinding>,
-): { binding?: RuntimeBinding; fallback?: RuntimeFallback } {
-  const own = bindings[runtime]
-  if (own && harnessByName(own.harness)) return { binding: own }
-  const was = own ? { was: 'unknown-harness' as const, bound: own.harness } : { was: 'unbound' as const }
-  const shared = runtime === global ? undefined : bindings[global]
-  if (shared && harnessByName(shared.harness)) return { binding: shared, fallback: { ...was, ran: 'global' } }
-  return { fallback: { ...was, ran: 'board' } }
 }
 
 function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
@@ -140,22 +102,25 @@ function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
   const staleCommand = typeof cfg.command === 'string' && cfg.command.trim() ? true : undefined
   const runtimes = readRuntimes(cfg)
   const runtime = ask.runtime && runtimes.names.includes(ask.runtime) ? ask.runtime : runtimes.global
-  const { binding, fallback } = ask.board
-    ? { binding: undefined, fallback: undefined }
-    : resolveBinding(runtime, runtimes.global, readBindings())
-  // `pin` wins over every binding: a run already committed to an agent spawns that agent,
+  // What this runtime runs as, from the board and nowhere else: its own entry, or — for the
+  // global runtime, and for one whose entry says nothing — the board's own `harness`
+  // (agent/settings.ts). `readRuntimes` never hands back an entry for the global runtime, so
+  // exactly one of the two answers exists for any name.
+  const entry = runtimes.agents[runtime]
+  // `pin` wins over the board: a run already committed to an agent spawns that agent,
   // whatever the settings have been changed to since.
-  const asked = ask.pin ?? binding?.harness ?? (typeof cfg.harness === 'string' ? cfg.harness.trim() : '')
+  const asked = ask.pin ?? entry?.harness ?? (typeof cfg.harness === 'string' ? cfg.harness.trim() : '')
   const known = harnessByName(asked)
   const harness = known ?? DEFAULT_HARNESS
-  // The settings the harness that RAN is set to. A binding carries its own; without one —
-  // and for a pin the binding doesn't name — they are the board's, under that harness's own
-  // name, because a name we don't ship runs the default and the default's settings are the
-  // default's.
-  const block: Record<string, unknown> =
-    binding && binding.harness === harness.name
-      ? binding.settings
-      : configBlock(configBlock(cfg.harnessSettings)[harness.name])
+  const unknownRuntimeHarness = entry && !ask.pin && !harnessByName(entry.harness) ? entry.harness : undefined
+  // What the harness that RAN is set to: its own block on the board — the default for that
+  // tool everywhere — with this runtime's own overrides on top, key by key. A name we don't
+  // ship runs the default, and the default's settings are the default's, so an entry that
+  // named another agent adds nothing.
+  const block: Record<string, unknown> = {
+    ...configBlock(configBlock(cfg.harnessSettings)[harness.name]),
+    ...(entry?.harness === harness.name ? entry.settings : {}),
+  }
   const command = commandOf(block, harness)
   const argv = command.split(/\s+/).filter(Boolean)
   const values: Record<string, string> = {}
@@ -165,9 +130,9 @@ function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
   // in the same file.
   const env = harness.settings.some((s) => s.kind === 'secret') ? readEnvFile() : {}
   for (const setting of harness.settings) {
-    // A key lives in docs/kanban/.env, never in this block — and never in a computer's
-    // binding either. A hand-written one here is ignored rather than used: the file we
-    // promised to keep it out of would be the one holding it.
+    // A key lives in docs/kanban/.env, never in this block. A hand-written one here is
+    // ignored rather than used: the file we promised to keep it out of would be the one
+    // holding it.
     if (setting.kind === 'secret') {
       if (setting.env && env[setting.env]) secretsSet.push(setting.key)
       continue
@@ -193,9 +158,7 @@ function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
     command,
     isDefault: !known,
     runtime,
-    // Nothing to say on a board that names no runtimes: there is one, everything is on it,
-    // and it is bound to what the board already held.
-    fallback: runtimes.named ? fallback : undefined,
+    unknownRuntimeHarness,
     values,
     secretsSet,
     ignored,
@@ -204,27 +167,22 @@ function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
   }
 }
 
-/** The line the board owes a run's log when the runtime it was asked for is not what it
- *  ran as — which runtime, what was bound, and what actually spawned. Null when the run got
- *  the runtime's own binding, which is the ordinary case and says nothing worth a line. */
+/** The line the board owes a run's log when the runtime it was asked for is not what it ran
+ *  as. One case is left: the board names an agent this version doesn't ship. Null otherwise,
+ *  which is every ordinary run. */
 export function runtimeNote(resolved: {
   runtime: string
-  fallback?: RuntimeFallback
+  unknownRuntimeHarness?: string
   harness: Harness
 }): string | null {
-  const { runtime, fallback, harness } = resolved
-  if (!fallback) return null
-  const why =
-    fallback.was === 'unbound'
-      ? `is not bound on this computer`
-      : `is bound to "${fallback.bound}", which this version doesn't run`
-  return `runtime "${runtime}" ${why} — running ${harness.label}.`
+  const { runtime, unknownRuntimeHarness, harness } = resolved
+  if (!unknownRuntimeHarness) return null
+  return `runtime "${runtime}" is set to "${unknownRuntimeHarness}", which this version doesn't run — running ${harness.label}.`
 }
 
 /** The settings the agent behind one runtime declares — the only keys that may be saved
- *  against it. With no runtime named it is the board's global one, which is the agent
- *  `akb agent set` writes for. */
-export function activeSettings(ask: HarnessAsk = { board: true }): HarnessSetting[] {
+ *  against it. With no runtime named it is the board's global one. */
+export function activeSettings(ask: HarnessAsk = {}): HarnessSetting[] {
   return resolveHarness(ask).harness.settings
 }
 
@@ -244,7 +202,7 @@ export function runtimeHarness(runtime?: string): { name: string; label: string;
  *  A box a provider merely *needs* is never required: a key can be written into
  *  docs/kanban/.env by hand at any moment, so an empty one is not the board's to call
  *  missing. */
-export function settingSaveError(key: string, value: string, ask: HarnessAsk = { board: true }): string | null {
+export function settingSaveError(key: string, value: string, ask: HarnessAsk = {}): string | null {
   const resolved = resolveHarness(ask)
   const { harness, values, secretsSet } = resolved
   const list = providerSetting(harness.settings)
@@ -587,11 +545,11 @@ export function setupInstruction(): string {
  *  offer the rest — including the settings each agent it could switch to takes, so nothing
  *  outside this package keeps its own list. */
 export function agentInfo(): AgentInfo {
-  // The BOARD's own answer, not this computer's: these fields are what `akb agent use` and
-  // `akb agent set` read and write, and they write `harness` and `harnessSettings`. What a
-  // runtime runs as here is `runtimes` below.
+  // The global runtime's answer, which is the board's own `harness` and `harnessSettings` —
+  // the fields `akb agent use` and `akb agent set` read and write. Every other runtime is in
+  // `runtimes` below, resolved the same way.
   const { harness, command, isDefault, values, secretsSet, ignored, unknownName, staleCommand } =
-    resolveHarness({ board: true })
+    resolveHarness()
   // Which of the agents this machine could actually run, asked once for the whole list: one
   // read of the PATH, then every agent answered out of it. It happens on every read of the
   // setting rather than once at startup, so a CLI installed while the board was open counts
@@ -643,8 +601,8 @@ export function agentInfo(): AgentInfo {
     runtimes: runtimeViews(runtimes),
     namedRuntimes: runtimes.named,
     globalRuntime: runtimes.global,
-    // The bindings above are this MACHINE's, so the pane that draws them names the machine
-    // it means. The hostname alone — reading it mints no identity (machine/identity.ts).
+    // The name a screen shows this computer by. The hostname alone — reading it mints no
+    // identity (machine/identity.ts).
     machine: machineName(),
     flows: FLOWS.map((flow) => {
       // `setup` always runs the global one: it is the run that has to work on a board
@@ -670,35 +628,26 @@ function harnessLookup(): (runtime: string) => string {
   }
 }
 
-/** Every runtime the board names, and what each one resolves to on this computer — down to
- *  the binding behind it, so a pane that sets one keeps no second read of its own (#344). */
+/** Every runtime the board names and everything a pane needs to draw or change one — the
+ *  agent it runs, what that agent is set to, and the command behind it. One read for the
+ *  whole list, so no screen keeps a second answer of its own (#344). */
 export function runtimeViews(runtimes: BoardRuntimes = readRuntimes()): RuntimeView[] {
-  const bindings = readBindings()
   return runtimes.names.map((name) => {
     const resolved = resolveHarness({ runtime: name })
     const model = resolved.values.model ?? ''
-    // The binding goes down only when it is the one that RAN: a runtime bound to a harness
-    // this build doesn't ship resolved to something else, and handing its settings back
-    // would draw one harness's values under another's fields.
-    const bound = bindings[name]
-    const binding: RuntimeBindingView | undefined =
-      bound && bound.harness === resolved.harness.name
-        ? {
-            harness: resolved.harness.name,
-            command: resolved.command,
-            values: resolved.values,
-            secretsSet: resolved.secretsSet,
-            ignored: resolved.ignored,
-          }
-        : undefined
     return {
       name,
       global: name === runtimes.global,
-      ...(runtimes.computers[name] ? { computer: runtimes.computers[name] } : {}),
       harness: resolved.harness.name,
       ...(model ? { model } : {}),
-      ...(resolved.fallback ? { fallback: resolved.fallback } : {}),
-      ...(binding ? { binding } : {}),
+      // Set only when the board names an agent this build can't run: the fields below are
+      // the agent that RAN, so a pane can say the saved name stopped working without
+      // drawing one agent's values under another's labels.
+      ...(resolved.unknownRuntimeHarness ? { unknownHarness: resolved.unknownRuntimeHarness } : {}),
+      command: resolved.command,
+      values: resolved.values,
+      secretsSet: resolved.secretsSet,
+      ignored: resolved.ignored,
     }
   })
 }

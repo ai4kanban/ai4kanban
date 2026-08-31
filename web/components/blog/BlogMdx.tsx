@@ -5,7 +5,7 @@ import * as figures from "./figures";
 import { Callout, FAQ, FAQItem, KeyTakeaways, Quote, TLDR } from "./MdxBlocks";
 import { ProseCode } from "./ProseCode";
 import { getCopy } from "@/i18n";
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentProps, ComponentPropsWithoutRef } from "react";
 
 // A post's body, compiled at build time. A server component: `MDXRemote` runs
 // the MDX compiler, which never reaches the browser.
@@ -57,12 +57,24 @@ const components = {
     ),
 };
 
-export function BlogMdx({ source }: { source: string }) {
+/**
+ * A long-form body — a post, or a documentation page — compiled and styled.
+ *
+ * `extra` adds to the closed set above for a caller whose bodies can write one
+ * more tag than a post can: the documentation passes its navigation cards.
+ */
+export function BlogMdx({
+  source,
+  extra,
+}: {
+  source: string;
+  extra?: ComponentProps<typeof MDXRemote>["components"];
+}) {
   return (
     <div className="blog-prose">
       <MDXRemote
         source={source}
-        components={components}
+        components={{ ...components, ...extra }}
         options={{
           mdxOptions: {
             remarkPlugins: [remarkGfm],

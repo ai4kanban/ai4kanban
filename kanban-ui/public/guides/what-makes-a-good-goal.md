@@ -1,4 +1,4 @@
-<!-- The in-app short version of docs/guides/what-makes-a-good-goal.md — keep it one paragraph. -->
+<!-- The in-app short version of web/docs/what-makes-a-good-goal.mdx — keep it one paragraph. -->
 
 # What makes a good goal
 

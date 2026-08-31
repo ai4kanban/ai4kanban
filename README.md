@@ -6,7 +6,7 @@
 
 **English** · [简体中文](README-zh.md)
 
-[Download](https://ai4kanban.dev/download) · [Website](https://ai4kanban.dev) · [Guide](docs/guides/daily-loop.md)
+[Download](https://ai4kanban.dev/download) · [Website](https://ai4kanban.dev) · [Guide](https://ai4kanban.dev/docs/daily-loop)
 
 <img src="https://cdn.ai4kanban.dev/og-image-v6.jpg" alt="AI4Kanban — a project board that plans autonomously" width="720">
 
@@ -84,9 +84,9 @@ criteria.
 
 ## Learn more
 
-- [Daily workflow](docs/guides/daily-loop.md)
-- [Writing a useful project goal](docs/guides/what-makes-a-good-goal.md)
-- [What each coding agent can and can't do](docs/guides/connectors.md)
+- [Daily workflow](https://ai4kanban.dev/docs/daily-loop)
+- [Writing a useful project goal](https://ai4kanban.dev/docs/what-makes-a-good-goal)
+- [What each coding agent can and can't do](https://ai4kanban.dev/docs/connectors)
 - Run `akb help` for the bundled CLI reference.
 - Explore this repository's own board in [`docs/kanban/`](docs/kanban/).
 

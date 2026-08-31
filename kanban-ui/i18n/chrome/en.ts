@@ -75,7 +75,7 @@ const en: ChromeCopy = {
   },
   guide: {
     failed: "The guide didn’t load —",
-    readOnGitHub: "read it on GitHub",
+    readOnline: "read it on the website",
     failedEnd: ".",
     reading: "Reading the guide…",
   },

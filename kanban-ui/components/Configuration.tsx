@@ -337,11 +337,11 @@ export function HarnessPicker({
   onTested?: (result: ConnectionTest | null) => void;
   /** Filled in with the pane's own Test, so a screen outside it can run one (#280). */
   runTest?: RunTest;
-  /** Set one RUNTIME's binding on this computer instead of the board's own harness
-   *  (#344). Everything drawn is the same — the same grid, the same declared settings,
-   *  the same Test — and only where a save lands differs: `~/.ai4kanban/runtimes.json`
-   *  rather than `docs/kanban/ui.config.json`. A key goes to `docs/kanban/.env` either
-   *  way, because a binding is one machine's file and a key was never in one. */
+  /** Set what one RUNTIME runs as, instead of the board's global agent (#344). Everything
+   *  drawn is the same — the same grid, the same declared settings, the same Test — and only
+   *  where a save lands differs: that runtime's entry rather than the board's own `harness`.
+   *  Both are `docs/kanban/ui.config.json`; a key goes to `docs/kanban/.env` either way,
+   *  because that is the file git does not carry. */
   bind?: BindTarget;
 }) {
   // The agent setting as the file now reads it. It starts as the server's first
@@ -365,11 +365,11 @@ export function HarnessPicker({
   } =>
     bind
       ? {
-          active: view?.binding?.harness ?? "",
-          command: view?.binding?.command ?? "",
-          values: view?.binding?.values ?? {},
-          secretsSet: view?.binding?.secretsSet ?? [],
-          ignored: view?.binding?.ignored ?? [],
+          active: view?.harness ?? "",
+          command: view?.command ?? "",
+          values: view?.values ?? {},
+          secretsSet: view?.secretsSet ?? [],
+          ignored: view?.ignored ?? [],
         }
       : {
           active: info.name,
@@ -622,14 +622,16 @@ export function HarnessPicker({
   // A hand-edited `command` override is the one thing worth a note under the cards — it's
   // what actually runs, and it's invisible otherwise. The saved pick is the board's harness,
   // or the harness this computer bound this runtime to.
-  const savedActive = bind ? (view?.binding?.harness ?? "") : info.name;
-  const savedCommand = bind ? (view?.binding?.command ?? "") : info.command;
+  const savedActive = bind ? (view?.harness ?? "") : info.name;
+  const savedCommand = bind ? (view?.command ?? "") : info.command;
   const overridden = Boolean(savedCommand) && savedCommand !== options.find((o) => o.name === savedActive)?.command;
 
-  // What Test says it is about to spawn. On an unbound runtime that is the fallback the
-  // board would really run — the button tests the runtime, not the empty grid above it.
+  const labelOf = (name: string) => options.find((o) => o.name === name)?.label ?? name;
+
+  // What Test is about to spawn. One answer everywhere now: the agent on the grid is the
+  // agent the board saved for this runtime, and a run resolves that same entry.
   const spawns = active || view?.harness || "";
-  const testLabel = options.find((o) => o.name === spawns)?.label ?? spawns;
+  const testLabel = labelOf(spawns);
 
   return (
     <div className="flex flex-col gap-2">
@@ -789,6 +791,8 @@ export function HarnessPicker({
       <ConnectionTester
         key={`${bind?.runtime ?? ""}|${active}|${JSON.stringify(saved)}|${[...secretsSet].sort().join(",")}`}
         agentLabel={testLabel}
+        expected={spawns}
+        labelOf={labelOf}
         runtime={bind?.runtime}
         unsavedPick={Boolean(pending)}
         disabled={saving}
@@ -867,6 +871,8 @@ function HarnessGaps({ heading, gaps }: { heading: string; gaps: HarnessGap[] })
 // nothing about the test reaches the board, the runs panel, or a card.
 function ConnectionTester({
   agentLabel,
+  expected,
+  labelOf,
   runtime,
   unsavedPick,
   disabled,
@@ -874,6 +880,11 @@ function ConnectionTester({
   runTest,
 }: {
   agentLabel: string;
+  /** The agent this pane says the press will spawn, and how to name one. The answer says
+   *  which agent it really was, and the two disagreeing is the one thing a result must not
+   *  keep to itself. */
+  expected: string;
+  labelOf: (harness: string) => string;
   /** The runtime to spawn (#344). Absent tests the board's global one, which is what
    *  setup's own step is about. */
   runtime?: string;
@@ -950,7 +961,16 @@ function ConnectionTester({
       ) : (
         unsavedPick && <p className="text-[12px] leading-relaxed text-nb-ink-soft">{c.unsavedPick}</p>
       )}
-      {(running || result) && <TestResult copy={c} running={running} result={result} />}
+      {(running || result) && (
+        <TestResult
+          copy={c}
+          running={running}
+          result={result}
+          ran={
+            result?.harness && result.harness !== expected ? c.ran(labelOf(result.harness)) : ""
+          }
+        />
+      )}
     </div>
   );
 }
@@ -967,10 +987,13 @@ function TestResult({
   copy,
   running,
   result,
+  ran,
 }: {
   copy: ConfigurationCopy["harness"]["test"];
   running: boolean;
   result: ConnectionTest | null;
+  /** What actually spawned, when it isn't what the pane offered. Empty when they agree. */
+  ran: string;
 }) {
   const tone = running
     ? { bg: "var(--color-nb-wash)", ink: "var(--color-nb-ink-soft)" }
@@ -1009,6 +1032,14 @@ function TestResult({
           </>
         )}
       </p>
+
+      {/* Which agent answered, when it isn't the one this pane offered — a pass for an
+          agent you didn't mean to test is a pass that means nothing. */}
+      {!running && ran && (
+        <p className="mt-1.5 text-[12px] font-[700] leading-relaxed" style={{ color: tone.ink }}>
+          {ran}
+        </p>
+      )}
 
       {/* The one failure with an instruction attached: name the command that
           installs the agent's CLI, so there is something to do about it. */}

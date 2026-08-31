@@ -1,0 +1,13 @@
+{
+  "$comment": "The documentation rail. Groups render top to bottom in this order; inside a group, pages render in the order listed. To move or regroup a page, move its slug here — group and order are never frontmatter. A slug is the .mdx filename without the extension, and `index` is the /docs landing page. A page missing from this list, or a slug here with no file behind it, fails the build.",
+  "groups": [
+    {
+      "label": "Start here",
+      "items": ["index", "what-makes-a-good-goal"]
+    },
+    {
+      "label": "Using the board",
+      "items": ["daily-loop", "connectors"]
+    }
+  ]
+}

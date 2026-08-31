@@ -185,21 +185,19 @@ A runtime, so different flows run different tools
   agent runtime add <name>     name one
   agent runtime remove <name>  drop it; whatever named it runs the global one
   agent runtime rename <old> <new>
-                               rename it, carrying the flows and spec agents that
-                               named it; this computer's agent is copied, and every
-                               other computer has none set for the new name
+                               rename it, carrying everything that named it and
+                               what it runs as
   agent runtime global <name>  the one a flow that names none runs on
   agent runtime for <what> <name>
                                point one flow or spec agent at a runtime; "-" puts it
                                back on the global one
-  agent bind <name> <agent>    what that runtime runs as on THIS computer
+  agent bind <name> <agent>    what that runtime runs as
   agent bind <name> set <key> <value>
-                               one of that agent's settings, here
+                               one of that agent's settings, for that runtime
 
-  The names live with the board and the agents live with the computer, in
-  \`~/.ai4kanban/runtimes.json\`. A runtime nobody set here runs this computer's
-  global one, and a computer that has set nothing runs \`agent use\`'s pick — so
-  a fresh clone works with no local setup at all.
+  All of it is the board's, in \`docs/kanban/ui.config.json\`. The global runtime
+  runs \`agent use\`'s pick; a runtime with nothing of its own runs it too — so a
+  fresh clone runs what everyone else runs, with nothing to set up per machine.
 
   A key is the one thing to hand back rather than run. Give the user the line —
   \`${program} agent set apiKey <their-key>\` — and let them type it: a key an agent types

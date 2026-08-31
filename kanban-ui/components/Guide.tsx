@@ -3,7 +3,7 @@
 // A guide readable where its link is. "What makes a good goal" used to be a link
 // out to GitHub — in the desktop window that is a hand-off to the system browser,
 // and when that hand-off fails the click does nothing. A short in-app version
-// ships with the UI instead (public/guides/, condensed from docs/guides/) and
+// ships with the UI instead (public/guides/, condensed from web/docs/) and
 // opens as a drawer under its own line: the rail's Memory slide, a 0fr → 1fr
 // grid row with the content mounted throughout so there is something to slide.
 
@@ -100,12 +100,12 @@ export function GuideDrawer({
               <p>
                 {c.failed}{" "}
                 <a
-                  href={`https://github.com/ai4kanban/ai4kanban/blob/main/docs/guides/${guide}.md`}
+                  href={`https://ai4kanban.dev/docs/${guide}`}
                   target="_blank"
                   rel="noreferrer"
                   className="underline underline-offset-2 hover:text-nb-ink"
                 >
-                  {c.readOnGitHub}
+                  {c.readOnline}
                 </a>
                 {c.failedEnd}
               </p>

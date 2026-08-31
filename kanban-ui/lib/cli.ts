@@ -167,34 +167,28 @@ export interface BoardRules {
 
   // the agent, and what it is set to
   agentInfo(): AgentInfo;
-  /** `ask` names the harness the settings are read against (#343): the board's own by
-   *  default, or the one a runtime is bound to on this computer. A copy of the rules from
-   *  before runtimes ignores it and answers for the board's, which is what it always did. */
-  activeSettings(ask?: { runtime?: string; board?: boolean }): HarnessSetting[];
-  settingSaveError(
-    key: string,
-    value: string,
-    ask?: { runtime?: string; board?: boolean },
-  ): string | null;
+  /** `ask` names the runtime the settings are read against (#343): the board's global one
+   *  by default, or the agent that runtime runs. A copy of the rules from before runtimes
+   *  ignores it and answers for the board's, which is what it always did. */
+  activeSettings(ask?: { runtime?: string }): HarnessSetting[];
+  settingSaveError(key: string, value: string, ask?: { runtime?: string }): string | null;
   setupInstruction(): string;
   setHarness(name: string): WriteResult;
   setHarnessSetting(key: string, value: string): WriteResult;
   setSecret(name: string, value: string): WriteResult;
-  /** Named a runtime, the test spawns what THAT runtime resolves to here (#343). */
+  /** Named a runtime, the test spawns what THAT runtime runs as (#343). */
   testConnection(runtime?: string): Promise<ConnectionTest>;
 
-  // the runtimes (#343, #344) — the board names them, this computer says what each one
-  // runs as. Optional: a project can be running rules older than the release that added
-  // them, and Configuration → Runtimes then draws the board's own harness alone.
+  // the runtimes (#343, #344) — the board names them and says what each one runs as, all of
+  // it in docs/kanban/ui.config.json. Optional: a project can be running rules older than
+  // the release that added them, and Configuration → Runtimes then draws the board's own
+  // agent alone.
   addRuntime?(name: string): WriteResult;
   removeRuntime?(name: string): WriteResult;
   renameRuntime?(from: string, to: string): WriteResult;
   setGlobalRuntime?(name: string): WriteResult;
-  /** The computer a runtime is meant to run on (#370) — the board's answer, not this
-   *  machine's. An empty name puts it back on the computer a run starts on. */
-  setRuntimeComputer?(name: string, computer: string): WriteResult;
-  bindRuntime?(runtime: string, harness: string): WriteResult;
-  setBindingSetting?(runtime: string, key: string, value: string): WriteResult;
+  setRuntimeHarness?(runtime: string, harness: string): WriteResult;
+  setRuntimeSetting?(runtime: string, key: string, value: string): WriteResult;
 
   // the board, read
   readBoard(): Promise<Board>;

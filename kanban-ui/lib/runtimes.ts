@@ -2,19 +2,16 @@ import { boardRules } from "./cli";
 import type { WriteResult } from "./types";
 
 // --- the runtimes, through the CLI (#343, #344) ------------------------------
-// Two halves, and the door onto each is here. The BOARD names its runtimes and says which
-// one is global — that travels with the repository, in docs/kanban/ui.config.json. THIS
-// COMPUTER says what each name runs as, in ~/.ai4kanban/runtimes.json, and never writes
-// that into the board.
+// One place holds all of it: docs/kanban/ui.config.json, which travels with the repository.
+// The board names its runtimes, says which one is global, and says what each one runs as —
+// so every checkout runs the same thing and no machine keeps a setting of its own.
 //
 // Every move is optional on the rules: a project can be running a command older than
-// runtimes, and Configuration → Runtimes draws the board's own harness alone rather than a
+// runtimes, and Configuration → Runtimes draws the board's own agent alone rather than a
 // pane whose buttons all fail.
 
 const TOO_OLD =
   "this board's rules are older than runtimes — run `npm install -g ai4kanban`.";
-
-// ---- the board's half --------------------------------------------------------
 
 export async function addRuntime(name: string): Promise<WriteResult> {
   const rules = await boardRules();
@@ -36,29 +33,26 @@ export async function setGlobalRuntime(name: string): Promise<WriteResult> {
   return rules.setGlobalRuntime ? rules.setGlobalRuntime(name) : { ok: false, error: TOO_OLD };
 }
 
-/** Point a runtime at a computer, or back at the one a run starts on with an empty name
- *  (#370). The board's half: it travels with the repository, beside the names. */
-export async function setRuntimeComputer(name: string, computer: string): Promise<WriteResult> {
+/** The agent one runtime runs. The global one writes the board's own `harness`; every other
+ *  writes its own entry beside the names. */
+export async function setRuntimeHarness(
+  runtime: string,
+  harness: string,
+): Promise<WriteResult> {
   const rules = await boardRules();
-  return rules.setRuntimeComputer
-    ? rules.setRuntimeComputer(name, computer)
+  return rules.setRuntimeHarness
+    ? rules.setRuntimeHarness(runtime, harness)
     : { ok: false, error: TOO_OLD };
 }
 
-// ---- this computer's half ----------------------------------------------------
-
-export async function bindRuntime(runtime: string, harness: string): Promise<WriteResult> {
-  const rules = await boardRules();
-  return rules.bindRuntime ? rules.bindRuntime(runtime, harness) : { ok: false, error: TOO_OLD };
-}
-
-export async function setBindingSetting(
+/** One of that runtime's settings. Never a key: those stay in docs/kanban/.env. */
+export async function setRuntimeSetting(
   runtime: string,
   key: string,
   value: string,
 ): Promise<WriteResult> {
   const rules = await boardRules();
-  return rules.setBindingSetting
-    ? rules.setBindingSetting(runtime, key, value)
+  return rules.setRuntimeSetting
+    ? rules.setRuntimeSetting(runtime, key, value)
     : { ok: false, error: TOO_OLD };
 }

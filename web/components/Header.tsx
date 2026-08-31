@@ -70,11 +70,12 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
             block here as it is wide — just with the label dropped, since the
             mark is the name.
 
-            The swap is at `md`, not `sm`, because `sm` is where the wide nav
-            first fits and nothing more — at 640px the five items and the button
-            fill the row edge to edge, and one longer word (fr: "Installation",
-            "Comparatifs") breaks it. */}
-        <div className="flex items-center gap-2.5 text-[0.95rem] text-muted md:hidden">
+            The swap is at `lg`, not `sm` or `md`. `sm` is where the wide nav
+            first fits and nothing more — at 640px five items and the button fill
+            the row edge to edge, and one longer word (fr: "Installation",
+            "Comparatifs") breaks it. `md` held six; Docs is the seventh, which
+            is the width `md` no longer has at any gap. */}
+        <div className="flex items-center gap-2.5 text-[0.95rem] text-muted lg:hidden">
           <HeaderLanguage locale={locale} label={c.shared.language.label} />
           {/* The footer's plain "GitHub", not the nav's — the nav string carries
               a ↗ that a screen reader reads out as an arrow. */}
@@ -88,14 +89,12 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
           <MobileNav c={c} locale={locale} />
         </div>
 
-        {/* The gap is tighter between `md` and `lg` than above it. At 768 the
-            row is six items and a button, and French is the longest set of
-            words in it — "Télécharger", "Comparatifs", "Français" — which at
-            the wide gap runs 29px past the viewport. Sixteen pixels there buys
-            forty back and reads the same at that width; the full gap returns at
-            `lg`, where there is room for it. A seventh item does not fit at any
-            gap: that is the point where the swap moves from `md` to `lg`. */}
-        <nav className="hidden items-center justify-center text-[0.95rem] text-muted md:flex md:gap-x-4 lg:gap-x-6">
+        {/* The gap is tighter between `lg` and `xl` than above it. At 1024 the
+            row is seven items and a button, and French is the longest set of
+            words in it — "Télécharger", "Comparatifs", "Français". Sixteen
+            pixels there buys forty back and reads the same at that width; the
+            full gap returns at `xl`, where there is room for it. */}
+        <nav className="hidden items-center justify-center text-[0.95rem] text-muted lg:flex lg:gap-x-4 xl:gap-x-6">
           {/* The one way in. The landing page also hands out the setup prompt,
               under `#install`, but the header names a single way to get the
               product — two of them in one row is a choice a reader has to make
@@ -107,8 +106,11 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
           >
             {nav.download}
           </a>
-          {/* Recipes and the blog are English-only, so neither link ever takes a
-              locale prefix. */}
+          {/* The docs, the recipes and the blog are English-only, so none of
+              these links ever takes a locale prefix. */}
+          <a href="/docs" className="transition-colors hover:text-ink">
+            {nav.docs}
+          </a>
           <a href="/recipes" className="transition-colors hover:text-ink">
             {nav.recipes}
           </a>

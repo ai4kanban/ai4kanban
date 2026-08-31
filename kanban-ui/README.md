@@ -1040,46 +1040,37 @@ its own, however that was chosen, so it stays settable with automatic Git commit
 
 ### Runtimes, and the harness behind one
 
-**Runtimes** says two things and keeps them visibly apart: the runtimes **the board** names, shared
-with everyone on it, and which coding tool **this computer** runs each of them as. A board that names
-no runtimes has no list — the pane is the board's own harness and its settings, with **Add runtime**
-under them, and adding the first one is what splits the pane in two. Adding it keeps `default` beside
-the new name and stays global on it, so every flow goes on running exactly what it ran before.
+**Runtimes** is the runtimes the board names and the coding tool each one runs — all of it the
+board's, so everyone on the repository reads the same answers and nothing has to be set up per
+machine. A board that names no runtimes has no list: the pane is the board's own agent and its
+settings, with **Add runtime** under them, and adding the first one is what turns it into a list.
+Adding it keeps `default` beside the new name and stays global on it, so every flow goes on running
+exactly what it ran before.
 
-The list sets nothing. One row per runtime: the board's name for it on the left, what this computer
-runs it as on the right, each half labelled with who reads it. A runtime this computer hasn't bound
-says so and names what ran instead — this computer's binding for the global runtime, or the board's
-own harness where this computer has bound nothing at all. Pressing a row opens that runtime.
+The list sets nothing. One row per runtime: its name, and the agent it runs. A runtime whose saved
+agent is one this build can't run says so and names what ran instead. Pressing a row opens it.
 
-There, the binding is the one thing that can be pressed: the square harness cards below, that
-harness's own settings, **Test** — which spawns that runtime and not the board's global one — and
-**Reset**, which drops this computer's binding after saying what the runtime falls back to and that
-the settings under it go with it. Above them are the board's three moves, which change what the
-repository holds and nothing about this machine:
+There, the agent is what can be pressed: the square agent cards, that agent's own settings, and
+**Test** — which spawns that runtime and not the board's global one. Above them are the board's
+three moves:
 
-- **Rename** carries the flows and spec agents that named it. This computer's binding is *copied* to
-  the new name, so the old name stays bound for whatever else on this machine names it, and every
-  other computer reads the renamed runtime as unbound until someone binds it there.
-- **Make global** points the board's global runtime here — what a flow that names none runs on.
+- **Rename** carries everything held under the old name: the flows and spec agents that named it,
+  and the agent it runs.
+- **Make global** points the board's global runtime here — what a flow that names none runs on. The
+  two runtimes swap homes and both go on running exactly what they ran.
 - **Remove** names the flows and spec agents it moves onto the global runtime first, and clears their
-  pointers so re-adding the name never puts them back. Removing the global runtime is refused. This
-  computer's binding for the removed name is left alone: every board on this machine shares it.
+  pointers so re-adding the name never puts them back. What it ran as goes with it. Removing the
+  global runtime is refused.
 
 Which runtime a flow or spec agent uses is **not** set here — `akb agent runtime for <what> <name>`
 is where that lives, and a removal says so.
 
-A key is the one setting on a runtime that is not this computer's own: it writes `docs/kanban/.env`
-exactly as the board's does, so two runtimes on one harness share one key, and the box says so. A
-runtime's settings are judged by the harness *it* is bound to, so a runtime on Codex offers and
-accepts Codex's settings while the board's own harness is something else.
+A key is the one setting that is not held beside the runtime: it writes `docs/kanban/.env`, which git
+does not carry, so two runtimes on one agent share one key and the box says so. A runtime's settings
+are judged by the agent *it* runs, so a runtime on Codex offers and accepts Codex's settings while
+the board's global agent is something else.
 
-When another machine is this board's server, what **it** runs the runtime as shows read-only under
-this computer's card — its hostname, its harness and its model, from what that machine already
-publishes to Cloud. There is no such line when this machine is the server, when nobody is signed in,
-when Cloud can't be reached, or when the server reported nothing for that runtime; the view never
-waits on that read.
-
-A board whose `akb` is too old to answer draws the harness pane alone.
+A board whose `akb` is too old to answer draws the agent pane alone.
 
 Six harnesses ship:
 
@@ -1390,35 +1381,36 @@ yet. A pass a flow spawns runs that flow's runtime — a refine's clarify, resol
 take refine's, while an `akb resolve` you type keeps the `resolve` flow's — and only a flow is named,
 never a pass.
 
-**`~/.ai4kanban/runtimes.json` is the computer's half**, beside the Cloud sign-in and outside every
-project:
+**What each runtime runs as is the board's too**, in the same file. One place per runtime: the
+global one is `harness` and `harnessSettings`, the keys a board has always had, and every other
+runtime is an entry under `runtimes.agents`:
 
 ```json
-{
-  "default": { "harness": "claude-code", "settings": { "model": "claude-opus-5" } },
-  "cheap": { "harness": "codex", "settings": { "model": "gpt-5.1-codex" } }
+"runtimes": {
+  "names": ["default", "cheap"],
+  "global": "default",
+  "agents": { "cheap": { "harness": "codex", "settings": { "model": "gpt-5.1-codex" } } }
 }
 ```
 
-Keyed by runtime name and not by board, so two checkouts of one board share a binding — and two
-different boards have to agree on names to share a machine. API keys are never in here: they stay in
-`docs/kanban/.env`, under the variable each agent declares.
+A name is never in both, so nothing can disagree about what a runtime runs. API keys are never in
+here: they stay in `docs/kanban/.env`, under the variable each agent declares, which is the one file
+git does not carry.
 
-What a run ends up on, in order: this computer's binding for its runtime; this computer's binding for
-the **global** runtime, when the first is missing or names an agent this build doesn't ship; and
-finally `harness` and `harnessSettings` above, which is what a computer that has bound nothing runs —
-so a fresh clone works with no local setup at all. Whenever it isn't the runtime's own binding, the
-run's log says which runtime was asked for and what it ran as. A bound agent whose CLI simply isn't
-installed here does **not** fall back: the run fails with the install command in its log.
+What a run ends up on: its runtime's own entry, or `harness` when it has none — so a runtime nobody
+has set runs the board's agent and a fresh clone works with no local setup at all. Its settings are
+that agent's `harnessSettings` block with the runtime's own overrides on top, key by key. An entry
+naming an agent this build doesn't ship falls back to `harness`, and the run's log says so; an agent
+whose CLI simply isn't installed here does **not** fall back — the run fails with the install command
+in its log.
 
 A board written before runtimes existed has no `runtimes` key, and reads exactly as it always did:
-one runtime, every flow on it, bound to whatever `harness` and `harnessSettings` already say.
+one runtime, every flow on it, running whatever `harness` and `harnessSettings` already say.
 
 It is all read and written from a terminal too — `akb agent runtimes` prints the runtimes and what
-each flow and spec agent runs on, `akb agent runtime add|remove|rename|global|for` changes the
-board's half, and `akb agent bind` / `akb agent unbind` changes this computer's. `akb agent test
-<runtime>` spawns what one runtime resolves to here. Everything but `runtime for` is also in
-**Configuration → Runtimes** above.
+each flow and spec agent runs on, `akb agent runtime add|remove|rename|global|for` changes the names
+and the pointers, and `akb agent bind <runtime> <agent>` changes what one runs as. `akb agent test
+<runtime>` spawns it. Everything but `runtime for` is also in **Configuration → Runtimes** above.
 
 ### The spec agents
 

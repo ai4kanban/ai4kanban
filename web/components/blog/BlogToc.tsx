@@ -108,15 +108,32 @@ export function TocRail({ items }: { items: TocItem[] }) {
   );
 }
 
-/** The same list, folded into a block above the body, below `lg`. */
-export function TocBlock({ items }: { items: TocItem[] }) {
+/**
+ * The same list, folded into a block above the body, below `lg`.
+ *
+ * `noRail` keeps it at every width, for a page whose left column is already a
+ * route rail (the documentation) and so has no room for `TocRail` beside it.
+ */
+export function TocBlock({
+  items,
+  noRail = false,
+}: {
+  items: TocItem[];
+  noRail?: boolean;
+}) {
   const ids = useMemo(() => items.map((i) => i.id), [items]);
   const active = useActiveHeading(ids);
   const details = useRef<HTMLDetailsElement>(null);
   if (items.length < 2) return null;
 
   return (
-    <details ref={details} className={`${panelInset} group mb-10 px-5 py-4 lg:hidden`}>
+    // Closed at rest even where it is the page's only contents list: a long
+    // documentation page has twenty headings, and opening with all of them
+    // pushes the first sentence off the screen.
+    <details
+      ref={details}
+      className={`${panelInset} group mb-10 px-5 py-4 ${noRail ? "" : "lg:hidden"}`}
+    >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
         <span className={LABEL}>On this page</span>
         <span

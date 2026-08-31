@@ -19,25 +19,22 @@ export type ConfigurationCopy = {
     delivery: string;
     language: string;
   };
-  /** Configuration → Runtimes (#344, #370): the runtimes the BOARD names, the computer each
-   *  one runs on, and what THIS COMPUTER runs it as. The harness block below draws the last
-   *  of those — and, on a board that names no runtimes, the board's own harness on its own. */
+  /** Configuration → Runtimes (#344): the runtimes the board names and what each one runs
+   *  as, all of it in docs/kanban/ui.config.json. The harness block below draws one
+   *  runtime's agent — and, on a board that names no runtimes, the board's own. */
   runtimes: {
     title: string;
-    /** The pane's two tabs. */
-    tabs: { runtimes: string; computers: string };
     /** Over the runtime list. */
     listCaption: string;
-    /** The pane on a board that names no runtimes: today's harness, said to be the board's. */
+    /** Said under the list: these settings are the board's, and everyone reads them. */
     boardsOwn: string;
-    /** …and the computer it runs on, said there too. */
-    runsOn: (machine: string) => string;
+    /** The badge on the runtime a flow that names none runs on. */
     global: string;
-    /** What this computer runs that runtime as, in words. The row itself draws the harness
-     *  as its own mark, so this is what that mark is titled with. */
+    /** What that runtime runs as, in words. The row itself draws the agent as its own mark,
+     *  so this is what that mark is titled with. */
     runs: (harness: string, model: string) => string;
-    /** A row whose agent is inherited rather than set here is greyed and says nothing. The
-     *  one case said out loud: the agent set here isn't one this build can run. */
+    /** The one case a row says out loud: the agent the board holds for it isn't one this
+     *  build can run. */
     unknownAgent: (agent: string) => string;
     /** Naming a new runtime. */
     add: string;
@@ -45,19 +42,6 @@ export type ConfigurationCopy = {
     namePlaceholder: string;
     save: string;
     cancel: string;
-    /** One runtime's view. */
-    thisComputer: string;
-    /** The computer picker heading the binding card, read out loud. */
-    computer: string;
-    /** A computer the board can neither reach nor place — one only a runtime names. */
-    unreachable: string;
-    /** A runtime pointed somewhere else: what that computer says it runs it as, or that it
-     *  has said nothing, and the line that keeps the pick from reading as live routing. */
-    thereRuns: string;
-    saidNothing: (computer: string) => string;
-    notRouted: (computer: string) => string;
-    /** The Computers tab: every machine a runtime can be pointed at. */
-    computers: { caption: string; blurb: string };
     rename: string;
     makeGlobal: string;
     remove: string;
@@ -69,18 +53,13 @@ export type ConfigurationCopy = {
     /** The one removal that is refused. */
     removeGlobal: (runtime: string) => string;
     confirmRemove: string;
-    /** Said where a key box is drawn on a runtime: the key is the board's, not this
-     *  computer's, so two runtimes on one harness share it. */
+    /** Said where a key box is drawn on a runtime: keys live in docs/kanban/.env, so two
+     *  runtimes on one agent share one. */
     keyIsBoards: string;
-    /** The board's server, read-only under this computer. `notSaid` is the folded row's
-     *  short form of `saidNothing`: that computer reported nothing, which is not the same
-     *  as reporting it has no agent set. */
-    server: { label: string; notSet: string; notSaid: string };
     addFailed: string;
     removeFailed: (runtime: string) => string;
     renameFailed: (runtime: string) => string;
     globalFailed: (runtime: string) => string;
-    computerFailed: (runtime: string) => string;
   };
   /** The harness picker, drawn on a runtime and — on a board that names none — as the
    *  Runtimes pane itself. Its heading is `runtimes` above. */
@@ -116,6 +95,8 @@ export type ConfigurationCopy = {
       failedTimeout: (seconds: string) => string;
       failed: string;
       install: string;
+      /** What actually spawned, when it isn't the agent this pane offered. */
+      ran: (harness: string) => string;
     };
   };
   specAgents: {

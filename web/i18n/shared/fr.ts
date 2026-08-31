@@ -5,6 +5,7 @@ import type { SharedCopy } from "./types";
 const fr: SharedCopy = {
   nav: {
     download: "Télécharger",
+    docs: "Docs",
     recipes: "Recettes",
     blog: "Blog",
     compare: "Comparatifs",

@@ -49,13 +49,12 @@ export const NO_AGENT: AgentInfo = {
   flows: [],
 };
 
-/** The settings one harness declares — the only keys a save is allowed to write. With no
- *  runtime named it is the board's own pick; named one, the harness THAT runtime is bound
- *  to on this computer (#344), so a runtime on Codex is judged by Codex's rules. */
+/** The settings one agent declares — the only keys a save is allowed to write. With no
+ *  runtime named it is the board's global one; named one, the agent THAT runtime runs
+ *  (#344), so a runtime on Codex is judged by Codex's rules. */
 export async function activeSettings(runtime?: string): Promise<HarnessSetting[]> {
   const rules = await boardRules();
-  const ask = runtime ? { runtime } : { board: true };
-  return rules.activeSettings(ask) as unknown as HarnessSetting[];
+  return rules.activeSettings(runtime ? { runtime } : {}) as unknown as HarnessSetting[];
 }
 
 /** Why this setting can't be saved with this value, or null when it can. Judged against the
@@ -66,7 +65,7 @@ export async function settingSaveError(
   runtime?: string,
 ): Promise<string | null> {
   const rules = await boardRules();
-  return rules.settingSaveError(key, value, runtime ? { runtime } : { board: true });
+  return rules.settingSaveError(key, value, runtime ? { runtime } : {});
 }
 
 /** What one board action says to the agent. */

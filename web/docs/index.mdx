@@ -1,0 +1,55 @@
+---
+title: "AI4Kanban documentation"
+title_tag: "AI4Kanban documentation — the board, the loop, the agents"
+description: "How to run a project board that plans itself: write the goal the board plans from, drive the daily loop in plain language, and pick the coding agent your work runs on."
+lead: "A project board your coding agent drives. Write the goal, then say what you want in plain language — the board decides what happens next."
+last_updated: "September 1, 2026"
+nav_label: "Overview"
+icon: "compass"
+---
+
+## Install the board
+
+The board is a desktop app for macOS, Windows and Linux, and there is nothing to
+install before it. [Download it](/download), open your project, and the board is a
+folder of Markdown in `docs/kanban/` — versioned in git, readable by you and by
+your agent.
+
+Prefer a terminal? `npm install -g ai4kanban@latest`, then `akb install` in the
+project you want a board for.
+
+## Read these first
+
+<CardGroup cols={2}>
+  <Card title="What makes a good goal" icon="target" href="/docs/what-makes-a-good-goal">
+    The one file the board asks you to write. Every proposal it makes is judged
+    against it, so what you put there decides what gets suggested next.
+  </Card>
+  <Card title="The daily loop" icon="repeat" href="/docs/daily-loop">
+    The rhythm once the board exists — what to say to pick work, plan a release,
+    refine a card and build it, and which button does the same thing.
+  </Card>
+</CardGroup>
+
+## Then pick your tooling
+
+<CardGroup cols={2}>
+  <Card title="What each coding agent can do" icon="cpu" href="/docs/connectors">
+    Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness and ZCode all do the
+    work. What differs is what they report back, and what a run may touch.
+  </Card>
+  <Card title="Recipes" icon="package" href="/recipes">
+    Ready-made recurring tasks you add to your board in one prompt — memory
+    pruning, competitor analysis, and more.
+  </Card>
+</CardGroup>
+
+## Where the rest lives
+
+The flows themselves — how a card is refined, what goes into memory, how a
+release is planned — ship with the command rather than with this site, so
+`akb update` upgrades them all at once. `akb guide` lists them, and
+`akb guide board` is how the board works at all.
+
+The board app's own reference — what every column, panel, button and setting does
+— is `kanban-ui/README.md` in the [repository](https://github.com/ai4kanban/ai4kanban).

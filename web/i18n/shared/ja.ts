@@ -5,6 +5,7 @@ import type { SharedCopy } from "./types";
 const ja: SharedCopy = {
   nav: {
     download: "ダウンロード",
+    docs: "ドキュメント",
     recipes: "レシピ",
     blog: "ブログ",
     compare: "比較",

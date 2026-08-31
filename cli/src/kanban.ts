@@ -108,10 +108,10 @@ export {
 } from './lib/agent/settings'
 export { testConnection } from './lib/agent/test'
 
-// The runtimes (#343): the board names them and points each flow and spec agent at one,
-// and this computer says what each one runs as. `agentInfo` already carries the answer for
-// every flow and `readSpecAgents` for every agent, so a screen offering these keeps no list
-// of its own — these are only the writers.
+// The runtimes (#343): the board names them, says what each one runs as, and points each
+// flow and spec agent at one — all of it in docs/kanban/ui.config.json. `agentInfo` already
+// carries the answer for every runtime and every flow, and `readSpecAgents` for every agent,
+// so a screen offering these keeps no list of its own — these are only the writers.
 export {
   addRuntime,
   readRuntimes,
@@ -119,12 +119,11 @@ export {
   renameRuntime,
   setFlowRuntime,
   setGlobalRuntime,
-  setRuntimeComputer,
+  setRuntimeHarness,
+  setRuntimeSetting,
   setSpecAgentRuntime,
 } from './lib/agent/settings'
-export type { BoardRuntimes } from './lib/agent/settings'
-export { bindRuntime, copyBinding, readBindings, setBindingSetting } from './lib/machine/runtimes'
-export type { RuntimeBinding } from './lib/machine/runtimes'
+export type { BoardRuntimes, RuntimeAgent } from './lib/agent/settings'
 export { ensureAkbDir, setBoardRoot } from './lib/paths'
 
 // The Cloud sign-in (#326): the account this MACHINE acts as, held in one file outside every

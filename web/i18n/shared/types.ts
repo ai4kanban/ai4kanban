@@ -5,6 +5,8 @@ export type SharedCopy = {
      *  handed out. The landing page's setup prompt has no nav slot: see
      *  `components/Header.tsx`. */
     download: string;
+    /** The documentation index. English-only, like the recipes. */
+    docs: string;
     recipes: string;
     /** The blog index. English-only, like the recipes. */
     blog: string;

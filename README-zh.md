@@ -6,7 +6,7 @@
 
 [English](README.md) · **简体中文**
 
-[下载](https://ai4kanban.dev/download) · [官网](https://ai4kanban.dev) · [使用指南](docs/guides/daily-loop.md)
+[下载](https://ai4kanban.dev/download) · [官网](https://ai4kanban.dev) · [使用指南](https://ai4kanban.dev/docs/daily-loop)
 
 <img src="https://cdn.ai4kanban.dev/og-image-v6.jpg" alt="AI4Kanban——自主规划、随决策成长的项目看板" width="720">
 
@@ -71,9 +71,9 @@ AI4Kanban 是一个以看板为工作界面的项目管理 Agent。它结合项�
 
 ## 延伸阅读
 
-- [日常工作流](docs/guides/daily-loop.md)
-- [如何写好项目目标](docs/guides/what-makes-a-good-goal.md)
-- [各个编码 Agent 的能力差异](docs/guides/connectors.md)
+- [日常工作流](https://ai4kanban.dev/docs/daily-loop)
+- [如何写好项目目标](https://ai4kanban.dev/docs/what-makes-a-good-goal)
+- [各个编码 Agent 的能力差异](https://ai4kanban.dev/docs/connectors)
 - 运行 `akb help` 查看内置 CLI 的命令说明。
 - 在 [`docs/kanban/`](docs/kanban/) 中查看本仓库实际使用的看板。
 

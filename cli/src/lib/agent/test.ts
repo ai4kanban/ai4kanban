@@ -93,11 +93,14 @@ export function testConnection(runtime?: string): Promise<ConnectionTest> {
     // to stop.
     let stopTimer = () => {}
 
+    // Every answer carries what it was about. The caller named a runtime at most; which
+    // agent that resolved to here is this end's answer, and a screen that doesn't hear it
+    // can only report the agent it happens to be drawing.
     const done = (res: Omit<ConnectionTest, 'ms'>) => {
       if (settled) return
       settled = true
       stopTimer()
-      resolve({ ...res, ms: Date.now() - startedAt })
+      resolve({ ...res, harness: run.harness, runtime: run.runtime, ms: Date.now() - startedAt })
     }
 
     // The one failure the board explains in its own words, because the raw error ("spawn

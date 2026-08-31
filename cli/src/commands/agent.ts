@@ -5,13 +5,13 @@
 // The same commands change them, so nothing has to open a browser to pick an agent, and a
 // front end can offer the agents and their settings without keeping a list of its own.
 //
-// Two layers (#343). The BOARD names the runtimes and says which one each flow and spec
-// agent runs on — that travels with the repository. THIS COMPUTER says what each runtime
-// runs as, in `~/.ai4kanban/runtimes.json`, and never writes that into the board. A
-// computer that has bound nothing runs `harness` and `harnessSettings`, which is what
-// `akb agent use` and `akb agent set` write, so a fresh clone runs with no local setup.
+// All of it is the BOARD's, in docs/kanban/ui.config.json (#343): the runtimes it names,
+// what each one runs as, and which one each flow and spec agent goes on. So it travels with
+// the repository and a fresh clone runs what everyone else runs, with nothing to set up per
+// machine. `akb agent use` and `akb agent set` write the global runtime's agent — the
+// `harness` and `harnessSettings` a board has always had — and `akb agent bind` writes any
+// other runtime's.
 
-import { bindRuntime, readBindings, setBindingSetting } from '../lib/machine/runtimes'
 import { FLOWS } from '../lib/agent/flows'
 import { providerSetting } from '../lib/agent/providers'
 import { activeSettings, agentInfo, runtimeHarness, settingSaveError } from '../lib/agent/resolve'
@@ -24,6 +24,8 @@ import {
   setGlobalRuntime,
   setHarness,
   setHarnessSetting,
+  setRuntimeHarness,
+  setRuntimeSetting,
   setSecret,
   setSpecAgentRuntime,
   unknownRuntime,
@@ -141,7 +143,7 @@ function listAgents(): MoveResult {
     const names = option.settings.map((s) => (s.kind === 'secret' ? `${s.key} (key)` : s.key))
     if (names.length) say(`    takes: ${names.join(', ')}`)
     // What this one can't do that another on the list can. Named rather than explained —
-    // `docs/guides/connectors.md` is where each is spelled out, and the board app shows the
+    // `web/docs/connectors.mdx` is where each is spelled out, and the board app shows the
     // full line beside the picker.
     if (option.gaps.length) say(`    lacks: ${option.gaps.map((g) => g.label.toLowerCase()).join('; ')}`)
   }
@@ -233,30 +235,23 @@ function checkSetting(setting: HarnessSetting, value: string, runtime?: string):
 
 // ---- the runtimes (#343) ---------------------------------------------------
 
-/** Every runtime, what it runs as here, and what each flow and spec agent is on. */
+/** Every runtime, what it runs as, and what each flow and spec agent is on. */
 function showRuntimes(): MoveResult {
   const info = agentInfo()
-  const bound = readBindings()
   for (const runtime of info.runtimes) {
-    const binding = bound[runtime.name]
-    const how = binding
-      ? runtime.fallback
-        ? `bound to "${binding.harness}", which this version doesn't run`
-        : 'bound here'
-      : 'not bound here'
-    say(`${runtime.global ? '*' : ' '} ${runtime.name.padEnd(12)} ${runtime.harness}   (${how})`)
-    const settings = Object.entries(binding?.harness === runtime.harness ? binding.settings : {})
-    for (const [key, value] of settings) say(`    ${key}: ${value}`)
+    const stale = runtime.unknownHarness ? `   (set to "${runtime.unknownHarness}", which this version doesn't run)` : ''
+    say(`${runtime.global ? '*' : ' '} ${runtime.name.padEnd(12)} ${runtime.harness}${stale}`)
+    for (const [key, value] of Object.entries(runtime.values)) say(`    ${key}: ${value}`)
   }
   say('')
   say('Runs on')
-  for (const flow of info.flows) say(`  ${flow.command.padEnd(20)} ${flow.runtime} — ${flow.harness} here`)
+  for (const flow of info.flows) say(`  ${flow.command.padEnd(20)} ${flow.runtime} — ${flow.harness}`)
   for (const agent of readSpecAgents()) {
-    say(`  ${agent.name.padEnd(20)} ${agent.runtime} — ${agent.harness} here`)
+    say(`  ${agent.name.padEnd(20)} ${agent.runtime} — ${agent.harness}`)
   }
   say('')
   say('The one marked * is the board\'s global runtime — what a flow that names none runs on.')
-  say('The names travel with the repository; what each one runs as is this computer\'s alone.')
+  say('All of it is the board\'s, so every checkout runs the same thing.')
   return { runtimes: info.runtimes, globalRuntime: info.globalRuntime, flows: info.flows }
 }
 
@@ -287,8 +282,8 @@ function addOne(name: string): MoveResult {
   if (!name) die('name a runtime: akb agent runtime add cheap', { kind: 'needs-input' })
   const res = addRuntime(name)
   if (!res.ok) die(res.error ?? 'the runtime could not be saved', { kind: 'save-failed' })
-  say(`"${name}" is a runtime on this board. It runs this computer's global binding until you`)
-  say(`bind it: \`akb agent bind ${name} <agent>\`.`)
+  say(`"${name}" is a runtime on this board. It runs the board's agent until you give it one`)
+  say(`of its own: \`akb agent bind ${name} <agent>\`.`)
   return { runtime: name }
 }
 
@@ -300,16 +295,13 @@ function removeOne(name: string): MoveResult {
   return { runtime: name, removed: true }
 }
 
-// Rename a runtime. The board's half moves whole — the flows, the spec agents and the
-// global pointer — while this computer's binding is COPIED to the new name, so the old name
-// stays bound for whatever else on this machine names it.
+// Rename a runtime. Everything the board holds under the old name moves whole — what it runs
+// as, the flows, the spec agents and the global pointer — so only the name changes.
 function renameOne(from: string, to: string): MoveResult {
   if (!from || !to) die('name a runtime and its new name: akb agent runtime rename cheap plan', { kind: 'needs-input' })
   const res = renameRuntime(from, to)
   if (!res.ok) die(res.error ?? 'the runtime could not be renamed', { kind: 'bad-value' })
-  say(`"${from}" is now "${to}". Whatever named it on this board came with it.`)
-  say(`On this computer "${to}" runs ${runtimeHarness(to).label}; "${from}" keeps its own binding, and`)
-  say(`every other computer reads "${to}" as unbound until someone binds it there.`)
+  say(`"${from}" is now "${to}". Everything that named it came with it, and it still runs ${runtimeHarness(to).label}.`)
   return { runtime: to, renamedFrom: from }
 }
 
@@ -362,7 +354,7 @@ function runtimeFor(args: string[]): MoveResult {
   return { flow: flow?.command, specAgent: agent?.name, runtime: on }
 }
 
-// ---- what a runtime runs as on THIS computer -------------------------------
+// ---- what one runtime runs as ----------------------------------------------
 
 function bindCommand(args: string[]): MoveResult {
   const runtime = args[0]?.trim() ?? ''
@@ -384,21 +376,19 @@ function bindCommand(args: string[]): MoveResult {
       agent: name,
     })
   }
-  const res = bindRuntime(runtime, harness.name)
-  if (!res.ok) die(res.error ?? 'the binding could not be saved', { kind: 'save-failed' })
-  say(`On this computer, "${runtime}" runs ${harness.label}. It is not written into the board.`)
+  const res = setRuntimeHarness(runtime, harness.name)
+  if (!res.ok) die(res.error ?? 'the agent could not be saved', { kind: 'save-failed' })
+  say(
+    runtime === runtimes.global
+      ? `"${runtime}" is the board's global runtime, so the board now runs ${harness.label}.`
+      : `"${runtime}" runs ${harness.label}, on this board and every checkout of it.`,
+  )
   return { runtime, harness: harness.name }
 }
 
-// One of the bound agent's settings, on this computer. Checked against THAT agent, never
-// the board's — a value Codex refuses would otherwise be saved against Claude Code's rules.
+// One of that runtime's settings. Checked against the agent THAT RUNTIME runs, never the
+// board's — a value Codex refuses would otherwise be saved against Claude Code's rules.
 function bindSetting(runtime: string, args: string[]): MoveResult {
-  const bound = readBindings()[runtime]
-  if (!bound) {
-    die(`"${runtime}" is not bound on this computer. Bind it first: \`akb agent bind ${runtime} <agent>\`.`, {
-      kind: 'bad-value',
-    })
-  }
   const settings = activeSettings({ runtime })
   const key = args[0]?.trim() ?? ''
   if (!key) {
@@ -413,11 +403,10 @@ function bindSetting(runtime: string, args: string[]): MoveResult {
       setting: key,
     })
   }
-  // A key is never part of a binding: it stays in docs/kanban/.env, under the variable name
-  // that setting declares, and a binding that held one would put it in a file nothing keeps
-  // out of git.
+  // A key never goes in the config: it stays in docs/kanban/.env, under the variable name
+  // that setting declares, because this file is the one the repository carries.
   if (setting.kind === 'secret') {
-    die(`${setting.label} is a key — it lives in docs/kanban/.env, never in a binding. Save it with \`akb agent set ${key} <value>\`.`, {
+    die(`${setting.label} is a key — it lives in docs/kanban/.env, never in ui.config.json. Save it with \`akb agent set ${key} <value>\`.`, {
       kind: 'bad-value',
     })
   }
@@ -425,13 +414,13 @@ function bindSetting(runtime: string, args: string[]): MoveResult {
   const wrong = checkSetting(setting, value, runtime)
   if (wrong) die(wrong, { kind: 'bad-value' })
 
-  const res = setBindingSetting(runtime, key, value)
+  const res = setRuntimeSetting(runtime, key, value)
   if (!res.ok) die(res.error ?? 'the setting could not be saved', { kind: 'save-failed' })
   const label = runtimeHarness(runtime).label
   say(
     value
-      ? `On this computer, "${runtime}" runs ${label} with ${setting.label} "${value}".`
-      : `${setting.label} cleared for "${runtime}" — ${label}'s own default runs.`,
+      ? `"${runtime}" runs ${label} with ${setting.label} "${value}".`
+      : `${setting.label} cleared for "${runtime}" — it runs what ${label} is set to on this board.`,
   )
   return { runtime, setting: key, value }
 }

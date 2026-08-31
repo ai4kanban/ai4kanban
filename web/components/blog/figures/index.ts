@@ -10,3 +10,6 @@ export { PlanningLayer } from "./PlanningLayer";
 export { DecisionLoop } from "./DecisionLoop";
 export { SelfBoardProgress } from "./SelfBoardProgress";
 export { MemoryFiles } from "./MemoryFiles";
+export { RequirementCascade } from "./RequirementCascade";
+export { BoardAudience } from "./BoardAudience";
+export { DecisionCompression } from "./DecisionCompression";

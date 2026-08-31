@@ -49,8 +49,10 @@ export interface CloudServer {
   runtimes?: ServerRuntime[]
 }
 
-/** What this computer runs the board's runtimes as. A board that names none reports none:
- *  its one runtime is the board's own setting, which Cloud already has no business holding. */
+/** What the board's runtimes run as. Every machine reads this out of the board itself, so
+ *  this is the board's own answer rather than one computer's — it is reported so a Cloud
+ *  that predates board-level runtimes still has something to show. A board that names none
+ *  reports none: its one runtime is the board's own setting. */
 export function runtimesHere(): ServerRuntime[] {
   const runtimes = readRuntimes()
   if (!runtimes.named) return []
@@ -58,7 +60,6 @@ export function runtimesHere(): ServerRuntime[] {
     name: view.name,
     harness: view.harness,
     ...(view.model ? { model: view.model } : {}),
-    ...(view.fallback ? { fallback: true } : {}),
   }))
 }
 

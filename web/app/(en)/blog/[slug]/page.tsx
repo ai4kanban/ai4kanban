@@ -47,6 +47,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       socialTitle: post.title,
       social: post.excerpt,
       type: "article",
+      publishedTime: post.publishedAt,
+      modifiedTime: post.updatedAt ?? post.publishedAt,
       translated: false,
     }),
     // A draft is a URL you hand to one person. `follow` stays on: the links out

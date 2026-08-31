@@ -74,7 +74,7 @@ const zh: ChromeCopy = {
   },
   guide: {
     failed: "指南未能加载——",
-    readOnGitHub: "在 GitHub 上阅读",
+    readOnline: "在官网阅读",
     failedEnd: "。",
     reading: "正在读取指南…",
   },

@@ -53,12 +53,11 @@ import {
 import { machineCopy, setMachineLanguage } from "@/lib/language";
 import {
   addRuntime,
-  bindRuntime,
+  setRuntimeHarness,
   removeRuntime,
   renameRuntime,
-  setBindingSetting,
+  setRuntimeSetting,
   setGlobalRuntime,
-  setRuntimeComputer,
 } from "@/lib/runtimes";
 import {
   boardNotifications,
@@ -871,10 +870,10 @@ export async function testConnectionAction(runtime?: string): Promise<Connection
 }
 
 // --- the runtimes (#344) ------------------------------------------------------
-// Configuration → Runtimes. Two halves and two files: the board names its runtimes in
-// docs/kanban/ui.config.json, and this computer says what each one runs as in
-// ~/.ai4kanban/runtimes.json. Every write here goes through the CLI, so a terminal `akb
-// agent` and this pane are one writer with one set of rules.
+// Configuration → Runtimes. One file holds all of it: the board names its runtimes in
+// docs/kanban/ui.config.json and says what each one runs as, right beside the names. Every
+// write here goes through the CLI, so a terminal `akb agent` and this pane are one writer
+// with one set of rules.
 //
 // Each one answers with the whole agent setting as it now reads, because a runtime move
 // changes more than the row it was made on: a removal moves the flows that named it, a
@@ -925,43 +924,29 @@ export async function setGlobalRuntimeAction(
   return runtimeMove(() => setGlobalRuntime(String(name ?? "").trim()));
 }
 
-/** Point a runtime at one of the board's computers, or back at the one a run starts on with
- *  an empty name (#370). Set, not routed: it says where the runtime belongs and dispatches
- *  nothing (#371). */
-export async function setRuntimeComputerAction(
-  runtime: string,
-  computer: string,
-): Promise<WriteResult & { agent?: AgentInfo }> {
-  if (typeof runtime !== "string" || typeof computer !== "string") {
-    return { ok: false, error: "a computer is saved as text" };
-  }
-  return runtimeMove(() => setRuntimeComputer(runtime.trim(), computer.trim()));
-}
-
-/** Bind a runtime on THIS computer. The harness is checked against the ones this build
- *  ships, so a stale client can't bind a name nothing can run. */
+/** Save the agent one runtime runs. The name is checked against the agents this build
+ *  ships, so a stale client can't save one nothing can spawn. */
 export async function bindRuntimeAction(
   runtime: string,
   harness: string,
 ): Promise<WriteResult & { agent?: AgentInfo }> {
   if (typeof runtime !== "string" || typeof harness !== "string") {
-    return { ok: false, error: "a binding names a runtime and an agent" };
+    return { ok: false, error: "a runtime and an agent are saved as text" };
   }
   const info = await agentInfo().catch(() => null);
   if (!info?.runtimes.some((r) => r.name === runtime)) {
     return { ok: false, error: `no runtime called "${runtime}" on this board` };
   }
-  // The agents this build runs are the CLI's list, not a copy kept here, so a stale client
-  // can't bind a name nothing can spawn.
+  // The agents this build runs are the CLI's list, not a copy kept here.
   if (!info.options.some((o) => o.name === harness)) {
     return { ok: false, error: `unknown agent "${harness}"` };
   }
-  return runtimeMove(() => bindRuntime(runtime, harness));
+  return runtimeMove(() => setRuntimeHarness(runtime, harness));
 }
 
-/** Save one of the bound harness's settings on this computer. Judged against the harness THAT
- *  runtime is bound to, never the board's picked one — a value Codex refuses must not be
- *  saved against Claude Code's rules. */
+/** Save one of that runtime's settings. Judged against the agent THAT runtime runs, never
+ *  the board's global one — a value Codex refuses must not be saved against Claude Code's
+ *  rules. */
 export async function setRuntimeSettingAction(
   runtime: string,
   key: string,
@@ -972,8 +957,8 @@ export async function setRuntimeSettingAction(
   }
   const setting = (await activeSettings(runtime)).find((s) => s.key === key);
   if (!setting) return { ok: false, error: `that runtime's agent has no "${key}" setting` };
-  // A key never goes near a binding: ~/.ai4kanban/runtimes.json would be a second place for
-  // one, and the board already has exactly one (#94).
+  // A key never goes near ui.config.json: the board has exactly one place for one, and it is
+  // the file git does not carry (#94).
   if (setting.kind === "secret") {
     return { ok: false, error: `"${setting.label}" is a key — it saves to docs/kanban/.env` };
   }
@@ -983,12 +968,12 @@ export async function setRuntimeSettingAction(
   }
   const wrong = await settingSaveError(key, next, runtime);
   if (wrong) return { ok: false, error: wrong };
-  return runtimeMove(() => setBindingSetting(runtime, key, next));
+  return runtimeMove(() => setRuntimeSetting(runtime, key, next));
 }
 
-/** Save one of the bound harness's keys. It goes to docs/kanban/.env exactly as the board's
- *  own does, so two runtimes on one harness share one key — a binding is this machine's file
- *  and a key was never in it. */
+/** Save one of that runtime's keys. It goes to docs/kanban/.env exactly as the board's own
+ *  does, so two runtimes on one agent share one key — the config file is committed and a key
+ *  was never in it. */
 export async function setRuntimeSecretAction(
   runtime: string,
   key: string,

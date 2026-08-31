@@ -507,9 +507,9 @@ export function openRun(
   // Read here, with everything else, so a change made mid-run reaches the next run and not
   // this one.
   const plan = planRun(sessionId, cwd, runtimeFor(req))
-  // What the runtime resolved to, when it isn't what this computer bound it to. It goes in
-  // the log rather than being swallowed: a run on another tool than the one asked for is
-  // the first thing to check when its output looks wrong.
+  // What the runtime resolved to, when the board names an agent this version can't run. It
+  // goes in the log rather than being swallowed: a run on another tool than the one asked
+  // for is the first thing to check when its output looks wrong.
   if (plan.note) notes = [...notes, plan.note]
   const record: RunRecord = {
     sessionId,

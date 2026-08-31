@@ -38,8 +38,6 @@ export type {
   HarnessOption,
   HarnessSetting,
   Provider,
-  RuntimeBindingView,
-  RuntimeFallback,
   RuntimeView,
   RunStatus,
   SettingChoice,

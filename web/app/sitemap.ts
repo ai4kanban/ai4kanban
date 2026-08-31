@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { recipes } from "@/components/recipes/recipes-content";
 import { getAllPosts, postPath } from "@/lib/blog";
+import { DOCS_PATH, docPath, getAllDocs } from "@/lib/docs";
 import { getLegalDocs } from "@/lib/legal";
 import { BASE_URL } from "@/lib/site";
 import { LOCALES, TRANSLATED_PATHS, localePath } from "@/lib/i18n";
@@ -90,12 +91,33 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: gitLastModified(...routeSources("/cloud", "en")),
   });
 
+  // The builder's story, English-only.
+  entries.push({
+    url: `${BASE_URL}/builder`,
+    lastModified: gitLastModified(...routeSources("/builder", "en")),
+  });
+
   // The recipes, which are English-only. A recipe page comes out of the catalog
   // and its art.
   for (const route of recipeRoutes()) {
     entries.push({
       url: `${BASE_URL}${route}`,
       lastModified: gitLastModified(...routeSources(route, "en")),
+    });
+  }
+
+  // The documentation, English-only. A page's `lastmod` is the newest commit
+  // that touched its `.mdx` — the `last_updated` line the page prints is a date
+  // an author writes for a reader, not a claim about the file.
+  const docs = getAllDocs();
+  entries.push({
+    url: `${BASE_URL}${DOCS_PATH}`,
+    lastModified: gitLastModified("docs", "app/(en)/docs", "components/docs"),
+  });
+  for (const doc of docs) {
+    entries.push({
+      url: `${BASE_URL}${docPath(doc)}`,
+      lastModified: gitLastModified(`docs/${doc.slug}.mdx`),
     });
   }
 

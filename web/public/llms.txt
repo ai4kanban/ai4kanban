@@ -13,6 +13,7 @@ content — no navigation, styling, or scripts.
 ## Pages
 
 - [Home — a project board that plans itself](https://ai4kanban.dev/index.md): How AI4Kanban moves beyond task tracking to plan and drive work autonomously; how it clarifies requirements, carries product decisions into long-term project memory, turns external signals into continued product iteration, and starts from the desktop app.
+- [Builder — why Tao Wu is building AI4Kanban](https://ai4kanban.dev/builder.md): How the software bottleneck moved from coding to requirements, why project decisions need durable memory outside chat, and why a kanban is the planning layer above coding agents.
 - [Download — the board as a desktop app](https://ai4kanban.dev/download): Get the board as an app for macOS, Windows and Linux — nothing to install first. Every file on the current release (Apple Silicon and Intel `.dmg`, the Windows `.exe`, the x64 and arm64 `.AppImage`), and what to click past each system's first-open warning while the builds are unsigned.
 - [AI4Kanban vs. Task Master](https://ai4kanban.dev/vs-task-master.md): Task Master splits a PRD you already wrote into an ordered backlog; AI4Kanban starts from one rough line and asks questions until the card is buildable. Covers the starting point, JSON file vs. one Markdown file per card, what carries over between runs, batch execution, editor and model reach, and licensing.
 - [AI4Kanban vs. GitHub Issues](https://ai4kanban.dev/vs-github-issues.md): A head-to-head across storage, token cost, agent ergonomics, teams, and transparency — a repo-local project-management agent backed by Markdown vs. a shared, public system of record, and when to use each.
@@ -20,6 +21,16 @@ content — no navigation, styling, or scripts.
 - [AI4Kanban vs. Vibe Kanban](https://ai4kanban.dev/vs-vibe-kanban.md): Vibe Kanban shut down when Bloop wound down in April 2026. A project-management agent that discovers and refines what to build vs. a cockpit for running many coding agents in parallel — the honest difference, and what carries over.
 - [AI4Kanban vs. Linear](https://ai4kanban.dev/vs-linear.md): A repo-local project-management agent that plans and refines work from rough ideas vs. a hosted workspace where a team and its agents coordinate. Covers where the plan lives, Linear Agent and Coding Sessions, collaboration, planning breadth, portability, and pricing.
 - [AI4Kanban vs. Multica](https://ai4kanban.dev/vs-multica.md): Both place coding agents on a kanban board, but at different points in the lifecycle — AI4Kanban plans and refines which tasks should exist; Multica assigns ready issues and operates the runs.
+
+## Documentation
+
+Every documentation page carries a "Copy page" button that hands you its raw
+Markdown, so these need no separate mirror.
+
+- [Documentation overview](https://ai4kanban.dev/docs): How to run a project board that plans itself — install the board, write the goal it plans from, drive the daily loop, and pick the coding agent your work runs on.
+- [What makes a good goal](https://ai4kanban.dev/docs/what-makes-a-good-goal): The board judges every proposal it makes against your goal file. What to cover in it, an example, what doesn't help, and how the board reads it.
+- [The daily loop](https://ai4kanban.dev/docs/daily-loop): The rhythm once the board exists — pick what to work on, plan and close a release, add and refine cards, build one end to end, and the button that does the same thing.
+- [What each coding agent can do](https://ai4kanban.dev/docs/connectors): The board runs your work through one coding agent. What each of Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness and ZCode reports back, what a run may touch, and the settings each one takes.
 
 ## Recipes
 
