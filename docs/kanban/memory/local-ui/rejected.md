@@ -21,7 +21,8 @@ before proposing so you don't re-suggest them.
   padlock beside it and competes for the same glance. A card's place in a chain is what a
   group task's map is for.
 - **A Finished view that browses archived cards** — too little value: an archived card is a
-  plain file next to the board.
+  plain file next to the board. Reversed 2026-08-31: the user asked for it directly. #380
+  builds it, read-only.
 - **Switching between projects from the browser UI** — a server serves the board it was
   started in. The desktop app is where this shipped.
 - **Ticking several cards to move them into a release at once** — cards go into and out of a

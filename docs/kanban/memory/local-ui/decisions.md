@@ -119,8 +119,9 @@ re-ask a settled call.
   way; a bridge counts. An agent whose live view exists only in a browser app of its own is
   not offered.
 - Claude Code and Codex first, then Cursor and OpenCode, then DeepSeek Harness and ZCode
-  because users asked. Anything further waits to be asked for. OpenClaw was dropped — it is
-  a chat-app assistant, not a coding CLI.
+  because users asked, then Grok Build. A further agent ships when it is cheap to connect or
+  when users ask for it by name. OpenClaw was dropped — it is a chat-app assistant, not a
+  coding CLI.
 - Each connector declares the settings it takes and the dialog draws them, in two shapes
   only — a box to type in and a list to pick from — each keeping its own block, so
   switching loses nothing.

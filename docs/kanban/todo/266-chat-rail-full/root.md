@@ -6,7 +6,7 @@ roi: high
 status: todo
 release: ""
 blocked_by: []
-related: [267, 268, 269, 270, 271, 272, 273]
+related: [269, 270, 271, 272, 273]
 modules: [local-ui, skill]
 questions:
   - question: "[user] Which subtasks ship in 0.7.2, and which wait for a later version?"
@@ -98,8 +98,8 @@ Common to the coding agents' own chats — Claude Code and Codex both:
 - No second chat window and no full-screen chat page.
 
 ## Todo
-- [ ] #267 Stop a reply while it is being written
-- [ ] #268 Keep typing while a reply is still coming
+- [x] #267 Stop a reply while it is being written
+- [x] #268 Keep typing while a reply is still coming
 - [ ] #269 Copy, resend or reword a message without retyping it
 - [ ] #270 Open up what the agent looked at, and say what the reply cost
 - [ ] #271 Point at a card in the chat box

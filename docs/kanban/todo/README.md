@@ -37,6 +37,10 @@ _(none)_
 - [#374 Render the board without the local machine](373-cloud-board-browser/features/374-render-board-off-machine.md)
 - [#375 Hold a card against a second writer](311-team-collaboration-cloud/features/375-card-lease.md)
 - [#376 Add members and roles to a Cloud workspace](311-team-collaboration-cloud/features/376-workspace-members.md)
+- [#377 Run the board's work with Kimi CLI](features/377-run-the-board-s-work-with-kimi-cli.md)
+- [#378 Run the board on Grok Build, xAI's coding agent](features/378-run-the-board-on-grok-build-xai-s-coding-agent.md)
+- [#379 Run the board's work with Antigravity CLI](features/379-run-the-board-s-work-with-antigravity-cli.md)
+- [#380 See archived tasks in the board UI](features/380-see-archived-tasks-in-the-board-ui.md)
 
 ## skill
 

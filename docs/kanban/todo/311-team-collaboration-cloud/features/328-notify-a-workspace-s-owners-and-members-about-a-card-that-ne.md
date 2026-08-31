@@ -4,9 +4,9 @@ track: features
 priority: high
 roi: high
 status: todo
-release: ""
-blocked_by: [316]
-related: [311]
+release: 0.9.0
+blocked_by: [376]
+related: [311, 376]
 modules: [cloud, local-ui]
 schedule:
   action: refine
@@ -30,14 +30,14 @@ sit unseen until someone happens to open the card, which is the second of the fo
 - #311 settles the routing rule this card implements: a user-owned question goes to the
   workspace's owners, a card ready for review to the members watching its release, and no card
   names a person.
-- #314 holds the membership and roles that make an audience resolvable, and #316 is what makes
-  a team's writes reach a Cloud board at all.
+- #376 holds the membership and roles that make an audience resolvable, and #316 is what makes
+  a board's writes reach Cloud at all.
 
 ## Scope
 - Address a Cloud board's event to a workspace audience rather than to the account that
   published it: the owners for a user-owned question, the members watching its release for a
   card ready for review (#311).
-- Resolve that audience from #314's membership at delivery time, so a member added or removed
+- Resolve that audience from #376's membership at delivery time, so a member added or removed
   since the event was stored is included or dropped accordingly.
 - Deliver one event to every member of its audience while the decision behind it stays single:
   the first answer settles the card, and every other recipient sees that outcome rather than a
