@@ -29,10 +29,9 @@ function Icon({ state }: { state: CellState }) {
   return <FiMinus className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />;
 }
 
-// One half of a row. Which side wins is said with the neutral ramp, the way the
-// landing page's Compare section says it: the losing half sinks to the wash and
-// its text drops to muted, so the winning half is simply the brighter of the
-// two. A neutral trade-off leaves both on the paper.
+// One half of a row. Which side wins is said with the neutral ramp: the losing
+// half sinks to the wash and its text drops to muted, so the winning half is
+// simply the brighter of the two. A neutral trade-off leaves both on the paper.
 function Cell({
   label,
   text,

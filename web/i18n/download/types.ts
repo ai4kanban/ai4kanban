@@ -4,7 +4,7 @@ import type { PageMeta } from "../types";
  * The download page — where a person gets the board as an app.
  *
  * It is a utility page, not a pitch: one button, which file each system takes,
- * and what to click past the unsigned warning. Anything a reader can find in
+ * and what to do on first launch. Anything a reader can find in
  * the app itself is not on it.
  *
  * Nothing positional is copy: the file extensions and the release URL stay in
@@ -15,32 +15,32 @@ export type DownloadCopy = {
   hero: {
     title: string;
     lead: string;
-    /** The one button. One word — the platform is the icon beside it. */
+    /** The button before the reader's system is known, and on anything we
+     *  don't build for. One word — the mark beside it carries the rest. */
     cta: string;
+    /** The button once it is known. `{system}` is the product's own name
+     *  (macOS, Windows, Linux) and stays as it is in every language. */
+    ctaFor: string;
   };
   /** The card per system. Nothing in the cards is copy — a system name, an
    *  architecture and a file type read the same in every language. */
   builds: {
     title: string;
-    /** The whole caveat in one sentence: unsigned, and only one is tested. */
-    note: string;
   };
-  /** Every build is unsigned this release, so every system warns once. macOS is
-   *  the one that takes more than a click, hence steps there and a line each
-   *  for the other two. */
+  /** macOS takes more than a click, hence steps there and a line each for the
+   *  other two. */
   firstOpen: {
     title: string;
-    mac: { title: string; steps: string[] };
-    windows: { title: string; body: string };
-    linux: { title: string; body: string };
+    platformLabel: string;
+    mac: { steps: string[] };
+    windows: { body: string };
+    linux: { body: string };
   };
-  /** The app carries `akb` and offers to put it on the PATH (#226). Worth a
-   *  block here because it happens on first launch, before the reader has been
-   *  anywhere else — and because it asks for a password on macOS. */
+  /** Optional terminal setup, collapsed under the selected platform. */
   command: {
     title: string;
-    body: string;
-    /** What a reader who said no, or who is on Linux, does instead. */
-    later: string;
+    mac: string;
+    windows: string;
+    linux: string;
   };
 };

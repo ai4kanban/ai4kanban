@@ -28,15 +28,12 @@ export function MobileNav({ c, locale }: { c: SiteCopy; locale: Locale }) {
       label={<FiMenu className="h-4 w-4" aria-hidden="true" />}
     >
       {/* Same links, same paths, as the wide nav — see `Header.tsx` for why
-          download is the only way in and why recipes never takes a locale. */}
+          download is the only way in and why the docs never take a locale. */}
       <a href={localeHref(locale, "/download")} className={item}>
         {nav.download}
       </a>
       <a href="/docs" className={item}>
         {nav.docs}
-      </a>
-      <a href="/recipes" className={item}>
-        {nav.recipes}
       </a>
       <a href="/blog" className={item}>
         {nav.blog}
@@ -45,7 +42,7 @@ export function MobileNav({ c, locale }: { c: SiteCopy; locale: Locale }) {
       <p className={heading}>{nav.compare}</p>
       {COMPARISONS.map((x) => (
         <a key={x.href} href={localeHref(locale, x.href)} className={item}>
-          {x.title}
+          vs {x.name}
         </a>
       ))}
     </Dropdown>

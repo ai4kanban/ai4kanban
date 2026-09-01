@@ -1,24 +1,40 @@
 import { FiX } from "react-icons/fi";
-import { CROP, Code, LogBar, NB, Outline, Shot, Tag, em } from "./nb";
+import { CROP, Code, HAIR, Inset, LogBar, NB, Panel, Shot, Tag, em } from "./nb";
 
 // Step 03 推进执行 — a finished implement run, read back from the run history:
-// what the agent did, which files it touched, how long it took and what it cost.
-// Mirrors kanban-ui/components/sessions.tsx (`SessionsDialog`: the 240px rail,
-// the selected-run pane) and agent-shared.tsx's `SessionLog` in
-// its `flush` form.
+// what the agent did, which files it touched, how long it took and what it ran
+// on. Mirrors kanban-ui/components/sessions.tsx (`SessionsDialog`: the 240px
+// rail of jobs, each threading its own sessions on a timeline, and the
+// selected-run pane) and agent-shared.tsx's `SessionLog` in its `flush` form.
+//
+// The dialog is the one thing on the board still drawn as an object: ink frame,
+// hard offset shadow. Everything inside it is parted by hairlines and fills.
 //
 // Drawn without the board behind it. The real dialog floats on a scrim over the
 // board, and half a blurred board bleeding off the edges reads as a screen grab
 // rather than the artwork this is mounted as.
 
-const ROWS: { action: string; card: string; active?: boolean }[] = [
-  { action: "Implement", card: "#135", active: true },
-  { action: "Implement", card: "#139" },
-  { action: "Implement", card: "#108" },
-  { action: "Implement", card: "#86" },
-  { action: "Resolve", card: "#135" },
-  { action: "Resolve", card: "#86" },
-  { action: "Create", card: "—" },
+// A row is a JOB, however many sessions it took (lib/run-flows.ts). A job of one
+// session is that row alone; a job of several threads them under it on a rail, so
+// where it has got to is the line's end.
+const ROWS: {
+  action: string;
+  card: string;
+  when: string;
+  steps?: string[];
+  active?: boolean;
+}[] = [
+  {
+    action: "Implement",
+    card: "#135",
+    when: "2 sessions · 3d ago",
+    steps: ["Implement", "Review"],
+    active: true,
+  },
+  { action: "Resolve", card: "#135", when: "2 sessions · 3d ago", steps: ["Resolve", "Writing"] },
+  { action: "Implement", card: "#139", when: "3d ago" },
+  { action: "Implement", card: "#108", when: "4d ago" },
+  { action: "Create", card: "—", when: "4d ago" },
 ];
 
 const SHIPPED: { file: string; text: React.ReactNode }[] = [
@@ -53,7 +69,7 @@ const SHIPPED: { file: string; text: React.ReactNode }[] = [
   },
 ];
 
-/** The list rail's status dot — mint for a run that finished clean. */
+/** The list's status dot — mint for a run that finished clean. */
 function Dot() {
   return (
     <span
@@ -75,17 +91,7 @@ export function ShotSessions() {
       <div style={{ padding: em(14) }}>
         {/* .nb-panel — the dialog frame. overflow-hidden clips the rail's fill
             to the radius, the way the real one does. */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            border: `${em(1.5)} solid ${NB.ink}`,
-            borderRadius: em(16),
-            background: NB.paper,
-            boxShadow: `${em(3)} ${em(3)} 0 0 ${NB.ink}`,
-          }}
-        >
+        <Panel style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
           {/* dialog title bar */}
           <div
             style={{
@@ -93,7 +99,7 @@ export function ShotSessions() {
               alignItems: "center",
               justifyContent: "space-between",
               padding: `${em(12)} ${em(20)}`,
-              borderBottom: `${em(1.5)} solid ${NB.ink}`,
+              borderBottom: `1px solid ${HAIR}`,
             }}
           >
             <h2
@@ -113,7 +119,7 @@ export function ShotSessions() {
           </div>
 
           <div style={{ display: "flex", minHeight: 0 }}>
-            {/* left: every run, newest first */}
+            {/* left: every job, newest first */}
             <div
               style={{
                 width: em(160),
@@ -125,50 +131,100 @@ export function ShotSessions() {
               {ROWS.map((r, i) => (
                 <div
                   key={`${r.action}${r.card}${i}`}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: em(10),
-                    padding: `${em(10)} ${em(12)}`,
-                    borderBottom: `1px solid color-mix(in srgb, #24231f 8%, transparent)`,
-                    background: r.active ? NB.paper : undefined,
-                    boxShadow: r.active
-                      ? `inset ${em(2.5)} 0 0 0 ${NB.accent}`
-                      : undefined,
-                  }}
+                  style={{ borderBottom: `1px solid color-mix(in srgb, #24231f 8%, transparent)` }}
                 >
-                  <Dot />
-                  <span style={{ minWidth: 0, flex: 1 }}>
-                    <span
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: em(6),
-                      }}
-                    >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: em(10),
+                      padding: `${em(10)} ${em(12)}`,
+                      background: r.active ? NB.paper : undefined,
+                      boxShadow: r.active
+                        ? `inset ${em(2.5)} 0 0 0 ${NB.accent}`
+                        : undefined,
+                    }}
+                  >
+                    <Dot />
+                    <span style={{ minWidth: 0, flex: 1 }}>
                       <span
                         style={{
-                          fontSize: em(12.5),
-                          fontWeight: 700,
-                          color: r.active ? NB.ink : NB.inkSoft,
+                          display: "flex",
+                          alignItems: "baseline",
+                          gap: em(6),
                         }}
                       >
-                        {r.action}
+                        <span
+                          style={{
+                            fontSize: em(12.5),
+                            fontWeight: 700,
+                            color: r.active ? NB.ink : NB.inkSoft,
+                          }}
+                        >
+                          {r.action}
+                        </span>
+                        <span style={{ fontSize: em(11), color: NB.inkSoft }}>
+                          {r.card}
+                        </span>
                       </span>
-                      <span style={{ fontSize: em(11), color: NB.inkSoft }}>
-                        {r.card}
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: em(10.5),
+                          color: NB.inkSoft,
+                        }}
+                      >
+                        {r.when}
                       </span>
                     </span>
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: em(10.5),
-                        color: NB.inkSoft,
-                      }}
-                    >
-                      3d ago
-                    </span>
-                  </span>
+                  </div>
+                  {/* the job's sessions, threaded on a rail through their own
+                      dots. The rail stops at the last dot rather than running
+                      past it. */}
+                  {r.steps && (
+                    <div style={{ paddingBottom: em(4) }}>
+                      {r.steps.map((step, k) => {
+                        const on = !!r.active && k === 0;
+                        return (
+                          <div
+                            key={step}
+                            style={{
+                              position: "relative",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: em(8),
+                              padding: `${em(6)} ${em(12)} ${em(6)} ${em(28)}`,
+                              background: on ? NB.paper : undefined,
+                            }}
+                          >
+                            <span
+                              aria-hidden
+                              style={{
+                                position: "absolute",
+                                left: em(31.5),
+                                width: 1,
+                                top: 0,
+                                bottom: k === r.steps!.length - 1 ? "50%" : 0,
+                                background: "color-mix(in srgb, #24231f 15%, transparent)",
+                              }}
+                            />
+                            <span style={{ position: "relative", display: "flex", zIndex: 1 }}>
+                              <Dot />
+                            </span>
+                            <span
+                              style={{
+                                fontSize: em(11.5),
+                                fontWeight: on ? 700 : 400,
+                                color: on ? NB.ink : NB.inkSoft,
+                              }}
+                            >
+                              {step}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -183,6 +239,8 @@ export function ShotSessions() {
                   marginBottom: em(12),
                 }}
               >
+                {/* A session is titled by the JOB, not by its own action; which
+                    step you are reading is the timeline's word, on the left. */}
                 <span
                   style={{
                     fontSize: em(14),
@@ -218,19 +276,18 @@ export function ShotSessions() {
                 </p>
               </div>
 
-              {/* SessionLog, flush form: ink-framed window, wash body well */}
-              <Outline style={{ background: NB.paper }}>
-                {/* The real bar also carries the run's cost and the model it
-                    reported. Both are left off: they push the facts row onto a
-                    second line at this width, and neither is what this step is
-                    about. */}
-                <LogBar facts={["done", "7m 46s"]} />
+              {/* SessionLog, flush form: a hairline window on paper, wash well */}
+              <Inset>
+                {/* The real bar also carries what the run cost. It is left off:
+                    it pushes the facts row onto a second line at this width, and
+                    it is not what this step is about. */}
+                <LogBar facts={["done", "7m 46s", "claude-opus-5"]} />
                 <div
                   style={{
-                    padding: `${em(12)} ${em(14)}`,
+                    padding: `${em(12)} ${em(16)}`,
                     background: NB.wash,
-                    borderBottomLeftRadius: em(12.5),
-                    borderBottomRightRadius: em(12.5),
+                    borderBottomLeftRadius: em(13),
+                    borderBottomRightRadius: em(13),
                     boxShadow: `inset 0 1px 3px color-mix(in srgb, #24231f 8%, transparent)`,
                   }}
                 >
@@ -287,10 +344,10 @@ export function ShotSessions() {
                     </ul>
                   </div>
                 </div>
-              </Outline>
+              </Inset>
             </div>
           </div>
-        </div>
+        </Panel>
       </div>
     </Shot>
   );

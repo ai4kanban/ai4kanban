@@ -197,7 +197,7 @@ const MATS: { name: WashName; note: string }[] = [
 export default function DesignPage() {
   return (
     <main className="min-h-screen">
-      <div className="mx-auto max-w-5xl px-6 py-14">
+      <div className="mx-auto max-w-6xl px-6 py-14">
         <p className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-accent-deep">
           What the site ships
         </p>

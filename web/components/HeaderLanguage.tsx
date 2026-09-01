@@ -1,17 +1,22 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { FiGlobe } from "react-icons/fi";
 import { Dropdown } from "./Dropdown";
 import {
   LOCALES,
   LOCALE_NAMES,
   LOCALE_TAGS,
+  TRANSLATED_PATHS,
   localePath,
+  stripLocale,
   type Locale,
 } from "@/lib/i18n";
 
-// The footer switcher lists all five languages in a row; the header has no room
-// for that, so it collapses into the same menu the header's comparisons list
-// uses. Every link goes to the landing page in that language, not to the page
-// being read — the footer's switcher is the path-aware one.
+// The same menu the header's comparisons list uses. Every link stays on the page
+// being read and only changes its language; from a page that exists in English
+// alone (the docs, the blog, the recipes) there is nowhere to stay, so the links
+// go to the landing page.
 //
 // One version at every width. On a phone it stays out in the header row rather
 // than moving inside the menu button: the globe is what a reader who can't read
@@ -29,6 +34,9 @@ export function HeaderLanguage({
   locale: Locale;
   label: string;
 }) {
+  const base = stripLocale(usePathname() ?? "");
+  const path = (TRANSLATED_PATHS as readonly string[]).includes(base) ? base : "";
+
   return (
     <Dropdown
       ariaLabel={label}
@@ -55,7 +63,7 @@ export function HeaderLanguage({
         ) : (
           <a
             key={l}
-            href={localePath(l, "")}
+            href={localePath(l, path)}
             hrefLang={LOCALE_TAGS[l]}
             lang={LOCALE_TAGS[l]}
             className="block rounded-lg px-3 py-2 text-[0.9rem] font-medium text-muted no-underline transition-colors hover:bg-code hover:text-ink"

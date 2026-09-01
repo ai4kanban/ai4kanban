@@ -9,7 +9,8 @@
 // It also wires the language alternates: every page links to its siblings in
 // the other four languages plus an `x-default` pointing at the English URL.
 import type { Metadata } from "next";
-import { OG_IMAGE } from "./site";
+import { BASE_URL, OG_IMAGE } from "./site";
+import { X_HANDLE } from "@/components/social";
 import {
   LOCALES,
   LOCALE_TAGS,
@@ -38,15 +39,22 @@ export function pageMetadata({
   type = "website",
   publishedTime,
   modifiedTime,
+  byTao = false,
   translated = true,
 }: PageMeta & {
   locale: Locale;
   /** Route path, e.g. "/vs-github-issues". Empty string for the home page. */
   path: string;
-  type?: "website" | "article";
+  type?: "website" | "article" | "profile";
   /** ISO 8601. `article` only — the dates the page's JSON-LD already carries. */
   publishedTime?: string;
   modifiedTime?: string;
+  /**
+   * Signed by a person rather than the project. Adds `article:author` pointing
+   * at `/builder` and `twitter:creator`, which is what turns a byline into an
+   * entity a crawler can follow instead of a name in the body text.
+   */
+  byTao?: boolean;
   /**
    * Whether this route exists in every language (`TRANSLATED_PATHS` in
    * `lib/i18n.ts`). The English-only pages — the recipes, the blog — pass
@@ -59,8 +67,6 @@ export function pageMetadata({
   const ogTitle = socialTitle ?? title;
   const ogDescription = social ?? description;
 
-  // `type` is a union, so the article-only fields are attached in a branch:
-  // spreading them onto a common object leaves them unnarrowed and dropped.
   const openGraph = {
     url,
     siteName: "AI4Kanban",
@@ -73,22 +79,44 @@ export function pageMetadata({
     ),
   };
 
+  // `type` is a union, so each variant's extra fields are attached in its own
+  // branch: spreading them onto a common object leaves them unnarrowed.
+  const og =
+    type === "article"
+      ? {
+          ...openGraph,
+          type,
+          publishedTime,
+          modifiedTime,
+          authors: byTao ? [`${BASE_URL}/builder`] : undefined,
+        }
+      : type === "profile"
+        ? {
+            ...openGraph,
+            type,
+            firstName: "Tao",
+            lastName: "Wu",
+            username: "tao_pmf",
+          }
+        : { ...openGraph, type };
+
   return {
     title,
     description,
+    authors: byTao
+      ? [{ name: "Tao Wu", url: `${BASE_URL}/builder` }]
+      : undefined,
     alternates: {
       canonical: url,
       languages: translated ? languageAlternates(path) : undefined,
     },
-    openGraph:
-      type === "article"
-        ? { ...openGraph, type, publishedTime, modifiedTime }
-        : { ...openGraph, type },
+    openGraph: og,
     twitter: {
       card: "summary_large_image",
       title: ogTitle,
       description: ogDescription,
       images: [OG_IMAGE.url],
+      creator: byTao ? X_HANDLE : undefined,
     },
   };
 }

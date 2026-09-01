@@ -26,29 +26,6 @@ const fr: HomeCopy = {
     },
   },
 
-  compare: {
-    title: "Du suivi des tâches à la planification autonome",
-    lead: "Les tableaux classiques se contentent d’enregistrer et de suivre les tâches, toutes saisies à la main. AI4Kanban s’appuie sur vos objectifs à long terme et sur les décisions déjà conservées dans la mémoire du projet pour planifier le travail et le faire avancer en autonomie.",
-    columns: { classic: "Tableau classique", kanban: "AI4Kanban" },
-    rows: [
-      {
-        dimension: "Entrée",
-        classic: "Tâches détaillées rédigées à la main",
-        kanban: "Objectifs à long terme et idées à préciser",
-      },
-      {
-        dimension: "Rôle principal",
-        classic: "Enregistrer et suivre les tâches",
-        kanban: "Planifier et faire avancer le travail en autonomie",
-      },
-      {
-        dimension: "Votre rôle",
-        classic: "Tenir le tableau à jour manuellement",
-        kanban: "Arbitrer et valider le résultat",
-      },
-    ],
-  },
-
   loop: {
     title: "Faire avancer le travail",
     lead: "Donnez-lui un objectif ou une idée encore floue. L’agent lit votre code et la mémoire du projet, détermine la prochaine étape, clarifie les exigences, découpe le travail, ordonne les dépendances et les priorités, puis passe à l’exécution.",

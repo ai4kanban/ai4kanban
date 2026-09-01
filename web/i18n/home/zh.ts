@@ -22,29 +22,6 @@ const zh: HomeCopy = {
     },
   },
 
-  compare: {
-    title: "从记录任务到自主规划",
-    lead: "传统看板只能记录和跟踪任务，输入全靠人工。AI4Kanban 能够结合项目远景目标和过往的决策记忆，自主规划任务并推进执行。",
-    columns: { classic: "传统看板", kanban: "AI4Kanban" },
-    rows: [
-      {
-        dimension: "输入",
-        classic: "人工撰写的详细任务",
-        kanban: "远景目标，模糊需求",
-      },
-      {
-        dimension: "主要作用",
-        classic: "记录和跟踪任务",
-        kanban: "自主规划并推进任务",
-      },
-      {
-        dimension: "你的职责",
-        classic: "手动看板维护",
-        kanban: "只需决策与验收",
-      },
-    ],
-  },
-
   loop: {
     title: "持续推进",
     lead: "给出一个目标或模糊想法，Agent 会读取代码与项目记忆，明确接下来要做什么，逐步澄清需求、拆分任务、安排依赖和优先级，再推进执行。",

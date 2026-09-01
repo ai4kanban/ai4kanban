@@ -83,7 +83,7 @@ export function Hero({
 
           The margin of paint is wider than `Loop.tsx`'s, because the print is:
           a border reads as a proportion of what it surrounds, and the 24px that
-          frames a 464px drawing is a hairline around a print three times that
+          frames a 560px drawing is a hairline around a print twice that
           wide. */}
       {/* The deck rises without fading, and that is not a preference: this is
           the page's LCP element, and a block held at `opacity: 0` isn't painted

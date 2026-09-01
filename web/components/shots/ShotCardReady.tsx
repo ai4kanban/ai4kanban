@@ -1,4 +1,4 @@
-import { FiEdit2, FiPlay, FiTag, FiXCircle } from "react-icons/fi";
+import { FiCheckCircle, FiEdit2, FiPlay, FiTag, FiXCircle } from "react-icons/fi";
 import {
   Btn,
   CROP,
@@ -8,8 +8,7 @@ import {
   IdChip,
   MetaItem,
   NB,
-  Outline,
-  Panel,
+  Section,
   Shot,
   Todos,
   em,
@@ -17,16 +16,17 @@ import {
 
 // Step 01 明确任务 — a card the agent wrote and vetted: what it decided to do
 // next, which module it lands in, how it ranked it, and why. Mirrors
-// kanban-ui/components/CardPage.tsx (title band → toolbar → meta band → body
-// panel) with card #67's real content.
+// kanban-ui/components/CardPage.tsx (title band → toolbar → meta band → body)
+// with card #67's real content.
 //
-// Two things the real card carries are left off, both because they belong to a
-// later step and the crop only has room for what this one is about: the
-// finished run-log bar between the toolbar and the meta band (step 03), and
-// the mint "Ready to implement" pill beside the title, which is what step 02
-// ends with rather than what step 01 produces. So this draws a card still
-// sitting at `todo` — which is the honest state for "the agent decided this is
-// next" anyway.
+// Nothing here is framed. Every block on a card page is a `.nb-section` — no
+// border, no shadow — told from the paper by its ground alone, and that ground is
+// `sheet` unless the block MEANS something. Ink 1.5px frames are down to two
+// things on the whole board now: a dialog, and a button.
+//
+// One thing the real card carries is left off, because it belongs to a later step
+// and the crop only has room for what this one is about: the finished run-log
+// band between the toolbar and the meta box (step 03).
 
 // `.nb-md` block rhythm: consecutive blocks take a gap, headings own the space
 // above them and tighten the gap to whatever follows.
@@ -36,43 +36,57 @@ export function ShotCardReady() {
   return (
     <Shot crop={CROP}>
       <div style={{ padding: em(20) }}>
-        {/* title band — the decision, in words */}
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            columnGap: em(10),
-            rowGap: em(8),
-            marginBottom: em(16),
-          }}
-        >
-          <span
+        {/* title band — the decision, in words. The card's one mark sits on its
+            own line above: beside the title it took a third of the width, and
+            what was left broke the sentence in an odd place. */}
+        <div style={{ marginBottom: em(32) }}>
+          <Chip
+            bg={NB.mintSoft}
+            ink={NB.mintInk}
+            icon={
+              <ChipIcon>
+                <FiCheckCircle style={{ width: "100%", height: "100%" }} />
+              </ChipIcon>
+            }
+          >
+            Ready to implement
+          </Chip>
+          <div
             style={{
-              fontSize: em(20),
-              fontWeight: 800,
-              lineHeight: 1.15,
-              color: NB.accentDeep,
+              display: "flex",
+              alignItems: "baseline",
+              columnGap: em(10),
+              marginTop: em(10),
             }}
           >
-            #67
-          </span>
-          {/* `flex: 1 1 0` keeps the title on the id's line and wraps it inside
-              its own box. Without it the title's max-content width decides the
-              wrap, and at this scale that drops the id onto a line of its own. */}
-          <h1
-            style={{
-              margin: 0,
-              flex: "1 1 0",
-              minWidth: 0,
-              fontSize: em(20),
-              fontWeight: 800,
-              letterSpacing: "-0.02em",
-              lineHeight: 1.15,
-            }}
-          >
-            Handle a failed agent run instead of just marking it red
-          </h1>
+            <span
+              style={{
+                fontSize: em(20),
+                fontWeight: 800,
+                lineHeight: 1.15,
+                color: NB.accentDeep,
+              }}
+            >
+              #67
+            </span>
+            {/* `flex: 1 1 0` keeps the title on the id's line and wraps it
+                inside its own box. Without it the title's max-content width
+                decides the wrap, and at this scale that drops the id onto a
+                line of its own. */}
+            <h1
+              style={{
+                margin: 0,
+                flex: "1 1 0",
+                minWidth: 0,
+                fontSize: em(20),
+                fontWeight: 800,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.15,
+              }}
+            >
+              Handle a failed agent run instead of just marking it red
+            </h1>
+          </div>
         </div>
 
         {/* toolbar — visibleActions() for a ready, un-questioned card */}
@@ -82,7 +96,7 @@ export function ShotCardReady() {
             flexWrap: "wrap",
             alignItems: "center",
             gap: em(8),
-            marginBottom: em(20),
+            marginBottom: em(16),
           }}
         >
           <Btn variant="accent" icon={<FiPlay style={{ width: "100%", height: "100%" }} />}>
@@ -98,16 +112,15 @@ export function ShotCardReady() {
           </Btn>
         </div>
 
-        {/* meta band — where the card sits and how it was ranked */}
-        <Outline
+        {/* meta box — where the card sits and how it was ranked */}
+        <Section
           style={{
             display: "flex",
             flexWrap: "wrap",
             alignItems: "flex-start",
             columnGap: em(28),
             rowGap: em(12),
-            padding: `${em(12)} ${em(16)}`,
-            background: NB.paper,
+            padding: `${em(14)} ${em(16)}`,
             marginBottom: em(16),
           }}
         >
@@ -164,10 +177,10 @@ export function ShotCardReady() {
             <IdChip id={16} />
             <IdChip id={51} />
           </MetaItem>
-        </Outline>
+        </Section>
 
         {/* body — the agent's own reasoning for the card, then its scope */}
-        <Panel style={{ padding: em(20) }}>
+        <Section style={{ padding: em(20) }}>
           <div style={{ fontSize: em(14), lineHeight: 1.65 }}>
             <p style={{ margin: 0, lineHeight: 1.65 }}>
               Say why an agent run failed, and stop the dispatcher from retrying
@@ -209,7 +222,7 @@ export function ShotCardReady() {
               limit, crash, or a harness that isn&apos;t installed.
             </p>
           </div>
-        </Panel>
+        </Section>
       </div>
     </Shot>
   );

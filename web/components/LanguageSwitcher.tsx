@@ -1,4 +1,5 @@
 import { FiGlobe } from "react-icons/fi";
+import { Dropdown } from "./Dropdown";
 import {
   LOCALES,
   LOCALE_NAMES,
@@ -8,16 +9,15 @@ import {
   type Locale,
 } from "@/lib/i18n";
 
+// The footer's language menu. Same control as the header's, with one difference:
+// each link goes to the page being read, not to the landing page.
+//
 // A visitor picks their language by hand — nothing here redirects by browser
-// language. Each link goes to the same page in another language, labelled in
-// that language's own name, so a reader recognises it without knowing English.
+// language. Each language is labelled in its own name, so a reader recognises it
+// without knowing English.
 //
 // Pages that only exist in English (the recipes) get no switcher: there'd be
 // nowhere for the links to go.
-//
-// It takes no color of its own — one footer is paper and one is ink, so the
-// links inherit whatever their footer sets and separate themselves by opacity
-// and weight instead.
 export function LanguageSwitcher({
   locale,
   path,
@@ -31,34 +31,41 @@ export function LanguageSwitcher({
   if (!(TRANSLATED_PATHS as readonly string[]).includes(path)) return null;
 
   return (
-    <nav
-      aria-label={label}
-      className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm"
+    <Dropdown
+      ariaLabel={label}
+      align="right"
+      // Down is off the page here, and the footer clips what runs past it.
+      drop="up"
+      width="w-40"
+      summaryClass="flex cursor-pointer items-center gap-1.5 transition-colors hover:text-elev"
+      label={
+        <>
+          <FiGlobe className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{LOCALE_NAMES[locale]}</span>
+        </>
+      }
     >
-      <FiGlobe className="h-3.5 w-3.5 opacity-70" aria-hidden="true" />
-      {LOCALES.map((l, i) => (
-        <span key={l} className="flex items-center gap-2">
-          {i > 0 && (
-            <span aria-hidden="true" className="opacity-40">
-              ·
-            </span>
-          )}
-          {l === locale ? (
-            <span aria-current="true" className="font-semibold">
-              {LOCALE_NAMES[l]}
-            </span>
-          ) : (
-            <a
-              href={localePath(l, path)}
-              hrefLang={LOCALE_TAGS[l]}
-              lang={LOCALE_TAGS[l]}
-              className="opacity-70 transition-opacity hover:opacity-100"
-            >
-              {LOCALE_NAMES[l]}
-            </a>
-          )}
-        </span>
-      ))}
-    </nav>
+      {LOCALES.map((l) =>
+        l === locale ? (
+          <span
+            key={l}
+            aria-current="true"
+            className="block rounded-lg bg-code px-3 py-2 text-[0.9rem] font-semibold text-ink"
+          >
+            {LOCALE_NAMES[l]}
+          </span>
+        ) : (
+          <a
+            key={l}
+            href={localePath(l, path)}
+            hrefLang={LOCALE_TAGS[l]}
+            lang={LOCALE_TAGS[l]}
+            className="block rounded-lg px-3 py-2 text-[0.9rem] font-medium text-muted no-underline transition-colors hover:bg-code hover:text-ink"
+          >
+            {LOCALE_NAMES[l]}
+          </a>
+        ),
+      )}
+    </Dropdown>
   );
 }

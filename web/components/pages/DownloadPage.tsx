@@ -1,11 +1,13 @@
+import { FiDownload } from "react-icons/fi";
+import { Band } from "@/components/Band";
 import { Header } from "@/components/Header";
-import { Rich } from "@/components/Rich";
 import { SiteFooter } from "@/components/SiteFooter";
 import { IconChip } from "@/components/ui/IconChip";
-import { PlatformCta } from "@/components/PlatformCta";
+import { DownloadHero } from "@/components/download/DownloadHero";
+import { PlatformGuide } from "@/components/download/PlatformGuide";
 import { releaseBuilds } from "@/components/download/builds";
 import { SYSTEM_ICON } from "@/components/download/icons";
-import { panelInset, panelStatic, heroTop } from "@/components/styles";
+import { column, heroTop, panelStatic } from "@/components/styles";
 import { getCopy } from "@/i18n";
 import type { Locale } from "@/lib/i18n";
 import { RELEASES_URL, VERSION } from "@/lib/release";
@@ -18,11 +20,10 @@ export const PATH = "/download";
 // point at.
 //
 // It is a utility page and it is kept to what a reader came for: one button
-// aimed at the system they are on, a card per system holding every file, and
+// aimed at the system they are on, a column per system holding every file, and
 // the version of the release all of it points into. Everything the app tells
 // you itself once it is open — how it picks a project, how it handles updates —
-// stayed off it. The one section past the downloads is the unsigned warning,
-// which is the only place a download here actually fails.
+// stayed off it. The one section past the downloads covers first launch.
 //
 // The retired `npx ai4kanban-ui` way is not mentioned, here or anywhere else on
 // the site: naming it is how a reader finds out it exists, and the page whose
@@ -57,115 +58,66 @@ export function DownloadPage({ locale }: { locale: Locale }) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: schema }} />
       <Header c={copy} locale={locale} />
-      <main className="mx-auto max-w-5xl px-6">
-        <section className={heroTop}>
-          <h1 className="max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
-            {t.hero.title}
-          </h1>
-          <p className="mt-6 max-w-2xl text-[1.05rem] leading-relaxed text-muted">
-            {t.hero.lead}
-          </p>
-          <div className="mt-8">
-            <PlatformCta
+      <main>
+        <div className={column}>
+          <section className={heroTop}>
+            <DownloadHero
               systems={systems}
               version={VERSION}
-              label={t.hero.cta}
+              title={t.hero.title}
+              lead={t.hero.lead}
+              cta={t.hero.cta}
+              ctaFor={t.hero.ctaFor}
               fallback={RELEASES_URL}
             />
-          </div>
-        </section>
+          </section>
 
-        {/* A card per system, holding every file that system has — this is the
-            whole of what the old table said, minus the columns, and it is what
-            a reader on the wrong machine or with no JavaScript uses. */}
-        <section className="mt-20">
-          {/* The version sits on the heading as well as on the button: these
-              cards are the download for everyone the button guessed wrong. */}
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          {/* Every file the release holds, a card per system — what a reader on
+              the wrong machine or with no JavaScript uses. Raised cards, not
+              bare blocks: each one is an object holding a system's files. */}
+          <section className="mt-16">
             <h2 className="text-2xl font-bold tracking-tight">{t.builds.title}</h2>
-            <span className="font-mono text-[0.85rem] text-muted">v{VERSION}</span>
-          </div>
-          <div className="mt-6 grid gap-5 sm:grid-cols-3">
-            {systems.map((system) => (
-              <div key={system.os} className={`${panelStatic} p-6`}>
-                <div className="flex items-center gap-3">
-                  <IconChip icon={SYSTEM_ICON[system.os]} tone="ink" />
-                  <h3 className="text-lg font-bold">{system.name}</h3>
-                </div>
-                {/* Bare rows: the card is the object, so nothing in it is a
-                    block of its own (design.md §3). */}
-                <ul className="mt-4 space-y-2.5">
-                  {system.builds.map((build) => (
-                    <li key={build.url}>
-                      <a
-                        href={build.url}
-                        rel="noopener"
-                        className="flex items-baseline justify-between gap-3 text-[0.95rem] font-semibold text-accent-deep no-underline hover:underline"
-                      >
-                        {build.label}
-                        <span className="font-mono text-[0.8rem] font-normal text-muted">
-                          {build.ext}
-                        </span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <p className="mt-5 max-w-2xl text-[0.9rem] leading-relaxed text-muted">
-            {t.builds.note}
-          </p>
-        </section>
-
-        {/* One block for all three systems: macOS is four clicks and the other
-            two are one line each, so they are rows in the same panel rather
-            than three cards beside the three above. */}
-        <section className="mt-20">
-          <h2 className="text-2xl font-bold tracking-tight">{t.firstOpen.title}</h2>
-          <div className={`${panelInset} mt-6 p-6 sm:p-7`}>
-            <h3 className="text-lg font-bold">{t.firstOpen.mac.title}</h3>
-            <ol className="mt-3 space-y-2.5 text-[0.95rem] leading-relaxed text-muted">
-              {t.firstOpen.mac.steps.map((step, i) => (
-                <li key={step} className="flex gap-3">
-                  <span className="mt-0.5 font-mono text-[0.8rem] font-semibold text-accent-deep">
-                    {i + 1}
-                  </span>
-                  <span>
-                    <Rich code="wash">{step}</Rich>
-                  </span>
-                </li>
-              ))}
-            </ol>
-            <div className="mt-7 grid gap-6 sm:grid-cols-2">
-              {[t.firstOpen.windows, t.firstOpen.linux].map((system) => (
-                <div key={system.title}>
-                  <h3 className="text-lg font-bold">{system.title}</h3>
-                  <p className="mt-2 text-[0.95rem] leading-relaxed text-muted">
-                    <Rich code="wash">{system.body}</Rich>
-                  </p>
+            <div className="mt-8 grid gap-8 sm:grid-cols-3">
+              {systems.map((system) => (
+                <div key={system.os} className={`${panelStatic} p-6`}>
+                  <div className="flex items-center gap-3">
+                    <IconChip icon={SYSTEM_ICON[system.os]} tone="ink" size="md" />
+                    <h3 className="text-lg font-bold">{system.name}</h3>
+                  </div>
+                  <ul className="mt-5 space-y-3">
+                    {system.builds.map((build) => (
+                      <li key={build.url}>
+                        <a
+                          href={build.url}
+                          rel="noopener"
+                          className="group inline-flex items-baseline gap-2.5 font-semibold text-accent-deep no-underline"
+                        >
+                          <span className="group-hover:underline">{build.label}</span>
+                          <FiDownload
+                            aria-hidden="true"
+                            className="h-4 w-4 shrink-0 translate-y-0.5 transition-transform duration-150 group-hover:translate-y-1"
+                          />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
-        {/* The app carries `akb` and offers it on first launch (#226). It sits
-            after first open because that is the order a reader meets them: get
-            past the warning, then the app asks this. Prose in a wash inset, not
-            a third panel of rows — there is one thing to say per system and no
-            steps to walk. */}
-        <section className="mt-20">
-          <h2 className="text-2xl font-bold tracking-tight">{t.command.title}</h2>
-          <div className={`${panelInset} mt-6 p-6 sm:p-7`}>
-            <p className="text-[0.95rem] leading-relaxed text-muted">
-              <Rich code="wash">{t.command.body}</Rich>
-            </p>
-            <p className="mt-4 text-[0.95rem] leading-relaxed text-muted">
-              <Rich code="wash">{t.command.later}</Rich>
-            </p>
-          </div>
-        </section>
+        {/* Show one system's first-launch help at a time. Detection makes the
+            useful answer immediate; the small switcher keeps every platform
+            reachable when the browser guesses wrong.
+            The band is the home page's: the last section warms the page on the
+            way into the ink footer. No top margin — the band owns its air. */}
+        <Band flush>
+          <section>
+            <h2 className="text-2xl font-bold tracking-tight">{t.firstOpen.title}</h2>
+            <PlatformGuide systems={systems} firstOpen={t.firstOpen} command={t.command} />
+          </section>
+        </Band>
       </main>
       <SiteFooter c={copy} locale={locale} path={PATH} />
     </>

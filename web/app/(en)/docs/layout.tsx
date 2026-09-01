@@ -11,7 +11,7 @@ import "../../blog-prose.css";
 // pages — a layout is not re-mounted by a navigation inside it.
 //
 // The columns sit in the site's own content width, not a wider docs one: the
-// header is `max-w-5xl`, and a body that ran past it would leave the rail
+// header is `max-w-6xl`, and a body that ran past it would leave the rail
 // hanging off the side of the page's one column.
 //
 // The docs are English-only — see `TRANSLATED_PATHS` in lib/i18n.ts. The footer
@@ -27,7 +27,7 @@ export default function DocsLayout({
   return (
     <>
       <Header c={c} locale="en" />
-      <main className={`mx-auto max-w-5xl px-6 pb-8 ${heroTop}`}>
+      <main className={`mx-auto max-w-6xl px-6 pb-8 ${heroTop}`}>
         <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
           <DocsNav groups={getDocsNav(DOCS_PATH)} />
           {children}

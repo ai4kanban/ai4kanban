@@ -1,4 +1,4 @@
-import { CROP, MONO, NB, Panel, Shot, Tag, em } from "./nb";
+import { CROP, HAIR, Inset, MONO, NB, Shot, Tag, em } from "./nb";
 
 // Step 04 记录决策 — the diff a run leaves on the module's memory file.
 //
@@ -6,9 +6,9 @@ import { CROP, MONO, NB, Panel, Shot, Tag, em } from "./nb";
 // directory of Markdown files and the board deliberately never renders it
 // (`docs/kanban/memory/local-ui/decisions.md` — "Memory files are read-only in
 // the UI"). What the user sees after a run is the diff, so that is what this
-// draws, in the plain unified form every diff tool shows: a file header with the
+// draws, in the skin the board's own diff pane gives one: a file header with the
 // path and its ± stat, a hunk header carrying the section the change sits in,
-// and one signed line per source line — removed on ember, added on mint,
+// and one signed line per source line — added on mint, removed on peach,
 // everything else untouched context.
 //
 // The added lines are that file's, verbatim. They are the settled answer to the
@@ -19,13 +19,13 @@ import { CROP, MONO, NB, Panel, Shot, Tag, em } from "./nb";
 // mid-frame rather than under the fade; the last one runs off the bottom on
 // purpose, the way the other three shots carry on past the crop.
 
-/** The site's own diff colors are no use here — this is drawn in kanban-ui's
- *  paper theme, so added/removed borrow the notebook's mint and ember. The
- *  sign column is the same hue a step darker, the way every diff view seats its
- *  gutter. */
+/** The board's own diff skins (kanban-ui/components/Diff.tsx `TONE`), which is
+ *  where a diff is really read now: mint says added, peach says removed, sky
+ *  heads a hunk, and the sign column is its band's hue a step darker — the
+ *  seating every diff view gives a gutter. */
 const ROW = {
-  add: { band: NB.mintSoft, gutter: "#cfe8d9", sign: NB.mintInk },
-  del: { band: NB.accentSoft, gutter: "#f0cdb8", sign: NB.accentDeep },
+  add: { band: NB.mintSoft, gutter: "#cae8d6", sign: NB.mintInk, mark: "+" },
+  del: { band: NB.peachSoft, gutter: "#f7d4c1", sign: NB.peachInk, mark: "−" },
 } as const;
 
 type Line = { sign?: "+" | "-"; text: string };
@@ -65,17 +65,17 @@ export function ShotDecisions() {
   return (
     <Shot crop={CROP}>
       <div style={{ padding: em(20) }}>
-        <Panel style={{ overflow: "hidden" }}>
-          {/* The file header: what changed and by how much. Set like the run
-              log's title bar, since the board has no diff view to copy. */}
+        <Inset style={{ overflow: "hidden" }}>
+          {/* The file header: what changed and by how much. Set like the diff
+              pane's own header — chrome parted from its listing by a hairline,
+              with no fill of its own. */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: em(10),
-              padding: `${em(9)} ${em(14)}`,
-              borderBottom: `${em(1.5)} solid ${NB.ink}`,
-              background: `linear-gradient(${NB.cream}, color-mix(in srgb, #24231f 9%, ${NB.cream}))`,
+              padding: `${em(10)} ${em(16)}`,
+              borderBottom: `1px solid ${HAIR}`,
             }}
           >
             <Tag mark={<span style={{ color: NB.accent }}>●</span>}>
@@ -94,7 +94,7 @@ export function ShotDecisions() {
             >
               local-ui/decisions.md
               <span style={{ fontWeight: 700, color: NB.mintInk }}>+5</span>
-              <span style={{ fontWeight: 700, color: NB.accentDeep }}>−1</span>
+              <span style={{ fontWeight: 700, color: NB.peachInk }}>−1</span>
             </span>
           </div>
 
@@ -108,8 +108,8 @@ export function ShotDecisions() {
                   style={{
                     padding: `${em(5)} ${em(12)}`,
                     background: NB.wash,
-                    borderBlock: `1px solid color-mix(in srgb, #24231f 10%, transparent)`,
-                    color: NB.inkSoft,
+                    borderBlock: `1px solid ${HAIR}`,
+                    color: NB.skyInk,
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -143,7 +143,7 @@ export function ShotDecisions() {
                           color: tone ? tone.sign : "transparent",
                         }}
                       >
-                        {line.sign ?? "+"}
+                        {tone?.mark ?? "+"}
                       </span>
                       {/* Wrapped rather than clipped: the mat is far narrower
                           than a terminal, and a decision cut off at the right
@@ -167,7 +167,7 @@ export function ShotDecisions() {
               </div>
             ))}
           </div>
-        </Panel>
+        </Inset>
       </div>
     </Shot>
   );

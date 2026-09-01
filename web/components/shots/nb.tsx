@@ -6,25 +6,33 @@ import type { CSSProperties, ReactNode } from "react";
 // kanban-ui/ makes these quietly wrong. Each shot file names the component it
 // mirrors — reread that file when the board's look moves.
 //
-// Why drawn rather than captured. The Loop hands a shot ~464px of width
-// (max-w-5xl, minus the 21rem sticky column, the number badge, and the mat's
-// padding). A real capture of the card page is 840px wide, so it lands there at
-// ~0.55× — 14px body text renders at 8px and nothing can be read. These are
-// sized in `em` off a single root font-size, and that root is container-relative
-// (`cqw`), so the drawing scales to whatever width it is given and the type
-// holds its proportion at every one. Tailwind's utilities are px throughout,
-// which is the one thing that can't work here — hence the inline style objects.
+// Why drawn rather than captured. The Loop hands a shot ~475px of width (half
+// of max-w-6xl, minus the gap and the mat's padding). A real capture of the card
+// page is 840px wide, so it lands there at ~0.5× and little can be read. These
+// are sized in `em` off a single root font-size, and that root is
+// container-relative (`cqw`), so the drawing scales to whatever width it is
+// given and the type holds its proportion at every one. Tailwind's utilities are
+// px throughout, which is the one thing that can't work here — hence the inline
+// style objects.
 
 /** kanban-ui/app/globals.css `@theme`, copied 1:1. */
 export const NB = {
   ink: "#24231f",
   inkSoft: "#565550",
   cream: "#f7f7f4",
+  canvas: "#efeeeb",
   paper: "#ffffff",
+  /** A card page's sections — the cream family, a rung lighter than the page. */
+  sheet: "#fbfaf7",
   wash: "#f4f3ef",
   accent: "#dd4f1e",
   accentDeep: "#b83a12",
   accentSoft: "#f7ddce",
+  /** Section grounds: a signal thinned until a whole block of one can carry body
+   *  text. A card page spends colour on two sections and no more — ember where an
+   *  answer is wanted, mint where the work is already done. */
+  accentWash: "#fbf0e9",
+  mintWash: "#eff8f2",
   mint: "#7fca9c",
   mintSoft: "#e4f3ea",
   mintInk: "#2f6b46",
@@ -52,13 +60,15 @@ const BASE = 14;
 export const em = (px: number, own: number = BASE) =>
   `${Number((px / own).toFixed(4))}em`;
 
-// The root type size as a share of the container's width. 2.6% puts ~12px of
-// body text in the Loop's 464px slot, which is the proportion a browser window
-// narrowed to ~520px would have given a real capture. `max()` and not `clamp()`:
-// the floor keeps a phone-width mat legible, and nothing wants a ceiling — the
-// slot is a fixed 464px, and capping the type would only ever shrink the
-// drawing inside a wider one.
-const ROOT = `max(0.5rem, 2.6cqw)`;
+// The root type size as a share of the container's width. Not the real card's
+// 14px body scaled down — the type is sized to the SLOT, so a title, a meta row
+// and a chip line each fit on one line the way they do on a full-width board.
+// At the real card's proportion everything broke a word or two early, and four
+// shots of ragged two-line headings is what made the section look unsettled.
+// `max()` and not `clamp()`: the floor keeps a phone-width mat legible, and
+// nothing wants a ceiling — capping the type would only shrink the drawing
+// inside a wider slot.
+const ROOT = `max(0.5rem, 2.1cqw)`;
 
 /** How much of the crop box the fade covers, bottom-up. */
 const FADE = "30%";
@@ -138,7 +148,13 @@ export function Shot({
   );
 }
 
-/** `.nb-panel-sm` — ink-framed paper block with the hard offset shadow. */
+/** The hairline every quiet rule on the board is drawn at — `nb-ink/12`. An ink
+ *  1.5px frame is now reserved for the two things that are still objects: a
+ *  dialog, and a button. */
+export const HAIR = "color-mix(in srgb, #24231f 12%, transparent)";
+
+/** `.nb-panel` — ink-framed paper block with the hard offset shadow. The one
+ *  frame left in the board: a dialog floating over the page. */
 export function Panel({
   children,
   style,
@@ -150,7 +166,7 @@ export function Panel({
     <div
       style={{
         border: `${em(1.5)} solid ${NB.ink}`,
-        borderRadius: em(13),
+        borderRadius: em(16),
         background: NB.paper,
         boxShadow: `${em(3)} ${em(3)} 0 0 ${NB.ink}`,
         ...style,
@@ -161,9 +177,26 @@ export function Panel({
   );
 }
 
-/** `.nb-outline` — the same frame with no shadow, for blocks that read as
- *  subordinate to the panel below them (the meta band, the questions box). */
-export function Outline({
+/** `.nb-section` — the shape every block on a card page takes: no frame and no
+ *  shadow, told from the page by its ground alone. `sheet` unless the block
+ *  MEANS something, and then `NB.accentWash` / `NB.mintWash`. */
+export function Section({
+  children,
+  style,
+}: {
+  children: ReactNode;
+  style?: CSSProperties;
+}) {
+  return (
+    <div style={{ borderRadius: em(14), background: NB.sheet, ...style }}>
+      {children}
+    </div>
+  );
+}
+
+/** `.nb-inset` — the same shape at hairline weight, for a window inside a
+ *  dialog: the run log's frame in the runs panel. */
+export function Inset({
   children,
   style,
 }: {
@@ -173,8 +206,9 @@ export function Outline({
   return (
     <div
       style={{
-        border: `${em(1.5)} solid ${NB.ink}`,
+        border: `1px solid ${HAIR}`,
         borderRadius: em(14),
+        background: NB.paper,
         ...style,
       }}
     >
@@ -248,15 +282,15 @@ export function Chip({
   chevron?: boolean;
   children?: ReactNode;
 }) {
-  const F = 10.5;
+  const F = 10;
   return (
     <span
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: em(5, F),
+        gap: em(4, F),
         borderRadius: em(6, F),
-        padding: `${em(3, F)} ${em(7, F)}`,
+        padding: `${em(2.5, F)} ${em(6, F)}`,
         fontSize: em(F),
         fontWeight: 700,
         lineHeight: 1,
@@ -274,8 +308,8 @@ export function Chip({
           viewBox="0 0 24 24"
           aria-hidden
           style={{
-            width: em(11, F),
-            height: em(11, F),
+            width: em(10, F),
+            height: em(10, F),
             flex: "0 0 auto",
             fill: "none",
             stroke: "currentColor",
@@ -291,15 +325,15 @@ export function Chip({
   );
 }
 
-/** The 11px icon a chip carries, sized against the chip's own type. */
+/** The 10px icon a chip carries, sized against the chip's own type. */
 export function ChipIcon({ children }: { children: ReactNode }) {
   return (
     <span
       aria-hidden
       style={{
         display: "flex",
-        width: em(11, 10.5),
-        height: em(11, 10.5),
+        width: em(10, 10),
+        height: em(10, 10),
         flex: "0 0 auto",
       }}
     >
@@ -407,7 +441,7 @@ export function Todos({
         style={{
           display: "block",
           width: em(width),
-          height: em(5),
+          height: em(4),
           borderRadius: em(999),
           overflow: "hidden",
           background: "color-mix(in srgb, #24231f 12%, transparent)",
@@ -424,7 +458,7 @@ export function Todos({
       </span>
       <span
         style={{
-          fontSize: em(11),
+          fontSize: em(10.5),
           fontWeight: 700,
           fontVariantNumeric: "tabular-nums",
           color: NB.inkSoft,
@@ -466,29 +500,20 @@ export function Code({ children }: { children: ReactNode }) {
   );
 }
 
-/** The run log's title bar — the kicker, the outcome glyph, and the run's
- *  facts in one middot row. `agent-shared.tsx`'s `titleBar`, resting state. */
-export function LogBar({
-  facts,
-  collapsed = false,
-}: {
-  facts: string[];
-  /** Closed: the bar rounds all four corners and carries no rule beneath it. */
-  collapsed?: boolean;
-}) {
+/** The run log's title bar — the kicker, the outcome glyph, and the run's facts
+ *  in one middot row. `agent-shared.tsx`'s `titleBar`, resting state. Chrome over
+ *  the well below it, parted by a hairline; it carries no fill of its own, so it
+ *  sits on whatever ground the frame around it has. */
+export function LogBar({ facts }: { facts: string[] }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
         gap: em(10),
-        padding: `${em(4)} ${em(12)}`,
-        borderTopLeftRadius: em(12.5),
-        borderTopRightRadius: em(12.5),
-        borderBottomLeftRadius: collapsed ? em(12.5) : 0,
-        borderBottomRightRadius: collapsed ? em(12.5) : 0,
-        borderBottom: collapsed ? undefined : `${em(1.5)} solid ${NB.ink}`,
-        background: `linear-gradient(${NB.cream}, color-mix(in srgb, #24231f 9%, ${NB.cream}))`,
+        minHeight: em(22),
+        padding: `${em(10)} ${em(16)}`,
+        borderBottom: `1px solid ${HAIR}`,
       }}
     >
       <Tag>run log</Tag>

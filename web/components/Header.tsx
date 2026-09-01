@@ -58,7 +58,7 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
       {/* Same `py-3` at every width, so the row a phone gets and the row a
           desktop gets are the same height — the wide nav swaps items in, it
           doesn't make the chrome taller. */}
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-6 py-3">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-3">
         <a href={localePath(locale, "")} className="text-ink no-underline">
           <Logo size="sm" />
         </a>
@@ -71,9 +71,9 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
             mark is the name.
 
             The swap is at `lg`, not `sm` or `md`. `sm` is where the wide nav
-            first fits and nothing more — at 640px five items and the button fill
+            first fits and nothing more — at 640px the items and the button fill
             the row edge to edge, and one longer word (fr: "Installation",
-            "Comparatifs") breaks it. `md` held six; Docs is the seventh, which
+            "Comparatifs") breaks it. `md` held the short labels; "Documentation"
             is the width `md` no longer has at any gap. */}
         <div className="flex items-center gap-2.5 text-[0.95rem] text-muted lg:hidden">
           <HeaderLanguage locale={locale} label={c.shared.language.label} />
@@ -90,8 +90,8 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
         </div>
 
         {/* The gap is tighter between `lg` and `xl` than above it. At 1024 the
-            row is seven items and a button, and French is the longest set of
-            words in it — "Télécharger", "Comparatifs", "Français". Sixteen
+            row is six items and a button, and French is the longest set of
+            words in it — "Télécharger", "Documentation", "Comparatifs". Sixteen
             pixels there buys forty back and reads the same at that width; the
             full gap returns at `xl`, where there is room for it. */}
         <nav className="hidden items-center justify-center text-[0.95rem] text-muted lg:flex lg:gap-x-4 xl:gap-x-6">
@@ -106,13 +106,10 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
           >
             {nav.download}
           </a>
-          {/* The docs, the recipes and the blog are English-only, so none of
-              these links ever takes a locale prefix. */}
+          {/* The documentation and the blog are English-only, so neither link
+              ever takes a locale prefix. */}
           <a href="/docs" className="transition-colors hover:text-ink">
             {nav.docs}
-          </a>
-          <a href="/recipes" className="transition-colors hover:text-ink">
-            {nav.recipes}
           </a>
           <a href="/blog" className="transition-colors hover:text-ink">
             {nav.blog}

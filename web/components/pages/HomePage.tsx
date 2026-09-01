@@ -1,7 +1,6 @@
 import { Band } from "@/components/Band";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/home/Hero";
-import { Compare } from "@/components/home/Compare";
 import { Loop } from "@/components/home/Loop";
 import { Memory } from "@/components/home/Memory";
 import { Iterate } from "@/components/home/Iterate";
@@ -61,18 +60,11 @@ export function HomePage({ locale }: { locale: Locale }) {
       />
       <Reveal />
       <Header c={copy} locale={locale} />
-      {/* Two bands on a white page. `Compare` needs one — it says which column
-          wins with the neutral ramp, and on white its paper card has nothing to
-          be brighter than. `Start` takes the other so the page warms on the way
-          into the ink footer. Everything between is pictures and type. */}
+      {/* One band on a white page: `Start` takes it so the page warms on the
+          way into the ink footer. Everything above is pictures and type. */}
       <main>
         <div className={column}>
           <Hero c={c.hero} locale={locale} systems={systems} />
-        </div>
-        <Band>
-          <Compare c={c.compare} />
-        </Band>
-        <div className={column}>
           <Loop c={c.loop} />
           <Memory c={c.memory} />
           <Iterate c={c.iterate} />

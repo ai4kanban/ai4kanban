@@ -12,20 +12,20 @@ const ja: DownloadCopy = {
   },
 
   hero: {
-    title: "AI4Kanban をダウンロード",
-    lead: "macOS、Windows、Linux 向けのボードのデスクトップアプリ。",
+    title: "AI4Kanban デスクトップ版",
+    lead: "macOS、Windows、Linux に対応。",
     cta: "ダウンロード",
+    ctaFor: "{system} 版をダウンロード",
   },
 
   builds: {
     title: "すべてのダウンロード",
-    note: "どれもまだ署名がなく、毎回テストしているのは macOS だけなので、どのシステムでも初回に警告が出ます。",
   },
 
   firstOpen: {
     title: "はじめて開くとき",
+    platformLabel: "プラットフォームを選択",
     mac: {
-      title: "macOS",
       steps: [
         "`.dmg` を開き、**AI4Kanban** をアプリケーションにドラッグします。",
         "ダブルクリックします。macOS が確認できないと表示するので、**完了**をクリックします。ここではまだ開きませんが、それで正常です。",
@@ -34,18 +34,17 @@ const ja: DownloadCopy = {
       ],
     },
     windows: {
-      title: "Windows",
       body: "SmartScreen では**詳細情報**、続けて**実行**をクリックします。",
     },
     linux: {
-      title: "Linux",
       body: "`chmod +x AI4Kanban-*.AppImage` のあと、実行します。",
     },
   },
   command: {
-    title: "`akb` コマンド",
-    body: "アプリは `akb`——コーディングエージェントがボードを操作するためのコマンド——を同梱し、初回起動時に PATH へ通すかどうかを尋ねます。macOS は `/usr/local/bin/akb` にリンクを 1 つ書き込むため管理者パスワードを求め、Windows はアプリのフォルダーを PATH に追加します（効くのはその後に開いたターミナルだけです）。アプリの外へは何もコピーされないので、アプリを更新すればコマンドも更新されます。",
-    later: "断った場合もボタンは **Configuration → General** に残ります。Linux では提供していません。AppImage は実行のたびに新しい場所へ展開されるため、`npm install -g ai4kanban` がそのまま方法です。",
+    title: "ターミナルで `akb` を使う",
+    mac: "アプリを一度開けば、ターミナルで `akb` が使えます。",
+    windows: "ターミナルを開き直せば `akb` が使えます。",
+    linux: "手動の作業が必要なのは Linux だけです: `npm install -g ai4kanban`。",
   },
 };
 

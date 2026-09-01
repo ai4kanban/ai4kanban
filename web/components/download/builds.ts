@@ -10,14 +10,13 @@ import { assetUrl } from "@/lib/release";
 export type Arch = "arm" | "x86" | null;
 
 type Build = {
-  /** The row's label — the chip, or the architecture when there is no name for
-   *  it. What a reader picks between inside one system. */
+  /** What a reader picks between inside one system, in the words they would
+   *  use: the chip's name, or the machine's width. Never the file's name — the
+   *  page says which machine it is for, and hands the file over. */
   label: string;
   arch: Arch;
   /** The asset name on the release, which carries the version. */
   file: (version: string) => string;
-  /** Shown beside the label, so the row says what lands in Downloads. */
-  ext: string;
 };
 
 /** The systems, in the order the cards list them, and the files under each. The
@@ -30,8 +29,8 @@ const SYSTEMS: { os: OS; name: string; builds: Build[] }[] = [
     builds: [
       // Apple Silicon first, and not only because it is newer: no browser but
       // Chromium will say which Mac this is, so this row is also the guess.
-      { label: "Apple Silicon", arch: "arm", ext: ".dmg", file: (v) => `AI4Kanban-${v}-arm64.dmg` },
-      { label: "Intel", arch: "x86", ext: ".dmg", file: (v) => `AI4Kanban-${v}.dmg` },
+      { label: "Apple Silicon", arch: "arm", file: (v) => `AI4Kanban-${v}-arm64.dmg` },
+      { label: "Intel", arch: "x86", file: (v) => `AI4Kanban-${v}.dmg` },
     ],
   },
   {
@@ -39,15 +38,15 @@ const SYSTEMS: { os: OS; name: string; builds: Build[] }[] = [
     name: "Windows",
     // One NSIS installer covers x64 and arm64, so there is nothing to pick.
     builds: [
-      { label: "x64 / arm64", arch: null, ext: ".exe", file: (v) => `AI4Kanban-Setup-${v}.exe` },
+      { label: "Installer", arch: null, file: (v) => `AI4Kanban-Setup-${v}.exe` },
     ],
   },
   {
     os: "linux",
     name: "Linux",
     builds: [
-      { label: "x64", arch: "x86", ext: ".AppImage", file: (v) => `AI4Kanban-${v}.AppImage` },
-      { label: "arm64", arch: "arm", ext: ".AppImage", file: (v) => `AI4Kanban-${v}-arm64.AppImage` },
+      { label: "64-bit", arch: "x86", file: (v) => `AI4Kanban-${v}.AppImage` },
+      { label: "ARM64", arch: "arm", file: (v) => `AI4Kanban-${v}-arm64.AppImage` },
     ],
   },
 ];
@@ -59,7 +58,7 @@ export type OS = "mac" | "windows" | "linux";
 export type ResolvedSystem = {
   os: OS;
   name: string;
-  builds: { label: string; arch: Arch; ext: string; url: string }[];
+  builds: { label: string; arch: Arch; url: string }[];
 };
 
 /** Call once, on the server: `assetUrl` needs the version off disk. */
@@ -70,7 +69,6 @@ export function releaseBuilds(version: string): ResolvedSystem[] {
     builds: system.builds.map((build) => ({
       label: build.label,
       arch: build.arch,
-      ext: build.ext,
       url: assetUrl(build.file(version)),
     })),
   }));

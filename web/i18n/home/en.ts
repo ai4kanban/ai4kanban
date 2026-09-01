@@ -23,29 +23,6 @@ const en: HomeCopy = {
     },
   },
 
-  compare: {
-    title: "From task tracking to autonomous planning",
-    lead: "Traditional boards only record and track tasks, and every input has to be written by hand. AI4Kanban uses your long-term goals and the decisions already in project memory to plan work and move it forward autonomously.",
-    columns: { classic: "Traditional board", kanban: "AI4Kanban" },
-    rows: [
-      {
-        dimension: "Input",
-        classic: "Detailed tasks written by hand",
-        kanban: "Long-term goals and rough ideas",
-      },
-      {
-        dimension: "Primary role",
-        classic: "Record and track tasks",
-        kanban: "Plan and drive work autonomously",
-      },
-      {
-        dimension: "Your role",
-        classic: "Maintain the board by hand",
-        kanban: "Make decisions and approve the result",
-      },
-    ],
-  },
-
   loop: {
     title: "Keep work moving",
     lead: "Give it a goal or a rough idea. The agent reads your code and project memory, determines what comes next, clarifies requirements, breaks the work down, orders dependencies and priorities, and moves into execution.",

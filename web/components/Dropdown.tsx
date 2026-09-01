@@ -10,6 +10,7 @@ export function Dropdown({
   label,
   ariaLabel,
   align = "center",
+  drop = "down",
   width,
   chevron = true,
   summaryClass = "flex cursor-pointer items-center gap-1.5 transition-colors hover:text-ink",
@@ -21,6 +22,8 @@ export function Dropdown({
   ariaLabel?: string;
   /** Which edge the panel hangs from — centred under the label, or flush right. */
   align?: "center" | "right";
+  /** Which way the panel opens. Up in the footer, where down is off the page. */
+  drop?: "down" | "up";
   /** The panel's width, as a Tailwind class: menus size to their longest entry. */
   width: string;
   /** Off when the label is already a menu glyph — a hamburger needs no arrow. */
@@ -67,9 +70,9 @@ export function Dropdown({
         )}
       </summary>
       <div
-        className={`absolute z-20 mt-2 rounded-xl border-2 border-border bg-elev p-1.5 shadow-[4px_4px_0_0_var(--color-ink)] ${
-          align === "right" ? "right-0" : "left-1/2 -translate-x-1/2"
-        } ${width}`}
+        className={`absolute z-20 rounded-xl border-2 border-border bg-elev p-1.5 shadow-[4px_4px_0_0_var(--color-ink)] ${
+          drop === "up" ? "bottom-full mb-2" : "mt-2"
+        } ${align === "right" ? "right-0" : "left-1/2 -translate-x-1/2"} ${width}`}
       >
         {children}
       </div>

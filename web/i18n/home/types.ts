@@ -1,7 +1,7 @@
 import type { PageMeta, TitleBody } from "../types";
 
 /**
- * The landing page, section by section — the same five sections in every
+ * The landing page, section by section — the same four sections in every
  * language, so each locale file fills the same keys.
  *
  * Where a component pairs a line of copy with something positional (an icon, a
@@ -24,12 +24,6 @@ export type HomeCopy = {
       frontAria: string;
       flipAria: string;
     };
-  };
-  compare: {
-    title: string;
-    lead: string;
-    columns: { classic: string; kanban: string };
-    rows: [CompareRow, CompareRow, CompareRow];
   };
   loop: {
     title: string;
@@ -88,11 +82,4 @@ export type HomeCopy = {
     /** How the app, bundled CLI, and automatically added skills fit together. */
     command: string;
   };
-};
-
-/** One row of the traditional-board / AI4Kanban comparison. */
-export type CompareRow = {
-  dimension: string;
-  classic: string;
-  kanban: string;
 };

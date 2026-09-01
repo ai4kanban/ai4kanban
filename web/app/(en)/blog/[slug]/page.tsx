@@ -14,7 +14,8 @@ import {
   postPath,
 } from "@/lib/blog";
 import { pageMetadata } from "@/lib/metadata";
-import { article, jsonLd, webPage } from "@/lib/schema";
+import { article, jsonLd, person, webPage } from "@/lib/schema";
+import { BUILDER_PATH } from "@/components/social";
 import "../../../blog-prose.css";
 
 // The blog is English-only — see `TRANSLATED_PATHS` in lib/i18n.ts.
@@ -49,6 +50,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       type: "article",
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt ?? post.publishedAt,
+      byTao: true,
       translated: false,
     }),
     // A draft is a URL you hand to one person. `follow` stays on: the links out
@@ -71,12 +73,14 @@ export default async function BlogPostPage({ params }: Params) {
     ? null
     : jsonLd(
         webPage(route, post.titleTag ?? post.title, post.seoDescription),
+        person,
         article({
           path: route,
           headline: post.title,
           description: post.seoDescription,
           datePublished: post.publishedAt,
           dateModified: post.updatedAt ?? post.publishedAt,
+          author: { "@id": person["@id"] },
         }),
       );
 
@@ -108,10 +112,15 @@ export default async function BlogPostPage({ params }: Params) {
               {post.title}
             </h1>
             <p className="mt-5 text-lg text-muted">{post.dek}</p>
-            <p className="mt-6 text-sm text-muted">
+            {/* The byline goes to the page that says who that is. */}
+            <a
+              href={BUILDER_PATH}
+              rel="author"
+              className="mt-6 inline-block text-sm text-muted transition-colors hover:text-ink"
+            >
               <span className="font-semibold text-ink">{AUTHOR.name}</span> ·{" "}
               {AUTHOR.role}
-            </p>
+            </a>
           </header>
 
           {/* The body, with the rail beside it once there is room for one. */}

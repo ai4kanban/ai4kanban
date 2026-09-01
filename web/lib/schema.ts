@@ -17,6 +17,20 @@ import { LOCALES, LOCALE_TAGS, localePath, type Locale } from "./i18n";
 export const ORG_ID = `${BASE_URL}/#organization`;
 export const SITE_ID = `${BASE_URL}/#website`;
 export const APP_ID = `${BASE_URL}/#software`;
+/** The one person on the site. Described in full on `/builder`. */
+export const PERSON_ID = `${BASE_URL}/builder#builder`;
+
+/**
+ * The short form of that Person, for a page that is *by* Tao but not *about*
+ * him. Carrying `name` and `url` alongside the `@id` keeps the reference
+ * resolvable off `/builder` — a bare `@id` on a blog post would dangle.
+ */
+export const person = {
+  "@type": "Person",
+  "@id": PERSON_ID,
+  name: "Tao Wu",
+  url: `${BASE_URL}/builder`,
+};
 
 // Google wants a logo of at least 112×112, uncropped, on white or transparent.
 // This is the largest square the favicon set ships — the same mark as
@@ -127,6 +141,12 @@ type ArticleInput = {
   dateModified: string;
   /** Entities the article is about, e.g. the products being compared. */
   about?: object[];
+  /**
+   * Who wrote it. The comparison pages are the project's own reference material
+   * and stay with the Organization; a blog post passes `person`, which is the
+   * byline the page prints.
+   */
+  author?: object;
 };
 
 export function article({
@@ -137,6 +157,7 @@ export function article({
   datePublished,
   dateModified,
   about,
+  author = { "@id": ORG_ID },
 }: ArticleInput) {
   const url = pageUrl(path, locale);
   return {
@@ -149,7 +170,7 @@ export function article({
     inLanguage: LOCALE_TAGS[locale],
     datePublished,
     dateModified,
-    author: { "@id": ORG_ID },
+    author,
     publisher: { "@id": ORG_ID },
     isPartOf: { "@id": `${url}#webpage` },
     mainEntityOfPage: { "@id": `${url}#webpage` },

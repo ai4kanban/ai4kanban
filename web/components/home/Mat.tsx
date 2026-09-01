@@ -49,8 +49,10 @@ export function Mat({
       }}
     >
       <Wash name={wash} animated={animated} />
-      {/* Its own stacking context, so the canvas can never draw over a print. */}
-      <div className="relative">{children}</div>
+      {/* Its own stacking context, so the canvas can never draw over a print.
+          `w-full` is a no-op under a block mat and is what lets a print fill a
+          mat that centres its content with flex. */}
+      <div className="relative w-full">{children}</div>
     </div>
   );
 }

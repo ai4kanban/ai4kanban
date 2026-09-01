@@ -161,7 +161,7 @@ function wrap(
 
 // ── The drawing's coordinate system ─────────────────────────────────────────
 // One unit is one CSS pixel at the size the diagram was drawn — about the width
-// `max-w-5xl` gives it, so on a desktop it renders roughly 1:1.
+// `max-w-6xl` gives it, so on a desktop it renders roughly 1:1.
 const PAD = 24; // the print's own margin, inside its edge
 const GAP = 16; // between a column and the wire beside it
 const FLANK = 216; // the two lists — sized for the longest noun in any language
@@ -961,7 +961,7 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
 
   return (
     <section className="mt-28">
-      <SectionTitle num="04" title={c.title} />
+      <SectionTitle num="03" title={c.title} />
       <p
         data-reveal
         data-delay="1"

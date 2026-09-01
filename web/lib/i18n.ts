@@ -67,6 +67,19 @@ export function localePath(locale: Locale, path: string): string {
 }
 
 /**
+ * The language-free route behind a URL: `/zh/download` and `/download` both give
+ * `"/download"`, and any landing page gives `""`. The result is only a
+ * `TranslatedPath` when the route exists in every language — a caller switching
+ * languages has to fall back to `""` for anything else.
+ */
+export function stripLocale(pathname: string): string {
+  const trimmed = pathname.replace(/\/+$/, "");
+  const [first = "", ...rest] = trimmed.split("/").slice(1);
+  if (!isTranslatedLocale(first)) return trimmed;
+  return rest.length ? `/${rest.join("/")}` : "";
+}
+
+/**
  * Rewrite an in-site link for the current language. Hash-only and external
  * links pass through untouched; `/#install` becomes `/zh/#install`.
  */

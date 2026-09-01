@@ -12,20 +12,20 @@ const zh: DownloadCopy = {
   },
 
   hero: {
-    title: "下载 AI4Kanban",
-    lead: "看板的桌面应用，支持 macOS、Windows 和 Linux。",
+    title: "AI4Kanban 桌面版",
+    lead: "支持 macOS、Windows 和 Linux。",
     cta: "下载",
+    ctaFor: "下载 {system} 版",
   },
 
   builds: {
     title: "全部下载",
-    note: "目前都还没有签名，每个版本也只测试 macOS，因此首次打开时每个系统都会警告。",
   },
 
   firstOpen: {
     title: "第一次打开",
+    platformLabel: "选择你的系统",
     mac: {
-      title: "macOS",
       steps: [
         "打开 `.dmg`，把 **AI4Kanban** 拖进“应用程序”。",
         "双击打开。macOS 会提示无法验证这个应用，点**完成**。这一次打不开是正常的。",
@@ -34,18 +34,17 @@ const zh: DownloadCopy = {
       ],
     },
     windows: {
-      title: "Windows",
       body: "SmartScreen：点**更多信息**，再点**仍要运行**。",
     },
     linux: {
-      title: "Linux",
       body: "先 `chmod +x AI4Kanban-*.AppImage`，然后运行它。",
     },
   },
   command: {
-    title: "`akb` 命令",
-    body: "应用自带 `akb`——编码 Agent 驱动看板所用的命令——并在首次打开时提出把它加入 PATH。macOS 会在 `/usr/local/bin/akb` 写入一个链接，需要管理员密码；Windows 把应用目录加入 PATH，只对之后新开的终端生效。命令不会复制到应用之外，更新应用就等于更新命令。",
-    later: "拒绝之后，按钮仍留在 **Configuration → General** 里。Linux 不提供这一项：AppImage 每次运行都解包到新的临时目录，因此仍然使用 `npm install -g ai4kanban`。",
+    title: "在终端中使用 `akb`",
+    mac: "打开一次应用，终端里就能用 `akb`。",
+    windows: "新开一个终端，就能用 `akb`。",
+    linux: "只有 Linux 需要手动一步：`npm install -g ai4kanban`。",
   },
 };
 

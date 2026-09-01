@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import { FaGithub, FaLinkedinIn, FaXTwitter } from "react-icons/fa6";
-import { FiGlobe } from "react-icons/fi";
 import { GITHUB_URL } from "@/components/content";
 import { Header } from "@/components/Header";
 import { SiteFooter } from "@/components/SiteFooter";
+import { SOCIALS, SOCIAL_URLS } from "@/components/social";
 import { buttonClass } from "@/components/ui/Button";
 import { getCopy } from "@/i18n";
 import { pageMetadata } from "@/lib/metadata";
-import { ORG_ID, jsonLd, pageUrl, webPage } from "@/lib/schema";
+import { ORG_ID, PERSON_ID, jsonLd, pageUrl, webPage } from "@/lib/schema";
 
 const c = getCopy("en");
 
@@ -23,18 +22,19 @@ export const metadata: Metadata = pageMetadata({
   path: PATH,
   title: TITLE,
   description: DESCRIPTION,
+  type: "profile",
+  byTao: true,
   translated: false,
 });
 
-const builderId = pageUrl(PATH) + "#builder";
 const schema = jsonLd(
   {
     ...webPage(PATH, TITLE, SCHEMA_DESCRIPTION),
-    mainEntity: { "@id": builderId },
+    mainEntity: { "@id": PERSON_ID },
   },
   {
     "@type": "Person",
-    "@id": builderId,
+    "@id": PERSON_ID,
     name: "Tao Wu",
     url: pageUrl(PATH),
     image: "https://cdn.dist0.com/images/tao.avatar.jpg",
@@ -42,54 +42,26 @@ const schema = jsonLd(
     description:
       "Tao Wu is the builder of AI4Kanban, an open-source project-management agent for turning rough product ideas into buildable work.",
     worksFor: { "@id": ORG_ID },
-    sameAs: [
-      "https://www.linkedin.com/in/tao-pmf",
-      "https://github.com/neverchanje/",
-      "https://x.com/tao_pmf",
-      "https://tao-wu-me.pages.dev/",
-    ],
+    sameAs: SOCIAL_URLS,
   },
 );
 
 const linkClass =
   "text-ink underline decoration-2 decoration-accent underline-offset-[3px] transition-colors hover:text-accent-deep hover:decoration-accent-deep";
 
-const socials = [
-  {
-    href: "https://www.linkedin.com/in/tao-pmf",
-    label: "LinkedIn",
-    icon: <FaLinkedinIn className="h-4 w-4" aria-hidden="true" />,
-  },
-  {
-    href: "https://github.com/neverchanje/",
-    label: "GitHub",
-    icon: <FaGithub className="h-4 w-4" aria-hidden="true" />,
-  },
-  {
-    href: "https://x.com/tao_pmf",
-    label: "X",
-    icon: <FaXTwitter className="h-3.5 w-3.5" aria-hidden="true" />,
-  },
-  {
-    href: "https://tao-wu-me.pages.dev/",
-    label: "Personal website",
-    icon: <FiGlobe className="h-4 w-4" aria-hidden="true" />,
-  },
-];
-
 function SocialLinks() {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {socials.map((social) => (
+      {SOCIALS.map(({ href, label, Icon }) => (
         <a
-          key={social.href}
-          href={social.href}
+          key={href}
+          href={href}
           target="_blank"
           rel="me noopener noreferrer"
-          aria-label={social.label}
+          aria-label={label}
           className={buttonClass("secondary", "icon")}
         >
-          {social.icon}
+          <Icon className="h-4 w-4" aria-hidden="true" />
         </a>
       ))}
     </div>
@@ -215,8 +187,8 @@ export default function BuilderPage() {
                   , first as an engineer and later as a product manager. That
                   combination taught me that software rarely fails because a
                   team cannot write code. It fails when the work is unclear,
-                  context is scattered, and small decisions disappear before
-                  the next person needs them.
+                  context is scattered, and small decisions disappear before the
+                  next person needs them.
                 </p>
 
                 <p>
@@ -229,9 +201,9 @@ export default function BuilderPage() {
 
                 <p>
                   The new bottleneck is not writing code. It is turning a rough
-                  goal into good work: deciding what matters next, clarifying the
-                  edges, preserving product judgment, and knowing when a choice
-                  genuinely needs a person.
+                  goal into good work: deciding what matters next, clarifying
+                  the edges, preserving product judgment, and knowing when a
+                  choice genuinely needs a person.
                 </p>
 
                 <p>
@@ -250,8 +222,8 @@ export default function BuilderPage() {
                   : use the board as the planning layer above coding agents. A
                   broad goal becomes a set of cards. Each card is questioned and
                   refined until it is buildable. The decisions stay attached to
-                  the project, so the next card starts with more context than the
-                  last.
+                  the project, so the next card starts with more context than
+                  the last.
                 </p>
 
                 <ul className="space-y-3 pl-1">
@@ -272,11 +244,11 @@ export default function BuilderPage() {
                 </ul>
 
                 <p>
-                  AI4Kanban is my open-source attempt to make that workflow real.
-                  It is a project-management agent shaped as a kanban board, not
-                  another dashboard for watching logs. You steer requirements and
-                  approve the important calls; the board plans, remembers, and
-                  coordinates the path to delivery.
+                  AI4Kanban is my open-source attempt to make that workflow
+                  real. It is a project-management agent shaped as a kanban
+                  board, not another dashboard for watching logs. You steer
+                  requirements and approve the important calls; the board plans,
+                  remembers, and coordinates the path to delivery.
                 </p>
 
                 <p>
@@ -290,8 +262,8 @@ export default function BuilderPage() {
                     core is open source
                   </a>
                   . I use it to manage its own development, because the only way
-                  to learn whether an autonomous board can improve a real project
-                  is to trust it with one.
+                  to learn whether an autonomous board can improve a real
+                  project is to trust it with one.
                 </p>
               </div>
 
@@ -300,13 +272,13 @@ export default function BuilderPage() {
                   <p>
                     Chat is good for one task. A project is a long-lived tree of
                     goals, dependencies, decisions, and rejected paths. A board
-                    gives that structure a stable home and lets people review the
-                    work from the level that matters.
+                    gives that structure a stable home and lets people review
+                    the work from the level that matters.
                   </p>
                   <p>
-                    The board is primarily for the agent to plan from. People can
-                    stay with the small set of questions, reviews, and decisions
-                    that require them.
+                    The board is primarily for the agent to plan from. People
+                    can stay with the small set of questions, reviews, and
+                    decisions that require them.
                   </p>
                 </Question>
 
@@ -314,8 +286,8 @@ export default function BuilderPage() {
                   <p>
                     It means AI for the kanban: an agent drives each card from
                     rough idea to clarified work, execution, and delivery. The
-                    kanban is no longer a passive list that waits for a person to
-                    update every column.
+                    kanban is no longer a passive list that waits for a person
+                    to update every column.
                   </p>
                   <p>
                     The goal is simple: spend less time supervising agents and

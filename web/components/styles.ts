@@ -45,7 +45,7 @@ export const panelBareInset = "rounded-xl bg-code";
 // The content column. A page that never bands can put this on its `<main>`; one
 // that does puts it on each stretch between bands, because a band is full-bleed
 // and has to break out of it (`Band.tsx`).
-export const column = "mx-auto max-w-5xl px-6";
+export const column = "mx-auto max-w-6xl px-6";
 
 // Not a surface — the air between the header and the first thing on a page, so
 // every hero opens at the same height. It counts the header's own row: at the

@@ -16,6 +16,11 @@ bands, hard offset shadows in a warm near-black ink, and one ember accent. The r
 should feel tactile, direct, and deliberate rather than polished into a generic grid
 of cards.
 
+Keep that character concentrated: a borderless composition with one small outlined,
+hard-shadowed control feels more neo-brutalist than a page where every region is
+boxed. Use the brutalist element as punctuation around the action or active choice,
+not as a container around all content.
+
 Use empty space and neutral grounds to establish hierarchy. Warm bands, color,
 outlines, and shadows are stronger signals and should remain scarce. White should hold
 at least half of any screen; a page carrying one fill end to end reads dim whichever
@@ -46,7 +51,10 @@ All reusable colors are tokens in the `@theme` block of `web/app/globals.css`.
 - **Use wash for insets**: `code` is the neutral step that lets a block sink into white.
   These neutral grounds should carry most hierarchy before color is introduced.
 - **Treat ember as an object**: use it for fills, bars, marks, and other deliberate
-  shapes, never as a page or general panel color. Do not introduce ember tints.
+  shapes, never as a page or general panel color. Do not introduce ember tints. A
+  large ember area is allowed only where it *is* the action — the download hero's
+  right half is a button scaled up, which is also why nothing small enough to need
+  4.5:1 goes on it.
 - **Rest on `accent`, press to `accent-deep`**: this is the board's order and it is not
   reversible. `accent-deep` is a state and a text color, never a default fill. A page
   that reaches for it first comes out brick-dark, which is the mood the washes exist to
@@ -92,6 +100,12 @@ A surface is either **raised** or **bare**. There is no faintly bordered middle 
 
 Shadows identify important objects. If everything casts one, nothing has priority. A
 screen should contain only a handful of raised surfaces.
+
+- **Spend brutalism where it has to be noticed**: the hard shadow and the ink outline are
+  the loudest marks the theme owns, and they belong to what the reader must act on —
+  buttons first, then the one panel a section is built around. Most components are
+  neither; default them to bare, and let a wash step, spacing, and type carry them.
+  Weight put on a block nobody clicks is weight the real action no longer has.
 
 ## Component styling
 

@@ -52,10 +52,11 @@ const TREE: Row[] = [
 // between them is whatever the width happens to leave. Nothing has to reflow,
 // so nothing has to be redrawn for the phone.
 //
-// The print is capped rather than filling what it is given. The listing is
-// eight short lines; run to the full width of a tablet the gap between a path
-// and its note opens far enough that the pair stops reading as one row, and the
-// cap is the width at which it still does.
+// The print fills what it is given, up to `className`'s cap. The default cap
+// is for a caller that hands it a whole prose column — eight short lines run to
+// that width open the gap between a path and its note far enough that the pair
+// stops reading as one row. A caller whose mat already sets the margin as a
+// share of its own width passes `max-w-none` and lets the print track it.
 //
 // Two faces, because the two halves of a row are different kinds of thing: the
 // path is what the terminal printed, in the mono, and the note is our
@@ -68,10 +69,16 @@ const TREE: Row[] = [
 // characters and the drawing only closes up when the rows are close enough for
 // one row's `│` to point at the next one's. A tree is a shape; loosen it and it
 // is eight lines that happen to be near each other.
-export function MemoryTree({ notes }: { notes: MemoryTreeNotes }) {
+export function MemoryTree({
+  notes,
+  className = "max-w-[23rem]",
+}: {
+  notes: MemoryTreeNotes;
+  className?: string;
+}) {
   return (
     <div
-      className={`${printFrame} w-full max-w-[23rem] bg-elev px-3.5 py-4 font-mono text-[0.75rem] leading-[1.6] sm:px-5 sm:text-[0.8rem]`}
+      className={`${printFrame} w-full ${className} bg-elev px-3.5 py-4 font-mono text-[0.75rem] leading-[1.6] sm:px-5 sm:text-[0.8rem] lg:text-[0.85rem]`}
     >
       {TREE.map((row) => (
         <div
@@ -87,7 +94,7 @@ export function MemoryTree({ notes }: { notes: MemoryTreeNotes }) {
             </span>
           </code>
           {row.note && (
-            <span className="text-right font-sans text-[0.68rem] leading-snug text-muted sm:text-[0.72rem]">
+            <span className="text-right font-sans text-[0.68rem] leading-snug text-muted sm:text-[0.72rem] lg:text-[0.77rem]">
               {notes[row.note]}
             </span>
           )}

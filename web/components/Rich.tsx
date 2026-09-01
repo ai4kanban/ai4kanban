@@ -19,22 +19,31 @@ const TOKEN = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|\n)/g;
  * the ground, not the fill — a `bg-code` chip on a `bg-code` panel is invisible.
  */
 const CODE_CLASS = {
-  paper: "rounded bg-code px-1.5 py-0.5 font-mono text-[0.9em] text-ink",
-  wash: "rounded bg-elev px-1.5 py-0.5 font-mono text-[0.9em] text-ink",
+  paper: "rounded bg-code px-1.5 py-0.5 text-[0.9em] text-ink",
+  wash: "rounded bg-elev px-1.5 py-0.5 text-[0.9em] text-ink",
 } as const;
 
 export type RichProps = {
   children: string;
   /** Which surface the code chips sit on. */
   code?: keyof typeof CODE_CLASS;
+  /** Off on a page that sets no monospace anywhere — the chip's wash is
+   *  already what marks it as functional text. */
+  mono?: boolean;
 };
 
-export function rich(text: string, code: keyof typeof CODE_CLASS = "paper") {
+export function rich(
+  text: string,
+  code: keyof typeof CODE_CLASS = "paper",
+  mono = true,
+) {
   return text.split(TOKEN).map((part, i) => {
     if (part === "\n") return <br key={i} />;
     if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+      // `font-sans` is not the absence of `font-mono`: a bare <code> is
+      // monospace by the stylesheet's own reset.
       return (
-        <code key={i} className={CODE_CLASS[code]}>
+        <code key={i} className={`${CODE_CLASS[code]} ${mono ? "font-mono" : "font-sans"}`}>
           {part.slice(1, -1)}
         </code>
       );
@@ -54,6 +63,6 @@ export function rich(text: string, code: keyof typeof CODE_CLASS = "paper") {
 }
 
 /** Renders one copy string with its inline markup. */
-export function Rich({ children, code = "paper" }: RichProps): ReactNode {
-  return <>{rich(children, code)}</>;
+export function Rich({ children, code = "paper", mono = true }: RichProps): ReactNode {
+  return <>{rich(children, code, mono)}</>;
 }

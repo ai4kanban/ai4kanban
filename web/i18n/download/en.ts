@@ -12,20 +12,20 @@ const en: DownloadCopy = {
   },
 
   hero: {
-    title: "Download AI4Kanban",
-    lead: "The board as a desktop app for macOS, Windows and Linux.",
+    title: "AI4Kanban Desktop",
+    lead: "For macOS, Windows and Linux.",
     cta: "Download",
+    ctaFor: "Download {system}",
   },
 
   builds: {
     title: "All downloads",
-    note: "Nothing is signed yet and only macOS is tested each release, so every system warns the first time you open it.",
   },
 
   firstOpen: {
     title: "First open",
+    platformLabel: "Choose your platform",
     mac: {
-      title: "macOS",
       steps: [
         "Open the `.dmg` and drag **AI4Kanban** into Applications.",
         "Double-click it. macOS says it cannot verify the app — click **Done**. It will not open yet, and that is expected.",
@@ -34,18 +34,17 @@ const en: DownloadCopy = {
       ],
     },
     windows: {
-      title: "Windows",
       body: "SmartScreen: **More info**, then **Run anyway**.",
     },
     linux: {
-      title: "Linux",
       body: "`chmod +x AI4Kanban-*.AppImage`, then run it.",
     },
   },
   command: {
-    title: "The `akb` command",
-    body: "The app carries `akb` — the command a coding agent drives the board with — and offers to put it on your PATH on first open. macOS writes one link at `/usr/local/bin/akb` and asks for your administrator password; Windows adds the app's folder to PATH, which only reaches terminals opened after it. Nothing is copied out, so updating the app updates the command.",
-    later: "Skip it and the button waits in **Configuration → General**. Linux is not offered it: the AppImage unpacks somewhere new every run, so `npm install -g ai4kanban` stays the way.",
+    title: "Use `akb` in a terminal",
+    mac: "Open the app once and `akb` works in your terminal.",
+    windows: "Open a new terminal and `akb` works.",
+    linux: "Only Linux needs a step: `npm install -g ai4kanban`.",
   },
 };
 

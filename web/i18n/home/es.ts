@@ -29,29 +29,6 @@ const es: HomeCopy = {
     },
   },
 
-  compare: {
-    title: "Del seguimiento de tareas a la planificación autónoma",
-    lead: "Los tableros tradicionales se limitan a registrar y seguir tareas, y toda la información debe introducirse a mano. AI4Kanban se apoya en tus objetivos a largo plazo y en las decisiones guardadas en la memoria del proyecto para planificar el trabajo y hacerlo avanzar por su cuenta.",
-    columns: { classic: "Tablero tradicional", kanban: "AI4Kanban" },
-    rows: [
-      {
-        dimension: "Entrada",
-        classic: "Tareas detalladas escritas a mano",
-        kanban: "Objetivos a largo plazo e ideas por definir",
-      },
-      {
-        dimension: "Función principal",
-        classic: "Registrar y seguir tareas",
-        kanban: "Planificar e impulsar el trabajo de forma autónoma",
-      },
-      {
-        dimension: "Tu papel",
-        classic: "Mantener el tablero a mano",
-        kanban: "Tomar decisiones y aprobar el resultado",
-      },
-    ],
-  },
-
   loop: {
     title: "El trabajo sigue avanzando",
     lead: "Dale un objetivo o una idea por definir. El agente lee tu código y la memoria del proyecto, determina qué viene después, aclara los requisitos, descompone el trabajo, ordena dependencias y prioridades, y pasa a la ejecución.",

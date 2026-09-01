@@ -7,18 +7,6 @@
 - Download: https://ai4kanban.dev/download
 - View on GitHub: https://github.com/ai4kanban/ai4kanban
 
-## From task tracking to autonomous planning
-
-Traditional boards record and track tasks, and every task has to be entered by
-hand. AI4Kanban uses long-term goals and decisions already preserved in project
-memory to plan work and move it forward autonomously.
-
-| | Traditional board | AI4Kanban |
-| --- | --- | --- |
-| Input | Detailed tasks written by hand | Long-term goals and rough ideas |
-| Primary role | Record and track tasks | Plan and drive work autonomously |
-| Human role | Maintain the board by hand | Make decisions and approve the result |
-
 ## Keep work moving
 
 Start with a goal or a rough idea. The agent reads the code and project memory,

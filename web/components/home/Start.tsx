@@ -28,7 +28,7 @@ export function Start({
   return (
     // No top margin: this section sits in a `Band`, which owns its own air.
     <section id="install" className="scroll-mt-24">
-      <SectionTitle num="05" title={c.title} />
+      <SectionTitle num="04" title={c.title} />
       <p
         data-reveal
         data-delay="1"
