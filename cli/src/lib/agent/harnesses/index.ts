@@ -7,6 +7,7 @@ import { CLAUDE_CODE } from './claude-code'
 import { CODEX } from './codex'
 import { CURSOR } from './cursor'
 import { DSH } from './dsh'
+import { KIMI } from './kimi'
 import { OPENCODE } from './opencode'
 import { RAW_ARGS, type Harness } from './types'
 import { ZCODE } from './zcode'
@@ -22,7 +23,7 @@ const withRawArgs = (harness: Harness): Harness => ({
 })
 
 /** Every agent the board can run, in the order they are listed. */
-export const HARNESSES: Harness[] = [CLAUDE_CODE, CODEX, CURSOR, OPENCODE, DSH, ZCODE].map(withRawArgs)
+export const HARNESSES: Harness[] = [CLAUDE_CODE, CODEX, CURSOR, OPENCODE, KIMI, DSH, ZCODE].map(withRawArgs)
 
 /** What runs when the config names no agent, or names one we don't know. */
 export const DEFAULT_HARNESS = HARNESSES[0]!

@@ -1,6 +1,6 @@
-// Every agent's log reads alike — the thing four renderers each claimed in a comment while
-// keeping a copy of the code that did it. Now they share one `hint` (agent/wire/json.ts),
-// so this pins the shape it writes and pins that all four still write the same one.
+// Every agent's log reads alike — the thing each renderer claimed in a comment while keeping
+// a copy of the code that did it. Now they share one `hint` (agent/wire/json.ts), so this
+// pins the shape it writes and pins that they all still write the same one.
 
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
@@ -8,9 +8,14 @@ import { describe, it } from 'node:test'
 import { argHint, hint } from '../src/lib/agent/wire/json.ts'
 import { createStreamRenderer } from '../src/lib/agent/wire/claude-stream.ts'
 import { createCursorStreamRenderer } from '../src/lib/agent/wire/cursor-stream.ts'
+import { createKimiStreamRenderer } from '../src/lib/agent/wire/kimi-stream.ts'
 import { createOpencodeStreamRenderer } from '../src/lib/agent/wire/opencode-stream.ts'
 
 const LONG = 'x'.repeat(200)
+
+// Kimi's renderer takes the run's folder, to find on disk what its stream leaves out. Only
+// the log is under test here, and rendering a line never goes looking.
+const kimi = () => createKimiStreamRenderer(process.cwd())
 
 describe('the hint beside a tool call', () => {
   it('is the first line, parenthesised', () => {
@@ -66,6 +71,15 @@ describe('one tool call, four agents', () => {
     assert.equal(out, '⏺ bash(npm test)\n')
   })
 
+  it('kimi writes the name and the argument', () => {
+    // Kimi's arguments arrive as a JSON string rather than an object.
+    const out = push(kimi(), {
+      role: 'assistant',
+      tool_calls: [{ function: { name: 'Bash', arguments: JSON.stringify({ command: 'npm test\nignored' }) } }],
+    })
+    assert.equal(out, '⏺ Bash(npm test)\n')
+  })
+
   it('logs a call with no recognisable argument by name alone', () => {
     const out = push(createStreamRenderer(), {
       type: 'assistant',
@@ -77,7 +91,7 @@ describe('one tool call, four agents', () => {
 
 describe('a line that is not the protocol', () => {
   it('reaches the log untouched, on every renderer', () => {
-    for (const make of [createStreamRenderer, createCursorStreamRenderer, createOpencodeStreamRenderer]) {
+    for (const make of [createStreamRenderer, createCursorStreamRenderer, createOpencodeStreamRenderer, kimi]) {
       assert.equal(make().push('npm WARN something\n'), 'npm WARN something\n')
     }
   })

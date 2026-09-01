@@ -887,6 +887,7 @@ export function DesignSystem() {
                   <SelectItem value="codex">Codex</SelectItem>
                   <SelectItem value="cursor">Cursor</SelectItem>
                   <SelectItem value="opencode">OpenCode</SelectItem>
+                  <SelectItem value="kimi">Kimi Code</SelectItem>
                   <SelectItem value="dsh">DeepSeek Harness</SelectItem>
                   <SelectItem value="zcode">ZCode</SelectItem>
                 </SelectContent>

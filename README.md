@@ -48,7 +48,7 @@ this history, keeping future decisions grounded in the project.
   design lessons inform future planning instead of disappearing with a chat session.
 - **Keeps the board local and your choice of agent open.** The board is stored as Markdown
   files under `docs/kanban/`. AI4Kanban supports Claude Code, Codex, Cursor, OpenCode,
-  DeepSeek Harness, and ZCode.
+  Kimi Code, DeepSeek Harness, and ZCode.
 
 ## See it work
 

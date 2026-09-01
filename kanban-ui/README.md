@@ -506,10 +506,9 @@ The line to paste is there either way, under the offer rather than instead of it
 ```
 
 The line follows the agent you picked, because agents trigger a skill differently: on Codex it
-reads `$kanban. Set up this board …`, and on Cursor, OpenCode, DeepSeek Harness and ZCode it asks for
-the
-skill in a sentence. Copy it and paste it as it comes. It is on the closing screen and on every
-screen behind **I'll fill it in myself**, under **Rather set this up from your coding agent?** —
+reads `$kanban. Set up this board …`, and on Cursor, OpenCode, Kimi Code, DeepSeek Harness and
+ZCode it asks for the skill in a sentence. Copy it and paste it as it comes. It is on the closing
+screen and on every screen behind **I'll fill it in myself**, under **Rather set this up from your coding agent?** —
 setup picks up at the first unticked box, so nothing you answered here is asked again.
 
 That line only works once the coding agent skill is in the repo, and a board arrives without it.
@@ -1072,7 +1071,7 @@ the board's global agent is something else.
 
 A board whose `akb` is too old to answer draws the agent pane alone.
 
-Six harnesses ship:
+Seven harnesses ship:
 
 | Agent | It spawns | Settings | Key | Cost | Model name |
 | --- | --- | --- | --- | --- | --- |
@@ -1080,6 +1079,7 @@ Six harnesses ship:
 | **Codex** | `codex exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=true` | Provider, Endpoint base URL, Model, Reasoning effort | `OPENAI_API_KEY` (optional) | yes | yes |
 | **Cursor** | `cursor-agent -p --output-format stream-json --force` | Model | `CURSOR_API_KEY` (optional) | no | yes |
 | **OpenCode** | `opencode run --format json` | Model, Reasoning effort | none | yes | no |
+| **Kimi Code** | `kimi --output-format stream-json -p "<prompt>"` | Provider, Model id, Endpoint format, Endpoint base URL, Model | `KIMI_MODEL_API_KEY` (endpoint pick only) | no | yes |
 | **DeepSeek Harness** | `dsh-acp --permission-mode workspace-write` | Model | `DEEPSEEK_API_KEY` (optional) | yes | yes |
 | **ZCode** | `zcode app-server` | Model | `ZAI_API_KEY` (required) | no | yes |
 
@@ -1098,16 +1098,18 @@ restarted. That the CLI is there is not that a run would work: that is **Test**.
 Each agent brings its own settings, so the fields change when you pick another one. Switching
 empties them — a Claude model id means nothing to Codex — and leaves your saved keys alone.
 
-- **Provider** (Claude Code and Codex) — who pays for a run and where it goes. See below.
-- **Endpoint base URL** (Claude Code and Codex) — the address your gateway answers on. Required
-  before the endpoint pick will save.
+- **Provider** (Claude Code, Codex and Kimi Code) — who pays for a run and where it goes. See below.
+- **Endpoint base URL** (Claude Code, Codex and Kimi Code) — the address your gateway answers on.
+  Required before the endpoint pick will save.
 - **Model** — the id that agent runs with, passed as `--model`. Leave it empty for the agent's own
   default; the board never invents an id. Two agents write it differently: **OpenCode** takes
   `provider/model` (`anthropic/claude-opus-5`), because it reaches every provider and the name alone
   wouldn't say which; **Cursor** carries the thinking level inside the id, `claude-opus-4-8[effort=high]`,
   so it has no reasoning box. **DeepSeek Harness** and **ZCode** choose the model as the run's
   session opens rather than on the command line, because each carries its model catalog per session;
-  ZCode also takes `zai/glm-5.3` when you want to name the provider too.
+  ZCode also takes `zai/glm-5.3` when you want to name the provider too. **Kimi Code** takes an
+  alias out of its own `config.toml` rather than a model id, and only on the sign-in pick — its
+  endpoint pick names the id in **Model id** instead, so you never see two model boxes at once.
 - **Reasoning effort** — how hard the model thinks. Claude Code and Codex each offer the same list in
   their own words — Low, Medium, High, Extra high (xhigh), Max — and **Agent's default** passes
   nothing. Claude Code takes it as `--effort`; Codex has no flag for it and takes
@@ -1115,13 +1117,14 @@ empties them — a Claude model id means nothing to Codex — and leaves your sa
   doesn't offer fails there and the run's log says so. OpenCode makes this a box you type in, because
   the level is your provider's own word (`minimal`, `high`, `max`) and providers don't agree on the
   words.
-- **The key box** — optional everywhere but ZCode. Leave it empty and runs use whatever login that
-  CLI already has; for dsh, the key it saved in its own `$DSH_HOME`. Clear it and the next run goes
+- **The key box** — optional everywhere but ZCode and Kimi Code's endpoint pick. Leave it empty and
+  runs use whatever login that CLI already has; for dsh, the key it saved in its own `$DSH_HOME`. Clear it and the next run goes
   straight back to that login. On Claude Code and Codex the key belongs to the **Provider** pick:
   only a pick that uses one is given it, so a subscription run never carries a key. **ZCode** is the exception: a `zcode login` credential belongs to a
   provider `zcode`'s own config never points at, so a run without the key stops on
-  `Model provider is missing an API key: zai`, and the log says where to paste one. OpenCode has no
-  key box on purpose: it reaches any provider and each has its own key, so its runs use the login
+  `Model provider is missing an API key: zai`, and the log says where to paste one. **Kimi Code**
+  asks for one only on its endpoint pick, where its CLI refuses to start without it; the sign-in
+  pick has no key box at all. OpenCode has no key box on purpose: it reaches any provider and each has its own key, so its runs use the login
   `opencode auth login` made. See **Keys**.
 - **Test** — under those settings. See **Testing the connection**.
 
@@ -1145,6 +1148,14 @@ empties them — a Claude model id means nothing to Codex — and leaves your sa
 - **OpenCode** — the `opencode` CLI, logged in with `opencode auth login`, installed from a script:
   `curl -fsSL https://opencode.ai/install | bash`. Left alone it writes in the working folder and
   refuses anything outside it, with no flag to widen it.
+- **Kimi Code** — the `kimi` CLI, signed in with `kimi login`, installed from a script:
+  `curl -LsSf https://code.kimi.com/install.sh | bash`. This is Kimi **Code**, not the older
+  `kimi-cli`, which has no headless mode. A run is `kimi -p`, which is already unattended: nothing
+  stops to ask, and Kimi's own guard still refuses `rm -rf`, `shutdown` and `reboot`. Nothing else
+  holds it to the project folder — Kimi ships no sandbox. Its JSON stream carries the conversation
+  and nothing else, so the model and the token counts are read from the session Kimi writes under
+  `~/.kimi-code` (or `KIMI_CODE_HOME`); a board that can't read those shows the duration alone. Kimi
+  reads `.agents/skills/kanban/` on its own.
 - **DeepSeek Harness** — two npm packages, **one at a time**:
 
   ```sh
@@ -1184,6 +1195,12 @@ you say whose. Claude Code and Codex each offer the same three, in their own wor
 | **Anthropic API** / **OpenAI API** | Pay per token on that provider's key. | The **API key** box. |
 | **Anthropic-compatible endpoint** / **OpenAI-compatible endpoint** | A gateway that answers in that agent's format — OpenRouter, LiteLLM, a company proxy. | The **base URL**; a key only if that gateway asks for one. |
 
+Kimi Code offers two of the same shape — **Kimi sign-in**, which needs nothing, and **Custom model
+endpoint**, which wants a model id, a base URL and a key. All three are required there: Kimi builds
+the endpoint out of `KIMI_MODEL_NAME`, `KIMI_MODEL_BASE_URL` and `KIMI_MODEL_API_KEY` together, and
+refuses to start when one is missing. **Endpoint format** rides along as `KIMI_MODEL_PROVIDER_TYPE`
+and is the one box you can leave alone — Kimi's own API unless you say Anthropic or OpenAI.
+
 Codex's endpoint pick means OpenAI's **Responses** API specifically: Codex dropped the older chat
 format, so a gateway that speaks only that one can't carry a run.
 
@@ -1212,6 +1229,10 @@ API pick instead.
 **Claude Code has no "OpenAI" entry, on purpose.** It speaks the Anthropic API and nothing else. An
 OpenAI model reaches it through a gateway that answers in that format — the endpoint entry. To run
 on an OpenAI account directly, pick Codex.
+
+**Kimi Code offers two**, not three: **Kimi sign-in** and **Custom model endpoint**. There is no
+"pay per token on Moonshot's key" entry between them — that is the endpoint pick with Moonshot's own
+address in the base URL.
 
 The other four agents have no provider list: each runs on whatever login its own CLI has, plus the
 optional key where it takes one, and their runs inherit your shell environment. OpenCode is the one
@@ -1311,9 +1332,9 @@ missing key means on, which is the default.
 `requireDiffApproval` is **Approve diffs before landing** above. The other way round:
 only written when you turn it **on**, so a missing key means off, which is the default.
 
-`harness` is the agent that runs: `claude-code` (the default), `codex`, `cursor`, `opencode` or
-`dsh`. The name decides everything about how that agent runs — the command, the flags that make it
-stream into the live log, the env vars, the flags **Resume** uses, and how a prompt calls the skill.
+`harness` is the agent that runs: `claude-code` (the default), `codex`, `cursor`, `opencode`,
+`kimi`, `dsh` or `zcode`. The name decides everything about how that agent runs — the command, the
+flags that make it stream into the live log, the env vars, the flags **Resume** uses, and how a prompt calls the skill.
 If the file names an agent this UI doesn't know, Claude Code runs and the dialog says so.
 
 `harnessSettings` holds every agent's settings under its own name, whether or not it is the one

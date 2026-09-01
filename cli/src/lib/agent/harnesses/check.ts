@@ -26,7 +26,9 @@ export function checkHarnesses(harnesses: Harness[]): void {
     // so the two are compared here rather than left to drift. Only a renderer can be checked:
     // a client reports from inside a live conversation and has nothing to ask until one is
     // open (agent/wire/acp.ts).
-    const renderer = harness.renderer?.()
+    // The folder is only ever read from, and this probe never runs the agent — any folder
+    // answers the one question asked here, which is which numbers the renderer reports.
+    const renderer = harness.renderer?.(process.cwd())
     if (renderer) {
       const implemented: Record<Harness['reports'][number], boolean> = {
         cost: Boolean(renderer.costUsd),

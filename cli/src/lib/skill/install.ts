@@ -44,7 +44,7 @@ import type { CommandState, SkillFolder, SkillInstall, SkillState, SkillWrite } 
  *  only "Codex" there reads it as "not supported". */
 const TARGETS: { rel: string; agent: string }[] = [
   { rel: path.join('.claude', 'skills', 'kanban'), agent: 'Claude Code' },
-  { rel: path.join('.agents', 'skills', 'kanban'), agent: 'Codex, Cursor, OpenCode, DeepSeek Harness, ZCode' },
+  { rel: path.join('.agents', 'skills', 'kanban'), agent: 'Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode' },
 ]
 
 /** What lands in a folder, and nothing else. Named rather than counted so the report can

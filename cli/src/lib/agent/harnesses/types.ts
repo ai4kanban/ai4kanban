@@ -51,8 +51,13 @@ export interface Harness extends Omit<HarnessOption, 'binary' | 'installed' | 'g
   /** The environment the child runs under, on top of the one this process has. */
   env(): NodeJS.ProcessEnv
   /** Parses this harness's stdout into readable log lines + a final message. Left out by
-   *  a harness that declares a `client` instead: then stdout is a protocol, not a log. */
-  renderer?(): StreamRenderer
+   *  a harness that declares a `client` instead: then stdout is a protocol, not a log.
+   *
+   *  `cwd` is the folder the run works in, for a renderer that has to go looking on disk
+   *  for what the stream leaves out — Kimi files its sessions by working folder, so that
+   *  is the only way to find the one a crashed run opened (agent/wire/kimi-session.ts).
+   *  Every other renderer ignores it. */
+  renderer?(cwd: string): StreamRenderer
   /** True for a stderr line that is this CLI's own housekeeping — chatter about its caches
    *  and background refreshes, printed on nearly every turn, that says nothing about the
    *  work and nothing a user could act on.
@@ -117,7 +122,10 @@ export const SKILL_SENTENCE = 'Use the kanban skill'
 // with `cwd` set to folder B and ask it to run `pwd`. Claude Code, Codex and Cursor all
 // answer B, so their own folder flags would only repeat the cwd. dsh and ZCode are talked
 // to rather than printed from, and both name the folder inside the conversation already
-// (agent/wire/acp.ts, agent/wire/zcode.ts). Re-run that probe before trusting a new connector here.
+// (agent/wire/acp.ts, agent/wire/zcode.ts). Kimi is the one nobody has run this on: its own
+// docs say `kimi -p` works in `process.cwd()`, which is a reading rather than an answer
+// until a probe says so (harnesses/kimi.ts). Re-run that probe before trusting a new
+// connector here.
 
 /** True when this argv already names a flag — `--model id` or `--model=id`, in any of the
  *  names that harness answers to. Used for a setting's flags, and by a harness deciding

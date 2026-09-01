@@ -20,6 +20,7 @@ export { createStderrFilter, type StreamRenderer } from './stream'
 export { createStreamRenderer } from './claude-stream'
 export { createCodexStreamRenderer } from './codex-stream'
 export { createCursorStreamRenderer } from './cursor-stream'
+export { createKimiStreamRenderer } from './kimi-stream'
 export { createOpencodeStreamRenderer } from './opencode-stream'
 
 export { createAcpClient, type AcpOptions } from './acp'
