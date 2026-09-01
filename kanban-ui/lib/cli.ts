@@ -16,6 +16,7 @@ import type {
   DeliveryRecord,
   FlowRuleView,
   HarnessSetting,
+  LoggedOutAgent,
   RunRecord,
   RunView,
   SetupProposal,
@@ -167,6 +168,11 @@ export interface BoardRules {
 
   // the agent, and what it is set to
   agentInfo(): AgentInfo;
+  /** Which installed agents their own CLI says nobody is logged into (#392), each with the
+   *  command that logs them back in. It spawns, so it is asked apart from `agentInfo` and
+   *  never on a page load. Optional: rules from before it answer nothing, and the picker
+   *  then says only what it always said. */
+  loggedOutAgents?(): Promise<LoggedOutAgent[]>;
   /** `ask` names the runtime the settings are read against (#343): the board's global one
    *  by default, or the agent that runtime runs. A copy of the rules from before runtimes
    *  ignores it and answers for the board's, which is what it always did. */

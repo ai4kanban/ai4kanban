@@ -74,8 +74,19 @@ function isFilled(
 }
 
 /** The provider a run goes through right now, or nothing when this connector declares no
- *  provider list — then it has no providers and every setting it declares is in effect. */
-function activeProviderOf({ harness, values, secretsSet }: ResolvedHarness): Provider | undefined {
+ *  provider list — then it has no providers and every setting it declares is in effect.
+ *
+ *  Takes what it reads rather than a whole resolved harness, so the login probe can ask it
+ *  about an agent that isn't the one running (agent/login.ts). */
+export function activeProviderOf({
+  harness,
+  values,
+  secretsSet,
+}: {
+  harness: Harness
+  values: Record<string, string>
+  secretsSet: string[]
+}): Provider | undefined {
   const setting = providerSetting(harness.settings)
   if (!setting) return undefined
   return pickedProvider(setting, values[setting.key] ?? '', isFilled(harness, values, secretsSet))
@@ -83,9 +94,54 @@ function activeProviderOf({ harness, values, secretsSet }: ResolvedHarness): Pro
 
 /** The command one harness runs for a block of its settings: the hand-written `command`
  *  override in that block, or the harness's own. */
-function commandOf(block: Record<string, unknown>, harness: Harness): string {
+export function commandOf(block: Record<string, unknown>, harness: Harness): string {
   const override = typeof block.command === 'string' ? block.command.trim() : ''
   return override || harness.command
+}
+
+/** What one agent's saved block is set to: each declared setting's value, which of its keys
+ *  docs/kanban/.env holds right now, and which settings the command already names so the
+ *  override wins. `argv` is that command, split.
+ *
+ *  Exported because a run is not the only reader: the login probe asks the same question of
+ *  an agent that isn't running (agent/login.ts), and two readers of one block have to read
+ *  it the same way. */
+export function readBlock(
+  harness: Harness,
+  block: Record<string, unknown>,
+  argv: string[],
+): { values: Record<string, string>; secretsSet: string[]; ignored: string[] } {
+  const values: Record<string, string> = {}
+  const ignored: string[] = []
+  const secretsSet: string[] = []
+  // Read once for the whole loop — an agent can declare several secrets, and they all sit
+  // in the same file.
+  const env = harness.settings.some((s) => s.kind === 'secret') ? readEnvFile() : {}
+  for (const setting of harness.settings) {
+    // A key lives in docs/kanban/.env, never in this block. A hand-written one here is
+    // ignored rather than used: the file we promised to keep it out of would be the one
+    // holding it.
+    if (setting.kind === 'secret') {
+      if (setting.env && env[setting.env]) secretsSet.push(setting.key)
+      continue
+    }
+    const raw = block[setting.key]
+    const value = typeof raw === 'string' ? raw.trim() : ''
+    if (value) values[setting.key] = value
+    if (setting.flags?.length && namesFlag(argv, setting.flags)) ignored.push(setting.key)
+  }
+  // The provider is the one setting that always has a value: a run always goes through
+  // one, so a board that never picked reads as the default rather than as nothing. It is
+  // settled after the loop because the default can depend on the other settings — a board
+  // holding an Anthropic key reads as the Anthropic API, so the key it already had goes on
+  // being used.
+  const list = providerSetting(harness.settings)
+  if (list) {
+    const picked = pickedProvider(list, values[list.key] ?? '', isFilled(harness, values, secretsSet))
+    if (picked) values[list.key] = picked.id
+    else delete values[list.key]
+  }
+  return { values, secretsSet, ignored }
 }
 
 /** What a run is asked for, before anything is read. */
@@ -122,37 +178,7 @@ function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
     ...(entry?.harness === harness.name ? entry.settings : {}),
   }
   const command = commandOf(block, harness)
-  const argv = command.split(/\s+/).filter(Boolean)
-  const values: Record<string, string> = {}
-  const ignored: string[] = []
-  const secretsSet: string[] = []
-  // Read once for the whole loop — an agent can declare several secrets, and they all sit
-  // in the same file.
-  const env = harness.settings.some((s) => s.kind === 'secret') ? readEnvFile() : {}
-  for (const setting of harness.settings) {
-    // A key lives in docs/kanban/.env, never in this block. A hand-written one here is
-    // ignored rather than used: the file we promised to keep it out of would be the one
-    // holding it.
-    if (setting.kind === 'secret') {
-      if (setting.env && env[setting.env]) secretsSet.push(setting.key)
-      continue
-    }
-    const raw = block[setting.key]
-    const value = typeof raw === 'string' ? raw.trim() : ''
-    if (value) values[setting.key] = value
-    if (setting.flags?.length && namesFlag(argv, setting.flags)) ignored.push(setting.key)
-  }
-  // The provider is the one setting that always has a value: a run always goes through
-  // one, so a board that never picked reads as the default rather than as nothing. It is
-  // settled after the loop because the default can depend on the other settings — a board
-  // holding an Anthropic key reads as the Anthropic API, so the key it already had goes on
-  // being used.
-  const list = providerSetting(harness.settings)
-  if (list) {
-    const picked = pickedProvider(list, values[list.key] ?? '', isFilled(harness, values, secretsSet))
-    if (picked) values[list.key] = picked.id
-    else delete values[list.key]
-  }
+  const { values, secretsSet, ignored } = readBlock(harness, block, command.split(/\s+/).filter(Boolean))
   return {
     harness,
     command,

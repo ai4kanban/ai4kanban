@@ -12,7 +12,7 @@ import { OPENCODE } from './opencode'
 import { RAW_ARGS, type Harness } from './types'
 import { ZCODE } from './zcode'
 
-export { SKILL_SENTENCE, RAW_ARGS_KEY, namesFlag, type Harness } from './types'
+export { SKILL_SENTENCE, RAW_ARGS_KEY, namesFlag, type Harness, type LoginProbe } from './types'
 
 // The raw arguments are every harness's, added here rather than written into each file: it
 // is the same setting on all of them, and one that only some carried would be a gap nobody

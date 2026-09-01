@@ -37,6 +37,7 @@ export type {
   HarnessGap,
   HarnessOption,
   HarnessSetting,
+  LoggedOutAgent,
   Provider,
   RuntimeView,
   RunStatus,

@@ -12,6 +12,7 @@
 import {
   activeSettings,
   agentInfo,
+  loggedOutAgents,
   type AgentRequest,
   type CommandRequest,
   buildPrompt,
@@ -137,6 +138,7 @@ import type {
   LarkChat,
   LarkCloud,
   LarkState,
+  LoggedOutAgent,
   MetricsResult,
   SaveProjectResult,
   ScoreResult,
@@ -794,6 +796,23 @@ export async function setFlowRuleAction(command: string, text: string): Promise<
 export async function installedAgentsAction(): Promise<HarnessOption[]> {
   try {
     return (await agentInfo()).options;
+  } catch {
+    return [];
+  }
+}
+
+// Which of the installed agents are logged out (#392) — asked once the picker has drawn,
+// because this one spawns each CLI and the picker must never wait on it.
+//
+// It gates nothing. The answer is a line under the grid and a word on a card; Implement,
+// Schedule, Resolve & implement, a chat and `akb implement` all start exactly as before, so
+// a stale reading costs one wasted run rather than an agent the user can't reach.
+//
+// Nothing to say comes back as nothing: no rules to ask, a CLI that wouldn't answer, or the
+// ordinary case where everything is logged in.
+export async function loggedOutAgentsAction(): Promise<LoggedOutAgent[]> {
+  try {
+    return await loggedOutAgents();
   } catch {
     return [];
   }

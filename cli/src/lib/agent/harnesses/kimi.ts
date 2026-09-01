@@ -225,5 +225,13 @@ export const KIMI: Harness = {
   // the connector stops showing a "Direct skill call" gap.
   skillCall: SKILL_SENTENCE,
 
+  // No login probe, so Kimi is never called logged out. `kimi login` is the way in, but
+  // nothing was found that PRINTS whether that login is there, and `kimi` was not on the
+  // machine this was written on to read one off — and a reading nobody has seen is exactly
+  // what a probe must not be (./types, LoginProbe).
+  //
+  // PROBE: on a machine that has `kimi`, run its login command's status form under a
+  // throwaway HOME and under the real one. If it says which state it is in, declare it here.
+
   install: 'curl -LsSf https://code.kimi.com/install.sh | bash',
 }

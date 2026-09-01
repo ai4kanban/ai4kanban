@@ -68,6 +68,11 @@ export type ConfigurationCopy = {
     notInstalled: string;
     notHere: (binary: string) => string;
     missingHint: (binary: string) => string;
+    /** A harness whose CLI is here but logged out (#392). A warning and never a gate: the
+     *  run still starts. */
+    loggedOut: string;
+    loggedOutHere: (binary: string) => string;
+    loggedOutHint: (binary: string) => string;
     /** What the picked harness can't do that another on the grid can. */
     gaps: (harness: string) => string;
     override: (command: string) => string;

@@ -109,6 +109,10 @@ export const ZCODE: Harness = {
   // the folder an install already writes, and finds the board's rules there by itself.
   skillCall: SKILL_SENTENCE,
 
+  // No login probe: a ZCode run signs with the Coding Plan key above and never with a
+  // `zcode login`, whose credential the command's own config never points at (#282). Its
+  // CLI's login decides nothing here, so there is nothing to warn about.
+
   // Not Z.ai's own package: `zcode-app-cli` is a community build that extracts the runtime
   // from ZCode Desktop, and its own README says its right to republish that runtime is
   // unconfirmed. It is the only way to a `zcode` you can run in a terminal, so it is what

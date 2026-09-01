@@ -42,6 +42,18 @@ export function checkHarnesses(harnesses: Harness[]): void {
         }
       }
     }
+    // The login probe, for a connector that declares one (#392). Empty output is what a
+    // spawn that failed leaves behind and has to read as unknown, so a reading that answers
+    // it is an inverted test — one that would put every agent on the machine under a
+    // logged-out warning.
+    const probe = harness.login
+    if (probe) {
+      if (!probe.args.length) throw new Error(`harness "${harness.name}": its login probe runs no arguments`)
+      if (!probe.login.trim()) throw new Error(`harness "${harness.name}": its login probe names no command that logs the user back in`)
+      if (probe.ready('') || probe.loggedOut('')) {
+        throw new Error(`harness "${harness.name}": its login probe reads empty output as an answer — a probe that couldn't run has to say nothing`)
+      }
+    }
     const seen = new Set<string>()
     const seenEnv = new Set<string>()
     for (const setting of harness.settings) {

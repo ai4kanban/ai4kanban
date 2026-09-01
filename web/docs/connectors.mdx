@@ -14,6 +14,13 @@ All seven do the work. What differs is what they report back while they do it, a
 changes what you see. The same list appears under the agent grid in Configuration and in
 `akb agent list`.
 
+An agent whose CLI is on your machine but signed out reads **Logged out** in the grid, and
+picking it puts the command that signs it back in under the grid — so a card doesn't burn a
+run finding out. It is a warning and nothing else: every way of starting a run still starts.
+Claude Code, Codex, Cursor and OpenCode are asked; Kimi Code has no command that answers the
+question, and DeepSeek Harness and ZCode sign with a key rather than a CLI login, so neither
+is asked.
+
 ## Support
 
 | | Claude Code | Codex | Cursor | OpenCode | Kimi Code | DeepSeek Harness | ZCode |

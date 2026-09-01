@@ -97,5 +97,16 @@ export const OPENCODE: Harness = {
   // the prompt asks for the skill in a sentence.
   skillCall: SKILL_SENTENCE,
 
+  // `opencode auth list` ends on a count of what `opencode auth login` has saved — "0
+  // credentials" or "2 credentials" — and exits 0 either way. The count is what is read: the
+  // rest of the list is box-drawing and colour, and the provider names in it are the user's,
+  // not something a reading could be written against.
+  login: {
+    args: ['auth', 'list'],
+    ready: (out) => /\b[1-9]\d*\s+credentials?\b/.test(out),
+    loggedOut: (out) => /\b0\s+credentials\b/.test(out),
+    login: 'opencode auth login',
+  },
+
   install: 'curl -fsSL https://opencode.ai/install | bash',
 }

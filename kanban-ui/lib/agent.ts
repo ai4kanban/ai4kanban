@@ -1,5 +1,5 @@
 import { boardRules, type AgentRequest, type CommandRequest } from "./cli";
-import type { AgentInfo, HarnessSetting } from "./types";
+import type { AgentInfo, HarnessSetting, LoggedOutAgent } from "./types";
 
 // --- which agent runs, and the words it is sent (#168) -----------------------
 // All of it lives in the CLI now — the connectors, what each one takes, how the settings
@@ -29,6 +29,17 @@ export async function prepareAgentRequest(req: CommandRequest): Promise<AgentReq
 export async function agentInfo(): Promise<AgentInfo> {
   const rules = await boardRules();
   return rules.agentInfo() as unknown as AgentInfo;
+}
+
+/** Which installed agents their own CLI says nobody is logged into, each with the command
+ *  that logs them back in (#392). A second look, taken apart from `agentInfo` because it
+ *  spawns those CLIs: it is never on a page load, and it gates nothing.
+ *
+ *  Empty on rules from before it existed, and empty whenever nothing could be read — the
+ *  wrong way to fail here is warning about an agent that works. */
+export async function loggedOutAgents(): Promise<LoggedOutAgent[]> {
+  const rules = await boardRules();
+  return (await rules.loggedOutAgents?.()) ?? [];
 }
 
 /** What the board shows when there is no copy of the rules to load: no agent, and nothing

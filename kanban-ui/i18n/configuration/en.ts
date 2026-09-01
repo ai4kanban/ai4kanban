@@ -54,6 +54,10 @@ const en: ConfigurationCopy = {
     notHere: (binary) => `${binary} isn't on this machine`,
     missingHint: (binary) =>
       `\`${binary}\` isn’t on this machine, so a run would fail to start. Install it:`,
+    loggedOut: "logged out",
+    loggedOutHere: (binary) => `${binary} is here but nobody is logged in`,
+    loggedOutHint: (binary) =>
+      `Nobody is logged in to \`${binary}\`, so a run under it would fail. Log in:`,
     gaps: (harness) => `Not supported by ${harness}`,
     override: (command) => `Runs your override: \`${command}\``,
     saveFailed: "couldn't save the agent setting",

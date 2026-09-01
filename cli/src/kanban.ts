@@ -108,6 +108,12 @@ export {
 } from './lib/agent/settings'
 export { testConnection } from './lib/agent/test'
 
+// Which installed agents are logged out (#392). A second, cached, async path beside the
+// `installed` answer `agentInfo` already carries — it spawns, so it is never on the page
+// load — and it gates nothing: the picker warns and every way of starting a run still
+// starts.
+export { loggedOutAgents } from './lib/agent/login'
+
 // The runtimes (#343): the board names them, says what each one runs as, and points each
 // flow and spec agent at one — all of it in docs/kanban/ui.config.json. `agentInfo` already
 // carries the answer for every runtime and every flow, and `readSpecAgents` for every agent,

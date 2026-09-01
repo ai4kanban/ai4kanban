@@ -15,6 +15,30 @@ import type { HarnessOption, HarnessSetting } from '../types'
 // `command` override (agent/installed.ts). The third is `gaps`, which is a reading of the
 // fields below rather than a claim of its own (agent/capabilities.ts): a connector says what
 // it does, and what it lacks follows. All three are joined on in `agentInfo`.
+/** How a connector's CLI is asked whether anybody is logged into it (#392).
+ *
+ *  Declared only by a connector whose runs turn on that CLI's own login. One that always
+ *  signs with a key from its settings declares none, and is never called logged out.
+ *
+ *  The exit code is never the answer: two of these CLIs exit 0 while saying nobody is logged
+ *  in. Both readings are declared instead, and output matching neither reads as unknown and
+ *  says nothing — the picker warns on a clear logged-out reading and on nothing else.
+ *
+ *  Every reading here was read off the CLI itself, in both states, by running the probe once
+ *  under a throwaway HOME. Read one off a new CLI the same way rather than guessing it. */
+export interface LoginProbe {
+  /** What to run, after the binary the installed answer resolved. Side-effect free, and
+   *  cheap enough to run every time the picker opens. */
+  args: string[]
+  /** True for output that says somebody is logged in. Read FIRST, so a CLI that prints both
+   *  never draws a warning. */
+  ready(output: string): boolean
+  /** True for output that says nobody is. */
+  loggedOut(output: string): boolean
+  /** The command that logs the user back in, as a person would type it. */
+  login: string
+}
+
 export interface Harness extends Omit<HarnessOption, 'binary' | 'installed' | 'gaps'> {
   /** The flags to append to the configured argv. `argv` is what the user's command
    *  already carries, so a harness never overrides a flag the user set by hand.
@@ -94,6 +118,10 @@ export interface Harness extends Omit<HarnessOption, 'binary' | 'installed' | 'g
    *  an hour — so a connector with a switch for it turns retries off in `env()` and says so
    *  here. False is not a fault: most of these CLIs have no such switch. */
   stopsOnRateLimit: boolean
+  /** How this connector's CLI is asked whether it is logged in, and the command that logs
+   *  the user back in (#392). Left out by a connector whose runs don't use a CLI login —
+   *  then nothing is probed for it and no warning about it ever appears. */
+  login?: LoginProbe
   /** How a fresh prompt calls the ai4kanban skill for this agent. Claude Code triggers a
    *  skill from a slash name (`/kanban`); Codex reads a slash as plain chat text and
    *  triggers on a `$` name instead. */

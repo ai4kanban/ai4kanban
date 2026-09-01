@@ -691,6 +691,21 @@ export interface HarnessOption {
   gaps: HarnessGap[]
 }
 
+/** One agent this machine has whose own CLI says nobody is logged into it (#392). Worked out
+ *  on a second, cached path beside the one that answers `installed` — it spawns, so it is
+ *  never on the page-load answer — and it gates nothing: a run under a logged-out agent
+ *  still starts, and a wrong reading costs one wasted run rather than an agent that works.
+ *
+ *  Only a clear logged-out reading is ever on this list. A connector with no probe, a spawn
+ *  that failed, a probe that ran out of time and output its connector's readings don't cover
+ *  are all absent. */
+export interface LoggedOutAgent {
+  /** The agent's `name`, as `HarnessOption` gives it. */
+  harness: string
+  /** The command that logs the user back in. */
+  login: string
+}
+
 /** One runtime as a reader is told about it, and everything a pane needs to change one. All
  *  of it is the board's answer, out of docs/kanban/ui.config.json — no machine holds a
  *  runtime setting of its own, so every checkout reads this same list. */

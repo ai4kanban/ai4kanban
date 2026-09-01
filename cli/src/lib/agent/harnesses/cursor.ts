@@ -88,6 +88,16 @@ export const CURSOR: Harness = {
   // the prompt asks for the skill in a sentence.
   skillCall: SKILL_SENTENCE,
 
+  // `cursor-agent status` exits 0 whether or not anybody is signed in, so its output is the
+  // whole of the answer. `--format json` is asked for rather than the default text, which
+  // dresses the same answer in a tick and an email address.
+  login: {
+    args: ['status', '--format', 'json'],
+    ready: (out) => /"isAuthenticated"\s*:\s*true/.test(out),
+    loggedOut: (out) => /"isAuthenticated"\s*:\s*false/.test(out),
+    login: 'cursor-agent login',
+  },
+
   // The one agent that doesn't come from npm.
   install: 'curl https://cursor.com/install -fsS | bash',
 }

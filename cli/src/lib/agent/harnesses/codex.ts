@@ -222,5 +222,15 @@ export const CODEX: Harness = {
   // where Codex looks.
   skillCall: '$kanban',
 
+  // `codex login status` prints one line and nothing else: "Logged in using ChatGPT" —
+  // or an API key, which is why the reading stops at the first two words — and "Not logged
+  // in".
+  login: {
+    args: ['login', 'status'],
+    ready: (out) => /^\s*Logged in\b/m.test(out),
+    loggedOut: (out) => /^\s*Not logged in\b/m.test(out),
+    login: 'codex login',
+  },
+
   install: 'npm install -g @openai/codex',
 }

@@ -31,6 +31,7 @@ import { FiAlertCircle, FiAlignLeft, FiBell, FiCheck, FiSettings, FiSliders, FiT
 import {
   bindRuntimeAction,
   installedAgentsAction,
+  loggedOutAgentsAction,
   setHarnessAction,
   setHarnessSecretAction,
   setHarnessSettingAction,
@@ -389,6 +390,12 @@ export function HarnessPicker({
   // anything: installing a CLI in a terminal makes an agent runnable, and the picker
   // re-asks each time it opens so that shows up without a reload.
   const [options, setOptions] = useState(agent.options);
+  // Which of those agents their own CLI says nobody is logged into (#392), keyed by agent
+  // name and holding the command that logs it back in. Kept apart from `options` for the
+  // same reason they are kept apart from `info`, and one more: this answer costs a spawn per
+  // CLI, so it arrives after the grid is already on screen and never holds it up. Empty
+  // until then, and empty on a board whose rules are older than the question.
+  const [loggedOut, setLoggedOut] = useState<Record<string, string>>({});
   const [active, setActive] = useState(start.active);
   const [saving, setSaving] = useState(false);
   // What the fields show, and what was last written to the file — keyed by the
@@ -426,6 +433,27 @@ export function HarnessPicker({
       .catch(() => {
         // Nothing to say: the agents on screen are still the agents, and the board has
         // louder ways to report a server it can't reach.
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // And then the second look, the one that spawns (#392). It runs beside the first rather
+  // than after it: the grid is drawn from the page's own answer either way, and a CLI that
+  // takes its time to say whether it is logged in must never be what a user waits on.
+  //
+  // Nothing to report leaves the picker exactly as it was. It gates nothing anywhere — every
+  // way of starting a run still starts — so a reading that never arrives costs nothing.
+  useEffect(() => {
+    let live = true;
+    void loggedOutAgentsAction()
+      .then((out) => {
+        if (live) setLoggedOut(Object.fromEntries(out.map((one) => [one.harness, one.login])));
+      })
+      .catch(() => {
+        // Nothing to say: an agent nobody could ask about is an agent this pane says nothing
+        // about, which is what it did before the question existed.
       });
     return () => {
       live = false;
@@ -657,6 +685,15 @@ export function HarnessPicker({
           // runs; the line under the grid is where its missing CLI is said, in full, with
           // the command that installs it.
           const missing = option.installed === false && !on;
+          // The CLI is here, and nobody is logged in to it (#392). Said in the same slot as
+          // "not installed" and read the same way, with one difference: the mark doesn't
+          // dim. This agent IS on the machine and one command away from working, so a card
+          // greyed out like a missing one would overstate it. The word carries the answer
+          // and the peach ink is only a second way to see it.
+          //
+          // The picked agent says it under the grid instead, with the command, exactly the
+          // way a missing CLI does.
+          const signedOut = !missing && !on && !!loggedOut[option.name];
           return (
             <button
               key={option.name}
@@ -664,7 +701,13 @@ export function HarnessPicker({
               aria-pressed={on}
               disabled={saving}
               onClick={() => pick(option)}
-              title={missing ? c.notHere(option.binary) : undefined}
+              title={
+                missing
+                  ? c.notHere(option.binary)
+                  : signedOut
+                    ? c.loggedOutHere(option.binary)
+                    : undefined
+              }
               // One frame per card and nothing else: a 1px hairline, ember when
               // it is the picked one. The mark sits straight on the paper — a
               // tinted plate behind it was a second surface saying what the
@@ -687,6 +730,11 @@ export function HarnessPicker({
                   {c.notInstalled}
                 </span>
               )}
+              {signedOut && (
+                <span className="-mt-1 text-[10px] font-[700] uppercase leading-none tracking-[0.04em] text-nb-peach-ink">
+                  {c.loggedOut}
+                </span>
+              )}
             </button>
           );
         })}
@@ -702,6 +750,20 @@ export function HarnessPicker({
         <Note icon={<FiAlertCircle />}>
           <Rich>{c.missingHint(activeOption.binary)}</Rich>{" "}
           <code className="rounded bg-nb-ink/8 px-1 py-0.5">{activeOption.install}</code>
+        </Note>
+      )}
+
+      {/* The picked agent's CLI is here and logged out (#392), with the command that logs it
+          back in. Never both this and the line above: an agent that isn't installed has
+          nothing to be logged out of, and the probe skips it.
+
+          It warns and stops nothing. Implement, Schedule, Resolve & implement and a chat all
+          start under this agent exactly as they would without it — so a probe that read the
+          CLI wrong costs one run, not the agent. */}
+      {activeOption && activeOption.installed !== false && loggedOut[activeOption.name] && (
+        <Note icon={<FiAlertCircle />}>
+          <Rich>{c.loggedOutHint(activeOption.binary)}</Rich>{" "}
+          <code className="rounded bg-nb-ink/8 px-1 py-0.5">{loggedOut[activeOption.name]}</code>
         </Note>
       )}
 

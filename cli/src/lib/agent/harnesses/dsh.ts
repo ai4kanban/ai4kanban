@@ -138,6 +138,10 @@ export const DSH: Harness = {
   // skill in a sentence. It reads `.agents/skills/`, the folder an install already writes.
   skillCall: SKILL_SENTENCE,
 
+  // No login probe: dsh has no login to probe. Its own command offers `web` and `plugin` and
+  // nothing else — a run signs with the key in `$DSH_HOME`'s settings, or with the box above
+  // — so there is no CLI sign-in for a logged-out reading to be about.
+
   // Two packages: the agent, and the bridge that makes it answer. They are asked for one
   // at a time on purpose — npm hands everything named in one command its own folder, and
   // the bridge would come out with no dsh underneath it at all, dying on its first import.
