@@ -31,8 +31,8 @@ const fr: HomeCopy = {
     lead: "Donnez-lui un objectif ou une idée encore floue. L’agent lit votre code et la mémoire du projet, détermine la prochaine étape, clarifie les exigences, découpe le travail, ordonne les dépendances et les priorités, puis passe à l’exécution.",
     steps: [
       {
-        title: "Définir la prochaine tâche",
-        body: "S’appuyer sur l’objectif, le code et la mémoire du module pour déterminer la suite.",
+        title: "Définir les tâches et leurs dépendances",
+        body: "S’appuyer sur l’objectif, le code et la mémoire du module pour déterminer la suite, puis découper les grands objectifs en cartes délimitées dont les dépendances explicites décident de ce qui avance en parallèle et de ce qui attend.",
       },
       {
         title: "Clarifier les exigences",
@@ -40,11 +40,15 @@ const fr: HomeCopy = {
       },
       {
         title: "Exécuter",
-        body: "Dès que les exigences sont assez claires pour commencer, l’agent suit le périmètre et les étapes définis dans la tâche.",
+        body: "Dès que les exigences sont assez claires pour commencer, l’agent suit le périmètre et les étapes définis dans la tâche. Un tableau peut gérer dix tâches de développement ou plus ; chaque livraison utilise son propre Git worktree et les conflits déclenchent une phase de résolution dédiée avant l’intégration.",
       },
       {
-        title: "Consigner les décisions",
-        body: "Inscrire les décisions produit dans la mémoire du projet afin que le prochain cycle de planification et de développement puisse s’appuyer dessus.",
+        title: "Trancher les décisions clés avant l’implémentation",
+        body: "Les Spec Agents inspectent le code et étudient les dépendances externes avant l’implémentation. Pour une évolution d’interface, ils peuvent joindre plusieurs maquettes fonctionnelles à la carte afin que vous choisissiez la direction avant d’écrire le code.",
+      },
+      {
+        title: "Ne demander une validation que lorsque nécessaire",
+        body: "Les agents continuent à clarifier les exigences et à implémenter en arrière-plan. AI4Kanban envoie une notification de carte uniquement lorsqu’une décision produit ou une recette exige une confirmation ; une fois validée, la tâche reprend sur la machine du projet jusqu’à sa livraison.",
       },
     ],
   },

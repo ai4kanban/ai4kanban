@@ -2,17 +2,18 @@ import type { ReactNode } from "react";
 import { SectionTitle } from "./SectionTitle";
 import { Mat, printFrame } from "./Mat";
 import { ShotCardQuestions } from "../shots/ShotCardQuestions";
-import { ShotCardReady } from "../shots/ShotCardReady";
-import { ShotDecisions } from "../shots/ShotDecisions";
+import { ShotApprovalEvent } from "../shots/ShotApprovalEvent";
 import { ShotSessions } from "../shots/ShotSessions";
+import { ShotSpecAgents } from "../shots/ShotSpecAgents";
+import { ShotTaskGraph } from "../shots/ShotTaskGraph";
 import type { WashName } from "./washes";
 import type { HomeCopy } from "@/i18n/home/types";
 
 // Keep work moving — title and lead stacked like every other section, then the
-// four steps as a zigzag: shot and words swap sides row after row.
+// steps as a zigzag: shot and words swap sides row after row.
 //
 // Words and shot split the row evenly, so the zigzag has one seam running down
-// the middle of the section for all four rows to alternate across. An uneven
+// the middle of the section for every row to alternate across. An uneven
 // split gave the picture more room, but it also moved the seam every row and
 // left the words in a column too narrow for the sentence they carry. There is
 // no rail and no sticky title: the alternation is what ties the rows together.
@@ -22,22 +23,15 @@ import type { HomeCopy } from "@/i18n/home/types";
 // carries no outline and no hard shadow either. It is a picture, and an ink
 // frame around a watercolour is a frame around a frame. What holds the mat
 // together instead is its own bleed to the edge, and the soft shadow the print
-// casts onto it. Each step gets its own texture so the four read as a set
+// casts onto it. Each step gets its own texture so the shots read as a set
 // without repeating.
 //
-// `art` is a drawing from components/shots/, not a capture: a real 840px
-// screenshot of the card page lands in this half-width slot at ~0.5×, and
-// nothing on it can be read. The drawings size their type as a share of their
-// container, so they hold at whatever width the mat has — see the header in
-// components/shots/nb.tsx. The first three draw a board screen; step 04's
-// memory files have no UI, so that one draws the file. Ordered so the blooms
-// swap diagonals card to card and the ember lands last — the step that ends the
-// loop is the one that takes the brand's own pigment.
 const SHOTS: { mat: WashName; art: ReactNode }[] = [
-  { mat: "mintSky", art: <ShotCardReady /> },
+  { mat: "mintSky", art: <ShotTaskGraph /> },
   { mat: "peachEmber", art: <ShotCardQuestions /> },
   { mat: "skyLilac", art: <ShotSessions /> },
-  { mat: "emberMint", art: <ShotDecisions /> },
+  { mat: "emberMint", art: <ShotSpecAgents /> },
+  { mat: "peachEmber", art: <ShotApprovalEvent /> },
 ];
 
 // The two sides of the zigzag. Explicit column starts rather than `order`, so
@@ -71,10 +65,9 @@ export function Loop({ c }: { c: HomeCopy["loop"] }) {
       </p>
 
       {/* Each step arrives whole — words and shot together — because a step is
-          one thing, and the four come up in the order the loop runs. They carry
-          no step number: the order is the order they are read in, and four
-          numbered discs down a page that already numbers its sections `02` was
-          one counter too many. */}
+          one thing, and the steps come up in the order the loop runs. They
+          carry no step number: the reading order already makes the sequence
+          clear. */}
       <ol className="mt-12 space-y-14 lg:mt-16 lg:space-y-20">
         {c.steps.map((step, i) => {
           const side = i % 2 === 0 ? SHOT_LEFT : SHOT_RIGHT;

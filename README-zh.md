@@ -40,6 +40,33 @@ AI4Kanban 是一个以看板为工作界面的项目管理 Agent。它结合项�
 - **本地存储，可自由选择 Agent。** 看板以 Markdown 文件存放在 `docs/kanban/`。AI4Kanban
   支持 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness 和 ZCode。
 
+## 实际效果
+
+<img src="https://cdn.ai4kanban.dev/loop-task-graph-v1.jpg" alt="带子任务依赖图的分组卡片：五张卡片由依赖箭头串联" width="820">
+
+**明确任务与依赖** — Agent 结合目标、代码和模块记忆判断接下来该做什么，把大目标拆分为边界
+清晰的卡片；显式的依赖关系决定哪些任务可以并行、哪些必须等待。
+
+<img src="https://cdn.ai4kanban.dev/loop-clarify-v1.jpg" alt="卡片上的待澄清问题，每个问题都带有推荐答案和备选项" width="820">
+
+**澄清需求** — 能从代码和项目记忆中确认的，Agent 自己处理；只有必须由你决定的产品取舍才会
+送到你面前，并附带推荐答案。
+
+<img src="https://cdn.ai4kanban.dev/loop-execute-v1.jpg" alt="运行面板：implement、review、resolve 会话及其运行日志" width="820">
+
+**推进执行** — 就绪的卡片交给编码 Agent。一个看板可以同时管理十个以上任务；每次交付都在独立
+的 git worktree 中进行，落地前若发生冲突则触发专门的解冲突流程。
+
+<img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="ui-design agent 的报告，卡片上附有两套可运行的 mockup" width="820">
+
+**在实施前完成关键决策** — Spec Agents 先阅读代码、研究外部依赖。遇到 UI 改动时，它会把多套
+可运行的 mockup 放进卡片，让你在编写代码前确定方向。
+
+<img src="https://cdn.ai4kanban.dev/loop-approval-v1.jpg" alt="Slack 中的审批通知，带有 Implement 和打开卡片按钮" width="820">
+
+**仅在必要时请求审批** — 开发在后台持续推进。只有产品取舍或验收需要人工确认时才会发出通知；
+确认后，任务会在对应项目机器上继续执行。
+
 ## 快速开始
 
 1. **[下载并安装桌面应用](https://ai4kanban.dev/download)。** 无需预先配置 Node.js、npm 或

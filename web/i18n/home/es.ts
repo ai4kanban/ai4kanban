@@ -34,8 +34,8 @@ const es: HomeCopy = {
     lead: "Dale un objetivo o una idea por definir. El agente lee tu código y la memoria del proyecto, determina qué viene después, aclara los requisitos, descompone el trabajo, ordena dependencias y prioridades, y pasa a la ejecución.",
     steps: [
       {
-        title: "Definir la siguiente tarea",
-        body: "Usar el objetivo, el código y la memoria del módulo para decidir qué toca hacer a continuación.",
+        title: "Definir tareas y dependencias",
+        body: "Usar el objetivo, el código y la memoria del módulo para decidir qué toca hacer y dividir los objetivos grandes en tarjetas delimitadas; las dependencias explícitas determinan cuáles avanzan en paralelo y cuáles esperan.",
       },
       {
         title: "Aclarar los requisitos",
@@ -43,11 +43,15 @@ const es: HomeCopy = {
       },
       {
         title: "Ejecutar",
-        body: "Cuando los requisitos están lo bastante claros para empezar, el agente sigue el alcance y los pasos definidos en la tarea.",
+        body: "Cuando los requisitos están lo bastante claros para empezar, el agente sigue el alcance y los pasos definidos en la tarea. Un tablero puede gestionar diez o más tareas de desarrollo; cada entrega usa su propio Git worktree y los conflictos activan una fase específica de resolución antes de integrar.",
       },
       {
-        title: "Registrar las decisiones",
-        body: "Guardar las decisiones de producto en la memoria del proyecto para que el siguiente ciclo de planificación y desarrollo pueda aprovecharlas.",
+        title: "Resolver las decisiones clave antes de implementar",
+        body: "Los Spec Agents inspeccionan el código e investigan dependencias externas antes de implementar. Para cambios de interfaz, pueden añadir varios mockups funcionales a la tarjeta para que elijas la dirección antes de escribir código.",
+      },
+      {
+        title: "Solicitar aprobación solo cuando sea necesario",
+        body: "Los agentes siguen aclarando requisitos e implementando en segundo plano. AI4Kanban envía una notificación de tarjeta solo cuando una decisión de producto o una revisión de aceptación requiere confirmación; después, la tarea continúa en la máquina del proyecto hasta su entrega.",
       },
     ],
   },

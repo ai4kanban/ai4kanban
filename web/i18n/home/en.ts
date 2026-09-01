@@ -28,8 +28,8 @@ const en: HomeCopy = {
     lead: "Give it a goal or a rough idea. The agent reads your code and project memory, determines what comes next, clarifies requirements, breaks the work down, orders dependencies and priorities, and moves into execution.",
     steps: [
       {
-        title: "Define the next task",
-        body: "Use the goal, code, and module memory to determine what should happen next.",
+        title: "Define tasks and dependencies",
+        body: "Use the goal, code, and module memory to determine what comes next, then split large goals into bounded cards whose explicit dependencies decide what runs in parallel and what waits.",
       },
       {
         title: "Clarify requirements",
@@ -37,11 +37,15 @@ const en: HomeCopy = {
       },
       {
         title: "Execute",
-        body: "Once the requirements are clear enough to begin, the agent follows the scope and steps defined in the task.",
+        body: "Once the requirements are clear enough to begin, the agent follows the scope and steps defined in the task. Ten or more development tasks can share one board; each delivery uses its own Git worktree, and conflicts trigger a dedicated resolution pass before landing.",
       },
       {
-        title: "Record decisions",
-        body: "Write product decisions back to project memory so the next planning and development cycle can build on them.",
+        title: "Settle key decisions before implementation",
+        body: "Spec Agents inspect the code and research external dependencies before implementation. For UI changes, they can place several working mockups on the card so you choose the direction before code is written.",
+      },
+      {
+        title: "Request approval only when necessary",
+        body: "Agents continue clarifying requirements and implementing work in the background. AI4Kanban sends a card notification only when a product decision or acceptance review requires confirmation; once confirmed, the task resumes on its project machine and proceeds through delivery.",
       },
     ],
   },

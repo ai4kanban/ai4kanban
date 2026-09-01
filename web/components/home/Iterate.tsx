@@ -976,7 +976,7 @@ export function Iterate({ c }: { c: HomeCopy["iterate"] }) {
           drawing is built on starts where the page does. */}
       {/* The drawing's own circuit runs on its own clock; the reveal only
           brings the print onto the page. */}
-      <Mat wash="peachEmber" data-reveal data-delay="2" className="mt-9 p-3 sm:p-5">
+      <Mat wash="peachEmber" data-reveal data-delay="2" className="mt-9 p-5 sm:p-10">
         <div className={printFrame}>
           <svg
             viewBox={`0 0 ${W} ${h}`}

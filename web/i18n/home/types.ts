@@ -28,7 +28,7 @@ export type HomeCopy = {
   loop: {
     title: string;
     lead: string;
-    steps: [TitleBody, TitleBody, TitleBody, TitleBody];
+    steps: [TitleBody, TitleBody, TitleBody, TitleBody, TitleBody];
   };
   memory: {
     title: string;

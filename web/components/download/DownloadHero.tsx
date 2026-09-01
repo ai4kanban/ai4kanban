@@ -59,7 +59,7 @@ export function DownloadHero({
     // "AI4Kanban 桌面版") still holds the spread, and the ember stays the
     // smaller, denser block it needs to be to read as one button.
     <div className="grid overflow-hidden rounded-xl md:grid-cols-[7fr_5fr]">
-      <div className="flex flex-col bg-code px-8 py-12 sm:px-12 sm:py-16">
+      <div className="flex flex-col bg-band px-8 py-12 sm:px-12 sm:py-16">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{title}</h1>
         <p className="mt-5 max-w-md text-[1.05rem] leading-relaxed text-muted">{lead}</p>
       </div>

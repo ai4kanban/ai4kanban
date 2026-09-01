@@ -13,14 +13,25 @@ Start with a goal or a rough idea. The agent reads the code and project memory,
 determines what comes next, clarifies requirements, breaks down the work, orders
 dependencies and priorities, and moves into execution.
 
-- **Define the next task** — Use the goal, code, and module memory to determine
-  what should happen next.
+- **Define tasks and dependencies** — Use the goal, code, and module memory to
+  determine what comes next, then split large goals into bounded cards whose
+  explicit dependencies decide what runs in parallel and what waits.
 - **Clarify requirements** — Resolve what the code and project memory can answer,
   and bring forward only the product tradeoffs that require human judgment.
 - **Execute** — Once the requirements are clear enough to begin, follow the scope
-  and steps defined in the task.
+  and steps defined in the task. Ten or more development tasks can share one board;
+  each delivery uses its own Git worktree, and conflicts trigger a dedicated
+  resolution pass before landing.
 - **Record decisions** — Write product decisions back to project memory so the
   next planning and development cycle can build on them.
+- **Settle key decisions before implementation** — Spec Agents inspect the code and
+  research external dependencies before implementation. For UI changes, they can
+  place several working mockups on the card so you choose the direction before code
+  is written.
+- **Request approval only when necessary** — Agents continue clarifying requirements
+  and implementing work in the background. AI4Kanban sends a card notification only
+  when a product decision or acceptance review requires confirmation; once confirmed,
+  the task resumes on its project machine and proceeds through delivery.
 
 ## Learns as you build
 

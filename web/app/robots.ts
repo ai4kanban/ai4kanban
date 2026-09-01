@@ -10,8 +10,10 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       disallow: [
-        // Render-only page that exists purely to be screenshot into the OG card.
+        // Render-only pages that exist purely to be screenshot: the OG card, and
+        // the loop drawings the READMEs embed from the CDN.
         "/og-image/",
+        "/shots/",
         // The design system reference — a tool for building the site, not a page.
         "/design/",
       ],

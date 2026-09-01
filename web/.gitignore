@@ -12,3 +12,6 @@ next-env.d.ts
 
 # cloudflare
 .wrangler/
+
+# scripts/capture-shots.mjs output — uploaded to the CDN, not committed
+/.shots/

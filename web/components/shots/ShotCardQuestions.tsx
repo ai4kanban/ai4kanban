@@ -28,8 +28,7 @@ import { Btn, CROP, ChipIcon, NB, Section, Shot, Tag, em } from "./nb";
 // drawn: track/priority/roi are what step 01 is about, and at this crop the box
 // pushed the second question and its choices under the fade.
 
-// Card #48's real questions, and the answers that settled them — the ones
-// ShotDecisions then shows written back into the module's memory file.
+// Card #48's real questions, and the answers that settled them.
 const QUESTIONS: { text: string; options: string[]; recommend: number }[] = [
   {
     text: "When does the work merge into main — as soon as the run finishes, or only after you have read the diff?",
@@ -172,7 +171,7 @@ export function ShotCardQuestions() {
           >
             #48
           </span>
-          {/* see ShotCardReady — keeps the title on the id's line */}
+          {/* keeps the title on the id's line — see ShotTaskGraph */}
           <h1
             style={{
               margin: 0,

@@ -48,6 +48,38 @@ this history, keeping future decisions grounded in the project.
   files under `docs/kanban/`. AI4Kanban supports Claude Code, Codex, Cursor, OpenCode,
   DeepSeek Harness, and ZCode.
 
+## See it work
+
+<img src="https://cdn.ai4kanban.dev/loop-task-graph-v1.jpg" alt="A group card with its subtask map: five cards wired by dependency arrows" width="820">
+
+**Define tasks and dependencies** — the agent uses the goal, code, and module memory to
+decide what comes next, then splits large goals into bounded cards whose explicit
+dependencies decide what runs in parallel and what waits.
+
+<img src="https://cdn.ai4kanban.dev/loop-clarify-v1.jpg" alt="A card's open questions, each with recommended and alternative answers" width="820">
+
+**Clarify requirements** — anything answerable from the code and project memory is resolved
+silently. Only the product tradeoffs that need your judgment reach you, each with a
+recommended answer.
+
+<img src="https://cdn.ai4kanban.dev/loop-execute-v1.jpg" alt="The runs panel: implement, review, and resolve sessions with their run log" width="820">
+
+**Execute** — ready cards go to your coding agent. Ten or more tasks can share one board;
+each delivery builds in its own git worktree, and conflicts trigger a dedicated resolution
+pass before landing.
+
+<img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="A ui-design agent's report with two working mockups attached to the card" width="820">
+
+**Settle key decisions before implementation** — Spec Agents inspect the code and research
+external dependencies first. For UI work they attach several working mockups to the card,
+so you pick the direction before any code is written.
+
+<img src="https://cdn.ai4kanban.dev/loop-approval-v1.jpg" alt="A Slack notification asking to approve a card, with Implement and Open card buttons" width="820">
+
+**Request approval only when necessary** — work continues in the background. A notification
+arrives only when a product decision or acceptance review needs you, and answering it
+resumes the task on its project machine.
+
 ## Get started
 
 1. **[Download and install the desktop app](https://ai4kanban.dev/download).** No prior
