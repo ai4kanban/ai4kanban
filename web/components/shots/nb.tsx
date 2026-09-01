@@ -508,8 +508,20 @@ export function Code({ children }: { children: ReactNode }) {
 /** The run log's title bar — the kicker, the outcome glyph, and the run's facts
  *  in one middot row. `agent-shared.tsx`'s `titleBar`, resting state. Chrome over
  *  the well below it, parted by a hairline; it carries no fill of its own, so it
- *  sits on whatever ground the frame around it has. */
-export function LogBar({ facts }: { facts: string[] }) {
+ *  sits on whatever ground the frame around it has.
+ *
+ *  A live run swaps the ✓ for a pulse and puts Stop beside it — both come in
+ *  from the shot, since the pulse is that drawing's own animation. */
+export function LogBar({
+  facts,
+  tool,
+  mark,
+}: {
+  facts: string[];
+  /** The control that rides the bar — Stop, while the run is live. */
+  tool?: ReactNode;
+  mark?: ReactNode;
+}) {
   return (
     <div
       style={{
@@ -530,9 +542,12 @@ export function LogBar({ facts }: { facts: string[] }) {
           gap: em(6),
         }}
       >
-        <span aria-hidden style={{ color: NB.accentDeep, fontSize: em(12) }}>
-          ✓
-        </span>
+        {tool}
+        {mark ?? (
+          <span aria-hidden style={{ color: NB.accentDeep, fontSize: em(12) }}>
+            ✓
+          </span>
+        )}
         <span style={{ fontSize: em(11), color: NB.inkSoft }}>
           {facts.map((f, i) => (
             <span

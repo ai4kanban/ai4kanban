@@ -1,11 +1,14 @@
+import type { CSSProperties } from "react";
+import { FaPauseCircle } from "react-icons/fa";
 import { FiX } from "react-icons/fi";
-import { CROP, Code, HAIR, Inset, LogBar, NB, Panel, Shot, Tag, em } from "./nb";
+import { CROP, HAIR, Inset, LogBar, MONO, NB, Panel, Shot, em } from "./nb";
 
-// Step 03 推进执行 — a finished implement run, read back from the run history:
-// what the agent did, which files it touched, how long it took and what it ran
-// on. Mirrors kanban-ui/components/sessions.tsx (`SessionsDialog`: the 240px
-// rail of jobs, each threading its own sessions on a timeline, and the
-// selected-run pane) and agent-shared.tsx's `SessionLog` in its `flush` form.
+// Step 03 推进执行 — four runs going at once, and the one being read streaming
+// its events. Mirrors kanban-ui/components/sessions.tsx (`SessionsDialog`: the
+// 240px rail of jobs, each threading its own sessions on a timeline, and the
+// selected-run pane) and agent-shared.tsx's `SessionLog` in its live form: the
+// tail is the agent's event stream, so it reads mono, and the title bar carries
+// Stop, the pulse, and the model the agent named.
 //
 // The dialog is the one thing on the board still drawn as an object: ink frame,
 // hard offset shadow. Everything inside it is parted by hairlines and fills.
@@ -22,65 +25,111 @@ const ROWS: {
   card: string;
   when: string;
   steps?: string[];
+  live?: boolean;
   active?: boolean;
 }[] = [
+  { action: "Refine", card: "#374", when: "1m ago", live: true, active: true },
+  { action: "Implement", card: "#357", when: "1m ago", live: true },
+  { action: "Implement", card: "#314", when: "2m ago", live: true },
+  { action: "Implement", card: "#388", when: "4m ago", live: true },
   {
-    action: "Implement",
-    card: "#135",
-    when: "2 sessions · 3d ago",
-    steps: ["Implement", "Review"],
-    active: true,
+    action: "Review",
+    card: "#378",
+    when: "8 sessions · 1d ago",
+    steps: ["Review", "Clarify", "Writing"],
   },
-  { action: "Resolve", card: "#135", when: "2 sessions · 3d ago", steps: ["Resolve", "Writing"] },
-  { action: "Implement", card: "#139", when: "3d ago" },
-  { action: "Implement", card: "#108", when: "4d ago" },
-  { action: "Create", card: "—", when: "4d ago" },
+  { action: "Resolve", card: "#383", when: "2 sessions · 1d ago", steps: ["Resolve", "Writing"] },
 ];
 
-const SHIPPED: { file: string; text: React.ReactNode }[] = [
-  {
-    file: "cli/src/lib/recurring.ts",
-    text: (
-      <>
-        the seeded card&apos;s body no longer points at the recurring-task guide.
-        It now says the one thing to do: <em>&ldquo;Set its cadence to </em>
-        <Code>1d</Code>
-        <em> and it prunes once a day on its own.&rdquo;</em>
-      </>
-    ),
-  },
-  {
-    file: "skill/references/prune-memory.md",
-    text: (
-      <>
-        new section &ldquo;The card that does this on a cadence&rdquo;: what the
-        seeded card is, and that <Code>1d</Code> is how a board prunes daily.
-      </>
-    ),
-  },
-  {
-    file: "skill/SKILL.md",
-    text: (
-      <>
-        one line in Auto-pruning: a new board starts with a recurring card that
-        does this, a <Code>1d</Code> cadence makes it daily.
-      </>
-    ),
-  },
+// The tail the selected run is writing, as the log shows it: the agent's turn
+// text, then one line per tool call, each cut to the width of the pane the way
+// the real log cuts them.
+const TAIL = [
+  "I'll load the kanban skill and the qa-loop guide.",
+  "",
+  "● Skill",
+  "● Bash(node cli/bin/ai4kanban.mjs guide qa-loop)",
+  "● Bash(ls docs/kanban/todo/ && find docs/kanban…)",
+  "● Read(docs/kanban/todo/374-render-board-off-m…)",
+  "● Read(kanban-ui/components/Board.tsx)",
+  "● Bash(wc -l app/page.tsx app/actions.ts lib/…)",
+  "● Grep(from \"@/app/actions\" in components/ app/)",
+  "● Read(kanban-ui/app/actions.ts)",
+  "● Bash(grep -rn \"release\" app/*.tsx | head -20)",
+  "● Edit(docs/kanban/todo/374-render-board-off-m…)",
 ];
 
-/** The list's status dot — mint for a run that finished clean. */
-function Dot() {
+// The log types itself out once a cycle: a line is revealed a character at a
+// time, in the steps of its own length, and the caret sits at the end of
+// whichever line is being written. Standing still — the resting frame,
+// `prefers-reduced-motion`, a capture of /shots/ — the whole tail is there.
+const CHAR = 0.012; // seconds a character takes
+const GAP = 0.1; // between one line and the next
+const START = 0.5; // after the log has faded in
+const HOLD = 2.2; // the finished tail, before it starts over
+
+// When each line starts and ends, in seconds. A blank line is a beat, not a
+// wait: there is nothing to type.
+const SCHEDULE = TAIL.reduce<{ start: number; end: number }[]>((rows, line) => {
+  const start = rows.length === 0 ? START : rows[rows.length - 1].end + GAP;
+  return [...rows, { start, end: start + Math.max(line.length, 3) * CHAR }];
+}, []);
+const TYPED = SCHEDULE[SCHEDULE.length - 1].end;
+const CYCLE = TYPED + HOLD;
+
+const pct = (seconds: number) => `${(seconds / CYCLE) * 100}%`;
+
+// One keyframe per line, because each has its own length and its own turn, and
+// they all have to share the one cycle to stay in step.
+const TYPING = TAIL.map((line, i) => {
+  const { start, end } = SCHEDULE[i];
+  return `
+@keyframes ex-type-${i} {
+  0%, ${pct(start)} { width: 0; border-right-color: transparent }
+  ${pct(start + 0.02)} { border-right-color: ${NB.inkSoft} }
+  ${pct(end)} { width: ${line.length}ch }
+  ${pct(end + 0.02)}, 100% { border-right-color: transparent }
+}`;
+}).join("");
+
+const MOTION = `${TYPING}
+@keyframes ex-fade {
+  0% { opacity: 0 }
+  ${pct(START * 0.6)}, ${pct(TYPED + HOLD * 0.7)} { opacity: 1 }
+  100% { opacity: 0 }
+}
+@keyframes ex-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85) }
+  50% { opacity: 1; transform: scale(1) }
+}
+@media (prefers-reduced-motion: no-preference) {
+${TAIL.map(
+  (line, i) =>
+    `  .ex-line-${i} { animation: ex-type-${i} ${CYCLE}s steps(${Math.max(line.length, 1)}) infinite both }`,
+).join("\n")}
+  .ex-fade { animation: ex-fade ${CYCLE}s linear infinite both }
+  /* Four runs that started at four different moments don't breathe together. */
+  .ex-pulse { animation: ex-pulse 1.1s ease-in-out var(--pd, 0s) infinite both }
+}
+`;
+
+/** The list's status dot — a pulsing ember while the run is live, mint once it
+ *  passed (`SessionDot`). */
+function Dot({ live, delay = 0 }: { live?: boolean; delay?: number }) {
   return (
     <span
       aria-hidden
-      style={{
-        width: em(8),
-        height: em(8),
-        flex: "0 0 auto",
-        borderRadius: em(999),
-        background: NB.mint,
-      }}
+      className={live ? "ex-pulse" : undefined}
+      style={
+        {
+          width: em(8),
+          height: em(8),
+          flex: "0 0 auto",
+          borderRadius: em(999),
+          background: live ? NB.accentDeep : NB.mint,
+          "--pd": `${delay}s`,
+        } as CSSProperties
+      }
     />
   );
 }
@@ -89,6 +138,7 @@ export function ShotSessions() {
   return (
     <Shot crop={CROP}>
       <div style={{ padding: em(14) }}>
+        <style>{MOTION}</style>
         {/* .nb-panel — the dialog frame. overflow-hidden clips the rail's fill
             to the radius, the way the real one does. */}
         <Panel style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -119,7 +169,7 @@ export function ShotSessions() {
           </div>
 
           <div style={{ display: "flex", minHeight: 0 }}>
-            {/* left: every job, newest first */}
+            {/* left: every job, newest first — the four in flight lead it */}
             <div
               style={{
                 width: em(160),
@@ -145,7 +195,7 @@ export function ShotSessions() {
                         : undefined,
                     }}
                   >
-                    <Dot />
+                    <Dot live={r.live} delay={-0.27 * i} />
                     <span style={{ minWidth: 0, flex: 1 }}>
                       <span
                         style={{
@@ -183,53 +233,43 @@ export function ShotSessions() {
                       past it. */}
                   {r.steps && (
                     <div style={{ paddingBottom: em(4) }}>
-                      {r.steps.map((step, k) => {
-                        const on = !!r.active && k === 0;
-                        return (
-                          <div
-                            key={step}
+                      {r.steps.map((step, k) => (
+                        <div
+                          key={step}
+                          style={{
+                            position: "relative",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: em(8),
+                            padding: `${em(6)} ${em(12)} ${em(6)} ${em(28)}`,
+                          }}
+                        >
+                          <span
+                            aria-hidden
                             style={{
-                              position: "relative",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: em(8),
-                              padding: `${em(6)} ${em(12)} ${em(6)} ${em(28)}`,
-                              background: on ? NB.paper : undefined,
+                              position: "absolute",
+                              left: em(31.5),
+                              width: 1,
+                              top: 0,
+                              bottom: k === r.steps!.length - 1 ? "50%" : 0,
+                              background: "color-mix(in srgb, #24231f 15%, transparent)",
                             }}
-                          >
-                            <span
-                              aria-hidden
-                              style={{
-                                position: "absolute",
-                                left: em(31.5),
-                                width: 1,
-                                top: 0,
-                                bottom: k === r.steps!.length - 1 ? "50%" : 0,
-                                background: "color-mix(in srgb, #24231f 15%, transparent)",
-                              }}
-                            />
-                            <span style={{ position: "relative", display: "flex", zIndex: 1 }}>
-                              <Dot />
-                            </span>
-                            <span
-                              style={{
-                                fontSize: em(11.5),
-                                fontWeight: on ? 700 : 400,
-                                color: on ? NB.ink : NB.inkSoft,
-                              }}
-                            >
-                              {step}
-                            </span>
-                          </div>
-                        );
-                      })}
+                          />
+                          <span style={{ position: "relative", display: "flex", zIndex: 1 }}>
+                            <Dot />
+                          </span>
+                          <span style={{ fontSize: em(11.5), color: NB.inkSoft }}>
+                            {step}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               ))}
             </div>
 
-            {/* right: the selected run's note and log */}
+            {/* right: the selected run, still writing */}
             <div style={{ minWidth: 0, flex: 1, padding: em(14) }}>
               <div
                 style={{
@@ -248,7 +288,7 @@ export function ShotSessions() {
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  Implement
+                  Refine
                 </span>
                 <span
                   style={{
@@ -259,30 +299,29 @@ export function ShotSessions() {
                     textUnderlineOffset: em(2, 12),
                   }}
                 >
-                  #135
+                  #374
                 </span>
                 <span style={{ fontSize: em(11), color: NB.inkSoft }}>
-                  Aug 2, 11:15 PM
+                  Sep 1, 6:21 PM
                 </span>
               </div>
 
-              {/* the free text the run was started with */}
-              <div style={{ marginBottom: em(12) }}>
-                <div style={{ marginBottom: em(6) }}>
-                  <Tag>note</Tag>
-                </div>
-                <p style={{ margin: 0, fontSize: em(13), lineHeight: 1.6 }}>
-                  #139 is done.
-                </p>
-              </div>
-
-              {/* SessionLog, flush form: a hairline window on paper, wash well */}
+              {/* SessionLog, flush form: a hairline window on paper, wash well.
+                  A live run's bar carries Stop, the pulse and the model — the
+                  duration and the cost aren't in yet. */}
               <Inset>
-                {/* The real bar also carries what the run cost. It is left off:
-                    it pushes the facts row onto a second line at this width, and
-                    it is not what this step is about. */}
-                <LogBar facts={["done", "7m 46s", "claude-opus-5"]} />
+                <LogBar
+                  facts={["claude-opus-5"]}
+                  tool={
+                    <FaPauseCircle
+                      aria-hidden
+                      style={{ width: em(13), height: em(13), color: NB.inkSoft }}
+                    />
+                  }
+                  mark={<Dot live />}
+                />
                 <div
+                  className="ex-fade"
                   style={{
                     padding: `${em(12)} ${em(16)}`,
                     background: NB.wash,
@@ -291,58 +330,25 @@ export function ShotSessions() {
                     boxShadow: `inset 0 1px 3px color-mix(in srgb, #24231f 8%, transparent)`,
                   }}
                 >
-                  {/* the fold the intermediate events live behind */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: em(6),
-                      marginBottom: em(9),
-                      fontSize: em(10),
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                      color: NB.inkSoft,
-                    }}
-                  >
-                    <span aria-hidden>▸</span>
-                    intermediate events
-                  </div>
-
-                  {/* .nb-sessionlog-md — the agent's final message */}
-                  <div style={{ fontSize: em(13), lineHeight: 1.6 }}>
-                    <p style={{ margin: 0 }}>#135 is done and archived.</p>
-                    <p
+                  {TAIL.map((line, i) => (
+                    <div
+                      key={i}
+                      className={`ex-line-${i}`}
                       style={{
-                        margin: 0,
-                        marginTop: em(14, 13),
-                        fontSize: em(14, 13),
-                        fontWeight: 800,
+                        width: "max-content",
+                        maxWidth: "100%",
+                        overflow: "hidden",
+                        whiteSpace: "pre",
+                        borderRight: `${em(6, 12)} solid transparent`,
+                        fontFamily: MONO,
+                        fontSize: em(12),
+                        lineHeight: em(19, 12),
+                        color: NB.inkSoft,
                       }}
                     >
-                      What shipped
-                    </p>
-                    <ul
-                      style={{
-                        margin: 0,
-                        marginTop: em(9, 13),
-                        paddingLeft: em(16, 13),
-                        listStyle: "disc",
-                      }}
-                    >
-                      {SHIPPED.map((s, i) => (
-                        <li
-                          key={s.file}
-                          style={{
-                            paddingLeft: em(4, 13),
-                            marginTop: i === 0 ? 0 : em(6, 13),
-                          }}
-                        >
-                          <Code>{s.file}</Code> — {s.text}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                      {line || " "}
+                    </div>
+                  ))}
                 </div>
               </Inset>
             </div>
