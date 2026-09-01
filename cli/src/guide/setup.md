@@ -18,8 +18,9 @@ setup is finished.
 - Only the final `tasks` step may create cards while setup is unfinished.
 - If an older checklist still has an unticked `config` step, keep the scaffolded defaults
   unless the project clearly requires a change, then tick it.
-- Ask the user only for the goal. Put any other blocking decision on the setup questions
-  card with `akb board update-questions`; `setup-status` prints its id.
+- Ask the user only for the goal. Classify any other blocking decision with `akb guide
+  update-questions` and put a resulting `[user]` question on the setup questions card;
+  `setup-status` prints its id.
 
 ## The first-run conversation
 

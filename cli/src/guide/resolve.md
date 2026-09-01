@@ -22,14 +22,12 @@ options and their spec-tmp files, then move the surviving section below the boun
 
 ## Curate the human half
 
-Put an answer in `## Worth noting` only when its known tradeoff materially changes observable
-behavior, accepted scope, user risk, data or privacy, compatibility, or meaningful ongoing
-cost, and a reasonable reviewer may reject it. Otherwise put a necessary lasting decision
-below the boundary.
+Classify each answer with `akb guide update-questions`. Put answers classified as `Worth noting`
+in that section; put other necessary lasting decisions below the boundary.
 
-Re-read the whole human half. Remove or move down entries that fail the same test, repeat
-scope, or overlap another entry. Merge entries governed by one decision. One to three
-independent items is normal; every additional item needs distinct user-facing stakes.
+Re-read the whole human half against the same classification. Remove or move down entries that
+fail it, repeat scope, or overlap another entry. Merge entries governed by one decision. One to
+three independent items is normal; every additional item needs distinct user-facing stakes.
 
 ## Record lasting user decisions
 

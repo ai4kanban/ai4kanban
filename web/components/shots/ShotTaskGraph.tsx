@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { FiCheckCircle, FiChevronRight, FiTag } from "react-icons/fi";
 import {
   CROP,
@@ -36,23 +37,38 @@ const SUBTASKS = [
  *  element's OWN font-size, so setting one on the positioned box would scale
  *  its coordinates by the chip's type size and slide every node off the arrows
  *  drawn under it. */
-function MapChip({ id, left, top }: { id: number; left: number; top: number }) {
+function MapChip({
+  id,
+  left,
+  top,
+  at,
+}: {
+  id: number;
+  left: number;
+  top: number;
+  /** When this node lights, in seconds into the cycle. */
+  at: number;
+}) {
   return (
     <span
-      style={{
-        position: "absolute",
-        left: em(left),
-        top: em(top),
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: em(CHIP_W),
-        height: em(26),
-        border: `${em(1.5)} solid ${NB.ink}`,
-        borderRadius: em(9),
-        background: NB.paper,
-        boxShadow: `${em(2)} ${em(2)} 0 0 ${NB.ink}`,
-      }}
+      className="tg-lit"
+      style={
+        {
+          position: "absolute",
+          left: em(left),
+          top: em(top),
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: em(CHIP_W),
+          height: em(26),
+          border: `${em(1.5)} solid ${NB.ink}`,
+          borderRadius: em(9),
+          background: NB.paper,
+          boxShadow: `${em(2)} ${em(2)} 0 0 ${NB.ink}`,
+          "--d": `${at}s`,
+        } as CSSProperties
+      }
     >
       <span style={{ color: NB.accentDeep, fontSize: em(12.5), fontWeight: 800 }}>
         #{id}
@@ -72,6 +88,88 @@ const MAP_W = COL[3] + CHIP_W;
 const MAP_H = 92;
 const ROW1 = 11; // chip top; centre is ROW1 + 13
 const ROW2 = 52;
+
+// The map runs itself: a pulse walks #314 → #315 → #316, the fork carries two
+// pulses at once, and then it rests. Dependencies are what the step is about,
+// and order is the one thing a still picture of a DAG can't say.
+//
+// Every part idles for most of the cycle at its resting style, so one delay
+// says *when* and the drawing standing still is the drawing as it was — which
+// is what `prefers-reduced-motion` gets, and what a capture of /shots/ gets.
+const CYCLE = 6; // seconds
+const BEAT = 1.05; // a hop: a node lights, its edge carries, the next lights
+const FLOW = 0.85; // a pulse's travel over one edge
+const LIT = 0.7; // a node's flash
+
+const nodeAt = (col: number) => 0.2 + col * BEAT;
+const edgeAt = (col: number) => nodeAt(col) + 0.35;
+
+const pct = (seconds: number) => `${(seconds / CYCLE) * 100}%`;
+
+// The pulse is a dash as long as `PULSE` on a path normalised to 100 units, so
+// one keyframe serves the straight edges and the curve alike. Parked at either
+// end of the pattern the dash is off the path — so the resting state is a plain
+// arrow with nothing drawn over it.
+const PULSE = 16;
+const MOTION = `
+@keyframes tg-flow {
+  0% { stroke-dashoffset: ${PULSE} }
+  ${pct(FLOW)}, 100% { stroke-dashoffset: -100 }
+}
+@keyframes tg-lit {
+  0%, 100% {
+    border-color: ${NB.ink};
+    background: ${NB.paper};
+    box-shadow: ${em(2)} ${em(2)} 0 0 ${NB.ink};
+  }
+  ${pct(LIT * 0.4)} {
+    border-color: ${NB.accent};
+    background: ${NB.accentSoft};
+    box-shadow: ${em(2)} ${em(2)} 0 0 ${NB.accent};
+  }
+  ${pct(LIT)} {
+    border-color: ${NB.ink};
+    background: ${NB.paper};
+    box-shadow: ${em(2)} ${em(2)} 0 0 ${NB.ink};
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tg-flow { animation: tg-flow ${CYCLE}s linear var(--d, 0s) infinite both }
+  .tg-lit { animation: tg-lit ${CYCLE}s ease-in-out var(--d, 0s) infinite both }
+}
+`;
+
+// The arrows, each with the moment its pulse leaves. The two out of #316 leave
+// together — that fork is the drawing's whole point.
+const EDGES = [
+  ...[0, 1, 2].map((i) => ({
+    d: `M${COL[i] + CHIP_W + 4} ${ROW1 + 13} H${COL[i + 1] - 4}`,
+    at: edgeAt(i),
+  })),
+  {
+    d: `M${COL[2] + CHIP_W + 4} ${ROW1 + 13} C${COL[3] - 50} ${ROW1 + 13} ${COL[3] - 70} ${ROW2 + 13} ${COL[3] - 4} ${ROW2 + 13}`,
+    at: edgeAt(2),
+  },
+];
+
+/** The moving segment laid over an edge, on the same path as the arrow. */
+function Pulse({ d, at }: { d: string; at: number }) {
+  return (
+    <path
+      d={d}
+      pathLength={100}
+      fill="none"
+      stroke={NB.accent}
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeDasharray={`${PULSE} 100`}
+      className="tg-flow"
+      // Parked past the end: with the animation off — reduced motion, or a
+      // capture of /shots/ — the edge is the plain arrow and nothing else.
+      style={{ strokeDashoffset: -100, "--d": `${at}s` } as CSSProperties}
+    />
+  );
+}
 
 export function ShotTaskGraph() {
   return (
@@ -204,30 +302,27 @@ export function ShotTaskGraph() {
                   <path d="M0,0 L8,4 L0,8 Z" fill={NB.inkSoft} />
                 </marker>
               </defs>
+              <style>{MOTION}</style>
               {/* #314 → #315 → #316, then #316 forks to #317 and #328 */}
-              {[0, 1, 2].map((i) => (
+              {EDGES.map((edge) => (
                 <path
-                  key={i}
-                  d={`M${COL[i] + CHIP_W + 4} ${ROW1 + 13} H${COL[i + 1] - 4}`}
+                  key={edge.d}
+                  d={edge.d}
                   fill="none"
                   stroke={NB.inkSoft}
                   strokeWidth="1.6"
                   markerEnd="url(#subtask-arrow-shot)"
                 />
               ))}
-              <path
-                d={`M${COL[2] + CHIP_W + 4} ${ROW1 + 13} C${COL[3] - 50} ${ROW1 + 13} ${COL[3] - 70} ${ROW2 + 13} ${COL[3] - 4} ${ROW2 + 13}`}
-                fill="none"
-                stroke={NB.inkSoft}
-                strokeWidth="1.6"
-                markerEnd="url(#subtask-arrow-shot)"
-              />
+              {EDGES.map((edge) => (
+                <Pulse key={edge.d} d={edge.d} at={edge.at} />
+              ))}
             </svg>
-            <MapChip id={314} left={COL[0]} top={ROW1} />
-            <MapChip id={315} left={COL[1]} top={ROW1} />
-            <MapChip id={316} left={COL[2]} top={ROW1} />
-            <MapChip id={317} left={COL[3]} top={ROW1} />
-            <MapChip id={328} left={COL[3]} top={ROW2} />
+            <MapChip id={314} left={COL[0]} top={ROW1} at={nodeAt(0)} />
+            <MapChip id={315} left={COL[1]} top={ROW1} at={nodeAt(1)} />
+            <MapChip id={316} left={COL[2]} top={ROW1} at={nodeAt(2)} />
+            <MapChip id={317} left={COL[3]} top={ROW1} at={nodeAt(3)} />
+            <MapChip id={328} left={COL[3]} top={ROW2} at={nodeAt(3)} />
           </div>
 
           <ul

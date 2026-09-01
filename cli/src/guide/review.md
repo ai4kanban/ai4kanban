@@ -10,17 +10,14 @@ to the card waits for the user's answer.
    affected checks. Resolve implementation details yourself. Drop unrelated implementation
    discoveries after noting them in the run log; never create or update another card from
    review. Do not exhaustively search unaffected code or invent hypothetical issues.
-3. An unresolved fact, unavailable source, implementation detail or manual check is not a
-   user decision. Research and fix it; put a check that can safely happen later in `verify:`.
-4. Only when the delivery cannot land safely without a genuine user-owned decision, follow
-   `akb guide update-questions`, append that decision to this card, and stop.
+3. Classify every unresolved decision and later hand-check with `akb guide update-questions`.
+   Research, resolve, or fix anything it does not classify as a `[user]` question or `verify:`.
+4. If the classification leaves a `[user]` question, append it to this card and stop.
    Append nothing when the work is ready; ending the run successfully passes review.
 
 Do not reopen anything the card already answers, including
 `## Worth noting after implementation`. Review never creates or updates another card.
 
-Put an answered material decision surfaced by the build under `## Worth noting after
-implementation` only when the user could reasonably reverse it, using the compact format in
-`akb guide writing`. Never use the section to accept work that contradicts the approved
-requirements; fix that work or append a genuine user-owned decision. Drop separate
-implementation work; task discovery belongs to an explicit planning flow.
+Classify answered decisions surfaced by the build with `akb guide update-questions`, then format
+them with `akb guide writing`. Drop separate implementation work; task discovery belongs to an
+explicit planning flow.

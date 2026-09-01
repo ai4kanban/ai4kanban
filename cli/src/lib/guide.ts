@@ -65,7 +65,7 @@ export const GUIDES: Guide[] = [
   { name: 'implement', when: 'build a settled card and stop cleanly on an execution blocker', text: implement },
   { name: 'propose', when: 'find the work the board is missing and write it', text: propose },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
-  { name: 'update-questions', when: 'hand one genuine decision to the user in the board\'s question form', text: updateQuestions },
+  { name: 'update-questions', when: 'classify open questions, answered decisions, and human checks', text: updateQuestions },
   { name: 'qa-loop', when: "settle one task's planning gaps and leave only the user's", text: qaLoop },
   { name: 'qa-lightweight', when: 'check one clear, localized task with a short evidence walk', text: qaLightweight },
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },

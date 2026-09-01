@@ -31,8 +31,8 @@ wrong, say so in your section. Do not change another card or project code.
 
 ## When the pick is the user's
 
-Follow "Decide what survives" in `akb guide qa-loop` and leave at most one genuinely
-user-owned choice as an open question pointing to your section:
+Classify the choice with `akb guide update-questions`. If it is user-owned, leave at most one
+open question pointing to your section:
 
     akb board update-questions <id> --append "[user] <the question> — see the \`<your-name>\` section" \
       --recommended-option "<the one you recommend, and what it costs, in the same line>" \

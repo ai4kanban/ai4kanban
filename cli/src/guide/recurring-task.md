@@ -63,17 +63,9 @@ imperative sentences.
   "run the pruner".
 - **Leave run bookkeeping out of the process.** Do not add a step that calls `akb run` or
   stamps `last_run`; the run flow records a successful pass itself.
-- **No step may wait for an answer.** When an unexpected choice appears, make a safe,
-  reversible call when evidence supports one. If it genuinely needs the user, skip only
-  the dependent work and leave a `[user]` question —
-
-  ```
-  akb board update-questions <id> --append "[user] .." \
-    --recommended-option ".." --option ".."
-  ```
-
-  Apply "Decide what survives" from `akb guide qa-loop`; include two or more options and a
-  recommendation, and make it answerable at a glance.
+- **No step may wait for an answer.** Classify an unexpected decision with `akb guide
+  update-questions`. Make a safe, reversible call when evidence supports one. If classification
+  leaves a `[user]` question, skip only the dependent work and leave it open.
 
 ## Run one
 

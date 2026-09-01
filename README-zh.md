@@ -26,11 +26,13 @@ AI4Kanban 是一个以看板为工作界面的项目管理 Agent。它结合项�
 - **主动规划下一步。** Agent 结合项目目标、代码库和长期记忆，判断接下来应该做什么，并提出
   具体任务。
 - **将模糊想法变成可执行任务。** Agent 主动发现需求中的缺口，依据项目上下文处理常规细节，
-  只把需要判断的问题交给你，直到任务可以开工。
-- **管理任务生命周期。** Agent 拆解任务、安排依赖和优先级、规划版本，并将就绪任务交给编码
-  Agent 执行。
-- **从实现到合入。** 点击一次 Implement，任务便会在独立的 git worktree 中实现，按卡片要求
-  进行检查、修正评审发现的问题，最后以一个 commit 合入当前分支。
+  大部分问题会根据项目记忆和代码库自行回答，只把品味、商业方向、风险和成本交由你决策。
+- **管理任务生命周期。** Agent 将大目标拆成边界清晰的卡片，自动决定哪些任务可以并行、哪些
+  必须等待。
+- **支持自定义 Spec Agents。** 内置 Agent 可以比较技术方案，也可以提供多套可运行的 UI 方案，
+  帮你在实施前完成关键决策。
+- **从实现到合入。** 多个 Agent 可以在相互隔离的 git worktree 中并行执行就绪任务；合入前
+  如有冲突，会触发独立的解冲突流程。
 - **需要你时及时通知。** 待确认的评审和只能由你决定的问题会集中显示在应用的通知中心，并推送
   到 Slack。你可以直接在消息中批准任务或回答问题。
 - **将关键判断留给人。** 产品方向、体验偏好和重要取舍仍由人决定；常规细节由 Agent 根据项目
@@ -42,30 +44,37 @@ AI4Kanban 是一个以看板为工作界面的项目管理 Agent。它结合项�
 
 ## 实际效果
 
-<img src="https://cdn.ai4kanban.dev/loop-task-graph-v1.jpg" alt="带子任务依赖图的分组卡片：五张卡片由依赖箭头串联" width="820">
+从一个模糊目标到一次落地提交，这就是完整的一轮。点击任意截图查看大图。
 
-**明确任务与依赖** — Agent 结合目标、代码和模块记忆判断接下来该做什么，把大目标拆分为边界
-清晰的卡片；显式的依赖关系决定哪些任务可以并行、哪些必须等待。
-
-<img src="https://cdn.ai4kanban.dev/loop-clarify-v1.jpg" alt="卡片上的待澄清问题，每个问题都带有推荐答案和备选项" width="820">
-
-**澄清需求** — 能从代码和项目记忆中确认的，Agent 自己处理；只有必须由你决定的产品取舍才会
-送到你面前，并附带推荐答案。
-
-<img src="https://cdn.ai4kanban.dev/loop-execute-v1.jpg" alt="运行面板：implement、review、resolve 会话及其运行日志" width="820">
-
-**推进执行** — 就绪的卡片交给编码 Agent。一个看板可以同时管理十个以上任务；每次交付都在独立
-的 git worktree 中进行，落地前若发生冲突则触发专门的解冲突流程。
-
-<img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="ui-design agent 的报告，卡片上附有两套可运行的 mockup" width="820">
-
-**在实施前完成关键决策** — Spec Agents 先阅读代码、研究外部依赖。遇到 UI 改动时，它会把多套
-可运行的 mockup 放进卡片，让你在编写代码前确定方向。
-
-<img src="https://cdn.ai4kanban.dev/loop-approval-v1.jpg" alt="Slack 中的审批通知，带有 Implement 和打开卡片按钮" width="820">
-
-**仅在必要时请求审批** — 开发在后台持续推进。只有产品取舍或验收需要人工确认时才会发出通知；
-确认后，任务会在对应项目机器上继续执行。
+<table>
+<tr>
+<td width="50%" valign="top">
+<a href="https://cdn.ai4kanban.dev/loop-task-graph-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-task-graph-v1.jpg" alt="带子任务依赖图的分组卡片：五张卡片由依赖箭头串联" /></a><br/>
+<sub><b>明确任务与依赖</b> — Agent 能够将大目标拆解成边界清晰的卡片，自动决定哪些任务可以并行、哪些必须等待，让每个任务都能在独立的上下文中完成。</sub>
+</td>
+<td width="50%" valign="top">
+<a href="https://cdn.ai4kanban.dev/loop-clarify-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-clarify-v1.jpg" alt="卡片上的待澄清问题，每个问题都带有推荐答案和备选项" /></a><br/>
+<sub><b>澄清需求</b> — Agent 能够将模糊需求补全为可落地的计划。大部分问题会根据项目记忆和代码库自行回答；只有涉及品味、商业方向、风险和成本的取舍，才交由你决策。</sub>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<a href="https://cdn.ai4kanban.dev/loop-execute-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-execute-v1.jpg" alt="运行面板：implement、review、resolve 会话及其运行日志" /></a><br/>
+<sub><b>推进执行</b> — 你可以并行调度多个 Agent 完成已就绪的任务。每项交付都在独立的 git worktree 中进行，确保变更隔离；合入前如有冲突，会触发独立的解冲突流程。</sub>
+</td>
+<td width="50%" valign="top">
+<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="ui-design agent 的报告，卡片上附有两套可运行的 mockup" /></a><br/>
+<sub><b>在实施前完成关键决策</b> — 支持自定义 Spec Agents，也内置技术选型 Agent 和 UI 设计 Agent：前者帮助比较技术方案，后者提供多套可运行的界面方案供你选择。</sub>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<a href="https://cdn.ai4kanban.dev/loop-approval-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-approval-v1.jpg" alt="Slack 中的审批通知，带有 Implement 和打开卡片按钮" /></a><br/>
+<sub><b>仅在必要时请求审批</b> — AI4Kanban 会在后台持续推进任务，只在需要产品取舍或确认交付时向你汇报。它像一位项目经理，始终尽量少占用你的注意力。</sub>
+</td>
+<td width="50%" valign="top"></td>
+</tr>
+</table>
 
 ## 快速开始
 

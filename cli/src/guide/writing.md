@@ -30,11 +30,8 @@ Every flow writes a card in this order:
 
 ## `Worth noting`
 
-- **Reserve it for review**: include only a decision a reasonable reviewer may reject
-  because it materially changes observable behavior, accepted scope, user risk, data or
-  privacy, compatibility, or meaningful ongoing cost.
-- **Cut low-value notes**: remove decisions that merely repeat scope or lack a meaningful
-  tradeoff.
+- **Classify first**: follow `akb guide update-questions`; this section contains only answers
+  classified as `Worth noting`.
 - **Keep it glanceable**: one entry is one reviewer decision, written as one sentence that
   states the chosen behavior and its main cost. Merge entries governed by one policy. One
   to three independent entries is normal.
@@ -43,6 +40,8 @@ Every flow writes a card in this order:
 
 ## `Worth noting after implementation`
 
+- **Classify first**: follow `akb guide update-questions`; this section contains only answers
+  classified as `Worth noting after implementation`.
 - **Keep it non-blocking**: this section never changes or blocks a delivery already in
   flight.
 - **Use the same compact format**: one reviewer decision and its main cost in one sentence.

@@ -6,6 +6,5 @@ uncertain than the card shows, follow `akb guide qa-loop` in this session. Other
 implementation details and fix concrete omissions or contradictions directly. Do not run or
 retain a question checklist.
 
-Leave a question only when two viable outcomes materially change what the user receives and
-the project cannot choose between them. Follow `akb guide update-questions` for that decision.
-Otherwise finish the plan and continue to writing.
+Classify every surviving decision and hand-check with `akb guide update-questions`. Unless that
+leaves a `[user]` question, finish the plan and continue to writing.

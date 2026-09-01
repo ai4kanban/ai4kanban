@@ -29,23 +29,23 @@ const en: HomeCopy = {
     steps: [
       {
         title: "Define tasks and dependencies",
-        body: "Use the goal, code, and module memory to determine what comes next, then split large goals into bounded cards whose explicit dependencies decide what runs in parallel and what waits.",
+        body: "The agent breaks large goals into bounded cards, automatically deciding what can run in parallel and what must wait, so each task can be completed within its own context window.",
       },
       {
         title: "Clarify requirements",
-        body: "The agent resolves anything it can from the code and project memory, bringing you only the product tradeoffs that require your judgment.",
+        body: "The agent turns rough requirements into an actionable plan. It answers most questions from project memory and the codebase, leaving only taste, business direction, risk, and cost for human judgment.",
       },
       {
         title: "Execute",
-        body: "Once the requirements are clear enough to begin, the agent follows the scope and steps defined in the task. Ten or more development tasks can share one board; each delivery uses its own Git worktree, and conflicts trigger a dedicated resolution pass before landing.",
+        body: "Run ready tasks in parallel across multiple agents. Each delivery uses its own Git worktree to isolate changes, and conflicts trigger a dedicated resolution pass before landing.",
       },
       {
         title: "Settle key decisions before implementation",
-        body: "Spec Agents inspect the code and research external dependencies before implementation. For UI changes, they can place several working mockups on the card so you choose the direction before code is written.",
+        body: "Create your own Spec Agents or use the built-ins: a technology-selection agent compares technical options, while a UI-design agent gives you multiple working mockups to choose from.",
       },
       {
         title: "Request approval only when necessary",
-        body: "Agents continue clarifying requirements and implementing work in the background. AI4Kanban sends a card notification only when a product decision or acceptance review requires confirmation; once confirmed, the task resumes on its project machine and proceeds through delivery.",
+        body: "AI4Kanban keeps work moving in the background and reports back only for product decisions and delivery approval. Like a project manager, it keeps demands on your attention to a minimum.",
       },
     ],
   },

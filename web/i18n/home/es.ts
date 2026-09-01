@@ -35,23 +35,23 @@ const es: HomeCopy = {
     steps: [
       {
         title: "Definir tareas y dependencias",
-        body: "Usar el objetivo, el código y la memoria del módulo para decidir qué toca hacer y dividir los objetivos grandes en tarjetas delimitadas; las dependencias explícitas determinan cuáles avanzan en paralelo y cuáles esperan.",
+        body: "El agente divide los objetivos grandes en tarjetas bien delimitadas y decide automáticamente cuáles pueden avanzar en paralelo y cuáles deben esperar, para que cada tarea se complete dentro de su propio contexto.",
       },
       {
         title: "Aclarar los requisitos",
-        body: "El agente resuelve todo lo que puede a partir del código y la memoria del proyecto, y solo te plantea las decisiones de producto que requieren tu criterio.",
+        body: "El agente convierte requisitos imprecisos en un plan viable. Responde la mayoría de las preguntas a partir de la memoria del proyecto y el código, y deja al criterio humano solo el gusto, la dirección comercial, el riesgo y el coste.",
       },
       {
         title: "Ejecutar",
-        body: "Cuando los requisitos están lo bastante claros para empezar, el agente sigue el alcance y los pasos definidos en la tarea. Un tablero puede gestionar diez o más tareas de desarrollo; cada entrega usa su propio Git worktree y los conflictos activan una fase específica de resolución antes de integrar.",
+        body: "Puedes coordinar varios agentes para ejecutar en paralelo las tareas preparadas. Cada entrega usa su propio Git worktree para aislar los cambios, y los conflictos activan una fase específica de resolución antes de integrar.",
       },
       {
         title: "Resolver las decisiones clave antes de implementar",
-        body: "Los Spec Agents inspeccionan el código e investigan dependencias externas antes de implementar. Para cambios de interfaz, pueden añadir varios mockups funcionales a la tarjeta para que elijas la dirección antes de escribir código.",
+        body: "Puedes crear tus propios Spec Agents o usar los incluidos: un agente de selección tecnológica compara las opciones técnicas y un agente de diseño de interfaz ofrece varios mockups funcionales entre los que elegir.",
       },
       {
         title: "Solicitar aprobación solo cuando sea necesario",
-        body: "Los agentes siguen aclarando requisitos e implementando en segundo plano. AI4Kanban envía una notificación de tarjeta solo cuando una decisión de producto o una revisión de aceptación requiere confirmación; después, la tarea continúa en la máquina del proyecto hasta su entrega.",
+        body: "AI4Kanban mantiene el trabajo en marcha en segundo plano y solo informa cuando hace falta una decisión de producto o aprobar una entrega. Como un jefe de proyecto, reduce al mínimo la atención que requiere de ti.",
       },
     ],
   },

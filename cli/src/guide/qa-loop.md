@@ -30,20 +30,12 @@ After creating the group, exit. The scheduled subtasks refine themselves.
    regression scenarios from trigger to observable result.
 5. Apply supported conclusions with `akb guide writing`. Remove obsolete text and decision
    residue while preserving promised behavior and completed work.
-6. Keep only viable user-owned decisions as questions, following `akb guide
-   update-questions`. If more than three survive, challenge them again.
+6. Classify every surviving decision and hand-check with `akb guide update-questions`. If more
+   than three `[user]` questions survive, challenge them again.
 7. Repeat this refinement loop whenever the card changes. Finish only when one complete
    sweep finds no new gap and makes no change.
 
 There is no pass quota. Do not reopen a settled decision without concrete contrary evidence.
-
-## Verification
-
-- Put checks the implementation agent can run in `## Todo`, with expected results.
-- Reserve `verify:` for post-build checks that need a human's judgment or environment.
-- Every `verify:` line gives a reproducible setup, human action, and expected result.
-- Name required fixtures. An old build without the behavior under test is not one.
-- Add missing test seams, fixtures, or recipes to `## Todo`.
 
 ## Success criteria
 

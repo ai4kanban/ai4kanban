@@ -143,11 +143,15 @@ try {
   });
 
   // The dev server's build indicator is a fixed element, so it lands in the
-  // clip of whichever box happens to sit under it.
+  // clip of whichever box happens to sit under it. And some shots run a loop —
+  // a still wants their resting frame, not whichever one the clock is on. Every
+  // shot is drawn so that frame is the whole picture; the page's own fade-in is
+  // a transition, so this leaves it alone.
   await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
     source: `addEventListener('DOMContentLoaded', () => {
       const s = document.createElement('style');
-      s.textContent = 'nextjs-portal{display:none!important}';
+      s.textContent = 'nextjs-portal{display:none!important}'
+        + '[data-shot] *{animation:none!important}';
       document.head.append(s);
     })`,
   });

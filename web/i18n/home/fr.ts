@@ -32,23 +32,23 @@ const fr: HomeCopy = {
     steps: [
       {
         title: "Définir les tâches et leurs dépendances",
-        body: "S’appuyer sur l’objectif, le code et la mémoire du module pour déterminer la suite, puis découper les grands objectifs en cartes délimitées dont les dépendances explicites décident de ce qui avance en parallèle et de ce qui attend.",
+        body: "L’agent découpe les grands objectifs en cartes bien délimitées et décide automatiquement lesquelles avancent en parallèle et lesquelles doivent attendre, afin que chaque tâche tienne dans son propre contexte.",
       },
       {
         title: "Clarifier les exigences",
-        body: "L’agent tranche tout ce que le code et la mémoire du projet permettent d’établir, puis ne vous soumet que les arbitrages produit qui exigent votre jugement.",
+        body: "L’agent transforme des exigences floues en plan réalisable. Il répond à la plupart des questions à partir du code et de la mémoire du projet, et réserve au jugement humain les choix de goût, d’orientation commerciale, de risque et de coût.",
       },
       {
         title: "Exécuter",
-        body: "Dès que les exigences sont assez claires pour commencer, l’agent suit le périmètre et les étapes définis dans la tâche. Un tableau peut gérer dix tâches de développement ou plus ; chaque livraison utilise son propre Git worktree et les conflits déclenchent une phase de résolution dédiée avant l’intégration.",
+        body: "Vous pouvez coordonner plusieurs agents pour exécuter en parallèle les tâches prêtes. Chaque livraison utilise son propre Git worktree afin d’isoler les modifications, et les conflits déclenchent une phase de résolution dédiée avant l’intégration.",
       },
       {
         title: "Trancher les décisions clés avant l’implémentation",
-        body: "Les Spec Agents inspectent le code et étudient les dépendances externes avant l’implémentation. Pour une évolution d’interface, ils peuvent joindre plusieurs maquettes fonctionnelles à la carte afin que vous choisissiez la direction avant d’écrire le code.",
+        body: "Créez vos propres Spec Agents ou utilisez ceux qui sont intégrés : un agent de sélection technologique compare les options techniques, tandis qu’un agent de conception d’interface propose plusieurs maquettes fonctionnelles.",
       },
       {
         title: "Ne demander une validation que lorsque nécessaire",
-        body: "Les agents continuent à clarifier les exigences et à implémenter en arrière-plan. AI4Kanban envoie une notification de carte uniquement lorsqu’une décision produit ou une recette exige une confirmation ; une fois validée, la tâche reprend sur la machine du projet jusqu’à sa livraison.",
+        body: "AI4Kanban fait avancer le travail en arrière-plan et ne vous sollicite que pour une décision produit ou la validation d’une livraison. Comme un chef de projet, il réduit au minimum l’attention qu’il vous demande.",
       },
     ],
   },

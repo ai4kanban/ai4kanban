@@ -30,13 +30,15 @@ this history, keeping future decisions grounded in the project.
 - **Plans the next steps proactively.** The agent uses project goals, the codebase, and
   long-term memory to determine what should happen next and propose concrete tasks.
 - **Turns rough ideas into ready-to-build tasks.** The agent identifies missing details,
-  handles routine decisions from project context, and asks only the questions that require
-  your judgment. It continues until the work is ready to begin.
-- **Coordinates the task lifecycle.** It breaks down work, manages dependencies and
-  priorities, plans releases, and sends ready tasks to coding agents.
-- **Delivers each card to your branch.** One Implement click builds the work in an isolated
-  git worktree, checks it against the card, fixes issues found during review, and lands it
-  as a single commit on your branch.
+  answers most questions from the code and project memory, and leaves only taste, business
+  direction, risk, and cost for human judgment.
+- **Coordinates the task lifecycle.** It breaks large goals into bounded cards and decides
+  which tasks can run in parallel and which must wait.
+- **Supports custom Spec Agents.** Built-in agents compare technology choices and provide
+  multiple working UI mockups, so key decisions are settled before implementation.
+- **Delivers each card to your branch.** Ready tasks run in parallel across isolated git
+  worktrees. Conflicts trigger a dedicated resolution pass before focused commits land on
+  your branch.
 - **Notifies you when your input is needed.** Reviews awaiting approval and questions only
   you can answer appear in the app's notification center and in Slack. Approve the task or
   answer the question directly from the message.
@@ -50,35 +52,38 @@ this history, keeping future decisions grounded in the project.
 
 ## See it work
 
-<img src="https://cdn.ai4kanban.dev/loop-task-graph-v1.jpg" alt="A group card with its subtask map: five cards wired by dependency arrows" width="820">
+One planning loop, from a rough goal to a landed commit. Click any shot for the full-size
+version.
 
-**Define tasks and dependencies** — the agent uses the goal, code, and module memory to
-decide what comes next, then splits large goals into bounded cards whose explicit
-dependencies decide what runs in parallel and what waits.
-
-<img src="https://cdn.ai4kanban.dev/loop-clarify-v1.jpg" alt="A card's open questions, each with recommended and alternative answers" width="820">
-
-**Clarify requirements** — anything answerable from the code and project memory is resolved
-silently. Only the product tradeoffs that need your judgment reach you, each with a
-recommended answer.
-
-<img src="https://cdn.ai4kanban.dev/loop-execute-v1.jpg" alt="The runs panel: implement, review, and resolve sessions with their run log" width="820">
-
-**Execute** — ready cards go to your coding agent. Ten or more tasks can share one board;
-each delivery builds in its own git worktree, and conflicts trigger a dedicated resolution
-pass before landing.
-
-<img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="A ui-design agent's report with two working mockups attached to the card" width="820">
-
-**Settle key decisions before implementation** — Spec Agents inspect the code and research
-external dependencies first. For UI work they attach several working mockups to the card,
-so you pick the direction before any code is written.
-
-<img src="https://cdn.ai4kanban.dev/loop-approval-v1.jpg" alt="A Slack notification asking to approve a card, with Implement and Open card buttons" width="820">
-
-**Request approval only when necessary** — work continues in the background. A notification
-arrives only when a product decision or acceptance review needs you, and answering it
-resumes the task on its project machine.
+<table>
+<tr>
+<td width="50%" valign="top">
+<a href="https://cdn.ai4kanban.dev/loop-task-graph-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-task-graph-v1.jpg" alt="A group card with its subtask map: five cards wired by dependency arrows" /></a><br/>
+<sub><b>Define tasks and dependencies</b> — the agent breaks large goals into bounded cards, automatically deciding what can run in parallel and what must wait, so each task can be completed within its own context window.</sub>
+</td>
+<td width="50%" valign="top">
+<a href="https://cdn.ai4kanban.dev/loop-clarify-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-clarify-v1.jpg" alt="A card's open questions, each with recommended and alternative answers" /></a><br/>
+<sub><b>Clarify requirements</b> — the agent turns rough requirements into an actionable plan. It answers most questions from project memory and the codebase, leaving only taste, business direction, risk, and cost for human judgment.</sub>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<a href="https://cdn.ai4kanban.dev/loop-execute-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-execute-v1.jpg" alt="The runs panel: implement, review, and resolve sessions with their run log" /></a><br/>
+<sub><b>Execute</b> — run ready tasks in parallel across multiple agents. Each delivery uses its own git worktree to isolate changes, and conflicts trigger a dedicated resolution pass before landing.</sub>
+</td>
+<td width="50%" valign="top">
+<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="A ui-design agent's report with two working mockups attached to the card" /></a><br/>
+<sub><b>Settle key decisions first</b> — create your own Spec Agents or use the built-ins: a technology-selection agent compares technical options, while a UI-design agent gives you multiple working mockups to choose from.</sub>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<a href="https://cdn.ai4kanban.dev/loop-approval-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-approval-v1.jpg" alt="A Slack notification asking to approve a card, with Implement and Open card buttons" /></a><br/>
+<sub><b>Request approval only when necessary</b> — AI4Kanban keeps work moving in the background and reports back only for product decisions and delivery approval. Like a project manager, it keeps demands on your attention to a minimum.</sub>
+</td>
+<td width="50%" valign="top"></td>
+</tr>
+</table>
 
 ## Get started
 

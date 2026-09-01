@@ -182,13 +182,18 @@ export function Panel({
  *  MEANS something, and then `NB.accentWash` / `NB.mintWash`. */
 export function Section({
   children,
+  className,
   style,
 }: {
   children: ReactNode;
+  className?: string;
   style?: CSSProperties;
 }) {
   return (
-    <div style={{ borderRadius: em(14), background: NB.sheet, ...style }}>
+    <div
+      className={className}
+      style={{ borderRadius: em(14), background: NB.sheet, ...style }}
+    >
       {children}
     </div>
   );
