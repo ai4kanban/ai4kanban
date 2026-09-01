@@ -23,7 +23,7 @@ import { runEnv } from './flow'
 import { refineRunsAfter, specRunsAfter } from './follow'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter } from './wire'
-import { resumePrompt } from './prompts'
+import { restartPrompt, resumePrompt } from './prompts'
 import { openPlan } from './resolve'
 import {
   claimChanges,
@@ -45,6 +45,7 @@ import {
   readSpec,
   readSpecAsks,
   setCardStatus,
+  titleOf,
   type CardClaim,
 } from './sessions'
 import { startRun } from './start'
@@ -142,6 +143,12 @@ export async function watchRun(sessionId: string): Promise<number> {
   // in the conversation rather than spelled on the command line, and its stdin stays open,
   // because that is the half of the conversation this end writes (agent/wire/client.ts).
   const client = active.client
+  // What a resumed run is told if that conversation turns out to be gone (#395): the task
+  // from the top, since the fresh session opened in its place holds none of it. Only a
+  // client can restart — a printing agent resumes on its own command line — and nothing
+  // comes back for a run whose ask can no longer be written down, which ends on a dead
+  // session exactly as it always did.
+  const restart = client && record.resumedFrom ? restartPrompt(requestOf(record), record.deliveryId) : undefined
   // Spelled out rather than written inline so both shapes stay one spawn: stdin is a pipe
   // for a conversation and closed for a command that only prints.
   const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client ? 'pipe' : 'ignore', 'pipe', 'pipe']
@@ -180,8 +187,9 @@ export async function watchRun(sessionId: string): Promise<number> {
   // hundreds of chunks.
   let sawResumeId = !!record.resumeId
   let sawModel = false
-  const gotResumeId = (id: string | undefined) => {
-    if (!sawResumeId) sawResumeId = catchResumeId(sessionId, id)
+  const gotResumeId = (id: string | undefined, restarted = false) => {
+    if (restarted) sawResumeId = catchResumeId(sessionId, id, true)
+    else if (!sawResumeId) sawResumeId = catchResumeId(sessionId, id)
   }
   const gotModel = (model: string | undefined) => {
     if (!sawModel) sawModel = catchModel(sessionId, model)
@@ -378,8 +386,9 @@ export async function watchRun(sessionId: string): Promise<number> {
             // Only a resumed run carries a conversation to continue. A fresh run's session
             // is opened inside the conversation, and its id comes back here.
             resumeId: record.resumedFrom ? record.resumeId : undefined,
+            restartPrompt: restart,
             log: append,
-            gotResumeId: (id) => gotResumeId(id),
+            gotResumeId: (id, restarted) => gotResumeId(id, restarted),
             gotModel: (model) => gotModel(model),
           })
           .then((end) => {
@@ -483,12 +492,32 @@ function after(ms: number, fn: () => void): void {
 // shows up partway through the run. Save it the moment it does — a stop or a crash a
 // second later would otherwise leave a run with no way to continue it. First one wins: an
 // agent that names its id more than once is still one conversation.
-function catchResumeId(sessionId: string, id: string | undefined): boolean {
+//
+// `restarted` is the one exception: a session opened because the resumed one was gone is a
+// DIFFERENT conversation, and the id the run is holding no longer resolves — so it is
+// written over, or every resume after this one would reseed from scratch again (#395).
+function catchResumeId(sessionId: string, id: string | undefined, restarted = false): boolean {
   if (!id) return false
   patch(sessionId, (r) => {
-    if (!r.resumeId) r.resumeId = id
+    if (restarted || !r.resumeId) r.resumeId = id
   })
   return true
+}
+
+// The run being resumed, back in the shape a prompt is built from. Only what the record
+// kept: `openResume` drops the note the user typed, which is why a restart is offered for
+// some actions and not others (`restartPrompt`).
+function requestOf(record: RunRecord): AgentRequest {
+  const id = record.cardId ?? undefined
+  return {
+    action: record.action,
+    id,
+    title: titleOf(id),
+    specAgent: record.specAgent,
+    refineRound: record.refineRound,
+    refineEffort: record.refineEffort,
+    flowId: record.flowId,
+  }
 }
 
 // The model the agent named for this run, taken the instant its output says one — the

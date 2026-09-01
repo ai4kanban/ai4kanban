@@ -32,11 +32,18 @@ export interface ClientTurn {
   /** The conversation to carry on, when this run continues an earlier one. Absent opens a
    *  fresh conversation. */
   resumeId?: string
+  /** What to send instead when `resumeId` names a conversation the agent no longer holds:
+   *  a self-contained ask, because the fresh session opened in its place knows nothing of
+   *  it. Absent leaves a dead session failing the run — a restart nobody wrote words for
+   *  would be an agent told to carry on from nothing. */
+  restartPrompt?: string
   /** Text for the run's log, as it arrives — this is the live tail. */
   log: (text: string) => void
   /** The conversation's own id, the moment the agent names one, so a run that dies a
-   *  second later can still be picked up. */
-  gotResumeId: (id: string) => void
+   *  second later can still be picked up. `restarted` marks the id of a session opened to
+   *  replace a dead one: it goes OVER whatever id the caller was holding, where an ordinary
+   *  one is kept only if the caller has none. */
+  gotResumeId: (id: string, restarted?: boolean) => void
   /** The model this turn works with, as the agent itself named it. */
   gotModel: (model: string) => void
 }

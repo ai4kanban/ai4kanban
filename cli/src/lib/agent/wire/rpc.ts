@@ -25,6 +25,19 @@ export interface Message {
   error?: { code?: number; message?: string }
 }
 
+/** An answer the agent itself said no to, carrying the code it said no with. A dead pipe,
+ *  a closed connection or a frame that never came back is a plain Error — so a caller can
+ *  tell a refusal it understands from a conversation that broke. */
+export class RpcError extends Error {
+  constructor(
+    message: string,
+    readonly code: number | undefined,
+  ) {
+    super(message)
+    this.name = 'RpcError'
+  }
+}
+
 export interface RpcDialect {
   /** Put `jsonrpc: '2.0'` on every outgoing frame. */
   jsonrpc?: boolean
@@ -79,7 +92,8 @@ export function connect(stdout: Readable, stdin: Writable, onCall: (msg: Message
       const pending = waiting.get(String(msg.id))
       if (!pending) continue
       waiting.delete(String(msg.id))
-      if (msg.error) pending.fail(new Error(str(msg.error.message) || `the agent refused (${msg.error.code ?? 'no code'})`))
+      if (msg.error)
+        pending.fail(new RpcError(str(msg.error.message) || `the agent refused (${msg.error.code ?? 'no code'})`, msg.error.code))
       else pending.ok(obj(msg.result))
     }
   })

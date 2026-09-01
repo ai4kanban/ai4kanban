@@ -12,7 +12,7 @@ import { languageNote } from './language'
 import { skillCall } from './resolve'
 import { runtimeFor } from './runtime'
 import { ruleBlock } from './rules'
-import { PROPOSE_DEFAULT, PROPOSE_MAX, type AgentRequest, type Boldness } from './types'
+import { PROPOSE_DEFAULT, PROPOSE_MAX, type AgentAction, type AgentRequest, type Boldness } from './types'
 
 // What a resumed run says. The coding agent's own session is already there — the card, the
 // work done, the error it died on — so this is the "continue" you would type in the
@@ -38,6 +38,46 @@ const DELIVERY_RESUME = [
 export function resumePrompt(deliveryId: string | undefined, cardId: number | null): string {
   if (!deliveryId || cardId === null) return RESUME_PROMPT
   return DELIVERY_RESUME.replace('%s', deliveryId).replace('%c', `${boardCommandFor(cardId)} implement ${cardId} --print`)
+}
+
+// The actions whose ask can be said again from the record alone. A resume drops what the
+// user typed on purpose — it was already in the conversation being continued — so an action
+// that is mostly those words (a revise's request, a reject's reason, a create's requirement,
+// a plan's version) has nothing left to rebuild from, and is not restarted.
+const RESTARTABLE: ReadonlySet<AgentAction> = new Set<AgentAction>([
+  'implement',
+  'run',
+  'clarify',
+  'resolve',
+  'writing',
+  'archive',
+  'spec',
+  'review',
+  'conflict',
+])
+
+// What opens a restart. Everything the resume prompt leans on is gone, so the whole ask
+// follows this line — the run does the task again rather than finishing a sentence.
+const RESTART_LEAD = [
+  `The session you were continuing is gone, and this one holds nothing of it.`,
+  `Do the task below from the top, checking each step's precondition before you do it — work an earlier run already finished is done, so don't repeat it.`,
+].join(' ')
+
+/** What a run is told when the session it came back for turns out to be gone and a fresh
+ *  one was opened in its place (#395). Unlike the resume prompt it stands on its own: it
+ *  names the skill and the task, because nothing of the conversation survived.
+ *
+ *  A delivery's resume prompt already does — it names the delivery and prints the approved
+ *  card — so the BUILD is restarted with that one as it is. Its review and its conflict run
+ *  are different jobs on the same delivery, and that prompt would put either of them on the
+ *  implement flow, so they are restarted by their own ask. Nothing comes back for a run whose
+ *  ask can no longer be written down, and the client fails such a run rather than restarting
+ *  it blind. */
+export function restartPrompt(req: AgentRequest, deliveryId?: string): string | undefined {
+  if (req.id === undefined) return undefined
+  if (deliveryId && req.action === 'implement') return resumePrompt(deliveryId, req.id)
+  if (!RESTARTABLE.has(req.action)) return undefined
+  return [RESTART_LEAD, buildPrompt(req)].join('\n\n')
 }
 
 // What each boldness level tells a propose run. The rule lives in the flow ("Boldness" in

@@ -313,10 +313,15 @@ export async function sendChatMessage(
       return { error: `${agent.label} can't carry on a ${harnessLabel(held.harness)} conversation. Clear it to start fresh.` }
     }
     const prompt = chatPrompt(cardId, text, { resuming: Boolean(held.resumeId), title: options.title })
+    // And what to say if that session turns out to be gone (#395): the opening prompt, which
+    // carries the skill and what this conversation is about. Without it the thread keeps a
+    // dead id and fails every message after it until someone clears it.
+    const restart = held.resumeId ? chatPrompt(cardId, text, { title: options.title }) : undefined
 
     const spoken = await speak({
       plan,
       prompt,
+      restart,
       continuing: held.resumeId,
       onText: options.onText ?? (() => {}),
       onOpen: options.onOpen,
@@ -336,8 +341,9 @@ export async function sendChatMessage(
     // The id even on a reply that stopped short: it is what the next message carries on by,
     // and a conversation that produced a word is a conversation worth continuing. Nothing is
     // saved for a turn that never got off the ground — an id for a session that was never
-    // opened would fail every message after it.
-    if (spoken.resumeId && (spoken.ok || reply)) held.resumeId = spoken.resumeId
+    // opened would fail every message after it. A reseed is the exception: that session WAS
+    // opened, so keeping its id is what stops the next message reseeding all over again.
+    if (spoken.resumeId && (spoken.ok || reply || spoken.reseeded)) held.resumeId = spoken.resumeId
     if (spoken.model) held.model = spoken.model
     held.updatedAt = Date.now()
     writeChat(held)
@@ -364,6 +370,10 @@ interface Spoken {
   model?: string
   /** The id this conversation carries on by, once the agent has named one. */
   resumeId?: string
+  /** True when the session being carried on was gone and a fresh one opened in its place.
+   *  That id names a session the agent really holds, so the thread keeps it even after a
+   *  turn that then said nothing — the alternative is holding the dead id one turn longer. */
+  reseeded?: boolean
 }
 
 // How long a stopped reply is given to end on its own before the turn is declared over
@@ -390,6 +400,9 @@ const SILENCE_SAID = `the agent said nothing for ${SILENCE_MS / 60_000} minutes,
 async function speak(io: {
   plan: RunPlan
   prompt: string
+  /** What to send instead when the session being carried on is gone and a fresh one opens
+   *  in its place. */
+  restart?: string
   continuing?: string
   onText(chunk: string): void
   onOpen?(stop: () => void): void
@@ -404,6 +417,7 @@ async function speak(io: {
     io.onText(chunk)
   }
   let resumeId = io.plan.resumeId ?? undefined
+  let reseeded = false
   let model: string | undefined
   let spawnError: string | undefined
 
@@ -477,6 +491,7 @@ async function speak(io: {
           (stopped ? 'you stopped the reply.' : silent ? SILENCE_SAID : error),
         model,
         resumeId,
+        reseeded,
       })
     }
 
@@ -529,9 +544,15 @@ async function speak(io: {
             prompt: io.prompt,
             cwd: REPO_ROOT,
             resumeId: io.continuing,
+            restartPrompt: io.restart,
             log: push,
-            gotResumeId: (id) => {
-              resumeId ??= id
+            gotResumeId: (id, restarted) => {
+              // A restarted session is a different conversation, so its id goes over the
+              // dead one rather than losing to it.
+              if (restarted) {
+                resumeId = id
+                reseeded = true
+              } else resumeId ??= id
             },
             gotModel: (name) => {
               model ??= name

@@ -15,7 +15,7 @@
 // @deepseek-ai/dsh 0.1.0-rc.7, ACP protocol version 1, on 2026-08-18.
 
 import { hint, num, obj, str, type Json } from './json'
-import { connect } from './rpc'
+import { connect, RpcError, type Rpc } from './rpc'
 import { createTail, type Tail } from './tail'
 import type { ClientTurn, RunClient, TurnEnd } from './client'
 import type { TokenUsage } from '../types'
@@ -80,6 +80,33 @@ function usageOf(value: unknown): TokenUsage | undefined {
   return sum > 0 ? counts : undefined
 }
 
+// ---- a session the agent no longer holds ------------------------------------
+//
+// Resuming asks for a session by id, and an agent that has forgotten it says so. `dsh-acp`
+// 0.4.14 answers `session/load` with `-32602` and `session not found: <id>`; the only other
+// `-32602` on that method is a relative `cwd`, which the board never sends, and a dead
+// pipe, a disposed bridge and a logged-out agent each answer differently. So this pair is
+// the one refusal that means "gone" rather than "broken", and everything else still fails
+// the run.
+const INVALID_PARAMS = -32602
+
+function sessionGone(e: unknown): boolean {
+  return e instanceof RpcError && e.code === INVALID_PARAMS && /session not found/i.test(e.message)
+}
+
+// What the log says when a resume turned into a restart, so the run reads as work started
+// again rather than work carried on.
+const RESTARTED = '[board] that conversation is gone — the task was restarted in a new session\n'
+
+// A fresh session and the id the agent gave it — what a first run opens, and what a restart
+// opens in place of the one that died.
+async function newSession(rpc: Rpc, cwd: string): Promise<{ opened: Json; sessionId: string }> {
+  const opened = await rpc.call('session/new', { cwd, mcpServers: [] })
+  const sessionId = str(opened.sessionId)
+  if (!sessionId) throw new Error('the agent opened a session without giving it an id')
+  return { opened, sessionId }
+}
+
 // Why a turn that didn't simply end stopped, in plain words. `end_turn` is the one that
 // means it finished; the rest are the agent saying it gave up, and the run failed.
 const STOPPED: Record<string, string> = {
@@ -141,14 +168,31 @@ async function oneTurn(io: ClientTurn, options: AcpOptions): Promise<TurnEnd> {
     // A fresh conversation, or the one this run is carrying on. Loading replays the
     // history the session already holds, which is the whole point of resuming: the agent
     // picks up knowing the card, the work done, and the error it died on.
+    //
+    // Unless that session is gone, and the caller wrote words that stand on their own —
+    // then the work is restarted in a new one (#395). Resuming was the whole reason for
+    // asking, so a run that has to start the task over still beats a run that is over.
     let sessionId = io.resumeId ?? ''
+    let prompt = io.prompt
     let opened: Json
     if (sessionId) {
-      opened = await rpc.call('session/load', { sessionId, cwd: io.cwd, mcpServers: [] })
+      try {
+        opened = await rpc.call('session/load', { sessionId, cwd: io.cwd, mcpServers: [] })
+      } catch (e) {
+        if (!sessionGone(e) || !io.restartPrompt) throw e
+        const fresh = await newSession(rpc, io.cwd)
+        opened = fresh.opened
+        sessionId = fresh.sessionId
+        prompt = io.restartPrompt
+        // Over the dead id, not beside it: the next resume has to reach a session that is
+        // really there.
+        io.gotResumeId(sessionId, true)
+        io.log(RESTARTED)
+      }
     } else {
-      opened = await rpc.call('session/new', { cwd: io.cwd, mcpServers: [] })
-      sessionId = str(opened.sessionId)
-      if (!sessionId) throw new Error('the agent opened a session without giving it an id')
+      const fresh = await newSession(rpc, io.cwd)
+      opened = fresh.opened
+      sessionId = fresh.sessionId
       io.gotResumeId(sessionId)
     }
 
@@ -170,7 +214,7 @@ async function oneTurn(io: ClientTurn, options: AcpOptions): Promise<TurnEnd> {
     live = true
     const done = await rpc.call('session/prompt', {
       sessionId,
-      prompt: [{ type: 'text', text: io.prompt }],
+      prompt: [{ type: 'text', text: prompt }],
     })
     const result = tail.end()
     const stopReason = str(done.stopReason)
