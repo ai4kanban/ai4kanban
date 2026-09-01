@@ -20,13 +20,13 @@
 // often and the reader is left guessing otherwise.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiTrendingUp } from "react-icons/fi";
+import { FiChevronRight, FiTrendingUp } from "react-icons/fi";
 import { getMetricsAction, getScoreAction } from "@/app/actions";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import type { MetricsDay, MetricsResult, ScoreResult, ScoreSeries, ScoreWindow } from "@/lib/types";
 
-import { TOOL_BTN } from "./chrome";
+import { PHONE_ROW, TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
 
 type SeriesKey = "completed" | "created" | "rejected";
@@ -43,7 +43,7 @@ const TABS = ["daily", "quality"] as const;
 
 type TabKey = (typeof TABS)[number];
 
-export function Insights() {
+export function Insights({ row = false }: { row?: boolean }) {
   const c = useCopy().rail.insights;
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabKey>("daily");
@@ -52,7 +52,15 @@ export function Insights() {
       {/* A tool in the header's cluster (components/chrome.tsx): no frame of its
           own — it shares one with Sessions and Configuration, since the three
           are all "look at the board's machinery" and none of them is a primary
-          action. */}
+          action. `row` is the same button on the phone's More screen (#357),
+          where the cluster it belongs to has no room to be. */}
+      {row ? (
+        <button type="button" className={PHONE_ROW} onClick={() => setOpen(true)}>
+          <FiTrendingUp size={17} className="shrink-0 text-nb-ink-soft" aria-hidden />
+          <span className="min-w-0 flex-1">{c.open}</span>
+          <FiChevronRight className="shrink-0 text-nb-ink-soft" size={16} aria-hidden />
+        </button>
+      ) : (
       <button
         type="button"
         className={TOOL_BTN}
@@ -62,6 +70,7 @@ export function Insights() {
       >
         <FiTrendingUp size={15} aria-hidden />
       </button>
+      )}
 
       {open && (
         <Dialog title={c.title} onClose={() => setOpen(false)} width={760}>

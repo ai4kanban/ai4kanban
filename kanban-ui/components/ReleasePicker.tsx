@@ -146,7 +146,7 @@ export function ReleasePicker({
           carries the fill and the ink so both segments read as one control
           going sky together. */}
       <div
-        className={`inline-flex h-7 shrink-0 items-center rounded-[8px] p-0.5 ${CHROME}`}
+        className={`inline-flex h-7 max-md:h-9 shrink-0 items-center rounded-[8px] p-0.5 ${CHROME}`}
         style={{
           background: filtering ? "var(--color-nb-sky-soft)" : "var(--color-nb-paper)",
           color: filtering ? "var(--color-nb-sky-ink)" : "var(--color-nb-ink-soft)",

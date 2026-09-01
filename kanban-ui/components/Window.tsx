@@ -14,21 +14,35 @@
 // The whole thing is exactly one screen tall and never scrolls: the body is what
 // scrolls, which is what keeps the rail on screen with the card it opened.
 //
+// At phone width the rail is gone (app/globals.css) and a bottom tab bar takes its place
+// (#357, components/Phone.tsx). The frame is otherwise the same one: Find, Memory and More
+// are drawn over the body rather than instead of it, so the board or the card page under
+// them keeps its state and its scroll while the reader looks something up.
+//
 // See app/design/layouts for the mockup this is drawn from.
 
 import { useCopy } from "@/i18n/use-copy";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cloudCardLinkAction } from "@/app/actions";
 import { FiAlertCircle, FiX } from "react-icons/fi";
 import { BELL_MAX, BELL_MIN, BELL_W, samePath, switchProject, useBellRail } from "@/lib/bell-rail";
 import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail, type BoardChange } from "@/lib/chat-rail";
+import { usePhone } from "@/lib/media";
 import { useOpenCards } from "@/lib/open-cards";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
 import type { MemoryModule } from "@/lib/types";
 import { ChatPane, ChatProvider } from "./Chat";
 import { raiseNotifications, useCardLinkFromApp, useOpenNotificationFromApp } from "./desktop";
 import { BellPane, BellProvider } from "./Notifications";
+import {
+  FindScreen,
+  MemoryScreen,
+  MoreScreen,
+  PHONE_TABS_H,
+  PhoneTabs,
+  type PhoneTab,
+} from "./Phone";
 import { Rail } from "./Rail";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 
@@ -70,6 +84,7 @@ export function Window({
   currentTitle = "",
   currentMemory = null,
   memoryModules = [],
+  goalWritten = false,
   running,
   onBoardChanged,
   children,
@@ -86,6 +101,10 @@ export function Window({
   /** The modules the rail's Memory panel offers, from the board read every page already
    *  does (#130). Empty on a board whose map names none. */
   memoryModules?: MemoryModule[];
+  /** Whether `memory/goal.md` holds the user's own words — the phone's More screen offers
+   *  the goal the top row offers at window width (#357), and neither offers a file that
+   *  isn't written. */
+  goalWritten?: boolean;
   /** The cards an agent is inside, for the rail's pulsing rows. Handed down
    *  rather than polled for here: both pages already watch the registry, and a
    *  fourth poll for one dot would be a poll to say nothing new. */
@@ -97,6 +116,10 @@ export function Window({
   children: React.ReactNode;
 }) {
   const c = useCopy().chrome;
+  // Read up here because the rails below have to know: at phone width one of them covers
+  // the whole body, and a rail that stays up over what it just opened is a rail nobody can
+  // get out from behind (#357).
+  const phone = usePhone();
   const { rows, close } = useOpenCards(projectRoot, openIds, currentId, currentTitle);
   const { panel, onLayoutChanged, onDoubleClick } = useRailWidth();
   // The chat rail follows what this window is showing (#242): a card's page gets that
@@ -112,8 +135,19 @@ export function Window({
   // either folds the other. It carries every board Cloud is on for, not only this one, so
   // a row can lead out of this project — which is why it needs the router.
   const router = useRouter();
-  const goToCard = useCallback((taskId: number) => router.push(`/${taskId}`), [router]);
+  // Held in a ref because the bell is built from this callback: at phone width the bell is
+  // the whole screen, so a row opening a card has to take the list off first — otherwise
+  // the card it opened is behind the list that opened it (#357).
+  const foldBellRef = useRef<() => void>(() => {});
+  const goToCard = useCallback(
+    (taskId: number) => {
+      if (phone) foldBellRef.current();
+      router.push(`/${taskId}`);
+    },
+    [phone, router],
+  );
   const bell = useBellRail({ projectRoot, onAlerts: raiseNotifications, onOpenCard: goToCard });
+  foldBellRef.current = bell.fold;
   // A notification clicked outside the window opens its own row: the same read mark, and
   // the same switch to that row's board when it is not the one on screen.
   useOpenNotificationFromApp(bell.openRow);
@@ -149,15 +183,61 @@ export function Window({
     if (chat.open) foldBell();
   }, [chat.open, foldBell]);
 
+  // The phone shell (#357). Board is a place you go; Find, Memory and More are screens
+  // drawn over whatever page is up. So what is held here is which of those three is
+  // covering the page — `null` is the page itself — and which tab is LIT is worked out
+  // from that plus the page underneath: a memory file is what the Memory tab leads to, and
+  // everything else is the board's.
+  //
+  // Going anywhere uncovers the page, because every row on Find and Memory opens one, and
+  // landing on it still looking at the list you left would be a tap that did nothing.
+  const path = usePathname();
+  const onMemory = path.startsWith("/memory/");
+  const [cover, setCover] = useState<PhoneTab | null>(null);
+  useEffect(() => setCover(null), [path]);
+  const tab: PhoneTab = cover ?? (onMemory ? "memory" : "board");
+  const goTab = useCallback(
+    (next: PhoneTab) => {
+      // The bell and the chat lie over the body here, so a tab tapped under one of them
+      // would light up behind it. The tap folds the rail first: the tab bar is the way off
+      // every screen the phone reaches, including those two.
+      foldBell();
+      foldChat();
+      // Board is the board — from a card page, from a memory file, from a covered board.
+      if (next === "board") {
+        setCover(null);
+        if (path !== "/") router.push("/");
+        return;
+      }
+      // Memory from a memory file is the list again, not the file you are already on.
+      setCover(next);
+    },
+    [foldBell, foldChat, path, router],
+  );
+
   // Beside the body on a wide window, over it on a narrow one — the same rail either way,
   // so what has been typed survives the window being dragged across that line.
   const chatBeside = chat.open && !chat.overlay && !bell.open;
   const bellBeside = bell.open && !bell.overlay;
   const beside = chatBeside || bellBeside;
+  const corners = phone
+    ? "rounded-t-[14px]"
+    : `rounded-tl-[14px] ${beside ? "rounded-tr-[14px]" : ""}`;
+  const phoneScreen =
+    !phone || cover === null ? null : cover === "find" ? (
+      <FindScreen rows={rows} />
+    ) : cover === "memory" ? (
+      <MemoryScreen active={currentMemory} modules={memoryModules} />
+    ) : (
+      <MoreScreen projectRoot={projectRoot} goalWritten={goalWritten} />
+    );
   return (
     <BellProvider rail={bell}>
     <ChatProvider rail={chat}>
-    <div className="flex h-screen flex-col overflow-hidden bg-nb-cream">
+    {/* `dvh`, not `vh`: a phone browser's URL bar shrinks the viewport as you scroll, and
+        100vh is the tall one — the tab bar at the foot would sit under the bar until the
+        page was scrolled. Everywhere else the two are the same number. */}
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-nb-cream">
       {header}
       {linkNotice && <LinkNotice words={linkNotice} onClose={() => setLinkNotice(null)} />}
       {/* The rail and the body are a panel group so the rail can be dragged
@@ -195,21 +275,26 @@ export function Window({
             />
           </ResizablePanel>
           <ResizableHandle aria-label={c.resize.rail} onDoubleClick={onDoubleClick} />
-          {/* Without the rail (under `md`) the body still keeps the gutter, so the
-              paper sits inside the window rather than against it. With it, the
-              gutter is shared with the handle and the rail's own padding, and
-              still comes to the same 12px of cream. */}
+          {/* With the rail, the gutter is shared with the handle and the rail's own
+              padding and comes to 12px of cream. Without it — phone width — the paper
+              runs to both edges: 16px of cream down the side of a 375px screen is width
+              spent saying the rail isn't there. */}
           <ResizablePanel
             id="body"
-            className={`pl-4 md:pl-1 ${beside ? "pr-1" : ""}`}
+            className={`md:pl-1 ${beside ? "pr-1" : ""}`}
             style={{ overflow: "hidden" }}
           >
             {/* The paper rounds the corner it turns away from the chrome on. With the chat
-                up there is chrome on the right too, so it rounds that corner as well. */}
-            <div
-              className={`h-full overflow-hidden rounded-tl-[14px] bg-nb-paper ${beside ? "rounded-tr-[14px]" : ""}`}
-            >
-              {children}
+                up there is chrome on the right too, so it rounds that corner as well — and
+                at phone width the chrome is the top row above and the tab bar below, so
+                both top corners turn away from it. */}
+            <div className={`h-full overflow-hidden bg-nb-paper ${corners}`}>
+              {/* Find, Memory and More are drawn OVER the page rather than instead of it:
+                  the page stays mounted, so the board keeps its scroll and a card page
+                  keeps its state while the reader looks something up, and the tab back is
+                  instant rather than a re-read. */}
+              {phoneScreen && <div className="h-full">{phoneScreen}</div>}
+              <div className={phoneScreen ? "hidden" : "h-full"}>{children}</div>
             </div>
           </ResizablePanel>
           {/* The right side holds ONE rail. The bell wins when both are up, because
@@ -247,11 +332,12 @@ export function Window({
       </div>
       {/* Too narrow to stand beside the board, so it covers it. It is given the paper's own
           ground and an ink edge, since here it is a thing laid over the window rather than
-          a part of its frame. */}
+          a part of its frame. On a phone it stops above the tab bar: a cover with no way
+          off it is a screen you are stuck on. */}
       {bell.open && bell.overlay ? (
         <div
-          className="fixed bottom-0 right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream"
-          style={{ borderLeft: "1.5px solid var(--color-nb-ink)" }}
+          className="fixed right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream"
+          style={{ bottom: phone ? PHONE_TABS_H : 0, borderLeft: "1.5px solid var(--color-nb-ink)" }}
         >
           <BellPane rail={bell} />
         </div>
@@ -259,13 +345,17 @@ export function Window({
         chat.open &&
         chat.overlay && (
           <div
-            className="fixed bottom-0 right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream"
-            style={{ borderLeft: "1.5px solid var(--color-nb-ink)" }}
+            className="fixed right-0 top-[43px] z-40 w-[min(400px,100vw)] bg-nb-cream"
+            style={{ bottom: phone ? PHONE_TABS_H : 0, borderLeft: "1.5px solid var(--color-nb-ink)" }}
           >
             <ChatPane rail={chat} />
           </div>
         )
       )}
+      {/* The rail's four ways into the board, at the foot of every screen the phone
+          reaches (#357). Last in the window, so it is drawn over nothing and nothing is
+          drawn over it. */}
+      {phone && <PhoneTabs tab={tab} onTab={goTab} />}
     </div>
     </ChatProvider>
     </BellProvider>

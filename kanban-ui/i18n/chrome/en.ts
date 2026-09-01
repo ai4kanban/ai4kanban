@@ -68,6 +68,19 @@ const en: ChromeCopy = {
       absent: "Not installed — your terminal has no `akb` from this app.",
     },
   },
+  phone: {
+    tabs: { nav: "Ways into the board", board: "Board", find: "Find", memory: "Memory", more: "More" },
+    more: {
+      board: "Board",
+      atTheComputer: "At the computer",
+      atTheComputerBlurb:
+        "Watching a run, reading a diff, choosing the agent and talking to it all want a window.",
+      runs: "Runs",
+      diffs: "Diffs",
+      configuration: "Configuration",
+      chat: "Chat",
+    },
+  },
   notFound: {
     title: "This task is not on the board.",
     leaving: (seconds) => `Taking you to the board in ${seconds}s…`,

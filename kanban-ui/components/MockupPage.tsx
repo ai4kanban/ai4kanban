@@ -83,6 +83,7 @@ export function MockupPage({
         currentId={card?.id ?? null}
         currentTitle={card?.title ?? ""}
         memoryModules={memoryModules}
+        goalWritten={goalWritten}
         running={runningCardIds(sessions)}
         header={
           <Header

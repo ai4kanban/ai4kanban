@@ -52,6 +52,14 @@ import { Sessions } from "./sessions";
 // task goes icon-only. Nothing is removed — every control is still there, just
 // without its label.
 //
+// At phone width (#357) that is no longer enough: nine controls do not fit 375px however
+// small their labels get. So the row holds only what the width is worth spending on — the
+// mark, the release picker, the bell with its count, and Create task — and everything else
+// moves to the More tab (components/Phone.tsx). Which controls those are is said here, in
+// CSS, rather than by drawing a second header: the row is the same row, with the parts a
+// phone has no room for hidden and every remaining control grown to 36px so a thumb can
+// land on it.
+//
 // The row is drawn at IDE weight (see app/design/layouts): 44px against the 60
 // it used to be, every control a 28px box, and the saving taken out of the
 // padding rather than out of the controls. It pays for the rail beside it. Two
@@ -150,20 +158,34 @@ export function Header({
     // becomes the part of the window you drag it by. Everything pressable in it
     // is marked `a4k-nodrag`, since a drag region takes the click. Elsewhere the
     // attribute means nothing.
-    <header data-titlebar className="flex shrink-0 items-center gap-2 px-3 pb-2 pt-[7px]">
+    <header
+      data-titlebar
+      // 43px whichever width it is: 7 + a 28px control + 8 at window width, 3 + a 36px
+      // control + 4 at phone width. The row keeps its height so the two rails that lay
+      // themselves over the body from `top-[43px]` keep meeting it exactly, and the app's
+      // own title bar strip (app/globals.css) stays the height of the row it covers.
+      className="flex shrink-0 items-center gap-2 px-3 pb-2 pt-[7px] max-md:pb-1 max-md:pt-[3px]"
+    >
       <div className="flex min-w-0 flex-1 items-center gap-2">
         {/* The mark is the way to the board on a window too narrow for the rail;
             where the rail is up, All cards is the row that leads here and this
             is simply which product you are in. */}
+        {/* The mark leads home. At phone width home is the Board tab and the mark is the
+            way back to it from a card page, so it is given a thumb's target around a
+            block that stays the size it is. */}
         <Link
           href="/"
           title={c.chrome.header.home}
           aria-label={c.chrome.header.home}
-          className="a4k-nodrag"
+          className="a4k-nodrag flex shrink-0 items-center justify-center max-md:size-9 max-md:-ml-1"
         >
           <LogoMark />
         </Link>
-        <ProjectPath projectRoot={projectRoot} desktop={desktop} />
+        {/* Which board this is. On a phone it is on the More screen instead: the folder
+            is context, and context is the first thing a 375px row gives up. */}
+        <span className="hidden min-w-0 md:flex">
+          <ProjectPath projectRoot={projectRoot} desktop={desktop} />
+        </span>
       </div>
       {/* `data-controls`: in the app's title bar these are given 12px between
           them rather than 8, since a row of hard shadows needs more air beside
@@ -176,12 +198,14 @@ export function Header({
             place a control can appear without shoving another one sideways — the
             group is right-aligned, so it grows out to the left. Absent entirely the
             rest of the time. */}
-        <UpdateChip />
-        {/* The repository leads the group: the same ghost block as Goal and
-            Chat, icon-only, since it is the one control here that acts on
-            nothing on this board. */}
-        <GitHubLink />
-        <Goal written={goalWritten} />
+        <span className="hidden items-center gap-2 md:flex">
+          <UpdateChip />
+          {/* The repository leads the group: the same ghost block as Goal and
+              Chat, icon-only, since it is the one control here that acts on
+              nothing on this board. */}
+          <GitHubLink />
+          <Goal written={goalWritten} />
+        </span>
         {onReleaseChange && onCreateRelease && onPlanRelease && onDropRelease && onCloseRelease && onSetReleaseGoal && (
           <ReleasePicker
             releases={releases}
@@ -196,16 +220,27 @@ export function Header({
             onSetGoal={onSetReleaseGoal}
           />
         )}
-        <ToolCluster>
-          {/* The bell leads the cluster (#319): it is the one control in it that changes on
-              its own, and its count rides inside the segment because the cluster clips to
-              its own frame. */}
-          <BellButton />
-          <Insights />
-          <Sessions />
-          <Configuration agent={agent} onError={onError} />
-        </ToolCluster>
-        <ChatButton />
+        <span className="hidden items-center gap-2 md:flex">
+          <ToolCluster>
+            {/* The bell leads the cluster (#319): it is the one control in it that changes
+                on its own, and its count rides inside the segment because the cluster clips
+                to its own frame. */}
+            <BellButton />
+            <Insights />
+            <Sessions />
+            <Configuration agent={agent} onError={onError} />
+          </ToolCluster>
+          <ChatButton />
+        </span>
+        {/* The phone keeps the bell and nothing else from that cluster: it is the one
+            control there that changes on its own, and the three beside it are all things
+            done at the computer. It keeps the cluster's frame rather than becoming a bare
+            icon — a lone segment is still the same object. */}
+        <span className="md:hidden">
+          <ToolCluster>
+            <BellButton />
+          </ToolCluster>
+        </span>
         <CreateTask release={createRelease} />
       </div>
     </header>

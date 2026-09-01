@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { FiPlus, FiSettings } from "react-icons/fi";
+import { FiFeather, FiHelpCircle, FiMoreHorizontal, FiPlay, FiPlus, FiSettings } from "react-icons/fi";
 import { DialogButtons, RunningBadge, SessionLog } from "@/components/agent-shared";
 import { BoardCard } from "@/components/BoardCard";
 import { Button } from "@/components/button";
@@ -23,6 +23,7 @@ import {
 import { Dialog } from "@/components/Dialog";
 import { DiffPane } from "@/components/Diff";
 import { Logo, LogoMark } from "@/components/Logo";
+import { PhoneTabs, type PhoneTab } from "@/components/Phone";
 import {
   Select,
   SelectContent,
@@ -248,6 +249,11 @@ function Label({ children }: { children: string }) {
   );
 }
 
+// What a card action wears at phone width — the same string components/CardPage.tsx
+// stacks its buttons with. Not exported from there: it is one composition, and the rule
+// it stands for is in design.md.
+const STACKED = "h-11 w-full justify-center text-[14px]";
+
 // A row of specimens on paper, the way most of this page shows its blocks.
 function Row({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-center gap-3">{children}</div>;
@@ -374,6 +380,7 @@ export function DesignSystem() {
   const [tab, setTab] = useState<"describe" | "propose">("describe");
   const [pick, setPick] = useState("board");
   const [dialog, setDialog] = useState(false);
+  const [phoneTab, setPhoneTab] = useState<PhoneTab>("board");
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
@@ -1037,6 +1044,53 @@ export function DesignSystem() {
               <span className="shrink-0 font-mono text-[11px] tabular-nums text-nb-ink-soft">{t.spec}</span>
             </div>
           ))}
+        </div>
+      </Section>
+
+      <Section
+        id="phone"
+        title="Phone width"
+        note="Under md the rail goes and a bottom tab bar takes its place: Board, Find, Memory, More, on every screen the phone reaches. The board shows one column at a time under a band that names it, a card's actions become a full-width stack, and a dialog becomes a page with its buttons pinned at the foot. Everything a thumb presses is 44px. The full rules are in kanban-ui/design.md."
+      >
+        <div className="nb-panel space-y-6 px-5 py-5">
+          <div>
+            <Label>the tab bar — the rail&apos;s four ways in, at the foot of the screen</Label>
+            {/* The production bar, in a 375px frame so it is read at the width it is
+                drawn at. Everything else on this page is full width; this one is not
+                a component that has a full width. */}
+            <div className="w-[375px] max-w-full overflow-hidden rounded-[14px] border-[1.5px] border-nb-ink">
+              <PhoneTabs tab={phoneTab} onTab={setPhoneTab} />
+            </div>
+          </div>
+          <div>
+            <Label>a card&apos;s actions — full width, in the order they are pressed</Label>
+            <div className="flex w-[375px] max-w-full flex-col gap-2">
+              <Button size="sm" className={STACKED}>
+                <FiPlay className="text-[15px]" aria-hidden />
+                Implement
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={STACKED}
+                style={{
+                  color: "var(--color-nb-accent-deep)",
+                  borderColor: "var(--color-nb-accent-deep)",
+                }}
+              >
+                <FiHelpCircle className="text-[15px]" aria-hidden />
+                Resolve
+              </Button>
+              <Button variant="ghost" size="sm" className={STACKED}>
+                <FiFeather className="text-[15px]" aria-hidden />
+                Refine
+              </Button>
+              <Button variant="ghost" size="sm" className={STACKED}>
+                <FiMoreHorizontal className="text-[15px]" aria-hidden />
+                More
+              </Button>
+            </div>
+          </div>
         </div>
       </Section>
 

@@ -14,6 +14,7 @@ import type { RunsCopy } from "@/i18n/runs/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
+import { usePhone } from "@/lib/media";
 import { useOverRail } from "@/lib/over-rail";
 import { parseQuestion } from "@/lib/questions";
 import type { CloudEventAnswer } from "@/lib/types";
@@ -1465,6 +1466,43 @@ export function DialogButtons({
   alternate?: { label: string; title?: string; disabled?: boolean; onClick: () => void };
 }) {
   const c = useCopy().shared;
+  const phone = usePhone();
+
+  // At phone width the dialog is a page (components/Dialog.tsx) and this is its foot: the
+  // buttons stack full width and stay pinned to the bottom of the screen however long the
+  // page is, so the thing you came to press is never scrolled off. The one the reader is
+  // most likely to press leads — the alternate where there is one, else the confirm — and
+  // Cancel is gone, because on that shape the title bar's ✕ IS Cancel and two ways out
+  // stacked on top of each other is one of them saying the other is different.
+  //
+  // `sticky` rather than a sibling of the scroller: the buttons come from the dialog's own
+  // markup, wherever in it they sit, and a foot the caller has to hand over separately is a
+  // foot half the dialogs would forget.
+  if (phone) {
+    return (
+      <div className="sticky bottom-0 -mx-4 -mb-4 mt-auto flex shrink-0 flex-col gap-2 border-t border-nb-ink/12 bg-nb-paper px-4 pb-4 pt-3">
+        {alternate && (
+          <Button
+            className="h-12 w-full"
+            title={alternate.title}
+            disabled={alternate.disabled}
+            onClick={alternate.onClick}
+          >
+            {alternate.label}
+          </Button>
+        )}
+        <Button
+          variant={risky || alternate ? "ghost" : "accent"}
+          className={`h-12 w-full ${risky ? "border-nb-peach-ink text-nb-peach-ink" : ""}`}
+          disabled={disabled}
+          onClick={onConfirm}
+        >
+          {confirmLabel}
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-4 flex justify-end gap-2.5">
       <Button variant="ghost" onClick={onClose}>{c.cancel}</Button>

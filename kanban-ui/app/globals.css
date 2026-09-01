@@ -353,19 +353,35 @@ body {
 }
 
 /* ============================================================================
-   The rail, under `md`.
+   Phone width (#357).
    ==========================================================================
 
-   It goes, and the divider that drags it goes with it: at phone width a rail
-   takes most of the window, and a browser there has the back button the desktop
-   window doesn't (components/Rail.tsx). This is said here rather than as a class
-   on the rail because the rail is a resizable panel now, and a panel group sizes
-   and lays out its panels with inline styles — `display` has to be able to reach
-   past them. */
+   Under 48rem the rail goes, and the divider that drags it goes with it: a rail
+   there takes most of the screen. This is said here rather than as a class on
+   the rail because the rail is a resizable panel, and a panel group sizes and
+   lays out its panels with inline styles — `display` has to be able to reach
+   past them.
+
+   What replaces it is the bottom tab bar and its three screens
+   (components/Phone.tsx): the rail's board row, its search box and its memory
+   panel, laid out for the width rather than dropped. Everything else the phone
+   changes is a `max-md:` utility beside the markup it belongs to; the two rules
+   here are the ones no class can reach. */
 @media (width < 48rem) {
   #rail,
   #rail + [data-separator] {
     display: none !important;
+  }
+}
+
+/* A touch screen has no hover, so a tip that only answers one says nothing at
+   all — and a mark whose whole message is its tip is then a mark that means
+   nothing. `:focus` rather than `:focus-visible`: a tap focuses without the
+   browser deciding the focus is worth drawing a ring around. Only where the
+   pointer is coarse, so a mouse keeps the rule it has. */
+@media (hover: none) {
+  .nb-tip:focus::after {
+    opacity: 1;
   }
 }
 

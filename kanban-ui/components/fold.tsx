@@ -40,7 +40,7 @@ export function Fold({
       {/* w-full because .nb-tag is inline-flex, which otherwise shrinks the row — and the
           tint has to cover the whole strip for it to read as one control. It darkens
           whatever is under it, so a tinted block hovers like a paper one. */}
-      <summary className="nb-tag w-full cursor-pointer list-none items-center gap-2 px-5 py-3.5 text-nb-ink-soft transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_5%,transparent)] hover:text-nb-ink">
+      <summary className="nb-tag w-full cursor-pointer list-none items-center gap-2 px-5 py-3.5 max-md:px-4 text-nb-ink-soft transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_5%,transparent)] hover:text-nb-ink">
         <FiChevronRight
           size={13}
           aria-hidden
@@ -48,7 +48,7 @@ export function Fold({
         />
         {label}
       </summary>
-      <div className="px-5 pb-5 pt-4" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+      <div className="px-5 pb-5 pt-4 max-md:px-4 max-md:pb-4" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
         {children}
       </div>
     </details>

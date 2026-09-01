@@ -27,6 +27,8 @@ const en: BoardCopy = {
     notReady: "Not ready",
     recurring: "Recurring",
     empty: "no open cards",
+    columns: "Columns",
+    goToColumn: (title) => `Show ${title}`,
   },
   card: {
     tick: (id, title) => `Tick #${id} ${title}`,

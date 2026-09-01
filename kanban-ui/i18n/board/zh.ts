@@ -24,6 +24,8 @@ const zh: BoardCopy = {
     notReady: "未就绪",
     recurring: "周期任务",
     empty: "没有待办卡片",
+    columns: "列",
+    goToColumn: (title) => `显示「${title}」`,
   },
   card: {
     tick: (id, title) => `勾选 #${id} ${title}`,

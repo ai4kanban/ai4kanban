@@ -6,6 +6,7 @@ import {
   readAllNotificationsAction,
 } from "@/app/actions";
 import { CHAT_MAX, CHAT_MIN, CHAT_W } from "./chat-rail";
+import { useMatches } from "./media";
 import type { NotificationAlert, NotificationCenter } from "./notifications";
 
 // The bell's own state (#319): whether the rail is up, how wide it is, and the events it is
@@ -266,15 +267,3 @@ function save(px: number) {
   }
 }
 
-/** A media query, as a boolean that follows the window. */
-function useMatches(query: string): boolean {
-  const [matches, setMatches] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const read = () => setMatches(mq.matches);
-    read();
-    mq.addEventListener("change", read);
-    return () => mq.removeEventListener("change", read);
-  }, [query]);
-  return matches;
-}

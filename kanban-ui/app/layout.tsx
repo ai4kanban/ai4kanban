@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { NavEdge } from "@/components/desktop";
 import { getCopy } from "@/i18n";
 import { LanguageProvider } from "@/components/language";
@@ -22,6 +22,14 @@ const ICON =
   "<rect x='24' y='8' width='12' height='35' rx='3.5'/>" +
   "<rect x='43' y='8' width='12' height='26' rx='3.5'/>" +
   "</g></svg>";
+
+// A phone renders the board at its own width (#357). Without this it lays the page out at
+// desktop width and shrinks the result, which is the whole reason the text was unreadable —
+// every rule below `md` never matched, so none of the phone layout would ever be drawn.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 // Read per request rather than fixed at build, so the window's own title follows a language
 // change along with everything under it — a constant here would keep the title the app was

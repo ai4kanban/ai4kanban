@@ -3,6 +3,7 @@ import { usePanelRef, type Layout, type LayoutChangedMeta } from "react-resizabl
 import { clearChatAction, readChatAction, sendChatAction, stopChatAction } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRead } from "./chat";
+import { useMatches } from "./media";
 import { overRail } from "./over-rail";
 
 // The chat rail's own state (#242): whether it is up, how wide it is, and the conversation
@@ -493,16 +494,3 @@ function useSeen(projectRoot: string, cardId: number | null) {
   return useMemo(() => ({ at, mark, adopt }), [at, mark, adopt]);
 }
 
-/** A media query, answered after mount. False during the server render and the first paint,
- *  which is what the rail wants: it is folded then, so there is nothing to place. */
-function useMatches(query: string): boolean {
-  const [yes, setYes] = useState(false);
-  useEffect(() => {
-    const mql = window.matchMedia(query);
-    const update = () => setYes(mql.matches);
-    update();
-    mql.addEventListener("change", update);
-    return () => mql.removeEventListener("change", update);
-  }, [query]);
-  return yes;
-}

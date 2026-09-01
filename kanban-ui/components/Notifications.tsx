@@ -86,7 +86,7 @@ export function BellPane({ rail }: { rail: BellRail }) {
   // because the card page reads its own out of the same list.
   const rows = center.rows.filter((row) => row.onRail !== false);
   return (
-    <div className="flex h-full flex-col overflow-hidden py-2 pl-1 pr-3">
+    <div className="flex h-full flex-col overflow-hidden py-2 pl-1 pr-3 max-md:pl-3">
       <Head c={c} silenced={center.silenced} onFold={rail.fold} />
       {center.unavailable ? (
         <Empty

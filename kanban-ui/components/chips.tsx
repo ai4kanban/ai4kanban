@@ -17,7 +17,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 // trigger drops the CONTROL frame (the wrapper's meaning fill is the only
 // chrome) and the open list shrinks its type to match. The 1em icons follow.
 const CHIP_TRIGGER =
-  "h-auto w-auto gap-1 rounded-[6px] border-0 px-[6px] py-[2.5px] text-[10px] font-[700] uppercase tracking-[0.04em] leading-none";
+  "h-auto w-auto gap-1 rounded-[6px] border-0 px-[6px] py-[2.5px] text-[10px] font-[700] uppercase tracking-[0.04em] leading-none" +
+  // A 15px chip is a cursor's target, not a thumb's. At phone width it takes the 36px the
+  // top row's chrome takes (#357) — the same rung, for the same reason, and a chip grown
+  // the whole 44 stops reading as a chip.
+  " max-md:h-9 max-md:px-2.5";
 const CHIP_ITEM = "py-1.5 pr-7 text-[10px] font-[700] uppercase tracking-[0.04em]";
 
 /** The fill of a chip that means nothing in particular — low, no release, no cadence.

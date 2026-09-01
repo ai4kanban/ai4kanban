@@ -67,6 +67,18 @@ const zh: ChromeCopy = {
       absent: "未安装——你的终端里没有本应用提供的 `akb`。",
     },
   },
+  phone: {
+    tabs: { nav: "看板导航", board: "看板", find: "查找", memory: "记忆", more: "更多" },
+    more: {
+      board: "看板",
+      atTheComputer: "在电脑上完成",
+      atTheComputerBlurb: "查看运行、阅读差异、选择 Agent 与对话，都需要一个窗口。",
+      runs: "运行",
+      diffs: "差异",
+      configuration: "配置",
+      chat: "对话",
+    },
+  },
   notFound: {
     title: "这个任务不在看板上。",
     leaving: (seconds) => `${seconds} 秒后返回看板…`,

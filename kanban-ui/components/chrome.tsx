@@ -10,6 +10,10 @@
 // them rather than the controls themselves. One frame per cluster, not one per
 // control — three machinery buttons a few pixels apart carrying three hard
 // shadows read as three objects when they are one.
+//
+// At phone width every one of them is 36px instead (#357). A cursor is a pixel and a thumb
+// is not; 28px is a comfortable target for the first and too small for the second, and the
+// top row is the one chrome a phone keeps.
 
 import { Children, Fragment, isValidElement } from "react";
 
@@ -20,6 +24,13 @@ export const CHROME = "border-[1.5px] border-nb-ink shadow-[2px_2px_0_0_var(--co
  *  rail section's label. Between the segments of a control, use SegmentDivider:
  *  the same weight, but it takes the control's own ink. */
 export const HAIRLINE = "color-mix(in srgb, var(--color-nb-ink) 14%, transparent)";
+
+/** A full-width row you press, at phone width (#357) — the shape the rail's rows and a
+ *  card's subtask rows take when the screen itself is the list. 48px tall, because a thumb
+ *  is not a cursor, and the same transparent-border-that-colours-in hover the subtask rows
+ *  use, so nothing shifts when it lights up. */
+export const PHONE_ROW =
+  "nb-press flex min-h-[48px] w-full cursor-pointer items-center gap-3 rounded-[11px] border-[1.5px] border-transparent px-3 text-left text-[14px] font-[700] text-nb-ink hover:border-nb-ink hover:bg-nb-paper";
 
 /** The mark that says an agent is working: a deep-ember dot, breathing. It lives
  *  here rather than beside the first thing that used it because it is now the
@@ -40,7 +51,7 @@ export const PULSE_DOT =
  *  clipped at the bottom, and leaves every icon sitting a pixel and a half below
  *  the centre of the row. */
 export const TOOL_BTN =
-  "relative inline-flex h-full w-7 shrink-0 cursor-pointer items-center justify-center text-nb-ink transition-colors duration-100 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]";
+  "relative inline-flex h-full w-7 max-md:w-9 shrink-0 cursor-pointer items-center justify-center text-nb-ink transition-colors duration-100 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]";
 
 /** The line between two segments of one framed control — the tools in a cluster,
  *  the release chip's picker and its ⋯ menu.
@@ -66,7 +77,7 @@ export function ToolCluster({ children }: { children: React.ReactNode }) {
   const tools = Children.toArray(children);
   return (
     <span
-      className={`inline-flex h-7 shrink-0 items-stretch overflow-hidden rounded-[8px] bg-nb-paper ${CHROME}`}
+      className={`inline-flex h-7 max-md:h-9 shrink-0 items-stretch overflow-hidden rounded-[8px] bg-nb-paper ${CHROME}`}
     >
       {tools.map((tool, i) => (
         <Fragment key={isValidElement(tool) ? tool.key : i}>

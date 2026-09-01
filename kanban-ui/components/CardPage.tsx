@@ -6,12 +6,15 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import {
   FiAlertCircle,
   FiArchive,
+  FiArrowLeft,
   FiCheckCircle,
   FiChevronRight,
   FiCornerLeftUp,
   FiEdit2,
   FiFeather,
   FiGitBranch,
+  FiHelpCircle,
+  FiMoreHorizontal,
   FiPlay,
   FiTrash2,
   FiX,
@@ -73,6 +76,8 @@ import {
   TrackChip,
 } from "./chips";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
+import { usePhone } from "@/lib/media";
+import { cn } from "@/lib/utils";
 import type { MockupSet } from "@/lib/mockup-tag";
 import { parseQuestion } from "@/lib/questions";
 import { bandLabel, CARD_BAND_STATES, type CloudEventState } from "@/lib/types";
@@ -85,11 +90,17 @@ import { ConfirmationPopover } from "./confirm-popover";
 import { Fold } from "./fold";
 import { OpenIdsProvider } from "./open-ids";
 import { OpenQuestions } from "./questions";
+import { isReadyHalf } from "./Queue";
 import { SubtaskMap } from "./SubtaskMap";
 import { Window } from "./Window";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
+
+/** What every card action wears at phone width (#357): the full width of the page, and a
+ *  height a thumb can land on. The order they are stacked in is the order they are pressed
+ *  in — build it, answer it, sharpen it — with the rest behind More. */
+const STACKED = "h-11 w-full justify-center text-[14px]";
 
 // The rule between a section's chrome and what it holds. Nothing on this page draws a
 // border any more, so the one line still worth having is drawn at the quietest weight
@@ -204,7 +215,7 @@ function HandChecks({
                     type="button"
                     disabled={saving}
                     onClick={() => void crossOff(line)}
-                    className="flex h-[19px] shrink-0 cursor-pointer items-center rounded-[6px] px-1.5 text-[11px] font-[700] uppercase tracking-[0.04em]"
+                    className="flex h-[19px] max-md:h-11 shrink-0 cursor-pointer items-center rounded-[6px] px-1.5 max-md:px-3 text-[11px] font-[700] uppercase tracking-[0.04em]"
                     style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
                   >
                     {c.crossOff}
@@ -216,7 +227,7 @@ function HandChecks({
                     title={c.crossOffHint}
                     disabled={saving}
                     onClick={() => setConfirming(line)}
-                    className="nb-press flex h-[19px] shrink-0 items-center rounded-[6px] px-1 text-nb-ink-soft hover:text-nb-peach-ink disabled:cursor-not-allowed disabled:opacity-45"
+                    className="nb-press flex h-[19px] max-md:h-11 shrink-0 items-center rounded-[6px] px-1 max-md:px-3.5 text-nb-ink-soft hover:text-nb-peach-ink disabled:cursor-not-allowed disabled:opacity-45"
                   >
                     <FiX className="text-[13px]" aria-hidden />
                   </button>
@@ -307,7 +318,7 @@ function PanelAction({
   return (
     <button
       type="button"
-      className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[12px] font-[700] transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_26%,transparent)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+      className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 max-md:h-11 max-md:px-3 text-[12px] font-[700] transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_26%,transparent)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
       style={{ color: "var(--color-nb-accent-deep)" }}
       {...props}
     >
@@ -440,6 +451,8 @@ function DiscardDelivery({
   branch,
   active,
   panel,
+  stack,
+  folded,
   onDiscarded,
   onError,
 }: {
@@ -448,6 +461,10 @@ function DiscardDelivery({
   branch?: string;
   active?: boolean;
   panel?: boolean;
+  /** Phone width (#357): the toolbar is a stack of full-width buttons, and Discard is one
+   *  of the ones that sits behind More — `folded` is that fold still shut. */
+  stack?: boolean;
+  folded?: boolean;
   onDiscarded: () => void;
   onError: (why: string) => void;
 }) {
@@ -467,7 +484,10 @@ function DiscardDelivery({
   };
 
   return (
-    <span ref={anchorRef} className="relative inline-flex">
+    <span
+      ref={anchorRef}
+      className={cn("relative inline-flex", stack && STACKED, stack && (folded ? "hidden" : "order-1"))}
+    >
       {panel ? (
         <PanelAction
           icon={<FiTrash2 className="text-[12px]" aria-hidden />}
@@ -481,6 +501,7 @@ function DiscardDelivery({
         <Button
           variant="ghost"
           size="sm"
+          className={stack ? "h-full w-full" : undefined}
           disabled={busy}
           aria-haspopup="dialog"
           aria-expanded={confirming}
@@ -746,7 +767,7 @@ function TabStrip({
             // two lines doing one job. The fill is a step of ink INTO the block's own
             // ground, never the accent — that ember is the diff's deletion tint a few
             // pixels below, and a chip wearing it reads as "something is wrong here".
-            className={`flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[12px] font-[700] transition-colors${on ? "" : " hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_5%,transparent)]"}`}
+            className={`flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 max-md:h-11 max-md:px-3 text-[12px] font-[700] transition-colors${on ? "" : " hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_5%,transparent)]"}`}
             style={
               on
                 ? { background: "color-mix(in srgb, var(--color-nb-ink) 9%, transparent)" }
@@ -1125,6 +1146,12 @@ export function CardPage({
   // dialog's way out of its open-question warning.
   const [deciding, setDeciding] = useState(false);
   const closeDeciding = useCallback(() => setDeciding(false), []);
+  // Phone width (#357): the actions are a stack, and the ones past the first three sit
+  // behind More. Shut again on every card, since which card you are on is what decides
+  // whether the rest are worth the screen.
+  const phone = usePhone();
+  const [moreActions, setMoreActions] = useState(false);
+  useEffect(() => setMoreActions(false), [card.id]);
   const [error, setError] = useState<string | null>(null);
   // The subtask chip under the cursor, said in the panel's heading (#333).
   const [mapTip, setMapTip] = useState("");
@@ -1226,6 +1253,34 @@ export function CardPage({
   // Whether the toolbar has anything to draw. A free card always does (Edit and Reject are
   // unconditional); a held one only when the delivery leaves it something to click.
   const toolbar = !delivery || !!carryOn;
+  // The column this card sits in on the board (components/Queue.tsx) — the phone's way back
+  // names where it goes rather than just pointing at it (#357), and carries the key so the
+  // board opens on that column instead of on the first page of the swipe.
+  const columnKey = card.recurring ? "recurring" : isReadyHalf(card) ? "ready" : "notReady";
+  const column = card.recurring
+    ? t.board.queue.recurring
+    : isReadyHalf(card)
+      ? t.board.queue.ready
+      : t.board.queue.notReady;
+  // Resolve is the questions panel itself at window width — you decide against the question,
+  // not in a copy of it. At phone width that panel is a page pushed over the card, so the
+  // stack needs a button to push it. Same test the panel uses to decide it is live.
+  const canResolve =
+    actions.has("resolve") &&
+    !offUnlessAsked &&
+    card.questions.some((q) => parseQuestion(q.text).tag === "user");
+  // The stack (#357): every action full width, and everything past the first three folded
+  // behind More. `order-1` is what puts an unfolded one under the fold's own button without
+  // moving it in the markup, so the window's row keeps the order it has always had.
+  const ACT = phone ? STACKED : "";
+  const EXTRA = phone ? (moreActions ? `${STACKED} order-1` : "hidden") : "";
+  // Whether More has anything behind it. Edit and Reject are unconditional on a free card,
+  // so this is only false while a delivery holds it.
+  const hasExtra =
+    !!(card.discard && !delivery && !finishedBlock) ||
+    (actions.has("edit") && !delivery) ||
+    (actions.has("archive") && !delivery) ||
+    (actions.has("reject") && !delivery);
 
   // This card's live Cloud event (#319). Two things read it: the title band's one mark, for
   // the four states no local mark has words for, and the Implement and Resolve clicks —
@@ -1325,6 +1380,7 @@ export function CardPage({
         currentId={card.id}
         currentTitle={card.title}
         memoryModules={memoryModules}
+        goalWritten={goalWritten}
         running={running}
         onBoardChanged={boardChanged}
         header={
@@ -1350,7 +1406,7 @@ export function CardPage({
           {/* Every gap on this page is a `gap` — nothing on it carries a margin of its own,
               so no two blocks can drift apart. Two stacks: the title, and everything under
               it evenly spaced. The one wider step (gap-8) is the title's, set once. */}
-          <main className="mx-auto flex w-full max-w-[840px] flex-col gap-8 px-6 py-6">
+          <main className="mx-auto flex w-full max-w-[840px] flex-col gap-8 px-6 py-6 max-md:gap-6 max-md:px-4 max-md:py-4">
             {/* An alert is the one thing here louder than a section: peach at `-soft`
                 rather than at the `-wash` rung the sections sit on, so it reads as
                 something that happened and not as another band of the page. */}
@@ -1362,6 +1418,21 @@ export function CardPage({
 
             {/* Where the card came from, and what it is called. */}
             <div className="flex flex-col gap-2">
+              {/* The way back, at phone width (#357). A window has the rail for this — the
+                  row the card was opened from is also the row that closes it — and a phone
+                  has neither that nor, in the app, a back gesture. It names the column
+                  rather than saying "back": where you are going is worth a word. */}
+              {phone && (
+                <Link
+                  href={`/?column=${columnKey}`}
+                  aria-label={c.toolbar.backTo(column)}
+                  className="-ml-2 inline-flex h-11 items-center gap-1.5 self-start rounded-[10px] px-2 text-[13.5px] font-[700] text-nb-ink"
+                >
+                  <FiArrowLeft className="text-[17px]" aria-hidden />
+                  {column}
+                </Link>
+              )}
+
               {/* part of a group — link up to the tracking root */}
               {card.parent && (
                 <Link
@@ -1467,13 +1538,40 @@ export function CardPage({
                   entirely while a held card has nothing left to offer: Discard rides in the
                   delivery block, and an empty row is just a gap. */}
               {toolbar && (
-                <div className="flex flex-wrap items-center gap-2">
+                <div
+                  className={
+                    phone ? "flex flex-col gap-2" : "flex flex-wrap items-center gap-2"
+                  }
+                >
                   {/* Implement — gone while a delivery is in flight, since what ends one is
                       Discard in the block below. */}
                   {!delivery && actions.has("implement") && (
-                    <Button size="sm" disabled={busy} onClick={() => setDialog({ kind: "implement", card })}>
+                    <Button
+                      size="sm"
+                      className={ACT}
+                      disabled={busy}
+                      onClick={() => setDialog({ kind: "implement", card })}
+                    >
                       <FiPlay className="text-[15px]" aria-hidden />
                       {c.toolbar.implement}
+                    </Button>
+                  )}
+                  {/* Phone only: at window width the questions panel below is the control,
+                      and a button that only scrolled to it would be a second way to do
+                      nothing. Here the panel is a page, and this is what pushes it. */}
+                  {phone && canResolve && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={ACT}
+                      style={{
+                        color: "var(--color-nb-accent-deep)",
+                        borderColor: "var(--color-nb-accent-deep)",
+                      }}
+                      onClick={() => setDeciding(true)}
+                    >
+                      <FiHelpCircle className="text-[15px]" aria-hidden />
+                      {c.toolbar.resolve}
                     </Button>
                   )}
                   {/* Discard (#303) — the checkout a delivery built in, thrown away. Offered
@@ -1485,6 +1583,8 @@ export function CardPage({
                       id={card.discard.id}
                       worktree={card.discard.worktree}
                       branch={card.discard.branch}
+                      stack={phone}
+                      folded={phone && !moreActions}
                       onDiscarded={() => {
                         router.refresh();
                         kick();
@@ -1497,6 +1597,7 @@ export function CardPage({
                   {actions.has("run") && !delivery && (
                     <Button
                       size="sm"
+                      className={ACT}
                       disabled={off}
                       title={held ? heldWhy : c.toolbar.runHint}
                       onClick={() => setDialog({ kind: "run", card })}
@@ -1514,6 +1615,7 @@ export function CardPage({
                     <Button
                       variant="ghost"
                       size="sm"
+                      className={ACT}
                       disabled={off}
                       title={
                         held
@@ -1528,8 +1630,23 @@ export function CardPage({
                       {c.toolbar.refine}
                     </Button>
                   )}
+                  {/* The fold the rest of the actions sit behind at phone width. Four
+                      more full-width buttons under the three you came for is a page of
+                      buttons; the three are the ones that get pressed. */}
+                  {phone && hasExtra && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={STACKED}
+                      aria-expanded={moreActions}
+                      onClick={() => setMoreActions((open) => !open)}
+                    >
+                      <FiMoreHorizontal className="text-[15px]" aria-hidden />
+                      {moreActions ? c.toolbar.fewer : c.toolbar.more}
+                    </Button>
+                  )}
                   {actions.has("edit") && !delivery && (
-                    <Button variant="ghost" size="sm" disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "edit", card })}>
+                    <Button variant="ghost" size="sm" className={EXTRA} disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "edit", card })}>
                       <FiEdit2 className="text-[15px]" aria-hidden />
                       {c.toolbar.edit}
                     </Button>
@@ -1545,6 +1662,7 @@ export function CardPage({
                     <Button
                       variant="ghost"
                       size="sm"
+                      className={ACT}
                       disabled={busy}
                       title={c.toolbar.reviewAgainHint}
                       onClick={() => void runAgent({ action: carryOn, id: card.id }, carryOn)}
@@ -1554,7 +1672,7 @@ export function CardPage({
                     </Button>
                   )}
                   {actions.has("archive") && !delivery && (
-                    <Button variant="ghost" size="sm" disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "archive", card })}>
+                    <Button variant="ghost" size="sm" className={EXTRA} disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "archive", card })}>
                       <FiArchive className="text-[15px]" aria-hidden />
                       {c.toolbar.archive}
                     </Button>
@@ -1563,7 +1681,7 @@ export function CardPage({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="ml-auto"
+                      className={phone ? EXTRA : "ml-auto"}
                       disabled={off}
                       title={held ? heldWhy : undefined}
                       style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
@@ -1621,8 +1739,11 @@ export function CardPage({
               )
             )}
 
-            {/* meta box — stacked label/value columns, on the page's one ground. */}
-            <div className="nb-section flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-sheet px-4 py-3.5">
+            {/* Stacked label/value columns, on the page's one ground. At phone width the
+                wrap becomes a two-column grid: a flex wrap there gives one pair a whole
+                row and squeezes the next three onto the following one, and the point of
+                this block is that it can be read across. */}
+            <div className="nb-section flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-sheet px-4 py-3.5 max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:px-3.5 max-md:py-3">
               <MetaItem label={c.meta.track}>
                 <TrackChip track={card.track} />
               </MetaItem>
@@ -1780,7 +1901,10 @@ export function CardPage({
                     </span>
                   )}
                 </div>
-                <SubtaskMap subtasks={card.subtasks} onHover={setMapTip} />
+                {/* The map reads left to right across layers, so it needs width the phone
+                    hasn't got — and the list under it names every card the map draws
+                    (#357). The rows are the group at that width. */}
+                {!phone && <SubtaskMap subtasks={card.subtasks} onHover={setMapTip} />}
                 <ul className="flex flex-col gap-1.5">
                   {card.subtasks.map((s) => (
                     <li key={s.id}>
@@ -1790,12 +1914,14 @@ export function CardPage({
                         // same way: outline in, onto paper, up onto the ink shadow. The
                         // border is there at rest, transparent, so nothing shifts when
                         // it colours in.
-                        className="nb-press flex items-center gap-2.5 rounded-[10px] border-[1.5px] border-transparent px-2.5 py-2 hover:border-nb-ink hover:bg-nb-paper"
+                        className="nb-press flex items-center gap-2.5 rounded-[10px] border-[1.5px] border-transparent px-2.5 py-2 max-md:min-h-[48px] hover:border-nb-ink hover:bg-nb-paper"
                       >
                         <span className="shrink-0 text-[12px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
                           #{s.id}
                         </span>
-                        <span className="min-w-0 flex-1 truncate text-[13.5px] font-[700] leading-snug">{s.title}</span>
+                        <span className="min-w-0 flex-1 truncate text-[13.5px] font-[700] leading-snug max-md:overflow-visible max-md:whitespace-normal">
+                          {s.title}
+                        </span>
                         {/* An agent is inside this subtask right now — the same
                             dot the rail and the board's badge use. A root is
                             where you watch a group being built, and its rows are

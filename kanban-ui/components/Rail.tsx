@@ -16,10 +16,10 @@
 // It doesn't own its width or its scrolling: it is the contents of a panel the
 // window makes resizable (components/Window.tsx, lib/rail-width.ts), and that
 // panel is also what drops the rail under `md` — at phone width it would take
-// most of the window, and a browser there has the back button the desktop window
-// doesn't (app/globals.css hides `#rail`, so the search box goes with it and
-// there is no second, narrow design to keep). Rows are only kept tall enough to
-// be aimed at with a trackpad.
+// most of the window (app/globals.css hides `#rail`). What its two panels become
+// there is the bottom tab bar's Find and Memory screens (#357,
+// components/Phone.tsx), so nothing here is a second, narrow design: this one is
+// the window's. Rows are only kept tall enough to be aimed at with a trackpad.
 //
 // The rows scroll and the box above them does not: a one-letter search matches
 // most of the board, and a window is not tall enough to be the limit on what can
@@ -28,21 +28,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import { FiChevronRight, FiColumns, FiFileText, FiSearch, FiX } from "react-icons/fi";
-import { searchCardsAction } from "@/app/actions";
 import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryKey, memoryModuleOf, useMemoryPanel, useOpenModules } from "@/lib/memory-panel";
 import type { OpenCard } from "@/lib/open-cards";
-import { MEMORY_FILES, type CardRef, type MemoryModule } from "@/lib/types";
+import { MEMORY_FILES, type MemoryModule } from "@/lib/types";
 import { armAgentHalf } from "@/lib/agent-half";
+import { useCardSearch } from "@/lib/card-search";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
-
-/** How long the typing has to stop before the board is searched. Long enough that a
- *  word is one search and not six, short enough that it lands while the finger is
- *  still coming off the key. */
-const SEARCH_PAUSE = 120;
 
 export function Rail({
   rows,
@@ -279,53 +273,6 @@ function PanelLabel({ text, divider = false }: { text: string; divider?: boolean
       </span>
     </div>
   );
-}
-
-// What is typed, and the cards it found. The board is searched on the server
-// (app/actions) because neither page the rail is drawn in holds the words to
-// search: the board page has the cards its columns show and not a group's
-// subtasks, and a card page has the one card it is showing.
-//
-// `matches` is the answer to the LAST search that came back, not to what is in
-// the box this instant. It is deliberately kept while the next one is in flight
-// — dropping it would flash the rail empty on every keystroke — and it is null
-// only until the first answer of a search arrives, which is the one moment there
-// is nothing honest to draw. That is also why "No card matches" is tied to an
-// empty answer rather than to an empty `matches`: a search still running must
-// not read as a search that found nothing.
-function useCardSearch(): {
-  query: string;
-  setQuery: (q: string) => void;
-  matches: CardRef[] | null;
-} {
-  const [query, setQuery] = useState("");
-  const [matches, setMatches] = useState<CardRef[] | null>(null);
-  const q = query.trim();
-
-  useEffect(() => {
-    if (!q) {
-      setMatches(null);
-      return;
-    }
-    let live = true;
-    const timer = setTimeout(() => {
-      searchCardsAction(q)
-        .then((found) => {
-          if (live) setMatches(found);
-        })
-        .catch(() => {
-          // The board couldn't be read. Nothing found is the honest answer, and
-          // the pages that can explain why already do.
-          if (live) setMatches([]);
-        });
-    }, SEARCH_PAUSE);
-    return () => {
-      live = false;
-      clearTimeout(timer);
-    };
-  }, [q]);
-
-  return { query, setQuery, matches };
 }
 
 /** The box at the top of the rail. It is a rail row's own geometry — same height,

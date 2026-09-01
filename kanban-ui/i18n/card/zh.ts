@@ -38,6 +38,10 @@ const zh: CardCopy = {
     scheduleFailed: "未能加入计划",
     unscheduleFailed: "未能取消计划",
     editFailed: "修改失败",
+    backTo: (column) => `返回「${column}」`,
+    more: "更多",
+    fewer: "收起",
+    resolve: "答复问题",
   },
   delivery: {
     fold: "收起",
@@ -125,6 +129,8 @@ const zh: CardCopy = {
     close: "收起",
     resolve: "答复",
     andImplement: "答复并开发",
+    pageTitle: (id) => `答复 #${id}`,
+    pageBlurb: "回答这张卡片正在等待的问题。留空的问题保持待澄清。",
   },
   handChecks: {
     heading: "人工验收",

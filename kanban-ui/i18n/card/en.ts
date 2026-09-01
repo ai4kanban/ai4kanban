@@ -39,6 +39,10 @@ const en: CardCopy = {
     scheduleFailed: "could not schedule the action",
     unscheduleFailed: "could not take the schedule off",
     editFailed: "edit failed",
+    backTo: (column) => `Back to ${column}`,
+    more: "More",
+    fewer: "Fewer",
+    resolve: "Resolve",
   },
   delivery: {
     fold: "Fold this away",
@@ -127,6 +131,8 @@ const en: CardCopy = {
     close: "Close",
     resolve: "Resolve",
     andImplement: "Resolve & implement",
+    pageTitle: (id) => `Resolve #${id}`,
+    pageBlurb: "Answer what this card is waiting on. Anything you leave blank stays open.",
   },
   handChecks: {
     heading: "check by hand",

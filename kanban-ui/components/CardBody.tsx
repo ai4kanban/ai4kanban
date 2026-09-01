@@ -38,7 +38,7 @@ export function CardBody({
           are on too. This is the longest prose the board sets, so it is read THROUGH whatever
           is under it: a signal wash here tints every line. Giving the second half a ground of
           its own made the prose change colour halfway down; what parts them is the heading. */}
-      <div className="nb-section bg-nb-sheet p-5">
+      <div className="nb-section bg-nb-sheet p-5 max-md:p-4">
         <Markdown body={halves.human} mockups={mockups} />
       </div>
       {halves.agent && (

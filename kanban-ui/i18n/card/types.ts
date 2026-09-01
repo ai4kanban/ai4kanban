@@ -47,6 +47,14 @@ export type CardCopy = {
     scheduleFailed: string;
     unscheduleFailed: string;
     editFailed: string;
+    /** The stacked actions at phone width (#357): the way back to the column this card
+     *  came from, and the fold the actions past the first three sit behind. */
+    backTo: (column: string) => string;
+    more: string;
+    fewer: string;
+    /** Resolve, which at window width is the questions panel itself. At phone width the
+     *  panel is a page of its own, so the stack needs a button to push it. */
+    resolve: string;
   };
   delivery: {
     /** The fold's own control, which is the whole tab strip. */
@@ -147,6 +155,11 @@ export type CardCopy = {
     close: string;
     resolve: string;
     andImplement: string;
+    /** The page the panel becomes at phone width (#357): its title, and the line under it
+     *  saying what answering does. At window width the panel is read in place and needs
+     *  neither. */
+    pageTitle: (id: number) => string;
+    pageBlurb: string;
   };
   handChecks: {
     heading: string;

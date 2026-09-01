@@ -102,17 +102,20 @@ export function BoardCard({
               }}
               // The negative margin buys a bigger hit area than the box it
               // draws, so the tick is easy to hit without pushing the id along.
-              className={`-m-1 inline-flex cursor-pointer items-center justify-center p-1 ${
+              // At phone width it buys more of one — 40px around an 18px box —
+              // since a thumb has to land on it beside a card that is itself a
+              // link (#357).
+              className={`-m-1 inline-flex cursor-pointer items-center justify-center p-1 max-md:-m-[11px] max-md:p-[11px] ${
                 selected ? "text-white" : "text-transparent hover:text-nb-ink-soft"
               }`}
             >
               <span
-                className="inline-flex size-[14px] items-center justify-center rounded-[4px] border-[1.5px] border-nb-ink"
+                className="inline-flex size-[14px] max-md:size-[18px] items-center justify-center rounded-[4px] border-[1.5px] border-nb-ink"
                 style={{
                   background: selected ? "var(--color-nb-accent)" : "var(--color-nb-paper)",
                 }}
               >
-                <FiCheck aria-hidden style={{ width: 10, height: 10 }} strokeWidth={3} />
+                <FiCheck aria-hidden className="size-[10px] max-md:size-[13px]" strokeWidth={3} />
               </span>
             </button>
           )}

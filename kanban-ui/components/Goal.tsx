@@ -19,10 +19,12 @@
 // notice — is what asks for the goal there.
 
 import { useEffect, useState } from "react";
+import { FiChevronRight } from "react-icons/fi";
 import { TbNorthStar } from "react-icons/tb";
 import { getGoalAction, saveGoalAction } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { Button } from "./button";
+import { PHONE_ROW } from "./chrome";
 import { Dialog } from "./Dialog";
 import { GuideDrawer } from "./Guide";
 import { Markdown } from "./Markdown";
@@ -32,12 +34,21 @@ import { Markdown } from "./Markdown";
 const INPUT =
   "min-h-[260px] w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 font-mono text-[13px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent";
 
-export function Goal({ written }: { written: boolean }) {
+export function Goal({ written, row = false }: { written: boolean; row?: boolean }) {
   const c = useCopy().rail.goal;
   const [open, setOpen] = useState(false);
   if (!written) return null;
   return (
     <>
+      {/* `row` is the phone's More screen (#357): the same button, laid out for a width
+          where a 28px sticker in a corner is not something a thumb can aim at. */}
+      {row ? (
+        <button type="button" className={PHONE_ROW} title={c.openHint} onClick={() => setOpen(true)}>
+          <TbNorthStar className="shrink-0 text-[17px] text-nb-ink-soft" aria-hidden />
+          <span className="min-w-0 flex-1">{c.open}</span>
+          <FiChevronRight className="shrink-0 text-nb-ink-soft" size={16} aria-hidden />
+        </button>
+      ) : (
       <Button
         variant="ghost"
         size="xs"
@@ -49,6 +60,7 @@ export function Goal({ written }: { written: boolean }) {
         <TbNorthStar className="text-[15px]" aria-hidden />
         <span className="sr-only sm:not-sr-only">{c.open}</span>
       </Button>
+      )}
 
       {open && (
         <Dialog title={c.title} width={720} height="min(660px, 85vh)" flush onClose={() => setOpen(false)}>

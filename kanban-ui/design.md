@@ -184,6 +184,37 @@ shadow. Shadows never blur or change direction.
 - **Remove secondary structure on narrow screens** when it would consume the working
   area; keep the primary task and actions intact.
 
+## Phone width
+
+Under `md` (48rem) the board is laid out for a phone. All of it is that width only: at
+window width the rail, the header and the side-by-side columns are unchanged.
+
+- **The rail becomes a bottom tab bar**: Board, Find, Memory, More. It is on every screen
+  the phone reaches and says which of the four you are on.
+- **Find, Memory and More cover the page rather than replacing it**: the page stays
+  mounted, so the board keeps its scroll and a card page its state while the reader looks
+  something up.
+- **The top row holds four controls**: the mark, the release picker, the bell and Create
+  task. The rest of it moves to More, which also names what is done at the computer.
+- **One column at a time, swiped**: full-width scroll-snap pages under a band that names
+  the column, carries its count, and shows which of them you are on. Those dots are
+  buttons — a swipe is not reachable from a keyboard.
+- **Sideways movement is paging, never reading**: no screen may make the reader scroll
+  sideways to read what is on it.
+- **A dialog is a page**: full screen, no scrim, the ✕ in its title bar is Cancel, and its
+  buttons stack full width pinned at the foot.
+- **A card's actions are a stack**: full width, in the order they are pressed, with
+  everything past the first three behind More.
+- **Structure that needs width is dropped, not shrunk**: the group's dependency map reads
+  left to right across layers, so the list under it is the group at this width.
+- **What a thumb presses is 44px**, and a top-row control is 36px — which is what keeps
+  that row 43px at either width.
+- **Nothing is reachable only by hover**: a tooltip answers a tap where the pointer is
+  coarse, and a control that appears on hover stands all the time.
+- **Write it as a `max-md:` utility beside the markup**. Only what a class cannot reach —
+  the rail's `display` inside a panel group, the coarse-pointer tooltip — goes in
+  `app/globals.css`.
+
 ## Accessibility
 
 - Hold all normal text, including small chips, to 4.5:1 contrast. Non-text shapes need

@@ -82,6 +82,7 @@ export function MemoryPage({
         openIds={openIds}
         currentMemory={memoryKey(file.module, file.name)}
         memoryModules={memoryModules}
+        goalWritten={goalWritten}
         running={runningCardIds(sessions)}
         header={
           <Header
@@ -96,7 +97,7 @@ export function MemoryPage({
         <div className="h-full overflow-y-auto">
           <RunningNotice desktop={desktop} />
 
-          <main className="mx-auto w-full max-w-[840px] px-6 py-6">
+          <main className="mx-auto w-full max-w-[840px] px-6 py-6 max-md:px-4 max-md:py-4">
             {error && (
               <div
                 className="nb-panel-sm mb-4 p-3 text-[13px]"
@@ -126,7 +127,7 @@ export function MemoryPage({
               <PathMenu file={file} />
             </div>
 
-            <div className="nb-panel-sm p-5">
+            <div className="nb-panel-sm p-5 max-md:p-4">
               {file.written ? (
                 <Markdown body={file.text} />
               ) : (
@@ -186,7 +187,7 @@ function PathMenu({ file }: { file: MemoryFile }) {
             type="button"
             aria-label={c.menu}
             title={c.menu}
-            className="grid size-7 cursor-pointer place-items-center rounded-[7px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] hover:text-nb-ink"
+            className="grid size-7 max-md:size-11 cursor-pointer place-items-center rounded-[7px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] hover:text-nb-ink"
           >
             <FiMoreHorizontal aria-hidden style={{ width: 15, height: 15 }} />
           </button>

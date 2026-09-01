@@ -458,6 +458,7 @@ export function BoardView({
         projectRoot={projectRoot}
         openIds={board?.openIds ?? []}
         memoryModules={board?.memoryModules ?? []}
+        goalWritten={board?.goalWritten ?? false}
         running={runningCardIds(sessions)}
         onBoardChanged={boardChanged}
         header={

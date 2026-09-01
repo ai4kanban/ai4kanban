@@ -86,10 +86,11 @@ export function CreateTask({ release = null }: { release?: string | null }) {
   return (
     <div className="relative flex shrink-0 items-center">
       <Button
-        // The top row's 28px box. Narrow screens keep the button but drop its
-        // label — a plus in the same square frame, still the same target.
+        // The top row's 28px box, 36px at phone width where a thumb has to hit it
+        // (#357). Narrow screens keep the button but drop its label — a plus in the
+        // same square frame, still the same target.
         size="xs"
-        className="shrink-0 max-sm:w-7 max-sm:px-0"
+        className="shrink-0 max-md:h-9 max-sm:w-9 max-sm:px-0"
         aria-label={c.button}
         disabled={creating}
         onClick={() => {

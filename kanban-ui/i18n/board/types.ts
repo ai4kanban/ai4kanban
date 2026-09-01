@@ -28,6 +28,10 @@ export type BoardCopy = {
     recurring: string;
     /** A column with nothing on this side of the split. */
     empty: string;
+    /** The columns as a swipe, at phone width (#357): what the row is, and the dot that
+     *  jumps to one of them. */
+    columns: string;
+    goToColumn: (title: string) => string;
   };
   card: {
     tick: (id: number, title: string) => string;

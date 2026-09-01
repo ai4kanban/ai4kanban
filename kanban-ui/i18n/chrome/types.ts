@@ -93,6 +93,23 @@ export type ChromeCopy = {
       absent: string;
     };
   };
+  /** The phone shell (#357): the tab bar every screen there carries, and the More screen
+   *  the rest of the top row moved into. None of it is drawn at window width. */
+  phone: {
+    /** `nav` is only read out loud: the bar's own name. */
+    tabs: { nav: string; board: string; find: string; memory: string; more: string };
+    more: {
+      /** The heading over the board's own folder. */
+      board: string;
+      /** What the phone doesn't offer, and where it is done instead. */
+      atTheComputer: string;
+      atTheComputerBlurb: string;
+      runs: string;
+      diffs: string;
+      configuration: string;
+      chat: string;
+    };
+  };
   notFound: {
     title: string;
     leaving: (seconds: number) => string;
