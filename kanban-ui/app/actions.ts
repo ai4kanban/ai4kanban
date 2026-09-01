@@ -81,6 +81,8 @@ import {
   setDiffApproval,
   setHarness,
   setHarnessSetting,
+  setSilenceMinutes,
+  silenceMinutes,
 } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
 import { flowRules, setFlowRule } from "@/lib/flow-rules";
@@ -757,6 +759,26 @@ export async function diffApprovalAction(): Promise<{ on: boolean; error?: strin
 export async function setDiffApprovalAction(on: boolean): Promise<WriteResult> {
   if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
   return setDiffApproval(on);
+}
+
+// **End a silent run after** (#394) — how many minutes a run may say nothing before the
+// board ends it. Same file as the two above, so the Delivery switches and this box are one
+// read when the pane opens.
+export async function silenceLimitAction(): Promise<{ minutes: number; error?: string }> {
+  try {
+    return { minutes: await silenceMinutes() };
+  } catch (e) {
+    // Nothing to read the setting with: the box shows 0 — nothing would end a run — and
+    // says why rather than drawing an empty pane.
+    return { minutes: 0, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function setSilenceLimitAction(minutes: number): Promise<WriteResult> {
+  if (!Number.isInteger(minutes) || minutes < 0) {
+    return { ok: false, error: "that setting is a whole number of minutes" };
+  }
+  return setSilenceMinutes(minutes);
 }
 
 // --- the flow rules (#306) ---------------------------------------------------

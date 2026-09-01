@@ -23,6 +23,7 @@ export type MessagesCopy = {
   tooOld: {
     autoDelivery: string;
     diffApproval: string;
+    silenceLimit: string;
     deliveries: string;
     worktrees: string;
     flowRule: string;

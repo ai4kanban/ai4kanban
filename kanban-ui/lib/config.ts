@@ -49,3 +49,22 @@ export async function setDiffApproval(on: boolean): Promise<{ ok: boolean; error
   }
   return rules.setDiffApproval(on);
 }
+
+// --- the silence limit (#394) -------------------------------------------------
+// **End a silent run after** — how many minutes a run may produce nothing before the board
+// ends it as a failure. Repository-level, in the same file as the two above.
+
+export async function silenceMinutes(): Promise<number> {
+  const rules = await boardRules();
+  // Rules from before the setting ended nothing at all — which is exactly what 0 means, so
+  // the box stays honest about what a run would actually do.
+  return rules.silenceMinutes ? rules.silenceMinutes() : 0;
+}
+
+export async function setSilenceMinutes(minutes: number): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  if (!rules.setSilenceMinutes) {
+    return { ok: false, error: (await machineCopy()).messages.tooOld.silenceLimit };
+  }
+  return rules.setSilenceMinutes(minutes);
+}

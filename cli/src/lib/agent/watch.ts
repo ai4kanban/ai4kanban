@@ -48,6 +48,7 @@ import {
   titleOf,
   type CardClaim,
 } from './sessions'
+import { silenceMinutes } from './settings'
 import { startRun } from './start'
 import type { TurnEnd } from './wire'
 import type { AgentRequest, RunRecord } from './types'
@@ -56,11 +57,22 @@ import type { AgentRequest, RunRecord } from './types'
 // outright.
 const STOP_GRACE_MS = 5_000
 // And how long after that before the run is closed out whatever the child's pipes are
-// doing. See the note beside askToStop.
+// doing. See the note beside giveUp.
 const STOP_CLOSE_MS = 2_000
 // And how long the ending path itself gets to write the board out before the process
 // leaves anyway.
 const STOP_FINISH_MS = 10_000
+
+// How long a run may produce NOTHING AT ALL before the board ends it (#394). The limit
+// itself is the board's own setting (agent/settings.ts); this is the line the run is closed
+// with, because nothing here reads an agent's error format.
+//
+// The window is counted from the SPAWN and restarted by every raw byte on either pipe —
+// rendered text does not count, since an agent grinding through a long tool call writes
+// events that render to nothing. So a run queued behind the index lock is never ended
+// before it begins, and one that never says a word is still ended.
+const silenceSaid = (minutes: number): string =>
+  `the agent said nothing for ${minutes} minute${minutes === 1 ? '' : 's'}, so the run was ended.`
 
 /** Watch one run from start to finish. Resolves when the record is closed out. */
 export async function watchRun(sessionId: string): Promise<number> {
@@ -139,6 +151,10 @@ export async function watchRun(sessionId: string): Promise<number> {
 
   const [cmd, ...args] = active.argv
   const workDir = active.cwd ?? REPO_ROOT
+  // How long this run may say nothing. Read once, here, like every other setting a run
+  // uses: a limit changed mid-run belongs to the next run.
+  const silenceFor = silenceMinutes()
+  const silenceMs = silenceFor * 60_000
   // A connector the board talks to is started differently in two ways: the prompt is sent
   // in the conversation rather than spelled on the command line, and its stdin stays open,
   // because that is the half of the conversation this end writes (agent/wire/client.ts).
@@ -199,15 +215,23 @@ export async function watchRun(sessionId: string): Promise<number> {
   // the parser its own agent brings. stderr is plain text and passes through, whichever
   // kind of command this is: it is where a CLI puts its warnings either way — minus the
   // agent's own housekeeping chatter, which says nothing about the run.
-  if (renderer) {
-    child.stdout.on('data', (d: Buffer) => {
-      append(renderer.push(d.toString()))
-      gotResumeId(renderer.resumeId?.())
-      gotModel(renderer.model?.())
-    })
-  }
+  //
+  // `touch` restarts the silence window and is set once the promise below is running, which
+  // is where the run can be ended. stdout is listened to even when nothing renders it: a
+  // conversation's protocol is still the agent talking.
+  let touch = (): void => {}
+  child.stdout.on('data', (d: Buffer) => {
+    touch()
+    if (!renderer) return
+    append(renderer.push(d.toString()))
+    gotResumeId(renderer.resumeId?.())
+    gotModel(renderer.model?.())
+  })
   const errs = createStderrFilter(active.quietStderr)
-  child.stderr.on('data', (d: Buffer) => append(errs.push(d.toString())))
+  child.stderr.on('data', (d: Buffer) => {
+    touch()
+    append(errs.push(d.toString()))
+  })
 
   let spawnError: string | undefined
   child.on('error', (err) => {
@@ -228,9 +252,13 @@ export async function watchRun(sessionId: string): Promise<number> {
     // How the conversation ended, on a run the board talked to. It stands in for
     // everything a printing agent's own output would have said.
     let spoken: TurnEnd | undefined
+    // The silence window: whether it ran out, and the timer it runs on.
+    let silent = false
+    let idle: ReturnType<typeof setTimeout> | undefined
     const finish = async (code: number | null, asked: boolean): Promise<void> => {
       if (done) return
       done = true
+      if (idle) clearTimeout(idle)
       if (renderer) {
         append(renderer.flush())
         // The ids may have been in the last partial line, on a very short run.
@@ -273,7 +301,9 @@ export async function watchRun(sessionId: string): Promise<number> {
       // would advance and the refinements behind it would run on work that never happened.
       const failure = renderer?.failure?.()
       const unfinished = blocker || failure
-      const status = asked ? 'stopped' : unfinished ? 'error' : code === 0 ? 'done' : 'error'
+      // A run the silence window ended is a failure whatever the killed command or a
+      // connector's last turn goes on to report: we ended it, so our own call stands.
+      const status = asked ? 'stopped' : silent || unfinished ? 'error' : code === 0 ? 'done' : 'error'
       // Writing is the last refinement session. A clean exit is its verdict; lifecycle
       // bookkeeping belongs to the watcher, not to an agent editing prose. The board keeps
       // the card at todo if questions appeared or refuses the transition for another reason.
@@ -300,11 +330,14 @@ export async function watchRun(sessionId: string): Promise<number> {
         status,
         // `ok` stays unset on a stopped run, as it does on one that was cut off: it
         // neither passed nor failed, it was ended.
-        ok: asked ? undefined : !unfinished && code === 0,
+        ok: asked ? undefined : !silent && !unfinished && code === 0,
         code: asked ? null : code,
-        // What went wrong, in whoever's words know: ours when the command wouldn't start,
-        // the agent's own when the conversation ended badly or its stream said so.
-        error: spawnError ?? (asked ? undefined : (spoken?.error ?? failure)),
+        // What went wrong, in whoever's words know: ours when the command wouldn't start or
+        // when it went quiet, the agent's own when the conversation ended badly or its
+        // stream said so.
+        error:
+          spawnError ??
+          (asked ? undefined : silent ? silenceSaid(silenceFor) : (spoken?.error ?? failure)),
         note,
         endedAt,
       })
@@ -320,14 +353,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       resolve(status === 'done' ? 0 : 1)
     }
 
-    // A stop signals THIS process; pass it on and give the agent a moment to end on its
-    // own, then kill it — and close the run out either way.
-    //
-    // That last step is not belt and braces. The child's `close` waits on the output PIPE,
-    // not on the process: a tool the agent left behind inherits that pipe and can hold it
-    // open long after the agent itself is gone, which would leave the run reading as
-    // running and its card locked for good. So the ending is ours to declare.
-    // Ending the command ourselves, whether because a stop asked or because the
+    // Ending the command ourselves — a stop asked, the silence window ran out, or the
     // conversation is over. It gets a moment to end on its own, then it is killed.
     const endChild = () => {
       try {
@@ -349,10 +375,14 @@ export async function watchRun(sessionId: string): Promise<number> {
       })
     }
 
-    let stopped = false
-    const askToStop = () => {
-      if (stopped || done) return
-      stopped = true
+    // Putting the command down and declaring the run over whether or not its pipes come
+    // with it. Both endings take this path: a stop, and the silence window running out.
+    //
+    // Declaring it is not belt and braces. The child's `close` waits on the output PIPE,
+    // not on the process: a tool the agent left behind inherits that pipe and can hold it
+    // open long after the agent itself is gone, which would leave the run reading as
+    // running and its card locked for good.
+    const giveUp = (asked: boolean) => {
       endChild()
       after(STOP_GRACE_MS + STOP_CLOSE_MS, () => {
         // Nothing else is waiting on this process, and something is still holding a pipe
@@ -361,11 +391,35 @@ export async function watchRun(sessionId: string): Promise<number> {
         // the card's stage, a stopped run's question, and the delivery's next run. The
         // second timer is the bound — a landing that hangs cannot hold the process open.
         after(STOP_FINISH_MS, () => process.exit(0))
-        void finish(null, true).finally(() => process.exit(0))
+        void finish(null, asked).finally(() => process.exit(0))
       })
+    }
+
+    let stopped = false
+    const askToStop = () => {
+      if (stopped || done) return
+      stopped = true
+      giveUp(true)
     }
     process.on('SIGTERM', askToStop)
     process.on('SIGINT', askToStop)
+
+    // The silence window (see silenceSaid), restarted by every byte the command writes and
+    // started here, a tick after the spawn — so a run that never says a word runs out too.
+    // A limit of 0 switches it off. Unref'd, like every other timer here: a window still
+    // open cannot hold this process past the run it was watching.
+    touch = () => {
+      if (done || !silenceMs) return
+      if (idle) clearTimeout(idle)
+      idle = setTimeout(() => {
+        if (done || stopped || silent) return
+        silent = true
+        log.write(`\n[board] ${silenceSaid(silenceFor)}\n`)
+        giveUp(false)
+      }, silenceMs)
+      if (typeof idle.unref === 'function') idle.unref()
+    }
+    touch()
 
     // The conversation, on a run the board talks to. It is the run: a command that answers
     // back is a server and never exits on its own, so the turn's ending is the run's

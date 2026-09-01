@@ -54,7 +54,13 @@ number, though nothing was charged for it. Kimi Code shows none at all: its outp
 nothing and the board knows no rates for its models.
 
 **Rate-limit exit** — Claude Code ends a rate-limited run and frees the card. The others
-wait the limit out, holding the card. Stop the run yourself to get the card back.
+wait the limit out, holding the card. Stop the run yourself to get the card back, or let
+the silence limit below do it.
+
+Whichever agent you run, a run that stops producing any output ends by itself after
+**End a silent run after** in Configuration → General — 10 minutes unless you change it,
+and 0 switches it off. It ends as a failure, so the card keeps its work and Resume picks
+it up.
 
 **Direct skill call** — Claude Code and Codex are told to load the board skill by name.
 Cursor, OpenCode, Kimi Code, DeepSeek Harness and ZCode are asked in the prompt instead, and

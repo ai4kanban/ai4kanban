@@ -105,6 +105,8 @@ export {
   setHarness,
   setHarnessSetting,
   setSecret,
+  setSilenceMinutes,
+  silenceMinutes,
 } from './lib/agent/settings'
 export { testConnection } from './lib/agent/test'
 

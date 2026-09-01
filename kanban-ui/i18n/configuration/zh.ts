@@ -16,6 +16,7 @@ const zh: ConfigurationCopy = {
   general: {
     setup: "安装",
     delivery: "交付",
+    runs: "运行",
     language: "语言",
   },
   runtimes: {
@@ -124,6 +125,16 @@ const zh: ConfigurationCopy = {
     },
     switchOn: (setting) => `${setting}——已开启`,
     switchOff: (setting) => `${setting}——已关闭`,
+  },
+  runs: {
+    silence: {
+      title: "静默多久后结束运行",
+      body: "Agent 不再有任何输出的运行会以失败结束。卡片保留已有的工作，随时可以继续。",
+      off: "已关闭——Agent 静默的运行会一直占着卡片，直到你手动停止。",
+      unit: "分钟",
+    },
+    whole: "这个上限要填整数分钟，填 0 表示关闭",
+    failed: "未能保存静默上限",
   },
   flowRules: {
     title: "流程规则",

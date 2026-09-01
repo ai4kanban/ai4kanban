@@ -17,6 +17,7 @@ export type ConfigurationCopy = {
   general: {
     setup: string;
     delivery: string;
+    runs: string;
     language: string;
   };
   /** Configuration → Runtimes (#344): the runtimes the board names and what each one runs
@@ -132,6 +133,21 @@ export type ConfigurationCopy = {
     /** Only read out loud: one setting's switch. */
     switchOn: (setting: string) => string;
     switchOff: (setting: string) => string;
+  };
+  /** Configuration → General → Runs (#394): how long a run may say nothing before the
+   *  board ends it as a failure. */
+  runs: {
+    silence: {
+      title: string;
+      body: string;
+      /** The hint the row shows once the limit is 0. */
+      off: string;
+      /** After the box. */
+      unit: string;
+    };
+    /** What a box that isn't a whole number of minutes is told. */
+    whole: string;
+    failed: string;
   };
   flowRules: {
     title: string;

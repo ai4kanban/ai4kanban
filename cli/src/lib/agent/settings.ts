@@ -171,6 +171,43 @@ export function setDiffApproval(on: boolean): { ok: boolean; error?: string } {
   })
 }
 
+// ---- how long a run may say nothing (#394) ---------------------------------
+//
+//   "silenceMinutes": 20
+//
+// 10 by default, and only written down when somebody changed it. `0` switches the watchdog
+// off entirely, which is what rules from before this setting did.
+//
+// The dialog writes whole minutes. A hand-edited fraction is honoured exactly as written —
+// nothing needs rounding here, and a value under a minute is how the limit is checked in a
+// second rather than in ten.
+
+/** The limit a board that hasn't said otherwise runs on, in minutes. */
+export const SILENCE_MINUTES = 10
+
+/** How long a run may produce nothing before the board ends it, in minutes. `0` never ends
+ *  one. A missing, negative or unreadable value is the default: a file nobody can parse is
+ *  not a reason to leave hung runs holding their cards forever. */
+export function silenceMinutes(): number {
+  try {
+    const raw = readConfigRaw().silenceMinutes
+    return typeof raw === 'number' && Number.isFinite(raw) && raw >= 0 ? raw : SILENCE_MINUTES
+  } catch {
+    return SILENCE_MINUTES
+  }
+}
+
+/** Save it, in whole minutes. Back at the default drops the key rather than writing 10. */
+export function setSilenceMinutes(minutes: number): { ok: boolean; error?: string } {
+  if (!Number.isInteger(minutes) || minutes < 0) {
+    return { ok: false, error: 'that setting is a whole number of minutes, or 0 to switch it off' }
+  }
+  return writeConfig((cfg) => {
+    if (minutes === SILENCE_MINUTES) delete cfg.silenceMinutes
+    else cfg.silenceMinutes = minutes
+  })
+}
+
 // ---- the spec agents: the switch, and what each one is set to (#191, #255) --
 //
 // The same file also holds which spec agents may run, and what each one is set to:

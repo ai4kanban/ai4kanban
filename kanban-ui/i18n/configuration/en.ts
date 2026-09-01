@@ -16,6 +16,7 @@ const en: ConfigurationCopy = {
   general: {
     setup: "Setup",
     delivery: "Delivery",
+    runs: "Runs",
     language: "Language",
   },
   runtimes: {
@@ -128,6 +129,16 @@ const en: ConfigurationCopy = {
     },
     switchOn: (setting) => `${setting} — on`,
     switchOff: (setting) => `${setting} — off`,
+  },
+  runs: {
+    silence: {
+      title: "End a silent run after",
+      body: "A run whose agent stops producing any output ends as a failure. The card keeps its work, ready to resume.",
+      off: "Off — a run whose agent has gone quiet keeps its card until you stop it.",
+      unit: "minutes",
+    },
+    whole: "that limit is a whole number of minutes, or 0 to switch it off",
+    failed: "couldn't save the silence limit",
   },
   flowRules: {
     title: "Flow rules",

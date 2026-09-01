@@ -19,6 +19,7 @@ const zh: MessagesCopy = {
   tooOld: {
     autoDelivery: "这个看板的运行规则早于自动交付——请运行 `npm install -g ai4kanban`。",
     diffApproval: "这个看板的运行规则早于差异批准——请运行 `npm install -g ai4kanban`。",
+    silenceLimit: "这个看板的运行规则早于静默上限——请运行 `npm install -g ai4kanban`。",
     deliveries: "这个看板的运行规则早于交付流程——请运行 `npm install -g ai4kanban`。",
     worktrees: "这个看板的运行规则早于交付 worktree——请运行 `npm install -g ai4kanban`。",
     flowRule: "这个项目里的运行规则太旧，无法保存流程规则",

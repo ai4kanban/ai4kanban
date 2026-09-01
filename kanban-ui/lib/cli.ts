@@ -138,6 +138,11 @@ export interface BoardRules {
   diffApprovalRequired?(): boolean;
   setDiffApproval?(on: boolean): WriteResult;
 
+  // how long a run may say nothing before the board ends it (#394), in minutes. `0` never
+  // ends one, which is what rules older than the setting do.
+  silenceMinutes?(): number;
+  setSilenceMinutes?(minutes: number): WriteResult;
+
   // the conversation with that agent (#242) — the board's, and each card's. Optional for
   // the same reason as the moves below: a project can be running rules older than the
   // release that added them, and the chat says so rather than the window failing to draw.

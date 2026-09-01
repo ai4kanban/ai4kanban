@@ -21,8 +21,9 @@ import type { TokenUsage } from '../types'
 
 /** One turn, from the pipes it is held over to the things it reports back. */
 export interface ClientTurn {
-  /** The command's own streams. The client owns both: this stdout is a protocol, not a
-   *  log, and nothing else reads or writes them. */
+  /** The command's own streams. The client owns the conversation on both: this stdout is a
+   *  protocol, not a log, and nothing else reads it for meaning. The runner listens to it
+   *  too, but only to count bytes against the silence window (#394). */
   stdout: Readable
   stdin: Writable
   /** What to ask the agent to do. */
