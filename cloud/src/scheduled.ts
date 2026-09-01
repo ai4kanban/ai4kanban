@@ -13,6 +13,11 @@ export interface Sweep {
   cardMessages?: number
 }
 
+/** What one pass of the operation-ledger prune freed (#314). */
+export interface Prune {
+  deleted: number
+}
+
 export interface Heartbeat {
   last_run_at: string
   runs: number
@@ -35,7 +40,13 @@ export interface Heartbeat {
  */
 export async function runScheduled(
   env: Env,
-): Promise<{ heartbeat: Heartbeat; mail: MailRun; messages: Record<string, DeliveryRun>; sweep: Sweep }> {
+): Promise<{
+  heartbeat: Heartbeat
+  mail: MailRun
+  messages: Record<string, DeliveryRun>
+  sweep: Sweep
+  operations: Prune
+}> {
   const heartbeat = await call<Heartbeat>(env, 'service_heartbeat')
   console.log('cloud: heartbeat', { ...heartbeat, daily_write_budget: DAILY_WRITE_BUDGET })
 
@@ -70,5 +81,17 @@ export async function runScheduled(
   }
   if (sweep.deleted > 0) console.log('cloud: swept finished events', sweep)
 
-  return { heartbeat, mail, messages, sweep }
+  // A workspace's operation ledger is a retry window, not a record (#314): it exists so an
+  // attempt whose reply was lost is answered once. Past its retention the rows are dropped,
+  // which is what keeps the table bounded whatever a busy day writes. The audit trail is not
+  // swept — it goes when its workspace does and at no other time.
+  let operations: Prune = { deleted: 0 }
+  try {
+    operations = await call<Prune>(env, 'prune_operations')
+  } catch (error) {
+    console.error('cloud: operation prune failed', error)
+  }
+  if (operations.deleted > 0) console.log('cloud: pruned operation records', operations)
+
+  return { heartbeat, mail, messages, sweep, operations }
 }

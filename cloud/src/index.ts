@@ -2,7 +2,7 @@ import { isLarkCloud } from './config.ts'
 import { mutate } from './db.ts'
 import { requireEnv } from './env.ts'
 import type { Env } from './env.ts'
-import { Refusal, badRequest, methodNotAllowed, notAdmitted, notFound } from './errors.ts'
+import { Refusal, badRequest, notAdmitted, notFound } from './errors.ts'
 import {
   listEvents,
   publishEvent,
@@ -12,7 +12,7 @@ import {
   registerBoard,
   retireEvent,
 } from './events.ts'
-import { json, refusalResponse } from './http.ts'
+import { bodyOf, json, refusalResponse, requireMethod } from './http.ts'
 import { requestInvite, sendPendingMail } from './invites.ts'
 import { larkCallback } from './lark-actions.ts'
 import {
@@ -43,6 +43,7 @@ import {
   listServers,
   renewClaim,
 } from './servers.ts'
+import { routeWorkspace } from './workspaces.ts'
 
 interface SelfCheck {
   writes_today: number
@@ -67,7 +68,8 @@ export default {
 }
 
 async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-  const { pathname } = new URL(request.url)
+  const url = new URL(request.url)
+  const { pathname } = url
 
   // Liveness. It reaches nothing, so it stays honest while the database is read-only.
   if (pathname === '/health') {
@@ -103,6 +105,15 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     // Resend's latency, and a send that fails is what the hourly run retries.
     ctx.waitUntil(sendPendingMail(env).catch((e) => console.error('cloud: mail failed', e)))
     return json({ requestedAt })
+  }
+
+  // The Cloud board itself, and everything that hangs off it (#314) — its cards, its
+  // execution nodes, its delivery attempts and its trail. One matcher, because the workspace
+  // surface reads as a list where its routes sit together; `src/workspaces.ts` dispatches it.
+  const workspaces = /^\/v1\/workspaces(?:\/(.*))?$/.exec(pathname)
+  if (workspaces) {
+    const owner = await requireOwner(request, env)
+    return routeWorkspace(env, owner, request, url, (workspaces[1] ?? '').replace(/\/+$/, ''))
   }
 
   // The events a board publishes, and the one action each may carry (#319). All behind the
@@ -300,14 +311,4 @@ function redraw(env: Env, ctx: ExecutionContext, eventId: string): void {
   ctx.waitUntil(
     redrawEverywhere(env, eventId).catch((e) => console.error('cloud: delivery failed', e)),
   )
-}
-
-function requireMethod(request: Request, method: string): void {
-  if (request.method !== method) throw methodNotAllowed()
-}
-
-/** A JSON body, or nothing. A request that carries something other than JSON is a bad
- *  request; each route says which field it was missing. */
-async function bodyOf(request: Request): Promise<unknown> {
-  return (await request.json().catch(() => null)) as unknown
 }

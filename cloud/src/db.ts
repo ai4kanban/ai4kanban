@@ -10,7 +10,11 @@ import {
   Refusal,
   alreadyActed,
   dailyWriteBudgetReached,
+  nodeRemoved,
+  notFound,
   notYours,
+  operationReused,
+  revisionConflict,
   serverElsewhere,
   serviceUnavailable,
   staleRevision,
@@ -31,6 +35,19 @@ export const PG_ALREADY_ACTED = 'AKB04'
 
 /** SQLSTATE attaching a second machine to one board raises (#318). */
 export const PG_SERVER_ELSEWHERE = 'AKB05'
+
+/** SQLSTATE a workspace write against a revision that has moved raises (#314). `details`
+ *  carries the revision the resource holds now. */
+export const PG_REVISION_CONFLICT = 'AKB06'
+
+/** SQLSTATE one operation id used for two different changes raises. */
+export const PG_OPERATION_REUSED = 'AKB07'
+
+/** SQLSTATE a call from a machine the workspace no longer runs its work on raises. */
+export const PG_NODE_REMOVED = 'AKB08'
+
+/** SQLSTATE a call naming a card or a delivery the workspace does not hold raises. */
+export const PG_NOT_IN_WORKSPACE = 'AKB10'
 
 /** Postgres' own codes for a database that has stopped taking writes. */
 const PG_READ_ONLY = ['25006', '53100']
@@ -91,6 +108,10 @@ export function refusalFor(error: PostgrestError, status: number): Refusal {
   if (error.code === PG_STALE_REVISION) return staleRevision()
   if (error.code === PG_ALREADY_ACTED) return alreadyActed()
   if (error.code === PG_SERVER_ELSEWHERE) return serverElsewhere(error.message)
+  if (error.code === PG_REVISION_CONFLICT) return revisionConflict(error.details ?? '')
+  if (error.code === PG_OPERATION_REUSED) return operationReused()
+  if (error.code === PG_NODE_REMOVED) return nodeRemoved()
+  if (error.code === PG_NOT_IN_WORKSPACE) return notFound(error.message)
   if (error.code && PG_READ_ONLY.includes(error.code)) return storageLimitReached()
   console.error('cloud: database refused a call', {
     status,

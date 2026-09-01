@@ -11,26 +11,19 @@
  * one server per board, one claim per request, an expired lease reading as interrupted —
  * are the migration's, because they have to hold against two machines calling at once.
  *
- * The registration also carries what that machine runs the board's runtimes as (#345). It is
- * shaped and capped here, so nothing a client sends puts anything but names in the row.
+ * The registration also carries what that machine runs the board's runtimes as (#345), shaped
+ * and capped by `src/input.ts` so nothing a client sends puts anything but names in the row.
  */
 
 import { CLAIM_LEASE_SECONDS } from './config.ts'
 import { call, mutate } from './db.ts'
 import type { Env } from './env.ts'
-import { badRequest, notFound } from './errors.ts'
+import { notFound } from './errors.ts'
+import { runtimes, shortName, uuid } from './input.ts'
+import type { ServerRuntime } from './input.ts'
 import type { Owner } from './owner.ts'
 
-/** One of the board's runtimes (#345), and what the machine registered here runs it as.
- *  Names only: never a key, an argument string or a path. */
-export interface ServerRuntime {
-  name: string
-  harness: string
-  /** Absent where that computer set no model, so the harness runs its own default. */
-  model?: string
-  /** That computer bound nothing for this runtime, so it fell back. */
-  fallback?: boolean
-}
+export type { ServerRuntime } from './input.ts'
 
 /** A machine registered against one board. */
 export interface ServerRow {
@@ -70,7 +63,7 @@ export async function attachServer(env: Env, owner: Owner, boardId: string, body
     p_subject: owner.accountId,
     p_board: uuid(boardId, 'board'),
     p_machine: uuid(input.machineId, 'machine'),
-    p_machine_name: typeof input.machineName === 'string' ? input.machineName.slice(0, 200) : '',
+    p_machine_name: shortName(input.machineName),
     p_take_over: input.takeOver === true,
     p_runtimes: runtimes(input.runtimes),
   })
@@ -125,36 +118,4 @@ export function renewClaim(env: Env, owner: Owner, requestId: string, body: unkn
     p_request: uuid(requestId, 'request'),
     p_lease_seconds: CLAIM_LEASE_SECONDS,
   })
-}
-
-/** At most this many runtimes, and each name no longer than a machine name. A board names a
- *  handful; the cap is here so nothing a client sends can grow the row without bound. */
-const MAX_RUNTIMES = 32
-const MAX_NAME = 200
-
-/** What the client says it runs the board's runtimes as, taken as names and nothing else.
- *  Anything unrecognisable is dropped rather than refused: a report is best-effort, and one
- *  bad entry must not stop a machine registering. */
-function runtimes(value: unknown): ServerRuntime[] {
-  if (!Array.isArray(value)) return []
-  const out: ServerRuntime[] = []
-  for (const item of value.slice(0, MAX_RUNTIMES)) {
-    const held = (item ?? {}) as Record<string, unknown>
-    const name = shortName(held.name)
-    const harness = shortName(held.harness)
-    if (!name || !harness) continue
-    const model = shortName(held.model)
-    out.push({ name, harness, ...(model ? { model } : {}), ...(held.fallback === true ? { fallback: true } : {}) })
-  }
-  return out
-}
-
-const shortName = (value: unknown): string => (typeof value === 'string' ? value.trim().slice(0, MAX_NAME) : '')
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-function uuid(value: unknown, what: string): string {
-  const held = typeof value === 'string' ? value.trim() : ''
-  if (!UUID.test(held)) throw badRequest(`That request names no ${what}.`)
-  return held
 }

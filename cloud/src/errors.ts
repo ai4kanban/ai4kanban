@@ -9,6 +9,9 @@ export type RefusalCode =
   | 'no_verified_address'
   | 'not_yours'
   | 'stale_revision'
+  | 'revision_conflict'
+  | 'operation_reused'
+  | 'node_removed'
   | 'already_acted'
   | 'server_elsewhere'
   | 'slack_unavailable'
@@ -26,13 +29,23 @@ export class Refusal extends Error {
   readonly status: number
   /** Seconds a client should wait before retrying, when there is a useful answer. */
   readonly retryAfterSeconds?: number
+  /** The revision the resource holds now, on a conflict. Carried in the refusal itself so a
+   *  client re-reads that one card rather than the whole board (#314). */
+  readonly current?: string
 
-  constructor(code: RefusalCode, status: number, message: string, retryAfterSeconds?: number) {
+  constructor(
+    code: RefusalCode,
+    status: number,
+    message: string,
+    retryAfterSeconds?: number,
+    current?: string,
+  ) {
     super(message)
     this.name = 'Refusal'
     this.code = code
     this.status = status
     this.retryAfterSeconds = retryAfterSeconds
+    this.current = current
   }
 }
 
@@ -139,7 +152,39 @@ export const larkNotConnected = () =>
     'This account has no Lark connection. Connect one in Configuration → Notifications.',
   )
 
-export const notFound = () => new Refusal('not_found', 404, 'No such endpoint.')
+/**
+ * A workspace write against a revision that has moved (#314). Its own code rather than
+ * `stale_revision`, because it carries the revision the resource holds NOW: the caller
+ * re-reads that one card and writes again, which is what #312's conflict result is for.
+ */
+export const revisionConflict = (current = '') =>
+  new Refusal(
+    'revision_conflict',
+    409,
+    'That changed since you read it. Open it again and make the change on what it says now.',
+    undefined,
+    current,
+  )
+
+/** One operation id, two different changes. #312 mints one per attempt, so this is a client
+ *  reusing an id rather than retrying — answering it with the first result would report work
+ *  that never happened. */
+export const operationReused = () =>
+  new Refusal(
+    'operation_reused',
+    409,
+    'That change was already recorded under this attempt. Make it again as a new one.',
+  )
+
+/** The machine a call was made from is not one this workspace runs its work on any more. */
+export const nodeRemoved = () =>
+  new Refusal(
+    'node_removed',
+    403,
+    'This machine no longer runs this workspace’s work. Open the workspace here again to register it.',
+  )
+
+export const notFound = (message = 'No such endpoint.') => new Refusal('not_found', 404, message)
 
 export const methodNotAllowed = () =>
   new Refusal('method_not_allowed', 405, 'That endpoint does not take this method.')

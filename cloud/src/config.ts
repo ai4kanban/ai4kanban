@@ -18,6 +18,22 @@ export const DAILY_WRITE_BUDGET = 20_000
  */
 export const CLAIM_LEASE_SECONDS = 15 * 60
 
+/**
+ * How long a workspace's execution node holds without saying it is still there (#314).
+ *
+ * #318's number, for the same reason: a renewal is a write against the one daily budget, so
+ * a machine left on all day must cost tens of them rather than thousands. Set here rather
+ * than by the client, so nothing a machine sends can hold a lease open forever.
+ */
+export const NODE_LEASE_SECONDS = 15 * 60
+
+/**
+ * How many cards one write may carry (#314). A multi-card operation commits whole or changes
+ * nothing, so this bounds the transaction as well as the request: #315's import sends a large
+ * board in passes of this size rather than in one call nothing can retry.
+ */
+export const MAX_CARDS_PER_WRITE = 200
+
 /** How long a fetched JWKS is reused before it is fetched again. */
 export const JWKS_TTL_MS = 10 * 60 * 1000
 

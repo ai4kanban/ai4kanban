@@ -1,8 +1,10 @@
 # AI4Kanban Cloud service
 
 The one service every Cloud workspace runs on: a Cloudflare Worker at `api.ai4kanban.dev`
-in front of a Supabase Postgres project. Board rules, membership and audit events are not
-here — they are #314's, written against what this stands up.
+in front of a Supabase Postgres project. It holds the workspace a Cloud board lives in, the
+ids that board runs on, and the one transaction every change to it goes through. Members and
+roles are not here — they are #376's, and #314 left the authorization check in one place for
+them to change.
 
 ```
 cloud/
@@ -28,6 +30,39 @@ cloud/
 - **Sign-in is verified, never issued here**: Supabase Auth signs sessions with an asymmetric
   key and the Worker checks them against the project's JWKS. There is no shared signing
   secret to hold or leak.
+- **A workspace is one board, and one account's**: it holds the cards, the execution nodes
+  registered to run its work, the operation ledger and the audit trail, all under ids this
+  service allocates — except a card's, which stays the small integer the board already calls
+  it by. `cloud.workspace_for` is the whole of its authorization, in one place, and a
+  workspace that is not the caller's and one that has been deleted meet the same refusal: no
+  client has to tell "gone" from "not yours", and nothing leaks whether one ever existed.
+- **One transaction per change, and one line of trail per change**: authorization, lifecycle
+  rules, operation uniqueness and the expected revision are checked, the change is applied,
+  revisions advance and an attributed audit event is appended — all of it or none of it. A
+  multi-card write commits whole or changes nothing.
+- **One writer at a time per workspace**: every mutation opens by locking the workspace's own
+  row, which is what makes the control plane decide the ORDER of two writes and not only
+  whether each one is allowed. Without it two clients both read revision 3, both pass the
+  expected-revision check, and the second quietly writes over the first; with it the second
+  waits, re-reads a revision that has moved, and gets the conflict it should have had. A
+  write is a card being saved rather than a keystroke, so that is a board's own pace. #375's
+  per-card lease narrows this rather than adding it.
+- **A retried attempt answers once**: a client mints one `opId` per attempt (#312), and the
+  workspace's operation ledger holds what the first one did. The same id carrying the same
+  words gets that answer back; the same id carrying different words is refused rather than
+  answered with somebody else's outcome. Only an attempt that COMMITTED is on record — a
+  conflict and a refusal write nothing, so there is nothing to answer again with and a
+  refused write costs the day's budget nothing.
+- **A conflict is its own refusal**: `revision_conflict` carries `current`, the revision the
+  resource holds now, so a client re-reads that one card rather than the whole board.
+- **The trail is immutable**: an audit event is never rewritten, and the only thing that
+  removes one is the workspace being deleted. A trigger on the table says so, so a later
+  migration cannot quietly make it a suggestion.
+- **Deleting a workspace takes everything in it, inside the call**: cards, execution nodes,
+  the ledger, the delivery attempts and the trail. No grace window, no deleted-but-answering
+  state, no backups to restore from — the owner's export is the only copy anyone has. It is
+  deliberately outside the daily write budget: somebody removing their own data must never be
+  refused for a reason that is about how busy the service was today.
 - **One owner check, applied by every route**: `src/owner.ts` turns a verified sign-in into
   an account (`cloud.accounts`), refuses one we have not admitted, and hands the route an
   `owner.accountId` to hang its rows off. Two routes are open before admission — the one that
@@ -44,7 +79,7 @@ cloud/
   the name.
 - **One schedule serves the whole service**: an hourly run touches the database, which is
   what keeps a free Supabase project from pausing after a quiet week. It also sweeps finished
-  events, and retries mail.
+  events, drops operation records past their retention, and retries mail.
 - **Slack is a connected app, and every message is written from here**: a workspace grants
   the Worker a bot token, which never leaves it, so no Slack credential reaches a checkout
   and a message keeps moving while the board's machine is off. A press comes back signed by
@@ -119,6 +154,40 @@ cloud/
 - `POST /v1/self-check` — one budgeted write through the path every mutation uses. Needs the
   same bearer token **and an admitted account**; run it after a deploy.
 
+The workspace a Cloud board lives in (#314), all behind the same bearer token and an admitted
+account. A mutation the ledger deduplicates carries `opId`, the attempt it is, and may carry
+`nodeId`, the machine it was made from; a card write also carries `expect`, the revision it
+read. The four that carry no `opId` are the ones that repeat safely without one — making a
+workspace, deleting it, and a node registering or renewing.
+
+- `POST /v1/workspaces` — make one. `{ "name": "…", "opId": "…" }`; the `opId` is optional,
+  because the ledger that would deduplicate it lives inside the workspace this call is
+  making — the workspace row carries it instead.
+- `GET /v1/workspaces` — the caller's own.
+- `GET /v1/workspaces/<id>` — one, and the revision the board reads at now.
+- `POST /v1/workspaces/<id>/rename` — `{ "opId": "…", "expect": "…", "name": "…" }`.
+- `POST /v1/workspaces/<id>/delete` — the workspace and everything in it, at once. The
+  confirmation is the caller's; #317 is what asks a person whether they mean it.
+- `GET /v1/workspaces/<id>/cards` — every card, each with its own revision.
+- `POST /v1/workspaces/<id>/cards` — write one card or many, in one transaction:
+  `{ "opId": "…", "nodeId": "…", "cards": [{ "id": 7, "expect": "3", "data": { … } }] }`. An
+  entry naming no `id` is given the next number the board has free; one naming an id the
+  workspace does not hold keeps that number, which is what lets an import carry a board's own
+  numbering in unchanged. `expect: ""` is what a card that does not exist yet reads as.
+- `GET /v1/workspaces/<id>/audit?limit=N` — the trail, newest first.
+- `GET|POST /v1/workspaces/<id>/nodes` — the machines registered to run this workspace's
+  work, and registering the one calling: `{ "machineId": "…", "machineName": "…",
+  "runtimes": [ … ] }`. Idempotent on the machine id.
+- `POST /v1/workspaces/<id>/nodes/<node>/rename` — `{ "opId": "…", "name": "…" }`. The name is
+  the owner's, so registering again never takes it back.
+- `POST /v1/workspaces/<id>/nodes/<node>/remove` — take the machine off. Its next renewal,
+  write and delivery confirmation are all refused.
+- `POST /v1/workspaces/<id>/nodes/<node>/renew` — the node saying it is still there.
+- `POST /v1/workspaces/<id>/deliveries` — open a delivery attempt under an id this service
+  allocates: `{ "opId": "…", "nodeId": "…", "cardId": 7 }`.
+- `POST /v1/workspaces/<id>/deliveries/<delivery>/confirm` — how it ended:
+  `{ "opId": "…", "nodeId": "…", "outcome": "completed" | "failed" | "cancelled" }`.
+
 Slack (#320), all but the last two behind the same bearer token:
 
 - `POST /v1/slack/install` — the consent screen to open, with the nonce that makes the
@@ -168,7 +237,10 @@ to be shown to a user as it stands. The two a client must tell apart:
 | --- | --- |
 | `unauthenticated` | No sign-in, or one that is expired or unreadable. Signing in again fixes it. |
 | `not_admitted` | A good sign-in from an account we have not admitted. Signing in again lands on the same refusal, so a client must never answer it with "sign in again". |
-| `not_yours` | The request named a row belonging to another account. |
+| `not_yours` | The request named a row belonging to another account — or a workspace that has been deleted, which answers the same way on purpose. |
+| `revision_conflict` | A write against a revision that has moved. Carries `current`, the revision the resource holds now, so the client re-reads that one card and writes again. |
+| `operation_reused` | One `opId`, two different changes. A retry carrying the same payload is answered with the first result instead; this is a client reusing an id. |
+| `node_removed` | The call came from a machine this workspace no longer runs its work on. |
 | `slack_unavailable` / `slack_not_connected` | This service carries no Slack app, or this account has connected none. |
 | `lark_unavailable` / `lark_not_connected` | This service carries no app for that cloud, or this account has connected no Lark destination. |
 | `no_verified_address` | GitHub attests no address for this account, so a request would leave us nowhere to answer. |
@@ -360,6 +432,16 @@ service refusing requests over a secret only the schedule needs.
   whether Realtime itself, Auth itself and PostgREST behave as those stand-ins do; that is
   what `-- --project` against a throwaway project is for, and what the hand-pass over a live
   project covers.
+- **The operation ledger is a retry window, not a record** — a workspace's ledger rows are
+  dropped after seven days by the hourly run (`api.prune_operations`), which is far past the
+  just-under-four-hours a board retries a send for. The audit trail is **not** swept: it goes
+  when its workspace does and at no other time.
+- **Deleting a workspace is outside the write budget** — like the heartbeat and the sweep.
+  Somebody removing their own data must never be refused for a reason that is about how busy
+  the service was today.
+- **A card write is capped at 200 cards** — `MAX_CARDS_PER_WRITE` in `src/config.ts`. The
+  operation commits whole or changes nothing, so this bounds the transaction as well as the
+  request; a large import sends the board in passes of that size.
 - **No backups** — Supabase Free keeps none. A workspace export is the only copy anyone can
   restore from.
 
@@ -368,6 +450,10 @@ service refusing requests over a secret only the schedule needs.
 Arithmetic from what one account's flow costs, not a measurement — the traffic to measure
 only exists once the preview has people in it. Recount it when any of the numbers below
 moves.
+
+It covers the NOTIFICATION flow alone: a board kept on a machine, publishing what needs a
+person. What a board stored in a workspace costs is #315's to count, once there is a client
+writing one.
 
 **What one card costs, from the board to a finished delivery.** Every budgeted write is a
 `cloud.count_write` in `migrations/`; the connector line is one delivery record per event

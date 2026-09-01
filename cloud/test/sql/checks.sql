@@ -49,6 +49,21 @@ exception when others then
 end;
 $fn$;
 
+/** Run something that must be refused with AKB06, and hand back the revision the resource
+ *  holds now — the DETAIL a conflict carries, which is what a client re-reads on. */
+create function pg_temp.conflict_current(p_sql text, p_what text) returns text
+language plpgsql as $fn$
+declare
+  v_current text;
+begin
+  execute p_sql;
+  raise exception '% — expected a conflict and nothing was refused', p_what;
+exception when sqlstate 'AKB06' then
+  get stacked diagnostics v_current = pg_exception_detail;
+  return v_current;
+end;
+$fn$;
+
 do $checks$
 declare
   A constant uuid := 'aaaaaaaa-1111-4111-8111-111111111111';
@@ -687,5 +702,364 @@ begin
   raise notice 'sql checks: every check passed';
 end
 $checks$;
+
+-- ---------------------------------------------------------------------------
+-- The control plane a workspace runs on (#314)
+-- ---------------------------------------------------------------------------
+--
+-- A block of its own: what a workspace does with two writers, a retried attempt and its own
+-- deletion is not a variation on the event flow above, and reading them together helps
+-- nobody. The accounts are the two the block above already made.
+
+do $workspaces$
+declare
+  A constant uuid := 'aaaaaaaa-1111-4111-8111-111111111111';
+  B constant uuid := 'bbbbbbbb-2222-4222-8222-222222222222';
+  MACHINE constant uuid := '99999999-1111-4111-8111-aaaaaaaaaaaa';
+  MACHINE_2 constant uuid := '99999999-2222-4222-8222-bbbbbbbbbbbb';
+  BUDGET constant integer := 100000;
+  v_ws uuid;
+  v_other uuid;
+  v_node uuid;
+  v_delivery uuid;
+  v_json json;
+  v_text text;
+  v_count integer;
+  v_revision text;
+  v_card_revision text;
+begin
+  -- -------------------------------------------------------------------------
+  -- A workspace belongs to the account that created it
+  -- -------------------------------------------------------------------------
+  -- Any admitted account may make one, and there is no cap: two in a row for one account,
+  -- and B's is B's.
+
+  v_json := api.create_workspace(A, 'op-create-1', 'A board', BUDGET);
+  v_ws := (v_json ->> 'id')::uuid;
+  assert (v_json ->> 'ownerId')::uuid = A, 'a workspace was not owned by the account that made it';
+  assert (v_json ->> 'revision') = '1', 'a new workspace did not start at its first revision';
+  assert (v_json ->> 'nextCardId')::integer = 1, 'a new workspace did not start numbering at 1';
+  assert json_array_length(api.list_workspaces(A)) = 1, 'the account could not see its own workspace';
+
+  v_json := api.create_workspace(B, 'op-create-b', 'B board', BUDGET);
+  v_other := (v_json ->> 'id')::uuid;
+  assert json_array_length(api.list_workspaces(A)) = 1, 'one account saw another''s workspace';
+
+  -- The one mutation the ledger cannot cover deduplicates on the workspace row itself, so a
+  -- create whose reply was lost finds the same workspace rather than leaving a second.
+  assert (api.create_workspace(A, 'op-create-1', 'A board', BUDGET) ->> 'id')::uuid = v_ws,
+    'a retried create made a second workspace';
+  assert (select count(*) from cloud.workspaces where owner_id = A) = 1,
+    'a retried create left a second workspace behind';
+
+  -- Every endpoint answers the owner and nobody else. One check does it —
+  -- `cloud.workspace_for` — which is the one place #376 changes.
+  perform pg_temp.refuses(format('select api.read_workspace(%L, %L)', B, v_ws), 'AKB02', 'read_workspace');
+  perform pg_temp.refuses(format('select api.read_cards(%L, %L)', B, v_ws), 'AKB02', 'read_cards');
+  perform pg_temp.refuses(format('select api.read_audit(%L, %L, 10)', B, v_ws), 'AKB02', 'read_audit');
+  perform pg_temp.refuses(format('select api.list_nodes(%L, %L)', B, v_ws), 'AKB02', 'list_nodes');
+  perform pg_temp.refuses(
+    format('select api.rename_workspace(%L, %L, %L, null, %L, %L, %s)', B, v_ws, 'op-b', '1', 'stolen', BUDGET),
+    'AKB02', 'rename_workspace');
+  perform pg_temp.refuses(
+    format('select api.write_cards(%L, %L, %L, null, %L, %s)', B, v_ws, 'op-b2', '[{"expect":""}]', BUDGET),
+    'AKB02', 'write_cards');
+  perform pg_temp.refuses(
+    format('select api.register_node(%L, %L, %L, %L, %L, %s)', B, v_ws, MACHINE, 'm', '[]', BUDGET),
+    'AKB02', 'register_node');
+  perform pg_temp.refuses(
+    format('select api.open_delivery(%L, %L, %L, null, 1, %s)', B, v_ws, 'op-b3', BUDGET),
+    'AKB02', 'open_delivery');
+  perform pg_temp.refuses(format('select api.delete_workspace(%L, %L)', B, v_ws), 'AKB02', 'delete_workspace');
+
+  -- -------------------------------------------------------------------------
+  -- The ids the control plane allocates
+  -- -------------------------------------------------------------------------
+  -- Card ids stay the board's own small integers: a write naming none is given the next
+  -- number free, and one naming 42 keeps 42 and moves the counter past it.
+
+  v_json := api.write_cards(A, v_ws, 'op-w1', null,
+                            '[{"expect":"","data":{"title":"first"}},{"expect":"","data":{"title":"second"}}]'::jsonb,
+                            BUDGET);
+  assert ((v_json -> 'cards' -> 0) ->> 'id')::integer = 1, 'the first card was not numbered 1';
+  assert ((v_json -> 'cards' -> 1) ->> 'id')::integer = 2, 'the second card was not numbered 2';
+  assert (v_json ->> 'revision') = '2', 'a write did not advance the workspace''s revision';
+
+  v_json := api.write_cards(A, v_ws, 'op-w2', null,
+                            '[{"id":42,"expect":"","data":{"title":"imported"}}]'::jsonb, BUDGET);
+  assert ((v_json -> 'cards' -> 0) ->> 'id')::integer = 42, 'an imported card lost its own number';
+  v_json := api.write_cards(A, v_ws, 'op-w3', null, '[{"expect":"","data":{}}]'::jsonb, BUDGET);
+  assert ((v_json -> 'cards' -> 0) ->> 'id')::integer = 43,
+    'the next card was numbered over one an import had already taken';
+
+  -- -------------------------------------------------------------------------
+  -- Revisions, the ledger, and the trail
+  -- -------------------------------------------------------------------------
+
+  select (c ->> 'revision') into v_card_revision
+  from json_array_elements(api.read_cards(A, v_ws) -> 'cards') c
+  where (c ->> 'id')::integer = 1;
+  assert v_card_revision = '1', 'a card did not start at its first revision';
+
+  v_json := api.write_cards(A, v_ws, 'op-w4', null,
+                            format('[{"id":1,"expect":"%s","data":{"title":"again"}}]', v_card_revision)::jsonb,
+                            BUDGET);
+  assert ((v_json -> 'cards' -> 0) ->> 'revision') = '2', 'a card''s revision did not advance';
+
+  -- An audit event per change, attributed, and appended inside the same transaction.
+  select count(*) into v_count from cloud.workspace_audit
+   where workspace_id = v_ws and action = 'card.written';
+  assert v_count = 5, format('the trail did not record every card written (%s)', v_count);
+  assert (select actor_handle from cloud.workspace_audit
+           where workspace_id = v_ws and action = 'workspace.created') = 'account-a',
+    'the trail did not say who made the workspace';
+
+  -- -------------------------------------------------------------------------
+  -- A retried attempt answers once
+  -- -------------------------------------------------------------------------
+
+  v_json := api.write_cards(A, v_ws, 'op-w4', null,
+                            format('[{"id":1,"expect":"%s","data":{"title":"again"}}]', v_card_revision)::jsonb,
+                            BUDGET);
+  assert ((v_json -> 'cards' -> 0) ->> 'revision') = '2',
+    'a retried attempt was not answered with the first result';
+  select count(*) into v_count from cloud.workspace_audit
+   where workspace_id = v_ws and action = 'card.written';
+  assert v_count = 5, 'a retried attempt did the work a second time';
+
+  -- The same id carrying different words is refused rather than answered with somebody
+  -- else's outcome.
+  perform pg_temp.refuses(
+    format('select api.write_cards(%L, %L, %L, null, %L, %s)', A, v_ws, 'op-w4',
+           '[{"id":1,"expect":"2","data":{"title":"different"}}]', BUDGET),
+    'AKB07', 'an operation id reused for a different change');
+
+  -- -------------------------------------------------------------------------
+  -- A conflict is its own refusal, and carries the revision held now
+  -- -------------------------------------------------------------------------
+
+  v_text := pg_temp.conflict_current(
+    format('select api.write_cards(%L, %L, %L, null, %L, %s)', A, v_ws, 'op-stale',
+           '[{"id":1,"expect":"1","data":{"title":"stale"}}]', BUDGET),
+    'a write against a revision that had moved');
+  assert v_text = '2', format('a conflict did not carry the revision held now (%s)', v_text);
+
+  -- A create that finds the card already there is the same conflict, and says so with the
+  -- revision rather than a sentence.
+  v_text := pg_temp.conflict_current(
+    format('select api.write_cards(%L, %L, %L, null, %L, %s)', A, v_ws, 'op-stale-2',
+           '[{"id":1,"expect":"","data":{}}]', BUDGET),
+    'a create over a card that already exists');
+  assert v_text = '2', 'a create over an existing card did not carry its revision';
+
+  -- Nothing was written, and nothing was recorded: a conflict is not an attempt to answer
+  -- again with, so retrying it re-computes the same refusal.
+  assert (select count(*) from cloud.workspace_operations
+           where workspace_id = v_ws and op_id like 'op-stale%') = 0,
+    'a conflict left a row in the operation ledger';
+
+  -- The board itself is a resource with a revision of its own, and a rename against one
+  -- that has moved is the same refusal carrying the same kind of answer.
+  v_revision := api.read_workspace(A, v_ws) ->> 'revision';
+  assert (api.rename_workspace(A, v_ws, 'op-name', null, v_revision, 'The board', BUDGET) ->> 'name')
+         = 'The board',
+    'a rename against the revision the board held did not land';
+  v_text := pg_temp.conflict_current(
+    format('select api.rename_workspace(%L, %L, %L, null, %L, %L, %s)', A, v_ws, 'op-name-2',
+           v_revision, 'Again', BUDGET),
+    'a rename against a revision that had moved');
+  assert v_text = (api.read_workspace(A, v_ws) ->> 'revision'),
+    'a board-level conflict did not carry the revision the board holds now';
+
+  -- -------------------------------------------------------------------------
+  -- A multi-card operation commits whole or changes nothing
+  -- -------------------------------------------------------------------------
+
+  perform pg_temp.refuses(
+    format('select api.write_cards(%L, %L, %L, null, %L, %s)', A, v_ws, 'op-batch',
+           '[{"id":2,"expect":"1","data":{"title":"ok"}},{"id":1,"expect":"1","data":{"title":"stale"}}]',
+           BUDGET),
+    'AKB06', 'a batch whose last card had moved');
+  assert (select data ->> 'title' from cloud.workspace_cards
+           where workspace_id = v_ws and card_id = 2) = 'second',
+    'a batch that could not commit whole changed a card anyway';
+
+  -- -------------------------------------------------------------------------
+  -- Execution nodes come under the workspace
+  -- -------------------------------------------------------------------------
+
+  v_json := api.register_node(A, v_ws, MACHINE, 'studio', '[{"name":"fast","harness":"claude-code"}]'::jsonb, BUDGET);
+  v_node := (v_json ->> 'id')::uuid;
+  assert (v_json ->> 'name') = 'studio', 'a node did not take the machine''s name to start with';
+  assert json_array_length(v_json -> 'runtimes') = 1, 'a node lost what it runs the board''s runtimes as';
+  assert json_array_length(api.list_nodes(A, v_ws)) = 1, 'the workspace did not list its node';
+
+  -- Registering again from the same machine is the same node, and free when nothing moved.
+  assert (api.register_node(A, v_ws, MACHINE, 'studio', '[{"name":"fast","harness":"claude-code"}]'::jsonb, BUDGET)
+          ->> 'id')::uuid = v_node,
+    'a machine opening the workspace again became a second node';
+
+  -- A workspace has as many nodes as the owner registers machines — unlike a board, which
+  -- attaches exactly one server (#318).
+  perform api.register_node(A, v_ws, MACHINE_2, 'laptop', '[]'::jsonb, BUDGET);
+  assert json_array_length(api.list_nodes(A, v_ws)) = 2, 'a workspace refused a second machine';
+
+  -- Naming it is the owner's, and registering again never takes that name back.
+  perform api.rename_node(A, v_ws, 'op-rename', v_node, 'The studio', BUDGET);
+  assert (api.register_node(A, v_ws, MACHINE, 'studio', '[]'::jsonb, BUDGET) ->> 'name') = 'The studio',
+    'registering again took back the name the owner gave a node';
+
+  -- Registering again with something about the machine changed is a change like any other:
+  -- the revision advances and the trail records it. Registering again with nothing changed
+  -- is free, and moves neither.
+  v_revision := api.read_workspace(A, v_ws) ->> 'revision';
+  select count(*) into v_count from cloud.workspace_audit
+   where workspace_id = v_ws and action = 'node.registered';
+  perform api.register_node(A, v_ws, MACHINE, 'studio-2', '[]'::jsonb, BUDGET);
+  assert (api.read_workspace(A, v_ws) ->> 'revision') <> v_revision,
+    'a machine re-describing itself did not advance the workspace''s revision';
+  assert (select count(*) from cloud.workspace_audit
+           where workspace_id = v_ws and action = 'node.registered') = v_count + 1,
+    'a machine re-describing itself left no line of trail';
+
+  v_revision := api.read_workspace(A, v_ws) ->> 'revision';
+  perform api.register_node(A, v_ws, MACHINE, 'studio-2', '[]'::jsonb, BUDGET);
+  assert (api.read_workspace(A, v_ws) ->> 'revision') = v_revision,
+    'registering again with nothing changed moved the board anyway';
+
+  -- A node saying it is still there, and what a workspace read makes of that.
+  assert (api.renew_node(A, v_ws, v_node, 900, BUDGET) ->> 'live')::boolean,
+    'a node that had just renewed did not read as live';
+
+  -- A delivery attempt gets its id from here, and the machine that ran it confirms it.
+  v_json := api.open_delivery(A, v_ws, 'op-deliver', v_node, 1, BUDGET);
+  v_delivery := (v_json ->> 'id')::uuid;
+  assert (v_json ->> 'state') = 'open', 'a delivery attempt did not start open';
+  assert (v_json ->> 'nodeId')::uuid = v_node, 'a delivery attempt was not attributed to its node';
+  assert (api.confirm_delivery(A, v_ws, 'op-confirm', v_node, v_delivery, 'completed', '{}'::jsonb, BUDGET)
+          ->> 'state') = 'completed',
+    'a delivery attempt did not take the outcome its node reported';
+
+  -- What the attempt says happened is part of the attempt: one id carrying a different
+  -- account of the same delivery is refused rather than answered with the first one's.
+  perform pg_temp.refuses(
+    format('select api.confirm_delivery(%L, %L, %L, %L, %L, %L, %L, %s)', A, v_ws, 'op-confirm',
+           v_node, v_delivery, 'completed', '{"summary":"something else"}', BUDGET),
+    'AKB07', 'one operation id carrying two accounts of a delivery');
+
+  -- Removed: its next renewal, its next write and its next delivery confirmation all meet
+  -- the one refusal `cloud.require_node` raises.
+  perform api.remove_node(A, v_ws, 'op-remove', v_node, BUDGET);
+  assert json_array_length(api.list_nodes(A, v_ws)) = 1, 'a removed node was still listed';
+  perform pg_temp.refuses(
+    format('select api.renew_node(%L, %L, %L, 900, %s)', A, v_ws, v_node, BUDGET),
+    'AKB08', 'a removed node renewing');
+  perform pg_temp.refuses(
+    format('select api.write_cards(%L, %L, %L, %L, %L, %s)', A, v_ws, 'op-gone', v_node,
+           '[{"expect":"","data":{}}]', BUDGET),
+    'AKB08', 'a removed node writing');
+  v_json := api.open_delivery(A, v_ws, 'op-deliver-2', null, 1, BUDGET);
+  perform pg_temp.refuses(
+    format('select api.confirm_delivery(%L, %L, %L, %L, %L, %L, %L, %s)', A, v_ws, 'op-confirm-2',
+           v_node, (v_json ->> 'id')::uuid, 'completed', '{}', BUDGET),
+    'AKB08', 'a removed node confirming a delivery');
+
+  -- The removal sticks to the NODE, not to the machine: opening the workspace from the same
+  -- computer registers a new one, and the id the owner took off stays refused for good.
+  v_json := api.register_node(A, v_ws, MACHINE, 'studio', '[]'::jsonb, BUDGET);
+  assert (v_json ->> 'id')::uuid <> v_node, 'a removed node was revived by the machine registering again';
+  assert (v_json ->> 'name') = 'studio', 'a node registered afresh did not take the machine''s own name';
+  perform pg_temp.refuses(
+    format('select api.renew_node(%L, %L, %L, 900, %s)', A, v_ws, v_node, BUDGET),
+    'AKB08', 'a removed node renewing after the machine registered afresh');
+
+  -- And a node of another workspace is refused by the same check, so a machine cannot carry
+  -- one workspace's registration into another.
+  perform pg_temp.refuses(
+    format('select api.renew_node(%L, %L, %L, 900, %s)', B, v_other,
+           (api.list_nodes(A, v_ws) -> 0 ->> 'id')::uuid, BUDGET),
+    'AKB08', 'a node borrowed from another workspace');
+
+  -- A change made from a machine is attributed to it, not only to the account.
+  v_json := api.list_nodes(A, v_ws);
+  perform api.write_cards(A, v_ws, 'op-from-node', (v_json -> 0 ->> 'id')::uuid,
+                          '[{"expect":"","data":{}}]'::jsonb, BUDGET);
+  assert (select node_id from cloud.workspace_audit
+           where workspace_id = v_ws order by id desc limit 1)
+         = (v_json -> 0 ->> 'id')::uuid,
+    'a change made from a machine was not attributed to it';
+
+  -- And the trail reads back, newest first.
+  v_json := api.read_audit(A, v_ws, 5);
+  assert json_array_length(v_json) = 5, 'the trail did not answer with the run of events asked for';
+  assert (v_json -> 0 ->> 'handle') = 'account-a', 'the trail did not say who made a change';
+
+  -- -------------------------------------------------------------------------
+  -- The trail is immutable
+  -- -------------------------------------------------------------------------
+
+  perform pg_temp.refuses(
+    format('update cloud.workspace_audit set action = %L where workspace_id = %L', 'nothing', v_ws),
+    'AKB09', 'rewriting an audit event');
+  perform pg_temp.refuses(
+    format('delete from cloud.workspace_audit where workspace_id = %L', v_ws),
+    'AKB09', 'dropping an audit event on its own');
+
+  -- -------------------------------------------------------------------------
+  -- The operation ledger stays bounded, and the trail is not swept
+  -- -------------------------------------------------------------------------
+
+  select count(*) into v_count from cloud.workspace_audit where workspace_id = v_ws;
+  update cloud.workspace_operations set at = now() - interval '8 days' where workspace_id = v_ws;
+  perform api.prune_operations();
+  assert (select count(*) from cloud.workspace_operations where workspace_id = v_ws) = 0,
+    'the prune kept operation records past their retention';
+  assert (select count(*) from cloud.workspace_audit where workspace_id = v_ws) = v_count,
+    'the prune took audit events with it';
+
+  -- -------------------------------------------------------------------------
+  -- Deleting a workspace takes everything in it, inside the call
+  -- -------------------------------------------------------------------------
+
+  perform api.write_cards(A, v_ws, 'op-last', null, '[{"expect":"","data":{}}]'::jsonb, BUDGET);
+  assert (api.delete_workspace(A, v_ws) ->> 'deleted')::boolean, 'the delete did not report itself done';
+
+  assert (select count(*) from cloud.workspaces where id = v_ws) = 0, 'the workspace outlived its delete';
+  assert (select count(*) from cloud.workspace_cards where workspace_id = v_ws) = 0, 'a card outlived its workspace';
+  assert (select count(*) from cloud.board_servers where workspace_id = v_ws) = 0, 'a node outlived its workspace';
+  assert (select count(*) from cloud.workspace_deliveries where workspace_id = v_ws) = 0,
+    'a delivery attempt outlived its workspace';
+  assert (select count(*) from cloud.workspace_operations where workspace_id = v_ws) = 0,
+    'the operation ledger outlived its workspace';
+  assert (select count(*) from cloud.workspace_audit where workspace_id = v_ws) = 0,
+    'the trail outlived its workspace — the one operation that may remove one';
+
+  -- A deleted workspace answers like one the caller never had, on every path: nobody has to
+  -- tell "gone" from "not yours", and nothing leaks whether it ever existed.
+  perform pg_temp.refuses(
+    format('select api.write_cards(%L, %L, %L, null, %L, %s)', A, v_ws, 'op-after',
+           '[{"expect":"","data":{}}]', BUDGET),
+    'AKB02', 'a write naming a deleted workspace');
+  perform pg_temp.refuses(
+    format('select api.renew_node(%L, %L, %L, 900, %s)', A, v_ws, v_node, BUDGET),
+    'AKB02', 'a renewal naming a deleted workspace');
+  perform pg_temp.refuses(
+    format('select api.confirm_delivery(%L, %L, %L, null, %L, %L, %L, %s)', A, v_ws, 'op-after-2',
+           v_delivery, 'completed', '{}', BUDGET),
+    'AKB02', 'a delivery confirmation naming a deleted workspace');
+  perform pg_temp.refuses(
+    format('select api.delete_workspace(%L, %L)', A, v_ws), 'AKB02', 'the delete retried');
+  perform pg_temp.refuses(
+    format('select api.read_workspace(%L, %L)', A, v_ws), 'AKB02', 'a read naming a deleted workspace');
+
+  -- What a deletion does not take: the owner's account and its admission, which are service
+  -- data rather than workspace content. Nor anybody else's workspace.
+  assert (select count(*) from cloud.accounts where id = A) = 1, 'the delete took the owner''s account';
+  assert (select count(*) from cloud.workspaces where id = v_other) = 1,
+    'the delete reached another account''s workspace';
+
+  raise notice 'sql checks: #314 workspace checks passed';
+end
+$workspaces$;
 
 rollback;
