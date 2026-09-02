@@ -15,7 +15,7 @@ Codex can already run independent coding tasks in parallel, including in separat
 AI4Kanban manages those project-level questions, then gives the implementation work to your existing Codex CLI.
 
 <Shot
-  src="board"
+  src="board-v2"
   wash="emberLilac"
   alt="AI4Kanban separates Codex cards that are ready to build from cards with unresolved decisions"
   caption="Cards are sorted by whether they are ready to build, not by whether an agent is free. A card leaves the right-hand column when its outcome and constraints are settled — the question marks are cards still holding an open decision."
@@ -35,12 +35,7 @@ AI4Kanban manages those project-level questions, then gives the implementation w
 
 AI4Kanban puts readiness, dependencies, shared decisions, and release order on cards. Independent cards can build together; blocked cards wait; finished deliveries land one at a time. Codex still does the coding, but you no longer have to act as its scheduler and shared memory.
 
-<Shot
-  src="task-graph"
-  wash="mintSky"
-  alt="A goal split into subtasks, with arrows showing which Codex tasks must wait for another"
-  caption="A goal splits into subtasks with their dependencies drawn. The arrows decide what Codex can run at the same time and what has to wait."
-/>
+<RequirementCascade caption="A goal splits into subtasks with their dependencies drawn. The arrows decide what Codex can run at the same time and what has to wait." />
 
 ## Can Codex clarify requirements before coding?
 
@@ -55,7 +50,7 @@ Yes. Codex can inspect a repository, propose a plan, and ask questions before ed
 Your answer updates the requirement and durable project memory instead of remaining in one conversation.
 
 <Shot
-  src="card-questions"
+  src="card-questions-v1"
   wash="peachEmber"
   alt="A Codex task with 2 unresolved product questions, concrete choices, and recommended answers"
   caption="Only unresolved product choices reach you, with concrete options and a recommendation."

@@ -15,7 +15,7 @@ Claude Code can coordinate several coding sessions with subagents, agent view, a
 AI4Kanban keeps the project outside those sessions: which requests are ready, which tasks are blocked, which product decisions every task must follow, and what happened after a Claude Code run ended.
 
 <Shot
-  src="board-chat"
+  src="board-chat-v1"
   wash="emberLilac"
   alt="AI4Kanban discusses project dependencies and memory with Claude Code"
   caption="Claude Code works through the board without making one chat the project's source of truth."
@@ -44,7 +44,7 @@ Claude Code is expected to settle factual questions itself. It inspects the code
 The finished card contains the outcome, boundaries, dependencies, edge cases, and verification criteria that the implementation run must follow. If the work is too large, Claude splits it into smaller cards and records the order in which they can run.
 
 <Shot
-  src="runs"
+  src="runs-v2"
   wash="peachEmber"
   alt="A Claude Code refinement run separates decisions settled from evidence from questions left for the user"
   caption="A Claude Code refinement run records what it settled from repository evidence and what still needs your decision."
@@ -68,7 +68,7 @@ AI4Kanban preserves 2 kinds of context: state for each task and shared memory th
 Each card names the parts of the product it changes. A new run receives the card, project memory, and memory for those modules. It does not receive every card or a replay of old chats.
 
 <Shot
-  src="memory"
+  src="memory-v2"
   wash="mintSky"
   alt="AI4Kanban shares product decisions and design lessons across Claude Code tasks"
   caption="Task history stays with the card; shared product decisions stay in small project and module memory files."
@@ -95,7 +95,7 @@ No. AI4Kanban launches the Claude Code CLI already installed on your machine. Yo
 Choose the login already used by your Claude CLI, an Anthropic API key, or an Anthropic-compatible endpoint. Named runtimes can use different models and reasoning effort for task preparation, implementation, review, and specialist work. Empty fields keep Claude Code's defaults.
 
 <Shot
-  src="configuration-runtimes"
+  src="configuration-runtimes-v1"
   wash="emberMint"
   alt="AI4Kanban configures a Claude Code provider, model, reasoning effort, and extra arguments"
   caption="AI4Kanban uses the installed Claude CLI and keeps provider, model, effort, and extra arguments explicit."

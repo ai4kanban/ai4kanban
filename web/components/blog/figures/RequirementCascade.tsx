@@ -13,12 +13,12 @@ function RootCard() {
   return <TaskCard {...ROOT} />;
 }
 
-export function RequirementCascade() {
+const CAPTION =
+  "One request becomes a task graph: scoped cards with boundaries the agent can work independently and relationships the project can coordinate.";
+
+export function RequirementCascade({ caption = CAPTION }: { caption?: string }) {
   return (
-    <Figure
-      wash="skyLilac"
-      caption="One request becomes a task graph: scoped cards with boundaries the agent can work independently and relationships the project can coordinate."
-    >
+    <Figure wash="skyLilac" caption={caption}>
       <Panel
         title="One specification"
         alt="One large card containing a rough product request"
