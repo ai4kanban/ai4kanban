@@ -189,6 +189,20 @@ written, and where it names a card the name is a link to that card's page.
   key. A reply `akb chat` is writing is the terminal's own: the chat follows it and the box
   still takes typing, but the corner button stays a greyed Send, and Ctrl-C in that terminal
   is the way to end it.
+- **Copy an answer without selecting it.** Hover a reply — or tab to it — and a quiet
+  **Copy** appears under it. It copies what the agent said, without the grey lines of what
+  it looked at and without the app's own note that you stopped the reply. A fenced code
+  block in a reply carries the same button in its corner.
+- **Send a message again.** A reply that stopped short or came back with nothing gets
+  **Send again**: one click sends that message again, and the answer lands at the foot with
+  the old exchange untouched. A reply that finished doesn't get the button — the agent
+  carries its own session on, so asking again would be asking twice. It waits while a reply
+  is coming, the same way the box does.
+- **Reword what you sent.** Every message of yours gets **Reword**, not only the last: it
+  puts those words back in the box to edit. What is already typed is never overwritten —
+  the button asks once first, the way the bin does.
+- **Copy the whole conversation.** The copy button in the chat's own header takes the
+  exchange as markdown, who said what in order, with the lookup lines left out here too.
 - **Folding it doesn't stop it.** The reply keeps arriving, and the Chat button marks that
   there is something to read.
 - **It keeps.** The exchange is still there after the app is closed and reopened, and it is per

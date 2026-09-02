@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { createContext, useContext, useMemo } from "react";
-import ReactMarkdown, { type Components, defaultUrlTransform } from "react-markdown";
+import { FiCheck, FiCopy } from "react-icons/fi";
+import ReactMarkdown, { type Components, type ExtraProps, defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { SKIP, visit } from "unist-util-visit";
+import { useCopy } from "@/i18n/use-copy";
 import { mockupBlock, type MockupSet } from "@/lib/mockup-tag";
+import { Copied, useCopyText } from "./copy";
 import { Mockup } from "./Mockup";
 import { useOpenIds } from "./open-ids";
 
@@ -116,9 +119,51 @@ function Anchor({ href, children }: { href?: string; children?: React.ReactNode 
   );
 }
 
+/** A fenced block with a copy button in its corner, for the one place a copy button
+ *  belongs: a reply in the chat rail (#269). Everywhere else the same markdown is drawn
+ *  without it — a card's body, a memory file and a run's log are read, not lifted.
+ *
+ *  The button is outside the `pre`, which scrolls sideways, so it stays in the corner
+ *  however wide the code is. */
+function CopyPre({ node, children, ...rest }: React.ComponentProps<"pre"> & ExtraProps) {
+  const c = useCopy();
+  const { copied, copy } = useCopyText();
+  return (
+    <div className="group relative">
+      <pre {...rest}>{children}</pre>
+      <button
+        type="button"
+        onClick={() => copy(codeOf(node))}
+        title={c.chat.copyCode}
+        aria-label={c.chat.copyCode}
+        className="absolute right-2 top-2 grid size-6 cursor-pointer place-items-center rounded-[6px] bg-nb-paper text-nb-ink opacity-0 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] focus-visible:opacity-100 group-hover:opacity-100"
+      >
+        {copied ? <FiCheck size={12} aria-hidden /> : <FiCopy size={12} aria-hidden />}
+      </button>
+      <Copied on={copied} />
+    </div>
+  );
+}
+
+/** What a fenced block says, off the tree rather than off the rendered children — the
+ *  children are React elements, and the text is what goes on the clipboard. */
+function codeOf(node: ExtraProps["node"]): string {
+  let text = "";
+  const walk = (n: { type: string; value?: string; children?: unknown[] }) => {
+    if (n.type === "text") text += n.value ?? "";
+    for (const kid of n.children ?? []) walk(kid as Parameters<typeof walk>[0]);
+  };
+  if (node) walk(node);
+  return text;
+}
+
 // `mockup` is our own tag rather than an HTML one, so the map is cast: what
 // react-markdown looks up is the tag name, and it has no type for that one.
 const COMPONENTS = { mockup: MockupNode, a: Anchor } as Components;
+
+// Held apart as a constant rather than spread at render: a fresh `components` object every
+// render is a fresh component type, which React answers by remounting the whole subtree.
+const COMPONENTS_COPY = { ...COMPONENTS, pre: CopyPre } as Components;
 
 export function Markdown({
   body,
@@ -126,10 +171,14 @@ export function Markdown({
   /** The mockups this page has already read, keyed by `src` (#239). Only a card page
    *  hands them over — everywhere else a `<Mockup>` tag reads as the text it is. */
   mockups,
+  /** Put a copy button on every fenced block (#269). Only a reply in the chat rail asks
+   *  for it. */
+  copyCode,
 }: {
   body: string;
   className?: string;
   mockups?: MockupSet;
+  copyCode?: boolean;
 }) {
   // Every markdown body on a page linkifies against the same set — see
   // OpenIdsProvider for why this is context rather than a prop.
@@ -142,7 +191,11 @@ export function Markdown({
   return (
     <MockupsContext.Provider value={mockups ?? null}>
       <div className={className ? `nb-md ${className}` : "nb-md"}>
-        <ReactMarkdown remarkPlugins={plugins} urlTransform={urlTransform} components={COMPONENTS}>
+        <ReactMarkdown
+          remarkPlugins={plugins}
+          urlTransform={urlTransform}
+          components={copyCode ? COMPONENTS_COPY : COMPONENTS}
+        >
           {body}
         </ReactMarkdown>
       </div>

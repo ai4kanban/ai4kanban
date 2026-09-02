@@ -31,6 +31,21 @@ export type ChatCopy = {
   emptyBoardAsks: [string, string, string, string];
   emptyCard: (id: number) => string;
   emptyCardAsks: [string, string, string];
+  /** What you can do with a message without retyping it (#269) — the words on the
+   *  buttons, and the fuller labels a screen reader and a tooltip get. */
+  copyReply: string;
+  copyCode: string;
+  copyChat: string;
+  again: string;
+  againHint: string;
+  reword: string;
+  rewordHint: string;
+  /** What the Reword button becomes when something is already typed in the box — the
+   *  header bin's ask-once, in the same shape. */
+  rewordConfirm: string;
+  /** Who said what, in a conversation copied out as markdown. */
+  youSaid: string;
+  agentSaid: string;
   ask: string;
   askCard: (id: number) => string;
   message: string;

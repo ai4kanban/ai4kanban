@@ -18,12 +18,24 @@
 // walking to another card never cuts a reply off, and closing the app never loses one.
 
 import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { FiMessageSquare, FiSend, FiSquare, FiTrash2, FiX } from "react-icons/fi";
+import {
+  FiCheck,
+  FiCopy,
+  FiEdit3,
+  FiMessageSquare,
+  FiRefreshCw,
+  FiSend,
+  FiSquare,
+  FiTrash2,
+  FiX,
+} from "react-icons/fi";
+import type { ChatCopy } from "@/i18n/chat/types";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRail } from "@/lib/chat-rail";
 import type { ChatMessage } from "@/lib/types";
 import { Button } from "./button";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
+import { Copied, useCopyText } from "./copy";
 import { Markdown } from "./Markdown";
 
 /** How long the clear button waits for its second click before going back to being a
@@ -116,6 +128,9 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
         messages={messages}
         live={rail.live}
         stopped={rail.stopped}
+        canSend={!!read && !blocked && !answering}
+        onResend={rail.resend}
+        onReword={rail.reword}
         // Only once this conversation has actually been read. Landing on a card drops the
         // last one's messages on the spot, and the invitation before the read would be a
         // beat of "nothing has been said" on a card that has plenty.
@@ -144,7 +159,8 @@ function Head({ rail }: { rail: ChatRail }) {
     const timer = setTimeout(() => setConfirming(false), CONFIRM_MS);
     return () => clearTimeout(timer);
   }, [confirming]);
-  const has = (rail.read?.chat?.messages.length ?? 0) > 0;
+  const messages = rail.read?.chat?.messages ?? [];
+  const has = messages.length > 0;
   const about = rail.cardId === null ? c.aboutBoard : c.aboutCard(rail.cardId);
 
   return (
@@ -158,6 +174,7 @@ function Head({ rail }: { rail: ChatRail }) {
         {about}
       </span>
       <span className="ml-auto flex shrink-0 items-center gap-0.5">
+        {has && <CopyChat messages={messages} />}
         {has &&
           (confirming ? (
             <button
@@ -184,6 +201,21 @@ function Head({ rail }: { rail: ChatRail }) {
   );
 }
 
+/** Getting the whole exchange out of the rail, as markdown to paste. Hidden until
+ *  something has been said — there is nothing to copy off an empty rail. */
+function CopyChat({ messages }: { messages: ChatMessage[] }) {
+  const c = useCopy().chat;
+  const { copied, copy } = useCopyText();
+  return (
+    <>
+      <IconButton label={c.copyChat} onClick={() => copy(transcriptOf(messages, c))}>
+        {copied ? <FiCheck size={13} aria-hidden /> : <FiCopy size={13} aria-hidden />}
+      </IconButton>
+      <Copied on={copied} />
+    </>
+  );
+}
+
 function IconButton({ label, onClick, children }: { label: string; onClick(): void; children: React.ReactNode }) {
   return (
     <button
@@ -205,12 +237,21 @@ function Transcript({
   messages,
   live,
   stopped,
+  canSend,
+  onResend,
+  onReword,
   empty,
 }: {
   messages: ChatMessage[];
   live: string | null;
   /** A stopped reply's words, held here until the transcript has them (#267). */
   stopped: string | null;
+  /** A message can leave the box right now — what "send again" waits for (#269). */
+  canSend: boolean;
+  /** Both held steady by the rail: a message is drawn once and held across the polls,
+   *  and a fresh callback every render would draw every one of them again. */
+  onResend(text: string): void;
+  onReword(text: string, force?: boolean): boolean;
   empty: React.ReactNode;
 }) {
   const c = useCopy().chat;
@@ -234,13 +275,26 @@ function Transcript({
       ) : (
         <div className="flex flex-col gap-3 pb-2">
           {messages.map((m, i) => (
-            <Said key={i} message={m} />
+            <Said
+              key={i}
+              message={m}
+              sent={m.role === "agent" ? sentBefore(messages, i) : null}
+              canSend={canSend}
+              onResend={onResend}
+              onReword={onReword}
+            />
           ))}
           {live !== null && <Writing text={live} />}
           {/* A stopped reply reads as a finished one from the click: no pulse, no
               "writing", and the peach note the transcript will carry a moment later. */}
           {stopped !== null && (
-            <Said message={{ role: "agent", text: stopped, at: 0, stoppedWhy: c.youStopped }} />
+            <Said
+              message={{ role: "agent", text: stopped, at: 0, stoppedWhy: c.youStopped }}
+              sent={sentBefore(messages, messages.length)}
+              canSend={canSend}
+              onResend={onResend}
+              onReword={onReword}
+            />
           )}
         </div>
       )}
@@ -256,19 +310,60 @@ function Transcript({
  *  re-reads the conversation on a timer and gets a fresh array every time, and re-rendering
  *  a long exchange means parsing every message's markdown again. */
 const Said = memo(
-  function Said({ message }: { message: ChatMessage }) {
+  function Said({
+    message,
+    sent,
+    canSend,
+    onResend,
+    onReword,
+  }: {
+    message: ChatMessage;
+    /** The message this reply answered — what "send again" sends again (#269). */
+    sent: string | null;
+    canSend: boolean;
+    onResend(text: string): void;
+    onReword(text: string, force?: boolean): boolean;
+  }) {
     const c = useCopy().chat;
     if (message.role === "you") {
       return (
-        <div className="whitespace-pre-wrap rounded-[10px] bg-nb-wash px-2.5 py-2 text-[13px] leading-[1.5]">
-          {message.text}
+        <div className="group">
+          <div className="whitespace-pre-wrap rounded-[10px] bg-nb-wash px-2.5 py-2 text-[13px] leading-[1.5]">
+            {message.text}
+          </div>
+          <div className={ACTIONS}>
+            <Reword text={message.text} onReword={onReword} />
+          </div>
         </div>
       );
     }
+    // A reply that stopped part way, or came back with no words of its own, is one worth
+    // asking again. A reply that finished is not: the agent carries its own session on, so
+    // sending the same words after it would be asking twice.
+    const said = saidOf(message.text);
+    const again = sent !== null && (message.stoppedWhy !== undefined || said === "");
     return (
-      <div>
-        {message.text ? <Reply text={message.text} /> : <p className="text-[13px] italic text-nb-ink-soft">{c.nothingCameBack}</p>}
+      <div className="group">
+        {message.text ? <Reply text={message.text} copyCode /> : <p className="text-[13px] italic text-nb-ink-soft">{c.nothingCameBack}</p>}
         {message.stoppedWhy && <Stopped why={message.stoppedWhy} />}
+        {(said !== "" || again) && (
+          <div className={ACTIONS}>
+            {said !== "" && <CopyReply text={said} />}
+            {again && (
+              <button
+                type="button"
+                className={ACTION}
+                disabled={!canSend}
+                title={c.againHint}
+                aria-label={c.againHint}
+                onClick={() => onResend(sent)}
+              >
+                <FiRefreshCw size={11} aria-hidden />
+                {c.again}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     );
   },
@@ -276,8 +371,91 @@ const Said = memo(
     before.message.text === now.message.text &&
     before.message.role === now.message.role &&
     before.message.at === now.message.at &&
-    before.message.stoppedWhy === now.message.stoppedWhy,
+    before.message.stoppedWhy === now.message.stoppedWhy &&
+    before.sent === now.sent &&
+    before.canSend === now.canSend &&
+    before.onResend === now.onResend &&
+    before.onReword === now.onReword,
 );
+
+/** The row of things you can do with a message. Not there at rest, so a long exchange reads
+ *  as a conversation rather than a wall of buttons; hovering the message brings it up, and
+ *  so does tabbing into it (#269). */
+const ACTIONS =
+  "mt-0.5 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100";
+
+const ACTION =
+  "inline-flex cursor-pointer items-center gap-1 rounded-[6px] px-1.5 py-0.5 text-[11px] font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] hover:text-nb-ink disabled:cursor-default disabled:opacity-45 disabled:hover:bg-transparent disabled:hover:text-nb-ink-soft";
+
+/** The reply's own words on the clipboard. Its name never changes, so a reader hears
+ *  "copied" once — from the live region — rather than twice. */
+function CopyReply({ text }: { text: string }) {
+  const c = useCopy();
+  const { copied, copy } = useCopyText();
+  return (
+    <>
+      <button
+        type="button"
+        className={ACTION}
+        title={c.chat.copyReply}
+        aria-label={c.chat.copyReply}
+        onClick={() => copy(text)}
+      >
+        {copied ? <FiCheck size={11} aria-hidden /> : <FiCopy size={11} aria-hidden />}
+        {copied ? c.shared.copied : c.shared.copy}
+      </button>
+      <Copied on={copied} />
+    </>
+  );
+}
+
+/** A message you sent, back in the box to edit. What is already typed there is never
+ *  overwritten: the button asks once first, the way the header's bin does. */
+function Reword({ text, onReword }: { text: string; onReword(text: string, force?: boolean): boolean }) {
+  const c = useCopy().chat;
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    if (!confirming) return;
+    const timer = setTimeout(() => setConfirming(false), CONFIRM_MS);
+    return () => clearTimeout(timer);
+  }, [confirming]);
+
+  if (confirming) {
+    return (
+      <button
+        type="button"
+        className={ACTION}
+        style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
+        onClick={() => {
+          setConfirming(false);
+          onReword(text, true);
+        }}
+      >
+        {c.rewordConfirm}
+      </button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className={ACTION}
+      title={c.rewordHint}
+      aria-label={c.rewordHint}
+      onClick={() => {
+        if (!onReword(text)) setConfirming(true);
+      }}
+    >
+      <FiEdit3 size={11} aria-hidden />
+      {c.reword}
+    </button>
+  );
+}
+
+/** The message this one answered: the nearest thing said before it. */
+function sentBefore(messages: ChatMessage[], at: number): string | null {
+  for (let i = at - 1; i >= 0; i--) if (messages[i].role === "you") return messages[i].text;
+  return null;
+}
 
 /** The reply as it is being written. The dot is the board's own mark for an agent at work. */
 function Writing({ text }: { text: string }) {
@@ -296,7 +474,7 @@ function Writing({ text }: { text: string }) {
 /** What the agent wrote: what it said, and what it went and looked at on the way. The two
  *  are drawn apart — a run of lookups is one quiet column, so a long hunt through the board
  *  never buries the two lines of answer that came out of it. */
-function Reply({ text }: { text: string }) {
+function Reply({ text, copyCode }: { text: string; copyCode?: boolean }) {
   return (
     <div className="flex flex-col gap-2">
       {blocksOf(text).map((block, i) =>
@@ -309,7 +487,7 @@ function Reply({ text }: { text: string }) {
             ))}
           </ul>
         ) : (
-          <Markdown key={i} body={block.text} className="nb-sessionlog-md" />
+          <Markdown key={i} body={block.text} className="nb-sessionlog-md" copyCode={copyCode} />
         ),
       )}
     </div>
@@ -337,6 +515,27 @@ function blocksOf(text: string): Block[] {
     }
   }
   return blocks.filter((b) => (b.kind === "looked" ? b.lines.length > 0 : b.text.trim() !== ""));
+}
+
+/** What the agent said, with the lookup lines taken out — what a copy of a reply takes.
+ *  Empty where the reply had no words of its own. */
+function saidOf(text: string): string {
+  return blocksOf(text)
+    .flatMap((block) => (block.kind === "said" ? [block.text.trim()] : []))
+    .join("\n\n");
+}
+
+/** The whole conversation as markdown: who said what, in order. The lookup lines are left
+ *  out here too, and so are the app's own notes — "you stopped the reply" is the app
+ *  talking, not the agent. */
+function transcriptOf(messages: ChatMessage[], c: ChatCopy): string {
+  const said: string[] = [];
+  for (const m of messages) {
+    const words = m.role === "you" ? m.text.trim() : saidOf(m.text);
+    if (words === "") continue;
+    said.push(`**${m.role === "you" ? c.youSaid : c.agentSaid}**\n\n${words}`);
+  }
+  return said.join("\n\n");
 }
 
 /** A reply that stopped part way. What arrived is kept above it — this only says so. */

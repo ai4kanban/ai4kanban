@@ -90,6 +90,14 @@ export interface ChatRail {
   /** Why the last send never got off the ground. Cleared by the next one. */
   error: string | null;
   send(): Promise<void>;
+  /** Send a message that was already sent once, again (#269) — a reply that stopped short
+   *  or came back empty. It lands at the foot; the box and what is typed in it are left
+   *  alone. */
+  resend(text: string): void;
+  /** Put a message you sent back in the box to edit (#269). Answers false when something
+   *  is already typed there and `force` was not given — what is typed is never
+   *  overwritten, so the button asks once and calls again. */
+  reword(text: string, force?: boolean): boolean;
   clear(): Promise<void>;
   /** The panel the rail is drawn in, so the window can make it draggable. */
   panel: ReturnType<typeof usePanelRef>;
@@ -350,21 +358,48 @@ export function useChatRail({
     [sent, walked, draft],
   );
 
+  // One message out of the door, whether it came from the box or from a "send again" on a
+  // reply that stopped short. The answer is whether it left.
+  const post = useCallback(
+    async (text: string) => {
+      setError(null);
+      setHeld(null);
+      const res = await sendChatAction(cardId, text);
+      if (!res.ok) setError(res.error ?? c.sendFailed);
+      kickRef.current();
+      return res.ok;
+    },
+    [cardId, c],
+  );
+
   const send = useCallback(async () => {
     const text = draft.trim();
     if (!text) return;
     setDraft("");
     setWalked(null);
-    setError(null);
-    setHeld(null);
-    const res = await sendChatAction(cardId, text);
-    if (!res.ok) {
-      setError(res.error ?? c.sendFailed);
-      // The words go back in the box rather than being lost to a refusal.
-      setDraft((typed) => (typed ? typed : text));
-    }
-    kickRef.current();
-  }, [cardId, draft, c]);
+    // The words go back in the box rather than being lost to a refusal.
+    if (!(await post(text))) setDraft((typed) => (typed ? typed : text));
+  }, [draft, post]);
+
+  // Nothing of the box is touched: a half-typed message survives a "send again", and the
+  // exchange above is left as it was — the message lands at the foot.
+  const resend = useCallback((text: string) => void post(text), [post]);
+
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const reword = useCallback((text: string, force?: boolean) => {
+    if (!force && draftRef.current.trim() !== "") return false;
+    setDraft(text);
+    setWalked(null);
+    // After the paint, so the caret lands past words the box does not have yet.
+    requestAnimationFrame(() => {
+      const box = chatBox();
+      if (!box) return;
+      box.focus();
+      box.setSelectionRange(box.value.length, box.value.length);
+    });
+    return true;
+  }, []);
 
   const clear = useCallback(async () => {
     setError(null);
@@ -395,6 +430,8 @@ export function useChatRail({
     recall,
     error,
     send,
+    resend,
+    reword,
     clear,
     panel,
     onLayoutChanged,
@@ -406,6 +443,11 @@ export function useChatRail({
  *  `data-chat-box` in components/Chat.tsx. */
 function isChatBox(target: EventTarget | null): boolean {
   return (target as HTMLElement | null)?.hasAttribute?.("data-chat-box") === true;
+}
+
+/** That same box, to put reworded words in front of the caret. */
+function chatBox(): HTMLTextAreaElement | null {
+  return document.querySelector<HTMLTextAreaElement>("textarea[data-chat-box]");
 }
 
 /** The key belongs to whatever is being typed in — the card rail's search, a name box —
