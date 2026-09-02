@@ -189,9 +189,22 @@ written, and where it names a card the name is a link to that card's page.
   key. A reply `akb chat` is writing is the terminal's own: the chat follows it and the box
   still takes typing, but the corner button stays a greyed Send, and Ctrl-C in that terminal
   is the way to end it.
+- **See what the agent did, if you want to.** Everything a reply took before answering folds
+  into one line above it — **Worked for 1m 5s** — and clicking it opens what the agent did in
+  order: its notes as it went, and each file, card or search it touched. While the reply is
+  still coming the line counts up and the step it is on stays under it, so the rail never goes
+  quiet mid-answer. A reply that took no steps has no line.
+- **Every reply says what it cost.** Under it, in grey: the tokens the turn used and the price
+  the agent put on them — `1,840 tokens · est. $0.03`, the same estimate a run shows, worked
+  out from tokens at list prices rather than billed. An agent that reports neither leaves the
+  line out; nothing is estimated in its place, and the time is on the fold above rather than
+  said twice.
+- **Get back to the newest line.** Scrolled up to read an older answer while replies keep
+  arriving, a pill says how many are below — **↓ 2 new lines** — and one click takes you to
+  the foot. It is not there when you are already there.
 - **Copy an answer without selecting it.** Hover a reply — or tab to it — and a quiet
-  **Copy** appears under it. It copies what the agent said, without the grey lines of what
-  it looked at and without the app's own note that you stopped the reply. A fenced code
+  **Copy** appears under it. It copies what the agent said, without the steps it took on the
+  way and without the app's own note that you stopped the reply. A fenced code
   block in a reply carries the same button in its corner.
 - **Send a message again.** A reply that stopped short or came back with nothing gets
   **Send again**: one click sends that message again, and the answer lands at the foot with
@@ -202,7 +215,7 @@ written, and where it names a card the name is a link to that card's page.
   puts those words back in the box to edit. What is already typed is never overwritten —
   the button asks once first, the way the bin does.
 - **Copy the whole conversation.** The copy button in the chat's own header takes the
-  exchange as markdown, who said what in order, with the lookup lines left out here too.
+  exchange as markdown, who said what in order, with the steps left out here too.
 - **Folding it doesn't stop it.** The reply keeps arriving, and the Chat button marks that
   there is something to read.
 - **It keeps.** The exchange is still there after the app is closed and reopened, and it is per

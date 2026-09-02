@@ -509,6 +509,16 @@ export interface ChatMessage {
   /** On a reply that stopped before the agent had finished: why, in the agent's own words
    *  where it gave any. `text` is what arrived before it stopped, and it is kept. */
   stoppedWhy?: string
+  /** How long this reply took, in ms — the board's own clock, from the moment the message
+   *  was sent to the moment the turn ended. On a reply, and counted for a stopped one too:
+   *  it ran for the time it ran. */
+  ms?: number
+  /** What the turn consumed, when the connector counted it (agent/harnesses/). Absent on
+   *  one that reports no usage — nothing is estimated in its place. */
+  usage?: TokenUsage
+  /** What the turn cost in US dollars, when the connector priced it. The agent's own
+   *  arithmetic from tokens at list prices, never a bill. */
+  costUsd?: number
 }
 
 /** What a conversation is about: the whole board, one card, or the board's first run

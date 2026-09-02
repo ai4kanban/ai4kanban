@@ -143,7 +143,7 @@ const MONO_TEXT = {
 // How long a finished run took, in the coarsest unit that still tells you
 // something: seconds under a minute, minutes and seconds under an hour, hours and
 // minutes above. Agent runs are minutes-long, so this is nearly always "4m 12s".
-function formatDuration(ms: number, c: RunsCopy["log"]): string {
+export function formatDuration(ms: number, c: RunsCopy["log"]): string {
   const total = Math.max(0, Math.round(ms / 1000));
   if (total < 60) return c.seconds(total);
   const mins = Math.floor(total / 60);
@@ -156,7 +156,7 @@ function formatDuration(ms: number, c: RunsCopy["log"]): string {
 // rather than "$0.00", which would read as free. The word "est." carries the
 // rest: the agent worked the number out from tokens at list prices, and on a
 // subscription plan nothing was charged for the run at all.
-function formatCost(usd: number, c: RunsCopy["log"]): string {
+export function formatCost(usd: number, c: RunsCopy["log"]): string {
   return usd < 0.005 ? c.costTiny : c.cost(usd.toFixed(2));
 }
 
@@ -164,7 +164,7 @@ function formatCost(usd: number, c: RunsCopy["log"]): string {
 // events: what the agent read fresh, wrote to and read back from the prompt
 // cache, and wrote out. Full numbers with separators, not "1.2M" — the counts
 // are the point here, and the line only appears in an opened fold.
-function formatTokens(u: TokenUsage, c: RunsCopy["log"]): string {
+export function formatTokens(u: TokenUsage, c: RunsCopy["log"]): string {
   const n = (v: number) => v.toLocaleString("en-US");
   return c.tokens(n(u.input), n(u.cacheCreation), n(u.cacheRead), n(u.output));
 }

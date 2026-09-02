@@ -20,6 +20,16 @@ export type ChatCopy = {
   thinking: string;
   writing: string;
   nothingCameBack: string;
+  /** The fold over what the agent did before answering (#270): how long the turn took,
+   *  counting up while it is written and settled once it is done. */
+  worked: (time: string) => string;
+  working: (time: string) => string;
+  workHint: string;
+  /** What the turn consumed, beside the price the run log already words. */
+  tokens: (count: string) => string;
+  /** The button back to the newest line, and how many arrived while the reader was away. */
+  newLines: (count: number) => string;
+  toFoot: string;
   /** Follows the board's own reason a reply stopped part way. */
   stopped: string;
   /** Why a reply stopped, for the seconds this window holds it before the transcript does

@@ -250,7 +250,7 @@ export function FAQ({
                 –
               </span>
             </summary>
-            <div className="mdx-body max-w-[60ch] pb-6 pl-[26px] pr-10 text-[0.95rem] leading-relaxed text-muted sm:pb-7">
+            <div className="mdx-body pb-6 pl-[26px] pr-10 text-[0.95rem] leading-relaxed text-muted sm:pb-7">
               {item.answer}
             </div>
           </details>

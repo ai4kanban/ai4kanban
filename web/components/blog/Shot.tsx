@@ -3,12 +3,20 @@ import { printFrame } from "@/components/home/Mat";
 import type { WashName } from "@/components/home/washes";
 import { CDN } from "@/lib/site";
 import board from "../../../screenshots/board.png";
+import boardChat from "../../../screenshots/board-chat.png";
 import cardQuestions from "../../../screenshots/card-questions.png";
+import configurationRuntimes from "../../../screenshots/configuration-runtimes.png";
+import memory from "../../../screenshots/memory.png";
+import runs from "../../../screenshots/runs.png";
 import taskGraph from "../../../screenshots/landing-figures/task-graph.png";
 
 const sourceOverrides: Record<string, string> = {
   board: board.src,
+  "board-chat": boardChat.src,
   "card-questions": cardQuestions.src,
+  "configuration-runtimes": configurationRuntimes.src,
+  memory: memory.src,
+  runs: runs.src,
   "task-graph": taskGraph.src,
 };
 

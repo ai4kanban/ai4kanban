@@ -33,7 +33,7 @@ import { languageNote } from './language'
 import { chatAgent, harnessLabel, openPlan, planResume, planRun, skillPrompt, type RunPlan } from './resolve'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
-import type { Chat, ChatMessage, ChatReply, ChatTarget, ChatView } from './types'
+import type { Chat, ChatMessage, ChatReply, ChatTarget, ChatView, TokenUsage } from './types'
 
 /** A conversation's file is named by what it is about, so the board's conversation, the
  *  first run's and each card's are separate by construction and one can never be read as
@@ -72,6 +72,9 @@ export function readChat(cardId: ChatTarget): Chat | null {
       text: entry.text,
       at: typeof entry.at === 'number' ? entry.at : 0,
       stoppedWhy: typeof entry.stoppedWhy === 'string' ? entry.stoppedWhy : undefined,
+      ms: typeof entry.ms === 'number' ? entry.ms : undefined,
+      usage: usageOf(entry.usage),
+      costUsd: typeof entry.costUsd === 'number' ? entry.costUsd : undefined,
     })
   }
   return {
@@ -83,6 +86,17 @@ export function readChat(cardId: ChatTarget): Chat | null {
     startedAt: typeof raw.startedAt === 'number' ? raw.startedAt : Date.now(),
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
   }
+}
+
+// A transcript is a file on disk: what it says a turn consumed is believed only when it is
+// four numbers. Anything else reads as a turn that reported nothing, which is what a
+// connector that counts nothing already looks like.
+function usageOf(value: unknown): TokenUsage | undefined {
+  const u = value as Partial<TokenUsage> | undefined
+  if (!u || typeof u !== 'object') return undefined
+  const four = [u.input, u.cacheCreation, u.cacheRead, u.output]
+  if (four.some((n) => typeof n !== 'number' || !Number.isFinite(n))) return undefined
+  return { input: u.input!, cacheCreation: u.cacheCreation!, cacheRead: u.cacheRead!, output: u.output! }
 }
 
 // Write, then rename, so a UI polling the file never catches half of one.
@@ -318,6 +332,7 @@ export async function sendChatMessage(
     // dead id and fails every message after it until someone clears it.
     const restart = held.resumeId ? chatPrompt(cardId, text, { title: options.title }) : undefined
 
+    const asked = Date.now()
     const spoken = await speak({
       plan,
       prompt,
@@ -337,7 +352,17 @@ export async function sendChatMessage(
         : 'the agent ended the turn without saying anything.'
       : spoken.error || 'the reply stopped before the agent had finished.'
 
-    held.messages.push({ role: 'agent', text: reply, at: Date.now(), stoppedWhy })
+    held.messages.push({
+      role: 'agent',
+      text: reply,
+      at: Date.now(),
+      stoppedWhy,
+      // The board's own clock for the time, and the connector's own numbers for the rest —
+      // a turn that reported none carries none rather than a zero.
+      ms: Date.now() - asked,
+      usage: spoken.usage,
+      costUsd: spoken.costUsd,
+    })
     // The id even on a reply that stopped short: it is what the next message carries on by,
     // and a conversation that produced a word is a conversation worth continuing. Nothing is
     // saved for a turn that never got off the ground — an id for a session that was never
@@ -368,6 +393,10 @@ interface Spoken {
   result?: string
   error?: string
   model?: string
+  /** What the turn consumed and what it cost, for a connector that reports them
+   *  (`reports` in agent/harnesses/). Both absent on one that doesn't. */
+  usage?: TokenUsage
+  costUsd?: number
   /** The id this conversation carries on by, once the agent has named one. */
   resumeId?: string
   /** True when the session being carried on was gone and a fresh one opened in its place.
@@ -420,6 +449,10 @@ async function speak(io: {
   let reseeded = false
   let model: string | undefined
   let spawnError: string | undefined
+  // A client hands its numbers back when the turn ends; a renderer is asked for them once
+  // the closing event is in (see `finish`).
+  let usage: TokenUsage | undefined
+  let costUsd: number | undefined
 
   // stdout and stderr are pipes whichever shape this is; only stdin differs.
   const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client ? 'pipe' : 'ignore', 'pipe', 'pipe']
@@ -480,6 +513,8 @@ async function speak(io: {
         push(renderer.flush())
         resumeId ??= renderer.resumeId?.()
         model ??= renderer.model?.()
+        usage ??= renderer.usage?.()
+        costUsd ??= renderer.costUsd?.()
       }
       push(errs.flush())
       resolve({
@@ -490,6 +525,8 @@ async function speak(io: {
           spawnError ??
           (stopped ? 'you stopped the reply.' : silent ? SILENCE_SAID : error),
         model,
+        usage,
+        costUsd,
         resumeId,
         reseeded,
       })
@@ -560,6 +597,8 @@ async function speak(io: {
           })
           .then((end) => {
             endChild()
+            usage ??= end.usage
+            costUsd ??= end.costUsd
             finish(end.ok, end.error, end.result)
           })
       }

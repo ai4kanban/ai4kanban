@@ -19,7 +19,9 @@
 
 import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
+  FiArrowDown,
   FiCheck,
+  FiChevronRight,
   FiCopy,
   FiEdit3,
   FiMessageSquare,
@@ -32,7 +34,8 @@ import {
 import type { ChatCopy } from "@/i18n/chat/types";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRail } from "@/lib/chat-rail";
-import type { ChatMessage } from "@/lib/types";
+import type { ChatMessage, TokenUsage } from "@/lib/types";
+import { formatCost, formatDuration, formatTokens } from "./agent-shared";
 import { Button } from "./button";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { Copied, useCopyText } from "./copy";
@@ -127,6 +130,7 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
       <Transcript
         messages={messages}
         live={rail.live}
+        liveSince={read?.liveSince ?? null}
         stopped={rail.stopped}
         canSend={!!read && !blocked && !answering}
         onResend={rail.resend}
@@ -236,6 +240,7 @@ function IconButton({ label, onClick, children }: { label: string; onClick(): vo
 function Transcript({
   messages,
   live,
+  liveSince,
   stopped,
   canSend,
   onResend,
@@ -244,6 +249,8 @@ function Transcript({
 }: {
   messages: ChatMessage[];
   live: string | null;
+  /** When the reply in flight was sent, so its fold can count the seconds up. */
+  liveSince: number | null;
   /** A stopped reply's words, held here until the transcript has them (#267). */
   stopped: string | null;
   /** A message can leave the box right now — what "send again" waits for (#269). */
@@ -257,9 +264,28 @@ function Transcript({
   const c = useCopy().chat;
   const box = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
+  // What is on screen, counted in messages: the pill says how many of them arrived while
+  // the reader was up here reading something older.
+  const lines = messages.length + (live === null ? 0 : 1);
+  const [away, setAway] = useState(false);
+  const wasAt = useRef(lines);
   const onScroll = () => {
     const el = box.current;
-    if (el) stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
+    if (!el) return;
+    const atFoot = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
+    stick.current = atFoot;
+    if (atFoot) setAway(false);
+    else if (!away) {
+      wasAt.current = lines;
+      setAway(true);
+    }
+  };
+  const toFoot = () => {
+    const el = box.current;
+    if (!el) return;
+    stick.current = true;
+    setAway(false);
+    el.scrollTop = el.scrollHeight;
   };
   // Before the browser paints, so a growing reply never shows a frame of the old scroll.
   useLayoutEffect(() => {
@@ -267,13 +293,15 @@ function Transcript({
     if (el && stick.current) el.scrollTop = el.scrollHeight;
   }, [messages, live, stopped]);
 
+  const behind = away ? Math.max(0, lines - wasAt.current) : 0;
   const nothing = messages.length === 0 && live === null && stopped === null;
   return (
+    <div className="relative flex min-h-0 flex-1 flex-col">
     <div ref={box} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-2.5">
       {nothing ? (
         empty
       ) : (
-        <div className="flex flex-col gap-3 pb-2">
+        <div className="flex flex-col gap-2 pb-2">
           {messages.map((m, i) => (
             <Said
               key={i}
@@ -284,7 +312,7 @@ function Transcript({
               onReword={onReword}
             />
           ))}
-          {live !== null && <Writing text={live} />}
+          {live !== null && <Writing text={live} since={liveSince} />}
           {/* A stopped reply reads as a finished one from the click: no pulse, no
               "writing", and the peach note the transcript will carry a moment later. */}
           {stopped !== null && (
@@ -299,12 +327,39 @@ function Transcript({
         </div>
       )}
     </div>
+      {behind > 0 && <Jump count={behind} onClick={toFoot} />}
+    </div>
   );
 }
 
-/** One message. The user's words sit in a wash block so a long exchange reads as a
- *  conversation and not as one wall of text; the agent's are prose on the rail's own
- *  ground, where a `#12` is a link to that card (components/Markdown.tsx).
+/** The way back to the newest line, for a reader who has scrolled up to an older answer
+ *  while replies kept arriving. It says how many are below rather than only pointing down,
+ *  and it goes away the moment the foot is reached. */
+function Jump({ count, onClick }: { count: number; onClick(): void }) {
+  const c = useCopy().chat;
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-1.5 flex justify-center">
+      <button
+        type="button"
+        onClick={onClick}
+        title={c.toFoot}
+        className="nb-outline pointer-events-auto inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-nb-paper px-2.5 py-[5px] text-[11px] font-[700]"
+      >
+        <FiArrowDown size={12} aria-hidden />
+        {c.newLines(count)}
+      </button>
+    </div>
+  );
+}
+
+/** One message. The user's words sit in a block of their own — paper with an ink hairline,
+ *  the surface of the box they were typed in, and inset from the left so they are narrower
+ *  than the reply — while the agent's are prose on the rail's own ground, where a `#12` is a
+ *  link to that card (components/Markdown.tsx). Two surfaces rather than two tints: a wash a
+ *  shade off the rail's own cream read as nothing at all.
+ *
+ *  The space above a message you sent is what groups an exchange: a reply sits close under
+ *  the message it answers, and the next question starts a turn.
  *
  *  Held across renders by what it says rather than by the object it arrives in: the rail
  *  re-reads the conversation on a timer and gets a fresh array every time, and re-rendering
@@ -327,8 +382,8 @@ const Said = memo(
     const c = useCopy().chat;
     if (message.role === "you") {
       return (
-        <div className="group">
-          <div className="whitespace-pre-wrap rounded-[10px] bg-nb-wash px-2.5 py-2 text-[13px] leading-[1.5]">
+        <div className="group ml-6 mt-3 first:mt-0">
+          <div className="whitespace-pre-wrap rounded-[10px] bg-nb-paper px-2.5 py-2 text-[13px] leading-[1.5] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]">
             {message.text}
           </div>
           <div className={ACTIONS}>
@@ -344,7 +399,12 @@ const Said = memo(
     const again = sent !== null && (message.stoppedWhy !== undefined || said === "");
     return (
       <div className="group">
-        {message.text ? <Reply text={message.text} copyCode /> : <p className="text-[13px] italic text-nb-ink-soft">{c.nothingCameBack}</p>}
+        {message.text ? (
+          <Reply text={message.text} copyCode ms={message.ms} />
+        ) : (
+          <p className="text-[13px] italic text-nb-ink-soft">{c.nothingCameBack}</p>
+        )}
+        <Cost usage={message.usage} costUsd={message.costUsd} />
         {message.stoppedWhy && <Stopped why={message.stoppedWhy} />}
         {(said !== "" || again) && (
           <div className={ACTIONS}>
@@ -372,6 +432,9 @@ const Said = memo(
     before.message.role === now.message.role &&
     before.message.at === now.message.at &&
     before.message.stoppedWhy === now.message.stoppedWhy &&
+    before.message.ms === now.message.ms &&
+    before.message.costUsd === now.message.costUsd &&
+    before.message.usage === now.message.usage &&
     before.sent === now.sent &&
     before.canSend === now.canSend &&
     before.onResend === now.onResend &&
@@ -457,12 +520,14 @@ function sentBefore(messages: ChatMessage[], at: number): string | null {
   return null;
 }
 
-/** The reply as it is being written. The dot is the board's own mark for an agent at work. */
-function Writing({ text }: { text: string }) {
+/** The reply as it is being written. The dot is the board's own mark for an agent at work,
+ *  and the fold above counts the seconds up from the moment the message was sent. */
+function Writing({ text, since }: { text: string; since: number | null }) {
   const c = useCopy().chat;
+  const ms = useElapsed(since);
   return (
     <div>
-      {text ? <Reply text={text} /> : <p className="text-[13px] text-nb-ink-soft">{c.thinking}</p>}
+      {text ? <Reply text={text} ms={ms} live /> : <p className="text-[13px] text-nb-ink-soft">{c.thinking}</p>}
       <span className="mt-1.5 flex items-center gap-1.5 text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">
         <span className={PULSE_DOT} aria-hidden />
         {c.writing}
@@ -471,27 +536,133 @@ function Writing({ text }: { text: string }) {
   );
 }
 
-/** What the agent wrote: what it said, and what it went and looked at on the way. The two
- *  are drawn apart — a run of lookups is one quiet column, so a long hunt through the board
- *  never buries the two lines of answer that came out of it. */
-function Reply({ text, copyCode }: { text: string; copyCode?: boolean }) {
+/** What the agent wrote: the work it did, and the answer that came out of it. Everything up
+ *  to the last step it took — its notes as it went and each step — folds into one line above
+ *  the answer, so a long hunt through the board is one line of grey and never the reply.
+ *
+ *  One fold for the whole reply, not one per run of steps: the time on it is the turn's, and
+ *  a fold per run would have to name a share of it that nothing measures. */
+function Reply({ text, copyCode, ms, live }: { text: string; copyCode?: boolean; ms?: number; live?: boolean }) {
+  const blocks = blocksOf(text);
+  let last = -1;
+  blocks.forEach((block, i) => {
+    if (block.kind === "looked") last = i;
+  });
+  const work = blocks.slice(0, last + 1);
+  const answer = blocks.slice(last + 1);
   return (
     <div className="flex flex-col gap-2">
-      {blocksOf(text).map((block, i) =>
-        block.kind === "looked" ? (
-          <ul key={i} className="flex flex-col gap-0.5">
-            {block.lines.map((line, k) => (
-              <li key={k} className="truncate font-mono text-[11px] text-nb-ink-soft" title={line}>
-                {line}
-              </li>
-            ))}
-          </ul>
-        ) : (
+      {work.length > 0 && <Work blocks={work} ms={ms} live={live} />}
+      {answer.map((block, i) =>
+        block.kind === "said" ? (
           <Markdown key={i} body={block.text} className="nb-sessionlog-md" copyCode={copyCode} />
-        ),
+        ) : null,
       )}
     </div>
   );
+}
+
+/** The fold over what the agent did before it answered: "Worked for 1m 5s" shut, and the
+ *  steps and its own notes in order when opened. While the reply is still coming the line
+ *  counts up and the newest step stays under it, so the rail never goes quiet mid-answer. */
+function Work({ blocks, ms, live }: { blocks: Block[]; ms?: number; live?: boolean }) {
+  const c = useCopy().chat;
+  const log = useCopy().runs.log;
+  const [open, setOpen] = useState(false);
+  const time = ms === undefined ? undefined : formatDuration(ms, log);
+  const doing = live ? lastStep(blocks) : undefined;
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        title={c.workHint}
+        className="flex w-full cursor-pointer items-center gap-1.5 py-[3px] text-left"
+      >
+        <FiChevronRight
+          size={11}
+          aria-hidden
+          className={`shrink-0 transition-transform ${open ? "rotate-90" : ""}`}
+        />
+        <span className={`truncate text-[11.5px] ${open ? "font-[700]" : "font-[600] text-nb-ink-soft"}`}>
+          {time === undefined ? c.workHint : live ? c.working(time) : c.worked(time)}
+        </span>
+      </button>
+      {open && (
+        <div
+          className="ml-[5px] flex flex-col gap-1.5 pl-[9px]"
+          style={{ borderLeft: `1.5px solid color-mix(in srgb, var(--color-nb-ink) 14%, transparent)` }}
+        >
+          {blocks.map((block, i) =>
+            block.kind === "looked" ? (
+              <ul key={i} className="flex flex-col gap-0.5">
+                {block.lines.map((line, k) => (
+                  <li key={k} className="truncate font-mono text-[11px] text-nb-ink-soft" title={line}>
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <Markdown key={i} body={block.text} className="nb-sessionlog-md" />
+            ),
+          )}
+        </div>
+      )}
+      {!open && doing && (
+        <div className="flex items-center gap-1.5 py-[3px]">
+          <span className={PULSE_DOT} aria-hidden />
+          <span className="truncate font-mono text-[11px]" title={doing}>
+            {doing}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The step the agent is on right now — the last one it named. */
+function lastStep(blocks: Block[]): string | undefined {
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const block = blocks[i];
+    if (block.kind === "looked") return block.lines[block.lines.length - 1];
+  }
+  return undefined;
+}
+
+/** What the reply cost, under it: the tokens the turn consumed and the price the connector
+ *  put on them, in the run log's own words. Only what was actually reported — a connector
+ *  that counts neither leaves the line out rather than showing a zero. The time is not here:
+ *  the fold above already carries it. */
+function Cost({ usage, costUsd }: { usage?: TokenUsage; costUsd?: number }) {
+  const c = useCopy().chat;
+  const log = useCopy().runs.log;
+  const said: string[] = [];
+  if (usage) said.push(c.tokens(totalTokens(usage).toLocaleString("en-US")));
+  if (costUsd !== undefined) said.push(formatCost(costUsd, log));
+  if (said.length === 0) return null;
+  return (
+    <p
+      className="mt-1 truncate text-[11px] tabular-nums text-nb-ink-soft"
+      title={usage ? formatTokens(usage, log) : undefined}
+    >
+      {said.join(" · ")}
+    </p>
+  );
+}
+
+const totalTokens = (u: TokenUsage): number => u.input + u.cacheCreation + u.cacheRead + u.output;
+
+/** How long the reply in flight has been coming, to the second. Nothing to count from — a
+ *  reply a terminal started — counts nothing. */
+function useElapsed(since: number | null): number | undefined {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (since === null) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [since]);
+  return since === null ? undefined : Math.max(0, now - since);
 }
 
 /** The mark every connector's stream puts in front of a tool call (cli/src/lib/agent/). */

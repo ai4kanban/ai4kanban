@@ -2,144 +2,134 @@
 title: "Kanban for Claude Code: shared project memory across tasks"
 title_tag: "Kanban for Claude Code: Shared Project Memory | AI4Kanban"
 nav: "Kanban for Claude Code"
-description: "Give Claude Code build-ready tasks that share product decisions, respect dependencies, run in isolated worktrees, and pass review before landing."
-lead: "A planning layer that turns rough requests into ready tasks and gives every Claude Code run the decisions it needs."
+description: "Keep Claude Code tasks, decisions, and delivery state outside any one session while reusing its agents, worktrees, skills, hooks, and MCP setup."
+lead: "A repository board that prepares Claude Code tasks and preserves the decisions every session needs."
 eyebrow: "Claude Code workflow guide"
-social_image_alt: "AI4Kanban board preparing and coordinating work for Claude Code."
+social_image_alt: "AI4Kanban preserving task state and project decisions across Claude Code sessions."
 schema:
-  description: "AI4Kanban is a repository-local planning and delivery layer for Claude Code. It turns rough requests into build-ready cards, shares product decisions across tasks and sessions, schedules dependencies, isolates parallel work in Git worktrees, and lands reviewed changes without pushing."
+  description: "AI4Kanban is a repository-local project board for Claude Code. It prepares build-ready tasks, preserves task state and product decisions across sessions, works with Claude Code subagents and agent teams, resumes failed runs, and keeps the user's existing Claude configuration."
 ---
 
-Claude Code already has subagents, agent view, agent teams, task lists, and Git worktrees. Those tools coordinate coding sessions. They do not decide which requests are ready to build, which tasks depend on one another, which product decisions every task should follow, or which finished change should land first.
+Claude Code can coordinate several coding sessions with subagents, agent view, agent teams, native task lists, and Git worktrees. Those features manage work while Claude is running.
 
-AI4Kanban adds a repository-local Kanban board for those project-level decisions. It turns rough requests into task cards, stores shared product memory in Markdown, starts Claude Code runs, and manages review and landing.
+AI4Kanban keeps the project outside those sessions: which requests are ready, which tasks are blocked, which product decisions every task must follow, and what happened after a Claude Code run ended.
 
 <Shot
-  src="board"
+  src="board-chat"
   wash="emberLilac"
-  alt="AI4Kanban separates Claude Code cards that are ready to build from cards with unresolved decisions"
-  caption="Cards are sorted by readiness, not by whether a Claude session is free. Question marks identify work that still holds a product decision."
+  alt="AI4Kanban discusses project dependencies and memory with Claude Code"
+  caption="Claude Code works through the board without making one chat the project's source of truth."
 />
 
-## Claude Code coordinates agents. AI4Kanban coordinates the project.
+## Claude Code has task lists. AI4Kanban keeps the project backlog.
 
-[Claude Code can parallelize work with subagents, agent view, agent teams, worktrees, and batch operations](https://code.claude.com/docs/en/agents). Each coordinates execution in a different way. AI4Kanban coordinates the requirements, dependencies, and decisions that those runs receive.
+[Claude Code offers several ways to run agents in parallel](https://code.claude.com/docs/en/agents). Its task lists coordinate work claimed by an active agent team. AI4Kanban stores the project board itself: rough ideas, prepared requirements, open decisions, dependencies, recurring work, delivery state, and completed outcomes.
 
-| Claude Code tool | What it coordinates | What AI4Kanban adds |
+| Claude Code feature | What it manages | What AI4Kanban records in the repository |
 | --- | --- | --- |
-| Subagents | Bounded work delegated by one session | A reviewed requirement for the work they receive |
-| Agent teams and their task list | Work claimed by the current team | A Git-tracked backlog of current, blocked, future, and recurring tasks |
-| Agent view | Claude Code sessions that are running now | Readiness, dependencies, product questions, and delivery status for the whole project |
-| Worktrees | File edits made by concurrent sessions | Dependency scheduling, review, landing order, and conflict resolution |
-| Conversation context and auto memory | Claude's working context and notes | Curated product decisions shared with every relevant task |
+| Session plan or task list | Work inside the current session or agent team | Approved requirements, open questions, dependencies, and verification criteria |
+| Subagents | Bounded work returned to the parent session | The task that owns the outcome and its delivery history |
+| Agent teams | Workers, messages, and dependencies inside that team | Project work before the team starts and after the team stops |
+| Agent view | Claude Code sessions that are running now | Ready, blocked, recurring, running, review, and completed work |
+| Worktrees | Separate files for concurrent sessions | Task ownership, review state, landing order, and conflict handling |
 
-Each card on the AI4Kanban board stores 1 task's outcome, constraints, dependencies, open product questions, and verification criteria. Independent cards can build together; blocked cards wait; reviewed deliveries land one at a time.
+An AI4Kanban card is 1 repository-backed task. It remains on the board when a Claude session ends, an agent team shuts down, or you open the project on another machine.
 
-<Shot
-  src="task-graph"
-  wash="mintSky"
-  alt="A goal split into Claude Code tasks with arrows showing their dependencies"
-  caption="The dependency graph decides which Claude Code deliveries can run together and which must wait."
-/>
+## How does AI4Kanban prepare Claude Code before coding?
 
-## Can AI4Kanban prepare a Claude Code task before coding?
+AI4Kanban uses Claude Code to refine a rough request into a build-ready task. Refinement happens before implementation: Claude reads the repository, project goal, related tasks, and previous product decisions, then writes the missing detail onto the card.
 
-Yes. AI4Kanban calls this step refinement: it uses Claude Code to turn a rough request into a build-ready requirement before any code is edited. Claude Code reads the repository, project goal, related tasks, and previous product decisions first.
+Claude Code is expected to settle factual questions itself. It inspects the code, checks existing behavior, and chooses a safe answer when the repository provides one. AI4Kanban stops only when the remaining choice changes product behavior, scope, privacy, compatibility, risk, or ongoing cost.
 
-| Before Claude Code starts coding | What Claude Code does for AI4Kanban |
-| --- | --- |
-| Check the request | Define its outcome, scope, defaults, acceptance criteria, dependencies, and edge cases |
-| Resolve a factual uncertainty | Inspect the code and choose a safe answer from project evidence |
-| Find a consequential product choice | Add concrete options and a recommendation for you |
-| Find that the request is too large for 1 task | Split it into subtasks and record their dependencies |
-
-The implementation session then receives the approved requirement instead of reconstructing intent from a rough prompt.
+The finished card contains the outcome, boundaries, dependencies, edge cases, and verification criteria that the implementation run must follow. If the work is too large, Claude splits it into smaller cards and records the order in which they can run.
 
 <Shot
-  src="card-questions"
+  src="runs"
   wash="peachEmber"
-  alt="A Claude Code task with unresolved product choices and recommended answers"
-  caption="Only consequential product choices reach you. Routine uncertainty is settled from project evidence."
+  alt="A Claude Code refinement run separates decisions settled from evidence from questions left for the user"
+  caption="A Claude Code refinement run records what it settled from repository evidence and what still needs your decision."
 />
 
-## How does AI4Kanban share project memory across tasks?
+## What project context survives between Claude Code sessions?
 
-AI4Kanban stores task state and shared product memory outside Claude Code's chat. Every task can reuse the decisions that apply to it, even after compaction, `/clear`, or a new session. Task requirements, open questions, dependencies, verification criteria, and delivery history also remain on the board.
+AI4Kanban preserves 2 kinds of context: state for each task and shared memory that future tasks can reuse.
 
-Project memory is not a saved transcript. AI4Kanban keeps a fixed set of 4 small Markdown files for the whole project and another set for each module.
+**Task state** includes the approved requirement, open questions, dependencies, verification criteria, delivery worktree, run history, and review result. Compaction, `/clear`, or a new Claude Code session does not remove it because it lives in the repository, not the conversation.
 
-| File | What future tasks learn from it |
+**Project memory** contains decisions that should affect more than 1 task. AI4Kanban keeps a fixed set of 4 Markdown files for the whole project and another set for each module.
+
+| File | What future Claude Code tasks learn from it |
 | --- | --- |
 | `readme.md` | User-facing behavior already shipped |
 | `decisions.md` | Product decisions that still apply |
 | `rejected.md` | Ideas that should not be proposed again |
 | `redesign.md` | Design mistakes future work should avoid |
 
-Each card names the parts of the product it changes, such as the site, local app, or API. The task loads project memory plus the memory for those modules. Claude Code gets the decisions it needs without loading every card or replaying old conversations.
+Each card names the parts of the product it changes. A new run receives the card, project memory, and memory for those modules. It does not receive every card or a replay of old chats.
 
 <Shot
-  src="memory-v1"
+  src="memory"
   wash="mintSky"
-  alt="Project memory gives future Claude Code tasks the decisions, rejections, and design lessons they need"
-  caption="Project and module memory stay in small, reviewable Markdown files."
+  alt="AI4Kanban shares product decisions and design lessons across Claude Code tasks"
+  caption="Task history stays with the card; shared product decisions stay in small project and module memory files."
 />
 
-Claude Code's own [`CLAUDE.md` and auto memory](https://code.claude.com/docs/en/claude-directory) still apply. Use them for coding conventions and Claude's working notes. AI4Kanban memory keeps the product decisions that future tasks for the same part of the project should follow.
+Claude Code's own [`CLAUDE.md` and auto memory](https://code.claude.com/docs/en/claude-directory) still apply. `CLAUDE.md` is useful for coding conventions and project instructions. Claude auto memory holds Claude's working notes. AI4Kanban memory is deliberately narrower: reviewed product decisions that later cards for the same part of the project should follow.
 
 Read [why project decisions become the bottleneck](/blog/project-decisions-are-the-bottleneck).
 
-## Which decisions does AI4Kanban leave to me?
+## How do Claude Code subagents and agent teams fit?
 
-AI4Kanban leaves only product decisions that Claude Code cannot safely settle from repository evidence.
+They run inside an AI4Kanban task. The card remains the outer unit that defines the outcome, branch, worktree, review, and final status. Claude Code can divide the implementation among subagents or an agent team when its configuration and permissions allow them.
 
-**Routine questions:** Claude Code researches them, chooses a safe answer, and updates the requirement.
+Claude Code's team task list coordinates workers inside that run. The AI4Kanban board coordinates the project across runs: a later card can depend on this card, reuse the decision it produced, or wait until its reviewed change has landed.
 
-**Product decisions:** AI4Kanban waits when the answer changes behavior, scope, privacy, compatibility, risk, or ongoing cost. You receive concrete options, trade-offs, and a recommendation.
+[Claude Code stores agent-team configuration and task lists under the user's Claude directory](https://code.claude.com/docs/en/agent-teams). AI4Kanban does not copy that runtime state into the repository. It records the product requirement and delivery result that must outlive the team.
 
-When task preparation is complete, the card still waits for you to click **Implement**. After a fresh Claude Code session reviews the implementation, landing is automatic unless you enable diff approval for a second checkpoint. AI4Kanban never pushes.
+## Does AI4Kanban replace my Claude Code configuration?
 
-## How do I know when Claude Code needs me?
+No. AI4Kanban launches the Claude Code CLI already installed on your machine. Your login, `CLAUDE.md`, rules, skills, hooks, MCP servers, permissions, and project commands remain in effect.
 
-Questions and review requests appear in the app and can be sent to Slack. Running and Landed are status only. A failed run keeps its task, worktree, and Claude Code session so you can inspect or resume it. Other tasks keep moving while 1 waits for you.
+[Claude Code loads those extensions at different points in a session](https://code.claude.com/docs/en/features-overview). AI4Kanban invokes its `/kanban` skill directly and adds the current card plus the relevant project memory. It does not require an MCP server of its own.
 
-<Shot
-  src="board-notifications-v1"
-  wash="skyLilac"
-  alt="AI4Kanban notifications distinguish Claude Code questions and review requests from status updates"
-  caption="Questions and review requests need action; Running and Landed are status only."
-/>
-
-## Can I keep my existing Claude Code setup?
-
-Yes. AI4Kanban launches your installed Claude Code CLI and keeps its login, `CLAUDE.md`, rules, skills, hooks, MCP servers, permissions, and project commands. Denied tool calls remain visible in the run log.
-
-[Claude Code loads each extension at a different point in its context](https://code.claude.com/docs/en/features-overview). AI4Kanban invokes its `/kanban` skill directly, then supplies the current task and only the project and module memory it needs.
-
-Choose a Claude subscription, an Anthropic API key, or an Anthropic-compatible endpoint. Named runtimes can use different models and reasoning effort for task preparation, implementation, review, and specialist work. Empty fields keep Claude Code's defaults.
+Choose the login already used by your Claude CLI, an Anthropic API key, or an Anthropic-compatible endpoint. Named runtimes can use different models and reasoning effort for task preparation, implementation, review, and specialist work. Empty fields keep Claude Code's defaults.
 
 <Shot
-  src="configuration-runtimes-v1"
+  src="configuration-runtimes"
   wash="emberMint"
-  alt="A Claude Code runtime configured with its provider, model, and reasoning effort in AI4Kanban"
-  caption="Use the Claude CLI you already configured, or choose a provider, model, and effort for a named runtime."
+  alt="AI4Kanban configures a Claude Code provider, model, reasoning effort, and extra arguments"
+  caption="AI4Kanban uses the installed Claude CLI and keeps provider, model, effort, and extra arguments explicit."
 />
+
+Claude Code also keeps its existing permission rules. AI4Kanban does not silently bypass them. A denied tool call appears in the run log so you can change the task, the repository, or Claude Code's permission settings deliberately.
 
 See [What each coding agent can do](/docs/connectors) for current connector support.
 
-## How does AI4Kanban handle parallel Claude Code changes?
+## Can a failed card resume the same Claude Code session?
 
-When automatic Git commits are enabled, each task gets its own delivery branch and Git worktree. Dependencies stop blocked tasks from starting too early, while independent tasks can build together.
+Yes. AI4Kanban assigns the Claude Code session ID before a run starts, so even a run that fails in its first seconds can be resumed from the same card. The card keeps its worktree and code changes; Resume continues the existing Claude conversation instead of rebuilding its context from the beginning.
 
-Worktrees stop concurrent sessions from overwriting each other's files while they run. Two branches can still change the same lines or make behavior that no longer works when both changes are combined. AI4Kanban therefore lands reviewed deliveries one at a time. If the target branch moved, it rebases the next delivery and reviews the result again. If Git reports a conflict, Claude Code resolves the conflicting files and a fresh review checks the combined change before it lands.
+AI4Kanban also makes Claude Code stop immediately when the provider returns a rate limit. Claude Code would normally retry for longer, but a background card should not occupy a run slot while no progress is possible. The failed card remains resumable, and other tasks can continue.
 
-<Shot
-  src="configuration-v1"
-  wash="peachEmber"
-  alt="AI4Kanban settings for worktrees, diff approval, and silent Claude Code runs"
-  caption="Choose whether tasks use isolated worktrees, whether reviewed changes need your approval, and how long a silent run may hold a task."
-/>
+A separate silence timeout ends a run that stops producing output. You choose the timeout in Configuration, and 0 disables it.
 
-You can inspect logs, stop without discarding the worktree, and resume the same Claude Code session. Disable automatic Git commits to work in your current checkout and commit manually.
+## Can AI4Kanban supervise several Claude Code tasks at once?
+
+Yes. Claude Code agent view shows the sessions themselves. AI4Kanban decides which project tasks may start, based on card readiness and dependencies.
+
+When automatic Git commits are enabled, each task gets its own branch and worktree. Independent tasks can run together; dependent tasks wait. Reviewed changes land on the target branch one at a time. If another task changed that branch, AI4Kanban rebases the next change and reviews it again. A Git conflict gets a focused Claude Code resolution run, followed by another review before landing.
+
+Worktrees prevent concurrent sessions from overwriting the same checkout. The landing process handles the separate problem of 2 branches changing the same lines or producing behavior that no longer works when combined.
+
+## Which decisions and approvals pause AI4Kanban?
+
+AI4Kanban pauses for 3 kinds of input:
+
+1. **A product question:** Claude Code could not settle a choice from repository evidence.
+2. **Permission to implement:** task preparation is complete, but the card does not start coding until you click **Implement**.
+3. **Permission to land, when enabled:** diff approval adds a checkpoint after automated review and before the reviewed change reaches the target branch.
+
+Questions and review requests appear in the app and can be sent to Slack. Running and Landed are status only, so a finished turn is not presented as a request for input. AI4Kanban may commit and clean up a landed worktree after you authorize implementation, but it never pushes.
 
 <FAQ title="Frequently asked questions">
 
@@ -149,55 +139,25 @@ Both work. Use the login already held by your Claude CLI, an Anthropic API key, 
 
 </FAQItem>
 
-<FAQItem question="Can I choose the Claude model used for planning, implementation, review, and testing?">
+<FAQItem question="Can I choose the Claude model for different kinds of work?">
 
-Yes. Create named Claude Code runtimes with their own model and reasoning effort, then assign them to AI4Kanban workflows. Tests run during implementation and review rather than in a separate testing stage. Empty settings keep Claude Code's defaults.
-
-</FAQItem>
-
-<FAQItem question="Does AI4Kanban require an MCP server?">
-
-No. The local app invokes Claude Code and its `/kanban` skill directly. Your existing MCP servers remain available to Claude when a task needs them.
+Yes. Create named Claude Code runtimes with their own model and reasoning effort, then assign them to task preparation, implementation, review, or specialist work. Tests run during implementation and review rather than in a separate testing stage. Empty settings keep Claude Code's defaults.
 
 </FAQItem>
 
 <FAQItem question="How much context does AI4Kanban add to a Claude Code run?">
 
-There is no fixed token number because task and memory size vary. Each run receives its task, instructions for the current step, project memory, and memory for the modules that task changes. It does not load every card or replay AI4Kanban's chat history.
+There is no fixed token number because task and memory size vary. Each run receives the current card, instructions for the current step, project memory, and memory for the modules that card changes. It does not load the whole board or replay AI4Kanban's chat history.
 
 </FAQItem>
 
 <FAQItem question="Can Claude Code update the AI4Kanban board itself?">
 
-Yes. The AI4Kanban skill gives Claude Code structured commands for creating and preparing cards, splitting large tasks into subtasks, recording dependencies, answering questions, and updating task status.
+Yes. The `/kanban` skill gives Claude Code commands for creating and preparing cards, splitting large tasks into subtasks, recording dependencies, answering questions, and updating task status.
 
 </FAQItem>
 
-<FAQItem question="Can an AI4Kanban task use Claude Code subagents or agent teams?">
-
-Yes, when your Claude Code configuration and permissions allow them. The AI4Kanban card still records 1 approved requirement, 1 delivery branch and worktree, 1 review, and 1 final status for the whole run. [Claude Code agent teams have their own shared task list](https://code.claude.com/docs/en/agent-teams) for coordinating their workers inside that run.
-
-</FAQItem>
-
-<FAQItem question="What is the difference between an AI4Kanban task, a Claude Code session, and Claude Code's task list?">
-
-An AI4Kanban task stores a requirement, dependencies, questions, verification criteria, and delivery status in the repository. A Claude Code session performs 1 step such as task preparation, implementation, review, or correction. Claude Code's task list coordinates workers inside an active agent team. Several sessions can contribute to 1 AI4Kanban task, and the task remains after those sessions end.
-
-</FAQItem>
-
-<FAQItem question="Can I resume the same Claude Code session from an AI4Kanban card?">
-
-Yes. A failed run keeps its Claude Code session ID, worktree, and code changes. Resume continues that conversation with the task state intact instead of starting over.
-
-</FAQItem>
-
-<FAQItem question="What happens if Claude reaches a usage limit or stops halfway through?">
-
-AI4Kanban ends a rate-limited Claude Code run instead of waiting through Claude Code's long retry cycle. The task, code changes, worktree, and resumable session remain available, and other tasks can continue. A configurable silence timeout handles runs that stop producing output.
-
-</FAQItem>
-
-<FAQItem question="Can Claude work in my main checkout instead of an isolated worktree?">
+<FAQItem question="Can Claude Code work in my main checkout instead of a worktree?">
 
 Yes. Disable automatic Git commits globally or for 1 task run. Claude Code then works in the current checkout and you handle the commit after review.
 
@@ -205,23 +165,17 @@ Yes. Disable automatic Git commits globally or for 1 task run. Claude Code then 
 
 <FAQItem question="How are .env files, dependencies, databases, Docker resources, and ports handled in worktrees?">
 
-A worktree created by AI4Kanban begins with tracked files. Add a project implementation rule that tells Claude Code how to install dependencies and prepare local configuration. Ignored files are not copied automatically. Ports, databases, and Docker names are still shared by worktrees, so parallel tasks need distinct values when the project requires them. Agent credentials stay in the ignored `docs/kanban/.env` file.
-
-</FAQItem>
-
-<FAQItem question="What if parallel tasks invalidate each other's assumptions or conflict when they land?">
-
-Dependencies make tasks that must land in order wait for one another. If another task changes the target branch, AI4Kanban rebases the next reviewed change onto that new version. A clean rebase is reviewed again. A Git conflict gets a focused Claude Code resolution run, followed by another review before landing.
+A worktree created by AI4Kanban begins with tracked files. Add an implementation rule that tells Claude Code how to install dependencies and prepare local configuration. Ignored files are not copied automatically. Ports, databases, and Docker names are still shared by worktrees, so parallel tasks need distinct values when the project requires them. Agent credentials stay in the ignored `docs/kanban/.env` file.
 
 </FAQItem>
 
 <FAQItem question="Who runs tests and decides that a task is done?">
 
-The implementation run follows the task's verification criteria. A fresh Claude Code session then checks the approved requirement and diff, fixes plain mistakes, and reruns focused tests. The approved requirement defines done; tests provide evidence that the implementation meets it. Enable diff approval when you want to inspect the final change yourself.
+The implementation run follows the card's verification criteria. A fresh Claude Code session then checks the approved requirement and diff, fixes plain mistakes, and reruns focused tests. The approved requirement defines done; tests provide evidence that the implementation meets it. Enable diff approval when you want to inspect the final change yourself.
 
 </FAQItem>
 
-<FAQItem question="Will Claude commit, merge, push, or delete a worktree without my approval?">
+<FAQItem question="Will Claude Code commit, merge, push, or delete a worktree without my approval?">
 
 Clicking **Implement** authorizes automatic commits, 1 reviewed squash commit on the target branch, and cleanup of the delivery branch and worktree after landing. Enable diff approval for a second checkpoint, or disable automatic Git commits to manage Git yourself. AI4Kanban never pushes.
 
@@ -229,10 +183,10 @@ Clicking **Implement** authorizes automatic commits, 1 reviewed squash commit on
 
 <FAQItem question="Can I use the same AI4Kanban board with another coding agent later?">
 
-Yes. AI4Kanban cards, dependencies, requirements, and project memory are agent-independent. Pick Codex, Cursor, OpenCode, or another supported runtime for new work. An existing resumable conversation remains tied to the coding agent that created it.
+Yes. AI4Kanban cards, dependencies, requirements, and project memory are agent-independent. Pick Codex, Cursor, OpenCode, or another supported runtime for new work. A resumable Claude Code conversation remains tied to Claude Code.
 
 </FAQItem>
 
 </FAQ>
 
-<Cta title="Give Claude Code work that is ready before the session starts." />
+<Cta title="Give every Claude Code session the same project decisions." />

@@ -35,6 +35,10 @@ export interface ChatRead {
   /** A reply is coming, from this window or from a terminal. `live` only knows about one
    *  this window asked for; this knows about any of them. */
   answering: boolean;
+  /** When the reply in flight was sent, so the rail can count the seconds up while it is
+   *  written. Null when nothing of ours is in flight — a reply a terminal started is
+   *  followed, but this server never saw it begin and invents no start for it. */
+  liveSince: number | null;
   /** The board as it stood at this read (#243). The window watches it move: a chat writes
    *  the board while it is still writing its reply, so a card that changed has to appear
    *  without anyone clicking anything. Null on rules too old to answer. */
@@ -72,6 +76,9 @@ interface Flight {
   /** The reply so far, as the agent writes it. Frozen once stopped, so the words on screen
    *  are the words that were there when the button was pressed. */
   text: string;
+  /** When the message was sent. The transcript records the turn's own time when it lands;
+   *  this is what the rail counts up from until then. */
+  startedAt: number;
   /** End the reply early. Handed over once the agent is actually running, so it is missing
    *  for the gap a first message spends installing the skill. */
   stop?(): void;
@@ -99,6 +106,7 @@ const NOTHING: ChatRead = {
   live: null,
   stopped: null,
   answering: false,
+  liveSince: null,
   stamp: null,
   cardGone: false,
   canChat: false,
@@ -132,6 +140,7 @@ export async function readChat(cardId: ChatTarget): Promise<ChatRead> {
     // Our own reply in flight, or anyone's — a conversation carried on from a terminal is
     // writing this same board, and the window follows it the same way.
     answering: stopping ? false : Boolean(flight) || view.answering === true,
+    liveSince: stopping || !flight ? null : flight.startedAt,
     stamp: rules.boardStamp ? await rules.boardStamp() : null,
     // Asked of the board rather than remembered: the card may have gone at any moment, and
     // a title read is one card file. A card page gives itself up on this, so a miss is
@@ -199,7 +208,7 @@ export async function sendChat(
   if (held) return { ok: false, error: (await machineCopy()).messages.chat.busy };
   failed.delete(key);
 
-  const flight: Flight = { text: "", stopped: false, landed: false, done: Promise.resolve() };
+  const flight: Flight = { text: "", startedAt: Date.now(), stopped: false, landed: false, done: Promise.resolve() };
   live.set(key, flight);
   // Not awaited: this call returns as soon as the agent has been asked, and the reply lands
   // in the transcript whether or not anyone is still watching. The transcript is written

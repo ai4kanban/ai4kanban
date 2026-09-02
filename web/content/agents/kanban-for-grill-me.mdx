@@ -1,0 +1,175 @@
+---
+title: "Kanban for Grill Me: scale planning across agents"
+title_tag: "Kanban for Grill Me: Scale Planning | AI4Kanban"
+nav: "Kanban for Grill Me"
+description: "Give every Grill Me plan a durable card with dependencies, shared decisions, delivery state, and selective human review while coding agents work in parallel."
+lead: "Keep each Grill Me plan on a researched card that agents can refine, execute, and review in parallel."
+eyebrow: "Grill Me workflow guide"
+social_image_alt: "AI4Kanban scaling Grill Me across dependent cards and parallel coding agents."
+schema:
+  description: "AI4Kanban is Kanban for Grill Me: a shared workspace where each card maps to one researched plan. It records important agent decisions, adds dependencies, priorities, modules, releases, and todos around cards, and coordinates parallel agents with selective human review."
+---
+
+Matt Pocock's [grill me](https://github.com/mattpocock/skills/tree/main/skills/productivity/grill-me) workflow stress-tests a plan through focused questions until its decision tree is resolved. It researches answers available in the codebase, gives a recommendation with each genuine decision, and turns a vague idea into shared understanding.
+
+That works well for 1 plan. In AI4Kanban, each card can map to 1 such plan. A project grows from those cards: some stand alone, some share decisions, and some depend on others. AI4Kanban adds that coordination without changing what Grill Me clarifies.
+
+<Shot
+  src="board"
+  wash="emberLilac"
+  alt="AI4Kanban holds several Grill Me planning cards at different stages of readiness"
+  caption="Each card is one bounded planning and delivery unit. Ready cards can move; cards with a genuine open decision wait."
+/>
+
+## What are `grill-me` and `grill-with-docs`?
+
+`grill-me` is a planning interview. The agent walks through the decisions behind an idea, one branch at a time, and investigates the repository instead of asking you factual questions it can answer itself.
+
+[`grill-with-docs`](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs) combines that interview with durable domain documentation and architecture decision records.
+
+AI4Kanban starts from the same principle and keeps the same unit of work.
+
+| Layer | What it adds |
+| --- | --- |
+| `grill-me` | Investigates and resolves 1 plan |
+| `grill-with-docs` | Keeps domain documentation and decision records current while resolving that plan |
+| An AI4Kanban card | Keeps 1 plan as a durable card, then adds dependencies, priority, modules, release, todos, notable answers, and delivery state |
+
+AI4Kanban does not replace Grill Me or change its unit of work. It gives each plan a durable place in a larger project made from independently reviewable cards.
+
+## Why put Grill Me on a Kanban?
+
+Running 10 planning interviews at once is easy. Keeping their assumptions consistent is the hard part.
+
+Without a shared project model, parallel agents can ask the same question, choose conflicting defaults, work on overlapping files, or implement a dependent feature too early. A longer prompt does not solve the coordination problem.
+
+AI4Kanban starts from individual cards. Each card can hold 1 Grill Me plan and is bounded enough for its own requirement review, implementation, and delivery review. As cards accumulate, the project emerges from their relationships. The board adds fields agents can act on:
+
+| Card field | What it controls |
+| --- | --- |
+| Dependencies | Which cards must wait and which can run together |
+| Priority | What should be prepared or delivered next |
+| Modules | Which project memory and product area apply |
+| Release | Which outcome the card contributes to |
+| Todo | What must be true before the card is complete |
+
+<Shot
+  src="task-graph"
+  wash="mintSky"
+  alt="Independent Grill Me cards connected into a project by dependency arrows"
+  caption="Independent cards form a project graph; the arrows make the safe parallel paths explicit."
+/>
+
+## Does every card investigate before asking questions?
+
+Yes. Like `grill-with-docs`, AI4Kanban expects the agent to investigate before it asks.
+
+The agent reads the card, repository, project goal, related work, and relevant project memory. It settles factual questions from evidence, fills in routine implementation detail, and tests the requirement for missing outcomes, boundaries, edge cases, dependencies, and verification criteria.
+
+Only a decision that cannot be settled from project evidence should become a question. The card then carries concrete options, the outcome and cost of each option, and the agent's recommendation.
+
+<Shot
+  src="card-questions"
+  wash="peachEmber"
+  alt="A Grill Me card showing one unresolved human decision with options and a recommended answer"
+  caption="The agent does the investigation first. Only the remaining product choice reaches the human."
+/>
+
+## Can agents answer product decisions autonomously?
+
+Yes. AI4Kanban does not require a person to answer every question merely because it concerns the product.
+
+When project evidence supports a safe choice, the agent answers it and continues. If that answer materially changes behavior, scope, risk, privacy, compatibility, or ongoing cost, the card records it under **Worth noting** for review. The decision is visible without blocking the task.
+
+| Finding | What AI4Kanban does |
+| --- | --- |
+| Fact available in the project | Researches and answers it |
+| Routine or reversible decision | Chooses a safe default and continues |
+| Consequential decision with enough evidence | Answers it, records it under **Worth noting**, and continues |
+| Consequential decision without enough evidence | Leaves a user-owned question with options and a recommendation |
+| Result that only a person or external environment can judge | Adds a reproducible human verification step |
+
+This keeps autonomy high without hiding meaningful product calls. The human reviews the decisions worth noticing instead of serving as the answer engine for every card.
+
+## Is this still Kanban if the visual board is optional?
+
+Yes. Here, Kanban is a project-management method for turning a vague idea into actionable work. The visual board is one interface, not the source of the method.
+
+Traditional boards are designed mainly to help people scan status. AI4Kanban's board is also read and updated by agents. Its Markdown cards make outcomes, dependencies, questions, decisions, modules, releases, and todos explicit enough for either side to continue the work.
+
+The result is a shared workspace where:
+
+- Agents can discover ready work without waiting for a fresh prompt.
+- Humans can inspect a bounded requirement instead of an agent's entire conversation.
+- Another agent can review the same card independently.
+- Project state survives context compaction, stopped sessions, and model changes.
+
+## How do multiple agents work without repeating each other?
+
+The board gives every run a clear ownership boundary. One card defines the outcome and the parts of the project it may change. Dependencies stop work that is not ready, while independent cards can run in isolated Git worktrees.
+
+Project and module memory carry forward shipped behavior, current decisions, rejected directions, and design lessons. Later cards receive the memory relevant to their modules instead of replaying every earlier conversation.
+
+This addresses a recurring problem in documented grilling workflows: users have reported [important interview decisions missing from an ADR](https://github.com/mattpocock/skills/issues/117) and [rationale being lost when a grilling session becomes a specification](https://github.com/mattpocock/skills/issues/689). AI4Kanban keeps the approved requirement and notable answers on the card, then promotes reusable decisions into project memory.
+
+<Shot
+  src="memory-v1"
+  wash="mintSky"
+  alt="Project and module memory sharing Grill Me decisions across later cards and agents"
+  caption="Cards keep task-specific decisions; compact project and module memory carries reusable decisions into future work."
+/>
+
+## What does the human need to do?
+
+The human sets direction, answers genuine exceptions, and reviews delivery. The board handles planning detail, status, dependencies, routine decisions, and agent coordination.
+
+Questions and approvals appear in the app and can be sent to Slack. A card waiting for your judgment does not stop unrelated cards from moving. When you return, you review the requirement, its few open questions, and the answered decisions marked **Worth noting** rather than reading every agent log.
+
+<Shot
+  src="board-notifications-v1"
+  wash="skyLilac"
+  alt="AI4Kanban notifications separating Grill Me decisions from routine agent status"
+  caption="Questions and review requests need attention. Running and landed cards are status only."
+/>
+
+<FAQ title="Frequently asked questions">
+
+<FAQItem question="How is AI4Kanban different from running grill-with-docs once?">
+
+`grill-with-docs` clarifies and documents 1 plan. One AI4Kanban card can hold that plan, while the board adds its relationships to other cards, reusable decisions, execution state, and delivery order.
+
+</FAQItem>
+
+<FAQItem question="Does AI4Kanban replace Grill Me?">
+
+No. Grill Me is the planning discipline: investigate, expose assumptions, and resolve the decision tree. AI4Kanban applies that discipline repeatedly and adds the project structure needed to coordinate the resulting work.
+
+</FAQItem>
+
+<FAQItem question="Does AI4Kanban replace a PRD or coding agent?">
+
+It does not replace the coding agent. A PRD can inform 1 or more cards, but the project model grows from individually planned and reviewed cards rather than requiring 1 monolithic document.
+
+</FAQItem>
+
+<FAQItem question="What happens if I reject an agent-made product decision?">
+
+Revise the card before implementation or return the delivery for changes. The corrected decision remains with the task and can be added to project memory so later agents do not repeat it.
+
+</FAQItem>
+
+<FAQItem question="Can other cards continue while one needs my answer?">
+
+Yes. Only the work that depends on that unanswered decision waits. Independent ready cards can continue through preparation, implementation, and review.
+
+</FAQItem>
+
+<FAQItem question="When is Kanban for Grill Me unnecessary?">
+
+Use a single grilling session when the plan is small, short-lived, and has no meaningful parallel work or reusable project decisions. Use AI4Kanban when the work spans several cards, sessions, agents, dependencies, or releases.
+
+</FAQItem>
+
+</FAQ>
+
+<Cta title="Scale Grill Me from one plan to the whole project." />

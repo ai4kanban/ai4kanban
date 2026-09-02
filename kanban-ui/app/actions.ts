@@ -383,6 +383,7 @@ export async function readChatAction(cardId: number | null): Promise<ChatRead> {
       live: null,
       stopped: null,
       answering: false,
+      liveSince: null,
       stamp: null,
       cardGone: false,
       canChat: false,
