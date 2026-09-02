@@ -2,7 +2,15 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 import * as figures from "./figures";
-import { Callout, FAQ, FAQItem, KeyTakeaways, Quote, TLDR } from "./MdxBlocks";
+import {
+  Callout,
+  Cta,
+  FAQ,
+  FAQItem,
+  KeyTakeaways,
+  Quote,
+  TLDR,
+} from "./MdxBlocks";
 import { ProseCode } from "./ProseCode";
 import { getCopy } from "@/i18n";
 import type { ComponentProps, ComponentPropsWithoutRef } from "react";
@@ -37,6 +45,7 @@ const components = {
   Quote,
   FAQ,
   FAQItem,
+  Cta,
   pre: (props: ComponentPropsWithoutRef<"pre">) => (
     <ProseCode {...props} labels={code} />
   ),

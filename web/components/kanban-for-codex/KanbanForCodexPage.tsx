@@ -1,10 +1,10 @@
 import { Header } from "@/components/Header";
 import { SiteFooter } from "@/components/SiteFooter";
-import { BlogMdx } from "@/components/blog/BlogMdx";
-import { TocBlock, TocRail } from "@/components/blog/BlogToc";
+import { ArticleLayout } from "@/components/blog/ArticleLayout";
+import { Shot } from "@/components/blog/Shot";
 import { BUILDER_PATH } from "@/components/social";
 import { getCopy } from "@/i18n";
-import { AUTHOR, extractToc } from "@/lib/blog";
+import { AUTHOR } from "@/lib/blog";
 import {
   APP_ID,
   jsonLd,
@@ -76,12 +76,6 @@ const faqBody = faqs
   .join("\n\n");
 
 const BODY = `
-<TLDR title="The short answer">
-
-Codex executes tasks. AI4Kanban is the planning layer above those tasks: it clarifies what should be built, keeps product decisions consistent across sessions, coordinates dependencies, and asks for human judgment only when project evidence cannot supply the answer.
-
-</TLDR>
-
 Codex already gives you parallel tasks, reusable project instructions, skills, MCP servers, and resumable threads. A kanban should not duplicate those features. Its useful job begins earlier: deciding whether a task is ready for Codex and preserving the product context that should constrain every task after it.
 
 This guide explains that division of responsibility and the practical details of running Codex through AI4Kanban.
@@ -100,6 +94,13 @@ AI4Kanban treats the board as a planning system rather than a terminal dashboard
 
 This separation matters more as concurrency grows. Independent cards can start together. Blocked cards wait for their dependencies. A large goal can split into smaller cards that fit inside separate context windows without losing the parent outcome.
 
+<Shot
+  src="board"
+  wash="emberLilac"
+  alt="The AI4Kanban board: a Ready to build column, a Not ready column of feature cards, and a Recurring column, each card carrying an id, a priority, an ROI estimate and a checklist count"
+  caption="Cards are sorted by whether they are ready to build, not by whether an agent is free. A card leaves the right-hand column when its outcome and constraints are settled — the question marks are cards still holding an open decision."
+/>
+
 ## Can Codex clarify requirements before coding?
 
 AI4Kanban runs a clarification loop before implementation. It does not send every uncertainty to you.
@@ -110,6 +111,13 @@ AI4Kanban runs a clarification loop before implementation. It does not send ever
 4. It leaves open only the decisions that materially affect the product and require human judgment.
 
 An open question should arrive with a concise explanation, distinct options, and a recommendation. After you answer, the board merges the choice into the card instead of leaving it buried in a transcript.
+
+<Shot
+  src="runs"
+  wash="peachEmber"
+  alt="A finished clarification run in the Runs dialog, headed done, 8 minutes 28 seconds, estimated $3.18, with sections titled Settled from evidence and Left for you"
+  caption="One clarification run, and its two halves. Everything under Settled from evidence was resolved against the code and the project's own records; what reaches you is the single item under Left for you. The run reports its duration, its model and its estimated cost."
+/>
 
 <KeyTakeaways title="What should reach you">
 
@@ -140,6 +148,13 @@ The codebase tells Codex what exists. These files add why it exists, which alter
 
 Each run reads the memory relevant to its card rather than replaying every conversation. As the files grow, the board can prune them into concise, planning-useful summaries. The goal is not to preserve every word; it is to preserve decisions that should still change future work.
 
+<Shot
+  src="memory"
+  wash="mintSky"
+  alt="The memory browser, showing Settled decisions for one module beside a rail listing What shipped, Settled decisions, Design mistakes and Rejected ideas at both project and module level"
+  caption="The same four files, kept once for the project and again for each module. This is ordinary Markdown in your repository — you can read it, edit it, and see it change in a diff."
+/>
+
 For the broader reasoning, read [why project decisions become the bottleneck](/blog/project-decisions-are-the-bottleneck).
 
 ## How will I know when Codex genuinely needs me?
@@ -154,6 +169,13 @@ The board distinguishes the reason work stopped so you do not have to open every
 | Delivery review | The code is ready for acceptance or a manual check | Approve the diff or verify the result |
 
 Questions and approval requests appear in the app's notification center and can be sent to Slack. An optional diff-approval setting holds the exact reviewed tree before it lands. Other deliveries keep moving while one waits for you.
+
+<Shot
+  src="board-notifications"
+  wash="skyLilac"
+  alt="The notification rail beside the board, each row naming a card and its state: Question waiting, Ready for review, or Landed, with how long ago it happened"
+  caption="Every row says which card, what state it reached, and when. Question waiting and Ready for review are the two that need you; Landed is the record of work that did not."
+/>
 
 <Callout type="info" title="The board is not another log viewer">
 
@@ -175,6 +197,13 @@ Because the board launches Codex in the project, Codex continues to use:
 
 AI4Kanban adds the requirement lifecycle, project memory, dependencies, worktrees, run status, token reporting, estimated cost, and delivery controls around that existing setup. Named runtimes let different flows use different Codex models or effort levels—for example, a cheaper refine runtime and a more careful review runtime.
 
+<Shot
+  src="configuration-runtimes-codex"
+  wash="emberMint"
+  alt="The Codex runtime pane in Configuration: a row of coding-agent tiles with Codex selected, a Not supported by Codex list naming early-crash resume and rate-limit exit, then provider set to ChatGPT subscription, a model field and a reasoning-effort selector"
+  caption="Codex's own pane. The provider is explicit, so a saved API key never silently replaces your subscription login, and an empty model field keeps the Codex default. What Codex cannot do is stated on the same screen rather than discovered during a run."
+/>
+
 The exact connector matrix is maintained in [What each coding agent can do](/docs/connectors).
 
 ## Can AI4Kanban run Codex safely without hiding what it is doing?
@@ -184,6 +213,13 @@ The exact connector matrix is maintained in [What each coding agent can do](/doc
 Automatic deliveries build on separate branches in separate Git worktrees under .akb/worktrees/. Codex tasks do not write over one another or mix with edits in your main checkout. Finished deliveries land on the target branch one at a time.
 
 You can disable automatic commits globally or turn off the branch option for one delivery. In that manual mode, Codex works in your current checkout, only one delivery runs at once, and you commit after review passes.
+
+<Shot
+  src="configuration"
+  wash="peachEmber"
+  alt="The General pane of Configuration, with switches for Automatic Git commits and Approve diffs before landing, and a field ending a silent run after ten minutes"
+  caption="Three settings decide how much rope a run gets: whether it works in its own worktree, whether a finished tree waits for your approval, and how long a silent Codex process may sit there before the board ends the run."
+/>
 
 ### Codex keeps its sandbox
 
@@ -201,14 +237,12 @@ ${faqBody}
 
 </FAQ>
 
-## Where to go next
+<Cta>
 
-Use the [download page](/download) for installation, [the daily loop](/docs/daily-loop) for the complete card lifecycle, and [the connector guide](/docs/connectors) for current Codex capabilities and settings.
+Read [the daily loop](/docs/daily-loop) for the complete card lifecycle, and [the connector guide](/docs/connectors) for current Codex capabilities and settings.
 
-AI4Kanban is open source on [GitHub](https://github.com/ai4kanban/ai4kanban).
+</Cta>
 `;
-
-const toc = extractToc(BODY);
 
 const schema = jsonLd(
   {
@@ -231,13 +265,15 @@ export function KanbanForCodexPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: schema }} />
       <Header c={c} locale="en" />
-      <main className="mx-auto max-w-4xl px-6 pb-8">
-        <article>
-          <header className="mt-10 border-b-2 border-border pb-10 lg:mt-16">
+      <ArticleLayout
+        body={BODY}
+        extra={{ Shot }}
+        header={
+          <>
             <p className="font-mono text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-accent-deep">
               Codex workflow guide · 8 min read
             </p>
-            <h1 className="mt-3 text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl">
+            <h1 className="mt-3 text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl">
               Kanban for Codex: planning before parallel execution
             </h1>
             <p className="mt-5 text-lg text-muted">
@@ -251,17 +287,9 @@ export function KanbanForCodexPage() {
             >
               <span className="font-semibold text-ink">{AUTHOR.name}</span> · {AUTHOR.role}
             </a>
-          </header>
-
-          <div className="mt-12 lg:grid lg:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] lg:gap-10">
-            <TocRail items={toc} />
-            <div className="min-w-0">
-              <TocBlock items={toc} />
-              <BlogMdx source={BODY} />
-            </div>
-          </div>
-        </article>
-      </main>
+          </>
+        }
+      />
       <SiteFooter c={c} locale="en" path={PATH} />
     </>
   );

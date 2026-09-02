@@ -16,6 +16,10 @@
    a rule, and accent-deep for anything that is a link. */
 
 .blog-prose {
+  /* The body's hairline. Full-strength ink is for the page's structure — a rule
+     inside the reading column is a separator, not an edge. */
+  --prose-line: color-mix(in srgb, var(--color-ink) 14%, transparent);
+
   color: var(--color-ink);
   font-size: 1.0625rem;
   line-height: 1.75;
@@ -121,12 +125,13 @@
   font-size: 0.9em;
 }
 
-/* A fenced block is the panel `CodeBlock.tsx` draws: the wash, the hard ink
-   shadow, and no outline. `ProseCode.tsx` puts the copy button on it. */
+/* A fenced block is the panel `CodeBlock.tsx` draws: the hard ink shadow and no
+   outline, on the band rather than the darker code wash — a listing is a long
+   read, so its ground stays close to the page. `ProseCode.tsx` adds the button. */
 .blog-prose pre {
   overflow-x: auto;
   border-radius: 0.75rem;
-  background: var(--color-code);
+  background: var(--color-band);
   padding: 1.25rem 3.5rem 1.25rem 1.25rem;
   box-shadow: 4px 4px 0 0 var(--color-ink);
   font-size: 0.875rem;
@@ -159,7 +164,7 @@
   line-height: 1.6;
 }
 .blog-prose thead th {
-  background: var(--color-code);
+  background: var(--color-band);
   font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 600;
@@ -172,7 +177,7 @@
   padding: 0.7rem 0.9rem;
   text-align: left;
   vertical-align: top;
-  border-bottom: 2px solid var(--color-border);
+  border-bottom: 1px solid var(--prose-line);
 }
 .blog-prose tbody tr:last-child td {
   border-bottom: none;
@@ -274,8 +279,13 @@
 }
 .blog-prose .mdx-faq-list {
   margin-top: 1.5rem;
-  border-top: 1px solid color-mix(in srgb, var(--color-ink) 16%, transparent);
+  border-top: 1px solid var(--prose-line);
 }
 .blog-prose .mdx-faq-list details {
-  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 16%, transparent);
+  border-bottom: 1px solid var(--prose-line);
+}
+/* Closed rows keep an even rhythm; an open one gives its bottom padding back so
+   the answer sits with its question rather than floating between two rows. */
+.blog-prose .mdx-faq-list details[open] summary {
+  padding-bottom: 0.5rem;
 }

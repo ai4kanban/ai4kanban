@@ -12,7 +12,7 @@ import type { CodeBlockLabels } from "../CodeBlock";
 // arrives as compiled markup, so the text is read back off the DOM node instead
 // — the rendered <pre> is the only place it exists as a string.
 //
-// The block itself — the wash, the radius, the hard ink shadow — is drawn by
+// The block itself — the band, the radius, the hard ink shadow — is drawn by
 // `.blog-prose pre` in `app/blog-prose.css`. This file owns the button only.
 export function ProseCode({
   labels,
@@ -39,9 +39,9 @@ export function ProseCode({
         type="button"
         onClick={copy}
         aria-label={copied ? labels.copiedAria : labels.copyAria}
-        // The same button as `CodeBlock.tsx`: the outline stays ink, and hover
-        // lifts the fill off the wash it sits on.
-        className="absolute right-3 top-3 flex items-center gap-1.5 rounded-lg border-2 border-border bg-code px-2.5 py-1.5 text-xs font-medium text-muted opacity-0 transition-all duration-150 hover:bg-elev hover:text-ink focus-visible:opacity-100 focus-visible:outline-none active:scale-95 group-hover:opacity-100 cursor-pointer"
+        // A quiet chip on the block, not a control on the page: no outline, and
+        // the paper fill is what lifts it off the wash.
+        className="absolute right-2.5 top-2.5 flex cursor-pointer items-center gap-1.5 rounded-md bg-elev px-2 py-1 text-xs font-medium text-muted opacity-0 transition-all duration-150 hover:text-ink focus-visible:opacity-100 focus-visible:outline-none active:scale-95 group-hover:opacity-100"
       >
         {copied ? (
           <>

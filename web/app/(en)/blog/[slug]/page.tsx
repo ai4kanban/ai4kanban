@@ -2,17 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/Header";
 import { SiteFooter } from "@/components/SiteFooter";
-import { BlogMdx } from "@/components/blog/BlogMdx";
-import { TocBlock, TocRail } from "@/components/blog/BlogToc";
+import { ArticleLayout } from "@/components/blog/ArticleLayout";
 import { PostMeta } from "@/components/blog/PostMeta";
 import { getCopy } from "@/i18n";
-import {
-  AUTHOR,
-  extractToc,
-  getPost,
-  getRoutablePosts,
-  postPath,
-} from "@/lib/blog";
+import { AUTHOR, getPost, getRoutablePosts, postPath } from "@/lib/blog";
 import { pageMetadata } from "@/lib/metadata";
 import { article, jsonLd, person, webPage } from "@/lib/schema";
 import { BUILDER_PATH } from "@/components/social";
@@ -65,7 +58,6 @@ export default async function BlogPostPage({ params }: Params) {
   if (!post) notFound();
 
   const route = postPath(post);
-  const toc = extractToc(post.body);
 
   // Nothing to say about a draft: the page is `noindex`, so an Article node
   // describing it would be markup for a reader that has been told to leave.
@@ -93,11 +85,10 @@ export default async function BlogPostPage({ params }: Params) {
         />
       )}
       <Header c={c} locale="en" />
-      <main className="mx-auto max-w-5xl px-6 pb-8">
-        <article>
-          {/* The opening. It ends on the site's rule rather than a panel: the
-              post is the page, so there is no card to put it in. */}
-          <header className="mt-10 border-b-2 border-border pb-10 lg:mt-16">
+      <ArticleLayout
+        body={post.body}
+        header={
+          <>
             <div className="flex flex-wrap items-center gap-3">
               {/* Says out loud what the meta tags say quietly, so nobody links
                   to a draft thinking it went out. */}
@@ -108,7 +99,7 @@ export default async function BlogPostPage({ params }: Params) {
               )}
               <PostMeta post={post} />
             </div>
-            <h1 className="mt-3 text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl">
+            <h1 className="mt-3 text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl">
               {post.title}
             </h1>
             <p className="mt-5 text-lg text-muted">{post.dek}</p>
@@ -121,18 +112,9 @@ export default async function BlogPostPage({ params }: Params) {
               <span className="font-semibold text-ink">{AUTHOR.name}</span> ·{" "}
               {AUTHOR.role}
             </a>
-          </header>
-
-          {/* The body, with the rail beside it once there is room for one. */}
-          <div className="mt-12 lg:grid lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] lg:gap-12">
-            <TocRail items={toc} />
-            <div className="min-w-0">
-              <TocBlock items={toc} />
-              <BlogMdx source={post.body} />
-            </div>
-          </div>
-        </article>
-      </main>
+          </>
+        }
+      />
       <SiteFooter c={c} locale="en" path={route} />
     </>
   );

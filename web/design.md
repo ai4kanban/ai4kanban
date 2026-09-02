@@ -106,6 +106,9 @@ screen should contain only a handful of raised surfaces.
   buttons first, then the one panel a section is built around. Most components are
   neither; default them to bare, and let a wash step, spacing, and type carry them.
   Weight put on a block nobody clicks is weight the real action no longer has.
+- **Body linework is a hairline**: inside a reading column, a rule between rows separates
+  rather than frames — use `--prose-line` (1px, 14% ink, `app/blog-prose.css`). Full ink
+  rules between table rows make every paragraph shout.
 
 ## Component styling
 
